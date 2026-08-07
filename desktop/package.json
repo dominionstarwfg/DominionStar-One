@@ -1,0 +1,70 @@
+{
+  "name": "dominionstar-desktop",
+  "version": "0.1.0",
+  "description": "DominionStar desktop application for Windows and macOS",
+  "author": "DominionStar Leadership and Development",
+  "main": "src/main.mjs",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "verify": "node scripts/verify.mjs",
+    "pack": "electron-builder --dir",
+    "dist:windows": "electron-builder --win nsis --x64 --arm64",
+    "dist:mac": "electron-builder --mac dmg zip --universal"
+  },
+  "devDependencies": {
+    "electron": "43.3.0",
+    "electron-builder": "26.15.3"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  },
+  "build": {
+    "appId": "com.dominionstar.desktop",
+    "productName": "DominionStar",
+    "asar": true,
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "protocols": [
+      {
+        "name": "DominionStar Meeting Link",
+        "schemes": ["dominionstar"]
+      }
+    ],
+    "artifactName": "DominionStar-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [
+        { "target": "dmg", "arch": ["universal"] },
+        { "target": "zip", "arch": ["universal"] }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "src/entitlements.mac.plist",
+      "entitlementsInherit": "src/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "DominionStar uses your camera when you choose to join a meeting with video.",
+        "NSMicrophoneUsageDescription": "DominionStar uses your microphone when you choose to speak in a meeting.",
+        "NSScreenCaptureDescription": "DominionStar uses screen capture only when you choose to share your screen."
+      }
+    }
+  }
+}
