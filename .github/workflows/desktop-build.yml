@@ -28,7 +28,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: DominionStar-Windows
-          path: desktop/dist/*.{exe,blockmap,yml}
+          path: desktop/dist/
           if-no-files-found: error
 
   macos:
@@ -49,5 +49,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: DominionStar-macOS
-          path: desktop/dist/*.{dmg,zip,blockmap,yml}
+          path: desktop/dist/
           if-no-files-found: error
