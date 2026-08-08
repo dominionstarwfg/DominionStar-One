@@ -1,6 +1,6 @@
 {
   "name": "dominionstar-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DominionStar desktop application for Windows and macOS",
   "author": "DominionStar Leadership and Development",
   "main": "src/main.mjs",
@@ -31,7 +31,9 @@
     "protocols": [
       {
         "name": "DominionStar Meeting Link",
-        "schemes": ["dominionstar"]
+        "schemes": [
+          "dominionstar"
+        ]
       }
     ],
     "artifactName": "DominionStar-${version}-${os}-${arch}.${ext}",
@@ -39,7 +41,10 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ]
     },
@@ -53,8 +58,18 @@
     "mac": {
       "category": "public.app-category.business",
       "target": [
-        { "target": "dmg", "arch": ["universal"] },
-        { "target": "zip", "arch": ["universal"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,

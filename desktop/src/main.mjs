@@ -1,9 +1,11 @@
-import { app, BrowserWindow, Menu, Notification, session, shell, systemPreferences } from 'electron';
+import { app, BrowserWindow, Menu, Notification, session, shell, systemPreferences, desktopCapturer } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const APP_ORIGIN = 'https://dominionstarld.com';
-const HOME_URL = `${APP_ORIGIN}/workspace/`;
+const MEET_URL = `${APP_ORIGIN}/meet/?desktop=1`;
+const MEMBER_LOGIN_URL = `${APP_ORIGIN}/member-login/?next=%2Fmeet%2F%3Fdesktop%3D1`;
+const HOME_URL = MEET_URL;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let recoveryAttempts = 0;
@@ -63,6 +65,26 @@ function installPermissionPolicy() {
   ses.setPermissionCheckHandler((webContents, permission, requestingOrigin) => (
     isDominionStarUrl(requestingOrigin || webContents?.getURL() || '') && allowed.has(permission)
   ));
+
+  // Electron does not expose display capture to a loaded web application until
+  // the host app supplies a display-media handler. Prefer the operating system's
+  // native picker (macOS/Windows) and retain a safe fallback for older releases.
+  ses.setDisplayMediaRequestHandler(async (request, callback) => {
+    if (!isDominionStarUrl(request.securityOrigin || request.frame?.url || '')) {
+      callback({});
+      return;
+    }
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window'],
+        thumbnailSize: { width: 0, height: 0 },
+        fetchWindowIcons: true
+      });
+      callback(sources[0] ? { video: sources[0] } : {});
+    } catch {
+      callback({});
+    }
+  }, { useSystemPicker: true });
 }
 
 function createMenu() {
@@ -70,8 +92,8 @@ function createMenu() {
     {
       label: 'DominionStar',
       submenu: [
-        { label: 'Workspace', accelerator: 'CmdOrCtrl+1', click: () => mainWindow?.loadURL(HOME_URL) },
-        { label: 'New Meeting', accelerator: 'CmdOrCtrl+Shift+N', click: () => mainWindow?.loadURL(`${APP_ORIGIN}/meet/`) },
+        { label: 'Meet Home', accelerator: 'CmdOrCtrl+1', click: () => mainWindow?.loadFile(path.join(__dirname, 'launcher.html')) },
+        { label: 'New Meeting', accelerator: 'CmdOrCtrl+Shift+N', click: () => mainWindow?.loadURL(MEET_URL) },
         { type: 'separator' },
         { role: process.platform === 'darwin' ? 'close' : 'quit' }
       ]
@@ -86,7 +108,7 @@ function loadOffline() {
   mainWindow.loadFile(path.join(__dirname, 'offline.html'));
 }
 
-async function createWindow(initialUrl = HOME_URL) {
+async function createWindow(initialUrl = '') {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -119,6 +141,17 @@ async function createWindow(initialUrl = HOME_URL) {
     event.preventDefault();
     if (/^https?:/.test(url)) shell.openExternal(url);
   });
+  mainWindow.webContents.on('did-navigate', (_event, url) => {
+    try {
+      const target = new URL(url);
+      // The desktop product owns the meeting experience only. If the existing
+      // member login sends a user to its normal web dashboard, carry the valid
+      // signed-in session directly into Meet instead.
+      if (target.origin === APP_ORIGIN && ['/member-dashboard/', '/workspace/'].includes(target.pathname)) {
+        mainWindow.loadURL(MEET_URL);
+      }
+    } catch {}
+  });
   mainWindow.webContents.on('did-fail-load', (_event, code, description, _url, isMainFrame) => {
     if (isMainFrame && code !== -3) loadOffline();
   });
@@ -132,7 +165,13 @@ async function createWindow(initialUrl = HOME_URL) {
   });
   mainWindow.webContents.on('did-finish-load', () => { recoveryAttempts = 0; });
 
-  await mainWindow.loadURL(isDominionStarUrl(initialUrl) ? initialUrl : HOME_URL).catch(loadOffline);
+  if (initialUrl && isDominionStarUrl(initialUrl)) {
+    await mainWindow.loadURL(initialUrl).catch(loadOffline);
+  } else {
+    await mainWindow.loadFile(path.join(__dirname, 'launcher.html'), {
+      query: { memberLogin: MEMBER_LOGIN_URL, meet: MEET_URL }
+    }).catch(loadOffline);
+  }
 }
 
 const hasLock = app.requestSingleInstanceLock();
