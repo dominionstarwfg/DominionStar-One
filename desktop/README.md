@@ -1,4 +1,4 @@
-# DominionStar Desktop — Alpha 1
+# DominionStar Meet Desktop — Alpha 5
 
 This folder contains the Windows and macOS desktop shell for the live DominionStar platform.
 
@@ -19,9 +19,13 @@ Signed public installers require a Windows code-signing certificate and an Apple
 
 The included GitHub Actions workflow builds both platforms on their native operating systems. Push a tag such as `desktop-v0.1.0` or run **DominionStar Desktop Installers** manually, then download the Windows and macOS artifacts from the workflow run.
 
-## Alpha 1 capabilities
+## Alpha 5 capabilities
 
-- Persistent DominionStar sign-in and browser session
+- Separate sign-in and registration paths for existing DominionStar members and new Meet users
+- Dedicated Meet Home; the Agent Dashboard and public platform remain in the browser
+- Persistent Home navigation from every desktop screen
+- Visual screen/window source picker with optional computer-sound sharing
+- Host/co-host remote-control requests for entire-screen shares, with explicit sharer consent and immediate revocation
 - Secure, sandboxed web application window
 - Native camera and microphone permission requests on macOS
 - Safe handling of external links
