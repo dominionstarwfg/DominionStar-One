@@ -14,8 +14,9 @@ for (const safeguard of ['contextIsolation: true', 'nodeIntegration: false', 'sa
 if (!main.includes('setDisplayMediaRequestHandler')) throw new Error('Missing native screen-sharing bridge');
 if (!main.includes("ipcMain.handle('desktop:share-sources'")) throw new Error('Missing desktop share source picker');
 if (!main.includes("ipcMain.on('desktop:home'")) throw new Error('Missing persistent Meet Home navigation');
+if (!main.includes("ipcMain.handle('desktop:open-external'")) throw new Error('Missing secure system-browser OAuth bridge');
 if (!main.includes("ipcMain.handle('desktop:remote-input'")) throw new Error('Missing native remote-control input bridge');
 if (!main.includes('isTrustedAccessibilityClient')) throw new Error('Missing macOS Accessibility consent gate');
 if (!main.includes("'/meet-home/'")) throw new Error('Missing dedicated Meet Home route');
-if (!main.includes("createWindow(deepLink ? resolveDeepLink(deepLink) : '')")) throw new Error('Normal startup bypasses the Meet launcher');
+if (!main.includes('createWindow(deepLink ? resolveDeepLink(deepLink) : MEET_HOME_URL)')) throw new Error('Normal startup does not resume Meet Home');
 console.log('DominionStar Desktop verification passed.');

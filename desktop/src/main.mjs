@@ -34,7 +34,9 @@ function isDesktopRoute(value) {
 
 function loadLauncher() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  return mainWindow.loadFile(path.join(__dirname, 'launcher.html'));
+  // The persistent Electron partition keeps the Supabase session. Meet Home
+  // redirects to sign-in only when that session is actually absent/expired.
+  return mainWindow.loadURL(MEET_HOME_URL);
 }
 
 function resolveDeepLink(value) {
@@ -45,6 +47,13 @@ function resolveDeepLink(value) {
       const meeting = url.searchParams.get('meeting') || url.pathname.replace(/^\//, '');
       const target = new URL('/meet/', APP_ORIGIN);
       if (meeting) target.searchParams.set('meeting', meeting.slice(0, 160));
+      return target.toString();
+    }
+    if (url.hostname === 'auth' && url.pathname === '/callback') {
+      const target = new URL('/meet-login/?desktop=1&oauth=complete', APP_ORIGIN);
+      // Supabase's short-lived session tokens arrive in the URL fragment. They
+      // are only loaded into the trusted Meet origin and never sent to a server.
+      target.hash = url.hash;
       return target.toString();
     }
     return HOME_URL;
@@ -185,14 +194,6 @@ async function createWindow(initialUrl = '') {
   });
   mainWindow.webContents.on('did-finish-load', () => {
     recoveryAttempts = 0;
-    if (!mainWindow.webContents.getURL().startsWith('file:')) mainWindow.webContents.executeJavaScript(`(() => {
-      if (document.getElementById('dominionDesktopHome')) return;
-      const button=document.createElement('button');
-      button.id='dominionDesktopHome'; button.type='button'; button.textContent='⌂  Home';
-      button.setAttribute('aria-label','Return to DominionStar Meet Home');
-      Object.assign(button.style,{position:'fixed',top:'14px',left:'14px',zIndex:'2147483647',border:'1px solid #c9a33d',borderRadius:'999px',padding:'9px 14px',background:'#111827',color:'#fff',font:'600 13px system-ui',boxShadow:'0 5px 18px #0004',cursor:'pointer'});
-      button.addEventListener('click',()=>window.dominionDesktop?.goHome()); document.body.append(button);
-    })()`).catch(()=>{});
   });
 
   if (initialUrl && isDominionStarUrl(initialUrl)) {
@@ -215,6 +216,10 @@ app.on('second-instance', (_event, argv) => {
 });
 
 ipcMain.on('desktop:home', loadLauncher);
+ipcMain.handle('desktop:open-external', (event, value='') => {
+  if(!isDesktopRoute(event.sender.getURL()))return false;
+  try{const target=new URL(String(value));if(target.protocol!=='https:')return false;shell.openExternal(target.toString());return true;}catch{return false;}
+});
 ipcMain.handle('desktop:share-sources', async (event) => {
   if (!isDesktopRoute(event.sender.getURL())) return [];
   const sources = await desktopCapturer.getSources({types:['screen','window'],thumbnailSize:{width:360,height:220},fetchWindowIcons:true});
@@ -261,9 +266,9 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(createMenu());
   await requestMacMediaAccess();
   const deepLink = process.argv.find((value) => value.startsWith('dominionstar://'));
-  // A normal app launch always begins at the desktop identity chooser. Only an
-  // explicit dominionstar:// meeting link may bypass the launcher.
-  await createWindow(deepLink ? resolveDeepLink(deepLink) : '');
+  // Resume the signed-in Meet account on normal launches. Meet Home sends a
+  // signed-out or expired session to the account chooser automatically.
+  await createWindow(deepLink ? resolveDeepLink(deepLink) : MEET_HOME_URL);
   if (Notification.isSupported()) new Notification({ title: 'DominionStar', body: 'Desktop is ready.' }).show();
 });
 

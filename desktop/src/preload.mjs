@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   platform: process.platform,
   version: process.versions.electron,
   goHome: () => ipcRenderer.send('desktop:home'),
+  openExternal: url => ipcRenderer.invoke('desktop:open-external', url),
   getShareSources: () => ipcRenderer.invoke('desktop:share-sources'),
   selectShareSource: (sourceId, audio = false, displayId = '') => ipcRenderer.invoke('desktop:select-share-source', {sourceId, audio, displayId}),
   requestRemoteControlPermission: () => ipcRenderer.invoke('desktop:remote-control-permission'),
