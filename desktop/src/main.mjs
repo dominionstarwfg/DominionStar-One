@@ -11,7 +11,11 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 4;
+const DESKTOP_BRIDGE_VERSION = 5;
+const macSystemMajor = process.platform === 'darwin'
+  ? Number.parseInt(process.getSystemVersion?.().split('.')[0] || '0', 10)
+  : 0;
+const supportsNativeSystemPicker = process.platform === 'darwin' && macSystemMajor >= 15;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let pendingDeepLink = '';
@@ -146,7 +150,7 @@ function installPermissionPolicy(ses) {
       lastCaptureFailure=captureSession.lastFailure;
       callback({});
     }
-  });
+  }, {useSystemPicker:supportsNativeSystemPicker});
 }
 
 function createMenu() {
@@ -263,7 +267,7 @@ ipcMain.on('desktop:account-chooser', event => {
 });
 ipcMain.handle('desktop:runtime-info', event => {
   if (!isDominionStarUrl(event.sender.getURL())) return null;
-  return {bridgeVersion:DESKTOP_BRIDGE_VERSION,appVersion:app.getVersion(),platform:process.platform,persistentSession:true};
+  return {bridgeVersion:DESKTOP_BRIDGE_VERSION,appVersion:app.getVersion(),platform:process.platform,persistentSession:true,supportsNativeSystemPicker};
 });
 ipcMain.handle('desktop:open-external', async (event, value='') => {
   if(!isDominionStarUrl(event.sender.getURL()))return false;

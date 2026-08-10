@@ -35,7 +35,8 @@ if (!main.includes('else pendingDeepLink=url')) throw new Error('macOS OAuth cal
 if (!main.includes('consumedAuthCallback === url.hash')) throw new Error('Desktop OAuth callback is not single-use guarded');
 if (!main.includes('process.defaultApp') || !main.includes("setAsDefaultProtocolClient('dominionstar'")) throw new Error('Packaged/development deep-link registration is incomplete');
 const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-if(packageJson.version!=='1.0.1')throw new Error('Unexpected desktop package version');
+if(packageJson.version!=='1.0.2')throw new Error('Unexpected desktop package version');
 if(!main.includes("preload: path.join(__dirname, 'preload.cjs')"))throw new Error('Sandboxed desktop bridge must use the CommonJS preload');
+if(!main.includes('{useSystemPicker:supportsNativeSystemPicker}'))throw new Error('Missing native macOS system screen picker');
 if(!packageJson.build?.mac?.extendInfo?.NSAudioCaptureUsageDescription)throw new Error('Missing macOS audio-capture privacy description');
 console.log('DominionStar Desktop verification passed.');
