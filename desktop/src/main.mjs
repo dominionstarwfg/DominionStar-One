@@ -11,7 +11,7 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 3;
+const DESKTOP_BRIDGE_VERSION = 4;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let pendingDeepLink = '';
@@ -180,7 +180,8 @@ async function createWindow(initialUrl = '') {
     backgroundColor: '#f4f7fb',
     title: 'DominionStar Meet',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      // Sandboxed preload scripts use Electron's supported CommonJS loader.
+      preload: path.join(__dirname, 'preload.cjs'),
       partition: DESKTOP_PARTITION,
       contextIsolation: true,
       nodeIntegration: false,
