@@ -1,4 +1,4 @@
-# DominionStar Meet Desktop — Alpha 5
+# DominionStar Meet Desktop — 1.0 Candidate
 
 This folder contains the Windows and macOS desktop shell for the live DominionStar platform.
 
@@ -19,12 +19,12 @@ Signed public installers require a Windows code-signing certificate and an Apple
 
 The included GitHub Actions workflow builds both platforms on their native operating systems. Push a tag such as `desktop-v0.1.0` or run **DominionStar Desktop Installers** manually, then download the Windows and macOS artifacts from the workflow run.
 
-## Alpha 5 capabilities
+## 1.0 candidate capabilities
 
 - Separate sign-in and registration paths for existing DominionStar members and new Meet users
 - Dedicated Meet Home; the Agent Dashboard and public platform remain in the browser
 - Persistent Home navigation from every desktop screen
-- Visual screen/window source picker with optional computer-sound sharing
+- Visual screen/window source picker; Windows can include computer sound
 - Host/co-host remote-control requests for entire-screen shares, with explicit sharer consent and immediate revocation
 - Secure, sandboxed web application window
 - Native camera and microphone permission requests on macOS
@@ -34,3 +34,12 @@ The included GitHub Actions workflow builds both platforms on their native opera
 - Windows NSIS and universal macOS DMG/ZIP packaging configuration
 
 The existing web platform remains the communication engine, so web and desktop participants share the same meetings, chat, reactions, hand queue, and account data.
+
+## Production requirements
+
+- Deploy the matching web release before distributing this desktop build.
+- Configure TURN relay credentials in Netlify for reliable calls across strict networks.
+- Configure DeepL or Google Translate in Netlify for translated captions.
+- Public macOS distribution requires Developer ID signing and Apple notarization.
+- Public Windows distribution should use Authenticode signing.
+- macOS computer-audio sharing is not advertised by this build; it requires a supported native audio capture implementation.
