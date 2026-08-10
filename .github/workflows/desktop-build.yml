@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'desktop-v*'
+      - "desktop-v*"
 
 permissions:
   contents: read
@@ -14,40 +14,40 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: desktop
+        working-directory: "desktop 2"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: "desktop 2/package-lock.json"
       - run: npm ci
       - run: npm run verify
       - run: npm run dist:windows
       - uses: actions/upload-artifact@v4
         with:
           name: DominionStar-Windows
-          path: desktop/dist/
+          path: "desktop 2/dist/"
           if-no-files-found: error
 
   macos:
     runs-on: macos-latest
     defaults:
       run:
-        working-directory: desktop
+        working-directory: "desktop 2"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: "desktop 2/package-lock.json"
       - run: npm ci
       - run: npm run verify
       - run: npm run dist:mac
       - uses: actions/upload-artifact@v4
         with:
           name: DominionStar-macOS
-          path: desktop/dist/
+          path: "desktop 2/dist/"
           if-no-files-found: error
