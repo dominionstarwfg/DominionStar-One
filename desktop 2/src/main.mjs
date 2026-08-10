@@ -273,9 +273,16 @@ ipcMain.handle('desktop:open-external', async (event, value='') => {
 });
 ipcMain.handle('desktop:share-sources', async (event, options={}) => {
   if (!isDesktopRoute(event.sender.getURL())) return [];
-  const screenStatus=process.platform==='darwin'?systemPreferences.getMediaAccessStatus('screen'):'granted';
-  if(screenStatus==='denied'||screenStatus==='restricted')return [];
-  const sources = await desktopCapturer.getSources({types:['screen','window'],thumbnailSize:{width:480,height:300},fetchWindowIcons:true});
+  // Do not trust a cached macOS permission value as a precondition. A real
+  // desktopCapturer request is authoritative and also lets a newly granted
+  // permission take effect without trapping the user in a Settings loop.
+  let sources=[];
+  try{
+    sources=await desktopCapturer.getSources({types:['screen','window'],thumbnailSize:{width:480,height:300},fetchWindowIcons:true});
+  }catch(error){
+    lastCaptureFailure=error?.message||'source-enumeration-failed';
+    return [];
+  }
   const ownSourceId=typeof mainWindow?.getMediaSourceId==='function'?mainWindow.getMediaSourceId():'';
   return visibleCaptureSources(sources,{includeOwnWindows:Boolean(options.includeOwnWindows),ownSourceId}).map(source=>({id:source.id,name:source.name,thumbnail:source.thumbnail?.toDataURL?.()||'',icon:source.appIcon?.toDataURL?.()||'',kind:source.id.startsWith('screen:')?'screen':'window',displayId:String(source.display_id||''),ownWindow:isDominionStarCaptureSource(source,ownSourceId)}));
 });

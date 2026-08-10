@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   isDesktop: true,
   platform: process.platform,
   version: process.versions.electron,
-  buildVersion: '1.0.4-dev',
+  buildVersion: '1.0.4',
   bridgeVersion: 7,
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
   goHome: () => ipcRenderer.send('desktop:home'),

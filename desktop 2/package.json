@@ -1,6 +1,6 @@
 {
   "name": "dominionstar-desktop",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "DominionStar Meet desktop application for Windows and macOS",
   "author": "DominionStar Leadership and Development",
   "main": "src/main.mjs",
