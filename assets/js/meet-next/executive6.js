@@ -171,7 +171,11 @@
     const uiId=uiSpeakerId(canonicalId);
     const normalized=Math.max(0,Number(level||0));
     const person=state.participants.get(uiId);
-    const allowed=uiId==='self'?Boolean(state.audio):person?.audio!==false;
+    // A received voice-activity sample is direct evidence that a remote
+    // microphone is live. Do not let an older presence/media snapshot suppress
+    // its green meter. Local mute intent remains authoritative for self.
+    if(uiId!=='self'&&active&&person)person.audio=true;
+    const allowed=uiId==='self'?Boolean(state.audio):Boolean(active||person?.audio!==false);
     active=Boolean(active)&&allowed;
     const wasActive=Boolean(state.speakerClaims.get(canonicalId)?.active);
     state.speakerClaims.set(canonicalId,{active,level:active?normalized:0,updatedAt:Date.now()});
@@ -959,6 +963,23 @@
   }
   enablePresenterToolbarDrag();
 
+  if(window.dominionDesktop?.isDesktop&&window.dominionDesktop?.onPresenterCommand){
+    window.dominionDesktop.onPresenterCommand(command=>{
+      const actions={
+        audio:()=>ids.micBtn?.click(),
+        video:()=>ids.camBtn?.click(),
+        participants:()=>ids.participantsBtn?.click(),
+        chat:()=>ids.chatBtn?.click(),
+        reactions:()=>ids.reactionBtn?.click(),
+        pause:()=>ids.pauseShareBtn?.click(),
+        'new-share':()=>ids.newShareBtn?.click(),
+        more:()=>ids.moreBtn?.click(),
+        stop:()=>ids.stopShareBtn?.click()
+      };
+      actions[command]?.();
+    });
+  }
+
   function showSharedStage(participantId) {
     const person = participantId === 'self'
       ? {displayName:ids.selfName.textContent || 'You', stream:engine.snapshot().screenStream}
@@ -968,7 +989,15 @@
     state.sharing = true;
     state.sharingParticipantId = participantId;
     setPresentationMode(true, person.displayName);
-    if (hasLiveVideo(stream)) {
+    const privateDesktopPresenter=participantId==='self'&&Boolean(window.dominionDesktop?.isDesktop);
+    if (privateDesktopPresenter) {
+      // Never paint an entire-display capture back into the desktop meeting
+      // window. Doing so creates the recursive tunnel Zoom deliberately avoids.
+      ids.stageVideo.srcObject=null;
+      ids.stageVideo.hidden=true;
+      ids.stageFallback.hidden=false;
+      ids.stageName.textContent='You are sharing your screen';
+    } else if (hasLiveVideo(stream)) {
       bindStableVideo(ids.stageVideo,stream,{muted:participantId==='self',mirror:false,play:true});
       ids.stageFallback.hidden = true;
     ids.stageVideo.hidden = false;
@@ -1609,8 +1638,18 @@
   engine.on('screen-stream',({stream})=>{
     state.sharing=true;
     state.sharingParticipantId='self';
-    bindStableVideo(ids.stageVideo,stream,{muted:true,mirror:false,play:true});
-    ids.stageFallback.hidden=true;
+    if(window.dominionDesktop?.isDesktop){
+      window.dominionDesktop.showPresenterToolbar?.();
+      ids.shareStatusBar.hidden=true;
+      ids.stageVideo.srcObject=null;
+      ids.stageVideo.hidden=true;
+      ids.stageFallback.hidden=false;
+      ids.stageName.textContent='You are sharing your screen';
+    }else{
+      bindStableVideo(ids.stageVideo,stream,{muted:true,mirror:false,play:true});
+      ids.stageFallback.hidden=true;
+      ids.stageVideo.hidden=false;
+    }
     ids.shareBtn.classList.add('active-share');
     ids.shareBtn.querySelector('.tool-label').textContent='Stop Share';
     setPresentationMode(true, ids.selfName.textContent || 'You');
@@ -1651,6 +1690,7 @@
     }
   });
   engine.on('screen-ended',()=>{
+    window.dominionDesktop?.hidePresenterToolbar?.();
     ids.shareBtn.classList.remove('active-share');
     ids.shareBtn.querySelector('.tool-label').textContent='Share Screen';
     endPresentationMode();

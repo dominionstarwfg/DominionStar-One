@@ -11,9 +11,10 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 7;
+const DESKTOP_BRIDGE_VERSION = 8;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
+let presenterWindow;
 let pendingDeepLink = '';
 let consumedAuthCallback = '';
 let recoveryAttempts = 0;
@@ -60,6 +61,49 @@ function loadAccountChooser() {
   return mainWindow.loadFile(path.join(__dirname, 'launcher.html'), {
     query: { memberLogin: MEMBER_LOGIN_URL, meet: MEET_URL }
   });
+}
+
+function createPresenterWindow() {
+  if (presenterWindow && !presenterWindow.isDestroyed()) return presenterWindow;
+  presenterWindow = new BrowserWindow({
+    width: 930,
+    height: 76,
+    minWidth: 720,
+    minHeight: 70,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    hasShadow: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'presenter-preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+  presenterWindow.setContentProtection(true);
+  presenterWindow.setAlwaysOnTop(true, 'floating');
+  presenterWindow.setVisibleOnAllWorkspaces(true, {visibleOnFullScreen:true});
+  presenterWindow.loadFile(path.join(__dirname, 'presenter-toolbar.html'));
+  presenterWindow.on('closed', () => { presenterWindow = null; });
+  return presenterWindow;
+}
+
+function showPresenterWindow() {
+  const win=createPresenterWindow();
+  const display=electronScreen.getDisplayNearestPoint(electronScreen.getCursorScreenPoint());
+  const bounds=display.workArea;
+  const size=win.getSize();
+  win.setPosition(Math.round(bounds.x+(bounds.width-size[0])/2),bounds.y+18,false);
+  win.showInactive();
+}
+
+function hidePresenterWindow() {
+  if(presenterWindow&&!presenterWindow.isDestroyed())presenterWindow.hide();
 }
 
 function resolveDeepLink(value) {
@@ -194,6 +238,11 @@ async function createWindow(initialUrl = '') {
   });
 
   mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.on('closed',()=>{
+    if(presenterWindow&&!presenterWindow.isDestroyed())presenterWindow.destroy();
+    presenterWindow=null;
+    mainWindow=null;
+  });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isDesktopRoute(url)) {
       mainWindow.loadURL(url);
@@ -259,6 +308,20 @@ app.on('second-instance', (_event, argv) => {
 });
 
 ipcMain.on('desktop:home', loadMeetHome);
+ipcMain.on('desktop:presenter-show', event => {
+  if(!isDesktopRoute(event.sender.getURL()))return;
+  showPresenterWindow();
+});
+ipcMain.on('desktop:presenter-hide', event => {
+  if(!isDesktopRoute(event.sender.getURL()))return;
+  hidePresenterWindow();
+});
+ipcMain.on('desktop:presenter-command', (event, command='') => {
+  if(event.sender!==presenterWindow?.webContents)return;
+  const allowed=new Set(['audio','video','participants','chat','reactions','pause','new-share','more','stop']);
+  const safe=String(command||'');
+  if(allowed.has(safe)&&mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('desktop:presenter-command',safe);
+});
 ipcMain.on('desktop:account-chooser', event => {
   if (!isDominionStarUrl(event.sender.getURL())) return;
   loadAccountChooser();
@@ -278,7 +341,7 @@ ipcMain.handle('desktop:share-sources', async (event, options={}) => {
   // permission take effect without trapping the user in a Settings loop.
   let sources=[];
   try{
-    sources=await desktopCapturer.getSources({types:['screen','window'],thumbnailSize:{width:480,height:300},fetchWindowIcons:true});
+    sources=await desktopCapturer.getSources({types:['screen','window'],thumbnailSize:{width:384,height:240},fetchWindowIcons:false});
   }catch(error){
     lastCaptureFailure=error?.message||'source-enumeration-failed';
     return [];
@@ -312,6 +375,7 @@ ipcMain.handle('desktop:end-share', event => {
   captureSession.end();
   remoteControlCapability='';
   mainWindow?.setContentProtection?.(false);
+  hidePresenterWindow();
   return true;
 });
 ipcMain.handle('desktop:remote-control-permission', (event, context={}) => {
