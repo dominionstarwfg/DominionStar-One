@@ -1015,6 +1015,13 @@
     if(wantsVideo && !stream.getVideoTracks().length){
       try{const extra=await navigator.mediaDevices.getUserMedia({video:video||true,audio:false});const track=extra.getVideoTracks()[0];if(track)stream.addTrack(track);}catch(error){lastError=lastError||error;}
     }
+    // Privacy invariant: a disabled camera is an ended camera capture, not a
+    // live-but-disabled track. macOS keeps the green hardware indicator on for
+    // disabled tracks, so remove and stop every unwanted video track before
+    // the stream is attached to the meeting.
+    if(!wantsVideo&&stream){
+      stream.getVideoTracks().forEach(track=>{try{stream.removeTrack(track);}catch(_){};if(track.readyState!=='ended')track.stop();});
+    }
     state.mediaState.audio=Boolean(wantsAudio&&stream.getAudioTracks().length);
     state.mediaState.video=Boolean(wantsVideo&&stream.getVideoTracks().length);
     if (!stream) {
@@ -1085,10 +1092,9 @@
     window.DominionRuntime?.events?.publish?.({type:'media.camera.toggled',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,payload:{enabled:target,trackState:track?.readyState||'missing',...extra}});
   };
 
-  // Camera intent is intentionally separated from camera acquisition. Turning video off
-  // must be instantaneous and must never wait behind a recovery/renegotiation operation.
-  // Turning it back on uses the existing live track when possible and only enters the
-  // serialized media queue when a real track acquisition is required.
+  // Zoom-style camera privacy: Video Off ends hardware capture completely.
+  // Video On acquires a fresh track and replaces only the reserved camera
+  // sender, preserving audio, screen share, and the peer connection.
   const toggleVideo = enabled => {
     const target=Boolean(enabled);
     const seq=++state.videoToggleSeq;
@@ -1097,15 +1103,14 @@
     let track=state.localStream?.getVideoTracks?.()[0]||null;
 
     if(!target){
-      if(track)track.enabled=false;
+      if(track){
+        try{state.localStream?.removeTrack?.(track);}catch(_){}
+        if(track.readyState!=='ended')track.stop();
+      }
+      // Replace the camera sender with null without renegotiating the meeting.
+      for(const peer of state.peers.values())syncPeerTracks(peer).catch(()=>{});
       publishCameraState(false,track,{intent:'user-off',seq});
       return Promise.resolve(false);
-    }
-
-    if(track?.readyState==='live'){
-      track.enabled=true;
-      publishCameraState(true,track,{intent:'user-on',seq,reusedTrack:true});
-      return Promise.resolve(true);
     }
 
     return queueMediaMutation(async()=>{
@@ -1118,7 +1123,9 @@
         throw error;
       }
       if(!state.desiredVideo || seq!==state.videoToggleSeq){
-        track.enabled=false;
+        try{state.localStream?.removeTrack?.(track);}catch(_){}
+        if(track.readyState!=='ended')track.stop();
+        for(const peer of state.peers.values())await syncPeerTracks(peer);
         publishCameraState(false,track,{intent:'superseded',seq});
         return false;
       }
@@ -1137,7 +1144,8 @@
     if(desktopExpected&&(!window.dominionDesktop?.isDesktop||!window.DominionDesktopSharePicker?.choose)){
       throw new Error('The DominionStar desktop capture bridge did not load. Install the latest desktop update and completely reopen the app.');
     }
-    if(window.dominionDesktop?.isDesktop && window.DominionDesktopSharePicker?.choose){
+    const desktopRuntime=window.dominionDesktop?.isDesktop?await window.dominionDesktop.getRuntimeInfo?.().catch(()=>null):null;
+    if(window.dominionDesktop?.isDesktop && !desktopRuntime?.systemSharePicker && window.DominionDesktopSharePicker?.choose){
       desktopSelection=await window.DominionDesktopSharePicker.choose();
       if(!desktopSelection){const cancelled=new Error('Screen sharing cancelled.');cancelled.name='AbortError';throw cancelled;}
       const accepted=await window.dominionDesktop.selectShareSource(desktopSelection.sourceId,desktopSelection.audio,desktopSelection.displayId||'',desktopSelection.kind||'',desktopSelection.sourceName||'',desktopSelection.shareOwnWindow);
@@ -1151,7 +1159,7 @@
     const desktopAudio=Boolean(desktopSelection?.audio&&window.dominionDesktop?.supportsSystemAudioShare);
     const displayOptions=desktopSelection
       ? {video:true,...(desktopAudio?{audio:true}:{})}
-      : {video:true,audio:true};
+      : {video:true,audio:Boolean(desktopRuntime?.systemSharePicker)};
     let stream;
     try {
       stream = await navigator.mediaDevices.getDisplayMedia(displayOptions);

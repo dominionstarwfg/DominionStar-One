@@ -355,7 +355,15 @@
         if(!previewVideo.hidden)previewVideo.play().catch(()=>{});
       };
       previewMic.onclick=async()=>{state.audio=!state.audio;state.stream?.getAudioTracks?.().forEach(track=>track.enabled=state.audio);syncPreview();if(previewRemember.checked){ids.alwaysJoinMuted.checked=!state.audio;await saveAccountPreferences();}};
-      previewCam.onclick=async()=>{state.video=!state.video;state.stream?.getVideoTracks?.().forEach(track=>track.enabled=state.video);syncPreview();if(previewRemember.checked){ids.alwaysJoinCameraOff.checked=!state.video;await saveAccountPreferences();}};
+      previewCam.onclick=async()=>{
+        const target=!state.video;
+        state.video=target;
+        try{
+          await engine.toggleVideo(target);
+        }catch(error){state.video=false;toast(error.message||'Camera unavailable');}
+        syncPreview();
+        if(previewRemember.checked){ids.alwaysJoinCameraOff.checked=!state.video;await saveAccountPreferences();}
+      };
       gate.querySelector('.waiting-preview-settings').onclick=()=>ids.settingsDialog.showModal();
       gate._syncPreview=syncPreview;
     }
@@ -517,7 +525,9 @@
 
   async function ensurePreview() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:true});
+      const stream = (!state.video&&!state.audio)
+        ? new MediaStream()
+        : await navigator.mediaDevices.getUserMedia({video:state.video?{width:{ideal:1280},height:{ideal:720}}:false,audio:state.audio});
       setStream(stream);
       await loadDevices();
     } catch (error) {
@@ -1781,7 +1791,29 @@
 
   ids.joinForm.addEventListener('submit',join);
   ids.preMic.onclick=()=>{ state.audio=!state.audio; playTone(state.audio?'unmute':'mute'); ids.preMic.classList.toggle('active',state.audio); ids.preMic.querySelector('[data-icon]').innerHTML=ICONS[state.audio?'mic':'mic-off']; state.stream?.getAudioTracks().forEach(t=>t.enabled=state.audio); };
-  ids.preCam.onclick=()=>{ state.video=!state.video; ids.preCam.classList.toggle('active',state.video); ids.preCam.querySelector('[data-icon]').innerHTML=ICONS[state.video?'video':'video-off']; state.stream?.getVideoTracks().forEach(t=>t.enabled=state.video); ids.prejoinFallback.hidden=state.video; };
+  ids.preCam.onclick=async()=>{
+    const target=!state.video;
+    state.video=target;
+    ids.preCam.disabled=true;
+    try{
+      if(!target){
+        state.stream?.getVideoTracks?.().forEach(track=>{try{state.stream.removeTrack(track);}catch(_){};if(track.readyState!=='ended')track.stop();});
+      }else if(!hasLiveVideo(state.stream)){
+        const fresh=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:false});
+        const track=fresh.getVideoTracks()[0];
+        if(!track)throw new Error('No camera was available.');
+        if(!state.stream)state.stream=new MediaStream();
+        state.stream.addTrack(track);
+      }
+      bindStableVideo(ids.prejoinVideo,state.stream,{muted:true,mirror:true,play:true});
+      ids.prejoinFallback.hidden=!(state.video&&hasLiveVideo(state.stream));
+    }catch(error){state.video=false;toast(error.message||'Camera unavailable');}
+    finally{
+      ids.preCam.classList.toggle('active',state.video);
+      ids.preCam.querySelector('[data-icon]').innerHTML=ICONS[state.video?'video':'video-off'];
+      ids.preCam.disabled=false;
+    }
+  };
   ids.preSettings.onclick=()=>ids.settingsDialog.showModal();
   ids.micBtn.onclick=()=>{
     if(!state.audio&&!state.isHost&&state.role!=='cohost'&&!state.security.allowUnmute){toast('The host disabled participant unmuting');return;}

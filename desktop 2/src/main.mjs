@@ -11,7 +11,7 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 9;
+const DESKTOP_BRIDGE_VERSION = 10;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let presenterWindow;
@@ -22,6 +22,12 @@ const captureSession = new CaptureSession();
 let remoteControlCapability = '';
 let remoteInputQueue = Promise.resolve();
 let lastCaptureFailure = '';
+
+const supportsMacSystemPicker=()=>{
+  if(process.platform!=='darwin')return false;
+  const major=Number(String(process.getSystemVersion?.()||'0').split('.')[0]||0);
+  return major>=15;
+};
 
 app.enableSandbox();
 
@@ -202,7 +208,7 @@ function installPermissionPolicy(ses) {
       lastCaptureFailure=captureSession.lastFailure;
       callback({});
     }
-  });
+  },{useSystemPicker:supportsMacSystemPicker()});
 }
 
 function createMenu() {
@@ -345,7 +351,7 @@ ipcMain.on('desktop:account-chooser', event => {
 });
 ipcMain.handle('desktop:runtime-info', event => {
   if (!isDominionStarUrl(event.sender.getURL())) return null;
-  return {bridgeVersion:DESKTOP_BRIDGE_VERSION,appVersion:app.getVersion(),platform:process.platform,persistentSession:true,customSharePicker:true,supportsSystemAudioShare:['win32','darwin'].includes(process.platform)};
+  return {bridgeVersion:DESKTOP_BRIDGE_VERSION,appVersion:app.getVersion(),platform:process.platform,persistentSession:true,customSharePicker:!supportsMacSystemPicker(),systemSharePicker:supportsMacSystemPicker(),supportsSystemAudioShare:['win32','darwin'].includes(process.platform)};
 });
 ipcMain.handle('desktop:open-external', async (event, value='') => {
   if(!isDominionStarUrl(event.sender.getURL()))return false;
