@@ -11,7 +11,7 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 8;
+const DESKTOP_BRIDGE_VERSION = 9;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let presenterWindow;
@@ -68,8 +68,8 @@ function createPresenterWindow() {
   presenterWindow = new BrowserWindow({
     width: 930,
     height: 76,
-    minWidth: 720,
-    minHeight: 70,
+    minWidth: 270,
+    minHeight: 48,
     show: false,
     frame: false,
     transparent: true,
@@ -100,10 +100,20 @@ function showPresenterWindow() {
   const size=win.getSize();
   win.setPosition(Math.round(bounds.x+(bounds.width-size[0])/2),bounds.y+18,false);
   win.showInactive();
+  // Presenter mode owns the desktop while the meeting continues running in
+  // the hidden renderer. This is intentionally hide(), not minimize(): the
+  // meeting must disappear from the presenter's workspace and restore without
+  // a reload when sharing ends.
+  if(mainWindow&&!mainWindow.isDestroyed())mainWindow.hide();
 }
 
-function hidePresenterWindow() {
+function hidePresenterWindow({restoreMeeting=false}={}) {
   if(presenterWindow&&!presenterWindow.isDestroyed())presenterWindow.hide();
+  if(restoreMeeting&&mainWindow&&!mainWindow.isDestroyed()){
+    mainWindow.show();
+    if(mainWindow.isMinimized())mainWindow.restore();
+    mainWindow.focus();
+  }
 }
 
 function resolveDeepLink(value) {
@@ -314,13 +324,20 @@ ipcMain.on('desktop:presenter-show', event => {
 });
 ipcMain.on('desktop:presenter-hide', event => {
   if(!isDesktopRoute(event.sender.getURL()))return;
-  hidePresenterWindow();
+  hidePresenterWindow({restoreMeeting:true});
 });
 ipcMain.on('desktop:presenter-command', (event, command='') => {
   if(event.sender!==presenterWindow?.webContents)return;
   const allowed=new Set(['audio','video','participants','chat','reactions','pause','new-share','more','stop']);
   const safe=String(command||'');
   if(allowed.has(safe)&&mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('desktop:presenter-command',safe);
+});
+ipcMain.on('desktop:presenter-resize',(event,size={})=>{
+  if(event.sender!==presenterWindow?.webContents||!presenterWindow||presenterWindow.isDestroyed())return;
+  const width=Math.max(270,Math.min(930,Number(size.width)||930));
+  const height=Math.max(48,Math.min(330,Number(size.height)||76));
+  const bounds=presenterWindow.getBounds();
+  presenterWindow.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:bounds.y,width:Math.round(width),height:Math.round(height)},true);
 });
 ipcMain.on('desktop:account-chooser', event => {
   if (!isDominionStarUrl(event.sender.getURL())) return;
@@ -375,7 +392,7 @@ ipcMain.handle('desktop:end-share', event => {
   captureSession.end();
   remoteControlCapability='';
   mainWindow?.setContentProtection?.(false);
-  hidePresenterWindow();
+  hidePresenterWindow({restoreMeeting:true});
   return true;
 });
 ipcMain.handle('desktop:remote-control-permission', (event, context={}) => {

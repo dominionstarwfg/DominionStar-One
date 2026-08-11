@@ -44,7 +44,7 @@
     waitingRoomEnabled:false, passcode:'', inviteLink:'', presenceMembers:new Map(), dock:{x:null,y:null}, sharingParticipantId:null, sharePaused:false, client:null, session:null, profile:null, meetingStartedAt:0, meetingTimer:null, speakingMonitor:null, audioAnalysisContext:null, speakingReleaseTimer:null, preferences:{joinMuted:false,joinCameraOff:false,mirror:true,background:'none',brightness:100,touchAppearance:0,quality:'720',cameraId:'',microphoneId:'',speakerId:''}, security:{locked:false,allowShare:true,allowChat:true,allowRename:true,allowUnmute:true,allowVideo:true,muteOnEntry:false}, awaitingAdmission:false, mediaStarted:false, pendingModeration:new Map(), pendingParticipantControls:new Map(), activeUnmuteRequest:null, activeCameraRequest:null, mediaBindings:new Map(), missingMediaSince:new Map(), recoveringRemoteMedia:new Set(), departedParticipants:new Map(), reconcileTimer:null, cameraToggleBusy:false, micToggleBusy:false, lastHostSeenAt:0, lastMediaResyncAt:new Map(), lastPeerRepairAt:new Map(), screenRecoveryTimers:new Map()
   };
 
-  const ids = ['prejoin','meeting','prejoinVideo','prejoinFallback','joinForm','displayName','displayNameField','accountIdentity','alwaysJoinMuted','alwaysJoinCameraOff','roomId','preMic','preCam','preSettings','roomLabel','connectionState','stageVideo','stageFallback','stageName','speakerNameplate','speakerName','selfTile','selfVideo','selfName','selfMicState','filmstrip','filmstripTrack','dockUp','dockDown','participantsPanel','participantCount','participantBadge','waitingSection','waitingCount','waitingRoom','participantList','participantSearch','chatPanel','chatRecipient','chatMessages','chatForm','chatInput','chatBadge','deviceMenu','toastLayer','reactionLayer','micBtn','micMenuBtn','camBtn','camMenuBtn','participantsBtn','chatBtn','shareBtn','reactionBtn','raiseHandBtn','transcribeBtn','hostToolsBtn','moreBtn','leaveBtn','settingsDialog','cameraSelect','microphoneSelect','speakerSelect','mirrorToggle','qualitySelect','backgroundSelect','brightnessRange','touchAppearanceRange','networkIndicator','speakerMicIndicator','profilePhotoInput','profilePhotoPreview','inviteBtn','inviteDialog','inviteMeetingLink','inviteMeetingId','invitePasscode','copyInviteBtn','copyLinkBtn','closeInviteBtn','muteAllBtn','participantMoreBtn','leaveDialog','leaveCopy','leaveOnlyBtn','endAllBtn','leaveCancelBtn','leaveClose','shareStatusBar','shareStatusText','sharePresenterControls','pauseShareBtn','newShareBtn','stopShareBtn'].reduce((o,k)=>(o[k]=$(k),o),{});
+  const ids = ['prejoin','meeting','prejoinVideo','prejoinFallback','joinForm','displayName','displayNameField','accountIdentity','alwaysJoinMuted','alwaysJoinCameraOff','roomId','preMic','preCam','preSettings','roomLabel','connectionState','stageVideo','stageFallback','stageName','speakerNameplate','speakerName','selfTile','selfVideo','selfName','selfMicState','filmstrip','filmstripTrack','dockUp','dockDown','participantsPanel','participantCount','participantBadge','waitingSection','waitingCount','waitingRoom','participantList','participantSearch','chatPanel','chatRecipient','chatMessages','chatForm','chatInput','chatBadge','deviceMenu','toastLayer','reactionLayer','micBtn','micMenuBtn','camBtn','camMenuBtn','participantsBtn','chatBtn','shareBtn','reactionBtn','raiseHandBtn','transcribeBtn','hostToolsBtn','moreBtn','leaveBtn','settingsDialog','cameraSelect','microphoneSelect','speakerSelect','mirrorToggle','qualitySelect','backgroundSelect','brightnessRange','touchAppearanceRange','networkIndicator','speakerMicIndicator','profilePhotoInput','profilePhotoPreview','inviteBtn','inviteDialog','inviteMeetingLink','inviteMeetingId','invitePasscode','copyInviteBtn','copyLinkBtn','closeInviteBtn','muteAllBtn','participantMoreBtn','leaveDialog','leaveCopy','leaveOnlyBtn','endAllBtn','leaveCancelBtn','leaveClose','shareStatusBar','shareStatusText','shareViewerMoreBtn','sharePresenterControls','pauseShareBtn','newShareBtn','stopShareBtn'].reduce((o,k)=>(o[k]=$(k),o),{});
 
   const escapeHtml = value => String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const initials = name => String(name || 'Guest').split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
@@ -905,7 +905,8 @@
   function setPresentationMode(active, presenterName='') {
     document.body.classList.toggle('presentation-active', Boolean(active));
     document.body.classList.toggle('local-presentation-active',Boolean(active&&state.sharingParticipantId==='self'));
-    ids.shareStatusBar.hidden = !active;
+    const nativeLocalPresenter=Boolean(active&&state.sharingParticipantId==='self'&&window.dominionDesktop?.isDesktop);
+    ids.shareStatusBar.hidden = !active||nativeLocalPresenter;
     ids.speakerNameplate.hidden = Boolean(active);
     if (active) {
       if(state.sharingParticipantId!=='self'){
@@ -919,6 +920,7 @@
       // Only the presenter receives the private floating control strip. Viewers
       // keep their normal bottom toolbar and see only the sharing status copy.
       ids.sharePresenterControls.hidden = state.sharingParticipantId!=='self';
+      if(ids.shareViewerMoreBtn)ids.shareViewerMoreBtn.hidden=state.sharingParticipantId==='self';
       ids.sharePresenterControls.querySelectorAll('.local-share-only').forEach(button=>button.hidden=state.sharingParticipantId!=='self');
       ids.sharePresenterControls.querySelectorAll('.remote-share-only').forEach(button=>button.hidden=state.sharingParticipantId==='self');
       ids.stageVideo.style.objectFit = 'contain';
@@ -930,6 +932,7 @@
       ids.shareStatusBar.style.top='10px';
       ids.shareStatusBar.style.transform='translateX(-50%)';
       ids.sharePresenterControls.hidden = true;
+      if(ids.shareViewerMoreBtn)ids.shareViewerMoreBtn.hidden=true;
       ids.sharePresenterControls.querySelectorAll('.local-share-only,.remote-share-only').forEach(button=>button.hidden=false);
       ids.stageVideo.style.objectFit = '';
       ids.pauseShareBtn.textContent = 'Pause Share';
@@ -1640,7 +1643,6 @@
     state.sharingParticipantId='self';
     if(window.dominionDesktop?.isDesktop){
       window.dominionDesktop.showPresenterToolbar?.();
-      ids.shareStatusBar.hidden=true;
       ids.stageVideo.srcObject=null;
       ids.stageVideo.hidden=true;
       ids.stageFallback.hidden=false;
@@ -1653,6 +1655,7 @@
     ids.shareBtn.classList.add('active-share');
     ids.shareBtn.querySelector('.tool-label').textContent='Stop Share';
     setPresentationMode(true, ids.selfName.textContent || 'You');
+    if(window.dominionDesktop?.isDesktop)ids.shareStatusBar.hidden=true;
     updateFilmstripVisibility();
   });
   engine.on('remote-screen-stream',({participantId,stream})=>{
@@ -2066,6 +2069,21 @@
   ids.moreBtn.setAttribute('aria-haspopup','menu');
   ids.moreBtn.setAttribute('aria-expanded','false');
   ids.moreBtn.onclick=e=>openToolbarUtilityMenu(e,'more');
+  if(ids.shareViewerMoreBtn){
+    ids.shareViewerMoreBtn.onclick=event=>{
+      event.preventDefault();event.stopPropagation();
+      const anchor=event.currentTarget;
+      const {add,section}=positionUtilityMenu(anchor,'Shared Screen');
+      add('View Participants',async()=>openPanel(ids.participantsPanel));
+      add('Meeting Chat',async()=>openPanel(ids.chatPanel));
+      if(window.DominionRemoteControl?.canRequest?.())add('Request Remote Control',async()=>window.DominionRemoteControl.requestCurrent(),{note:'Host or co-host only'});
+      if((state.isHost||state.role==='cohost')&&state.sharingParticipantId&&state.sharingParticipantId!=='self'){
+        section('Host controls');
+        add('Stop Participant Share',async()=>engine.moderate(state.sharingParticipantId,'stop-share'),{note:'Keeps the participant in the meeting'});
+      }
+      ids.deviceMenu.hidden=false;state.activeMenu='shared-screen';
+    };
+  }
   if(ids.hostToolsBtn){
     ids.hostToolsBtn.hidden=!(state.isHost||state.role==='cohost');
     ids.hostToolsBtn.setAttribute('aria-haspopup','menu');

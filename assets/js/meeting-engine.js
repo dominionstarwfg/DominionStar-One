@@ -450,6 +450,7 @@
     send('meet-control-ack',{targetParticipantId:payload.from,requestId,action,receivedAt:Date.now()}).catch(()=>{});
     if (action === 'mute') await toggleAudio(false);
     if (action === 'camera-off') await toggleVideo(false);
+    if (action === 'stop-share' && state.screenStream) await stopScreenShare({source:'host'});
     if (action === 'rename') {
       const next=String(payload.displayName||'').trim().slice(0,80);
       if(next){state.displayName=next;await updatePresence({displayName:next});emit('identity-renamed',{displayName:next,from:payload.from});await send('meet-state-heartbeat',{audio:state.mediaState.audio,video:state.mediaState.video,displayName:next,renamed:true});}
@@ -622,6 +623,11 @@
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       await send('meet-answer', {to:payload.from, description:peer.localDescription});
+      if(state.screenStream){
+        const screenSender=peer.getSenders().find(item=>item.__dsKind==='screen');
+        const screenMid=peer.getTransceivers().find(item=>item.sender===screenSender)?.mid;
+        await send('meet-screen-state',{to:payload.from,active:true,screenTrackId:state.screenStream.getVideoTracks()[0]?.id||'',screenStreamId:state.screenStream.id,screenMid:screenMid===undefined||screenMid===null?'':String(screenMid),screenAudioTrackId:state.screenStream.getAudioTracks()[0]?.id||'',remoteControlCapable:state.screenRemoteControlCapable}).catch(()=>{});
+      }
       return;
     }
     if (event === 'meet-answer') {
@@ -630,6 +636,11 @@
       if (peer.signalingState === 'have-local-offer') {
         await peer.setRemoteDescription(payload.description);
         await flushPendingCandidates(payload.from);
+      }
+      if(state.screenStream){
+        const screenSender=peer.getSenders().find(item=>item.__dsKind==='screen');
+        const screenMid=peer.getTransceivers().find(item=>item.sender===screenSender)?.mid;
+        await send('meet-screen-state',{to:payload.from,active:true,screenTrackId:state.screenStream.getVideoTracks()[0]?.id||'',screenStreamId:state.screenStream.id,screenMid:screenMid===undefined||screenMid===null?'':String(screenMid),screenAudioTrackId:state.screenStream.getAudioTracks()[0]?.id||'',remoteControlCapable:state.screenRemoteControlCapable}).catch(()=>{});
       }
       return;
     }

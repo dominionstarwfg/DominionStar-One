@@ -9,6 +9,8 @@
     .bar{height:70px;margin:3px;display:flex;align-items:stretch;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(12,17,27,.96);box-shadow:0 16px 38px rgba(0,0,0,.38);-webkit-app-region:drag;user-select:none}
     .status{display:flex;align-items:center;gap:8px;padding:0 17px;border-right:1px solid rgba(255,255,255,.1);font-weight:700;white-space:nowrap}.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.14)}
     .controls{display:flex;flex:1;align-items:stretch}.control{min-width:70px;padding:8px 11px;border:0;border-right:1px solid rgba(255,255,255,.06);background:transparent;color:#e5e7eb;cursor:pointer;-webkit-app-region:no-drag}.control:hover{background:#232b3a}.control strong{display:block;margin-bottom:5px;color:#fff;font-size:16px;line-height:1}.control small{font-size:10px;white-space:nowrap}.pause{color:#fbbf24}.stop{margin:8px;border-radius:9px;background:#dc2626;color:#fff;font-weight:800}.stop:hover{background:#ef4444}
+    .more-menu{position:fixed;right:82px;top:73px;width:230px;padding:7px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#111827;box-shadow:0 18px 45px #0008;-webkit-app-region:no-drag}.more-menu[hidden]{display:none}.more-menu button{display:block;width:100%;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:#f8fafc;text-align:left;font-weight:650;cursor:pointer}.more-menu button:hover{background:#263244}.more-menu .danger{color:#fca5a5}
+    body.collapsed .bar{width:270px;margin-left:auto;margin-right:auto;height:42px;border-radius:11px}body.collapsed .controls{display:none}body.collapsed .status{flex:1;justify-content:center;border:0;padding:0 12px}
   </style>
 </head>
 <body>
@@ -25,6 +27,13 @@
       <button class="control" data-command="more"><strong>•••</strong><small>More</small></button>
       <button class="control stop" data-command="stop"><small>Stop Share</small></button>
     </div>
+  </div>
+  <div id="presenterMoreMenu" class="more-menu" hidden role="menu">
+    <button type="button" data-command="participants">Participants</button>
+    <button type="button" data-command="chat">Chat</button>
+    <button type="button" data-command="reactions">Reactions</button>
+    <button type="button" data-command="new-share">New Share</button>
+    <button type="button" data-command="stop" class="danger">Stop Share</button>
   </div>
   <script src="presenter-toolbar.js"></script>
 </body>
