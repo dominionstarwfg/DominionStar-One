@@ -5,14 +5,13 @@ let remoteControlCapability = '';
 contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   isDesktop: true,
   platform: process.platform,
-  // `version` is the DominionStar desktop release. Keep Electron's runtime
-  // version separate so hosted compatibility checks never mistake one for the
-  // other.
-  version: '1.1.1',
-  appVersion: '1.1.1',
-  buildVersion: '1.1.1',
+  // Preserve the certified bridge contract: `version` is Electron's runtime
+  // version, while the DominionStar release is carried by the app/build fields.
+  version: process.versions.electron,
+  appVersion: '1.1.2',
+  buildVersion: '1.1.2',
   electronVersion: process.versions.electron,
-  bridgeVersion: 12,
+  bridgeVersion: 11,
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
   goHome: () => ipcRenderer.send('desktop:home'),
   showAccountChooser: () => ipcRenderer.send('desktop:account-chooser'),

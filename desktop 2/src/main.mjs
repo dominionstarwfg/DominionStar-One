@@ -7,6 +7,7 @@ import { isDominionStarCaptureSource, resolveCaptureSource, visibleCaptureSource
 import { CaptureSession } from './capture-session.mjs';
 import { resolveDesktopLayout } from './desktop-layout.mjs';
 import { initializeDesktopUpdater, desktopUpdateStatus, checkForDesktopUpdate, installDesktopUpdate } from './desktop-updater.mjs';
+import { loadFreshPage, refreshHostedMeetingAssets } from './desktop-session.mjs';
 
 const APP_ORIGIN = 'https://dominionstarld.com';
 const MEET_URL = `${APP_ORIGIN}/meet/?desktop=1`;
@@ -14,7 +15,7 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 12;
+const DESKTOP_BRIDGE_VERSION = 11;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let presenterWindow;
@@ -95,7 +96,7 @@ function loadMeetHome() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   // The persistent Electron partition keeps the Supabase session. Meet Home
   // redirects to sign-in only when that session is actually absent/expired.
-  return mainWindow.loadURL(MEET_HOME_URL);
+  return loadFreshPage(mainWindow, MEET_HOME_URL);
 }
 
 function loadAccountChooser() {
@@ -309,7 +310,7 @@ async function createWindow(initialUrl = '') {
   });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isDesktopRoute(url)) {
-      mainWindow.loadURL(url);
+      loadFreshPage(mainWindow,url);
     } else if (/^https?:/.test(url)) {
       shell.openExternal(url);
     }
@@ -328,7 +329,7 @@ async function createWindow(initialUrl = '') {
       // signed-in session directly into Meet instead.
       if (target.origin === APP_ORIGIN && ['/member-dashboard/', '/workspace/'].includes(target.pathname)) {
         shell.openExternal(target.toString());
-        mainWindow.loadURL(MEET_HOME_URL);
+        loadFreshPage(mainWindow,MEET_HOME_URL);
       }
     } catch {}
   });
@@ -351,7 +352,7 @@ async function createWindow(initialUrl = '') {
   });
 
   if (initialUrl && isDominionStarUrl(initialUrl)) {
-    await mainWindow.loadURL(initialUrl).catch(loadOffline);
+    await loadFreshPage(mainWindow, initialUrl).catch(loadOffline);
   } else {
     await mainWindow.loadFile(path.join(__dirname, 'launcher.html'), {
       query: { memberLogin: MEMBER_LOGIN_URL, meet: MEET_URL }
@@ -365,7 +366,7 @@ if (!hasLock) app.quit();
 app.on('second-instance', (_event, argv) => {
   const deepLink = argv.find((value) => value.startsWith('dominionstar://'));
   if (deepLink) {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadURL(resolveDeepLink(deepLink));
+    if (mainWindow && !mainWindow.isDestroyed()) loadFreshPage(mainWindow,resolveDeepLink(deepLink));
     else pendingDeepLink=deepLink;
   }
   if (mainWindow?.isMinimized()) mainWindow.restore();
@@ -484,13 +485,18 @@ ipcMain.handle('desktop:remote-input', async (event, input={}) => {
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadURL(resolveDeepLink(url));
+  if (mainWindow && !mainWindow.isDestroyed()) loadFreshPage(mainWindow,resolveDeepLink(url));
   else pendingDeepLink=url;
 });
 
 app.whenReady().then(async () => {
   registerDeepLinkProtocol();
-  installPermissionPolicy(session.fromPartition(DESKTOP_PARTITION));
+  const desktopSession=session.fromPartition(DESKTOP_PARTITION);
+  installPermissionPolicy(desktopSession);
+  // An installed update must not reopen an old Meet document or service
+  // worker from the persistent signed-in partition. Keep account/session data,
+  // but always refresh hosted application code before the first navigation.
+  await refreshHostedMeetingAssets(desktopSession,APP_ORIGIN);
   Menu.setApplicationMenu(createMenu());
   const deepLink = pendingDeepLink || process.argv.find((value) => value.startsWith('dominionstar://'));
   pendingDeepLink='';
