@@ -6,12 +6,28 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   isDesktop: true,
   platform: process.platform,
   version: process.versions.electron,
-  buildVersion: '1.0.9',
-  bridgeVersion: 10,
+  buildVersion: '1.1.0',
+  bridgeVersion: 11,
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
   goHome: () => ipcRenderer.send('desktop:home'),
   showAccountChooser: () => ipcRenderer.send('desktop:account-chooser'),
   getRuntimeInfo: () => ipcRenderer.invoke('desktop:runtime-info'),
+  getWindowLayout: () => ipcRenderer.invoke('desktop:window-layout'),
+  onWindowLayout: callback => {
+    if(typeof callback!=='function')return()=>{};
+    const listener=(_event,layout)=>callback(Object.freeze({...layout}));
+    ipcRenderer.on('desktop:layout-changed',listener);
+    return()=>ipcRenderer.removeListener('desktop:layout-changed',listener);
+  },
+  getUpdateStatus: () => ipcRenderer.invoke('desktop:update-status'),
+  checkForUpdates: () => ipcRenderer.invoke('desktop:check-update'),
+  installUpdate: () => ipcRenderer.invoke('desktop:install-update'),
+  onUpdateStatus: callback => {
+    if(typeof callback!=='function')return()=>{};
+    const listener=(_event,status)=>callback(Object.freeze({...status}));
+    ipcRenderer.on('desktop:update-status',listener);
+    return()=>ipcRenderer.removeListener('desktop:update-status',listener);
+  },
   openExternal: url => ipcRenderer.invoke('desktop:open-external', url),
   getShareSources: (options = {}) => ipcRenderer.invoke('desktop:share-sources', options),
   getCaptureStatus: () => ipcRenderer.invoke('desktop:capture-status'),
