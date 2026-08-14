@@ -38,10 +38,13 @@ if (!main.includes('else pendingDeepLink=url')) throw new Error('macOS OAuth cal
 if (!main.includes('consumedAuthCallback === url.hash')) throw new Error('Desktop OAuth callback is not single-use guarded');
 if (!main.includes('process.defaultApp') || !main.includes("setAsDefaultProtocolClient('dominionstar'")) throw new Error('Packaged/development deep-link registration is incomplete');
 const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-if(packageJson.version!=='1.1.0')throw new Error('Unexpected desktop package version');
+if(packageJson.version!=='1.1.1')throw new Error('Unexpected desktop package version');
 if(!main.includes("preload: path.join(__dirname, 'preload.cjs')"))throw new Error('Sandboxed desktop bridge must use the CommonJS preload');
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
-if(!preload.includes("buildVersion: '1.1.0'")||!preload.includes('bridgeVersion: 11'))throw new Error('Desktop preload release/bridge version mismatch');
+if(!preload.includes("buildVersion: '1.1.1'")||!preload.includes('bridgeVersion: 12'))throw new Error('Desktop preload release/bridge version mismatch');
+if(!preload.includes("version: '1.1.1'")||!preload.includes('electronVersion: process.versions.electron'))throw new Error('Desktop app/runtime version separation missing');
+if(main.includes('requestMacMediaAccess'))throw new Error('Desktop must not request camera or microphone during startup');
+if(!main.includes("route==='/meet'")||!main.includes('mediaPermissions.has(permission)'))throw new Error('Meeting-only media permission policy missing');
 if(!main.includes("ipcMain.handle('desktop:window-layout'"))throw new Error('Missing adaptive native window bridge');
 if(!main.includes("ipcMain.handle('desktop:update-status'"))throw new Error('Missing in-place update status bridge');
 if(!packageJson.dependencies?.['electron-updater'])throw new Error('Missing desktop update client');
