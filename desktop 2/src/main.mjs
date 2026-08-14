@@ -14,7 +14,7 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 11;
+const DESKTOP_BRIDGE_VERSION = 12;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let presenterWindow;
@@ -183,13 +183,13 @@ function resolveDeepLink(value) {
   }
 }
 
-async function requestMacMediaAccess() {
-  if (process.platform !== 'darwin') return;
-  for (const mediaType of ['microphone', 'camera']) {
-    const status = systemPreferences.getMediaAccessStatus(mediaType);
-    if (status === 'not-determined') await systemPreferences.askForMediaAccess(mediaType);
-  }
-}
+const isMeetingMediaRoute=value=>{
+  try{
+    const url=new URL(value);
+    const route=url.pathname.length>1?url.pathname.replace(/\/+$/,''):url.pathname;
+    return isDominionStarUrl(url.toString())&&route==='/meet';
+  }catch{return false;}
+};
 
 function installPermissionPolicy(ses) {
   const allowed = new Set([
@@ -202,14 +202,18 @@ function installPermissionPolicy(ses) {
     'notifications',
     'fullscreen'
   ]);
+  const mediaPermissions=new Set(['media','audioCapture','videoCapture','microphone','camera']);
   const approve = (webContents, permission, callback, details = {}) => {
     const source = details.requestingUrl || webContents?.getURL() || '';
-    callback(isDominionStarUrl(source) && allowed.has(permission));
+    const trusted=isDominionStarUrl(source)&&allowed.has(permission);
+    callback(trusted&&(!mediaPermissions.has(permission)||isMeetingMediaRoute(source)));
   };
   ses.setPermissionRequestHandler(approve);
-  ses.setPermissionCheckHandler((webContents, permission, requestingOrigin) => (
-    isDominionStarUrl(requestingOrigin || webContents?.getURL() || '') && allowed.has(permission)
-  ));
+  ses.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
+    const source=requestingOrigin||webContents?.getURL()||'';
+    const trusted=isDominionStarUrl(source)&&allowed.has(permission);
+    return trusted&&(!mediaPermissions.has(permission)||isMeetingMediaRoute(source));
+  });
 
   ses.setDisplayMediaRequestHandler(async (request, callback) => {
     if (!isDominionStarUrl(request.securityOrigin || request.frame?.url || '')) {
@@ -488,7 +492,6 @@ app.whenReady().then(async () => {
   registerDeepLinkProtocol();
   installPermissionPolicy(session.fromPartition(DESKTOP_PARTITION));
   Menu.setApplicationMenu(createMenu());
-  await requestMacMediaAccess();
   const deepLink = pendingDeepLink || process.argv.find((value) => value.startsWith('dominionstar://'));
   pendingDeepLink='';
   // Resume the signed-in Meet account on normal launches. Meet Home sends a
