@@ -29,4 +29,3 @@ export function resolveDesktopLayout(bounds = {}, workArea = {}, platform = proc
     alwaysOnTop: mode === 'mini'
   });
 }
-

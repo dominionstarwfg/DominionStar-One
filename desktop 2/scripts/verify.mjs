@@ -3,9 +3,30 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const required = ['package.json', 'src/main.mjs', 'src/preload.cjs', 'src/presenter-preload.cjs', 'src/presenter-toolbar.html', 'src/presenter-toolbar.js', 'src/capture-source.mjs', 'src/capture-session.mjs', 'src/desktop-session.mjs', 'src/offline.html', 'src/launcher.html', 'src/entitlements.mac.plist'];
+const required = ['package.json', 'src/main.mjs', 'src/preload.cjs', 'src/presenter-preload.cjs', 'src/presenter-toolbar.html', 'src/presenter-toolbar.js', 'src/capture-source.mjs', 'src/capture-session.mjs', 'src/desktop-session.mjs', 'src/desktop-layout.mjs', 'src/desktop-updater.mjs', 'src/offline.html', 'src/launcher.html', 'src/entitlements.mac.plist'];
 const missing = required.filter((file) => !fs.existsSync(path.join(root, file)));
 if (missing.length) throw new Error(`Missing desktop files: ${missing.join(', ')}`);
+
+// Resolve the complete local JavaScript module graph. A release must never pass
+// verification when its production entry point imports a file omitted from the ZIP.
+const visited = new Set();
+const externalImports = new Set();
+function verifyLocalImports(file) {
+  const absolute = path.resolve(root, file);
+  if (visited.has(absolute)) return;
+  visited.add(absolute);
+  const source = fs.readFileSync(absolute, 'utf8');
+  const imports = source.matchAll(/(?:import\s+(?:[^'\"]+?\s+from\s+)?|import\s*\(|require\s*\()\s*['\"](\.[^'\"]+)['\"]/g);
+  for (const match of imports) {
+    const candidate = path.resolve(path.dirname(absolute), match[1]);
+    const resolved = [candidate, `${candidate}.mjs`, `${candidate}.js`, `${candidate}.cjs`].find((entry) => fs.existsSync(entry));
+    if (!resolved) throw new Error(`Missing local module imported by ${path.relative(root, absolute)}: ${match[1]}`);
+    if (/\.(?:mjs|js|cjs)$/.test(resolved)) verifyLocalImports(path.relative(root, resolved));
+  }
+  const bareImports = source.matchAll(/(?:import\s+(?:[^'\"]+?\s+from\s+)?|import\s*\(|require\s*\()\s*['\"]((?!\.|\/)[^'\"]+)['\"]/g);
+  for (const match of bareImports) externalImports.add(match[1]);
+}
+verifyLocalImports('src/main.mjs');
 
 const main = fs.readFileSync(path.join(root, 'src/main.mjs'), 'utf8');
 for (const safeguard of ['contextIsolation: true', 'nodeIntegration: false', 'sandbox: true', 'setPermissionRequestHandler', 'setWindowOpenHandler']) {
@@ -38,11 +59,16 @@ if (!main.includes('else pendingDeepLink=url')) throw new Error('macOS OAuth cal
 if (!main.includes('consumedAuthCallback === url.hash')) throw new Error('Desktop OAuth callback is not single-use guarded');
 if (!main.includes('process.defaultApp') || !main.includes("setAsDefaultProtocolClient('dominionstar'")) throw new Error('Packaged/development deep-link registration is incomplete');
 const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-if(packageJson.version!=='1.1.2')throw new Error('Unexpected desktop package version');
+for (const specifier of externalImports) {
+  if (specifier === 'electron' || specifier.startsWith('node:')) continue;
+  const packageName = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
+  if (!packageJson.dependencies?.[packageName]) throw new Error(`Production import is not declared in dependencies: ${specifier}`);
+}
+if(packageJson.version!=='1.1.3')throw new Error('Unexpected desktop package version');
 if(!main.includes("preload: path.join(__dirname, 'preload.cjs')"))throw new Error('Sandboxed desktop bridge must use the CommonJS preload');
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
-if(!preload.includes('version: process.versions.electron')||!preload.includes("appVersion: '1.1.2'")||!preload.includes("buildVersion: '1.1.2'")||!preload.includes('bridgeVersion: 11'))throw new Error('Desktop preload release/bridge version mismatch');
-if(!preload.includes('version: process.versions.electron')||!preload.includes('electronVersion: process.versions.electron'))throw new Error('Desktop certified runtime version contract missing');
+if(!preload.includes('electronVersion: process.versions.electron'))throw new Error('Desktop Electron runtime field missing');
+if(!main.includes('version:appVersion,appVersion,buildVersion:appVersion')||!main.includes('electronVersion:process.versions.electron'))throw new Error('Runtime info does not expose consistent application versions');
 if(!main.includes('refreshHostedMeetingAssets(desktopSession,APP_ORIGIN)'))throw new Error('Desktop hosted cache refresh missing');
 if(!main.includes('loadFreshPage(mainWindow, initialUrl)'))throw new Error('Initial hosted navigation does not bypass cache');
 if(main.includes('requestMacMediaAccess'))throw new Error('Desktop must not request camera or microphone during startup');

@@ -15,7 +15,7 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 11;
+const DESKTOP_BRIDGE_VERSION = 12;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let presenterWindow;
@@ -401,7 +401,8 @@ ipcMain.on('desktop:account-chooser', event => {
 });
 ipcMain.handle('desktop:runtime-info', event => {
   if (!isDominionStarUrl(event.sender.getURL())) return null;
-  return {bridgeVersion:DESKTOP_BRIDGE_VERSION,appVersion:app.getVersion(),platform:process.platform,persistentSession:true,customSharePicker:!supportsMacSystemPicker(),systemSharePicker:supportsMacSystemPicker(),supportsSystemAudioShare:['win32','darwin'].includes(process.platform),layout:currentDesktopLayout||publishDesktopLayout()};
+  const appVersion=app.getVersion();
+  return {bridgeVersion:DESKTOP_BRIDGE_VERSION,version:appVersion,appVersion,buildVersion:appVersion,electronVersion:process.versions.electron,platform:process.platform,persistentSession:true,customSharePicker:!supportsMacSystemPicker(),systemSharePicker:supportsMacSystemPicker(),supportsSystemAudioShare:['win32','darwin'].includes(process.platform),layout:currentDesktopLayout||publishDesktopLayout()};
 });
 ipcMain.handle('desktop:window-layout', event => isDominionStarUrl(event.sender.getURL()) ? (currentDesktopLayout||publishDesktopLayout()) : null);
 ipcMain.handle('desktop:update-status', event => isDominionStarUrl(event.sender.getURL()) ? desktopUpdateStatus() : null);
