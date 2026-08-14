@@ -38,10 +38,13 @@ if (!main.includes('else pendingDeepLink=url')) throw new Error('macOS OAuth cal
 if (!main.includes('consumedAuthCallback === url.hash')) throw new Error('Desktop OAuth callback is not single-use guarded');
 if (!main.includes('process.defaultApp') || !main.includes("setAsDefaultProtocolClient('dominionstar'")) throw new Error('Packaged/development deep-link registration is incomplete');
 const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-if(packageJson.version!=='1.0.9')throw new Error('Unexpected desktop package version');
+if(packageJson.version!=='1.1.0')throw new Error('Unexpected desktop package version');
 if(!main.includes("preload: path.join(__dirname, 'preload.cjs')"))throw new Error('Sandboxed desktop bridge must use the CommonJS preload');
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
-if(!preload.includes("buildVersion: '1.0.9'")||!preload.includes('bridgeVersion: 10'))throw new Error('Desktop preload release/bridge version mismatch');
+if(!preload.includes("buildVersion: '1.1.0'")||!preload.includes('bridgeVersion: 11'))throw new Error('Desktop preload release/bridge version mismatch');
+if(!main.includes("ipcMain.handle('desktop:window-layout'"))throw new Error('Missing adaptive native window bridge');
+if(!main.includes("ipcMain.handle('desktop:update-status'"))throw new Error('Missing in-place update status bridge');
+if(!packageJson.dependencies?.['electron-updater'])throw new Error('Missing desktop update client');
 if(!main.includes("ipcMain.on('desktop:presenter-show'")||!main.includes('presenterWindow.setContentProtection(true)'))throw new Error('Missing protected native presenter toolbar');
 if(!main.includes('mainWindow.hide()')||!main.includes('hidePresenterWindow({restoreMeeting:true})'))throw new Error('Presenter mode must hide and restore the meeting window');
 if(!main.includes("ipcMain.on('desktop:presenter-resize'"))throw new Error('Missing native presenter toolbar collapse/expand bridge');

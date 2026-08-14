@@ -1,0 +1,50 @@
+/* Adaptive desktop participant dock. The meeting canvas never becomes a page. */
+.filmstrip{
+  position:fixed!important;
+  cursor:grab!important;
+  contain:layout paint;
+  max-width:calc(100vw - 24px)!important;
+  max-height:calc(100dvh - 148px)!important;
+  z-index:180!important;
+}
+.filmstrip:active,.filmstrip.is-dragging{cursor:grabbing!important}
+html[data-native-window-style="macos-traffic-lights"] .meeting-topbar{padding-left:92px!important}
+html[data-native-window-style="macos-traffic-lights"] .meet-dashboard-heading{padding-left:74px}
+.filmstrip.dock-horizontal{
+  width:min(calc(100vw - 28px),960px)!important;
+  height:auto!important;
+  max-height:180px!important;
+  grid-template-columns:16px minmax(0,1fr) 30px!important;
+  grid-template-rows:1fr!important;
+}
+.filmstrip.dock-horizontal .filmstrip-track{
+  display:flex!important;
+  flex-direction:row!important;
+  gap:7px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  max-height:154px!important;
+  scrollbar-width:thin;
+}
+.filmstrip.dock-horizontal .remote-tile{
+  width:clamp(126px,18vw,220px)!important;
+  min-width:clamp(126px,18vw,220px)!important;
+  height:auto!important;
+  min-height:0!important;
+  aspect-ratio:16/9!important;
+}
+.filmstrip.dock-horizontal .dock-scroll{flex-direction:column!important;background:none!important}
+.filmstrip.dock-horizontal .dock-scroll svg{transform:rotate(90deg)}
+.filmstrip.dock-mini{width:calc(100vw - 16px)!important;max-height:132px!important}
+.filmstrip.dock-mini .filmstrip-track{max-height:108px!important}
+.filmstrip.dock-mini .remote-tile{width:150px!important;min-width:150px!important}
+.desktop-mini-window .meeting-topbar{height:38px!important}
+.desktop-mini-window .stage{inset:38px 0 0!important}
+.desktop-mini-window .toolbar{padding:3px!important;bottom:6px!important}
+.desktop-mini-window .toolbar .tool-label,.desktop-mini-window .meeting-meta,.desktop-mini-window .connection-state{display:none!important}
+.desktop-mini-window .toolbar .tool-button{min-width:42px!important;height:42px!important;padding:4px!important}
+.desktop-mini-window .toolbar .tool-button:not(#micBtn):not(#camBtn):not(#participantsBtn):not(#leaveBtn),.desktop-mini-window .toolbar .tool-arrow{display:none!important}
+@media(max-width:819px),(max-height:559px){
+  .filmstrip{transition:width .18s ease,height .18s ease,left .18s ease,top .18s ease!important}
+  .filmstrip.is-dragging{transition:none!important}
+}

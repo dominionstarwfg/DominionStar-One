@@ -1,9 +1,12 @@
 import { app, BrowserWindow, Menu, Notification, session, shell, systemPreferences, desktopCapturer, ipcMain, screen as electronScreen } from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { isDominionStarCaptureSource, resolveCaptureSource, visibleCaptureSources } from './capture-source.mjs';
 import { CaptureSession } from './capture-session.mjs';
+import { resolveDesktopLayout } from './desktop-layout.mjs';
+import { initializeDesktopUpdater, desktopUpdateStatus, checkForDesktopUpdate, installDesktopUpdate } from './desktop-updater.mjs';
 
 const APP_ORIGIN = 'https://dominionstarld.com';
 const MEET_URL = `${APP_ORIGIN}/meet/?desktop=1`;
@@ -11,7 +14,7 @@ const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/meet-login/?desktop=1&mode=member`;
 const HOME_URL = MEET_HOME_URL;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 10;
+const DESKTOP_BRIDGE_VERSION = 11;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let presenterWindow;
@@ -22,6 +25,39 @@ const captureSession = new CaptureSession();
 let remoteControlCapability = '';
 let remoteInputQueue = Promise.resolve();
 let lastCaptureFailure = '';
+let saveWindowTimer;
+let currentDesktopLayout;
+
+const windowStatePath=()=>path.join(app.getPath('userData'),'window-state.json');
+function readWindowState(){
+  try{
+    const state=JSON.parse(fs.readFileSync(windowStatePath(),'utf8'));
+    if(!state||!Number.isFinite(state.width)||!Number.isFinite(state.height))return null;
+    const area=electronScreen.getDisplayMatching(state).workArea;
+    const width=Math.max(420,Math.min(state.width,area.width));
+    const height=Math.max(300,Math.min(state.height,area.height));
+    const x=Math.max(area.x,Math.min(Number(state.x)||area.x,area.x+area.width-width));
+    const y=Math.max(area.y,Math.min(Number(state.y)||area.y,area.y+area.height-height));
+    return {x,y,width,height,maximized:Boolean(state.maximized)};
+  }catch{return null;}
+}
+function saveWindowState(){
+  if(!mainWindow||mainWindow.isDestroyed())return;
+  const bounds=mainWindow.getNormalBounds();
+  fs.mkdirSync(path.dirname(windowStatePath()),{recursive:true});
+  fs.writeFileSync(windowStatePath(),JSON.stringify({...bounds,maximized:mainWindow.isMaximized()}));
+}
+function scheduleWindowStateSave(){clearTimeout(saveWindowTimer);saveWindowTimer=setTimeout(saveWindowState,350);}
+function publishDesktopLayout(){
+  if(!mainWindow||mainWindow.isDestroyed())return null;
+  const bounds=mainWindow.getBounds();
+  const workArea=electronScreen.getDisplayMatching(bounds).workArea;
+  const layout=resolveDesktopLayout(bounds,workArea,process.platform);
+  currentDesktopLayout=layout;
+  mainWindow.setAlwaysOnTop(layout.alwaysOnTop,'floating');
+  if(!mainWindow.webContents.isDestroyed())mainWindow.webContents.send('desktop:layout-changed',layout);
+  return layout;
+}
 
 const supportsMacSystemPicker=()=>{
   if(process.platform!=='darwin')return false;
@@ -233,12 +269,16 @@ function loadOffline() {
 }
 
 async function createWindow(initialUrl = '') {
+  const saved=readWindowState();
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 980,
-    minHeight: 680,
+    width: saved?.width||1440,
+    height: saved?.height||900,
+    ...(saved?{x:saved.x,y:saved.y}:{}),
+    minWidth: 420,
+    minHeight: 300,
     show: false,
+    frame: true,
+    ...(process.platform==='darwin'?{titleBarStyle:'hiddenInset',trafficLightPosition:{x:14,y:14}}:{titleBarStyle:'default'}),
     backgroundColor: '#f4f7fb',
     title: 'DominionStar Meet',
     webPreferences: {
@@ -253,7 +293,11 @@ async function createWindow(initialUrl = '') {
     }
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.once('ready-to-show', () => {if(saved?.maximized)mainWindow?.maximize();mainWindow?.show();publishDesktopLayout();});
+  mainWindow.on('resize',()=>{publishDesktopLayout();scheduleWindowStateSave();});
+  mainWindow.on('move',scheduleWindowStateSave);
+  mainWindow.on('maximize',()=>{publishDesktopLayout();scheduleWindowStateSave();});
+  mainWindow.on('unmaximize',()=>{publishDesktopLayout();scheduleWindowStateSave();});
   mainWindow.on('closed',()=>{
     if(presenterWindow&&!presenterWindow.isDestroyed())presenterWindow.destroy();
     presenterWindow=null;
@@ -299,6 +343,7 @@ async function createWindow(initialUrl = '') {
   });
   mainWindow.webContents.on('did-finish-load', () => {
     recoveryAttempts = 0;
+    publishDesktopLayout();
   });
 
   if (initialUrl && isDominionStarUrl(initialUrl)) {
@@ -351,8 +396,12 @@ ipcMain.on('desktop:account-chooser', event => {
 });
 ipcMain.handle('desktop:runtime-info', event => {
   if (!isDominionStarUrl(event.sender.getURL())) return null;
-  return {bridgeVersion:DESKTOP_BRIDGE_VERSION,appVersion:app.getVersion(),platform:process.platform,persistentSession:true,customSharePicker:!supportsMacSystemPicker(),systemSharePicker:supportsMacSystemPicker(),supportsSystemAudioShare:['win32','darwin'].includes(process.platform)};
+  return {bridgeVersion:DESKTOP_BRIDGE_VERSION,appVersion:app.getVersion(),platform:process.platform,persistentSession:true,customSharePicker:!supportsMacSystemPicker(),systemSharePicker:supportsMacSystemPicker(),supportsSystemAudioShare:['win32','darwin'].includes(process.platform),layout:currentDesktopLayout||publishDesktopLayout()};
 });
+ipcMain.handle('desktop:window-layout', event => isDominionStarUrl(event.sender.getURL()) ? (currentDesktopLayout||publishDesktopLayout()) : null);
+ipcMain.handle('desktop:update-status', event => isDominionStarUrl(event.sender.getURL()) ? desktopUpdateStatus() : null);
+ipcMain.handle('desktop:check-update', event => isDominionStarUrl(event.sender.getURL()) ? checkForDesktopUpdate().then(()=>true).catch(()=>false) : false);
+ipcMain.handle('desktop:install-update', event => isDominionStarUrl(event.sender.getURL()) ? installDesktopUpdate() : false);
 ipcMain.handle('desktop:open-external', async (event, value='') => {
   if(!isDominionStarUrl(event.sender.getURL()))return false;
   try{const target=new URL(String(value));if(target.protocol!=='https:')return false;await shell.openExternal(target.toString());return true;}catch{return false;}
@@ -445,6 +494,7 @@ app.whenReady().then(async () => {
   // Resume the signed-in Meet account on normal launches. Meet Home sends a
   // signed-out or expired session to the account chooser automatically.
   await createWindow(deepLink ? resolveDeepLink(deepLink) : MEET_HOME_URL);
+  initializeDesktopUpdater({app,windowProvider:()=>mainWindow,notify:body=>{if(Notification.isSupported())new Notification({title:'DominionStar Meet update',body}).show();}});
   if (Notification.isSupported()) new Notification({ title: 'DominionStar Meet', body: 'Desktop is ready.' }).show();
 });
 

@@ -1,4 +1,4 @@
-# DominionStar Meet Desktop — 1.0 Candidate
+# DominionStar Meet Desktop — 1.1 Release Candidate
 
 This folder contains the Windows and macOS desktop shell for the live DominionStar platform.
 
@@ -32,6 +32,19 @@ The included GitHub Actions workflow builds both platforms on their native opera
 - `dominionstar://meet` meeting deep links
 - Guardian-style renderer crash recovery and offline screen
 - Windows NSIS and universal macOS DMG/ZIP packaging configuration
+
+## 1.1 adaptive desktop and updates
+
+- Native macOS traffic-light title controls and Windows caption controls
+- Restores the previous safe window position and size after restart
+- Wide layout keeps participant videos at the right; narrow and compact layouts move them across the top
+- Mini-window mode keeps the essential microphone, camera, participants, and leave controls visible
+- Participant docks show at most five tiles before scrolling and remain freely movable
+- Off-screen or unsafe dock positions are corrected automatically after display or window-size changes
+- Background update checks download a newer signed release without interrupting a meeting
+- Downloaded updates install over the existing app on exit; the persistent account session, device preferences, join preferences, and saved window state remain in the user-data directory
+
+For tag releases, the GitHub workflow changes the packaged update provider to the current repository and creates a draft release containing installers, blockmaps, and update metadata. Publish the draft only after signing/notarization and real Windows/macOS smoke tests pass.
 
 The existing web platform remains the communication engine, so web and desktop participants share the same meetings, chat, reactions, hand queue, and account data.
 
