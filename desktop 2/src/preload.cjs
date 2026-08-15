@@ -16,7 +16,21 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
   goHome: () => ipcRenderer.send('desktop:home'),
   showAccountChooser: () => ipcRenderer.send('desktop:account-chooser'),
-  getRuntimeInfo: () => ipcRenderer.invoke('desktop:runtime-info'),
+  getRuntimeInfo: async () => {
+    const info = await ipcRenderer.invoke('desktop:runtime-info');
+    if (!info || typeof info !== 'object') return info;
+    // Normalize the main-process response to the same compatibility contract
+    // exposed synchronously above. This prevents hosted Meet from mistaking
+    // the DominionStar app release number for the Electron/runtime version.
+    return Object.freeze({
+      ...info,
+      version: process.versions.electron,
+      electronVersion: process.versions.electron,
+      appVersion: info.appVersion || '1.1.4',
+      buildVersion: info.buildVersion || info.appVersion || '1.1.4',
+      bridgeVersion: Number(info.bridgeVersion || 12)
+    });
+  },
   getWindowLayout: () => ipcRenderer.invoke('desktop:window-layout'),
   onWindowLayout: callback => {
     if(typeof callback!=='function')return()=>{};
