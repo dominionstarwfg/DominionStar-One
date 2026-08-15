@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const required = ['package.json', 'src/main.mjs', 'src/preload.cjs', 'src/presenter-preload.cjs', 'src/presenter-toolbar.html', 'src/presenter-toolbar.js', 'src/capture-source.mjs', 'src/capture-session.mjs', 'src/desktop-session.mjs', 'src/desktop-layout.mjs', 'src/desktop-updater.mjs', 'src/offline.html', 'src/launcher.html', 'src/entitlements.mac.plist'];
+const required = ['package.json', 'package-lock.json', 'src/bootstrap.mjs', 'src/main.mjs', 'src/preload.cjs', 'src/presenter-preload.cjs', 'src/presenter-toolbar.html', 'src/presenter-toolbar.js', 'src/capture-source.mjs', 'src/capture-session.mjs', 'src/desktop-session.mjs', 'src/desktop-layout.mjs', 'src/desktop-updater.mjs', 'src/offline.html', 'src/launcher.html', 'src/entitlements.mac.plist'];
 const missing = required.filter((file) => !fs.existsSync(path.join(root, file)));
 if (missing.length) throw new Error(`Missing desktop files: ${missing.join(', ')}`);
 
@@ -24,9 +24,19 @@ function verifyLocalImports(file) {
   const bareImports = source.matchAll(/(?:import\s+(?:[^'\"]+?\s+from\s+)?|import\s*\(|require\s*\()\s*['\"]((?!\.|\/)[^'\"]+)['\"]/g);
   for (const match of bareImports) externalImports.add(match[1]);
 }
-verifyLocalImports('src/main.mjs');
+verifyLocalImports('src/bootstrap.mjs');
 
+const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+const packageLock=JSON.parse(fs.readFileSync(path.join(root,'package-lock.json'),'utf8'));
+const bootstrap=fs.readFileSync(path.join(root,'src/bootstrap.mjs'),'utf8');
 const main = fs.readFileSync(path.join(root, 'src/main.mjs'), 'utf8');
+
+if(packageJson.main!=='src/bootstrap.mjs')throw new Error('Native bootstrap must remain the packaged desktop entry point');
+if(packageLock.version!==packageJson.version||packageLock.packages?.['']?.version!==packageJson.version)throw new Error('package-lock release metadata does not match package.json');
+if(!bootstrap.includes('guardian-certification.js')||!bootstrap.includes('onBeforeRequest'))throw new Error('Native desktop certification authority gate missing');
+if(!bootstrap.includes('requestMacMediaAccess')||!bootstrap.includes('askForMediaAccess(mediaType)')||!bootstrap.includes('await requestMacMediaAccess()'))throw new Error('macOS startup camera/microphone permission flow missing');
+if(!bootstrap.includes("await import('./main.mjs')"))throw new Error('Native bootstrap does not hand off to production main process');
+
 for (const safeguard of ['contextIsolation: true', 'nodeIntegration: false', 'sandbox: true', 'setPermissionRequestHandler', 'setWindowOpenHandler']) {
   if (!main.includes(safeguard)) throw new Error(`Missing safeguard: ${safeguard}`);
 }
@@ -55,7 +65,7 @@ if (!main.includes('BrowserWindow.getAllWindows().length === 0) createWindow(MEE
 if (!main.includes('else pendingDeepLink=url')) throw new Error('macOS OAuth callback can be lost before the window is ready');
 if (!main.includes('consumedAuthCallback === url.hash')) throw new Error('Desktop OAuth callback is not single-use guarded');
 if (!main.includes('process.defaultApp') || !main.includes("setAsDefaultProtocolClient('dominionstar'")) throw new Error('Packaged/development deep-link registration is incomplete');
-const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+
 for (const specifier of externalImports) {
   if (specifier === 'electron' || specifier.startsWith('node:')) continue;
   const packageName = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
@@ -71,8 +81,8 @@ if(!preload.includes('getRuntimeInfo: async'))throw new Error('Desktop runtime-i
 if(!main.includes('version:appVersion,appVersion,buildVersion:appVersion')||!main.includes('electronVersion:process.versions.electron'))throw new Error('Main runtime info does not expose application and Electron versions separately');
 if(!main.includes('refreshHostedMeetingAssets(desktopSession,APP_ORIGIN)'))throw new Error('Desktop hosted cache refresh missing');
 if(!main.includes('loadFreshPage(mainWindow, initialUrl)'))throw new Error('Initial hosted navigation does not bypass cache');
-if(main.includes('requestMacMediaAccess'))throw new Error('Desktop must not request camera or microphone during startup');
-if(!main.includes("route==='/meet'")||!main.includes('mediaPermissions.has(permission)'))throw new Error('Meeting-only media permission policy missing');
+if(main.includes('requestMacMediaAccess'))throw new Error('Media permission prompting belongs in the native bootstrap, not production main process');
+if(!main.includes("route==='/meet'")||!main.includes('mediaPermissions.has(permission)'))throw new Error('Meeting-only web media permission policy missing');
 if(!main.includes("ipcMain.handle('desktop:window-layout'"))throw new Error('Missing adaptive native window bridge');
 if(!main.includes("ipcMain.handle('desktop:update-status'"))throw new Error('Missing in-place update status bridge');
 if(!packageJson.dependencies?.['electron-updater'])throw new Error('Missing desktop update client');
