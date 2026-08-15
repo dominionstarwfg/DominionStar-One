@@ -5,12 +5,11 @@ let remoteControlCapability = '';
 contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   isDesktop: true,
   platform: process.platform,
-  // Compatibility contract used by the hosted Meet client. `version` is the
-  // Electron/runtime version; DominionStar release identity lives in
-  // appVersion/buildVersion. Keep these semantics separate.
-  version: process.versions.electron,
-  appVersion: '1.1.6',
-  buildVersion: '1.1.6',
+  // Hosted Meet certification identifies the DominionStar desktop release by
+  // `version`. Keep Electron's runtime identity in electronVersion only.
+  version: '1.1.7',
+  appVersion: '1.1.7',
+  buildVersion: '1.1.7',
   electronVersion: process.versions.electron,
   bridgeVersion: 12,
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
@@ -19,15 +18,13 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   getRuntimeInfo: async () => {
     const info = await ipcRenderer.invoke('desktop:runtime-info');
     if (!info || typeof info !== 'object') return info;
-    // Normalize the main-process response to the same compatibility contract
-    // exposed synchronously above. This prevents hosted Meet from mistaking
-    // the DominionStar app release number for the Electron/runtime version.
+    const appVersion = String(info.appVersion || info.buildVersion || '1.1.7');
     return Object.freeze({
       ...info,
-      version: process.versions.electron,
-      electronVersion: process.versions.electron,
-      appVersion: info.appVersion || '1.1.6',
-      buildVersion: info.buildVersion || info.appVersion || '1.1.6',
+      version: appVersion,
+      appVersion,
+      buildVersion: String(info.buildVersion || appVersion),
+      electronVersion: String(info.electronVersion || process.versions.electron),
       bridgeVersion: Number(info.bridgeVersion || 12)
     });
   },

@@ -37,26 +37,26 @@ const context={
 vm.runInNewContext(preload,context,{filename:'preload.cjs'});
 
 assert.ok(exposed?.isDesktop,'Desktop bridge was not exposed');
-assert.equal(exposed.version,'43.3.0','version must preserve the hosted runtime-version contract');
+assert.equal(exposed.version,packageJson.version,'version must identify the DominionStar desktop release');
 assert.equal(exposed.appVersion,packageJson.version,'appVersion must match package version');
 assert.equal(exposed.buildVersion,packageJson.version,'buildVersion must match package version');
-assert.equal(exposed.electronVersion,'43.3.0','electronVersion must identify the Electron runtime');
+assert.equal(exposed.electronVersion,'43.3.0','electronVersion must identify the Electron runtime separately');
 assert.equal(exposed.bridgeVersion,12,'Certified native bridge version must be 12');
 assert.ok(Object.isFrozen(exposed),'Exposed desktop contract must be immutable');
 
 const runtime=await exposed.getRuntimeInfo();
-assert.equal(runtime.version,'43.3.0','runtime-info version must also preserve Electron/runtime semantics');
-assert.equal(runtime.electronVersion,'43.3.0','runtime-info electronVersion must identify Electron');
+assert.equal(runtime.version,packageJson.version,'runtime-info version must identify the DominionStar desktop release');
 assert.equal(runtime.appVersion,packageJson.version,'runtime-info appVersion must match package version');
 assert.equal(runtime.buildVersion,packageJson.version,'runtime-info buildVersion must match package version');
+assert.equal(runtime.electronVersion,'43.3.0','runtime-info electronVersion must identify Electron separately');
 assert.equal(runtime.bridgeVersion,12,'runtime-info bridgeVersion must remain certified');
 assert.ok(Object.isFrozen(runtime),'Normalized runtime-info must be immutable');
 
 const certified=exposed.isDesktop
-  && exposed.version===exposed.electronVersion
+  && exposed.version===packageJson.version
   && exposed.appVersion===packageJson.version
   && exposed.buildVersion===packageJson.version
-  && runtime.version===runtime.electronVersion
+  && runtime.version===packageJson.version
   && runtime.appVersion===packageJson.version
   && runtime.buildVersion===packageJson.version
   && runtime.bridgeVersion>=12;

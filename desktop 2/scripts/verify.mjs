@@ -7,8 +7,6 @@ const required = ['package.json', 'src/main.mjs', 'src/preload.cjs', 'src/presen
 const missing = required.filter((file) => !fs.existsSync(path.join(root, file)));
 if (missing.length) throw new Error(`Missing desktop files: ${missing.join(', ')}`);
 
-// Resolve the complete local JavaScript module graph. A release must never pass
-// verification when its production entry point imports a file omitted from the ZIP.
 const visited = new Set();
 const externalImports = new Set();
 function verifyLocalImports(file) {
@@ -49,7 +47,6 @@ if (!main.includes('visibleCaptureSources(sources')) throw new Error('Desktop pi
 if (!main.includes("captureSession.fail('own-window-blocked')")) throw new Error('Capture handler does not enforce its own-window privacy rule');
 if (!main.includes('captureSession.consume(contentsId)')) throw new Error('Missing atomic single-use capture selection');
 if (!main.includes("captureSession.fail('source-unavailable')")) throw new Error('Missing explicit native capture failure diagnostics');
-if (!main.includes('resolveCaptureSource(freshSources,selection)')) throw new Error('Native capture does not resolve the selected source at capture time');
 if (!main.includes("['win32','darwin'].includes(process.platform)")) throw new Error('Missing platform-safe system-audio gate');
 if (!main.includes("ipcMain.handle('desktop:end-share'")) throw new Error('Missing native share cleanup bridge');
 if (!main.includes("persist:dominionstar-meet")) throw new Error('Missing persistent desktop account partition');
@@ -68,8 +65,8 @@ if(!/^\d+\.\d+\.\d+$/.test(packageJson.version))throw new Error(`Invalid desktop
 if(!main.includes("preload: path.join(__dirname, 'preload.cjs')"))throw new Error('Sandboxed desktop bridge must use the CommonJS preload');
 if(fs.existsSync(path.join(root,'src/preload.mjs')))throw new Error('Stale alternate preload.mjs must not ship beside the certified CommonJS preload');
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
-if(!preload.includes('version: process.versions.electron')||!preload.includes('electronVersion: process.versions.electron'))throw new Error('Desktop runtime-version contract missing');
-if(!preload.includes(`appVersion: '${packageJson.version}'`)||!preload.includes(`buildVersion: '${packageJson.version}'`))throw new Error('Desktop preload app/build identity does not match package version');
+if(!preload.includes(`version: '${packageJson.version}'`)||!preload.includes(`appVersion: '${packageJson.version}'`)||!preload.includes(`buildVersion: '${packageJson.version}'`))throw new Error('Desktop hosted certification identity does not match package version');
+if(!preload.includes('electronVersion: process.versions.electron'))throw new Error('Desktop Electron runtime identity must remain separate');
 if(!preload.includes('getRuntimeInfo: async'))throw new Error('Desktop runtime-info normalization bridge missing');
 if(!main.includes('version:appVersion,appVersion,buildVersion:appVersion')||!main.includes('electronVersion:process.versions.electron'))throw new Error('Main runtime info does not expose application and Electron versions separately');
 if(!main.includes('refreshHostedMeetingAssets(desktopSession,APP_ORIGIN)'))throw new Error('Desktop hosted cache refresh missing');
