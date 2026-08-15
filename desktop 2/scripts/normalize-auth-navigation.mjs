@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mainPath = path.join(root, 'src/main.mjs');
-let main = fs.readFileSync(mainPath, 'utf8');
+const rawMain = fs.readFileSync(mainPath, 'utf8');
+const lineEnding = rawMain.includes('\r\n') ? '\r\n' : '\n';
+let main = rawMain.replace(/\r\n/g, '\n');
 const original = main;
 
 const replacements = [
@@ -32,7 +34,7 @@ for (const [from, to] of replacements) {
 }
 
 if (main !== original) {
-  fs.writeFileSync(mainPath, main);
+  fs.writeFileSync(mainPath, main.replace(/\n/g, lineEnding));
   console.log('Normalized DominionStar desktop authentication/navigation source.');
 } else {
   console.log('DominionStar desktop authentication/navigation source already normalized.');
