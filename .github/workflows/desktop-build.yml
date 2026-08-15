@@ -196,7 +196,7 @@ jobs:
           test -f release/SHA256SUMS-Windows.txt
           test -f release/SHA256SUMS-macOS.txt
 
-      - name: Publish DominionStar GitHub Release
+      - name: Publish DominionStar GitHub Release assets
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -205,8 +205,14 @@ jobs:
 
           VERSION="${GITHUB_REF_NAME#desktop-v}"
 
-          gh release create "$GITHUB_REF_NAME" \
-            release/* \
-            --repo "${GITHUB_REPOSITORY}" \
-            --title "DominionStar Meet v${VERSION}" \
-            --generate-notes
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              release/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "DominionStar Meet v${VERSION}" \
+              --generate-notes
+          fi
