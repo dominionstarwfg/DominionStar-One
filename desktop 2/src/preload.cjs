@@ -9,8 +9,8 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   // Electron/runtime version; DominionStar release identity lives in
   // appVersion/buildVersion. Keep these semantics separate.
   version: process.versions.electron,
-  appVersion: '1.1.4',
-  buildVersion: '1.1.4',
+  appVersion: '1.1.6',
+  buildVersion: '1.1.6',
   electronVersion: process.versions.electron,
   bridgeVersion: 12,
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
@@ -26,8 +26,8 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
       ...info,
       version: process.versions.electron,
       electronVersion: process.versions.electron,
-      appVersion: info.appVersion || '1.1.4',
-      buildVersion: info.buildVersion || info.appVersion || '1.1.4',
+      appVersion: info.appVersion || '1.1.6',
+      buildVersion: info.buildVersion || info.appVersion || '1.1.6',
       bridgeVersion: Number(info.bridgeVersion || 12)
     });
   },
