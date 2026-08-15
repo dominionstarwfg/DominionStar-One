@@ -1,0 +1,52 @@
+name: DominionStar Desktop PR Verification
+
+on:
+  pull_request:
+    paths:
+      - "desktop 2/**"
+      - ".github/workflows/desktop-build.yml"
+      - ".github/workflows/desktop-pr-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-desktop-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Desktop Contract and Regression Verification
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "desktop 2"
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: "desktop 2/package-lock.json"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run DominionStar desktop certification
+        run: npm run verify
+
+      - name: Confirm release workflow still certifies before packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow="../.github/workflows/desktop-build.yml"
+          grep -q "Run DominionStar certification" "$workflow"
+          grep -q "npm run verify" "$workflow"
+          echo "Release certification gate is present."

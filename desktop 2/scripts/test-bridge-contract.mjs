@@ -20,15 +20,18 @@ const context={
 vm.runInNewContext(preload,context,{filename:'preload.cjs'});
 
 assert.ok(exposed?.isDesktop,'Desktop bridge was not exposed');
-assert.equal(exposed.version,packageJson.version,'version must identify the DominionStar app');
+// Compatibility contract: the hosted Meet client historically reads `version`
+// as the Electron/runtime version. App release identity belongs in appVersion
+// and buildVersion. Do not collapse these fields again.
+assert.equal(exposed.version,'43.3.0','version must preserve the hosted runtime-version contract');
 assert.equal(exposed.appVersion,packageJson.version,'appVersion must match package version');
 assert.equal(exposed.buildVersion,packageJson.version,'buildVersion must match package version');
-assert.equal(exposed.electronVersion,'43.3.0','Electron runtime must remain a separate field');
+assert.equal(exposed.electronVersion,'43.3.0','electronVersion must identify the Electron runtime');
 assert.equal(exposed.bridgeVersion,12,'Certified native bridge version must be 12');
 assert.ok(Object.isFrozen(exposed),'Exposed desktop contract must be immutable');
 
 const certified=exposed.isDesktop
-  && exposed.version===packageJson.version
+  && exposed.version===exposed.electronVersion
   && exposed.appVersion===packageJson.version
   && exposed.buildVersion===packageJson.version
   && exposed.bridgeVersion>=12;

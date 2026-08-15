@@ -5,9 +5,10 @@ let remoteControlCapability = '';
 contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   isDesktop: true,
   platform: process.platform,
-  // The hosted certification gate compares these three application versions.
-  // Electron's runtime version is exposed separately and must never replace them.
-  version: '1.1.3',
+  // Compatibility contract used by the hosted Meet client. `version` is the
+  // Electron/runtime version; DominionStar release identity lives in
+  // appVersion/buildVersion. Keep these semantics separate.
+  version: process.versions.electron,
   appVersion: '1.1.3',
   buildVersion: '1.1.3',
   electronVersion: process.versions.electron,
