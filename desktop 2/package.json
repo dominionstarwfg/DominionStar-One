@@ -9,7 +9,8 @@
   "scripts": {
     "start": "electron .",
     "sync:release-metadata": "node scripts/sync-release-metadata.mjs",
-    "verify": "node scripts/sync-release-metadata.mjs && node scripts/verify.mjs && node scripts/test-release-metadata-self-heal.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-native-certification-gate.mjs && node scripts/test-desktop-auth-navigation.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs",
+    "normalize:auth-navigation": "node scripts/normalize-auth-navigation.mjs",
+    "verify": "node scripts/sync-release-metadata.mjs && node scripts/normalize-auth-navigation.mjs && node scripts/verify.mjs && node scripts/test-release-metadata-self-heal.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-native-certification-gate.mjs && node scripts/test-desktop-auth-navigation.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs",
     "pack": "electron-builder --dir",
     "dist:windows": "electron-builder --win nsis --x64 --arm64 --publish never",
     "dist:mac": "electron-builder --mac dmg zip --universal --publish never"
