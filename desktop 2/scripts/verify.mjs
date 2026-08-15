@@ -64,7 +64,7 @@ for (const specifier of externalImports) {
   const packageName = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
   if (!packageJson.dependencies?.[packageName]) throw new Error(`Production import is not declared in dependencies: ${specifier}`);
 }
-if(packageJson.version!=='1.1.3')throw new Error('Unexpected desktop package version');
+if(packageJson.version!=='1.1.4')throw new Error('Unexpected desktop package version');
 if(!main.includes("preload: path.join(__dirname, 'preload.cjs')"))throw new Error('Sandboxed desktop bridge must use the CommonJS preload');
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
 if(!preload.includes('electronVersion: process.versions.electron'))throw new Error('Desktop Electron runtime field missing');
