@@ -10,9 +10,8 @@
     "start": "electron .",
     "verify": "node scripts/verify.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs",
     "pack": "electron-builder --dir",
-    "dist:windows": "electron-builder --win nsis --x64 --arm64",
-    "dist:mac": "electron-builder --mac dmg zip --universal"
-  },
+   "dist:windows": "electron-builder --win nsis --x64 --arm64 --publish never",
+"dist:mac": "electron-builder --mac dmg zip --universal --publish never"
   "devDependencies": {
     "electron": "43.3.0",
     "electron-builder": "26.15.3"
