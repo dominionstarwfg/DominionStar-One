@@ -84,7 +84,7 @@ jobs:
           path: |
             desktop 2/dist/*.exe
             desktop 2/dist/*.blockmap
-            desktop 2/dist/*.yml
+            desktop 2/dist/latest*.yml
             desktop 2/dist/SHA256SUMS-Windows.txt
           if-no-files-found: error
           retention-days: 14
@@ -153,7 +153,7 @@ jobs:
             desktop 2/dist/*.dmg
             desktop 2/dist/*.zip
             desktop 2/dist/*.blockmap
-            desktop 2/dist/*.yml
+            desktop 2/dist/latest*.yml
             desktop 2/dist/SHA256SUMS-macOS.txt
           if-no-files-found: error
           retention-days: 14
