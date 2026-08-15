@@ -44,6 +44,7 @@ jobs:
         run: |
           $packageVersion = (Get-Content package.json | ConvertFrom-Json).version
           $tagVersion = "${{ github.ref_name }}".Replace("desktop-v", "")
+
           if ($packageVersion -ne $tagVersion) {
             Write-Error "Version mismatch: package.json=$packageVersion tag=$tagVersion"
             exit 1
@@ -157,3 +158,55 @@ jobs:
             desktop 2/dist/SHA256SUMS-macOS.txt
           if-no-files-found: error
           retention-days: 14
+
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs:
+      - windows
+      - macos
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download verified Windows and macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: DominionStar-*-${{ github.sha }}
+          path: release
+          merge-multiple: true
+
+      - name: Verify release payload
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Release payload:"
+          find release -maxdepth 1 -type f -print | sort
+
+          test -n "$(find release -maxdepth 1 -type f -name '*.exe' -print -quit)"
+          test -n "$(find release -maxdepth 1 -type f -name '*.dmg' -print -quit)"
+          test -n "$(find release -maxdepth 1 -type f -name '*.zip' -print -quit)"
+          test -f release/latest.yml
+          test -f release/latest-mac.yml
+          test -f release/SHA256SUMS-Windows.txt
+          test -f release/SHA256SUMS-macOS.txt
+
+      - name: Publish DominionStar GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${GITHUB_REF_NAME#desktop-v}"
+
+          gh release create "$GITHUB_REF_NAME" \
+            release/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "DominionStar Meet v${VERSION}" \
+            --generate-notes
