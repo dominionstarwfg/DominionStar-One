@@ -42,11 +42,12 @@
     ],
     "artifactName": "DominionStar-Meet-${version}-${os}-${arch}.${ext}",
     "publish": [
-      {
-        "provider": "generic",
-        "url": "https://dominionstarld.com/downloads/desktop"
-      }
-    ],
+  {
+    "provider": "github",
+    "owner": "dominionstarwfg",
+    "repo": "DominionStar-One"
+  }
+],
     "win": {
       "target": [
         {
