@@ -64,11 +64,14 @@ for (const specifier of externalImports) {
   const packageName = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
   if (!packageJson.dependencies?.[packageName]) throw new Error(`Production import is not declared in dependencies: ${specifier}`);
 }
-if(packageJson.version!=='1.1.6')throw new Error('Unexpected desktop package version');
+if(!/^\d+\.\d+\.\d+$/.test(packageJson.version))throw new Error(`Invalid desktop package version: ${packageJson.version}`);
 if(!main.includes("preload: path.join(__dirname, 'preload.cjs')"))throw new Error('Sandboxed desktop bridge must use the CommonJS preload');
+if(fs.existsSync(path.join(root,'src/preload.mjs')))throw new Error('Stale alternate preload.mjs must not ship beside the certified CommonJS preload');
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
-if(!preload.includes('electronVersion: process.versions.electron'))throw new Error('Desktop Electron runtime field missing');
-if(!main.includes('version:appVersion,appVersion,buildVersion:appVersion')||!main.includes('electronVersion:process.versions.electron'))throw new Error('Runtime info does not expose consistent application versions');
+if(!preload.includes('version: process.versions.electron')||!preload.includes('electronVersion: process.versions.electron'))throw new Error('Desktop runtime-version contract missing');
+if(!preload.includes(`appVersion: '${packageJson.version}'`)||!preload.includes(`buildVersion: '${packageJson.version}'`))throw new Error('Desktop preload app/build identity does not match package version');
+if(!preload.includes('getRuntimeInfo: async'))throw new Error('Desktop runtime-info normalization bridge missing');
+if(!main.includes('version:appVersion,appVersion,buildVersion:appVersion')||!main.includes('electronVersion:process.versions.electron'))throw new Error('Main runtime info does not expose application and Electron versions separately');
 if(!main.includes('refreshHostedMeetingAssets(desktopSession,APP_ORIGIN)'))throw new Error('Desktop hosted cache refresh missing');
 if(!main.includes('loadFreshPage(mainWindow, initialUrl)'))throw new Error('Initial hosted navigation does not bypass cache');
 if(main.includes('requestMacMediaAccess'))throw new Error('Desktop must not request camera or microphone during startup');
