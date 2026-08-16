@@ -1,0 +1,110 @@
+name: Recover Certified RC12.26 Static Baseline
+
+on:
+  push:
+    branches:
+      - infra/recover-complete-live-web-source
+    paths:
+      - ".github/workflows/recover-rc1226-static-baseline.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: recover-certified-rc1226-static-baseline
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    name: Recover exact production bytes without touching Meet
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: infra/recover-complete-live-web-source
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Record protected RC13 Meet hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            meet/index.html \
+            meet/release-contract.json \
+            assets/js/meeting-engine.js \
+            assets/js/meet-next/executive6.js \
+            > /tmp/meet-before.sha256
+
+      - name: Recover only certified non-Meet production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://dominionstarld.com"
+          mkdir -p member-login member-dashboard assets
+
+          curl --fail --silent --show-error --location --compressed "$base/" -o index.html
+          curl --fail --silent --show-error --location --compressed "$base/styles.css" -o styles.css
+          curl --fail --silent --show-error --location --compressed "$base/member-login/" -o member-login/index.html
+          curl --fail --silent --show-error --location --compressed "$base/member-dashboard/" -o member-dashboard/index.html
+
+          curl --fail --silent --show-error --location "$base/assets/dominionstar-platform-social.png" -o assets/dominionstar-platform-social.png
+          curl --fail --silent --show-error --location "$base/assets/founder-black-1.jpeg" -o assets/founder-black-1.jpeg
+          curl --fail --silent --show-error --location "$base/assets/founder-black-2.jpeg" -o assets/founder-black-2.jpeg
+          curl --fail --silent --show-error --location "$base/assets/founder-blue.jpeg" -o assets/founder-blue.jpeg
+          curl --fail --silent --show-error --location "$base/assets/founder-business-card-qr.png" -o assets/founder-business-card-qr.png
+          curl --fail --silent --show-error --location "$base/assets/join-qr.png" -o assets/join-qr.png
+          curl --fail --silent --show-error --location "$base/assets/logo.jpeg" -o assets/logo.jpeg
+
+      - name: Prove every recovered byte matches RC12.26 archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/rc1226-static.sha256 <<'EOF'
+          fb7e786e419a060ac8cb590e25826ce6cf75ec180c91d957683aa84e1e5eb0d0  index.html
+          0629a1afb26c6f66f407f7b88caf3937944bf36932b855f76db46cc07c784cff  styles.css
+          cbd0a219721cb0aab1b3cf6b07aad24fe9c0083ff0867b3168eadeca3fe3f14c  _headers
+          6edbe6fbb8da5916c4dec3d921607e9f4ec85e0f4fe59abf91a493b5242977e1  _redirects
+          0f71720fc5fe1c9e31deacf1250d0099aef044b90e0615b72d52119af1c9ffd6  member-login/index.html
+          74a8a2316c6c14b709cd42269369bacbfd93c6bfdcb7444738bf18e54ded6218  member-dashboard/index.html
+          42fe58cfa2355367cd449bb1dfdc5725d6ec15b40d5be4b2b6c81ee98a53b98b  assets/dominionstar-platform-social.png
+          1527dbe1ed6c453b41e79085d4e3110cf9cc29d797bca7d229541f69f88d201c  assets/founder-black-1.jpeg
+          df5b0a69f5ba4b681f411fc5a91bacb0da924a6643ca574a9fe5610662eec4e0  assets/founder-black-2.jpeg
+          982b3afe91c4abbc86f7e461275ca47d9ed0931eba3fd043b2a6a0260c3c1d32  assets/founder-blue.jpeg
+          b17d43c61bf7abda9620a8cea5426600fe7121569b3367998ed5e755a621a78e  assets/founder-business-card-qr.png
+          ac849ea9da1ff2e58ca3d88805a9bfd949a06f46b545375dc6178f9d59e4bab8  assets/join-qr.png
+          05c96371910e0c0db8f5e4686a8969fea5c54da973c3b425e367a599246e29cc  assets/logo.jpeg
+          EOF
+          sha256sum --check /tmp/rc1226-static.sha256
+
+      - name: Prove RC13 Meet was not modified
+        shell: bash
+        run: sha256sum --check /tmp/meet-before.sha256
+
+      - name: Commit only recovered baseline paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "dominionstar-recovery-bot"
+          git config user.email "dominionstarwfg@users.noreply.github.com"
+          git add \
+            index.html styles.css _headers _redirects \
+            member-login/index.html member-dashboard/index.html \
+            assets/dominionstar-platform-social.png \
+            assets/founder-black-1.jpeg \
+            assets/founder-black-2.jpeg \
+            assets/founder-blue.jpeg \
+            assets/founder-business-card-qr.png \
+            assets/join-qr.png \
+            assets/logo.jpeg
+
+          if git diff --cached --quiet; then
+            echo "Certified RC12.26 static baseline is already recovered."
+            exit 0
+          fi
+
+          git commit -m "Recover certified RC12.26 non-Meet production baseline"
+          git push origin HEAD:infra/recover-complete-live-web-source
