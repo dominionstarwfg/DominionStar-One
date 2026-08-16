@@ -43,6 +43,10 @@
     readySent: false,
     stoppingScreen: false,
     screenStartPromise: null,
+    screenPaused: false,
+    screenFreezeTrack: null,
+    screenFreezeStream: null,
+    screenFreezeCanvas: null,
     preShareVideoEnabled: true,
     meetingEnded: false,
     endingMeeting: false,
@@ -63,6 +67,7 @@
     peerRecoveryCount: 0,
     lastPeerRecoveryAt: 0,
     lastCameraToggleAt: 0,
+    lastCameraReleaseAt: 0,
     monitoredCameraTracks: new WeakSet(),
     desiredVideo: true,
     videoToggleSeq: 0,
@@ -170,12 +175,15 @@
     if (!peer) return;
     const audioTrack = state.localStream?.getAudioTracks?.()[0] || null;
     const cameraTrack = state.localStream?.getVideoTracks?.()[0] || null;
-    const screenTrack = state.screenStream?.getVideoTracks?.()[0] || null;
+    const realScreenTrack = state.screenStream?.getVideoTracks?.()[0] || null;
+    const frozenScreenTrack = state.screenPaused && state.screenFreezeTrack?.readyState === 'live' ? state.screenFreezeTrack : null;
+    const screenTrack = frozenScreenTrack || realScreenTrack;
+    const screenTrackStream = frozenScreenTrack ? state.screenFreezeStream : state.screenStream;
     const screenAudioTrack = state.screenStream?.getAudioTracks?.()[0] || null;
     const desired = [
       {kind:'audio', track:audioTrack, stream:state.localStream},
       {kind:'camera', track:cameraTrack, stream:state.localStream},
-      {kind:'screen', track:screenTrack, stream:state.screenStream},
+      {kind:'screen', track:screenTrack, stream:screenTrackStream},
       {kind:'screen-audio', track:screenAudioTrack, stream:state.screenStream}
     ];
     for (const item of desired) {
@@ -1021,17 +1029,63 @@
     return replacement;
   };
 
-  const acquireCameraTrack = async () => {
-    const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-    const track=stream.getVideoTracks()[0]||null;
-    if(!track){stream.getTracks().forEach(item=>item.stop());throw new Error('No camera track was provided by the browser.');}
-    return track;
+  const CAMERA_RELEASE_GRACE_MS=750;
+  const CAMERA_RETRY_DELAYS_MS=[0,320,760,1400];
+  const cameraSleep=ms=>new Promise(resolve=>setTimeout(resolve,Math.max(0,ms)));
+  const isTransientCameraStartError=error=>{
+    const name=String(error?.name||'');
+    const message=String(error?.message||'').toLowerCase();
+    if(['NotAllowedError','SecurityError','OverconstrainedError','NotFoundError'].includes(name))return false;
+    return ['NotReadableError','AbortError','TrackStartError'].includes(name)
+      || /could not start video source|device.*busy|camera.*busy|track.*start|hardware.*busy/.test(message);
+  };
+  const cameraIntentCurrent=intentSeq=>intentSeq==null||(state.desiredVideo&&intentSeq===state.videoToggleSeq);
+  const supersededCameraError=()=>{
+    const error=new Error('Camera request superseded by a newer video choice.');
+    error.name='AbortError';
+    return error;
+  };
+  const waitForCameraRelease=async intentSeq=>{
+    const elapsed=Date.now()-Number(state.lastCameraReleaseAt||0);
+    if(elapsed<CAMERA_RELEASE_GRACE_MS){
+      await cameraSleep(CAMERA_RELEASE_GRACE_MS-elapsed);
+      if(!cameraIntentCurrent(intentSeq))throw supersededCameraError();
+    }
   };
 
-  const recoverCameraTrack = async () => {
+  const acquireCameraTrack = async ({intentSeq=null}={}) => {
+    await waitForCameraRelease(intentSeq);
+    let lastError=null;
+    for(let attempt=0;attempt<CAMERA_RETRY_DELAYS_MS.length;attempt++){
+      if(!cameraIntentCurrent(intentSeq))throw supersededCameraError();
+      const delay=CAMERA_RETRY_DELAYS_MS[attempt];
+      if(delay){
+        await cameraSleep(delay);
+        if(!cameraIntentCurrent(intentSeq))throw supersededCameraError();
+      }
+      try{
+        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+        const track=stream.getVideoTracks()[0]||null;
+        if(!track){
+          stream.getTracks().forEach(item=>item.stop());
+          throw new Error('No camera track was provided by the browser.');
+        }
+        return track;
+      }catch(error){
+        lastError=error;
+        if(!isTransientCameraStartError(error))throw error;
+      }
+    }
+    const error=new Error('Camera could not start after automatic recovery. Make sure no other app is using the camera, then try Start Video again.');
+    error.name=lastError?.name||'CameraUnavailableError';
+    error.cause=lastError;
+    throw error;
+  };
+
+  const recoverCameraTrack = async ({intentSeq=null}={}) => {
     const current=state.localStream?.getVideoTracks?.()[0]||null;
     if(current?.readyState==='live')return current;
-    const replacement=await acquireCameraTrack();
+    const replacement=await acquireCameraTrack({intentSeq});
     const base=state.localStream||new MediaStream();
     base.getVideoTracks().forEach(track=>{try{base.removeTrack(track);}catch(_){};if(track.readyState!=='ended')track.stop();});
     base.addTrack(replacement);
@@ -1151,6 +1205,7 @@
     if(track?.readyState!=='ended'){
       try{track.stop();}catch(_){}
     }
+    if(track)state.lastCameraReleaseAt=Date.now();
     // Keep the negotiated camera sender but remove its media. This releases the
     // physical camera immediately without destroying the peer connection or
     // disturbing the independent presentation sender.
@@ -1183,7 +1238,7 @@
     return queueMediaMutation(async()=>{
       // The user may have changed their mind while getUserMedia was queued.
       if(!state.desiredVideo || seq!==state.videoToggleSeq)return false;
-      try{track=await recoverCameraTrack();}
+      try{track=await recoverCameraTrack({intentSeq:seq});}
       catch(error){
         if(seq===state.videoToggleSeq){state.mediaState.video=false;state.desiredVideo=false;}
         window.DominionRuntime?.events?.publish?.({type:'media.camera.recovery.failed',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,severity:'error',payload:{message:error?.message||String(error),seq}});
@@ -1213,20 +1268,25 @@
     state.preShareVideoEnabled = state.mediaState.video;
     let desktopSelection=null;
     const desktopExpected=/(?:^|[?&])desktop=1(?:&|$)/.test(String(globalThis.location?.search||''));
-    if(desktopExpected&&(!window.dominionDesktop?.isDesktop||!window.DominionDesktopSharePicker?.choose)){
+    const desktopRuntime=window.dominionDesktop?.isDesktop
+      ? await window.dominionDesktop.getRuntimeInfo?.().catch(()=>null)
+      : null;
+    const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker);
+    if(desktopExpected&&(!window.dominionDesktop?.isDesktop||(!useNativeSystemPicker&&!window.DominionDesktopSharePicker?.choose))){
       throw new Error('The DominionStar desktop capture bridge did not load. Install the latest desktop update and completely reopen the app.');
     }
-    if(window.dominionDesktop?.isDesktop && window.DominionDesktopSharePicker?.choose){
+    // Electron 32+ on macOS 15+ can hand getDisplayMedia directly to Apple's
+    // native picker. When that path is active Electron does not invoke the
+    // custom display-media handler, so do not preselect a second source here.
+    if(window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose){
       desktopSelection=await window.DominionDesktopSharePicker.choose();
       if(!desktopSelection){const cancelled=new Error('Screen sharing cancelled.');cancelled.name='AbortError';throw cancelled;}
       const accepted=await window.dominionDesktop.selectShareSource(desktopSelection.sourceId,desktopSelection.audio,desktopSelection.displayId||'',desktopSelection.kind||'',desktopSelection.sourceName||'',desktopSelection.shareOwnWindow);
       if(!accepted)throw new Error('The selected screen is no longer available. Open Share and select it again.');
     }
-    // Keep the browser request standards-safe. Several Chromium/macOS versions
-    // report experimental display-capture hints as NotAllowedError instead of
-    // TypeError, which previously made a valid user selection look like an OS
-    // permission denial. The native picker still provides screen/window/tab
-    // selection and the optional audio choice.
+    // Browser clients and the native macOS system picker request standards-safe
+    // display media directly. Older desktop runtimes retain the custom source
+    // transaction and optional verified system-audio choice.
     const desktopAudio=Boolean(desktopSelection?.audio&&window.dominionDesktop?.supportsSystemAudioShare);
     const displayOptions=desktopSelection
       ? {video:true,...(desktopAudio?{audio:true}:{})}
@@ -1325,9 +1385,16 @@
       if(state.remoteControlAuthorizedId)await send('meet-remote-control-stop',{to:state.remoteControlAuthorizedId,reason:'sharing-ended'}).catch(()=>{});
       state.remoteControlAuthorizedId=null;
       const stream=state.screenStream;
+      const freezeTrack=state.screenFreezeTrack;
+      const freezeStream=state.screenFreezeStream;
       state.screenStream = null;
       state.screenRemoteControlCapable=false;
       state.screenPaused=false;
+      state.screenFreezeTrack=null;
+      state.screenFreezeStream=null;
+      state.screenFreezeCanvas=null;
+      freezeStream?.getTracks?.().forEach(track=>{if(track.readyState!=='ended')track.stop();});
+      if(freezeTrack&&freezeTrack.readyState!=='ended')freezeTrack.stop();
       stream.getTracks().forEach(track=>{ track.onended=null; if(track.readyState!=='ended')track.stop(); });
       const cameraTrack = state.localStream?.getVideoTracks()[0] || null;
       if(cameraTrack) cameraTrack.enabled=Boolean(state.preShareVideoEnabled);
@@ -1357,13 +1424,76 @@
   };
 
 
+  const createFrozenScreenTrack=async()=>{
+    const sourceTrack=state.screenStream?.getVideoTracks?.()[0]||null;
+    if(!sourceTrack||sourceTrack.readyState!=='live')throw new Error('The shared screen is no longer available.');
+    if(typeof document==='undefined')throw new Error('Pause Share requires a visual renderer.');
+    const settings=sourceTrack.getSettings?.()||{};
+    const width=Math.max(2,Number(settings.width)||1280);
+    const height=Math.max(2,Number(settings.height)||720);
+    const video=document.createElement('video');
+    video.muted=true;
+    video.playsInline=true;
+    video.autoplay=true;
+    video.srcObject=new MediaStream([sourceTrack]);
+    try{
+      await Promise.race([
+        new Promise(resolve=>{
+          if(video.readyState>=2)return resolve();
+          video.addEventListener('loadeddata',resolve,{once:true});
+        }),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('Could not freeze the current shared frame.')),1200))
+      ]);
+      await video.play?.().catch?.(()=>{});
+      await new Promise(resolve=>(globalThis.requestAnimationFrame||setTimeout)(resolve,0));
+      const canvas=document.createElement('canvas');
+      canvas.width=width;
+      canvas.height=height;
+      const context=canvas.getContext('2d',{alpha:false});
+      if(!context||typeof canvas.captureStream!=='function')throw new Error('Pause Share is not supported by this system.');
+      context.drawImage(video,0,0,width,height);
+      const freezeStream=canvas.captureStream(1);
+      const freezeTrack=freezeStream.getVideoTracks()[0]||null;
+      if(!freezeTrack)throw new Error('Pause Share could not create a frozen presentation frame.');
+      freezeTrack.contentHint='detail';
+      state.screenFreezeCanvas=canvas;
+      return {track:freezeTrack,stream:freezeStream};
+    }finally{
+      video.pause?.();
+      video.srcObject=null;
+    }
+  };
+
+  const clearFrozenScreenTrack=()=>{
+    const track=state.screenFreezeTrack;
+    const stream=state.screenFreezeStream;
+    state.screenFreezeTrack=null;
+    state.screenFreezeStream=null;
+    state.screenFreezeCanvas=null;
+    stream?.getTracks?.().forEach(item=>{if(item.readyState!=='ended')item.stop();});
+    if(track&&track.readyState!=='ended')track.stop();
+  };
+
   const pauseScreenShare = async paused => {
     if (!state.screenStream) return false;
-    state.screenPaused=Boolean(paused);
-    state.screenStream.getVideoTracks().forEach(track=>track.enabled=!state.screenPaused);
-    await send('meet-screen-state',{active:true,paused:state.screenPaused});
-    emit('screen-paused',{paused:state.screenPaused});
-    return state.screenPaused;
+    const target=Boolean(paused);
+    if(target===state.screenPaused)return state.screenPaused;
+    if(target){
+      const frozen=await createFrozenScreenTrack();
+      state.screenFreezeTrack=frozen.track;
+      state.screenFreezeStream=frozen.stream;
+      state.screenPaused=true;
+      // Replace only the outgoing presentation sender. The real capture remains
+      // alive, so participants see the exact last frame instead of black video.
+      await Promise.allSettled([...state.peers.values()].map(peer=>syncPeerTracks(peer)));
+      emit('screen-paused',{paused:true,privateFreeze:true});
+      return true;
+    }
+    state.screenPaused=false;
+    await Promise.allSettled([...state.peers.values()].map(peer=>syncPeerTracks(peer)));
+    clearFrozenScreenTrack();
+    emit('screen-paused',{paused:false,privateFreeze:true});
+    return false;
   };
 
   const activateWithoutWaitingRoom = async () => {

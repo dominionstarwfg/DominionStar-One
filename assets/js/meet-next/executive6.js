@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  window.__DS_MEET_BUILD='RC12.26-Join-and-Waiting-Room-Recovery';
+  window.__DS_MEET_BUILD='RC13.0-Media-Share-Link-Stability';
 
   const $ = id => document.getElementById(id);
   const engine = window.DominionStarMeetingEngine;
@@ -80,14 +80,65 @@
     catch(error){if(error?.name==='AbortError')throw new Error('The meeting service took too long to respond. Check your connection and try again.');throw error;}
     finally{clearTimeout(timer);}
   };
+  let previewLastCameraReleaseAt=0;
+  const PREVIEW_CAMERA_RELEASE_GRACE_MS=750;
+  const PREVIEW_CAMERA_RETRY_DELAYS_MS=[0,320,760,1400];
+  const uiSleep=ms=>new Promise(resolve=>setTimeout(resolve,Math.max(0,ms)));
+  const isTransientCameraStartError=error=>{
+    const name=String(error?.name||'');
+    const message=String(error?.message||'').toLowerCase();
+    if(['NotAllowedError','SecurityError','OverconstrainedError','NotFoundError'].includes(name))return false;
+    return ['NotReadableError','AbortError','TrackStartError'].includes(name)
+      || /could not start video source|device.*busy|camera.*busy|track.*start|hardware.*busy/.test(message);
+  };
+  const markPreviewCameraReleased=()=>{previewLastCameraReleaseAt=Date.now();};
+  const acquireUserMediaStable=async constraints=>{
+    const wantsVideo=Boolean(constraints?.video);
+    if(!wantsVideo)return navigator.mediaDevices.getUserMedia(constraints);
+    const elapsed=Date.now()-previewLastCameraReleaseAt;
+    if(elapsed<PREVIEW_CAMERA_RELEASE_GRACE_MS)await uiSleep(PREVIEW_CAMERA_RELEASE_GRACE_MS-elapsed);
+    let lastError=null;
+    for(let attempt=0;attempt<PREVIEW_CAMERA_RETRY_DELAYS_MS.length;attempt++){
+      if(PREVIEW_CAMERA_RETRY_DELAYS_MS[attempt])await uiSleep(PREVIEW_CAMERA_RETRY_DELAYS_MS[attempt]);
+      try{return await navigator.mediaDevices.getUserMedia(constraints);}
+      catch(error){lastError=error;if(!isTransientCameraStartError(error))throw error;}
+    }
+    const error=new Error('Camera could not start after automatic recovery. Make sure no other app is using the camera, then try Start Video again.');
+    error.name=lastError?.name||'CameraUnavailableError';
+    error.cause=lastError;
+    throw error;
+  };
+
+  const recentToasts=new Map();
+  const normalizeToastMessage=message=>/could not start video source/i.test(String(message||''))
+    ? 'Camera is recovering. If it remains off, make sure no other app is using the camera and try Start Video once.'
+    : String(message||'');
   const toast = (message,options={}) => {
+    message=normalizeToastMessage(message);
     if(!message)return;
     if(!options.force && ROUTINE_TOAST_PATTERNS.some(pattern=>pattern.test(String(message))))return;
+    const now=Date.now();
+    const last=recentToasts.get(message)||0;
+    if(now-last<2600)return;
+    recentToasts.set(message,now);
     const node=document.createElement('div');
     node.className=`toast${options.type?` toast-${options.type}`:''}`;
     node.textContent=message;
     ids.toastLayer.append(node);
+    while(ids.toastLayer.children.length>3)ids.toastLayer.firstElementChild?.remove();
     setTimeout(()=>node.remove(),options.duration||2800);
+    for(const [text,seenAt] of recentToasts){if(now-seenAt>8000)recentToasts.delete(text);}
+  };
+
+  const buildMeetingJoinLink=(room,{passcode=state.passcode,waiting=state.waitingRoomEnabled}={})=>{
+    const digits=String(room||'').replace(/\D/g,'').slice(0,24);
+    const url=new URL('/meet/',location.origin);
+    url.searchParams.set('action','join');
+    if(digits)url.searchParams.set('room',digits);
+    const code=String(passcode||'').replace(/\D/g,'').slice(0,10);
+    if(code)url.searchParams.set('passcode',code);
+    if(waiting)url.searchParams.set('waiting','1');
+    return url.toString();
   };
   const suppressLegacyPreferenceNotice=()=>{
     const phrases=['Saved on this device','Account sync is unavailable','Personal Room database update is installed','preferences saved','settings saved'];
@@ -584,7 +635,7 @@
     try {
       const stream = (!state.video&&!state.audio)
         ? new MediaStream()
-        : await navigator.mediaDevices.getUserMedia({video:state.video?{width:{ideal:1280},height:{ideal:720}}:false,audio:state.audio});
+        : await acquireUserMediaStable({video:state.video?{width:{ideal:1280},height:{ideal:720}}:false,audio:state.audio});
       setStream(stream);
       await loadDevices();
     } catch (error) {
@@ -613,7 +664,7 @@
   async function replaceMedia(kind, deviceId) {
     if (!deviceId) return;
     const constraints = kind === 'video' ? {video:{deviceId:{exact:deviceId}},audio:false} : {audio:{deviceId:{exact:deviceId}},video:false};
-    const fresh = await navigator.mediaDevices.getUserMedia(constraints);
+    const fresh = kind === 'video' ? await acquireUserMediaStable(constraints) : await navigator.mediaDevices.getUserMedia(constraints);
     const old = state.stream || new MediaStream();
     const keep = old.getTracks().filter(track => track.kind !== kind);
     const track = fresh.getTracks()[0];
@@ -1500,7 +1551,7 @@
       // Start the deduplicated host notification before realtime initialization.
       // A slow or unavailable channel must never suppress the absent-host email.
       if(!state.isHost)scheduleAbsentHostAlert(room);
-      state.inviteLink = `${location.origin}/meet/?action=join&room=${encodeURIComponent(room)}`;
+      state.inviteLink = buildMeetingJoinLink(room,{passcode:state.passcode,waiting:state.waitingRoomEnabled});
       window.__DS_START_AS_HOST = false;
       state.role = state.isHost ? 'host' : 'attendee';
       await Promise.race([
@@ -1976,8 +2027,9 @@
     try{
       if(!target){
         state.stream?.getVideoTracks?.().forEach(track=>{try{state.stream.removeTrack(track);}catch(_){};if(track.readyState!=='ended')track.stop();});
+        markPreviewCameraReleased();
       }else if(!hasLiveVideo(state.stream)){
-        const fresh=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:false});
+        const fresh=await acquireUserMediaStable({video:{width:{ideal:1280},height:{ideal:720}},audio:false});
         const track=fresh.getVideoTracks()[0];
         if(!track)throw new Error('No camera was available.');
         if(!state.stream)state.stream=new MediaStream();
@@ -2332,7 +2384,7 @@
   };
     const refreshInviteDialog=()=>{
     const room=String(ids.roomId.value||engine.snapshot().roomId||'').replace(/\s/g,'');
-    const link=state.inviteLink||`${location.origin}/meet/?action=join&room=${encodeURIComponent(room)}`;
+    const link=state.inviteLink||buildMeetingJoinLink(room,{passcode:state.passcode,waiting:state.waitingRoomEnabled});
     if(ids.inviteMeetingLink)ids.inviteMeetingLink.value=link;
     if(ids.inviteMeetingId)ids.inviteMeetingId.textContent=room.replace(/(\d{3})(?=\d)/g,'$1 ').trim();
     if(ids.invitePasscode)ids.invitePasscode.textContent=state.passcode||'Not required';
@@ -2491,15 +2543,15 @@
     const back=document.querySelector('.back-to-dashboard');
     if(back){back.href='/meet-home/?desktop=1';back.textContent='← Meet Home';back.setAttribute('aria-label','Return to DominionStar Meet Home');}
   }
-  ids.roomId.value = formatMeetingId(query.get('room') || '');
-  if(ids.meetingPasscode)ids.meetingPasscode.value='';
+  ids.roomId.value = formatMeetingId(query.get('room') || query.get('meeting') || '');
+  if(ids.meetingPasscode)ids.meetingPasscode.value=String(query.get('passcode')||'').replace(/\D/g,'').slice(0,10);
   ids.roomId.addEventListener('input',()=>{const formatted=formatMeetingId(ids.roomId.value);if(ids.roomId.value!==formatted)ids.roomId.value=formatted;});
   ids.roomId.addEventListener('paste',event=>{const pasted=event.clipboardData?.getData('text')||'';if(!/\d/.test(pasted))return;event.preventDefault();ids.roomId.value=formatMeetingId(pasted);ids.roomId.dispatchEvent(new Event('input',{bubbles:true}));});
   (async()=>{
     if(!await verifyDesktopReleaseContract())return;
     if(!await loadAccountContext())return;
     const action=query.get('action')||'';
-    const enteringMeeting=Boolean(query.get('room'))||['new','join','share','personal'].includes(action)||query.get('new')==='1';
+    const enteringMeeting=Boolean(query.get('room')||query.get('meeting'))||['new','join','share','personal'].includes(action)||query.get('new')==='1';
     // The Meet dashboard is not a camera screen. Hardware is acquired only
     // after the user enters a meeting/pre-join flow, matching desktop meeting
     // privacy expectations and preventing an unexplained camera indicator.
@@ -2574,7 +2626,8 @@
     e.preventDefault();
     const recurring=$('scheduleRecurring').checked;
     const passcode=$('scheduleRequirePasscode')?.checked?pendingCredentials.passcode:'';
-    const item={topic:$('scheduleTopic').value.trim(),date:$('scheduleDate').value,time:$('scheduleTime').value,duration:Number($('scheduleDuration').value),recurring,frequency:recurring?$('scheduleFrequency').value:null,ends:recurring?$('scheduleEnds').value:null,endValue:recurring&&$('scheduleEnds').value!=='never'?$('scheduleEndValue').value:null,waitingRoom:$('scheduleWaitingRoom').checked,id:pendingCredentials.id,passcode,link:`${location.origin}/meet/?action=join&room=${pendingCredentials.id}`};
+    const waitingRoom=$('scheduleWaitingRoom').checked;
+    const item={topic:$('scheduleTopic').value.trim(),date:$('scheduleDate').value,time:$('scheduleTime').value,duration:Number($('scheduleDuration').value),recurring,frequency:recurring?$('scheduleFrequency').value:null,ends:recurring?$('scheduleEnds').value:null,endValue:recurring&&$('scheduleEnds').value!=='never'?$('scheduleEndValue').value:null,waitingRoom,id:pendingCredentials.id,passcode,link:buildMeetingJoinLink(pendingCredentials.id,{passcode,waiting:waitingRoom})};
     const meetings=readMeetings();meetings.unshift(item);saveMeetings(meetings);$('scheduleDialog').close();showScheduled();
   });
   $('scheduledMeetingsList')?.addEventListener('click',async e=>{
