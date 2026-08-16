@@ -46,7 +46,7 @@ assert(dock.includes("dock.addEventListener('pointerdown'")&&dock.includes('Math
   'The complete participant dock must provide intentional drag activation.');
 assert(dock.includes("event.target.closest(interactive)"),
   'Dock buttons and interactive controls must remain clickable.');
-assert(dockCss.includes('cursor: grab !important'),
+assert(/cursor\s*:\s*grab\s*!important/i.test(dockCss),
   'The movable dock must visibly communicate its drag surface.');
 assert(engine.includes('const requestedRole=payload.targetRole||payload.role')&&engine.includes('targetRole:nextRole'),
   'A sender role must never overwrite the requested participant role.');
