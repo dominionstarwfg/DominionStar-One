@@ -54,7 +54,7 @@ if [ ! -s "$APPROVAL" ]; then
   exit 43
 fi
 
-python3 - "$APPROVAL" <<'PY'
+if ! python3 - "$APPROVAL" <<'PY'
 import json, sys
 from pathlib import Path
 path=Path(sys.argv[1])
@@ -73,6 +73,10 @@ for key,value in expected.items():
         raise SystemExit(f"Production cutover approval rejected: {key}={approval.get(key)!r}, expected {value!r}")
 print("PRODUCTION_CUTOVER_APPROVAL_VALID")
 PY
+then
+  echo "ERROR: production cutover approval is invalid or incomplete." >&2
+  exit 43
+fi
 
 rm -rf "$DIST"
 mkdir -p "$DIST"
