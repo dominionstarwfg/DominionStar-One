@@ -12,6 +12,7 @@ TEST_PLIST="$TEST_APP/Contents/Info.plist"
 AUDIT_DIR="dist/pkg-audit"
 STALE_PLIST="/tmp/dominionstar-stale.plist"
 INSTALL_LOG="/var/log/dominionstar-meet-installer.log"
+SYSTEM_INSTALL_LOG="/var/log/install.log"
 
 cleanup() {
   sudo rm -rf "$TEST_APP" >/dev/null 2>&1 || true
@@ -22,6 +23,17 @@ trap cleanup EXIT
 fail() {
   echo "ERROR: $*" >&2
   exit 1
+}
+
+show_installer_diagnostics() {
+  echo "----- DominionStar installer hook log -----" >&2
+  if sudo test -f "$INSTALL_LOG"; then
+    sudo cat "$INSTALL_LOG" >&2 || true
+  else
+    echo "(hook log not created)" >&2
+  fi
+  echo "----- macOS install.log tail -----" >&2
+  sudo tail -n 120 "$SYSTEM_INSTALL_LOG" >&2 || true
 }
 
 [ -f "$PKG" ] || fail "Replacement PKG is missing: $PKG"
@@ -39,6 +51,7 @@ rm -rf "$AUDIT_DIR"
 PAYLOAD_PLIST=$(find "$AUDIT_DIR" -type f -path '*/Applications/DominionStar Meet.app/Contents/Info.plist' -print -quit)
 PREINSTALL=$(find "$AUDIT_DIR" -type f -name preinstall -print -quit)
 POSTINSTALL=$(find "$AUDIT_DIR" -type f -name postinstall -print -quit)
+PACKAGE_INFO=$(find "$AUDIT_DIR" -type f -name PackageInfo -print -quit)
 
 if [ -z "$PAYLOAD_PLIST" ]; then
   find "$AUDIT_DIR" -maxdepth 5 -print | sort
@@ -46,7 +59,7 @@ if [ -z "$PAYLOAD_PLIST" ]; then
 fi
 if [ -z "$PREINSTALL" ]; then
   find "$AUDIT_DIR" -maxdepth 5 -print | sort
-  fail "Native PKG is missing the preinstall stale-app replacement hook"
+  fail "Native PKG is missing the preinstall hook"
 fi
 if [ -z "$POSTINSTALL" ]; then
   find "$AUDIT_DIR" -maxdepth 5 -print | sort
@@ -62,6 +75,9 @@ PAYLOAD_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PAYLOAD_PL
 grep -F '/Applications/DominionStar Meet.app' "$PREINSTALL" >/dev/null
 grep -F "EXPECTED_VERSION=\"$VERSION\"" "$POSTINSTALL" >/dev/null
 grep -F 'EXPECTED_ID="com.dominionstar.desktop"' "$POSTINSTALL" >/dev/null
+if [ -n "$PACKAGE_INFO" ]; then
+  grep -E 'relocat|overwrite|upgrade' "$PACKAGE_INFO" || true
+fi
 echo "Native PKG structure verified: payload=$PAYLOAD_VERSION hooks=present"
 
 sudo -n true || fail "macOS runner does not provide non-interactive sudo required for installer smoke test"
@@ -81,16 +97,19 @@ sudo touch "$TEST_APP/STALE-1.1.8-SENTINEL"
 sudo rm -f "$INSTALL_LOG"
 
 echo "Installing native PKG over synthetic stale DominionStar Meet v1.1.8..."
-sudo /usr/sbin/installer -pkg "$PKG" -target /
+if ! sudo /usr/sbin/installer -verboseR -pkg "$PKG" -target /; then
+  show_installer_diagnostics
+  fail "macOS Installer rejected the native replacement PKG"
+fi
 
-[ -f "$TEST_PLIST" ] || fail "Installer did not create the DominionStar Meet Info.plist"
-[ ! -e "$TEST_APP/STALE-1.1.8-SENTINEL" ] || fail "Stale v1.1.8 bundle survived package installation"
+[ -f "$TEST_PLIST" ] || { show_installer_diagnostics; fail "Installer did not create the DominionStar Meet Info.plist"; }
+[ ! -e "$TEST_APP/STALE-1.1.8-SENTINEL" ] || { show_installer_diagnostics; fail "Stale v1.1.8 bundle survived package installation"; }
 
 INSTALLED_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$TEST_PLIST")
 INSTALLED_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$TEST_PLIST")
-[ "$INSTALLED_VERSION" = "$VERSION" ] || fail "Installed version mismatch: expected $VERSION, found $INSTALLED_VERSION"
-[ "$INSTALLED_ID" = "com.dominionstar.desktop" ] || fail "Installed bundle ID mismatch: $INSTALLED_ID"
-[ -x "$TEST_APP/Contents/MacOS/DominionStar Meet" ] || fail "Installed executable is missing"
+[ "$INSTALLED_VERSION" = "$VERSION" ] || { show_installer_diagnostics; fail "Installed version mismatch: expected $VERSION, found $INSTALLED_VERSION"; }
+[ "$INSTALLED_ID" = "com.dominionstar.desktop" ] || { show_installer_diagnostics; fail "Installed bundle ID mismatch: $INSTALLED_ID"; }
+[ -x "$TEST_APP/Contents/MacOS/DominionStar Meet" ] || { show_installer_diagnostics; fail "Installed executable is missing"; }
 
 ARCHS=$(/usr/bin/lipo -archs "$TEST_APP/Contents/MacOS/DominionStar Meet")
 echo "$ARCHS" | grep -F 'x86_64' >/dev/null || fail "Installed executable is missing x86_64 architecture"
@@ -98,7 +117,7 @@ echo "$ARCHS" | grep -F 'arm64' >/dev/null || fail "Installed executable is miss
 
 sudo test -f "$INSTALL_LOG" || fail "Installer attestation log was not created"
 sudo grep -F '[preinstall]' "$INSTALL_LOG" >/dev/null || fail "preinstall hook did not execute"
-sudo grep -F 'Removing existing app version 1.1.8' "$INSTALL_LOG" >/dev/null || fail "preinstall hook did not detect/remove stale v1.1.8"
+sudo grep -F 'Preparing existing app version 1.1.8' "$INSTALL_LOG" >/dev/null || fail "preinstall hook did not detect stale v1.1.8"
 sudo grep -F 'Install attested successfully' "$INSTALL_LOG" >/dev/null || fail "postinstall attestation did not execute successfully"
 
 echo "macOS native PKG replacement smoke test passed: 1.1.8 -> $INSTALLED_VERSION; archs=$ARCHS"
