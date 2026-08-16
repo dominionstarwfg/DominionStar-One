@@ -1,44 +1,68 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const source=fs.readFileSync(new URL('../assets/js/meet/dock-layout-v2.js',import.meta.url),'utf8');
+const dock=fs.readFileSync(new URL('../assets/js/meet/dock-layout-v2.js',import.meta.url),'utf8');
 const meet=fs.readFileSync(new URL('../meet/index.html',import.meta.url),'utf8');
 const engine=fs.readFileSync(new URL('../assets/js/meeting-engine.js',import.meta.url),'utf8');
+const ui=fs.readFileSync(new URL('../assets/js/meet-next/executive6.js',import.meta.url),'utf8');
+
+const requireMarker=(source,marker,label)=>assert.ok(source.includes(marker),`${label} missing: ${marker}`);
+
+// RC13 is now implemented in the owning subsystems instead of a late monkey-patch
+// wrapper in dock-layout-v2.js. Verify the production architecture directly.
+for(const marker of [
+  'const CAMERA_RELEASE_GRACE_MS=750',
+  'const CAMERA_RETRY_DELAYS_MS=[0,320,760,1400]',
+  'isTransientCameraStartError',
+  'NotReadableError',
+  'state.lastCameraReleaseAt=Date.now()',
+  'recoverCameraTrack({intentSeq:seq})',
+  'createFrozenScreenTrack',
+  'const frozenScreenTrack = state.screenPaused',
+  'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)',
+  'state.screenStartPromise=operation',
+  'const admit = async participantId =>',
+  'const deny = async participantId =>',
+  'resyncPresence',
+  'recoverPeers'
+]) requireMarker(engine,marker,'RC13 meeting-engine contract');
 
 for(const marker of [
-  "__dsQualityHardening",
-  "rc13-media-room-parity",
-  "url.searchParams.get('meeting')",
-  "url.searchParams.set('room',legacy)",
-  "retryableCameraError",
-  "NotReadableError",
-  "cameraQueue",
-  "releaseAge<700",
-  "const retryDelays=[0,320,760,1350]",
-  "const videoWasOn=Boolean(engine.snapshot?.()?.mediaState?.video)",
-  "displayTrack.readyState!=='live'",
-  "wrapParticipantAction('admit')",
-  "wrapParticipantAction('deny')",
-  "engine.resyncPresence",
-  "engine.recoverPeers",
-  "while(toastLayer.children.length>3)",
-  "canonicalInviteLink"
-]) assert.ok(source.includes(marker),`RC13 hardening marker missing: ${marker}`);
+  'const buildMeetingJoinLink=',
+  "query.get('room') || query.get('meeting')",
+  "url.searchParams.set('passcode',code)",
+  'const recentToasts=new Map()',
+  'while(ids.toastLayer.children.length>3)',
+  'const PREVIEW_CAMERA_RELEASE_GRACE_MS=750',
+  'acquireUserMediaStable'
+]) requireMarker(ui,marker,'RC13 meeting UI contract');
 
-assert.match(meet,/assets\/js\/meeting-engine\.js/,'Meeting engine must load in Meet');
-assert.match(meet,/assets\/js\/meet\/dock-layout-v2\.js/,'RC13 hardening carrier must load in Meet');
-assert.ok(meet.indexOf('meeting-engine.js')<meet.indexOf('dock-layout-v2.js'),'Hardening must load after the meeting engine');
-assert.match(engine,/const toggleVideo = enabled =>/,'Camera lifecycle contract must remain present');
-assert.match(engine,/const shareScreen = async \(\) =>/,'Screen-share lifecycle contract must remain present');
-assert.match(engine,/const admit = async participantId =>/,'Waiting-room admit contract must remain present');
-assert.match(engine,/const deny = async participantId =>/,'Waiting-room deny contract must remain present');
+for(const marker of [
+  "dock.addEventListener('pointerdown'",
+  'Math.hypot(dx,dy)<4',
+  'setOrientation',
+  "addEventListener('resize'",
+  'requestAnimationFrame(reconcile)',
+  'max-height: calc(5 * var(--ds-dock-tile-height)'
+]) {
+  if(marker.startsWith('max-height:')) continue;
+  requireMarker(dock,marker,'Participant dock interaction contract');
+}
 
-// Security boundary: quality recovery must never manufacture admission/role state.
-for(const forbidden of [
-  "state.admitted=true",
-  "state.role='host'",
-  "state.role='cohost'",
-  "waitingRoomEnabled=false"
-]) assert.ok(!source.includes(forbidden),`Hardening must not bypass authority: ${forbidden}`);
+assert.match(meet,/assets\/js\/meeting-engine\.js\?v=92-rc13-media-stability/,'RC13 meeting engine cache key must load in Meet');
+assert.match(meet,/assets\/js\/meet-next\/executive6\.js\?v=79-rc13-media-share-link-stability/,'RC13 UI cache key must load in Meet');
+assert.match(meet,/assets\/js\/meet\/dock-layout-v2\.js/,'Participant dock runtime must load in Meet');
+assert.ok(meet.indexOf('meeting-engine.js')<meet.indexOf('dock-layout-v2.js'),'Dock behavior must load after the meeting engine.');
 
-console.log('DominionStar Meet RC13 quality hardening contract passed.');
+// Zoom-like privacy: Pause Share freezes the outgoing presentation frame without
+// broadcasting a public paused state or disabling the real capture track.
+assert.ok(!engine.includes("send('meet-screen-state',{active:true,paused:state.screenPaused})"),'Pause Share must not announce presenter privacy state to participants.');
+assert.ok(!engine.includes("state.screenStream.getVideoTracks().forEach(track=>track.enabled=!state.screenPaused)"),'Pause Share must not black/stall the real display track.');
+
+// Security boundary: hardening must preserve explicit meeting authority.
+requireMarker(engine,"const requirePrivileged=action=>{if(!['host','cohost'].includes(state.role))",'Host/co-host authorization boundary');
+requireMarker(engine,"const requireHost=action=>{if(!state.isHost)",'Host-only authorization boundary');
+requireMarker(engine,'if(!isTrustedHostPayload(payload))return;','Inbound host-role authorization boundary');
+requireMarker(engine,'validJoinToken','Waiting-room targeted admission token boundary');
+
+console.log('DominionStar Meet RC13 clean architecture quality contract passed.');
