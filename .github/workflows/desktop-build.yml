@@ -92,8 +92,8 @@ jobs:
 
 
   macos:
-    name: macOS Desktop
-    runs-on: macos-latest
+    name: macOS Intel Desktop
+    runs-on: macos-26-intel
 
     defaults:
       run:
@@ -105,6 +105,12 @@ jobs:
         with:
           clean: true
           fetch-depth: 1
+
+      - name: Confirm Intel runner parity
+        run: |
+          test "$(uname -m)" = "x86_64"
+          sw_vers
+          uname -m
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -142,7 +148,7 @@ jobs:
       - name: Build deterministic Apple replacement PKG
         run: npm run dist:mac:pkg
 
-      - name: Certify and smoke-test macOS replacement PKG
+      - name: Certify replacement and responsive Intel startup
         run: bash scripts/test-macos-pkg.sh
 
       - name: Generate macOS checksums
