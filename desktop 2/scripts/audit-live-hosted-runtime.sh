@@ -63,7 +63,12 @@ while IFS= read -r SRC; do
 
   if grep -Einq 'Desktop update required|certified meeting release|update[-_ ]required|installed app does not match the certified' "$FILE"; then
     echo "HOSTED_DESKTOP_BLOCKER $URL"
-    grep -Ein 'Desktop update required|certified meeting release|update[-_ ]required|installed app does not match the certified' "$FILE" | head -n 20 || true
+    MATCH_LINE=$(grep -Ein 'Desktop update required|certified meeting release|update[-_ ]required|installed app does not match the certified' "$FILE" | head -n 1 | cut -d: -f1)
+    START=$(( MATCH_LINE > 20 ? MATCH_LINE - 20 : 1 ))
+    END=$(( MATCH_LINE + 20 ))
+    echo "----- blocker context lines ${START}-${END} -----"
+    nl -ba "$FILE" | sed -n "${START},${END}p"
+    echo "----- end blocker context -----"
     BLOCKER_FOUND=1
   fi
 done < "$TMP_DIR/scripts.txt"
