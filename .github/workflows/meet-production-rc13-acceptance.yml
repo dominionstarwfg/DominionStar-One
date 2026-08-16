@@ -6,6 +6,7 @@ on:
       - fix/meet-production-camera-share-link-clean
     paths:
       - "scripts/apply-meet-rc13-clean.py"
+      - "scripts/apply-meet-rc13-native-picker.py"
       - "scripts/test-production-meet-rc13.mjs"
       - "scripts/test-two-client-authority.mjs"
       - "scripts/test-waiting-room-surgical.mjs"
@@ -51,7 +52,9 @@ jobs:
           PY
 
       - name: Apply deterministic RC13 clean hardening
-        run: python3 scripts/apply-meet-rc13-clean.py
+        run: |
+          python3 scripts/apply-meet-rc13-clean.py
+          python3 scripts/apply-meet-rc13-native-picker.py
 
       - name: JavaScript syntax validation
         run: |
