@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DominionStar Meet</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 50% 20%, #173b68 0%, #0a1d36 42%, #071426 100%);
+      color: #fff;
+    }
+    main { text-align: center; padding: 36px; }
+    .mark {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 20px;
+      border-radius: 22px;
+      display: grid;
+      place-items: center;
+      font-size: 32px;
+      font-weight: 700;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.08);
+      box-shadow: 0 18px 50px rgba(0,0,0,.28);
+    }
+    h1 { margin: 0; font-size: 28px; letter-spacing: -.02em; }
+    p { margin: 10px 0 0; color: rgba(255,255,255,.72); font-size: 14px; }
+    .bar {
+      width: 180px;
+      height: 3px;
+      margin: 24px auto 0;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255,255,255,.14);
+    }
+    .bar::after {
+      content: "";
+      display: block;
+      width: 45%;
+      height: 100%;
+      border-radius: inherit;
+      background: #fff;
+      animation: move 1.05s ease-in-out infinite alternate;
+    }
+    @keyframes move { from { transform: translateX(0); } to { transform: translateX(122px); } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark">DS</div>
+    <h1>DominionStar Meet</h1>
+    <p>Starting your desktop meeting workspace…</p>
+    <div class="bar" aria-hidden="true"></div>
+  </main>
+</body>
+</html>
