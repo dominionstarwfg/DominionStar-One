@@ -11,12 +11,14 @@ TEST_APP="/Applications/DominionStar Meet.app"
 TEST_PLIST="$TEST_APP/Contents/Info.plist"
 AUDIT_DIR="dist/pkg-audit"
 STALE_PLIST="/tmp/dominionstar-stale.plist"
+STARTUP_PROBE="/tmp/dominionstar-startup-proof.jsonl"
+STARTUP_LOG="/tmp/dominionstar-startup-proof.log"
 INSTALL_LOG="/var/log/dominionstar-meet-installer.log"
 SYSTEM_INSTALL_LOG="/var/log/install.log"
 
 cleanup() {
   sudo rm -rf "$TEST_APP" >/dev/null 2>&1 || true
-  rm -rf "$AUDIT_DIR" "$STALE_PLIST"
+  rm -rf "$AUDIT_DIR" "$STALE_PLIST" "$STARTUP_PROBE" "$STARTUP_LOG"
 }
 trap cleanup EXIT
 
@@ -36,6 +38,7 @@ show_installer_diagnostics() {
   sudo tail -n 120 "$SYSTEM_INSTALL_LOG" >&2 || true
 }
 
+[ "$(uname -m)" = "x86_64" ] || fail "This proof must run on Intel macOS; runner architecture is $(uname -m)"
 [ -f "$PKG" ] || fail "Replacement PKG is missing: $PKG"
 [ -f "$STAGED_PLIST" ] || fail "Staged universal app Info.plist is missing"
 
@@ -96,7 +99,7 @@ sudo cp "$STALE_PLIST" "$TEST_PLIST"
 sudo touch "$TEST_APP/STALE-1.1.8-SENTINEL"
 sudo rm -f "$INSTALL_LOG"
 
-echo "Installing native PKG over synthetic stale DominionStar Meet v1.1.8..."
+echo "Installing native PKG over synthetic stale DominionStar Meet v1.1.8 on Intel macOS..."
 if ! sudo /usr/sbin/installer -verboseR -pkg "$PKG" -target /; then
   show_installer_diagnostics
   fail "macOS Installer rejected the native replacement PKG"
@@ -120,4 +123,31 @@ sudo grep -F '[preinstall]' "$INSTALL_LOG" >/dev/null || fail "preinstall hook d
 sudo grep -F 'Preparing existing app version 1.1.8' "$INSTALL_LOG" >/dev/null || fail "preinstall hook did not detect stale v1.1.8"
 sudo grep -F 'Install attested successfully' "$INSTALL_LOG" >/dev/null || fail "postinstall attestation did not execute successfully"
 
-echo "macOS native PKG replacement smoke test passed: 1.1.8 -> $INSTALLED_VERSION; archs=$ARCHS"
+echo "Package replacement passed. Launching the installed app on Intel to prove native startup responsiveness..."
+rm -f "$STARTUP_PROBE" "$STARTUP_LOG"
+DOMINIONSTAR_STARTUP_PROBE="$STARTUP_PROBE" "$TEST_APP/Contents/MacOS/DominionStar Meet" >"$STARTUP_LOG" 2>&1 &
+APP_PID=$!
+
+for _ in {1..30}; do
+  if [ -f "$STARTUP_PROBE" ] && grep -F '"stage":"event-loop-responsive"' "$STARTUP_PROBE" >/dev/null 2>&1; then
+    break
+  fi
+  if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.5
+done
+
+if ! wait "$APP_PID"; then
+  cat "$STARTUP_LOG" >&2 || true
+  fail "Installed DominionStar Meet exited with an error during Intel startup proof"
+fi
+
+[ -f "$STARTUP_PROBE" ] || { cat "$STARTUP_LOG" >&2 || true; fail "Installed app did not create a startup proof"; }
+grep -F '"stage":"window-created"' "$STARTUP_PROBE" >/dev/null || fail "Native BrowserWindow was never created"
+grep -F '"stage":"local-shell-shown"' "$STARTUP_PROBE" >/dev/null || fail "Local startup shell was never shown"
+grep -F '"stage":"event-loop-responsive"' "$STARTUP_PROBE" >/dev/null || fail "Electron event loop did not remain responsive after startup"
+grep -F "\"version\":\"$VERSION\"" "$STARTUP_PROBE" >/dev/null || fail "Startup proof did not execute the expected app version"
+grep -F '"arch":"x64"' "$STARTUP_PROBE" >/dev/null || fail "Startup proof did not execute natively as x64 on Intel"
+
+echo "macOS Intel end-to-end proof passed: stale 1.1.8 -> $INSTALLED_VERSION; app launched responsively; archs=$ARCHS"
