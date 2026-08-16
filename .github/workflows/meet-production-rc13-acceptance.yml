@@ -7,6 +7,11 @@ on:
     paths:
       - "scripts/apply-meet-rc13-clean.py"
       - "scripts/test-production-meet-rc13.mjs"
+      - "scripts/test-two-client-authority.mjs"
+      - "scripts/test-waiting-room-surgical.mjs"
+      - "scripts/test-live-sync-regression.mjs"
+      - "scripts/test-camera-privacy-and-native-picker.mjs"
+      - "scripts/test-media-stability-guardrails.mjs"
       - ".github/workflows/meet-production-rc13-acceptance.yml"
   workflow_dispatch:
 
