@@ -51,11 +51,12 @@ jobs:
           grep -q "npm run verify" "$workflow"
           grep -q "Build deterministic Apple replacement PKG" "$workflow"
           grep -q "bash scripts/test-macos-pkg.sh" "$workflow"
-          echo "Release certification and native PKG gates are present."
+          grep -q "macos-26-intel" "$workflow"
+          echo "Release certification, Intel parity, and native PKG gates are present."
 
   macos-replacement:
-    name: macOS Native Replacement Proof
-    runs-on: macos-latest
+    name: macOS Intel Replacement + Startup Proof
+    runs-on: macos-26-intel
     defaults:
       run:
         working-directory: "desktop 2"
@@ -65,6 +66,12 @@ jobs:
         with:
           clean: true
           fetch-depth: 1
+
+      - name: Confirm Intel runner parity
+        run: |
+          test "$(uname -m)" = "x86_64"
+          sw_vers
+          uname -m
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -88,5 +95,5 @@ jobs:
       - name: Build deterministic Apple replacement PKG
         run: npm run dist:mac:pkg
 
-      - name: Prove stale v1.1.8 is replaced by this build
+      - name: Prove stale v1.1.8 replacement and responsive Intel launch
         run: bash scripts/test-macos-pkg.sh
