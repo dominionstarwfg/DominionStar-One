@@ -6,7 +6,26 @@ on:
       - "netlify/functions/**"
       - "package.json"
       - "netlify.toml"
+      - "index.html"
+      - "styles.css"
+      - "_headers"
+      - "_redirects"
+      - "member-login/**"
+      - "member-dashboard/**"
+      - "assets/dominionstar-platform-social.png"
+      - "assets/founder-black-1.jpeg"
+      - "assets/founder-black-2.jpeg"
+      - "assets/founder-blue.jpeg"
+      - "assets/founder-business-card-qr.png"
+      - "assets/join-qr.png"
+      - "assets/logo.jpeg"
+      - "RECOVERED-PRODUCTION-STATIC-BASELINE.json"
+      - "meet/release-contract.json"
+      - "meet/index.html"
+      - "assets/js/meeting-engine.js"
+      - "assets/js/meet-next/executive6.js"
       - "scripts/build-netlify-site.sh"
+      - ".github/workflows/recover-rc1226-static-baseline.yml"
       - ".github/workflows/netlify-source-recovery-verify.yml"
   workflow_dispatch:
 
@@ -15,7 +34,7 @@ permissions:
 
 jobs:
   functions:
-    name: Recover and Bundle Existing Production Functions
+    name: Recover and Certify Current Production Baseline
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -52,11 +71,11 @@ jobs:
           actual=$(find netlify/functions -maxdepth 1 -type f -name '*.mjs' | wc -l | tr -d ' ')
           test "$actual" -eq 9
 
-      - name: Verify recovered bytes match certified production history
+      - name: Verify recovered function bytes match certified production history
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/recovery-sha256 <<'EOF'
+          cat > /tmp/recovery-functions.sha256 <<'EOF'
           748090c3684bf92aecf057ff6442ebb3564caa1581c52058d5118239550e3fe6  package.json
           9cdaf2e166c2649a9d672d58b155d153d0c8296d615e7b6d0847a0e7c4908d72  netlify/functions/founder-data.mjs
           273ccf9eaa6e761b8f049ac0a3ec639deb80fd373271338027eebd8268fc65b3  netlify/functions/meet-intelligence.mjs
@@ -68,7 +87,83 @@ jobs:
           8666d6d73dca86659926f613e0c75ae34a88087ebbb6d08838088e7202d3ffc2  netlify/functions/scheduled-email-outbox.mjs
           de608d5ceca9ee8a4bc53689d2637033d3cf900b7a728a15e6a5983427647149  netlify/functions/workspace-weather.mjs
           EOF
-          sha256sum --check /tmp/recovery-sha256
+          sha256sum --check /tmp/recovery-functions.sha256
+
+      - name: Verify recovered current production static baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s RECOVERED-PRODUCTION-STATIC-BASELINE.json
+          cat > /tmp/recovery-static.sha256 <<'EOF'
+          a2d5f7e85f5cd892a24962abe389637be03bd431af55a29d74e2311a3cbe0207  index.html
+          0629a1afb26c6f66f407f7b88caf3937944bf36932b855f76db46cc07c784cff  styles.css
+          cbd0a219721cb0aab1b3cf6b07aad24fe9c0083ff0867b3168eadeca3fe3f14c  _headers
+          6edbe6fbb8da5916c4dec3d921607e9f4ec85e0f4fe59abf91a493b5242977e1  _redirects
+          0f71720fc5fe1c9e31deacf1250d0099aef044b90e0615b72d52119af1c9ffd6  member-login/index.html
+          74a8a2316c6c14b709cd42269369bacbfd93c6bfdcb7444738bf18e54ded6218  member-dashboard/index.html
+          42fe58cfa2355367cd449bb1dfdc5725d6ec15b40d5be4b2b6c81ee98a53b98b  assets/dominionstar-platform-social.png
+          1527dbe1ed6c453b41e79085d4e3110cf9cc29d797bca7d229541f69f88d201c  assets/founder-black-1.jpeg
+          df5b0a69f5ba4b681f411fc5a91bacb0da924a6643ca574a9fe5610662eec4e0  assets/founder-black-2.jpeg
+          982b3afe91c4abbc86f7e461275ca47d9ed0931eba3fd043b2a6a0260c3c1d32  assets/founder-blue.jpeg
+          b17d43c61bf7abda9620a8cea5426600fe7121569b3367998ed5e755a621a78e  assets/founder-business-card-qr.png
+          ac849ea9da1ff2e58ca3d88805a9bfd949a06f46b545375dc6178f9d59e4bab8  assets/join-qr.png
+          05c96371910e0c0db8f5e4686a8969fea5c54da973c3b425e367a599246e29cc  assets/logo.jpeg
+          EOF
+          sha256sum --check /tmp/recovery-static.sha256
+
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          manifest=json.loads(Path('RECOVERED-PRODUCTION-STATIC-BASELINE.json').read_text())
+          if manifest.get('rootPolicy') != 'preserve-current-working-production-root':
+              raise SystemExit('Recovered root policy changed')
+          if manifest.get('protectedMeetReleaseId') != '2026.08.16-rc13.0-media-share-link-stability':
+              raise SystemExit('Protected Meet release changed')
+          expected={
+            'index.html':'a2d5f7e85f5cd892a24962abe389637be03bd431af55a29d74e2311a3cbe0207',
+            'styles.css':'0629a1afb26c6f66f407f7b88caf3937944bf36932b855f76db46cc07c784cff',
+            '_headers':'cbd0a219721cb0aab1b3cf6b07aad24fe9c0083ff0867b3168eadeca3fe3f14c',
+            '_redirects':'6edbe6fbb8da5916c4dec3d921607e9f4ec85e0f4fe59abf91a493b5242977e1',
+            'member-login/index.html':'0f71720fc5fe1c9e31deacf1250d0099aef044b90e0615b72d52119af1c9ffd6',
+            'member-dashboard/index.html':'74a8a2316c6c14b709cd42269369bacbfd93c6bfdcb7444738bf18e54ded6218',
+            'assets/dominionstar-platform-social.png':'42fe58cfa2355367cd449bb1dfdc5725d6ec15b40d5be4b2b6c81ee98a53b98b',
+            'assets/founder-black-1.jpeg':'1527dbe1ed6c453b41e79085d4e3110cf9cc29d797bca7d229541f69f88d201c',
+            'assets/founder-black-2.jpeg':'df5b0a69f5ba4b681f411fc5a91bacb0da924a6643ca574a9fe5610662eec4e0',
+            'assets/founder-blue.jpeg':'982b3afe91c4abbc86f7e461275ca47d9ed0931eba3fd043b2a6a0260c3c1d32',
+            'assets/founder-business-card-qr.png':'b17d43c61bf7abda9620a8cea5426600fe7121569b3367998ed5e755a621a78e',
+            'assets/join-qr.png':'ac849ea9da1ff2e58ca3d88805a9bfd949a06f46b545375dc6178f9d59e4bab8',
+            'assets/logo.jpeg':'05c96371910e0c0db8f5e4686a8969fea5c54da973c3b425e367a599246e29cc',
+          }
+          if manifest.get('files') != expected:
+              raise SystemExit('Recovered static manifest does not match certified hashes')
+          for path,wanted in expected.items():
+              actual=hashlib.sha256(Path(path).read_bytes()).hexdigest()
+              if actual != wanted:
+                  raise SystemExit(f'{path}: {actual} != {wanted}')
+          print('CURRENT_PRODUCTION_STATIC_BASELINE_CERTIFIED')
+          PY
+
+      - name: Verify protected RC13 Meet integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          contract=json.loads(Path('meet/release-contract.json').read_text())
+          wanted_release='2026.08.16-rc13.0-media-share-link-stability'
+          if contract.get('releaseId') != wanted_release:
+              raise SystemExit(f"Meet release changed: {contract.get('releaseId')!r}")
+          for rel in ['meet/index.html','assets/js/meeting-engine.js','assets/js/meet-next/executive6.js']:
+              wanted=contract.get('files',{}).get(rel)
+              if not wanted:
+                  raise SystemExit(f'Missing release hash for {rel}')
+              actual=hashlib.sha256(Path(rel).read_bytes()).hexdigest()
+              if actual != wanted:
+                  raise SystemExit(f'{rel}: {actual} != release contract {wanted}')
+              print('MEET_HASH_OK', rel, actual)
+          print('PROTECTED_MEET_RELEASE_OK', wanted_release)
+          PY
 
       - name: Verify local import closure and historical dependency contract
         shell: bash
@@ -108,7 +203,7 @@ jobs:
       - name: Build functions with an isolated pinned Netlify CLI
         run: npx --yes netlify-cli@26.2.0 functions:build --src netlify/functions --functions .netlify/functions
 
-      - name: Confirm production remains deployment-locked until static source recovery is complete
+      - name: Confirm production remains locked pending preview acceptance
         shell: bash
         run: |
           set +e
@@ -116,7 +211,7 @@ jobs:
           status=$?
           set -e
           printf '%s\n' "$output"
-          test "$status" -eq 42
-          echo "$output" | grep -F "refusing to build an incomplete DominionStar production deploy" >/dev/null
+          test "$status" -eq 43
+          echo "$output" | grep -F "cutover approval is intentionally withheld" >/dev/null
           test ! -e dist
-          echo "CUTOVER_APPROVAL=BLOCKED_PENDING_STATIC_SOURCE_AND_PREVIEW_ACCEPTANCE"
+          echo "CUTOVER_APPROVAL=BLOCKED_PENDING_PREVIEW_ACCEPTANCE"
