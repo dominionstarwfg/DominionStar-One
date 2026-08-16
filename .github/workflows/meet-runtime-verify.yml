@@ -59,4 +59,5 @@ jobs:
         run: node scripts/test-meet-rc13-quality-hardening.mjs
 
       - name: Verify the deployed desktop release contract remains compatible
-        run: bash "desktop 2/scripts/audit-live-hosted-runtime.sh"
+        working-directory: desktop 2
+        run: bash scripts/audit-live-hosted-runtime.sh
