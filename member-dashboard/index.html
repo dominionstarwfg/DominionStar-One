@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DominionStar OS</title>
+<link rel="stylesheet" href="/styles.css?v=9.0-executive-3.2-build001">
+<link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e-os-build1.7"></script>
+<script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e-os-build1.7"></script>
+</head>
+<body class="dsos-body">
+<div class="dsos-shell">
+  <aside id="dsosSidebar" class="dsos-sidebar">
+    <a class="dsos-brand" href="/member-dashboard/">
+      <img src="/assets/logo.jpeg" alt="DominionStar">
+      <span><strong>DominionStar</strong><small>Executive OS</small></span>
+    </a>
+
+    <nav class="dsos-nav" aria-label="Main navigation">
+      <small>Agent Dashboard</small>
+      <a class="active" href="/member-dashboard/"><b>⌂</b><span>Dashboard</span></a>
+      <a href="/direct-messages/"><b>✉</b><span>Messages</span></a>
+      <a href="/workspace/" class="dashboard-meet-link"><b class="dashboard-meet-icon" aria-hidden="true">▦</b><span>Workspace</span></a>
+      <button id="notificationBell" class="dsos-nav-button dsos-notification-nav" type="button" aria-label="Open notifications">
+        <b>🔔</b><span>Notifications</span><em id="notificationCount" class="member-hidden">0</em>
+      </button>
+      <a href="/community/"><b>◉</b><span>Community</span></a>
+      <a href="/academy/"><b>▣</b><span>Academy</span></a>
+      <a href="/appointments/"><b>▦</b><span>Calendar</span></a>
+      <a href="/member-directory/"><b>♙</b><span>Directory</span></a>
+      <a href="/journey/"><b>◆</b><span>Recognition</span></a>
+
+      <small>Account</small>
+      <a href="/professional-profile/"><b>◎</b><span>My Profile</span></a>
+      <a href="/account-settings/"><b>⚙</b><span>Settings</span></a>
+      <a id="founderControlLink" class="member-hidden" href="/founder-control/"><b>♛</b><span>Command Control</span></a>
+    </nav>
+
+    <div class="dsos-side-footer">
+      <button id="openAuroraSidebar" type="button">
+        <b>✦</b><span><strong>Ask Aurora</strong><small>Platform guidance</small></span>
+      </button>
+      <button id="memberLogout" type="button">Log out</button>
+    </div>
+  </aside>
+
+  <main class="dsos-main">
+    <header class="dsos-topbar">
+      <div class="dsos-top-left">
+        <button id="dsosMenu" type="button" aria-label="Open navigation">☰</button>
+        <div>
+          <small id="memberGreeting">Welcome</small>
+          <strong id="memberName">Member</strong>
+        </div>
+      </div>
+      <div class="dsos-top-actions">
+      <div class="dsos-presence-control"><span id="dashboardPresenceDot" class="dsos-presence-dot online"></span><select id="dashboardPresenceSelect" aria-label="Set your availability"><option value="online">Online</option><option value="away">Away</option><option value="busy">Busy</option><option value="do_not_disturb">Do Not Disturb</option></select></div>
+
+        <button id="dsosSearchButton" type="button" aria-label="Search">⌕</button>
+        <a href="/professional-profile/" class="dsos-profile-chip">
+          <img id="dashboardAvatar" src="/assets/logo.jpeg" alt="Member profile">
+          <span><strong id="topbarMemberName">DominionStar Member</strong><small id="topbarContractLevel">Member</small></span>
+        </a>
+      </div>
+    </header>
+
+    <div class="dsos-page">
+      <section class="dsos-briefing">
+        <div class="dsos-briefing-copy">
+          <p class="eyebrow">Executive briefing</p>
+          <h1><span id="heroGreeting">Good evening</span>, <span id="heroMemberName">Member</span>.</h1>
+          <p>Your priorities, communication, and professional development are organized here.</p>
+          <div class="dsos-briefing-actions">
+            <a class="btn btn-gold" href="/journey/">Resume Journey</a>
+            <a class="btn btn-outline" href="/direct-messages/">Open Messages</a>
+            <a class="btn btn-outline" href="/workspace/">Open Workspace</a>
+          </div>
+        </div>
+        <div class="dsos-progress dsos-journey-center">
+          <div class="dsos-progress-heading">
+            <span>Journey progress</span>
+            <strong id="journeyPercent">0%</strong>
+          </div>
+          <div class="dsos-progress-track" aria-hidden="true">
+            <i id="journeyProgressBar"></i>
+          </div>
+          <small id="journeyCount">0 of 0 milestones completed</small>
+
+          <div class="dsos-journey-mission">
+            <span id="journeyStepLabel">Step 1 of 6</span>
+            <strong id="journeyCurrentMission">Complete your first milestone</strong>
+            <small id="journeyMissionStatus">Your next professional step will appear here.</small>
+          </div>
+
+          <div class="dsos-journey-reward">
+            <span>Completion reward</span>
+            <strong id="journeyReward">Professional progress recognition</strong>
+          </div>
+
+          <a id="journeyContinueButton" class="btn btn-gold" href="/journey/">Continue Journey</a>
+        </div>
+      </section>
+
+      <section class="dsos-layout">
+        <div class="dsos-primary">
+          <article class="dsos-profile-card">
+            <div class="dsos-profile-main">
+              <div class="dsos-avatar-wrap">
+                <img id="dashboardIdentityAvatar" src="/assets/logo.jpeg" alt="Professional profile">
+              </div>
+              <div>
+                <p class="eyebrow">Professional identity</p>
+                <h2 id="dashboardIdentityName">DominionStar Member</h2>
+                <div class="dsos-meta">
+                  <span id="dashboardIdentityRank">Contract Level: —</span>
+                  <span id="dashboardIdentityCode">Agent Code: —</span>
+                  <span id="dashboardIdentitySmd" class="member-hidden">SMD: —</span>
+                </div>
+              </div>
+            </div>
+            <div class="dsos-profile-badges">
+              <div id="dashboardBadge" class="agent-exclusive-badge member-hidden"></div>
+              <div id="dashboardFoundingNumber" class="founding-number-seal member-hidden"></div>
+            </div>
+            <div class="dsos-profile-actions">
+              <a class="btn btn-outline" href="/professional-profile/">View Profile</a>
+              <a class="btn btn-outline" href="/direct-messages/">Message</a>
+            </div>
+          </article>
+
+          <section class="dsos-metrics">
+            <article><strong id="activityAnnouncements">0</strong><span>Announcements</span><a href="/community/">Review</a></article>
+            <article><strong id="activityMessages">0</strong><span>Community updates</span><a href="/community/">Open</a></article>
+            <article><strong id="activityNotifications">0</strong><span>Unread notifications</span><button id="openNotificationsMetric" type="button" aria-label="View notifications">View</button></article>
+            <article><strong id="memberRank">—</strong><span>Contract level</span><a href="/professional-profile/">Profile</a></article>
+          </section>
+
+          <section class="member-panel dsos-live-timeline">
+            <div class="dashboard-section-heading">
+              <div><p class="eyebrow">Executive timeline</p><h2>Live Activity</h2></div>
+              <button id="refreshExecutiveTimeline" class="text-link" type="button">Refresh</button>
+            </div>
+            <div id="executiveTimeline"><p class="dsos-muted">Loading live activity…</p></div>
+          </section>
+
+          <section class="dsos-two-column">
+            <article class="member-panel">
+              <div class="dashboard-section-heading">
+                <div><p class="eyebrow">Schedule</p><h2>Next Meeting</h2></div>
+                <a class="text-link" href="/appointments/">Manage →</a>
+              </div>
+              <div id="dashboardNextAppointment" class="dashboard-data-state">
+                <div class="skeleton-line wide"></div><div class="skeleton-line short"></div>
+              </div>
+            </article>
+
+            <article class="member-panel">
+              <div class="dashboard-section-heading">
+                <div><p class="eyebrow">Community</p><h2>Community Pulse</h2></div>
+                <a class="text-link" href="/community/">Open →</a>
+              </div>
+              <div id="dashboardCommunityPreview" class="dashboard-data-state">
+                <div class="skeleton-line wide"></div><div class="skeleton-line"></div>
+              </div>
+            </article>
+          </section>
+
+          <section id="pendingMemberContent" class="member-panel">
+            <p class="eyebrow">Pending approval</p>
+            <h2>Your account is awaiting review.</h2>
+            <p>Your core workspace remains available while professional resources stay restricted.</p>
+          </section>
+
+          <section id="approvedMemberContent" class="member-panel member-hidden">
+            <div class="dashboard-section-heading">
+              <div><p class="eyebrow">Professional resources</p><h2>Continue building</h2></div>
+            </div>
+            <div class="dsos-resource-grid">
+              <a href="/leadership/"><strong>Leadership Path</strong><span>Review your professional progression.</span></a>
+              <a href="/academy/"><strong>Academy</strong><span>Training and practical development.</span></a>
+              <a href="/financial-services/"><strong>Financial Development</strong><span>Education for serving families.</span></a>
+              <a href="/digital-card/"><strong>Digital Card</strong><span>Share your verified identity.</span></a>
+            </div>
+          </section>
+
+          <section class="dsos-two-column">
+            <article class="member-panel">
+              <p class="eyebrow">Verification</p>
+              <h2>Account Status</h2>
+              <p><span id="memberStatus" class="member-status pending">Pending</span></p>
+              <p>Email: <strong id="memberEmail"></strong></p>
+              <p>Agent Code: <strong id="memberAgentCode"></strong></p>
+            </article>
+            <article class="member-panel">
+              <p class="eyebrow">Founder announcements</p>
+              <h2>Latest updates</h2>
+              <div id="memberAnnouncements"><p>Loading announcements…</p></div>
+            </article>
+          </section>
+
+          <form id="memberFeedbackForm" class="member-panel dsos-feedback">
+            <p class="eyebrow">Platform feedback</p>
+            <h2>Help improve DominionStar.</h2>
+            <label>Type
+              <select name="feedback_type">
+                <option value="idea">Idea</option>
+                <option value="issue">Issue</option>
+                <option value="correction">Correction</option>
+              </select>
+            </label>
+            <label>Message
+              <textarea name="message" rows="4" required></textarea>
+            </label>
+            <button class="btn btn-gold" type="submit">Send Feedback</button>
+            <div id="feedbackResult" class="member-message"></div>
+          </form>
+        </div>
+
+        <aside class="dsos-rail">
+          <article class="dsos-rail-card">
+            <div class="dsos-rail-head">
+              <div><p class="eyebrow">Notifications</p><h2>Recent updates</h2></div>
+              <button id="openNotificationsSide" type="button" aria-label="View all notifications">View all</button>
+            </div>
+            <div id="dsosNotificationPreview"><p class="dsos-muted">Live notifications will appear here.</p></div>
+          </article>
+
+          <article class="dsos-rail-card">
+            <p class="eyebrow">Quick actions</p>
+            <h2>Move faster</h2>
+            <div class="dsos-quick-actions">
+              <a href="/direct-messages/"><span>New message</span><b>→</b></a>
+              <a href="/appointments/"><span>Schedule meeting</span><b>→</b></a>
+              <a href="/member-directory/"><span>Find member</span><b>→</b></a>
+              <a href="/account-settings/"><span>Account settings</span><b>→</b></a>
+            </div>
+          </article>
+
+          <article class="dsos-rail-card" id="dsosSystemStatus">
+            <div class="dsos-rail-head">
+              <div><p class="eyebrow">System status</p><h2>Member workspace</h2></div>
+              <button id="runMemberAudit" type="button">Run check</button>
+            </div>
+            <div class="dsos-status-list">
+              <div><span>Navigation</span><strong id="statusNavigation">Ready</strong></div>
+              <div><span>Notifications</span><strong id="statusNotifications">Ready</strong></div>
+              <div><span>Aurora</span><strong id="statusAurora">Ready</strong></div>
+              <div><span>Settings</span><strong id="statusSettings">Ready</strong></div>
+            </div>
+            <p id="memberAuditSummary" class="dsos-muted">All member modules are available.</p>
+          </article>
+
+          <article class="dsos-rail-card">
+            <p class="eyebrow">Account health</p>
+            <h2>Settings status</h2>
+            <div class="dsos-account-health">
+              <div><span>Profile</span><strong>Connected</strong></div>
+              <div><span>Security</span><a href="/account-settings/">Review</a></div>
+              <div><span>Notifications</span><a href="/account-settings/">Manage</a></div>
+            </div>
+          </article>
+
+          <article class="dsos-rail-card dsos-ai-card">
+            <span class="dsos-ai-icon">✦</span>
+            <p class="eyebrow">DominionStar AI</p>
+            <h2>Aurora</h2>
+            <p>Navigate the platform and find what you need.</p>
+            <button id="openAuroraSide" class="btn btn-gold" type="button" aria-label="Open Aurora assistant">Open Assistant</button>
+          </article>
+        </aside>
+      </section>
+    </div>
+  </main>
+</div>
+
+<button id="dsosFloatingAurora" class="dsos-floating-aurora" type="button" aria-label="Open Aurora">
+  <span>✦</span><strong>Aurora</strong>
+</button>
+
+<div id="dsosBackdrop" class="dsos-backdrop member-hidden"></div>
+
+<aside id="notificationPanel" class="notification-panel dsos-notification-panel member-hidden" aria-hidden="true" aria-labelledby="notificationPanelTitle" role="dialog">
+  <div class="notification-panel-head">
+    <div><p class="eyebrow">Executive Inbox</p><h2 id="notificationPanelTitle">Notifications</h2><p class="notification-panel-subtitle">Messages, calls, meetings, and platform updates.</p></div>
+    <button id="closeNotificationPanel" class="notification-close" type="button" aria-label="Close notifications">×</button>
+  </div>
+  <div class="notification-panel-toolbar">
+    <span id="notificationPanelStatus" aria-live="polite">Loading…</span>
+    <button id="markNotificationsRead" class="text-link" type="button">Mark all read</button>
+  </div>
+  <div id="notificationList" class="notification-drawer-list"><p>Loading notifications…</p></div>
+  <div class="notification-panel-footer">
+    <a class="btn btn-gold" href="/notifications/">Open Notification Center</a>
+  </div>
+</aside>
+
+<aside id="dsosSearchPanel" class="dsos-panel member-hidden" aria-hidden="true">
+  <header><div><p class="eyebrow">Quick search</p><h2>Open a workspace</h2></div><button id="closeDsosSearch" type="button">×</button></header>
+  <input id="dsosSearchInput" type="search" placeholder="Search Messages, Community, Academy…">
+  <div id="dsosSearchResults"></div>
+</aside>
+
+<aside id="dsosAiPanel" class="dsos-panel dsos-ai-panel member-hidden" aria-hidden="true">
+  <header><div><p class="eyebrow">DominionStar AI</p><h2>Aurora</h2></div><button id="closeDsosAi" type="button">×</button></header>
+  <div id="dsosAiMessages" class="dsos-ai-messages">
+    <div class="dsos-ai-message">I can open Messages, Community, Academy, Calendar, Directory, Profile, or Settings.</div>
+  </div>
+  <form id="dsosAiForm">
+    <input id="dsosAiInput" type="text" placeholder="What do you need?">
+    <button type="submit">Send</button>
+  </form>
+</aside>
+
+<script src="/assets/js/supabase-config.js?v=8.0-genesis-rc5e-os-build1.7"></script>
+<script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e-os-build1.7"></script>
+<script src="/assets/js/member-auth.js?v=8.0-genesis-rc5e-os-build1.7"></script>
+<script src="/assets/js/executive-core.js?v=8.0-genesis-rc5e-os-build2.1"></script>
+<script src="/assets/js/communication-engine.js?v=9.0-executive-3.2-build002"></script>
+<script src="/assets/js/presence-engine.js?v=8.0-genesis-rc5e-os-build2.1"></script>
+<script src="/assets/js/member-dashboard.js?v=9.0-executive-3.2-build002"></script>
+<script src="/assets/js/dominionstar-os.js?v=9.0-executive-3.2-build002"></script>
+</body>
+</html>
