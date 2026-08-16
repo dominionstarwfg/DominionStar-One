@@ -130,96 +130,20 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Prepare native replacement hooks
-        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall
+      - name: Prepare native replacement tooling
+        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh
 
       - name: Run DominionStar certification
         run: npm run verify
 
-      - name: Build universal macOS installers
+      - name: Build universal macOS app, DMG and ZIP
         run: npm run dist:mac
 
+      - name: Build deterministic Apple replacement PKG
+        run: npm run dist:mac:pkg
+
       - name: Certify and smoke-test macOS replacement PKG
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          VERSION=$(node -p "require('./package.json').version")
-          PKG=$(find dist -maxdepth 1 -type f -name '*.pkg' -print -quit)
-          test -n "$PKG"
-          echo "Auditing package: $PKG"
-
-          STAGED_PLIST="dist/mac-universal/DominionStar Meet.app/Contents/Info.plist"
-          test -f "$STAGED_PLIST"
-          STAGED_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGED_PLIST")
-          STAGED_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$STAGED_PLIST")
-          test "$STAGED_VERSION" = "$VERSION"
-          test "$STAGED_ID" = "com.dominionstar.desktop"
-          echo "Staged app identity verified: version=$STAGED_VERSION bundle=$STAGED_ID"
-
-          rm -rf dist/pkg-audit
-          /usr/sbin/pkgutil --expand-full "$PKG" dist/pkg-audit
-          echo "Expanded PKG files:"
-          find dist/pkg-audit -maxdepth 5 -print | sort
-
-          PAYLOAD_PLIST=$(find dist/pkg-audit -type f -path '*/DominionStar Meet.app/Contents/Info.plist' -print -quit)
-          PREINSTALL=$(find dist/pkg-audit -type f -name preinstall -print -quit)
-          POSTINSTALL=$(find dist/pkg-audit -type f -name postinstall -print -quit)
-
-          test -n "$PAYLOAD_PLIST"
-          test -n "$PREINSTALL"
-          test -n "$POSTINSTALL"
-          /bin/sh -n "$PREINSTALL"
-          /bin/sh -n "$POSTINSTALL"
-
-          PAYLOAD_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PAYLOAD_PLIST")
-          PAYLOAD_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PAYLOAD_PLIST")
-          test "$PAYLOAD_VERSION" = "$VERSION"
-          test "$PAYLOAD_ID" = "com.dominionstar.desktop"
-          grep -F '/Applications/DominionStar Meet.app' "$PREINSTALL"
-          grep -F "EXPECTED_VERSION=\"$VERSION\"" "$POSTINSTALL"
-          grep -F 'EXPECTED_ID="com.dominionstar.desktop"' "$POSTINSTALL"
-          echo "Expanded PKG payload verified: version=$PAYLOAD_VERSION bundle=$PAYLOAD_ID"
-
-          TEST_APP="/Applications/DominionStar Meet.app"
-          TEST_PLIST="$TEST_APP/Contents/Info.plist"
-          sudo rm -rf "$TEST_APP"
-          sudo mkdir -p "$TEST_APP/Contents"
-          cat > /tmp/dominionstar-stale.plist <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>CFBundleIdentifier</key><string>com.dominionstar.desktop</string>
-            <key>CFBundleShortVersionString</key><string>1.1.8</string>
-            <key>CFBundleVersion</key><string>1.1.8</string>
-          </dict></plist>
-          PLIST
-          sudo cp /tmp/dominionstar-stale.plist "$TEST_PLIST"
-          sudo touch "$TEST_APP/STALE-1.1.8-SENTINEL"
-          sudo rm -f /var/log/dominionstar-meet-installer.log
-
-          echo "Installing PKG over synthetic stale v1.1.8 app..."
-          sudo /usr/sbin/installer -pkg "$PKG" -target /
-
-          test -f "$TEST_PLIST"
-          test ! -e "$TEST_APP/STALE-1.1.8-SENTINEL"
-          INSTALLED_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$TEST_PLIST")
-          INSTALLED_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$TEST_PLIST")
-          test "$INSTALLED_VERSION" = "$VERSION"
-          test "$INSTALLED_ID" = "com.dominionstar.desktop"
-          test -x "$TEST_APP/Contents/MacOS/DominionStar Meet"
-
-          ARCHS=$(/usr/bin/lipo -archs "$TEST_APP/Contents/MacOS/DominionStar Meet")
-          echo "$ARCHS" | grep -F 'x86_64'
-          echo "$ARCHS" | grep -F 'arm64'
-
-          sudo test -f /var/log/dominionstar-meet-installer.log
-          sudo grep -F '[preinstall]' /var/log/dominionstar-meet-installer.log
-          sudo grep -F 'Install attested successfully' /var/log/dominionstar-meet-installer.log
-
-          echo "macOS PKG stale-upgrade smoke test passed: 1.1.8 -> $INSTALLED_VERSION; archs=$ARCHS"
-          sudo rm -rf "$TEST_APP"
-          rm -rf dist/pkg-audit
+        run: bash scripts/test-macos-pkg.sh
 
       - name: Generate macOS checksums
         run: |

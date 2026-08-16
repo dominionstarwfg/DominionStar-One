@@ -3,7 +3,7 @@ set -eu
 
 APP="/Applications/DominionStar Meet.app"
 PLIST="$APP/Contents/Info.plist"
-EXPECTED_VERSION="1.1.13"
+EXPECTED_VERSION="1.1.14"
 EXPECTED_ID="com.dominionstar.desktop"
 LOG="/var/log/dominionstar-meet-installer.log"
 
@@ -32,5 +32,6 @@ fi
 ARCHS=$(/usr/bin/lipo -archs "$APP/Contents/MacOS/DominionStar Meet" 2>/dev/null || /bin/echo "unknown")
 log "Install attested successfully: version=${INSTALLED_VERSION}, bundle=${INSTALLED_ID}, archs=${ARCHS}."
 
-/bin/touch "$APP"
+# Do not fail a successful package transaction on a cosmetic timestamp refresh.
+# The app bundle has already been atomically installed and attested above.
 exit 0
