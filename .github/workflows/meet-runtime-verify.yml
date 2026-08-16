@@ -15,6 +15,8 @@ on:
       - "scripts/test-live-sync-regression.mjs"
       - "scripts/test-two-client-authority.mjs"
       - "scripts/test-waiting-room-surgical.mjs"
+      - "scripts/build-netlify-site.sh"
+      - "netlify.toml"
       - ".github/workflows/meet-runtime-verify.yml"
   workflow_dispatch:
 
@@ -90,6 +92,18 @@ jobs:
                   raise SystemExit(f'{rel}: source hash {actual} != release contract {expected_hash}')
               print('HASH OK', rel, actual)
           PY
+
+      - name: Build clean Netlify production surface
+        run: |
+          bash scripts/build-netlify-site.sh
+          test ! -e dist/.github
+          test ! -e dist/desktop
+          test ! -e 'dist/desktop 2'
+          test ! -e dist/scripts
+          test ! -e dist/supabase
+          test ! -e dist/netlify
+          node --check dist/assets/js/meeting-engine.js
+          node --check dist/assets/js/meet-next/executive6.js
 
       - name: Verify current live desktop contract remains compatible
         working-directory: desktop 2
