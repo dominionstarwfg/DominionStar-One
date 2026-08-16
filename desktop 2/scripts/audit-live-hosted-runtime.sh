@@ -2,12 +2,37 @@
 set -euo pipefail
 
 MEET_URL="https://dominionstarld.com/meet/?desktop=1"
+CONTRACT_URL="https://dominionstarld.com/meet/release-contract.json"
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 HTML="$TMP_DIR/meet.html"
+CONTRACT="$TMP_DIR/release-contract.json"
 echo "Auditing live DominionStar Meet runtime: $MEET_URL"
 curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$MEET_URL" -o "$HTML"
+
+echo "Auditing live desktop release contract: $CONTRACT_URL"
+curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$CONTRACT_URL" -o "$CONTRACT"
+python3 - "$CONTRACT" <<'PY'
+from pathlib import Path
+import json, sys
+path=Path(sys.argv[1])
+try:
+    contract=json.loads(path.read_text())
+except Exception as exc:
+    raise SystemExit(f'ERROR: release-contract.json is invalid JSON: {exc}')
+release_id=str(contract.get('releaseId') or '').strip()
+bridge=contract.get('desktopBridge')
+if not release_id:
+    raise SystemExit('ERROR: release-contract.json has no releaseId')
+try:
+    bridge_num=int(bridge)
+except Exception:
+    raise SystemExit(f'ERROR: release-contract.json has invalid desktopBridge: {bridge!r}')
+print('LIVE_RELEASE_CONTRACT '+json.dumps(contract,sort_keys=True,separators=(',',':')))
+print(f'LIVE_RELEASE_ID {release_id}')
+print(f'LIVE_DESKTOP_BRIDGE {bridge_num}')
+PY
 
 python3 - "$HTML" > "$TMP_DIR/scripts.txt" <<'PY'
 from html.parser import HTMLParser
