@@ -1,0 +1,145 @@
+name: DominionStar Non-Production Preview Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "**/*.html"
+      - "**/*.css"
+      - "assets/**"
+      - "workspace/**"
+      - "meet/**"
+      - "netlify/functions/**"
+      - "_headers"
+      - "_redirects"
+      - "sw.js"
+      - "manifest.webmanifest"
+      - "package.json"
+      - "scripts/audit-static-dependency-closure.mjs"
+      - "scripts/build-netlify-preview.sh"
+      - ".github/workflows/netlify-preview-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Build and Smoke-Test Isolated Preview Artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify local static dependency closure
+        run: node scripts/audit-static-dependency-closure.mjs
+
+      - name: Build isolated preview package
+        run: bash scripts/build-netlify-preview.sh
+
+      - name: Validate all recovered JavaScript parses
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find .preview-package/public -type f -name '*.js' -print0)
+
+      - name: Install historical function dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Bundle all nine Netlify functions into preview package
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes netlify-cli@26.2.0 functions:build \
+            --src netlify/functions \
+            --functions .preview-package/functions
+          count=$(find .preview-package/functions -maxdepth 1 -type f | wc -l | tr -d ' ')
+          test "$count" -ge 9
+          echo "PREVIEW_FUNCTION_ARTIFACTS=$count"
+
+      - name: Local HTTP smoke test key production routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .preview-package/public
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ds-preview-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for _ in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && break
+            sleep 0.25
+          done
+
+          routes=(
+            /
+            /member-login/
+            /member-dashboard/
+            /founder-control/
+            /founder-dashboard/
+            /community/
+            /workspace/
+            /meet-home/
+            /meet-login/
+            /meet/
+            /release-check/
+            /system-check/
+          )
+          for route in "${routes[@]}"; do
+            body=$(curl -fsS "http://127.0.0.1:4173$route")
+            test -n "$body"
+            printf '%s' "$body" | grep -qi 'DominionStar\|Meet' || {
+              echo "Route $route did not render expected DominionStar content" >&2
+              exit 1
+            }
+            echo "PREVIEW_ROUTE_OK $route"
+          done
+
+      - name: Prove preview cannot silently become production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s .preview-package/public/PREVIEW-NOT-PRODUCTION.txt
+          grep -F 'X-Robots-Tag: noindex, nofollow, noarchive' .preview-package/public/_headers >/dev/null
+          test ! -e .preview-package/public/PRODUCTION-CUTOVER-APPROVAL.json
+          test ! -e dist
+
+          set +e
+          output=$(bash scripts/build-netlify-site.sh 2>&1)
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$status" -eq 43
+          echo "$output" | grep -F 'cutover approval is intentionally withheld' >/dev/null
+          echo 'PRODUCTION_REMAINS_LOCKED'
+
+      - name: Package auditable preview artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -C .preview-package -czf DominionStar-Preview-Acceptance.tar.gz .
+          sha256sum DominionStar-Preview-Acceptance.tar.gz > DominionStar-Preview-Acceptance.tar.gz.sha256
+          cat DominionStar-Preview-Acceptance.tar.gz.sha256
+
+      - name: Upload non-production preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DominionStar-Preview-Acceptance-${{ github.sha }}
+          path: |
+            DominionStar-Preview-Acceptance.tar.gz
+            DominionStar-Preview-Acceptance.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
