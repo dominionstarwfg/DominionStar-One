@@ -1,20 +1,10 @@
-import { app, session, systemPreferences } from 'electron';
+import { app, session } from 'electron';
 
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
 const CERTIFICATION_URLS = [
   'https://dominionstarld.com/assets/js/runtime/guardian-certification.js*',
   'https://www.dominionstarld.com/assets/js/runtime/guardian-certification.js*'
 ];
-
-async function requestMacMediaAccess() {
-  if (process.platform !== 'darwin') return;
-  for (const mediaType of ['microphone', 'camera']) {
-    const status = systemPreferences.getMediaAccessStatus(mediaType);
-    if (status === 'not-determined') {
-      await systemPreferences.askForMediaAccess(mediaType);
-    }
-  }
-}
 
 await app.whenReady();
 
@@ -27,8 +17,7 @@ desktopSession.webRequest.onBeforeRequest(
   (_details, callback) => callback({ cancel: true })
 );
 
-// Match the proven macOS startup behavior: ask once when each permission is
-// still undetermined and otherwise respect the user's existing OS decision.
-await requestMacMediaAccess();
-
+// Startup must never wait on TCC camera/microphone decisions. Media consent is
+// requested by the meeting renderer only when the user enters a meeting and
+// actually asks to use camera or microphone.
 await import('./main.mjs');
