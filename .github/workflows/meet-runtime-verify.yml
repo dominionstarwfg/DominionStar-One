@@ -93,9 +93,27 @@ jobs:
               print('HASH OK', rel, actual)
           PY
 
-      - name: Build clean Netlify production surface
+      - name: Prove Netlify production is fail-closed until full source recovery
+        shell: bash
         run: |
-          bash scripts/build-netlify-site.sh
+          set +e
+          output=$(bash scripts/build-netlify-site.sh 2>&1)
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+
+          if [ "$status" -eq 42 ]; then
+            echo "$output" | grep -F "refusing to build an incomplete DominionStar production deploy" >/dev/null
+            test ! -e dist
+            echo "PRODUCTION_DEPLOY_BLOCKED_AS_DESIGNED"
+            exit 0
+          fi
+
+          if [ "$status" -ne 0 ]; then
+            echo "ERROR: Netlify build failed unexpectedly with status $status" >&2
+            exit "$status"
+          fi
+
           test ! -e dist/.github
           test ! -e dist/desktop
           test ! -e 'dist/desktop 2'
@@ -104,6 +122,7 @@ jobs:
           test ! -e dist/netlify
           node --check dist/assets/js/meeting-engine.js
           node --check dist/assets/js/meet-next/executive6.js
+          echo "COMPLETE_PRODUCTION_SURFACE_BUILT"
 
       - name: Verify current live desktop contract remains compatible
         working-directory: desktop 2
