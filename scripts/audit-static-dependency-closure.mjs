@@ -20,6 +20,9 @@ function walk(dir = root) {
 function cleanRef(raw = '') {
   let value = String(raw).trim();
   if (!value || value.startsWith('#') || value.startsWith('data:') || value.startsWith('blob:') || value.startsWith('mailto:') || value.startsWith('tel:') || value.startsWith('javascript:')) return null;
+  // Runtime/template expressions are not literal static dependencies. Treating
+  // them as filenames creates false failures such as `${esc(url)}`.
+  if (value.includes('${') || value.includes('{{') || value.includes('}}') || value.includes('<%') || value.includes('%>')) return null;
   if (/^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith('//')) return null;
   value = value.split('#')[0].split('?')[0];
   try { value = decodeURIComponent(value); } catch {}
@@ -65,7 +68,10 @@ for (const file of files) {
     }
   }
 
-  if (ext === '.css' || ext === '.html') {
+  // Only parse CSS url(...) from actual CSS files. HTML frequently embeds
+  // application JavaScript that calls functions named url(...); scanning the
+  // entire document as CSS incorrectly turns function arguments into paths.
+  if (ext === '.css') {
     for (const match of text.matchAll(/url\(\s*(["']?)([^)'"\s]+)\1\s*\)/gi)) record(file, match[2], 'css-url');
   }
 
