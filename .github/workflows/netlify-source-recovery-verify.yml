@@ -30,12 +30,6 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install pinned dependencies and generate a candidate lockfile
-        run: |
-          npm install --ignore-scripts --no-audit --no-fund
-          npm ls @supabase/supabase-js@2.109.0 resend@6.17.2 netlify-cli@26.2.0 --depth=0
-          test -s package-lock.json
-
       - name: Verify all nine known production functions are present
         shell: bash
         run: |
@@ -58,11 +52,12 @@ jobs:
           actual=$(find netlify/functions -maxdepth 1 -type f -name '*.mjs' | wc -l | tr -d ' ')
           test "$actual" -eq 9
 
-      - name: Verify recovered function bytes match the certified live baseline
+      - name: Verify recovered bytes match certified production history
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/function-sha256 <<'EOF'
+          cat > /tmp/recovery-sha256 <<'EOF'
+          748090c3684bf92aecf057ff6442ebb3564caa1581c52058d5118239550e3fe6  package.json
           9cdaf2e166c2649a9d672d58b155d153d0c8296d615e7b6d0847a0e7c4908d72  netlify/functions/founder-data.mjs
           273ccf9eaa6e761b8f049ac0a3ec639deb80fd373271338027eebd8268fc65b3  netlify/functions/meet-intelligence.mjs
           7d91e47df12f8db051a3e69e73ec5f405fe705068a6a8e2cfeacaebd83c49dcc  netlify/functions/meet-rtc-config.mjs
@@ -73,15 +68,18 @@ jobs:
           8666d6d73dca86659926f613e0c75ae34a88087ebbb6d08838088e7202d3ffc2  netlify/functions/scheduled-email-outbox.mjs
           de608d5ceca9ee8a4bc53689d2637033d3cf900b7a728a15e6a5983427647149  netlify/functions/workspace-weather.mjs
           EOF
-          sha256sum --check /tmp/function-sha256
+          sha256sum --check /tmp/recovery-sha256
 
-      - name: Verify local import closure and declared package dependencies
+      - name: Verify local import closure and historical dependency contract
         shell: bash
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import path from 'node:path';
           const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          if(pkg.name !== 'dominionstar-email-functions') throw new Error('Unexpected historical package name');
+          if(pkg.dependencies?.['@supabase/supabase-js'] !== '^2.49.1') throw new Error('Supabase dependency history changed');
+          if(pkg.dependencies?.resend !== '^4.1.2') throw new Error('Resend dependency history changed');
           const deps=new Set(Object.keys(pkg.dependencies||{}));
           const root='netlify/functions';
           for(const name of fs.readdirSync(root).filter(x=>x.endsWith('.mjs'))){
@@ -98,11 +96,17 @@ jobs:
               }
             }
           }
-          console.log('Function import closure is complete.');
+          console.log('Historical dependency contract and local import closure are complete.');
           NODE
 
-      - name: Build functions with the pinned Netlify CLI
-        run: npx --no-install netlify functions:build --src netlify/functions --functions .netlify/functions
+      - name: Install only the recovered historical dependency ranges
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm ls @supabase/supabase-js resend --depth=0
+          test -s package-lock.json
+
+      - name: Build functions with an isolated pinned Netlify CLI
+        run: npx --yes netlify-cli@26.2.0 functions:build --src netlify/functions --functions .netlify/functions
 
       - name: Confirm production remains deployment-locked until static source recovery is complete
         shell: bash
@@ -115,3 +119,4 @@ jobs:
           test "$status" -eq 42
           echo "$output" | grep -F "refusing to build an incomplete DominionStar production deploy" >/dev/null
           test ! -e dist
+          echo "CUTOVER_APPROVAL=BLOCKED_PENDING_STATIC_SOURCE_AND_PREVIEW_ACCEPTANCE"
