@@ -1,0 +1,16 @@
+{
+  "name": "dominionstar-web-production",
+  "version": "2026.8.16",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.109.1",
+    "resend": "6.17.2"
+  },
+  "devDependencies": {
+    "netlify-cli": "26.2.0"
+  }
+}
