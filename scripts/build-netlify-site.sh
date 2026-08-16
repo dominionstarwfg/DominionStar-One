@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="$ROOT/dist"
+APPROVAL="$ROOT/PRODUCTION-CUTOVER-APPROVAL.json"
 
 # Safety boundary: a Netlify production deploy is atomic. Never replace the
 # current working site with a repository snapshot that only contains Meet.
@@ -43,6 +44,40 @@ if [ "${#missing[@]}" -ne 0 ]; then
   exit 42
 fi
 
+# A complete source tree is necessary but not sufficient. Production remains
+# locked until a reviewed preview has passed and an explicit approval record is
+# committed. This prevents source recovery itself from silently enabling a live
+# cutover.
+if [ ! -s "$APPROVAL" ]; then
+  echo "ERROR: production source is present, but cutover approval is intentionally withheld." >&2
+  echo "Required only after preview acceptance: PRODUCTION-CUTOVER-APPROVAL.json" >&2
+  exit 43
+fi
+
+if ! python3 - "$APPROVAL" <<'PY'
+import json, sys
+from pathlib import Path
+path=Path(sys.argv[1])
+try:
+    approval=json.loads(path.read_text())
+except Exception as exc:
+    raise SystemExit(f"Invalid production cutover approval record: {exc}")
+expected={
+    "approved": True,
+    "baseline": "RC12.26",
+    "meetReleaseId": "2026.08.16-rc13.0-media-share-link-stability",
+    "previewAccepted": True,
+}
+for key,value in expected.items():
+    if approval.get(key) != value:
+        raise SystemExit(f"Production cutover approval rejected: {key}={approval.get(key)!r}, expected {value!r}")
+print("PRODUCTION_CUTOVER_APPROVAL_VALID")
+PY
+then
+  echo "ERROR: production cutover approval is invalid or incomplete." >&2
+  exit 43
+fi
+
 rm -rf "$DIST"
 mkdir -p "$DIST"
 
@@ -58,7 +93,8 @@ rsync -a "$ROOT/" "$DIST/" \
   --exclude 'rc10s10/' \
   --exclude '*.md' \
   --exclude '*.zip' \
-  --exclude 'PRODUCTION-MEET-SOURCE-MANIFEST.json'
+  --exclude 'PRODUCTION-MEET-SOURCE-MANIFEST.json' \
+  --exclude 'PRODUCTION-CUTOVER-APPROVAL.json'
 
 test -s "$DIST/index.html"
 test -s "$DIST/styles.css"
