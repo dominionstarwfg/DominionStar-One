@@ -1,0 +1,36 @@
+#!/bin/sh
+set -eu
+
+APP="/Applications/DominionStar Meet.app"
+PLIST="$APP/Contents/Info.plist"
+EXPECTED_VERSION="1.1.12"
+EXPECTED_ID="com.dominionstar.desktop"
+LOG="/var/log/dominionstar-meet-installer.log"
+
+log() {
+  /bin/echo "$(/bin/date '+%Y-%m-%d %H:%M:%S') [postinstall] $*" >> "$LOG"
+}
+
+if [ ! -f "$PLIST" ]; then
+  log "ERROR: Installed app Info.plist was not found at ${PLIST}."
+  exit 1
+fi
+
+INSTALLED_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST" 2>/dev/null || /bin/echo "")
+INSTALLED_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST" 2>/dev/null || /bin/echo "")
+
+if [ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]; then
+  log "ERROR: Version attestation failed. Expected ${EXPECTED_VERSION}; found ${INSTALLED_VERSION:-missing}."
+  exit 1
+fi
+
+if [ "$INSTALLED_ID" != "$EXPECTED_ID" ]; then
+  log "ERROR: Bundle identifier attestation failed. Expected ${EXPECTED_ID}; found ${INSTALLED_ID:-missing}."
+  exit 1
+fi
+
+ARCHS=$(/usr/bin/lipo -archs "$APP/Contents/MacOS/DominionStar Meet" 2>/dev/null || /bin/echo "unknown")
+log "Install attested successfully: version=${INSTALLED_VERSION}, bundle=${INSTALLED_ID}, archs=${ARCHS}."
+
+/bin/touch "$APP"
+exit 0
