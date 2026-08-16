@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /analytics/
+Disallow: /operations/
+Disallow: /follow-up/
+Disallow: /founder-dashboard/
+Disallow: /release-notes/
+
+Sitemap: https://dominionstarld.com/sitemap.xml

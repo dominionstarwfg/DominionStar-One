@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DominionStar Community Hub</title>
+<link rel="stylesheet" href="/styles.css?v=8.0-genesis-rc5e">
+<link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
+</head>
+<body class="founder-body">
+<main class="member-dashboard">
+<section id="communityGate" class="member-card">
+<p class="eyebrow">Approved Members</p>
+<h1>Loading Community Hub…</h1>
+</section>
+
+<section id="communityApp" class="member-hidden">
+<header class="member-dashboard-header executive-header">
+<div>
+<span class="founding-member-badge">Community Hub</span>
+<h1>Community Feed</h1>
+<p>Structured posts, announcements, questions, and milestones. For real-time conversation, open Live Chat.</p>
+</div>
+<div class="member-dashboard-actions">
+<a class="btn btn-gold" href="/community-chat/">Open Live Chat</a><a class="btn btn-outline" href="/member-dashboard/">Dashboard</a>
+<a class="btn btn-outline" href="/appointments/">Appointments</a>
+<button id="communityLogout" class="btn btn-outline" type="button">Log Out</button>
+</div>
+</header>
+
+<section class="community-hub-layout">
+<section class="community-main-column">
+<article class="member-panel community-composer-card">
+<div class="community-composer-heading">
+<div><p class="eyebrow">Create a Post</p><h2>Share with the community</h2></div>
+<span id="communityLiveStatus">Connecting…</span>
+</div>
+
+<form id="communityPostForm" class="community-post-form">
+<div class="member-grid">
+<label>Post Type
+<select name="post_type">
+<option value="discussion">Discussion</option>
+<option value="question">Question</option>
+<option value="milestone">Milestone</option>
+<option value="announcement" id="founderAnnouncementOption" class="member-hidden">Founder Announcement</option>
+</select>
+</label>
+<label>Title <span class="optional-label">Optional</span>
+<input name="title" maxlength="120" placeholder="Give your post a clear title">
+</label>
+</div>
+
+<label>Message
+<textarea name="body" rows="5" maxlength="2000" required placeholder="Share an update, question, milestone, or encouragement. Use @Full Name to mention someone."></textarea>
+</label>
+
+<div class="community-composer-actions">
+<label id="pinPostControl" class="member-inline-check member-hidden">
+<input name="is_pinned" type="checkbox"> Pin this post
+</label>
+<button id="communityPostSubmit" class="btn btn-gold" type="submit">Publish Post</button>
+</div>
+<div id="communityPostResult" class="member-message"></div>
+</form>
+</article>
+
+<section class="community-feed-header">
+<div><p class="eyebrow">Member Feed</p><h2>Latest community activity</h2></div>
+<div class="community-feed-filters">
+<button id="communityRefresh" class="btn btn-outline" type="button">Load New Posts</button><select id="communityTypeFilter">
+<option value="">All posts</option>
+<option value="announcement">Announcements</option>
+<option value="discussion">Discussions</option>
+<option value="question">Questions</option>
+<option value="milestone">Milestones</option>
+</select>
+<input id="communitySearch" type="search" placeholder="Search posts">
+</div>
+</section>
+
+<div id="communityFeed" class="community-feed">
+<p>Loading Community Hub…</p>
+</div>
+</section>
+
+<aside class="community-sidebar">
+<section class="member-panel">
+<p class="eyebrow">Community Standards</p>
+<h2>Professional and constructive</h2>
+<ul class="community-guidelines">
+<li>Protect client and member privacy.</li>
+<li>Keep discussions respectful and useful.</li>
+<li>Celebrate progress without making unverified claims.</li>
+<li>Use Founder announcements for official updates.</li>
+</ul>
+</section>
+
+<section class="member-panel">
+<p class="eyebrow">Notifications</p>
+<h2>Email preferences</h2>
+<p>Email delivery still requires the configured email-provider workflow. Your preferences are stored now.</p>
+<form id="communityPreferenceForm" class="community-preference-form member-hidden" aria-hidden="true">
+<label class="member-inline-check"><input name="founder_updates" type="checkbox" checked> Founder updates</label>
+<label class="member-inline-check"><input name="community_mentions" type="checkbox" checked> Mentions</label>
+<label>Digest
+<select name="email_digest">
+<option value="none">None</option>
+<option value="daily">Daily</option>
+<option value="weekly">Weekly</option>
+</select>
+</label>
+<button class="btn btn-outline" type="submit">Save Preferences</button>
+<div id="communityPreferenceResult" class="member-message"></div>
+</form>
+<a class="btn btn-outline" href="/account-settings/#messages">Open centralized message settings</a>
+</section>
+</aside>
+</section>
+</section>
+</main>
+
+<footer class="platform-release-footer">DominionStar Platform · v6.5.4 Aurora</footer>
+<script src="/assets/js/supabase-config.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/member-auth.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/community-hub.js?v=8.1-system-actions"></script>
+<script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/community-2.js?v=8.0-genesis-rc5e"></script>
+</body>
+</html>

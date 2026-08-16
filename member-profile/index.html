@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>document.documentElement.classList.add('js-enabled');</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DominionStar Member Profile</title>
+<link rel="stylesheet" href="/styles.css"><link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=7.0"></script><script src="/assets/js/platform-core.js?v=7.0"></script>
+</head>
+<body class="founder-body">
+<main class="member-dashboard">
+<section id="profileGate" class="member-card">
+<p class="eyebrow">Founder Access</p>
+<h1>Member Profile</h1>
+<p>Loading profile…</p>
+</section>
+
+<section id="profileApp" class="member-hidden">
+<header class="member-dashboard-header">
+<div>
+<span class="founding-member-badge">Member Profile</span>
+<h1 id="profileName">Member</h1>
+<p id="profileEmail"></p>
+</div>
+<div class="member-dashboard-actions">
+<a class="btn btn-outline" href="/founder-control/">Back to Founder Admin</a>
+</div>
+</header>
+
+<section class="member-grid">
+<article class="member-panel">
+<p class="eyebrow">Identity</p>
+<h2>Professional Record</h2>
+<p>Agent Code: <strong id="profileAgentCode">—</strong></p>
+<p>SMD: <strong id="profileSmd">—</strong></p>
+<p>Status: <span id="profileStatus" class="member-status pending">pending</span></p>
+<p>Rank: <strong id="profileRank">TA</strong></p>
+</article>
+
+<article class="member-panel wide">
+<p class="eyebrow">Journey</p>
+<h2>Milestone Tracker</h2>
+<div id="milestoneList" class="member-checklist"></div>
+</article>
+
+<article class="member-panel wide">
+<p class="eyebrow">Rank History</p>
+<h2>Leadership Progression</h2>
+<div class="founder-table-wrap">
+<table class="founder-table">
+<thead><tr><th>Previous</th><th>New Rank</th><th>Note</th><th>Date</th></tr></thead>
+<tbody id="rankHistoryRows"><tr><td colspan="4">Loading…</td></tr></tbody>
+</table>
+</div>
+</article>
+
+<article class="member-panel">
+<p class="eyebrow">Founder Notes</p>
+<h2>Private Notes</h2>
+<p id="profileNotes">No notes.</p>
+</article>
+</section>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase-config.js?v=7.0"></script>
+<script src="/assets/js/data-layer.js?v=7.0"></script>
+<script src="/assets/js/member-auth.js"></script>
+<script src="/assets/js/member-profile.js"></script>
+<footer class="platform-release-footer">DominionStar Institute · v8.0 Project Genesis RC5</footer><script src="/assets/js/aurora-ui.js?v=7.0"></script>
+</body>
+</html>

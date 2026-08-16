@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>document.documentElement.classList.add('js-enabled');</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DominionStar Executive Command Center</title>
+<link rel="stylesheet" href="/styles.css?v=8.0-genesis-rc5e-os-build2.2"><link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e-os-build2.2"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e-os-build2.2"></script>
+</head>
+<body class="founder-body">
+<main class="member-dashboard">
+<section id="founderGate" class="member-card">
+<p class="eyebrow">Restricted Access</p>
+<h1>DominionStar Executive Command Center</h1>
+<p>Checking Founder permissions…</p>
+</section>
+
+<section id="founderApp" class="member-hidden command-center">
+<header class="command-center-header">
+  <div>
+    <p class="eyebrow">Executive Command Center</p>
+    <h1>Good <span id="commandDaypart">day</span>, <span id="founderName">Founder</span>.</h1>
+    <p>Organization health, priorities, live activity, and executive actions in one workspace.</p>
+  </div>
+  <div class="command-header-actions">
+    <span id="founderSnapshotUpdated" class="dsos-muted" aria-live="polite">Not refreshed yet</span>
+    <button id="founderRefresh" class="btn btn-outline" type="button">Refresh</button>
+    <a class="btn btn-outline" href="/member-dashboard/">Member View</a>
+    <button id="founderLogout" class="btn btn-outline" type="button">Log Out</button>
+  </div>
+</header>
+
+<section class="command-snapshot">
+  <article><span>Members Online</span><strong id="commandOnline">0</strong><small>Live presence</small></article>
+  <article><span>Unread Messages</span><strong id="commandUnreadMessages">0</strong><small>Across the organization</small></article>
+  <article><span>Meetings Today</span><strong id="commandMeetingsToday">0</strong><small>Scheduled appointments</small></article>
+  <article><span>Pending Approvals</span><strong id="commandPending">0</strong><small>Requires attention</small></article>
+  <article><span>Journey Completions</span><strong id="commandJourneyToday">0</strong><small>Completed today</small></article>
+  <article><span>Recognitions</span><strong id="commandRecognitionToday">0</strong><small>Awarded today</small></article>
+</section>
+
+<section class="command-grid">
+  <article class="member-panel command-priority">
+    <div class="dashboard-section-heading">
+      <div><p class="eyebrow">Priority Queue</p><h2>Requires Action</h2></div>
+      <span id="commandPriorityCount" class="command-count">0</span>
+    </div>
+    <div id="commandPriorityList"><p class="dsos-muted">Loading priorities…</p></div>
+  </article>
+
+  <article class="member-panel command-health">
+    <div class="dashboard-section-heading">
+      <div><p class="eyebrow">Team Health</p><h2>Organization Status</h2></div>
+      <strong id="commandHealthScore">—</strong>
+    </div>
+    <div id="commandHealthList"><p class="dsos-muted">Calculating team health…</p></div>
+  </article>
+
+  <article class="member-panel command-activity">
+    <div class="dashboard-section-heading">
+      <div><p class="eyebrow">Live Organization</p><h2>Executive Activity</h2></div>
+      <button id="commandRefreshActivity" class="text-link" type="button">Refresh</button>
+    </div>
+    <div id="commandActivityList"><p class="dsos-muted">Loading organization activity…</p></div>
+  </article>
+
+  <article class="member-panel command-aurora">
+    <p class="eyebrow">Aurora Preview</p>
+    <h2>Executive Briefing</h2>
+    <div id="commandAuroraBrief"><p class="dsos-muted">Preparing your briefing…</p></div>
+    <a class="btn btn-gold" href="/workspace/aurora/">Open Aurora</a>
+  </article>
+</section>
+
+<section class="member-panel command-actions">
+  <div class="dashboard-section-heading">
+    <div><p class="eyebrow">Quick Actions</p><h2>Move the organization forward</h2></div>
+  </div>
+  <div class="command-action-grid">
+    <a href="/direct-messages/"><b>✉</b><span>New Message</span></a>
+    <a href="/founder-appointments/"><b>▦</b><span>Schedule Meeting</span></a>
+    <a href="#announcementForm"><b>◉</b><span>Publish Announcement</span></a>
+    <a href="/member-directory/"><b>♙</b><span>Find Member</span></a>
+    <a href="/founder-email/"><b>✦</b><span>Email Delivery</span></a>
+    <a href="/qa-center/"><b>✓</b><span>Quality Center</span></a>
+  </div>
+</section>
+
+<section class="member-panel command-admin-links">
+  <div class="command-link-row">
+    <a href="/founder-appointments/">Appointments</a>
+    <a href="/founder-email/">Email Delivery</a>
+    <a href="/qa-center/">QA Center</a>
+    <a href="/release-check/">Release Check</a>
+    <a href="/founder-features/">Feature Controls</a>
+    <a href="/founder-diagnostics/">Diagnostics</a>
+  </div>
+</section>
+
+<section class="rank-dashboard-grid founder-stats">
+  <article><span>Total Members</span><strong id="statTotal">0</strong></article>
+  <article><span>Pending</span><strong id="statPending">0</strong></article>
+  <article><span>Approved</span><strong id="statApproved">0</strong></article>
+  <article><span>TA</span><strong id="statTA">0</strong></article>
+  <article><span>Associate</span><strong id="statAssociate">0</strong></article>
+  <article><span>SA</span><strong id="statSA">0</strong></article>
+  <article><span>MD</span><strong id="statMD">0</strong></article>
+  <article><span>SMD</span><strong id="statSMD">0</strong></article>
+</section>
+
+<section class="rank-dashboard-grid founder-stats" style="margin-top:18px">
+  <article><span>Joined Last 30 Days</span><strong id="analytics30">0</strong></article>
+  <article><span>Approval Rate</span><strong id="analyticsApproval">0%</strong></article>
+  <article><span>Founding Members</span><strong id="analyticsFounding">0</strong></article>
+</section>
+<section class="member-panel founder-members-panel">
+<div class="founder-toolbar">
+<div>
+<p class="eyebrow">Member Management</p>
+<h2>Approval and Contract-Level Administration</h2>
+</div>
+<div class="founder-filters">
+<input id="memberSearch" placeholder="Search name, email, or agent code">
+<select id="statusFilter">
+<option value="">All statuses</option>
+<option value="pending">Pending</option>
+<option value="approved">Approved</option>
+<option value="declined">Declined</option>
+<option value="suspended">Suspended</option>
+</select>
+<select id="rankFilter">
+<option value="">All contract levels</option>
+<option value="TA">TA</option>
+<option value="Associate">Associate</option>
+<option value="SA">SA</option>
+<option value="MD">MD</option>
+<option value="SMD">SMD</option>
+</select>
+</div>
+</div>
+
+<div class="founder-member-summary" aria-live="polite">
+  <span id="memberCount">0 members</span>
+  <span id="memberVisibleCount">Showing 0</span>
+</div>
+<div class="founder-table-wrap founder-member-table-wrap" id="memberTableWrap" tabindex="0" aria-label="Member administration table. Scroll for additional members.">
+<table class="founder-table founder-member-table">
+<thead><tr>
+<th>Member</th><th>Agent Code</th><th>SMD</th><th>Current Status</th><th>Set Status</th><th>Change Contract Level</th><th>Exclusive 20</th><th>Founder Notes</th><th>Action</th>
+</tr></thead>
+<tbody id="memberRows"><tr><td colspan="9">Loading members…</td></tr></tbody>
+</table>
+</div>
+</section>
+
+<section class="member-grid" style="margin-top:18px">
+<article class="member-panel wide">
+<p class="eyebrow">Announcements</p>
+<h2>Publish to approved members</h2>
+<form id="announcementForm">
+<label>Title<input name="title" required></label>
+<label>Message<textarea name="body" rows="5" required></textarea></label>
+<button class="btn btn-gold" type="submit">Publish Announcement</button>
+<div id="announcementResult" class="member-message"></div>
+</form>
+</article>
+
+<article class="member-panel">
+<p class="eyebrow">Founder Workflow</p>
+<h2>Review process</h2>
+<ol>
+<li>Verify the member in WFG using their name and agent code.</li>
+<li>Set the account status to Approved.</li>
+<li>Select TA, Associate, SA, MD, or SMD for any non-Founder member, then click Save Changes.</li>
+<li>Mark the first 20 as Founding Members.</li>
+<li>Save a private note when useful.</li>
+</ol>
+</article>
+</section>
+
+<section class="member-panel" style="margin-top:18px">
+<p class="eyebrow">Beta Feedback</p>
+<h2>Recent member feedback</h2>
+<div class="founder-table-wrap">
+<table class="founder-table">
+<thead><tr><th>Type</th><th>Message</th><th>Submitted</th></tr></thead>
+<tbody id="feedbackRows"><tr><td colspan="3">Loading feedback…</td></tr></tbody>
+</table>
+</div>
+</section>
+<section class="member-panel" style="margin-top:18px">
+<p class="eyebrow">Audit Log</p>
+<h2>Recent administrative activity</h2>
+<div class="founder-table-wrap">
+<table class="founder-table">
+<thead><tr><th>Action</th><th>Details</th><th>Date</th></tr></thead>
+<tbody id="auditRows"><tr><td colspan="3">Loading audit activity…</td></tr></tbody>
+</table>
+</div>
+</section>
+<section class="member-panel" style="margin-top:18px">
+<p class="eyebrow">Mindset Center</p>
+<h2>Upload original video or image content</h2>
+<p>Use media you created, licensed, or have permission to publish. Supported files: MP4, WebM, MOV, JPG, PNG, and WebP. Maximum file size: 100 MB.</p>
+
+<form id="mindsetUploadForm">
+<div class="member-grid">
+<label>Title<input name="title" required></label>
+<label>Target Rank
+<select name="target_rank">
+<option value="">All approved members</option>
+<option value="TA">TA</option>
+<option value="Associate">Associate</option>
+<option value="SA">SA</option>
+<option value="MD">MD</option>
+<option value="SMD">SMD</option>
+</select>
+</label>
+</div>
+<label>Description<textarea name="description" rows="4"></textarea></label>
+<label>Video or Image<input name="media" type="file" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp" required></label>
+<label class="member-inline-check"><input name="is_featured" type="checkbox"> Feature this content</label>
+<button class="btn btn-gold" type="submit">Upload and Publish</button>
+<div id="mindsetUploadResult" class="member-message"></div>
+</form>
+
+<div class="founder-table-wrap" style="margin-top:20px">
+<table class="founder-table">
+<thead><tr><th>Title</th><th>Type</th><th>Audience</th><th>Featured</th><th>Published</th><th>Action</th></tr></thead>
+<tbody id="mindsetAdminRows"><tr><td colspan="6">Loading mindset content…</td></tr></tbody>
+</table>
+</div>
+</section>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase-config.js?v=8.0-genesis-rc5e-os-build2.2"></script>
+<script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e-os-build2.2"></script>
+<script src="/assets/js/member-auth.js"></script>
+<script src="/assets/js/executive-core.js?v=8.0-genesis-rc5e-os-build2.2-os-build2.2"></script>
+<script src="/assets/js/presence-engine.js?v=8.0-genesis-rc5e-os-build2.2-os-build2.2"></script>
+<script src="/assets/js/founder-admin.js?v=8.1-community-publish"></script>
+<footer class="platform-release-footer">DominionStar Executive OS · Build 2.2</footer><script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e-os-build2.2"></script>
+</body>
+</html>

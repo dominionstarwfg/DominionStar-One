@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>document.documentElement.classList.add('js-enabled');</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>My DominionStar Profile</title>
+<link rel="stylesheet" href="/styles.css?v=8.0-genesis-rc5e">
+<link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
+</head>
+<body class="founder-body">
+<main class="member-dashboard">
+<section id="profileGate" class="member-card">
+<p class="eyebrow">Member Profile</p>
+<h1>Loading your information…</h1>
+</section>
+
+<section id="profileApp" class="member-hidden">
+<header class="member-dashboard-header executive-header">
+<div>
+<span class="founding-member-badge">Exclusive Edition</span>
+<h1>My Profile</h1>
+<p>Manage your profile photo and contact information. Verified organization fields are read-only.</p>
+</div>
+<div class="member-dashboard-actions">
+<a class="btn btn-outline" href="/member-dashboard/">Dashboard</a>
+<a class="btn btn-outline" href="/account-settings/">Account Settings</a>
+</div>
+</header>
+
+<section class="profile-stable-layout">
+<aside class="executive-profile-card">
+<div class="executive-avatar-wrap">
+<img id="profileAvatarPreview" src="/assets/logo.jpeg" alt="Profile photo">
+<label class="avatar-upload-button">Change Photo
+<input id="profilePhotoInput" form="contactProfileForm" type="file" accept="image/jpeg,image/png,image/webp">
+</label>
+</div>
+<h2 id="profileDisplayName">DominionStar Member</h2>
+<p class="executive-rank" id="profileDisplayRank">TA</p>
+<div class="profile-badge-row" id="profileBadgeRow"></div>
+</aside>
+
+<section class="profile-data-column">
+<div class="profile-section-card verified-profile-card">
+<p class="eyebrow">Verified Professional Record</p>
+<h2>DominionStar Information</h2>
+<div class="verified-data-grid">
+<div><span>Full Name</span><strong id="verifiedFullName">—</strong></div>
+<div><span>Email</span><strong id="verifiedEmail">—</strong></div>
+<div><span>Agent Code</span><strong id="verifiedAgentCode">—</strong></div>
+<div><span>Contract Level</span><strong id="verifiedRank">TA</strong></div>
+<div><span>SMD</span><strong id="verifiedSmd">—</strong></div>
+<div><span>Status</span><strong id="verifiedStatus">Pending</strong></div>
+</div>
+<p class="profile-control-note">Agent Code, Contract Level, SMD, status, and badges are managed in the Founder Command Center.</p>
+</div>
+
+<form id="contactProfileForm">
+<div class="profile-section-card">
+<p class="eyebrow">Editable</p>
+<h2>Contact and Address</h2>
+<div class="member-grid">
+<label>Full Name<input name="full_name" required></label>
+<label>Email Address<input name="email" type="email" required></label>
+<label>Phone Number<input name="phone" type="tel"></label>
+<label>Address Line 1<input name="address_line1"></label>
+<label>Address Line 2<input name="address_line2"></label>
+<label>City<input name="city"></label>
+<label>State / Province<input name="state"></label>
+<label>Postal Code<input name="postal_code"></label>
+<label>Country<input name="country"></label>
+</div>
+<p class="profile-control-note">Changing your email may require confirmation through Supabase before the new address becomes active.</p>
+</div>
+
+<div class="sticky-save-bar">
+<button class="btn btn-gold" type="submit">Save Profile Changes</button>
+<div id="profileSaveResult" class="member-message"></div>
+</div>
+</form>
+</section>
+</section>
+</section>
+</main>
+
+<footer class="platform-release-footer">DominionStar · RC5a Identity</footer>
+
+<script src="/assets/js/supabase-config.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/member-auth.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/professional-profile.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
+</body>
+</html>

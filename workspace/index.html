@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DominionStar Workspace</title>
+  <meta name="description" content="DominionStar Workspace dashboard">
+  <link rel="icon" href="/assets/logo.jpeg">
+  <link rel="stylesheet" href="/workspace/workspace.css?v=rc10-s13">
+</head>
+<body>
+<div class="workspace-shell" id="workspaceShell">
+  <aside class="sidebar" aria-label="Workspace navigation">
+    <a class="brand" href="/workspace/"><img src="/assets/logo.jpeg" alt=""><strong>DOMINIONSTAR</strong></a>
+    <nav>
+      <a class="active" href="/workspace/"><span>⌂</span>Dashboard</a>
+      <a href="/meet/"><span>▣</span>Meet</a>
+      <a href="/workspace/drive/"><span>▱</span>Drive</a>
+      <a href="/workspace/chat/"><span>◯</span>Chat</a>
+      <a href="/workspace/calendar/"><span>▦</span>Calendar</a>
+      <a href="/mindset-center/"><span>◎</span>Mindset Center</a>
+      <a href="/academy/"><span>◇</span>Academy</a>
+      <a href="/workspace/tasks/"><span>☑</span>Tasks</a>
+      <a href="/workspace/contacts/"><span>♙</span>Contacts</a>
+      <a href="/workspace/aurora/"><span>✦</span>Aurora</a>
+      <a href="/account-settings/"><span>⚙</span>Settings</a>
+    </nav>
+    <button class="profile-card" id="profileButton" aria-expanded="false"><span class="workspace-avatar-fallback" data-workspace-initials>DS</span><img data-workspace-avatar hidden alt=""><span><b id="workspaceProfileName">DominionStar</b><small id="workspaceProfileLevel">Member</small></span><i>✦</i></button>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
+      <div class="search"><span>⌕</span><input id="globalSearch" placeholder="Search workspace..." aria-label="Search workspace"><kbd>⌘ /</kbd><div id="searchResults" class="search-results" hidden></div></div>
+      <button class="icon-button" id="notifications" aria-label="Notifications">♧<i></i></button>
+      <button class="avatar-button" id="workspaceAvatarButton" aria-label="Open profile"><span class="workspace-avatar-fallback" data-workspace-initials>DS</span><img data-workspace-avatar hidden alt=""></button>
+    </header>
+
+    <section class="hero">
+      <div><h1><span id="workspaceGreeting">Welcome</span>, <span id="workspaceGreetingName">DominionStar Member</span> <em>✦</em></h1><p id="workspaceOverviewStatus">Loading your live workspace overview…</p></div>
+      <div class="day"><span id="workspaceDate">Loading date…</span><b id="workspaceWeather">Weather unavailable</b></div>
+    </section>
+
+    <section class="section-head"><h2>Quick Actions</h2><button id="customize">Customize</button></section>
+    <section class="quick-actions meet-quick-actions">
+      <a href="/meet/?action=new"><span class="purple">▣</span><b>New Meeting</b><small>Start instantly</small></a>
+      <a href="/meet/?action=join"><span class="green">➜</span><b>Join</b><small>Meeting ID or room code</small></a>
+      <a href="/meet/?action=schedule"><span class="blue">▦</span><b>Schedule</b><small>Choose date and time</small></a>
+      <a href="/meet/?action=share"><span class="red">▣</span><b>Share Screen</b><small>Start and present</small></a>
+      <a href="/meet/?action=personal"><span class="violet">⌂</span><b>Personal Room</b><small>Your permanent room</small></a>
+      <a href="/meet/?action=recurring"><span class="orange">↻</span><b>Recurring</b><small>Same link and passcode</small></a>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="panel meetings-panel">
+        <div class="panel-title"><h3>Upcoming Meetings</h3><button aria-label="Refresh">↻</button></div>
+        <div class="workspace-empty-state" id="workspaceUpcoming"><b>Loading meetings…</b><small>Checking your live schedule.</small></div>
+        <a class="panel-link" href="/workspace/calendar/">View calendar →</a>
+      </article>
+
+      <article class="panel files-panel">
+        <div class="panel-title"><h3>Recent Files</h3><button aria-label="Close">×</button></div>
+        <div class="workspace-empty-state" id="workspaceRecentFiles"><b>Drive status unavailable</b><small>Open Drive to view locally available files.</small></div>
+        <a class="panel-link" href="/workspace/drive/">Open Drive →</a>
+      </article>
+
+      <article class="panel stats-panel">
+        <div class="panel-title"><h3>Workspace Stats</h3><button aria-label="Close">×</button></div>
+        <div class="stats">
+          <a href="/meet/"><span>Meetings</span><b id="workspaceMeetingCount">—</b><small>Upcoming</small></a>
+          <a href="/workspace/drive/"><span>Files</span><b id="workspaceFileCount">—</b><small>Available</small></a>
+          <a href="/workspace/chat/"><span>Chats</span><b id="workspaceUnreadCount">—</b><small>Unread</small></a>
+          <a href="/workspace/tasks/"><span>Tasks</span><b id="workspaceTaskCount">—</b><small>In progress</small></a>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+<dialog id="workspaceProfileDialog" class="workspace-profile-dialog" aria-labelledby="workspaceProfileDialogTitle">
+  <form id="workspaceProfileForm" method="dialog">
+    <header><div><small>Workspace identity</small><h2 id="workspaceProfileDialogTitle">Customize profile</h2></div><button type="button" id="closeWorkspaceProfile" aria-label="Close">×</button></header>
+    <div class="workspace-profile-content">
+      <div class="workspace-avatar-editor">
+        <div class="workspace-avatar-preview"><span class="workspace-avatar-fallback" id="workspaceAvatarPreviewInitials">DS</span><img id="workspaceAvatarPreview" hidden alt="Profile picture preview"></div>
+        <div><strong>Profile picture</strong><p>Shown across Workspace and DominionStar Meet when your camera is off.</p><button type="button" id="chooseWorkspaceAvatar">Choose picture</button><input id="workspaceAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden></div>
+      </div>
+      <div class="workspace-profile-meta"><span>Contract level</span><b id="workspaceDialogLevel">Loading…</b></div>
+      <p id="workspaceProfileStatus" class="workspace-profile-status" role="status" aria-live="polite"></p>
+    </div>
+    <footer><button type="button" id="cancelWorkspaceProfile">Cancel</button><button type="submit" class="workspace-profile-save">Save changes</button></footer>
+  </form>
+</dialog>
+
+<script src="/assets/js/supabase-config.js?v=rc10-s5"></script>
+<script src="/assets/js/member-auth.js?v=rc10-s5"></script>
+<script src="/workspace/workspace.js?v=rc10-s13"></script>
+</body>
+</html>

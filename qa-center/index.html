@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>DominionStar QA Center</title>
+    <link rel="stylesheet" href="/styles.css?v=2026.08.12-rc12.24.1" />
+    <script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script>
+    <script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
+  </head>
+  <body class="founder-body">
+    <main class="member-dashboard">
+      <section id="qaGate" class="member-card">
+        <h1>Loading QA Center…</h1>
+      </section>
+
+      <section id="qaApp" class="member-hidden">
+        <header class="member-dashboard-header executive-header">
+          <div>
+            <span class="founding-member-badge">v6.4.2 QA Release</span>
+            <h1>Release QA Center</h1>
+            <p>
+              Verify the production platform before approving the next release.
+            </p>
+          </div>
+          <div class="member-dashboard-actions">
+            <a class="btn btn-outline" href="/founder-control/"
+              >Command Center</a
+            >
+            <button id="runQaChecks" class="btn btn-gold" type="button">
+              Run All Checks
+            </button>
+          </div>
+        </header>
+
+        <section class="qa-summary-grid">
+          <article class="member-panel">
+            <p class="eyebrow">Overall</p>
+            <strong id="qaScore">—</strong><span>Passing checks</span>
+          </article>
+          <article class="member-panel">
+            <p class="eyebrow">Runtime</p>
+            <strong id="qaRuntimeCount">0</strong><span>Browser errors</span>
+          </article>
+          <article class="member-panel">
+            <p class="eyebrow">Email</p>
+            <strong id="qaEmailFailed">0</strong><span>Failed deliveries</span>
+          </article>
+          <article class="member-panel">
+            <p class="eyebrow">Realtime</p>
+            <strong id="qaRealtime">0</strong><span>Published tables</span>
+          </article>
+        </section>
+
+        <section class="member-panel">
+          <div class="dashboard-section-heading">
+            <div>
+              <p class="eyebrow">Automated Tests</p>
+              <h2>Production systems</h2>
+            </div>
+            <button id="testNotification" class="btn btn-outline" type="button">
+              Create Test Notification
+            </button>
+          </div>
+          <div id="qaResults" class="qa-results">
+            <p>Press Run All Checks.</p>
+          </div>
+        </section>
+
+        <section class="member-panel">
+          <div class="dashboard-section-heading">
+            <div>
+              <p class="eyebrow">Founder-only verification</p>
+              <h2>Release evidence</h2>
+            </div>
+            <a class="btn btn-outline" href="/account-settings/"
+              >Open Settings</a
+            >
+          </div>
+          <p class="settings-note">
+            This page verifies production health. It does not store member or
+            platform settings. Run the checks above to refresh the evidence.
+          </p>
+          <div
+            id="founderVerification"
+            class="qa-manual-checklist"
+            aria-live="polite"
+          >
+            <article class="qa-verification-row pending">
+              <span class="qa-verification-icon">…</span>
+              <div>
+                <strong>Production systems</strong>
+                <p>Waiting for verified results.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="platform-release-footer">
+      DominionStar Platform · v6.5.4 Aurora
+    </footer>
+    <script src="/assets/js/supabase-config.js?v=8.0-genesis-rc5e"></script>
+    <script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e"></script>
+    <script src="/assets/js/member-auth.js?v=8.0-genesis-rc5e"></script>
+    <script src="/assets/js/qa-center.js?v=2026.08.12-rc12.24.1"></script>
+    <script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
+  </body>
+</html>
