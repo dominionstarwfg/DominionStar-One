@@ -17,6 +17,11 @@ INSTALL_LOG="/var/log/dominionstar-meet-installer.log"
 SYSTEM_INSTALL_LOG="/var/log/install.log"
 
 cleanup() {
+  if [ -n "${APP_PID:-}" ] && kill -0 "$APP_PID" >/dev/null 2>&1; then
+    kill -TERM "$APP_PID" >/dev/null 2>&1 || true
+    sleep 1
+    kill -KILL "$APP_PID" >/dev/null 2>&1 || true
+  fi
   sudo rm -rf "$TEST_APP" >/dev/null 2>&1 || true
   rm -rf "$AUDIT_DIR" "$STALE_PLIST" "$STARTUP_PROBE" "$STARTUP_LOG"
 }
@@ -128,8 +133,10 @@ rm -f "$STARTUP_PROBE" "$STARTUP_LOG"
 DOMINIONSTAR_STARTUP_PROBE="$STARTUP_PROBE" "$TEST_APP/Contents/MacOS/DominionStar Meet" >"$STARTUP_LOG" 2>&1 &
 APP_PID=$!
 
+PROBE_READY=0
 for _ in {1..30}; do
   if [ -f "$STARTUP_PROBE" ] && grep -F '"stage":"event-loop-responsive"' "$STARTUP_PROBE" >/dev/null 2>&1; then
+    PROBE_READY=1
     break
   fi
   if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
@@ -138,10 +145,29 @@ for _ in {1..30}; do
   sleep 0.5
 done
 
-if ! wait "$APP_PID"; then
+if [ "$PROBE_READY" -ne 1 ]; then
+  if kill -0 "$APP_PID" >/dev/null 2>&1; then
+    kill -TERM "$APP_PID" >/dev/null 2>&1 || true
+  fi
+  wait "$APP_PID" >/dev/null 2>&1 || true
   cat "$STARTUP_LOG" >&2 || true
-  fail "Installed DominionStar Meet exited with an error during Intel startup proof"
+  fail "Installed DominionStar Meet did not reach responsive Intel startup within 15 seconds"
 fi
+
+# Reaching event-loop-responsive is the success condition. A healthy desktop app
+# should remain running, so terminate the probe deliberately instead of waiting
+# forever for a successful application process to exit on its own.
+if kill -0 "$APP_PID" >/dev/null 2>&1; then
+  kill -TERM "$APP_PID" >/dev/null 2>&1 || true
+  for _ in {1..10}; do
+    kill -0 "$APP_PID" >/dev/null 2>&1 || break
+    sleep 0.2
+  done
+  if kill -0 "$APP_PID" >/dev/null 2>&1; then
+    kill -KILL "$APP_PID" >/dev/null 2>&1 || true
+  fi
+fi
+wait "$APP_PID" >/dev/null 2>&1 || true
 
 [ -f "$STARTUP_PROBE" ] || { cat "$STARTUP_LOG" >&2 || true; fail "Installed app did not create a startup proof"; }
 grep -F '"stage":"window-created"' "$STARTUP_PROBE" >/dev/null || fail "Native BrowserWindow was never created"
