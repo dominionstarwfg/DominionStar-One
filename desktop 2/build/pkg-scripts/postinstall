@@ -32,5 +32,6 @@ fi
 ARCHS=$(/usr/bin/lipo -archs "$APP/Contents/MacOS/DominionStar Meet" 2>/dev/null || /bin/echo "unknown")
 log "Install attested successfully: version=${INSTALLED_VERSION}, bundle=${INSTALLED_ID}, archs=${ARCHS}."
 
-/bin/touch "$APP"
+# Do not fail a successful package transaction on a cosmetic timestamp refresh.
+# The app bundle has already been atomically installed and attested above.
 exit 0
