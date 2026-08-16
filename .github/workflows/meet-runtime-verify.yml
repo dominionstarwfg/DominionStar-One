@@ -1,0 +1,62 @@
+name: DominionStar Meet Runtime Verification
+
+on:
+  pull_request:
+    paths:
+      - "assets/js/meeting-engine.js"
+      - "assets/js/meet/**"
+      - "assets/js/meet-next/**"
+      - "meet/**"
+      - "scripts/test-*meet*.mjs"
+      - "scripts/test-camera-privacy-and-native-picker.mjs"
+      - "scripts/test-media-stability-guardrails.mjs"
+      - "scripts/test-live-sync-regression.mjs"
+      - "scripts/test-two-client-authority.mjs"
+      - "scripts/test-waiting-room-surgical.mjs"
+      - ".github/workflows/meet-runtime-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-meet-runtime-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Media, Waiting Room, Share and Link Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Camera privacy and native share picker
+        run: node scripts/test-camera-privacy-and-native-picker.mjs
+
+      - name: Media stability guardrails
+        run: node scripts/test-media-stability-guardrails.mjs
+
+      - name: Waiting room authority and lifecycle
+        run: node scripts/test-waiting-room-surgical.mjs
+
+      - name: Two-client host and co-host authority
+        run: node scripts/test-two-client-authority.mjs
+
+      - name: Live synchronization regression contract
+        run: node scripts/test-live-sync-regression.mjs
+
+      - name: RC13 camera, share, waiting-room and invite recovery
+        run: node scripts/test-meet-rc13-quality-hardening.mjs
+
+      - name: Verify the deployed desktop release contract remains compatible
+        run: bash "desktop 2/scripts/audit-live-hosted-runtime.sh"
