@@ -1,16 +1,10 @@
 {
-  "name": "dominionstar-web-production",
-  "version": "2026.8.16",
+  "name": "dominionstar-email-functions",
   "private": true,
+  "version": "6.4.1",
   "type": "module",
-  "engines": {
-    "node": ">=22.13.0 <23"
-  },
   "dependencies": {
-    "@supabase/supabase-js": "2.109.0",
-    "resend": "6.17.2"
-  },
-  "devDependencies": {
-    "netlify-cli": "26.2.0"
+    "@supabase/supabase-js": "^2.49.1",
+    "resend": "^4.1.2"
   }
 }
