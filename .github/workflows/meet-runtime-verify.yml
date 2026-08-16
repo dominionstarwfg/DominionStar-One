@@ -15,6 +15,7 @@ on:
       - "scripts/test-live-sync-regression.mjs"
       - "scripts/test-two-client-authority.mjs"
       - "scripts/test-waiting-room-surgical.mjs"
+      - "scripts/test-netlify-cutover-approval.sh"
       - "scripts/build-netlify-site.sh"
       - "netlify.toml"
       - ".github/workflows/meet-runtime-verify.yml"
@@ -93,7 +94,10 @@ jobs:
               print('HASH OK', rel, actual)
           PY
 
-      - name: Prove Netlify production is fail-closed until full source recovery
+      - name: Cutover approval gate unit tests
+        run: bash scripts/test-netlify-cutover-approval.sh
+
+      - name: Prove Netlify production remains fail-closed
         shell: bash
         run: |
           set +e
@@ -105,7 +109,14 @@ jobs:
           if [ "$status" -eq 42 ]; then
             echo "$output" | grep -F "refusing to build an incomplete DominionStar production deploy" >/dev/null
             test ! -e dist
-            echo "PRODUCTION_DEPLOY_BLOCKED_AS_DESIGNED"
+            echo "PRODUCTION_DEPLOY_BLOCKED_INCOMPLETE_SOURCE"
+            exit 0
+          fi
+
+          if [ "$status" -eq 43 ]; then
+            echo "$output" | grep -E "cutover approval is intentionally withheld|cutover approval is invalid or incomplete" >/dev/null
+            test ! -e dist
+            echo "PRODUCTION_DEPLOY_BLOCKED_PENDING_APPROVAL"
             exit 0
           fi
 
@@ -120,9 +131,10 @@ jobs:
           test ! -e dist/scripts
           test ! -e dist/supabase
           test ! -e dist/netlify
+          test ! -e dist/PRODUCTION-CUTOVER-APPROVAL.json
           node --check dist/assets/js/meeting-engine.js
           node --check dist/assets/js/meet-next/executive6.js
-          echo "COMPLETE_PRODUCTION_SURFACE_BUILT"
+          echo "COMPLETE_APPROVED_PRODUCTION_SURFACE_BUILT"
 
       - name: Verify current live desktop contract remains compatible
         working-directory: desktop 2
