@@ -4,6 +4,45 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="$ROOT/dist"
 
+# Safety boundary: a Netlify production deploy is atomic. Never replace the
+# current working site with a repository snapshot that only contains Meet.
+# These files/functions are present in the certified RC12.26 production bundle
+# and must be recovered into Git before continuous deployment is allowed.
+required_paths=(
+  "index.html"
+  "styles.css"
+  "_headers"
+  "_redirects"
+  "member-login/index.html"
+  "member-dashboard/index.html"
+  "assets/js/supabase-config.js"
+  "netlify/functions/founder-data.mjs"
+  "netlify/functions/meet-intelligence.mjs"
+  "netlify/functions/meet-rtc-config.mjs"
+  "netlify/functions/meet-translate.mjs"
+  "netlify/functions/meeting-host-alert.mjs"
+  "netlify/functions/process-email-outbox.mjs"
+  "netlify/functions/resolve-meeting-join.mjs"
+  "netlify/functions/scheduled-email-outbox.mjs"
+  "netlify/functions/workspace-weather.mjs"
+  "package.json"
+)
+
+missing=()
+for rel in "${required_paths[@]}"; do
+  if [ ! -s "$ROOT/$rel" ]; then
+    missing+=("$rel")
+  fi
+done
+
+if [ "${#missing[@]}" -ne 0 ]; then
+  echo "ERROR: refusing to build an incomplete DominionStar production deploy." >&2
+  echo "The current live site remains the safety baseline. Missing source:" >&2
+  printf '  - %s\n' "${missing[@]}" >&2
+  echo "Recover and certify the complete production surface before linking Netlify production to this repository." >&2
+  exit 42
+fi
+
 rm -rf "$DIST"
 mkdir -p "$DIST"
 
@@ -21,6 +60,8 @@ rsync -a "$ROOT/" "$DIST/" \
   --exclude '*.zip' \
   --exclude 'PRODUCTION-MEET-SOURCE-MANIFEST.json'
 
+test -s "$DIST/index.html"
+test -s "$DIST/styles.css"
 test -s "$DIST/meet/index.html"
 test -s "$DIST/meet/release-contract.json"
 test -s "$DIST/assets/js/meeting-engine.js"
