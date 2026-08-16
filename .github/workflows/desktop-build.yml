@@ -130,14 +130,17 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Prepare native replacement hooks
-        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall
+      - name: Prepare native replacement tooling
+        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh
 
       - name: Run DominionStar certification
         run: npm run verify
 
-      - name: Build universal macOS installers
+      - name: Build universal macOS app, DMG and ZIP
         run: npm run dist:mac
+
+      - name: Build deterministic Apple replacement PKG
+        run: npm run dist:mac:pkg
 
       - name: Certify and smoke-test macOS replacement PKG
         shell: bash
@@ -145,33 +148,53 @@ jobs:
           set -euo pipefail
 
           VERSION=$(node -p "require('./package.json').version")
-          PKG=$(find dist -maxdepth 1 -type f -name '*.pkg' -print -quit)
-          test -n "$PKG"
-          echo "Auditing package: $PKG"
-
+          PKG="dist/DominionStar-Meet-${VERSION}-mac-universal.pkg"
           STAGED_PLIST="dist/mac-universal/DominionStar Meet.app/Contents/Info.plist"
+          TEST_APP="/Applications/DominionStar Meet.app"
+          TEST_PLIST="$TEST_APP/Contents/Info.plist"
+
+          cleanup() {
+            sudo rm -rf "$TEST_APP" >/dev/null 2>&1 || true
+            rm -rf dist/pkg-audit /tmp/dominionstar-stale.plist
+          }
+          trap cleanup EXIT
+
+          test -f "$PKG"
           test -f "$STAGED_PLIST"
+
           STAGED_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGED_PLIST")
           STAGED_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$STAGED_PLIST")
-          test "$STAGED_VERSION" = "$VERSION"
-          test "$STAGED_ID" = "com.dominionstar.desktop"
+          if [ "$STAGED_VERSION" != "$VERSION" ] || [ "$STAGED_ID" != "com.dominionstar.desktop" ]; then
+            echo "::error::Staged app identity failed: version=$STAGED_VERSION bundle=$STAGED_ID" >&2
+            exit 1
+          fi
           echo "Staged app identity verified: version=$STAGED_VERSION bundle=$STAGED_ID"
 
           rm -rf dist/pkg-audit
           /usr/sbin/pkgutil --expand-full "$PKG" dist/pkg-audit
-          echo "Expanded PKG files:"
-          find dist/pkg-audit -maxdepth 5 -print | sort
 
-          PAYLOAD_PLIST=$(find dist/pkg-audit -type f -path '*/DominionStar Meet.app/Contents/Info.plist' -print -quit)
+          PAYLOAD_PLIST=$(find dist/pkg-audit -type f -path '*/Applications/DominionStar Meet.app/Contents/Info.plist' -print -quit)
           PREINSTALL=$(find dist/pkg-audit -type f -name preinstall -print -quit)
           POSTINSTALL=$(find dist/pkg-audit -type f -name postinstall -print -quit)
 
-          test -n "$PAYLOAD_PLIST"
-          test -n "$PREINSTALL"
-          test -n "$POSTINSTALL"
+          if [ -z "$PAYLOAD_PLIST" ]; then
+            echo "::error::Native PKG is missing the DominionStar Meet application payload" >&2
+            find dist/pkg-audit -maxdepth 5 -print | sort
+            exit 1
+          fi
+          if [ -z "$PREINSTALL" ]; then
+            echo "::error::Native PKG is missing the preinstall stale-app replacement hook" >&2
+            find dist/pkg-audit -maxdepth 5 -print | sort
+            exit 1
+          fi
+          if [ -z "$POSTINSTALL" ]; then
+            echo "::error::Native PKG is missing the postinstall version-attestation hook" >&2
+            find dist/pkg-audit -maxdepth 5 -print | sort
+            exit 1
+          fi
+
           /bin/sh -n "$PREINSTALL"
           /bin/sh -n "$POSTINSTALL"
-
           PAYLOAD_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PAYLOAD_PLIST")
           PAYLOAD_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PAYLOAD_PLIST")
           test "$PAYLOAD_VERSION" = "$VERSION"
@@ -179,10 +202,9 @@ jobs:
           grep -F '/Applications/DominionStar Meet.app' "$PREINSTALL"
           grep -F "EXPECTED_VERSION=\"$VERSION\"" "$POSTINSTALL"
           grep -F 'EXPECTED_ID="com.dominionstar.desktop"' "$POSTINSTALL"
-          echo "Expanded PKG payload verified: version=$PAYLOAD_VERSION bundle=$PAYLOAD_ID"
+          echo "Native PKG structure verified: payload=$PAYLOAD_VERSION hooks=present"
 
-          TEST_APP="/Applications/DominionStar Meet.app"
-          TEST_PLIST="$TEST_APP/Contents/Info.plist"
+          sudo -n true
           sudo rm -rf "$TEST_APP"
           sudo mkdir -p "$TEST_APP/Contents"
           cat > /tmp/dominionstar-stale.plist <<'PLIST'
@@ -198,11 +220,15 @@ jobs:
           sudo touch "$TEST_APP/STALE-1.1.8-SENTINEL"
           sudo rm -f /var/log/dominionstar-meet-installer.log
 
-          echo "Installing PKG over synthetic stale v1.1.8 app..."
+          echo "Installing native PKG over synthetic stale DominionStar Meet v1.1.8..."
           sudo /usr/sbin/installer -pkg "$PKG" -target /
 
           test -f "$TEST_PLIST"
-          test ! -e "$TEST_APP/STALE-1.1.8-SENTINEL"
+          if [ -e "$TEST_APP/STALE-1.1.8-SENTINEL" ]; then
+            echo "::error::Stale v1.1.8 bundle survived package installation" >&2
+            exit 1
+          fi
+
           INSTALLED_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$TEST_PLIST")
           INSTALLED_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$TEST_PLIST")
           test "$INSTALLED_VERSION" = "$VERSION"
@@ -215,11 +241,10 @@ jobs:
 
           sudo test -f /var/log/dominionstar-meet-installer.log
           sudo grep -F '[preinstall]' /var/log/dominionstar-meet-installer.log
+          sudo grep -F 'Removing existing app version 1.1.8' /var/log/dominionstar-meet-installer.log
           sudo grep -F 'Install attested successfully' /var/log/dominionstar-meet-installer.log
 
-          echo "macOS PKG stale-upgrade smoke test passed: 1.1.8 -> $INSTALLED_VERSION; archs=$ARCHS"
-          sudo rm -rf "$TEST_APP"
-          rm -rf dist/pkg-audit
+          echo "macOS native PKG replacement smoke test passed: 1.1.8 -> $INSTALLED_VERSION; archs=$ARCHS"
 
       - name: Generate macOS checksums
         run: |
