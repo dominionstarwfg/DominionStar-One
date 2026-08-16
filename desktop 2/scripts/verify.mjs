@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const required = ['package.json', 'package-lock.json', 'src/bootstrap.mjs', 'src/main.mjs', 'src/preload.cjs', 'src/presenter-preload.cjs', 'src/presenter-toolbar.html', 'src/presenter-toolbar.js', 'src/capture-source.mjs', 'src/capture-session.mjs', 'src/desktop-session.mjs', 'src/desktop-layout.mjs', 'src/desktop-updater.mjs', 'src/offline.html', 'src/launcher.html', 'src/entitlements.mac.plist'];
+const required = ['package.json', 'package-lock.json', 'src/bootstrap.mjs', 'src/main.mjs', 'src/preload.cjs', 'src/presenter-preload.cjs', 'src/presenter-toolbar.html', 'src/presenter-toolbar.js', 'src/capture-source.mjs', 'src/capture-session.mjs', 'src/desktop-session.mjs', 'src/desktop-layout.mjs', 'src/desktop-updater.mjs', 'src/offline.html', 'src/launcher.html', 'src/startup.html', 'src/entitlements.mac.plist'];
 const missing = required.filter((file) => !fs.existsSync(path.join(root, file)));
 if (missing.length) throw new Error(`Missing desktop files: ${missing.join(', ')}`);
 
@@ -34,7 +34,8 @@ const main = fs.readFileSync(path.join(root, 'src/main.mjs'), 'utf8');
 if(packageJson.main!=='src/bootstrap.mjs')throw new Error('Native bootstrap must remain the packaged desktop entry point');
 if(packageLock.version!==packageJson.version||packageLock.packages?.['']?.version!==packageJson.version)throw new Error('package-lock release metadata does not match package.json');
 if(!bootstrap.includes('guardian-certification.js')||!bootstrap.includes('onBeforeRequest'))throw new Error('Native desktop certification authority gate missing');
-if(!bootstrap.includes('requestMacMediaAccess')||!bootstrap.includes('askForMediaAccess(mediaType)')||!bootstrap.includes('await requestMacMediaAccess()'))throw new Error('macOS startup camera/microphone permission flow missing');
+if(bootstrap.includes('askForMediaAccess')||bootstrap.includes('requestMacMediaAccess'))throw new Error('macOS camera/microphone permission prompting must not block desktop startup');
+if(!bootstrap.includes('await app.whenReady()'))throw new Error('Native bootstrap must wait for Electron readiness before handoff');
 if(!bootstrap.includes("await import('./main.mjs')"))throw new Error('Native bootstrap does not hand off to production main process');
 
 for (const safeguard of ['contextIsolation: true', 'nodeIntegration: false', 'sandbox: true', 'setPermissionRequestHandler', 'setWindowOpenHandler']) {
@@ -81,7 +82,7 @@ if(!preload.includes('getRuntimeInfo: async'))throw new Error('Desktop runtime-i
 if(!main.includes('version:appVersion,appVersion,buildVersion:appVersion')||!main.includes('electronVersion:process.versions.electron'))throw new Error('Main runtime info does not expose application and Electron versions separately');
 if(!main.includes('refreshHostedMeetingAssets(desktopSession,APP_ORIGIN)'))throw new Error('Desktop hosted cache refresh missing');
 if(!main.includes('loadFreshPage(mainWindow, initialUrl)'))throw new Error('Initial hosted navigation does not bypass cache');
-if(main.includes('requestMacMediaAccess'))throw new Error('Media permission prompting belongs in the native bootstrap, not production main process');
+if(main.includes('requestMacMediaAccess'))throw new Error('Media permission prompting belongs to actual meeting media use, not production startup');
 if(!main.includes("route==='/meet'")||!main.includes('mediaPermissions.has(permission)'))throw new Error('Meeting-only web media permission policy missing');
 if(!main.includes("ipcMain.handle('desktop:window-layout'"))throw new Error('Missing adaptive native window bridge');
 if(!main.includes("ipcMain.handle('desktop:update-status'"))throw new Error('Missing in-place update status bridge');
@@ -91,4 +92,11 @@ if(!main.includes('mainWindow.hide()')||!main.includes('hidePresenterWindow({res
 if(!main.includes("ipcMain.on('desktop:presenter-resize'"))throw new Error('Missing native presenter toolbar collapse/expand bridge');
 if(!main.includes('useSystemPicker:supportsMacSystemPicker()'))throw new Error('Missing macOS 15 native system-picker fallback');
 if(!packageJson.build?.mac?.extendInfo?.NSAudioCaptureUsageDescription)throw new Error('Missing macOS audio-capture privacy description');
+
+if(!main.includes('HOSTED_STARTUP_TIMEOUT_MS = 12000'))throw new Error('Hosted startup navigation is not bounded');
+if(!main.includes("process.env.DOMINIONSTAR_STARTUP_PROBE"))throw new Error('Packaged startup proof hook is missing');
+if(!main.includes("path.join(__dirname, 'startup.html')"))throw new Error('Native local startup shell is missing');
+if(!main.includes("show: true"))throw new Error('Main desktop window must become visible before hosted navigation can stall');
+if(!main.includes("'event-loop-responsive'"))throw new Error('Startup proof does not attest Electron event-loop responsiveness');
+
 console.log('DominionStar Desktop verification passed.');
