@@ -130,11 +130,55 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Prepare native replacement hooks
+        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall
+
       - name: Run DominionStar certification
         run: npm run verify
 
       - name: Build universal macOS installers
         run: npm run dist:mac
+
+      - name: Certify macOS PKG payload and replacement hooks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION=$(node -p "require('./package.json').version")
+          PKG=$(find dist -maxdepth 1 -type f -name '*.pkg' -print -quit)
+          test -n "$PKG"
+
+          STAGED_PLIST="dist/mac-universal/DominionStar Meet.app/Contents/Info.plist"
+          test -f "$STAGED_PLIST"
+          STAGED_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGED_PLIST")
+          STAGED_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$STAGED_PLIST")
+          test "$STAGED_VERSION" = "$VERSION"
+          test "$STAGED_ID" = "com.dominionstar.desktop"
+
+          rm -rf dist/pkg-audit
+          /usr/sbin/pkgutil --expand-full "$PKG" dist/pkg-audit
+
+          PAYLOAD_PLIST=$(find dist/pkg-audit -type f -path '*/DominionStar Meet.app/Contents/Info.plist' -print -quit)
+          PREINSTALL=$(find dist/pkg-audit -type f -name preinstall -print -quit)
+          POSTINSTALL=$(find dist/pkg-audit -type f -name postinstall -print -quit)
+
+          test -n "$PAYLOAD_PLIST"
+          test -n "$PREINSTALL"
+          test -n "$POSTINSTALL"
+          test -x "$PREINSTALL"
+          test -x "$POSTINSTALL"
+
+          PAYLOAD_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PAYLOAD_PLIST")
+          PAYLOAD_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PAYLOAD_PLIST")
+          test "$PAYLOAD_VERSION" = "$VERSION"
+          test "$PAYLOAD_ID" = "com.dominionstar.desktop"
+
+          grep -F '/Applications/DominionStar Meet.app' "$PREINSTALL"
+          grep -F "EXPECTED_VERSION=\"$VERSION\"" "$POSTINSTALL"
+          grep -F 'EXPECTED_ID="com.dominionstar.desktop"' "$POSTINSTALL"
+
+          echo "Certified macOS PKG payload: version=$PAYLOAD_VERSION bundle=$PAYLOAD_ID"
+          rm -rf dist/pkg-audit
 
       - name: Generate macOS checksums
         run: |

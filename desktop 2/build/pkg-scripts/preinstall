@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+APP="/Applications/DominionStar Meet.app"
+LOG="/var/log/dominionstar-meet-installer.log"
+
+log() {
+  /bin/echo "$(/bin/date '+%Y-%m-%d %H:%M:%S') [preinstall] $*" >> "$LOG"
+}
+
+log "Starting DominionStar Meet replacement install."
+
+/usr/bin/pkill -x "DominionStar Meet" >/dev/null 2>&1 || true
+/bin/sleep 2
+
+if /usr/bin/pgrep -x "DominionStar Meet" >/dev/null 2>&1; then
+  log "DominionStar Meet did not exit normally; forcing termination."
+  /usr/bin/pkill -9 -x "DominionStar Meet" >/dev/null 2>&1 || true
+  /bin/sleep 1
+fi
+
+if [ -d "$APP" ]; then
+  OLD_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist" 2>/dev/null || /bin/echo "unknown")
+  log "Removing existing app version ${OLD_VERSION} from ${APP}."
+  /bin/rm -rf "$APP"
+fi
+
+if [ -e "$APP" ]; then
+  log "ERROR: Existing DominionStar Meet bundle could not be removed."
+  exit 1
+fi
+
+log "Existing app bundle cleared; package payload may install cleanly."
+exit 0
