@@ -49,4 +49,44 @@ jobs:
           workflow="../.github/workflows/desktop-build.yml"
           grep -q "Run DominionStar certification" "$workflow"
           grep -q "npm run verify" "$workflow"
-          echo "Release certification gate is present."
+          grep -q "Build deterministic Apple replacement PKG" "$workflow"
+          grep -q "bash scripts/test-macos-pkg.sh" "$workflow"
+          echo "Release certification and native PKG gates are present."
+
+  macos-replacement:
+    name: macOS Native Replacement Proof
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: "desktop 2"
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: "desktop 2/package-lock.json"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Prepare native replacement tooling
+        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh
+
+      - name: Run DominionStar certification
+        run: npm run verify
+
+      - name: Build universal macOS app
+        run: npm run dist:mac
+
+      - name: Build deterministic Apple replacement PKG
+        run: npm run dist:mac:pkg
+
+      - name: Prove stale v1.1.8 is replaced by this build
+        run: bash scripts/test-macos-pkg.sh
