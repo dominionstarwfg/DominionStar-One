@@ -1,0 +1,127 @@
+name: DominionStar Meet RC13 Production Acceptance
+
+on:
+  push:
+    branches:
+      - fix/meet-production-camera-share-link-clean
+    paths:
+      - "scripts/apply-meet-rc13-clean.py"
+      - "scripts/apply-meet-rc13-native-picker.py"
+      - "scripts/test-production-meet-rc13.mjs"
+      - "scripts/test-two-client-authority.mjs"
+      - "scripts/test-waiting-room-surgical.mjs"
+      - "scripts/test-live-sync-regression.mjs"
+      - "scripts/test-camera-privacy-and-native-picker.mjs"
+      - "scripts/test-media-stability-guardrails.mjs"
+      - ".github/workflows/meet-production-rc13-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  acceptance:
+    if: github.actor != 'github-actions[bot]'
+    name: Exact Production Baseline → Camera/Share/Room Acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NETLIFY_AUTH_TOKEN_VALUE: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_ACCESS_TOKEN_VALUE: ${{ secrets.NETLIFY_ACCESS_TOKEN }}
+      NETLIFY_SITE_ID_SECRET_VALUE: ${{ secrets.NETLIFY_SITE_ID }}
+      NETLIFY_SITE_ID_VAR_VALUE: ${{ vars.NETLIFY_SITE_ID }}
+    steps:
+      - name: Checkout exact recovered production baseline
+        uses: actions/checkout@v4
+        with:
+          ref: fix/meet-production-camera-share-link-clean
+          clean: true
+          fetch-depth: 0
+
+      - name: Confirm source begins from the recovered live release
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          contract=json.loads(Path('meet/release-contract.json').read_text())
+          expected='2026.08.13-rc12.26-meet-join-recovery'
+          if contract.get('releaseId')!=expected:
+              raise SystemExit(f"Expected recovered production baseline {expected}, found {contract.get('releaseId')}")
+          print('Recovered production baseline confirmed:',expected)
+          PY
+
+      - name: Apply deterministic RC13 clean hardening
+        run: |
+          python3 scripts/apply-meet-rc13-clean.py
+          python3 scripts/apply-meet-rc13-native-picker.py
+
+      - name: JavaScript syntax validation
+        run: |
+          node --check assets/js/meeting-engine.js
+          node --check assets/js/meet-next/executive6.js
+          node --check assets/js/meet/desktop-share-picker.js
+          node --check netlify/functions/resolve-meeting-join.mjs
+
+      - name: Real camera, share and invitation acceptance
+        run: node scripts/test-production-meet-rc13.mjs
+
+      - name: Waiting-room admission lifecycle
+        run: node scripts/test-waiting-room-surgical.mjs
+
+      - name: Host/co-host authority and screen-share transport
+        run: node scripts/test-two-client-authority.mjs
+
+      - name: Live synchronization regression contract
+        run: node scripts/test-live-sync-regression.mjs
+
+      - name: Camera privacy and native desktop picker contract
+        run: node scripts/test-camera-privacy-and-native-picker.mjs
+
+      - name: Media stability and adaptive dock guardrails
+        run: node scripts/test-media-stability-guardrails.mjs
+
+      - name: Verify changed-file hashes in release contract
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          contract=json.loads(Path('meet/release-contract.json').read_text())
+          expected_release='2026.08.16-rc13.0-media-share-link-stability'
+          if contract.get('releaseId')!=expected_release:
+              raise SystemExit(f'Wrong RC13 releaseId: {contract.get("releaseId")}')
+          for rel in ['assets/js/meeting-engine.js','assets/js/meet-next/executive6.js','meet/index.html']:
+              actual=hashlib.sha256(Path(rel).read_bytes()).hexdigest()
+              expected=contract['files'].get(rel)
+              if actual!=expected:
+                  raise SystemExit(f'{rel}: {actual} != contract {expected}')
+              print('HASH OK',rel,actual)
+          PY
+
+      - name: Detect production deployment route without exposing secrets
+        shell: bash
+        run: |
+          bool() { if [ -n "$1" ]; then printf 'true'; else printf 'false'; fi; }
+          echo "HAS_NETLIFY_AUTH_TOKEN=$(bool "$NETLIFY_AUTH_TOKEN_VALUE")"
+          echo "HAS_NETLIFY_ACCESS_TOKEN=$(bool "$NETLIFY_ACCESS_TOKEN_VALUE")"
+          echo "HAS_NETLIFY_SITE_ID_SECRET=$(bool "$NETLIFY_SITE_ID_SECRET_VALUE")"
+          echo "HAS_NETLIFY_SITE_ID_VAR=$(bool "$NETLIFY_SITE_ID_VAR_VALUE")"
+          if { [ -n "$NETLIFY_AUTH_TOKEN_VALUE" ] || [ -n "$NETLIFY_ACCESS_TOKEN_VALUE" ]; } && { [ -n "$NETLIFY_SITE_ID_SECRET_VALUE" ] || [ -n "$NETLIFY_SITE_ID_VAR_VALUE" ]; }; then
+            echo "NETLIFY_DEPLOY_FROM_GITHUB_ACTIONS=available"
+          else
+            echo "NETLIFY_DEPLOY_FROM_GITHUB_ACTIONS=not-configured"
+          fi
+
+      - name: Commit only after every acceptance gate passes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/js/meeting-engine.js assets/js/meet-next/executive6.js meet/index.html meet/release-contract.json
+          if git diff --cached --quiet; then
+            echo "No production changes to commit."
+            exit 0
+          fi
+          git commit -m "Harden exact production Meet camera, Pause Share and invite links"
+          git push origin HEAD:fix/meet-production-camera-share-link-clean

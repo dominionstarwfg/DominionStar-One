@@ -54,8 +54,15 @@ function createEngine({label,userId}){
 const host=createEngine({label:'host',userId:'host-user'});
 const guest=createEngine({label:'guest',userId:'guest-user'});
 await host.engine.init({roomId:room.room_id,displayName:'Host',isHost:true,hostUserId:room.owner_id,waitingRoomEnabled:true});
+let waitingRequest=null;
+host.engine.on('join-request',payload=>{waitingRequest=payload;});
 await guest.engine.init({roomId:room.room_id,displayName:'Guest',isHost:false,hostUserId:room.owner_id,waitingRoomEnabled:true});
 await new Promise(resolve=>setTimeout(resolve,0));
+if(guest.engine.snapshot().admitted)throw new Error('Guest bypassed the waiting room before host admission.');
+if(!waitingRequest?.from)throw new Error('Host did not receive the waiting-room join request.');
+await host.engine.admit(waitingRequest.from);
+await new Promise(resolve=>setTimeout(resolve,25));
+if(!guest.engine.snapshot().admitted)throw new Error('Guest was not admitted before meeting authority tests.');
 
 let unauthorizedSecurityEvents=0;
 host.engine.on('security-state',()=>unauthorizedSecurityEvents++);
@@ -67,11 +74,11 @@ guest.engine.on('role-change',event=>{if(event.participantId===guest.engine.snap
 host.engine.on('role-change',event=>{if(event.participantId===guest.engine.snapshot().participantId&&event.role==='cohost')hostSawCohost=true;});
 await host.engine.setRole(guest.engine.snapshot().participantId,'cohost');
 await new Promise(resolve=>setTimeout(resolve,0));
-if(!guestSawCohost||!hostSawCohost||guest.engine.snapshot().role!=='cohost')throw new Error('Co-host authority was not confirmed on both clients.');
+if(!guestSawCohost||!hostSawCohost||guest.engine.snapshot().role!=='cohost')throw new Error('Co-host authority was not confirmed on both admitted clients.');
 let cohostSecurityEvents=0;
 host.engine.on('security-state',()=>cohostSecurityEvents++);
 await guest.engine.updateSecurity({waitingRoom:true});
-if(!cohostSecurityEvents)throw new Error('The confirmed co-host did not receive meeting authority.');
+if(!cohostSecurityEvents)throw new Error('The confirmed admitted co-host did not receive meeting authority.');
 await host.engine.setRole(guest.engine.snapshot().participantId,'attendee');
 await new Promise(resolve=>setTimeout(resolve,0));
 if(guest.engine.snapshot().role!=='attendee')throw new Error('Removing co-host authority did not apply to the participant.');
@@ -121,4 +128,4 @@ await guest.engine.stopScreenShare();
 if(cameraSender.track?.id!=='guest-camera'||screenSender.track!==null)throw new Error('Stopping share did not preserve the camera and remove only the presentation track.');
 
 await Promise.all([host.engine.leave(),guest.engine.leave()]);
-console.log('PASS two clients agree on authority/speaker state, deliver remote screen share, recover video transport, and preserve camera through sharing.');
+console.log('PASS admitted two clients agree on authority/speaker state, deliver remote screen share, recover video transport, and preserve camera through sharing.');

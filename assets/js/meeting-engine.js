@@ -42,13 +42,21 @@
     listeners: new Map(),
     readySent: false,
     stoppingScreen: false,
+    screenStartPromise: null,
+    screenPaused: false,
+    screenFreezeTrack: null,
+    screenFreezeStream: null,
+    screenFreezeCanvas: null,
     preShareVideoEnabled: true,
     meetingEnded: false,
     endingMeeting: false,
     roomWatchTimer: null,
     departureSent: false,
     moderationRequestsSeen: new Set(),
+    waitingRequestsSeen: new Set(),
     heartbeatTimer: null,
+    lastJoinRequestAt: 0,
+    admissionDeliveryTimers: new Map(),
     lastHeartbeatByParticipant: new Map(),
     directControlChannels: [],
     controlAcks: new Map(),
@@ -59,6 +67,7 @@
     peerRecoveryCount: 0,
     lastPeerRecoveryAt: 0,
     lastCameraToggleAt: 0,
+    lastCameraReleaseAt: 0,
     monitoredCameraTracks: new WeakSet(),
     desiredVideo: true,
     videoToggleSeq: 0,
@@ -102,6 +111,7 @@
   // an admitted browser must not be rejected because a remote presence record
   // is briefly stale; this restores the proven S35 cross-browser behavior.
   const ADMISSION_REQUIRED_EVENTS=new Set(['meet-chat','meet-spotlight','meet-reaction','meet-remote-control-request','meet-remote-control-response','meet-remote-control-input','meet-remote-control-stop','meet-transcript']);
+  const PRE_ADMISSION_ALLOWED_EVENTS=new Set(['meet-join-request','meet-admission-confirmed','meet-left','meet-state-heartbeat']);
   const publishDomainEvent = (name, detail={}) => {
     const type=domainEventMap[name]||`meet.ui.${String(name||'event').replace(/[^a-z0-9_.-]/gi,'-')}`;
     return window.DominionRuntime?.events?.publish?.({
@@ -137,13 +147,25 @@
       {urls:'stun:stun1.l.google.com:19302'}
     ]
   };
+  let rtcRelayConfigured=false;
   const getRtcConfig = () => rtcConfig;
+  const sanitizeIceServers = servers => (Array.isArray(servers)?servers:[]).flatMap(server=>{
+    const raw=Array.isArray(server?.urls)?server.urls:[server?.urls];
+    const urls=raw.map(value=>String(value||'').trim()).filter(value=>/^(stun|stuns|turn|turns):/i.test(value));
+    if(!urls.length)return [];
+    const relay=urls.some(value=>/^turns?:/i.test(value));
+    const username=String(server?.username||'').trim(),credential=String(server?.credential||'').trim();
+    if(relay&&(!username||!credential))return [];
+    return [{urls:urls.length===1?urls[0]:urls,...(relay?{username,credential}:{})}];
+  });
   const loadRtcConfig = async () => {
     try{
       const response=await fetch('/.netlify/functions/meet-rtc-config',{cache:'no-store'});
       if(!response.ok)return rtcConfig;
       const data=await response.json();
-      if(Array.isArray(data?.iceServers)&&data.iceServers.length)rtcConfig={iceServers:data.iceServers,iceCandidatePoolSize:4};
+      const iceServers=sanitizeIceServers(data?.iceServers);
+      if(iceServers.length)rtcConfig={iceServers,iceCandidatePoolSize:4};
+      rtcRelayConfigured=Boolean(data?.relayConfigured&&iceServers.some(server=>(Array.isArray(server.urls)?server.urls:[server.urls]).some(url=>/^turns?:/i.test(url))));
     }catch(_){}
     return rtcConfig;
   };
@@ -153,12 +175,15 @@
     if (!peer) return;
     const audioTrack = state.localStream?.getAudioTracks?.()[0] || null;
     const cameraTrack = state.localStream?.getVideoTracks?.()[0] || null;
-    const screenTrack = state.screenStream?.getVideoTracks?.()[0] || null;
+    const realScreenTrack = state.screenStream?.getVideoTracks?.()[0] || null;
+    const frozenScreenTrack = state.screenPaused && state.screenFreezeTrack?.readyState === 'live' ? state.screenFreezeTrack : null;
+    const screenTrack = frozenScreenTrack || realScreenTrack;
+    const screenTrackStream = frozenScreenTrack ? state.screenFreezeStream : state.screenStream;
     const screenAudioTrack = state.screenStream?.getAudioTracks?.()[0] || null;
     const desired = [
       {kind:'audio', track:audioTrack, stream:state.localStream},
       {kind:'camera', track:cameraTrack, stream:state.localStream},
-      {kind:'screen', track:screenTrack, stream:state.screenStream},
+      {kind:'screen', track:screenTrack, stream:screenTrackStream},
       {kind:'screen-audio', track:screenAudioTrack, stream:state.screenStream}
     ];
     for (const item of desired) {
@@ -206,7 +231,7 @@
   };
 
   const send = async (event, payload={}) => {
-    if(ADMISSION_REQUIRED_EVENTS.has(event)&&!state.admitted){
+    if(!state.admitted&&!PRE_ADMISSION_ALLOWED_EVENTS.has(event)){
       window.DominionRuntime?.events?.publish?.({type:'waiting-room.event.blocked',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,severity:'warning',payload:{event}});
       return false;
     }
@@ -232,6 +257,7 @@
       participantId:state.participantId,
       userId:state.userId,
       instanceId:state.instanceId,
+      joinToken:state.joinToken,
       displayName:state.displayName,
       isHost:state.isHost,
       role:state.role,
@@ -374,6 +400,7 @@
     discardPeerTransport(participantId);
     state.remoteMeta.delete(participantId);
     state.lastHeartbeatByParticipant.delete(participantId);
+    state.waitingRequestsSeen.delete(participantId);
     if (hadParticipant || departed) emit('participant-left', {participantId});
   };
 
@@ -483,6 +510,13 @@
       transcriptionActive:Boolean(state.transcriptionActive),
       transcriptionLanguage:state.transcriptionLanguage||'auto'
     }).catch(()=>{});
+    // Broadcast messages are ephemeral. While a guest is waiting, repeat the
+    // credentialed request so a host arriving later or waking from background
+    // suspension can always complete admission.
+    if(!state.isHost&&!state.admitted&&Date.now()-state.lastJoinRequestAt>3000){
+      state.lastJoinRequestAt=Date.now();
+      await send('meet-join-request',{joinToken:state.joinToken,retry:true}).catch(()=>{});
+    }
   };
 
   const startHeartbeat = () => {
@@ -571,7 +605,11 @@
     }
 
     if (event === 'meet-join-request') {
-      if (['host','cohost'].includes(state.role)) emit('join-request', payload);
+      if (['host','cohost'].includes(state.role)){
+        const firstRequest=!state.waitingRequestsSeen.has(payload.from);
+        state.waitingRequestsSeen.add(payload.from);
+        if(firstRequest)emit('join-request', payload);
+      }
       return;
     }
     if (event === 'meet-admitted') {
@@ -585,6 +623,7 @@
           state.remoteMeta.set(payload.from,{...admittingHost,role:'host',isHost:true,admitted:true});
         }
         state.admitted = true;
+        state.lastJoinRequestAt=0;
         state.readySent = false;
         await updatePresence({admitted:true});
         await send('meet-admission-confirmed',{to:payload.from,admissionId:payload.admissionId||'',joinToken:state.joinToken});
@@ -596,6 +635,9 @@
       const guest=state.remoteMeta.get(payload.from)||{};
       if(payload.to===state.participantId&&payload.joinToken&&payload.joinToken===guest.joinToken){
         state.remoteMeta.set(payload.from,{...guest,admitted:true});
+        (state.admissionDeliveryTimers.get(payload.from)||[]).forEach(timer=>clearTimeout(timer));
+        state.admissionDeliveryTimers.delete(payload.from);
+        state.waitingRequestsSeen.delete(payload.from);
         emit('admission-confirmed',{...payload,participantId:payload.from});
       }
       return;
@@ -717,7 +759,7 @@
       emit('screen-state', {participantId:payload.from,active:Boolean(payload.active),paused:Boolean(payload.paused),displayName:payload.displayName,remoteControlCapable:Boolean(payload.remoteControlCapable)});
     }
     if(event==='meet-remote-control-request' && payload.to===state.participantId && state.screenStream && state.screenRemoteControlCapable && senderPrivileged)emit('remote-control-request',{...payload,requesterId:payload.from});
-    if(event==='meet-remote-control-response' && payload.to===state.participantId)emit('remote-control-response',payload);
+    if(event==='meet-remote-control-response' && payload.to===state.participantId && payload.requestId===state.remoteControlRequestId){state.remoteControlRequestId=null;emit('remote-control-response',payload);}
     if(event==='meet-remote-control-input' && payload.to===state.participantId && state.screenStream && state.remoteControlAuthorizedId===payload.from && senderPrivileged)emit('remote-control-input',payload);
     if(event==='meet-remote-control-stop' && (payload.to===state.participantId||payload.from===state.remoteControlAuthorizedId)){state.remoteControlAuthorizedId=null;state.remoteControlRequestId=null;emit('remote-control-stop',payload);}
     if (event === 'meet-role-change' && senderHost && payload.targetParticipantId) {
@@ -766,6 +808,7 @@
         const member={
           participantId: entry.participantId,
           userId: entry.userId || '',
+          joinToken: entry.joinToken || '',
           displayName: entry.displayName || 'Guest',
           isHost: Boolean(state.hostUserId&&entry.userId===state.hostUserId) || state.remoteMeta.get(entry.participantId)?.role==='host',
           role: (state.hostUserId&&entry.userId===state.hostUserId)?'host':(state.remoteMeta.get(entry.participantId)?.role||'attendee'),
@@ -818,10 +861,18 @@
       const merged={
         ...previous,
         ...member,
-        joinToken:previous.joinToken||'',
+        joinToken:previous.joinToken||member.joinToken||'',
         admitted:previous.admitted===true||member.admitted===true
       };
       state.remoteMeta.set(member.participantId, merged);
+      // Broadcasts are not durable. When a participant arrived before the
+      // host/co-host subscribed, recover the waiting-room request from the
+      // participant's presence credential exactly once.
+      if(!merged.admitted&&merged.joinToken&&['host','cohost'].includes(state.role)&&!state.waitingRequestsSeen.has(member.participantId)){
+        state.waitingRequestsSeen.add(member.participantId);
+        emit('join-request',{...merged,from:member.participantId,recoveredFromPresence:true});
+      }
+      if(merged.admitted)state.waitingRequestsSeen.delete(member.participantId);
       if (!merged.admitted || !state.admitted) {
         if(state.peers.has(member.participantId)) removePeer(member.participantId);
         continue;
@@ -887,18 +938,33 @@
     await subscribeDirectControlChannel(`participant-${state.participantId}`);
     if(state.userId) await subscribeDirectControlChannel(`user-${state.userId}`);
 
-    await state.channel.subscribe(async status => {
-      state.channelStatus=String(status||'unknown').toLowerCase();
-      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
-        window.DominionRuntime?.events?.publish?.({type:'realtime.disconnected',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,severity:'warning',payload:{status}});
-      }
-      if (status === 'SUBSCRIBED') {
-        await updatePresence();
-        emit('connected',{roomId:state.roomId,participantId:state.participantId,isHost:state.isHost});
-        startRoomLifecycleWatch();
-        startHeartbeat();
-        if (!state.isHost) await send('meet-join-request',{joinToken:state.joinToken});
-      }
+    // Supabase subscribe() returns the channel immediately; it does not mean the
+    // SUBSCRIBED callback has run. Do not let pre-join disappear until presence
+    // is tracked and the first waiting-room request is actually publishable.
+    await new Promise((resolve,reject)=>{
+      let settled=false;
+      const finish=(fn,value)=>{if(settled)return;settled=true;clearTimeout(timer);fn(value);};
+      const timer=setTimeout(()=>finish(reject,new Error('The realtime meeting channel did not connect in time.')),12000);
+      try{
+        state.channel.subscribe(async status => {
+          state.channelStatus=String(status||'unknown').toLowerCase();
+          if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+            window.DominionRuntime?.events?.publish?.({type:'realtime.disconnected',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,severity:'warning',payload:{status}});
+            finish(reject,new Error('The realtime meeting channel could not connect.'));
+            return;
+          }
+          if (status === 'SUBSCRIBED') {
+            try{
+              await updatePresence();
+              emit('connected',{roomId:state.roomId,participantId:state.participantId,isHost:state.isHost});
+              startRoomLifecycleWatch();
+              startHeartbeat();
+              if (!state.isHost) await send('meet-join-request',{joinToken:state.joinToken});
+              finish(resolve,snapshot());
+            }catch(error){finish(reject,error);}
+          }
+        });
+      }catch(error){finish(reject,error);}
     });
     return snapshot();
   };
@@ -963,17 +1029,63 @@
     return replacement;
   };
 
-  const acquireCameraTrack = async () => {
-    const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-    const track=stream.getVideoTracks()[0]||null;
-    if(!track){stream.getTracks().forEach(item=>item.stop());throw new Error('No camera track was provided by the browser.');}
-    return track;
+  const CAMERA_RELEASE_GRACE_MS=750;
+  const CAMERA_RETRY_DELAYS_MS=[0,320,760,1400];
+  const cameraSleep=ms=>new Promise(resolve=>setTimeout(resolve,Math.max(0,ms)));
+  const isTransientCameraStartError=error=>{
+    const name=String(error?.name||'');
+    const message=String(error?.message||'').toLowerCase();
+    if(['NotAllowedError','SecurityError','OverconstrainedError','NotFoundError'].includes(name))return false;
+    return ['NotReadableError','AbortError','TrackStartError'].includes(name)
+      || /could not start video source|device.*busy|camera.*busy|track.*start|hardware.*busy/.test(message);
+  };
+  const cameraIntentCurrent=intentSeq=>intentSeq==null||(state.desiredVideo&&intentSeq===state.videoToggleSeq);
+  const supersededCameraError=()=>{
+    const error=new Error('Camera request superseded by a newer video choice.');
+    error.name='AbortError';
+    return error;
+  };
+  const waitForCameraRelease=async intentSeq=>{
+    const elapsed=Date.now()-Number(state.lastCameraReleaseAt||0);
+    if(elapsed<CAMERA_RELEASE_GRACE_MS){
+      await cameraSleep(CAMERA_RELEASE_GRACE_MS-elapsed);
+      if(!cameraIntentCurrent(intentSeq))throw supersededCameraError();
+    }
   };
 
-  const recoverCameraTrack = async () => {
+  const acquireCameraTrack = async ({intentSeq=null}={}) => {
+    await waitForCameraRelease(intentSeq);
+    let lastError=null;
+    for(let attempt=0;attempt<CAMERA_RETRY_DELAYS_MS.length;attempt++){
+      if(!cameraIntentCurrent(intentSeq))throw supersededCameraError();
+      const delay=CAMERA_RETRY_DELAYS_MS[attempt];
+      if(delay){
+        await cameraSleep(delay);
+        if(!cameraIntentCurrent(intentSeq))throw supersededCameraError();
+      }
+      try{
+        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+        const track=stream.getVideoTracks()[0]||null;
+        if(!track){
+          stream.getTracks().forEach(item=>item.stop());
+          throw new Error('No camera track was provided by the browser.');
+        }
+        return track;
+      }catch(error){
+        lastError=error;
+        if(!isTransientCameraStartError(error))throw error;
+      }
+    }
+    const error=new Error('Camera could not start after automatic recovery. Make sure no other app is using the camera, then try Start Video again.');
+    error.name=lastError?.name||'CameraUnavailableError';
+    error.cause=lastError;
+    throw error;
+  };
+
+  const recoverCameraTrack = async ({intentSeq=null}={}) => {
     const current=state.localStream?.getVideoTracks?.()[0]||null;
     if(current?.readyState==='live')return current;
-    const replacement=await acquireCameraTrack();
+    const replacement=await acquireCameraTrack({intentSeq});
     const base=state.localStream||new MediaStream();
     base.getVideoTracks().forEach(track=>{try{base.removeTrack(track);}catch(_){};if(track.readyState!=='ended')track.stop();});
     base.addTrack(replacement);
@@ -1014,13 +1126,6 @@
     }
     if(wantsVideo && !stream.getVideoTracks().length){
       try{const extra=await navigator.mediaDevices.getUserMedia({video:video||true,audio:false});const track=extra.getVideoTracks()[0];if(track)stream.addTrack(track);}catch(error){lastError=lastError||error;}
-    }
-    // Privacy invariant: a disabled camera is an ended camera capture, not a
-    // live-but-disabled track. macOS keeps the green hardware indicator on for
-    // disabled tracks, so remove and stop every unwanted video track before
-    // the stream is attached to the meeting.
-    if(!wantsVideo&&stream){
-      stream.getVideoTracks().forEach(track=>{try{stream.removeTrack(track);}catch(_){};if(track.readyState!=='ended')track.stop();});
     }
     state.mediaState.audio=Boolean(wantsAudio&&stream.getAudioTracks().length);
     state.mediaState.video=Boolean(wantsVideo&&stream.getVideoTracks().length);
@@ -1092,9 +1197,25 @@
     window.DominionRuntime?.events?.publish?.({type:'media.camera.toggled',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,payload:{enabled:target,trackState:track?.readyState||'missing',...extra}});
   };
 
-  // Zoom-style camera privacy: Video Off ends hardware capture completely.
-  // Video On acquires a fresh track and replaces only the reserved camera
-  // sender, preserving audio, screen share, and the peer connection.
+  const releaseCameraTrack = track => {
+    const base=state.localStream;
+    if(track&&base?.getVideoTracks?.().includes(track)){
+      try{base.removeTrack(track);}catch(_){}
+    }
+    if(track?.readyState!=='ended'){
+      try{track.stop();}catch(_){}
+    }
+    if(track)state.lastCameraReleaseAt=Date.now();
+    // Keep the negotiated camera sender but remove its media. This releases the
+    // physical camera immediately without destroying the peer connection or
+    // disturbing the independent presentation sender.
+    Promise.allSettled([...state.peers.values()].map(peer=>syncPeerTracks(peer))).catch(()=>{});
+  };
+
+  // Camera intent is intentionally separated from camera acquisition. Turning
+  // video off releases the hardware immediately; a disabled live track is not
+  // sufficient because macOS may keep the camera privacy indicator illuminated.
+  // Turning video on deliberately reacquires a track through the serialized queue.
   const toggleVideo = enabled => {
     const target=Boolean(enabled);
     const seq=++state.videoToggleSeq;
@@ -1103,30 +1224,29 @@
     let track=state.localStream?.getVideoTracks?.()[0]||null;
 
     if(!target){
-      if(track){
-        try{state.localStream?.removeTrack?.(track);}catch(_){}
-        if(track.readyState!=='ended')track.stop();
-      }
-      // Replace the camera sender with null without renegotiating the meeting.
-      for(const peer of state.peers.values())syncPeerTracks(peer).catch(()=>{});
-      publishCameraState(false,track,{intent:'user-off',seq});
+      releaseCameraTrack(track);
+      publishCameraState(false,track,{intent:'user-off',seq,hardwareReleased:true});
       return Promise.resolve(false);
+    }
+
+    if(track?.readyState==='live'){
+      track.enabled=true;
+      publishCameraState(true,track,{intent:'user-on',seq,reusedTrack:true});
+      return Promise.resolve(true);
     }
 
     return queueMediaMutation(async()=>{
       // The user may have changed their mind while getUserMedia was queued.
       if(!state.desiredVideo || seq!==state.videoToggleSeq)return false;
-      try{track=await recoverCameraTrack();}
+      try{track=await recoverCameraTrack({intentSeq:seq});}
       catch(error){
         if(seq===state.videoToggleSeq){state.mediaState.video=false;state.desiredVideo=false;}
         window.DominionRuntime?.events?.publish?.({type:'media.camera.recovery.failed',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,severity:'error',payload:{message:error?.message||String(error),seq}});
         throw error;
       }
       if(!state.desiredVideo || seq!==state.videoToggleSeq){
-        try{state.localStream?.removeTrack?.(track);}catch(_){}
-        if(track.readyState!=='ended')track.stop();
-        for(const peer of state.peers.values())await syncPeerTracks(peer);
-        publishCameraState(false,track,{intent:'superseded',seq});
+        releaseCameraTrack(track);
+        publishCameraState(false,track,{intent:'superseded',seq,hardwareReleased:true});
         return false;
       }
       track.enabled=true;
@@ -1138,28 +1258,39 @@
 
   const shareScreen = async () => {
     if (state.screenStream) return state.screenStream;
+    // Coalesce rapid clicks into one picker/capture transaction. Competing
+    // getDisplayMedia calls consume each other's one-time native selection and
+    // can surface as a false permission error or a black/stale capture.
+    if(state.screenStartPromise)return state.screenStartPromise;
+    const operation=(async()=>{
+    let provisionalStream=null;
+    try{
     state.preShareVideoEnabled = state.mediaState.video;
     let desktopSelection=null;
     const desktopExpected=/(?:^|[?&])desktop=1(?:&|$)/.test(String(globalThis.location?.search||''));
-    if(desktopExpected&&(!window.dominionDesktop?.isDesktop||!window.DominionDesktopSharePicker?.choose)){
+    const desktopRuntime=window.dominionDesktop?.isDesktop
+      ? await window.dominionDesktop.getRuntimeInfo?.().catch(()=>null)
+      : null;
+    const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker);
+    if(desktopExpected&&(!window.dominionDesktop?.isDesktop||(!useNativeSystemPicker&&!window.DominionDesktopSharePicker?.choose))){
       throw new Error('The DominionStar desktop capture bridge did not load. Install the latest desktop update and completely reopen the app.');
     }
-    const desktopRuntime=window.dominionDesktop?.isDesktop?await window.dominionDesktop.getRuntimeInfo?.().catch(()=>null):null;
-    if(window.dominionDesktop?.isDesktop && !desktopRuntime?.systemSharePicker && window.DominionDesktopSharePicker?.choose){
+    // Electron 32+ on macOS 15+ can hand getDisplayMedia directly to Apple's
+    // native picker. When that path is active Electron does not invoke the
+    // custom display-media handler, so do not preselect a second source here.
+    if(window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose){
       desktopSelection=await window.DominionDesktopSharePicker.choose();
       if(!desktopSelection){const cancelled=new Error('Screen sharing cancelled.');cancelled.name='AbortError';throw cancelled;}
       const accepted=await window.dominionDesktop.selectShareSource(desktopSelection.sourceId,desktopSelection.audio,desktopSelection.displayId||'',desktopSelection.kind||'',desktopSelection.sourceName||'',desktopSelection.shareOwnWindow);
       if(!accepted)throw new Error('The selected screen is no longer available. Open Share and select it again.');
     }
-    // Keep the browser request standards-safe. Several Chromium/macOS versions
-    // report experimental display-capture hints as NotAllowedError instead of
-    // TypeError, which previously made a valid user selection look like an OS
-    // permission denial. The native picker still provides screen/window/tab
-    // selection and the optional audio choice.
+    // Browser clients and the native macOS system picker request standards-safe
+    // display media directly. Older desktop runtimes retain the custom source
+    // transaction and optional verified system-audio choice.
     const desktopAudio=Boolean(desktopSelection?.audio&&window.dominionDesktop?.supportsSystemAudioShare);
     const displayOptions=desktopSelection
       ? {video:true,...(desktopAudio?{audio:true}:{})}
-      : {video:true,audio:Boolean(desktopRuntime?.systemSharePicker)};
+      : {video:true,audio:true};
     let stream;
     try {
       stream = await navigator.mediaDevices.getDisplayMedia(displayOptions);
@@ -1167,14 +1298,20 @@
       if(desktopSelection){
         const status=await window.dominionDesktop?.getCaptureStatus?.().catch?.(()=>null);
         const reason=status?.lastFailure;
+        // The native handler may already have activated the selected source
+        // and enabled content protection before Chromium rejects the stream.
+        // Roll that transaction back so Retry begins from a clean state.
+        await window.dominionDesktop?.endShare?.().catch?.(()=>{});
         if(reason==='selection-expired'||reason==='source-unavailable')throw new Error('That screen or window changed before sharing began. Open Share Screen and select it again.');
         if(reason)throw new Error(`Desktop capture could not start (${reason}). Reopen Share Screen and try again.`);
       }
       throw error;
     }
+    provisionalStream=stream;
     const track = stream.getVideoTracks()[0];
     if (!track) {
       stream.getTracks().forEach(item=>item.stop());
+      await window.dominionDesktop?.endShare?.().catch?.(()=>{});
       throw new Error('No display video track was provided by the browser.');
     }
     track.contentHint = desktopSelection?.optimize ? 'motion' : 'detail';
@@ -1188,7 +1325,7 @@
     // optional system-audio tracks are classified as presentation media.
     await send('meet-screen-state',{active:true,screenTrackId:track.id,screenStreamId:stream.id,screenAudioTrackId:stream.getAudioTracks()[0]?.id||'',remoteControlCapable:state.screenRemoteControlCapable});
     // Keep the camera sender alive and publish the display as a dedicated second video track.
-    for (const [remoteId,peer] of state.peers.entries()) {
+    await Promise.all([...state.peers.entries()].map(async ([remoteId,peer]) => {
       await syncPeerTracks(peer);
       const screenSender=peer.getSenders().find(item=>item.__dsKind==='screen');
       const screenMid=peer.getTransceivers().find(item=>item.sender===screenSender)?.mid;
@@ -1201,7 +1338,7 @@
       if(resolvedScreenMid!==undefined&&resolvedScreenMid!==null){
         await send('meet-screen-state',{to:remoteId,active:true,screenTrackId:track.id,screenStreamId:stream.id,screenMid:String(resolvedScreenMid),screenAudioTrackId:stream.getAudioTracks()[0]?.id||'',remoteControlCapable:state.screenRemoteControlCapable}).catch(()=>{});
       }
-    }
+    }));
     // Repeat metadata after negotiation: a receiver can otherwise get the
     // display track before it knows that the second video track is a screen.
     const screenAnnouncement={active:true,screenTrackId:track.id,screenStreamId:stream.id,screenAudioTrackId:stream.getAudioTracks()[0]?.id||'',remoteControlCapable:state.screenRemoteControlCapable};
@@ -1212,46 +1349,151 @@
     await updatePresence({screenSharing:true,video:state.mediaState.video});
     emit('screen-stream',{stream,settings:track.getSettings?.()||{}});
     return stream;
+    }catch(error){
+      // A successful OS capture is only provisional until presentation media
+      // has been published to every current peer. Roll back every layer if a
+      // later step fails so Retry never inherits a hidden native capture,
+      // stale screen sender, or remote "is sharing" announcement.
+      if(provisionalStream){
+        provisionalStream.getTracks?.().forEach(item=>{if(item.readyState!=='ended')item.stop();});
+        if(state.screenStream===provisionalStream)state.screenStream=null;
+        state.screenRemoteControlCapable=false;
+        state.screenPaused=false;
+        await Promise.all([...state.peers.values()].map(async peer=>{
+          const screenSender=peer.getSenders().find(item=>item.__dsKind==='screen');
+          const audioSender=peer.getSenders().find(item=>item.__dsKind==='screen-audio');
+          await Promise.allSettled([screenSender?.replaceTrack?.(null),audioSender?.replaceTrack?.(null)]);
+        }));
+        await Promise.allSettled([
+          send('meet-screen-state',{active:false}),
+          updatePresence({screenSharing:false,video:state.mediaState.video}),
+          window.dominionDesktop?.endShare?.()
+        ]);
+      }
+      throw error;
+    }
+    })();
+    state.screenStartPromise=operation;
+    try{return await operation;}
+    finally{if(state.screenStartPromise===operation)state.screenStartPromise=null;}
   };
 
   const stopScreenShare = async ({source='app'}={}) => {
     if (!state.screenStream || state.stoppingScreen) return;
     state.stoppingScreen=true;
-    if(state.remoteControlAuthorizedId)await send('meet-remote-control-stop',{to:state.remoteControlAuthorizedId,reason:'sharing-ended'}).catch(()=>{});
-    state.remoteControlAuthorizedId=null;
-    const stream=state.screenStream;
-    state.screenStream = null;
-    state.screenRemoteControlCapable=false;
-    state.screenPaused=false;
-    stream.getTracks().forEach(track=>{ track.onended=null; if(track.readyState!=='ended')track.stop(); });
-    const cameraTrack = state.localStream?.getVideoTracks()[0] || null;
-    if(cameraTrack) cameraTrack.enabled=Boolean(state.preShareVideoEnabled);
-    state.mediaState.video=Boolean(state.preShareVideoEnabled && cameraTrack);
-    for (const [remoteId,peer] of state.peers.entries()) {
-      const screenSender=peer.getSenders().find(item=>item.__dsKind==='screen');
-      if(screenSender) await screenSender.replaceTrack(null).catch(()=>{});
-      const screenAudioSender=peer.getSenders().find(item=>item.__dsKind==='screen-audio');
-      if(screenAudioSender) await screenAudioSender.replaceTrack(null).catch(()=>{});
-      const cameraSender=peer.getSenders().find(item=>item.__dsKind==='camera');
-      if(cameraSender && cameraSender.track!==cameraTrack)await cameraSender.replaceTrack(cameraTrack).catch(()=>{});
-      await renegotiatePeer(remoteId).catch(()=>{});
+    try{
+      if(state.remoteControlAuthorizedId)await send('meet-remote-control-stop',{to:state.remoteControlAuthorizedId,reason:'sharing-ended'}).catch(()=>{});
+      state.remoteControlAuthorizedId=null;
+      const stream=state.screenStream;
+      const freezeTrack=state.screenFreezeTrack;
+      const freezeStream=state.screenFreezeStream;
+      state.screenStream = null;
+      state.screenRemoteControlCapable=false;
+      state.screenPaused=false;
+      state.screenFreezeTrack=null;
+      state.screenFreezeStream=null;
+      state.screenFreezeCanvas=null;
+      freezeStream?.getTracks?.().forEach(track=>{if(track.readyState!=='ended')track.stop();});
+      if(freezeTrack&&freezeTrack.readyState!=='ended')freezeTrack.stop();
+      stream.getTracks().forEach(track=>{ track.onended=null; if(track.readyState!=='ended')track.stop(); });
+      const cameraTrack = state.localStream?.getVideoTracks()[0] || null;
+      if(cameraTrack) cameraTrack.enabled=Boolean(state.preShareVideoEnabled);
+      state.mediaState.video=Boolean(state.preShareVideoEnabled && cameraTrack);
+      // Peer cleanup is independent. Running it concurrently prevents stop time
+      // from increasing linearly with attendance, while each peer remains
+      // failure-isolated so one degraded connection cannot trap presenter mode.
+      await Promise.all([...state.peers.entries()].map(async ([remoteId,peer])=>{
+        const screenSender=peer.getSenders().find(item=>item.__dsKind==='screen');
+        if(screenSender) await screenSender.replaceTrack(null).catch(()=>{});
+        const screenAudioSender=peer.getSenders().find(item=>item.__dsKind==='screen-audio');
+        if(screenAudioSender) await screenAudioSender.replaceTrack(null).catch(()=>{});
+        const cameraSender=peer.getSenders().find(item=>item.__dsKind==='camera');
+        if(cameraSender && cameraSender.track!==cameraTrack)await cameraSender.replaceTrack(cameraTrack).catch(()=>{});
+        await renegotiatePeer(remoteId).catch(()=>{});
+      }));
+      await Promise.allSettled([
+        send('meet-screen-state',{active:false}),
+        send('meet-media-state',{audio:state.mediaState.audio,video:state.mediaState.video}),
+        updatePresence({screenSharing:false,video:state.mediaState.video}),
+        window.dominionDesktop?.endShare?.()
+      ]);
+      emit('screen-ended',{source,videoRestored:state.mediaState.video});
+    }finally{
+      state.stoppingScreen=false;
     }
-    await send('meet-screen-state',{active:false});
-    await send('meet-media-state',{audio:state.mediaState.audio,video:state.mediaState.video});
-    await updatePresence({screenSharing:false,video:state.mediaState.video});
-    await window.dominionDesktop?.endShare?.().catch?.(()=>{});
-    emit('screen-ended',{source,videoRestored:state.mediaState.video});
-    state.stoppingScreen=false;
   };
 
 
+  const createFrozenScreenTrack=async()=>{
+    const sourceTrack=state.screenStream?.getVideoTracks?.()[0]||null;
+    if(!sourceTrack||sourceTrack.readyState!=='live')throw new Error('The shared screen is no longer available.');
+    if(typeof document==='undefined')throw new Error('Pause Share requires a visual renderer.');
+    const settings=sourceTrack.getSettings?.()||{};
+    const width=Math.max(2,Number(settings.width)||1280);
+    const height=Math.max(2,Number(settings.height)||720);
+    const video=document.createElement('video');
+    video.muted=true;
+    video.playsInline=true;
+    video.autoplay=true;
+    video.srcObject=new MediaStream([sourceTrack]);
+    try{
+      await Promise.race([
+        new Promise(resolve=>{
+          if(video.readyState>=2)return resolve();
+          video.addEventListener('loadeddata',resolve,{once:true});
+        }),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('Could not freeze the current shared frame.')),1200))
+      ]);
+      await video.play?.().catch?.(()=>{});
+      await new Promise(resolve=>(globalThis.requestAnimationFrame||setTimeout)(resolve,0));
+      const canvas=document.createElement('canvas');
+      canvas.width=width;
+      canvas.height=height;
+      const context=canvas.getContext('2d',{alpha:false});
+      if(!context||typeof canvas.captureStream!=='function')throw new Error('Pause Share is not supported by this system.');
+      context.drawImage(video,0,0,width,height);
+      const freezeStream=canvas.captureStream(1);
+      const freezeTrack=freezeStream.getVideoTracks()[0]||null;
+      if(!freezeTrack)throw new Error('Pause Share could not create a frozen presentation frame.');
+      freezeTrack.contentHint='detail';
+      state.screenFreezeCanvas=canvas;
+      return {track:freezeTrack,stream:freezeStream};
+    }finally{
+      video.pause?.();
+      video.srcObject=null;
+    }
+  };
+
+  const clearFrozenScreenTrack=()=>{
+    const track=state.screenFreezeTrack;
+    const stream=state.screenFreezeStream;
+    state.screenFreezeTrack=null;
+    state.screenFreezeStream=null;
+    state.screenFreezeCanvas=null;
+    stream?.getTracks?.().forEach(item=>{if(item.readyState!=='ended')item.stop();});
+    if(track&&track.readyState!=='ended')track.stop();
+  };
+
   const pauseScreenShare = async paused => {
     if (!state.screenStream) return false;
-    state.screenPaused=Boolean(paused);
-    state.screenStream.getVideoTracks().forEach(track=>track.enabled=!state.screenPaused);
-    await send('meet-screen-state',{active:true,paused:state.screenPaused});
-    emit('screen-paused',{paused:state.screenPaused});
-    return state.screenPaused;
+    const target=Boolean(paused);
+    if(target===state.screenPaused)return state.screenPaused;
+    if(target){
+      const frozen=await createFrozenScreenTrack();
+      state.screenFreezeTrack=frozen.track;
+      state.screenFreezeStream=frozen.stream;
+      state.screenPaused=true;
+      // Replace only the outgoing presentation sender. The real capture remains
+      // alive, so participants see the exact last frame instead of black video.
+      await Promise.allSettled([...state.peers.values()].map(peer=>syncPeerTracks(peer)));
+      emit('screen-paused',{paused:true,privateFreeze:true});
+      return true;
+    }
+    state.screenPaused=false;
+    await Promise.allSettled([...state.peers.values()].map(peer=>syncPeerTracks(peer)));
+    clearFrozenScreenTrack();
+    emit('screen-paused',{paused:false,privateFreeze:true});
+    return false;
   };
 
   const activateWithoutWaitingRoom = async () => {
@@ -1273,8 +1515,11 @@
     const admissionId=randomId('admission');
     const deliver=()=>send('meet-admitted',{to:participantId,admissionId,joinToken:existing.joinToken||''}).catch(()=>false);
     await deliver();
-    setTimeout(()=>{if(state.remoteMeta.get(participantId)?.admitted!==true)deliver();},450);
-    setTimeout(()=>{if(state.remoteMeta.get(participantId)?.admitted!==true)deliver();},1200);
+    (state.admissionDeliveryTimers.get(participantId)||[]).forEach(timer=>clearTimeout(timer));
+    const timers=[450,1200,2500,4500,7500,12000,18000].map(delay=>setTimeout(()=>{
+      if(state.remoteMeta.get(participantId)?.admitted!==true)deliver();
+    },delay));
+    state.admissionDeliveryTimers.set(participantId,timers);
     return admissionId;
   };
   const deny = async participantId => {requirePrivileged('decline participants');const guest=state.remoteMeta.get(participantId)||{};return send('meet-denied',{to:participantId,joinToken:guest.joinToken||''});};
@@ -1448,6 +1693,8 @@
     state.remoteTrackMids.clear();
     state.pendingCandidates.clear();
     state.pendingModerationRequests.clear();
+    state.admissionDeliveryTimers.forEach(timers=>timers.forEach(timer=>clearTimeout(timer)));
+    state.admissionDeliveryTimers.clear();
     state.reconnectTimers.forEach(timer=>clearTimeout(timer));
     state.reconnectTimers.clear();
     clearInterval(state.roomWatchTimer);
@@ -1591,6 +1838,7 @@
       status:failed?'critical':disconnected||missingRemoteVideo.length||state.channelStatus!=='subscribed'?'warning':'healthy',
       roomId:state.roomId,
       connected:Boolean(state.channel)&&state.channelStatus==='subscribed',
+      relayConfigured:rtcRelayConfigured,
       channelStatus:state.channelStatus,
       admitted:state.admitted,
       peerCount:peers.length,

@@ -4,6 +4,7 @@
 /* Executive 6.0 Sprint 2: account identity, preferences, floating utilities */
 .account-identity{display:flex;align-items:center;gap:11px;margin:12px 0 4px;padding:11px 12px;border:1px solid #ffffff1c;border-radius:12px;background:#ffffff08}.account-identity img,.account-avatar-fallback{width:38px;height:38px;border-radius:50%;object-fit:cover}.account-avatar-fallback{display:grid;place-items:center;background:#2d3542;font-weight:800}.account-identity strong{display:block;color:#fff}.account-identity small{display:block;margin-top:2px;color:var(--muted)}
 .join-preferences{display:grid;gap:8px;margin:16px 0;padding:12px;border:1px solid #ffffff18;border-radius:12px}.join-preferences legend{padding:0 6px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.preference-row{display:grid!important;grid-template-columns:auto 1fr!important;align-items:start!important;gap:10px!important;margin:0!important;padding:8px;border-radius:9px;background:#ffffff05}.preference-row input{width:18px;height:18px;margin:2px 0 0}.preference-row strong{display:block;color:#fff;font-size:13px}.preference-row small{display:block;margin-top:2px;color:var(--muted);line-height:1.35}
+.join-preferences[hidden]{display:none!important}
 .participant-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}.participants-panel>header{cursor:grab;touch-action:none}.participants-panel.is-free-floating{position:fixed!important;inset:auto!important}.join-request-toast{display:grid;gap:10px;min-width:290px;padding:13px;border:1px solid #ffffff28;border-radius:12px;background:#20242bea;box-shadow:var(--shadow);backdrop-filter:blur(18px)}.join-request-toast strong{display:block}.join-request-toast small{color:var(--muted)}.join-request-actions{display:flex;gap:8px}.join-request-actions button{flex:1;padding:9px;border:0;border-radius:8px;background:#313742;color:#fff;cursor:pointer}.join-request-actions .admit{background:#2d8cff}
 
 /* Executive 6.0 Sprint 2 Build 2: Meet dashboard and recurring scheduling */
@@ -173,6 +174,7 @@ body.presentation-active .remote-tile video{
 .toast-layer{pointer-events:none}
 .join-request-toast.waiting-room-banner{position:fixed;top:66px;left:50%;right:auto;bottom:auto;transform:translateX(-50%);z-index:310;min-width:min(620px,calc(100vw - 28px));max-width:720px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 14px;border:1px solid #ffffff2b;border-radius:13px;background:#20242bf2;box-shadow:0 20px 70px #000c;pointer-events:auto}
 .waiting-room-copy{display:flex;align-items:center;gap:11px;min-width:0}.waiting-room-copy>span:last-child{display:grid;gap:2px}.waiting-room-copy strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.waiting-room-avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#394150;color:#fff;font-weight:800}.join-request-actions{display:flex;gap:9px;flex:0 0 auto}.join-request-actions button,.waiting-room .participant-actions button{min-width:78px;padding:9px 13px;border:0;border-radius:8px;color:#fff;font-weight:750;cursor:pointer}.join-request-actions .admit,.waiting-admit{background:#22a447!important}.join-request-actions .deny,.waiting-deny{background:#d83f4c!important}.join-request-actions button:hover,.waiting-room .participant-actions button:hover{filter:brightness(1.1)}
+.waiting-section.is-collapsed .waiting-room{display:none!important}.waiting-section.is-collapsed .section-header [data-icon="chevron-down"]{transform:rotate(-90deg)}
 .host-tools-button{color:#8bd3ff}.host-tools-button .tool-icon{color:#43a8ff}.host-tools-button:not([hidden]){display:grid}
 body.presentation-active .stage{right:218px!important}
 body.presentation-active .filmstrip{display:grid!important;visibility:visible!important}
@@ -502,3 +504,14 @@ body:not(.presentation-active) .reaction-layer{right:0}
 }
 .remote-tile .remote-fallback img{width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.2);box-shadow:0 10px 30px #0008}
 .remote-tile.camera-off video,.local-dock-tile.camera-off video{visibility:hidden!important;opacity:0!important}
+
+/* Keep every meeting control inside the actual usable viewport. */
+body.meeting-active .meeting{height:100dvh!important;max-height:100dvh!important}
+body.meeting-active .toolbar{
+  position:fixed!important;
+  bottom:max(12px,env(safe-area-inset-bottom,0px))!important;
+  max-width:calc(100vw - 24px)!important;
+  max-height:calc(100dvh - 24px)!important;
+  overscroll-behavior:contain;
+}
+body.local-presentation-active .toolbar{display:none!important}

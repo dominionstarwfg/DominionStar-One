@@ -1,6 +1,6 @@
 (()=>{
   if(!window.dominionDesktop?.isDesktop)return;
-  const REQUIRED_BRIDGE_VERSION=10;
+  const REQUIRED_BRIDGE_VERSION=9;
   const escape=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
   const ensure=()=>{

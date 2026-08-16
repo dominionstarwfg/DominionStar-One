@@ -9,7 +9,8 @@
   <link rel="stylesheet" href="/assets/css/meet/operational-support-v2.css?v=2-rc11-layout-isolation">
   <link rel="stylesheet" href="/assets/css/meet/live-transcription.css?v=3-rc11-translation-contract">
   <link rel="stylesheet" href="/assets/css/meet/meeting-intelligence.css?v=1-rc10-s10">
-  <link rel="stylesheet" href="/assets/css/meet/dock-layout-v2.css?v=6-adaptive-desktop">
+  <link rel="stylesheet" href="/assets/css/meet/dock-layout-v2.css?v=5-full-stage-overlay">
+  <link rel="stylesheet" href="/assets/css/meet/deep-clean-layout.css?v=2-rc12-26-join-feedback">
 </head>
 <body>
   <main id="app" class="app" data-phase="prejoin">
@@ -48,15 +49,17 @@
         <p class="eyebrow">SECURE VIDEO MEETING</p>
         <h1>Ready to join?</h1>
         <p class="subcopy">Check your camera and microphone, then enter the meeting.</p>
-        <label id="displayNameField"><span>Your name</span><input id="displayName" required autocomplete="name" placeholder="Enter display name"></label>
+          <label id="displayNameField"><span>Your name</span><input id="displayName" name="guest-display-name" required autocomplete="off" autocapitalize="words" placeholder="Enter your name"></label>
         <div id="accountIdentity" class="account-identity" hidden></div>
-        <fieldset class="join-preferences" aria-label="Join preferences">
+        <fieldset class="join-preferences" aria-label="Join preferences" hidden>
           <legend>Join preferences</legend>
           <label class="preference-row"><input id="alwaysJoinMuted" type="checkbox"><span><strong>Always join muted</strong><small>Use this default on every computer signed into your DominionStar account.</small></span></label>
           <label class="preference-row"><input id="alwaysJoinCameraOff" type="checkbox"><span><strong>Always join with camera off</strong><small>You can still change it for an individual meeting.</small></span></label>
         </fieldset>
-        <label><span>Meeting ID</span><input id="roomId" required inputmode="numeric" maxlength="24" placeholder="000 000 0000"></label>
-        <button class="primary" type="submit"><span data-icon="video"></span><span>Join Meeting</span></button>
+        <label><span>Meeting ID</span><input id="roomId" required inputmode="numeric" maxlength="12" autocomplete="off" placeholder="000 000 0000"><small>Type or paste the numbers—spacing is automatic.</small></label>
+        <label><span>Meeting passcode</span><input id="meetingPasscode" inputmode="numeric" maxlength="10" autocomplete="one-time-code" placeholder="Enter the room passcode"></label>
+        <button class="primary" type="submit"><span data-icon="video"></span><span data-join-label>Join Meeting</span></button>
+        <p id="joinStatus" class="join-status" role="status" aria-live="polite" hidden></p>
       </form>
     </section>
 
@@ -166,7 +169,6 @@
     <dialog id="settingsDialog" class="settings-dialog">
       <form method="dialog"><header><strong>Audio & Video Settings</strong><button value="cancel" class="icon-button" aria-label="Close settings"><span data-icon="x"></span></button></header></form>
       <div class="settings-body">
-        <section class="profile-photo-setting"><div class="profile-photo-preview" id="profilePhotoPreview"><span>DS</span></div><div><strong>Profile picture</strong><small>Shown when your camera is off.</small><label class="profile-photo-upload">Choose photo<input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div></section>
         <label>Camera<select id="cameraSelect"></select></label>
         <label>Microphone<select id="microphoneSelect"></select></label>
         <label>Speaker<select id="speakerSelect"></select></label>
@@ -193,6 +195,7 @@
             <input id="scheduleEndValue" hidden>
           </div>
           <label class="schedule-toggle"><input id="scheduleWaitingRoom" type="checkbox"><span><strong>Waiting Room</strong><small>Participants wait until the host admits them.</small></span></label>
+          <label class="schedule-toggle"><input id="scheduleRequirePasscode" type="checkbox" checked><span><strong>Require meeting passcode</strong><small>Guests using the invitation link or Meeting ID must enter the passcode when protection is enabled.</small></span></label>
           <div class="meeting-credentials-preview"><div><span>Meeting ID</span><strong id="scheduledIdPreview">Generated automatically</strong></div><div><span>Passcode</span><strong id="scheduledPasscodePreview">Generated automatically</strong></div></div>
         </div>
         <footer><button type="button" id="scheduleCancel" class="secondary">Cancel</button><button type="submit" class="primary">Schedule Meeting</button></footer>
@@ -205,7 +208,8 @@
         <div class="personal-room-body">
           <label><span>Personal link name</span><div class="personal-link-editor"><span id="personalLinkPrefix">dominionstarld.com/meet/?personal=</span><input id="personalLinkName" required maxlength="48" placeholder="your-name"></div><small>Use letters, numbers, and hyphens. This becomes your recognizable permanent room link.</small></label>
           <label><span>Permanent Meeting ID</span><input id="personalRoomId" readonly></label>
-          <label><span>Custom passcode</span><input id="personalRoomPasscode" required inputmode="numeric" minlength="3" maxlength="6" pattern="[0-9]{3,6}" placeholder="Choose 3–6 digits"><small>Choose 3–6 digits. You can change this later; your personal meeting ID stays the same.</small></label>
+          <label class="schedule-toggle"><input id="personalRequirePasscode" type="checkbox" checked><span><strong>Require meeting passcode</strong><small>Turn this off only when you want the personal link open without a passcode.</small></span></label>
+          <label id="personalPasscodeField"><span>Custom passcode</span><input id="personalRoomPasscode" inputmode="numeric" minlength="3" maxlength="6" pattern="[0-9]{3,6}" placeholder="Choose 3–6 digits"><small>Choose 3–6 digits. You can change this later; your personal meeting ID stays the same.</small></label>
           <label class="schedule-toggle"><input id="personalWaitingRoom" type="checkbox"><span><strong>Waiting Room</strong><small>Participants wait until you admit them.</small></span></label>
           <label><span>Personal meeting link</span><input id="personalRoomLink" readonly></label>
         </div>
@@ -228,14 +232,14 @@
   <script src="/assets/js/runtime/guardian-console.js?v=1-rc10-s4-observability"></script>
   <script src="/assets/js/meet/desktop-share-picker.js?v=10-native-picker-fallback"></script>
   <script src="/assets/js/meet/remote-control.js?v=3-rc11-native-capability"></script>
-  <script src="/assets/js/meeting-engine.js?v=90-camera-hardware-privacy"></script>
+  <script src="/assets/js/meeting-engine.js?v=92-rc13-media-stability"></script>
   <script src="/assets/js/runtime/guardian-recovery.js?v=2-rc12-5-observe-only"></script>
   <script src="/assets/js/runtime/guardian-resilience.js?v=1-rc10-s7-production-resilience"></script>
   <script src="/assets/js/runtime/guardian-certification.js?v=3-rc10-s22-production-certification"></script>
-  <script src="/assets/js/meet-next/executive6.js?v=77-private-camera-lifecycle"></script>
+  <script src="/assets/js/meet-next/executive6.js?v=79-rc13-media-share-link-stability"></script>
   <script src="/assets/js/meet-next/personal-room.js?v=1"></script>
-  <script src="/assets/js/meet/live-transcription.js?v=3-rc11-translation-contract"></script>
+  <script src="/assets/js/meet/live-transcription.js?v=4-rc12-live-translation"></script>
   <script src="/assets/js/meet/meeting-intelligence.js?v=1-rc10-s10"></script>
-  <script src="/assets/js/meet/dock-layout-v2.js?v=4-adaptive-desktop"></script>
+  <script src="/assets/js/meet/dock-layout-v2.js?v=3-rc12-6-whole-surface-drag"></script>
 </body>
 </html>
