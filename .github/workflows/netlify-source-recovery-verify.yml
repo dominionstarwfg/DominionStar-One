@@ -29,10 +29,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install pinned dependencies
-        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install pinned dependencies and generate a candidate lockfile
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm ls @supabase/supabase-js@2.109.1 resend@6.17.2 netlify-cli@26.2.0 --depth=0
+          test -s package-lock.json
 
       - name: Verify all nine known production functions are present
         shell: bash
