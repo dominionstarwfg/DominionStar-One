@@ -19,6 +19,7 @@ requireSource(ui,'markPreviewCameraReleased()','Prejoin Video Off does not mark 
 requireSource(main,'function supportsMacSystemPicker()','Clean desktop runtime is missing the macOS native-picker capability gate.');
 requireSource(main,'return major >= 15','Native picker is not restricted to supported macOS versions.');
 requireSource(main,'{ useSystemPicker: supportsMacSystemPicker() }','macOS native screen picker is not enabled conditionally.');
-requireSource(engine,"!desktopRuntime?.systemSharePicker",'Web meeting does not bypass the custom picker when native capture is available.');
+requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Web meeting does not read the native system-picker capability.');
+requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Web meeting still opens its custom picker before the macOS system picker.');
 
-console.log('PASS exact-production camera hardware privacy and macOS native screen-picker guardrails.');
+console.log('PASS exact-production camera hardware privacy and single-picker macOS screen-share guardrails.');
