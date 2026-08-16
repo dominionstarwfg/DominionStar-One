@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const RELEASE_VERSION = '1.2.1';
 const BRIDGE_VERSION = 12;
+const RELEASE_CONTRACT_PATH = '/meet/release-contract.json';
+const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);
 let remoteControlCapability = '';
 
 const nativeCertification = Object.freeze({
@@ -16,6 +18,46 @@ const nativeCertification = Object.freeze({
   buildVersion: RELEASE_VERSION,
   bridgeVersion: BRIDGE_VERSION
 });
+
+async function applyLiveMeetReleaseCompatibility(info) {
+  const normalized = info && typeof info === 'object' ? info : {};
+  try {
+    const origin = String(window.location?.origin || '');
+    if (!TRUSTED_ORIGINS.has(origin)) {
+      return Object.freeze({ ...normalized, meetReleaseId: '', meetReleaseCompatible: false });
+    }
+
+    const contractUrl = new URL(RELEASE_CONTRACT_PATH, origin).toString();
+    const response = await fetch(contractUrl, {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      redirect: 'error'
+    });
+    if (!response.ok) {
+      return Object.freeze({ ...normalized, meetReleaseId: '', meetReleaseCompatible: false });
+    }
+
+    const contract = await response.json();
+    const releaseId = String(contract?.releaseId || '').trim();
+    const requiredBridge = Number(contract?.desktopBridge || 0);
+    const actualBridge = Number(normalized.bridgeVersion || BRIDGE_VERSION);
+    const compatible = Boolean(
+      releaseId &&
+      Number.isFinite(requiredBridge) &&
+      requiredBridge > 0 &&
+      actualBridge >= requiredBridge
+    );
+
+    return Object.freeze({
+      ...normalized,
+      meetReleaseId: compatible ? releaseId : '',
+      meetReleaseCompatible: compatible,
+      requiredDesktopBridge: Number.isFinite(requiredBridge) ? requiredBridge : 0
+    });
+  } catch {
+    return Object.freeze({ ...normalized, meetReleaseId: '', meetReleaseCompatible: false });
+  }
+}
 
 // The packaged application owns desktop compatibility. Hosted Guardian scripts
 // are not allowed to override a valid installed release and lock the native app.
@@ -36,14 +78,15 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
     const info = await ipcRenderer.invoke('desktop:runtime-info');
     if (!info || typeof info !== 'object') return info;
     const appVersion = String(info.appVersion || info.buildVersion || RELEASE_VERSION);
-    return Object.freeze({
+    const normalized = {
       ...info,
       version: appVersion,
       appVersion,
       buildVersion: String(info.buildVersion || appVersion),
       electronVersion: String(info.electronVersion || process.versions.electron),
       bridgeVersion: Number(info.bridgeVersion || BRIDGE_VERSION)
-    });
+    };
+    return applyLiveMeetReleaseCompatibility(normalized);
   },
   getWindowLayout: () => ipcRenderer.invoke('desktop:window-layout'),
   onWindowLayout: callback => {
