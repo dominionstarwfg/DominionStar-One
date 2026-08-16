@@ -116,6 +116,10 @@ vm.createContext(context);
 vm.runInContext(engineSource,context);
 const engine=context.window.DominionStarMeetingEngine;
 assert(engine,'Meeting engine did not initialize in the contract harness.');
+let latestLocalStream=null;
+let lastScreenPause=null;
+engine.on('local-stream',event=>{if(event?.stream)latestLocalStream=event.stream;});
+engine.on('screen-paused',event=>{lastScreenPause=event;});
 
 // Start with an already-open preview camera, turn it fully off, then reproduce
 // the exact macOS/USB failure: Chromium says NotReadable twice before hardware is
@@ -134,7 +138,7 @@ const recovered=await engine.toggleVideo(true);
 assert.equal(recovered,true,'Transient camera busy errors were not automatically recovered.');
 assert.equal(cameraCalls,3,'Camera recovery did not use the bounded retry sequence.');
 assert.equal(engine.snapshot().mediaState.video,true,'Recovered camera was not published as video-on.');
-assert.equal(engine.snapshot().localStream.getVideoTracks()[0]?.id,'camera-recovered','Recovered camera track was not installed.');
+assert.equal(latestLocalStream?.getVideoTracks()[0]?.id,'camera-recovered','Recovered camera track was not installed.');
 
 // Permission denial must not be hammered by retry logic.
 await engine.toggleVideo(false);
@@ -152,10 +156,11 @@ const paused=await engine.pauseScreenShare(true);
 assert.equal(paused,true,'Pause Share did not enter frozen-frame mode.');
 assert.equal(shared.getVideoTracks()[0].readyState,'live','Pause Share stopped the real screen capture instead of freezing the outgoing frame.');
 assert.equal(shared.getVideoTracks()[0].enabled,true,'Pause Share disabled the real display track and would show black/stalled video.');
-assert.equal(engine.snapshot().screenPaused,true,'Pause Share state was not retained.');
+assert.equal(lastScreenPause?.paused,true,'Pause Share did not publish its local presenter state.');
+assert.equal(lastScreenPause?.privateFreeze,true,'Pause Share did not identify the private frozen-frame behavior.');
 const resumed=await engine.pauseScreenShare(false);
 assert.equal(resumed,false,'Resume Share did not restore live presentation mode.');
-assert.equal(engine.snapshot().screenPaused,false,'Resume Share left the engine marked paused.');
+assert.equal(lastScreenPause?.paused,false,'Resume Share did not publish its local resumed state.');
 await engine.stopScreenShare();
 assert.equal(shared.getVideoTracks()[0].readyState,'ended','Stop Share did not release the display capture.');
 
