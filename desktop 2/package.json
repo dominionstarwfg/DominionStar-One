@@ -1,6 +1,6 @@
 {
   "name": "dominionstar-desktop",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "DominionStar Meet desktop application for Windows and macOS",
   "author": "DominionStar Leadership and Development",
   "main": "src/main-v2.mjs",
@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "verify": "node scripts/verify-v2.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs",
+    "verify": "node scripts/verify-v2.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs",
     "pack": "electron-builder --dir",
     "dist:windows": "electron-builder --win nsis --x64 --arm64 --publish never",
     "dist:mac": "electron-builder --mac dmg zip --universal --publish never",

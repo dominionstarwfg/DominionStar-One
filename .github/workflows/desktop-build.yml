@@ -84,9 +84,9 @@ jobs:
           retention-days: 14
 
   macos:
-    name: macOS Intel Install + Launch Certified
+    name: macOS Intel Install + Live Meet Certified
     runs-on: macos-26-intel
-    timeout-minutes: 25
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: "desktop 2"
@@ -127,10 +127,13 @@ jobs:
         run: npm ci
 
       - name: Prepare native replacement tooling
-        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh
+        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh scripts/test-live-meet-contract.sh scripts/audit-live-hosted-runtime.sh
 
       - name: Run clean-runtime certification
         run: npm run verify
+
+      - name: Audit live hosted Meet release contract
+        run: bash scripts/audit-live-hosted-runtime.sh
 
       - name: Build universal macOS app, DMG and ZIP
         run: npm run dist:mac
@@ -140,6 +143,9 @@ jobs:
 
       - name: Install over stale v1.1.8 and launch the installed app
         run: bash scripts/test-macos-pkg.sh
+
+      - name: Reinstall and prove actual app passes live Meet contract
+        run: bash scripts/test-live-meet-contract.sh
 
       - name: Report signing identity for release audit
         run: |

@@ -51,12 +51,30 @@ jobs:
           grep -q "npm run verify" "$workflow"
           grep -q "Build deterministic Apple replacement PKG" "$workflow"
           grep -q "bash scripts/test-macos-pkg.sh" "$workflow"
+          grep -q "bash scripts/test-live-meet-contract.sh" "$workflow"
           grep -q "macos-26-intel" "$workflow"
 
+  hosted-runtime-audit:
+    name: Live Hosted Runtime Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: "desktop 2"
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Audit deployed Meet scripts and release contract
+        run: bash scripts/audit-live-hosted-runtime.sh
+
   macos-intel:
-    name: macOS Intel Install + Real Launch Acceptance
+    name: macOS Intel Install + Live Meet Acceptance
     runs-on: macos-26-intel
-    timeout-minutes: 20
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: "desktop 2"
@@ -84,7 +102,7 @@ jobs:
         run: npm ci
 
       - name: Prepare native replacement tooling
-        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh
+        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh scripts/test-live-meet-contract.sh scripts/audit-live-hosted-runtime.sh
 
       - name: Run clean-runtime certification
         run: npm run verify
@@ -97,3 +115,6 @@ jobs:
 
       - name: Install over stale v1.1.8 and launch the installed app
         run: bash scripts/test-macos-pkg.sh
+
+      - name: Reinstall and prove the actual app passes the live Meet contract
+        run: bash scripts/test-live-meet-contract.sh
