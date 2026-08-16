@@ -7,9 +7,9 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   platform: process.platform,
   // Hosted Meet certification identifies the DominionStar desktop release by
   // `version`. Keep Electron's runtime identity in electronVersion only.
-  version: '1.1.14',
-  appVersion: '1.1.14',
-  buildVersion: '1.1.14',
+  version: '1.1.15',
+  appVersion: '1.1.15',
+  buildVersion: '1.1.15',
   electronVersion: process.versions.electron,
   bridgeVersion: 12,
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   getRuntimeInfo: async () => {
     const info = await ipcRenderer.invoke('desktop:runtime-info');
     if (!info || typeof info !== 'object') return info;
-    const appVersion = String(info.appVersion || info.buildVersion || '1.1.14');
+    const appVersion = String(info.appVersion || info.buildVersion || '1.1.15');
     return Object.freeze({
       ...info,
       version: appVersion,
