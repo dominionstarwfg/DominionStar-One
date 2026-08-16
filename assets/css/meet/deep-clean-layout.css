@@ -1,0 +1,99 @@
+/* DominionStar Meet deep-clean: final geometry and layer authority.
+   Loaded last. Component styles may define appearance, but not escape this
+   viewport, stacking, or presentation contract. */
+:root{
+  --ds-layer-stage:10;
+  --ds-layer-captions:90;
+  --ds-layer-dock:150;
+  --ds-layer-panel:220;
+  --ds-layer-toolbar:300;
+  --ds-layer-menu:360;
+  --ds-layer-alert:420;
+  --ds-layer-presentation:500;
+}
+
+html:has(body.meeting-active),body.meeting-active{
+  width:100%!important;height:100%!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+}
+body.meeting-active{position:fixed!important;inset:0!important;touch-action:manipulation}
+body.meeting-active .app,body.meeting-active .meeting{
+  position:fixed!important;inset:0!important;
+  width:100vw!important;height:100dvh!important;max-height:100dvh!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+}
+body.meeting-active .stage{z-index:var(--ds-layer-stage)!important;overflow:hidden!important;overscroll-behavior:none!important}
+body.meeting-active .meeting-topbar{z-index:60!important}
+body.meeting-active .meet-caption-tray{z-index:var(--ds-layer-captions)!important}
+body.meeting-active #filmstrip.ds-dock-v2{z-index:var(--ds-layer-dock)!important}
+body.meeting-active .panel,body.meeting-active .meeting-intelligence-panel{
+  position:fixed!important;z-index:var(--ds-layer-panel)!important;
+  max-width:calc(100vw - 20px)!important;max-height:calc(100dvh - 118px)!important;
+  overscroll-behavior:contain!important;
+}
+body.meeting-active .toolbar{z-index:var(--ds-layer-toolbar)!important}
+body.meeting-active .device-menu{z-index:var(--ds-layer-menu)!important}
+body.meeting-active .toast-layer,body.meeting-active .join-request-toast.waiting-room-banner,
+body.meeting-active .meet-unmute-request{z-index:var(--ds-layer-alert)!important}
+body.meeting-active .share-status-bar{z-index:var(--ds-layer-presentation)!important}
+
+/* Dialogs use the browser top layer. Keep their dimensions inside the usable
+   viewport so Settings can always close without hiding the dock permanently. */
+body.meeting-active dialog[open]{max-width:calc(100vw - 20px)!important;max-height:calc(100dvh - 20px)!important}
+body.meeting-active dialog[open] .settings-body,
+body.meeting-active dialog[open] .schedule-body,
+body.meeting-active dialog[open] .personal-room-body{overscroll-behavior:contain}
+
+/* Normal meeting and presentation each have one toolbar. */
+body.local-presentation-active #meetingToolbar{display:none!important}
+body.local-presentation-active #shareStatusBar{display:flex!important}
+body.meeting-active:not(.local-presentation-active) #meetingToolbar{display:flex}
+
+/* Invitation pre-join is allowed to scroll; the Join action must remain easy
+   to reach on phones with dynamic browser bars and safe-area insets. */
+body.prejoin-active{position:static!important;min-height:100%!important;overflow:auto!important;overscroll-behavior-y:auto!important}
+.prejoin[data-flow="join"]{min-height:100dvh;padding-bottom:max(28px,env(safe-area-inset-bottom))!important}
+.join-status{margin:12px 2px 0;color:#cbd5e1;font-size:14px;line-height:1.45}
+.join-status[data-state="error"]{color:#fca5a5}
+.join-status[data-state="success"]{color:#86efac}
+.join-card .primary[aria-busy="true"]{cursor:wait;opacity:.82}
+
+@media(max-width:700px){
+  .prejoin[data-flow="join"]{
+    display:flex!important;flex-direction:column!important;gap:14px!important;
+    padding:64px 12px max(24px,env(safe-area-inset-bottom))!important;
+  }
+  .prejoin[data-flow="join"] .brand{top:16px;left:16px}
+  .prejoin[data-flow="join"] .preview-shell{order:1;width:100%;height:auto!important;min-height:190px;max-height:32dvh;aspect-ratio:16/9;border-radius:16px}
+  .prejoin[data-flow="join"] .join-card{order:2;width:100%;padding:22px 18px;border-radius:18px}
+  .prejoin[data-flow="join"] .join-card h1{font-size:34px}
+  .prejoin[data-flow="join"] .subcopy{margin-bottom:18px}
+  .prejoin[data-flow="join"] .primary{min-height:52px}
+
+  body.meeting-active .meeting-topbar{padding-inline:max(9px,env(safe-area-inset-left)) max(9px,env(safe-area-inset-right))}
+  body.meeting-active .meeting-brand strong{display:none}
+  body.meeting-active .toolbar{
+    left:6px!important;right:6px!important;bottom:max(6px,env(safe-area-inset-bottom))!important;
+    width:auto!important;max-width:none!important;transform:none!important;
+    overflow-x:auto!important;overflow-y:hidden!important;justify-content:flex-start!important;
+    scrollbar-width:none;overscroll-behavior-x:contain!important;
+  }
+  body.meeting-active .toolbar::-webkit-scrollbar{display:none}
+  body.meeting-active .tool-button{min-width:62px!important}
+  body.meeting-active .panel,body.meeting-active .meeting-intelligence-panel{
+    left:8px!important;right:8px!important;top:54px!important;bottom:max(78px,calc(68px + env(safe-area-inset-bottom)))!important;
+    width:auto!important;height:auto!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;resize:none!important;
+  }
+  body.meeting-active #filmstrip.ds-dock-v2{
+    --ds-dock-width:176px;--ds-dock-tile-height:94px;
+    max-width:46vw!important;max-height:calc(100dvh - 142px)!important;
+  }
+  body.meeting-active .join-request-toast.waiting-room-banner{
+    top:52px!important;width:calc(100vw - 16px)!important;min-width:0!important;max-width:none!important;
+  }
+  body.local-presentation-active .share-status-bar{
+    left:6px!important;right:6px!important;top:max(6px,env(safe-area-inset-top))!important;
+    width:auto!important;max-width:none!important;transform:none!important;overflow-x:auto!important;
+  }
+  .meet-caption-tray{left:8px!important;right:8px!important;bottom:82px!important;min-width:0!important;max-width:none!important;transform:none!important}
+}

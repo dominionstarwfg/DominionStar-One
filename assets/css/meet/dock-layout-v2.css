@@ -1,50 +1,130 @@
-/* Adaptive desktop participant dock. The meeting canvas never becomes a page. */
-.filmstrip{
-  position:fixed!important;
-  cursor:grab!important;
-  contain:layout paint;
-  max-width:calc(100vw - 24px)!important;
-  max-height:calc(100dvh - 148px)!important;
-  z-index:180!important;
+/* Participant dock v2: one geometry contract, loaded after all legacy styles. */
+#filmstrip.ds-dock-v2 {
+  --ds-dock-width: 236px;
+  --ds-dock-tile-height: 126px;
+  --ds-dock-gap: 7px;
+  position: fixed !important;
+  left: auto !important;
+  right: 16px !important;
+  top: 70px !important;
+  bottom: auto !important;
+  width: var(--ds-dock-width) !important;
+  max-width: min(32vw, var(--ds-dock-width)) !important;
+  height: auto !important;
+  max-height: calc(100dvh - 164px) !important;
+  min-height: 0 !important;
+  display: grid;
+  grid-template-rows: 18px minmax(0, 1fr) !important;
+  gap: 4px;
+  padding: 6px !important;
+  overflow: hidden !important;
+  contain: layout paint;
+  cursor: grab !important;
+  touch-action: none !important;
+  transition: box-shadow .16s ease !important;
+  z-index: 150 !important;
 }
-.filmstrip:active,.filmstrip.is-dragging{cursor:grabbing!important}
-html[data-native-window-style="macos-traffic-lights"] .meeting-topbar{padding-left:92px!important}
-html[data-native-window-style="macos-traffic-lights"] .meet-dashboard-heading{padding-left:74px}
-.filmstrip.dock-horizontal{
-  width:min(calc(100vw - 28px),960px)!important;
-  height:auto!important;
-  max-height:180px!important;
-  grid-template-columns:16px minmax(0,1fr) 30px!important;
-  grid-template-rows:1fr!important;
+#filmstrip.ds-dock-v2[hidden] { display: none !important; }
+#filmstrip.ds-dock-v2[data-count="0"] { display: none !important; }
+#filmstrip.ds-dock-v2 .dock-grip {
+  pointer-events: auto !important;
+  cursor: grab !important;
+  touch-action: none !important;
+  user-select: none;
 }
-.filmstrip.dock-horizontal .filmstrip-track{
-  display:flex!important;
-  flex-direction:row!important;
-  gap:7px!important;
-  overflow-x:auto!important;
-  overflow-y:hidden!important;
-  max-height:154px!important;
-  scrollbar-width:thin;
+#filmstrip.ds-dock-v2.is-dragging,
+#filmstrip.ds-dock-v2.is-dragging .dock-grip { cursor: grabbing !important; user-select:none !important; }
+#filmstrip.ds-dock-v2 button,
+#filmstrip.ds-dock-v2 [role="button"] { cursor:pointer !important; touch-action:auto !important; }
+#filmstrip.ds-dock-v2 .dock-hover-toolbar button.active { background:#2d8cff !important; color:#fff !important; }
+#filmstrip.ds-dock-v2.is-collapsed {
+  width:174px !important;
+  height:34px !important;
+  min-height:34px !important;
+  overflow:hidden !important;
 }
-.filmstrip.dock-horizontal .remote-tile{
-  width:clamp(126px,18vw,220px)!important;
-  min-width:clamp(126px,18vw,220px)!important;
-  height:auto!important;
-  min-height:0!important;
-  aspect-ratio:16/9!important;
+#filmstrip.ds-dock-v2.is-collapsed .filmstrip-track,
+#filmstrip.ds-dock-v2.is-collapsed .dock-scroll { display:none !important; }
+#filmstrip.ds-dock-v2.is-speaker-view .filmstrip-track .remote-tile:not(:first-child) { display:none !important; }
+#filmstrip.ds-dock-v2.is-grid-view { width:min(430px,calc(100vw - 24px)) !important; max-width:calc(100vw - 24px) !important; }
+#filmstrip.ds-dock-v2.is-grid-view .filmstrip-track { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+#filmstrip.ds-dock-v2 .filmstrip-track {
+  display: grid !important;
+  grid-auto-flow: row !important;
+  grid-template-columns: 1fr !important;
+  align-content: start !important;
+  gap: var(--ds-dock-gap) !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: calc(5 * var(--ds-dock-tile-height) + 4 * var(--ds-dock-gap)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scroll-snap-type: y proximity;
 }
-.filmstrip.dock-horizontal .dock-scroll{flex-direction:column!important;background:none!important}
-.filmstrip.dock-horizontal .dock-scroll svg{transform:rotate(90deg)}
-.filmstrip.dock-mini{width:calc(100vw - 16px)!important;max-height:132px!important}
-.filmstrip.dock-mini .filmstrip-track{max-height:108px!important}
-.filmstrip.dock-mini .remote-tile{width:150px!important;min-width:150px!important}
-.desktop-mini-window .meeting-topbar{height:38px!important}
-.desktop-mini-window .stage{inset:38px 0 0!important}
-.desktop-mini-window .toolbar{padding:3px!important;bottom:6px!important}
-.desktop-mini-window .toolbar .tool-label,.desktop-mini-window .meeting-meta,.desktop-mini-window .connection-state{display:none!important}
-.desktop-mini-window .toolbar .tool-button{min-width:42px!important;height:42px!important;padding:4px!important}
-.desktop-mini-window .toolbar .tool-button:not(#micBtn):not(#camBtn):not(#participantsBtn):not(#leaveBtn),.desktop-mini-window .toolbar .tool-arrow{display:none!important}
-@media(max-width:819px),(max-height:559px){
-  .filmstrip{transition:width .18s ease,height .18s ease,left .18s ease,top .18s ease!important}
-  .filmstrip.is-dragging{transition:none!important}
+#filmstrip.ds-dock-v2 .remote-tile {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: var(--ds-dock-tile-height) !important;
+  min-height: var(--ds-dock-tile-height) !important;
+  max-height: var(--ds-dock-tile-height) !important;
+  flex: none !important;
+  cursor: grab !important;
+  scroll-snap-align: start;
+}
+#filmstrip.ds-dock-v2 .dock-scroll { display: none !important; }
+#filmstrip.ds-dock-v2.ds-dock-horizontal:not(.is-collapsed) {
+  width:min(760px,calc(100vw - 24px)) !important;
+  max-width:calc(100vw - 24px) !important;
+  max-height:190px !important;
+}
+#filmstrip.ds-dock-v2.ds-dock-horizontal:not(.is-collapsed) .filmstrip-track {
+  display:flex !important;
+  flex-direction:row !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  scroll-snap-type:x proximity !important;
+}
+#filmstrip.ds-dock-v2.ds-dock-horizontal:not(.is-collapsed) .remote-tile {
+  flex:0 0 205px !important;
+  width:205px !important;
+}
+#filmstrip.ds-dock-v2.ds-user-positioned {
+  right: auto !important;
+  left: var(--ds-dock-left) !important;
+  top: var(--ds-dock-top) !important;
+}
+body.presentation-active #filmstrip.ds-dock-v2 {
+  right: 16px !important;
+  width: var(--ds-dock-width) !important;
+  max-width: min(32vw, var(--ds-dock-width)) !important;
+}
+body.presentation-active #filmstrip.ds-dock-v2.ds-user-positioned { right: auto !important; }
+
+/* The participant dock overlays the presentation; it never consumes a stage
+   column. This overrides legacy executive rules that reserved 218-252px. */
+body.presentation-active .stage,
+body.presentation-active #stage {
+  inset: 54px 0 0 !important;
+  width: auto !important;
+  max-width: none !important;
+}
+body.presentation-active #stage > video,
+body.presentation-active #stageVideo {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
+}
+@media (max-width: 900px) {
+  #filmstrip.ds-dock-v2 {
+    --ds-dock-width: 188px;
+    --ds-dock-tile-height: 101px;
+    right: 8px !important;
+    top: 62px !important;
+    max-width: 40vw !important;
+  }
+  #filmstrip.ds-dock-v2.ds-user-positioned { right: auto !important; }
 }
