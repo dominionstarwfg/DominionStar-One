@@ -13,7 +13,7 @@ curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$MEET_URL" -o "$HTML"
 
 echo "Auditing live desktop release contract: $CONTRACT_URL"
 curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$CONTRACT_URL" -o "$CONTRACT"
-python3 - "$CONTRACT" <<'PY'
+read -r RELEASE_ID DESKTOP_BRIDGE < <(python3 - "$CONTRACT" <<'PY'
 from pathlib import Path
 import json, sys
 path=Path(sys.argv[1])
@@ -29,10 +29,28 @@ try:
     bridge_num=int(bridge)
 except Exception:
     raise SystemExit(f'ERROR: release-contract.json has invalid desktopBridge: {bridge!r}')
-print('LIVE_RELEASE_CONTRACT '+json.dumps(contract,sort_keys=True,separators=(',',':')))
-print(f'LIVE_RELEASE_ID {release_id}')
-print(f'LIVE_DESKTOP_BRIDGE {bridge_num}')
+print(release_id, bridge_num)
 PY
+)
+cat "$CONTRACT" | python3 -m json.tool
+echo "LIVE_RELEASE_ID $RELEASE_ID"
+echo "LIVE_DESKTOP_BRIDGE $DESKTOP_BRIDGE"
+
+PRELOAD="src/preload.cjs"
+NATIVE_BRIDGE=$(sed -nE 's/^const BRIDGE_VERSION = ([0-9]+);/\1/p' "$PRELOAD" | head -n 1)
+[ -n "$NATIVE_BRIDGE" ] || { echo "ERROR: Native bridge version is not explicit in preload." >&2; exit 1; }
+[ "$NATIVE_BRIDGE" -ge "$DESKTOP_BRIDGE" ] || {
+  echo "ERROR: Live Meet requires desktop bridge $DESKTOP_BRIDGE but this build provides $NATIVE_BRIDGE." >&2
+  exit 1
+}
+grep -F "RELEASE_CONTRACT_PATH = '/meet/release-contract.json'" "$PRELOAD" >/dev/null || {
+  echo "ERROR: Desktop does not consume the live Meet release contract." >&2
+  exit 1
+}
+grep -F "meetReleaseId: compatible ? releaseId : ''" "$PRELOAD" >/dev/null || {
+  echo "ERROR: Desktop runtime does not return the compatible live meetReleaseId." >&2
+  exit 1
+}
 
 python3 - "$HTML" > "$TMP_DIR/scripts.txt" <<'PY'
 from html.parser import HTMLParser
@@ -63,6 +81,7 @@ if [ ! -s "$TMP_DIR/scripts.txt" ]; then
 fi
 
 BLOCKER_FOUND=0
+COMPATIBLE_GATE_FOUND=0
 UNTRACKED=0
 INDEX=0
 while IFS= read -r SRC; do
@@ -87,23 +106,30 @@ while IFS= read -r SRC; do
   fi
 
   if grep -Einq 'Desktop update required|certified meeting release|update[-_ ]required|installed app does not match the certified' "$FILE"; then
-    echo "HOSTED_DESKTOP_BLOCKER $URL"
+    echo "HOSTED_DESKTOP_GATE $URL"
     MATCH_LINE=$(grep -Ein 'Desktop update required|certified meeting release|update[-_ ]required|installed app does not match the certified' "$FILE" | head -n 1 | cut -d: -f1)
     START=$(( MATCH_LINE > 20 ? MATCH_LINE - 20 : 1 ))
     END=$(( MATCH_LINE + 20 ))
-    echo "----- blocker context lines ${START}-${END} -----"
+    echo "----- gate context lines ${START}-${END} -----"
     nl -ba "$FILE" | sed -n "${START},${END}p"
-    echo "----- end blocker context -----"
+    echo "----- end gate context -----"
     BLOCKER_FOUND=1
+    if grep -Fq 'runtime?.meetReleaseId===contract.releaseId' "$FILE" && grep -Fq 'runtime?.bridgeVersion' "$FILE"; then
+      COMPATIBLE_GATE_FOUND=1
+    fi
   fi
 done < "$TMP_DIR/scripts.txt"
 
 echo "Live scripts inspected: $INDEX"
 echo "Live scripts absent from repository source: $UNTRACKED"
 
-if [ "$BLOCKER_FOUND" -ne 0 ]; then
-  echo "ERROR: The live hosted runtime still contains a desktop update-lockout implementation." >&2
+if [ "$BLOCKER_FOUND" -ne 0 ] && [ "$COMPATIBLE_GATE_FOUND" -ne 1 ]; then
+  echo "ERROR: Live hosted runtime contains an unknown desktop lockout that this native contract does not satisfy." >&2
   exit 2
 fi
 
-echo "Live hosted runtime contains no known DominionStar desktop update-lockout phrase."
+if [ "$COMPATIBLE_GATE_FOUND" -eq 1 ]; then
+  echo "Live desktop gate is contract-based and satisfiable: releaseId=$RELEASE_ID requiredBridge=$DESKTOP_BRIDGE nativeBridge=$NATIVE_BRIDGE"
+else
+  echo "Live hosted runtime currently contains no desktop update gate."
+fi
