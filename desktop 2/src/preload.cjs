@@ -1,29 +1,48 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+const RELEASE_VERSION = '1.2.1';
+const BRIDGE_VERSION = 12;
 let remoteControlCapability = '';
+
+const nativeCertification = Object.freeze({
+  mode: 'native-authoritative',
+  isDesktop: true,
+  certified: true,
+  blocking: false,
+  blocked: false,
+  certifiedBy: 'native-release',
+  version: RELEASE_VERSION,
+  appVersion: RELEASE_VERSION,
+  buildVersion: RELEASE_VERSION,
+  bridgeVersion: BRIDGE_VERSION
+});
+
+// The packaged application owns desktop compatibility. Hosted Guardian scripts
+// are not allowed to override a valid installed release and lock the native app.
+contextBridge.exposeInMainWorld('DominionGuardianCertification', nativeCertification);
 
 contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   isDesktop: true,
   platform: process.platform,
-  version: '1.2.0',
-  appVersion: '1.2.0',
-  buildVersion: '1.2.0',
+  version: RELEASE_VERSION,
+  appVersion: RELEASE_VERSION,
+  buildVersion: RELEASE_VERSION,
   electronVersion: process.versions.electron,
-  bridgeVersion: 12,
+  bridgeVersion: BRIDGE_VERSION,
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
   goHome: () => ipcRenderer.send('desktop:home'),
   showAccountChooser: () => ipcRenderer.send('desktop:account-chooser'),
   getRuntimeInfo: async () => {
     const info = await ipcRenderer.invoke('desktop:runtime-info');
     if (!info || typeof info !== 'object') return info;
-    const appVersion = String(info.appVersion || info.buildVersion || '1.2.0');
+    const appVersion = String(info.appVersion || info.buildVersion || RELEASE_VERSION);
     return Object.freeze({
       ...info,
       version: appVersion,
       appVersion,
       buildVersion: String(info.buildVersion || appVersion),
       electronVersion: String(info.electronVersion || process.versions.electron),
-      bridgeVersion: Number(info.bridgeVersion || 12)
+      bridgeVersion: Number(info.bridgeVersion || BRIDGE_VERSION)
     });
   },
   getWindowLayout: () => ipcRenderer.invoke('desktop:window-layout'),
@@ -70,3 +89,9 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
     ? ipcRenderer.invoke('desktop:remote-input', { ...input, capability: remoteControlCapability })
     : Promise.resolve(false)
 }));
+
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    window.dispatchEvent(new CustomEvent('dominionstar:guardian-certification', { detail: nativeCertification }));
+  } catch {}
+}, { once: true });
