@@ -141,7 +141,7 @@ jobs:
           cd dist
 
           find . -maxdepth 1 -type f \
-            \( -name "*.dmg" -o -name "*.zip" -o -name "*.blockmap" -o -name "*.yml" \) \
+            \( -name "*.dmg" -o -name "*.zip" -o -name "*.pkg" -o -name "*.blockmap" -o -name "*.yml" \) \
             -print0 |
           sort -z |
           xargs -0 shasum -a 256 > SHA256SUMS-macOS.txt
@@ -153,6 +153,7 @@ jobs:
           path: |
             desktop 2/dist/*.dmg
             desktop 2/dist/*.zip
+            desktop 2/dist/*.pkg
             desktop 2/dist/*.blockmap
             desktop 2/dist/latest*.yml
             desktop 2/dist/SHA256SUMS-macOS.txt
@@ -191,6 +192,7 @@ jobs:
           test -n "$(find release -maxdepth 1 -type f -name '*.exe' -print -quit)"
           test -n "$(find release -maxdepth 1 -type f -name '*.dmg' -print -quit)"
           test -n "$(find release -maxdepth 1 -type f -name '*.zip' -print -quit)"
+          test -n "$(find release -maxdepth 1 -type f -name '*.pkg' -print -quit)"
           test -f release/latest.yml
           test -f release/latest-mac.yml
           test -f release/SHA256SUMS-Windows.txt

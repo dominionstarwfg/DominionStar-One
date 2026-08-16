@@ -1,6 +1,6 @@
 {
   "name": "dominionstar-desktop",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "DominionStar Meet desktop application for Windows and macOS",
   "author": "DominionStar Leadership and Development",
   "main": "src/bootstrap.mjs",
@@ -13,7 +13,7 @@
     "verify": "node scripts/sync-release-metadata.mjs && node scripts/normalize-auth-navigation.mjs && node scripts/verify.mjs && node scripts/test-release-metadata-self-heal.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-native-certification-gate.mjs && node scripts/test-desktop-auth-navigation.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs",
     "pack": "electron-builder --dir",
     "dist:windows": "electron-builder --win nsis --x64 --arm64 --publish never",
-    "dist:mac": "electron-builder --mac dmg zip --universal --publish never"
+    "dist:mac": "electron-builder --mac dmg zip pkg --universal --publish never"
   },
   "devDependencies": {
     "electron": "43.3.0",
@@ -82,6 +82,12 @@
           "arch": [
             "universal"
           ]
+        },
+        {
+          "target": "pkg",
+          "arch": [
+            "universal"
+          ]
         }
       ],
       "hardenedRuntime": true,
@@ -94,6 +100,16 @@
         "NSAudioCaptureUsageDescription": "DominionStar Meet uses system audio only when you explicitly choose to include computer sound in a screen share.",
         "NSScreenCaptureDescription": "DominionStar uses screen capture only when you choose to share your screen."
       }
+    },
+    "pkg": {
+      "installLocation": "/Applications",
+      "isRelocatable": false,
+      "isVersionChecked": true,
+      "hasStrictIdentifier": true,
+      "overwriteAction": "upgrade",
+      "mustClose": [
+        "com.dominionstar.desktop"
+      ]
     }
   }
 }
