@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;" />
+  <title>DominionStar Meet</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 28%, rgba(47,112,255,.18), transparent 32%),
+        linear-gradient(145deg, #07111f, #0c1728 56%, #07101d);
+      color: #f7f9fc;
+      overflow: hidden;
+    }
+    main { text-align: center; width: min(560px, 84vw); }
+    .mark {
+      width: 76px; height: 76px; margin: 0 auto 24px;
+      display: grid; place-items: center;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 22px;
+      background: rgba(255,255,255,.06);
+      box-shadow: 0 18px 56px rgba(0,0,0,.32);
+      font-size: 32px; font-weight: 700; letter-spacing: -.05em;
+    }
+    h1 { margin: 0; font-size: 31px; letter-spacing: -.03em; font-weight: 700; }
+    p { margin: 10px 0 0; color: #aebbd0; font-size: 15px; line-height: 1.5; }
+    .bar {
+      width: 180px; height: 3px; border-radius: 99px; margin: 30px auto 0;
+      overflow: hidden; background: rgba(255,255,255,.09);
+    }
+    .bar::after {
+      content: ""; display: block; width: 45%; height: 100%; border-radius: inherit;
+      background: #e8eefb; animation: move 1.25s ease-in-out infinite alternate;
+    }
+    @keyframes move { from { transform: translateX(-10%); } to { transform: translateX(135%); } }
+  </style>
+</head>
+<body>
+  <main aria-live="polite">
+    <div class="mark">DS</div>
+    <h1>DominionStar Meet</h1>
+    <p>Starting your secure meeting workspace…</p>
+    <div class="bar" aria-hidden="true"></div>
+  </main>
+</body>
+</html>

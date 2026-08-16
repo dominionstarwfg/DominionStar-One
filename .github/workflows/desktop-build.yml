@@ -15,15 +15,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-
   windows:
     name: Windows Desktop
     runs-on: windows-latest
-
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: "desktop 2"
-
     steps:
       - name: Checkout exact source
         uses: actions/checkout@v4
@@ -44,7 +42,6 @@ jobs:
         run: |
           $packageVersion = (Get-Content package.json | ConvertFrom-Json).version
           $tagVersion = "${{ github.ref_name }}".Replace("desktop-v", "")
-
           if ($packageVersion -ne $tagVersion) {
             Write-Error "Version mismatch: package.json=$packageVersion tag=$tagVersion"
             exit 1
@@ -53,14 +50,12 @@ jobs:
       - name: Clean previous build output
         shell: pwsh
         run: |
-          if (Test-Path dist) {
-            Remove-Item dist -Recurse -Force
-          }
+          if (Test-Path dist) { Remove-Item dist -Recurse -Force }
 
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Run DominionStar certification
+      - name: Run clean-runtime certification
         run: npm run verify
 
       - name: Build Windows installers
@@ -70,9 +65,7 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem dist -File |
-            Where-Object {
-              $_.Extension -in ".exe", ".yml", ".blockmap"
-            } |
+            Where-Object { $_.Extension -in ".exe", ".yml", ".blockmap" } |
             ForEach-Object {
               $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
               "$hash  $($_.Name)"
@@ -90,21 +83,25 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-
   macos:
-    name: macOS Desktop
-    runs-on: macos-latest
-
+    name: macOS Intel Install + Launch Certified
+    runs-on: macos-26-intel
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: "desktop 2"
-
     steps:
       - name: Checkout exact source
         uses: actions/checkout@v4
         with:
           clean: true
           fetch-depth: 1
+
+      - name: Confirm Intel runner parity
+        run: |
+          test "$(uname -m)" = "x86_64"
+          sw_vers
+          uname -m
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -118,7 +115,6 @@ jobs:
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           TAG_VERSION="${GITHUB_REF_NAME#desktop-v}"
-
           if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
             echo "Version mismatch: package.json=$PACKAGE_VERSION tag=$TAG_VERSION"
             exit 1
@@ -133,7 +129,7 @@ jobs:
       - name: Prepare native replacement tooling
         run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh
 
-      - name: Run DominionStar certification
+      - name: Run clean-runtime certification
         run: npm run verify
 
       - name: Build universal macOS app, DMG and ZIP
@@ -142,18 +138,22 @@ jobs:
       - name: Build deterministic Apple replacement PKG
         run: npm run dist:mac:pkg
 
-      - name: Certify and smoke-test macOS replacement PKG
+      - name: Install over stale v1.1.8 and launch the installed app
         run: bash scripts/test-macos-pkg.sh
+
+      - name: Report signing identity for release audit
+        run: |
+          echo "Available signing identities:"
+          security find-identity -v -p codesigning || true
+          echo "Packaged app signature:"
+          codesign -dv --verbose=4 "dist/mac-universal/DominionStar Meet.app" 2>&1 || true
 
       - name: Generate macOS checksums
         run: |
           cd dist
-
           find . -maxdepth 1 -type f \
             \( -name "*.dmg" -o -name "*.zip" -o -name "*.pkg" -o -name "*.blockmap" -o -name "*.yml" \) \
-            -print0 |
-          sort -z |
-          xargs -0 shasum -a 256 > SHA256SUMS-macOS.txt
+            -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS-macOS.txt
 
       - name: Upload macOS release files
         uses: actions/upload-artifact@v4
@@ -169,19 +169,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-
   release:
     name: Publish GitHub Release
     if: startsWith(github.ref, 'refs/tags/desktop-v')
     needs:
       - windows
       - macos
-
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
-
     steps:
       - name: Download verified Windows and macOS artifacts
         uses: actions/download-artifact@v4
@@ -194,10 +190,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          echo "Release payload:"
           find release -maxdepth 1 -type f -print | sort
-
           test -n "$(find release -maxdepth 1 -type f -name '*.exe' -print -quit)"
           test -n "$(find release -maxdepth 1 -type f -name '*.dmg' -print -quit)"
           test -n "$(find release -maxdepth 1 -type f -name '*.zip' -print -quit)"
@@ -213,16 +206,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           VERSION="${GITHUB_REF_NAME#desktop-v}"
-
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" release/* \
-              --repo "$GITHUB_REPOSITORY" \
-              --clobber
+            gh release upload "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" \
-              release/* \
+            gh release create "$GITHUB_REF_NAME" release/* \
               --repo "$GITHUB_REPOSITORY" \
               --title "DominionStar Meet v${VERSION}" \
               --generate-notes
