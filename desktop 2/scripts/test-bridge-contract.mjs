@@ -12,10 +12,15 @@ const electron={
   contextBridge:{exposeInMainWorld:(name,value)=>{exposed[name]=value;}},
   ipcRenderer:{
     send(){},
-    invoke(channel){
+    invoke(channel,...args){
+      if(channel==='desktop:media-permissions') return Promise.resolve({ok:true,platform:'darwin',camera:'not-determined',microphone:'granted'});
+      if(channel==='desktop:request-media-permissions'){
+        assert.deepEqual(Array.from(args[0]||[]),['camera']);
+        return Promise.resolve({ok:true,platform:'darwin',camera:'granted',microphone:'granted'});
+      }
       if(channel==='desktop:runtime-info'){
         return Promise.resolve({
-          bridgeVersion:12,
+          bridgeVersion:13,
           version:packageJson.version,
           appVersion:packageJson.version,
           buildVersion:packageJson.version,
@@ -44,7 +49,7 @@ const fetchMock=async (url,options={})=>{
   assert.equal(options.redirect,'error');
   return {
     ok:true,
-    async json(){return {releaseId:'live-compatible-release',desktopBridge:12};}
+    async json(){return {releaseId:'live-compatible-release',desktopBridge:13};}
   };
 };
 const context={
@@ -66,8 +71,14 @@ assert.equal(desktop.version,packageJson.version,'version must identify the Domi
 assert.equal(desktop.appVersion,packageJson.version,'appVersion must match package version');
 assert.equal(desktop.buildVersion,packageJson.version,'buildVersion must match package version');
 assert.equal(desktop.electronVersion,'43.3.0','electronVersion must identify the Electron runtime separately');
-assert.equal(desktop.bridgeVersion,12,'Certified native bridge version must be 12');
+assert.equal(desktop.bridgeVersion,13,'Certified native bridge version must be 12');
 assert.ok(Object.isFrozen(desktop),'Exposed desktop contract must be immutable');
+assert.equal(typeof desktop.getMediaPermissions,'function','Native media permission status API must be exposed');
+assert.equal(typeof desktop.requestMediaPermissions,'function','Native media permission request API must be exposed');
+const permissionStatus=await desktop.getMediaPermissions();
+assert.equal(permissionStatus.camera,'not-determined');
+const permissionRequest=await desktop.requestMediaPermissions(['camera']);
+assert.equal(permissionRequest.camera,'granted');
 
 assert.ok(guardian,'Native Guardian certification was not exposed');
 assert.equal(guardian.mode,'native-authoritative');
@@ -75,7 +86,7 @@ assert.equal(guardian.version,packageJson.version);
 assert.equal(guardian.certified,true);
 assert.equal(guardian.blocking,false);
 assert.equal(guardian.blocked,false);
-assert.equal(guardian.bridgeVersion,12);
+assert.equal(guardian.bridgeVersion,13);
 assert.ok(Object.isFrozen(guardian),'Native Guardian certification must be immutable');
 
 const runtime=await desktop.getRuntimeInfo();
@@ -83,10 +94,10 @@ assert.equal(runtime.version,packageJson.version,'runtime-info version must iden
 assert.equal(runtime.appVersion,packageJson.version,'runtime-info appVersion must match package version');
 assert.equal(runtime.buildVersion,packageJson.version,'runtime-info buildVersion must match package version');
 assert.equal(runtime.electronVersion,'43.3.0','runtime-info electronVersion must identify Electron separately');
-assert.equal(runtime.bridgeVersion,12,'runtime-info bridgeVersion must remain certified');
+assert.equal(runtime.bridgeVersion,13,'runtime-info bridgeVersion must remain certified');
 assert.equal(runtime.meetReleaseId,'live-compatible-release','runtime-info must satisfy the current hosted Meet release ID when bridge-compatible');
 assert.equal(runtime.meetReleaseCompatible,true,'runtime-info must report hosted release compatibility');
-assert.equal(runtime.requiredDesktopBridge,12,'runtime-info must expose the live minimum bridge for diagnosis');
+assert.equal(runtime.requiredDesktopBridge,13,'runtime-info must expose the live minimum bridge for diagnosis');
 assert.ok(Object.isFrozen(runtime),'Normalized runtime-info must be immutable');
 
 const certified=desktop.isDesktop

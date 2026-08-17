@@ -25,7 +25,7 @@ const MEET_URL = `${APP_ORIGIN}/meet/?desktop=1`;
 const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/member-login/?desktop=1`;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 12;
+const DESKTOP_BRIDGE_VERSION = 13;
 const HOSTED_NAVIGATION_TIMEOUT_MS = 12000;
 const STARTUP_PROBE_PATH = String(process.env.DOMINIONSTAR_STARTUP_PROBE || '');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -106,6 +106,33 @@ function isMeetingMediaRoute(value) {
   } catch {
     return false;
   }
+}
+
+function nativeMediaPermissionSnapshot() {
+  const granted = { platform: process.platform, camera: 'granted', microphone: 'granted' };
+  if (process.platform !== 'darwin') return granted;
+  const status = kind => {
+    try { return systemPreferences.getMediaAccessStatus(kind); }
+    catch { return 'unknown'; }
+  };
+  return {
+    platform: process.platform,
+    camera: status('camera'),
+    microphone: status('microphone')
+  };
+}
+
+async function requestNativeMediaPermissions(kinds = []) {
+  const requested = new Set(Array.isArray(kinds) ? kinds.map(String) : []);
+  if (process.platform !== 'darwin') return nativeMediaPermissionSnapshot();
+  for (const kind of ['camera', 'microphone']) {
+    if (!requested.has(kind)) continue;
+    let current = 'unknown';
+    try { current = systemPreferences.getMediaAccessStatus(kind); } catch {}
+    if (current !== 'not-determined') continue;
+    try { await systemPreferences.askForMediaAccess(kind); } catch {}
+  }
+  return nativeMediaPermissionSnapshot();
 }
 
 function resolveDeepLink(value) {
@@ -553,6 +580,21 @@ ipcMain.on('desktop:presenter-resize', (event, size = {}) => {
     width: Math.round(width),
     height: Math.round(height)
   }, true);
+});
+
+ipcMain.handle('desktop:media-permissions', (event) => {
+  if (!isMeetingMediaRoute(event.sender.getURL())) {
+    return { ok: false, platform: process.platform, camera: 'denied', microphone: 'denied' };
+  }
+  return { ok: true, ...nativeMediaPermissionSnapshot() };
+});
+
+ipcMain.handle('desktop:request-media-permissions', async (event, kinds = []) => {
+  if (!isMeetingMediaRoute(event.sender.getURL())) {
+    return { ok: false, platform: process.platform, camera: 'denied', microphone: 'denied' };
+  }
+  const result = await requestNativeMediaPermissions(kinds);
+  return { ok: true, ...result };
 });
 
 ipcMain.handle('desktop:runtime-info', (event) => {
