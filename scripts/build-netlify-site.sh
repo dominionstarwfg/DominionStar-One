@@ -119,6 +119,7 @@ rsync -a "$ROOT/" "$DIST/" \
   --exclude '*.md' \
   --exclude '*.zip' \
   --exclude 'PRODUCTION-MEET-SOURCE-MANIFEST.json' \
+  --exclude 'PREVIEW-ACCEPTANCE-RC13.1.json' \
   --exclude 'PRODUCTION-CUTOVER-APPROVAL.json'
 
 test -s "$DIST/index.html"
