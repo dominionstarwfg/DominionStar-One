@@ -38,12 +38,26 @@ jobs:
           clean: true
           fetch-depth: 1
 
+      - name: Detect explicit cutover approval
+        id: approval
+        shell: bash
+        run: |
+          if [ -s PRODUCTION-CUTOVER-APPROVAL.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "PRODUCTION_CUTOVER_APPROVAL_PRESENT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "PRODUCTION_CUTOVER_REMAINS_LOCKED"
+          fi
+
       - name: Setup Node 22
+        if: steps.approval.outputs.present == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Validate explicit cutover approval against accepted preview
+        if: steps.approval.outputs.present == 'true'
         shell: bash
         run: |
           python3 - <<'PY'
@@ -85,9 +99,11 @@ jobs:
           PY
 
       - name: Build exact guarded production publish surface
+        if: steps.approval.outputs.present == 'true'
         run: bash scripts/build-netlify-site.sh
 
       - name: Verify production publish exclusions and release identity
+        if: steps.approval.outputs.present == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -95,7 +111,7 @@ jobs:
           test -s dist/meet/index.html
           test -s dist/meet/release-contract.json
           test ! -e dist/PRODUCTION-CUTOVER-APPROVAL.json
-          test ! -e dist/PREVIEW-ACCEPTANCE-RC13.1.json || true
+          test ! -e dist/PREVIEW-ACCEPTANCE-RC13.1.json
           test ! -e dist/.github
           test ! -e dist/scripts
           test ! -e dist/netlify
@@ -112,9 +128,11 @@ jobs:
           PY
 
       - name: Install historical function dependencies
+        if: steps.approval.outputs.present == 'true'
         run: npm install --ignore-scripts --no-audit --no-fund
 
       - name: Bundle all production Netlify functions
+        if: steps.approval.outputs.present == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -125,4 +143,5 @@ jobs:
           echo "PRODUCTION_FUNCTION_ARTIFACTS=$count"
 
       - name: Final cutover proof
+        if: steps.approval.outputs.present == 'true'
         run: echo "DOMINIONSTAR_PRODUCTION_CUTOVER_VERIFIED"
