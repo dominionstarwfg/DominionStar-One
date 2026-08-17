@@ -1,0 +1,73 @@
+{
+  "recordType": "non-production-technical-preview-acceptance",
+  "candidateCommit": "e557ef5fd29c37a2ca3e53ce5ca03b52e684f481",
+  "baseCommit": "a718510abebb42bac77e2900cf6af1bdbbbd4a7d",
+  "meetReleaseId": "2026.08.16-rc13.1-modern-ui-contract",
+  "technicalAcceptance": true,
+  "humanVisualApproval": false,
+  "productionCutoverAuthorized": false,
+  "productionApprovalFileCreated": false,
+  "diffReview": {
+    "status": "ahead",
+    "aheadBy": 68,
+    "behindBy": 0,
+    "mergeBase": "a718510abebb42bac77e2900cf6af1bdbbbd4a7d",
+    "scope": "Recovered full DominionStar web runtime plus RC13.1 Meet candidate and non-production acceptance infrastructure"
+  },
+  "checks": {
+    "DominionStar Web Static Dependency Closure": {
+      "runId": 31992384757,
+      "runNumber": 34,
+      "conclusion": "success"
+    },
+    "DominionStar Meet Runtime Verification": {
+      "runId": 31992384794,
+      "runNumber": 57,
+      "conclusion": "success"
+    },
+    "DominionStar Netlify Source Recovery Verification": {
+      "runId": 31992384608,
+      "runNumber": 56,
+      "conclusion": "success"
+    },
+    "DominionStar Non-Production Preview Acceptance": {
+      "runId": 31992384670,
+      "runNumber": 31,
+      "conclusion": "success"
+    }
+  },
+  "certifiedBehavior": [
+    "static dependency closure",
+    "all nine Netlify functions present and bundleable",
+    "isolated email/outbox integration without production sends",
+    "member and founder authorization boundaries",
+    "waiting-room admission and lifecycle",
+    "two-client host and co-host authority",
+    "live synchronization and active-speaker state",
+    "camera privacy and recovery",
+    "screen sharing with camera preserved",
+    "Pause Share frozen-frame privacy behavior",
+    "canonical meeting invitations and passcode flow",
+    "composed two-client Meet UI acceptance",
+    "desktop hosted-runtime compatibility",
+    "production fail-closed cutover guard"
+  ],
+  "futuristicVisualContract": [
+    "vector participant-dock controls",
+    "vector raised-hand state and queue badge",
+    "future-glass pre-join surface",
+    "future-glass meeting toolbar",
+    "future-glass participant dock",
+    "future-glass participants panel",
+    "future-glass chat panel",
+    "future-glass device menu",
+    "future-glass settings dialog",
+    "future-glass screen-share controls",
+    "future-glass alert surfaces"
+  ],
+  "safetyNotes": [
+    "This record does not authorize deployment.",
+    "PRODUCTION-CUTOVER-APPROVAL.json remains absent by design.",
+    "Human visual review of the candidate is still distinct from automated technical acceptance."
+  ]
+}
