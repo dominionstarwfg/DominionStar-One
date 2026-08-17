@@ -633,33 +633,54 @@
 
   async function ensurePreview() {
     try {
-      const stream = (!state.video&&!state.audio)
-        ? new MediaStream()
-        : await acquireUserMediaStable({video:state.video?{width:{ideal:1280},height:{ideal:720}}:false,audio:state.audio});
-      setStream(stream);
-      await loadDevices();
+      const existing=ids.prejoinVideo?.srcObject;
+      if(existing?.getTracks?.().some(track=>track.readyState==='live')){setStream(existing);await loadDevices();return existing;}
+      if(window.__DS_PREJOIN_MEDIA_PROMISE){
+        const shared=await window.__DS_PREJOIN_MEDIA_PROMISE.catch(()=>null);
+        if(shared){setStream(shared);await loadDevices();return shared;}
+      }
+      const acquisition=(!state.video&&!state.audio)
+        ? Promise.resolve(new MediaStream())
+        : acquireUserMediaStable({video:state.video?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}}:false,audio:state.audio});
+      window.__DS_PREJOIN_MEDIA_PROMISE=acquisition;
+      try{
+        const stream=await acquisition;
+        setStream(stream);
+        await loadDevices();
+        return stream;
+      }finally{if(window.__DS_PREJOIN_MEDIA_PROMISE===acquisition)window.__DS_PREJOIN_MEDIA_PROMISE=null;}
     } catch (error) {
       toast(error.message || 'Camera and microphone unavailable');
+      return null;
     }
   }
 
   async function loadDevices() {
     const devices = await navigator.mediaDevices.enumerateDevices();
+    const preferred={
+      videoinput:localStorage.getItem('ds_meet_camera_id')||state.preferences.cameraId||'',
+      audioinput:localStorage.getItem('ds_meet_microphone_id')||state.preferences.microphoneId||'',
+      audiooutput:localStorage.getItem('ds_meet_speaker_id')||state.preferences.speakerId||''
+    };
+    const fallback={videoinput:'Camera',audioinput:'Microphone',audiooutput:'Speaker'};
     const fill = (select, kind) => {
-      const current = select.value;
-      select.innerHTML = '';
-      devices.filter(d => d.kind === kind).forEach((device,index) => {
-        const option = document.createElement('option');
-        option.value = device.deviceId;
-        option.textContent = device.label || `${kind} ${index + 1}`;
+      if(!select)return;
+      const current=select.value||preferred[kind]||'';
+      const matching=devices.filter(d=>d.kind===kind);
+      select.innerHTML='';
+      matching.forEach((device,index)=>{
+        const option=document.createElement('option');
+        option.value=device.deviceId;
+        option.textContent=String(device.label||'').trim()||`${fallback[kind]} ${index+1}`;
         select.append(option);
       });
-      if (current) select.value = current;
+      if(current&&matching.some(device=>device.deviceId===current))select.value=current;
     };
     fill(ids.cameraSelect,'videoinput');
     fill(ids.microphoneSelect,'audioinput');
     fill(ids.speakerSelect,'audiooutput');
   }
+  navigator.mediaDevices?.addEventListener?.('devicechange',()=>loadDevices().catch(()=>{}));
 
   async function replaceMedia(kind, deviceId) {
     if (!deviceId) return;
@@ -672,6 +693,7 @@
     setStream(merged);
     await engine.startMedia({existingStream:merged,video:state.video,audio:state.audio});
     old.getTracks().filter(t=>t.kind===kind).forEach(t=>t.stop());
+    await loadDevices().catch(()=>{});
   }
 
   function roleRank(p) {

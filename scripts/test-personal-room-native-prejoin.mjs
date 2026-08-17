@@ -23,7 +23,7 @@ assert(preload.includes('requestMediaPermissions:'), 'Desktop bridge media permi
 assert(preload.includes('const BRIDGE_VERSION = 13'), 'Desktop bridge 13 is required for native media permission support');
 assert(main.includes("systemPreferences.askForMediaAccess(kind)"), 'macOS native permission request is missing');
 assert(meet.includes('personal-room.js?v=2-native-prejoin'), 'Personal Room cache-bust missing');
-assert(meet.includes('hotfix-rc13-1-media-prejoin.js?v=3-native-permission-personal'), 'Native prejoin cache-bust missing');
+assert(meet.includes('hotfix-rc13-1-media-prejoin.js?v=4-camera-privacy-reacquire'), 'Native prejoin cache-bust missing');
 
 for (const path of ['meet-home/index.html','meet/index.html','assets/js/meet-next/personal-room.js','assets/js/meet/hotfix-rc13-1-media-prejoin.js']) {
   assert(contract.files?.[path], `Release contract is missing ${path}`);
