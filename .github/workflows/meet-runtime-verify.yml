@@ -11,6 +11,7 @@ on:
       - "meet/**"
       - "scripts/test-*meet*.mjs"
       - "scripts/test-desktop-prejoin-bootstrap.mjs"
+      - "scripts/test-personal-room-native-prejoin.mjs"
       - "scripts/test-camera-privacy-and-native-picker.mjs"
       - "scripts/test-media-stability-guardrails.mjs"
       - "scripts/test-live-sync-regression.mjs"
@@ -73,6 +74,9 @@ jobs:
 
       - name: Desktop prejoin bootstrap contract
         run: node scripts/test-desktop-prejoin-bootstrap.mjs
+
+      - name: Personal Room + native desktop prejoin
+        run: node scripts/test-personal-room-native-prejoin.mjs
 
       - name: Live synchronization regression contract
         run: node scripts/test-live-sync-regression.mjs

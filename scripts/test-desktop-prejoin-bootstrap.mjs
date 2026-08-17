@@ -22,7 +22,7 @@ must(hotfix, "history.replaceState(null, '', `${location.pathname}?room=${roomId
 
 // Cache key must change whenever bootstrap behavior changes because Electron uses
 // a persistent partition. A valid fix must not require users to hard-refresh.
-must(html, '/assets/js/meet/hotfix-rc13-1-media-prejoin.js?v=2-desktop-bootstrap', 'Meet HTML does not force the desktop prejoin bootstrap asset refresh.');
+must(html, '/assets/js/meet/hotfix-rc13-1-media-prejoin.js?v=3-native-permission-personal', 'Meet HTML does not force the desktop prejoin bootstrap asset refresh.');
 
 // The host checkpoint itself must remain explicit and must release preview media
 // before the actual meeting engine acquires the camera.
