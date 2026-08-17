@@ -3,7 +3,7 @@ set -eu
 
 APP="/Applications/DominionStar Meet.app"
 PLIST="$APP/Contents/Info.plist"
-EXPECTED_VERSION="1.2.1"
+EXPECTED_VERSION="1.2.2"
 EXPECTED_ID="com.dominionstar.desktop"
 LOG="/var/log/dominionstar-meet-installer.log"
 

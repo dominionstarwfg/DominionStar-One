@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const RELEASE_VERSION = '1.2.1';
-const BRIDGE_VERSION = 12;
+const RELEASE_VERSION = '1.2.2';
+const BRIDGE_VERSION = 13;
 const RELEASE_CONTRACT_PATH = '/meet/release-contract.json';
 const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);
 let remoteControlCapability = '';
@@ -107,6 +107,8 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   openExternal: url => ipcRenderer.invoke('desktop:open-external', url),
   getShareSources: (options = {}) => ipcRenderer.invoke('desktop:share-sources', options),
   getCaptureStatus: () => ipcRenderer.invoke('desktop:capture-status'),
+  getMediaPermissions: () => ipcRenderer.invoke('desktop:media-permissions'),
+  requestMediaPermissions: (kinds = []) => ipcRenderer.invoke('desktop:request-media-permissions', Array.isArray(kinds) ? kinds.filter(kind => ['camera','microphone'].includes(String(kind))) : []),
   openScreenRecordingSettings: () => ipcRenderer.invoke('desktop:open-screen-settings'),
   selectShareSource: (sourceId, audio = false, displayId = '', kind = '', sourceName = '', shareOwnWindow = false) =>
     ipcRenderer.invoke('desktop:select-share-source', { sourceId, audio, displayId, kind, sourceName, shareOwnWindow }),
