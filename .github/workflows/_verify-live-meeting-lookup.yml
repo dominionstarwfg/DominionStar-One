@@ -33,14 +33,14 @@ jobs:
           console.log(`SUPABASE_PUBLIC_KEY=${key}`);
           NODE
 
-      - name: Discover public meetings columns with zero-row selects
+      - name: Discover room and passcode columns with zero-row selects
         shell: bash
         run: |
           set -euo pipefail
           candidates=(
-            id meeting_id room_id meeting_code code room host_id owner_id user_id created_by
-            passcode password waiting_room waiting_room_enabled active status starts_at start_time
-            title topic meeting_type personal_room_id is_personal created_at updated_at
+            room_code join_code access_code meeting_passcode room_passcode join_passcode
+            access_passcode pin host_key password_hash passcode_hash require_passcode
+            started_at ended_at scheduled_at scheduled_for starts_at expires_at
           )
           for col in "${candidates[@]}"; do
             status=$(curl -sS -o "/tmp/col-${col}.json" -w '%{http_code}' \
@@ -56,13 +56,16 @@ jobs:
             fi
           done
 
-      - name: Confirm current production resolver failure mode
+      - name: Read only the exact supplied room using confirmed public fields
         shell: bash
+        env:
+          ROOM: '2389103606'
         run: |
           set -euo pipefail
-          status=$(curl -sS -o /tmp/lookup.json -w '%{http_code}' \
-            -X POST 'https://dominionstarld.com/.netlify/functions/resolve-meeting-join' \
-            -H 'content-type: application/json' \
-            --data '{"room":"238 910 3606","passcode":"360"}')
-          echo "RESOLVER_HTTP_STATUS=$status"
-          cat /tmp/lookup.json; echo
+          status=$(curl -sS -o /tmp/exact-room.json -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/meetings?select=id,room_code,host_id,waiting_room_enabled,status,title,created_at&room_code=eq.${ROOM}&limit=1" \
+            -H "apikey: $SUPABASE_PUBLIC_KEY" \
+            -H "Authorization: Bearer $SUPABASE_PUBLIC_KEY" \
+            -H 'Accept: application/json')
+          echo "EXACT_ROOM_HTTP_STATUS=$status"
+          cat /tmp/exact-room.json; echo
