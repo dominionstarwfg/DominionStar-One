@@ -20,6 +20,7 @@ on:
       - "assets/join-qr.png"
       - "assets/logo.jpeg"
       - "RECOVERED-PRODUCTION-STATIC-BASELINE.json"
+      - "PRODUCTION-CUTOVER-APPROVAL.json"
       - "meet/**"
       - "meet-home/**"
       - "meet-login/**"
@@ -81,7 +82,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # These files must remain byte-identical to the certified RC12.26 recovery.
           cat > /tmp/recovery-functions-unchanged.sha256 <<'EOF'
           748090c3684bf92aecf057ff6442ebb3564caa1581c52058d5118239550e3fe6  package.json
           9cdaf2e166c2649a9d672d58b155d153d0c8296d615e7b6d0847a0e7c4908d72  netlify/functions/founder-data.mjs
@@ -95,10 +95,6 @@ jobs:
           EOF
           sha256sum --check /tmp/recovery-functions-unchanged.sha256
 
-          # process-email-outbox.mjs intentionally differs from the recovered production
-          # hash 8790421491c4c42bd9d1c89b6767f9b0de0bbde98ccc6d712c9d176736f64068.
-          # Its candidate hash is pinned here and its only intended routing change is
-          # the canonical DominionStar action-link fallback used by the isolated outbox gate.
           echo "76f6ee77c92356ee33bf58facb19414a4a6b7d86e7f4275da618417824a1b223  netlify/functions/process-email-outbox.mjs" > /tmp/outbox-candidate.sha256
           sha256sum --check /tmp/outbox-candidate.sha256
           grep -F "new URL(email.action_url,'https://dominionstarld.com')" netlify/functions/process-email-outbox.mjs >/dev/null
@@ -226,7 +222,7 @@ jobs:
       - name: Build functions with an isolated pinned Netlify CLI
         run: npx --yes netlify-cli@26.2.0 functions:build --src netlify/functions --functions .netlify/functions
 
-      - name: Confirm production remains locked pending preview acceptance
+      - name: Confirm production cutover state matches approval phase
         shell: bash
         run: |
           set +e
@@ -234,7 +230,19 @@ jobs:
           status=$?
           set -e
           printf '%s\n' "$output"
-          test "$status" -eq 43
-          echo "$output" | grep -F "cutover approval is intentionally withheld" >/dev/null
-          test ! -e dist
-          echo "CUTOVER_APPROVAL=BLOCKED_PENDING_PREVIEW_ACCEPTANCE"
+
+          if [ -s PRODUCTION-CUTOVER-APPROVAL.json ]; then
+            test "$status" -eq 0
+            echo "$output" | grep -F "PRODUCTION_CUTOVER_APPROVAL_VALID" >/dev/null
+            echo "$output" | grep -F "NETLIFY_RELEASE 2026.08.16-rc13.1-modern-ui-contract" >/dev/null
+            test -s dist/index.html
+            test -s dist/meet/index.html
+            test ! -e dist/PRODUCTION-CUTOVER-APPROVAL.json
+            test ! -e dist/PREVIEW-ACCEPTANCE-RC13.1.json
+            echo "CUTOVER_APPROVAL=VALID_AND_BUILDABLE"
+          else
+            test "$status" -eq 43
+            echo "$output" | grep -F "cutover approval is intentionally withheld" >/dev/null
+            test ! -e dist
+            echo "CUTOVER_APPROVAL=BLOCKED_PENDING_PREVIEW_ACCEPTANCE"
+          fi
