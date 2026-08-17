@@ -21,7 +21,7 @@ jobs:
           status=$(curl -sS -o /tmp/lookup.json -w '%{http_code}' \
             -X POST 'https://dominionstarld.com/.netlify/functions/resolve-meeting-join' \
             -H 'content-type: application/json' \
-            --data '{"meetingId":"238 910 3606","passcode":"360","name":"Live lookup verification"}')
+            --data '{"room":"238 910 3606","passcode":"360"}')
           echo "HTTP_STATUS=$status"
           cat /tmp/lookup.json
           echo
