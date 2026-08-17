@@ -16,6 +16,15 @@ requireText(source, "waitingRoomToggleLabel", 'host-only Waiting Room boundary i
 requireText(source, "if(!deviceMenu||isLocalHost())return", 'co-host Waiting Room UI boundary is missing');
 requireText(source, "event.stopImmediatePropagation()", 'co-host Waiting Room click boundary is missing');
 
+requireText(source, "navigator.mediaDevices?.addEventListener?.('devicechange',scheduleDeviceRefresh)", 'device selectors no longer refresh when hardware changes');
+requireText(source, "refreshProfessionalDevices({retries:3})", 'device enumeration retry contract is missing');
+requireText(source, "settingsObserver", 'Audio & Video Settings no longer refreshes device enumeration when opened');
+requireText(source, "setFallbackOption(cameraSelect,'Camera unavailable')", 'camera selector can regress to a blank failure state');
+requireText(source, "setFallbackOption(microphoneSelect,'Microphone unavailable')", 'microphone selector can regress to a blank failure state');
+requireText(source, "setFallbackOption(speakerSelect,'System Default Speaker')", 'speaker selector can regress to a blank failure state');
+requireText(source, "systemDefault.textContent='System Default Speaker'", 'speaker selector lost its explicit system-default output');
+requireText(source, "device.label||`${fallback} ${index+1}`", 'unnamed media devices no longer receive readable fallback labels');
+
 requireText(runtime, "const privileged=state.isHost||state.role==='cohost'", 'host/co-host moderation role contract is missing');
 requireText(runtime, "add('Enable Waiting Room'", 'host Waiting Room control disappeared from the primary runtime');
 requireText(runtime, "add('Lock Meeting'", 'professional host security tools lost Lock Meeting');
