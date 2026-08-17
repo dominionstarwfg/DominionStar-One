@@ -107,6 +107,8 @@ function fakeClientBootstrap(mode) {
       },
       from: table => makeQuery(table),
       rpc: async name => {
+        if (name === 'ensure_member_profile') return { data: null, error: null };
+        if (name === 'is_dominionstar_founder') return { data: mode === 'founder', error: null };
         if (name === 'founder_member_summary') {
           return {
             data: [{
@@ -233,7 +235,7 @@ try {
     const testCase = await createPage(browser, 'member');
     try {
       await testCase.page.goto(`${baseURL}/founder-control/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      await testCase.page.waitForFunction(() => /restricted to the DominionStar Founder account/i.test(document.getElementById('founderGate')?.textContent || ''), null, { timeout: 10000 });
+      await testCase.page.waitForFunction(() => /Founder access has not been enabled for this account/i.test(document.getElementById('founderGate')?.textContent || ''), null, { timeout: 10000 });
       const appHidden = await testCase.page.locator('#founderApp').evaluate(el => el.classList.contains('member-hidden'));
       assert(appHidden, 'non-founder session exposed founder application');
       assert(testCase.errors.length === 0, `non-founder founder-control page errors: ${testCase.errors.join('\n')}`);
