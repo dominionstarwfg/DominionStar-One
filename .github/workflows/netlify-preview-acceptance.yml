@@ -15,6 +15,7 @@ on:
       - "manifest.webmanifest"
       - "package.json"
       - "scripts/audit-static-dependency-closure.mjs"
+      - "scripts/browser-runtime-acceptance.mjs"
       - "scripts/build-netlify-preview.sh"
       - ".github/workflows/netlify-preview-acceptance.yml"
   workflow_dispatch:
@@ -28,9 +29,9 @@ concurrency:
 
 jobs:
   preview:
-    name: Build and Smoke-Test Isolated Preview Artifact
+    name: Build, Browser-Test and Certify Isolated Preview
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout exact source
         uses: actions/checkout@v4
@@ -107,6 +108,28 @@ jobs:
             }
             echo "PREVIEW_ROUTE_OK $route"
           done
+
+      - name: Install isolated Playwright browser harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Real Chromium runtime acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .preview-package/public
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ds-browser-preview-http.log 2>&1 &
+          server=$!
+          cd ../..
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for _ in {1..40}; do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && break
+            sleep 0.25
+          done
+          DOMINIONSTAR_PREVIEW_URL=http://127.0.0.1:4173 node scripts/browser-runtime-acceptance.mjs
 
       - name: Prove preview cannot silently become production
         shell: bash
