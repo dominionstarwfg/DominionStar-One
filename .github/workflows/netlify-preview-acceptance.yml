@@ -17,6 +17,7 @@ on:
       - "scripts/audit-static-dependency-closure.mjs"
       - "scripts/browser-runtime-acceptance.mjs"
       - "scripts/browser-auth-boundary-acceptance.mjs"
+      - "scripts/function-email-outbox-acceptance.mjs"
       - "scripts/build-netlify-preview.sh"
       - ".github/workflows/netlify-preview-acceptance.yml"
   workflow_dispatch:
@@ -72,6 +73,9 @@ jobs:
           count=$(find .preview-package/functions -maxdepth 1 -type f | wc -l | tr -d ' ')
           test "$count" -ge 9
           echo "PREVIEW_FUNCTION_ARTIFACTS=$count"
+
+      - name: Isolated Netlify function and email outbox acceptance
+        run: node scripts/function-email-outbox-acceptance.mjs
 
       - name: Local HTTP smoke test key production routes
         shell: bash
