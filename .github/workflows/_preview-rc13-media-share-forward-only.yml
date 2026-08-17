@@ -1,0 +1,50 @@
+name: Validate RC13 Media Share Forward Only
+on:
+  push:
+    branches: [fix/rc13-media-share-forward-only]
+    paths:
+      - scripts/_author_rc13_media_share_forward_only.py
+      - .github/workflows/_preview-rc13-media-share-forward-only.yml
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply candidate in runner
+        run: python3 scripts/_author_rc13_media_share_forward_only.py
+      - name: Syntax
+        run: |
+          node --check assets/js/meet-next/executive6.js
+          node --check 'desktop 2/src/main-v2.mjs'
+          node --check 'desktop 2/src/preload.cjs'
+          node --check 'desktop 2/src/presenter-preload.cjs'
+          node --check 'desktop 2/src/presenter-toolbar.js'
+      - name: Forward-only regression
+        run: node scripts/test-media-share-forward-only.mjs
+      - name: Existing Meet media/share contracts
+        run: |
+          node scripts/test-camera-privacy-and-native-picker.mjs
+          node scripts/test-media-stability-guardrails.mjs
+          node scripts/test-two-client-authority.mjs
+          node scripts/test-professional-meeting-controls.mjs
+          node scripts/test-production-meet-rc13.mjs
+      - name: Desktop tests
+        working-directory: desktop 2
+        run: npm test -- --runInBand || npm test
+      - name: Release hashes
+        run: |
+          python3 - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          c=json.loads(Path('meet/release-contract.json').read_text())
+          for rel,expected in c['files'].items():
+            actual=hashlib.sha256(Path(rel).read_bytes()).hexdigest()
+            if actual!=expected: raise SystemExit(f'hash mismatch {rel}: {actual} != {expected}')
+          print('RELEASE_HASHES_OK')
+          PY
