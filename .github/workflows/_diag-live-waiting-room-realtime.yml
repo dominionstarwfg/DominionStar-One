@@ -1,0 +1,75 @@
+name: Diagnose Live Waiting Room Realtime
+
+on:
+  push:
+    branches:
+      - diag/live-waiting-room-realtime
+    paths:
+      - .github/workflows/_diag-live-waiting-room-realtime.yml
+
+permissions:
+  contents: read
+
+jobs:
+  realtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe anonymous production realtime broadcast and presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ds-rt && cd /tmp/ds-rt
+          npm init -y >/dev/null 2>&1
+          npm install --silent @supabase/supabase-js@2
+          node <<'NODE'
+          const { createClient } = require('@supabase/supabase-js');
+          const url='https://ckmurvhjumzlhsegncba.supabase.co';
+          const key='sb_publishable_zAzk_tobvWHOWR22bmzMMw_uqHnCVxb';
+          const room='diag-'+Date.now();
+          const opts={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
+          const host=createClient(url,key,opts);
+          const guest=createClient(url,key,opts);
+          const hc=host.channel(`dominionstar-meet-${room}`,{config:{broadcast:{self:false,ack:true},presence:{key:'host'}}});
+          const gc=guest.channel(`dominionstar-meet-${room}`,{config:{broadcast:{self:false,ack:true},presence:{key:'guest'}}});
+          let broadcast=null;
+          let presenceSawGuest=false;
+          let hostStatus=''; let guestStatus='';
+          hc.on('broadcast',{event:'meet-join-request'},({payload})=>{broadcast=payload;console.log('HOST_BROADCAST',JSON.stringify(payload));});
+          hc.on('presence',{event:'sync'},()=>{
+            const s=hc.presenceState();
+            const text=JSON.stringify(s);
+            console.log('HOST_PRESENCE',text);
+            if(text.includes('guest-participant'))presenceSawGuest=true;
+          });
+          const sub=(ch,which)=>new Promise((resolve,reject)=>{
+            const t=setTimeout(()=>reject(new Error(which+' subscribe timeout')),12000);
+            ch.subscribe(status=>{
+              console.log(which+'_STATUS',status);
+              if(which==='HOST')hostStatus=status; else guestStatus=status;
+              if(status==='SUBSCRIBED'){clearTimeout(t);resolve();}
+              if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)){clearTimeout(t);reject(new Error(which+' '+status));}
+            });
+          });
+          (async()=>{
+            try{
+              await Promise.all([sub(hc,'HOST'),sub(gc,'GUEST')]);
+              await hc.track({participantId:'host-participant',isHost:true,admitted:true,joinedAt:new Date().toISOString()});
+              await gc.track({participantId:'guest-participant',isHost:false,admitted:false,joinToken:'diag-token',joinedAt:new Date().toISOString()});
+              const sendResult=await gc.send({type:'broadcast',event:'meet-join-request',payload:{roomId:room,from:'guest-participant',joinToken:'diag-token',passcodeProof:'diag-proof',displayName:'Diagnostic Guest',admitted:false,sentAt:Date.now()}});
+              console.log('GUEST_SEND_RESULT',JSON.stringify(sendResult));
+              const deadline=Date.now()+8000;
+              while(Date.now()<deadline && (!broadcast||!presenceSawGuest)) await new Promise(r=>setTimeout(r,200));
+              console.log('RESULT',JSON.stringify({hostStatus,guestStatus,broadcastReceived:Boolean(broadcast),presenceSawGuest,sendResult}));
+              if(!broadcast)throw new Error('Host did not receive guest broadcast');
+              if(!presenceSawGuest)throw new Error('Host did not receive guest presence');
+            } finally {
+              await host.removeChannel(hc).catch(()=>{});
+              await guest.removeChannel(gc).catch(()=>{});
+            }
+          })().catch(err=>{console.error(err);process.exit(1);});
+          NODE
