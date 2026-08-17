@@ -33,39 +33,25 @@ jobs:
           console.log(`SUPABASE_PUBLIC_KEY=${key}`);
           NODE
 
-      - name: Discover room and passcode columns with zero-row selects
+      - name: Discover scheduling and security tables with zero-row reads
         shell: bash
         run: |
           set -euo pipefail
           candidates=(
-            room_code join_code access_code meeting_passcode room_passcode join_passcode
-            access_passcode pin host_key password_hash passcode_hash require_passcode
-            started_at ended_at scheduled_at scheduled_for starts_at expires_at
+            meetings meeting_schedules scheduled_meetings meeting_schedule meeting_events
+            personal_rooms personal_meetings meeting_rooms rooms meeting_links meeting_invites
+            meeting_security meeting_settings meeting_config meeting_preferences
           )
-          for col in "${candidates[@]}"; do
-            status=$(curl -sS -o "/tmp/col-${col}.json" -w '%{http_code}' \
-              "$SUPABASE_URL/rest/v1/meetings?select=${col}&limit=0" \
+          for table in "${candidates[@]}"; do
+            status=$(curl -sS -o "/tmp/table-${table}.json" -w '%{http_code}' \
+              "$SUPABASE_URL/rest/v1/${table}?select=id&limit=0" \
               -H "apikey: $SUPABASE_PUBLIC_KEY" \
               -H "Authorization: Bearer $SUPABASE_PUBLIC_KEY" \
               -H 'Accept: application/json')
             if [ "$status" = "200" ] || [ "$status" = "206" ]; then
-              echo "COLUMN_EXISTS=${col}"
+              echo "TABLE_EXISTS=${table}"
             else
-              message=$(cat "/tmp/col-${col}.json" | tr '\n' ' ')
-              echo "COLUMN_MISSING_OR_DENIED=${col} HTTP=${status} ${message}"
+              message=$(cat "/tmp/table-${table}.json" | tr '\n' ' ')
+              echo "TABLE_MISSING_OR_DENIED=${table} HTTP=${status} ${message}"
             fi
           done
-
-      - name: Read only the exact supplied room using confirmed public fields
-        shell: bash
-        env:
-          ROOM: '2389103606'
-        run: |
-          set -euo pipefail
-          status=$(curl -sS -o /tmp/exact-room.json -w '%{http_code}' \
-            "$SUPABASE_URL/rest/v1/meetings?select=id,room_code,host_id,waiting_room_enabled,status,title,created_at&room_code=eq.${ROOM}&limit=1" \
-            -H "apikey: $SUPABASE_PUBLIC_KEY" \
-            -H "Authorization: Bearer $SUPABASE_PUBLIC_KEY" \
-            -H 'Accept: application/json')
-          echo "EXACT_ROOM_HTTP_STATUS=$status"
-          cat /tmp/exact-room.json; echo
