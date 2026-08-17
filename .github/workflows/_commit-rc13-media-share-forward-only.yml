@@ -4,6 +4,7 @@ on:
     branches: [fix/rc13-media-share-forward-only]
     paths:
       - .github/workflows/_commit-rc13-media-share-forward-only.yml
+      - scripts/_author_rc13_media_share_forward_only.py
 permissions:
   contents: write
 jobs:
