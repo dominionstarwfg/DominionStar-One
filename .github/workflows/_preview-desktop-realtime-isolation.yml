@@ -1,0 +1,38 @@
+name: Validate Desktop Realtime Isolation Candidate
+on:
+  push:
+    branches: [fix/desktop-realtime-transport-isolation]
+    paths:
+      - scripts/_author_desktop_realtime_transport_isolation.py
+      - .github/workflows/_preview-desktop-realtime-isolation.yml
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply and validate candidate in runner only
+        run: |
+          set -euo pipefail
+          python3 scripts/_author_desktop_realtime_transport_isolation.py
+          node --check assets/js/meeting-engine.js
+          node scripts/test-meet-realtime-transport-isolation.mjs
+          node scripts/test-waiting-room-surgical.mjs
+          node scripts/test-two-client-authority.mjs
+          node scripts/test-production-meet-rc13.mjs
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          c=json.loads(Path('meet/release-contract.json').read_text())
+          for rel,expected in c['files'].items():
+              actual=hashlib.sha256(Path(rel).read_bytes()).hexdigest()
+              if actual!=expected: raise SystemExit(f'hash mismatch {rel}')
+          print('RELEASE_HASHES_OK')
+          PY
+          for f in assets/js/meeting-engine.js meet/index.html meet/release-contract.json scripts/test-production-meet-rc13.mjs scripts/test-meet-realtime-transport-isolation.mjs .github/workflows/meet-runtime-verify.yml; do
+            echo "DSFILE_BEGIN:$f"
+            base64 -w0 "$f"
+            echo
+            echo "DSFILE_END:$f"
+          done
