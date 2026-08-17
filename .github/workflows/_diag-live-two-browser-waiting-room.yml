@@ -29,71 +29,73 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null
           node <<'NODE'
           const { chromium } = require('playwright');
-          const room=String(Date.now()).slice(-10);
-          const passcode='360';
-          const base='https://dominionstarld.com/meet/';
-          const browser=await chromium.launch({headless:true,args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']});
-          const hostCtx=await browser.newContext({permissions:['camera','microphone']});
-          const guestCtx=await browser.newContext({permissions:['camera','microphone']});
-          const host=await hostCtx.newPage();
-          const guest=await guestCtx.newPage();
-          const logs={host:[],guest:[]};
-          for(const [name,page] of [['host',host],['guest',guest]]){
-            page.on('console',m=>{const line=`${m.type()}: ${m.text()}`;logs[name].push(line);console.log(name.toUpperCase()+'_CONSOLE',line);});
-            page.on('pageerror',e=>{logs[name].push('pageerror: '+e.message);console.log(name.toUpperCase()+'_PAGEERROR',e.message);});
-          }
-          const snap=async(label,page)=>{
-            const data=await page.evaluate(()=>({
-              url:location.href,
-              room:document.querySelector('#roomId')?.value||'',
-              passcode:document.querySelector('#meetingPasscode')?.value||'',
-              meetingHidden:document.querySelector('#meeting')?.hidden,
-              prejoinHidden:document.querySelector('#prejoin')?.hidden,
-              connection:document.querySelector('#connectionState')?.textContent||'',
-              participantCount:document.querySelector('#participantCount')?.textContent||'',
-              waitingCount:document.querySelector('#waitingCount')?.textContent||'',
-              waitingHidden:document.querySelector('#waitingSection')?.hidden,
-              waitingText:document.querySelector('#waitingRoom')?.innerText||'',
-              gate:document.querySelector('.waiting-gate')?.innerText||document.body.innerText.match(/Waiting for the host[^\n]*/)?.[0]||''
-            }));
-            console.log(label,JSON.stringify(data));
-            return data;
-          };
-          try{
-            await host.goto(`${base}?room=${room}&host=1&waiting=1&passcode=${passcode}`,{waitUntil:'domcontentloaded',timeout:30000});
-            await host.waitForSelector('#joinForm',{timeout:15000});
-            await host.fill('#displayName','Diagnostic Host');
-            await host.fill('#roomId',room);
-            await host.fill('#meetingPasscode',passcode);
-            await snap('HOST_PREJOIN',host);
-            await host.click('#joinForm button[type="submit"]');
-            await host.waitForFunction(()=>document.querySelector('#meeting')?.hidden===false,null,{timeout:20000});
-            await snap('HOST_JOINED',host);
-
-            await guest.goto(`${base}?room=${room}&waiting=1&passcode=${passcode}`,{waitUntil:'domcontentloaded',timeout:30000});
-            await guest.waitForSelector('#joinForm',{timeout:15000});
-            await guest.fill('#displayName','Diagnostic Guest');
-            await guest.fill('#roomId',room);
-            await guest.fill('#meetingPasscode',passcode);
-            await snap('GUEST_PREJOIN',guest);
-            await guest.click('#joinForm button[type="submit"]');
-            await guest.waitForFunction(()=>document.querySelector('#meeting')?.hidden===false,null,{timeout:20000});
-            await snap('GUEST_WAITING',guest);
-
-            let hostState=null;
-            const deadline=Date.now()+15000;
-            while(Date.now()<deadline){
-              hostState=await snap('HOST_POLL',host);
-              if(Number(hostState.waitingCount)>0 || /Diagnostic Guest/.test(hostState.waitingText))break;
-              await new Promise(r=>setTimeout(r,1000));
+          (async()=>{
+            const room=String(Date.now()).slice(-10);
+            const passcode='360';
+            const base='https://dominionstarld.com/meet/';
+            const browser=await chromium.launch({headless:true,args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']});
+            const hostCtx=await browser.newContext({permissions:['camera','microphone']});
+            const guestCtx=await browser.newContext({permissions:['camera','microphone']});
+            const host=await hostCtx.newPage();
+            const guest=await guestCtx.newPage();
+            const logs={host:[],guest:[]};
+            for(const [name,page] of [['host',host],['guest',guest]]){
+              page.on('console',m=>{const line=`${m.type()}: ${m.text()}`;logs[name].push(line);console.log(name.toUpperCase()+'_CONSOLE',line);});
+              page.on('pageerror',e=>{logs[name].push('pageerror: '+e.message);console.log(name.toUpperCase()+'_PAGEERROR',e.message);});
             }
-            const guestState=await snap('GUEST_FINAL',guest);
-            console.log('FINAL_RESULT',JSON.stringify({room,hostState,guestState}));
-            if(!hostState || Number(hostState.waitingCount)<1 || !/Diagnostic Guest/.test(hostState.waitingText)){
-              throw new Error('LIVE_TWO_BROWSER_WAITING_ROOM_SIGNAL_MISSING');
+            const snap=async(label,page)=>{
+              const data=await page.evaluate(()=>({
+                url:location.href,
+                room:document.querySelector('#roomId')?.value||'',
+                passcode:document.querySelector('#meetingPasscode')?.value||'',
+                meetingHidden:document.querySelector('#meeting')?.hidden,
+                prejoinHidden:document.querySelector('#prejoin')?.hidden,
+                connection:document.querySelector('#connectionState')?.textContent||'',
+                participantCount:document.querySelector('#participantCount')?.textContent||'',
+                waitingCount:document.querySelector('#waitingCount')?.textContent||'',
+                waitingHidden:document.querySelector('#waitingSection')?.hidden,
+                waitingText:document.querySelector('#waitingRoom')?.innerText||'',
+                gate:document.body.innerText.match(/Waiting for the host[^\n]*/)?.[0]||''
+              }));
+              console.log(label,JSON.stringify(data));
+              return data;
+            };
+            try{
+              await host.goto(`${base}?room=${room}&host=1&waiting=1&passcode=${passcode}`,{waitUntil:'domcontentloaded',timeout:30000});
+              await host.waitForSelector('#joinForm',{timeout:15000});
+              await host.fill('#displayName','Diagnostic Host');
+              await host.fill('#roomId',room);
+              await host.fill('#meetingPasscode',passcode);
+              await snap('HOST_PREJOIN',host);
+              await host.click('#joinForm button[type="submit"]');
+              await host.waitForFunction(()=>document.querySelector('#meeting')?.hidden===false,null,{timeout:20000});
+              await snap('HOST_JOINED',host);
+
+              await guest.goto(`${base}?room=${room}&waiting=1&passcode=${passcode}`,{waitUntil:'domcontentloaded',timeout:30000});
+              await guest.waitForSelector('#joinForm',{timeout:15000});
+              await guest.fill('#displayName','Diagnostic Guest');
+              await guest.fill('#roomId',room);
+              await guest.fill('#meetingPasscode',passcode);
+              await snap('GUEST_PREJOIN',guest);
+              await guest.click('#joinForm button[type="submit"]');
+              await guest.waitForFunction(()=>document.querySelector('#meeting')?.hidden===false,null,{timeout:20000});
+              await snap('GUEST_WAITING',guest);
+
+              let hostState=null;
+              const deadline=Date.now()+15000;
+              while(Date.now()<deadline){
+                hostState=await snap('HOST_POLL',host);
+                if(Number(hostState.waitingCount)>0 || /Diagnostic Guest/.test(hostState.waitingText))break;
+                await new Promise(r=>setTimeout(r,1000));
+              }
+              const guestState=await snap('GUEST_FINAL',guest);
+              console.log('FINAL_RESULT',JSON.stringify({room,hostState,guestState}));
+              if(!hostState || Number(hostState.waitingCount)<1 || !/Diagnostic Guest/.test(hostState.waitingText)){
+                throw new Error('LIVE_TWO_BROWSER_WAITING_ROOM_SIGNAL_MISSING');
+              }
+              console.log('LIVE_TWO_BROWSER_WAITING_ROOM_SIGNAL_OK');
+            } finally {
+              await browser.close();
             }
-            console.log('LIVE_TWO_BROWSER_WAITING_ROOM_SIGNAL_OK');
-          } finally {
-            await browser.close();
-          }
+          })().catch(err=>{console.error(err);process.exit(1);});
           NODE
