@@ -1,6 +1,7 @@
 {
   "recordType": "non-production-preview-acceptance",
   "acceptedSourceCommit": "1a4154142de2af34faec514eeb30f56a0ffeaf3e",
+  "acceptanceRecordCommit": "c78bbef2f2360c24fc7ca9091d9cdb2225148e76",
   "baseCommit": "a718510abebb42bac77e2900cf6af1bdbbbd4a7d",
   "meetReleaseId": "2026.08.16-rc13.1-modern-ui-contract",
   "technicalAcceptance": true,
