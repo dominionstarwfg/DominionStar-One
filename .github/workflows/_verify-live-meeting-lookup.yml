@@ -33,26 +33,28 @@ jobs:
           console.log(`SUPABASE_PUBLIC_KEY=${key}`);
           NODE
 
-      - name: Inspect public meetings schema metadata without reading rows
+      - name: Discover public meetings columns with zero-row selects
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsS "$SUPABASE_URL/rest/v1/" \
-            -H "apikey: $SUPABASE_PUBLIC_KEY" \
-            -H "Authorization: Bearer $SUPABASE_PUBLIC_KEY" \
-            -H 'Accept: application/openapi+json' \
-            -o /tmp/openapi.json
-          node <<'NODE'
-          const fs=require('fs');
-          const spec=JSON.parse(fs.readFileSync('/tmp/openapi.json','utf8'));
-          const schema=spec.definitions?.meetings || spec.components?.schemas?.meetings;
-          if(!schema)throw new Error('public.meetings schema metadata not exposed');
-          const safe={
-            required:schema.required||[],
-            properties:Object.fromEntries(Object.entries(schema.properties||{}).map(([name,value])=>[name,{type:value.type,format:value.format,description:value.description,default:value.default}]))
-          };
-          console.log(JSON.stringify(safe,null,2));
-          NODE
+          candidates=(
+            id meeting_id room_id meeting_code code room host_id owner_id user_id created_by
+            passcode password waiting_room waiting_room_enabled active status starts_at start_time
+            title topic meeting_type personal_room_id is_personal created_at updated_at
+          )
+          for col in "${candidates[@]}"; do
+            status=$(curl -sS -o "/tmp/col-${col}.json" -w '%{http_code}' \
+              "$SUPABASE_URL/rest/v1/meetings?select=${col}&limit=0" \
+              -H "apikey: $SUPABASE_PUBLIC_KEY" \
+              -H "Authorization: Bearer $SUPABASE_PUBLIC_KEY" \
+              -H 'Accept: application/json')
+            if [ "$status" = "200" ] || [ "$status" = "206" ]; then
+              echo "COLUMN_EXISTS=${col}"
+            else
+              message=$(cat "/tmp/col-${col}.json" | tr '\n' ' ')
+              echo "COLUMN_MISSING_OR_DENIED=${col} HTTP=${status} ${message}"
+            fi
+          done
 
       - name: Confirm current production resolver failure mode
         shell: bash
