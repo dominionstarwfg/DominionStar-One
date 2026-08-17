@@ -25,11 +25,20 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('scripts/_author_personal_room_native_prejoin.py')
-          text=p.read_text().replace("Desktop prejoin bootstrap\\n", "Desktop prejoin bootstrap contract\\n")
-          p.write_text(text)
+          author=Path('scripts/_author_personal_room_native_prejoin.py')
+          author.write_text(author.read_text().replace("Desktop prejoin bootstrap\\n", "Desktop prejoin bootstrap contract\\n"))
           PY
           python3 scripts/_author_personal_room_native_prejoin.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/test-desktop-prejoin-bootstrap.mjs')
+          text=p.read_text()
+          old='/assets/js/meet/hotfix-rc13-1-media-prejoin.js?v=2-desktop-bootstrap'
+          new='/assets/js/meet/hotfix-rc13-1-media-prejoin.js?v=3-native-permission-personal'
+          if old not in text:
+              raise SystemExit('legacy desktop prejoin cache assertion marker missing')
+          p.write_text(text.replace(old,new,1))
+          PY
           node --check assets/js/meet/hotfix-rc13-1-media-prejoin.js
           node --check assets/js/meet-next/personal-room.js
           node scripts/test-personal-room-native-prejoin.mjs
@@ -45,6 +54,7 @@ jobs:
             assets/js/meet/hotfix-rc13-1-media-prejoin.js \
             assets/js/meet-next/personal-room.js \
             scripts/test-personal-room-native-prejoin.mjs \
+            scripts/test-desktop-prejoin-bootstrap.mjs \
             .github/workflows/meet-runtime-verify.yml
           git diff --cached --check
           git commit -m 'Restore Personal Room and native desktop prejoin permissions'
