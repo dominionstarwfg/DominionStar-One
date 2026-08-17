@@ -163,6 +163,17 @@
     startHotfixPreview().catch(() => {});
   };
 
+  // Desktop Meet Home arrives as /meet/?desktop=1&action=new|share. Consume
+  // that bootstrap intent immediately, before Executive 6's window-load handler
+  // can synthesize a New Meeting click and auto-submit the room. This makes the
+  // installed desktop client deterministically stop at camera/mic pre-join.
+  const bootstrapParams = new URLSearchParams(location.search);
+  const bootstrapAction = bootstrapParams.get('action') || '';
+  if (bootstrapParams.get('desktop') === '1' && (bootstrapAction === 'new' || bootstrapAction === 'share')) {
+    enterHostPrejoin({autoShare:bootstrapAction === 'share'});
+    window.__DS_DESKTOP_PREJOIN_BOOTSTRAP = 'rc13.1-desktop-prejoin-v2';
+  }
+
   document.addEventListener('click', event => {
     const newMeeting = event.target.closest?.('#newMeetingAction');
     if (newMeeting) {

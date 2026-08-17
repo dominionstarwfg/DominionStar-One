@@ -10,6 +10,7 @@ on:
       - "assets/css/meet-next/**"
       - "meet/**"
       - "scripts/test-*meet*.mjs"
+      - "scripts/test-desktop-prejoin-bootstrap.mjs"
       - "scripts/test-camera-privacy-and-native-picker.mjs"
       - "scripts/test-media-stability-guardrails.mjs"
       - "scripts/test-live-sync-regression.mjs"
@@ -52,6 +53,7 @@ jobs:
           node --check assets/js/meet-next/executive6.js
           node --check assets/js/meet/desktop-share-picker.js
           node --check assets/js/meet/dock-layout-v2.js
+          node --check assets/js/meet/hotfix-rc13-1-media-prejoin.js
           node --check netlify/functions/resolve-meeting-join.mjs
 
       - name: Camera privacy and native share picker
@@ -68,6 +70,9 @@ jobs:
 
       - name: Professional desktop meeting controls
         run: node scripts/test-professional-meeting-controls.mjs
+
+      - name: Desktop prejoin bootstrap contract
+        run: node scripts/test-desktop-prejoin-bootstrap.mjs
 
       - name: Live synchronization regression contract
         run: node scripts/test-live-sync-regression.mjs
