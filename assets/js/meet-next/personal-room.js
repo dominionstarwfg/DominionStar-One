@@ -212,6 +212,15 @@
     if (value.waitingRoomEnabled) params.set('waiting', '1');
     history.replaceState(null, '', `${location.pathname}?${params.toString()}`);
     $('personalRoomDialog')?.close();
+    if (typeof window.DominionStarEnterHostPrejoin === 'function') {
+      window.DominionStarEnterHostPrejoin({
+        room: value.personalRoomId,
+        passcode: value.passcode,
+        waitingRoom: value.waitingRoomEnabled,
+        autoShare: false
+      });
+      return;
+    }
     const form = $('joinForm');
     if (!form) throw new Error('Meeting join form is unavailable. Refresh and try again.');
     if (typeof form.requestSubmit === 'function') form.requestSubmit();

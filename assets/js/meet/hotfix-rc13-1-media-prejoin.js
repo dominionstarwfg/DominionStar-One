@@ -9,6 +9,8 @@
   const cameraKey = 'ds_meet_camera_id';
   const micKey = 'ds_meet_microphone_id';
   const speakerKey = 'ds_meet_speaker_id';
+  const desktopParams = new URLSearchParams(location.search);
+  const desktopMode = desktopParams.get('desktop') === '1';
   let hotfixPreviewStream = null;
   let hotfixPreviewOwned = false;
   let hostPrejoinPrepared = false;
@@ -58,9 +60,33 @@
     } catch (_) {}
   };
 
+const nativePermissionBlocked = value => ['denied', 'restricted'].includes(String(value || '').toLowerCase());
+const ensureNativeMediaPermissions = async constraints => {
+  if (!desktopMode || !window.dominionDesktop?.getMediaPermissions) return true;
+  const kinds = [];
+  if (constraints?.video) kinds.push('camera');
+  if (constraints?.audio) kinds.push('microphone');
+  if (!kinds.length) return true;
+
+  let status = await window.dominionDesktop.getMediaPermissions().catch(() => null);
+  if (!status?.ok) return true;
+  const undetermined = kinds.filter(kind => String(status?.[kind] || '').toLowerCase() === 'not-determined');
+  if (undetermined.length && window.dominionDesktop?.requestMediaPermissions) {
+    status = await window.dominionDesktop.requestMediaPermissions(undetermined).catch(() => status);
+  }
+  const blocked = kinds.filter(kind => nativePermissionBlocked(status?.[kind]));
+  if (!blocked.length) return true;
+
+  const names = blocked.map(kind => kind === 'camera' ? 'Camera' : 'Microphone').join(' and ');
+  const error = new Error(`DominionStar Meet needs macOS ${names} permission. Open System Settings > Privacy & Security, allow DominionStar Meet, then reopen the app.`);
+  error.name = 'NotAllowedError';
+  error.permissionKinds = blocked;
+  throw error;
+};
+
   const originalGetUserMedia = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
   if (originalGetUserMedia && !navigator.mediaDevices.__dsLocalDeviceRouting) {
-    navigator.mediaDevices.getUserMedia = constraints => {
+    navigator.mediaDevices.getUserMedia = async constraints => {
       const next = {...(constraints || {})};
       try {
         const preferredCamera = localStorage.getItem(cameraKey) || '';
@@ -70,6 +96,7 @@
         if (next.audio === true && preferredMic) next.audio = {deviceId:{ideal:preferredMic},echoCancellation:true,noiseSuppression:true,autoGainControl:true};
         else if (next.audio && typeof next.audio === 'object' && preferredMic && !next.audio.deviceId) next.audio = {...next.audio, deviceId:{ideal:preferredMic}};
       } catch (_) {}
+      await ensureNativeMediaPermissions(next);
       return originalGetUserMedia(next);
     };
     navigator.mediaDevices.__dsLocalDeviceRouting = true;
@@ -135,8 +162,13 @@
         if (camera && !localStorage.getItem(cameraKey)) rememberLocalDevice('camera', camera.deviceId);
         if (mic && !localStorage.getItem(micKey)) rememberLocalDevice('microphone', mic.deviceId);
       }).catch(() => {});
-    } catch (_) {
+    } catch (error) {
       setPreviewVisualState({videoOn:false,audioOn:false});
+      const status = $('joinStatus');
+      if (status && error?.message) {
+        status.textContent = error.message;
+        status.hidden = false;
+      }
     }
   };
 
@@ -163,6 +195,8 @@
     startHotfixPreview().catch(() => {});
   };
 
+  window.DominionStarEnterHostPrejoin = options => enterHostPrejoin(options || {});
+
   // Desktop Meet Home arrives as /meet/?desktop=1&action=new|share. Consume
   // that bootstrap intent immediately, before Executive 6's window-load handler
   // can synthesize a New Meeting click and auto-submit the room. This makes the
@@ -172,6 +206,12 @@
   if (bootstrapParams.get('desktop') === '1' && (bootstrapAction === 'new' || bootstrapAction === 'share')) {
     enterHostPrejoin({autoShare:bootstrapAction === 'share'});
     window.__DS_DESKTOP_PREJOIN_BOOTSTRAP = 'rc13.1-desktop-prejoin-v2';
+  }
+  if (bootstrapParams.get('desktop') === '1' && bootstrapAction === 'personal') {
+    const openPersonalRoom = () => setTimeout(() => $('personalMeetingAction')?.click(), 0);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', openPersonalRoom, {once:true});
+    else openPersonalRoom();
+    window.__DS_DESKTOP_PREJOIN_BOOTSTRAP = 'rc13.2-desktop-personal-room';
   }
 
   document.addEventListener('click', event => {
@@ -326,5 +366,5 @@
   }, true);
 
   patchLocalDevicePreferenceBoundary().catch(() => {});
-  window.__DS_MEET_MEDIA_PREJOIN_HOTFIX = 'rc13.1-media-prejoin-local-devices';
+  window.__DS_MEET_MEDIA_PREJOIN_HOTFIX = 'rc13.2-native-permissions-personal-room';
 })();
