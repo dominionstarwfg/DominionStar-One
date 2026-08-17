@@ -20,10 +20,16 @@ on:
       - "assets/join-qr.png"
       - "assets/logo.jpeg"
       - "RECOVERED-PRODUCTION-STATIC-BASELINE.json"
-      - "meet/release-contract.json"
-      - "meet/index.html"
+      - "meet/**"
+      - "meet-home/**"
+      - "meet-login/**"
       - "assets/js/meeting-engine.js"
-      - "assets/js/meet-next/executive6.js"
+      - "assets/js/member-auth.js"
+      - "assets/js/meet/**"
+      - "assets/js/meet-next/**"
+      - "assets/css/meet/**"
+      - "assets/css/meet-next/**"
+      - "supabase/member-email-notifications.sql"
       - "scripts/build-netlify-site.sh"
       - ".github/workflows/recover-rc1226-static-baseline.yml"
       - ".github/workflows/netlify-source-recovery-verify.yml"
@@ -130,8 +136,9 @@ jobs:
           manifest=json.loads(Path('RECOVERED-PRODUCTION-STATIC-BASELINE.json').read_text())
           if manifest.get('rootPolicy') != 'preserve-current-working-production-root':
               raise SystemExit('Recovered root policy changed')
-          if manifest.get('protectedMeetReleaseId') != '2026.08.16-rc13.0-media-share-link-stability':
-              raise SystemExit('Protected Meet release changed')
+          expected_release='2026.08.16-rc13.1-modern-ui-contract'
+          if manifest.get('protectedMeetReleaseId') != expected_release:
+              raise SystemExit(f"Protected Meet release changed: {manifest.get('protectedMeetReleaseId')!r}")
           expected={
             'index.html':'a2d5f7e85f5cd892a24962abe389637be03bd431af55a29d74e2311a3cbe0207',
             'styles.css':'0629a1afb26c6f66f407f7b88caf3937944bf36932b855f76db46cc07c784cff',
@@ -156,7 +163,7 @@ jobs:
           print('CURRENT_PRODUCTION_STATIC_BASELINE_CERTIFIED')
           PY
 
-      - name: Verify protected RC13 Meet integrity
+      - name: Verify protected RC13.1 Meet integrity
         shell: bash
         run: |
           set -euo pipefail
@@ -164,18 +171,21 @@ jobs:
           import hashlib, json
           from pathlib import Path
           contract=json.loads(Path('meet/release-contract.json').read_text())
-          wanted_release='2026.08.16-rc13.0-media-share-link-stability'
+          wanted_release='2026.08.16-rc13.1-modern-ui-contract'
           if contract.get('releaseId') != wanted_release:
               raise SystemExit(f"Meet release changed: {contract.get('releaseId')!r}")
-          for rel in ['meet/index.html','assets/js/meeting-engine.js','assets/js/meet-next/executive6.js']:
-              wanted=contract.get('files',{}).get(rel)
-              if not wanted:
-                  raise SystemExit(f'Missing release hash for {rel}')
-              actual=hashlib.sha256(Path(rel).read_bytes()).hexdigest()
+          files=contract.get('files') or {}
+          if not files:
+              raise SystemExit('Meet release contract contains no files')
+          for rel,wanted in sorted(files.items()):
+              path=Path(rel)
+              if not path.is_file():
+                  raise SystemExit(f'Missing release-contract source file: {rel}')
+              actual=hashlib.sha256(path.read_bytes()).hexdigest()
               if actual != wanted:
                   raise SystemExit(f'{rel}: {actual} != release contract {wanted}')
               print('MEET_HASH_OK', rel, actual)
-          print('PROTECTED_MEET_RELEASE_OK', wanted_release)
+          print('PROTECTED_MEET_RELEASE_OK', wanted_release, 'files='+str(len(files)))
           PY
 
       - name: Verify local import closure and historical dependency contract
