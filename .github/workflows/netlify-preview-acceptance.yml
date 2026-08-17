@@ -191,6 +191,7 @@ jobs:
           path: .visual-review/*.png
           if-no-files-found: error
           retention-days: 14
+          include-hidden-files: true
 
       - name: Prove preview cannot silently become production
         shell: bash
