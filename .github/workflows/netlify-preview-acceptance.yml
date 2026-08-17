@@ -184,6 +184,14 @@ jobs:
           done
           DOMINIONSTAR_PREVIEW_URL=http://127.0.0.1:4173 node scripts/browser-meet-visual-modernization-acceptance.mjs
 
+      - name: Upload RC13.1 visual review screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: DominionStar-RC13.1-Visual-Review-${{ github.sha }}
+          path: .visual-review/*.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Prove preview cannot silently become production
         shell: bash
         run: |
