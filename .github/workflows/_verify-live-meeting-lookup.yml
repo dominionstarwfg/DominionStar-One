@@ -1,0 +1,40 @@
+name: Verify Live Meeting Lookup
+
+on:
+  push:
+    branches:
+      - verify/live-meeting-lookup-after-pr42
+    paths:
+      - .github/workflows/_verify-live-meeting-lookup.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST exact live meeting credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' '{"room":"2389103606","passcode":"360"}' >/tmp/request.json
+          code=$(curl -sS -o /tmp/response.json -w '%{http_code}' \
+            -H 'content-type: application/json' \
+            --data-binary @/tmp/request.json \
+            'https://dominionstarld.com/.netlify/functions/resolve-meeting-join')
+          echo "LIVE_LOOKUP_HTTP=$code"
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/response.json'))
+          safe={k:v for k,v in data.items() if k not in {'passcode'}}
+          print('LIVE_LOOKUP_RESPONSE='+json.dumps(safe,sort_keys=True))
+          PY
+          test "$code" = "200"
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/response.json'))
+          assert data.get('found') is True, data
+          assert data.get('passcode_valid') is True, data
+          print('LIVE_MEETING_LOOKUP_VERIFIED')
+          PY
