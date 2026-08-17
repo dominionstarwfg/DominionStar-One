@@ -285,3 +285,83 @@ body.prejoin-active .round-control:hover{transform:translateY(-1px);box-shadow:0
   }
   .meet-caption-tray{left:8px!important;right:8px!important;bottom:82px!important;min-width:0!important;max-width:none!important;transform:none!important}
 }
+
+/* RC13.1 visual review polish: keep Zoom-familiar geometry while eliminating
+   light web-form surfaces from the active desktop meeting shell. */
+body.meeting-active .chat-panel,
+body.meeting-active .chat-panel>header,
+body.meeting-active .chat-panel .recipient,
+body.meeting-active .chat-panel .chat-messages,
+body.meeting-active .chat-panel #chatForm{
+  color:var(--ds-future-text)!important;
+  border-color:rgba(148,189,255,.13)!important;
+  background:linear-gradient(160deg,rgba(18,27,43,.97),rgba(9,14,24,.96))!important;
+}
+body.meeting-active .chat-panel .recipient{background:rgba(12,19,31,.82)!important}
+body.meeting-active .chat-panel .chat-messages{
+  background:
+    radial-gradient(520px 340px at 12% 0%,rgba(74,126,232,.08),transparent 58%),
+    linear-gradient(180deg,rgba(10,16,27,.82),rgba(7,12,21,.94))!important;
+}
+body.meeting-active .chat-panel .chat-message-meta{color:var(--ds-future-muted)!important}
+body.meeting-active .chat-panel .chat-message p{
+  color:#eaf0fb!important;
+  border:1px solid rgba(148,189,255,.12)!important;
+  background:linear-gradient(145deg,rgba(34,48,72,.9),rgba(21,31,48,.94))!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.2)!important;
+}
+body.meeting-active .chat-panel .chat-message.mine p{
+  color:#fff!important;
+  border-color:rgba(104,228,255,.14)!important;
+  background:linear-gradient(145deg,#286fd7,#174caa)!important;
+}
+body.meeting-active .chat-panel select,
+body.meeting-active .chat-panel input,
+body.meeting-active .settings-dialog select,
+body.meeting-active .settings-dialog input:not([type="checkbox"]):not([type="range"]){
+  color:#eef4ff!important;
+  border:1px solid rgba(148,189,255,.2)!important;
+  background:linear-gradient(180deg,rgba(20,31,49,.98),rgba(12,19,31,.98))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+body.meeting-active .chat-panel select:focus,
+body.meeting-active .chat-panel input:focus,
+body.meeting-active .settings-dialog select:focus,
+body.meeting-active .settings-dialog input:focus{
+  border-color:rgba(104,228,255,.56)!important;
+  box-shadow:0 0 0 3px rgba(104,228,255,.09)!important;
+}
+body.meeting-active .settings-dialog{
+  border-radius:18px!important;
+  overflow:hidden!important;
+}
+body.meeting-active .settings-dialog header{
+  background:linear-gradient(180deg,rgba(22,33,51,.96),rgba(13,21,34,.94))!important;
+}
+body.meeting-active .settings-dialog .settings-body{
+  background:
+    radial-gradient(620px 360px at 100% 0%,rgba(77,130,237,.07),transparent 58%),
+    rgba(7,12,21,.72)!important;
+}
+body.meeting-active .settings-dialog .settings-body label{color:#b7c2d4!important}
+body.meeting-active .settings-dialog .check{
+  min-height:46px;padding:9px 12px;border:1px solid rgba(148,189,255,.11);border-radius:11px;
+  background:rgba(255,255,255,.025)!important;
+}
+body.meeting-active .settings-dialog input[type="range"]{accent-color:var(--ds-future-cyan)}
+body.meeting-active .settings-dialog input[type="checkbox"]{accent-color:#4a8ff7}
+body.meeting-active .device-menu:not([hidden]){
+  min-width:280px!important;
+  border-radius:14px!important;
+  overflow:auto!important;
+}
+body.meeting-active .device-menu strong,
+body.meeting-active .device-menu .device-menu-section{color:#91a0b7!important}
+body.meeting-active .device-menu button{
+  min-height:42px!important;
+  color:#eef4ff!important;
+  border:1px solid transparent!important;
+}
+body.meeting-active .device-menu button:hover{
+  border-color:rgba(116,168,255,.12)!important;
+}
