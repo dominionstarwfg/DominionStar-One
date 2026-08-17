@@ -1064,7 +1064,7 @@
         if(!cameraIntentCurrent(intentSeq))throw supersededCameraError();
       }
       try{
-        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+        const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false});
         const track=stream.getVideoTracks()[0]||null;
         if(!track){
           stream.getTracks().forEach(item=>item.stop());
@@ -1199,16 +1199,16 @@
 
   const releaseCameraTrack = track => {
     const base=state.localStream;
-    if(track&&base?.getVideoTracks?.().includes(track)){
-      try{base.removeTrack(track);}catch(_){}
-    }
-    if(track?.readyState!=='ended'){
-      try{track.stop();}catch(_){}
-    }
-    if(track)state.lastCameraReleaseAt=Date.now();
-    // Keep the negotiated camera sender but remove its media. This releases the
-    // physical camera immediately without destroying the peer connection or
-    // disturbing the independent presentation sender.
+    const cameraTracks=[...(base?.getVideoTracks?.()||[])];
+    if(track && !cameraTracks.includes(track))cameraTracks.push(track);
+    let released=false;
+    cameraTracks.forEach(item=>{
+      if(base?.getVideoTracks?.().includes(item)){try{base.removeTrack(item);}catch(_){}}
+      if(item?.readyState!=='ended'){try{item.stop();released=true;}catch(_){}}
+    });
+    if(released||cameraTracks.length)state.lastCameraReleaseAt=Date.now();
+    // Keep the negotiated camera sender but remove its media. Video Off is a
+    // physical privacy boundary: no hidden/duplicate camera track may survive.
     Promise.allSettled([...state.peers.values()].map(peer=>syncPeerTracks(peer))).catch(()=>{});
   };
 

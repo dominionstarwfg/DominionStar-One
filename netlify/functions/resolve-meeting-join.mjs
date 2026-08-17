@@ -5,14 +5,15 @@ const cleanDigits=value=>String(value||'').replace(/\D/g,'').slice(0,10);
 
 export default async request=>{
   if(String(request?.method||request?.httpMethod||'').toUpperCase()!=='POST')return reply(405,{error:'Method not allowed'});
-  const {SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY}=process.env;
-  if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return reply(500,{error:'Meeting lookup is not configured.'});
+  const SUPABASE_URL=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL||process.env.PUBLIC_SUPABASE_URL||'https://ckmurvhjumzlhsegncba.supabase.co';
+  const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY||process.env.SUPABASE_ANON_KEY||process.env.VITE_SUPABASE_ANON_KEY||'sb_publishable_zAzk_tobvWHOWR22bmzMMw_uqHnCVxb';
+  if(!SUPABASE_URL||!SUPABASE_KEY)return reply(503,{error:'Meeting lookup is temporarily unavailable.'});
   let input={};
   try{input=typeof request.json==='function'?await request.json():JSON.parse(request.body||'{}');}catch(_){return reply(400,{error:'Invalid request'});}
   const room=cleanDigits(input.room);
   const suppliedPasscode=cleanDigits(input.passcode);
   if(room.length<6)return reply(400,{error:'Enter a valid meeting ID.'});
-  const client=createClient(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+  const client=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
   const [live,scheduled,personal]=await Promise.all([
     client.from('meet_rooms').select('room_id,owner_id,waiting_room_enabled,passcode,active').eq('room_id',room).maybeSingle(),
     client.from('meet_scheduled_meetings').select('meeting_id,user_id,waiting_room_enabled,passcode').eq('meeting_id',room).maybeSingle(),

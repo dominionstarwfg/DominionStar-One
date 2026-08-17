@@ -33,7 +33,7 @@ requireSource(hotfixSource,'delete sanitized.camera_id','Camera hardware ID is s
 requireSource(hotfixSource,'delete sanitized.microphone_id','Microphone hardware ID is still eligible for remote account sync.');
 requireSource(hotfixSource,'delete sanitized.speaker_id','Speaker hardware ID is still eligible for remote account sync.');
 requireSource(hotfixSource,"localStorage.setItem(key, value || '')",'Hardware selection is not persisted locally on the current machine.');
-requireSource(hotfixSource,"window.__DS_MEET_MEDIA_PREJOIN_HOTFIX = 'rc13.2-native-permissions-personal-room'",'Native permission + Personal Room media/prejoin identity is missing.');
+requireSource(hotfixSource,"window.__DS_MEET_MEDIA_PREJOIN_HOTFIX = 'rc13.3-camera-privacy-single-owner'",'Native permission + Personal Room media/prejoin identity is missing.');
 
 // Zoom-like Pause Share keeps the last frame visible to participants and remains
 // a local presenter state; it must not broadcast a public "paused" state.
@@ -48,10 +48,10 @@ requireSource(uiSource,"url.searchParams.set('passcode',code)",'Passcode-protect
 requireSource(uiSource,"ids.meetingPasscode.value=String(query.get('passcode')",'Incoming invitation passcodes are not applied to the join flow.');
 requireSource(uiSource,"query.get('room') || query.get('meeting')",'Legacy desktop meeting links are not normalized at entry.');
 requireSource(uiSource,'buildMeetingJoinLink(pendingCredentials.id,{passcode,waiting:waitingRoom})','Scheduled meeting links do not use the canonical room/passcode/waiting-room contract.');
-requireSource(html,'meeting-engine.js?v=93-rc13-1-camera-handoff','Meet HTML does not bust the RC13.1 camera-handoff engine cache key.');
-requireSource(html,'executive6.js?v=80-rc13-1-prejoin-handoff','Meet HTML does not bust the RC13.1 pre-join UI cache key.');
+requireSource(html,'meeting-engine.js?v=94-rc13-3-camera-privacy','Meet HTML does not bust the RC13.1 camera-handoff engine cache key.');
+requireSource(html,'executive6.js?v=81-rc13-3-single-preview-owner','Meet HTML does not bust the RC13.1 pre-join UI cache key.');
 requireSource(html,'dock-layout-v2.js?v=4-rc13-1-device-locality','Meet HTML does not bust the professional device-control cache key.');
-requireSource(html,'hotfix-rc13-1-media-prejoin.js?v=3-native-permission-personal','Meet HTML does not load the cache-busted native permission + Personal Room prejoin hotfix.');
+requireSource(html,'hotfix-rc13-1-media-prejoin.js?v=4-camera-privacy-reacquire','Meet HTML does not load the cache-busted native permission + Personal Room prejoin hotfix.');
 assert.equal(contract.releaseId,'2026.08.16-rc13.1-modern-ui-contract','Release contract is not pinned to the certified RC13.1 futuristic UI candidate.');
 
 class FakeTrack {

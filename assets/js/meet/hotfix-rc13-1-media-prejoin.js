@@ -139,15 +139,25 @@ const ensureNativeMediaPermissions = async constraints => {
   const startHotfixPreview = async () => {
     const preview = $('prejoinVideo');
     if (!preview || !navigator.mediaDevices?.getUserMedia) return;
-    if (preview.srcObject?.getVideoTracks?.().some(track => track.readyState === 'live')) return;
+    if (preview.srcObject?.getTracks?.().some(track => track.readyState === 'live')) {
+      hotfixPreviewStream=preview.srcObject;hotfixPreviewOwned=false;
+      setPreviewVisualState({videoOn:preview.srcObject.getVideoTracks?.().some(t=>t.readyState==='live'),audioOn:preview.srcObject.getAudioTracks?.().some(t=>t.readyState==='live'&&t.enabled)});
+      return preview.srcObject;
+    }
     stopHotfixPreview({all:true});
     const cameraOff = Boolean($('alwaysJoinCameraOff')?.checked);
     const muted = Boolean($('alwaysJoinMuted')?.checked);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: cameraOff ? false : {width:{ideal:1280},height:{ideal:720}},
+      if(window.__DS_PREJOIN_MEDIA_PROMISE){
+        const shared=await window.__DS_PREJOIN_MEDIA_PROMISE.catch(()=>null);
+        if(shared){hotfixPreviewStream=shared;hotfixPreviewOwned=false;preview.srcObject=shared;setPreviewVisualState({videoOn:shared.getVideoTracks?.().some(t=>t.readyState==='live'),audioOn:shared.getAudioTracks?.().some(t=>t.readyState==='live'&&t.enabled)});return shared;}
+      }
+      const acquisition=navigator.mediaDevices.getUserMedia({
+        video: cameraOff ? false : {width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
         audio: muted ? false : {echoCancellation:true,noiseSuppression:true,autoGainControl:true}
       });
+      window.__DS_PREJOIN_MEDIA_PROMISE=acquisition;
+      const stream = await acquisition.finally(()=>{if(window.__DS_PREJOIN_MEDIA_PROMISE===acquisition)window.__DS_PREJOIN_MEDIA_PROMISE=null;});
       hotfixPreviewStream = stream;
       hotfixPreviewOwned = true;
       preview.srcObject = stream;
@@ -319,52 +329,9 @@ const ensureNativeMediaPermissions = async constraints => {
     if (label) label.textContent = on ? 'Stop Video' : 'Start Video';
   };
 
-  $('camBtn')?.addEventListener('click', async event => {
-    if (cameraTransition) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      return;
-    }
-    const snapshot = engine.snapshot?.() || {};
-    const currentlyOn = Boolean(snapshot.mediaState?.video && snapshot.media?.cameraTrackState !== 'ended');
-    if (currentlyOn) return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    cameraTransition = true;
-    const button = $('camBtn');
-    if (button) button.disabled = true;
-    setCameraButton(false);
-    try {
-      await engine.toggleVideo(false).catch(() => false);
-      const localSurfaces = [$('prejoinVideo'), $('selfVideo')];
-      localSurfaces.forEach(video => {
-        const stream = video?.srcObject;
-        if (stream) stopStreamVideoTracks(stream);
-      });
-      await sleep(1200);
-      const actual = await engine.toggleVideo(true);
-      const latest = engine.snapshot?.() || {};
-      const live = Boolean(actual && latest.mediaState?.video !== false && latest.media?.cameraTrackState === 'live');
-      setCameraButton(live);
-      if (!live) throw new Error('Camera could not start after releasing the previous preview stream.');
-    } catch (error) {
-      setCameraButton(false);
-      const layer = $('toastLayer');
-      if (layer) {
-        const node = document.createElement('div');
-        node.className = 'toast toast-error';
-        node.textContent = error?.message || 'Camera could not start';
-        layer.append(node);
-        setTimeout(() => node.remove(), 3500);
-      }
-    } finally {
-      if (button) button.disabled = false;
-      cameraTransition = false;
-    }
-  }, true);
+  // In-meeting camera lifecycle is owned exclusively by DominionStarMeetingEngine.
+
 
   patchLocalDevicePreferenceBoundary().catch(() => {});
-  window.__DS_MEET_MEDIA_PREJOIN_HOTFIX = 'rc13.2-native-permissions-personal-room';
+  window.__DS_MEET_MEDIA_PREJOIN_HOTFIX = 'rc13.3-camera-privacy-single-owner';
 })();

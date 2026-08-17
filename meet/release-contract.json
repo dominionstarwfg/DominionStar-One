@@ -2,12 +2,12 @@
   "releaseId": "2026.08.16-rc13.1-modern-ui-contract",
   "desktopBridge": 10,
   "files": {
-    "assets/js/meeting-engine.js": "8a6bc7a040e186831d474af7726909e5c09b0973d238fab77a39b026622b0d41",
+    "assets/js/meeting-engine.js": "32338d096d190e77c509804a156762cde5ad32d91403fa946d21aa8ee67d5683",
     "assets/js/meet/desktop-share-picker.js": "63911329c6e1f9905bd8233744553d46c1cbf7d4b484ee32938016c05fc5d4c5",
     "assets/js/meet/remote-control.js": "dd94e4f38090ac5c0fbbccddac7c602b7bffebdeb3c0885972644bda0a15b3d7",
     "assets/js/meet/live-transcription.js": "fbb51cac337a2c811eb7ffcf165d469b694b73a0f785c94c62ffd4ff24598cb1",
-    "assets/js/meet/hotfix-rc13-1-media-prejoin.js": "c6572b0cef203d9b66fa543a7fac4a2f6eb3d95e66d552c189e0eabbffbba135",
-    "assets/js/meet-next/executive6.js": "a2ba1600c2b7bc450fcc49aefcf521e404cd229ee1b3806c199e5475985acc21",
+    "assets/js/meet/hotfix-rc13-1-media-prejoin.js": "7b7cb640b1eb73b03b24674c5611d03186ec26c400f8a689b849b8fd8378ed51",
+    "assets/js/meet-next/executive6.js": "daa598ad66aab3819fb7c930e14edd38273849cf3f598a7aa5902de9117c4f1d",
     "assets/js/meet-next/personal-room.js": "ef057d76e35acffcaa86839a3cea7745baebd054d85a3cd03888f842bed48793",
     "assets/js/meet/dock-layout-v2.js": "b1878130988d99df5064b6a801ab7e7e59c076c4a2445a5c57c03085e44b822d",
     "assets/css/meet-next/executive6.css": "00ab0de0a73c690db4b71c271e52203f21a67d8ac25d299bdda4a0c3123f6ad1",
@@ -16,8 +16,8 @@
     "meet-login/index.html": "d70799aea96060f0a2c05e9ca6cbc7b73c6018b8b7a526e63897f236c6ac1b13",
     "assets/js/member-auth.js": "edf18c591337fa03cde5bd6de8b1b0aaca891ee813bf9cd8ff6bca392f335e95",
     "meet-home/index.html": "c35ef7136fc52545b622604732f2e1780dc4bc4d03baf5c4f2ddfd8cd9552a5a",
-    "meet/index.html": "d2f5d00df3c938765fd47401f0bd319e2e9b4c571ccc2982c7ebc1d90d9d064b",
-    "netlify/functions/resolve-meeting-join.mjs": "80aac676366feb1e5d327b09d38d4f5a221aad93fe7a961f15e0a1dd6c34afb1",
+    "meet/index.html": "896bffaf17f6c7c15c143478b0928e481a10ba6f7e0c30bc79669bac336d9d72",
+    "netlify/functions/resolve-meeting-join.mjs": "01e1566d9bc8753aa95667f00c9caf7aebe41a11e9a43f031066a476394ff0cb",
     "netlify/functions/meeting-host-alert.mjs": "abd2c86ae04930a849ecfd7490f19e4d27aba6502d930689197fbac81235b032",
     "supabase/member-email-notifications.sql": "a421897bd33b528f096a6aea01360a7120a83a7e045f17d3c201dc84133632f3"
   }
