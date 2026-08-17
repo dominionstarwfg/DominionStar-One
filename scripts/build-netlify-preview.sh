@@ -54,21 +54,37 @@ This package is not approved for production deployment.
 Production requires explicit preview acceptance and PRODUCTION-CUTOVER-APPROVAL.json.
 EOF
 
-# Verify the protected Meet release survives composition byte-for-byte.
-python3 - "$PUBLIC" <<'PY'
+# Verify every source file in the Meet release contract. For files that belong
+# in the static publish surface, also prove the composed preview is byte-identical.
+python3 - "$ROOT" "$PUBLIC" <<'PY'
 import hashlib, json, sys
 from pathlib import Path
-root=Path(sys.argv[1])
-contract=json.loads((root/'meet/release-contract.json').read_text())
-release='2026.08.16-rc13.0-media-share-link-stability'
+source=Path(sys.argv[1]); public=Path(sys.argv[2])
+contract=json.loads((source/'meet/release-contract.json').read_text())
+release='2026.08.16-rc13.1-modern-ui-contract'
 if contract.get('releaseId') != release:
     raise SystemExit(f"Unexpected preview Meet release: {contract.get('releaseId')!r}")
-for rel in ['meet/index.html','assets/js/meeting-engine.js','assets/js/meet-next/executive6.js']:
-    wanted=contract.get('files',{}).get(rel)
-    actual=hashlib.sha256((root/rel).read_bytes()).hexdigest()
-    if not wanted or actual != wanted:
-        raise SystemExit(f'{rel}: preview {actual} != certified {wanted}')
-    print('PREVIEW_MEET_HASH_OK', rel, actual)
+files=contract.get('files') or {}
+if not files:
+    raise SystemExit('Meet release contract contains no files')
+source_only_prefixes=('netlify/functions/','supabase/')
+for rel,wanted in sorted(files.items()):
+    source_path=source/rel
+    if not source_path.is_file():
+        raise SystemExit(f'{rel}: release-contract source file is missing')
+    actual=hashlib.sha256(source_path.read_bytes()).hexdigest()
+    if actual != wanted:
+        raise SystemExit(f'{rel}: source {actual} != certified {wanted}')
+    print('PREVIEW_SOURCE_HASH_OK', rel, actual)
+    if not rel.startswith(source_only_prefixes):
+        public_path=public/rel
+        if not public_path.is_file():
+            raise SystemExit(f'{rel}: deployable release-contract file missing from preview')
+        public_hash=hashlib.sha256(public_path.read_bytes()).hexdigest()
+        if public_hash != wanted:
+            raise SystemExit(f'{rel}: preview {public_hash} != certified {wanted}')
+        print('PREVIEW_PUBLISH_HASH_OK', rel, public_hash)
+print('PREVIEW_MEET_FULL_CONTRACT_OK', len(files), release)
 PY
 
 # Build a deterministic inventory for review. The preview-only _headers and
@@ -84,7 +100,7 @@ for p in sorted(x for x in root.rglob('*') if x.is_file()):
 payload={
   'kind':'DominionStar non-production acceptance preview',
   'productionApproved':False,
-  'meetReleaseId':'2026.08.16-rc13.0-media-share-link-stability',
+  'meetReleaseId':'2026.08.16-rc13.1-modern-ui-contract',
   'fileCount':len(files),
   'files':files,
 }
