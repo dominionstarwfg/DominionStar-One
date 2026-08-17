@@ -133,6 +133,92 @@
     event.preventDefault();event.stopPropagation();setView(button.dataset.dockView);
   }));
 
+  /* Professional meeting controls contract.
+     Executive6 owns media state and role state. This last-loaded layer makes
+     its quick controls behave like installed meeting software without changing
+     the engine: Audio exposes both input and output devices, and co-hosts can
+     manage people in the Waiting Room without being allowed to enable/disable
+     the Waiting Room itself. */
+  const deviceMenu=document.getElementById('deviceMenu');
+  const micMenuBtn=document.getElementById('micMenuBtn');
+  const microphoneSelect=document.getElementById('microphoneSelect');
+  const speakerSelect=document.getElementById('speakerSelect');
+  const settingsDialog=document.getElementById('settingsDialog');
+  const endAllBtn=document.getElementById('endAllBtn');
+  const isLocalHost=()=>Boolean(endAllBtn&&!endAllBtn.hidden);
+  const normalizedMenuLabel=button=>String(button?.textContent||'').replace(/^\s*✓\s*/,'').trim();
+  const waitingRoomToggleLabel=label=>label==='Enable Waiting Room'||label==='Waiting Room';
+
+  const enforceHostOnlyWaitingRoomToggle=()=>{
+    if(!deviceMenu||isLocalHost())return;
+    [...deviceMenu.querySelectorAll('button')].forEach(button=>{
+      if(waitingRoomToggleLabel(normalizedMenuLabel(button)))button.remove();
+    });
+  };
+
+  if(deviceMenu){
+    new MutationObserver(enforceHostOnlyWaitingRoomToggle).observe(deviceMenu,{childList:true,subtree:true});
+    deviceMenu.addEventListener('click',event=>{
+      const button=event.target.closest('button');
+      if(!isLocalHost()&&waitingRoomToggleLabel(normalizedMenuLabel(button))){
+        event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      }
+    },true);
+  }
+
+  const appendDeviceSection=(label,select,kind)=>{
+    if(!deviceMenu||!select)return;
+    const heading=document.createElement('strong');
+    heading.className='device-menu-section';
+    heading.textContent=label;
+    deviceMenu.append(heading);
+    const options=[...select.options];
+    if(!options.length){
+      const empty=document.createElement('button');
+      empty.type='button';empty.disabled=true;empty.textContent=`No ${label.toLowerCase()} detected`;
+      deviceMenu.append(empty);return;
+    }
+    options.forEach(option=>{
+      const button=document.createElement('button');
+      button.type='button';
+      button.dataset.deviceKind=kind;
+      button.dataset.deviceId=option.value;
+      button.textContent=`${option.value===select.value?'✓ ':''}${option.textContent}`;
+      button.addEventListener('click',()=>{
+        select.value=option.value;
+        select.dispatchEvent(new Event('change',{bubbles:true}));
+        deviceMenu.hidden=true;
+      });
+      deviceMenu.append(button);
+    });
+  };
+
+  const showProfessionalAudioMenu=anchor=>{
+    if(!deviceMenu||!anchor)return;
+    const rect=anchor.getBoundingClientRect();
+    deviceMenu.style.left=`${Math.max(10,Math.min(innerWidth-325,rect.left))}px`;
+    deviceMenu.innerHTML='';
+    appendDeviceSection('Microphone',microphoneSelect,'microphone');
+    appendDeviceSection('Speaker',speakerSelect,'speaker');
+    const settings=document.createElement('button');
+    settings.type='button';settings.className='device-settings-link';settings.textContent='Audio Settings…';
+    settings.addEventListener('click',()=>{
+      deviceMenu.hidden=true;
+      if(settingsDialog&&!settingsDialog.open)settingsDialog.showModal?.();
+    });
+    deviceMenu.append(settings);
+    deviceMenu.hidden=false;
+    deviceMenu.dataset.dsProfessionalAudio='1';
+  };
+
+  if(micMenuBtn&&deviceMenu){
+    micMenuBtn.setAttribute('aria-label','Audio options');
+    micMenuBtn.addEventListener('click',event=>{
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      showProfessionalAudioMenu(event.currentTarget);
+    },true);
+  }
+
   reset();
   modernizeIconography();
   let savedView='stack';
