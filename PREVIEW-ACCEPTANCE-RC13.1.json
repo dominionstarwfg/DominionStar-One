@@ -1,40 +1,57 @@
 {
-  "recordType": "non-production-technical-preview-acceptance",
-  "candidateCommit": "e557ef5fd29c37a2ca3e53ce5ca03b52e684f481",
+  "recordType": "non-production-preview-acceptance",
+  "acceptedSourceCommit": "7a8b82b59d7438165872eeed3fea432ccf6ab019",
   "baseCommit": "a718510abebb42bac77e2900cf6af1bdbbbd4a7d",
   "meetReleaseId": "2026.08.16-rc13.1-modern-ui-contract",
   "technicalAcceptance": true,
-  "humanVisualApproval": false,
+  "humanVisualApproval": true,
   "productionCutoverAuthorized": false,
   "productionApprovalFileCreated": false,
   "diffReview": {
     "status": "ahead",
-    "aheadBy": 68,
+    "aheadBy": 75,
     "behindBy": 0,
     "mergeBase": "a718510abebb42bac77e2900cf6af1bdbbbd4a7d",
-    "scope": "Recovered full DominionStar web runtime plus RC13.1 Meet candidate and non-production acceptance infrastructure"
+    "mergeable": true,
+    "changedFiles": 175,
+    "scope": "Recovered full DominionStar web runtime plus RC13.1 Meet candidate, tested candidate deltas and non-production acceptance infrastructure"
   },
   "checks": {
     "DominionStar Web Static Dependency Closure": {
-      "runId": 31992384757,
-      "runNumber": 34,
+      "runId": 31993629790,
+      "runNumber": 41,
       "conclusion": "success"
     },
     "DominionStar Meet Runtime Verification": {
-      "runId": 31992384794,
-      "runNumber": 57,
+      "runId": 31993629834,
+      "runNumber": 64,
       "conclusion": "success"
     },
     "DominionStar Netlify Source Recovery Verification": {
-      "runId": 31992384608,
-      "runNumber": 56,
+      "runId": 31993629795,
+      "runNumber": 63,
       "conclusion": "success"
     },
     "DominionStar Non-Production Preview Acceptance": {
-      "runId": 31992384670,
-      "runNumber": 31,
+      "runId": 31993629787,
+      "runNumber": 38,
       "conclusion": "success"
     }
+  },
+  "visualReviewArtifact": {
+    "artifactId": 9276144376,
+    "name": "DominionStar-RC13.1-Visual-Review-6e57994ce10eb62c23364f6f9db07f86c4a19754",
+    "digest": "sha256:921694cc14b8220b740a35fc0cad674c04747c198dd495ccd6a0d35ddef8889d",
+    "reviewedStates": [
+      "pre-join",
+      "live meeting",
+      "participants",
+      "chat",
+      "populated device menu",
+      "audio and video settings",
+      "screen-share controls",
+      "waiting room"
+    ]
   },
   "certifiedBehavior": [
     "static dependency closure",
@@ -55,19 +72,27 @@
   "futuristicVisualContract": [
     "vector participant-dock controls",
     "vector raised-hand state and queue badge",
-    "future-glass pre-join surface",
-    "future-glass meeting toolbar",
-    "future-glass participant dock",
-    "future-glass participants panel",
-    "future-glass chat panel",
-    "future-glass device menu",
-    "future-glass settings dialog",
-    "future-glass screen-share controls",
-    "future-glass alert surfaces"
+    "futuristic pre-join surface",
+    "futuristic meeting toolbar",
+    "futuristic participant dock",
+    "futuristic participants panel",
+    "dark desktop-grade meeting chat",
+    "populated futuristic device menu",
+    "dark desktop-grade audio and video settings",
+    "futuristic screen-share controls",
+    "futuristic waiting-room and alert surfaces"
+  ],
+  "finalProductionImpactReview": [
+    "production build remains fail-closed without PRODUCTION-CUTOVER-APPROVAL.json",
+    "Meet source and deployable files are SHA-256 checked against meet/release-contract.json",
+    "routing and custom 404 behavior were reviewed against current Netlify redirect and shadowing semantics",
+    "private/member/founder surfaces retain no-store and noindex headers",
+    "historical function dependency ranges remain restored",
+    "no production deployment is authorized by this acceptance record"
   ],
   "safetyNotes": [
-    "This record does not authorize deployment.",
+    "This record accepts the non-production preview and visual candidate only.",
     "PRODUCTION-CUTOVER-APPROVAL.json remains absent by design.",
-    "Human visual review of the candidate is still distinct from automated technical acceptance."
+    "A separate explicit production cutover authorization is required before live deployment."
   ]
 }
