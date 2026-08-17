@@ -141,6 +141,8 @@
      the Waiting Room itself. */
   const deviceMenu=document.getElementById('deviceMenu');
   const micMenuBtn=document.getElementById('micMenuBtn');
+  const camMenuBtn=document.getElementById('camMenuBtn');
+  const cameraSelect=document.getElementById('cameraSelect');
   const microphoneSelect=document.getElementById('microphoneSelect');
   const speakerSelect=document.getElementById('speakerSelect');
   const settingsDialog=document.getElementById('settingsDialog');
@@ -166,6 +168,92 @@
     },true);
   }
 
+  /* Device enumeration must behave like installed meeting software.
+     Electron/macOS can initially expose no device metadata even when a stream
+     is already active. Refresh repeatedly on user intent and device changes,
+     preserve the selected device, and never leave a blank selector. */
+  const deviceKinds=[
+    {select:cameraSelect,kind:'videoinput',fallback:'Camera'},
+    {select:microphoneSelect,kind:'audioinput',fallback:'Microphone'},
+    {select:speakerSelect,kind:'audiooutput',fallback:'Speaker'}
+  ];
+  let deviceRefreshSeq=0;
+  const setFallbackOption=(select,label,value='')=>{
+    if(!select)return;
+    select.innerHTML='';
+    const option=document.createElement('option');
+    option.value=value;
+    option.textContent=label;
+    select.append(option);
+  };
+  const populateDeviceSelect=(select,devices,kind,fallback)=>{
+    if(!select)return 0;
+    const current=select.value;
+    const remembered=kind==='videoinput'
+      ? localStorage.getItem('ds_meet_camera_id')||''
+      : kind==='audioinput'
+        ? localStorage.getItem('ds_meet_microphone_id')||''
+        : localStorage.getItem('ds_meet_speaker_id')||'';
+    const matches=devices.filter(device=>device.kind===kind);
+    select.innerHTML='';
+    if(kind==='audiooutput'){
+      const systemDefault=document.createElement('option');
+      systemDefault.value='';
+      systemDefault.textContent='System Default Speaker';
+      select.append(systemDefault);
+    }
+    matches.forEach((device,index)=>{
+      const option=document.createElement('option');
+      option.value=device.deviceId||'';
+      option.textContent=device.label||`${fallback} ${index+1}`;
+      select.append(option);
+    });
+    const preferred=[current,remembered].find(value=>value&&[...select.options].some(option=>option.value===value));
+    if(preferred)select.value=preferred;
+    if(!select.options.length)setFallbackOption(select,`No ${fallback.toLowerCase()} detected`);
+    return matches.length;
+  };
+  const refreshProfessionalDevices=async({retries=2}={})=>{
+    if(!navigator.mediaDevices?.enumerateDevices)return false;
+    const seq=++deviceRefreshSeq;
+    const delays=[0,180,550,1200].slice(0,Math.max(1,retries+1));
+    for(const delay of delays){
+      if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+      if(seq!==deviceRefreshSeq)return false;
+      try{
+        const devices=await navigator.mediaDevices.enumerateDevices();
+        if(seq!==deviceRefreshSeq)return false;
+        let inputs=0;
+        deviceKinds.forEach(item=>{inputs+=populateDeviceSelect(item.select,devices,item.kind,item.fallback);});
+        if(inputs||delay===delays[delays.length-1])return true;
+      }catch(_){
+        if(delay===delays[delays.length-1]){
+          if(cameraSelect&&!cameraSelect.options.length)setFallbackOption(cameraSelect,'Camera unavailable');
+          if(microphoneSelect&&!microphoneSelect.options.length)setFallbackOption(microphoneSelect,'Microphone unavailable');
+          if(speakerSelect&&!speakerSelect.options.length)setFallbackOption(speakerSelect,'System Default Speaker');
+        }
+      }
+    }
+    return false;
+  };
+  const scheduleDeviceRefresh=()=>{
+    refreshProfessionalDevices({retries:3}).catch(()=>{});
+  };
+  navigator.mediaDevices?.addEventListener?.('devicechange',scheduleDeviceRefresh);
+  settingsDialog?.addEventListener('click',event=>{
+    if(event.target===settingsDialog||event.target.closest('select'))scheduleDeviceRefresh();
+  },true);
+  settingsDialog?.addEventListener('toggle',scheduleDeviceRefresh);
+  const settingsObserver=settingsDialog?new MutationObserver(()=>{
+    if(settingsDialog.open||!settingsDialog.hidden)scheduleDeviceRefresh();
+  }):null;
+  if(settingsDialog)settingsObserver?.observe(settingsDialog,{attributes:true,attributeFilter:['open','hidden']});
+  micMenuBtn?.addEventListener('pointerdown',scheduleDeviceRefresh,{capture:true});
+  camMenuBtn?.addEventListener('pointerdown',scheduleDeviceRefresh,{capture:true});
+  addEventListener('focus',scheduleDeviceRefresh);
+  setTimeout(scheduleDeviceRefresh,250);
+  setTimeout(scheduleDeviceRefresh,1200);
+
   const appendDeviceSection=(label,select,kind)=>{
     if(!deviceMenu||!select)return;
     const heading=document.createElement('strong');
@@ -187,14 +275,19 @@
       button.addEventListener('click',()=>{
         select.value=option.value;
         select.dispatchEvent(new Event('change',{bubbles:true}));
+        try{
+          const key=kind==='microphone'?'ds_meet_microphone_id':kind==='speaker'?'ds_meet_speaker_id':'ds_meet_camera_id';
+          localStorage.setItem(key,option.value||'');
+        }catch(_){ }
         deviceMenu.hidden=true;
       });
       deviceMenu.append(button);
     });
   };
 
-  const showProfessionalAudioMenu=anchor=>{
+  const showProfessionalAudioMenu=async anchor=>{
     if(!deviceMenu||!anchor)return;
+    await refreshProfessionalDevices({retries:2}).catch(()=>{});
     const rect=anchor.getBoundingClientRect();
     deviceMenu.style.left=`${Math.max(10,Math.min(innerWidth-325,rect.left))}px`;
     deviceMenu.innerHTML='';
@@ -205,6 +298,7 @@
     settings.addEventListener('click',()=>{
       deviceMenu.hidden=true;
       if(settingsDialog&&!settingsDialog.open)settingsDialog.showModal?.();
+      scheduleDeviceRefresh();
     });
     deviceMenu.append(settings);
     deviceMenu.hidden=false;
@@ -215,7 +309,7 @@
     micMenuBtn.setAttribute('aria-label','Audio options');
     micMenuBtn.addEventListener('click',event=>{
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-      showProfessionalAudioMenu(event.currentTarget);
+      showProfessionalAudioMenu(event.currentTarget).catch(()=>{});
     },true);
   }
 
