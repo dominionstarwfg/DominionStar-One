@@ -1,5 +1,5 @@
 {
-  "releaseId": "2026.08.16-rc13.0-media-share-link-stability",
+  "releaseId": "2026.08.16-rc13.1-modern-ui-contract",
   "desktopBridge": 10,
   "files": {
     "assets/js/meeting-engine.js": "8a6bc7a040e186831d474af7726909e5c09b0973d238fab77a39b026622b0d41",
@@ -8,10 +8,10 @@
     "assets/js/meet/live-transcription.js": "fbb51cac337a2c811eb7ffcf165d469b694b73a0f785c94c62ffd4ff24598cb1",
     "assets/js/meet-next/executive6.js": "a2ba1600c2b7bc450fcc49aefcf521e404cd229ee1b3806c199e5475985acc21",
     "assets/js/meet-next/personal-room.js": "05f1bce304cc5be99bc439d9c4703d96d4c0492ff637dce51ade4754ffd918e6",
-    "assets/js/meet/dock-layout-v2.js": "508b0cd9b47e8ff23effef14de634eacba7dfa0e9ba8b990791999bcc2773537",
+    "assets/js/meet/dock-layout-v2.js": "4dcad52ce1c7bbd8d2fa9a7c9713e37387c0aada85399cd8af0c922bc4ac8e9f",
     "assets/css/meet-next/executive6.css": "00ab0de0a73c690db4b71c271e52203f21a67d8ac25d299bdda4a0c3123f6ad1",
     "assets/css/meet/dock-layout-v2.css": "81f2331a46fa34eeb78b5b0fc829c53abc40aae1949591edbd0a7f48886389b9",
-    "assets/css/meet/deep-clean-layout.css": "a1800475c2c654d7673be3283a86d30f3a5d927089ffe3358e0226078cd25ba2",
+    "assets/css/meet/deep-clean-layout.css": "01a37943af3c8833344e81f3f3965fa6214cc35120a2db3682e849098c0c5d34",
     "meet-login/index.html": "d70799aea96060f0a2c05e9ca6cbc7b73c6018b8b7a526e63897f236c6ac1b13",
     "assets/js/member-auth.js": "edf18c591337fa03cde5bd6de8b1b0aaca891ee813bf9cd8ff6bca392f335e95",
     "meet-home/index.html": "180cdec64abeebcbf85855ec42ea5eb9117134457f250e0fc224c09bce2e5861",
