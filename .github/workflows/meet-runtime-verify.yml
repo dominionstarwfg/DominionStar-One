@@ -78,19 +78,31 @@ jobs:
           from pathlib import Path
 
           contract=json.loads(Path('meet/release-contract.json').read_text())
-          expected='2026.08.16-rc13.0-media-share-link-stability'
-          if contract.get('releaseId') != expected:
+          expected_release='2026.08.16-rc13.0-media-share-link-stability'
+          if contract.get('releaseId') != expected_release:
               raise SystemExit(f"Unexpected Meet releaseId: {contract.get('releaseId')!r}")
-          for rel in [
-              'assets/js/meeting-engine.js',
-              'assets/js/meet-next/executive6.js',
-              'meet/index.html',
-          ]:
-              actual=hashlib.sha256(Path(rel).read_bytes()).hexdigest()
-              expected_hash=contract.get('files',{}).get(rel)
+
+          files=contract.get('files') or {}
+          if not files:
+              raise SystemExit('Meet release contract contains no file hashes')
+
+          mismatches=[]
+          for rel, expected_hash in sorted(files.items()):
+              path=Path(rel)
+              if not path.is_file():
+                  mismatches.append((rel,'MISSING',expected_hash))
+                  print('HASH MISSING', rel, expected_hash)
+                  continue
+              actual=hashlib.sha256(path.read_bytes()).hexdigest()
               if actual != expected_hash:
-                  raise SystemExit(f'{rel}: source hash {actual} != release contract {expected_hash}')
-              print('HASH OK', rel, actual)
+                  mismatches.append((rel,actual,expected_hash))
+                  print('HASH MISMATCH', rel, 'actual='+actual, 'contract='+str(expected_hash))
+              else:
+                  print('HASH OK', rel, actual)
+
+          if mismatches:
+              raise SystemExit(f'Meet release contract mismatch count: {len(mismatches)}')
+          print('MEET_RELEASE_CONTRACT_ALL_FILES_OK', len(files))
           PY
 
       - name: Prove Netlify production is fail-closed until full source recovery
