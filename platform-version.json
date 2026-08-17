@@ -113,14 +113,18 @@
     "participantSearch": true,
     "persistentDevicePreferences": true,
     "autoHidePresenterToolbar": true,
-    "pinnedPresenterToolbar": true
+    "pinnedPresenterToolbar": true,
+    "meetModernVectorIconography": true,
+    "meetFuturisticSurfaceSystem": true,
+    "meetTwoClientUiAcceptance": true,
+    "meetFullReleaseContractHashing": true
   },
   "codename": "Executive Meeting Views",
   "updated_at": "2026-07-25T10:30:00-05:00",
   "name": "Executive OS 4.0 Alpha014",
-  "updatedAt": "2026-08-06T19:50:00Z",
-  "meetBuild": 27,
-  "label": "Meet Premium Experience Build 27",
-  "meet": "RC9.1",
-  "meet_release": "Video Request & Dock Stability"
+  "updatedAt": "2026-08-17T03:05:00Z",
+  "meetBuild": 28,
+  "label": "Meet Modern UI Contract Build 28",
+  "meet": "RC13.1",
+  "meet_release": "Meeting Parity & Modern UI Contract"
 }
