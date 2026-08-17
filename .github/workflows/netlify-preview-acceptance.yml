@@ -18,6 +18,7 @@ on:
       - "scripts/browser-runtime-acceptance.mjs"
       - "scripts/browser-auth-boundary-acceptance.mjs"
       - "scripts/browser-two-client-meet-acceptance.mjs"
+      - "scripts/run-browser-two-client-meet-acceptance.mjs"
       - "scripts/function-email-outbox-acceptance.mjs"
       - "scripts/build-netlify-preview.sh"
       - ".github/workflows/netlify-preview-acceptance.yml"
@@ -165,7 +166,7 @@ jobs:
             curl -fsS http://127.0.0.1:4173/meet/ >/dev/null && break
             sleep 0.25
           done
-          DOMINIONSTAR_PREVIEW_URL=http://127.0.0.1:4173 node scripts/browser-two-client-meet-acceptance.mjs
+          DOMINIONSTAR_PREVIEW_URL=http://127.0.0.1:4173 node scripts/run-browser-two-client-meet-acceptance.mjs
 
       - name: Prove preview cannot silently become production
         shell: bash
