@@ -33,28 +33,28 @@ jobs:
           console.log(`SUPABASE_PUBLIC_KEY=${key}`);
           NODE
 
-      - name: Probe exact meeting rows through public Supabase RLS
+      - name: Inspect public meetings schema metadata without reading rows
         shell: bash
-        env:
-          ROOM: '2389103606'
         run: |
           set -euo pipefail
-          probe() {
-            table="$1"; filter="$2"; select="$3"
-            encoded_select=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=","))' "$select")
-            status=$(curl -sS -o "/tmp/${table}.json" -w '%{http_code}' \
-              "$SUPABASE_URL/rest/v1/${table}?select=${encoded_select}&${filter}=eq.${ROOM}&limit=1" \
-              -H "apikey: $SUPABASE_PUBLIC_KEY" \
-              -H "Authorization: Bearer $SUPABASE_PUBLIC_KEY" \
-              -H 'Accept: application/json')
-            echo "TABLE=${table} HTTP_STATUS=${status}"
-            cat "/tmp/${table}.json"; echo
-          }
-          probe meet_rooms room_id 'room_id,owner_id,waiting_room_enabled,passcode,active'
-          probe meet_scheduled_meetings meeting_id 'meeting_id,user_id,waiting_room_enabled,passcode'
-          probe meet_personal_rooms personal_room_id 'personal_room_id,user_id,waiting_room_enabled,passcode'
+          curl -fsS "$SUPABASE_URL/rest/v1/" \
+            -H "apikey: $SUPABASE_PUBLIC_KEY" \
+            -H "Authorization: Bearer $SUPABASE_PUBLIC_KEY" \
+            -H 'Accept: application/openapi+json' \
+            -o /tmp/openapi.json
+          node <<'NODE'
+          const fs=require('fs');
+          const spec=JSON.parse(fs.readFileSync('/tmp/openapi.json','utf8'));
+          const schema=spec.definitions?.meetings || spec.components?.schemas?.meetings;
+          if(!schema)throw new Error('public.meetings schema metadata not exposed');
+          const safe={
+            required:schema.required||[],
+            properties:Object.fromEntries(Object.entries(schema.properties||{}).map(([name,value])=>[name,{type:value.type,format:value.format,description:value.description,default:value.default}]))
+          };
+          console.log(JSON.stringify(safe,null,2));
+          NODE
 
-      - name: Probe production resolver with actual join contract
+      - name: Confirm current production resolver failure mode
         shell: bash
         run: |
           set -euo pipefail
