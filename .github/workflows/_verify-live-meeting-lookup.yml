@@ -17,38 +17,27 @@ jobs:
       - name: POST exact live meeting credentials
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
           printf '%s\n' '{"room":"2389103606","passcode":"360"}' >/tmp/request.json
           code=$(curl -sS -o /tmp/response.json -w '%{http_code}' \
+            --retry 2 --connect-timeout 10 --max-time 30 \
             -H 'content-type: application/json' \
             --data-binary @/tmp/request.json \
             'https://dominionstarld.com/.netlify/functions/resolve-meeting-join')
           echo "LIVE_LOOKUP_HTTP=$code"
-          python3 - <<'PY'
-          import json
+          python3 - "$code" <<'PY'
+          import json,sys
+          code=int(sys.argv[1])
           data=json.load(open('/tmp/response.json'))
           safe={k:v for k,v in data.items() if k not in {'passcode'}}
           print('LIVE_LOOKUP_RESPONSE='+json.dumps(safe,sort_keys=True))
-          PY
-
-      - name: Inspect public API schema names for existing meeting resources
-        shell: bash
-        run: |
-          set -euo pipefail
-          URL='https://ckmurvhjumzlhsegncba.supabase.co'
-          KEY='sb_publishable_zAzk_tobvWHOWR22bmzMMw_uqHnCVxb'
-          curl -fsS \
-            -H "apikey: $KEY" \
-            -H "Authorization: Bearer $KEY" \
-            -H 'Accept: application/openapi+json' \
-            "$URL/rest/v1/" -o /tmp/openapi.json
-          python3 - <<'PY'
-          import json,re
-          doc=json.load(open('/tmp/openapi.json'))
-          paths=sorted((doc.get('paths') or {}).keys())
-          matches=[p for p in paths if re.search(r'(meet|room|schedule|appointment|session|event)',p,re.I)]
-          print('MEETING_RELATED_API_PATHS='+json.dumps(matches[:100]))
-          defs=sorted((doc.get('definitions') or doc.get('components',{}).get('schemas') or {}).keys())
-          dmatches=[d for d in defs if re.search(r'(meet|room|schedule|appointment|session|event)',d,re.I)]
-          print('MEETING_RELATED_SCHEMA_NAMES='+json.dumps(dmatches[:100]))
+          if code==200:
+              assert data.get('found') is True, data
+              assert data.get('passcode_valid') is True, data
+              print('EXACT_ROOM_DATABASE_LOOKUP_OK')
+          elif code in (404,503):
+              assert data.get('live_verification') is True, data
+              print('EXACT_ROOM_SECURE_LIVE_VERIFICATION_HANDOFF_OK')
+          else:
+              raise SystemExit(f'Unexpected resolver HTTP {code}: {data}')
           PY
