@@ -78,7 +78,7 @@ jobs:
           from pathlib import Path
 
           contract=json.loads(Path('meet/release-contract.json').read_text())
-          expected_release='2026.08.16-rc13.0-media-share-link-stability'
+          expected_release='2026.08.16-rc13.1-modern-ui-contract'
           if contract.get('releaseId') != expected_release:
               raise SystemExit(f"Unexpected Meet releaseId: {contract.get('releaseId')!r}")
 
