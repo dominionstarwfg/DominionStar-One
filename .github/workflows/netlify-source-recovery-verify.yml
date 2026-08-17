@@ -71,23 +71,36 @@ jobs:
           actual=$(find netlify/functions -maxdepth 1 -type f -name '*.mjs' | wc -l | tr -d ' ')
           test "$actual" -eq 9
 
-      - name: Verify recovered function bytes match certified production history
+      - name: Verify recovered function bytes and intentional outbox candidate delta
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/recovery-functions.sha256 <<'EOF'
+          # These files must remain byte-identical to the certified RC12.26 recovery.
+          cat > /tmp/recovery-functions-unchanged.sha256 <<'EOF'
           748090c3684bf92aecf057ff6442ebb3564caa1581c52058d5118239550e3fe6  package.json
           9cdaf2e166c2649a9d672d58b155d153d0c8296d615e7b6d0847a0e7c4908d72  netlify/functions/founder-data.mjs
           273ccf9eaa6e761b8f049ac0a3ec639deb80fd373271338027eebd8268fc65b3  netlify/functions/meet-intelligence.mjs
           7d91e47df12f8db051a3e69e73ec5f405fe705068a6a8e2cfeacaebd83c49dcc  netlify/functions/meet-rtc-config.mjs
           f1f2c218595213ab044222dbb70ff44b3830733e829f97912063b99887ca6db7  netlify/functions/meet-translate.mjs
           abd2c86ae04930a849ecfd7490f19e4d27aba6502d930689197fbac81235b032  netlify/functions/meeting-host-alert.mjs
-          8790421491c4c42bd9d1c89b6767f9b0de0bbde98ccc6d712c9d176736f64068  netlify/functions/process-email-outbox.mjs
           80aac676366feb1e5d327b09d38d4f5a221aad93fe7a961f15e0a1dd6c34afb1  netlify/functions/resolve-meeting-join.mjs
           8666d6d73dca86659926f613e0c75ae34a88087ebbb6d08838088e7202d3ffc2  netlify/functions/scheduled-email-outbox.mjs
           de608d5ceca9ee8a4bc53689d2637033d3cf900b7a728a15e6a5983427647149  netlify/functions/workspace-weather.mjs
           EOF
-          sha256sum --check /tmp/recovery-functions.sha256
+          sha256sum --check /tmp/recovery-functions-unchanged.sha256
+
+          # process-email-outbox.mjs intentionally differs from the recovered production
+          # hash 8790421491c4c42bd9d1c89b6767f9b0de0bbde98ccc6d712c9d176736f64068.
+          # Its candidate hash is pinned here and its only intended routing change is
+          # the canonical DominionStar action-link fallback used by the isolated outbox gate.
+          echo "76f6ee77c92356ee33bf58facb19414a4a6b7d86e7f4275da618417824a1b223  netlify/functions/process-email-outbox.mjs" > /tmp/outbox-candidate.sha256
+          sha256sum --check /tmp/outbox-candidate.sha256
+          grep -F "new URL(email.action_url,'https://dominionstarld.com')" netlify/functions/process-email-outbox.mjs >/dev/null
+          if grep -F "https://dominionstar.com" netlify/functions/process-email-outbox.mjs >/dev/null; then
+            echo "Legacy DominionStar action-link host is still present" >&2
+            exit 1
+          fi
+          echo "RECOVERED_FUNCTION_BASELINE_PLUS_OUTBOX_CANDIDATE_CERTIFIED"
 
       - name: Verify recovered current production static baseline
         shell: bash
