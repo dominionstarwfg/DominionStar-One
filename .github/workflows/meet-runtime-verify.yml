@@ -15,6 +15,7 @@ on:
       - "scripts/test-live-sync-regression.mjs"
       - "scripts/test-two-client-authority.mjs"
       - "scripts/test-waiting-room-surgical.mjs"
+      - "scripts/test-professional-meeting-controls.mjs"
       - "scripts/test-netlify-cutover-approval.sh"
       - "scripts/build-netlify-site.sh"
       - "netlify.toml"
@@ -64,6 +65,9 @@ jobs:
 
       - name: Two-client host and co-host authority
         run: node scripts/test-two-client-authority.mjs
+
+      - name: Professional desktop meeting controls
+        run: node scripts/test-professional-meeting-controls.mjs
 
       - name: Live synchronization regression contract
         run: node scripts/test-live-sync-regression.mjs
