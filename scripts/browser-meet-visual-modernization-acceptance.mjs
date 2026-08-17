@@ -147,6 +147,28 @@ try {
   assert(/blur/i.test(surface.deviceMenu.backdrop), `device menu glass treatment missing: ${surface.deviceMenu.backdrop}`);
   assert(/blur/i.test(surface.shareStatus.backdrop), `share controls glass treatment missing: ${surface.shareStatus.backdrop}`);
 
+  const polishState = await page.evaluate(() => {
+    const style = selector => {
+      const node = document.querySelector(selector);
+      const computed = node ? getComputedStyle(node) : null;
+      return {
+        background: computed?.backgroundImage || '',
+        backgroundColor: computed?.backgroundColor || '',
+        color: computed?.color || ''
+      };
+    };
+    return {
+      chatMessages: style('#chatPanel .chat-messages'),
+      chatRecipient: style('#chatRecipient'),
+      chatInput: style('#chatInput'),
+      settingsSelect: style('#qualitySelect')
+    };
+  });
+  assert(/gradient/i.test(polishState.chatMessages.background), `chat message surface regressed to a flat/light web panel: ${JSON.stringify(polishState.chatMessages)}`);
+  assert(/gradient/i.test(polishState.chatRecipient.background), `chat recipient control regressed to a native light select: ${JSON.stringify(polishState.chatRecipient)}`);
+  assert(/gradient/i.test(polishState.chatInput.background), `chat composer regressed to a native light input: ${JSON.stringify(polishState.chatInput)}`);
+  assert(/gradient/i.test(polishState.settingsSelect.background), `settings select regressed to a native light form control: ${JSON.stringify(polishState.settingsSelect)}`);
+
   // Capture the exact certified candidate in representative visible states for
   // human review. These screenshots do not alter the production authorization gate.
   await page.evaluate(() => {
@@ -175,7 +197,7 @@ try {
 
   await page.evaluate(() => {
     const panel=document.getElementById('participantsPanel');
-    if(panel){panel.hidden=false;panel.style.display='block';}
+    if(panel){panel.hidden=false;panel.style.display='block';panel.style.right='18px';panel.style.left='auto';panel.style.top='68px';}
     const list=document.getElementById('participantList');
     if(list){
       list.innerHTML=`
@@ -190,9 +212,9 @@ try {
     const participants=document.getElementById('participantsPanel');
     if(participants){participants.hidden=true;participants.style.display='none';}
     const chat=document.getElementById('chatPanel');
-    if(chat){chat.hidden=false;chat.style.display='block';}
+    if(chat){chat.hidden=false;chat.style.display='block';chat.style.right='18px';chat.style.left='auto';chat.style.top='68px';}
     const messages=document.getElementById('chatMessages');
-    if(messages){messages.innerHTML='<div class="chat-message"><strong>Jordan Miles</strong><p>Welcome to DominionStar Meet.</p></div><div class="chat-message"><strong>Levismond Aken</strong><p>We will begin in a moment.</p></div>';}
+    if(messages){messages.innerHTML='<div class="chat-message"><div class="chat-avatar">JM</div><div class="chat-bubble-wrap"><div class="chat-message-meta"><strong>Jordan Miles</strong><span>9:01 PM</span></div><p>Welcome to DominionStar Meet.</p></div></div><div class="chat-message mine"><div class="chat-avatar">LA</div><div class="chat-bubble-wrap"><div class="chat-message-meta"><strong>You</strong><span>9:02 PM</span></div><p>We will begin in a moment.</p></div></div>';}
   });
   await screenshot('04-chat');
 
@@ -200,8 +222,21 @@ try {
     const chat=document.getElementById('chatPanel');
     if(chat){chat.hidden=true;chat.style.display='none';}
     const menu=document.getElementById('deviceMenu');
-    if(menu){menu.hidden=false;menu.style.display='block';menu.style.left='90px';}
+    if(menu){
+      menu.hidden=false;menu.style.display='block';menu.style.left='86px';menu.style.right='auto';menu.style.bottom='88px';
+      menu.innerHTML=`
+        <strong class="menu-title">Audio</strong>
+        <div class="device-menu-section">Select a Microphone</div>
+        <button type="button" class="device-menu-item"><span>MacBook Microphone</span><span class="menu-check">✓</span></button>
+        <button type="button" class="device-menu-item"><span>External USB Microphone</span><span class="menu-check"></span></button>
+        <div class="device-menu-section">Select a Speaker</div>
+        <button type="button" class="device-menu-item"><span>MacBook Speakers</span><span class="menu-check">✓</span></button>
+        <button type="button" class="device-menu-item"><span>Test Speaker & Microphone</span><span class="utility-next">›</span></button>
+        <button type="button" class="device-menu-item"><span>Audio Settings</span><span class="utility-next">›</span></button>`;
+    }
   });
+  const deviceMenuItems = await page.locator('#deviceMenu button').count();
+  assert(deviceMenuItems >= 5, `visual review device menu is not populated: ${deviceMenuItems}`);
   await screenshot('05-device-menu');
 
   await page.evaluate(() => {
@@ -262,6 +297,7 @@ try {
   console.log('MEET_VISUAL_OK vector raised-hand controls and dynamic queue badge');
   console.log('MEET_VISUAL_OK futuristic pre-join surface');
   console.log('MEET_VISUAL_OK futuristic toolbar, dock, participants, chat, device menu, settings, share and alert surfaces');
+  console.log('MEET_VISUAL_OK dark desktop chat and settings controls');
   console.log('MEET_VISUAL_REVIEW_SCREENSHOTS_WRITTEN', reviewDir);
   console.log('DOMINIONSTAR_MEET_VISUAL_MODERNIZATION_ACCEPTANCE_OK');
 } finally {
