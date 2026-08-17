@@ -4,6 +4,7 @@ import vm from 'node:vm';
 
 const engineSource=fs.readFileSync(new URL('../assets/js/meeting-engine.js',import.meta.url),'utf8');
 const uiSource=fs.readFileSync(new URL('../assets/js/meet-next/executive6.js',import.meta.url),'utf8');
+const hotfixSource=fs.readFileSync(new URL('../assets/js/meet/hotfix-rc13-1-media-prejoin.js',import.meta.url),'utf8');
 const html=fs.readFileSync(new URL('../meet/index.html',import.meta.url),'utf8');
 const contract=JSON.parse(fs.readFileSync(new URL('../meet/release-contract.json',import.meta.url),'utf8'));
 
@@ -19,6 +20,19 @@ requireSource(uiSource,'const PREVIEW_CAMERA_RELEASE_GRACE_MS=750','Prejoin came
 requireSource(uiSource,'acquireUserMediaStable({video:{width:{ideal:1280},height:{ideal:720}},audio:false})','Prejoin Video On bypasses stable camera acquisition.');
 requireSource(uiSource,'while(ids.toastLayer.children.length>3)','Camera failures can still flood the meeting stage with unlimited toasts.');
 
+// RC13.1 production hotfix: host starts must stop at a real camera/mic preview,
+// preview hardware must be released before meeting acquisition, and physical
+// device IDs must stay machine-local instead of roaming through account sync.
+requireSource(hotfixSource,"event.target.closest?.('#newMeetingAction')",'New Meeting is not intercepted for the professional pre-join checkpoint.');
+requireSource(hotfixSource,"heading.textContent = 'Ready to start?'",'Host pre-join screen does not expose the Start Meeting checkpoint.');
+requireSource(hotfixSource,"subcopy.textContent = 'Check your camera and microphone before you start the meeting.'",'Host pre-join screen does not explicitly verify camera and microphone state.');
+requireSource(hotfixSource,"await sleep(1100)",'Preview camera is not given a hardware-release handoff window before meeting acquisition.');
+requireSource(hotfixSource,'delete sanitized.camera_id','Camera hardware ID is still eligible for remote account sync.');
+requireSource(hotfixSource,'delete sanitized.microphone_id','Microphone hardware ID is still eligible for remote account sync.');
+requireSource(hotfixSource,'delete sanitized.speaker_id','Speaker hardware ID is still eligible for remote account sync.');
+requireSource(hotfixSource,"localStorage.setItem(key, value || '')",'Hardware selection is not persisted locally on the current machine.');
+requireSource(hotfixSource,"window.__DS_MEET_MEDIA_PREJOIN_HOTFIX = 'rc13.1-media-prejoin-local-devices'",'RC13.1 media/prejoin hotfix identity is missing.');
+
 // Zoom-like Pause Share keeps the last frame visible to participants and remains
 // a local presenter state; it must not broadcast a public "paused" state.
 requireSource(engineSource,'createFrozenScreenTrack','Pause Share does not create a frozen last-frame presentation track.');
@@ -32,8 +46,10 @@ requireSource(uiSource,"url.searchParams.set('passcode',code)",'Passcode-protect
 requireSource(uiSource,"ids.meetingPasscode.value=String(query.get('passcode')",'Incoming invitation passcodes are not applied to the join flow.');
 requireSource(uiSource,"query.get('room') || query.get('meeting')",'Legacy desktop meeting links are not normalized at entry.');
 requireSource(uiSource,'buildMeetingJoinLink(pendingCredentials.id,{passcode,waiting:waitingRoom})','Scheduled meeting links do not use the canonical room/passcode/waiting-room contract.');
-requireSource(html,'meeting-engine.js?v=92-rc13-media-stability','Meet HTML does not bust the production meeting-engine cache key.');
-requireSource(html,'executive6.js?v=79-rc13-media-share-link-stability','Meet HTML does not bust the production UI cache key.');
+requireSource(html,'meeting-engine.js?v=93-rc13-1-camera-handoff','Meet HTML does not bust the RC13.1 camera-handoff engine cache key.');
+requireSource(html,'executive6.js?v=80-rc13-1-prejoin-handoff','Meet HTML does not bust the RC13.1 pre-join UI cache key.');
+requireSource(html,'dock-layout-v2.js?v=4-rc13-1-device-locality','Meet HTML does not bust the professional device-control cache key.');
+requireSource(html,'hotfix-rc13-1-media-prejoin.js?v=1','Meet HTML does not load the RC13.1 prejoin/media hotfix.');
 assert.equal(contract.releaseId,'2026.08.16-rc13.1-modern-ui-contract','Release contract is not pinned to the certified RC13.1 futuristic UI candidate.');
 
 class FakeTrack {
@@ -164,4 +180,4 @@ assert.equal(lastScreenPause?.paused,false,'Resume Share did not publish its loc
 await engine.stopScreenShare();
 assert.equal(shared.getVideoTracks()[0].readyState,'ended','Stop Share did not release the display capture.');
 
-console.log('PASS production RC13.1 camera recovery, privacy fail-closed behavior, freeze-frame sharing, canonical invitation contracts, and futuristic release identity.');
+console.log('PASS production RC13.1 camera recovery, preview handoff, device-local hardware, privacy fail-closed behavior, freeze-frame sharing, canonical invitation contracts, and futuristic release identity.');
