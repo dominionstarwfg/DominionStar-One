@@ -78,7 +78,7 @@ jobs:
           actual=$(find netlify/functions -maxdepth 1 -type f -name '*.mjs' | wc -l | tr -d ' ')
           test "$actual" -eq 9
 
-      - name: Verify recovered function bytes and intentional outbox candidate delta
+      - name: Verify recovered function bytes and intentional certified deltas
         shell: bash
         run: |
           set -euo pipefail
@@ -89,11 +89,24 @@ jobs:
           7d91e47df12f8db051a3e69e73ec5f405fe705068a6a8e2cfeacaebd83c49dcc  netlify/functions/meet-rtc-config.mjs
           f1f2c218595213ab044222dbb70ff44b3830733e829f97912063b99887ca6db7  netlify/functions/meet-translate.mjs
           abd2c86ae04930a849ecfd7490f19e4d27aba6502d930689197fbac81235b032  netlify/functions/meeting-host-alert.mjs
-          80aac676366feb1e5d327b09d38d4f5a221aad93fe7a961f15e0a1dd6c34afb1  netlify/functions/resolve-meeting-join.mjs
           8666d6d73dca86659926f613e0c75ae34a88087ebbb6d08838088e7202d3ffc2  netlify/functions/scheduled-email-outbox.mjs
           de608d5ceca9ee8a4bc53689d2637033d3cf900b7a728a15e6a5983427647149  netlify/functions/workspace-weather.mjs
           EOF
           sha256sum --check /tmp/recovery-functions-unchanged.sha256
+
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          contract=json.loads(Path('meet/release-contract.json').read_text())
+          rel='netlify/functions/resolve-meeting-join.mjs'
+          wanted=(contract.get('files') or {}).get(rel)
+          if not wanted:
+              raise SystemExit('Release contract does not protect resolve-meeting-join.mjs')
+          actual=hashlib.sha256(Path(rel).read_bytes()).hexdigest()
+          if actual != wanted:
+              raise SystemExit(f'{rel}: {actual} != release contract {wanted}')
+          print('CERTIFIED_MEETING_RESOLVER_HASH_OK', actual)
+          PY
 
           echo "76f6ee77c92356ee33bf58facb19414a4a6b7d86e7f4275da618417824a1b223  netlify/functions/process-email-outbox.mjs" > /tmp/outbox-candidate.sha256
           sha256sum --check /tmp/outbox-candidate.sha256
@@ -102,7 +115,7 @@ jobs:
             echo "Legacy DominionStar action-link host is still present" >&2
             exit 1
           fi
-          echo "RECOVERED_FUNCTION_BASELINE_PLUS_OUTBOX_CANDIDATE_CERTIFIED"
+          echo "RECOVERED_FUNCTION_BASELINE_PLUS_CERTIFIED_DELTAS_OK"
 
       - name: Verify recovered current production static baseline
         shell: bash
