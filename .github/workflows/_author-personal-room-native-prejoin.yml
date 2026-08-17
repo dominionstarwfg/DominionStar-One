@@ -23,6 +23,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/_author_personal_room_native_prejoin.py')
+          text=p.read_text().replace("Desktop prejoin bootstrap\\n", "Desktop prejoin bootstrap contract\\n")
+          p.write_text(text)
+          PY
           python3 scripts/_author_personal_room_native_prejoin.py
           node --check assets/js/meet/hotfix-rc13-1-media-prejoin.js
           node --check assets/js/meet-next/personal-room.js
