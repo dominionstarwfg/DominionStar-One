@@ -14,6 +14,7 @@ on:
       - "sw.js"
       - "manifest.webmanifest"
       - "package.json"
+      - "PRODUCTION-CUTOVER-APPROVAL.json"
       - "scripts/audit-static-dependency-closure.mjs"
       - "scripts/browser-runtime-acceptance.mjs"
       - "scripts/browser-auth-boundary-acceptance.mjs"
@@ -193,7 +194,7 @@ jobs:
           retention-days: 14
           include-hidden-files: true
 
-      - name: Prove preview cannot silently become production
+      - name: Prove preview isolation and production approval phase
         shell: bash
         run: |
           set -euo pipefail
@@ -207,9 +208,23 @@ jobs:
           status=$?
           set -e
           printf '%s\n' "$output"
-          test "$status" -eq 43
-          echo "$output" | grep -F 'cutover approval is intentionally withheld' >/dev/null
-          echo 'PRODUCTION_REMAINS_LOCKED'
+
+          if [ -s PRODUCTION-CUTOVER-APPROVAL.json ]; then
+            test "$status" -eq 0
+            echo "$output" | grep -F 'PRODUCTION_CUTOVER_APPROVAL_VALID' >/dev/null
+            echo "$output" | grep -F 'NETLIFY_RELEASE 2026.08.16-rc13.1-modern-ui-contract' >/dev/null
+            test -s dist/index.html
+            test -s dist/meet/index.html
+            test ! -e dist/PRODUCTION-CUTOVER-APPROVAL.json
+            test ! -e dist/PREVIEW-ACCEPTANCE-RC13.1.json
+            rm -rf dist
+            echo 'PREVIEW_REMAINS_ISOLATED_AND_PRODUCTION_IS_APPROVED'
+          else
+            test "$status" -eq 43
+            echo "$output" | grep -F 'cutover approval is intentionally withheld' >/dev/null
+            test ! -e dist
+            echo 'PRODUCTION_REMAINS_LOCKED'
+          fi
 
       - name: Package auditable preview artifact
         shell: bash
