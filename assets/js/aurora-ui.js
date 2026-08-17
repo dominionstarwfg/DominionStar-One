@@ -45,7 +45,7 @@ window.DSAurora = (() => {
 
     const main = document.querySelector('.member-dashboard');
     const header = main?.querySelector('.member-dashboard-header');
-    if (!main || !header) return;
+    if (!main || !header || !header.parentNode) return;
 
     const strip = document.createElement('div');
     strip.className = 'aurora-command-strip';
@@ -63,7 +63,7 @@ window.DSAurora = (() => {
         <b>v6.5.3</b>
       </div>
     `;
-    main.insertBefore(strip, header);
+    header.parentNode.insertBefore(strip, header);
   }
 
   function upgradeGreeting() {
