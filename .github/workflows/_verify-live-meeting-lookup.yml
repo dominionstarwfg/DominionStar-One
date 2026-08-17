@@ -26,9 +26,8 @@ jobs:
           node <<'NODE' >> "$GITHUB_ENV"
           const fs=require('fs');
           const source=fs.readFileSync('assets/js/supabase-config.js','utf8');
-          const values=[...source.matchAll(/'(https:\/\/[^']+supabase\.co|sb_publishable_[^']+)'/g)].map(m=>m[1]);
-          const url=values.find(v=>v.startsWith('https://'));
-          const key=values.find(v=>v.startsWith('sb_publishable_'));
+          const url=source.match(/url:\s*["']([^"']+)["']/)?.[1];
+          const key=source.match(/anonKey:\s*["']([^"']+)["']/)?.[1];
           if(!url||!key)throw new Error('Public Supabase config not found');
           console.log(`SUPABASE_URL=${url}`);
           console.log(`SUPABASE_PUBLIC_KEY=${key}`);
