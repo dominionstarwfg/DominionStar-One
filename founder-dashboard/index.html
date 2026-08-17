@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>document.documentElement.classList.add('js-enabled');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Founder Command Center | DominionStar Platform</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
+</head>
+<body class="founder-body">
+<main class="founder-shell">
+  <section id="founderLogin" class="founder-login">
+    <div class="founder-login-card">
+      <img src="/assets/logo.jpeg" alt="DominionStar crest">
+      <p class="eyebrow">DominionStar Platform v1.2</p>
+      <h1>Founder Command Center</h1>
+      <p>Enter the private dashboard key configured in Netlify.</p>
+      <form id="founderLoginForm">
+        <label>Founder dashboard key
+          <input id="founderKey" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="btn btn-gold" type="submit">Open Dashboard</button>
+      </form>
+      <p id="founderLoginError" class="founder-error" role="alert"></p>
+    </div>
+  </section>
+
+  <section id="founderDashboard" hidden>
+    <header class="founder-header">
+      <div>
+        <span class="platform-badge">Private Founder View · v1.2</span>
+        <h1>DominionStar Command Center</h1>
+        <p>Recruit and client activity, verified submissions, platform engagement, and follow-up priorities.</p>
+      </div>
+      <div class="founder-header-actions">
+        <button id="founderRefresh" class="btn btn-gold" type="button">Refresh Data</button>
+        <button id="founderLogout" class="btn btn-outline" type="button">Lock Dashboard</button>
+      </div>
+    </header>
+
+    <div id="founderStatus" class="founder-status">Connecting to DominionStar data…</div>
+
+    <section class="founder-metrics">
+      <article><span>Realtime Users</span><strong id="metricRealtime">—</strong><small>Last 30 minutes</small></article>
+      <article><span>Verified Submissions</span><strong id="metricLeads">—</strong><small>Netlify submissions</small></article>
+      <article><span>Conversation Requests</span><strong id="metricConversations">—</strong><small>Appointment forms</small></article>
+      <article><span>Event Registrations</span><strong id="metricEvents">—</strong><small>Event forms</small></article>
+      <article><span>Assessment Activity</span><strong id="metricAssessments">—</strong><small>GA4 events</small></article>
+      <article><span>Guide Activity</span><strong id="metricGuide">—</strong><small>GA4 events</small></article>
+    </section>
+
+    <section class="founder-grid"><article class="founder-panel founder-panel-wide"><div class="founder-panel-head"><div><p class="eyebrow">Leadership Structure</p><h2>Submitted rank distribution</h2></div></div><div class="rank-dashboard-grid"><article><span>TA</span><strong id="rankTA">0</strong></article><article><span>Associate</span><strong id="rankAssociate">0</strong></article><article><span>SA</span><strong id="rankSA">0</strong></article><article><span>MD</span><strong id="rankMD">0</strong></article><article><span>SMD</span><strong id="rankSMD">0</strong></article></div><p class="founder-empty">Counts reflect verification submissions returned by Netlify Forms. They are not official company rank totals until reviewed.</p></article>
+      <article class="founder-panel founder-panel-wide">
+        <div class="founder-panel-head">
+          <div><p class="eyebrow">Recruit & Client Pipeline</p><h2>Recent recruit and client submissions</h2></div>
+          <button id="exportFounderCsv" type="button">Export CSV</button>
+        </div>
+        <div class="founder-table-wrap">
+          <table class="founder-table">
+            <thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Interest/Form</th><th>State</th></tr></thead>
+            <tbody id="founderLeadsBody"></tbody>
+          </table>
+          <p id="founderEmptyLeads" class="founder-empty">No verified submissions were returned.</p>
+        </div>
+      </article>
+
+      <article class="founder-panel">
+        <div class="founder-panel-head"><div><p class="eyebrow">Realtime</p><h2>Top pages</h2></div></div>
+        <div id="founderPages" class="founder-list"></div>
+      </article>
+
+      <article class="founder-panel">
+        <div class="founder-panel-head"><div><p class="eyebrow">Activity</p><h2>Top events</h2></div></div>
+        <div id="founderEvents" class="founder-list"></div>
+      </article>
+
+      <article class="founder-panel">
+        <div class="founder-panel-head"><div><p class="eyebrow">Geography</p><h2>Active countries</h2></div></div>
+        <div id="founderCountries" class="founder-list"></div>
+      </article>
+
+      <article class="founder-panel">
+        <div class="founder-panel-head"><div><p class="eyebrow">Configuration</p><h2>Connection status</h2></div></div>
+        <div id="founderConnections" class="founder-connections"></div>
+      </article>
+    </section>
+
+    <section class="founder-security-note">
+      <strong>Security boundary:</strong> v1.2 uses a server-side dashboard key and Netlify environment variables. It is a founder command center, not yet a multi-user authentication system. Do not share the dashboard URL or key publicly.
+    </section>
+  </section>
+</main>
+<script src="/script.js"></script>
+<script src="/founder-dashboard/founder-dashboard.js"></script>
+<footer class="platform-release-footer">DominionStar Platform · v6.5.4 Aurora</footer><script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Settings | DominionStar</title>
+    <link rel="stylesheet" href="/styles.css?v=2026.08.12-rc12.24.1" />
+    <link rel="icon" href="/assets/logo.jpeg" />
+    <script src="/assets/js/runtime-safety.js"></script>
+    <script src="/assets/js/platform-core.js"></script>
+  </head>
+  <body class="founder-body">
+    <main class="member-dashboard settings-center">
+      <section id="settingsGate" class="member-card">
+        <p class="eyebrow">Command Center</p>
+        <h1>Loading settings…</h1>
+      </section>
+      <section id="settingsApp" class="member-hidden">
+        <header class="member-dashboard-header rc5-member-header">
+          <div>
+            <span class="production-stable-pill">Command Center</span>
+            <h1>Settings</h1>
+            <p>
+              One place for account, meeting, communication, notification, and
+              privacy defaults.
+            </p>
+          </div>
+          <div class="member-dashboard-actions">
+            <a class="btn btn-outline" href="/member-dashboard/">Dashboard</a
+            ><a class="btn btn-outline" href="/professional-profile/"
+              >My Profile</a
+            >
+          </div>
+        </header>
+        <div class="settings-layout">
+          <nav class="settings-nav" aria-label="Settings sections">
+            <button class="active" data-settings-tab="system">System</button
+            ><button data-settings-tab="audio-video">Audio &amp; Video</button
+            ><button data-settings-tab="messages">Messages</button
+            ><button data-settings-tab="notifications">Notifications</button
+            ><button data-settings-tab="meeting-defaults">
+              Meeting Defaults</button
+            ><button data-settings-tab="privacy-security">
+              Privacy &amp; Security</button
+            ><button data-settings-tab="sessions">Sessions</button>
+          </nav>
+          <div class="settings-content">
+            <section class="settings-panel active" data-settings-panel="system">
+              <p class="eyebrow">System</p>
+              <h2>Display and accessibility</h2>
+              <label class="settings-field"
+                >Theme<select id="theme">
+                  <option value="system">Use device setting</option>
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select></label
+              ><label class="settings-field"
+                >Text size<select id="textSize">
+                  <option value="standard">Standard</option>
+                  <option value="large">Large</option>
+                </select></label
+              >
+              <div id="systemSwitches"></div>
+              <div
+                id="systemResult"
+                class="settings-save-state"
+                role="status"
+              ></div>
+            </section>
+            <section class="settings-panel" data-settings-panel="audio-video">
+              <p class="eyebrow">Audio &amp; Video</p>
+              <h2>Device defaults</h2>
+              <div id="mediaSwitches"></div>
+              <p class="settings-note">
+                Camera and microphone selection remains available in meeting
+                preview and during a live meeting.
+              </p>
+              <div
+                id="mediaResult"
+                class="settings-save-state"
+                role="status"
+              ></div>
+            </section>
+            <section class="settings-panel" data-settings-panel="messages">
+              <p class="eyebrow">Messages</p>
+              <h2>Message delivery</h2>
+              <div id="messageSwitches"></div>
+              <div
+                id="messagesResult"
+                class="settings-save-state"
+                role="status"
+              ></div>
+            </section>
+            <section class="settings-panel" data-settings-panel="notifications">
+              <p class="eyebrow">Notifications</p>
+              <h2>Choose what reaches you</h2>
+              <div id="notificationSwitches"></div>
+              <button id="testSound" class="btn btn-outline" type="button">
+                Test notification sound
+              </button>
+              <div
+                id="notificationsResult"
+                class="settings-save-state"
+                role="status"
+              ></div>
+            </section>
+            <section
+              class="settings-panel"
+              data-settings-panel="meeting-defaults"
+            >
+              <p class="eyebrow">Meeting Defaults</p>
+              <h2>How meetings begin</h2>
+              <div id="meetingSwitches"></div>
+              <a class="btn btn-outline" href="/meet-home/">Open Meet home</a>
+              <div
+                id="meetingResult"
+                class="settings-save-state"
+                role="status"
+              ></div>
+            </section>
+            <section
+              class="settings-panel"
+              data-settings-panel="privacy-security"
+            >
+              <p class="eyebrow">Privacy &amp; Security</p>
+              <h2>Visibility and account protection</h2>
+              <div id="privacySwitches"></div>
+              <form id="passwordForm" class="settings-form settings-password">
+                <label
+                  >New password<input
+                    id="newPassword"
+                    type="password"
+                    minlength="8"
+                    autocomplete="new-password"
+                    required /></label
+                ><label
+                  >Confirm password<input
+                    id="confirmPassword"
+                    type="password"
+                    minlength="8"
+                    autocomplete="new-password"
+                    required /></label
+                ><button class="btn btn-gold" type="submit">
+                  Update Password
+                </button>
+              </form>
+              <div
+                id="securityResult"
+                class="settings-save-state"
+                role="status"
+              ></div>
+            </section>
+            <section class="settings-panel" data-settings-panel="sessions">
+              <p class="eyebrow">Sessions</p>
+              <h2>Account access</h2>
+              <div class="settings-session-card">
+                <strong>Current session</strong>
+                <p id="currentSessionEmail">—</p>
+                <small>This device is currently signed in.</small>
+              </div>
+              <button
+                id="signOutOtherSessions"
+                class="btn btn-outline"
+                type="button"
+              >
+                Sign Out All Sessions
+              </button>
+              <div
+                id="sessionsResult"
+                class="settings-save-state"
+                role="status"
+              ></div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="/assets/js/supabase-config.js"></script>
+    <script src="/assets/js/data-layer.js"></script>
+    <script src="/assets/js/member-auth.js"></script>
+    <script src="/assets/js/communication-engine.js"></script>
+    <script src="/assets/js/account-settings.js?v=2026.08.12-rc12.24.1"></script>
+  </body>
+</html>

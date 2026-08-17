@@ -34,7 +34,7 @@ requireSource(uiSource,"query.get('room') || query.get('meeting')",'Legacy deskt
 requireSource(uiSource,'buildMeetingJoinLink(pendingCredentials.id,{passcode,waiting:waitingRoom})','Scheduled meeting links do not use the canonical room/passcode/waiting-room contract.');
 requireSource(html,'meeting-engine.js?v=92-rc13-media-stability','Meet HTML does not bust the production meeting-engine cache key.');
 requireSource(html,'executive6.js?v=79-rc13-media-share-link-stability','Meet HTML does not bust the production UI cache key.');
-assert.equal(contract.releaseId,'2026.08.16-rc13.0-media-share-link-stability','Release contract was not advanced with the changed production runtime.');
+assert.equal(contract.releaseId,'2026.08.16-rc13.1-modern-ui-contract','Release contract is not pinned to the certified RC13.1 futuristic UI candidate.');
 
 class FakeTrack {
   constructor(kind,id,{width=1280,height=720}={}){this.kind=kind;this.id=id;this.label=id;this.readyState='live';this.enabled=true;this.contentHint='';this.width=width;this.height=height;this.listeners=new Map();}
@@ -164,4 +164,4 @@ assert.equal(lastScreenPause?.paused,false,'Resume Share did not publish its loc
 await engine.stopScreenShare();
 assert.equal(shared.getVideoTracks()[0].readyState,'ended','Stop Share did not release the display capture.');
 
-console.log('PASS production RC13 camera recovery, privacy fail-closed behavior, freeze-frame sharing, and canonical invitation contracts.');
+console.log('PASS production RC13.1 camera recovery, privacy fail-closed behavior, freeze-frame sharing, canonical invitation contracts, and futuristic release identity.');

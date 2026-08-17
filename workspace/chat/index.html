@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Chat · DominionStar Workspace</title>
+  <link rel="icon" href="/assets/logo.jpeg">
+  <link rel="stylesheet" href="/workspace/module-shell.css">
+  <link rel="stylesheet" href="/workspace/chat/chat.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><img src="/assets/logo.jpeg" alt=""><div>DOMINIONSTAR<span>WORKSPACE</span></div></div>
+    <nav class="nav" aria-label="Workspace navigation">
+      <a href="/workspace/"><i>⌂</i><b>Dashboard</b></a>
+      <a href="/meet/"><i>◉</i><b>Meet</b></a>
+      <a href="/workspace/drive/"><i>▱</i><b>Drive</b></a>
+      <a href="/workspace/chat/"><i>◫</i><b>Chat</b></a>
+      <a href="/workspace/calendar/"><i>▦</i><b>Calendar</b></a>
+      <a href="/mindset-center/"><i>◎</i><b>Mindset Center</b></a>
+      <a href="/institute/"><i>◇</i><b>Academy</b></a>
+      <a href="/workspace/tasks/"><i>✓</i><b>Tasks</b></a>
+      <a href="/workspace/contacts/"><i>♙</i><b>Contacts</b></a>
+      <a href="/account-settings/"><i>⚙</i><b>Settings</b></a>
+    </nav>
+  </aside>
+
+  <main class="main chat-main">
+    <header class="top chat-top">
+      <div class="chat-title"><h1>Chat</h1><p>Stay connected with your team.</p></div>
+      <input id="globalModuleSearch" class="search" placeholder="Search Workspace…" aria-label="Search Workspace">
+      <div class="top-actions"></div>
+    </header>
+
+    <section class="chat-workspace" aria-label="Chat workspace">
+      <aside class="conversation-panel">
+        <div class="conversation-search">
+          <span aria-hidden="true">⌕</span>
+          <input id="conversationSearch" type="search" placeholder="Search conversations…" aria-label="Search conversations">
+        </div>
+        <div class="conversation-list" id="conversationList" role="listbox" aria-label="Conversations"></div>
+      </aside>
+
+      <section class="thread-panel" aria-label="Current conversation">
+        <header class="thread-head">
+          <div class="contact-heading">
+            <img id="activeAvatar" src="/assets/logo.jpeg" alt="DominionStar">
+            <div><strong id="activeName">No conversation selected</strong><span>Choose a verified member to begin</span></div>
+          </div>
+          <div class="thread-actions">
+            <button type="button" id="audioCall" aria-label="Start audio call">☎</button>
+            <a id="videoCall" href="/meet/?contact=Sarah%20Johnson" aria-label="Start video meeting">▣</a>
+            <button type="button" id="moreMenu" aria-label="More conversation options">•••</button>
+          </div>
+        </header>
+
+        <div class="message-feed" id="messages" aria-live="polite"></div>
+
+        <form class="chat-composer" id="composer">
+          <button type="button" id="attachButton" aria-label="Attach a file">⌕</button>
+          <input id="messageInput" autocomplete="off" placeholder="Type a message…" aria-label="Message">
+          <button type="button" id="emojiButton" aria-label="Add emoji">☺</button>
+          <button class="send-button" aria-label="Send message">➤</button>
+          <input id="fileInput" type="file" hidden>
+        </form>
+      </section>
+
+      <aside class="profile-panel" aria-label="Contact details">
+        <div class="profile-card">
+          <img id="profileAvatar" src="/assets/logo.jpeg" alt="DominionStar">
+          <h2 id="profileName">Contact details</h2>
+          <p><i></i> Online</p>
+        </div>
+        <dl class="contact-details">
+          <div><dt>About</dt><dd id="profileAbout">Sales Director</dd></div>
+          <div><dt>Email</dt><dd><a id="profileEmail" href="mailto:sarah@dominionstar.com">sarah@dominionstar.com</a></dd></div>
+          <div><dt>Phone</dt><dd id="profilePhone">(555) 123-4567</dd></div>
+        </dl>
+        <div class="shared-section">
+          <h3>Files</h3><button type="button" data-toast="Opening shared files">Shared files <span>›</span></button>
+          <h3>Photos</h3><button type="button" data-toast="Opening shared photos">Shared photos <span>›</span></button>
+          <h3>Links</h3><button type="button" data-toast="Opening shared links">Shared links <span>›</span></button>
+        </div>
+      </aside>
+    </section>
+  </main>
+</div>
+<script src="/workspace/module-shell.js"></script>
+<script src="/workspace/chat/chat.js"></script>
+</body>
+</html>

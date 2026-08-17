@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DominionStar Appointment Center</title>
+<link rel="stylesheet" href="/styles.css?v=8.0-genesis-rc5e">
+<link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
+</head>
+<body class="founder-body">
+<main class="member-dashboard">
+<section id="appointmentGate" class="member-card">
+<p class="eyebrow">Approved Members</p>
+<h1>Loading Appointment Center…</h1>
+</section>
+
+<section id="appointmentApp" class="member-hidden">
+<header class="member-dashboard-header executive-header">
+<div>
+<span class="founding-member-badge">Appointment Center</span>
+<h1>Request and manage your DominionStar appointments.</h1>
+<p>Choose a preferred date and time window. The Founder will confirm or reschedule the request.</p>
+</div>
+<div class="member-dashboard-actions">
+<a class="btn btn-outline" href="/member-dashboard/">Dashboard</a>
+<a class="btn btn-outline" href="/digital-card/">Digital Card</a>
+</div>
+</header>
+
+<section class="appointment-center-grid">
+<section class="member-panel">
+<p class="eyebrow">New Request</p>
+<h2>Request an appointment</h2>
+
+<form id="appointmentRequestForm" class="appointment-request-form">
+<div class="member-grid">
+<label>Preferred Date
+<input name="requested_date" type="date" required>
+</label>
+
+<label>Preferred Time Window
+<select name="requested_time_window" required>
+<option value="">Choose one</option>
+<option value="morning">Morning</option>
+<option value="afternoon">Afternoon</option>
+<option value="evening">Evening</option>
+</select>
+</label>
+
+<label>Meeting Type
+<select name="meeting_type" required>
+<option value="consultation">Consultation</option>
+<option value="leadership">Leadership</option>
+<option value="training">Training</option>
+<option value="financial-services">Financial Services</option>
+<option value="other">Other</option>
+</select>
+</label>
+
+<label>Time Zone
+<select name="timezone" required>
+<option value="America/Toronto">Eastern</option>
+<option value="America/Chicago">Central</option>
+<option value="America/Denver">Mountain</option>
+<option value="America/Los_Angeles">Pacific</option>
+</select>
+</label>
+</div>
+
+<label>Notes <span class="optional-label">Optional</span>
+<textarea name="notes" rows="4" maxlength="1000" placeholder="Add context that would help prepare for the appointment."></textarea>
+</label>
+
+<button id="appointmentRequestSubmit" class="btn btn-gold" type="submit">Request Appointment</button>
+<div id="appointmentRequestResult" class="member-message" aria-live="polite"></div>
+</form>
+</section>
+
+<section class="member-panel">
+<div class="appointment-list-heading">
+<div><p class="eyebrow">My Appointments</p><h2>Requests and confirmations</h2></div>
+<button id="refreshAppointments" class="btn btn-outline" type="button">Refresh</button>
+</div>
+<div id="memberAppointmentList" class="member-appointment-list">
+<p>Loading appointments…</p>
+</div>
+</section>
+</section>
+</section>
+</main>
+
+<footer class="platform-release-footer">DominionStar Platform · v6.5.4 Aurora</footer>
+<script src="/assets/js/supabase-config.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/member-auth.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/appointments.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
+</body>
+</html>

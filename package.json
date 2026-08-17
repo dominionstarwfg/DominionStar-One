@@ -1,0 +1,10 @@
+{
+  "name": "dominionstar-email-functions",
+  "private": true,
+  "version": "6.4.1",
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "resend": "^4.1.2"
+  }
+}

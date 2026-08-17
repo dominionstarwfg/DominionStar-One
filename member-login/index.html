@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>document.documentElement.classList.add('js-enabled');</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DominionStar Member Login</title>
+<link rel="stylesheet" href="/styles.css?v=7.0"><link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=7.0"></script><script src="/assets/js/platform-core.js?v=7.0"></script>
+</head><body>
+<main class="member-shell">
+<section class="member-card">
+<img src="/assets/logo.jpeg" alt="DominionStar crest" width="72" height="72" style="border-radius:50%;object-fit:cover">
+<p class="eyebrow">DominionStar Exclusive Edition</p>
+<h1>Member Portal</h1>
+<p>Secure access for approved DominionStar professionals.</p>
+
+<div class="member-tabs">
+<button class="active" type="button" data-member-tab="login">Login</button>
+<button type="button" data-member-tab="register">Create Account</button>
+<button type="button" data-member-tab="reset">Reset Password</button>
+</div>
+
+<form id="memberLoginForm">
+<label>Email<input type="email" name="email" autocomplete="email" required></label>
+<label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+<button class="btn btn-gold" type="submit">Login</button>
+</form>
+
+<form id="memberRegisterForm" class="member-hidden">
+<label>Full name<input name="full_name" autocomplete="name" required></label>
+<label>Email<input type="email" name="email" autocomplete="email" required></label>
+<label>Agent Code<input name="agent_code" required></label>
+<label>SMD Name <small>(optional)</small><input name="smd_name"></label>
+<label>Password<input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+<button class="btn btn-gold" type="submit">Request Member Access</button>
+<p><small>Creating an account does not grant immediate access. The Founder will verify your name and agent code through the your existing DominionStar account.</small></p>
+</form>
+
+<form id="memberResetForm" class="member-hidden">
+<label>Email<input type="email" name="email" autocomplete="email" required></label>
+<button class="btn btn-gold" type="submit">Send Reset Email</button>
+</form>
+
+<div id="memberMessage" class="member-message" role="status"></div>
+<p><a class="text-link" href="/">← Return to DominionStar Platform</a><br><a class="member-back-link" href="/system-check/">Run System Check</a></p>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase-config.js?v=7.0"></script>
+<script src="/assets/js/data-layer.js?v=7.0"></script>
+<script src="/assets/js/member-auth.js"></script>
+<script src="/assets/js/member-login.js?v=7.0"></script>
+<footer class="platform-release-footer">DominionStar Institute · v8.0 Project Genesis RC5</footer><script src="/assets/js/aurora-ui.js?v=7.0"></script>
+</body></html>

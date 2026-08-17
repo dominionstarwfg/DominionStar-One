@@ -1,0 +1,147 @@
+name: DominionStar Production Cutover Verification
+
+on:
+  pull_request:
+    paths:
+      - "PRODUCTION-CUTOVER-APPROVAL.json"
+      - "PREVIEW-ACCEPTANCE-RC13.1.json"
+      - "meet/release-contract.json"
+      - "scripts/build-netlify-site.sh"
+      - "netlify.toml"
+      - "package.json"
+      - "netlify/functions/**"
+      - "assets/js/meeting-engine.js"
+      - "assets/js/meet/**"
+      - "assets/js/meet-next/**"
+      - "assets/css/meet/**"
+      - "assets/css/meet-next/**"
+      - "meet/**"
+      - ".github/workflows/production-cutover-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-production-cutover-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify Approved Production Surface
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Detect explicit cutover approval
+        id: approval
+        shell: bash
+        run: |
+          if [ -s PRODUCTION-CUTOVER-APPROVAL.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "PRODUCTION_CUTOVER_APPROVAL_PRESENT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "PRODUCTION_CUTOVER_REMAINS_LOCKED"
+          fi
+
+      - name: Setup Node 22
+        if: steps.approval.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate explicit cutover approval against accepted preview
+        if: steps.approval.outputs.present == 'true'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          approval_path=Path('PRODUCTION-CUTOVER-APPROVAL.json')
+          acceptance_path=Path('PREVIEW-ACCEPTANCE-RC13.1.json')
+          if not approval_path.is_file():
+              raise SystemExit('PRODUCTION-CUTOVER-APPROVAL.json is required for this gate')
+          if not acceptance_path.is_file():
+              raise SystemExit('PREVIEW-ACCEPTANCE-RC13.1.json is required for this gate')
+
+          approval=json.loads(approval_path.read_text())
+          acceptance=json.loads(acceptance_path.read_text())
+          expected_release='2026.08.16-rc13.1-modern-ui-contract'
+
+          required_approval={
+              'approved': True,
+              'baseline': 'RC12.26',
+              'meetReleaseId': expected_release,
+              'previewAccepted': True,
+          }
+          for key,value in required_approval.items():
+              if approval.get(key) != value:
+                  raise SystemExit(f'Approval rejected: {key}={approval.get(key)!r}, expected {value!r}')
+
+          for key in ('technicalAcceptance','humanVisualApproval','professionalMeetingOperationAccepted'):
+              if acceptance.get(key) is not True:
+                  raise SystemExit(f'Acceptance record rejected: {key} is not true')
+          if acceptance.get('meetReleaseId') != expected_release:
+              raise SystemExit('Acceptance record release does not match production release')
+          if approval.get('acceptedSourceCommit') != acceptance.get('acceptedSourceCommit'):
+              raise SystemExit('Approval acceptedSourceCommit does not match the accepted preview source')
+          if approval.get('acceptanceRecordCommit') != acceptance.get('acceptanceRecordCommit'):
+              raise SystemExit('Approval acceptanceRecordCommit does not match the accepted preview record')
+
+          print('PRODUCTION_APPROVAL_MATCHES_ACCEPTED_PREVIEW')
+          PY
+
+      - name: Build exact guarded production publish surface
+        if: steps.approval.outputs.present == 'true'
+        run: bash scripts/build-netlify-site.sh
+
+      - name: Verify production publish exclusions and release identity
+        if: steps.approval.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/index.html
+          test -s dist/meet/index.html
+          test -s dist/meet/release-contract.json
+          test ! -e dist/PRODUCTION-CUTOVER-APPROVAL.json
+          test ! -e dist/PREVIEW-ACCEPTANCE-RC13.1.json
+          test ! -e dist/.github
+          test ! -e dist/scripts
+          test ! -e dist/netlify
+          test ! -e dist/supabase
+          node --check dist/assets/js/meeting-engine.js
+          node --check dist/assets/js/meet-next/executive6.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          contract=json.loads(Path('dist/meet/release-contract.json').read_text())
+          if contract.get('releaseId') != '2026.08.16-rc13.1-modern-ui-contract':
+              raise SystemExit('Unexpected production release identity')
+          print('PRODUCTION_DIST_RELEASE_OK', contract['releaseId'])
+          PY
+
+      - name: Install historical function dependencies
+        if: steps.approval.outputs.present == 'true'
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Bundle all production Netlify functions
+        if: steps.approval.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .production-functions
+          npx --yes netlify-cli@26.2.0 functions:build --src netlify/functions --functions .production-functions
+          count=$(find .production-functions -maxdepth 1 -type f | wc -l | tr -d ' ')
+          test "$count" -ge 9
+          echo "PRODUCTION_FUNCTION_ARTIFACTS=$count"
+
+      - name: Final cutover proof
+        if: steps.approval.outputs.present == 'true'
+        run: echo "DOMINIONSTAR_PRODUCTION_CUTOVER_VERIFIED"

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DominionStar v3.1 Setup Guide</title>
+<link rel="stylesheet" href="/styles.css">
+<script src="/assets/js/runtime-safety.js?v=7.0"></script><script src="/assets/js/platform-core.js?v=7.0"></script>
+</head>
+<body class="founder-body">
+<main class="member-dashboard">
+<header class="member-dashboard-header">
+<div><span class="founding-member-badge">Founder Setup</span><h1>DominionStar v3.1 Founder Edition</h1><p>Complete these steps before inviting your first 20 agents.</p></div>
+</header>
+<section class="member-grid">
+<article class="member-panel wide"><h2>1. Run the database setup</h2><p>Open Supabase → SQL Editor → New Query. Paste the full contents of <strong>SUPABASE-SETUP-v3.1.sql</strong>, then click Run.</p></article>
+<article class="member-panel"><h2>2. Add your project keys</h2><p>Open Supabase → Project Settings → API. Copy the Project URL and public anon key into <strong>assets/js/supabase-config.js</strong>.</p></article>
+<article class="member-panel"><h2>3. Configure Auth URLs</h2><p>Set the Site URL to https://dominionstarld.com and add member-login and member-dashboard redirect URLs.</p></article>
+<article class="member-panel"><h2>4. Deploy to Netlify</h2><p>Deploy the entire DominionStar-Platform-v3.1-Founder-Edition folder.</p></article>
+<article class="member-panel"><h2>5. Test one account</h2><p>Create your own test member account before inviting anyone else.</p></article>
+<article class="member-panel wide"><h2>6. Approve beta members</h2><p>During this release, approvals are made directly in Supabase Table Editor by changing verification_status from pending to approved and setting founding_member to true for your initial 20 agents.</p></article>
+</section>
+</main>
+<footer class="platform-release-footer">DominionStar Institute · v8.0 Project Genesis RC5</footer><script src="/assets/js/aurora-ui.js?v=7.0"></script>
+</body>
+</html>

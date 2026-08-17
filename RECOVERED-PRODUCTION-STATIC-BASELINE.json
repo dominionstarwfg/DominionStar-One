@@ -1,0 +1,22 @@
+{
+  "baseline": "current-live-root-plus-certified-rc12.26-supporting-static",
+  "source": "https://dominionstarld.com",
+  "rootPolicy": "preserve-current-working-production-root",
+  "archivedRc1226RootSha256": "fb7e786e419a060ac8cb590e25826ce6cf75ec180c91d957683aa84e1e5eb0d0",
+  "files": {
+    "index.html": "a2d5f7e85f5cd892a24962abe389637be03bd431af55a29d74e2311a3cbe0207",
+    "styles.css": "0629a1afb26c6f66f407f7b88caf3937944bf36932b855f76db46cc07c784cff",
+    "_headers": "cbd0a219721cb0aab1b3cf6b07aad24fe9c0083ff0867b3168eadeca3fe3f14c",
+    "_redirects": "6edbe6fbb8da5916c4dec3d921607e9f4ec85e0f4fe59abf91a493b5242977e1",
+    "member-login/index.html": "0f71720fc5fe1c9e31deacf1250d0099aef044b90e0615b72d52119af1c9ffd6",
+    "member-dashboard/index.html": "74a8a2316c6c14b709cd42269369bacbfd93c6bfdcb7444738bf18e54ded6218",
+    "assets/dominionstar-platform-social.png": "42fe58cfa2355367cd449bb1dfdc5725d6ec15b40d5be4b2b6c81ee98a53b98b",
+    "assets/founder-black-1.jpeg": "1527dbe1ed6c453b41e79085d4e3110cf9cc29d797bca7d229541f69f88d201c",
+    "assets/founder-black-2.jpeg": "df5b0a69f5ba4b681f411fc5a91bacb0da924a6643ca574a9fe5610662eec4e0",
+    "assets/founder-blue.jpeg": "982b3afe91c4abbc86f7e461275ca47d9ed0931eba3fd043b2a6a0260c3c1d32",
+    "assets/founder-business-card-qr.png": "b17d43c61bf7abda9620a8cea5426600fe7121569b3367998ed5e755a621a78e",
+    "assets/join-qr.png": "ac849ea9da1ff2e58ca3d88805a9bfd949a06f46b545375dc6178f9d59e4bab8",
+    "assets/logo.jpeg": "05c96371910e0c0db8f5e4686a8969fea5c54da973c3b425e367a599246e29cc"
+  },
+  "protectedMeetReleaseId": "2026.08.16-rc13.1-modern-ui-contract"
+}

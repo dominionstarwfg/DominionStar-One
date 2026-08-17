@@ -1,0 +1,118 @@
+{
+  "recordType": "non-production-preview-acceptance",
+  "acceptedSourceCommit": "1a4154142de2af34faec514eeb30f56a0ffeaf3e",
+  "acceptanceRecordCommit": "c78bbef2f2360c24fc7ca9091d9cdb2225148e76",
+  "baseCommit": "a718510abebb42bac77e2900cf6af1bdbbbd4a7d",
+  "meetReleaseId": "2026.08.16-rc13.1-modern-ui-contract",
+  "technicalAcceptance": true,
+  "humanVisualApproval": true,
+  "professionalMeetingOperationAccepted": true,
+  "productionCutoverAuthorized": false,
+  "productionApprovalFileCreated": false,
+  "diffReview": {
+    "status": "ahead",
+    "aheadBy": 81,
+    "behindBy": 0,
+    "mergeBase": "a718510abebb42bac77e2900cf6af1bdbbbd4a7d",
+    "mergeable": true,
+    "changedFiles": 176,
+    "scope": "Recovered full DominionStar web runtime plus RC13.1 Meet candidate, tested candidate deltas, professional meeting controls and non-production acceptance infrastructure"
+  },
+  "checks": {
+    "DominionStar Web Static Dependency Closure": {
+      "runId": 31995156181,
+      "runNumber": 47,
+      "conclusion": "success"
+    },
+    "DominionStar Meet Runtime Verification": {
+      "runId": 31995156252,
+      "runNumber": 70,
+      "conclusion": "success"
+    },
+    "DominionStar Netlify Source Recovery Verification": {
+      "runId": 31995156179,
+      "runNumber": 69,
+      "conclusion": "success"
+    },
+    "DominionStar Non-Production Preview Acceptance": {
+      "runId": 31995156249,
+      "runNumber": 44,
+      "conclusion": "success"
+    }
+  },
+  "visualReviewArtifact": {
+    "artifactId": 9276613603,
+    "name": "DominionStar-RC13.1-Visual-Review-fddb1e8294a4dac8dd75fc844c030822ca86761a",
+    "digest": "sha256:56c5d793ffe31cb776972719a96305b24c32fbd656edb79388b7b8122a13cf16",
+    "reviewedStates": [
+      "pre-join",
+      "live meeting",
+      "participants",
+      "chat",
+      "populated device menu",
+      "audio and video settings",
+      "screen-share controls",
+      "waiting room"
+    ]
+  },
+  "certifiedBehavior": [
+    "static dependency closure",
+    "all nine Netlify functions present and bundleable",
+    "isolated email/outbox integration without production sends",
+    "member and founder authorization boundaries",
+    "waiting-room admission and lifecycle",
+    "two-client host and co-host authority",
+    "live synchronization and active-speaker state",
+    "camera privacy and recovery",
+    "screen sharing with camera preserved",
+    "Pause Share frozen-frame privacy behavior",
+    "canonical meeting invitations and passcode flow",
+    "composed two-client Meet UI acceptance",
+    "desktop hosted-runtime compatibility",
+    "production fail-closed cutover guard"
+  ],
+  "professionalMeetingContract": [
+    "Audio quick control exposes both microphone input and speaker output selection",
+    "Audio quick control provides direct access to full audio settings",
+    "host retains Lock Meeting and Waiting Room enable-disable authority",
+    "co-host can moderate and admit waiting participants without receiving Waiting Room enable-disable authority",
+    "co-host cannot appoint host or co-host and cannot End Meeting for All",
+    "normal meeting toolbar is replaced by the floating presenter toolbar during local screen sharing",
+    "normal meeting toolbar returns after screen sharing stops",
+    "public and private meeting chat are exercised across two clients",
+    "mic and camera intent synchronize across two clients",
+    "meeting remains fixed-window and non-scrolling during desktop resize",
+    "participant dock remains within viewport during desktop resize"
+  ],
+  "futuristicVisualContract": [
+    "vector participant-dock controls",
+    "vector raised-hand state and queue badge",
+    "futuristic pre-join surface",
+    "futuristic meeting toolbar",
+    "futuristic participant dock",
+    "futuristic participants panel",
+    "dark desktop-grade meeting chat",
+    "populated futuristic device menu",
+    "dark desktop-grade audio and video settings",
+    "futuristic screen-share controls",
+    "futuristic waiting-room and alert surfaces"
+  ],
+  "benchmarkVerification": [
+    "current Zoom host/co-host role boundaries were rechecked against official Zoom support before professional-control acceptance",
+    "current Zoom Audio control behavior was rechecked for microphone and speaker switching",
+    "current Zoom screen-share floating-toolbar behavior was rechecked"
+  ],
+  "finalProductionImpactReview": [
+    "production build remains fail-closed without PRODUCTION-CUTOVER-APPROVAL.json",
+    "Meet source and deployable files are SHA-256 checked against meet/release-contract.json",
+    "routing and custom 404 behavior were reviewed against current Netlify redirect and shadowing semantics",
+    "private/member/founder surfaces retain no-store and noindex headers",
+    "historical function dependency ranges remain restored",
+    "no production deployment is authorized by this acceptance record"
+  ],
+  "safetyNotes": [
+    "This record accepts the non-production preview, visual candidate and professional meeting operating contract only.",
+    "PRODUCTION-CUTOVER-APPROVAL.json remains absent by design.",
+    "A separate explicit production cutover authorization is required before live deployment."
+  ]
+}

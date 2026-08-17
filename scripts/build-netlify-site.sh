@@ -65,7 +65,7 @@ except Exception as exc:
 expected={
     "approved": True,
     "baseline": "RC12.26",
-    "meetReleaseId": "2026.08.16-rc13.0-media-share-link-stability",
+    "meetReleaseId": "2026.08.16-rc13.1-modern-ui-contract",
     "previewAccepted": True,
 }
 for key,value in expected.items():
@@ -77,6 +77,31 @@ then
   echo "ERROR: production cutover approval is invalid or incomplete." >&2
   exit 43
 fi
+
+# Before composing dist/, prove every source file named by the Meet release
+# contract matches the candidate. This includes source-only function/SQL files
+# that are intentionally not copied into the static publish directory.
+python3 - "$ROOT" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root=Path(sys.argv[1])
+contract=json.loads((root/'meet/release-contract.json').read_text())
+release='2026.08.16-rc13.1-modern-ui-contract'
+if contract.get('releaseId') != release:
+    raise SystemExit(f"Unexpected production Meet release: {contract.get('releaseId')!r}")
+files=contract.get('files') or {}
+if not files:
+    raise SystemExit('Meet release contract contains no files')
+for rel,wanted in sorted(files.items()):
+    path=root/rel
+    if not path.is_file():
+        raise SystemExit(f'{rel}: release-contract source file is missing')
+    actual=hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != wanted:
+        raise SystemExit(f'{rel}: source {actual} != contract {wanted}')
+    print('SOURCE HASH OK', rel, actual)
+print('MEET_SOURCE_CONTRACT_OK', len(files), release)
+PY
 
 rm -rf "$DIST"
 mkdir -p "$DIST"
@@ -94,6 +119,7 @@ rsync -a "$ROOT/" "$DIST/" \
   --exclude '*.md' \
   --exclude '*.zip' \
   --exclude 'PRODUCTION-MEET-SOURCE-MANIFEST.json' \
+  --exclude 'PREVIEW-ACCEPTANCE-RC13.1.json' \
   --exclude 'PRODUCTION-CUTOVER-APPROVAL.json'
 
 test -s "$DIST/index.html"
@@ -103,17 +129,25 @@ test -s "$DIST/meet/release-contract.json"
 test -s "$DIST/assets/js/meeting-engine.js"
 test -s "$DIST/assets/js/meet-next/executive6.js"
 
+# Every deployable file in the contract must also survive composition
+# byte-for-byte. Source-only Netlify function and Supabase SQL entries were
+# already verified above and are deployed through their own pipelines.
 python3 - "$DIST" <<'PY'
 import hashlib, json, sys
 from pathlib import Path
 root=Path(sys.argv[1])
 contract=json.loads((root/'meet/release-contract.json').read_text())
-for rel in ['assets/js/meeting-engine.js','assets/js/meet-next/executive6.js','meet/index.html']:
-    actual=hashlib.sha256((root/rel).read_bytes()).hexdigest()
-    expected=contract['files'][rel]
-    if actual != expected:
-        raise SystemExit(f'{rel}: {actual} != {expected}')
-    print('HASH OK', rel, actual)
+source_only_prefixes=('netlify/functions/','supabase/')
+for rel,wanted in sorted((contract.get('files') or {}).items()):
+    if rel.startswith(source_only_prefixes):
+        continue
+    path=root/rel
+    if not path.is_file():
+        raise SystemExit(f'{rel}: deployable contract file missing from dist')
+    actual=hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != wanted:
+        raise SystemExit(f'{rel}: dist {actual} != contract {wanted}')
+    print('DIST HASH OK', rel, actual)
 print('NETLIFY_RELEASE', contract['releaseId'])
 PY
 

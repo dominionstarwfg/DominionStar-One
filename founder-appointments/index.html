@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DominionStar Appointment Administration</title>
+<link rel="stylesheet" href="/styles.css?v=8.0-genesis-rc5e">
+<link rel="icon" href="/assets/logo.jpeg">
+<script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
+</head>
+<body class="founder-body">
+<main class="member-dashboard">
+<section id="founderAppointmentGate" class="member-card">
+<p class="eyebrow">Founder Access</p>
+<h1>Loading appointments…</h1>
+</section>
+
+<section id="founderAppointmentApp" class="member-hidden">
+<header class="member-dashboard-header">
+<div>
+<span class="founding-member-badge">Founder Operations</span>
+<h1>Appointment Administration</h1>
+<p>Confirm, reschedule, complete, or cancel member appointment requests.</p>
+</div>
+<div class="member-dashboard-actions">
+<a class="btn btn-outline" href="/founder-control/">Command Center</a>
+<a class="btn btn-outline" href="/member-dashboard/">Member View</a>
+</div>
+</header>
+
+<section class="member-panel">
+<div class="founder-toolbar">
+<div><p class="eyebrow">Schedule</p><h2>Member appointment requests</h2></div>
+<div class="founder-filters">
+<select id="appointmentStatusFilter">
+<option value="">All statuses</option>
+<option value="pending">Pending</option>
+<option value="confirmed">Confirmed</option>
+<option value="rescheduled">Rescheduled</option>
+<option value="completed">Completed</option>
+<option value="cancelled">Cancelled</option>
+</select>
+<button id="refreshFounderAppointments" class="btn btn-outline" type="button">Refresh</button>
+</div>
+</div>
+
+<div id="founderAppointmentList" class="founder-appointment-list">
+<p>Loading appointment requests…</p>
+</div>
+</section>
+</section>
+</main>
+
+<footer class="platform-release-footer">DominionStar Platform · v6.5.4 Aurora</footer>
+<script src="/assets/js/supabase-config.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/member-auth.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/founder-appointments.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
+</body>
+</html>

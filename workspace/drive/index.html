@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DominionStar Drive</title>
+  <meta name="description" content="DominionStar Drive workspace for secure files and collaboration.">
+  <link rel="icon" href="/assets/logo.jpeg">
+  <link rel="stylesheet" href="/workspace/drive/drive.css">
+</head>
+<body>
+  <div class="drive-app">
+    <aside class="drive-sidebar" aria-label="Workspace navigation">
+      <a class="brand" href="/workspace/" aria-label="DominionStar Workspace home">
+        <img src="/assets/logo.jpeg" alt=""><strong>DOMINIONSTAR</strong>
+      </a>
+      <nav>
+        <a href="/workspace/"><span>⌂</span>Dashboard</a>
+        <a href="/meet/"><span>▣</span>Meet</a>
+        <a class="active" href="/workspace/drive/"><span>▱</span>Drive</a>
+        <a href="/direct-messages/"><span>♧</span>Chat</a>
+        <a href="/schedule/"><span>▦</span>Calendar</a>
+        <a href="/mindset-center/"><span>◉</span>Mindset Center</a>
+        <a href="/academy/"><span>⬡</span>Academy</a>
+        <a href="/workspace/tasks/"><span>☑</span>Tasks</a>
+        <a href="/workspace/contacts/"><span>♙</span>Contacts</a>
+        <a href="/account-settings/"><span>⚙</span>Settings</a>
+      </nav>
+      <div class="storage-card">
+        <div><span>Storage</span><strong>0 GB of 100 GB used</strong></div>
+        <div class="storage-track"><i style="width:0"></i></div>
+        <button type="button">Upgrade storage</button>
+      </div>
+    </aside>
+
+    <main class="drive-main">
+      <header class="drive-toolbar">
+        <button class="all-files" type="button">All Files <span>⌄</span></button>
+        <label class="search-box"><span>⌕</span><input id="driveSearch" type="search" placeholder="Search files..." aria-label="Search files"></label>
+        <button class="new-button" id="newButton" type="button">✦ New <span>⌄</span></button>
+        <div class="new-menu" id="newMenu" hidden>
+          <button type="button" data-create="folder">New folder</button>
+          <button type="button" data-create="file">Upload file</button>
+        </div>
+      </header>
+
+      <section class="drive-workspace">
+        <section class="file-grid" id="fileGrid" aria-live="polite">
+          <div class="drive-empty-state" id="emptyState">
+            <div class="file-icon">↥</div>
+            <h2>No files uploaded</h2>
+            <p>Use the New menu to create a folder or upload your first file.</p>
+          </div>
+        </section>
+
+        <aside class="details-panel" aria-label="Selected item details">
+          <div class="selected-preview"><div class="file-icon">—</div></div>
+          <h1 id="detailName">Nothing selected</h1>
+          <p id="detailSubtitle">Select a file or folder to view details.</p>
+          <div class="tabs"><button class="active" type="button">Details</button><button type="button">Activity</button><button type="button">Sharing</button></div>
+          <dl>
+            <div><dt>Type</dt><dd id="detailType">—</dd></div>
+            <div><dt>Size</dt><dd id="detailSize">—</dd></div>
+            <div><dt>Modified</dt><dd id="detailModified">—</dd></div>
+            <div><dt>Owner</dt><dd id="detailOwner">—</dd></div>
+            <div><dt>Location</dt><dd id="detailLocation">—</dd></div>
+          </dl>
+          <button class="share-button" id="shareButton" type="button">Share</button>
+          <p class="share-status" id="shareStatus" role="status"></p>
+        </aside>
+      </section>
+      <input id="uploadInput" type="file" multiple hidden>
+    </main>
+  </div>
+  <script src="/workspace/drive/drive.js"></script>
+</body>
+</html>

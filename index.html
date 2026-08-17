@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07090f">
+  <meta name="description" content="DominionStar provides financial education, career development, professional training, and member resources.">
+  <title>DominionStar | Financial Education & Career Development</title>
+  <link rel="icon" href="/assets/logo.jpeg">
+  <style>
+    :root{color-scheme:dark;--gold:#f5c84c;--gold2:#ffdf7d;--bg:#06080d;--panel:#10141d;--line:rgba(255,255,255,.11);--muted:#a4acb9;--text:#fff}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 78% 15%,rgba(245,200,76,.12),transparent 28%),linear-gradient(180deg,#05070b,#090c13 55%,#05070b);color:var(--text)}
+    a{color:inherit}.site-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:22px;padding:18px clamp(22px,5vw,72px);background:rgba(6,8,13,.86);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none}.brand img{width:42px;height:42px;border-radius:13px;object-fit:cover}.brand strong{display:block;font-size:18px}.brand small{display:block;color:var(--gold);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-top:3px}
+    nav{display:flex;align-items:center;gap:22px}nav a{text-decoration:none;color:#d7dce5;font-size:14px;font-weight:700}nav a:hover{color:var(--gold)}.sign-in{padding:11px 17px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#111!important}
+    .hero{min-height:680px;display:grid;grid-template-columns:1.12fr .88fr;align-items:center;gap:46px;padding:90px clamp(24px,7vw,108px)}.eyebrow{margin:0 0 18px;color:var(--gold);text-transform:uppercase;letter-spacing:.18em;font-weight:900;font-size:12px}.hero h1{font-size:clamp(48px,7vw,88px);line-height:.96;letter-spacing:-.055em;margin:0 0 25px;max-width:850px}.hero h1 span{color:var(--gold)}.hero p{font-size:19px;line-height:1.75;color:#c4cad4;max-width:700px;margin:0 0 34px}.actions{display:flex;flex-wrap:wrap;gap:14px}.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:14px;padding:15px 21px;font-weight:850;border:1px solid var(--line);background:#151923}.btn.primary{border:0;color:#111;background:linear-gradient(135deg,var(--gold),var(--gold2));box-shadow:0 16px 40px rgba(245,200,76,.18)}
+    .hero-panel{border:1px solid var(--line);border-radius:30px;padding:28px;background:linear-gradient(155deg,rgba(255,255,255,.05),rgba(255,255,255,.015));box-shadow:0 35px 90px rgba(0,0,0,.45)}.hero-panel h2{margin:0 0 8px;font-size:24px}.hero-panel>p{font-size:14px;margin:0 0 22px}.feature-list{display:grid;gap:13px}.feature{display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:18px;background:var(--panel);border:1px solid var(--line);text-decoration:none}.feature span{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(245,200,76,.12);color:var(--gold);font-size:20px}.feature b{display:block}.feature small{display:block;color:var(--muted);line-height:1.5;margin-top:5px}
+    .section{padding:82px clamp(24px,7vw,108px)}.section-head{max-width:720px;margin-bottom:34px}.section h2{font-size:clamp(34px,5vw,58px);letter-spacing:-.035em;margin:0 0 14px}.section-head p{color:var(--muted);line-height:1.7}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card{padding:28px;border-radius:22px;background:var(--panel);border:1px solid var(--line);text-decoration:none;transition:.2s transform,.2s border-color}.card:hover{transform:translateY(-3px);border-color:rgba(245,200,76,.55)}.card span{font-size:25px;color:var(--gold)}.card h3{margin:20px 0 9px;font-size:21px}.card p{margin:0;color:var(--muted);line-height:1.65}
+    .cta{margin:30px clamp(24px,7vw,108px) 80px;padding:44px;border-radius:28px;border:1px solid rgba(245,200,76,.28);background:linear-gradient(135deg,rgba(245,200,76,.13),rgba(255,255,255,.025));display:flex;align-items:center;justify-content:space-between;gap:24px}.cta h2{margin:0 0 8px;font-size:34px}.cta p{margin:0;color:#c8ced7}.footer{padding:26px clamp(24px,7vw,108px);border-top:1px solid var(--line);color:#8d96a4;font-size:13px;display:flex;justify-content:space-between;gap:18px}
+    @media(max-width:960px){nav a:not(.sign-in){display:none}.hero{grid-template-columns:1fr;min-height:auto;padding-top:70px}.cards{grid-template-columns:1fr 1fr}.cta{align-items:flex-start;flex-direction:column}}
+    @media(max-width:640px){.hero{padding:55px 22px}.section{padding:62px 22px}.cards{grid-template-columns:1fr}.cta{margin:20px 22px 60px;padding:28px}.footer{padding:24px 22px;flex-direction:column}.hero h1{font-size:50px}}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/"><img src="/assets/logo.jpeg" alt="DominionStar"><span><strong>DominionStar</strong><small>Education · Career · Opportunity</small></span></a>
+    <nav aria-label="Public navigation">
+      <a href="/institute/">About</a>
+      <a href="/financial-services/">Financial Education</a>
+      <a href="/opportunity/">Career Development</a>
+      <a href="/academy/">Academy</a>
+      <a href="/consultation/">Contact</a>
+      <a class="sign-in" href="/member-login/">Sign In</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Build knowledge. Build opportunity.</p>
+        <h1>Financial clarity and a career path that can <span>move you forward.</span></h1>
+        <p>Explore practical financial education, professional development, licensing guidance, and a community designed to help people grow with confidence.</p>
+        <div class="actions">
+          <a class="btn primary" href="/financial-services/">Explore Financial Education</a>
+          <a class="btn" href="/opportunity/">Explore Career Opportunities</a>
+        </div>
+      </div>
+      <aside class="hero-panel" aria-label="Explore DominionStar">
+        <h2>Start with what matters to you</h2>
+        <p>Choose an education or career path before entering the member platform.</p>
+        <div class="feature-list">
+          <a class="feature" href="/financial-services/"><span>◆</span><div><b>Financial Education</b><small>Learn about protection, retirement, college planning, and long-term financial strategy.</small></div></a>
+          <a class="feature" href="/opportunity/"><span>↗</span><div><b>Career Development</b><small>Understand the professional journey, licensing path, training, and leadership opportunities.</small></div></a>
+          <a class="feature" href="/academy/"><span>★</span><div><b>DominionStar Academy</b><small>Access structured learning for licensing, career growth, and leadership development.</small></div></a>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><p class="eyebrow">Explore DominionStar</p><h2>Education first. Tools second.</h2><p>The public website is designed for learning, discovery, and career exploration. Workspace tools remain available only after a member signs in and enters the Agent Dashboard.</p></div>
+      <div class="cards">
+        <a class="card" href="/institute/"><span>◎</span><h3>About DominionStar</h3><p>Learn about the mission, leadership, community, and the principles behind the platform.</p></a>
+        <a class='card' href='/resources/career-guide'><span>▤</span><h3>Career Guide</h3><p>Review the steps, expectations, and resources involved in building a professional path.</p></a>
+        <a class="card" href="/consultation/"><span>◫</span><h3>Schedule a Consultation</h3><p>Connect with DominionStar for financial education or professional opportunity guidance.</p></a>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div><h2>Already a DominionStar member or agent?</h2><p>Sign in to reach your Agent Dashboard. Workspace is available from inside the dashboard.</p></div>
+      <a class="btn primary" href="/member-login/">Sign In to Your Account</a>
+    </section>
+  </main>
+
+  <footer class="footer"><span>© 2026 DominionStar. All rights reserved.</span><span>Financial education · Career development · Member resources</span></footer>
+</body>
+</html>

@@ -1,0 +1,59 @@
+/member-dashboard/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/founder-control/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/founder-features/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/founder-appointments/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/professional-profile/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/digital-card/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/appointments/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/community/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/release-check/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/qa-center/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer

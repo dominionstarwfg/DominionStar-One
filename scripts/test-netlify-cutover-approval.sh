@@ -42,7 +42,7 @@ printf '%s\n' "$output"
 test "$status" -eq 43
 echo "$output" | grep -F "cutover approval is intentionally withheld" >/dev/null
 
-echo '{"approved":false,"baseline":"RC12.26","meetReleaseId":"2026.08.16-rc13.0-media-share-link-stability","previewAccepted":true}' > "$TMP/PRODUCTION-CUTOVER-APPROVAL.json"
+echo '{"approved":false,"baseline":"RC12.26","meetReleaseId":"2026.08.16-rc13.1-modern-ui-contract","previewAccepted":true}' > "$TMP/PRODUCTION-CUTOVER-APPROVAL.json"
 set +e
 output=$(bash "$TMP/scripts/build-netlify-site.sh" 2>&1)
 status=$?
