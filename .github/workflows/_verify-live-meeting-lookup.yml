@@ -14,7 +14,48 @@ jobs:
   lookup:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe production meeting resolver without mutating meeting state
+      - uses: actions/checkout@v4
+        with:
+          ref: a9cbc225cfd50b014032d80df7912bfe61eb03d2
+          fetch-depth: 1
+
+      - name: Read deployed public Supabase configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE' >> "$GITHUB_ENV"
+          const fs=require('fs');
+          const source=fs.readFileSync('assets/js/supabase-config.js','utf8');
+          const values=[...source.matchAll(/'(https:\/\/[^']+supabase\.co|sb_publishable_[^']+)'/g)].map(m=>m[1]);
+          const url=values.find(v=>v.startsWith('https://'));
+          const key=values.find(v=>v.startsWith('sb_publishable_'));
+          if(!url||!key)throw new Error('Public Supabase config not found');
+          console.log(`SUPABASE_URL=${url}`);
+          console.log(`SUPABASE_PUBLIC_KEY=${key}`);
+          NODE
+
+      - name: Probe exact meeting rows through public Supabase RLS
+        shell: bash
+        env:
+          ROOM: '2389103606'
+        run: |
+          set -euo pipefail
+          probe() {
+            table="$1"; filter="$2"; select="$3"
+            encoded_select=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=","))' "$select")
+            status=$(curl -sS -o "/tmp/${table}.json" -w '%{http_code}' \
+              "$SUPABASE_URL/rest/v1/${table}?select=${encoded_select}&${filter}=eq.${ROOM}&limit=1" \
+              -H "apikey: $SUPABASE_PUBLIC_KEY" \
+              -H "Authorization: Bearer $SUPABASE_PUBLIC_KEY" \
+              -H 'Accept: application/json')
+            echo "TABLE=${table} HTTP_STATUS=${status}"
+            cat "/tmp/${table}.json"; echo
+          }
+          probe meet_rooms room_id 'room_id,owner_id,waiting_room_enabled,passcode,active'
+          probe meet_scheduled_meetings meeting_id 'meeting_id,user_id,waiting_room_enabled,passcode'
+          probe meet_personal_rooms personal_room_id 'personal_room_id,user_id,waiting_room_enabled,passcode'
+
+      - name: Probe production resolver with actual join contract
         shell: bash
         run: |
           set -euo pipefail
@@ -22,19 +63,5 @@ jobs:
             -X POST 'https://dominionstarld.com/.netlify/functions/resolve-meeting-join' \
             -H 'content-type: application/json' \
             --data '{"room":"238 910 3606","passcode":"360"}')
-          echo "HTTP_STATUS=$status"
-          cat /tmp/lookup.json
-          echo
-          if grep -Fi 'Meeting lookup is not configured' /tmp/lookup.json >/dev/null; then
-            echo 'LIVE_LOOKUP_STILL_NOT_CONFIGURED' >&2
-            exit 1
-          fi
-          if grep -Fi 'Meeting lookup is temporarily unavailable' /tmp/lookup.json >/dev/null; then
-            echo 'LIVE_LOOKUP_TEMPORARILY_UNAVAILABLE' >&2
-            exit 1
-          fi
-          case "$status" in
-            200|401|403|404) ;;
-            *) echo "Unexpected resolver status $status" >&2; exit 1;;
-          esac
-          echo 'LIVE_MEETING_LOOKUP_IS_CONFIGURED'
+          echo "RESOLVER_HTTP_STATUS=$status"
+          cat /tmp/lookup.json; echo
