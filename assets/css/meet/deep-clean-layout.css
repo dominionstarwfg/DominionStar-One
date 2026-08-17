@@ -10,6 +10,17 @@
   --ds-layer-menu:360;
   --ds-layer-alert:420;
   --ds-layer-presentation:500;
+  --ds-future-void:#04070d;
+  --ds-future-surface:rgba(13,20,32,.82);
+  --ds-future-surface-strong:rgba(16,24,38,.94);
+  --ds-future-line:rgba(148,189,255,.18);
+  --ds-future-line-strong:rgba(148,189,255,.34);
+  --ds-future-blue:#74a8ff;
+  --ds-future-cyan:#68e4ff;
+  --ds-future-gold:#e8bc49;
+  --ds-future-text:#f7f9fd;
+  --ds-future-muted:#a8b3c5;
+  --ds-future-shadow:0 24px 80px rgba(0,0,0,.48),0 0 42px rgba(46,117,255,.08);
 }
 
 html:has(body.meeting-active),body.meeting-active{
@@ -57,6 +68,183 @@ body.prejoin-active{position:static!important;min-height:100%!important;overflow
 .join-status[data-state="error"]{color:#fca5a5}
 .join-status[data-state="success"]{color:#86efac}
 .join-card .primary[aria-busy="true"]{cursor:wait;opacity:.82}
+
+/* Futuristic DominionStar surface language. Geometry remains owned by the
+   rules above; this section changes only visual treatment and interaction feel. */
+body.meeting-active .meeting{
+  background:
+    radial-gradient(1200px 760px at 72% -12%,rgba(48,107,220,.13),transparent 56%),
+    radial-gradient(900px 620px at -8% 86%,rgba(104,228,255,.055),transparent 58%),
+    var(--ds-future-void)!important;
+}
+body.meeting-active .stage{
+  background:
+    radial-gradient(circle at 50% 38%,rgba(35,54,82,.26),rgba(4,7,13,.96) 62%),
+    var(--ds-future-void)!important;
+}
+body.meeting-active .meeting-topbar{
+  border-bottom:1px solid var(--ds-future-line)!important;
+  background:linear-gradient(180deg,rgba(11,17,28,.94),rgba(7,12,21,.86))!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.2),inset 0 -1px 0 rgba(116,168,255,.055)!important;
+  backdrop-filter:blur(22px) saturate(135%)!important;
+}
+body.meeting-active .meeting-brand strong{
+  letter-spacing:.15em!important;
+  text-shadow:0 0 24px rgba(232,188,73,.14);
+}
+body.meeting-active .secure{
+  padding:5px 8px;border:1px solid rgba(93,225,152,.14);border-radius:999px;
+  background:rgba(23,119,76,.08);
+}
+body.meeting-active .toolbar{
+  border:1px solid var(--ds-future-line)!important;
+  border-radius:18px!important;
+  background:linear-gradient(180deg,rgba(20,29,45,.94),rgba(11,17,28,.92))!important;
+  box-shadow:var(--ds-future-shadow),inset 0 1px 0 rgba(255,255,255,.045)!important;
+  backdrop-filter:blur(28px) saturate(150%)!important;
+}
+body.meeting-active .tool-button,body.meeting-active .tool-arrow{
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+body.meeting-active .tool-button:not(.leave):hover,body.meeting-active .tool-arrow:hover{
+  background:linear-gradient(180deg,rgba(116,168,255,.13),rgba(104,228,255,.055))!important;
+  box-shadow:inset 0 0 0 1px rgba(148,189,255,.09);
+}
+body.meeting-active .tool-button:not(.leave):hover{transform:translateY(-1px)}
+body.meeting-active .tool-button:focus-visible,body.meeting-active .tool-arrow:focus-visible,
+body.meeting-active button:focus-visible{
+  outline:2px solid rgba(104,228,255,.78)!important;outline-offset:2px!important;
+}
+body.meeting-active .tool-icon svg{
+  filter:drop-shadow(0 0 10px rgba(116,168,255,.12));
+}
+body.meeting-active .tool-button.share .tool-icon{
+  color:#65e39a!important;
+  filter:drop-shadow(0 0 12px rgba(101,227,154,.2));
+}
+body.meeting-active .tool-button.leave{
+  border:1px solid rgba(255,119,135,.18)!important;
+  background:linear-gradient(180deg,rgba(224,66,84,.94),rgba(173,40,56,.94))!important;
+  box-shadow:0 8px 22px rgba(192,42,62,.15);
+}
+body.meeting-active #filmstrip.ds-dock-v2{
+  border:1px solid var(--ds-future-line)!important;
+  background:linear-gradient(160deg,rgba(18,27,43,.91),rgba(8,13,22,.88))!important;
+  box-shadow:var(--ds-future-shadow),inset 0 1px 0 rgba(255,255,255,.04)!important;
+  backdrop-filter:blur(24px) saturate(145%)!important;
+}
+body.meeting-active .dock-hover-toolbar button{
+  color:#b9c8dc!important;
+  border:1px solid transparent!important;
+  background:rgba(255,255,255,.025)!important;
+  transition:color .16s ease,background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+body.meeting-active .dock-hover-toolbar button svg{width:16px;height:16px;stroke-width:1.75}
+body.meeting-active .dock-hover-toolbar button:hover,
+body.meeting-active .dock-hover-toolbar button.active{
+  color:#f8fbff!important;
+  border-color:rgba(116,168,255,.25)!important;
+  background:linear-gradient(180deg,rgba(116,168,255,.18),rgba(104,228,255,.07))!important;
+  box-shadow:0 0 18px rgba(76,137,255,.11);
+  transform:translateY(-1px);
+}
+body.meeting-active .dock-grip span{
+  background:rgba(145,173,211,.62)!important;
+  box-shadow:0 0 8px rgba(116,168,255,.18);
+}
+body.meeting-active .remote-tile,body.meeting-active .self-tile{
+  border-color:rgba(148,189,255,.16)!important;
+  background:linear-gradient(145deg,#151f30,#090e18)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 10px 28px rgba(0,0,0,.26)!important;
+}
+body.meeting-active .remote-tile.speaking,body.meeting-active .participant-row.is-speaking{
+  border-color:rgba(74,225,143,.9)!important;
+  box-shadow:0 0 0 1px rgba(74,225,143,.26),0 0 24px rgba(74,225,143,.16)!important;
+}
+body.meeting-active .panel,body.meeting-active .meeting-intelligence-panel{
+  border:1px solid var(--ds-future-line)!important;
+  background:linear-gradient(160deg,rgba(18,27,43,.96),rgba(9,14,24,.94))!important;
+  box-shadow:var(--ds-future-shadow),inset 0 1px 0 rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(28px) saturate(145%)!important;
+}
+body.meeting-active .panel header{
+  border-bottom-color:rgba(148,189,255,.12)!important;
+}
+body.meeting-active .participant-row{
+  border:1px solid transparent;
+  transition:background-color .15s ease,border-color .15s ease,transform .15s ease;
+}
+body.meeting-active .participant-row:hover{
+  border-color:rgba(116,168,255,.11);
+  background:linear-gradient(90deg,rgba(116,168,255,.075),rgba(104,228,255,.025))!important;
+}
+body.meeting-active .participant-avatar{
+  border:1px solid rgba(148,189,255,.14);
+  background:linear-gradient(145deg,#2a3a56,#172235)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+body.meeting-active .participant-raised-hand{
+  display:inline-flex!important;align-items:center;gap:4px;margin-left:7px;color:#ffd96b!important;
+  font-size:10px;font-weight:800;vertical-align:middle;
+}
+body.meeting-active .participant-raised-hand svg,
+body.meeting-active #raiseHandBtn .raise-hand-icon svg{
+  width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
+}
+body.meeting-active .participant-raised-hand svg{width:14px;height:14px;filter:drop-shadow(0 0 7px rgba(255,217,107,.18))}
+body.meeting-active .raised-hand-queue{letter-spacing:.02em}
+body.meeting-active .device-menu{
+  border:1px solid var(--ds-future-line)!important;
+  background:linear-gradient(160deg,rgba(22,32,49,.98),rgba(9,14,24,.97))!important;
+  box-shadow:var(--ds-future-shadow)!important;
+  backdrop-filter:blur(26px) saturate(150%)!important;
+}
+body.meeting-active .device-menu button:hover{
+  background:linear-gradient(90deg,rgba(116,168,255,.12),rgba(104,228,255,.04))!important;
+}
+body.meeting-active .share-status-bar{
+  border:1px solid rgba(104,228,255,.2)!important;
+  background:linear-gradient(180deg,rgba(15,25,39,.96),rgba(7,13,22,.94))!important;
+  box-shadow:0 20px 70px rgba(0,0,0,.48),0 0 34px rgba(104,228,255,.065)!important;
+  backdrop-filter:blur(26px) saturate(150%)!important;
+}
+body.meeting-active dialog[open]{
+  border-color:var(--ds-future-line)!important;
+  background:linear-gradient(160deg,rgba(21,31,48,.99),rgba(9,14,24,.99))!important;
+  box-shadow:0 34px 110px rgba(0,0,0,.66),0 0 54px rgba(76,137,255,.07)!important;
+}
+body.meeting-active dialog::backdrop{background:rgba(1,4,10,.76)!important;backdrop-filter:blur(5px)}
+body.meeting-active .toast,body.meeting-active .join-request-toast.waiting-room-banner{
+  border-color:rgba(148,189,255,.2)!important;
+  background:linear-gradient(155deg,rgba(23,34,52,.97),rgba(10,16,27,.97))!important;
+  box-shadow:0 20px 60px rgba(0,0,0,.45),0 0 28px rgba(76,137,255,.07)!important;
+}
+
+/* Pre-join carries the same visual identity without changing form flow. */
+body.prejoin-active .prejoin{
+  background:
+    radial-gradient(900px 620px at 15% 18%,rgba(55,106,199,.18),transparent 58%),
+    radial-gradient(800px 560px at 88% 82%,rgba(104,228,255,.055),transparent 60%),
+    linear-gradient(145deg,#080d16,#03060b 68%)!important;
+}
+body.prejoin-active .preview-shell,body.prejoin-active .join-card,
+body.prejoin-active .meet-dashboard{
+  border-color:rgba(148,189,255,.16)!important;
+  box-shadow:0 28px 90px rgba(0,0,0,.5),0 0 44px rgba(76,137,255,.055)!important;
+}
+body.prejoin-active .join-card{
+  background:linear-gradient(160deg,rgba(18,27,43,.86),rgba(8,13,22,.84))!important;
+  backdrop-filter:blur(28px) saturate(140%)!important;
+}
+body.prejoin-active .preview-controls{
+  border-color:rgba(148,189,255,.17)!important;
+  background:rgba(10,17,28,.78)!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.32)!important;
+}
+body.prejoin-active .round-control{
+  transition:transform .16s ease,background-color .16s ease,box-shadow .16s ease;
+}
+body.prejoin-active .round-control:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.24)}
 
 @media(max-width:700px){
   .prejoin[data-flow="join"]{
