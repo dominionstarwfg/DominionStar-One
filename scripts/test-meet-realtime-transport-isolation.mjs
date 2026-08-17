@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const source=fs.readFileSync(new URL('../assets/js/meeting-engine.js',import.meta.url),'utf8');
+const html=fs.readFileSync(new URL('../meet/index.html',import.meta.url),'utf8');
+assert(source.includes('realtimeClient: null'),'Meeting engine has no isolated realtime client state.');
+assert(source.includes('const createMeetingRealtimeClient = accountClient =>'),'Meeting engine has no realtime isolation factory.');
+assert(source.includes('persistSession:false,autoRefreshToken:false,detectSessionInUrl:false'),'Meeting transport can inherit persistent account auth.');
+assert(source.includes('state.realtimeClient = createMeetingRealtimeClient(client);'),'Meeting init does not isolate realtime from DSAuth.');
+assert(source.includes('state.channel = meetingRealtimeClient().channel(`dominionstar-meet-${state.roomId}`'),'Primary room channel still uses account client directly.');
+assert(source.includes('const channel=meetingRealtimeClient().channel(name'),'Direct moderation channel still uses account client directly.');
+assert(!source.includes('state.channel = client.channel(`dominionstar-meet-${state.roomId}`'),'Authenticated account client still owns primary room transport.');
+assert(html.includes('meeting-engine.js?v=96-rc13-4-desktop-realtime-isolation'),'Hosted Meet did not cache-bust isolated realtime engine.');
+console.log('MEET_REALTIME_TRANSPORT_ISOLATION_OK');

@@ -2,7 +2,7 @@
   "releaseId": "2026.08.16-rc13.1-modern-ui-contract",
   "desktopBridge": 10,
   "files": {
-    "assets/js/meeting-engine.js": "5fc5ba7537331bedfa0f1c0b239dc6ee7c81db936f5d95d6cac350da88a79261",
+    "assets/js/meeting-engine.js": "096cb00f9775588c11b38d53829a3eec63dc0d68dd7efdc8d21a78d2c2c6f715",
     "assets/js/meet/desktop-share-picker.js": "63911329c6e1f9905bd8233744553d46c1cbf7d4b484ee32938016c05fc5d4c5",
     "assets/js/meet/remote-control.js": "dd94e4f38090ac5c0fbbccddac7c602b7bffebdeb3c0885972644bda0a15b3d7",
     "assets/js/meet/live-transcription.js": "fbb51cac337a2c811eb7ffcf165d469b694b73a0f785c94c62ffd4ff24598cb1",
@@ -16,7 +16,7 @@
     "meet-login/index.html": "d70799aea96060f0a2c05e9ca6cbc7b73c6018b8b7a526e63897f236c6ac1b13",
     "assets/js/member-auth.js": "edf18c591337fa03cde5bd6de8b1b0aaca891ee813bf9cd8ff6bca392f335e95",
     "meet-home/index.html": "c35ef7136fc52545b622604732f2e1780dc4bc4d03baf5c4f2ddfd8cd9552a5a",
-    "meet/index.html": "28571b131e703abde408bd2be71f624355ce1999e0491f7b6fc86a036a7cd757",
+    "meet/index.html": "5f9f093618c9f60296df637eae22d945ecc84e51cf81cb07d721ce257497020c",
     "netlify/functions/resolve-meeting-join.mjs": "74ad7e6a3c032f5ac86e663b37f7c9b134f6d385e008edcc00cf2a0b63110e40",
     "netlify/functions/meeting-host-alert.mjs": "abd2c86ae04930a849ecfd7490f19e4d27aba6502d930689197fbac81235b032",
     "supabase/member-email-notifications.sql": "a421897bd33b528f096a6aea01360a7120a83a7e045f17d3c201dc84133632f3"
