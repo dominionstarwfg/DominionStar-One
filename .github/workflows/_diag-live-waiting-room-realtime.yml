@@ -13,7 +13,7 @@ permissions:
 jobs:
   realtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -26,7 +26,7 @@ jobs:
           mkdir -p /tmp/ds-rt && cd /tmp/ds-rt
           npm init -y >/dev/null 2>&1
           npm install --silent @supabase/supabase-js@2
-          node <<'NODE'
+          timeout 50s node <<'NODE'
           const { createClient } = require('@supabase/supabase-js');
           const url='https://ckmurvhjumzlhsegncba.supabase.co';
           const key='sb_publishable_zAzk_tobvWHOWR22bmzMMw_uqHnCVxb';
@@ -41,8 +41,7 @@ jobs:
           let hostStatus=''; let guestStatus='';
           hc.on('broadcast',{event:'meet-join-request'},({payload})=>{broadcast=payload;console.log('HOST_BROADCAST',JSON.stringify(payload));});
           hc.on('presence',{event:'sync'},()=>{
-            const s=hc.presenceState();
-            const text=JSON.stringify(s);
+            const text=JSON.stringify(hc.presenceState());
             console.log('HOST_PRESENCE',text);
             if(text.includes('guest-participant'))presenceSawGuest=true;
           });
@@ -67,9 +66,14 @@ jobs:
               console.log('RESULT',JSON.stringify({hostStatus,guestStatus,broadcastReceived:Boolean(broadcast),presenceSawGuest,sendResult}));
               if(!broadcast)throw new Error('Host did not receive guest broadcast');
               if(!presenceSawGuest)throw new Error('Host did not receive guest presence');
-            } finally {
               await host.removeChannel(hc).catch(()=>{});
               await guest.removeChannel(gc).catch(()=>{});
+              host.realtime.disconnect(); guest.realtime.disconnect();
+              process.exit(0);
+            } catch(err) {
+              console.error(err);
+              try{host.realtime.disconnect();guest.realtime.disconnect();}catch(_){}
+              process.exit(1);
             }
-          })().catch(err=>{console.error(err);process.exit(1);});
+          })();
           NODE
