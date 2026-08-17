@@ -24,6 +24,8 @@ requireSource(uiSource,'while(ids.toastLayer.children.length>3)','Camera failure
 // preview hardware must be released before meeting acquisition, and physical
 // device IDs must stay machine-local instead of roaming through account sync.
 requireSource(hotfixSource,"event.target.closest?.('#newMeetingAction')",'New Meeting is not intercepted for the professional pre-join checkpoint.');
+requireSource(hotfixSource,"const bootstrapParams = new URLSearchParams(location.search);",'Installed desktop launch intent is not consumed before auto-start.');
+requireSource(hotfixSource,"window.__DS_DESKTOP_PREJOIN_BOOTSTRAP = 'rc13.1-desktop-prejoin-v2'",'Desktop prejoin bootstrap identity is missing.');
 requireSource(hotfixSource,"heading.textContent = 'Ready to start?'",'Host pre-join screen does not expose the Start Meeting checkpoint.');
 requireSource(hotfixSource,"subcopy.textContent = 'Check your camera and microphone before you start the meeting.'",'Host pre-join screen does not explicitly verify camera and microphone state.');
 requireSource(hotfixSource,"await sleep(1100)",'Preview camera is not given a hardware-release handoff window before meeting acquisition.');
@@ -49,7 +51,7 @@ requireSource(uiSource,'buildMeetingJoinLink(pendingCredentials.id,{passcode,wai
 requireSource(html,'meeting-engine.js?v=93-rc13-1-camera-handoff','Meet HTML does not bust the RC13.1 camera-handoff engine cache key.');
 requireSource(html,'executive6.js?v=80-rc13-1-prejoin-handoff','Meet HTML does not bust the RC13.1 pre-join UI cache key.');
 requireSource(html,'dock-layout-v2.js?v=4-rc13-1-device-locality','Meet HTML does not bust the professional device-control cache key.');
-requireSource(html,'hotfix-rc13-1-media-prejoin.js?v=1','Meet HTML does not load the RC13.1 prejoin/media hotfix.');
+requireSource(html,'hotfix-rc13-1-media-prejoin.js?v=2-desktop-bootstrap','Meet HTML does not load the cache-busted RC13.1 desktop prejoin/media hotfix.');
 assert.equal(contract.releaseId,'2026.08.16-rc13.1-modern-ui-contract','Release contract is not pinned to the certified RC13.1 futuristic UI candidate.');
 
 class FakeTrack {
