@@ -48,8 +48,8 @@ requireSource(uiSource,"url.searchParams.set('passcode',code)",'Passcode-protect
 requireSource(uiSource,"ids.meetingPasscode.value=String(query.get('passcode')",'Incoming invitation passcodes are not applied to the join flow.');
 requireSource(uiSource,"query.get('room') || query.get('meeting')",'Legacy desktop meeting links are not normalized at entry.');
 requireSource(uiSource,'buildMeetingJoinLink(pendingCredentials.id,{passcode,waiting:waitingRoom})','Scheduled meeting links do not use the canonical room/passcode/waiting-room contract.');
-requireSource(html,'meeting-engine.js?v=94-rc13-3-camera-privacy','Meet HTML does not bust the RC13.1 camera-handoff engine cache key.');
-requireSource(html,'executive6.js?v=81-rc13-3-single-preview-owner','Meet HTML does not bust the RC13.1 pre-join UI cache key.');
+requireSource(html,'meeting-engine.js?v=95-rc13-4-live-passcode-proof','Meet HTML does not bust the RC13.1 camera-handoff engine cache key.');
+requireSource(html,'executive6.js?v=82-rc13-4-live-room-lookup','Meet HTML does not bust the RC13.1 pre-join UI cache key.');
 requireSource(html,'dock-layout-v2.js?v=4-rc13-1-device-locality','Meet HTML does not bust the professional device-control cache key.');
 requireSource(html,'hotfix-rc13-1-media-prejoin.js?v=4-camera-privacy-reacquire','Meet HTML does not load the cache-busted native permission + Personal Room prejoin hotfix.');
 assert.equal(contract.releaseId,'2026.08.16-rc13.1-modern-ui-contract','Release contract is not pinned to the certified RC13.1 futuristic UI candidate.');

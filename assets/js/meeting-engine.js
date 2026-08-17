@@ -11,6 +11,8 @@
     hostUserId: '',
     instanceId: '',
     joinToken: '',
+    roomPasscode: '',
+    joinPasscodeProof: '',
     isHost: false,
     role: 'attendee',
     contractLevel: 'TA',
@@ -140,6 +142,15 @@
   const randomId = (prefix='m') => `${prefix}_${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
   const sanitizeRoomId = value => String(value || '').trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,24);
   const createRoomId = () => String(Math.floor(100000 + Math.random() * 900000));
+  const normalizeMeetingPasscode=value=>String(value||'').replace(/\D/g,'').slice(0,10);
+  const createPasscodeProof=async(roomId,passcode,joinToken)=>{
+    const normalized=normalizeMeetingPasscode(passcode);
+    if(!normalized)return '';
+    if(!globalThis.crypto?.subtle||typeof TextEncoder==='undefined')throw new Error('Secure meeting passcode verification is unavailable in this browser.');
+    const material=new TextEncoder().encode(`${sanitizeRoomId(roomId)}:${normalized}:${String(joinToken||'')}`);
+    const digest=await globalThis.crypto.subtle.digest('SHA-256',material);
+    return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+  };
 
   let rtcConfig = {
     iceServers: [
@@ -492,7 +503,8 @@
       for (const remoteId of [...state.peers.keys()]) removePeer(remoteId);
       emit('moved-to-waiting',payload);
       state.joinToken=randomId('join');
-      await send('meet-join-request',{joinToken:state.joinToken}).catch(()=>{});
+      state.joinPasscodeProof=await createPasscodeProof(state.roomId,state.roomPasscode,state.joinToken);
+      await send('meet-join-request',{joinToken:state.joinToken,passcodeProof:state.joinPasscodeProof}).catch(()=>{});
     }
     emit('moderation',payload);
     return true;
@@ -515,7 +527,7 @@
     // suspension can always complete admission.
     if(!state.isHost&&!state.admitted&&Date.now()-state.lastJoinRequestAt>3000){
       state.lastJoinRequestAt=Date.now();
-      await send('meet-join-request',{joinToken:state.joinToken,retry:true}).catch(()=>{});
+      await send('meet-join-request',{joinToken:state.joinToken,passcodeProof:state.joinPasscodeProof,retry:true}).catch(()=>{});
     }
   };
 
@@ -606,6 +618,12 @@
 
     if (event === 'meet-join-request') {
       if (['host','cohost'].includes(state.role)){
+        const expectedProof=await createPasscodeProof(state.roomId,state.roomPasscode,payload.joinToken||'');
+        if(expectedProof && payload.passcodeProof!==expectedProof){
+          await send('meet-denied',{to:payload.from,joinToken:payload.joinToken||'',reason:'incorrect-passcode'}).catch(()=>{});
+          emit('join-rejected',{...payload,reason:'incorrect-passcode'});
+          return;
+        }
         const firstRequest=!state.waitingRequestsSeen.has(payload.from);
         state.waitingRequestsSeen.add(payload.from);
         if(firstRequest)emit('join-request', payload);
@@ -902,7 +920,7 @@
     checkRoomLifecycle();
   };
 
-  const init = async ({roomId, displayName, isHost=false, hostUserId='', contractLevel='TA', avatarUrl='', waitingRoomEnabled=false}={}) => {
+  const init = async ({roomId, displayName, isHost=false, hostUserId='', contractLevel='TA', avatarUrl='', waitingRoomEnabled=false, passcode=''}={}) => {
     const client = await window.DSAuth?.init?.();
     if (!client) throw new Error('DominionStar connection is unavailable.');
     const session = (await client.auth.getSession()).data?.session || null;
@@ -922,6 +940,8 @@
     state.contractLevel = String(contractLevel || 'TA').slice(0,20);
     state.avatarUrl = String(avatarUrl || '').slice(0,1000);
     state.joinToken=randomId('join');
+    state.roomPasscode=normalizeMeetingPasscode(passcode);
+    state.joinPasscodeProof=await createPasscodeProof(state.roomId,state.roomPasscode,state.joinToken);
     state.admitted = state.isHost;
     state.waitingRoomEnabled=Boolean(waitingRoomEnabled);
     state.waitingRoomKnown=state.isHost||state.waitingRoomEnabled;
@@ -959,7 +979,7 @@
               emit('connected',{roomId:state.roomId,participantId:state.participantId,isHost:state.isHost});
               startRoomLifecycleWatch();
               startHeartbeat();
-              if (!state.isHost) await send('meet-join-request',{joinToken:state.joinToken});
+              if (!state.isHost) await send('meet-join-request',{joinToken:state.joinToken,passcodeProof:state.joinPasscodeProof});
               finish(resolve,snapshot());
             }catch(error){finish(reject,error);}
           }

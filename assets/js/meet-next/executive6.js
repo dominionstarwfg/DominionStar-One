@@ -1463,8 +1463,12 @@
           if(resolved.ok&&record?.found){
             roomRecord={room_id:normalizedRoom,owner_id:record.owner_id,waiting_room_enabled:Boolean(record.waiting_room_enabled),active:Boolean(record.active),passcodeRequired:Boolean(record.passcode_required),passcodeValid:Boolean(record.passcode_valid)};
             lookupCompleted=true;
+          } else if(record?.live_verification===true && (resolved.status===404||resolved.status===503)) {
+            roomRecord={room_id:normalizedRoom,owner_id:'',waiting_room_enabled:Boolean(state.waitingRoomEnabled),active:true,liveVerification:true};
+            lookupCompleted=true;
+          } else if(!resolved.ok) {
+            throw new Error(record?.error||record?.message||'Meeting ID could not be verified. Check the number and try again.');
           }
-          if(!resolved.ok)throw new Error(record?.error||record?.message||'Meeting ID could not be verified. Check the number and try again.');
         } catch(error) { throw error; }
         if(!lookupCompleted)throw new Error('Meeting ID could not be verified. Check the number and try again.');
       }
@@ -1569,7 +1573,7 @@
         throw new Error('This meeting has ended. Ask the host to start the room again.');
       }
       state.isHost=authority.isHost;
-      setJoinStatus('Meeting verified. Connecting securely…','success');
+      setJoinStatus(authority.roomRecord?.liveVerification?'Connecting for live host verification…':'Meeting verified. Connecting securely…','success');
       // Start the deduplicated host notification before realtime initialization.
       // A slow or unavailable channel must never suppress the absent-host email.
       if(!state.isHost)scheduleAbsentHostAlert(room);
@@ -1577,7 +1581,7 @@
       window.__DS_START_AS_HOST = false;
       state.role = state.isHost ? 'host' : 'attendee';
       await Promise.race([
-        engine.init({roomId:room,displayName:name,isHost:state.isHost,hostUserId:authority.roomRecord?.owner_id||'',role:state.role,session,contractLevel:state.profile?.contractLevel||'',avatarUrl:state.profile?.avatarUrl||'',waitingRoomEnabled:state.waitingRoomEnabled}),
+        engine.init({roomId:room,displayName:name,isHost:state.isHost,hostUserId:authority.roomRecord?.owner_id||'',role:state.role,session,contractLevel:state.profile?.contractLevel||'',avatarUrl:state.profile?.avatarUrl||'',waitingRoomEnabled:state.waitingRoomEnabled,passcode:state.passcode}),
         new Promise((_,reject)=>setTimeout(()=>reject(new Error('The secure meeting connection took too long. Try joining again.')),15000))
       ]);
       const initialSnapshot=engine.snapshot?.()||{};
@@ -1683,6 +1687,21 @@
     ids.toastLayer.querySelector(`[data-join-request="${CSS.escape(id)}"]`)?.remove();
     renderParticipants();
   });
+  engine.on('denied',async payload=>{
+    const incorrect=payload?.reason==='incorrect-passcode';
+    try{await engine.leave();}catch(_){}
+    stopMeetingTimer();
+    ids.meeting.hidden=true;
+    ids.prejoin.hidden=false;
+    document.body.classList.remove('meeting-active');
+    document.body.classList.add('prejoin-active');
+    state.phase='prejoin';
+    const message=incorrect?'Incorrect meeting passcode.':'The host declined this join request.';
+    setJoinStatus(message,'error');
+    toast(message,{type:'error',force:true});
+    if(incorrect)ids.meetingPasscode?.focus();
+  });
+
   engine.on('join-request',payload=>{
     if(!state.isHost && state.role!=='cohost')return;
     removeRemote(payload.from,{departed:false});

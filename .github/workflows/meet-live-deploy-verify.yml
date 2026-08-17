@@ -107,6 +107,42 @@ jobs:
             fi
           done < /tmp/expected-files.tsv
 
+      - name: Verify live Meeting ID resolver contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Use a run-derived room ID so this check does not depend on a real user's
+          # meeting. A missing room is healthy only when the deployed function
+          # explicitly hands the browser to secure live-room verification.
+          room=$(python3 - <<'PY'
+          import os
+          value=''.join(ch for ch in os.environ.get('GITHUB_RUN_ID','') if ch.isdigit())[-10:]
+          print((value or '9876543210').zfill(10))
+          PY
+          )
+          printf '{"room":"%s","passcode":"000000"}\n' "$room" >/tmp/live-lookup-request.json
+          code=$(curl -sS -o /tmp/live-lookup-response.json -w '%{http_code}' \
+            --retry 2 --connect-timeout 10 --max-time 30 \
+            -H 'content-type: application/json' \
+            --data-binary @/tmp/live-lookup-request.json \
+            'https://dominionstarld.com/.netlify/functions/resolve-meeting-join')
+          echo "Live resolver HTTP $code"
+          python3 - "$code" <<'PY'
+          import json,sys
+          code=int(sys.argv[1])
+          data=json.load(open('/tmp/live-lookup-response.json'))
+          print('Live resolver response keys:',sorted(data.keys()))
+          if code==200:
+              if data.get('found') is not True:
+                  raise SystemExit('HTTP 200 resolver response did not identify a meeting')
+          elif code in (404,503):
+              if data.get('live_verification') is not True:
+                  raise SystemExit(f'HTTP {code} resolver response did not provide secure live-verification handoff')
+          else:
+              raise SystemExit(f'Unexpected live resolver HTTP {code}: {data}')
+          print('LIVE_MEETING_LOOKUP_CONTRACT_OK')
+          PY
+
       - name: Verify desktop compatibility against the deployed release
         working-directory: desktop 2
         run: bash scripts/audit-live-hosted-runtime.sh
