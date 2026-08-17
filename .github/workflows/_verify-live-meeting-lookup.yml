@@ -1,0 +1,40 @@
+name: Verify Live Meeting Lookup
+
+on:
+  push:
+    branches:
+      - verify/live-meeting-lookup-a9cbc225
+    paths:
+      - .github/workflows/_verify-live-meeting-lookup.yml
+
+permissions:
+  contents: read
+
+jobs:
+  lookup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe production meeting resolver without mutating meeting state
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /tmp/lookup.json -w '%{http_code}' \
+            -X POST 'https://dominionstarld.com/.netlify/functions/resolve-meeting-join' \
+            -H 'content-type: application/json' \
+            --data '{"meetingId":"238 910 3606","passcode":"360","name":"Live lookup verification"}')
+          echo "HTTP_STATUS=$status"
+          cat /tmp/lookup.json
+          echo
+          if grep -Fi 'Meeting lookup is not configured' /tmp/lookup.json >/dev/null; then
+            echo 'LIVE_LOOKUP_STILL_NOT_CONFIGURED' >&2
+            exit 1
+          fi
+          if grep -Fi 'Meeting lookup is temporarily unavailable' /tmp/lookup.json >/dev/null; then
+            echo 'LIVE_LOOKUP_TEMPORARILY_UNAVAILABLE' >&2
+            exit 1
+          fi
+          case "$status" in
+            200|401|403|404) ;;
+            *) echo "Unexpected resolver status $status" >&2; exit 1;;
+          esac
+          echo 'LIVE_MEETING_LOOKUP_IS_CONFIGURED'
