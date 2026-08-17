@@ -3,6 +3,7 @@
 
   const state = {
     client: null,
+    realtimeClient: null,
     session: null,
     roomId: '',
     displayName: '',
@@ -151,6 +152,22 @@
     const digest=await globalThis.crypto.subtle.digest('SHA-256',material);
     return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
   };
+
+  // Meeting transport is deliberately isolated from the persistent signed-in
+  // account client.  Desktop agents keep their authenticated Supabase session
+  // for account/database work, while every room/control channel uses the same
+  // clean public realtime context as browser guests.  This prevents auth-token
+  // refresh or desktop session state from partitioning waiting-room signaling.
+  const createMeetingRealtimeClient = accountClient => {
+    const cfg=window.DOMINIONSTAR_SUPABASE||{};
+    if(!window.supabase?.createClient||!cfg.url||!cfg.anonKey)return accountClient;
+    try{
+      return window.supabase.createClient(cfg.url,cfg.anonKey,{
+        auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
+      });
+    }catch(_){return accountClient;}
+  };
+  const meetingRealtimeClient = () => state.realtimeClient || state.client;
 
   let rtcConfig = {
     iceServers: [
@@ -418,9 +435,9 @@
   const safeChannelToken = value => String(value || '').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,180);
 
   const subscribeDirectControlChannel = async token => {
-    if (!state.client || !token) return null;
+    if (!meetingRealtimeClient() || !token) return null;
     const name=`dominionstar-meet-control-${safeChannelToken(state.roomId)}-${safeChannelToken(token)}`;
-    const channel=state.client.channel(name,{config:{broadcast:{self:false,ack:true}}});
+    const channel=meetingRealtimeClient().channel(name,{config:{broadcast:{self:false,ack:true}}});
     channel.on('broadcast',{event:'command'},async({payload})=>{
       const applied=await applyModerationRequest(payload);
       if(applied && payload?.requestId){
@@ -445,14 +462,14 @@
   };
 
   const sendDirectControl = async (token,payload) => {
-    if(!state.client||!token)return false;
+    if(!meetingRealtimeClient()||!token)return false;
     const name=`dominionstar-meet-control-${safeChannelToken(state.roomId)}-${safeChannelToken(token)}`;
-    const channel=state.client.channel(name,{config:{broadcast:{self:false,ack:true}}});
+    const channel=meetingRealtimeClient().channel(name,{config:{broadcast:{self:false,ack:true}}});
     try{
       await new Promise(resolve=>channel.subscribe(status=>{if(status==='SUBSCRIBED'||status==='CHANNEL_ERROR'||status==='TIMED_OUT')resolve();}));
       const result=await channel.send({type:'broadcast',event:'command',payload:{...payload,roomId:state.roomId,from:state.participantId,userId:state.userId,displayName:state.displayName,role:state.role,isHost:state.isHost}});
       return result==='ok'||result===true||result?.status==='ok';
-    }catch(_){return false;}finally{setTimeout(()=>state.client?.removeChannel?.(channel),800);}
+    }catch(_){return false;}finally{setTimeout(()=>meetingRealtimeClient()?.removeChannel?.(channel),800);}
   };
 
   const moderationTargetMatches = payload => {
@@ -925,6 +942,7 @@
     if (!client) throw new Error('DominionStar connection is unavailable.');
     const session = (await client.auth.getSession()).data?.session || null;
     state.client = client;
+    state.realtimeClient = createMeetingRealtimeClient(client);
     state.session = session;
     state.roomId = sanitizeRoomId(roomId || createRoomId());
     state.displayName = String(displayName || session?.user?.user_metadata?.full_name || session?.user?.email || 'Guest').slice(0,80);
@@ -947,7 +965,7 @@
     state.waitingRoomKnown=state.isHost||state.waitingRoomEnabled;
     await loadRtcConfig();
 
-    state.channel = client.channel(`dominionstar-meet-${state.roomId}`, {config:{broadcast:{self:false,ack:true},presence:{key:state.participantId}}});
+    state.channel = meetingRealtimeClient().channel(`dominionstar-meet-${state.roomId}`, {config:{broadcast:{self:false,ack:true},presence:{key:state.participantId}}});
     ['meet-join-request','meet-admitted','meet-admission-confirmed','meet-denied','meet-ready','meet-offer','meet-answer','meet-ice','meet-left','meet-ended','meet-chat','meet-spotlight','meet-active-speaker','meet-reaction','meet-media-state','meet-speaking-state','meet-media-resync-request','meet-screen-state','meet-remote-control-request','meet-remote-control-response','meet-remote-control-input','meet-remote-control-stop','meet-role-change','meet-role-change-confirmed','meet-moderation','meet-moderation-ack','meet-control','meet-control-ack','meet-control-response','meet-state-heartbeat','meet-security-state','meet-transcript','meet-transcription-state']
       .forEach(event => state.channel.on('broadcast',{event},({payload})=>handleSignal(event,payload)));
     state.channel.on('presence',{event:'sync'},async()=>{
@@ -1720,7 +1738,7 @@
     clearInterval(state.roomWatchTimer);
     clearInterval(state.heartbeatTimer);
     state.roomWatchTimer = null;
-    if (state.channel) await within(state.client.removeChannel(state.channel),900);
+    if (state.channel) await within(meetingRealtimeClient().removeChannel(state.channel),900);
     state.channel = null;
     state.readySent = false;
   };
