@@ -1,6 +1,6 @@
 {
   "name": "DominionStar Executive OS",
-  "short_name": "Genesis OS",
+  "short_name": "DominionStar",
   "start_url": "/member-dashboard/",
   "display": "standalone",
   "background_color": "#09090b",
