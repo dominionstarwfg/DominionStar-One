@@ -35,6 +35,7 @@ try {
     const pageErrors = [];
     const sameOriginStaticFailures = [];
     const consoleErrors = [];
+    const base = new URL(baseURL);
 
     page.on('pageerror', error => pageErrors.push(String(error?.stack || error?.message || error)));
     page.on('console', msg => {
@@ -43,9 +44,19 @@ try {
     page.on('requestfailed', request => {
       try {
         const url = new URL(request.url());
-        const base = new URL(baseURL);
+        const errorText = request.failure()?.errorText || 'request failed';
+        if (errorText === 'net::ERR_ABORTED') return;
         if (url.origin === base.origin && isStaticResource(request.resourceType())) {
-          sameOriginStaticFailures.push(`${request.resourceType()} ${url.pathname}: ${request.failure()?.errorText || 'request failed'}`);
+          sameOriginStaticFailures.push(`${request.resourceType()} ${url.pathname}: ${errorText}`);
+        }
+      } catch {}
+    });
+    page.on('response', response => {
+      try {
+        const request = response.request();
+        const url = new URL(response.url());
+        if (url.origin === base.origin && isStaticResource(request.resourceType()) && response.status() >= 400) {
+          sameOriginStaticFailures.push(`${request.resourceType()} ${url.pathname}: HTTP ${response.status()}`);
         }
       } catch {}
     });
@@ -81,7 +92,7 @@ try {
       throw new Error(`${route}: uncaught browser exceptions:\n${pageErrors.join('\n---\n')}`);
     }
     if (sameOriginStaticFailures.length) {
-      throw new Error(`${route}: same-origin static resource failures:\n${sameOriginStaticFailures.join('\n')}`);
+      throw new Error(`${route}: same-origin static resource failures:\n${[...new Set(sameOriginStaticFailures)].join('\n')}`);
     }
 
     const severeConsole = consoleErrors.filter(text => !/favicon|Failed to load resource|net::ERR_/i.test(text));
