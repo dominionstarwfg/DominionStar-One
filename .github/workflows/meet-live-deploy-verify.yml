@@ -88,6 +88,7 @@ jobs:
           for rel in [
               'assets/js/meeting-engine.js',
               'assets/js/meet-next/executive6.js',
+              'assets/js/meet/dock-layout-v2.js',
               'meet/index.html',
           ]:
               print(f"{rel}\t{c['files'][rel]}")
