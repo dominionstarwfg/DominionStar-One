@@ -6,6 +6,20 @@ const here = dirname(fileURLToPath(import.meta.url));
 const sourcePath = join(here, 'browser-two-client-meet-acceptance.mjs');
 const runtimePath = join(here, '.browser-meet-smoothness-acceptance.runtime.mjs');
 
+const waitingBefore = `  await guest.locator('#meeting').waitFor({ state: 'visible', timeout: 10000 });
+  await guest.locator('#waitingRoomGate').waitFor({ state: 'visible', timeout: 10000 });`;
+
+const waitingAfter = `  await guest.waitForFunction(() => {
+    const meeting = document.getElementById('meeting');
+    return Boolean(
+      meeting &&
+      !meeting.hidden &&
+      meeting.classList.contains('waiting-room-active') &&
+      meeting.getAttribute('aria-busy') === 'true'
+    );
+  }, null, { timeout: 10000 });
+  await guest.locator('#waitingRoomGate').waitFor({ state: 'visible', timeout: 10000 });`;
+
 const marker = `  console.log('MEET_UI_OK desktop resize keeps meeting fixed and participant dock inside the viewport');
 
   await host.locator('#leaveBtn').click();`;
@@ -99,9 +113,14 @@ const stress = `  console.log('MEET_UI_OK desktop resize keeps meeting fixed and
   await host.locator('#leaveBtn').click();`;
 
 let source = await readFile(sourcePath, 'utf8');
-const occurrences = source.split(marker).length - 1;
-if (occurrences !== 1) throw new Error(`Expected exactly one smoothness injection point, found ${occurrences}.`);
-source = source.replace(marker, stress);
+for (const [label, before, after] of [
+  ['waiting-room overlay assertion', waitingBefore, waitingAfter],
+  ['smoothness injection point', marker, stress]
+]) {
+  const occurrences = source.split(before).length - 1;
+  if (occurrences !== 1) throw new Error(`Expected exactly one ${label}, found ${occurrences}.`);
+  source = source.replace(before, after);
+}
 await writeFile(runtimePath, source, 'utf8');
 
 try {
