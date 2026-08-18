@@ -302,6 +302,187 @@ const ensureNativeMediaPermissions = async constraints => {
   $('microphoneSelect')?.addEventListener('change', event => rememberLocalDevice('microphone', event.target.value), true);
   $('speakerSelect')?.addEventListener('change', event => rememberLocalDevice('speaker', event.target.value), true);
 
+  // Zoom-style manual join: Meeting ID first, passcode second. This runs before
+  // preview handoff so invalid credentials never tear down camera/mic state.
+  const manualJoin = {active:false,step:'meeting-id',verifiedRoom:'',bypassOnce:false,verifying:false,identityHidden:null};
+  const joinForm = $('joinForm');
+  const roomInput = $('roomId');
+  const passcodeInput = $('meetingPasscode');
+  const roomField = roomInput?.closest('label');
+  const passcodeField = passcodeInput?.closest('label');
+  const displayNameField = $('displayNameField');
+  const accountIdentity = $('accountIdentity');
+  const joinPreferences = joinForm?.querySelector('.join-preferences');
+  const joinHeading = joinForm?.querySelector('h1');
+  const joinSubcopy = joinForm?.querySelector('.subcopy');
+  const joinLabel = joinForm?.querySelector('[data-join-label]');
+  const manualDigits = value => String(value || '').replace(/\D/g, '').slice(0,10);
+  const isHostJoin = () => window.__DS_START_AS_HOST === true || new URLSearchParams(location.search).get('host') === '1';
+  const setManualJoinStatus = (message='', state='progress') => {
+    const status = $('joinStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.dataset.state = state;
+    status.hidden = !message;
+  };
+  const restoreManualIdentity = () => {
+    const hidden = manualJoin.identityHidden;
+    if (!hidden) return;
+    if (displayNameField) displayNameField.hidden = hidden.displayName;
+    if (accountIdentity) accountIdentity.hidden = hidden.accountIdentity;
+    if (joinPreferences) joinPreferences.hidden = hidden.preferences;
+  };
+  const showMeetingIdStep = () => {
+    if (!joinForm || isHostJoin()) return;
+    manualJoin.active = true;
+    manualJoin.step = 'meeting-id';
+    manualJoin.verifiedRoom = '';
+    if (roomField) roomField.hidden = false;
+    if (passcodeField) passcodeField.hidden = true;
+    if (passcodeInput) {
+      passcodeInput.required = false;
+      passcodeInput.value = '';
+    }
+    restoreManualIdentity();
+    if (joinHeading) joinHeading.textContent = 'Join a meeting';
+    if (joinSubcopy) joinSubcopy.textContent = 'Enter the Meeting ID provided by the host.';
+    if (joinLabel) joinLabel.textContent = 'Join';
+    setManualJoinStatus('');
+    queueMicrotask(() => roomInput?.focus());
+  };
+  const showPasscodeStep = room => {
+    manualJoin.active = true;
+    manualJoin.step = 'passcode';
+    manualJoin.verifiedRoom = room;
+    if (roomField) roomField.hidden = true;
+    if (passcodeField) passcodeField.hidden = false;
+    if (passcodeInput) passcodeInput.required = true;
+    if (displayNameField) displayNameField.hidden = true;
+    if (accountIdentity) accountIdentity.hidden = true;
+    if (joinPreferences) joinPreferences.hidden = true;
+    if (joinHeading) joinHeading.textContent = 'Enter meeting passcode';
+    if (joinSubcopy) joinSubcopy.textContent = `Meeting ID ${formatMeetingId(room)}`;
+    if (joinLabel) joinLabel.textContent = 'Join Meeting';
+    setManualJoinStatus('');
+    queueMicrotask(() => passcodeInput?.focus());
+  };
+  const resolveManualJoin = async (room, passcode='') => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch('/.netlify/functions/resolve-meeting-join', {
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({room,passcode}),
+        signal:controller.signal
+      });
+      const record = await response.json().catch(() => null);
+      if (response.status === 404 || record?.found === false) {
+        throw new Error(record?.error || 'Invalid meeting ID. Check the meeting ID and try again.');
+      }
+      if (!response.ok) {
+        throw new Error(record?.error || 'Meeting verification is temporarily unavailable. Try again.');
+      }
+      if (!record?.found) throw new Error('Invalid meeting ID. Check the meeting ID and try again.');
+      return record;
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('The meeting service took too long to respond. Check your connection and try again.');
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+  const continueManualJoin = () => {
+    manualJoin.bypassOnce = true;
+    queueMicrotask(() => joinForm?.requestSubmit());
+  };
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest?.('#joinMeetingAction')) return;
+    queueMicrotask(() => {
+      manualJoin.identityHidden = {
+        displayName:Boolean(displayNameField?.hidden),
+        accountIdentity:Boolean(accountIdentity?.hidden),
+        preferences:Boolean(joinPreferences?.hidden)
+      };
+      showMeetingIdStep();
+    });
+  }, true);
+
+  roomInput?.addEventListener('input', () => {
+    if (manualJoin.active && manualJoin.step === 'meeting-id') manualJoin.verifiedRoom = '';
+  });
+
+  joinForm?.addEventListener('submit', async event => {
+    if (manualJoin.bypassOnce) {
+      manualJoin.bypassOnce = false;
+      return;
+    }
+    if (!manualJoin.active || isHostJoin()) return;
+
+    const room = manualDigits(roomInput?.value);
+    if (room.length < 6) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      setManualJoinStatus('Enter a valid meeting ID.', 'error');
+      roomInput?.focus();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    if (manualJoin.verifying) return;
+    manualJoin.verifying = true;
+    const submit = joinForm.querySelector('button[type="submit"]');
+    if (submit) submit.disabled = true;
+
+    try {
+      if (manualJoin.step === 'meeting-id') {
+        const record = await resolveManualJoin(room, '');
+        if (record.passcode_required) {
+          showPasscodeStep(room);
+          return;
+        }
+        manualJoin.active = false;
+        continueManualJoin();
+        return;
+      }
+
+      if (room !== manualJoin.verifiedRoom) {
+        showMeetingIdStep();
+        setManualJoinStatus('Meeting ID changed. Verify the meeting again.', 'error');
+        return;
+      }
+
+      const passcode = manualDigits(passcodeInput?.value);
+      if (!passcode) {
+        setManualJoinStatus('Enter the meeting passcode.', 'error');
+        passcodeInput?.focus();
+        return;
+      }
+
+      const record = await resolveManualJoin(room, passcode);
+      if (record.passcode_required && record.passcode_valid === false) {
+        if (passcodeInput) passcodeInput.value = '';
+        setManualJoinStatus('Incorrect meeting passcode.', 'error');
+        passcodeInput?.focus();
+        return;
+      }
+
+      manualJoin.active = false;
+      continueManualJoin();
+    } catch (error) {
+      setManualJoinStatus(error?.message || 'Could not verify this meeting. Try again.', 'error');
+    } finally {
+      manualJoin.verifying = false;
+      if (submit) submit.disabled = false;
+    }
+  }, true);
+
+  window.__DS_MEET_MANUAL_JOIN_FLOW = 'zoom-id-then-passcode-v1';
+
   $('joinForm')?.addEventListener('submit', async event => {
     if (resubmitting) {
       resubmitting = false;
@@ -319,6 +500,114 @@ const ensureNativeMediaPermissions = async constraints => {
     resubmitting = true;
     $('joinForm').requestSubmit();
   }, true);
+
+  // Zoom host departure parity: the host must assign another participant before
+  // leaving an active meeting. Reuse Executive 6's proven leave/end handlers so
+  // timer cleanup, navigation, and terminal meeting signaling remain single-owner.
+  const leaveOnlyButton = $('leaveOnlyBtn');
+  const endAllButton = $('endAllBtn');
+  const leaveDialog = $('leaveDialog');
+  const leaveCopy = $('leaveCopy');
+  const baseLeaveOnlyHandler = leaveOnlyButton?.onclick;
+  const baseLeaveCopy = leaveCopy?.textContent || 'You can leave the meeting at any time.';
+  const baseLeaveLabel = leaveOnlyButton?.textContent || 'Leave Meeting';
+  const participantName = node => String(node?.querySelector('.participant-name')?.firstChild?.textContent || node?.querySelector('.tile-overlay > span:first-child')?.textContent || 'Participant')
+    .replace(/\s+\((?:Host|Co-host)\)\s*$/i,'').trim() || 'Participant';
+  const hostTransferCandidates = () => {
+    const candidates = new Map();
+    document.querySelectorAll('#participantList .participant-row[data-row]').forEach(row => {
+      const id = String(row.dataset.row || '');
+      if (!id || id === 'self' || row.classList.contains('is-offline')) return;
+      const label = String(row.querySelector('.participant-name')?.firstChild?.textContent || '');
+      if (/\(Host\)\s*$/i.test(label)) return;
+      candidates.set(id,{id,name:participantName(row)});
+    });
+    document.querySelectorAll('#filmstripTrack .remote-tile[data-tile]').forEach(tile => {
+      const id = String(tile.dataset.tile || '');
+      if (!id || id === 'self' || candidates.has(id)) return;
+      const label = String(tile.querySelector('.tile-overlay > span:first-child')?.textContent || '');
+      if (/\(Host\)\s*$/i.test(label)) return;
+      candidates.set(id,{id,name:participantName(tile)});
+    });
+    return [...candidates.values()];
+  };
+  const resetHostTransferPrompt = () => {
+    $('hostTransferField')?.remove();
+    if (leaveCopy) leaveCopy.textContent = baseLeaveCopy;
+    if (leaveOnlyButton) {
+      leaveOnlyButton.textContent = baseLeaveLabel;
+      leaveOnlyButton.disabled = false;
+      delete leaveOnlyButton.dataset.hostTransferStep;
+    }
+  };
+  const showHostTransferPrompt = candidates => {
+    resetHostTransferPrompt();
+    if (!leaveDialog || !leaveOnlyButton) return;
+    const field = document.createElement('label');
+    field.id = 'hostTransferField';
+    field.style.cssText = 'display:grid;gap:8px;margin:14px 0 18px;text-align:left';
+    const title = document.createElement('span');
+    title.textContent = 'New host';
+    title.style.cssText = 'font-size:12px;font-weight:800;letter-spacing:.04em;color:#cbd5e1';
+    const select = document.createElement('select');
+    select.id = 'hostTransferSelect';
+    select.setAttribute('aria-label','Select a new meeting host');
+    select.style.cssText = 'width:100%;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#0d1522;color:#f8fafc;font:inherit';
+    candidates.forEach(candidate => {
+      const option = document.createElement('option');
+      option.value = candidate.id;
+      option.textContent = candidate.name;
+      select.append(option);
+    });
+    field.append(title,select);
+    leaveDialog.querySelector('.leave-actions')?.before(field);
+    if (leaveCopy) leaveCopy.textContent = 'Assign another participant as host so the meeting can continue after you leave.';
+    leaveOnlyButton.textContent = 'Assign and Leave';
+    leaveOnlyButton.dataset.hostTransferStep = '1';
+    queueMicrotask(() => select.focus());
+  };
+  if (leaveOnlyButton && typeof baseLeaveOnlyHandler === 'function') {
+    leaveOnlyButton.onclick = async () => {
+      const snapshot = engine.snapshot?.() || {};
+      if (!snapshot.isHost) {
+        resetHostTransferPrompt();
+        return baseLeaveOnlyHandler();
+      }
+      const candidates = hostTransferCandidates();
+      if (!candidates.length) {
+        resetHostTransferPrompt();
+        endAllButton?.click();
+        return;
+      }
+      const select = $('hostTransferSelect');
+      if (!select) {
+        showHostTransferPrompt(candidates);
+        return;
+      }
+      const targetId = String(select.value || '');
+      const current = hostTransferCandidates().find(candidate => candidate.id === targetId);
+      if (!current) {
+        showHostTransferPrompt(hostTransferCandidates());
+        if (leaveCopy) leaveCopy.textContent = 'That participant is no longer available. Choose another participant to continue as host.';
+        return;
+      }
+      leaveOnlyButton.disabled = true;
+      leaveOnlyButton.textContent = 'Assigning host…';
+      try {
+        const delivered = await engine.setRole(targetId,'host');
+        if (delivered === false) throw new Error('Could not assign the new host. Try again.');
+        await sleep(220);
+        resetHostTransferPrompt();
+        return baseLeaveOnlyHandler();
+      } catch (error) {
+        leaveOnlyButton.disabled = false;
+        leaveOnlyButton.textContent = 'Assign and Leave';
+        if (leaveCopy) leaveCopy.textContent = error?.message || 'Could not assign the new host. Try again.';
+      }
+    };
+    leaveDialog?.addEventListener('close',resetHostTransferPrompt);
+  }
+  window.__DS_MEET_HOST_LEAVE_FLOW = 'zoom-assign-and-leave-v1';
 
   const setCameraButton = on => {
     const button = $('camBtn');
