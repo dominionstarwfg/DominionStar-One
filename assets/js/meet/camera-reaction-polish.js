@@ -157,15 +157,23 @@
     document.head.append(backgroundEffects);
   }
 
+  if (!document.querySelector('script[data-ds-share-ui-2030]')) {
+    const shareUi = document.createElement('script');
+    shareUi.src = '/assets/js/meet/share-ui-2030.js?v=1-operation-2030';
+    shareUi.dataset.dsShareUi2030 = '1';
+    document.head.append(shareUi);
+  }
+
   window.DominionCameraReactionPolish = Object.freeze({
-    version:'1.3.0',
+    version:'1.4.0',
     refreshDeviceNames,
     applyVideoQuality,
     snapshot:() => ({
       cameras:[...cameraSelect.options].map(option => ({id:option.value,label:option.textContent,resolved:option.dataset.deviceLabelResolved === '1'})),
       microphones:[...microphoneSelect.options].map(option => ({id:option.value,label:option.textContent,resolved:option.dataset.deviceLabelResolved === '1'})),
       reactionLayer:Boolean(reactionLayer),
-      backgroundProcessor:Boolean(window.DominionBackgroundEffects2030)
+      backgroundProcessor:Boolean(window.DominionBackgroundEffects2030),
+      shareUi:Boolean(window.DominionShareUI2030)
     })
   });
 })();
