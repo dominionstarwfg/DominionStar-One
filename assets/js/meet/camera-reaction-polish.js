@@ -143,8 +143,15 @@
     document.head.append(dockPolish);
   }
 
+  if (!document.querySelector('script[data-ds-remote-share-watchdog]')) {
+    const shareWatchdog = document.createElement('script');
+    shareWatchdog.src = '/assets/js/meet/remote-share-watchdog.js?v=1-operation-2030';
+    shareWatchdog.dataset.dsRemoteShareWatchdog = '1';
+    document.head.append(shareWatchdog);
+  }
+
   window.DominionCameraReactionPolish = Object.freeze({
-    version:'1.1.0',
+    version:'1.2.0',
     refreshDeviceNames,
     applyVideoQuality,
     snapshot:() => ({
