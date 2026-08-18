@@ -54,6 +54,26 @@
     return item;
   };
 
+  const waitForAnnotation = async () => {
+    if (window.DominionShareAnnotation?.open) return window.DominionShareAnnotation;
+    const script = document.querySelector('script[data-ds-share-annotation]');
+    if (!script) return null;
+    await Promise.race([
+      new Promise(resolve => {
+        script.addEventListener('load', resolve, { once: true });
+        script.addEventListener('error', resolve, { once: true });
+      }),
+      new Promise(resolve => setTimeout(resolve, 4000))
+    ]);
+    return window.DominionShareAnnotation || null;
+  };
+
+  const openAnnotation = async () => {
+    const annotation = await waitForAnnotation();
+    if (!annotation?.open) return false;
+    return annotation.open();
+  };
+
   const enhanceMenu = () => {
     const title = menu.querySelector('.menu-title');
     if (!title || title.textContent.trim() !== 'Shared Screen') return;
@@ -83,6 +103,10 @@
     controls.append(makeAction(filmstrip?.hidden ? 'Show video panel' : 'Hide video panel', () => {
       if (filmstrip) filmstrip.hidden = !filmstrip.hidden;
     }));
+
+    const annotateAction = makeAction('Annotate', openAnnotation);
+    annotateAction.dataset.dsAnnotationAction = '1';
+    controls.append(annotateAction);
 
     body.prepend(controls);
   };
@@ -119,17 +143,12 @@
     annotationScript.addEventListener('load',()=>{
       presentationWasActive = document.body.classList.contains('presentation-active');
       if (presentationWasActive) prewarmAnnotationSurface();
-      if (!menu.hidden) {
-        const marker = document.createComment('ds-annotation-ready');
-        menu.append(marker);
-        marker.remove();
-      }
     },{once:true});
     document.head.append(annotationScript);
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.2.1',
+    version: '1.3.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
