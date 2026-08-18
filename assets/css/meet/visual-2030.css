@@ -1,14 +1,9 @@
 /* DominionStar Meet — 2030 visual system
-   Visual-only layer. Loaded after deep-clean-layout.css.
-   Do not change meeting geometry, transport, authority, media, or join behavior here. */
+   Visual-only layer. Imported by operational-support-v2.css.
+   Selector specificity intentionally outranks later visual polish while leaving
+   deep-clean geometry, media, authority and meeting behavior untouched. */
 
 :root{
-  --ds30-void:#02050a;
-  --ds30-panel:rgba(8,14,24,.78);
-  --ds30-panel-strong:rgba(10,17,29,.93);
-  --ds30-panel-soft:rgba(255,255,255,.035);
-  --ds30-line:rgba(154,197,255,.16);
-  --ds30-line-hot:rgba(126,213,255,.34);
   --ds30-cyan:#73e7ff;
   --ds30-blue:#7aa7ff;
   --ds30-violet:#a78bfa;
@@ -16,404 +11,213 @@
   --ds30-green:#5be49b;
   --ds30-text:#f7faff;
   --ds30-muted:#9fadc1;
-  --ds30-shadow:0 28px 90px rgba(0,0,0,.52),0 0 54px rgba(82,137,255,.065);
-  --ds30-radius-xl:24px;
-  --ds30-radius-lg:18px;
-  --ds30-radius-md:13px;
   --ds30-ease:cubic-bezier(.2,.8,.2,1);
 }
 
-/* Ambient depth: restrained, premium, never decorative noise over video. */
-body.meeting-active .meeting,
-body.prejoin-active .prejoin{
-  isolation:isolate;
-}
-body.meeting-active .meeting::before,
-body.prejoin-active .prejoin::before{
-  content:"";
-  position:fixed;
-  inset:-20%;
-  pointer-events:none;
-  z-index:-1;
+/* Ambient optical depth. Never overlays live video content. */
+html body.meeting-active .meeting,
+html body.prejoin-active .prejoin{isolation:isolate}
+html body.meeting-active .meeting::before,
+html body.prejoin-active .prejoin::before{
+  content:"";position:fixed;inset:-20%;pointer-events:none;z-index:-1;
   background:
     radial-gradient(38% 34% at 76% 4%,rgba(72,125,255,.14),transparent 72%),
     radial-gradient(34% 32% at 10% 88%,rgba(80,228,255,.075),transparent 74%),
     radial-gradient(28% 28% at 48% 48%,rgba(167,139,250,.045),transparent 76%);
-  filter:blur(8px);
-  transform:translate3d(0,0,0);
-  animation:ds30Ambient 18s ease-in-out infinite alternate;
+  filter:blur(8px);transform:translate3d(0,0,0);
+  animation:ds30Ambient 18s ease-in-out infinite alternate
 }
-
-/* Fine optical grid sits behind content and disappears on smaller screens. */
-body.meeting-active .meeting::after,
-body.prejoin-active .prejoin::after{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:-1;
-  opacity:.16;
-  background-image:
-    linear-gradient(rgba(145,188,255,.05) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(145,188,255,.04) 1px,transparent 1px);
+html body.meeting-active .meeting::after,
+html body.prejoin-active .prejoin::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.15;
+  background-image:linear-gradient(rgba(145,188,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(145,188,255,.04) 1px,transparent 1px);
   background-size:64px 64px;
-  mask-image:radial-gradient(circle at 50% 45%,#000 0,transparent 78%);
+  mask-image:radial-gradient(circle at 50% 45%,#000 0,transparent 78%)
 }
 
-/* Top bar: thinner, optical rather than boxy. */
-body.meeting-active .meeting-topbar{
-  height:56px!important;
-  border-bottom:1px solid rgba(146,193,255,.13)!important;
+/* Precision top bar. */
+html body.meeting-active .meeting-topbar{
+  height:56px!important;border-bottom:1px solid rgba(146,193,255,.13)!important;
   background:linear-gradient(180deg,rgba(7,12,21,.9),rgba(5,9,16,.78))!important;
   box-shadow:0 14px 34px rgba(0,0,0,.18),inset 0 -1px rgba(255,255,255,.025)!important;
-  backdrop-filter:blur(28px) saturate(145%)!important;
+  backdrop-filter:blur(28px) saturate(145%)!important
 }
-body.meeting-active .meeting-brand img{
-  box-shadow:0 0 0 1px rgba(240,200,91,.22),0 0 24px rgba(240,200,91,.08);
-}
-body.meeting-active .meeting-brand strong{
-  color:#f4d575!important;
-  font-weight:780!important;
-  letter-spacing:.17em!important;
-}
-body.meeting-active .meeting-meta{
-  padding:5px 10px;
-  border:1px solid rgba(145,188,255,.09);
-  border-radius:999px;
-  background:rgba(255,255,255,.018);
-}
-body.meeting-active .connection-state{
-  font-variant-numeric:tabular-nums;
-  letter-spacing:.015em;
-}
+html body.meeting-active .meeting-brand img{box-shadow:0 0 0 1px rgba(240,200,91,.22),0 0 24px rgba(240,200,91,.08)}
+html body.meeting-active .meeting-brand strong{color:#f4d575!important;font-weight:780!important;letter-spacing:.17em!important;text-shadow:0 0 24px rgba(240,200,91,.11)!important}
+html body.meeting-active .meeting-meta{padding:5px 10px;border:1px solid rgba(145,188,255,.09);border-radius:999px;background:rgba(255,255,255,.018)}
+html body.meeting-active .connection-state{font-variant-numeric:tabular-nums;letter-spacing:.015em}
 
-/* Stage gains depth without tinting actual video. */
-body.meeting-active .stage{
+/* Stage depth without tinting participant video. */
+html body.meeting-active .stage{
   inset:56px 0 0!important;
-  background:
-    radial-gradient(66% 58% at 50% 38%,rgba(31,50,79,.28),transparent 76%),
-    linear-gradient(180deg,#04070d,#020409 78%)!important;
+  background:radial-gradient(66% 58% at 50% 38%,rgba(31,50,79,.28),transparent 76%),linear-gradient(180deg,#04070d,#020409 78%)!important
 }
-body.meeting-active .stage-fallback{
-  background:
-    radial-gradient(42% 46% at 50% 42%,rgba(50,82,132,.26),transparent 72%),
-    linear-gradient(160deg,#07101a,#020409)!important;
+html body.meeting-active .stage-fallback{
+  background:radial-gradient(42% 46% at 50% 42%,rgba(50,82,132,.26),transparent 72%),linear-gradient(160deg,#07101a,#020409)!important
 }
-body.meeting-active .stage-fallback img{
-  box-shadow:0 0 0 1px rgba(133,181,255,.14),0 0 70px rgba(80,131,255,.12);
-}
-body.meeting-active .speaker-nameplate{
-  border:1px solid rgba(149,196,255,.13)!important;
-  border-radius:999px!important;
-  padding:8px 12px!important;
-  background:rgba(5,10,18,.72)!important;
-  box-shadow:0 12px 36px rgba(0,0,0,.32)!important;
-  backdrop-filter:blur(20px) saturate(150%)!important;
+html body.meeting-active .stage-fallback img{box-shadow:0 0 0 1px rgba(133,181,255,.14),0 0 70px rgba(80,131,255,.12)}
+html body.meeting-active .speaker-nameplate{
+  border:1px solid rgba(149,196,255,.13)!important;border-radius:999px!important;padding:8px 12px!important;
+  background:rgba(5,10,18,.72)!important;box-shadow:0 12px 36px rgba(0,0,0,.32)!important;backdrop-filter:blur(20px) saturate(150%)!important
 }
 
-/* Floating toolbar: lighter mass, stronger focus hierarchy. */
-body.meeting-active .toolbar{
-  gap:3px!important;
-  padding:7px!important;
-  border:1px solid rgba(151,195,255,.16)!important;
-  border-radius:21px!important;
+/* Native-feeling floating control dock. */
+html body.meeting-active .toolbar{
+  gap:3px!important;padding:7px!important;border:1px solid rgba(151,195,255,.16)!important;border-radius:21px!important;
   background:linear-gradient(180deg,rgba(15,24,39,.88),rgba(7,12,21,.91))!important;
   box-shadow:0 26px 72px rgba(0,0,0,.52),0 0 40px rgba(83,139,255,.06),inset 0 1px rgba(255,255,255,.05)!important;
-  backdrop-filter:blur(32px) saturate(165%)!important;
+  backdrop-filter:blur(32px) saturate(165%)!important
 }
-body.meeting-active .toolbar::before{
-  content:"";
-  position:absolute;
-  inset:1px 12% auto;
-  height:1px;
-  background:linear-gradient(90deg,transparent,rgba(132,211,255,.32),transparent);
-  pointer-events:none;
+html body.meeting-active .toolbar::before{
+  content:"";position:absolute;inset:1px 12% auto;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(132,211,255,.32),transparent)
 }
-body.meeting-active .tool-button,
-body.meeting-active .tool-arrow{
-  transition:transform .18s var(--ds30-ease),background-color .18s ease,color .18s ease,box-shadow .18s ease!important;
-}
-body.meeting-active .tool-button:not(.leave):hover,
-body.meeting-active .tool-arrow:hover{
+html body.meeting-active .tool-button,
+html body.meeting-active .tool-arrow{transition:transform .18s var(--ds30-ease),background-color .18s ease,color .18s ease,box-shadow .18s ease!important}
+html body.meeting-active .tool-button:not(.leave):hover,
+html body.meeting-active .tool-arrow:hover{
   background:linear-gradient(180deg,rgba(124,171,255,.14),rgba(104,228,255,.045))!important;
-  box-shadow:inset 0 0 0 1px rgba(150,199,255,.09),0 8px 24px rgba(0,0,0,.15)!important;
+  box-shadow:inset 0 0 0 1px rgba(150,199,255,.09),0 8px 24px rgba(0,0,0,.15)!important
 }
-body.meeting-active .tool-button:not(.leave):hover{
-  transform:translateY(-2px) scale(1.015)!important;
-}
-body.meeting-active .tool-button:active,
-body.meeting-active .tool-arrow:active{
-  transform:translateY(0) scale(.985)!important;
-}
-body.meeting-active .tool-icon{
-  transition:filter .2s ease,transform .2s var(--ds30-ease);
-}
-body.meeting-active .tool-button:hover .tool-icon{
-  filter:drop-shadow(0 0 12px rgba(115,231,255,.18));
-  transform:translateY(-1px);
-}
-body.meeting-active .tool-label{
-  color:#d8e1ef!important;
-  letter-spacing:.015em;
-}
-body.meeting-active .tool-button.share{
-  color:var(--ds30-green)!important;
-}
-body.meeting-active .tool-button.leave{
-  border-radius:13px!important;
-  background:linear-gradient(180deg,#e45262,#b72f42)!important;
-  box-shadow:0 8px 24px rgba(188,48,66,.2),inset 0 1px rgba(255,255,255,.09)!important;
-}
-body.meeting-active .count-badge{
-  border:1px solid rgba(255,255,255,.14);
-  box-shadow:0 4px 12px rgba(0,0,0,.3);
+html body.meeting-active .tool-button:not(.leave):hover{transform:translateY(-2px) scale(1.015)!important}
+html body.meeting-active .tool-button:active,
+html body.meeting-active .tool-arrow:active{transform:translateY(0) scale(.985)!important}
+html body.meeting-active .tool-icon{transition:filter .2s ease,transform .2s var(--ds30-ease)}
+html body.meeting-active .tool-button:hover .tool-icon{filter:drop-shadow(0 0 12px rgba(115,231,255,.18));transform:translateY(-1px)}
+html body.meeting-active .tool-label{color:#d8e1ef!important;letter-spacing:.015em}
+html body.meeting-active .tool-button.share{color:var(--ds30-green)!important}
+html body.meeting-active .tool-button.leave{
+  border-radius:13px!important;background:linear-gradient(180deg,#e45262,#b72f42)!important;
+  box-shadow:0 8px 24px rgba(188,48,66,.2),inset 0 1px rgba(255,255,255,.09)!important
 }
 
-/* Participant dock becomes a spatial control surface, not a floating webpage. */
-body.meeting-active #filmstrip.ds-dock-v2,
-body.meeting-active .filmstrip{
-  border:1px solid rgba(148,195,255,.15)!important;
-  border-radius:17px!important;
+/* Participant dock becomes a spatial instrument, not a webpage panel. */
+html body.meeting-active #filmstrip.ds-dock-v2,
+html body.meeting-active .filmstrip{
+  border:1px solid rgba(148,195,255,.15)!important;border-radius:17px!important;
   background:linear-gradient(155deg,rgba(14,23,37,.86),rgba(6,11,19,.88))!important;
   box-shadow:0 26px 78px rgba(0,0,0,.5),0 0 34px rgba(74,131,255,.055),inset 0 1px rgba(255,255,255,.04)!important;
-  backdrop-filter:blur(30px) saturate(155%)!important;
+  backdrop-filter:blur(30px) saturate(155%)!important
 }
-body.meeting-active .dock-grip{
-  opacity:.7;
-  transition:opacity .16s ease;
-}
-body.meeting-active .filmstrip:hover .dock-grip{opacity:1}
-body.meeting-active .remote-tile,
-body.meeting-active .self-tile{
-  border:1px solid rgba(148,197,255,.14)!important;
-  border-radius:12px!important;
+html body.meeting-active .dock-grip{opacity:.7;transition:opacity .16s ease}
+html body.meeting-active .filmstrip:hover .dock-grip{opacity:1}
+html body.meeting-active .remote-tile,
+html body.meeting-active .self-tile{
+  border:1px solid rgba(148,197,255,.14)!important;border-radius:12px!important;
   background:linear-gradient(145deg,#122035,#07101b)!important;
   box-shadow:inset 0 1px rgba(255,255,255,.035),0 12px 34px rgba(0,0,0,.3)!important;
-  transition:border-color .18s ease,box-shadow .2s ease,transform .18s var(--ds30-ease)!important;
+  transition:border-color .18s ease,box-shadow .2s ease,transform .18s var(--ds30-ease)!important
 }
-body.meeting-active .remote-tile:hover,
-body.meeting-active .self-tile:hover{
-  transform:translateY(-1px);
-  border-color:rgba(148,201,255,.25)!important;
-}
-body.meeting-active .remote-tile.speaking{
+html body.meeting-active .remote-tile:hover,
+html body.meeting-active .self-tile:hover{transform:translateY(-1px);border-color:rgba(148,201,255,.25)!important}
+html body.meeting-active .remote-tile.speaking{
   border-color:rgba(91,228,155,.9)!important;
-  box-shadow:0 0 0 1px rgba(91,228,155,.23),0 0 30px rgba(91,228,155,.16),0 16px 38px rgba(0,0,0,.34)!important;
+  box-shadow:0 0 0 1px rgba(91,228,155,.23),0 0 30px rgba(91,228,155,.16),0 16px 38px rgba(0,0,0,.34)!important
 }
-body.meeting-active .remote-tile.speaking::after{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  pointer-events:none;
-  border-radius:inherit;
-  box-shadow:inset 0 0 22px rgba(91,228,155,.08);
-  animation:ds30SpeakerPulse 1.9s ease-in-out infinite;
+html body.meeting-active .remote-tile.speaking::after{
+  content:"";position:absolute;inset:-1px;pointer-events:none;border-radius:inherit;
+  box-shadow:inset 0 0 22px rgba(91,228,155,.08);animation:ds30SpeakerPulse 1.9s ease-in-out infinite
 }
-body.meeting-active .tile-overlay{
-  padding:22px 10px 8px!important;
-  background:linear-gradient(transparent,rgba(1,4,9,.82))!important;
-  backdrop-filter:blur(1.5px);
-}
+html body.meeting-active .tile-overlay{padding:22px 10px 8px!important;background:linear-gradient(transparent,rgba(1,4,9,.82))!important;backdrop-filter:blur(1.5px)}
 
-/* Side panels: clearer information architecture with quieter chrome. */
-body.meeting-active .panel,
-body.meeting-active .meeting-intelligence-panel{
-  border:1px solid rgba(149,197,255,.15)!important;
-  border-radius:18px!important;
+/* Information panels and menus share one coherent material. */
+html body.meeting-active .panel,
+html body.meeting-active .meeting-intelligence-panel{
+  border:1px solid rgba(149,197,255,.15)!important;border-radius:18px!important;
   background:linear-gradient(155deg,rgba(13,22,36,.94),rgba(6,11,20,.96))!important;
   box-shadow:0 30px 90px rgba(0,0,0,.54),0 0 42px rgba(73,129,255,.055),inset 0 1px rgba(255,255,255,.035)!important;
-  backdrop-filter:blur(34px) saturate(155%)!important;
+  backdrop-filter:blur(34px) saturate(155%)!important
 }
-body.meeting-active .panel header{
-  border-bottom:1px solid rgba(146,194,255,.1)!important;
-  background:linear-gradient(180deg,rgba(255,255,255,.022),transparent);
-}
-body.meeting-active .participant-search{
-  border-color:rgba(146,194,255,.11)!important;
-  background:rgba(255,255,255,.022)!important;
-}
-body.meeting-active .participant-row{
-  min-height:50px;
-  border-radius:11px!important;
-  transition:background-color .16s ease,border-color .16s ease,transform .16s var(--ds30-ease)!important;
-}
-body.meeting-active .participant-row:hover{
-  transform:translateX(2px);
-  border-color:rgba(132,194,255,.11)!important;
-  background:linear-gradient(90deg,rgba(112,169,255,.075),rgba(112,228,255,.018))!important;
-}
-body.meeting-active .participant-row.is-speaking{
-  background:linear-gradient(90deg,rgba(91,228,155,.075),transparent 72%)!important;
-}
-body.meeting-active .participant-avatar{
-  box-shadow:inset 0 1px rgba(255,255,255,.06),0 7px 18px rgba(0,0,0,.22)!important;
-}
-body.meeting-active .panel footer,
-body.meeting-active #chatForm{
-  border-top-color:rgba(146,194,255,.1)!important;
-  background:rgba(4,9,16,.76)!important;
-  backdrop-filter:blur(18px);
-}
-
-/* Menus, dialogs and alerts share one coherent glass material. */
-body.meeting-active .device-menu,
-body.meeting-active dialog[open],
-body.meeting-active .toast,
-body.meeting-active .join-request-toast.waiting-room-banner{
+html body.meeting-active .panel header{border-bottom:1px solid rgba(146,194,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.022),transparent)}
+html body.meeting-active .participant-search{border-color:rgba(146,194,255,.11)!important;background:rgba(255,255,255,.022)!important}
+html body.meeting-active .participant-row{min-height:50px;border-radius:11px!important;transition:background-color .16s ease,border-color .16s ease,transform .16s var(--ds30-ease)!important}
+html body.meeting-active .participant-row:hover{transform:translateX(2px);border-color:rgba(132,194,255,.11)!important;background:linear-gradient(90deg,rgba(112,169,255,.075),rgba(112,228,255,.018))!important}
+html body.meeting-active .participant-row.is-speaking{background:linear-gradient(90deg,rgba(91,228,155,.075),transparent 72%)!important}
+html body.meeting-active .participant-avatar{box-shadow:inset 0 1px rgba(255,255,255,.06),0 7px 18px rgba(0,0,0,.22)!important}
+html body.meeting-active .panel footer,
+html body.meeting-active #chatForm{border-top-color:rgba(146,194,255,.1)!important;background:rgba(4,9,16,.76)!important;backdrop-filter:blur(18px)}
+html body.meeting-active .device-menu,
+html body.meeting-active dialog[open],
+html body.meeting-active .toast,
+html body.meeting-active .join-request-toast.waiting-room-banner{
   border-color:rgba(149,198,255,.17)!important;
   background:linear-gradient(155deg,rgba(16,26,42,.97),rgba(6,11,20,.98))!important;
   box-shadow:0 34px 100px rgba(0,0,0,.6),0 0 46px rgba(72,126,255,.065),inset 0 1px rgba(255,255,255,.04)!important;
-  backdrop-filter:blur(34px) saturate(160%)!important;
+  backdrop-filter:blur(34px) saturate(160%)!important
 }
-body.meeting-active .device-menu button{
-  border-radius:10px!important;
-  transition:background-color .15s ease,transform .15s var(--ds30-ease);
-}
-body.meeting-active .device-menu button:hover{
-  transform:translateX(2px);
-  background:linear-gradient(90deg,rgba(120,177,255,.12),rgba(115,231,255,.035))!important;
-}
-body.meeting-active dialog::backdrop{
-  background:rgba(0,3,8,.72)!important;
-  backdrop-filter:blur(8px) saturate(80%)!important;
-}
+html body.meeting-active .device-menu button{border-radius:10px!important;transition:background-color .15s ease,transform .15s var(--ds30-ease)}
+html body.meeting-active .device-menu button:hover{transform:translateX(2px);background:linear-gradient(90deg,rgba(120,177,255,.12),rgba(115,231,255,.035))!important}
+html body.meeting-active dialog::backdrop{background:rgba(0,3,8,.72)!important;backdrop-filter:blur(8px) saturate(80%)!important}
 
-/* Sharing mode: unmistakably active but not distracting. */
-body.local-presentation-active .meeting{
-  background:
-    radial-gradient(56% 42% at 50% -4%,rgba(91,228,155,.08),transparent 76%),
-    var(--ds30-void)!important;
+/* Presentation mode has a subtle live-state signature. */
+html body.local-presentation-active .meeting{
+  background:radial-gradient(56% 42% at 50% -4%,rgba(91,228,155,.08),transparent 76%),#02050a!important
 }
-body.meeting-active .share-status-bar{
-  border:1px solid rgba(115,231,255,.19)!important;
-  border-radius:17px!important;
+html body.meeting-active .share-status-bar{
+  border:1px solid rgba(115,231,255,.19)!important;border-radius:17px!important;
   background:linear-gradient(180deg,rgba(12,23,37,.95),rgba(5,11,19,.96))!important;
   box-shadow:0 26px 84px rgba(0,0,0,.54),0 0 40px rgba(115,231,255,.065),inset 0 1px rgba(255,255,255,.045)!important;
-  backdrop-filter:blur(32px) saturate(165%)!important;
+  backdrop-filter:blur(32px) saturate(165%)!important
 }
-body.meeting-active .share-live-dot{
-  box-shadow:0 0 0 4px rgba(91,228,155,.08),0 0 16px rgba(91,228,155,.32)!important;
-  animation:ds30SharePulse 2s ease-in-out infinite;
-}
-body.meeting-active .share-presenter-controls button{
-  transition:background-color .16s ease,transform .16s var(--ds30-ease),color .16s ease;
-}
-body.meeting-active .share-presenter-controls button:hover{
-  transform:translateY(-1px);
-  background:rgba(123,184,255,.09)!important;
-}
+html body.meeting-active .share-live-dot{box-shadow:0 0 0 4px rgba(91,228,155,.08),0 0 16px rgba(91,228,155,.32)!important;animation:ds30SharePulse 2s ease-in-out infinite}
+html body.meeting-active .share-presenter-controls button{transition:background-color .16s ease,transform .16s var(--ds30-ease),color .16s ease}
+html body.meeting-active .share-presenter-controls button:hover{transform:translateY(-1px);background:rgba(123,184,255,.09)!important}
 
-/* Prejoin/dashboard: premium workspace, less landing-page visual language. */
-body.prejoin-active .prejoin{
-  background:
-    radial-gradient(62% 54% at 12% 12%,rgba(77,125,244,.16),transparent 74%),
-    radial-gradient(54% 48% at 92% 88%,rgba(78,224,255,.06),transparent 76%),
-    linear-gradient(145deg,#07101b,#02050a 70%)!important;
+/* Prejoin and Meet Home: premium workspace rather than marketing webpage. */
+html body.prejoin-active .prejoin{
+  background:radial-gradient(62% 54% at 12% 12%,rgba(77,125,244,.16),transparent 74%),radial-gradient(54% 48% at 92% 88%,rgba(78,224,255,.06),transparent 76%),linear-gradient(145deg,#07101b,#02050a 70%)!important
 }
-body.prejoin-active .brand{
-  color:#f1d06d!important;
-  text-shadow:0 0 26px rgba(240,200,91,.1);
-}
-body.prejoin-active .preview-shell,
-body.prejoin-active .join-card,
-body.prejoin-active .meet-dashboard{
-  border:1px solid rgba(148,196,255,.15)!important;
-  border-radius:var(--ds30-radius-xl)!important;
+html body.prejoin-active .brand{color:#f1d06d!important;text-shadow:0 0 26px rgba(240,200,91,.1)}
+html body.prejoin-active .preview-shell,
+html body.prejoin-active .join-card,
+html body.prejoin-active .meet-dashboard{
+  border:1px solid rgba(148,196,255,.15)!important;border-radius:24px!important;
   background:linear-gradient(155deg,rgba(14,23,38,.78),rgba(6,11,20,.82))!important;
-  box-shadow:var(--ds30-shadow),inset 0 1px rgba(255,255,255,.04)!important;
-  backdrop-filter:blur(34px) saturate(155%)!important;
+  box-shadow:0 28px 90px rgba(0,0,0,.52),0 0 54px rgba(82,137,255,.065),inset 0 1px rgba(255,255,255,.04)!important;
+  backdrop-filter:blur(34px) saturate(155%)!important
 }
-body.prejoin-active .join-card h1,
-body.prejoin-active .meet-dashboard h1{
-  letter-spacing:-.035em;
-  text-wrap:balance;
-}
-body.prejoin-active .meet-action-card{
-  border:1px solid rgba(146,195,255,.12)!important;
-  border-radius:17px!important;
+html body.prejoin-active .join-card h1,
+html body.prejoin-active .meet-dashboard h1{letter-spacing:-.035em;text-wrap:balance}
+html body.prejoin-active .meet-action-card{
+  border:1px solid rgba(146,195,255,.12)!important;border-radius:17px!important;
   background:linear-gradient(150deg,rgba(255,255,255,.045),rgba(255,255,255,.014))!important;
   box-shadow:inset 0 1px rgba(255,255,255,.035),0 10px 30px rgba(0,0,0,.15)!important;
-  transition:transform .2s var(--ds30-ease),border-color .2s ease,box-shadow .2s ease,background-color .2s ease!important;
+  transition:transform .2s var(--ds30-ease),border-color .2s ease,box-shadow .2s ease!important
 }
-body.prejoin-active .meet-action-card:hover{
-  transform:translateY(-3px);
-  border-color:rgba(126,207,255,.28)!important;
-  box-shadow:inset 0 1px rgba(255,255,255,.05),0 20px 44px rgba(0,0,0,.24),0 0 30px rgba(87,144,255,.055)!important;
+html body.prejoin-active .meet-action-card:hover{
+  transform:translateY(-3px);border-color:rgba(126,207,255,.28)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.05),0 20px 44px rgba(0,0,0,.24),0 0 30px rgba(87,144,255,.055)!important
 }
-body.prejoin-active .meet-action-card:active{transform:translateY(-1px) scale(.99)}
-body.prejoin-active .preview-controls{
-  border-radius:20px!important;
-  background:rgba(6,12,21,.75)!important;
+html body.prejoin-active .meet-action-card:active{transform:translateY(-1px) scale(.99)}
+html body.prejoin-active .preview-controls{
+  border-radius:20px!important;background:rgba(6,12,21,.75)!important;
   box-shadow:0 18px 44px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.04)!important;
-  backdrop-filter:blur(28px) saturate(155%)!important;
+  backdrop-filter:blur(28px) saturate(155%)!important
 }
-body.prejoin-active .round-control{
-  border-radius:15px!important;
-  box-shadow:inset 0 1px rgba(255,255,255,.045);
-  transition:transform .17s var(--ds30-ease),box-shadow .17s ease,background-color .17s ease!important;
-}
-body.prejoin-active .round-control:hover{
-  transform:translateY(-2px) scale(1.02);
-  box-shadow:0 10px 24px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.06)!important;
-}
-body.prejoin-active .join-card input,
-body.prejoin-active .join-card select,
-body.meeting-active .settings-body input,
-body.meeting-active .settings-body select{
-  border-color:rgba(145,193,255,.16)!important;
-  border-radius:13px!important;
-  background:rgba(242,247,255,.97)!important;
-  box-shadow:0 1px rgba(255,255,255,.55),0 8px 20px rgba(0,0,0,.08)!important;
-  transition:border-color .16s ease,box-shadow .16s ease,transform .16s var(--ds30-ease);
-}
-body.prejoin-active .join-card input:focus,
-body.prejoin-active .join-card select:focus,
-body.meeting-active .settings-body input:focus,
-body.meeting-active .settings-body select:focus{
-  border-color:rgba(94,177,255,.62)!important;
-  box-shadow:0 0 0 3px rgba(89,166,255,.12),0 10px 24px rgba(0,0,0,.08)!important;
-}
-body.prejoin-active .primary{
-  border:1px solid rgba(255,224,135,.34)!important;
-  border-radius:14px!important;
+html body.prejoin-active .round-control{border-radius:15px!important;box-shadow:inset 0 1px rgba(255,255,255,.045);transition:transform .17s var(--ds30-ease),box-shadow .17s ease!important}
+html body.prejoin-active .round-control:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 10px 24px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.06)!important}
+html body.prejoin-active .primary{
+  border:1px solid rgba(255,224,135,.34)!important;border-radius:14px!important;
   background:linear-gradient(135deg,#f3cf68,#d6a93b)!important;
   box-shadow:0 15px 38px rgba(212,163,47,.16),inset 0 1px rgba(255,255,255,.34)!important;
-  transition:transform .17s var(--ds30-ease),box-shadow .17s ease,filter .17s ease;
+  transition:transform .17s var(--ds30-ease),box-shadow .17s ease,filter .17s ease
 }
-body.prejoin-active .primary:hover{
-  transform:translateY(-2px);
-  filter:brightness(1.035);
-  box-shadow:0 20px 44px rgba(212,163,47,.2),inset 0 1px rgba(255,255,255,.4)!important;
-}
-body.prejoin-active .primary:active{transform:translateY(0) scale(.99)}
+html body.prejoin-active .primary:hover{transform:translateY(-2px);filter:brightness(1.035);box-shadow:0 20px 44px rgba(212,163,47,.2),inset 0 1px rgba(255,255,255,.4)!important}
+html body.prejoin-active .primary:active{transform:translateY(0) scale(.99)}
 
-/* Accessibility and low-motion systems remain first-class. */
 @media (prefers-reduced-motion:reduce){
-  body.meeting-active .meeting::before,
-  body.prejoin-active .prejoin::before,
-  body.meeting-active .remote-tile.speaking::after,
-  body.meeting-active .share-live-dot{animation:none!important}
-  body.meeting-active *,body.prejoin-active *{scroll-behavior:auto!important;transition-duration:.01ms!important}
+  html body.meeting-active .meeting::before,
+  html body.prejoin-active .prejoin::before,
+  html body.meeting-active .remote-tile.speaking::after,
+  html body.meeting-active .share-live-dot{animation:none!important}
+  html body.meeting-active *,html body.prejoin-active *{scroll-behavior:auto!important;transition-duration:.01ms!important}
 }
-
 @media (max-width:900px){
-  body.meeting-active .meeting::after,
-  body.prejoin-active .prejoin::after{display:none}
-  body.meeting-active .toolbar{border-radius:17px!important}
-  body.prejoin-active .preview-shell,
-  body.prejoin-active .join-card,
-  body.prejoin-active .meet-dashboard{border-radius:19px!important}
+  html body.meeting-active .meeting::after,html body.prejoin-active .prejoin::after{display:none}
+  html body.meeting-active .toolbar{border-radius:17px!important}
+  html body.prejoin-active .preview-shell,html body.prejoin-active .join-card,html body.prejoin-active .meet-dashboard{border-radius:19px!important}
 }
 
-@keyframes ds30Ambient{
-  0%{transform:translate3d(-1.2%,.4%,0) scale(1)}
-  100%{transform:translate3d(1.2%,-.5%,0) scale(1.025)}
-}
-@keyframes ds30SpeakerPulse{
-  0%,100%{opacity:.58}
-  50%{opacity:1}
-}
-@keyframes ds30SharePulse{
-  0%,100%{transform:scale(1);opacity:.86}
-  50%{transform:scale(1.12);opacity:1}
-}
+@keyframes ds30Ambient{0%{transform:translate3d(-1.2%,.4%,0) scale(1)}100%{transform:translate3d(1.2%,-.5%,0) scale(1.025)}}
+@keyframes ds30SpeakerPulse{0%,100%{opacity:.58}50%{opacity:1}}
+@keyframes ds30SharePulse{0%,100%{transform:scale(1);opacity:.86}50%{transform:scale(1.12);opacity:1}}
