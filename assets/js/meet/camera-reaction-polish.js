@@ -136,8 +136,15 @@
   addStatus();
   refreshSoon();
 
+  if (!document.querySelector('script[data-ds-dock-polish-2030]')) {
+    const dockPolish = document.createElement('script');
+    dockPolish.src = '/assets/js/meet/dock-polish-2030.js?v=1-operation-2030';
+    dockPolish.dataset.dsDockPolish2030 = '1';
+    document.head.append(dockPolish);
+  }
+
   window.DominionCameraReactionPolish = Object.freeze({
-    version:'1.0.0',
+    version:'1.1.0',
     refreshDeviceNames,
     applyVideoQuality,
     snapshot:() => ({
