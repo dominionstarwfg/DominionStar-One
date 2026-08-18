@@ -189,8 +189,15 @@
     document.head.append(arbitrationScript);
   }
 
+  if (!document.querySelector('script[data-ds-meeting-identity-bridge]')) {
+    const identityScript = document.createElement('script');
+    identityScript.src = '/assets/js/meet/meeting-identity-bridge.js?v=1-operation-2030';
+    identityScript.dataset.dsMeetingIdentityBridge = '1';
+    document.head.append(identityScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.7.0',
+    version: '1.8.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
