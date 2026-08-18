@@ -175,8 +175,22 @@
     document.head.append(handoffScript);
   }
 
+  if (!document.querySelector('script[data-ds-share-arbitration]')) {
+    const arbitrationScript = document.createElement('script');
+    arbitrationScript.src = '/assets/js/meet/share-arbitration.js?v=1-operation-2030';
+    arbitrationScript.dataset.dsShareArbitration = '1';
+    arbitrationScript.addEventListener('load',()=>{
+      if (document.querySelector('script[data-ds-share-arbitration-ui]')) return;
+      const uiScript=document.createElement('script');
+      uiScript.src='/assets/js/meet/share-arbitration-ui.js?v=1-operation-2030';
+      uiScript.dataset.dsShareArbitrationUi='1';
+      document.head.append(uiScript);
+    },{once:true});
+    document.head.append(arbitrationScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.6.0',
+    version: '1.7.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
