@@ -105,5 +105,5 @@
     window.DominionRuntime?.events?.publish?.({type:'screen.share.arbitration.rejected',source:'meet-ui',meetingId:String(snap.roomId||''),actorId:String(payload.participantId||''),severity:'warning',payload:{participantId:String(payload.participantId||''),leaseParticipantId:String(arb.snapshot?.().lease?.participantId||'')}});
   });
 
-  window.DominionShareArbitrationUI=Object.freeze({version:'1.0.0',startLocalShare,startNewShare,snapshot:()=>({busy,lease:window.DominionShareArbitration?.snapshot?.().lease||null})});
+  window.DominionShareArbitrationUI=Object.freeze({version:'1.0.1',startLocalShare,startNewShare,snapshot:()=>({busy,lease:window.DominionShareArbitration?.snapshot?.().lease||null})});
 })();
