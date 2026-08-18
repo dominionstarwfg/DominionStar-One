@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "verify": "node scripts/verify-v2.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs && node scripts/test-release-recovery.mjs",
+    "verify": "node scripts/verify-v2.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs && node scripts/test-release-recovery.mjs && node scripts/test-release-health.mjs",
     "pack": "electron-builder --dir",
     "dist:windows": "electron-builder --win nsis --x64 --arm64 --publish never",
     "dist:mac": "electron-builder --mac dmg zip --universal --publish never",
