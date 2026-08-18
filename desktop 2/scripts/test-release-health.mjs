@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dominionstar-health-'));
 const manifest = path.join(tmp, 'release-recovery.json');
 const health = path.join(tmp, 'release-health.json');
-const script = new URL('./release-health.mjs', import.meta.url).pathname;
+const script = fileURLToPath(new URL('./release-health.mjs', import.meta.url));
 
 const good = {
   schema: 1,
