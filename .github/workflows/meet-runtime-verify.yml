@@ -81,6 +81,9 @@ jobs:
       - name: Zoom-style manual join sequence
         run: node scripts/test-meet-zoom-manual-join.mjs
 
+      - name: Zoom-style host assign and leave
+        run: node scripts/test-meet-zoom-host-leave.mjs
+
       - name: Live synchronization regression contract
         run: node scripts/test-live-sync-regression.mjs
 
