@@ -189,8 +189,15 @@
     document.head.append(arbitrationScript);
   }
 
+  if (!document.querySelector('script[data-ds-camera-reaction-polish]')) {
+    const polishScript = document.createElement('script');
+    polishScript.src = '/assets/js/meet/camera-reaction-polish.js?v=1-operation-2030';
+    polishScript.dataset.dsCameraReactionPolish = '1';
+    document.head.append(polishScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.7.0',
+    version: '1.8.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
