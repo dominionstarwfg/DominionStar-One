@@ -304,7 +304,7 @@ const ensureNativeMediaPermissions = async constraints => {
 
   // Zoom-style manual join: Meeting ID first, passcode second. This runs before
   // preview handoff so invalid credentials never tear down camera/mic state.
-  const manualJoin = {active:false,step:'meeting-id',verifiedRoom:'',bypassOnce:false,verifying:false};
+  const manualJoin = {active:false,step:'meeting-id',verifiedRoom:'',bypassOnce:false,verifying:false,identityHidden:null};
   const joinForm = $('joinForm');
   const roomInput = $('roomId');
   const passcodeInput = $('meetingPasscode');
@@ -316,11 +316,6 @@ const ensureNativeMediaPermissions = async constraints => {
   const joinHeading = joinForm?.querySelector('h1');
   const joinSubcopy = joinForm?.querySelector('.subcopy');
   const joinLabel = joinForm?.querySelector('[data-join-label]');
-  const initialHidden = {
-    displayName:Boolean(displayNameField?.hidden),
-    accountIdentity:Boolean(accountIdentity?.hidden),
-    preferences:Boolean(joinPreferences?.hidden)
-  };
   const manualDigits = value => String(value || '').replace(/\D/g, '').slice(0,10);
   const isHostJoin = () => window.__DS_START_AS_HOST === true || new URLSearchParams(location.search).get('host') === '1';
   const setManualJoinStatus = (message='', state='progress') => {
@@ -331,9 +326,11 @@ const ensureNativeMediaPermissions = async constraints => {
     status.hidden = !message;
   };
   const restoreManualIdentity = () => {
-    if (displayNameField) displayNameField.hidden = initialHidden.displayName;
-    if (accountIdentity) accountIdentity.hidden = initialHidden.accountIdentity;
-    if (joinPreferences) joinPreferences.hidden = initialHidden.preferences;
+    const hidden = manualJoin.identityHidden;
+    if (!hidden) return;
+    if (displayNameField) displayNameField.hidden = hidden.displayName;
+    if (accountIdentity) accountIdentity.hidden = hidden.accountIdentity;
+    if (joinPreferences) joinPreferences.hidden = hidden.preferences;
   };
   const showMeetingIdStep = () => {
     if (!joinForm || isHostJoin()) return;
@@ -397,12 +394,19 @@ const ensureNativeMediaPermissions = async constraints => {
   };
   const continueManualJoin = () => {
     manualJoin.bypassOnce = true;
-    joinForm?.requestSubmit();
+    queueMicrotask(() => joinForm?.requestSubmit());
   };
 
   document.addEventListener('click', event => {
     if (!event.target.closest?.('#joinMeetingAction')) return;
-    queueMicrotask(showMeetingIdStep);
+    queueMicrotask(() => {
+      manualJoin.identityHidden = {
+        displayName:Boolean(displayNameField?.hidden),
+        accountIdentity:Boolean(accountIdentity?.hidden),
+        preferences:Boolean(joinPreferences?.hidden)
+      };
+      showMeetingIdStep();
+    });
   }, true);
 
   roomInput?.addEventListener('input', () => {
