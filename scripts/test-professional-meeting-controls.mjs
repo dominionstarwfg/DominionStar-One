@@ -7,6 +7,7 @@ const annotation = await readFile('assets/js/meet/share-annotation.js', 'utf8');
 const shareSpotlight = await readFile('assets/js/meet/share-spotlight.js', 'utf8');
 const presentationHandoff = await readFile('assets/js/meet/presentation-handoff.js', 'utf8');
 const remoteControl = await readFile('assets/js/meet/remote-control.js', 'utf8');
+const shareArbitration = await readFile('assets/js/meet/share-arbitration.js', 'utf8');
 const meet = await readFile('meet/index.html', 'utf8');
 const wrapper = await readFile('scripts/run-browser-two-client-meet-acceptance.mjs', 'utf8');
 
@@ -19,8 +20,10 @@ new Function(annotation);
 new Function(shareSpotlight);
 new Function(presentationHandoff);
 new Function(remoteControl);
+new Function(shareArbitration);
 await import('./test-share-spotlight-two-client.mjs');
 await import('./test-presentation-handoff.mjs');
+await import('./test-share-arbitration-two-client.mjs');
 
 requireText(source, "appendDeviceSection('Microphone'", 'professional Audio menu no longer exposes microphone selection');
 requireText(source, "appendDeviceSection('Speaker'", 'professional Audio menu no longer exposes speaker/output selection');
@@ -29,7 +32,6 @@ requireText(source, "micMenuBtn.setAttribute('aria-label','Audio options')", 'Au
 requireText(source, "waitingRoomToggleLabel", 'host-only Waiting Room boundary is missing');
 requireText(source, "if(!deviceMenu||isLocalHost())return", 'co-host Waiting Room UI boundary is missing');
 requireText(source, "event.stopImmediatePropagation()", 'co-host Waiting Room click boundary is missing');
-
 requireText(source, "navigator.mediaDevices?.addEventListener?.('devicechange',scheduleDeviceRefresh)", 'device selectors no longer refresh when hardware changes');
 requireText(source, "refreshProfessionalDevices({retries:3})", 'device enumeration retry contract is missing');
 requireText(source, "settingsObserver", 'Audio & Video Settings no longer refreshes device enumeration when opened');
@@ -55,6 +57,7 @@ requireText(shareView, 'filmstrip.hidden = !filmstrip.hidden', 'viewer hide/show
 requireText(shareView, '/assets/js/meet/share-annotation.js?v=1-operation-2030', 'share viewer controls no longer load synchronized annotation');
 requireText(shareView, '/assets/js/meet/share-spotlight.js?v=1-operation-2030', 'share viewer controls no longer load room-synchronized shared-content spotlight');
 requireText(shareView, '/assets/js/meet/presentation-handoff.js?v=1-operation-2030', 'share viewer controls no longer load presentation handoff coordination');
+requireText(shareView, '/assets/js/meet/share-arbitration.js?v=1-operation-2030', 'share viewer controls no longer load single-presenter arbitration');
 requireText(shareView, 'prewarmAnnotationSurface', 'annotation render surface is no longer prewarmed for every active share');
 requireText(shareView, 'const positionAnnotationToolbar = () =>', 'viewer annotation controls no longer avoid the normal meeting toolbar');
 requireText(shareView, 'occupiedHeight + 18', 'viewer annotation controls lost their measured toolbar clearance');
@@ -106,6 +109,16 @@ requireText(remoteControl, "window.addEventListener('dominion:presentation-hando
 requireText(remoteControl, "pendingRequest=null", 'remote-control pending requests can survive presenter handoff');
 requireText(remoteControl, "clearRemoteControlPermission", 'desktop Accessibility permission cleanup disappeared from remote-control handoff');
 
+requireText(shareArbitration, 'dominionstar-meet-share-arbitration-${roomId}', 'share arbitration lost its room-scoped realtime claim channel');
+requireText(shareArbitration, 'CLAIM_WINDOW_MS = 180', 'share arbitration collision window disappeared');
+requireText(shareArbitration, "maxSimultaneousShares:1", 'single-presenter policy disappeared');
+requireText(shareArbitration, "whoCanInterrupt:'host-cohost-only'", 'host/co-host-only interruption policy disappeared');
+requireText(shareArbitration, "await engine.moderate?.(activeId,'stop-share')", 'host/co-host interruption no longer stops the active participant first');
+requireText(shareArbitration, 'engine.shareScreen = requestShare', 'share capture is no longer gated by arbitration');
+requireText(shareArbitration, 'priority:priorityFor(snap)', 'host/co-host claim priority disappeared');
+requireText(shareArbitration, "throw new Error('Another participant is already sharing. Wait until they stop sharing.')", 'attendee interruption no longer fails closed');
+requireText(shareArbitration, 'window.DominionShareArbitration = Object.freeze', 'share arbitration diagnostic surface disappeared');
+
 requireText(wrapper, 'professional Audio menu omitted speaker/output selection', 'browser acceptance no longer exercises speaker/output quick selection');
 requireText(wrapper, 'co-host incorrectly received host-only Waiting Room enable/disable authority', 'browser acceptance no longer enforces co-host Waiting Room boundary');
 requireText(wrapper, 'normal meeting toolbar remained visible while presenting', 'browser acceptance no longer enforces presenter toolbar replacement');
@@ -120,3 +133,4 @@ console.log('DOMINIONSTAR_SHARE_VIEW_CONTROLS_GUARDRAIL_OK');
 console.log('DOMINIONSTAR_SYNCHRONIZED_ANNOTATION_GUARDRAIL_OK');
 console.log('DOMINIONSTAR_SHARED_CONTENT_SPOTLIGHT_GUARDRAIL_OK');
 console.log('DOMINIONSTAR_PRESENTATION_HANDOFF_GUARDRAIL_OK');
+console.log('DOMINIONSTAR_SINGLE_PRESENTER_ARBITRATION_GUARDRAIL_OK');
