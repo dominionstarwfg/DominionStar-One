@@ -168,8 +168,15 @@
     document.head.append(spotlightScript);
   }
 
+  if (!document.querySelector('script[data-ds-presentation-handoff]')) {
+    const handoffScript = document.createElement('script');
+    handoffScript.src = '/assets/js/meet/presentation-handoff.js?v=1-operation-2030';
+    handoffScript.dataset.dsPresentationHandoff = '1';
+    document.head.append(handoffScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.5.0',
+    version: '1.6.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
