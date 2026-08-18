@@ -150,14 +150,22 @@
     document.head.append(shareWatchdog);
   }
 
+  if (!document.querySelector('script[data-ds-background-effects-2030]')) {
+    const backgroundEffects = document.createElement('script');
+    backgroundEffects.src = '/assets/js/meet/background-effects-2030.js?v=1-operation-2030';
+    backgroundEffects.dataset.dsBackgroundEffects2030 = '1';
+    document.head.append(backgroundEffects);
+  }
+
   window.DominionCameraReactionPolish = Object.freeze({
-    version:'1.2.0',
+    version:'1.3.0',
     refreshDeviceNames,
     applyVideoQuality,
     snapshot:() => ({
       cameras:[...cameraSelect.options].map(option => ({id:option.value,label:option.textContent,resolved:option.dataset.deviceLabelResolved === '1'})),
       microphones:[...microphoneSelect.options].map(option => ({id:option.value,label:option.textContent,resolved:option.dataset.deviceLabelResolved === '1'})),
-      reactionLayer:Boolean(reactionLayer)
+      reactionLayer:Boolean(reactionLayer),
+      backgroundProcessor:Boolean(window.DominionBackgroundEffects2030)
     })
   });
 })();
