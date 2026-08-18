@@ -1,0 +1,33 @@
+name: DominionStar Meet Zoom Share Parity
+
+on:
+  pull_request:
+    paths:
+      - 'assets/css/meet/dock-layout-v2.css'
+      - 'assets/js/meet-next/executive6.js'
+      - 'scripts/test-zoom-share-viewer-parity.mjs'
+      - '.github/workflows/meet-zoom-share-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  share-parity:
+    name: Viewer and participant dock interaction contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify Zoom-standard share and dock behavior contract
+        run: node scripts/test-zoom-share-viewer-parity.mjs
