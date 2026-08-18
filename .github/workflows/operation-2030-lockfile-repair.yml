@@ -1,0 +1,53 @@
+name: Operation 2030 Lockfile Repair
+
+on:
+  pull_request:
+    paths:
+      - "desktop 2/package.json"
+      - "desktop 2/package-lock.json"
+      - ".github/workflows/operation-2030-lockfile-repair.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/operation-2030-release-trust'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          clean: true
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: "desktop 2/package-lock.json"
+
+      - name: Regenerate updater lockfile on fixed stable release
+        working-directory: "desktop 2"
+        run: npm install --package-lock-only --save-exact electron-updater@6.8.9
+
+      - name: Commit only updater manifest and lockfile changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- 'desktop 2/package.json' 'desktop 2/package-lock.json'; then
+            echo "OPERATION_2030_LOCKFILE_ALREADY_CURRENT"
+            exit 0
+          fi
+          git config user.name "DominionStar Release Guardian"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- 'desktop 2/package.json' 'desktop 2/package-lock.json'
+          git diff --cached --name-only | grep -qx 'desktop 2/package.json'
+          git diff --cached --name-only | grep -qx 'desktop 2/package-lock.json'
+          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = "2"
+          git commit -m "Upgrade electron-updater to fixed 6.8.9"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
