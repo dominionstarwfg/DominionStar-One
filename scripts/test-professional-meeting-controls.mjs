@@ -4,6 +4,7 @@ const source = await readFile('assets/js/meet/dock-layout-v2.js', 'utf8');
 const runtime = await readFile('assets/js/meet-next/executive6.js', 'utf8');
 const shareView = await readFile('assets/js/meet/share-view-controls.js', 'utf8');
 const annotation = await readFile('assets/js/meet/share-annotation.js', 'utf8');
+const shareSpotlight = await readFile('assets/js/meet/share-spotlight.js', 'utf8');
 const meet = await readFile('meet/index.html', 'utf8');
 const wrapper = await readFile('scripts/run-browser-two-client-meet-acceptance.mjs', 'utf8');
 
@@ -13,6 +14,7 @@ const requireText = (text, needle, message) => {
 
 new Function(shareView);
 new Function(annotation);
+new Function(shareSpotlight);
 
 requireText(source, "appendDeviceSection('Microphone'", 'professional Audio menu no longer exposes microphone selection');
 requireText(source, "appendDeviceSection('Speaker'", 'professional Audio menu no longer exposes speaker/output selection');
@@ -45,6 +47,7 @@ requireText(shareView, 'requestFullscreen', 'viewer Enter fullscreen behavior di
 requireText(shareView, 'exitFullscreen', 'viewer Exit fullscreen behavior disappeared');
 requireText(shareView, 'filmstrip.hidden = !filmstrip.hidden', 'viewer hide/show video-panel behavior disappeared');
 requireText(shareView, '/assets/js/meet/share-annotation.js?v=1-operation-2030', 'share viewer controls no longer load synchronized annotation');
+requireText(shareView, '/assets/js/meet/share-spotlight.js?v=1-operation-2030', 'share viewer controls no longer load room-synchronized shared-content spotlight');
 requireText(shareView, 'prewarmAnnotationSurface', 'annotation render surface is no longer prewarmed for every active share');
 requireText(shareView, 'const positionAnnotationToolbar = () =>', 'viewer annotation controls no longer avoid the normal meeting toolbar');
 requireText(shareView, 'occupiedHeight + 18', 'viewer annotation controls lost their measured toolbar clearance');
@@ -68,6 +71,17 @@ requireText(annotation, "addTool('Laser','laser')", 'annotation Laser pointer di
 requireText(annotation, "engine.on?.('screen-ended'", 'annotation no longer clears when screen sharing ends');
 requireText(annotation, 'window.DominionShareAnnotation = Object.freeze', 'annotation diagnostic surface disappeared');
 
+requireText(shareSpotlight, 'dominionstar-meet-share-spotlight-${snap.roomId}', 'share spotlight lost its isolated room-scoped realtime channel');
+requireText(shareSpotlight, "event:'share-spotlight'", 'share spotlight broadcast event disappeared');
+requireText(shareSpotlight, "member.role === 'cohost'", 'co-host shared-content spotlight authority disappeared');
+requireText(shareSpotlight, 'member.admitted === false', 'share spotlight no longer rejects non-admitted remote senders');
+requireText(shareSpotlight, "item.textContent = active ? 'Remove share spotlight' : 'Spotlight this share'", 'shared-content spotlight menu control disappeared');
+requireText(shareSpotlight, "document.body.dataset.shareSpotlightParticipantId", 'shared-content spotlight no longer exposes synchronized content state');
+requireText(shareSpotlight, "engine.on?.('screen-state'", 'shared-content spotlight no longer follows remote share lifecycle');
+requireText(shareSpotlight, "engine.on?.('screen-ended'", 'shared-content spotlight no longer clears when sharing ends');
+requireText(shareSpotlight, 'window.DominionShareSpotlight = Object.freeze', 'shared-content spotlight diagnostic surface disappeared');
+if (shareSpotlight.includes('engine.spotlight')) throw new Error('shared-content spotlight must remain separate from participant-video spotlight');
+
 requireText(wrapper, 'professional Audio menu omitted speaker/output selection', 'browser acceptance no longer exercises speaker/output quick selection');
 requireText(wrapper, 'co-host incorrectly received host-only Waiting Room enable/disable authority', 'browser acceptance no longer enforces co-host Waiting Room boundary');
 requireText(wrapper, 'normal meeting toolbar remained visible while presenting', 'browser acceptance no longer enforces presenter toolbar replacement');
@@ -80,3 +94,4 @@ requireText(wrapper, 'normal meeting toolbar did not return after screen sharing
 console.log('DOMINIONSTAR_PROFESSIONAL_MEETING_CONTROLS_CONTRACT_OK');
 console.log('DOMINIONSTAR_SHARE_VIEW_CONTROLS_GUARDRAIL_OK');
 console.log('DOMINIONSTAR_SYNCHRONIZED_ANNOTATION_GUARDRAIL_OK');
+console.log('DOMINIONSTAR_SHARED_CONTENT_SPOTLIGHT_GUARDRAIL_OK');
