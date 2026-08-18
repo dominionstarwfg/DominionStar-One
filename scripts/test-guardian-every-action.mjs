@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 
 const [guardian,eventBus,html,runtime,personal,transcription,intelligence,dock] = await Promise.all([
   readFile('assets/js/runtime/guardian-certification.js','utf8'),
@@ -13,6 +14,7 @@ const [guardian,eventBus,html,runtime,personal,transcription,intelligence,dock] 
 
 const requireText=(text,needle,message)=>{if(!text.includes(needle))throw new Error(message)};
 const requireAll=(text,needles,prefix)=>needles.forEach(needle=>requireText(text,needle,`${prefix}: ${needle}`));
+const sha256=text=>createHash('sha256').update(text).digest('hex');
 
 requireAll(guardian,[
   "const ACTION_VERSION='1.0.0'",
@@ -79,6 +81,8 @@ requireText(dock,"button.addEventListener('click'",'Participant dock view action
 // Older feature telemetry must converge on the canonical bus observed by Guardian.
 requireText(eventBus,'window.DominionStarEventBus=window.DominionRuntime.events','Legacy feature telemetry is not bridged into Guardian event bus');
 
+console.log(`GUARDIAN_CERTIFICATION_SHA256=${sha256(guardian)}`);
+console.log(`GUARDIAN_EVENT_BUS_SHA256=${sha256(eventBus)}`);
 console.log(`GUARDIAN_ACTION_CATALOG_STATIC_CONTROLS=${uniqueSelectors.length}`);
 console.log(`GUARDIAN_ACTION_CATALOG_REQUIRED_IDS=${requiredActionIds.length}`);
 console.log('DOMINIONSTAR_GUARDIAN_EVERY_ACTION_CONTRACT_OK');
