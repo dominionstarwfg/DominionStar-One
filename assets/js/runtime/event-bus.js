@@ -118,5 +118,8 @@ class DominionEventBus{
 window.DominionRuntime=window.DominionRuntime||{};
 const existing=window.DominionRuntime.events;
 if(!existing||typeof existing.publish!=='function')window.DominionRuntime.events=new DominionEventBus();
+// Compatibility alias: older Meet features that emit through DominionStarEventBus
+// now feed the same canonical bus observed by Guardian instead of disappearing.
+window.DominionStarEventBus=window.DominionRuntime.events;
 window.DominionEventBus=DominionEventBus;
 })();

@@ -501,6 +501,114 @@ const ensureNativeMediaPermissions = async constraints => {
     $('joinForm').requestSubmit();
   }, true);
 
+  // Zoom host departure parity: the host must assign another participant before
+  // leaving an active meeting. Reuse Executive 6's proven leave/end handlers so
+  // timer cleanup, navigation, and terminal meeting signaling remain single-owner.
+  const leaveOnlyButton = $('leaveOnlyBtn');
+  const endAllButton = $('endAllBtn');
+  const leaveDialog = $('leaveDialog');
+  const leaveCopy = $('leaveCopy');
+  const baseLeaveOnlyHandler = leaveOnlyButton?.onclick;
+  const baseLeaveCopy = leaveCopy?.textContent || 'You can leave the meeting at any time.';
+  const baseLeaveLabel = leaveOnlyButton?.textContent || 'Leave Meeting';
+  const participantName = node => String(node?.querySelector('.participant-name')?.firstChild?.textContent || node?.querySelector('.tile-overlay > span:first-child')?.textContent || 'Participant')
+    .replace(/\s+\((?:Host|Co-host)\)\s*$/i,'').trim() || 'Participant';
+  const hostTransferCandidates = () => {
+    const candidates = new Map();
+    document.querySelectorAll('#participantList .participant-row[data-row]').forEach(row => {
+      const id = String(row.dataset.row || '');
+      if (!id || id === 'self' || row.classList.contains('is-offline')) return;
+      const label = String(row.querySelector('.participant-name')?.firstChild?.textContent || '');
+      if (/\(Host\)\s*$/i.test(label)) return;
+      candidates.set(id,{id,name:participantName(row)});
+    });
+    document.querySelectorAll('#filmstripTrack .remote-tile[data-tile]').forEach(tile => {
+      const id = String(tile.dataset.tile || '');
+      if (!id || id === 'self' || candidates.has(id)) return;
+      const label = String(tile.querySelector('.tile-overlay > span:first-child')?.textContent || '');
+      if (/\(Host\)\s*$/i.test(label)) return;
+      candidates.set(id,{id,name:participantName(tile)});
+    });
+    return [...candidates.values()];
+  };
+  const resetHostTransferPrompt = () => {
+    $('hostTransferField')?.remove();
+    if (leaveCopy) leaveCopy.textContent = baseLeaveCopy;
+    if (leaveOnlyButton) {
+      leaveOnlyButton.textContent = baseLeaveLabel;
+      leaveOnlyButton.disabled = false;
+      delete leaveOnlyButton.dataset.hostTransferStep;
+    }
+  };
+  const showHostTransferPrompt = candidates => {
+    resetHostTransferPrompt();
+    if (!leaveDialog || !leaveOnlyButton) return;
+    const field = document.createElement('label');
+    field.id = 'hostTransferField';
+    field.style.cssText = 'display:grid;gap:8px;margin:14px 0 18px;text-align:left';
+    const title = document.createElement('span');
+    title.textContent = 'New host';
+    title.style.cssText = 'font-size:12px;font-weight:800;letter-spacing:.04em;color:#cbd5e1';
+    const select = document.createElement('select');
+    select.id = 'hostTransferSelect';
+    select.setAttribute('aria-label','Select a new meeting host');
+    select.style.cssText = 'width:100%;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#0d1522;color:#f8fafc;font:inherit';
+    candidates.forEach(candidate => {
+      const option = document.createElement('option');
+      option.value = candidate.id;
+      option.textContent = candidate.name;
+      select.append(option);
+    });
+    field.append(title,select);
+    leaveDialog.querySelector('.leave-actions')?.before(field);
+    if (leaveCopy) leaveCopy.textContent = 'Assign another participant as host so the meeting can continue after you leave.';
+    leaveOnlyButton.textContent = 'Assign and Leave';
+    leaveOnlyButton.dataset.hostTransferStep = '1';
+    queueMicrotask(() => select.focus());
+  };
+  if (leaveOnlyButton && typeof baseLeaveOnlyHandler === 'function') {
+    leaveOnlyButton.onclick = async () => {
+      const snapshot = engine.snapshot?.() || {};
+      if (!snapshot.isHost) {
+        resetHostTransferPrompt();
+        return baseLeaveOnlyHandler();
+      }
+      const candidates = hostTransferCandidates();
+      if (!candidates.length) {
+        resetHostTransferPrompt();
+        endAllButton?.click();
+        return;
+      }
+      const select = $('hostTransferSelect');
+      if (!select) {
+        showHostTransferPrompt(candidates);
+        return;
+      }
+      const targetId = String(select.value || '');
+      const current = hostTransferCandidates().find(candidate => candidate.id === targetId);
+      if (!current) {
+        showHostTransferPrompt(hostTransferCandidates());
+        if (leaveCopy) leaveCopy.textContent = 'That participant is no longer available. Choose another participant to continue as host.';
+        return;
+      }
+      leaveOnlyButton.disabled = true;
+      leaveOnlyButton.textContent = 'Assigning host…';
+      try {
+        const delivered = await engine.setRole(targetId,'host');
+        if (delivered === false) throw new Error('Could not assign the new host. Try again.');
+        await sleep(220);
+        resetHostTransferPrompt();
+        return baseLeaveOnlyHandler();
+      } catch (error) {
+        leaveOnlyButton.disabled = false;
+        leaveOnlyButton.textContent = 'Assign and Leave';
+        if (leaveCopy) leaveCopy.textContent = error?.message || 'Could not assign the new host. Try again.';
+      }
+    };
+    leaveDialog?.addEventListener('close',resetHostTransferPrompt);
+  }
+  window.__DS_MEET_HOST_LEAVE_FLOW = 'zoom-assign-and-leave-v1';
+
   const setCameraButton = on => {
     const button = $('camBtn');
     if (!button) return;

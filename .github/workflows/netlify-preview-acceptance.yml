@@ -18,6 +18,7 @@ on:
       - "scripts/audit-static-dependency-closure.mjs"
       - "scripts/browser-runtime-acceptance.mjs"
       - "scripts/browser-auth-boundary-acceptance.mjs"
+      - "scripts/browser-guardian-action-acceptance.mjs"
       - "scripts/browser-two-client-meet-acceptance.mjs"
       - "scripts/run-browser-two-client-meet-acceptance.mjs"
       - "scripts/browser-meet-visual-modernization-acceptance.mjs"
@@ -139,6 +140,21 @@ jobs:
             sleep 0.25
           done
           DOMINIONSTAR_PREVIEW_URL=http://127.0.0.1:4173 node scripts/browser-runtime-acceptance.mjs
+
+      - name: Guardian every-action observability acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .preview-package/public
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ds-guardian-preview-http.log 2>&1 &
+          server=$!
+          cd ../..
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for _ in {1..40}; do
+            curl -fsS http://127.0.0.1:4173/meet/ >/dev/null && break
+            sleep 0.25
+          done
+          DOMINIONSTAR_PREVIEW_URL=http://127.0.0.1:4173 node scripts/browser-guardian-action-acceptance.mjs
 
       - name: Member and founder authorization boundary acceptance
         shell: bash
