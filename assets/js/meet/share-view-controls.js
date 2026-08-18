@@ -6,6 +6,7 @@
   const stage = document.getElementById('stage');
   const video = document.getElementById('stageVideo');
   const filmstrip = document.getElementById('filmstrip');
+  const meetingToolbar = document.getElementById('meetingToolbar');
   if (!button || !menu || !stage || !video) return;
 
   const originalOpen = button.onclick;
@@ -54,6 +55,37 @@
     return item;
   };
 
+  const waitForAnnotation = async () => {
+    if (window.DominionShareAnnotation?.open) return window.DominionShareAnnotation;
+    const script = document.querySelector('script[data-ds-share-annotation]');
+    if (!script) return null;
+    await Promise.race([
+      new Promise(resolve => {
+        script.addEventListener('load', resolve, { once: true });
+        script.addEventListener('error', resolve, { once: true });
+      }),
+      new Promise(resolve => setTimeout(resolve, 4000))
+    ]);
+    return window.DominionShareAnnotation || null;
+  };
+
+  const positionAnnotationToolbar = () => {
+    const annotationToolbar = document.querySelector('.ds-annotation-toolbar');
+    if (!annotationToolbar) return;
+    const localPresenter = document.body.classList.contains('local-presentation-active');
+    const normalToolbarVisible = !localPresenter && meetingToolbar && !meetingToolbar.hidden;
+    const occupiedHeight = normalToolbarVisible ? Math.ceil(meetingToolbar.getBoundingClientRect().height || 0) : 0;
+    annotationToolbar.style.bottom = `${Math.max(18, occupiedHeight + 18)}px`;
+  };
+
+  const openAnnotation = async () => {
+    const annotation = await waitForAnnotation();
+    if (!annotation?.open) return false;
+    const opened = await annotation.open();
+    if (opened) requestAnimationFrame(positionAnnotationToolbar);
+    return opened;
+  };
+
   const enhanceMenu = () => {
     const title = menu.querySelector('.menu-title');
     if (!title || title.textContent.trim() !== 'Shared Screen') return;
@@ -84,6 +116,10 @@
       if (filmstrip) filmstrip.hidden = !filmstrip.hidden;
     }));
 
+    const annotateAction = makeAction('Annotate', openAnnotation);
+    annotateAction.dataset.dsAnnotationAction = '1';
+    controls.append(annotateAction);
+
     body.prepend(controls);
   };
 
@@ -96,8 +132,37 @@
     if (!menu.hidden) enhanceMenu();
   }).observe(menu, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
 
+  const prewarmAnnotationSurface = () => {
+    const annotation = window.DominionShareAnnotation;
+    if (!document.body.classList.contains('presentation-active') || !annotation?.open) return;
+    Promise.resolve(annotation.open()).then(opened => {
+      if (opened) annotation.close();
+    }).catch(()=>{});
+  };
+
+  let presentationWasActive = document.body.classList.contains('presentation-active');
+  const watchPresentation = () => {
+    const active = document.body.classList.contains('presentation-active');
+    if (active && !presentationWasActive) prewarmAnnotationSurface();
+    presentationWasActive = active;
+    if (active) requestAnimationFrame(positionAnnotationToolbar);
+  };
+  new MutationObserver(watchPresentation).observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('resize',()=>requestAnimationFrame(positionAnnotationToolbar),{passive:true});
+
+  if (!document.querySelector('script[data-ds-share-annotation]')) {
+    const annotationScript = document.createElement('script');
+    annotationScript.src = '/assets/js/meet/share-annotation.js?v=1-operation-2030';
+    annotationScript.dataset.dsShareAnnotation = '1';
+    annotationScript.addEventListener('load',()=>{
+      presentationWasActive = document.body.classList.contains('presentation-active');
+      if (presentationWasActive) prewarmAnnotationSurface();
+    },{once:true});
+    document.head.append(annotationScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.0.0',
+    version: '1.4.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });

@@ -71,12 +71,132 @@ const authorityAfter = `${authorityBefore}
   await guest.keyboard.press('Escape');
   console.log('MEET_UI_OK host-only Waiting Room enablement is enforced while co-host moderation remains available');`;
 
+const realtimeBefore = `  window.DominionRuntime = { events: { publish(){ return true; } } };
+});`;
+
+const realtimeAfter = `  window.DominionRuntime = { events: { publish(){ return true; } } };
+  window.supabase = {
+    createClient() {
+      const channels = new Set();
+      return {
+        channel(name) {
+          const listeners = { broadcast: [], presence: [] };
+          const presence = new Map();
+          const bus = new BroadcastChannel('ds-supabase-realtime-' + String(name));
+          let ownMember = null;
+          const emitPresence = () => {
+            for (const entry of listeners.presence) {
+              try { entry.callback({}); } catch (error) { console.error(error); }
+            }
+          };
+          const announceOwnPresence = () => {
+            if (!ownMember?.participantId) return;
+            bus.postMessage({ kind: 'presence', key: String(ownMember.participantId), member: ownMember });
+          };
+          bus.onmessage = event => {
+            const packet = event.data || {};
+            if (packet.kind === 'broadcast') {
+              for (const entry of listeners.broadcast) {
+                if (!entry.filter?.event || entry.filter.event === packet.event) {
+                  try { entry.callback({ payload: packet.payload }); } catch (error) { console.error(error); }
+                }
+              }
+              return;
+            }
+            if (packet.kind === 'presence') {
+              if (packet.key && packet.member) presence.set(String(packet.key), packet.member);
+              emitPresence();
+              return;
+            }
+            if (packet.kind === 'presence-request') announceOwnPresence();
+          };
+          const channel = {
+            on(type, filter, callback) {
+              if (listeners[type]) listeners[type].push({ filter: filter || {}, callback });
+              return channel;
+            },
+            subscribe(callback) {
+              queueMicrotask(() => callback?.('SUBSCRIBED'));
+              return channel;
+            },
+            async track(member) {
+              ownMember = { ...(member || {}) };
+              if (ownMember.participantId) presence.set(String(ownMember.participantId), ownMember);
+              announceOwnPresence();
+              bus.postMessage({ kind: 'presence-request' });
+              emitPresence();
+              return 'ok';
+            },
+            presenceState() {
+              const value = {};
+              for (const [key, member] of presence) value[key] = [member];
+              return value;
+            },
+            async send(message) {
+              if (message?.type === 'broadcast') {
+                bus.postMessage({ kind: 'broadcast', event: message.event, payload: message.payload });
+              }
+              return 'ok';
+            },
+            __close() { bus.close(); }
+          };
+          channels.add(channel);
+          return channel;
+        },
+        async removeChannel(channel) {
+          channel?.__close?.();
+          channels.delete(channel);
+          return 'ok';
+        }
+      };
+    }
+  };
+});`;
+
 const presentationBefore = `  await host.waitForFunction(() => document.body.classList.contains('local-presentation-active'), null, { timeout: 5000 });
   await guest.waitForFunction(() => document.body.classList.contains('presentation-active'), null, { timeout: 5000 });`;
 
 const presentationAfter = `${presentationBefore}
   assert(await host.locator('#meetingToolbar').isHidden(), 'normal meeting toolbar remained visible while presenting');
-  assert(await host.locator('#shareStatusBar').isVisible(), 'floating presenter toolbar did not replace the normal meeting toolbar');`;
+  assert(await host.locator('#shareStatusBar').isVisible(), 'floating presenter toolbar did not replace the normal meeting toolbar');
+
+  await host.waitForFunction(() => Boolean(window.DominionShareAnnotation), null, { timeout: 7000 });
+  await guest.waitForFunction(() => Boolean(window.DominionShareAnnotation), null, { timeout: 7000 });
+  await guest.locator('#shareViewerMoreBtn').click();
+  await guest.waitForFunction(() => {
+    const menu = document.getElementById('deviceMenu');
+    return Boolean(menu && !menu.hidden && /Annotate/.test(menu.textContent || ''));
+  }, null, { timeout: 5000 });
+  const annotationAction = guest.locator('#deviceMenu [data-ds-annotation-action="1"]');
+  await annotationAction.waitFor({ state: 'visible', timeout: 5000 });
+  await annotationAction.click();
+  await guest.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().enabled === true, null, { timeout: 7000 });
+  const annotationBox = await guest.locator('.ds-annotation-canvas').boundingBox();
+  assert(annotationBox && annotationBox.width > 100 && annotationBox.height > 100, 'annotation canvas was not available on the viewing client');
+  const ax = annotationBox.x + annotationBox.width * .44;
+  const ay = annotationBox.y + annotationBox.height * .46;
+  await guest.mouse.move(ax, ay);
+  await guest.mouse.down();
+  await guest.mouse.move(ax + Math.min(90, annotationBox.width * .12), ay + Math.min(55, annotationBox.height * .09), { steps: 8 });
+  await guest.mouse.up();
+
+  await host.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().strokes > 0, null, { timeout: 7000 });
+  await host.waitForFunction(() => {
+    const canvas = document.querySelector('.ds-annotation-canvas');
+    if (!canvas) return false;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let index = 3; index < pixels.length; index += 4) if (pixels[index] > 0) return true;
+    return false;
+  }, null, { timeout: 7000 });
+  console.log('MEET_UI_OK synchronized annotation rendered across two admitted clients');
+
+  await host.evaluate(() => window.DominionShareAnnotation?.clear?.());
+  await host.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().strokes === 0, null, { timeout: 5000 });
+  await guest.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().strokes === 0, null, { timeout: 7000 });
+  console.log('MEET_UI_OK host Clear All synchronized across the shared screen');
+  await guest.getByRole('button', { name: 'Done', exact: true }).click();`;
 
 const stopBefore = `  await host.locator('#stopShareBtn').click();
   await guest.waitForFunction(() => !document.body.classList.contains('presentation-active'), null, { timeout: 5000 });`;
@@ -89,6 +209,7 @@ let source = await readFile(sourcePath, 'utf8');
 for (const [label, before, after] of [
   ['waiting-room overlay assertion', waitingBefore, waitingAfter],
   ['professional authority and device controls', authorityBefore, authorityAfter],
+  ['annotation realtime adapter', realtimeBefore, realtimeAfter],
   ['presentation toolbar replacement', presentationBefore, presentationAfter],
   ['presentation toolbar restoration', stopBefore, stopAfter]
 ]) {
