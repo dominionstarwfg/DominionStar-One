@@ -96,15 +96,35 @@
     if (!menu.hidden) enhanceMenu();
   }).observe(menu, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
 
+  const prewarmAnnotationSurface = () => {
+    const annotation = window.DominionShareAnnotation;
+    if (!document.body.classList.contains('presentation-active') || !annotation?.open) return;
+    Promise.resolve(annotation.open()).then(opened => {
+      if (opened) annotation.close();
+    }).catch(()=>{});
+  };
+
+  let presentationWasActive = document.body.classList.contains('presentation-active');
+  const watchPresentation = () => {
+    const active = document.body.classList.contains('presentation-active');
+    if (active && !presentationWasActive) prewarmAnnotationSurface();
+    presentationWasActive = active;
+  };
+  new MutationObserver(watchPresentation).observe(document.body,{attributes:true,attributeFilter:['class']});
+
   if (!document.querySelector('script[data-ds-share-annotation]')) {
     const annotationScript = document.createElement('script');
     annotationScript.src = '/assets/js/meet/share-annotation.js?v=1-operation-2030';
     annotationScript.dataset.dsShareAnnotation = '1';
+    annotationScript.addEventListener('load',()=>{
+      presentationWasActive = document.body.classList.contains('presentation-active');
+      if (presentationWasActive) prewarmAnnotationSurface();
+    },{once:true});
     document.head.append(annotationScript);
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.1.0',
+    version: '1.2.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
