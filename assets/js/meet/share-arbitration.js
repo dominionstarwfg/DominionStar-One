@@ -7,9 +7,10 @@
 
   const CLAIM_WINDOW_MS = 260;
   const LEASE_STALE_MS = 12000;
+  const RESTART_HOLD_MS = 5000;
   const state = {
     client:null, channel:null, channelRoomId:'', channelReady:false, channelPromise:null,
-    members:new Map(), claims:new Map(), lease:null, sequence:0
+    members:new Map(), claims:new Map(), lease:null, sequence:0, restartUntil:0
   };
 
   const snapshot = () => engine.snapshot?.() || {};
@@ -17,14 +18,17 @@
   const rankRole = role => role === 'host' ? 3 : role === 'cohost' ? 2 : 1;
   const isPrivileged = snap => rankRole(normalizeRole(snap)) >= 2;
   const now = () => Date.now();
-  const validLease = () => state.lease && (now() - Number(state.lease.claimedAt || 0) < LEASE_STALE_MS) ? state.lease : null;
+  const selfId = () => String(snapshot().participantId||'');
+  const restartHeld = () => state.restartUntil > now() && state.lease?.participantId === selfId();
+  const validLease = () => state.lease && (restartHeld() || now() - Number(state.lease.claimedAt || 0) < LEASE_STALE_MS) ? state.lease : null;
 
   const publishState = (reason='state') => {
     const lease = validLease();
     if (!lease) state.lease = null;
     document.body.dataset.shareLeaseParticipantId = lease?.participantId || '';
     document.body.dataset.shareLeaseSequence = String(lease?.sequence || 0);
-    window.dispatchEvent(new CustomEvent('dominion:share-arbitration',{detail:{reason,lease:lease?{...lease}:null}}));
+    document.body.dataset.shareLeaseRestartHeld = restartHeld() ? '1' : '0';
+    window.dispatchEvent(new CustomEvent('dominion:share-arbitration',{detail:{reason,lease:lease?{...lease}:null,restartHeld:restartHeld()}}));
   };
 
   const membersFromPresence = () => {
@@ -54,7 +58,7 @@
     const cutoff = now() - CLAIM_WINDOW_MS * 3;
     for (const [id,claim] of state.claims) if (Number(claim.claimedAt||0) < cutoff) state.claims.delete(id);
     const incumbent = validLease();
-    if (incumbent && !state.claims.size) return incumbent;
+    if (incumbent && (restartHeld() || !state.claims.size)) return incumbent;
     const candidates = [...state.claims.values()].filter(claim => verifiedMember(claim.participantId));
     if (incumbent) candidates.push(incumbent);
     if (!candidates.length) { state.lease=null; publishState(reason); return null; }
@@ -125,6 +129,9 @@
     if (!(await ensureChannel()) || !state.channel) return {ok:false,reason:'arbitration-unavailable'};
     const existing=validLease();
     if (existing && existing.participantId !== String(snap.participantId||'')) return {ok:false,reason:'presenter-active',presenterId:existing.participantId,canTakeOver:isPrivileged(snap)};
+    if (existing?.participantId === String(snap.participantId||'')) {
+      state.restartUntil=0;publishState('owner-reuse');return {ok:true,lease:{...existing},reused:true};
+    }
     state.sequence += 1;
     const claim={participantId:String(snap.participantId||''),role:normalizeRole(snap),claimedAt:now(),sequence:state.sequence};
     state.claims.set(claim.participantId,claim);
@@ -134,16 +141,30 @@
     return winner?.participantId === claim.participantId ? {ok:true,lease:{...winner}} : {ok:false,reason:'claim-lost',presenterId:winner?.participantId||''};
   };
 
-  const release = async participantId=String(snapshot().participantId||'')) => {
+  const release = async (participantId=selfId(), {force=false}={}) => {
     const id=String(participantId||'');
     if (!id) return false;
+    if (!force && id===selfId() && restartHeld()) { publishState('restart-hold'); return false; }
+    if (id===selfId()) state.restartUntil=0;
     state.claims.delete(id);
     if (state.lease?.participantId === id) state.lease=null;
     publishState('local-release');
     if (state.channelReady && state.channel) {
-      try { await state.channel.send({type:'broadcast',event:'share-arbitration',payload:{type:'release',roomId:String(snapshot().roomId||''),from:String(snapshot().participantId||''),participantId:id,sentAt:now()}}); } catch (_) {}
+      try { await state.channel.send({type:'broadcast',event:'share-arbitration',payload:{type:'release',roomId:String(snapshot().roomId||''),from:selfId(),participantId:id,sentAt:now()}}); } catch (_) {}
     }
     return true;
+  };
+
+  const holdForRestart = () => {
+    if (validLease()?.participantId !== selfId()) return false;
+    state.restartUntil=now()+RESTART_HOLD_MS;
+    publishState('restart-hold');
+    return true;
+  };
+
+  const cancelRestart = async () => {
+    state.restartUntil=0;
+    return release(selfId(),{force:true});
   };
 
   const acceptIncoming = participantId => {
@@ -161,10 +182,14 @@
 
   engine.on?.('admitted',ensureChannel);
   engine.on?.('connected',ensureChannel);
-  engine.on?.('screen-ended',()=>release(String(snapshot().participantId||'')));
+  engine.on?.('screen-stream',()=>{state.restartUntil=0;publishState('local-share-live');});
+  engine.on?.('screen-ended',()=>release(selfId()));
   engine.on?.('screen-state',payload=>{if(payload?.active===false&&state.lease?.participantId===String(payload.participantId||''))release(String(payload.participantId||''));});
   window.addEventListener('dominion:presentation-handoff',event=>{
-    if (!event?.detail?.nextPresenterId && state.lease?.participantId) release(state.lease.participantId);
+    if (!event?.detail?.nextPresenterId && state.lease?.participantId) {
+      if (restartHeld() && state.lease.participantId===selfId()) { publishState('handoff-restart-hold'); return; }
+      release(state.lease.participantId);
+    }
   });
 
   const handoff=window.DominionPresentationHandoff?.snapshot?.();
@@ -173,8 +198,8 @@
   ensureChannel();
 
   window.DominionShareArbitration=Object.freeze({
-    version:'1.0.0', requestStart, release, acceptIncoming,
+    version:'1.1.0', requestStart, release, holdForRestart, cancelRestart, acceptIncoming,
     canTakeOver:()=>isPrivileged(snapshot()),
-    snapshot:()=>({lease:validLease()?{...state.lease}:null,channelReady:state.channelReady,roomId:state.channelRoomId})
+    snapshot:()=>({lease:validLease()?{...state.lease}:null,restartHeld:restartHeld(),channelReady:state.channelReady,roomId:state.channelRoomId})
   });
 })();
