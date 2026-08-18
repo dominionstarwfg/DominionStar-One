@@ -78,6 +78,9 @@ jobs:
       - name: Personal Room + native desktop prejoin
         run: node scripts/test-personal-room-native-prejoin.mjs
 
+      - name: Zoom-style manual join sequence
+        run: node scripts/test-meet-zoom-manual-join.mjs
+
       - name: Live synchronization regression contract
         run: node scripts/test-live-sync-regression.mjs
 
