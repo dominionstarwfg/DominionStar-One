@@ -35,13 +35,8 @@ try{
 
   await page.evaluate(()=>window.DominionGuardianActions.clear());
 
-  // Exercise real, non-destructive UI actions. These assertions prove the
-  // application handler ran as well as Guardian's capture observer.
-  await page.locator('#preSettings').click();
-  await page.waitForFunction(()=>document.getElementById('settingsDialog')?.open===true);
-  await page.locator('#settingsDialog button[value="cancel"]').click();
-  await page.waitForFunction(()=>document.getElementById('settingsDialog')?.open===false);
-
+  // Exercise real, non-destructive UI actions in the same visibility order a
+  // person uses them: dashboard actions first, then Join exposes prejoin media.
   await page.locator('#scheduleMeetingAction').click();
   await page.waitForFunction(()=>document.getElementById('scheduleDialog')?.open===true);
   await page.locator('#scheduleRecurring').check();
@@ -68,6 +63,11 @@ try{
 
   await page.locator('#joinMeetingAction').click();
   await page.waitForFunction(()=>document.activeElement?.id==='roomId');
+  await page.locator('#preSettings').waitFor({state:'visible',timeout:10000});
+  await page.locator('#preSettings').click();
+  await page.waitForFunction(()=>document.getElementById('settingsDialog')?.open===true);
+  await page.locator('#settingsDialog button[value="cancel"]').click();
+  await page.waitForFunction(()=>document.getElementById('settingsDialog')?.open===false);
 
   const observed=await page.evaluate(()=>({
     snap:window.DominionGuardianActions.snapshot(),
@@ -76,8 +76,8 @@ try{
   }));
 
   const expected=[
-    'prejoin.settings','settings.close','prejoin.schedule','schedule.recurring','schedule.cancel',
-    'prejoin.personal-room','personal.close','dynamic.participant-mic','prejoin.join'
+    'prejoin.schedule','schedule.recurring','schedule.cancel','prejoin.personal-room','personal.close',
+    'dynamic.participant-mic','prejoin.join','prejoin.settings','settings.close'
   ];
   for(const id of expected){
     assert((observed.snap.counts?.[id]||0)>=1,`Guardian did not observe real action ${id}: ${JSON.stringify(observed.snap.counts)}`);
