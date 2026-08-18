@@ -28,7 +28,6 @@ assert(meet.includes('hotfix-rc13-1-media-prejoin.js?v=4-camera-privacy-reacquir
 for (const path of ['meet-home/index.html','meet/index.html','assets/js/meet-next/personal-room.js','assets/js/meet/hotfix-rc13-1-media-prejoin.js']) {
   assert(contract.files?.[path], `Release contract is missing ${path}`);
   const actual = crypto.createHash('sha256').update(fs.readFileSync(path)).digest('hex');
-  if (contract.files[path] !== actual) console.log(`HASH_MISMATCH path=${path} expected=${contract.files[path]} actual=${actual}`);
   assert(contract.files[path] === actual, `Release contract hash mismatch for ${path}`);
 }
 console.log('Personal Room + native desktop prejoin regression passed.');
