@@ -225,12 +225,16 @@
     const snap = snapshot();
     if (!document.body.classList.contains('presentation-active') || state.activePresenterId === String(snap.participantId||'')) applySpotlight({active:false});
   });
+  window.addEventListener('dominion:presentation-handoff',event=>{
+    const previous = String(event.detail?.previousPresenterId || '');
+    if (previous && state.activePresenterId === previous) applySpotlight({active:false});
+  });
 
   ensureBadge();
   ensureChannel();
 
   window.DominionShareSpotlight = Object.freeze({
-    version:'1.0.0',
+    version:'1.1.0',
     toggleCurrent,
     set:(presenterId,presenterName='')=>setSpotlight(true,presenterId,presenterName),
     clear:()=>setSpotlight(false,state.activePresenterId,''),
