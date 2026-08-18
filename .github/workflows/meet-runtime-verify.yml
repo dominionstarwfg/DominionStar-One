@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "assets/js/meeting-engine.js"
+      - "assets/js/runtime/**"
       - "assets/js/meet/**"
       - "assets/js/meet-next/**"
       - "assets/css/meet/**"
       - "assets/css/meet-next/**"
       - "meet/**"
       - "scripts/test-*meet*.mjs"
+      - "scripts/test-guardian-every-action.mjs"
       - "scripts/test-desktop-prejoin-bootstrap.mjs"
       - "scripts/test-personal-room-native-prejoin.mjs"
       - "scripts/test-camera-privacy-and-native-picker.mjs"
@@ -51,6 +53,12 @@ jobs:
       - name: JavaScript syntax validation
         run: |
           node --check assets/js/meeting-engine.js
+          node --check assets/js/runtime/event-bus.js
+          node --check assets/js/runtime/guardian-observer.js
+          node --check assets/js/runtime/guardian-console.js
+          node --check assets/js/runtime/guardian-recovery.js
+          node --check assets/js/runtime/guardian-resilience.js
+          node --check assets/js/runtime/guardian-certification.js
           node --check assets/js/meet-next/executive6.js
           node --check assets/js/meet/desktop-share-picker.js
           node --check assets/js/meet/dock-layout-v2.js
@@ -71,6 +79,9 @@ jobs:
 
       - name: Professional desktop meeting controls
         run: node scripts/test-professional-meeting-controls.mjs
+
+      - name: Guardian every-action contract
+        run: node scripts/test-guardian-every-action.mjs
 
       - name: Desktop prejoin bootstrap contract
         run: node scripts/test-desktop-prejoin-bootstrap.mjs
