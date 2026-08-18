@@ -55,6 +55,12 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Enforce release trust policy
+        run: node scripts/verify-release-trust.mjs
+
+      - name: Audit production dependency supply chain
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Run clean-runtime certification
         run: npm run verify
 
@@ -128,6 +134,12 @@ jobs:
 
       - name: Install locked dependencies
         run: npm ci
+
+      - name: Enforce release trust policy
+        run: node scripts/verify-release-trust.mjs
+
+      - name: Audit production dependency supply chain
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Prepare native replacement tooling
         run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh scripts/test-live-meet-contract.sh scripts/audit-live-hosted-runtime.sh
