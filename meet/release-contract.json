@@ -3,6 +3,8 @@
   "desktopBridge": 10,
   "files": {
     "assets/js/meeting-engine.js": "096cb00f9775588c11b38d53829a3eec63dc0d68dd7efdc8d21a78d2c2c6f715",
+    "assets/js/runtime/event-bus.js": "dec57ef8d067e22d755dd63e24ad922d5937d0b0a9b8c70c95586d6152dfacd3",
+    "assets/js/runtime/guardian-certification.js": "158b7a02ca8e49eae1aecbb740a7dae71db52aa2496efce5406fc0c6b14448d3",
     "assets/js/meet/desktop-share-picker.js": "63911329c6e1f9905bd8233744553d46c1cbf7d4b484ee32938016c05fc5d4c5",
     "assets/js/meet/remote-control.js": "dd94e4f38090ac5c0fbbccddac7c602b7bffebdeb3c0885972644bda0a15b3d7",
     "assets/js/meet/live-transcription.js": "fbb51cac337a2c811eb7ffcf165d469b694b73a0f785c94c62ffd4ff24598cb1",
