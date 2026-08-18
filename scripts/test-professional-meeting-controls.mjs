@@ -5,6 +5,8 @@ const runtime = await readFile('assets/js/meet-next/executive6.js', 'utf8');
 const shareView = await readFile('assets/js/meet/share-view-controls.js', 'utf8');
 const annotation = await readFile('assets/js/meet/share-annotation.js', 'utf8');
 const shareSpotlight = await readFile('assets/js/meet/share-spotlight.js', 'utf8');
+const presentationHandoff = await readFile('assets/js/meet/presentation-handoff.js', 'utf8');
+const remoteControl = await readFile('assets/js/meet/remote-control.js', 'utf8');
 const meet = await readFile('meet/index.html', 'utf8');
 const wrapper = await readFile('scripts/run-browser-two-client-meet-acceptance.mjs', 'utf8');
 
@@ -15,7 +17,10 @@ const requireText = (text, needle, message) => {
 new Function(shareView);
 new Function(annotation);
 new Function(shareSpotlight);
+new Function(presentationHandoff);
+new Function(remoteControl);
 await import('./test-share-spotlight-two-client.mjs');
+await import('./test-presentation-handoff.mjs');
 
 requireText(source, "appendDeviceSection('Microphone'", 'professional Audio menu no longer exposes microphone selection');
 requireText(source, "appendDeviceSection('Speaker'", 'professional Audio menu no longer exposes speaker/output selection');
@@ -49,6 +54,7 @@ requireText(shareView, 'exitFullscreen', 'viewer Exit fullscreen behavior disapp
 requireText(shareView, 'filmstrip.hidden = !filmstrip.hidden', 'viewer hide/show video-panel behavior disappeared');
 requireText(shareView, '/assets/js/meet/share-annotation.js?v=1-operation-2030', 'share viewer controls no longer load synchronized annotation');
 requireText(shareView, '/assets/js/meet/share-spotlight.js?v=1-operation-2030', 'share viewer controls no longer load room-synchronized shared-content spotlight');
+requireText(shareView, '/assets/js/meet/presentation-handoff.js?v=1-operation-2030', 'share viewer controls no longer load presentation handoff coordination');
 requireText(shareView, 'prewarmAnnotationSurface', 'annotation render surface is no longer prewarmed for every active share');
 requireText(shareView, 'const positionAnnotationToolbar = () =>', 'viewer annotation controls no longer avoid the normal meeting toolbar');
 requireText(shareView, 'occupiedHeight + 18', 'viewer annotation controls lost their measured toolbar clearance');
@@ -80,8 +86,25 @@ requireText(shareSpotlight, "item.textContent = active ? 'Remove share spotlight
 requireText(shareSpotlight, "document.body.dataset.shareSpotlightParticipantId", 'shared-content spotlight no longer exposes synchronized content state');
 requireText(shareSpotlight, "engine.on?.('screen-state'", 'shared-content spotlight no longer follows remote share lifecycle');
 requireText(shareSpotlight, "engine.on?.('screen-ended'", 'shared-content spotlight no longer clears when sharing ends');
+requireText(shareSpotlight, "window.addEventListener('dominion:presentation-handoff'", 'shared-content spotlight no longer clears stale spotlight state on presenter handoff');
 requireText(shareSpotlight, 'window.DominionShareSpotlight = Object.freeze', 'shared-content spotlight diagnostic surface disappeared');
 if (shareSpotlight.includes('engine.spotlight')) throw new Error('shared-content spotlight must remain separate from participant-video spotlight');
+
+requireText(presentationHandoff, "window.dispatchEvent(new CustomEvent('dominion:presentation-handoff'", 'presentation handoff event contract disappeared');
+requireText(presentationHandoff, 'document.body.dataset.presentationEpoch', 'presentation handoff no longer exposes monotonic epoch state');
+requireText(presentationHandoff, "if (previous) await resetPresentationTools(detail)", 'presenter ownership changes no longer reset stale tools');
+requireText(presentationHandoff, "annotation?.close?.()", 'presentation handoff no longer closes stale annotation mode');
+requireText(presentationHandoff, "await annotation?.clear?.()", 'host/co-host handoff no longer clears stale annotation state');
+requireText(presentationHandoff, "resetForPresenterChange", 'presentation handoff no longer resets remote control');
+requireText(presentationHandoff, "engine.on?.('screen-state'", 'presentation handoff no longer follows remote presenter changes');
+requireText(presentationHandoff, "engine.on?.('screen-stream'", 'presentation handoff no longer follows local presenter start');
+requireText(presentationHandoff, "engine.on?.('screen-ended'", 'presentation handoff no longer follows local presenter end');
+
+requireText(remoteControl, 'resetForPresenterChange', 'remote control no longer exposes deterministic presenter-handoff cleanup');
+requireText(remoteControl, "engine.on('screen-ended'", 'presenter-side remote control no longer clears on local share end');
+requireText(remoteControl, "window.addEventListener('dominion:presentation-handoff'", 'remote control no longer resets on presentation epoch changes');
+requireText(remoteControl, "pendingRequest=null", 'remote-control pending requests can survive presenter handoff');
+requireText(remoteControl, "clearRemoteControlPermission", 'desktop Accessibility permission cleanup disappeared from remote-control handoff');
 
 requireText(wrapper, 'professional Audio menu omitted speaker/output selection', 'browser acceptance no longer exercises speaker/output quick selection');
 requireText(wrapper, 'co-host incorrectly received host-only Waiting Room enable/disable authority', 'browser acceptance no longer enforces co-host Waiting Room boundary');
@@ -96,3 +119,4 @@ console.log('DOMINIONSTAR_PROFESSIONAL_MEETING_CONTROLS_CONTRACT_OK');
 console.log('DOMINIONSTAR_SHARE_VIEW_CONTROLS_GUARDRAIL_OK');
 console.log('DOMINIONSTAR_SYNCHRONIZED_ANNOTATION_GUARDRAIL_OK');
 console.log('DOMINIONSTAR_SHARED_CONTENT_SPOTLIGHT_GUARDRAIL_OK');
+console.log('DOMINIONSTAR_PRESENTATION_HANDOFF_GUARDRAIL_OK');
