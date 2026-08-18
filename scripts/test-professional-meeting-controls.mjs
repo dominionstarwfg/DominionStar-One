@@ -3,12 +3,16 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile('assets/js/meet/dock-layout-v2.js', 'utf8');
 const runtime = await readFile('assets/js/meet-next/executive6.js', 'utf8');
 const shareView = await readFile('assets/js/meet/share-view-controls.js', 'utf8');
+const annotation = await readFile('assets/js/meet/share-annotation.js', 'utf8');
 const meet = await readFile('meet/index.html', 'utf8');
 const wrapper = await readFile('scripts/run-browser-two-client-meet-acceptance.mjs', 'utf8');
 
 const requireText = (text, needle, message) => {
   if (!text.includes(needle)) throw new Error(message);
 };
+
+new Function(shareView);
+new Function(annotation);
 
 requireText(source, "appendDeviceSection('Microphone'", 'professional Audio menu no longer exposes microphone selection');
 requireText(source, "appendDeviceSection('Speaker'", 'professional Audio menu no longer exposes speaker/output selection');
@@ -40,9 +44,25 @@ requireText(shareView, "percent === 100 ? ' (Original size)'", 'viewer Original 
 requireText(shareView, 'requestFullscreen', 'viewer Enter fullscreen behavior disappeared');
 requireText(shareView, 'exitFullscreen', 'viewer Exit fullscreen behavior disappeared');
 requireText(shareView, 'filmstrip.hidden = !filmstrip.hidden', 'viewer hide/show video-panel behavior disappeared');
+requireText(shareView, '/assets/js/meet/share-annotation.js?v=1-operation-2030', 'share viewer controls no longer load synchronized annotation');
 requireText(shareView, 'window.DominionShareViewerControls = Object.freeze', 'share-view diagnostic surface disappeared');
 if (shareView.includes('engine.spotlight')) throw new Error('viewer controls must not fake share spotlight using participant-video spotlight semantics');
-if (shareView.includes('Annotate')) throw new Error('viewer controls must not expose dead annotation before synchronized annotation exists');
+
+requireText(annotation, "addMenuAction(body,'Annotate',openAnnotation)", 'real Annotate action disappeared from the shared-screen menu');
+requireText(annotation, 'dominionstar-meet-annotation-${snap.roomId}', 'annotation lost its isolated room-scoped realtime channel');
+requireText(annotation, "event:'meet-annotation'", 'annotation broadcast event disappeared');
+requireText(annotation, 'member.admitted === false', 'annotation no longer rejects non-admitted remote senders');
+requireText(annotation, "member.role === 'cohost'", 'co-host Clear All validation disappeared');
+requireText(annotation, 'MAX_STROKES = 220', 'annotation bounded stroke-history guardrail disappeared');
+requireText(annotation, 'MAX_POINTS_PER_STROKE = 1200', 'annotation bounded point-history guardrail disappeared');
+requireText(annotation, 'POINT_SEND_INTERVAL_MS = 28', 'annotation pointer-traffic throttle disappeared');
+requireText(annotation, 'clamp01((x-rect.left)/Math.max(1,rect.width))', 'annotation normalized X coordinate contract disappeared');
+requireText(annotation, 'clamp01((y-rect.top)/Math.max(1,rect.height))', 'annotation normalized Y coordinate contract disappeared');
+requireText(annotation, "addTool('Pen','pen')", 'annotation Pen tool disappeared');
+requireText(annotation, "addTool('Highlighter','highlighter')", 'annotation Highlighter tool disappeared');
+requireText(annotation, "addTool('Laser','laser')", 'annotation Laser pointer disappeared');
+requireText(annotation, "engine.on?.('screen-ended'", 'annotation no longer clears when screen sharing ends');
+requireText(annotation, 'window.DominionShareAnnotation = Object.freeze', 'annotation diagnostic surface disappeared');
 
 requireText(wrapper, 'professional Audio menu omitted speaker/output selection', 'browser acceptance no longer exercises speaker/output quick selection');
 requireText(wrapper, 'co-host incorrectly received host-only Waiting Room enable/disable authority', 'browser acceptance no longer enforces co-host Waiting Room boundary');
@@ -51,3 +71,4 @@ requireText(wrapper, 'normal meeting toolbar did not return after screen sharing
 
 console.log('DOMINIONSTAR_PROFESSIONAL_MEETING_CONTROLS_CONTRACT_OK');
 console.log('DOMINIONSTAR_SHARE_VIEW_CONTROLS_GUARDRAIL_OK');
+console.log('DOMINIONSTAR_SYNCHRONIZED_ANNOTATION_GUARDRAIL_OK');
