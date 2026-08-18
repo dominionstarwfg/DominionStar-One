@@ -6,6 +6,7 @@
   const stage = document.getElementById('stage');
   const video = document.getElementById('stageVideo');
   const filmstrip = document.getElementById('filmstrip');
+  const meetingToolbar = document.getElementById('meetingToolbar');
   if (!button || !menu || !stage || !video) return;
 
   const originalOpen = button.onclick;
@@ -68,10 +69,21 @@
     return window.DominionShareAnnotation || null;
   };
 
+  const positionAnnotationToolbar = () => {
+    const annotationToolbar = document.querySelector('.ds-annotation-toolbar');
+    if (!annotationToolbar) return;
+    const localPresenter = document.body.classList.contains('local-presentation-active');
+    const normalToolbarVisible = !localPresenter && meetingToolbar && !meetingToolbar.hidden;
+    const occupiedHeight = normalToolbarVisible ? Math.ceil(meetingToolbar.getBoundingClientRect().height || 0) : 0;
+    annotationToolbar.style.bottom = `${Math.max(18, occupiedHeight + 18)}px`;
+  };
+
   const openAnnotation = async () => {
     const annotation = await waitForAnnotation();
     if (!annotation?.open) return false;
-    return annotation.open();
+    const opened = await annotation.open();
+    if (opened) requestAnimationFrame(positionAnnotationToolbar);
+    return opened;
   };
 
   const enhanceMenu = () => {
@@ -133,8 +145,10 @@
     const active = document.body.classList.contains('presentation-active');
     if (active && !presentationWasActive) prewarmAnnotationSurface();
     presentationWasActive = active;
+    if (active) requestAnimationFrame(positionAnnotationToolbar);
   };
   new MutationObserver(watchPresentation).observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('resize',()=>requestAnimationFrame(positionAnnotationToolbar),{passive:true});
 
   if (!document.querySelector('script[data-ds-share-annotation]')) {
     const annotationScript = document.createElement('script');
@@ -148,7 +162,7 @@
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.3.0',
+    version: '1.4.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
