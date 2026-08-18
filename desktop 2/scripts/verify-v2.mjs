@@ -6,6 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const required = [
   'package.json',
+  'src/bootstrap.mjs',
   'src/main-v2.mjs',
   'src/preload.cjs',
   'src/startup-v2.html',
@@ -25,14 +26,26 @@ const missing = required.filter(file => !fs.existsSync(path.join(root, file)));
 if (missing.length) throw new Error(`Missing clean-runtime files: ${missing.join(', ')}`);
 
 const pkg = JSON.parse(read('package.json'));
+const bootstrap = read('src/bootstrap.mjs');
 const main = read('src/main-v2.mjs');
 const preload = read('src/preload.cjs');
 const desktopSession = read('src/desktop-session.mjs');
 const startup = read('src/startup-v2.html');
 
 if (pkg.version !== '1.2.2') throw new Error(`Unexpected hosted-authority release version: ${pkg.version}`);
-if (pkg.main !== 'src/main-v2.mjs') throw new Error('Production entry point must be the clean runtime');
+if (pkg.main !== 'src/bootstrap.mjs') throw new Error('Production entry point must include the deterministic lifecycle bootstrap');
 if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) throw new Error('Desktop package version is invalid');
+
+for (const marker of [
+  "await import('./main-v2.mjs')",
+  "app.on('before-quit'",
+  'BrowserWindow.getAllWindows()',
+  "role: 'quit'",
+  "accelerator: 'Command+Q'",
+  'setImmediate(ensureMacQuitCommand)'
+]) {
+  if (!bootstrap.includes(marker)) throw new Error(`Desktop quit lifecycle safeguard missing: ${marker}`);
+}
 
 const sandboxIndex = main.indexOf('app.enableSandbox();');
 const readyIndex = main.indexOf('app.whenReady()');
@@ -121,4 +134,4 @@ if (productionImports.length) {
   throw new Error(`Unexpected eager production dependency import(s): ${productionImports.join(', ')}`);
 }
 
-console.log('DominionStar clean-runtime + hosted-authority verification passed.');
+console.log('DominionStar clean-runtime + hosted-authority + deterministic quit verification passed.');
