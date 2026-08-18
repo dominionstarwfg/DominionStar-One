@@ -17,7 +17,7 @@
     "assets/js/member-auth.js": "edf18c591337fa03cde5bd6de8b1b0aaca891ee813bf9cd8ff6bca392f335e95",
     "meet-home/index.html": "c35ef7136fc52545b622604732f2e1780dc4bc4d03baf5c4f2ddfd8cd9552a5a",
     "meet/index.html": "5f9f093618c9f60296df637eae22d945ecc84e51cf81cb07d721ce257497020c",
-    "netlify/functions/resolve-meeting-join.mjs": "74ad7e6a3c032f5ac86e663b37f7c9b134f6d385e008edcc00cf2a0b63110e40",
+    "netlify/functions/resolve-meeting-join.mjs": "c9d335680073e54e49e5cd66dd33ba22f2dcc0760961bd05b509a9a1050d16be",
     "netlify/functions/meeting-host-alert.mjs": "abd2c86ae04930a849ecfd7490f19e4d27aba6502d930689197fbac81235b032",
     "supabase/member-email-notifications.sql": "a421897bd33b528f096a6aea01360a7120a83a7e045f17d3c201dc84133632f3"
   }
