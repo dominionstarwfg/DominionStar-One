@@ -83,6 +83,7 @@
           ]
         }
       ],
+      "notarize": true,
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "src/entitlements.mac.plist",

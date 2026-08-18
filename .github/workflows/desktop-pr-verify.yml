@@ -46,6 +46,9 @@ jobs:
       - name: Unit-test release trust policy
         run: node scripts/test-release-trust.mjs
 
+      - name: Enforce publisher trust policy
+        run: node scripts/verify-publisher-trust.mjs
+
       - name: Audit production dependency supply chain
         run: npm audit --omit=dev --audit-level=high
 
@@ -59,7 +62,13 @@ jobs:
           workflow="../.github/workflows/desktop-build.yml"
           grep -q "npm run verify" "$workflow"
           grep -q "node scripts/verify-release-trust.mjs" "$workflow"
+          grep -q "node scripts/verify-publisher-trust.mjs" "$workflow"
           grep -q "npm audit --omit=dev --audit-level=high" "$workflow"
+          grep -q "Verify Windows Authenticode signature" "$workflow"
+          grep -q "Verify Developer ID signature and notarization" "$workflow"
+          grep -q "xcrun stapler validate" "$workflow"
+          grep -q "spctl --assess" "$workflow"
+          grep -q "Production PKG intentionally excluded until Developer ID Installer signing is certified" "$workflow"
           grep -q "Build deterministic Apple replacement PKG" "$workflow"
           grep -q "bash scripts/test-macos-pkg.sh" "$workflow"
           grep -q "bash scripts/test-live-meet-contract.sh" "$workflow"
@@ -131,6 +140,9 @@ jobs:
 
       - name: Enforce release trust policy
         run: node scripts/verify-release-trust.mjs
+
+      - name: Enforce publisher trust policy
+        run: node scripts/verify-publisher-trust.mjs
 
       - name: Audit production dependency supply chain
         run: npm audit --omit=dev --audit-level=high

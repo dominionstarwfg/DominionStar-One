@@ -47,6 +47,17 @@ jobs:
             exit 1
           }
 
+      - name: Verify Windows publisher credentials
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: pwsh
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WIN_CSC_LINK)) { throw "WIN_CSC_LINK is required for tagged releases" }
+          if ([string]::IsNullOrWhiteSpace($env:WIN_CSC_KEY_PASSWORD)) { throw "WIN_CSC_KEY_PASSWORD is required for tagged releases" }
+          Write-Host "DOMINIONSTAR_WINDOWS_PUBLISHER_CREDENTIALS_PRESENT"
+
       - name: Clean previous build output
         shell: pwsh
         run: |
@@ -58,6 +69,9 @@ jobs:
       - name: Enforce release trust policy
         run: node scripts/verify-release-trust.mjs
 
+      - name: Enforce publisher trust policy
+        run: node scripts/verify-publisher-trust.mjs
+
       - name: Audit production dependency supply chain
         run: npm audit --omit=dev --audit-level=high
 
@@ -65,7 +79,24 @@ jobs:
         run: npm run verify
 
       - name: Build Windows installers
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: npm run dist:windows
+
+      - name: Verify Windows Authenticode signature
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem dist -File -Filter *.exe
+          if (-not $files) { throw "No Windows installers found" }
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature $file.FullName
+            Write-Host "AUTHENTICODE $($file.Name) status=$($signature.Status) subject=$($signature.SignerCertificate.Subject)"
+            if ($signature.Status -ne 'Valid') { throw "Invalid Authenticode signature: $($file.Name)" }
+            if ($null -eq $signature.SignerCertificate) { throw "Missing Authenticode signer certificate: $($file.Name)" }
+          }
+          Write-Host "DOMINIONSTAR_WINDOWS_AUTHENTICODE_OK"
 
       - name: Enforce installer size budget
         run: node scripts/audit-artifact-sizes.mjs dist
@@ -95,7 +126,7 @@ jobs:
   macos:
     name: macOS Intel Install + Live Meet Certified
     runs-on: macos-26-intel
-    timeout-minutes: 30
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: "desktop 2"
@@ -129,6 +160,22 @@ jobs:
             exit 1
           fi
 
+      - name: Verify macOS publisher credentials
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          for name in MAC_CSC_LINK MAC_CSC_KEY_PASSWORD APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_TEAM_ID; do
+            test -n "${!name:-}" || { echo "ERROR: $name is required for tagged releases" >&2; exit 1; }
+          done
+          echo "DOMINIONSTAR_MAC_PUBLISHER_CREDENTIALS_PRESENT"
+
       - name: Clean previous build output
         run: rm -rf dist
 
@@ -137,6 +184,9 @@ jobs:
 
       - name: Enforce release trust policy
         run: node scripts/verify-release-trust.mjs
+
+      - name: Enforce publisher trust policy
+        run: node scripts/verify-publisher-trust.mjs
 
       - name: Audit production dependency supply chain
         run: npm audit --omit=dev --audit-level=high
@@ -151,10 +201,38 @@ jobs:
         run: bash scripts/audit-live-hosted-runtime.sh
 
       - name: Build universal macOS app, DMG and ZIP
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac
+
+      - name: Verify Developer ID signature and notarization
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        run: |
+          set -euo pipefail
+          APP="dist/mac-universal/DominionStar Meet.app"
+          DMG=$(find dist -maxdepth 1 -type f -name '*.dmg' -print -quit)
+          test -d "$APP"
+          test -n "$DMG"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -dv --verbose=4 "$APP" 2>&1 | tee /tmp/dominionstar-codesign.txt
+          grep -q "Authority=Developer ID Application:" /tmp/dominionstar-codesign.txt
+          spctl --assess --type execute --verbose=4 "$APP"
+          xcrun stapler validate "$APP"
+          xcrun stapler validate "$DMG"
+          echo "DOMINIONSTAR_MAC_DEVELOPER_ID_NOTARIZATION_OK"
 
       - name: Build deterministic Apple replacement PKG
         run: npm run dist:mac:pkg
+
+      - name: Production PKG intentionally excluded until Developer ID Installer signing is certified
+        run: |
+          test -n "$(find dist -maxdepth 1 -type f -name '*.pkg' -print -quit)"
+          echo "Internal PKG replacement test retained; production publication blocked by artifact allowlist."
 
       - name: Enforce installer size budget
         run: node scripts/audit-artifact-sizes.mjs dist
@@ -165,18 +243,11 @@ jobs:
       - name: Reinstall and prove actual app passes live Meet contract
         run: bash scripts/test-live-meet-contract.sh
 
-      - name: Report signing identity for release audit
-        run: |
-          echo "Available signing identities:"
-          security find-identity -v -p codesigning || true
-          echo "Packaged app signature:"
-          codesign -dv --verbose=4 "dist/mac-universal/DominionStar Meet.app" 2>&1 || true
-
       - name: Generate macOS checksums
         run: |
           cd dist
           find . -maxdepth 1 -type f \
-            \( -name "*.dmg" -o -name "*.zip" -o -name "*.pkg" -o -name "*.blockmap" -o -name "*.yml" \) \
+            \( -name "*.dmg" -o -name "*.zip" -o -name "*.blockmap" -o -name "*.yml" \) \
             -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS-macOS.txt
 
       - name: Upload macOS release files
@@ -186,7 +257,6 @@ jobs:
           path: |
             desktop 2/dist/*.dmg
             desktop 2/dist/*.zip
-            desktop 2/dist/*.pkg
             desktop 2/dist/*.blockmap
             desktop 2/dist/latest*.yml
             desktop 2/dist/SHA256SUMS-macOS.txt
@@ -218,7 +288,7 @@ jobs:
           test -n "$(find release -maxdepth 1 -type f -name '*.exe' -print -quit)"
           test -n "$(find release -maxdepth 1 -type f -name '*.dmg' -print -quit)"
           test -n "$(find release -maxdepth 1 -type f -name '*.zip' -print -quit)"
-          test -n "$(find release -maxdepth 1 -type f -name '*.pkg' -print -quit)"
+          test -z "$(find release -maxdepth 1 -type f -name '*.pkg' -print -quit)"
           test -f release/latest.yml
           test -f release/latest-mac.yml
           test -f release/SHA256SUMS-Windows.txt
