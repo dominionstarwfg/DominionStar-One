@@ -76,7 +76,43 @@ const presentationBefore = `  await host.waitForFunction(() => document.body.cla
 
 const presentationAfter = `${presentationBefore}
   assert(await host.locator('#meetingToolbar').isHidden(), 'normal meeting toolbar remained visible while presenting');
-  assert(await host.locator('#shareStatusBar').isVisible(), 'floating presenter toolbar did not replace the normal meeting toolbar');`;
+  assert(await host.locator('#shareStatusBar').isVisible(), 'floating presenter toolbar did not replace the normal meeting toolbar');
+
+  await host.waitForFunction(() => Boolean(window.DominionShareAnnotation), null, { timeout: 7000 });
+  await guest.waitForFunction(() => Boolean(window.DominionShareAnnotation), null, { timeout: 7000 });
+  await guest.locator('#shareViewerMoreBtn').click();
+  await guest.waitForFunction(() => {
+    const menu = document.getElementById('deviceMenu');
+    return Boolean(menu && !menu.hidden && /Annotate/.test(menu.textContent || ''));
+  }, null, { timeout: 5000 });
+  await guest.getByRole('button', { name: 'Annotate', exact: true }).click();
+  await guest.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().enabled === true, null, { timeout: 7000 });
+  const annotationBox = await guest.locator('.ds-annotation-canvas').boundingBox();
+  assert(annotationBox && annotationBox.width > 100 && annotationBox.height > 100, 'annotation canvas was not available on the viewing client');
+  const ax = annotationBox.x + annotationBox.width * .44;
+  const ay = annotationBox.y + annotationBox.height * .46;
+  await guest.mouse.move(ax, ay);
+  await guest.mouse.down();
+  await guest.mouse.move(ax + Math.min(90, annotationBox.width * .12), ay + Math.min(55, annotationBox.height * .09), { steps: 8 });
+  await guest.mouse.up();
+
+  await host.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().strokes > 0, null, { timeout: 7000 });
+  await host.waitForFunction(() => {
+    const canvas = document.querySelector('.ds-annotation-canvas');
+    if (!canvas) return false;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let index = 3; index < pixels.length; index += 4) if (pixels[index] > 0) return true;
+    return false;
+  }, null, { timeout: 7000 });
+  console.log('MEET_UI_OK synchronized annotation rendered across two admitted clients');
+
+  await host.evaluate(() => window.DominionShareAnnotation?.clear?.());
+  await host.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().strokes === 0, null, { timeout: 5000 });
+  await guest.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().strokes === 0, null, { timeout: 7000 });
+  console.log('MEET_UI_OK host Clear All synchronized across the shared screen');
+  await guest.getByRole('button', { name: 'Done', exact: true }).click();`;
 
 const stopBefore = `  await host.locator('#stopShareBtn').click();
   await guest.waitForFunction(() => !document.body.classList.contains('presentation-active'), null, { timeout: 5000 });`;
