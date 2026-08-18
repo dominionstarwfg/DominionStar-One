@@ -302,6 +302,183 @@ const ensureNativeMediaPermissions = async constraints => {
   $('microphoneSelect')?.addEventListener('change', event => rememberLocalDevice('microphone', event.target.value), true);
   $('speakerSelect')?.addEventListener('change', event => rememberLocalDevice('speaker', event.target.value), true);
 
+  // Zoom-style manual join: Meeting ID first, passcode second. This runs before
+  // preview handoff so invalid credentials never tear down camera/mic state.
+  const manualJoin = {active:false,step:'meeting-id',verifiedRoom:'',bypassOnce:false,verifying:false};
+  const joinForm = $('joinForm');
+  const roomInput = $('roomId');
+  const passcodeInput = $('meetingPasscode');
+  const roomField = roomInput?.closest('label');
+  const passcodeField = passcodeInput?.closest('label');
+  const displayNameField = $('displayNameField');
+  const accountIdentity = $('accountIdentity');
+  const joinPreferences = joinForm?.querySelector('.join-preferences');
+  const joinHeading = joinForm?.querySelector('h1');
+  const joinSubcopy = joinForm?.querySelector('.subcopy');
+  const joinLabel = joinForm?.querySelector('[data-join-label]');
+  const initialHidden = {
+    displayName:Boolean(displayNameField?.hidden),
+    accountIdentity:Boolean(accountIdentity?.hidden),
+    preferences:Boolean(joinPreferences?.hidden)
+  };
+  const manualDigits = value => String(value || '').replace(/\D/g, '').slice(0,10);
+  const isHostJoin = () => window.__DS_START_AS_HOST === true || new URLSearchParams(location.search).get('host') === '1';
+  const setManualJoinStatus = (message='', state='progress') => {
+    const status = $('joinStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.dataset.state = state;
+    status.hidden = !message;
+  };
+  const restoreManualIdentity = () => {
+    if (displayNameField) displayNameField.hidden = initialHidden.displayName;
+    if (accountIdentity) accountIdentity.hidden = initialHidden.accountIdentity;
+    if (joinPreferences) joinPreferences.hidden = initialHidden.preferences;
+  };
+  const showMeetingIdStep = () => {
+    if (!joinForm || isHostJoin()) return;
+    manualJoin.active = true;
+    manualJoin.step = 'meeting-id';
+    manualJoin.verifiedRoom = '';
+    if (roomField) roomField.hidden = false;
+    if (passcodeField) passcodeField.hidden = true;
+    if (passcodeInput) {
+      passcodeInput.required = false;
+      passcodeInput.value = '';
+    }
+    restoreManualIdentity();
+    if (joinHeading) joinHeading.textContent = 'Join a meeting';
+    if (joinSubcopy) joinSubcopy.textContent = 'Enter the Meeting ID provided by the host.';
+    if (joinLabel) joinLabel.textContent = 'Join';
+    setManualJoinStatus('');
+    queueMicrotask(() => roomInput?.focus());
+  };
+  const showPasscodeStep = room => {
+    manualJoin.active = true;
+    manualJoin.step = 'passcode';
+    manualJoin.verifiedRoom = room;
+    if (roomField) roomField.hidden = true;
+    if (passcodeField) passcodeField.hidden = false;
+    if (passcodeInput) passcodeInput.required = true;
+    if (displayNameField) displayNameField.hidden = true;
+    if (accountIdentity) accountIdentity.hidden = true;
+    if (joinPreferences) joinPreferences.hidden = true;
+    if (joinHeading) joinHeading.textContent = 'Enter meeting passcode';
+    if (joinSubcopy) joinSubcopy.textContent = `Meeting ID ${formatMeetingId(room)}`;
+    if (joinLabel) joinLabel.textContent = 'Join Meeting';
+    setManualJoinStatus('');
+    queueMicrotask(() => passcodeInput?.focus());
+  };
+  const resolveManualJoin = async (room, passcode='') => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch('/.netlify/functions/resolve-meeting-join', {
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({room,passcode}),
+        signal:controller.signal
+      });
+      const record = await response.json().catch(() => null);
+      if (response.status === 404 || record?.found === false) {
+        throw new Error(record?.error || 'Invalid meeting ID. Check the meeting ID and try again.');
+      }
+      if (!response.ok) {
+        throw new Error(record?.error || 'Meeting verification is temporarily unavailable. Try again.');
+      }
+      if (!record?.found) throw new Error('Invalid meeting ID. Check the meeting ID and try again.');
+      return record;
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('The meeting service took too long to respond. Check your connection and try again.');
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+  const continueManualJoin = () => {
+    manualJoin.bypassOnce = true;
+    joinForm?.requestSubmit();
+  };
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest?.('#joinMeetingAction')) return;
+    queueMicrotask(showMeetingIdStep);
+  }, true);
+
+  roomInput?.addEventListener('input', () => {
+    if (manualJoin.active && manualJoin.step === 'meeting-id') manualJoin.verifiedRoom = '';
+  });
+
+  joinForm?.addEventListener('submit', async event => {
+    if (manualJoin.bypassOnce) {
+      manualJoin.bypassOnce = false;
+      return;
+    }
+    if (!manualJoin.active || isHostJoin()) return;
+
+    const room = manualDigits(roomInput?.value);
+    if (room.length < 6) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      setManualJoinStatus('Enter a valid meeting ID.', 'error');
+      roomInput?.focus();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    if (manualJoin.verifying) return;
+    manualJoin.verifying = true;
+    const submit = joinForm.querySelector('button[type="submit"]');
+    if (submit) submit.disabled = true;
+
+    try {
+      if (manualJoin.step === 'meeting-id') {
+        const record = await resolveManualJoin(room, '');
+        if (record.passcode_required) {
+          showPasscodeStep(room);
+          return;
+        }
+        manualJoin.active = false;
+        continueManualJoin();
+        return;
+      }
+
+      if (room !== manualJoin.verifiedRoom) {
+        showMeetingIdStep();
+        setManualJoinStatus('Meeting ID changed. Verify the meeting again.', 'error');
+        return;
+      }
+
+      const passcode = manualDigits(passcodeInput?.value);
+      if (!passcode) {
+        setManualJoinStatus('Enter the meeting passcode.', 'error');
+        passcodeInput?.focus();
+        return;
+      }
+
+      const record = await resolveManualJoin(room, passcode);
+      if (record.passcode_required && record.passcode_valid === false) {
+        if (passcodeInput) passcodeInput.value = '';
+        setManualJoinStatus('Incorrect meeting passcode.', 'error');
+        passcodeInput?.focus();
+        return;
+      }
+
+      manualJoin.active = false;
+      continueManualJoin();
+    } catch (error) {
+      setManualJoinStatus(error?.message || 'Could not verify this meeting. Try again.', 'error');
+    } finally {
+      manualJoin.verifying = false;
+      if (submit) submit.disabled = false;
+    }
+  }, true);
+
+  window.__DS_MEET_MANUAL_JOIN_FLOW = 'zoom-id-then-passcode-v1';
+
   $('joinForm')?.addEventListener('submit', async event => {
     if (resubmitting) {
       resubmitting = false;
