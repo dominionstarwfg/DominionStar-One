@@ -45,6 +45,7 @@ requireText(shareView, 'requestFullscreen', 'viewer Enter fullscreen behavior di
 requireText(shareView, 'exitFullscreen', 'viewer Exit fullscreen behavior disappeared');
 requireText(shareView, 'filmstrip.hidden = !filmstrip.hidden', 'viewer hide/show video-panel behavior disappeared');
 requireText(shareView, '/assets/js/meet/share-annotation.js?v=1-operation-2030', 'share viewer controls no longer load synchronized annotation');
+requireText(shareView, 'prewarmAnnotationSurface', 'annotation render surface is no longer prewarmed for every active share');
 requireText(shareView, 'window.DominionShareViewerControls = Object.freeze', 'share-view diagnostic surface disappeared');
 if (shareView.includes('engine.spotlight')) throw new Error('viewer controls must not fake share spotlight using participant-video spotlight semantics');
 
@@ -67,6 +68,8 @@ requireText(annotation, 'window.DominionShareAnnotation = Object.freeze', 'annot
 requireText(wrapper, 'professional Audio menu omitted speaker/output selection', 'browser acceptance no longer exercises speaker/output quick selection');
 requireText(wrapper, 'co-host incorrectly received host-only Waiting Room enable/disable authority', 'browser acceptance no longer enforces co-host Waiting Room boundary');
 requireText(wrapper, 'normal meeting toolbar remained visible while presenting', 'browser acceptance no longer enforces presenter toolbar replacement');
+requireText(wrapper, 'synchronized annotation rendered across two admitted clients', 'browser acceptance no longer proves cross-client annotation rendering');
+requireText(wrapper, 'host Clear All synchronized across the shared screen', 'browser acceptance no longer proves privileged Clear All synchronization');
 requireText(wrapper, 'normal meeting toolbar did not return after screen sharing stopped', 'browser acceptance no longer enforces toolbar restoration');
 
 console.log('DOMINIONSTAR_PROFESSIONAL_MEETING_CONTROLS_CONTRACT_OK');
