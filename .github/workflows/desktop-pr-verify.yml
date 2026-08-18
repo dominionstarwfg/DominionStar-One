@@ -43,6 +43,9 @@ jobs:
       - name: Enforce release trust policy
         run: node scripts/verify-release-trust.mjs
 
+      - name: Unit-test release trust policy
+        run: node scripts/test-release-trust.mjs
+
       - name: Audit production dependency supply chain
         run: npm audit --omit=dev --audit-level=high
 
