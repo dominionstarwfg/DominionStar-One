@@ -119,7 +119,6 @@
     const annotateAction = makeAction('Annotate', openAnnotation);
     annotateAction.dataset.dsAnnotationAction = '1';
     controls.append(annotateAction);
-
     body.prepend(controls);
   };
 
@@ -196,8 +195,15 @@
     document.head.append(identityScript);
   }
 
+  if (!document.querySelector('script[data-ds-camera-reaction-polish]')) {
+    const polishScript = document.createElement('script');
+    polishScript.src = '/assets/js/meet/camera-reaction-polish.js?v=2-operation-2030-rebased';
+    polishScript.dataset.dsCameraReactionPolish = '1';
+    document.head.append(polishScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.8.0',
+    version: '1.9.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
