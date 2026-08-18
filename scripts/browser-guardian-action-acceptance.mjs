@@ -1,5 +1,7 @@
 import { chromium } from 'playwright';
 
+// Keep this acceptance on real visible controls; never substitute force-clicks
+// for the user-visible sequencing that Guardian is expected to observe.
 const baseURL=process.env.DOMINIONSTAR_PREVIEW_URL||'http://127.0.0.1:4173';
 const assert=(condition,message)=>{if(!condition)throw new Error(message)};
 const browser=await chromium.launch({headless:true});
