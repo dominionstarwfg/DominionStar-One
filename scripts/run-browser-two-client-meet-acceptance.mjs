@@ -85,7 +85,9 @@ const presentationAfter = `${presentationBefore}
     const menu = document.getElementById('deviceMenu');
     return Boolean(menu && !menu.hidden && /Annotate/.test(menu.textContent || ''));
   }, null, { timeout: 5000 });
-  await guest.getByRole('menuitem', { name: 'Annotate', exact: true }).click();
+  const annotationAction = guest.locator('#deviceMenu [data-ds-annotation-action="1"]');
+  await annotationAction.waitFor({ state: 'visible', timeout: 5000 });
+  await annotationAction.click();
   await guest.waitForFunction(() => window.DominionShareAnnotation?.snapshot?.().enabled === true, null, { timeout: 7000 });
   const annotationBox = await guest.locator('.ds-annotation-canvas').boundingBox();
   assert(annotationBox && annotationBox.width > 100 && annotationBox.height > 100, 'annotation canvas was not available on the viewing client');
