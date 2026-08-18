@@ -128,3 +128,126 @@ body.presentation-active #stageVideo {
   }
   #filmstrip.ds-dock-v2.ds-user-positioned { right: auto !important; }
 }
+
+/* Operation 2030 — Zoom-action parity for the participant video panel.
+   Identity owns the bottom edge. Moderation owns the hover surface. */
+#filmstrip.ds-dock-v2 .remote-tile .tile-overlay {
+  pointer-events:none !important;
+  position:absolute !important;
+  inset:0 !important;
+  display:block !important;
+  background:linear-gradient(180deg,rgba(3,6,11,.06) 48%,rgba(3,6,11,.78) 100%) !important;
+}
+#filmstrip.ds-dock-v2 .remote-tile .tile-overlay > span:first-child {
+  position:absolute !important;
+  left:8px !important;
+  bottom:7px !important;
+  right:auto !important;
+  top:auto !important;
+  z-index:5 !important;
+  max-width:calc(100% - 16px) !important;
+  padding:3px 6px !important;
+  border-radius:5px !important;
+  background:rgba(4,7,11,.72) !important;
+  color:#fff !important;
+  font-size:12px !important;
+  font-weight:650 !important;
+  line-height:1.2 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  backdrop-filter:blur(8px) !important;
+}
+#filmstrip.ds-dock-v2 .remote-tile .tile-mic {
+  display:none !important;
+}
+#filmstrip.ds-dock-v2 .remote-tile .tile-hover-actions {
+  pointer-events:none !important;
+  top:8px !important;
+  right:8px !important;
+  left:auto !important;
+  bottom:auto !important;
+  max-width:calc(100% - 16px) !important;
+  gap:5px !important;
+  opacity:0 !important;
+  transform:translateY(-2px) !important;
+  transition:opacity .12s ease,transform .12s ease !important;
+}
+#filmstrip.ds-dock-v2 .remote-tile:hover .tile-hover-actions,
+#filmstrip.ds-dock-v2 .remote-tile:focus-within .tile-hover-actions {
+  pointer-events:auto !important;
+  opacity:1 !important;
+  transform:translateY(0) !important;
+}
+#filmstrip.ds-dock-v2 .remote-tile .tile-hover-actions button {
+  min-height:28px !important;
+  height:28px !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  border-radius:5px !important;
+  background:rgba(20,24,31,.9) !important;
+  color:#fff !important;
+  box-shadow:0 5px 18px rgba(0,0,0,.32) !important;
+  backdrop-filter:blur(12px) !important;
+}
+#filmstrip.ds-dock-v2 .remote-tile .tile-hover-actions .tile-quick-mic {
+  min-width:0 !important;
+  width:auto !important;
+  max-width:150px !important;
+  padding:0 10px !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+}
+#filmstrip.ds-dock-v2 .remote-tile .tile-hover-actions .tile-menu {
+  flex:0 0 30px !important;
+  width:30px !important;
+  min-width:30px !important;
+  padding:0 !important;
+}
+
+/* Viewer share surface: compact status rail. The presenter's full floating
+   toolbar remains a separate state and is not mixed with viewer actions. */
+body.presentation-active:not(.local-presentation-active) #shareStatusBar.share-status-bar {
+  min-height:36px !important;
+  height:36px !important;
+  width:auto !important;
+  max-width:min(520px,calc(100vw - 32px)) !important;
+  padding:4px 5px 4px 11px !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  border-radius:9px !important;
+  background:rgba(27,30,36,.94) !important;
+  box-shadow:0 10px 32px rgba(0,0,0,.42) !important;
+  backdrop-filter:blur(16px) !important;
+}
+body.presentation-active:not(.local-presentation-active) #shareStatusBar .share-status-copy {
+  gap:7px !important;
+  min-width:0 !important;
+}
+body.presentation-active:not(.local-presentation-active) #shareStatusBar .share-live-dot {
+  width:7px !important;
+  height:7px !important;
+}
+body.presentation-active:not(.local-presentation-active) #shareStatusBar #shareStatusText {
+  max-width:min(390px,calc(100vw - 100px)) !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  font-size:12px !important;
+  font-weight:700 !important;
+}
+body.presentation-active:not(.local-presentation-active) #shareViewerMoreBtn {
+  display:grid !important;
+  place-items:center !important;
+  width:30px !important;
+  height:28px !important;
+  margin-left:5px !important;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:6px !important;
+  background:transparent !important;
+  color:#d9dde5 !important;
+}
+body.presentation-active:not(.local-presentation-active) #shareViewerMoreBtn:hover,
+body.presentation-active:not(.local-presentation-active) #shareViewerMoreBtn[aria-expanded="true"] {
+  background:rgba(255,255,255,.1) !important;
+  color:#fff !important;
+}
