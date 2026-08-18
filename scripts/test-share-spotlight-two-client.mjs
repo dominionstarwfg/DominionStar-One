@@ -82,6 +82,7 @@ const createRuntime = ({participantId,role,isHost,screenStream=null}) => {
   };
   context.window=context;
   context.window.dispatchEvent=()=>{};
+  context.window.addEventListener=()=>{};
   context.window.DominionStarMeetingEngine=engine;
   context.window.DOMINIONSTAR_SUPABASE=context.DOMINIONSTAR_SUPABASE;
   context.window.supabase=context.supabase;
