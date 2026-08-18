@@ -25,7 +25,7 @@ requireText(ui,"event.stopImmediatePropagation()",'arbitration no longer blocks 
 requireText(ui,'await arb.requestStart()','local share no longer acquires presenter lease before capture');
 requireText(ui,"engine.moderate(presenterId,'stop-share')",'host/co-host takeover no longer stops the incumbent share first');
 requireText(ui,'Stop share & start mine','explicit host/co-host takeover confirmation disappeared');
-requireText(ui,'await arb.holdForRestart','New Share UI no longer holds the current presenter lease');
+requireText(ui,'arb.holdForRestart?.()','New Share UI no longer holds the current presenter lease');
 requireText(ui,'await arb.cancelRestart','failed/cancelled New Share no longer releases its reservation');
 requireText(ui,"type:'screen.share.arbitration.rejected'",'losing remote share rejection is no longer observable');
 
