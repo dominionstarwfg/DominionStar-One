@@ -96,8 +96,15 @@
     if (!menu.hidden) enhanceMenu();
   }).observe(menu, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
 
+  if (!document.querySelector('script[data-ds-share-annotation]')) {
+    const annotationScript = document.createElement('script');
+    annotationScript.src = '/assets/js/meet/share-annotation.js?v=1-operation-2030';
+    annotationScript.dataset.dsShareAnnotation = '1';
+    document.head.append(annotationScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.0.0',
+    version: '1.1.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
