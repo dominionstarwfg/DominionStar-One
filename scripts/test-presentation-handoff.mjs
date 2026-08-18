@@ -59,3 +59,4 @@ if(annotationClose!==2||annotationClear!==2||remoteReset!==2)throw new Error(`sh
 if(documentObject.body.dataset.presentationEpoch!=='3'||documentObject.body.dataset.presentationParticipantId!=='')throw new Error('presentation epoch diagnostic state is stale after share end');
 
 console.log('PASS presentation handoff: A→B ownership transition and share end clear annotation, remote-control state, and stale presentation state.');
+await import('./test-share-arbitration-contract.mjs');
