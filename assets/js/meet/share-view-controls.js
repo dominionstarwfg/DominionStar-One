@@ -119,12 +119,17 @@
     annotationScript.addEventListener('load',()=>{
       presentationWasActive = document.body.classList.contains('presentation-active');
       if (presentationWasActive) prewarmAnnotationSurface();
+      if (!menu.hidden) {
+        const marker = document.createComment('ds-annotation-ready');
+        menu.append(marker);
+        marker.remove();
+      }
     },{once:true});
     document.head.append(annotationScript);
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.2.0',
+    version: '1.2.1',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
