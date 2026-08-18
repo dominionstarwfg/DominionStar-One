@@ -7,7 +7,7 @@ export default async request=>{
   if(String(request?.method||request?.httpMethod||'').toUpperCase()!=='POST')return reply(405,{error:'Method not allowed'});
   const SUPABASE_URL=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL||process.env.PUBLIC_SUPABASE_URL||'https://ckmurvhjumzlhsegncba.supabase.co';
   const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY||process.env.SUPABASE_ANON_KEY||process.env.VITE_SUPABASE_ANON_KEY||'sb_publishable_zAzk_tobvWHOWR22bmzMMw_uqHnCVxb';
-  if(!SUPABASE_URL||!SUPABASE_KEY)return reply(503,{found:null,live_verification:true,error:'Live meeting verification required.'});
+  if(!SUPABASE_URL||!SUPABASE_KEY)return reply(503,{found:null,error:'Meeting verification is temporarily unavailable. Try again.'});
   let input={};
   try{input=typeof request.json==='function'?await request.json():JSON.parse(request.body||'{}');}catch(_){return reply(400,{error:'Invalid request'});}
   const room=cleanDigits(input.room);
@@ -19,9 +19,9 @@ export default async request=>{
     client.from('meet_scheduled_meetings').select('meeting_id,user_id,waiting_room_enabled,passcode').eq('meeting_id',room).maybeSingle(),
     client.from('meet_personal_rooms').select('personal_room_id,user_id,waiting_room_enabled,passcode').eq('personal_room_id',room).maybeSingle()
   ]);
-  if(live.error||scheduled.error||personal.error)return reply(503,{found:null,live_verification:true,error:'Live meeting verification required.'});
+  if(live.error||scheduled.error||personal.error)return reply(503,{found:null,error:'Meeting verification is temporarily unavailable. Try again.'});
   const canonical=scheduled.data||personal.data;
-  if(!live.data&&!canonical)return reply(404,{found:false,live_verification:true,error:'Waiting for live host verification.'});
+  if(!live.data&&!canonical)return reply(404,{found:false,error:'Invalid meeting ID. Check the meeting ID and try again.'});
   // Scheduled/personal records are the canonical invitation configuration.
   // A live room may be left from an older session, so it must not replace the
   // current passcode or owner when a canonical meeting record exists.
