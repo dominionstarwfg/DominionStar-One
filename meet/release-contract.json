@@ -8,6 +8,7 @@
     "assets/js/meet/desktop-share-picker.js": "63911329c6e1f9905bd8233744553d46c1cbf7d4b484ee32938016c05fc5d4c5",
     "assets/js/meet/remote-control.js": "dd94e4f38090ac5c0fbbccddac7c602b7bffebdeb3c0885972644bda0a15b3d7",
     "assets/js/meet/live-transcription.js": "fbb51cac337a2c811eb7ffcf165d469b694b73a0f785c94c62ffd4ff24598cb1",
+    "assets/js/meet/share-view-controls.js": "917fd5a2b7cb9294bce5caca4cb267889ee3d0986694cf7f6d63a83cf6b55ff2",
     "assets/js/meet/hotfix-rc13-1-media-prejoin.js": "3ea0029aca6e912bc12208d29db178ea37a970e8bd947bcc4c170afffd5fa94a",
     "assets/js/meet-next/executive6.js": "1660ee6c92e1dc3c087e542e47c42dbcc161d14bbbb5884dea4586bc7c9ea98b",
     "assets/js/meet-next/personal-room.js": "ef057d76e35acffcaa86839a3cea7745baebd054d85a3cd03888f842bed48793",
@@ -18,7 +19,7 @@
     "meet-login/index.html": "d70799aea96060f0a2c05e9ca6cbc7b73c6018b8b7a526e63897f236c6ac1b13",
     "assets/js/member-auth.js": "edf18c591337fa03cde5bd6de8b1b0aaca891ee813bf9cd8ff6bca392f335e95",
     "meet-home/index.html": "c35ef7136fc52545b622604732f2e1780dc4bc4d03baf5c4f2ddfd8cd9552a5a",
-    "meet/index.html": "5f9f093618c9f60296df637eae22d945ecc84e51cf81cb07d721ce257497020c",
+    "meet/index.html": "4378740deaca343368f9b8e761d33cbc04b03fb5773caf45c59275fbeb42e0a2",
     "netlify/functions/resolve-meeting-join.mjs": "74ad7e6a3c032f5ac86e663b37f7c9b134f6d385e008edcc00cf2a0b63110e40",
     "netlify/functions/meeting-host-alert.mjs": "abd2c86ae04930a849ecfd7490f19e4d27aba6502d930689197fbac81235b032",
     "supabase/member-email-notifications.sql": "a421897bd33b528f096a6aea01360a7120a83a7e045f17d3c201dc84133632f3"
