@@ -15,6 +15,7 @@ const requireText = (text, needle, message) => {
 new Function(shareView);
 new Function(annotation);
 new Function(shareSpotlight);
+await import('./test-share-spotlight-two-client.mjs');
 
 requireText(source, "appendDeviceSection('Microphone'", 'professional Audio menu no longer exposes microphone selection');
 requireText(source, "appendDeviceSection('Speaker'", 'professional Audio menu no longer exposes speaker/output selection');
