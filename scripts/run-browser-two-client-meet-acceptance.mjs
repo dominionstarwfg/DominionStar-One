@@ -71,6 +71,88 @@ const authorityAfter = `${authorityBefore}
   await guest.keyboard.press('Escape');
   console.log('MEET_UI_OK host-only Waiting Room enablement is enforced while co-host moderation remains available');`;
 
+const realtimeBefore = `  window.DominionRuntime = { events: { publish(){ return true; } } };
+});`;
+
+const realtimeAfter = `  window.DominionRuntime = { events: { publish(){ return true; } } };
+  window.supabase = {
+    createClient() {
+      const channels = new Set();
+      return {
+        channel(name) {
+          const listeners = { broadcast: [], presence: [] };
+          const presence = new Map();
+          const bus = new BroadcastChannel('ds-supabase-realtime-' + String(name));
+          let ownMember = null;
+          const emitPresence = () => {
+            for (const entry of listeners.presence) {
+              try { entry.callback({}); } catch (error) { console.error(error); }
+            }
+          };
+          const announceOwnPresence = () => {
+            if (!ownMember?.participantId) return;
+            bus.postMessage({ kind: 'presence', key: String(ownMember.participantId), member: ownMember });
+          };
+          bus.onmessage = event => {
+            const packet = event.data || {};
+            if (packet.kind === 'broadcast') {
+              for (const entry of listeners.broadcast) {
+                if (!entry.filter?.event || entry.filter.event === packet.event) {
+                  try { entry.callback({ payload: packet.payload }); } catch (error) { console.error(error); }
+                }
+              }
+              return;
+            }
+            if (packet.kind === 'presence') {
+              if (packet.key && packet.member) presence.set(String(packet.key), packet.member);
+              emitPresence();
+              return;
+            }
+            if (packet.kind === 'presence-request') announceOwnPresence();
+          };
+          const channel = {
+            on(type, filter, callback) {
+              if (listeners[type]) listeners[type].push({ filter: filter || {}, callback });
+              return channel;
+            },
+            subscribe(callback) {
+              queueMicrotask(() => callback?.('SUBSCRIBED'));
+              return channel;
+            },
+            async track(member) {
+              ownMember = { ...(member || {}) };
+              if (ownMember.participantId) presence.set(String(ownMember.participantId), ownMember);
+              announceOwnPresence();
+              bus.postMessage({ kind: 'presence-request' });
+              emitPresence();
+              return 'ok';
+            },
+            presenceState() {
+              const value = {};
+              for (const [key, member] of presence) value[key] = [member];
+              return value;
+            },
+            async send(message) {
+              if (message?.type === 'broadcast') {
+                bus.postMessage({ kind: 'broadcast', event: message.event, payload: message.payload });
+              }
+              return 'ok';
+            },
+            __close() { bus.close(); }
+          };
+          channels.add(channel);
+          return channel;
+        },
+        async removeChannel(channel) {
+          channel?.__close?.();
+          channels.delete(channel);
+          return 'ok';
+        }
+      };
+    }
+  };
+});`;
+
 const presentationBefore = `  await host.waitForFunction(() => document.body.classList.contains('local-presentation-active'), null, { timeout: 5000 });
   await guest.waitForFunction(() => document.body.classList.contains('presentation-active'), null, { timeout: 5000 });`;
 
@@ -127,6 +209,7 @@ let source = await readFile(sourcePath, 'utf8');
 for (const [label, before, after] of [
   ['waiting-room overlay assertion', waitingBefore, waitingAfter],
   ['professional authority and device controls', authorityBefore, authorityAfter],
+  ['annotation realtime adapter', realtimeBefore, realtimeAfter],
   ['presentation toolbar replacement', presentationBefore, presentationAfter],
   ['presentation toolbar restoration', stopBefore, stopAfter]
 ]) {
