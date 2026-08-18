@@ -161,8 +161,15 @@
     document.head.append(annotationScript);
   }
 
+  if (!document.querySelector('script[data-ds-share-spotlight]')) {
+    const spotlightScript = document.createElement('script');
+    spotlightScript.src = '/assets/js/meet/share-spotlight.js?v=1-operation-2030';
+    spotlightScript.dataset.dsShareSpotlight = '1';
+    document.head.append(spotlightScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.4.0',
+    version: '1.5.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
