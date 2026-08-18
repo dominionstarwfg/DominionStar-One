@@ -57,7 +57,7 @@ if(missingStatic.length)throw new Error(`Guardian catalogs static controls absen
 requireAll(runtime,[
   'ids.micBtn.onclick=', 'ids.camBtn.onclick=', 'ids.chatBtn.onclick=', 'ids.shareBtn.onclick=',
   "$('shareMicBtn').onclick=", "$('shareCamBtn').onclick=", "$('shareParticipantsBtn').onclick=", "$('shareChatBtn').onclick=", "$('shareReactionBtn').onclick=", "$('shareTopBtn').onclick=",
-  "$('pauseShareBtn').onclick=", "$('newShareBtn').onclick=", "$('stopShareBtn').onclick=",
+  'ids.pauseShareBtn.onclick=', 'ids.newShareBtn.onclick=', 'ids.stopShareBtn.onclick=',
   "event.target.closest('[data-admit]')", "event.target.closest('[data-deny]')",
   "event.target.closest('[data-toast-admit]')", "event.target.closest('[data-toast-deny]')",
   "event.target.closest('[data-quick-mic]')", "event.target.closest('[data-quick-video]')", "event.target.closest('[data-participant]')",
