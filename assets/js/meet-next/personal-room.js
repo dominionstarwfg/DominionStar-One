@@ -52,7 +52,8 @@
     const params = new URLSearchParams({
       action: 'join',
       room: value.personalRoomId,
-      personal: value.personalLinkName
+      personal: value.personalLinkName,
+      ...(value.passcode ? {passcode: value.passcode} : {})
     });
     return `${origin}/meet/?${params.toString()}`;
   };
