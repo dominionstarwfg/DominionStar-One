@@ -61,6 +61,9 @@ jobs:
       - name: Build Windows installers
         run: npm run dist:windows
 
+      - name: Enforce installer size budget
+        run: node scripts/audit-artifact-sizes.mjs dist
+
       - name: Generate Windows checksums
         shell: pwsh
         run: |
@@ -140,6 +143,9 @@ jobs:
 
       - name: Build deterministic Apple replacement PKG
         run: npm run dist:mac:pkg
+
+      - name: Enforce installer size budget
+        run: node scripts/audit-artifact-sizes.mjs dist
 
       - name: Install over stale v1.1.8 and launch the installed app
         run: bash scripts/test-macos-pkg.sh

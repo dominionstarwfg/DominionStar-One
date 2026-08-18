@@ -52,7 +52,24 @@ jobs:
           grep -q "Build deterministic Apple replacement PKG" "$workflow"
           grep -q "bash scripts/test-macos-pkg.sh" "$workflow"
           grep -q "bash scripts/test-live-meet-contract.sh" "$workflow"
+          grep -q "node scripts/audit-artifact-sizes.mjs dist" "$workflow"
           grep -q "macos-26-intel" "$workflow"
+
+      - name: Unit-test artifact size guardrail
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          truncate -s 1M "$tmp/good.exe"
+          node scripts/audit-artifact-sizes.mjs "$tmp"
+          truncate -s 801M "$tmp/too-large.exe"
+          set +e
+          DOMINIONSTAR_MAX_ARTIFACT_MIB=800 node scripts/audit-artifact-sizes.mjs "$tmp"
+          status=$?
+          set -e
+          test "$status" -eq 42
+          echo "DESKTOP_ARTIFACT_SIZE_GUARDRAIL_UNIT_OK"
 
   hosted-runtime-audit:
     name: Live Hosted Runtime Audit
@@ -112,6 +129,9 @@ jobs:
 
       - name: Build deterministic Apple replacement PKG
         run: npm run dist:mac:pkg
+
+      - name: Enforce installer size budget
+        run: node scripts/audit-artifact-sizes.mjs dist
 
       - name: Install over stale v1.1.8 and launch the installed app
         run: bash scripts/test-macos-pkg.sh
