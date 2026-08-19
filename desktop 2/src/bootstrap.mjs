@@ -25,6 +25,12 @@ function ensureMacQuitCommand() {
   }));
 }
 
+app.on('before-quit', () => {
+  if (quitting) return;
+  quitting = true;
+  destroyDesktopWindows();
+});
+
 await import('./main-v2.mjs');
 await import('./presenter-dock.mjs');
 
