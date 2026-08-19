@@ -7,6 +7,8 @@ const guardianUrl=new URL('../assets/js/runtime/guardian-recovery.js',import.met
 const guardian=fs.existsSync(guardianUrl)?fs.readFileSync(guardianUrl,'utf8'):null;
 const dock=fs.readFileSync(new URL('../assets/js/meet/dock-layout-v2.js',import.meta.url),'utf8');
 const dockCss=fs.readFileSync(new URL('../assets/css/meet/dock-layout-v2.css',import.meta.url),'utf8');
+const background=fs.readFileSync(new URL('../assets/js/meet/background-effects-2030.js',import.meta.url),'utf8');
+const cameraPolish=fs.readFileSync(new URL('../assets/js/meet/camera-reaction-polish.js',import.meta.url),'utf8');
 
 assert(!ui.includes("recoverPeer?.(participantId,{reason:'guardian-remote-video-missing'})"),
   'The view reconciler must never rebuild a connected peer because a frame is temporarily missing.');
@@ -50,5 +52,16 @@ assert(/cursor\s*:\s*grab\s*!important/i.test(dockCss),
   'The movable dock must visibly communicate its drag surface.');
 assert(engine.includes('const requestedRole=payload.targetRole||payload.role')&&engine.includes('targetRole:nextRole'),
   'A sender role must never overwrite the requested participant role.');
+
+assert(background.includes('/float16/1/selfie_segmenter_landscape.tflite')&&!background.includes('/float16/latest/'),
+  'Background segmentation must use a pinned model asset, never an unversioned latest model.');
+assert(background.includes('const audioTracks = rawStream.getAudioTracks().filter(track => track.readyState === \'live\')'),
+  'Background processing must preserve the live microphone tracks from the raw media stream.');
+assert(background.includes('const restoreStream = new MediaStream([current.sourceTrack,...audioTracks])')&&background.includes('await restoreRawSession(current)'),
+  'Disabling Blur/Portrait must restore a real camera source stream while preserving audio.');
+assert(background.includes('video[data-ds-background-processed="1"]{filter:none!important;}'),
+  'Processed background video must own filter presentation and block legacy whole-frame CSS filters.');
+assert(cameraPolish.includes('DominionBackgroundEffects2030?.getSourceTrack?.()')&&cameraPolish.includes('const track = hardwareVideoTrack();'),
+  'HD constraints must target the raw hardware camera source rather than the segmented canvas track.');
 
 console.log('Media stability guardrails passed.');

@@ -34,10 +34,18 @@
     return tracks;
   };
 
+  const hardwareVideoTrack = () => {
+    const segmentedSource = window.DominionBackgroundEffects2030?.getSourceTrack?.();
+    if (segmentedSource?.readyState === 'live') return segmentedSource;
+    return currentTracks().find(item => item.kind === 'video') || null;
+  };
+
   const currentTrackLabel = kind => {
     const mediaKind = kind === 'videoinput' ? 'video' : kind === 'audioinput' ? 'audio' : '';
     if (!mediaKind) return '';
-    const track = currentTracks().find(item => item.kind === mediaKind && String(item.label || '').trim());
+    const track = mediaKind === 'video'
+      ? hardwareVideoTrack()
+      : currentTracks().find(item => item.kind === mediaKind && String(item.label || '').trim());
     return String(track?.label || '').trim();
   };
 
@@ -92,10 +100,13 @@
     const quality = String(qualitySelect?.value || '720');
     const height = quality === '1080' ? 1080 : 720;
     const width = quality === '1080' ? 1920 : 1280;
-    const track = currentTracks().find(item => item.kind === 'video');
+    const track = hardwareVideoTrack();
     if (!track?.applyConstraints) return false;
     try {
       await track.applyConstraints({width:{ideal:width},height:{ideal:height},frameRate:{ideal:30,max:30}});
+      if (window.DominionBackgroundEffects2030?.isActive?.()) {
+        setTimeout(() => window.DominionBackgroundEffects2030?.refresh?.(), 0);
+      }
       return true;
     } catch (error) {
       console.warn('DominionStar requested video quality is not available on this camera', error);
@@ -165,14 +176,17 @@
   }
 
   window.DominionCameraReactionPolish = Object.freeze({
-    version:'1.4.0',
+    version:'1.5.0',
     refreshDeviceNames,
     applyVideoQuality,
+    hardwareVideoTrack,
     snapshot:() => ({
       cameras:[...cameraSelect.options].map(option => ({id:option.value,label:option.textContent,resolved:option.dataset.deviceLabelResolved === '1'})),
       microphones:[...microphoneSelect.options].map(option => ({id:option.value,label:option.textContent,resolved:option.dataset.deviceLabelResolved === '1'})),
       reactionLayer:Boolean(reactionLayer),
       backgroundProcessor:Boolean(window.DominionBackgroundEffects2030),
+      backgroundActive:Boolean(window.DominionBackgroundEffects2030?.isActive?.()),
+      sourceVideoState:hardwareVideoTrack()?.readyState || 'none',
       shareUi:Boolean(window.DominionShareUI2030)
     })
   });
