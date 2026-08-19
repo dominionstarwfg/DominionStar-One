@@ -9,16 +9,20 @@ const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
 const exposed={};
 const sent=[];
+const invoked=[];
 const electron={
   contextBridge:{exposeInMainWorld:(name,value)=>{exposed[name]=value;}},
   ipcRenderer:{
     send(channel,...args){sent.push([channel,...args]);},
     invoke(channel,...args){
+      invoked.push([channel,...args]);
       if(channel==='desktop:media-permissions') return Promise.resolve({ok:true,platform:'darwin',camera:'not-determined',microphone:'granted'});
       if(channel==='desktop:request-media-permissions'){
         assert.deepEqual(Array.from(args[0]||[]),['camera']);
         return Promise.resolve({ok:true,platform:'darwin',camera:'granted',microphone:'granted'});
       }
+      if(channel==='desktop:remote-control-prompt') return Promise.resolve({accepted:true});
+      if(channel==='desktop:remote-control-error') return Promise.resolve(true);
       if(channel==='desktop:runtime-info'){
         return Promise.resolve({
           bridgeVersion:13,
@@ -77,6 +81,9 @@ assert.ok(Object.isFrozen(desktop),'Exposed desktop contract must be immutable')
 assert.equal(typeof desktop.getMediaPermissions,'function','Native media permission status API must be exposed');
 assert.equal(typeof desktop.requestMediaPermissions,'function','Native media permission request API must be exposed');
 assert.equal(typeof desktop.updatePresenterDock,'function','Native presenter participant dock update API must be exposed');
+assert.equal(typeof desktop.showRemoteControlPrompt,'function','Native remote-control approval prompt must be exposed');
+assert.equal(typeof desktop.onRemoteControlDecision,'function','Remote-control approval decision subscription must be exposed');
+assert.equal(typeof desktop.showRemoteControlError,'function','Native remote-control error dialog must be exposed');
 const permissionStatus=await desktop.getMediaPermissions();
 assert.equal(permissionStatus.camera,'not-determined');
 const permissionRequest=await desktop.requestMediaPermissions(['camera']);
@@ -84,6 +91,15 @@ assert.equal(permissionRequest.camera,'granted');
 desktop.updatePresenterDock({tiles:[{id:'p1',name:'Participant'}]});
 assert.equal(sent.at(-1)?.[0],'desktop:presenter-dock-update','Presenter dock updates must use the dedicated native IPC channel');
 assert.equal(sent.at(-1)?.[1]?.tiles?.[0]?.id,'p1','Presenter dock payload must be forwarded to the native shell');
+let remoteDecision=null;
+const offDecision=desktop.onRemoteControlDecision(value=>{remoteDecision=value;});
+const promptResult=await desktop.showRemoteControlPrompt({displayName:'Test Presenter',requestId:'req-1'});
+assert.equal(promptResult.accepted,true,'Remote-control prompt result must return to the renderer');
+assert.equal(remoteDecision,true,'Remote-control decision listener must receive native approval');
+offDecision();
+await desktop.showRemoteControlError('Accessibility permission required');
+assert.ok(invoked.some(([channel])=>channel==='desktop:remote-control-prompt'),'Remote-control approval must use native IPC');
+assert.ok(invoked.some(([channel])=>channel==='desktop:remote-control-error'),'Remote-control error feedback must use native IPC');
 
 assert.ok(guardian,'Native Guardian certification was not exposed');
 assert.equal(guardian.mode,'native-authoritative');
