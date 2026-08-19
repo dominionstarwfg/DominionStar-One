@@ -1,6 +1,7 @@
 const menu=document.getElementById('presenterMoreMenu');
 const more=document.querySelector('[data-command="more"]');
 let collapseTimer=0;
+let stopRecoveryTimer=0;
 const EXPANDED_WIDTH=780;
 const EXPANDED_HEIGHT=64;
 const MENU_HEIGHT=286;
@@ -15,9 +16,27 @@ const scheduleCollapse=()=>{
   },2200);
 };
 const expand=()=>{
+  if(document.body.classList.contains('stopping'))return;
   clearTimeout(collapseTimer);
   document.body.classList.remove('collapsed');
   window.presenterBridge.resize?.(EXPANDED_WIDTH,menu.hidden?EXPANDED_HEIGHT:MENU_HEIGHT);
+};
+const beginStopTransition=()=>{
+  clearTimeout(collapseTimer);
+  clearTimeout(stopRecoveryTimer);
+  menu.hidden=true;
+  document.body.classList.add('stopping','collapsed');
+  document.body.style.opacity='0';
+  document.body.style.pointerEvents='none';
+  window.presenterBridge.resize?.(COLLAPSED_WIDTH,COLLAPSED_HEIGHT);
+  window.presenterBridge.command('stop');
+  stopRecoveryTimer=setTimeout(()=>{
+    document.body.classList.remove('stopping');
+    document.body.style.opacity='';
+    document.body.style.pointerEvents='';
+    expand();
+    scheduleCollapse();
+  },2200);
 };
 document.addEventListener('pointerenter',expand);
 document.addEventListener('pointermove',scheduleCollapse);
@@ -28,6 +47,12 @@ document.querySelectorAll('[data-command]').forEach(button=>button.addEventListe
     event.stopPropagation();
     menu.hidden=!menu.hidden;
     window.presenterBridge.resize?.(EXPANDED_WIDTH,menu.hidden?EXPANDED_HEIGHT:MENU_HEIGHT);
+    return;
+  }
+  if(command==='stop'){
+    event.preventDefault();
+    event.stopPropagation();
+    beginStopTransition();
     return;
   }
   menu.hidden=true;
