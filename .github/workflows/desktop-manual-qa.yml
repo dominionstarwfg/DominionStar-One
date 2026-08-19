@@ -1,17 +1,18 @@
 name: DominionStar Desktop Manual QA Artifact
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/desktop-manual-qa.yml"
-      - "desktop 2/**"
   workflow_dispatch:
+    inputs:
+      reason:
+        description: "Release-candidate reason"
+        required: false
+        default: "manual QA candidate"
 
 permissions:
   contents: read
 
 concurrency:
-  group: dominionstar-desktop-manual-qa-${{ github.event.pull_request.number || github.ref }}
+  group: dominionstar-desktop-manual-qa-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -84,7 +85,7 @@ jobs:
           name: dominionstar-meet-macos-dmg-qa
           path: desktop 2/dist/*.dmg
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
       - name: Upload manual-QA PKG
         uses: actions/upload-artifact@v4
@@ -92,7 +93,7 @@ jobs:
           name: dominionstar-meet-macos-pkg-qa
           path: desktop 2/dist/*.pkg
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
       - name: Upload manual-QA ZIP
         uses: actions/upload-artifact@v4
@@ -102,4 +103,4 @@ jobs:
             desktop 2/dist/*.zip
             desktop 2/dist/latest-mac.yml
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
