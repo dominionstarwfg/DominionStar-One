@@ -212,10 +212,11 @@ function publishDesktopLayout() {
   return layout;
 }
 
+// DominionStar owns the desktop share-source experience. Electron's macOS 15+
+// system picker is intentionally disabled because it bypasses our audited
+// source-selection handler and replaces the product UI with the OS sheet.
 function supportsMacSystemPicker() {
-  if (process.platform !== 'darwin') return false;
-  const major = Number(String(process.getSystemVersion?.() || '0').split('.')[0] || 0);
-  return major >= 15;
+  return false;
 }
 
 function installPermissionPolicy(desktopSession) {
