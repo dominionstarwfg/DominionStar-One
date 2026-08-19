@@ -9,6 +9,10 @@ const dock=fs.readFileSync(new URL('../assets/js/meet/dock-layout-v2.js',import.
 const dockCss=fs.readFileSync(new URL('../assets/css/meet/dock-layout-v2.css',import.meta.url),'utf8');
 const background=fs.readFileSync(new URL('../assets/js/meet/background-effects-2030.js',import.meta.url),'utf8');
 const cameraPolish=fs.readFileSync(new URL('../assets/js/meet/camera-reaction-polish.js',import.meta.url),'utf8');
+const cameraStability=fs.readFileSync(new URL('../assets/js/meet/camera-device-stability.js',import.meta.url),'utf8');
+const meetIndex=fs.readFileSync(new URL('../meet/index.html',import.meta.url),'utf8');
+const desktopMain=fs.readFileSync(new URL('../desktop 2/src/main-v2.mjs',import.meta.url),'utf8');
+const presenterToolbar=fs.readFileSync(new URL('../desktop 2/src/presenter-toolbar.html',import.meta.url),'utf8');
 
 assert(!ui.includes("recoverPeer?.(participantId,{reason:'guardian-remote-video-missing'})"),
   'The view reconciler must never rebuild a connected peer because a frame is temporarily missing.');
@@ -63,5 +67,26 @@ assert(background.includes('video[data-ds-background-processed="1"]{filter:none!
   'Processed background video must own filter presentation and block legacy whole-frame CSS filters.');
 assert(cameraPolish.includes('DominionBackgroundEffects2030?.getSourceTrack?.()')&&cameraPolish.includes('const track = hardwareVideoTrack();'),
   'HD constraints must target the raw hardware camera source rather than the segmented canvas track.');
+
+// Manual-QA regressions discovered on the physical macOS desktop client.
+assert(cameraStability.includes("enumerateDevices()")&&cameraStability.includes("deviceId:{exact:id}"),
+  'Camera recovery must probe real enumerated hardware instead of repeatedly retrying one stale camera request.');
+assert(cameraStability.includes("track.getSettings?.()")&&cameraStability.includes("localStorage.setItem(key, settings.deviceId)"),
+  'The camera layer must remember the device that actually opened, not a stale generic selection.');
+assert(cameraStability.includes('Camera — name unavailable')||cameraStability.includes('`${fallback} — name unavailable`'),
+  'Unresolved camera labels must be presented as unresolved rather than pretending Camera 1 is a hardware name.');
+assert(cameraStability.includes('getMediaPermissions')&&cameraStability.includes('requestMediaPermissions'),
+  'Desktop camera acquisition must honor the native macOS permission bridge.');
+assert(meetIndex.indexOf('/assets/js/meet/camera-device-stability.js') < meetIndex.indexOf('/assets/js/meeting-engine.js'),
+  'Camera stability must load before the meeting engine so prejoin and in-meeting acquisition share one policy.');
+assert(/function supportsMacSystemPicker\(\)\s*\{\s*return false;\s*\}/.test(desktopMain),
+  'The macOS system share sheet must not bypass the DominionStar desktop source picker.');
+assert(desktopMain.includes('customSharePicker: !supportsMacSystemPicker()')&&desktopMain.includes('systemSharePicker: supportsMacSystemPicker()'),
+  'Desktop runtime metadata must advertise DominionStar as the active share picker.');
+for(const legacy of ['🎙','◉','♙','▢','Ⅱ','↗']){
+  assert(!presenterToolbar.includes(legacy),`The native presenter toolbar must not use legacy glyph ${legacy}.`);
+}
+assert(presenterToolbar.includes('<svg')&&presenterToolbar.includes('data-command="new-share"')&&presenterToolbar.includes('data-command="pause"')&&presenterToolbar.includes('data-command="stop"'),
+  'The native presenter toolbar must use vector controls for the core Zoom-style sharing actions.');
 
 console.log('Media stability guardrails passed.');
