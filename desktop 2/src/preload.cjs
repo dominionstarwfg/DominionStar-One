@@ -121,7 +121,9 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   getCaptureStatus: () => ipcRenderer.invoke('desktop:capture-status'),
   getMediaPermissions: () => ipcRenderer.invoke('desktop:media-permissions'),
   requestMediaPermissions: (kinds = []) => ipcRenderer.invoke('desktop:request-media-permissions', Array.isArray(kinds) ? kinds.filter(kind => ['camera','microphone'].includes(String(kind))) : []),
+  getScreenPermissionStatus: () => ipcRenderer.invoke('desktop:screen-permission-status'),
   openScreenRecordingSettings: () => ipcRenderer.invoke('desktop:open-screen-settings'),
+  relaunchForPermissions: () => ipcRenderer.invoke('desktop:relaunch-for-permissions'),
   selectShareSource: (sourceId, audio = false, displayId = '', kind = '', sourceName = '', shareOwnWindow = false) =>
     ipcRenderer.invoke('desktop:select-share-source', { sourceId, audio, displayId, kind, sourceName, shareOwnWindow }),
   showPresenterToolbar: () => ipcRenderer.send('desktop:presenter-show'),
