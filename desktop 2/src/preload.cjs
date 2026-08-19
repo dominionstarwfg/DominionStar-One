@@ -114,6 +114,7 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
     ipcRenderer.invoke('desktop:select-share-source', { sourceId, audio, displayId, kind, sourceName, shareOwnWindow }),
   showPresenterToolbar: () => ipcRenderer.send('desktop:presenter-show'),
   hidePresenterToolbar: () => ipcRenderer.send('desktop:presenter-hide'),
+  updatePresenterDock: state => ipcRenderer.send('desktop:presenter-dock-update', state && typeof state === 'object' ? state : {}),
   onPresenterCommand: callback => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, command) => callback(String(command || ''));
