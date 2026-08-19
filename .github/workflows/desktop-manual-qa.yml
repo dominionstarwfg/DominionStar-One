@@ -78,14 +78,28 @@ jobs:
       - name: Reinstall and prove actual app passes live Meet contract
         run: bash scripts/test-live-meet-contract.sh
 
-      - name: Upload unsigned manual-QA installers
+      - name: Upload manual-QA DMG
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-macos-manual-qa
+          name: dominionstar-meet-macos-dmg-qa
+          path: desktop 2/dist/*.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload manual-QA PKG
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-macos-pkg-qa
+          path: desktop 2/dist/*.pkg
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload manual-QA ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-macos-zip-qa
           path: |
-            desktop 2/dist/*.dmg
             desktop 2/dist/*.zip
-            desktop 2/dist/*.pkg
             desktop 2/dist/latest-mac.yml
           if-no-files-found: error
           retention-days: 7
