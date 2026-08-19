@@ -50,6 +50,7 @@
       }
     ],
     "win": {
+      "icon": "build/icon.svg",
       "target": [
         {
           "target": "nsis",
@@ -68,6 +69,7 @@
       "createStartMenuShortcut": true
     },
     "mac": {
+      "icon": "build/icon.svg",
       "category": "public.app-category.business",
       "target": [
         {

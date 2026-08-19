@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">DominionStar Meet</title>
+  <desc id="desc">DominionStar dark app icon with a gold star, blue orbit, and geometric D monogram.</desc>
+  <defs>
+    <linearGradient id="bg" x1="160" y1="112" x2="850" y2="904" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#161b25"/>
+      <stop offset="0.52" stop-color="#090b10"/>
+      <stop offset="1" stop-color="#030405"/>
+    </linearGradient>
+    <linearGradient id="orbit" x1="155" y1="748" x2="849" y2="272" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f6fe5"/>
+      <stop offset="0.56" stop-color="#2d8cff"/>
+      <stop offset="1" stop-color="#78b9ff"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="700" y1="184" x2="831" y2="369" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff0a6"/>
+      <stop offset="0.42" stop-color="#e8bc49"/>
+      <stop offset="1" stop-color="#b77a17"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="28" stdDeviation="34" flood-color="#000" flood-opacity="0.56"/>
+    </filter>
+    <filter id="starGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="15" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="42" y="42" width="940" height="940" rx="222" fill="url(#bg)"/>
+  <rect x="58" y="58" width="908" height="908" rx="208" fill="none" stroke="#ffffff" stroke-opacity="0.075" stroke-width="4"/>
+  <g filter="url(#softShadow)">
+    <path d="M280 300h202c172 0 286 90 286 212S654 724 482 724H280V300Zm106 94v236h92c107 0 177-43 177-118s-70-118-177-118h-92Z" fill="#f5f6f8" fill-rule="evenodd"/>
+    <path d="M239 675c94 72 210 111 337 111 157 0 297-59 389-155" fill="none" stroke="url(#orbit)" stroke-width="38" stroke-linecap="round"/>
+    <path d="M196 733c155 109 365 132 545 54 70-30 133-72 184-123" fill="none" stroke="#2d8cff" stroke-opacity="0.16" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#starGlow)">
+    <path d="M772 176l27.4 63.5 68.8 6.2-52 45.8 15.3 67.5-59.5-35.3-59.5 35.3 15.3-67.5-52-45.8 68.8-6.2L772 176Z" fill="url(#gold)"/>
+  </g>
+  <circle cx="772" cy="269" r="9" fill="#fff7cc"/>
+</svg>
