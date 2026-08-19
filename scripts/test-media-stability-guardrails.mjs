@@ -10,13 +10,17 @@ const dockCss=fs.readFileSync(new URL('../assets/css/meet/dock-layout-v2.css',im
 const background=fs.readFileSync(new URL('../assets/js/meet/background-effects-2030.js',import.meta.url),'utf8');
 const cameraPolish=fs.readFileSync(new URL('../assets/js/meet/camera-reaction-polish.js',import.meta.url),'utf8');
 const cameraStability=fs.readFileSync(new URL('../assets/js/meet/camera-device-stability.js',import.meta.url),'utf8');
+const personalRoom=fs.readFileSync(new URL('../assets/js/meet-next/personal-room.js',import.meta.url),'utf8');
 const meetIndex=fs.readFileSync(new URL('../meet/index.html',import.meta.url),'utf8');
 const desktopMain=fs.readFileSync(new URL('../desktop 2/src/main-v2.mjs',import.meta.url),'utf8');
 const desktopPreload=fs.readFileSync(new URL('../desktop 2/src/preload.cjs',import.meta.url),'utf8');
 const desktopBootstrap=fs.readFileSync(new URL('../desktop 2/src/bootstrap.mjs',import.meta.url),'utf8');
 const presenterToolbar=fs.readFileSync(new URL('../desktop 2/src/presenter-toolbar.html',import.meta.url),'utf8');
+const presenterToolbarJs=fs.readFileSync(new URL('../desktop 2/src/presenter-toolbar.js',import.meta.url),'utf8');
 const presenterDockMain=fs.readFileSync(new URL('../desktop 2/src/presenter-dock.mjs',import.meta.url),'utf8');
 const presenterDockHtml=fs.readFileSync(new URL('../desktop 2/src/presenter-dock.html',import.meta.url),'utf8');
+const shareLifecycle=fs.readFileSync(new URL('../desktop 2/src/share-lifecycle.mjs',import.meta.url),'utf8');
+const remoteControlDialog=fs.readFileSync(new URL('../desktop 2/src/remote-control-dialog.mjs',import.meta.url),'utf8');
 
 assert(!ui.includes("recoverPeer?.(participantId,{reason:'guardian-remote-video-missing'})"),
   'The view reconciler must never rebuild a connected peer because a frame is temporarily missing.');
@@ -102,5 +106,47 @@ assert(presenterDockMain.includes("alwaysOnTop:true")&&presenterDockMain.include
   'The native participant dock must be a resizable always-on-top sharing surface.');
 assert(presenterDockHtml.includes('-webkit-app-region:drag')&&presenterDockHtml.includes('Participant video will appear here while you share.'),
   'The native participant dock must remain movable and provide a clean empty state.');
+
+// Zoom-style Pause Share holds the exact last visible frame while the real
+// capture continues privately in the presenter process until Resume.
+assert(engine.includes("context.drawImage(video,0,0,width,height)")&&engine.includes("const freezeStream=canvas.captureStream(1)"),
+  'Pause Share must freeze the last rendered frame rather than blank the receiver.');
+assert(engine.includes("const frozen=await createFrozenScreenTrack()")&&engine.includes("state.screenPaused=true")&&engine.includes("syncPeerTracks(peer)"),
+  'Pause Share must replace only the outgoing presentation sender with the frozen frame.');
+assert(engine.includes("state.screenPaused=false")&&engine.includes("clearFrozenScreenTrack()"),
+  'Resume Share must return receivers to the live capture and dispose the temporary frozen track.');
+
+// The macOS app identity must remain in the Dock throughout sharing. A hidden
+// main meeting window plus a skip-taskbar presenter window must never make the
+// application look as though it quit.
+assert(shareLifecycle.includes("app.dock.isVisible()")&&shareLifecycle.includes("await app.dock.show()"),
+  'Screen sharing must actively preserve the DominionStar macOS Dock icon.');
+assert(shareLifecycle.includes("desktop:presenter-show")&&shareLifecycle.includes("desktop:presenter-hide"),
+  'Dock visibility must be guarded for the full presenter lifecycle.');
+assert(desktopBootstrap.includes('share-lifecycle.mjs'),
+  'The desktop bootstrap must load the share-lifecycle guard.');
+
+// Stop Share must look atomic: the native presenter bar exits immediately and
+// cannot overlap a newly restored in-meeting toolbar while teardown completes.
+assert(presenterToolbarJs.includes("document.body.classList.add('stopping','collapsed')")&&presenterToolbarJs.includes("document.body.style.opacity='0'"),
+  'Stop Share must immediately retire the native presenter controls.');
+assert(presenterToolbarJs.includes("window.presenterBridge.command('stop')")&&presenterToolbarJs.includes('stopRecoveryTimer=setTimeout'),
+  'Stop Share must still execute the real engine command and recover controls if teardown fails.');
+
+// Remote control follows an explicit request/approval boundary. The meeting
+// renderer must never silently gain native input authority.
+assert(desktopPreload.includes('showRemoteControlPrompt')&&desktopPreload.includes('onRemoteControlDecision')&&desktopPreload.includes('showRemoteControlError'),
+  'The preload bridge must expose the complete remote-control approval lifecycle.');
+assert(remoteControlDialog.includes("desktop:remote-control-prompt")&&remoteControlDialog.includes("buttons: ['Deny', 'Approve']"),
+  'Desktop remote control must present an explicit trusted-user approval dialog.');
+assert(remoteControlDialog.includes("desktop:remote-control-error")&&remoteControlDialog.includes('dialog.showMessageBox'),
+  'Remote-control permission failures must be surfaced through a native desktop dialog.');
+assert(desktopBootstrap.includes('remote-control-dialog.mjs'),
+  'The desktop bootstrap must load the native remote-control approval UI.');
+
+// Personal Room Save has one authoritative execution path. A submit button plus
+// a second click handler previously caused duplicate saves/toasts on one click.
+assert(personalRoom.includes("$('personalRoomForm')?.addEventListener('submit'")&&!personalRoom.includes("$('savePersonalRoom')?.addEventListener('click'"),
+  'Personal Room Save must execute once through the form submit contract.');
 
 console.log('Media stability guardrails passed.');
