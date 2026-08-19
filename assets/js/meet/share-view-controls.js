@@ -1,6 +1,16 @@
 (() => {
   'use strict';
 
+  // Release-critical Operation 2030 modules must not depend on Shared Screen
+  // menu DOM or on an onclick handler being installed first. Start the single
+  // deterministic bootstrap before any feature-specific early return below.
+  if (!document.querySelector('script[data-ds-operation-2030-bootstrap]')) {
+    const bootstrap = document.createElement('script');
+    bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js?v=1-certified-release';
+    bootstrap.dataset.dsOperation2030Bootstrap = '1';
+    document.head.append(bootstrap);
+  }
+
   const button = document.getElementById('shareViewerMoreBtn');
   const menu = document.getElementById('deviceMenu');
   const stage = document.getElementById('stage');
@@ -149,6 +159,9 @@
   new MutationObserver(watchPresentation).observe(document.body,{attributes:true,attributeFilter:['class']});
   window.addEventListener('resize',()=>requestAnimationFrame(positionAnnotationToolbar),{passive:true});
 
+  // Legacy per-feature loaders remain as compatibility fallbacks. The release
+  // bootstrap above owns deterministic loading and claims the same markers, so
+  // these blocks become no-ops on the certified path.
   if (!document.querySelector('script[data-ds-share-annotation]')) {
     const annotationScript = document.createElement('script');
     annotationScript.src = '/assets/js/meet/share-annotation.js?v=1-operation-2030';
@@ -203,7 +216,7 @@
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.9.0',
+    version: '2.0.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
