@@ -17,6 +17,12 @@
   };
   const clone = value => value && typeof value === 'object' && !Array.isArray(value) ? {...value} : value;
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const isGenericLabel = (label, fallback) => {
+    const value = String(label || '').trim();
+    return !value || new RegExp(`^${fallback}\\s*\\d+$`, 'i').test(value) || new RegExp(`^${fallback}$`, 'i').test(value);
+  };
+  let refreshingLabels = false;
+  let lastHydrateAt = 0;
 
   const ensureNativePermission = async constraints => {
     if (!window.dominionDesktop?.isDesktop || !window.dominionDesktop?.getMediaPermissions) return;
@@ -79,7 +85,10 @@
     for (const device of list) {
       const option = document.createElement('option');
       option.value = device.deviceId;
-      const label = String(device.label || '').trim() || (device.deviceId === liveId ? liveLabel : '');
+      const enumeratedLabel = String(device.label || '').trim();
+      const activeResolved = device.deviceId === liveId && liveLabel && !isGenericLabel(liveLabel, fallback) ? liveLabel : '';
+      const enumeratedResolved = !isGenericLabel(enumeratedLabel, fallback) ? enumeratedLabel : '';
+      const label = activeResolved || enumeratedResolved;
       option.textContent = label || `${fallback} — name unavailable`;
       option.dataset.deviceLabelResolved = label ? '1' : '0';
       select.append(option);
@@ -88,10 +97,17 @@
   };
 
   const refreshDeviceNames = async () => {
-    await Promise.all([
-      hydrateSelect('cameraSelect','videoinput','Camera'),
-      hydrateSelect('microphoneSelect','audioinput','Microphone')
-    ]);
+    if (refreshingLabels) return;
+    refreshingLabels = true;
+    try {
+      await Promise.all([
+        hydrateSelect('cameraSelect','videoinput','Camera'),
+        hydrateSelect('microphoneSelect','audioinput','Microphone')
+      ]);
+      lastHydrateAt = Date.now();
+    } finally {
+      refreshingLabels = false;
+    }
   };
 
   const relaxedVideo = base => {
@@ -166,9 +182,6 @@
       if (hardPermissionError(firstError) || !requested.video || !retryableVideoError(firstError)) throw firstError;
     }
 
-    // A stale saved camera ID or a transient external-camera handoff must not
-    // make the whole meeting media request fail. Probe the real cameras, then
-    // acquire microphone independently and merge the tracks when requested.
     const videoStream = await acquireVideo(requested.video);
     if (!requested.audio) return videoStream;
     try {
@@ -207,6 +220,16 @@
     return true;
   };
 
+  const installDeviceSelectAuthority = () => {
+    const selects = ['cameraSelect','microphoneSelect'].map(id => document.getElementById(id)).filter(Boolean);
+    if (!selects.length || typeof MutationObserver !== 'function') return;
+    const observer = new MutationObserver(() => {
+      if (refreshingLabels || Date.now() - lastHydrateAt < 180) return;
+      setTimeout(() => refreshDeviceNames().catch(() => {}), 20);
+    });
+    selects.forEach(select => observer.observe(select,{childList:true}));
+  };
+
   media.addEventListener?.('devicechange', () => { refreshDeviceNames().catch(() => {}); });
   document.addEventListener('loadedmetadata', event => {
     if (event.target instanceof HTMLVideoElement) {
@@ -215,14 +238,20 @@
       refreshDeviceNames().catch(() => {});
     }
   }, true);
+  document.addEventListener('click', event => {
+    if (event.target.closest?.('#preSettings,#camMenuBtn,#micMenuBtn')) {
+      setTimeout(() => refreshDeviceNames().catch(() => {}), 40);
+      setTimeout(() => refreshDeviceNames().catch(() => {}), 220);
+    }
+  }, true);
 
   const engineTimer = setInterval(() => { if (wrapEngine()) clearInterval(engineTimer); }, 25);
   setTimeout(() => clearInterval(engineTimer), 5000);
-  setTimeout(() => refreshDeviceNames().catch(() => {}), 250);
+  setTimeout(() => { installDeviceSelectAuthority(); refreshDeviceNames().catch(() => {}); }, 250);
   setTimeout(() => refreshDeviceNames().catch(() => {}), 900);
 
   window.DominionCameraDeviceStability = Object.freeze({
-    version:'1.0.0',
+    version:'1.1.0',
     refreshDeviceNames,
     snapshot:async()=>({
       cameras:(await devices('videoinput')).map(device=>({id:device.deviceId,label:device.label||''})),
