@@ -25,7 +25,6 @@
   "build": {
     "appId": "com.dominionstar.desktop",
     "productName": "DominionStar Meet",
-    "buildResources": "build",
     "asar": true,
     "asarUnpack": [
       "node_modules/@nut-tree-fork/libnut-*/**/*"
