@@ -5,6 +5,7 @@ const BRIDGE_VERSION = 13;
 const RELEASE_CONTRACT_PATH = '/meet/release-contract.json';
 const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);
 let remoteControlCapability = '';
+const remoteControlDecisionListeners = new Set();
 
 const nativeCertification = Object.freeze({
   mode: 'native-authoritative',
@@ -57,6 +58,17 @@ async function applyLiveMeetReleaseCompatibility(info) {
   } catch {
     return Object.freeze({ ...normalized, meetReleaseId: '', meetReleaseCompatible: false });
   }
+}
+
+async function showNativeRemoteControlPrompt(payload = {}) {
+  let result = { accepted: false, reason: 'prompt-failed' };
+  try {
+    result = await ipcRenderer.invoke('desktop:remote-control-prompt', payload && typeof payload === 'object' ? payload : {});
+  } catch {}
+  for (const listener of [...remoteControlDecisionListeners]) {
+    try { listener(Boolean(result?.accepted)); } catch {}
+  }
+  return result;
 }
 
 // The packaged application owns desktop compatibility. Hosted Guardian scripts
@@ -125,6 +137,13 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
     remoteControlCapability = '';
     return ipcRenderer.invoke('desktop:end-share');
   },
+  showRemoteControlPrompt: payload => showNativeRemoteControlPrompt(payload),
+  onRemoteControlDecision: callback => {
+    if (typeof callback !== 'function') return () => {};
+    remoteControlDecisionListeners.add(callback);
+    return () => remoteControlDecisionListeners.delete(callback);
+  },
+  showRemoteControlError: message => ipcRenderer.invoke('desktop:remote-control-error', String(message || 'Remote control is unavailable.')),
   requestRemoteControlPermission: async context => {
     const result = await ipcRenderer.invoke('desktop:remote-control-permission', context);
     remoteControlCapability = result?.ok ? String(result.capability || '') : '';
