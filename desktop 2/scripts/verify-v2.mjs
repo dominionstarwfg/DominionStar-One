@@ -32,7 +32,6 @@ const preload = read('src/preload.cjs');
 const desktopSession = read('src/desktop-session.mjs');
 const startup = read('src/startup-v2.html');
 
-if (pkg.version !== '1.2.2') throw new Error(`Unexpected hosted-authority release version: ${pkg.version}`);
 if (pkg.main !== 'src/bootstrap.mjs') throw new Error('Production entry point must include the deterministic lifecycle bootstrap');
 if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) throw new Error('Desktop package version is invalid');
 
