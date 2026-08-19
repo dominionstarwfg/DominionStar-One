@@ -8,10 +8,11 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
 const exposed={};
+const sent=[];
 const electron={
   contextBridge:{exposeInMainWorld:(name,value)=>{exposed[name]=value;}},
   ipcRenderer:{
-    send(){},
+    send(channel,...args){sent.push([channel,...args]);},
     invoke(channel,...args){
       if(channel==='desktop:media-permissions') return Promise.resolve({ok:true,platform:'darwin',camera:'not-determined',microphone:'granted'});
       if(channel==='desktop:request-media-permissions'){
@@ -71,14 +72,18 @@ assert.equal(desktop.version,packageJson.version,'version must identify the Domi
 assert.equal(desktop.appVersion,packageJson.version,'appVersion must match package version');
 assert.equal(desktop.buildVersion,packageJson.version,'buildVersion must match package version');
 assert.equal(desktop.electronVersion,'43.3.0','electronVersion must identify the Electron runtime separately');
-assert.equal(desktop.bridgeVersion,13,'Certified native bridge version must be 12');
+assert.equal(desktop.bridgeVersion,13,'Certified native bridge version must remain 13 for this additive QA repair');
 assert.ok(Object.isFrozen(desktop),'Exposed desktop contract must be immutable');
 assert.equal(typeof desktop.getMediaPermissions,'function','Native media permission status API must be exposed');
 assert.equal(typeof desktop.requestMediaPermissions,'function','Native media permission request API must be exposed');
+assert.equal(typeof desktop.updatePresenterDock,'function','Native presenter participant dock update API must be exposed');
 const permissionStatus=await desktop.getMediaPermissions();
 assert.equal(permissionStatus.camera,'not-determined');
 const permissionRequest=await desktop.requestMediaPermissions(['camera']);
 assert.equal(permissionRequest.camera,'granted');
+desktop.updatePresenterDock({tiles:[{id:'p1',name:'Participant'}]});
+assert.equal(sent.at(-1)?.[0],'desktop:presenter-dock-update','Presenter dock updates must use the dedicated native IPC channel');
+assert.equal(sent.at(-1)?.[1]?.tiles?.[0]?.id,'p1','Presenter dock payload must be forwarded to the native shell');
 
 assert.ok(guardian,'Native Guardian certification was not exposed');
 assert.equal(guardian.mode,'native-authoritative');
