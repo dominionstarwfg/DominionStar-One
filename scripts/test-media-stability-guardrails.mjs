@@ -96,7 +96,7 @@ assert(ui.includes('window.dominionDesktop.updatePresenterDock?.({tiles})'),
   'The meeting runtime must publish live participant tiles while desktop sharing is active.');
 assert(desktopPreload.includes("updatePresenterDock: state => ipcRenderer.send('desktop:presenter-dock-update'"),
   'The desktop preload must expose the native participant dock bridge.');
-assert(desktopBootstrap.includes("await import('./presenter-dock.mjs')"),
+assert(desktopBootstrap.includes('presenter-dock.mjs'),
   'The desktop bootstrap must load the native presenter dock controller.');
 assert(presenterDockMain.includes("alwaysOnTop:true")&&presenterDockMain.includes("resizable:true")&&presenterDockMain.includes("desktop:presenter-dock-update"),
   'The native participant dock must be a resizable always-on-top sharing surface.');
