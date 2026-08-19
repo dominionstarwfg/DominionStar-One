@@ -17,6 +17,8 @@ const electron={
     invoke(channel,...args){
       invoked.push([channel,...args]);
       if(channel==='desktop:media-permissions') return Promise.resolve({ok:true,platform:'darwin',camera:'not-determined',microphone:'granted'});
+      if(channel==='desktop:screen-permission-status') return Promise.resolve({ok:true,platform:'darwin',screen:'granted',requiresRestart:false});
+      if(channel==='desktop:relaunch-for-permissions') return Promise.resolve(true);
       if(channel==='desktop:request-media-permissions'){
         assert.deepEqual(Array.from(args[0]||[]),['camera']);
         return Promise.resolve({ok:true,platform:'darwin',camera:'granted',microphone:'granted'});
@@ -80,6 +82,8 @@ assert.equal(desktop.bridgeVersion,13,'Certified native bridge version must rema
 assert.ok(Object.isFrozen(desktop),'Exposed desktop contract must be immutable');
 assert.equal(typeof desktop.getMediaPermissions,'function','Native media permission status API must be exposed');
 assert.equal(typeof desktop.requestMediaPermissions,'function','Native media permission request API must be exposed');
+assert.equal(typeof desktop.getScreenPermissionStatus,'function','Native screen permission status API must be exposed');
+assert.equal(typeof desktop.relaunchForPermissions,'function','Native permission relaunch API must be exposed');
 assert.equal(typeof desktop.updatePresenterDock,'function','Native presenter participant dock update API must be exposed');
 assert.equal(typeof desktop.showRemoteControlPrompt,'function','Native remote-control approval prompt must be exposed');
 assert.equal(typeof desktop.onRemoteControlDecision,'function','Remote-control approval decision subscription must be exposed');
@@ -88,6 +92,11 @@ const permissionStatus=await desktop.getMediaPermissions();
 assert.equal(permissionStatus.camera,'not-determined');
 const permissionRequest=await desktop.requestMediaPermissions(['camera']);
 assert.equal(permissionRequest.camera,'granted');
+const screenPermission=await desktop.getScreenPermissionStatus();
+assert.equal(screenPermission.screen,'granted','Screen permission must be independently queryable from macOS');
+assert.equal(await desktop.relaunchForPermissions(),true,'Permission relaunch request must reach the native shell');
+assert.ok(invoked.some(([channel])=>channel==='desktop:screen-permission-status'),'Screen permission status must use dedicated native IPC');
+assert.ok(invoked.some(([channel])=>channel==='desktop:relaunch-for-permissions'),'Permission relaunch must use dedicated native IPC');
 desktop.updatePresenterDock({tiles:[{id:'p1',name:'Participant'}]});
 assert.equal(sent.at(-1)?.[0],'desktop:presenter-dock-update','Presenter dock updates must use the dedicated native IPC channel');
 assert.equal(sent.at(-1)?.[1]?.tiles?.[0]?.id,'p1','Presenter dock payload must be forwarded to the native shell');
