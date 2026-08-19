@@ -12,7 +12,11 @@ const cameraPolish=fs.readFileSync(new URL('../assets/js/meet/camera-reaction-po
 const cameraStability=fs.readFileSync(new URL('../assets/js/meet/camera-device-stability.js',import.meta.url),'utf8');
 const meetIndex=fs.readFileSync(new URL('../meet/index.html',import.meta.url),'utf8');
 const desktopMain=fs.readFileSync(new URL('../desktop 2/src/main-v2.mjs',import.meta.url),'utf8');
+const desktopPreload=fs.readFileSync(new URL('../desktop 2/src/preload.cjs',import.meta.url),'utf8');
+const desktopBootstrap=fs.readFileSync(new URL('../desktop 2/src/bootstrap.mjs',import.meta.url),'utf8');
 const presenterToolbar=fs.readFileSync(new URL('../desktop 2/src/presenter-toolbar.html',import.meta.url),'utf8');
+const presenterDockMain=fs.readFileSync(new URL('../desktop 2/src/presenter-dock.mjs',import.meta.url),'utf8');
+const presenterDockHtml=fs.readFileSync(new URL('../desktop 2/src/presenter-dock.html',import.meta.url),'utf8');
 
 assert(!ui.includes("recoverPeer?.(participantId,{reason:'guardian-remote-video-missing'})"),
   'The view reconciler must never rebuild a connected peer because a frame is temporarily missing.');
@@ -88,5 +92,15 @@ for(const legacy of ['🎙','◉','♙','▢','Ⅱ','↗']){
 }
 assert(presenterToolbar.includes('<svg')&&presenterToolbar.includes('data-command="new-share"')&&presenterToolbar.includes('data-command="pause"')&&presenterToolbar.includes('data-command="stop"'),
   'The native presenter toolbar must use vector controls for the core Zoom-style sharing actions.');
+assert(ui.includes('window.dominionDesktop.updatePresenterDock?.({tiles})'),
+  'The meeting runtime must publish live participant tiles while desktop sharing is active.');
+assert(desktopPreload.includes("updatePresenterDock: state => ipcRenderer.send('desktop:presenter-dock-update'"),
+  'The desktop preload must expose the native participant dock bridge.');
+assert(desktopBootstrap.includes("await import('./presenter-dock.mjs')"),
+  'The desktop bootstrap must load the native presenter dock controller.');
+assert(presenterDockMain.includes("alwaysOnTop:true")&&presenterDockMain.includes("resizable:true")&&presenterDockMain.includes("desktop:presenter-dock-update"),
+  'The native participant dock must be a resizable always-on-top sharing surface.');
+assert(presenterDockHtml.includes('-webkit-app-region:drag')&&presenterDockHtml.includes('Participant video will appear here while you share.'),
+  'The native participant dock must remain movable and provide a clean empty state.');
 
 console.log('Media stability guardrails passed.');
