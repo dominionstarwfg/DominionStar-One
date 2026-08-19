@@ -25,6 +25,7 @@
   "build": {
     "appId": "com.dominionstar.desktop",
     "productName": "DominionStar Meet",
+    "buildResources": "build",
     "asar": true,
     "asarUnpack": [
       "node_modules/@nut-tree-fork/libnut-*/**/*"
@@ -50,6 +51,7 @@
       }
     ],
     "win": {
+      "icon": "build/icon.svg",
       "target": [
         {
           "target": "nsis",
@@ -68,6 +70,7 @@
       "createStartMenuShortcut": true
     },
     "mac": {
+      "icon": "build/icon.svg",
       "category": "public.app-category.business",
       "target": [
         {
