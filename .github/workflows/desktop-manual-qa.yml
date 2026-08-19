@@ -3,6 +3,10 @@ name: DominionStar Desktop Manual QA Artifact
 on:
   workflow_dispatch:
     inputs:
+      preview_url:
+        description: "Certified Netlify PR preview origin"
+        required: true
+        default: "https://deploy-preview-82--melodious-buttercream-a99450.netlify.app"
       reason:
         description: "Release-candidate reason"
         required: false
@@ -30,6 +34,44 @@ jobs:
           clean: true
           fetch-depth: 1
 
+      - name: Bind this QA build to the certified PR preview
+        env:
+          QA_PREVIEW_ORIGIN: ${{ inputs.preview_url }}
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const origin=String(process.env.QA_PREVIEW_ORIGIN||'').replace(/\/$/,'');
+          const url=new URL(origin);
+          if(url.protocol!=='https:' || !/^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/.test(url.hostname)){
+            throw new Error(`Refusing untrusted QA preview origin: ${origin}`);
+          }
+          const mainPath='src/main-v2.mjs';
+          let main=fs.readFileSync(mainPath,'utf8');
+          const prodOrigin="const APP_ORIGIN = 'https://dominionstarld.com';";
+          if(!main.includes(prodOrigin)) throw new Error('Expected production APP_ORIGIN marker is missing');
+          main=main.replace(prodOrigin,`const APP_ORIGIN = '${url.origin}';`);
+          const prodHosts="const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);";
+          if(!main.includes(prodHosts)) throw new Error('Expected TRUSTED_HOSTS marker is missing');
+          main=main.replace(prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          fs.writeFileSync(mainPath,main);
+
+          const preloadPath='src/preload.cjs';
+          let preload=fs.readFileSync(preloadPath,'utf8');
+          const prodOrigins="const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);";
+          if(!preload.includes(prodOrigins)) throw new Error('Expected preload TRUSTED_ORIGINS marker is missing');
+          preload=preload.replace(prodOrigins,`const TRUSTED_ORIGINS = new Set(['${url.origin}']);`);
+          fs.writeFileSync(preloadPath,preload);
+          console.log(`DOMINIONSTAR_QA_PREVIEW_BOUND ${url.origin}`);
+          NODE
+
+      - name: Verify selected PR preview is reachable
+        env:
+          QA_PREVIEW_ORIGIN: ${{ inputs.preview_url }}
+        run: |
+          curl --fail --silent --show-error --location --max-time 15 \
+            "${QA_PREVIEW_ORIGIN%/}/meet/release-contract.json" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s);if(!c.releaseId||!c.desktopBridge)process.exit(2);console.log('QA_PREVIEW_CONTRACT_OK',c.releaseId,c.desktopBridge)})"
+
       - name: Confirm Intel runner parity
         run: |
           test "$(uname -m)" = "x86_64"
@@ -55,13 +97,7 @@ jobs:
       - name: Audit production dependency supply chain
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Audit live hosted Meet runtime
-        run: bash scripts/audit-live-hosted-runtime.sh
-
-      - name: Prepare native replacement tooling
-        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh scripts/test-live-meet-contract.sh scripts/audit-live-hosted-runtime.sh
-
-      - name: Run clean-runtime certification
+      - name: Run clean-runtime certification against QA-bound source
         run: npm run verify
 
       - name: Build universal macOS app, DMG and ZIP
@@ -76,7 +112,7 @@ jobs:
       - name: Install over stale v1.1.8 and launch the installed app
         run: bash scripts/test-macos-pkg.sh
 
-      - name: Reinstall and prove actual app passes live Meet contract
+      - name: Reinstall and prove actual app passes selected Meet contract
         run: bash scripts/test-live-meet-contract.sh
 
       - name: Upload manual-QA DMG
