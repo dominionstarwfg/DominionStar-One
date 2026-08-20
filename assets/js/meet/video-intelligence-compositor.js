@@ -249,6 +249,7 @@
     }
     outputTrack.contentHint = 'motion';
     outputTrack.__dsVideoIntelligence = true;
+    outputTrack.__dsPhysicalSourceTrack = sourceTrack;
     const audioTracks = sourceStream.getAudioTracks().filter(track => track.readyState === 'live');
     const publishStream = new MediaStream([outputTrack, ...audioTracks]);
     const session = active = {
@@ -392,9 +393,10 @@
   });
 
   window.DominionVideoIntelligenceCompositor = Object.freeze({
-    version: '1.0.0',
+    version: '1.0.1',
     refresh: restoreOrRefresh,
     isActive: () => Boolean(active),
+    getSourceTrack: () => active?.sourceTrack?.readyState === 'live' ? active.sourceTrack : null,
     snapshot: () => ({
       portraitLighting: Boolean(portraitToggle.checked),
       autoFraming: Boolean(autoFrameToggle.checked),
