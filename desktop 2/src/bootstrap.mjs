@@ -33,6 +33,7 @@ app.on('before-quit', () => {
 
 await import('./main-v2.mjs');
 await import('./presenter-dock.mjs');
+await import('./presenter-command-parity.mjs');
 await import('./share-lifecycle.mjs');
 await import('./remote-control-dialog.mjs');
 await import('./screen-permission-lifecycle.mjs');
