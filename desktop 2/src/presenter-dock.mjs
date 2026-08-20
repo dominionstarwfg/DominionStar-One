@@ -39,14 +39,26 @@ function sanitizeState(payload={}){
   }))};
 }
 
+function zoomClassDockSize(){
+  const display=screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const area=display.workArea;
+  // Match the practical footprint of Zoom's stacked participant strip rather
+  // than a fixed thumbnail rail. Keep the ratio stable across Mac displays.
+  const width=Math.round(Math.min(360,Math.max(300,area.width*0.18)));
+  const height=Math.round(Math.min(720,Math.max(560,area.height*0.74)));
+  return {width,height};
+}
+
 function createDock(){
   if(dockWindow&&!dockWindow.isDestroyed())return dockWindow;
+  const initial=zoomClassDockSize();
   dockWindow=new BrowserWindow({
-    width:352,
-    height:690,
-    minWidth:300,
-    minHeight:210,
+    width:initial.width,
+    height:initial.height,
+    minWidth:280,
+    minHeight:420,
     maxWidth:620,
+    maxHeight:900,
     show:false,
     frame:false,
     transparent:true,
