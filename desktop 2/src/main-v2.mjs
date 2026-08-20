@@ -25,7 +25,7 @@ const MEET_URL = `${APP_ORIGIN}/meet/?desktop=1`;
 const MEET_HOME_URL = `${APP_ORIGIN}/meet-home/?desktop=1`;
 const MEMBER_LOGIN_URL = `${APP_ORIGIN}/member-login/?desktop=1`;
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
-const DESKTOP_BRIDGE_VERSION = 13;
+const DESKTOP_BRIDGE_VERSION = 14;
 const HOSTED_NAVIGATION_TIMEOUT_MS = 12000;
 const STARTUP_PROBE_PATH = String(process.env.DOMINIONSTAR_STARTUP_PROBE || '');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -573,7 +573,7 @@ ipcMain.on('desktop:presenter-command', (event, command = '') => {
 ipcMain.on('desktop:presenter-resize', (event, size = {}) => {
   if (event.sender !== presenterWindow?.webContents || !presenterWindow || presenterWindow.isDestroyed()) return;
   const width = Math.max(270, Math.min(930, Number(size.width) || 930));
-  const height = Math.max(48, Math.min(330, Number(size.height) || 76));
+  const height = Math.max(48, Math.min(370, Number(size.height) || 76));
   const bounds = presenterWindow.getBounds();
   presenterWindow.setBounds({
     x: Math.round(bounds.x + (bounds.width - width) / 2),
