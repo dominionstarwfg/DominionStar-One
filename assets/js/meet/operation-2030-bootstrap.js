@@ -52,21 +52,22 @@
   const videoIntelligence = load('/assets/js/meet/video-intelligence-compositor.js?v=1-on-device-portrait-autoframe', 'data-ds-video-intelligence-compositor');
   const backgroundEffects = load('/assets/js/meet/background-effects-2030.js?v=2-operation-2030-certified', 'data-ds-background-effects-2030', { after: videoIntelligence });
   const videoQualityParity = load('/assets/js/meet/video-quality-parity.js?v=1-low-light-original-ratio', 'data-ds-video-quality-parity', { after: backgroundEffects });
-  const shareUi = load('/assets/js/meet/share-ui-2030.js?v=2-operation-2030-certified', 'data-ds-share-ui-2030');
+  const shareOptimizationParity = load('/assets/js/meet/share-optimization-parity.js?v=1-real-motion-detail-policy', 'data-ds-share-optimization-parity');
+  const shareUi = load('/assets/js/meet/share-ui-2030.js?v=2-operation-2030-certified', 'data-ds-share-ui-2030', { after: shareOptimizationParity });
 
   const ready = Promise.all([
     annotation, verticalAnnotationUi, presenterCommandParity, slideControl, microphoneIdentity, quickDeviceMenuParity, receiverSideLayout, hostCohostUiParity, spotlight, handoff, arbitration, arbitrationUi,
     identitySettings, identityBridge, cameraPolish, dockPolish, nativeDockQuality, screenPermissionGuard,
-    shareWatchdog, videoIntelligence, backgroundEffects, videoQualityParity, shareUi
+    shareWatchdog, videoIntelligence, backgroundEffects, videoQualityParity, shareOptimizationParity, shareUi
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '1.11.0',
+    version: '1.12.0',
     ready,
     modules: Object.freeze([
       'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity','microphone-device-identity','quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
       'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030','native-dock-quality','screen-permission-ui-guard',
-      'remote-share-watchdog','video-intelligence-compositor','background-effects-2030','video-quality-parity','share-ui-2030'
+      'remote-share-watchdog','video-intelligence-compositor','background-effects-2030','video-quality-parity','share-optimization-parity','share-ui-2030'
     ])
   });
 })();
