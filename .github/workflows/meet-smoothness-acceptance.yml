@@ -1,0 +1,68 @@
+name: DominionStar Meet Smoothness Stress Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "assets/js/meeting-engine.js"
+      - "assets/js/meet/**"
+      - "assets/js/meet-next/**"
+      - "assets/css/meet/**"
+      - "assets/css/meet-next/**"
+      - "meet/**"
+      - "scripts/browser-two-client-meet-acceptance.mjs"
+      - "scripts/browser-meet-smoothness-acceptance.mjs"
+      - "scripts/build-netlify-preview.sh"
+      - ".github/workflows/meet-smoothness-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-meet-smoothness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoothness:
+    name: Repeated Media, Share and Resize Stability
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate smoothness harness syntax
+        run: node --check scripts/browser-meet-smoothness-acceptance.mjs
+
+      - name: Build isolated Meet preview
+        run: bash scripts/build-netlify-preview.sh
+
+      - name: Install isolated Playwright browser harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run repeated two-client smoothness stress
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .preview-package/public
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ds-meet-smoothness-http.log 2>&1 &
+          server=$!
+          cd ../..
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for _ in {1..40}; do
+            curl -fsS http://127.0.0.1:4173/meet/ >/dev/null && break
+            sleep 0.25
+          done
+          DOMINIONSTAR_PREVIEW_URL=http://127.0.0.1:4173 node scripts/browser-meet-smoothness-acceptance.mjs
