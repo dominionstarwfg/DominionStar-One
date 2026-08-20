@@ -39,22 +39,23 @@
   const identityBridge = load('/assets/js/meet/meeting-identity-bridge.js?v=2-operation-2030-certified', 'data-ds-meeting-identity-bridge', { after: identitySettings });
   const cameraPolish = load('/assets/js/meet/camera-reaction-polish.js?v=3-operation-2030-certified', 'data-ds-camera-reaction-polish');
   const dockPolish = load('/assets/js/meet/dock-polish-2030.js?v=2-operation-2030-certified', 'data-ds-dock-polish-2030');
+  const nativeDockQuality = load('/assets/js/meet/native-dock-quality.js?v=1-operation-2030-hd-dock', 'data-ds-native-dock-quality');
   const shareWatchdog = load('/assets/js/meet/remote-share-watchdog.js?v=2-operation-2030-certified', 'data-ds-remote-share-watchdog');
   const backgroundEffects = load('/assets/js/meet/background-effects-2030.js?v=2-operation-2030-certified', 'data-ds-background-effects-2030');
   const shareUi = load('/assets/js/meet/share-ui-2030.js?v=2-operation-2030-certified', 'data-ds-share-ui-2030');
 
   const ready = Promise.all([
     annotation, spotlight, handoff, arbitration, arbitrationUi,
-    identitySettings, identityBridge, cameraPolish, dockPolish,
+    identitySettings, identityBridge, cameraPolish, dockPolish, nativeDockQuality,
     shareWatchdog, backgroundEffects, shareUi
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '1.0.0',
+    version: '1.1.0',
     ready,
     modules: Object.freeze([
       'share-annotation','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
-      'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030',
+      'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030','native-dock-quality',
       'remote-share-watchdog','background-effects-2030','share-ui-2030'
     ])
   });
