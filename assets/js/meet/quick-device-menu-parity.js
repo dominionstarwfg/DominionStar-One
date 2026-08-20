@@ -44,8 +44,13 @@
     const background=$('backgroundSelect');
     const quality=$('qualitySelect');
     const touch=$('touchAppearanceRange');
+    const lowLight=$('adjustLowLightToggle');
+    const originalRatio=$('originalRatioToggle');
+    const portraitLighting=$('portraitLightingToggle');
+    const autoFraming=$('autoFramingToggle');
     addDivider();
     addButton('Mirror my video',()=>{if(!mirror)return;mirror.checked=!mirror.checked;dispatchChange(mirror);menu.hidden=true;},{checked:Boolean(mirror?.checked)});
+    if(originalRatio)addButton('Original ratio',()=>{originalRatio.checked=!originalRatio.checked;dispatchChange(originalRatio);menu.hidden=true;},{checked:Boolean(originalRatio.checked)});
     if(background){
       const labels={none:'No background',blur:'Blur background',portrait:'Portrait background'};
       [...background.options].forEach(option=>addButton(labels[option.value]||option.textContent,()=>{background.value=option.value;dispatchChange(background);menu.hidden=true;},{checked:option.value===background.value}));
@@ -54,15 +59,16 @@
       addDivider();
       [...quality.options].forEach(option=>addButton(option.textContent,()=>{quality.value=option.value;dispatchChange(quality);menu.hidden=true;},{checked:option.value===quality.value,note:'Video quality'}));
     }
-    if(touch){
-      addDivider();
-      addButton('Touch Up Appearance',()=>{touch.value=Number(touch.value)>0?'0':'35';dispatchChange(touch);menu.hidden=true;},{checked:Number(touch.value)>0});
-    }
+    addDivider();
+    if(lowLight)addButton('Adjust for low light',()=>{lowLight.checked=!lowLight.checked;dispatchChange(lowLight);menu.hidden=true;},{checked:Boolean(lowLight.checked),note:'Camera-aware exposure'});
+    if(portraitLighting)addButton('Portrait lighting',()=>{portraitLighting.checked=!portraitLighting.checked;dispatchChange(portraitLighting);menu.hidden=true;},{checked:Boolean(portraitLighting.checked),note:'On-device subject lighting'});
+    if(autoFraming)addButton('Auto-framing',()=>{autoFraming.checked=!autoFraming.checked;dispatchChange(autoFraming);menu.hidden=true;},{checked:Boolean(autoFraming.checked),note:'Keep me centered'});
+    if(touch)addButton('Touch Up Appearance',()=>{touch.value=Number(touch.value)>0?'0':'35';dispatchChange(touch);menu.hidden=true;},{checked:Number(touch.value)>0});
     addDivider();
     addButton('Audio & Video Settings…',openSettings,{note:'Advanced camera controls'});
   };
 
   new MutationObserver(decorate).observe(menu,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   decorate();
-  window.DominionQuickDeviceMenuParity=Object.freeze({version:'1.0.0',decorate,openSettings});
+  window.DominionQuickDeviceMenuParity=Object.freeze({version:'1.1.0',decorate,openSettings});
 })();
