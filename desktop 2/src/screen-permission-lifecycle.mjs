@@ -11,23 +11,50 @@ function isTrustedDesktopRenderer(event) {
   }
 }
 
+function rawScreenPermission() {
+  if (process.platform !== 'darwin') return 'granted';
+  try { return String(systemPreferences.getMediaAccessStatus('screen') || 'unknown').toLowerCase(); }
+  catch { return 'unknown'; }
+}
+
+const initialScreenPermission = rawScreenPermission();
+
 function readScreenPermission() {
+  const screen = rawScreenPermission();
   if (process.platform !== 'darwin') {
-    return { ok: true, platform: process.platform, screen: 'granted', requiresRestart: false };
+    return {
+      ok: true,
+      platform: process.platform,
+      screen: 'granted',
+      initialScreen: 'granted',
+      changedSinceLaunch: false,
+      requiresRestart: false
+    };
   }
-  let screen = 'unknown';
-  try { screen = systemPreferences.getMediaAccessStatus('screen'); } catch {}
+  const changedSinceLaunch = screen !== initialScreenPermission;
   return {
     ok: true,
     platform: process.platform,
     screen,
-    requiresRestart: ['denied', 'restricted'].includes(String(screen || '').toLowerCase())
+    initialScreen: initialScreenPermission,
+    changedSinceLaunch,
+    // macOS applies a newly granted Screen Recording entitlement reliably
+    // after the app relaunches. A launch that already began granted does not
+    // need to be bounced again.
+    requiresRestart: initialScreenPermission !== 'granted' && screen === 'granted'
   };
 }
 
 ipcMain.handle('desktop:screen-permission-status', event => {
   if (!isTrustedDesktopRenderer(event)) {
-    return { ok: false, platform: process.platform, screen: 'denied', requiresRestart: false };
+    return {
+      ok: false,
+      platform: process.platform,
+      screen: 'denied',
+      initialScreen: initialScreenPermission,
+      changedSinceLaunch: false,
+      requiresRestart: false
+    };
   }
   return readScreenPermission();
 });
