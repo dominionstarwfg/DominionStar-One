@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const RELEASE_VERSION = '1.2.3';
-const BRIDGE_VERSION = 13;
+const BRIDGE_VERSION = 14;
 const RELEASE_CONTRACT_PATH = '/meet/release-contract.json';
 const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);
 let remoteControlCapability = '';
@@ -76,9 +76,6 @@ async function revokeRemoteControlCapability() {
   remoteControlCapability = '';
   if (!previous) return true;
   try {
-    // While an entire-screen capture is still active, requesting a fresh native
-    // capability atomically invalidates the previous token. The replacement is
-    // intentionally discarded so no renderer input can continue after Stop Control.
     await ipcRenderer.invoke('desktop:remote-control-permission', {
       requestId: `revoke-${Date.now()}`,
       requesterId: 'dominionstar-revoke'
@@ -87,8 +84,6 @@ async function revokeRemoteControlCapability() {
   return true;
 }
 
-// The packaged application owns desktop compatibility. Hosted Guardian scripts
-// are not allowed to override a valid installed release and lock the native app.
 contextBridge.exposeInMainWorld('DominionGuardianCertification', nativeCertification);
 
 contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
@@ -151,8 +146,12 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
     ipcRenderer.on('desktop:presenter-command', listener);
     return () => ipcRenderer.removeListener('desktop:presenter-command', listener);
   },
+  getSlideControlPermission: () => ipcRenderer.invoke('desktop:slide-control-permission'),
+  setSlideControlState: state => ipcRenderer.send('desktop:slide-control-state', state && typeof state === 'object' ? state : {}),
+  applySlideControlCommand: command => ipcRenderer.invoke('desktop:slide-control-command', String(command || '')),
   endShare: async () => {
     remoteControlCapability = '';
+    ipcRenderer.send('desktop:slide-control-state', { active: false });
     return ipcRenderer.invoke('desktop:end-share');
   },
   showRemoteControlPrompt: payload => showNativeRemoteControlPrompt(payload),
