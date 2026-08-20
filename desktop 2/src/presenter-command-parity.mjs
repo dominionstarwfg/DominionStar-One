@@ -48,21 +48,9 @@ function showMeeting() {
 
 function layoutFor(mode, area) {
   const layouts = [
-    {
-      mode: 'stack',
-      width: Math.round(Math.min(360, Math.max(300, area.width * 0.18))),
-      height: Math.round(Math.min(720, Math.max(560, area.height * 0.74)))
-    },
-    {
-      mode: 'speaker',
-      width: Math.round(Math.min(440, Math.max(340, area.width * 0.22))),
-      height: Math.round(Math.min(300, Math.max(220, area.height * 0.28)))
-    },
-    {
-      mode: 'grid',
-      width: Math.round(Math.min(620, Math.max(480, area.width * 0.31))),
-      height: Math.round(Math.min(560, Math.max(400, area.height * 0.48)))
-    }
+    { mode: 'stack', width: Math.round(Math.min(360, Math.max(300, area.width * 0.18))), height: Math.round(Math.min(720, Math.max(560, area.height * 0.74))) },
+    { mode: 'speaker', width: Math.round(Math.min(440, Math.max(340, area.width * 0.22))), height: Math.round(Math.min(300, Math.max(220, area.height * 0.28))) },
+    { mode: 'grid', width: Math.round(Math.min(620, Math.max(480, area.width * 0.31))), height: Math.round(Math.min(560, Math.max(400, area.height * 0.48))) }
   ];
   return layouts[Math.max(0, Math.min(layouts.length - 1, Number(mode) || 0))];
 }
@@ -114,8 +102,8 @@ ipcMain.on('desktop:presenter-command', (event, command = '') => {
     cycleLayout();
     return;
   }
-  if (safe === 'annotate') {
-    meetingWindow()?.webContents?.send?.('desktop:presenter-command', 'annotate');
+  if (safe === 'annotate' || safe === 'slide-control') {
+    meetingWindow()?.webContents?.send?.('desktop:presenter-command', safe);
   }
 });
 
