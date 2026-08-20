@@ -41,10 +41,18 @@
   const originalRatioToggle = makeToggle('originalRatioToggle','Original ratio',readBool(STORAGE_ORIGINAL_RATIO,false));
 
   const activeCameraTrack = () => {
-    const source = window.DominionBackgroundEffects2030?.getSourceTrack?.();
-    if (source?.readyState === 'live') return source;
+    const intelligentSource = window.DominionVideoIntelligenceCompositor?.getSourceTrack?.();
+    if (intelligentSource?.readyState === 'live') return intelligentSource;
+    const backgroundSource = window.DominionBackgroundEffects2030?.getSourceTrack?.();
+    if (backgroundSource?.readyState === 'live') {
+      const physical = backgroundSource.__dsPhysicalSourceTrack;
+      if (physical?.readyState === 'live') return physical;
+      return backgroundSource;
+    }
     for (const video of localVideos()) {
       const track = video.srcObject?.getVideoTracks?.()[0];
+      const physical = track?.__dsPhysicalSourceTrack;
+      if (physical?.readyState === 'live') return physical;
       if (track?.readyState === 'live') return track;
     }
     return null;
@@ -113,7 +121,7 @@
   setTimeout(()=>{ if (lowLightToggle.checked) void applyLowLight(); },300);
 
   window.DominionVideoQualityParity = Object.freeze({
-    version:'1.0.0',
+    version:'1.0.1',
     applyLowLight,
     applyOriginalRatio,
     snapshot:()=>({
