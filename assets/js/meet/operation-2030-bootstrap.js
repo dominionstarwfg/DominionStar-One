@@ -32,7 +32,8 @@
 
   const annotation = load('/assets/js/meet/share-annotation.js?v=2-operation-2030-certified', 'data-ds-share-annotation');
   const verticalAnnotationUi = load('/assets/js/meet/annotation-vertical-ui.js?v=1-approved-zoom-rail', 'data-ds-annotation-vertical-ui', { after: annotation });
-  const presenterCommandParity = load('/assets/js/meet/presenter-command-web-parity.js?v=1-approved-presenter-actions', 'data-ds-presenter-command-parity', { after: annotation });
+  const presenterCommandParity = load('/assets/js/meet/presenter-command-web-parity.js?v=2-slide-control-aware', 'data-ds-presenter-command-parity', { after: annotation });
+  const slideControl = load('/assets/js/meet/slide-control-parity.js?v=1-encrypted-delegated-control', 'data-ds-slide-control-parity', { after: presenterCommandParity });
   const microphoneIdentity = load('/assets/js/meet/microphone-device-identity.js?v=1-hardware-identity', 'data-ds-microphone-device-identity');
   const quickDeviceMenuParity = load('/assets/js/meet/quick-device-menu-parity.js?v=1-zoom-class-device-menu', 'data-ds-quick-device-menu-parity');
   const receiverSideLayout = load('/assets/js/meet/receiver-side-layout-parity.js?v=1-zoom-class-side-by-side', 'data-ds-receiver-side-layout');
@@ -52,16 +53,16 @@
   const shareUi = load('/assets/js/meet/share-ui-2030.js?v=2-operation-2030-certified', 'data-ds-share-ui-2030');
 
   const ready = Promise.all([
-    annotation, verticalAnnotationUi, presenterCommandParity, microphoneIdentity, quickDeviceMenuParity, receiverSideLayout, hostCohostUiParity, spotlight, handoff, arbitration, arbitrationUi,
+    annotation, verticalAnnotationUi, presenterCommandParity, slideControl, microphoneIdentity, quickDeviceMenuParity, receiverSideLayout, hostCohostUiParity, spotlight, handoff, arbitration, arbitrationUi,
     identitySettings, identityBridge, cameraPolish, dockPolish, nativeDockQuality, screenPermissionGuard,
     shareWatchdog, backgroundEffects, shareUi
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '1.8.0',
+    version: '1.9.0',
     ready,
     modules: Object.freeze([
-      'share-annotation','annotation-vertical-ui','presenter-command-web-parity','microphone-device-identity','quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
+      'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity','microphone-device-identity','quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
       'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030','native-dock-quality','screen-permission-ui-guard',
       'remote-share-watchdog','background-effects-2030','share-ui-2030'
     ])
