@@ -79,9 +79,9 @@
     // failure and let the user retry capture without revisiting System Settings.
     if (recent(RELAUNCH_KEY, RECENT_RELAUNCH_MS)) {
       if (badge) badge.textContent = 'CAPTURE INITIALIZATION';
-      if (title) title.textContent = 'Unable to load screens';
+      if (title) title.textContent = 'Capture initialization failed';
       if (copy) copy.textContent = 'macOS Screen Recording access is already granted, but DominionStar Meet did not receive the available screen and window sources.';
-      if (note) note.textContent = 'Retry capture. If this repeats, the build fails screen-sharing QA; changing the permission again is not required.';
+      if (note) note.textContent = 'Retry Capture. If this repeats, the build fails screen-sharing QA; changing the permission again is not required.';
       if (settings) settings.hidden = true;
       if (restart) {
         restart.hidden = false;
@@ -116,7 +116,7 @@
   observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'open'] });
 
   window.DominionScreenPermissionUIGuard = Object.freeze({
-    version: '1.0.0',
+    version: '1.0.1',
     enforceGrantedState,
     snapshot: () => ({
       settingsOpenedRecently: recent(SETTINGS_OPENED_KEY, RECENT_SETTINGS_MS),
