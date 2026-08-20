@@ -4,9 +4,19 @@ let collapseTimer=0;
 let stopRecoveryTimer=0;
 const EXPANDED_WIDTH=930;
 const EXPANDED_HEIGHT=64;
-const MENU_HEIGHT=330;
+const MENU_HEIGHT=370;
 const COLLAPSED_WIDTH=218;
 const COLLAPSED_HEIGHT=46;
+
+if(menu&&!menu.querySelector('[data-command="slide-control"]')){
+  const button=document.createElement('button');
+  button.type='button';
+  button.dataset.command='slide-control';
+  button.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m9 9-3 3 3 3M15 9l3 3-3 3M8 21h8"/></svg>Slide Control';
+  const stop=menu.querySelector('[data-command="stop"]');
+  menu.insertBefore(button,stop||null);
+}
+
 const scheduleCollapse=()=>{
   clearTimeout(collapseTimer);
   collapseTimer=setTimeout(()=>{
