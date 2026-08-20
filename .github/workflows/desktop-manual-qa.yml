@@ -45,6 +45,7 @@ jobs:
           if(url.protocol!=='https:' || !/^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/.test(url.hostname)){
             throw new Error(`Refusing untrusted QA preview origin: ${origin}`);
           }
+
           const mainPath='src/main-v2.mjs';
           let main=fs.readFileSync(mainPath,'utf8');
           const prodOrigin="const APP_ORIGIN = 'https://dominionstarld.com';";
@@ -61,7 +62,22 @@ jobs:
           if(!preload.includes(prodOrigins)) throw new Error('Expected preload TRUSTED_ORIGINS marker is missing');
           preload=preload.replace(prodOrigins,`const TRUSTED_ORIGINS = new Set(['${url.origin}']);`);
           fs.writeFileSync(preloadPath,preload);
+
+          const dockPath='src/presenter-dock.mjs';
+          let dock=fs.readFileSync(dockPath,'utf8');
+          const prodDockHosts="const TRUSTED_HOSTS=new Set(['dominionstarld.com','www.dominionstarld.com']);";
+          if(!dock.includes(prodDockHosts)) throw new Error('Expected presenter-dock TRUSTED_HOSTS marker is missing');
+          dock=dock.replace(prodDockHosts,`const TRUSTED_HOSTS=new Set(['${url.hostname}']);`);
+          fs.writeFileSync(dockPath,dock);
+
+          const reboundMain=fs.readFileSync(mainPath,'utf8');
+          const reboundPreload=fs.readFileSync(preloadPath,'utf8');
+          const reboundDock=fs.readFileSync(dockPath,'utf8');
+          if(!reboundMain.includes(url.origin) || !reboundPreload.includes(url.origin) || !reboundDock.includes(url.hostname)){
+            throw new Error('QA preview trust binding did not reach every desktop sharing surface');
+          }
           console.log(`DOMINIONSTAR_QA_PREVIEW_BOUND ${url.origin}`);
+          console.log(`DOMINIONSTAR_QA_PRESENTER_DOCK_TRUST_OK ${url.hostname}`);
           NODE
 
       - name: Verify selected PR preview is reachable
