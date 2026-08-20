@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "verify": "node scripts/verify-v2.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs && node scripts/test-release-recovery.mjs && node scripts/test-release-health.mjs && node scripts/test-staged-rollout.mjs && node scripts/test-approved-share-ui.mjs && node scripts/test-receiver-layout-parity.mjs && node scripts/test-slide-control-parity.mjs",
+    "verify": "node scripts/verify-v2.mjs && node scripts/test-bridge-contract.mjs && node scripts/test-capture-source.mjs && node scripts/test-capture-session.mjs && node scripts/test-desktop-layout.mjs && node scripts/test-desktop-session.mjs && node scripts/test-release-recovery.mjs && node scripts/test-release-health.mjs && node scripts/test-staged-rollout.mjs && node scripts/test-approved-share-ui.mjs && node scripts/test-receiver-layout-parity.mjs && node scripts/test-slide-control-parity.mjs && node scripts/test-video-quality-parity.mjs",
     "pack": "electron-builder --dir",
     "dist:windows": "electron-builder --win nsis --x64 --arm64 --publish never && node scripts/apply-staged-rollout.mjs 10 dist/latest.yml",
     "dist:mac": "electron-builder --mac dmg zip --universal --publish never && node scripts/apply-staged-rollout.mjs 10 dist/latest-mac.yml",
