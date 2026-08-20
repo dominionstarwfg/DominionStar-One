@@ -2,9 +2,9 @@ const menu=document.getElementById('presenterMoreMenu');
 const more=document.querySelector('[data-command="more"]');
 let collapseTimer=0;
 let stopRecoveryTimer=0;
-const EXPANDED_WIDTH=780;
+const EXPANDED_WIDTH=930;
 const EXPANDED_HEIGHT=64;
-const MENU_HEIGHT=286;
+const MENU_HEIGHT=330;
 const COLLAPSED_WIDTH=218;
 const COLLAPSED_HEIGHT=46;
 const scheduleCollapse=()=>{
