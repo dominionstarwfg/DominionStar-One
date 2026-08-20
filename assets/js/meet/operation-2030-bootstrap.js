@@ -50,21 +50,22 @@
   const screenPermissionGuard = load('/assets/js/meet/screen-permission-ui-guard.js?v=1-operation-2030-permission-state', 'data-ds-screen-permission-ui-guard');
   const shareWatchdog = load('/assets/js/meet/remote-share-watchdog.js?v=2-operation-2030-certified', 'data-ds-remote-share-watchdog');
   const backgroundEffects = load('/assets/js/meet/background-effects-2030.js?v=2-operation-2030-certified', 'data-ds-background-effects-2030');
+  const videoQualityParity = load('/assets/js/meet/video-quality-parity.js?v=1-low-light-original-ratio', 'data-ds-video-quality-parity', { after: backgroundEffects });
   const shareUi = load('/assets/js/meet/share-ui-2030.js?v=2-operation-2030-certified', 'data-ds-share-ui-2030');
 
   const ready = Promise.all([
     annotation, verticalAnnotationUi, presenterCommandParity, slideControl, microphoneIdentity, quickDeviceMenuParity, receiverSideLayout, hostCohostUiParity, spotlight, handoff, arbitration, arbitrationUi,
     identitySettings, identityBridge, cameraPolish, dockPolish, nativeDockQuality, screenPermissionGuard,
-    shareWatchdog, backgroundEffects, shareUi
+    shareWatchdog, backgroundEffects, videoQualityParity, shareUi
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '1.9.0',
+    version: '1.10.0',
     ready,
     modules: Object.freeze([
       'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity','microphone-device-identity','quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
       'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030','native-dock-quality','screen-permission-ui-guard',
-      'remote-share-watchdog','background-effects-2030','share-ui-2030'
+      'remote-share-watchdog','background-effects-2030','video-quality-parity','share-ui-2030'
     ])
   });
 })();
