@@ -45,13 +45,7 @@ function showMeeting() {
   return true;
 }
 
-function cycleLayout() {
-  const dock = participantDockWindow();
-  if (!dock || dock.isDestroyed()) return false;
-  const display = screen.getDisplayMatching(dock.getBounds());
-  const area = display.workArea;
-  layoutMode = (layoutMode + 1) % 3;
-
+function layoutFor(mode, area) {
   const layouts = [
     {
       mode: 'stack',
@@ -69,13 +63,32 @@ function cycleLayout() {
       height: Math.round(Math.min(560, Math.max(400, area.height * 0.48)))
     }
   ];
-  const next = layouts[layoutMode];
+  return layouts[Math.max(0, Math.min(layouts.length - 1, Number(mode) || 0))];
+}
+
+function applyLayout(mode = layoutMode, { animate = true } = {}) {
+  const dock = participantDockWindow();
+  if (!dock || dock.isDestroyed()) return false;
+  const display = screen.getDisplayMatching(dock.getBounds());
+  const area = display.workArea;
+  const next = layoutFor(mode, area);
   const current = dock.getBounds();
   const x = Math.max(area.x, Math.min(current.x, area.x + area.width - next.width));
   const y = Math.max(area.y, Math.min(current.y, area.y + area.height - next.height));
-  dock.setBounds({ x, y, width: next.width, height: next.height }, true);
+  dock.setBounds({ x, y, width: next.width, height: next.height }, animate);
   dock.webContents?.send?.('desktop:presenter-dock-layout', next.mode);
   return true;
+}
+
+function cycleLayout() {
+  layoutMode = (layoutMode + 1) % 3;
+  return applyLayout(layoutMode);
+}
+
+function reflowForDisplayChange() {
+  const dock = participantDockWindow();
+  if (!dock || dock.isDestroyed() || !dock.isVisible()) return false;
+  return applyLayout(layoutMode, { animate: false });
 }
 
 ipcMain.on('desktop:presenter-command', (event, command = '') => {
@@ -94,8 +107,14 @@ ipcMain.on('desktop:presenter-command', (event, command = '') => {
   }
 });
 
+screen.on('display-metrics-changed', reflowForDisplayChange);
+screen.on('display-added', reflowForDisplayChange);
+screen.on('display-removed', reflowForDisplayChange);
+
 export const presenterCommandParity = Object.freeze({
   showMeeting,
   cycleLayout,
+  applyLayout,
+  reflowForDisplayChange,
   layoutMode: () => layoutMode
 });
