@@ -8,6 +8,8 @@ const permission = read('assets/js/meet/screen-permission-ui-guard.js');
 const hdDock = read('assets/js/meet/native-dock-quality.js');
 const hostCohostParity = read('assets/js/meet/host-cohost-ui-parity.js');
 const quickDeviceMenu = read('assets/js/meet/quick-device-menu-parity.js');
+const shareOptimization = read('assets/js/meet/share-optimization-parity.js');
+const desktopSharePicker = read('assets/js/meet/desktop-share-picker.js');
 const personalRoom = read('assets/js/meet-next/personal-room.js');
 const presenterToolbar = read('desktop 2/src/presenter-toolbar.html');
 const presenterToolbarJs = read('desktop 2/src/presenter-toolbar.js');
@@ -47,6 +49,16 @@ assert(bootstrap.includes('quick-device-menu-parity.js') && bootstrap.includes('
 for (const required of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…']) {
   assert(quickDeviceMenu.includes(required), `Quick device controls must retain ${required}.`);
 }
+assert(desktopSharePicker.includes('optimize:optimize.checked'),
+  'Desktop share picker must return the Optimize for video sharing decision with the selected source.');
+assert(bootstrap.includes('share-optimization-parity.js') && bootstrap.indexOf('share-optimization-parity.js') < bootstrap.indexOf('share-ui-2030.js'),
+  'Certified runtime must apply share optimization before the presentation UI layer.');
+assert(shareOptimization.includes("track.contentHint = optimizeForVideo ? 'motion' : 'detail'"),
+  'Optimize for video sharing must change the real presentation track content hint.');
+assert(shareOptimization.includes("frameRate: { ideal: 30, max: 30 }") && shareOptimization.includes("frameRate: { ideal: 15, max: 30 }"),
+  'Share optimization must apply a real motion-vs-detail frame-rate policy.');
+assert(shareOptimization.includes("engine.on('screen-stream'") && shareOptimization.includes("engine.on('screen-ended'"),
+  'Share optimization must apply to each live share and reset when sharing ends.');
 assert(count(personalRoom, "$('personalRoomForm')?.addEventListener('submit'") === 1,
   'Personal Room must have exactly one save/submit authority path.');
 assert(count(personalRoom, "$('startPersonalRoom')?.addEventListener('click'") === 1,
