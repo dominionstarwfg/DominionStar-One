@@ -76,16 +76,24 @@ jobs:
           remote=remote.replace(prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
           fs.writeFileSync(remotePath,remote);
 
+          const slidePath='src/slide-control-native.mjs';
+          let slide=fs.readFileSync(slidePath,'utf8');
+          if(!slide.includes(prodHosts)) throw new Error('Expected slide-control TRUSTED_HOSTS marker is missing');
+          slide=slide.replace(prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          fs.writeFileSync(slidePath,slide);
+
           const reboundMain=fs.readFileSync(mainPath,'utf8');
           const reboundPreload=fs.readFileSync(preloadPath,'utf8');
           const reboundDock=fs.readFileSync(dockPath,'utf8');
           const reboundRemote=fs.readFileSync(remotePath,'utf8');
-          if(!reboundMain.includes(url.origin) || !reboundPreload.includes(url.origin) || !reboundDock.includes(url.hostname) || !reboundRemote.includes(url.hostname)){
+          const reboundSlide=fs.readFileSync(slidePath,'utf8');
+          if(!reboundMain.includes(url.origin) || !reboundPreload.includes(url.origin) || !reboundDock.includes(url.hostname) || !reboundRemote.includes(url.hostname) || !reboundSlide.includes(url.hostname)){
             throw new Error('QA preview trust binding did not reach every desktop sharing/control surface');
           }
           console.log(`DOMINIONSTAR_QA_PREVIEW_BOUND ${url.origin}`);
           console.log(`DOMINIONSTAR_QA_PRESENTER_DOCK_TRUST_OK ${url.hostname}`);
           console.log(`DOMINIONSTAR_QA_REMOTE_CONTROL_TRUST_OK ${url.hostname}`);
+          console.log(`DOMINIONSTAR_QA_SLIDE_CONTROL_TRUST_OK ${url.hostname}`);
           NODE
 
       - name: Verify selected PR preview is reachable
