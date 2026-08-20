@@ -1,6 +1,7 @@
-import { BrowserWindow, ipcMain, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, screen } from 'electron';
 
 let layoutMode = 0;
+let displayListenersInstalled = false;
 
 function presenterSender(event) {
   try {
@@ -67,6 +68,7 @@ function layoutFor(mode, area) {
 }
 
 function applyLayout(mode = layoutMode, { animate = true } = {}) {
+  if (!app.isReady()) return false;
   const dock = participantDockWindow();
   if (!dock || dock.isDestroyed()) return false;
   const display = screen.getDisplayMatching(dock.getBounds());
@@ -86,9 +88,19 @@ function cycleLayout() {
 }
 
 function reflowForDisplayChange() {
+  if (!app.isReady()) return false;
   const dock = participantDockWindow();
   if (!dock || dock.isDestroyed() || !dock.isVisible()) return false;
   return applyLayout(layoutMode, { animate: false });
+}
+
+function installDisplayListeners() {
+  if (displayListenersInstalled || !app.isReady()) return false;
+  displayListenersInstalled = true;
+  screen.on('display-metrics-changed', reflowForDisplayChange);
+  screen.on('display-added', reflowForDisplayChange);
+  screen.on('display-removed', reflowForDisplayChange);
+  return true;
 }
 
 ipcMain.on('desktop:presenter-command', (event, command = '') => {
@@ -107,14 +119,14 @@ ipcMain.on('desktop:presenter-command', (event, command = '') => {
   }
 });
 
-screen.on('display-metrics-changed', reflowForDisplayChange);
-screen.on('display-added', reflowForDisplayChange);
-screen.on('display-removed', reflowForDisplayChange);
+if (app.isReady()) installDisplayListeners();
+else app.whenReady().then(installDisplayListeners).catch(() => {});
 
 export const presenterCommandParity = Object.freeze({
   showMeeting,
   cycleLayout,
   applyLayout,
   reflowForDisplayChange,
+  installDisplayListeners,
   layoutMode: () => layoutMode
 });
