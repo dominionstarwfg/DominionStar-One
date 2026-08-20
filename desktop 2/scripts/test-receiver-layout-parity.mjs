@@ -19,6 +19,10 @@ assert(receiver.includes("Side-by-side: Speaker") && receiver.includes("Side-by-
   'Receiver Shared Screen menu must expose Zoom-class side-by-side layout choices.');
 assert(receiver.includes("clickDockView('speaker')") && receiver.includes("clickDockView('grid')") && receiver.includes("clickDockView('stack')"),
   'Receiver layouts must drive the real participant dock modes rather than decorative menu state.');
+assert(receiver.includes("[data-ds-receiver-layout='dynamic'] #filmstripTrack .remote-tile.speaking") &&
+       receiver.includes("[data-ds-receiver-layout='multi-speaker'] #filmstripTrack .remote-tile.speaking") &&
+       receiver.includes('grid-column:span 2') && receiver.includes('order:-1'),
+  'Dynamic Gallery and Multi-speaker must react to real speaking-state tiles rather than static labels.');
 assert(bootstrap.includes('receiver-side-layout-parity.js') && bootstrap.includes('data-ds-receiver-side-layout'),
   'Certified runtime must load receiver side-by-side layout parity.');
 
