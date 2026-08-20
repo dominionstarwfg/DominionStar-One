@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const TRUSTED_HOSTS=new Set(['dominionstarld.com','www.dominionstarld.com']);
 let dockWindow=null;
-let hideTimer=null;
 
 function trustedSender(event){
   try{
@@ -82,8 +81,6 @@ function placeDock(win){
 }
 
 function hideDock(){
-  clearTimeout(hideTimer);
-  hideTimer=null;
   if(dockWindow&&!dockWindow.isDestroyed())dockWindow.hide();
 }
 
@@ -96,8 +93,9 @@ ipcMain.on('desktop:presenter-dock-update',(event,payload={})=>{
     win.showInactive();
   }
   if(!win.webContents.isDestroyed())win.webContents.send('desktop:presenter-dock-state',state);
-  clearTimeout(hideTimer);
-  hideTimer=setTimeout(hideDock,1400);
+  // Zoom-class sharing keeps the participant video strip visible for the
+  // duration of presentation. Do not auto-hide the dock between frame/state
+  // updates; only an explicit presenter-hide/share-stop command may hide it.
 });
 
 ipcMain.on('desktop:presenter-hide',hideDock);
