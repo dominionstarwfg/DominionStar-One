@@ -1,6 +1,6 @@
 {
   "releaseId": "2026.08.16-rc13.1-modern-ui-contract",
-  "desktopBridge": 10,
+  "desktopBridge": 14,
   "files": {
     "assets/js/meeting-engine.js": "096cb00f9775588c11b38d53829a3eec63dc0d68dd7efdc8d21a78d2c2c6f715",
     "assets/js/runtime/event-bus.js": "dec57ef8d067e22d755dd63e24ad922d5937d0b0a9b8c70c95586d6152dfacd3",
@@ -8,9 +8,10 @@
     "assets/js/meet/desktop-share-picker.js": "896564875b8a3a6d3e9d08b21c43cda4a2083f45987d27166dd8719b2b5dc931",
     "assets/js/meet/remote-control.js": "09e889b5dcc0ea8029ae85d783e530152b1f7c6926fcd09065dde194423296da",
     "assets/js/meet/live-transcription.js": "fbb51cac337a2c811eb7ffcf165d469b694b73a0f785c94c62ffd4ff24598cb1",
-    "assets/js/meet/operation-2030-bootstrap.js": "83d88287c26d4fa3025924f56a35d3e8e1f60d40c201f0b10fb03be682852cea",
+    "assets/js/meet/operation-2030-bootstrap.js": "d0b8752290fcb7d937207aabdc2e8643cd5a8d4abc98ff2912fa5718f1ea3745",
     "assets/js/meet/annotation-vertical-ui.js": "585c1251a1f8554efeec091e1bc29b87aec2325edc0d6224983df6bc058dcbdb",
-    "assets/js/meet/presenter-command-web-parity.js": "3fbf903aff8507deef7b52ebf0f4a0a6c977bef3b48857dea49a9bc1ace05498",
+    "assets/js/meet/presenter-command-web-parity.js": "0000000000000000000000000000000000000000000000000000000000000000",
+    "assets/js/meet/slide-control-parity.js": "0000000000000000000000000000000000000000000000000000000000000000",
     "assets/js/meet/microphone-device-identity.js": "85bf1f68a3023b85f4cfe4ff48c72dc3175f6184f08a05eedd82e061e5016161",
     "assets/js/meet/quick-device-menu-parity.js": "d8c485d8d1c748d53b23c1e2be6e670449c9ef263f0bf34b7f2b2b8fe00e0cdc",
     "assets/js/meet/receiver-side-layout-parity.js": "a3422d0e3a530813655d87a416613d1cdb817b6e5d4d31f9391fe30c00abf6f6",
