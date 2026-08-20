@@ -34,6 +34,7 @@
   const verticalAnnotationUi = load('/assets/js/meet/annotation-vertical-ui.js?v=1-approved-zoom-rail', 'data-ds-annotation-vertical-ui', { after: annotation });
   const presenterCommandParity = load('/assets/js/meet/presenter-command-web-parity.js?v=1-approved-presenter-actions', 'data-ds-presenter-command-parity', { after: annotation });
   const microphoneIdentity = load('/assets/js/meet/microphone-device-identity.js?v=1-hardware-identity', 'data-ds-microphone-device-identity');
+  const quickDeviceMenuParity = load('/assets/js/meet/quick-device-menu-parity.js?v=1-zoom-class-device-menu', 'data-ds-quick-device-menu-parity');
   const hostCohostUiParity = load('/assets/js/meet/host-cohost-ui-parity.js?v=1-authority-copy', 'data-ds-host-cohost-ui-parity');
   const spotlight = load('/assets/js/meet/share-spotlight.js?v=2-operation-2030-certified', 'data-ds-share-spotlight');
   const handoff = load('/assets/js/meet/presentation-handoff.js?v=2-operation-2030-certified', 'data-ds-presentation-handoff');
@@ -50,16 +51,16 @@
   const shareUi = load('/assets/js/meet/share-ui-2030.js?v=2-operation-2030-certified', 'data-ds-share-ui-2030');
 
   const ready = Promise.all([
-    annotation, verticalAnnotationUi, presenterCommandParity, microphoneIdentity, hostCohostUiParity, spotlight, handoff, arbitration, arbitrationUi,
+    annotation, verticalAnnotationUi, presenterCommandParity, microphoneIdentity, quickDeviceMenuParity, hostCohostUiParity, spotlight, handoff, arbitration, arbitrationUi,
     identitySettings, identityBridge, cameraPolish, dockPolish, nativeDockQuality, screenPermissionGuard,
     shareWatchdog, backgroundEffects, shareUi
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '1.6.0',
+    version: '1.7.0',
     ready,
     modules: Object.freeze([
-      'share-annotation','annotation-vertical-ui','presenter-command-web-parity','microphone-device-identity','host-cohost-ui-parity','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
+      'share-annotation','annotation-vertical-ui','presenter-command-web-parity','microphone-device-identity','quick-device-menu-parity','host-cohost-ui-parity','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
       'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030','native-dock-quality','screen-permission-ui-guard',
       'remote-share-watchdog','background-effects-2030','share-ui-2030'
     ])
