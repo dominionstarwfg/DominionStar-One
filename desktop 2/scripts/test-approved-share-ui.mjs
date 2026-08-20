@@ -6,6 +6,8 @@ const vertical = read('assets/js/meet/annotation-vertical-ui.js');
 const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
 const permission = read('assets/js/meet/screen-permission-ui-guard.js');
 const hdDock = read('assets/js/meet/native-dock-quality.js');
+const hostCohostParity = read('assets/js/meet/host-cohost-ui-parity.js');
+const personalRoom = read('assets/js/meet-next/personal-room.js');
 const presenterToolbar = read('desktop 2/src/presenter-toolbar.html');
 const presenterToolbarJs = read('desktop 2/src/presenter-toolbar.js');
 const nativePresenterParity = read('desktop 2/src/presenter-command-parity.mjs');
@@ -13,6 +15,8 @@ const hostedPresenterParity = read('assets/js/meet/presenter-command-web-parity.
 const desktopBootstrap = read('desktop 2/src/bootstrap.mjs');
 const presenterDock = read('desktop 2/src/presenter-dock.mjs');
 const presenterDockHtml = read('desktop 2/src/presenter-dock.html');
+
+const count = (source, needle) => source.split(needle).length - 1;
 
 assert(vertical.includes('ds-vertical-annotation-rail'), 'Approved annotation UI must use the vertical left-side rail.');
 assert(vertical.includes('left:18px!important') && vertical.includes('top:50%!important') && vertical.includes('flex-direction:column!important'),
@@ -31,6 +35,17 @@ assert(permission.includes('Capture initialization failed') && permission.includ
   'Granted permission with missing sources must be treated as capture initialization failure, not another permission prompt.');
 assert(hdDock.includes('720') && hdDock.includes('.90'),
   'Native participant dock must retain the approved high-resolution/high-quality frame handoff.');
+assert(bootstrap.includes('host-cohost-ui-parity.js') && hostCohostParity.includes('Host or co-host action'),
+  'Waiting-room UI must accurately reflect both host and co-host admission authority.');
+assert(count(personalRoom, "$('personalRoomForm')?.addEventListener('submit'") === 1,
+  'Personal Room must have exactly one save/submit authority path.');
+assert(count(personalRoom, "$('startPersonalRoom')?.addEventListener('click'") === 1,
+  'Personal Room must have exactly one Start Room action handler.');
+assert(count(personalRoom, "$('copyPersonalInvite')?.addEventListener('click'") === 1,
+  'Personal Room must have exactly one Copy Invitation action handler.');
+assert(count(personalRoom, "$('personalRequirePasscode')?.addEventListener('change'") === 1 &&
+       count(personalRoom, "$('personalWaitingRoom')?.addEventListener('change'") === 1,
+  'Personal Room passcode and waiting-room settings must each have one authoritative control path.');
 
 for (const command of ['new-share','pause','layout','annotate','show-meeting','stop']) {
   assert(presenterToolbar.includes(`data-command="${command}"`), `Presenter toolbar must expose working ${command} control.`);
