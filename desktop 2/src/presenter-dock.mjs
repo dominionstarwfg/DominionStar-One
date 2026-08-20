@@ -42,11 +42,11 @@ function sanitizeState(payload={}){
 function createDock(){
   if(dockWindow&&!dockWindow.isDestroyed())return dockWindow;
   dockWindow=new BrowserWindow({
-    width:286,
-    height:610,
-    minWidth:210,
-    minHeight:150,
-    maxWidth:520,
+    width:352,
+    height:690,
+    minWidth:300,
+    minHeight:210,
+    maxWidth:620,
     show:false,
     frame:false,
     transparent:true,
