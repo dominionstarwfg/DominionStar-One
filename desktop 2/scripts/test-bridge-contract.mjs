@@ -25,9 +25,11 @@ const electron={
       }
       if(channel==='desktop:remote-control-prompt') return Promise.resolve({accepted:true});
       if(channel==='desktop:remote-control-error') return Promise.resolve(true);
+      if(channel==='desktop:slide-control-permission') return Promise.resolve({ok:true,reason:''});
+      if(channel==='desktop:slide-control-command') return Promise.resolve(['previous','next'].includes(String(args[0]||'')));
       if(channel==='desktop:runtime-info'){
         return Promise.resolve({
-          bridgeVersion:13,
+          bridgeVersion:14,
           version:packageJson.version,
           appVersion:packageJson.version,
           buildVersion:packageJson.version,
@@ -56,7 +58,7 @@ const fetchMock=async (url,options={})=>{
   assert.equal(options.redirect,'error');
   return {
     ok:true,
-    async json(){return {releaseId:'live-compatible-release',desktopBridge:13};}
+    async json(){return {releaseId:'live-compatible-release',desktopBridge:14};}
   };
 };
 const context={
@@ -78,7 +80,7 @@ assert.equal(desktop.version,packageJson.version,'version must identify the Domi
 assert.equal(desktop.appVersion,packageJson.version,'appVersion must match package version');
 assert.equal(desktop.buildVersion,packageJson.version,'buildVersion must match package version');
 assert.equal(desktop.electronVersion,'43.3.0','electronVersion must identify the Electron runtime separately');
-assert.equal(desktop.bridgeVersion,13,'Certified native bridge version must remain 13 for this additive QA repair');
+assert.equal(desktop.bridgeVersion,14,'Certified native bridge version must be 14 for delegated slide control');
 assert.ok(Object.isFrozen(desktop),'Exposed desktop contract must be immutable');
 assert.equal(typeof desktop.getMediaPermissions,'function','Native media permission status API must be exposed');
 assert.equal(typeof desktop.requestMediaPermissions,'function','Native media permission request API must be exposed');
@@ -88,6 +90,9 @@ assert.equal(typeof desktop.updatePresenterDock,'function','Native presenter par
 assert.equal(typeof desktop.showRemoteControlPrompt,'function','Native remote-control approval prompt must be exposed');
 assert.equal(typeof desktop.onRemoteControlDecision,'function','Remote-control approval decision subscription must be exposed');
 assert.equal(typeof desktop.showRemoteControlError,'function','Native remote-control error dialog must be exposed');
+assert.equal(typeof desktop.getSlideControlPermission,'function','Dedicated slide-control Accessibility API must be exposed');
+assert.equal(typeof desktop.setSlideControlState,'function','Dedicated slide-control state API must be exposed');
+assert.equal(typeof desktop.applySlideControlCommand,'function','Dedicated Previous/Next slide command API must be exposed');
 const permissionStatus=await desktop.getMediaPermissions();
 assert.equal(permissionStatus.camera,'not-determined');
 const permissionRequest=await desktop.requestMediaPermissions(['camera']);
@@ -109,6 +114,12 @@ offDecision();
 await desktop.showRemoteControlError('Accessibility permission required');
 assert.ok(invoked.some(([channel])=>channel==='desktop:remote-control-prompt'),'Remote-control approval must use native IPC');
 assert.ok(invoked.some(([channel])=>channel==='desktop:remote-control-error'),'Remote-control error feedback must use native IPC');
+const slidePermission=await desktop.getSlideControlPermission();
+assert.equal(slidePermission.ok,true,'Slide-control Accessibility check must reach native IPC');
+desktop.setSlideControlState({active:true});
+assert.equal(sent.at(-1)?.[0],'desktop:slide-control-state','Slide-control state must use dedicated native IPC');
+assert.equal(await desktop.applySlideControlCommand('next'),true,'Next slide must reach dedicated native IPC');
+assert.ok(invoked.some(([channel,args])=>channel==='desktop:slide-control-command'&&args==='next'),'Slide navigation must use dedicated native IPC');
 
 assert.ok(guardian,'Native Guardian certification was not exposed');
 assert.equal(guardian.mode,'native-authoritative');
@@ -116,7 +127,7 @@ assert.equal(guardian.version,packageJson.version);
 assert.equal(guardian.certified,true);
 assert.equal(guardian.blocking,false);
 assert.equal(guardian.blocked,false);
-assert.equal(guardian.bridgeVersion,13);
+assert.equal(guardian.bridgeVersion,14);
 assert.ok(Object.isFrozen(guardian),'Native Guardian certification must be immutable');
 
 const runtime=await desktop.getRuntimeInfo();
@@ -124,10 +135,10 @@ assert.equal(runtime.version,packageJson.version,'runtime-info version must iden
 assert.equal(runtime.appVersion,packageJson.version,'runtime-info appVersion must match package version');
 assert.equal(runtime.buildVersion,packageJson.version,'runtime-info buildVersion must match package version');
 assert.equal(runtime.electronVersion,'43.3.0','runtime-info electronVersion must identify Electron separately');
-assert.equal(runtime.bridgeVersion,13,'runtime-info bridgeVersion must remain certified');
+assert.equal(runtime.bridgeVersion,14,'runtime-info bridgeVersion must remain certified');
 assert.equal(runtime.meetReleaseId,'live-compatible-release','runtime-info must satisfy the current hosted Meet release ID when bridge-compatible');
 assert.equal(runtime.meetReleaseCompatible,true,'runtime-info must report hosted release compatibility');
-assert.equal(runtime.requiredDesktopBridge,13,'runtime-info must expose the live minimum bridge for diagnosis');
+assert.equal(runtime.requiredDesktopBridge,14,'runtime-info must expose the live minimum bridge for diagnosis');
 assert.ok(Object.isFrozen(runtime),'Normalized runtime-info must be immutable');
 
 const certified=desktop.isDesktop
@@ -143,4 +154,4 @@ const certified=desktop.isDesktop
   && runtime.meetReleaseCompatible===true
   && runtime.bridgeVersion>=runtime.requiredDesktopBridge;
 assert.ok(certified,'Hosted desktop certification compatibility failed');
-console.log('DominionStar desktop bridge + live release compatibility test passed.');
+console.log('DominionStar desktop bridge 14 + slide-control compatibility test passed.');
