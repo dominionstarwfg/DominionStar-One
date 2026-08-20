@@ -16,6 +16,11 @@
     return Boolean(await annotation.open().catch(() => false));
   };
 
+  const slideControl = () => {
+    window.dispatchEvent(new CustomEvent('dominion:slide-control-open'));
+    return true;
+  };
+
   const unsubscribe = window.dominionDesktop.onPresenterCommand(command => {
     const safe = String(command || '');
     if (safe === 'new-share') {
@@ -26,15 +31,20 @@
       void annotate();
       return;
     }
+    if (safe === 'slide-control') {
+      slideControl();
+      return;
+    }
     if (safe === 'show-meeting') {
       document.getElementById('meeting')?.focus?.({ preventScroll: true });
     }
   });
 
   window.DominionPresenterCommandParity = Object.freeze({
-    version: '1.0.0',
+    version: '1.1.0',
     unsubscribe,
     newShare: () => click('newShareBtn'),
-    annotate
+    annotate,
+    slideControl
   });
 })();
