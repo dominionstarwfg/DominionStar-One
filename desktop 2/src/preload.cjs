@@ -71,6 +71,22 @@ async function showNativeRemoteControlPrompt(payload = {}) {
   return result;
 }
 
+async function revokeRemoteControlCapability() {
+  const previous = remoteControlCapability;
+  remoteControlCapability = '';
+  if (!previous) return true;
+  try {
+    // While an entire-screen capture is still active, requesting a fresh native
+    // capability atomically invalidates the previous token. The replacement is
+    // intentionally discarded so no renderer input can continue after Stop Control.
+    await ipcRenderer.invoke('desktop:remote-control-permission', {
+      requestId: `revoke-${Date.now()}`,
+      requesterId: 'dominionstar-revoke'
+    });
+  } catch {}
+  return true;
+}
+
 // The packaged application owns desktop compatibility. Hosted Guardian scripts
 // are not allowed to override a valid installed release and lock the native app.
 contextBridge.exposeInMainWorld('DominionGuardianCertification', nativeCertification);
@@ -151,7 +167,7 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
     remoteControlCapability = result?.ok ? String(result.capability || '') : '';
     return { ok: Boolean(result?.ok), reason: result?.reason || '' };
   },
-  clearRemoteControlPermission: () => { remoteControlCapability = ''; },
+  clearRemoteControlPermission: () => revokeRemoteControlCapability(),
   applyRemoteInput: input => remoteControlCapability
     ? ipcRenderer.invoke('desktop:remote-input', { ...input, capability: remoteControlCapability })
     : Promise.resolve(false)
