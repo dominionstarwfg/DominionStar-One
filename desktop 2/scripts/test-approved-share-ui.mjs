@@ -40,6 +40,12 @@ assert(presenterToolbarJs.includes('EXPANDED_WIDTH=930'), 'Presenter toolbar mus
 assert(desktopBootstrap.includes('presenter-command-parity.mjs'), 'Desktop bootstrap must load presenter command parity.');
 assert(nativePresenterParity.includes("safe === 'show-meeting'") && nativePresenterParity.includes("safe === 'layout'") && nativePresenterParity.includes("safe === 'annotate'"),
   'Native presenter parity must implement Show Meeting, Layout, and Annotate.');
+assert(nativePresenterParity.includes("screen.on('display-metrics-changed', reflowForDisplayChange)") &&
+       nativePresenterParity.includes("screen.on('display-added', reflowForDisplayChange)") &&
+       nativePresenterParity.includes("screen.on('display-removed', reflowForDisplayChange)"),
+  'Presenter dock must reflow when the active display/work area changes.');
+assert(nativePresenterParity.includes('applyLayout(layoutMode, { animate: false })'),
+  'Display-driven dock reflow must preserve the active layout mode rather than resetting to a fixed size.');
 assert(hostedPresenterParity.includes("safe === 'new-share'") && hostedPresenterParity.includes("click('newShareBtn')"),
   'New Share must reach the real hosted meeting control instead of being decorative.');
 assert(hostedPresenterParity.includes("safe === 'annotate'") && hostedPresenterParity.includes('DominionShareAnnotation'),
