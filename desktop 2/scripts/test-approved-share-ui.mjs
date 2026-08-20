@@ -46,6 +46,9 @@ assert(nativePresenterParity.includes("screen.on('display-metrics-changed', refl
   'Presenter dock must reflow when the active display/work area changes.');
 assert(nativePresenterParity.includes('applyLayout(layoutMode, { animate: false })'),
   'Display-driven dock reflow must preserve the active layout mode rather than resetting to a fixed size.');
+assert(nativePresenterParity.includes('if (!app.isReady()) return false;') &&
+       nativePresenterParity.includes('app.whenReady().then(installDisplayListeners)'),
+  'Presenter display listeners and screen access must be deferred until Electron app readiness.');
 assert(hostedPresenterParity.includes("safe === 'new-share'") && hostedPresenterParity.includes("click('newShareBtn')"),
   'New Share must reach the real hosted meeting control instead of being decorative.');
 assert(hostedPresenterParity.includes("safe === 'annotate'") && hostedPresenterParity.includes('DominionShareAnnotation'),
