@@ -7,6 +7,7 @@ const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
 const permission = read('assets/js/meet/screen-permission-ui-guard.js');
 const hdDock = read('assets/js/meet/native-dock-quality.js');
 const hostCohostParity = read('assets/js/meet/host-cohost-ui-parity.js');
+const quickDeviceMenu = read('assets/js/meet/quick-device-menu-parity.js');
 const personalRoom = read('assets/js/meet-next/personal-room.js');
 const presenterToolbar = read('desktop 2/src/presenter-toolbar.html');
 const presenterToolbarJs = read('desktop 2/src/presenter-toolbar.js');
@@ -40,6 +41,11 @@ assert(hdDock.includes('720') && hdDock.includes('.90'),
   'Native participant dock must retain the approved high-resolution/high-quality frame handoff.');
 assert(bootstrap.includes('host-cohost-ui-parity.js') && hostCohostParity.includes('Host or co-host action'),
   'Waiting-room UI must accurately reflect both host and co-host admission authority.');
+assert(bootstrap.includes('quick-device-menu-parity.js') && bootstrap.includes('data-ds-quick-device-menu-parity'),
+  'Certified runtime must load Zoom-class quick audio/video device controls.');
+for (const required of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…']) {
+  assert(quickDeviceMenu.includes(required), `Quick device controls must retain ${required}.`);
+}
 assert(count(personalRoom, "$('personalRoomForm')?.addEventListener('submit'") === 1,
   'Personal Room must have exactly one save/submit authority path.');
 assert(count(personalRoom, "$('startPersonalRoom')?.addEventListener('click'") === 1,
