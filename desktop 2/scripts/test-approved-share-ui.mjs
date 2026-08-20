@@ -14,6 +14,7 @@ const presenterToolbarJs = read('desktop 2/src/presenter-toolbar.js');
 const nativePresenterParity = read('desktop 2/src/presenter-command-parity.mjs');
 const hostedPresenterParity = read('assets/js/meet/presenter-command-web-parity.js');
 const desktopBootstrap = read('desktop 2/src/bootstrap.mjs');
+const desktopMain = read('desktop 2/src/main-v2.mjs');
 const presenterDock = read('desktop 2/src/presenter-dock.mjs');
 const presenterDockHtml = read('desktop 2/src/presenter-dock.html');
 const desktopPreload = read('desktop 2/src/preload.cjs');
@@ -72,6 +73,16 @@ for (const command of ['new-share','pause','layout','annotate','show-meeting','s
 }
 assert(presenterToolbar.includes('<svg'), 'Presenter controls must remain vector/icon based.');
 assert(presenterToolbarJs.includes('EXPANDED_WIDTH=930'), 'Presenter toolbar must reserve enough space for the complete professional control set.');
+assert(presenterToolbarJs.includes("controls.querySelector('[data-command=\"slide-control\"]')") &&
+       presenterToolbarJs.includes("button.dataset.command='slide-control'"),
+  'Slide Control must be a first-class presenter-toolbar control, not available only through More.');
+assert(presenterToolbarJs.includes("label.textContent=sharePaused?'Resume':'Pause'") &&
+       presenterToolbarJs.includes("button.setAttribute('aria-label',sharePaused?'Resume Share':'Pause Share')"),
+  'Pause Share must visibly transition to Resume while the presentation is frozen.');
+assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'),
+  'Authoritative native runtime-info must report certified desktop bridge 14.');
+assert(desktopMain.includes('Math.min(370, Number(size.height) || 76)'),
+  'Presenter native window must allow the complete More menu height without clipping.');
 assert(desktopBootstrap.includes('presenter-command-parity.mjs'), 'Desktop bootstrap must load presenter command parity.');
 assert(nativePresenterParity.includes("safe === 'show-meeting'") && nativePresenterParity.includes("safe === 'layout'") && nativePresenterParity.includes("safe === 'annotate'"),
   'Native presenter parity must implement Show Meeting, Layout, and Annotate.');
