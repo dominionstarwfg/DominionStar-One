@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
 const vertical = read('assets/js/meet/annotation-vertical-ui.js');
 const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
+const illustrationParity = read('assets/js/meet/illustration-ui-parity.js');
 const permission = read('assets/js/meet/screen-permission-ui-guard.js');
 const hdDock = read('assets/js/meet/native-dock-quality.js');
 const hostCohostParity = read('assets/js/meet/host-cohost-ui-parity.js');
@@ -82,17 +83,35 @@ assert(prototypeWorkflow.includes("replaceOnce('src/remote-control-dialog.mjs',p
        prototypeWorkflow.includes('DOMINIONSTAR_PROTOTYPE_NATIVE_TRUST_OK'),
   'The single prototype QA path must bind and verify remote-control and permission trust against the exact PR preview origin.');
 
-for (const command of ['new-share','pause','layout','annotate','show-meeting','stop']) {
-  assert(presenterToolbar.includes(`data-command="${command}"`), `Presenter toolbar must expose working ${command} control.`);
+for (const command of ['audio','video','participants','chat','pause','annotate','more','stop']) {
+  assert(presenterToolbar.includes(`data-command="${command}"`), `Compact presenter toolbar must expose working ${command} control.`);
+}
+for (const command of ['new-share','layout','show-meeting']) {
+  assert(presenterToolbar.includes(`data-command="${command}"`), `Presenter More menu must retain working ${command} control.`);
 }
 assert(presenterToolbar.includes('<svg'), 'Presenter controls must remain vector/icon based.');
-assert(presenterToolbarJs.includes('EXPANDED_WIDTH=930'), 'Presenter toolbar must reserve enough space for the complete professional control set.');
-assert(presenterToolbarJs.includes("controls.querySelector('[data-command=\"slide-control\"]')") &&
-       presenterToolbarJs.includes("button.dataset.command='slide-control'"),
-  'Slide Control must be a first-class presenter-toolbar control, not available only through More.');
-assert(presenterToolbarJs.includes("label.textContent=sharePaused?'Resume':'Pause'") &&
+assert(presenterToolbarJs.includes('EXPANDED_WIDTH=650'), 'Presenter toolbar must retain the compact approved illustration footprint.');
+assert(!presenterToolbar.includes('<button class="control" data-command="slide-control"'),
+  'Slide Control must not clutter the approved compact primary presenter bar.');
+assert(presenterToolbarJs.includes("button.dataset.command='slide-control'") && presenterToolbarJs.includes("menu.insertBefore(button,stop||null)"),
+  'Slide Control must remain available under More instead of being deleted.');
+assert(presenterToolbarJs.includes("label.textContent=sharePaused?'Resume':'Pause Share'") &&
        presenterToolbarJs.includes("button.setAttribute('aria-label',sharePaused?'Resume Share':'Pause Share')"),
   'Pause Share must visibly transition to Resume while the presentation is frozen.');
+
+assert(illustrationParity.includes("primarySecondaryIds=['raiseHandBtn','transcribeBtn','meetingIntelligenceBtn']"),
+  'Final UI blueprint layer must move secondary meeting actions off the primary toolbar without deleting them.');
+assert(illustrationParity.includes("label.textContent='Security'") && illustrationParity.includes("label.textContent=isHost?'End':'Leave'"),
+  'Final UI blueprint layer must retain the approved Security and host End labels.');
+assert(illustrationParity.includes("decline.textContent='View'") && illustrationParity.includes('data-toast-view'),
+  'Waiting-room notification must use the approved Admit/View pattern rather than destructive Decline on the heads-up card.');
+assert(illustrationParity.includes('resize:both') && illustrationParity.includes('enforceOnePersonDockRule'),
+  'Floating panels must remain resizable and the one-person meeting must not display a participant strip.');
+assert(desktopPreload.includes('installDesktopMeetRuntimeLayers') &&
+       desktopPreload.includes('/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime') &&
+       desktopPreload.includes('/assets/js/meet/illustration-ui-parity.js?v=1-final-ui-blueprint'),
+  'Desktop Meet must explicitly load one advanced runtime bootstrap followed by the final illustration parity layer.');
+
 assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'),
   'Authoritative native runtime-info must report certified desktop bridge 14.');
 assert(desktopMain.includes('Math.min(370, Number(size.height) || 76)'),
@@ -109,8 +128,10 @@ assert(nativePresenterParity.includes('applyLayout(layoutMode, { animate: false 
 assert(nativePresenterParity.includes('if (!app.isReady()) return false;') &&
        nativePresenterParity.includes('app.whenReady().then(installDisplayListeners)'),
   'Presenter display listeners and screen access must be deferred until Electron app readiness.');
-assert(hostedPresenterParity.includes("safe === 'new-share'") && hostedPresenterParity.includes("click('newShareBtn')"),
-  'New Share must reach the real hosted meeting control instead of being decorative.');
+for (const pair of [['audio','micBtn'],['video','camBtn'],['participants','participantsBtn'],['chat','chatBtn'],['pause','pauseShareBtn'],['new-share','newShareBtn'],['stop','stopShareBtn']]) {
+  assert(hostedPresenterParity.includes(`safe === '${pair[0]}'`) && hostedPresenterParity.includes(`click('${pair[1]}')`),
+    `Presenter ${pair[0]} must reach the real hosted meeting control instead of being decorative.`);
+}
 assert(hostedPresenterParity.includes("safe === 'annotate'") && hostedPresenterParity.includes('DominionShareAnnotation'),
   'Presenter Annotate must open the real synchronized annotation engine.');
 assert(bootstrap.includes('presenter-command-web-parity.js'), 'Certified hosted runtime must load presenter command parity.');
@@ -119,4 +140,4 @@ assert(presenterDock.includes('zoomClassDockSize') && presenterDock.includes('ar
 assert(presenterDockHtml.includes('data-layout="stack"') && presenterDockHtml.includes('data-layout="speaker"') && presenterDockHtml.includes('data-layout="grid"'),
   'Presenter Layout must provide real stack, speaker, and grid modes.');
 
-console.log('Approved professional share UI guardrails passed.');
+console.log('Approved final-illustration share UI guardrails passed.');
