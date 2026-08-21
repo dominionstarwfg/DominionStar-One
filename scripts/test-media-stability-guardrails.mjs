@@ -9,6 +9,21 @@ const dock=fs.readFileSync(new URL('../assets/js/meet/dock-layout-v2.js',import.
 const dockCss=fs.readFileSync(new URL('../assets/css/meet/dock-layout-v2.css',import.meta.url),'utf8');
 const background=fs.readFileSync(new URL('../assets/js/meet/background-effects-2030.js',import.meta.url),'utf8');
 const cameraPolish=fs.readFileSync(new URL('../assets/js/meet/camera-reaction-polish.js',import.meta.url),'utf8');
+const cameraStability=fs.readFileSync(new URL('../assets/js/meet/camera-device-stability.js',import.meta.url),'utf8');
+const sharePicker=fs.readFileSync(new URL('../assets/js/meet/desktop-share-picker.js',import.meta.url),'utf8');
+const meetingIdentity=fs.readFileSync(new URL('../assets/js/meet/meeting-identity-settings.js',import.meta.url),'utf8');
+const personalRoom=fs.readFileSync(new URL('../assets/js/meet-next/personal-room.js',import.meta.url),'utf8');
+const meetIndex=fs.readFileSync(new URL('../meet/index.html',import.meta.url),'utf8');
+const desktopMain=fs.readFileSync(new URL('../desktop 2/src/main-v2.mjs',import.meta.url),'utf8');
+const desktopPreload=fs.readFileSync(new URL('../desktop 2/src/preload.cjs',import.meta.url),'utf8');
+const desktopBootstrap=fs.readFileSync(new URL('../desktop 2/src/bootstrap.mjs',import.meta.url),'utf8');
+const presenterToolbar=fs.readFileSync(new URL('../desktop 2/src/presenter-toolbar.html',import.meta.url),'utf8');
+const presenterToolbarJs=fs.readFileSync(new URL('../desktop 2/src/presenter-toolbar.js',import.meta.url),'utf8');
+const presenterDockMain=fs.readFileSync(new URL('../desktop 2/src/presenter-dock.mjs',import.meta.url),'utf8');
+const presenterDockHtml=fs.readFileSync(new URL('../desktop 2/src/presenter-dock.html',import.meta.url),'utf8');
+const shareLifecycle=fs.readFileSync(new URL('../desktop 2/src/share-lifecycle.mjs',import.meta.url),'utf8');
+const remoteControlDialog=fs.readFileSync(new URL('../desktop 2/src/remote-control-dialog.mjs',import.meta.url),'utf8');
+const screenPermissionLifecycle=fs.readFileSync(new URL('../desktop 2/src/screen-permission-lifecycle.mjs',import.meta.url),'utf8');
 
 assert(!ui.includes("recoverPeer?.(participantId,{reason:'guardian-remote-video-missing'})"),
   'The view reconciler must never rebuild a connected peer because a frame is temporarily missing.');
@@ -27,9 +42,6 @@ const screenStopBranch=engine.slice(engine.indexOf("} else {\n        state.remo
 assert(!screenStopBranch.includes('remoteScreenStreams.delete')&&!screenStopBranch.includes('removeTrack'),
   'Stopping a share must not destroy the reusable remote screen receiver.');
 
-// guardian-recovery.js is currently part of the live hosted deployment but is
-// not tracked in this repository. When a checked-in copy exists, enforce its
-// non-destructive contract; otherwise the live-hosted audit owns that boundary.
 if(guardian!==null){
   assert(guardian.includes("if(type==='meet.peer.state')return"),
     'Guardian must not compete with meeting-engine peer recovery.');
@@ -63,5 +75,85 @@ assert(background.includes('video[data-ds-background-processed="1"]{filter:none!
   'Processed background video must own filter presentation and block legacy whole-frame CSS filters.');
 assert(cameraPolish.includes('DominionBackgroundEffects2030?.getSourceTrack?.()')&&cameraPolish.includes('const track = hardwareVideoTrack();'),
   'HD constraints must target the raw hardware camera source rather than the segmented canvas track.');
+
+assert(cameraStability.includes("enumerateDevices()")&&cameraStability.includes("deviceId:{exact:id}"),
+  'Camera recovery must probe real enumerated hardware instead of repeatedly retrying one stale camera request.');
+assert(cameraStability.includes("track.getSettings?.()")&&cameraStability.includes("localStorage.setItem(key, settings.deviceId)"),
+  'The camera layer must remember the device that actually opened, not a stale generic selection.');
+assert(cameraStability.includes('`${fallback} — name unavailable`'),
+  'Unresolved camera labels must be presented as unresolved rather than pretending Camera 1 is a hardware name.');
+assert(cameraStability.includes('activeResolved')&&cameraStability.includes('MutationObserver'),
+  'The active hardware label must remain authoritative when the base UI rebuilds device selectors.');
+assert(cameraStability.includes('getMediaPermissions')&&cameraStability.includes('requestMediaPermissions'),
+  'Desktop camera acquisition must honor the native macOS permission bridge.');
+assert(meetIndex.indexOf('/assets/js/meet/camera-device-stability.js') < meetIndex.indexOf('/assets/js/meeting-engine.js'),
+  'Camera stability must load before the meeting engine so prejoin and in-meeting acquisition share one policy.');
+assert(/function supportsMacSystemPicker\(\)\s*\{\s*return false;\s*\}/.test(desktopMain),
+  'The macOS system share sheet must not bypass the DominionStar desktop source picker.');
+assert(desktopMain.includes('customSharePicker: !supportsMacSystemPicker()')&&desktopMain.includes('systemSharePicker: supportsMacSystemPicker()'),
+  'Desktop runtime metadata must advertise DominionStar as the active share picker.');
+
+assert(screenPermissionLifecycle.includes("getMediaAccessStatus('screen')"),
+  'macOS screen permission must be read directly instead of inferred from an empty source list.');
+assert(screenPermissionLifecycle.includes("desktop:screen-permission-status")&&screenPermissionLifecycle.includes("desktop:relaunch-for-permissions"),
+  'The native shell must expose screen-permission status and a controlled permission relaunch.');
+assert(desktopPreload.includes('getScreenPermissionStatus')&&desktopPreload.includes('relaunchForPermissions'),
+  'The trusted preload must expose the screen-permission lifecycle to the hosted Meet UI.');
+assert(desktopBootstrap.includes('screen-permission-lifecycle.mjs'),
+  'The desktop bootstrap must load the screen permission lifecycle controller.');
+assert(sharePicker.includes("after==='granted'")&&sharePicker.includes('Restart DominionStar Meet')&&sharePicker.includes('getScreenPermissionStatus'),
+  'The share picker must distinguish granted-but-stale sessions from denied permission and offer one-click restart.');
+
+assert(meetingIdentity.includes('ds-personal-room-heading')&&meetingIdentity.includes('Set your meeting identity and Personal Room defaults.'),
+  'Meeting Settings must use a clear Personal Room section and concise hierarchy.');
+assert(!meetingIdentity.includes('<input id="generatedWaitingRoom"')&&!meetingIdentity.includes('<input id="generatedRequirePasscode"'),
+  'Meeting Settings must not duplicate Waiting Room/passcode controls for generated meetings inside Personal Room settings.');
+
+for(const legacy of ['🎙','◉','♙','▢','Ⅱ','↗']){
+  assert(!presenterToolbar.includes(legacy),`The native presenter toolbar must not use legacy glyph ${legacy}.`);
+}
+assert(presenterToolbar.includes('<svg')&&presenterToolbar.includes('data-command="new-share"')&&presenterToolbar.includes('data-command="pause"')&&presenterToolbar.includes('data-command="stop"'),
+  'The native presenter toolbar must use vector controls for the core Zoom-style sharing actions.');
+assert(ui.includes('window.dominionDesktop.updatePresenterDock?.({tiles})'),
+  'The meeting runtime must publish live participant tiles while desktop sharing is active.');
+assert(desktopPreload.includes("updatePresenterDock: state => ipcRenderer.send('desktop:presenter-dock-update'"),
+  'The desktop preload must expose the native participant dock bridge.');
+assert(desktopBootstrap.includes('presenter-dock.mjs'),
+  'The desktop bootstrap must load the native presenter dock controller.');
+assert(presenterDockMain.includes("alwaysOnTop:true")&&presenterDockMain.includes("resizable:true")&&presenterDockMain.includes("desktop:presenter-dock-update"),
+  'The native participant dock must be a resizable always-on-top sharing surface.');
+assert(presenterDockHtml.includes('-webkit-app-region:drag')&&presenterDockHtml.includes('Participant video will appear here while you share.'),
+  'The native participant dock must remain movable and provide a clean empty state.');
+
+assert(engine.includes("context.drawImage(video,0,0,width,height)")&&engine.includes("const freezeStream=canvas.captureStream(1)"),
+  'Pause Share must freeze the last rendered frame rather than blank the receiver.');
+assert(engine.includes("const frozen=await createFrozenScreenTrack()")&&engine.includes("state.screenPaused=true")&&engine.includes("syncPeerTracks(peer)"),
+  'Pause Share must replace only the outgoing presentation sender with the frozen frame.');
+assert(engine.includes("state.screenPaused=false")&&engine.includes("clearFrozenScreenTrack()"),
+  'Resume Share must return receivers to the live capture and dispose the temporary frozen track.');
+
+assert(shareLifecycle.includes("app.dock.isVisible()")&&shareLifecycle.includes("await app.dock.show()"),
+  'Screen sharing must actively preserve the DominionStar macOS Dock icon.');
+assert(shareLifecycle.includes("desktop:presenter-show")&&shareLifecycle.includes("desktop:presenter-hide"),
+  'Dock visibility must be guarded for the full presenter lifecycle.');
+assert(desktopBootstrap.includes('share-lifecycle.mjs'),
+  'The desktop bootstrap must load the share-lifecycle guard.');
+
+assert(presenterToolbarJs.includes("document.body.classList.add('stopping','collapsed')")&&presenterToolbarJs.includes("document.body.style.opacity='0'"),
+  'Stop Share must immediately retire the native presenter controls.');
+assert(presenterToolbarJs.includes("window.presenterBridge.command('stop')")&&presenterToolbarJs.includes('stopRecoveryTimer=setTimeout'),
+  'Stop Share must still execute the real engine command and recover controls if teardown fails.');
+
+assert(desktopPreload.includes('showRemoteControlPrompt')&&desktopPreload.includes('onRemoteControlDecision')&&desktopPreload.includes('showRemoteControlError'),
+  'The preload bridge must expose the complete remote-control approval lifecycle.');
+assert(remoteControlDialog.includes("desktop:remote-control-prompt")&&remoteControlDialog.includes("buttons: ['Deny', 'Approve']"),
+  'Desktop remote control must present an explicit trusted-user approval dialog.');
+assert(remoteControlDialog.includes("desktop:remote-control-error")&&remoteControlDialog.includes('dialog.showMessageBox'),
+  'Remote-control permission failures must be surfaced through a native desktop dialog.');
+assert(desktopBootstrap.includes('remote-control-dialog.mjs'),
+  'The desktop bootstrap must load the native remote-control approval UI.');
+
+assert(personalRoom.includes("$('personalRoomForm')?.addEventListener('submit'")&&!personalRoom.includes("$('savePersonalRoom')?.addEventListener('click'"),
+  'Personal Room Save must execute once through the form submit contract.');
 
 console.log('Media stability guardrails passed.');

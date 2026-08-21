@@ -32,6 +32,12 @@ app.on('before-quit', () => {
 });
 
 await import('./main-v2.mjs');
+await import('./presenter-dock.mjs');
+await import('./presenter-command-parity.mjs');
+await import('./share-lifecycle.mjs');
+await import('./remote-control-dialog.mjs');
+await import('./slide-control-native.mjs');
+await import('./screen-permission-lifecycle.mjs');
 
 app.whenReady().then(() => {
   // main-v2 installs the production menu during its ready path. Add the native
