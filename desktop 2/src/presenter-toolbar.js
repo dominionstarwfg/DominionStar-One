@@ -3,9 +3,9 @@ const more=document.querySelector('[data-command="more"]');
 let collapseTimer=0;
 let stopRecoveryTimer=0;
 let sharePaused=false;
-const EXPANDED_WIDTH=650;
+const EXPANDED_WIDTH=930;
 const EXPANDED_HEIGHT=64;
-const MENU_HEIGHT=370;
+const MENU_HEIGHT=250;
 const COLLAPSED_WIDTH=218;
 const COLLAPSED_HEIGHT=46;
 
@@ -25,7 +25,7 @@ const renderPauseState=()=>{
     button.classList.toggle('is-paused',sharePaused);
     button.setAttribute('aria-label',sharePaused?'Resume Share':'Pause Share');
     const label=button.querySelector('small');
-    if(label)label.textContent=sharePaused?'Resume':'Pause Share';
+    if(label)label.textContent=sharePaused?'Resume':'Pause';
     const svg=button.querySelector('svg');
     if(svg)svg.innerHTML=sharePaused?'<path d="m9 6 9 6-9 6z"/>':'<path d="M8 6v12M16 6v12"/>';
   });
