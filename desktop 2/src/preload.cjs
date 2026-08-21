@@ -1,10 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const RELEASE_VERSION = '1.2.3';
-const BRIDGE_VERSION = 13;
+const BRIDGE_VERSION = 14;
 const RELEASE_CONTRACT_PATH = '/meet/release-contract.json';
 const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);
 let remoteControlCapability = '';
+const remoteControlDecisionListeners = new Set();
 
 const nativeCertification = Object.freeze({
   mode: 'native-authoritative',
@@ -59,8 +60,30 @@ async function applyLiveMeetReleaseCompatibility(info) {
   }
 }
 
-// The packaged application owns desktop compatibility. Hosted Guardian scripts
-// are not allowed to override a valid installed release and lock the native app.
+async function showNativeRemoteControlPrompt(payload = {}) {
+  let result = { accepted: false, reason: 'prompt-failed' };
+  try {
+    result = await ipcRenderer.invoke('desktop:remote-control-prompt', payload && typeof payload === 'object' ? payload : {});
+  } catch {}
+  for (const listener of [...remoteControlDecisionListeners]) {
+    try { listener(Boolean(result?.accepted)); } catch {}
+  }
+  return result;
+}
+
+async function revokeRemoteControlCapability() {
+  const previous = remoteControlCapability;
+  remoteControlCapability = '';
+  if (!previous) return true;
+  try {
+    await ipcRenderer.invoke('desktop:remote-control-permission', {
+      requestId: `revoke-${Date.now()}`,
+      requesterId: 'dominionstar-revoke'
+    });
+  } catch {}
+  return true;
+}
+
 contextBridge.exposeInMainWorld('DominionGuardianCertification', nativeCertification);
 
 contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
@@ -109,27 +132,41 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   getCaptureStatus: () => ipcRenderer.invoke('desktop:capture-status'),
   getMediaPermissions: () => ipcRenderer.invoke('desktop:media-permissions'),
   requestMediaPermissions: (kinds = []) => ipcRenderer.invoke('desktop:request-media-permissions', Array.isArray(kinds) ? kinds.filter(kind => ['camera','microphone'].includes(String(kind))) : []),
+  getScreenPermissionStatus: () => ipcRenderer.invoke('desktop:screen-permission-status'),
   openScreenRecordingSettings: () => ipcRenderer.invoke('desktop:open-screen-settings'),
+  relaunchForPermissions: () => ipcRenderer.invoke('desktop:relaunch-for-permissions'),
   selectShareSource: (sourceId, audio = false, displayId = '', kind = '', sourceName = '', shareOwnWindow = false) =>
     ipcRenderer.invoke('desktop:select-share-source', { sourceId, audio, displayId, kind, sourceName, shareOwnWindow }),
   showPresenterToolbar: () => ipcRenderer.send('desktop:presenter-show'),
   hidePresenterToolbar: () => ipcRenderer.send('desktop:presenter-hide'),
+  updatePresenterDock: state => ipcRenderer.send('desktop:presenter-dock-update', state && typeof state === 'object' ? state : {}),
   onPresenterCommand: callback => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, command) => callback(String(command || ''));
     ipcRenderer.on('desktop:presenter-command', listener);
     return () => ipcRenderer.removeListener('desktop:presenter-command', listener);
   },
+  getSlideControlPermission: () => ipcRenderer.invoke('desktop:slide-control-permission'),
+  setSlideControlState: state => ipcRenderer.send('desktop:slide-control-state', state && typeof state === 'object' ? state : {}),
+  applySlideControlCommand: command => ipcRenderer.invoke('desktop:slide-control-command', String(command || '')),
   endShare: async () => {
     remoteControlCapability = '';
+    ipcRenderer.send('desktop:slide-control-state', { active: false });
     return ipcRenderer.invoke('desktop:end-share');
   },
+  showRemoteControlPrompt: payload => showNativeRemoteControlPrompt(payload),
+  onRemoteControlDecision: callback => {
+    if (typeof callback !== 'function') return () => {};
+    remoteControlDecisionListeners.add(callback);
+    return () => remoteControlDecisionListeners.delete(callback);
+  },
+  showRemoteControlError: message => ipcRenderer.invoke('desktop:remote-control-error', String(message || 'Remote control is unavailable.')),
   requestRemoteControlPermission: async context => {
     const result = await ipcRenderer.invoke('desktop:remote-control-permission', context);
     remoteControlCapability = result?.ok ? String(result.capability || '') : '';
     return { ok: Boolean(result?.ok), reason: result?.reason || '' };
   },
-  clearRemoteControlPermission: () => { remoteControlCapability = ''; },
+  clearRemoteControlPermission: () => revokeRemoteControlCapability(),
   applyRemoteInput: input => remoteControlCapability
     ? ipcRenderer.invoke('desktop:remote-input', { ...input, capability: remoteControlCapability })
     : Promise.resolve(false)

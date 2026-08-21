@@ -189,7 +189,7 @@
 
   async function saveRoom() {
     setStatus('Saving…');
-    const result = await persist(formValue());
+    await persist(formValue());
     showToast('Personal Meeting Room saved');
   }
 
@@ -249,10 +249,6 @@
     });
     $('personalRoomClose')?.addEventListener('click', () => $('personalRoomDialog')?.close());
     $('personalRoomForm')?.addEventListener('submit', event => {
-      event.preventDefault();
-      saveRoom().catch(error => showToast(error.message || 'Could not save Personal Meeting Room'));
-    });
-    $('savePersonalRoom')?.addEventListener('click', event => {
       event.preventDefault();
       saveRoom().catch(error => showToast(error.message || 'Could not save Personal Meeting Room'));
     });

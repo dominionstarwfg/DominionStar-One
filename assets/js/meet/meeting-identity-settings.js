@@ -38,35 +38,74 @@
     return room;
   };
 
+  const ensureSettingsStyles=()=>{
+    if(document.getElementById('dsMeetingSettingsPolish'))return;
+    const style=document.createElement('style');
+    style.id='dsMeetingSettingsPolish';
+    style.textContent=`
+      .personal-room-dialog .personal-room-body{display:grid;gap:14px!important;padding-top:18px!important}
+      .personal-room-dialog .ds-identity-settings{display:grid;gap:14px;padding-bottom:4px}
+      .personal-room-dialog .ds-settings-section-heading,.personal-room-dialog .ds-personal-room-heading{display:grid;gap:5px;margin:0;padding:0 1px}
+      .personal-room-dialog .ds-settings-section-heading strong,.personal-room-dialog .ds-personal-room-heading strong{font-size:13px;letter-spacing:.02em;color:#f5f7fb}
+      .personal-room-dialog .ds-settings-section-heading small,.personal-room-dialog .ds-personal-room-heading small{font-size:12px;line-height:1.45;color:#929fb1}
+      .personal-room-dialog .ds-personal-room-heading{margin-top:4px;padding-top:18px;border-top:1px solid #ffffff18}
+      .personal-room-dialog .schedule-toggle{margin:0!important}
+      .personal-room-dialog .schedule-toggle>span{display:grid!important;gap:4px!important}
+      .personal-room-dialog .schedule-toggle>span>strong{line-height:1.25}
+      .personal-room-dialog .schedule-toggle>span>small{line-height:1.4}
+      .personal-room-dialog .personal-room-body>label{margin:0!important}
+      .personal-room-dialog .personal-room-body>label>span:first-child{display:block;margin-bottom:7px;line-height:1.3}
+      .personal-room-dialog .personal-room-body>label>small{display:block;margin-top:7px;line-height:1.4}
+    `;
+    document.head.append(style);
+  };
+
+  const renamePersonalRoomLabels=()=>{
+    const setLabel=(controlId,text)=>{
+      const control=$(controlId);
+      const label=control?.closest('label');
+      const title=label?.querySelector(':scope > span:first-child');
+      if(title)title.textContent=text;
+    };
+    setLabel('personalLinkName','Personal link');
+    setLabel('personalRoomId','Personal Meeting ID');
+    setLabel('personalRoomPasscode','Passcode');
+    setLabel('personalRoomLink','Invite link');
+  };
+
   const injectSettingsControls=()=>{
     const dialog=$('personalRoomDialog');
-    if(!dialog||dialog.querySelector('[data-ds-identity-settings="1"]'))return;
+    if(!dialog)return;
+    ensureSettingsStyles();
     const header=dialog.querySelector('header strong');
     const headerCopy=dialog.querySelector('header small');
     if(header)header.textContent='Meeting Settings';
-    if(headerCopy)headerCopy.textContent='Choose your permanent meeting identity and defaults before you meet.';
+    if(headerCopy)headerCopy.textContent='Set your meeting identity and Personal Room defaults.';
     const body=dialog.querySelector('.personal-room-body');
     if(!body)return;
+    renamePersonalRoomLabels();
+    if(body.querySelector('[data-ds-identity-settings="1"]'))return;
+
     const prefs=readPrefs();
     const section=document.createElement('section');
     section.dataset.dsIdentitySettings='1';
     section.className='ds-identity-settings';
     section.innerHTML=`
-      <div class="ds-settings-section-heading"><strong>Meeting identity</strong><small>Keep instant meetings predictable without removing the option for unique meeting IDs.</small></div>
-      <label class="schedule-toggle"><input id="usePersonalForInstant" type="checkbox" ${prefs.usePersonalForInstant?'checked':''}><span><strong>Use my Personal Room for instant meetings</strong><small>New Meeting opens your permanent Meeting ID instead of generating a new one every time.</small></span></label>
+      <div class="ds-settings-section-heading"><strong>Meeting identity</strong><small>Choose which Meeting ID DominionStar uses for instant and scheduled meetings.</small></div>
+      <label class="schedule-toggle"><input id="usePersonalForInstant" type="checkbox" ${prefs.usePersonalForInstant?'checked':''}><span><strong>Use Personal Room for instant meetings</strong><small>New Meeting opens your permanent Meeting ID instead of creating a new one.</small></span></label>
       <label><span>Default Meeting ID when scheduling</span><select id="defaultScheduleIdentity"><option value="personal" ${prefs.defaultScheduleIdentity==='personal'?'selected':''}>Personal Room</option><option value="generated" ${prefs.defaultScheduleIdentity==='generated'?'selected':''}>Generate a unique Meeting ID</option></select></label>
-      <div class="ds-settings-section-heading"><strong>Unique-meeting defaults</strong><small>Used only when you intentionally choose a generated Meeting ID.</small></div>
-      <label class="schedule-toggle"><input id="generatedRequirePasscode" type="checkbox" ${prefs.generatedRequirePasscode?'checked':''}><span><strong>Require a passcode</strong><small>Guests entering the Meeting ID are prompted for this meeting's passcode.</small></span></label>
-      <label class="schedule-toggle"><input id="generatedWaitingRoom" type="checkbox" ${prefs.generatedWaitingRoom?'checked':''}><span><strong>Waiting Room</strong><small>Hold guests until the host or co-host admits them.</small></span></label>`;
+      <div class="ds-personal-room-heading"><strong>Personal Room</strong><small>Your permanent link, Meeting ID, passcode, and Waiting Room settings.</small></div>`;
     body.prepend(section);
 
-    const persist=()=>savePrefs({
-      usePersonalForInstant:Boolean($('usePersonalForInstant')?.checked),
-      defaultScheduleIdentity:$('defaultScheduleIdentity')?.value==='generated'?'generated':'personal',
-      generatedRequirePasscode:Boolean($('generatedRequirePasscode')?.checked),
-      generatedWaitingRoom:Boolean($('generatedWaitingRoom')?.checked)
-    });
-    ['usePersonalForInstant','defaultScheduleIdentity','generatedRequirePasscode','generatedWaitingRoom'].forEach(id=>$(id)?.addEventListener('change',persist));
+    const persist=()=>{
+      const current=readPrefs();
+      savePrefs({
+        ...current,
+        usePersonalForInstant:Boolean($('usePersonalForInstant')?.checked),
+        defaultScheduleIdentity:$('defaultScheduleIdentity')?.value==='generated'?'generated':'personal'
+      });
+    };
+    ['usePersonalForInstant','defaultScheduleIdentity'].forEach(id=>$(id)?.addEventListener('change',persist));
   };
 
   const convertDashboardPersonalRoomToSettings=()=>{
@@ -185,7 +224,7 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 
   window.DominionMeetingIdentitySettings=Object.freeze({
-    version:'1.0.0',
+    version:'1.1.0',
     room:()=>({...ensureRoom()}),
     preferences:()=>({...readPrefs()})
   });
