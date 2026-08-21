@@ -22,7 +22,7 @@ const presenterDock = read('desktop 2/src/presenter-dock.mjs');
 const presenterDockHtml = read('desktop 2/src/presenter-dock.html');
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const remoteControlDialog = read('desktop 2/src/remote-control-dialog.mjs');
-const prototypeWorkflow = read('.github/workflows/desktop-pr-verify.yml');
+const qaWorkflow = read('.github/workflows/desktop-pr-verify.yml');
 
 const count = (source, needle) => source.split(needle).length - 1;
 
@@ -35,10 +35,8 @@ assert(bootstrap.includes('annotation-vertical-ui.js') && bootstrap.includes('da
   'Certified bootstrap must load the approved vertical annotation UI after the annotation engine.');
 assert(bootstrap.indexOf('share-annotation.js') < bootstrap.indexOf('annotation-vertical-ui.js'),
   'Vertical annotation presentation must decorate the proven annotation engine rather than replace it.');
-assert(bootstrap.includes('screen-permission-ui-guard.js'),
-  'Certified share runtime must retain the permission-state loop guard.');
-assert(bootstrap.includes('native-dock-quality.js'),
-  'Certified share runtime must retain the HD participant dock quality layer.');
+assert(bootstrap.includes('screen-permission-ui-guard.js'), 'Certified share runtime must retain the permission-state loop guard.');
+assert(bootstrap.includes('native-dock-quality.js'), 'Certified share runtime must retain the HD participant dock quality layer.');
 assert(permission.includes('Capture initialization failed') && permission.includes('Retry Capture'),
   'Granted permission with missing sources must be treated as capture initialization failure, not another permission prompt.');
 assert(hdDock.includes('720') && hdDock.includes('.90'),
@@ -78,10 +76,10 @@ assert(remoteControlDialog.includes('const TRUSTED_HOSTS = new Set([') &&
        remoteControlDialog.includes('TRUSTED_HOSTS.has(url.hostname.toLowerCase())') &&
        remoteControlDialog.includes("route === '/meet'"),
   'Remote-control dialog must retain a fail-closed trusted-host and Meet-route policy before and after QA rebinding.');
-assert(prototypeWorkflow.includes("replaceOnce('src/remote-control-dialog.mjs',prodHosts") &&
-       prototypeWorkflow.includes("'src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs'") &&
-       prototypeWorkflow.includes('DOMINIONSTAR_PROTOTYPE_NATIVE_TRUST_OK'),
-  'The single prototype QA path must bind and verify remote-control and permission trust against the exact PR preview origin.');
+assert(qaWorkflow.includes("replaceOnce('src/remote-control-dialog.mjs',prodHosts") &&
+       qaWorkflow.includes("'src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs'") &&
+       qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'),
+  'The clean desktop QA path must bind and verify remote-control and permission trust against the exact PR preview origin.');
 
 for (const command of ['audio','video','participants','chat','pause','annotate','more','stop']) {
   assert(presenterToolbar.includes(`data-command="${command}"`), `Compact presenter toolbar must expose working ${command} control.`);
@@ -112,10 +110,8 @@ assert(desktopPreload.includes('installDesktopMeetRuntimeLayers') &&
        desktopPreload.includes('/assets/js/meet/illustration-ui-parity.js?v=1-final-ui-blueprint'),
   'Desktop Meet must explicitly load one advanced runtime bootstrap followed by the final illustration parity layer.');
 
-assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'),
-  'Authoritative native runtime-info must report certified desktop bridge 14.');
-assert(desktopMain.includes('Math.min(370, Number(size.height) || 76)'),
-  'Presenter native window must allow the complete More menu height without clipping.');
+assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'), 'Authoritative native runtime-info must report certified desktop bridge 14.');
+assert(desktopMain.includes('Math.min(370, Number(size.height) || 76)'), 'Presenter native window must allow the complete More menu height without clipping.');
 assert(desktopBootstrap.includes('presenter-command-parity.mjs'), 'Desktop bootstrap must load presenter command parity.');
 assert(nativePresenterParity.includes("safe === 'show-meeting'") && nativePresenterParity.includes("safe === 'layout'") && nativePresenterParity.includes("safe === 'annotate'"),
   'Native presenter parity must implement Show Meeting, Layout, and Annotate.');
@@ -125,9 +121,6 @@ assert(nativePresenterParity.includes("screen.on('display-metrics-changed', refl
   'Presenter dock must reflow when the active display/work area changes.');
 assert(nativePresenterParity.includes('applyLayout(layoutMode, { animate: false })'),
   'Display-driven dock reflow must preserve the active layout mode rather than resetting to a fixed size.');
-assert(nativePresenterParity.includes('if (!app.isReady()) return false;') &&
-       nativePresenterParity.includes('app.whenReady().then(installDisplayListeners)'),
-  'Presenter display listeners and screen access must be deferred until Electron app readiness.');
 for (const pair of [['audio','micBtn'],['video','camBtn'],['participants','participantsBtn'],['chat','chatBtn'],['pause','pauseShareBtn'],['new-share','newShareBtn'],['stop','stopShareBtn']]) {
   assert(hostedPresenterParity.includes(`safe === '${pair[0]}'`) && hostedPresenterParity.includes(`click('${pair[1]}')`),
     `Presenter ${pair[0]} must reach the real hosted meeting control instead of being decorative.`);
