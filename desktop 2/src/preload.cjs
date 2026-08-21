@@ -84,6 +84,24 @@ async function revokeRemoteControlCapability() {
   return true;
 }
 
+function installIllustrationUiParity() {
+  try {
+    const origin = String(window.location?.origin || '');
+    if (!TRUSTED_ORIGINS.has(origin)) return false;
+    const route = String(window.location?.pathname || '').replace(/\/+$/, '') || '/';
+    if (route !== '/meet') return false;
+    if (document.querySelector('script[data-ds-illustration-ui-parity]')) return true;
+    const script = document.createElement('script');
+    script.src = new URL('/assets/js/meet/illustration-ui-parity.js?v=1-final-ui-blueprint', origin).toString();
+    script.dataset.dsIllustrationUiParity = '1';
+    script.async = false;
+    document.head.append(script);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 contextBridge.exposeInMainWorld('DominionGuardianCertification', nativeCertification);
 
 contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
@@ -176,4 +194,5 @@ window.addEventListener('DOMContentLoaded', () => {
   try {
     window.dispatchEvent(new CustomEvent('dominionstar:guardian-certification', { detail: nativeCertification }));
   } catch {}
+  installIllustrationUiParity();
 }, { once: true });
