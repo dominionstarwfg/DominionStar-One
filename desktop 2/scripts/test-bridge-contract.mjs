@@ -7,6 +7,12 @@ import { fileURLToPath } from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const packageJson=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const preload=fs.readFileSync(path.join(root,'src/preload.cjs'),'utf8');
+const trustedOriginMatch=preload.match(/const TRUSTED_ORIGINS = new Set\(\[(.*?)\]\);/s);
+assert.ok(trustedOriginMatch,'Preload must declare a trusted hosted origin set');
+const trustedOrigins=[...trustedOriginMatch[1].matchAll(/'([^']+)'/g)].map(match=>match[1]);
+assert.ok(trustedOrigins.length>0,'Preload must trust at least one hosted origin');
+const activeTrustedOrigin=trustedOrigins[0];
+assert.doesNotThrow(()=>new URL(activeTrustedOrigin),'Trusted hosted origin must be a valid URL');
 const exposed={};
 const sent=[];
 const invoked=[];
@@ -44,7 +50,7 @@ const electron={
   }
 };
 const windowMock={
-  location:{origin:'https://dominionstarld.com'},
+  location:{origin:activeTrustedOrigin},
   addEventListener(_name, callback){ callback(); },
   dispatchEvent(){}
 };
@@ -52,7 +58,7 @@ class CustomEventMock {
   constructor(type, options={}){this.type=type;this.detail=options.detail;}
 }
 const fetchMock=async (url,options={})=>{
-  assert.equal(url,'https://dominionstarld.com/meet/release-contract.json');
+  assert.equal(url,`${activeTrustedOrigin}/meet/release-contract.json`);
   assert.equal(options.cache,'no-store');
   assert.equal(options.credentials,'same-origin');
   assert.equal(options.redirect,'error');
@@ -107,7 +113,7 @@ assert.equal(sent.at(-1)?.[0],'desktop:presenter-dock-update','Presenter dock up
 assert.equal(sent.at(-1)?.[1]?.tiles?.[0]?.id,'p1','Presenter dock payload must be forwarded to the native shell');
 let remoteDecision=null;
 const offDecision=desktop.onRemoteControlDecision(value=>{remoteDecision=value;});
-const promptResult=await desktop.showRemoteControlPrompt({displayName:'Test Presenter',requestId:'req-1'});
+const promptResult=await desktop.showNativeRemoteControlPrompt?.({displayName:'Test Presenter',requestId:'req-1'}) ?? await desktop.showRemoteControlPrompt({displayName:'Test Presenter',requestId:'req-1'});
 assert.equal(promptResult.accepted,true,'Remote-control prompt result must return to the renderer');
 assert.equal(remoteDecision,true,'Remote-control decision listener must receive native approval');
 offDecision();
@@ -154,4 +160,4 @@ const certified=desktop.isDesktop
   && runtime.meetReleaseCompatible===true
   && runtime.bridgeVersion>=runtime.requiredDesktopBridge;
 assert.ok(certified,'Hosted desktop certification compatibility failed');
-console.log('DominionStar desktop bridge 14 + slide-control compatibility test passed.');
+console.log(`DominionStar desktop bridge 14 + slide-control compatibility test passed for ${activeTrustedOrigin}.`);
