@@ -73,8 +73,10 @@ assert(desktopPreload.includes('async function revokeRemoteControlCapability()')
        desktopPreload.includes("requestId: `revoke-${Date.now()}`") &&
        desktopPreload.includes("clearRemoteControlPermission: () => revokeRemoteControlCapability()"),
   'Stop Control must invalidate the previous native remote-control capability while sharing continues.');
-assert(remoteControlDialog.includes("const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);"),
-  'Remote-control dialog must retain an explicit trusted-host marker for fail-closed QA rebinding.');
+assert(remoteControlDialog.includes('const TRUSTED_HOSTS = new Set([') &&
+       remoteControlDialog.includes('TRUSTED_HOSTS.has(url.hostname.toLowerCase())') &&
+       remoteControlDialog.includes("route === '/meet'"),
+  'Remote-control dialog must retain a fail-closed trusted-host and Meet-route policy before and after QA rebinding.');
 assert(prototypeWorkflow.includes("replaceOnce('src/remote-control-dialog.mjs',prodHosts") &&
        prototypeWorkflow.includes("'src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs'") &&
        prototypeWorkflow.includes('DOMINIONSTAR_PROTOTYPE_NATIVE_TRUST_OK'),
