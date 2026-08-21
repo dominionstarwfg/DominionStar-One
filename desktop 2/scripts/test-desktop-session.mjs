@@ -63,4 +63,45 @@ assert.deepEqual(failedCleanupNavigation, [
   FRESH_NAVIGATION_OPTIONS
 ], 'A cache cleanup failure must never prevent the requested Meet URL from loading');
 
+const redirectSession = {
+  webRequest: { onBeforeRequest() {} },
+  clearCache: async () => {},
+  clearStorageData: async () => {}
+};
+let redirectCurrentUrl = 'https://dominionstarld.com/member-login/?desktop=1';
+const redirectWindow = {
+  isDestroyed: () => false,
+  webContents: {
+    session: redirectSession,
+    getURL: () => redirectCurrentUrl
+  },
+  loadURL: async () => {
+    const error = new Error("ERR_ABORTED (-3) loading 'https://dominionstarld.com/member-login/?desktop=1'");
+    error.code = 'ERR_ABORTED';
+    error.errno = -3;
+    throw error;
+  }
+};
+const originalInfo = console.info;
+console.info = () => {};
+try {
+  const result = await loadFreshPage(redirectWindow, 'https://dominionstarld.com/meet-home/?desktop=1');
+  assert.equal(result, true, 'A trusted same-origin sign-in redirect must be treated as a valid superseding navigation');
+} finally {
+  console.info = originalInfo;
+}
+
+redirectCurrentUrl = 'https://example.com/';
+let foreignAbortRejected = false;
+const originalError = console.error;
+console.error = () => {};
+try {
+  await loadFreshPage(redirectWindow, 'https://dominionstarld.com/meet-home/?desktop=1');
+} catch (error) {
+  foreignAbortRejected = error?.code === 'ERR_ABORTED';
+} finally {
+  console.error = originalError;
+}
+assert.equal(foreignAbortRejected, true, 'ERR_ABORTED must remain a failure when navigation leaves the trusted origin');
+
 console.log('Desktop hosted-runtime authority tests passed.');
