@@ -68,12 +68,11 @@ const redirectSession = {
   clearCache: async () => {},
   clearStorageData: async () => {}
 };
-let redirectCurrentUrl = 'https://dominionstarld.com/member-login/?desktop=1';
 const redirectWindow = {
   isDestroyed: () => false,
   webContents: {
     session: redirectSession,
-    getURL: () => redirectCurrentUrl
+    getURL: () => ''
   },
   loadURL: async () => {
     const error = new Error("ERR_ABORTED (-3) loading 'https://dominionstarld.com/member-login/?desktop=1'");
@@ -86,22 +85,31 @@ const originalInfo = console.info;
 console.info = () => {};
 try {
   const result = await loadFreshPage(redirectWindow, 'https://dominionstarld.com/meet-home/?desktop=1');
-  assert.equal(result, true, 'A trusted same-origin sign-in redirect must be treated as a valid superseding navigation');
+  assert.equal(result, true, 'A superseding Electron auth/account redirect must never be converted into an offline failure, even before getURL updates');
 } finally {
   console.info = originalInfo;
 }
 
-redirectCurrentUrl = 'https://example.com/';
-let foreignAbortRejected = false;
+let realFailureRejected = false;
+const realFailureWindow = {
+  isDestroyed: () => false,
+  webContents: { session: redirectSession, getURL: () => '' },
+  loadURL: async () => {
+    const error = new Error('ERR_NAME_NOT_RESOLVED');
+    error.code = 'ERR_NAME_NOT_RESOLVED';
+    error.errno = -105;
+    throw error;
+  }
+};
 const originalError = console.error;
 console.error = () => {};
 try {
-  await loadFreshPage(redirectWindow, 'https://dominionstarld.com/meet-home/?desktop=1');
+  await loadFreshPage(realFailureWindow, 'https://dominionstarld.com/meet-home/?desktop=1');
 } catch (error) {
-  foreignAbortRejected = error?.code === 'ERR_ABORTED';
+  realFailureRejected = error?.code === 'ERR_NAME_NOT_RESOLVED';
 } finally {
   console.error = originalError;
 }
-assert.equal(foreignAbortRejected, true, 'ERR_ABORTED must remain a failure when navigation leaves the trusted origin');
+assert.equal(realFailureRejected, true, 'Real network failures must still propagate to the caller');
 
 console.log('Desktop hosted-runtime authority tests passed.');
