@@ -11,15 +11,17 @@
   const filmstripTrack=$('filmstripTrack');
   const participantsBtn=$('participantsBtn');
   const participantsPanel=$('participantsPanel');
+  const chatPanel=$('chatPanel');
   const endAllBtn=$('endAllBtn');
   const leaveBtn=$('leaveBtn');
   const hostToolsBtn=$('hostToolsBtn');
 
+  const PANEL_STORAGE_PREFIX='dominionstar.meet.panel.geometry.v1.';
   const style=document.createElement('style');
   style.dataset.dsIllustrationUiParity='1';
   style.textContent=`
     #meetingToolbar .ds-illustration-secondary{display:none!important}
-    #participantsPanel,#chatPanel{resize:both;max-width:calc(100vw - 16px);max-height:calc(100vh - 96px)}
+    #participantsPanel,#chatPanel{resize:both;overflow:auto;max-width:calc(100vw - 16px);max-height:calc(100vh - 96px);min-width:280px;min-height:220px}
     .join-request-toast.waiting-room-banner{z-index:2147483000!important}
   `;
   document.head.append(style);
@@ -33,23 +35,13 @@
 
   const normalizeToolbar=()=>{
     primarySecondaryIds.forEach(id=>$(id)?.classList.add('ds-illustration-secondary'));
-
-    // The approved blueprint names the privileged shield control Security.
-    // Keep the existing authority logic and menu; only restore the approved
-    // primary-bar label and position.
     if(hostToolsBtn){
       const label=hostToolsBtn.querySelector('.tool-label');
       if(label)label.textContent='Security';
       hostToolsBtn.setAttribute('aria-label','Security');
       const participants=$('participantsBtn');
-      const cameraGroup=$('camBtn')?.closest('.control-group');
-      if(toolbar&&participants&&cameraGroup&&hostToolsBtn.parentElement===toolbar){
-        toolbar.insertBefore(hostToolsBtn,participants);
-      }
+      if(toolbar&&participants&&hostToolsBtn.parentElement===toolbar)toolbar.insertBefore(hostToolsBtn,participants);
     }
-
-    // Zoom-style host bar says End; attendee/co-host remains Leave. The click
-    // path is unchanged and still opens the existing safe Leave/End dialog.
     if(leaveBtn){
       const isHost=Boolean(endAllBtn&&!endAllBtn.hidden);
       const label=leaveBtn.querySelector('.tool-label');
@@ -113,6 +105,53 @@
     if(remoteTiles.length===0)filmstrip.hidden=true;
   };
 
+  const panelStorageKey=panel=>`${PANEL_STORAGE_PREFIX}${panel.id}`;
+  const clampPanelGeometry=(panel,geometry)=>{
+    const width=Math.min(Math.max(Number(geometry.width)||panel.offsetWidth||340,280),Math.max(280,innerWidth-16));
+    const height=Math.min(Math.max(Number(geometry.height)||panel.offsetHeight||420,220),Math.max(220,innerHeight-96));
+    const left=Math.min(Math.max(Number(geometry.left)||8,8),Math.max(8,innerWidth-width-8));
+    const top=Math.min(Math.max(Number(geometry.top)||72,72),Math.max(72,innerHeight-height-8));
+    return {left,top,width,height};
+  };
+
+  const savePanelGeometry=panel=>{
+    if(!panel||panel.hidden)return;
+    try{
+      const rect=panel.getBoundingClientRect();
+      const geometry=clampPanelGeometry(panel,{left:rect.left,top:rect.top,width:rect.width,height:rect.height});
+      localStorage.setItem(panelStorageKey(panel),JSON.stringify(geometry));
+    }catch{}
+  };
+
+  const restorePanelGeometry=panel=>{
+    if(!panel)return false;
+    try{
+      const raw=localStorage.getItem(panelStorageKey(panel));
+      if(!raw)return false;
+      const geometry=clampPanelGeometry(panel,JSON.parse(raw));
+      panel.style.left=`${Math.round(geometry.left)}px`;
+      panel.style.top=`${Math.round(geometry.top)}px`;
+      panel.style.right='auto';
+      panel.style.bottom='auto';
+      panel.style.width=`${Math.round(geometry.width)}px`;
+      panel.style.height=`${Math.round(geometry.height)}px`;
+      return true;
+    }catch{return false;}
+  };
+
+  const installPanelPersistence=panel=>{
+    if(!panel)return;
+    let saveTimer=0;
+    const queueSave=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(()=>savePanelGeometry(panel),160);};
+    new ResizeObserver(queueSave).observe(panel);
+    panel.addEventListener('pointerup',queueSave,true);
+    panel.addEventListener('transitionend',queueSave);
+    new MutationObserver(()=>{
+      if(!panel.hidden)requestAnimationFrame(()=>restorePanelGeometry(panel));
+    }).observe(panel,{attributes:true,attributeFilter:['hidden']});
+    if(!panel.hidden)requestAnimationFrame(()=>restorePanelGeometry(panel));
+  };
+
   document.addEventListener('click',event=>{
     const view=event.target.closest?.('[data-toast-view]');
     if(view){
@@ -126,7 +165,6 @@
         admit?.focus?.({preventScroll:true});
       },0);
       view.closest('.join-request-toast')?.remove();
-      return;
     }
   },true);
 
@@ -136,16 +174,21 @@
   const toastLayer=$('toastLayer');
   if(toastLayer)new MutationObserver(()=>refineJoinRequests()).observe(toastLayer,{childList:true,subtree:true});
   if(filmstripTrack)new MutationObserver(enforceOnePersonDockRule).observe(filmstripTrack,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  installPanelPersistence(participantsPanel);
+  installPanelPersistence(chatPanel);
+  addEventListener('resize',()=>{[participantsPanel,chatPanel].forEach(panel=>{if(panel&&!panel.hidden)restorePanelGeometry(panel);});},{passive:true});
 
   normalizeToolbar();
   refineJoinRequests();
   enforceOnePersonDockRule();
 
   window.DominionIllustrationUiParity=Object.freeze({
-    version:'1.0.0',
+    version:'1.1.0',
     normalizeToolbar,
     decorateGeneralMore,
     refineJoinRequests,
-    enforceOnePersonDockRule
+    enforceOnePersonDockRule,
+    savePanelGeometry,
+    restorePanelGeometry
   });
 })();
