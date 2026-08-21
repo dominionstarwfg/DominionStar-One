@@ -84,22 +84,65 @@ async function revokeRemoteControlCapability() {
   return true;
 }
 
-function installIllustrationUiParity() {
+function trustedMeetOriginAndRoute() {
   try {
     const origin = String(window.location?.origin || '');
-    if (!TRUSTED_ORIGINS.has(origin)) return false;
     const route = String(window.location?.pathname || '').replace(/\/+$/, '') || '/';
-    if (route !== '/meet') return false;
-    if (document.querySelector('script[data-ds-illustration-ui-parity]')) return true;
+    return TRUSTED_ORIGINS.has(origin) && route === '/meet' ? origin : '';
+  } catch {
+    return '';
+  }
+}
+
+function appendTrustedMeetScript(origin, path, marker) {
+  try {
+    if (!origin || !marker) return null;
+    const existing = document.querySelector(`script[${marker}]`);
+    if (existing) return existing;
     const script = document.createElement('script');
-    script.src = new URL('/assets/js/meet/illustration-ui-parity.js?v=1-final-ui-blueprint', origin).toString();
-    script.dataset.dsIllustrationUiParity = '1';
+    script.src = new URL(path, origin).toString();
+    script.setAttribute(marker, '1');
     script.async = false;
     document.head.append(script);
-    return true;
+    return script;
   } catch {
-    return false;
+    return null;
   }
+}
+
+function installDesktopMeetRuntimeLayers() {
+  const origin = trustedMeetOriginAndRoute();
+  if (!origin) return false;
+
+  // One explicit bootstrap owns the advanced desktop meeting modules. This
+  // prevents useful camera/share/presenter layers from existing as orphaned
+  // repository files while keeping the public browser runtime unchanged.
+  const bootstrap = appendTrustedMeetScript(
+    origin,
+    '/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime',
+    'data-ds-desktop-operation-bootstrap'
+  );
+
+  const installIllustration = () => appendTrustedMeetScript(
+    origin,
+    '/assets/js/meet/illustration-ui-parity.js?v=1-final-ui-blueprint',
+    'data-ds-illustration-ui-parity'
+  );
+
+  if (!bootstrap) {
+    installIllustration();
+    return true;
+  }
+  if (bootstrap.dataset.dsLoaded === '1') {
+    installIllustration();
+    return true;
+  }
+  bootstrap.addEventListener('load', () => {
+    bootstrap.dataset.dsLoaded = '1';
+    installIllustration();
+  }, { once: true });
+  bootstrap.addEventListener('error', installIllustration, { once: true });
+  return true;
 }
 
 contextBridge.exposeInMainWorld('DominionGuardianCertification', nativeCertification);
@@ -194,5 +237,5 @@ window.addEventListener('DOMContentLoaded', () => {
   try {
     window.dispatchEvent(new CustomEvent('dominionstar:guardian-certification', { detail: nativeCertification }));
   } catch {}
-  installIllustrationUiParity();
+  installDesktopMeetRuntimeLayers();
 }, { once: true });
