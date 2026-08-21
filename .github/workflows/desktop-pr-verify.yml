@@ -1,4 +1,4 @@
-name: DominionStar Meet Clean Prototype Verification
+name: DominionStar Meet Clean Desktop Verification
 
 on:
   pull_request:
@@ -16,12 +16,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: dominionstar-clean-prototype-${{ github.event.pull_request.number || github.ref }}
+  group: dominionstar-clean-desktop-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   verify:
-    name: Clean Prototype Runtime Verification
+    name: Clean Desktop Runtime Verification
     runs-on: ubuntu-latest
     timeout-minutes: 12
     defaults:
@@ -42,7 +42,7 @@ jobs:
           git -C .. clean -ffdx
           test -z "$(git -C .. status --porcelain)"
           test ! -e ../desktop
-          echo "DOMINIONSTAR_PROTOTYPE_REPOSITORY_CLEAN_OK"
+          echo "DOMINIONSTAR_DESKTOP_REPOSITORY_CLEAN_OK"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -57,7 +57,7 @@ jobs:
       - name: Install only locked dependencies
         run: npm ci
 
-      - name: Prove prototype package identity is internally consistent
+      - name: Prove DominionStar Meet package identity is consistent
         run: |
           node - <<'NODE'
           const fs=require('node:fs');
@@ -66,12 +66,13 @@ jobs:
           if(pkg.version!==lock.version || pkg.version!==lock.packages?.['']?.version){
             throw new Error(`Package version mismatch package=${pkg.version} lock=${lock.version} root=${lock.packages?.['']?.version}`);
           }
-          if(pkg.build?.appId!=='com.dominionstar.desktop.prototype') throw new Error('Prototype bundle ID is not isolated');
-          if(pkg.build?.productName!=='DominionStar Meet Prototype') throw new Error('Prototype product name is not isolated');
-          if(pkg.build?.mac?.notarize!==false) throw new Error('Prototype must not require Apple notarization');
-          if(pkg.build?.mac?.identity!==null) throw new Error('Prototype must not auto-discover a signing identity');
+          if(pkg.build?.appId!=='com.dominionstar.desktop') throw new Error('DominionStar Meet bundle ID changed');
+          if(pkg.build?.productName!=='DominionStar Meet') throw new Error('DominionStar Meet product name changed');
+          if(pkg.build?.protocols?.[0]?.schemes?.[0]!=='dominionstar') throw new Error('DominionStar deep-link protocol changed');
+          if(pkg.build?.mac?.notarize!==false) throw new Error('QA build must not require Apple notarization');
+          if(pkg.build?.mac?.identity!==null) throw new Error('QA build must not auto-discover a signing identity');
           if(!String(pkg.scripts?.['dist:mac']||'').startsWith('npm run clean &&')) throw new Error('macOS build does not clean dist first');
-          console.log('DOMINIONSTAR_PROTOTYPE_PACKAGE_IDENTITY_OK',pkg.version,pkg.build.appId);
+          console.log('DOMINIONSTAR_MEET_PACKAGE_IDENTITY_OK',pkg.version,pkg.build.appId,pkg.build.productName);
           NODE
 
       - name: Audit production dependency supply chain
@@ -86,21 +87,21 @@ jobs:
           set -euo pipefail
           tmp=$(mktemp -d)
           trap 'rm -rf "$tmp"' EXIT
-          truncate -s 1M "$tmp/good.exe"
+          truncate -s 1M "$tmp/good.pkg"
           node scripts/audit-artifact-sizes.mjs "$tmp"
-          truncate -s 801M "$tmp/too-large.exe"
+          truncate -s 801M "$tmp/too-large.pkg"
           set +e
           DOMINIONSTAR_MAX_ARTIFACT_MIB=800 node scripts/audit-artifact-sizes.mjs "$tmp"
           status=$?
           set -e
           test "$status" -eq 42
-          echo "DOMINIONSTAR_PROTOTYPE_SIZE_GUARD_OK"
+          echo "DOMINIONSTAR_DESKTOP_SIZE_GUARD_OK"
 
-  macos-prototype:
-    name: macOS Clean Prototype + PR Preview Acceptance
+  macos:
+    name: macOS Clean DominionStar Meet + PR Preview Acceptance
     if: github.event_name == 'pull_request'
     runs-on: macos-26-intel
-    timeout-minutes: 35
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: "desktop 2"
@@ -120,7 +121,7 @@ jobs:
           test -z "$(git -C .. status --porcelain)"
           test ! -e ../desktop
           rm -rf node_modules dist
-          echo "DOMINIONSTAR_PROTOTYPE_DEEP_CLEAN_OK"
+          echo "DOMINIONSTAR_DESKTOP_DEEP_CLEAN_OK"
 
       - name: Resolve exact PR preview origin
         shell: bash
@@ -131,59 +132,75 @@ jobs:
           QA_PREVIEW_ORIGIN="https://deploy-preview-${PR_NUMBER}--melodious-buttercream-a99450.netlify.app"
           echo "QA_PR_NUMBER=$PR_NUMBER" >> "$GITHUB_ENV"
           echo "QA_PREVIEW_ORIGIN=$QA_PREVIEW_ORIGIN" >> "$GITHUB_ENV"
-          echo "DOMINIONSTAR_PROTOTYPE_PREVIEW $QA_PREVIEW_ORIGIN"
+          echo "DOMINIONSTAR_DESKTOP_QA_PREVIEW $QA_PREVIEW_ORIGIN"
 
-      - name: Prove deployed critical runtime files are exactly this PR
+      - name: Wait until deployed critical runtime files exactly match this PR
         shell: bash
         run: |
           set -euo pipefail
-          fetch_retry() {
-            url="$1"; out="$2"
-            for attempt in $(seq 1 24); do
-              if curl --fail --silent --show-error --location --max-time 20 "$url" -o "$out"; then return 0; fi
-              echo "Preview not ready yet (${attempt}/24): $url"
-              sleep 10
-            done
-            return 1
-          }
-
-          contract="$(mktemp)"
-          fetch_retry "$QA_PREVIEW_ORIGIN/meet/release-contract.json" "$contract"
-          node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!c.releaseId||Number(c.desktopBridge)!==14)process.exit(2);console.log('PROTOTYPE_PREVIEW_CONTRACT_OK',c.releaseId,c.desktopBridge)" "$contract"
-          rm -f "$contract"
-
-          for rel in \
-            assets/js/meet/operation-2030-bootstrap.js \
-            assets/js/meet/desktop-share-picker.js \
-            assets/js/meet/camera-device-stability.js \
-            assets/js/meet/screen-permission-ui-guard.js \
-            assets/js/meet/quick-device-menu-parity.js \
-            assets/js/meet/share-optimization-parity.js \
-            assets/js/meet/presenter-command-web-parity.js \
+          files=(
+            assets/js/meet/operation-2030-bootstrap.js
+            assets/js/meet/desktop-share-picker.js
+            assets/js/meet/camera-device-stability.js
+            assets/js/meet/screen-permission-ui-guard.js
+            assets/js/meet/quick-device-menu-parity.js
+            assets/js/meet/share-optimization-parity.js
+            assets/js/meet/presenter-command-web-parity.js
+            assets/js/meet/illustration-ui-parity.js
             assets/js/meet/native-dock-quality.js
-          do
-            tmp="$(mktemp)"
-            fetch_retry "$QA_PREVIEW_ORIGIN/$rel" "$tmp"
-            local_hash="$(shasum -a 256 "../$rel" | awk '{print $1}')"
-            remote_hash="$(shasum -a 256 "$tmp" | awk '{print $1}')"
-            rm -f "$tmp"
-            echo "PROTOTYPE_ASSET $rel local=$local_hash remote=$remote_hash"
-            test "$local_hash" = "$remote_hash" || { echo "ERROR: PR preview is stale for $rel" >&2; exit 1; }
-          done
-          echo "DOMINIONSTAR_PROTOTYPE_EXACT_PREVIEW_OK"
+          )
 
-      - name: Bind every native bridge to this exact PR preview
+          for attempt in $(seq 1 36); do
+            exact=1
+            contract="$(mktemp)"
+            if ! curl --fail --silent --show-error --location --max-time 20 "$QA_PREVIEW_ORIGIN/meet/release-contract.json" -o "$contract"; then
+              exact=0
+            elif ! node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!c.releaseId||Number(c.desktopBridge)!==14)process.exit(2)" "$contract"; then
+              exact=0
+            fi
+            rm -f "$contract"
+
+            if [ "$exact" -eq 1 ]; then
+              for rel in "${files[@]}"; do
+                tmp="$(mktemp)"
+                if ! curl --fail --silent --show-error --location --max-time 20 "$QA_PREVIEW_ORIGIN/$rel" -o "$tmp"; then
+                  exact=0
+                  rm -f "$tmp"
+                  break
+                fi
+                local_hash="$(shasum -a 256 "../$rel" | awk '{print $1}')"
+                remote_hash="$(shasum -a 256 "$tmp" | awk '{print $1}')"
+                rm -f "$tmp"
+                if [ "$local_hash" != "$remote_hash" ]; then
+                  echo "WAITING_FOR_CURRENT_PREVIEW $rel local=$local_hash remote=$remote_hash attempt=$attempt"
+                  exact=0
+                  break
+                fi
+              done
+            fi
+
+            if [ "$exact" -eq 1 ]; then
+              echo "DOMINIONSTAR_DESKTOP_EXACT_PREVIEW_OK attempt=$attempt"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "ERROR: Netlify deploy-preview did not converge to the current PR source within six minutes." >&2
+          exit 1
+
+      - name: Bind native desktop bridges to the exact QA preview
         run: |
           node - <<'NODE'
           const fs=require('node:fs');
           const origin=String(process.env.QA_PREVIEW_ORIGIN||'').replace(/\/$/,'');
           const url=new URL(origin);
           if(url.protocol!=='https:' || !/^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/.test(url.hostname)){
-            throw new Error(`Refusing untrusted prototype preview origin: ${origin}`);
+            throw new Error(`Refusing untrusted QA preview origin: ${origin}`);
           }
           const replaceOnce=(path,from,to)=>{
             let text=fs.readFileSync(path,'utf8');
-            if(!text.includes(from)) throw new Error(`Expected prototype binding marker missing in ${path}: ${from}`);
+            if(!text.includes(from)) throw new Error(`Expected QA binding marker missing in ${path}: ${from}`);
             fs.writeFileSync(path,text.replace(from,to));
           };
           const prodHosts="const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);";
@@ -195,9 +212,9 @@ jobs:
           replaceOnce('src/slide-control-native.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
           replaceOnce('src/screen-permission-lifecycle.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
           for(const path of ['src/main-v2.mjs','src/preload.cjs','src/presenter-dock.mjs','src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs']){
-            if(!fs.readFileSync(path,'utf8').includes(url.hostname)) throw new Error(`Prototype preview trust did not reach ${path}`);
+            if(!fs.readFileSync(path,'utf8').includes(url.hostname)) throw new Error(`QA preview trust did not reach ${path}`);
           }
-          console.log(`DOMINIONSTAR_PROTOTYPE_NATIVE_TRUST_OK ${url.origin}`);
+          console.log(`DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK ${url.origin}`);
           NODE
 
       - name: Confirm Intel runner parity
@@ -224,10 +241,10 @@ jobs:
       - name: Run complete runtime certification against preview-bound source
         run: npm run verify
 
-      - name: Prove source Electron shell can open the bound PR Meet runtime
-        run: bash scripts/test-prototype-source-shell.sh
+      - name: Prove source Electron shell opens the bound DominionStar Meet runtime
+        run: bash scripts/test-desktop-source-shell.sh
 
-      - name: Disable production auto-update only inside disposable prototype artifact
+      - name: Disable production auto-update only inside this QA package
         run: |
           node - <<'NODE'
           const fs=require('node:fs');
@@ -235,53 +252,60 @@ jobs:
           let text=fs.readFileSync(path,'utf8');
           const marker='  scheduleUpdaterInitialization();';
           if(!text.includes(marker)) throw new Error('Updater initialization marker missing');
-          text=text.replace(marker,'  // Clean prototype: production updater intentionally disabled.');
+          text=text.replace(marker,'  // QA package: production updater intentionally disabled.');
           fs.writeFileSync(path,text);
-          console.log('DOMINIONSTAR_PROTOTYPE_UPDATER_DISABLED');
+          console.log('DOMINIONSTAR_DESKTOP_QA_UPDATER_DISABLED');
           NODE
 
-      - name: Build unsigned universal macOS prototype from empty dist
+      - name: Build unsigned universal DominionStar Meet from empty dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run dist:mac
+
+      - name: Build deterministic DominionStar Meet PKG
+        run: npm run dist:mac:pkg
 
       - name: Enforce installer size budget
         run: node scripts/audit-artifact-sizes.mjs dist
 
       - name: Prove universal app, DMG payload, and bound Meet runtime
-        run: bash scripts/test-prototype-macos-app.sh
+        run: bash scripts/test-macos-clean-app.sh
 
-      - name: Create unmistakable prototype artifact and provenance
+      - name: Prove PKG replaces stale app and launches the real DominionStar Meet
+        run: bash scripts/test-macos-pkg.sh
+
+      - name: Create auditable QA PKG and provenance
         shell: bash
         run: |
           set -euo pipefail
           VERSION=$(node -p "require('./package.json').version")
-          DMG=$(find dist -maxdepth 1 -type f -name 'DominionStar-Meet-Prototype-*.dmg' -print -quit)
-          test -n "$DMG"
+          PKG="dist/DominionStar-Meet-${VERSION}-mac-universal.pkg"
+          test -f "$PKG"
           mkdir -p dist/qa
           SHORT_SHA="${GITHUB_SHA:0:8}"
-          OUT="dist/qa/DominionStar-Meet-CLEAN-PROTOTYPE-PR${QA_PR_NUMBER}-${SHORT_SHA}-mac-universal.dmg"
-          cp "$DMG" "$OUT"
+          OUT="dist/qa/DominionStar-Meet-CLEAN-QA-PR${QA_PR_NUMBER}-${SHORT_SHA}-mac-universal.pkg"
+          cp "$PKG" "$OUT"
           cat > dist/qa/BUILD-PROVENANCE.txt <<EOF
-          DominionStar Meet Clean Prototype
+          DominionStar Meet clean QA build
           PR: ${QA_PR_NUMBER}
           Commit: ${GITHUB_SHA}
-          Preview: ${QA_PREVIEW_ORIGIN}
+          QA preview: ${QA_PREVIEW_ORIGIN}
           Package version: ${VERSION}
-          Bundle ID: com.dominionstar.desktop.prototype
-          Product: DominionStar Meet Prototype
-          Production updater: disabled
-          Apple Developer signing/notarization: intentionally deferred for prototype
+          Bundle ID: com.dominionstar.desktop
+          Product: DominionStar Meet
+          Protocol: dominionstar
+          Production updater: disabled in this QA artifact
+          Apple Developer signing/notarization: intentionally deferred during functional QA
           EOF
           shasum -a 256 "$OUT" | tee dist/qa/SHA256.txt
-          echo "DOMINIONSTAR_CLEAN_PROTOTYPE_ARTIFACT $(basename "$OUT")"
+          echo "DOMINIONSTAR_MEET_CLEAN_QA_PKG $(basename "$OUT")"
 
-      - name: Retain only the certified clean prototype DMG
+      - name: Retain only the certified DominionStar Meet PKG
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-CLEAN-PROTOTYPE-macos-dmg
+          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-CLEAN-QA-macos-pkg
           path: |
-            desktop 2/dist/qa/*.dmg
+            desktop 2/dist/qa/*.pkg
             desktop 2/dist/qa/BUILD-PROVENANCE.txt
             desktop 2/dist/qa/SHA256.txt
           if-no-files-found: error
