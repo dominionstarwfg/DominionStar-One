@@ -109,9 +109,9 @@ jobs:
         run: bash scripts/audit-live-hosted-runtime.sh
 
   macos-intel:
-    name: macOS PR Preview Install + Live Meet Acceptance
+    name: macOS Signed PR Preview + Live Meet Acceptance
     runs-on: macos-26-intel
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: "desktop 2"
@@ -222,6 +222,21 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Require stable macOS QA signing identity
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          for name in MAC_CSC_LINK MAC_CSC_KEY_PASSWORD APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_TEAM_ID; do
+            test -n "${!name:-}" || { echo "ERROR: $name is required. Unsigned QA builds cannot certify macOS Screen Recording permission stability." >&2; exit 1; }
+          done
+          echo "DOMINIONSTAR_QA_STABLE_SIGNING_CREDENTIALS_PRESENT"
+
       - name: Enforce release trust policy
         run: node scripts/verify-release-trust.mjs
 
@@ -237,8 +252,30 @@ jobs:
       - name: Run clean-runtime certification against QA-bound source
         run: npm run verify
 
-      - name: Build universal macOS PR-preview app
+      - name: Build signed and notarized universal macOS PR-preview app
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac
+
+      - name: Verify stable Developer ID identity and notarization
+        run: |
+          set -euo pipefail
+          APP="dist/mac-universal/DominionStar Meet.app"
+          DMG=$(find dist -maxdepth 1 -type f -name '*.dmg' -print -quit)
+          test -d "$APP"
+          test -n "$DMG"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -dv --verbose=4 "$APP" 2>&1 | tee /tmp/dominionstar-qa-codesign.txt
+          grep -q "Authority=Developer ID Application:" /tmp/dominionstar-qa-codesign.txt
+          spctl --assess --type execute --verbose=4 "$APP"
+          xcrun stapler validate "$APP"
+          xcrun stapler validate "$DMG"
+          echo "DOMINIONSTAR_QA_STABLE_DEVELOPER_ID_OK"
 
       - name: Build deterministic Apple replacement PKG
         run: npm run dist:mac:pkg
@@ -252,19 +289,20 @@ jobs:
       - name: Reinstall and prove actual app passes selected PR Meet contract
         run: bash scripts/test-live-meet-contract.sh
 
-      - name: Retain certified PR-preview manual-QA DMG
-        uses: actions/upload-artifact@v4
-        with:
-          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-preview-macos-dmg-qa
-          path: desktop 2/dist/*.dmg
-          if-no-files-found: error
-          retention-days: 1
+      - name: Create unmistakable PR-preview QA installer name
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          DMG=$(find dist -maxdepth 1 -type f -name '*.dmg' -print -quit)
+          mkdir -p dist/qa
+          cp "$DMG" "dist/qa/DominionStar-Meet-${VERSION}-PR${QA_PR_NUMBER}-PREVIEW-mac-universal.dmg"
+          echo "DOMINIONSTAR_QA_NAMED_ARTIFACT $(basename "$(find dist/qa -type f -name '*.dmg' -print -quit)")"
 
-      - name: Retain certified PR-preview manual-QA PKG
+      - name: Retain certified signed PR-preview manual-QA DMG
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-preview-macos-pkg-qa
-          path: desktop 2/dist/*.pkg
+          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-SIGNED-preview-macos-dmg-qa
+          path: desktop 2/dist/qa/*.dmg
           if-no-files-found: error
           retention-days: 1
 
