@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const RELEASE_VERSION = '1.2.3';
+const RELEASE_VERSION = '1.2.2';
 const BRIDGE_VERSION = 14;
 const RELEASE_CONTRACT_PATH = '/meet/release-contract.json';
 const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);
