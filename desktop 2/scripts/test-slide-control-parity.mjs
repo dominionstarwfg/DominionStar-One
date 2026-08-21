@@ -47,7 +47,7 @@ assert(bootstrap.includes('slide-control-parity.js') && bootstrap.includes('data
   'Certified runtime must load delegated slide control.');
 assert(qa.includes("replaceOnce('src/slide-control-native.mjs',prodHosts") &&
        qa.includes("'src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs'") &&
-       qa.includes('DOMINIONSTAR_PROTOTYPE_NATIVE_TRUST_OK'),
-  'The single prototype QA path must rebind and verify native slide-control trust to the exact PR preview.');
+       qa.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'),
+  'The clean desktop QA path must rebind and verify native slide-control trust to the exact PR preview.');
 
 console.log('Encrypted delegated slide-control guardrails passed.');
