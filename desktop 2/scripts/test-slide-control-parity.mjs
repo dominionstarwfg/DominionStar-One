@@ -10,7 +10,7 @@ const desktopBootstrap = read('desktop 2/src/bootstrap.mjs');
 const presenterToolbar = read('desktop 2/src/presenter-toolbar.js');
 const presenterParity = read('desktop 2/src/presenter-command-parity.mjs');
 const hostedParity = read('assets/js/meet/presenter-command-web-parity.js');
-const qa = read('.github/workflows/desktop-manual-qa.yml');
+const qa = read('.github/workflows/desktop-pr-verify.yml');
 
 assert(web.includes("name:'ECDH'") && web.includes("name:'AES-GCM'"),
   'Slide-control grants and commands must use ephemeral authenticated encryption.');
@@ -45,7 +45,9 @@ assert(presenterParity.includes("safe === 'slide-control'") && hostedParity.incl
   'Slide Control must traverse native presenter toolbar to the hosted meeting UI.');
 assert(bootstrap.includes('slide-control-parity.js') && bootstrap.includes('data-ds-slide-control-parity'),
   'Certified runtime must load delegated slide control.');
-assert(qa.includes("const slidePath='src/slide-control-native.mjs';") && qa.includes('DOMINIONSTAR_QA_SLIDE_CONTROL_TRUST_OK'),
-  'Manual QA must rebind and verify native slide-control trust to the selected PR preview.');
+assert(qa.includes("replaceOnce('src/slide-control-native.mjs',prodHosts") &&
+       qa.includes("'src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs'") &&
+       qa.includes('DOMINIONSTAR_PROTOTYPE_NATIVE_TRUST_OK'),
+  'The single prototype QA path must rebind and verify native slide-control trust to the exact PR preview.');
 
 console.log('Encrypted delegated slide-control guardrails passed.');
