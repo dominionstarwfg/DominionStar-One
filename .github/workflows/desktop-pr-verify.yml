@@ -109,9 +109,9 @@ jobs:
         run: bash scripts/audit-live-hosted-runtime.sh
 
   macos-intel:
-    name: macOS Intel Install + Live Meet Acceptance
+    name: macOS PR Preview Install + Live Meet Acceptance
     runs-on: macos-26-intel
-    timeout-minutes: 25
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: "desktop 2"
@@ -121,6 +121,90 @@ jobs:
         with:
           clean: true
           fetch-depth: 1
+
+      - name: Resolve exact PR preview origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          test -n "$PR_NUMBER" || { echo "A pull-request number is required for the certified QA artifact" >&2; exit 1; }
+          QA_PREVIEW_ORIGIN="https://deploy-preview-${PR_NUMBER}--melodious-buttercream-a99450.netlify.app"
+          echo "QA_PR_NUMBER=$PR_NUMBER" >> "$GITHUB_ENV"
+          echo "QA_PREVIEW_ORIGIN=$QA_PREVIEW_ORIGIN" >> "$GITHUB_ENV"
+          echo "DOMINIONSTAR_QA_PREVIEW $QA_PREVIEW_ORIGIN"
+
+      - name: Prove deployed preview contains this PR's critical Meet files
+        shell: bash
+        run: |
+          set -euo pipefail
+          contract="$(mktemp)"
+          curl --fail --silent --show-error --location --max-time 20 \
+            "$QA_PREVIEW_ORIGIN/meet/release-contract.json" -o "$contract"
+          node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!c.releaseId||!c.desktopBridge)process.exit(2);console.log('QA_PREVIEW_CONTRACT_OK',c.releaseId,c.desktopBridge)" "$contract"
+          rm -f "$contract"
+
+          for rel in \
+            assets/js/meet/desktop-share-picker.js \
+            assets/js/meet/camera-device-stability.js \
+            assets/js/meet/screen-permission-ui-guard.js \
+            assets/js/meet/presenter-command-web-parity.js \
+            assets/js/meet/native-dock-quality.js
+          do
+            tmp="$(mktemp)"
+            curl --fail --silent --show-error --location --max-time 20 "$QA_PREVIEW_ORIGIN/$rel" -o "$tmp"
+            local_hash="$(shasum -a 256 "../$rel" | awk '{print $1}')"
+            remote_hash="$(shasum -a 256 "$tmp" | awk '{print $1}')"
+            rm -f "$tmp"
+            echo "QA_ASSET $rel local=$local_hash remote=$remote_hash"
+            test "$local_hash" = "$remote_hash" || { echo "Preview is stale for $rel" >&2; exit 1; }
+          done
+          echo "DOMINIONSTAR_QA_PREVIEW_EXACT_SOURCE_OK"
+
+      - name: Bind desktop native trust to this exact PR preview
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const origin=String(process.env.QA_PREVIEW_ORIGIN||'').replace(/\/$/,'');
+          const url=new URL(origin);
+          if(url.protocol!=='https:' || !/^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/.test(url.hostname)){
+            throw new Error(`Refusing untrusted QA preview origin: ${origin}`);
+          }
+
+          const replaceOnce=(path,from,to)=>{
+            let text=fs.readFileSync(path,'utf8');
+            if(!text.includes(from)) throw new Error(`Expected QA binding marker missing in ${path}: ${from}`);
+            text=text.replace(from,to);
+            fs.writeFileSync(path,text);
+          };
+
+          replaceOnce('src/main-v2.mjs',
+            "const APP_ORIGIN = 'https://dominionstarld.com';",
+            `const APP_ORIGIN = '${url.origin}';`);
+          replaceOnce('src/main-v2.mjs',
+            "const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);",
+            `const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          replaceOnce('src/preload.cjs',
+            "const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);",
+            `const TRUSTED_ORIGINS = new Set(['${url.origin}']);`);
+          replaceOnce('src/presenter-dock.mjs',
+            "const TRUSTED_HOSTS=new Set(['dominionstarld.com','www.dominionstarld.com']);",
+            `const TRUSTED_HOSTS=new Set(['${url.hostname}']);`);
+          replaceOnce('src/remote-control-dialog.mjs',
+            "const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);",
+            `const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          replaceOnce('src/slide-control-native.mjs',
+            "const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);",
+            `const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          replaceOnce('src/screen-permission-lifecycle.mjs',
+            "const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);",
+            `const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+
+          for(const path of ['src/main-v2.mjs','src/preload.cjs','src/presenter-dock.mjs','src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs']){
+            const text=fs.readFileSync(path,'utf8');
+            if(!text.includes(url.hostname)) throw new Error(`QA preview trust did not reach ${path}`);
+          }
+          console.log(`DOMINIONSTAR_QA_NATIVE_TRUST_OK ${url.origin}`);
+          NODE
 
       - name: Confirm Intel runner parity
         run: |
@@ -150,10 +234,10 @@ jobs:
       - name: Prepare native replacement tooling
         run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh scripts/test-live-meet-contract.sh scripts/audit-live-hosted-runtime.sh
 
-      - name: Run clean-runtime certification
+      - name: Run clean-runtime certification against QA-bound source
         run: npm run verify
 
-      - name: Build universal macOS app
+      - name: Build universal macOS PR-preview app
         run: npm run dist:mac
 
       - name: Build deterministic Apple replacement PKG
@@ -165,29 +249,29 @@ jobs:
       - name: Install over stale v1.1.8 and launch the installed app
         run: bash scripts/test-macos-pkg.sh
 
-      - name: Reinstall and prove the actual app passes the live Meet contract
+      - name: Reinstall and prove actual app passes selected PR Meet contract
         run: bash scripts/test-live-meet-contract.sh
 
-      - name: Retain certified manual-QA DMG
+      - name: Retain certified PR-preview manual-QA DMG
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-macos-dmg-qa
+          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-preview-macos-dmg-qa
           path: desktop 2/dist/*.dmg
           if-no-files-found: error
           retention-days: 1
 
-      - name: Retain certified manual-QA PKG
+      - name: Retain certified PR-preview manual-QA PKG
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-macos-pkg-qa
+          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-preview-macos-pkg-qa
           path: desktop 2/dist/*.pkg
           if-no-files-found: error
           retention-days: 1
 
-      - name: Retain certified manual-QA ZIP and updater manifest
+      - name: Retain certified PR-preview ZIP and updater manifest
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-macos-zip-qa
+          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-preview-macos-zip-qa
           path: |
             desktop 2/dist/*.zip
             desktop 2/dist/latest-mac.yml
