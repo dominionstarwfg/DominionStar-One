@@ -224,6 +224,9 @@ jobs:
       - name: Run complete runtime certification against preview-bound source
         run: npm run verify
 
+      - name: Prove source Electron shell can open the bound PR Meet runtime
+        run: bash scripts/test-prototype-source-shell.sh
+
       - name: Disable production auto-update only inside disposable prototype artifact
         run: |
           node - <<'NODE'
