@@ -39,4 +39,28 @@ assert.equal(calls.length, 2, 'Hosted runtime cleanup must run once per persiste
 assert.match(FRESH_NAVIGATION_OPTIONS.extraHeaders, /pragma: no-cache/i);
 assert.match(FRESH_NAVIGATION_OPTIONS.extraHeaders, /cache-control: no-cache/i);
 
+let failedCleanupNavigation = null;
+const cleanupFailureSession = {
+  webRequest: { onBeforeRequest() {} },
+  clearCache: async () => { throw new Error('simulated-cache-cleanup-failure'); },
+  clearStorageData: async () => {}
+};
+const cleanupFailureWindow = {
+  isDestroyed: () => false,
+  webContents: { session: cleanupFailureSession },
+  loadURL: (...args) => { failedCleanupNavigation = args; return Promise.resolve('loaded'); }
+};
+const originalWarn = console.warn;
+console.warn = () => {};
+try {
+  const result = await loadFreshPage(cleanupFailureWindow, 'https://dominionstarld.com/meet/?desktop=1');
+  assert.equal(result, 'loaded');
+} finally {
+  console.warn = originalWarn;
+}
+assert.deepEqual(failedCleanupNavigation, [
+  'https://dominionstarld.com/meet/?desktop=1',
+  FRESH_NAVIGATION_OPTIONS
+], 'A cache cleanup failure must never prevent the requested Meet URL from loading');
+
 console.log('Desktop hosted-runtime authority tests passed.');
