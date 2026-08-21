@@ -21,6 +21,15 @@ function installNativeGuardianAuthority(desktopSession) {
   }, (_details, callback) => callback({ cancel: true }));
 }
 
+function sameOriginNavigationActive(window, target) {
+  try {
+    const current = new URL(String(window?.webContents?.getURL?.() || ''));
+    return current.protocol === 'https:' && current.origin === target.origin;
+  } catch {
+    return false;
+  }
+}
+
 // Refresh only web-delivery caches. Authentication cookies, local/account
 // storage, IndexedDB and desktop preferences intentionally survive. This is a
 // best-effort maintenance step: clearing cache must never be allowed to block
@@ -66,6 +75,23 @@ export async function loadFreshPage(window, url) {
   try {
     return await window.loadURL(target.toString(), FRESH_NAVIGATION_OPTIONS);
   } catch (error) {
+    // Chromium reports ERR_ABORTED when one trusted DominionStar navigation is
+    // superseded by another trusted same-origin navigation (for example,
+    // Meet Home handing a signed-out desktop client to the account chooser).
+    // That is a valid transition, not an offline/network failure.
+    if (String(error?.code || '') === 'ERR_ABORTED') {
+      await new Promise(resolve => setTimeout(resolve, 25));
+      if (sameOriginNavigationActive(window, target)) {
+        try {
+          console.info('DOMINIONSTAR_HOSTED_NAVIGATION_SUPERSEDED', JSON.stringify({
+            requested: target.toString(),
+            current: String(window.webContents.getURL?.() || '')
+          }));
+        } catch {}
+        return true;
+      }
+    }
+
     // Preserve Electron's actual network/navigation failure in CI and support
     // logs. The caller still owns recovery/offline presentation.
     try {
