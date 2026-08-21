@@ -56,8 +56,26 @@ export async function loadFreshPage(window, url) {
     // or platform-specific cleanup error must not strand the user on the
     // offline fallback without ever attempting the requested Meet URL.
     try {
-      console.warn('DominionStar hosted-runtime cleanup failed; continuing with no-cache navigation.', String(error?.message || error));
+      console.warn('DOMINIONSTAR_HOSTED_CLEANUP_WARNING', JSON.stringify({
+        origin: target.origin,
+        message: String(error?.message || error)
+      }));
     } catch {}
   }
-  return window.loadURL(target.toString(), FRESH_NAVIGATION_OPTIONS);
+
+  try {
+    return await window.loadURL(target.toString(), FRESH_NAVIGATION_OPTIONS);
+  } catch (error) {
+    // Preserve Electron's actual network/navigation failure in CI and support
+    // logs. The caller still owns recovery/offline presentation.
+    try {
+      console.error('DOMINIONSTAR_HOSTED_NAVIGATION_FAILED', JSON.stringify({
+        url: target.toString(),
+        code: String(error?.code || ''),
+        errno: Number(error?.errno || 0),
+        message: String(error?.message || error)
+      }));
+    } catch {}
+    throw error;
+  }
 }
