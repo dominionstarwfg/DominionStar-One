@@ -152,11 +152,26 @@ jobs:
           node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!c.releaseId||Number(c.desktopBridge)!==14)process.exit(2);console.log('PROTOTYPE_PREVIEW_CONTRACT_OK',c.releaseId,c.desktopBridge)" "$contract"
           rm -f "$contract"
 
+          html="$(mktemp)"
+          fetch_retry "$QA_PREVIEW_ORIGIN/meet/" "$html"
+          for marker in \
+            '/assets/js/meet/operation-2030-bootstrap.js' \
+            '/assets/js/meet/camera-device-stability.js' \
+            '/assets/js/meet/desktop-share-picker.js' \
+            '/assets/js/meet/screen-permission-ui-guard.js'
+          do
+            grep -F "$marker" "$html" >/dev/null || { echo "ERROR: Preview HTML is missing required runtime marker $marker" >&2; exit 1; }
+          done
+          rm -f "$html"
+          echo "DOMINIONSTAR_PROTOTYPE_PREVIEW_HTML_CONTRACT_OK"
+
           for rel in \
-            meet/index.html \
+            assets/js/meet/operation-2030-bootstrap.js \
             assets/js/meet/desktop-share-picker.js \
             assets/js/meet/camera-device-stability.js \
             assets/js/meet/screen-permission-ui-guard.js \
+            assets/js/meet/quick-device-menu-parity.js \
+            assets/js/meet/share-optimization-parity.js \
             assets/js/meet/presenter-command-web-parity.js \
             assets/js/meet/native-dock-quality.js
           do
