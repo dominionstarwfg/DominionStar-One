@@ -21,7 +21,7 @@ const presenterDock = read('desktop 2/src/presenter-dock.mjs');
 const presenterDockHtml = read('desktop 2/src/presenter-dock.html');
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const remoteControlDialog = read('desktop 2/src/remote-control-dialog.mjs');
-const manualQaWorkflow = read('.github/workflows/desktop-manual-qa.yml');
+const prototypeWorkflow = read('.github/workflows/desktop-pr-verify.yml');
 
 const count = (source, needle) => source.split(needle).length - 1;
 
@@ -75,10 +75,10 @@ assert(desktopPreload.includes('async function revokeRemoteControlCapability()')
   'Stop Control must invalidate the previous native remote-control capability while sharing continues.');
 assert(remoteControlDialog.includes("const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);"),
   'Remote-control dialog must retain an explicit trusted-host marker for fail-closed QA rebinding.');
-assert(manualQaWorkflow.includes("const remotePath='src/remote-control-dialog.mjs';") &&
-       manualQaWorkflow.includes('DOMINIONSTAR_QA_REMOTE_CONTROL_TRUST_OK') &&
-       manualQaWorkflow.includes('reboundRemote.includes(url.hostname)'),
-  'Manual QA must bind and verify remote-control dialog trust against the certified PR preview origin.');
+assert(prototypeWorkflow.includes("replaceOnce('src/remote-control-dialog.mjs',prodHosts") &&
+       prototypeWorkflow.includes("'src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs'") &&
+       prototypeWorkflow.includes('DOMINIONSTAR_PROTOTYPE_NATIVE_TRUST_OK'),
+  'The single prototype QA path must bind and verify remote-control and permission trust against the exact PR preview origin.');
 
 for (const command of ['new-share','pause','layout','annotate','show-meeting','stop']) {
   assert(presenterToolbar.includes(`data-command="${command}"`), `Presenter toolbar must expose working ${command} control.`);
