@@ -21,28 +21,35 @@
     return true;
   };
 
-  const unsubscribe = window.dominionDesktop.onPresenterCommand(command => {
-    const safe = String(command || '');
-    if (safe === 'new-share') {
-      click('newShareBtn');
-      return;
+  const route = safe => {
+    if (safe === 'audio') return click('micBtn');
+    if (safe === 'video') return click('camBtn');
+    if (safe === 'participants') return click('participantsBtn');
+    if (safe === 'chat') return click('chatBtn');
+    if (safe === 'reactions') return click('reactionBtn');
+    if (safe === 'pause') return click('pauseShareBtn');
+    if (safe === 'new-share') return click('newShareBtn');
+    if (safe === 'stop') return click('stopShareBtn');
+    if (safe === 'slide-control') return slideControl();
+    if (safe === 'show-meeting') {
+      document.getElementById('meeting')?.focus?.({ preventScroll: true });
+      return true;
     }
     if (safe === 'annotate') {
       void annotate();
-      return;
+      return true;
     }
-    if (safe === 'slide-control') {
-      slideControl();
-      return;
-    }
-    if (safe === 'show-meeting') {
-      document.getElementById('meeting')?.focus?.({ preventScroll: true });
-    }
+    return false;
+  };
+
+  const unsubscribe = window.dominionDesktop.onPresenterCommand(command => {
+    route(String(command || ''));
   });
 
   window.DominionPresenterCommandParity = Object.freeze({
-    version: '1.1.0',
+    version: '1.2.0',
     unsubscribe,
+    route,
     newShare: () => click('newShareBtn'),
     annotate,
     slideControl
