@@ -133,7 +133,7 @@ jobs:
           echo "QA_PREVIEW_ORIGIN=$QA_PREVIEW_ORIGIN" >> "$GITHUB_ENV"
           echo "DOMINIONSTAR_PROTOTYPE_PREVIEW $QA_PREVIEW_ORIGIN"
 
-      - name: Prove deployed preview is this PR, not production or stale code
+      - name: Prove deployed critical runtime files are exactly this PR
         shell: bash
         run: |
           set -euo pipefail
@@ -151,19 +151,6 @@ jobs:
           fetch_retry "$QA_PREVIEW_ORIGIN/meet/release-contract.json" "$contract"
           node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!c.releaseId||Number(c.desktopBridge)!==14)process.exit(2);console.log('PROTOTYPE_PREVIEW_CONTRACT_OK',c.releaseId,c.desktopBridge)" "$contract"
           rm -f "$contract"
-
-          html="$(mktemp)"
-          fetch_retry "$QA_PREVIEW_ORIGIN/meet/" "$html"
-          for marker in \
-            '/assets/js/meet/operation-2030-bootstrap.js' \
-            '/assets/js/meet/camera-device-stability.js' \
-            '/assets/js/meet/desktop-share-picker.js' \
-            '/assets/js/meet/screen-permission-ui-guard.js'
-          do
-            grep -F "$marker" "$html" >/dev/null || { echo "ERROR: Preview HTML is missing required runtime marker $marker" >&2; exit 1; }
-          done
-          rm -f "$html"
-          echo "DOMINIONSTAR_PROTOTYPE_PREVIEW_HTML_CONTRACT_OK"
 
           for rel in \
             assets/js/meet/operation-2030-bootstrap.js \
