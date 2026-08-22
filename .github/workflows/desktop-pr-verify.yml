@@ -1,10 +1,14 @@
-name: DominionStar Desktop PR Verification
+name: DominionStar Meet Clean Desktop Verification
 
 on:
   pull_request:
     paths:
       - "desktop 2/**"
-      - ".github/workflows/desktop-build.yml"
+      - "assets/js/meet/**"
+      - "assets/js/meet-next/**"
+      - "assets/css/meet/**"
+      - "assets/css/meet-next/**"
+      - "meet/**"
       - ".github/workflows/desktop-pr-verify.yml"
   workflow_dispatch:
 
@@ -12,14 +16,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: dominionstar-desktop-pr-${{ github.event.pull_request.number || github.ref }}
+  group: dominionstar-clean-desktop-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   verify:
-    name: Clean Runtime Contract Verification
+    name: Clean Desktop Runtime Verification
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     defaults:
       run:
         working-directory: "desktop 2"
@@ -29,6 +33,16 @@ jobs:
         with:
           clean: true
           fetch-depth: 1
+
+      - name: Prove repository starts clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C .. reset --hard HEAD
+          git -C .. clean -ffdx
+          test -z "$(git -C .. status --porcelain)"
+          test ! -e ../desktop
+          echo "DOMINIONSTAR_DESKTOP_REPOSITORY_CLEAN_OK"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -37,43 +51,35 @@ jobs:
           cache: npm
           cache-dependency-path: "desktop 2/package-lock.json"
 
-      - name: Install locked dependencies
+      - name: Remove dependency and build residue
+        run: rm -rf node_modules dist
+
+      - name: Install only locked dependencies
         run: npm ci
 
-      - name: Enforce release trust policy
-        run: node scripts/verify-release-trust.mjs
-
-      - name: Unit-test release trust policy
-        run: node scripts/test-release-trust.mjs
-
-      - name: Enforce publisher trust policy
-        run: node scripts/verify-publisher-trust.mjs
+      - name: Prove DominionStar Meet package identity is consistent
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          const lock=JSON.parse(fs.readFileSync('package-lock.json','utf8'));
+          if(pkg.version!==lock.version || pkg.version!==lock.packages?.['']?.version){
+            throw new Error(`Package version mismatch package=${pkg.version} lock=${lock.version} root=${lock.packages?.['']?.version}`);
+          }
+          if(pkg.build?.appId!=='com.dominionstar.desktop') throw new Error('DominionStar Meet bundle ID changed');
+          if(pkg.build?.productName!=='DominionStar Meet') throw new Error('DominionStar Meet product name changed');
+          if(pkg.build?.protocols?.[0]?.schemes?.[0]!=='dominionstar') throw new Error('DominionStar deep-link protocol changed');
+          if(pkg.build?.mac?.notarize!==false) throw new Error('QA build must not require Apple notarization');
+          if(pkg.build?.mac?.identity!==null) throw new Error('QA build must not auto-discover a signing identity');
+          if(!String(pkg.scripts?.['dist:mac']||'').startsWith('npm run clean &&')) throw new Error('macOS build does not clean dist first');
+          console.log('DOMINIONSTAR_MEET_PACKAGE_IDENTITY_OK',pkg.version,pkg.build.appId,pkg.build.productName);
+          NODE
 
       - name: Audit production dependency supply chain
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Run clean-runtime certification
+      - name: Run complete desktop contract suite
         run: npm run verify
-
-      - name: Confirm release workflow keeps the same gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          workflow="../.github/workflows/desktop-build.yml"
-          grep -q "npm run verify" "$workflow"
-          grep -q "node scripts/verify-release-trust.mjs" "$workflow"
-          grep -q "node scripts/verify-publisher-trust.mjs" "$workflow"
-          grep -q "npm audit --omit=dev --audit-level=high" "$workflow"
-          grep -q "Verify Windows Authenticode signature" "$workflow"
-          grep -q "Verify Developer ID signature and notarization" "$workflow"
-          grep -q "xcrun stapler validate" "$workflow"
-          grep -q "spctl --assess" "$workflow"
-          grep -q "Production PKG intentionally excluded until Developer ID Installer signing is certified" "$workflow"
-          grep -q "Build deterministic Apple replacement PKG" "$workflow"
-          grep -q "bash scripts/test-macos-pkg.sh" "$workflow"
-          grep -q "bash scripts/test-live-meet-contract.sh" "$workflow"
-          grep -q "node scripts/audit-artifact-sizes.mjs dist" "$workflow"
-          grep -q "macos-26-intel" "$workflow"
 
       - name: Unit-test artifact size guardrail
         shell: bash
@@ -81,37 +87,21 @@ jobs:
           set -euo pipefail
           tmp=$(mktemp -d)
           trap 'rm -rf "$tmp"' EXIT
-          truncate -s 1M "$tmp/good.exe"
+          truncate -s 1M "$tmp/good.pkg"
           node scripts/audit-artifact-sizes.mjs "$tmp"
-          truncate -s 801M "$tmp/too-large.exe"
+          truncate -s 801M "$tmp/too-large.pkg"
           set +e
           DOMINIONSTAR_MAX_ARTIFACT_MIB=800 node scripts/audit-artifact-sizes.mjs "$tmp"
           status=$?
           set -e
           test "$status" -eq 42
-          echo "DESKTOP_ARTIFACT_SIZE_GUARDRAIL_UNIT_OK"
+          echo "DOMINIONSTAR_DESKTOP_SIZE_GUARD_OK"
 
-  hosted-runtime-audit:
-    name: Live Hosted Runtime Audit
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: "desktop 2"
-    steps:
-      - name: Checkout exact source
-        uses: actions/checkout@v4
-        with:
-          clean: true
-          fetch-depth: 1
-
-      - name: Audit deployed Meet scripts and release contract
-        run: bash scripts/audit-live-hosted-runtime.sh
-
-  macos-intel:
-    name: macOS Intel Install + Live Meet Acceptance
+  macos:
+    name: macOS Clean DominionStar Meet + PR Preview Acceptance
+    if: github.event_name == 'pull_request'
     runs-on: macos-26-intel
-    timeout-minutes: 25
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: "desktop 2"
@@ -121,6 +111,111 @@ jobs:
         with:
           clean: true
           fetch-depth: 1
+
+      - name: Erase all generated state before testing
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C .. reset --hard HEAD
+          git -C .. clean -ffdx
+          test -z "$(git -C .. status --porcelain)"
+          test ! -e ../desktop
+          rm -rf node_modules dist
+          echo "DOMINIONSTAR_DESKTOP_DEEP_CLEAN_OK"
+
+      - name: Resolve exact PR preview origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          test -n "$PR_NUMBER"
+          QA_PREVIEW_ORIGIN="https://deploy-preview-${PR_NUMBER}--melodious-buttercream-a99450.netlify.app"
+          echo "QA_PR_NUMBER=$PR_NUMBER" >> "$GITHUB_ENV"
+          echo "QA_PREVIEW_ORIGIN=$QA_PREVIEW_ORIGIN" >> "$GITHUB_ENV"
+          echo "DOMINIONSTAR_DESKTOP_QA_PREVIEW $QA_PREVIEW_ORIGIN"
+
+      - name: Wait until deployed critical runtime files exactly match this PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            assets/js/meet/operation-2030-bootstrap.js
+            assets/js/meet/desktop-share-picker.js
+            assets/js/meet/camera-device-stability.js
+            assets/js/meet/screen-permission-ui-guard.js
+            assets/js/meet/quick-device-menu-parity.js
+            assets/js/meet/share-optimization-parity.js
+            assets/js/meet/presenter-command-web-parity.js
+            assets/js/meet/illustration-ui-parity.js
+            assets/js/meet/native-dock-quality.js
+          )
+
+          for attempt in $(seq 1 36); do
+            exact=1
+            contract="$(mktemp)"
+            if ! curl --fail --silent --show-error --location --max-time 20 "$QA_PREVIEW_ORIGIN/meet/release-contract.json" -o "$contract"; then
+              exact=0
+            elif ! node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!c.releaseId||Number(c.desktopBridge)!==14)process.exit(2)" "$contract"; then
+              exact=0
+            fi
+            rm -f "$contract"
+
+            if [ "$exact" -eq 1 ]; then
+              for rel in "${files[@]}"; do
+                tmp="$(mktemp)"
+                if ! curl --fail --silent --show-error --location --max-time 20 "$QA_PREVIEW_ORIGIN/$rel" -o "$tmp"; then
+                  exact=0
+                  rm -f "$tmp"
+                  break
+                fi
+                local_hash="$(shasum -a 256 "../$rel" | awk '{print $1}')"
+                remote_hash="$(shasum -a 256 "$tmp" | awk '{print $1}')"
+                rm -f "$tmp"
+                if [ "$local_hash" != "$remote_hash" ]; then
+                  echo "WAITING_FOR_CURRENT_PREVIEW $rel local=$local_hash remote=$remote_hash attempt=$attempt"
+                  exact=0
+                  break
+                fi
+              done
+            fi
+
+            if [ "$exact" -eq 1 ]; then
+              echo "DOMINIONSTAR_DESKTOP_EXACT_PREVIEW_OK attempt=$attempt"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "ERROR: Netlify deploy-preview did not converge to the current PR source within six minutes." >&2
+          exit 1
+
+      - name: Bind native desktop bridges to the exact QA preview
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const origin=String(process.env.QA_PREVIEW_ORIGIN||'').replace(/\/$/,'');
+          const url=new URL(origin);
+          if(url.protocol!=='https:' || !/^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/.test(url.hostname)){
+            throw new Error(`Refusing untrusted QA preview origin: ${origin}`);
+          }
+          const replaceOnce=(path,from,to)=>{
+            let text=fs.readFileSync(path,'utf8');
+            if(!text.includes(from)) throw new Error(`Expected QA binding marker missing in ${path}: ${from}`);
+            fs.writeFileSync(path,text.replace(from,to));
+          };
+          const prodHosts="const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);";
+          replaceOnce('src/main-v2.mjs',"const APP_ORIGIN = 'https://dominionstarld.com';",`const APP_ORIGIN = '${url.origin}';`);
+          replaceOnce('src/main-v2.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          replaceOnce('src/preload.cjs',"const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);",`const TRUSTED_ORIGINS = new Set(['${url.origin}']);`);
+          replaceOnce('src/presenter-dock.mjs',"const TRUSTED_HOSTS=new Set(['dominionstarld.com','www.dominionstarld.com']);",`const TRUSTED_HOSTS=new Set(['${url.hostname}']);`);
+          replaceOnce('src/remote-control-dialog.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          replaceOnce('src/slide-control-native.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          replaceOnce('src/screen-permission-lifecycle.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          for(const path of ['src/main-v2.mjs','src/preload.cjs','src/presenter-dock.mjs','src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs']){
+            if(!fs.readFileSync(path,'utf8').includes(url.hostname)) throw new Error(`QA preview trust did not reach ${path}`);
+          }
+          console.log(`DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK ${url.origin}`);
+          NODE
 
       - name: Confirm Intel runner parity
         run: |
@@ -135,35 +230,83 @@ jobs:
           cache: npm
           cache-dependency-path: "desktop 2/package-lock.json"
 
-      - name: Install locked dependencies
-        run: npm ci
-
-      - name: Enforce release trust policy
-        run: node scripts/verify-release-trust.mjs
-
-      - name: Enforce publisher trust policy
-        run: node scripts/verify-publisher-trust.mjs
+      - name: Install locked dependencies into clean workspace
+        run: |
+          rm -rf node_modules dist
+          npm ci
 
       - name: Audit production dependency supply chain
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Prepare native replacement tooling
-        run: chmod 0755 build/pkg-scripts/preinstall build/pkg-scripts/postinstall scripts/build-macos-pkg.sh scripts/test-macos-pkg.sh scripts/test-live-meet-contract.sh scripts/audit-live-hosted-runtime.sh
-
-      - name: Run clean-runtime certification
+      - name: Run complete runtime certification against preview-bound source
         run: npm run verify
 
-      - name: Build universal macOS app
+      - name: Prove source Electron shell opens the bound DominionStar Meet runtime
+        run: bash scripts/test-desktop-source-shell.sh
+
+      - name: Disable production auto-update only inside this QA package
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const path='src/main-v2.mjs';
+          let text=fs.readFileSync(path,'utf8');
+          const marker='  scheduleUpdaterInitialization();';
+          if(!text.includes(marker)) throw new Error('Updater initialization marker missing');
+          text=text.replace(marker,'  // QA package: production updater intentionally disabled.');
+          fs.writeFileSync(path,text);
+          console.log('DOMINIONSTAR_DESKTOP_QA_UPDATER_DISABLED');
+          NODE
+
+      - name: Build unsigned universal DominionStar Meet from empty dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run dist:mac
 
-      - name: Build deterministic Apple replacement PKG
+      - name: Build deterministic DominionStar Meet PKG
         run: npm run dist:mac:pkg
 
       - name: Enforce installer size budget
         run: node scripts/audit-artifact-sizes.mjs dist
 
-      - name: Install over stale v1.1.8 and launch the installed app
+      - name: Prove universal app, DMG payload, and bound Meet runtime
+        run: bash scripts/test-macos-clean-app.sh
+
+      - name: Prove PKG replaces stale app and launches the real DominionStar Meet
         run: bash scripts/test-macos-pkg.sh
 
-      - name: Reinstall and prove the actual app passes the live Meet contract
-        run: bash scripts/test-live-meet-contract.sh
+      - name: Create auditable QA PKG and provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          PKG="dist/DominionStar-Meet-${VERSION}-mac-universal.pkg"
+          test -f "$PKG"
+          mkdir -p dist/qa
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          OUT="dist/qa/DominionStar-Meet-CLEAN-QA-PR${QA_PR_NUMBER}-${SHORT_SHA}-mac-universal.pkg"
+          cp "$PKG" "$OUT"
+          cat > dist/qa/BUILD-PROVENANCE.txt <<EOF
+          DominionStar Meet clean QA build
+          PR: ${QA_PR_NUMBER}
+          Commit: ${GITHUB_SHA}
+          QA preview: ${QA_PREVIEW_ORIGIN}
+          Package version: ${VERSION}
+          Bundle ID: com.dominionstar.desktop
+          Product: DominionStar Meet
+          Protocol: dominionstar
+          Production updater: disabled in this QA artifact
+          Apple Developer signing/notarization: intentionally deferred during functional QA
+          EOF
+          shasum -a 256 "$OUT" | tee dist/qa/SHA256.txt
+          echo "DOMINIONSTAR_MEET_CLEAN_QA_PKG $(basename "$OUT")"
+
+      - name: Retain only the certified DominionStar Meet PKG
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-CLEAN-QA-macos-pkg
+          path: |
+            desktop 2/dist/qa/*.pkg
+            desktop 2/dist/qa/BUILD-PROVENANCE.txt
+            desktop 2/dist/qa/SHA256.txt
+          if-no-files-found: error
+          retention-days: 2

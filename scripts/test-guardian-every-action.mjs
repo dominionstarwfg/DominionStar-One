@@ -68,12 +68,16 @@ requireAll(runtime,[
   'ids.leaveBtn.onclick=', 'ids.leaveOnlyBtn.onclick=', 'ids.endAllBtn.onclick='
 ],'Meet runtime action handler missing');
 
+// Personal Room Save is deliberately owned by the form submit path. Requiring a
+// second save-button click listener would reintroduce the duplicate save/toast
+// that physical desktop QA exposed.
 requireAll(personal,[
   "$('personalMeetingAction')?.addEventListener('click'",
-  "$('savePersonalRoom')?.addEventListener('click'",
+  "$('personalRoomForm')?.addEventListener('submit'",
   "$('startPersonalRoom')?.addEventListener('click'",
   "$('copyPersonalInvite')?.addEventListener('click'"
 ],'Personal Room action handler missing');
+if(personal.includes("$('savePersonalRoom')?.addEventListener('click'"))throw new Error('Personal Room Save has a duplicate click handler in addition to form submit.');
 requireText(transcription,"button.addEventListener('click'",'Transcription toolbar action is not wired');
 requireText(intelligence,"openBtn.addEventListener('click'",'AI Notes toolbar action is not wired');
 requireText(dock,"button.addEventListener('click'",'Participant dock view action is not wired');

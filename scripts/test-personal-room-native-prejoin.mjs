@@ -20,7 +20,8 @@ assert(hotfix.includes('await ensureNativeMediaPermissions(next)'), 'Every wrapp
 assert(personal.includes('window.DominionStarEnterHostPrejoin'), 'Personal Room Start must route through shared prejoin');
 assert(preload.includes('getMediaPermissions: () =>'), 'Desktop bridge media permission status API missing');
 assert(preload.includes('requestMediaPermissions:'), 'Desktop bridge media permission request API missing');
-assert(preload.includes('const BRIDGE_VERSION = 13'), 'Desktop bridge 13 is required for native media permission support');
+assert(preload.includes('const BRIDGE_VERSION = 14'), 'Desktop bridge 14 must preserve native media permissions while adding delegated Slide Control');
+assert(Number(contract.desktopBridge) === 14, 'Release contract must require desktop bridge 14');
 assert(main.includes("systemPreferences.askForMediaAccess(kind)"), 'macOS native permission request is missing');
 assert(meet.includes('personal-room.js?v=2-native-prejoin'), 'Personal Room cache-bust missing');
 assert(meet.includes('hotfix-rc13-1-media-prejoin.js?v=4-camera-privacy-reacquire'), 'Native prejoin cache-bust missing');
@@ -30,4 +31,4 @@ for (const path of ['meet-home/index.html','meet/index.html','assets/js/meet-nex
   const actual = crypto.createHash('sha256').update(fs.readFileSync(path)).digest('hex');
   assert(contract.files[path] === actual, `Release contract hash mismatch for ${path}`);
 }
-console.log('Personal Room + native desktop prejoin regression passed.');
+console.log('Personal Room + native desktop prejoin regression passed on bridge 14.');

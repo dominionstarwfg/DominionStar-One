@@ -5,35 +5,37 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>DominionStar Presenter Controls</title>
   <style>
-    *{box-sizing:border-box}html,body{margin:0;background:transparent;color:#f8fafc;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
-    .bar{height:70px;margin:3px;display:flex;align-items:stretch;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(12,17,27,.96);box-shadow:0 16px 38px rgba(0,0,0,.38);-webkit-app-region:drag;user-select:none}
-    .status{display:flex;align-items:center;gap:8px;padding:0 17px;border-right:1px solid rgba(255,255,255,.1);font-weight:700;white-space:nowrap}.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.14)}
-    .controls{display:flex;flex:1;align-items:stretch}.control{min-width:70px;padding:8px 11px;border:0;border-right:1px solid rgba(255,255,255,.06);background:transparent;color:#e5e7eb;cursor:pointer;-webkit-app-region:no-drag}.control:hover{background:#232b3a}.control strong{display:block;margin-bottom:5px;color:#fff;font-size:16px;line-height:1}.control small{font-size:10px;white-space:nowrap}.pause{color:#fbbf24}.stop{margin:8px;border-radius:9px;background:#dc2626;color:#fff;font-weight:800}.stop:hover{background:#ef4444}
-    .more-menu{position:fixed;right:82px;top:73px;width:230px;padding:7px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#111827;box-shadow:0 18px 45px #0008;-webkit-app-region:no-drag}.more-menu[hidden]{display:none}.more-menu button{display:block;width:100%;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:#f8fafc;text-align:left;font-weight:650;cursor:pointer}.more-menu button:hover{background:#263244}.more-menu .danger{color:#fca5a5}
-    body.collapsed .bar{width:270px;margin-left:auto;margin-right:auto;height:42px;border-radius:11px}body.collapsed .controls{display:none}body.collapsed .status{flex:1;justify-content:center;border:0;padding:0 12px}
+    :root{color-scheme:dark;--panel:rgba(10,15,24,.965);--panel-2:rgba(18,25,37,.97);--line:rgba(255,255,255,.105);--muted:#9ba9bb;--text:#f7f9fc;--gold:#e8bc49;--green:#2ed477;--red:#ef4c5c}
+    *{box-sizing:border-box}html,body{margin:0;background:transparent;color:var(--text);font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}body{padding:3px}button{font:inherit}
+    .bar{height:58px;width:max-content;max-width:calc(100vw - 6px);margin:0 auto;display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,var(--panel-2),var(--panel));box-shadow:0 18px 52px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.055);-webkit-backdrop-filter:blur(24px) saturate(145%);backdrop-filter:blur(24px) saturate(145%);-webkit-app-region:drag;user-select:none}
+    .status{height:48px;display:flex;align-items:center;gap:8px;padding:0 10px;border-right:1px solid var(--line);white-space:nowrap;color:#e8edf5;font-size:11px;font-weight:720;letter-spacing:.01em}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(46,212,119,.13),0 0 13px rgba(46,212,119,.34)}.status-copy{display:flex;flex-direction:column;gap:1px;line-height:1.05}.status-copy strong{font-size:10.5px;font-weight:760}.status-copy small{font-size:8px;font-weight:650;color:#8290a3;letter-spacing:.04em;text-transform:uppercase}
+    .controls{display:flex;align-items:center;gap:1px;-webkit-app-region:no-drag}.control{position:relative;width:48px;height:48px;padding:4px 2px;border:1px solid transparent;border-radius:11px;background:transparent;color:#eef3f9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:background .13s ease,border-color .13s ease,transform .13s ease,color .13s ease}.control:hover{background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.07);transform:translateY(-1px)}.control:active{transform:none;background:rgba(255,255,255,.1)}.control svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.control small{font-size:8px;font-weight:670;line-height:1;white-space:nowrap;color:#aeb9c7}.control:hover small{color:#dbe3ec}
+    .video{width:58px}.people{width:66px}.share{width:54px;color:#6ee79e}.pause{width:62px;color:#f3cc67}.pause small{color:#d5bd78}.layout{width:54px}.annotate{width:58px;color:#f5d77f}.meeting{width:68px}.more{width:44px}.stop{width:auto;min-width:82px;height:42px;margin:0 2px;padding:0 12px;flex-direction:row;gap:7px;border-color:rgba(255,95,108,.3);background:linear-gradient(180deg,#e84b59,#c93140);color:#fff;font-weight:800;box-shadow:0 7px 20px rgba(201,49,64,.22)}.stop:hover{background:linear-gradient(180deg,#f15966,#d33a48);border-color:rgba(255,130,140,.42)}.stop small{font-size:9px;color:#fff;font-weight:780}.divider{width:1px;height:30px;margin:0 1px;background:var(--line)}
+    .more-menu{position:fixed;right:8px;top:64px;width:214px;padding:7px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(22,29,42,.985),rgba(10,15,24,.99));box-shadow:0 22px 60px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);-webkit-app-region:no-drag}.more-menu[hidden]{display:none}.more-menu button{display:flex;width:100%;align-items:center;gap:9px;padding:10px 11px;border:0;border-radius:9px;background:transparent;color:#eef3f8;text-align:left;font-size:10px;font-weight:680;cursor:pointer}.more-menu button:hover{background:rgba(255,255,255,.075)}.more-menu .danger{color:#ff9aa5}.more-menu svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    body.collapsed{padding:3px}body.collapsed .bar{height:40px;border-radius:12px;padding:3px}body.collapsed .controls{display:none}body.collapsed .status{height:32px;min-width:206px;justify-content:center;border:0;padding:0 11px}body.collapsed .status-copy{flex-direction:row;align-items:center;gap:6px}body.collapsed .status-copy small{display:none}button:focus{outline:none}button:focus-visible{outline:2px solid rgba(232,188,73,.8);outline-offset:1px}
   </style>
 </head>
 <body>
-  <div class="bar">
-    <div class="status"><span class="dot"></span>DominionStar sharing</div>
+  <div class="bar" role="toolbar" aria-label="Screen sharing controls">
+    <div class="status"><span class="dot"></span><span class="status-copy"><strong>Sharing</strong><small>DominionStar Meet</small></span></div>
     <div class="controls">
-      <button class="control" data-command="audio"><strong>🎙</strong><small>Audio</small></button>
-      <button class="control" data-command="video"><strong>◉</strong><small>Video</small></button>
-      <button class="control" data-command="participants"><strong>♙</strong><small>Participants</small></button>
-      <button class="control" data-command="chat"><strong>▢</strong><small>Chat</small></button>
-      <button class="control" data-command="reactions"><strong>☺</strong><small>Reactions</small></button>
-      <button class="control pause" data-command="pause"><strong>Ⅱ</strong><small>Pause</small></button>
-      <button class="control" data-command="new-share"><strong>↗</strong><small>New Share</small></button>
-      <button class="control" data-command="more"><strong>•••</strong><small>More</small></button>
-      <button class="control stop" data-command="stop"><small>Stop Share</small></button>
+      <button class="control" data-command="audio" aria-label="Mute"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0M12 17v4M8.5 21h7"/></svg><small>Audio</small></button>
+      <button class="control video" data-command="video" aria-label="Stop Video"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg><small>Video</small></button>
+      <button class="control people" data-command="participants" aria-label="Participants"><svg viewBox="0 0 24 24"><path d="M16 21v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V21M9 11a4 4 0 1 0 0-8M22 21v-1.5a4 4 0 0 0-3-3.8M16.5 3.3a4 4 0 0 1 0 7.4"/></svg><small>Participants</small></button>
+      <button class="control" data-command="chat" aria-label="Chat"><svg viewBox="0 0 24 24"><path d="M21 14.5a4 4 0 0 1-4 4H9l-6 3V7.5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg><small>Chat</small></button>
+      <button class="control share" data-command="new-share" aria-label="Share"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M12 15V8M9 11l3-3 3 3"/></svg><small>Share</small></button>
+      <button class="control pause" data-command="pause" aria-label="Pause Share"><svg viewBox="0 0 24 24"><path d="M8 6v12M16 6v12"/></svg><small>Pause</small></button>
+      <button class="control layout" data-command="layout" aria-label="Layout"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16M3 11h12"/></svg><small>Layout</small></button>
+      <button class="control annotate" data-command="annotate" aria-label="Annotate"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><small>Annotate</small></button>
+      <button class="control meeting" data-command="show-meeting" aria-label="Show meeting"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg><small>Show Meeting</small></button>
+      <div class="divider" aria-hidden="true"></div>
+      <button class="control more" data-command="more" aria-label="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.25"/><circle cx="12" cy="12" r="1.25"/><circle cx="19" cy="12" r="1.25"/></svg><small>More</small></button>
+      <button class="control stop" data-command="stop" aria-label="Stop Share"><svg viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/></svg><small>Stop Share</small></button>
     </div>
   </div>
   <div id="presenterMoreMenu" class="more-menu" hidden role="menu">
-    <button type="button" data-command="participants">Participants</button>
-    <button type="button" data-command="chat">Chat</button>
-    <button type="button" data-command="reactions">Reactions</button>
-    <button type="button" data-command="new-share">New Share</button>
-    <button type="button" data-command="stop" class="danger">Stop Share</button>
+    <button type="button" data-command="reactions"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14s1.3 2 3.5 2 3.5-2 3.5-2M9 9h.01M15 9h.01"/></svg>Reactions</button>
+    <button type="button" data-command="stop" class="danger"><svg viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/></svg>Stop Share</button>
   </div>
   <script src="presenter-toolbar.js"></script>
 </body>

@@ -17,10 +17,15 @@ requireSource(engine,"Promise.allSettled([...state.peers.values()].map(peer=>syn
 requireSource(ui,"video:state.video?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}}:false",'Prejoin still requests camera incorrectly or does not preserve the HD/30 video contract.');
 requireSource(ui,"state.stream.removeTrack(track)",'Prejoin Video Off does not release its camera track.');
 requireSource(ui,'markPreviewCameraReleased()','Prejoin Video Off does not mark the hardware release boundary before Video On.');
-requireSource(main,'function supportsMacSystemPicker()','Clean desktop runtime is missing the macOS native-picker capability gate.');
-requireSource(main,'return major >= 15','Native picker is not restricted to supported macOS versions.');
-requireSource(main,'{ useSystemPicker: supportsMacSystemPicker() }','macOS native screen picker is not enabled conditionally.');
-requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Web meeting does not read the native system-picker capability.');
-requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Web meeting still opens its custom picker before the macOS system picker.');
 
-console.log('PASS all-track camera hardware privacy and single-picker macOS screen-share guardrails.');
+// Zoom-parity desktop policy: DominionStar owns the source chooser. The Apple
+// system picker must never bypass the branded screen/window selection flow.
+requireSource(main,'function supportsMacSystemPicker()','Clean desktop runtime is missing the macOS picker capability gate.');
+requireSource(main,'return false;','Desktop runtime must keep the macOS system picker disabled.');
+requireSource(main,'{ useSystemPicker: supportsMacSystemPicker() }','Desktop capture session must receive the authoritative picker policy.');
+requireSource(main,'customSharePicker: !supportsMacSystemPicker()','Desktop runtime must advertise DominionStar custom share picker availability.');
+requireSource(main,'systemSharePicker: supportsMacSystemPicker()','Desktop runtime must advertise the native system picker as disabled.');
+requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Web meeting does not read the desktop picker capability.');
+requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Desktop screen sharing does not route through DominionStar source selection before capture.');
+
+console.log('PASS all-track camera hardware privacy and DominionStar-authoritative screen-share picker guardrails.');
