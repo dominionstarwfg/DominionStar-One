@@ -52,9 +52,11 @@ assert(illustrationParity.includes("label.textContent=isHost?'End':'Leave'"), 'H
 assert(illustrationParity.includes("decline.textContent='View'"), 'Waiting-room heads-up must use Admit/View instead of destructive Decline.');
 assert(illustrationParity.includes('enforceOnePersonDockRule'), 'One-person meetings must not show a participant strip.');
 assert(illustrationParity.includes('#participantsPanel,#chatPanel{resize:both'), 'Participants and Chat panels must remain resizable.');
-assert(dockPolish.includes("const STORAGE_KEY='dominionstar.meet.filmstrip.geometry.v1'"), 'Participant dock geometry must persist.');
+assert(dockPolish.includes("const POSITION_KEY='ds_meet_dock_geometry_v3'"), 'Participant dock geometry must have a stable persistence key.');
+assert(dockPolish.includes('localStorage.setItem(POSITION_KEY') && dockPolish.includes('localStorage.getItem(POSITION_KEY)'), 'Participant dock geometry must actually save and restore from local storage.');
+assert(dockPolish.includes('saveGeometry') && dockPolish.includes('restoreGeometry'), 'Participant dock must expose real geometry save/restore behavior.');
 assert(dockPolish.includes("resizeHandle.className='ds-dock-resize-handle'"), 'Participant dock must have a professional resize handle.');
-assert(dockPolish.includes('.remote-tile .tile-mic{display:flex!important'), 'Muted microphone status must remain visible on participant tiles.');
+assert(dockPolish.includes('.remote-tile .tile-mic{display:grid!important'), 'Muted microphone status must remain visible on participant tiles.');
 
 assert(desktopPreload.includes('installDesktopMeetRuntimeLayers'), 'Desktop Meet must explicitly load its advanced meeting runtime.');
 assert(desktopPreload.includes('/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime'), 'Desktop advanced runtime must come from the certified bootstrap.');
