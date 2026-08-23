@@ -39,7 +39,13 @@ async function evaluate(socket, expression) {
       socket.removeEventListener('message', onMessage);
       resolve(message);
     };
+    const onClose = () => {
+      clearTimeout(timer);
+      socket.removeEventListener('message', onMessage);
+      reject(new Error('CDP target closed during evaluation'));
+    };
     socket.addEventListener('message', onMessage);
+    socket.addEventListener('close', onClose, { once: true });
     socket.send(JSON.stringify({
       id,
       method: 'Runtime.evaluate',
@@ -51,39 +57,62 @@ async function evaluate(socket, expression) {
   return result.result?.result?.value;
 }
 
-let target = null;
-while (Date.now() < deadline && !target) {
-  try { target = await getPageTarget(); } catch {}
-  if (!target) await sleep(250);
-}
-assert.ok(target, 'DominionStar renderer never exposed a CDP page target');
+const snapshotExpression = `
+  (async()=>{
+    const body=String(document.body?.innerText||'');
+    let runtime=null,contract=null,error='';
+    try{
+      runtime=await window.dominionDesktop?.getRuntimeInfo?.();
+      const response=await fetch('/meet/release-contract.json',{cache:'no-store'});
+      contract=response.ok?await response.json():null;
+    }catch(err){error=String(err?.message||err);}
+    return {href:String(location.href),body,runtime,contract,error};
+  })()
+`;
 
-const socket = await connect(target.webSocketDebuggerUrl);
+const transientNavigationError = error => /navigated|target closed|closed during evaluation|websocket|context was destroyed|cannot find context/i.test(String(error?.message || error));
+
 let snapshot = null;
-try {
-  while (Date.now() < deadline) {
-    snapshot = await evaluate(socket, `
-      (async()=>{
-        const body=String(document.body?.innerText||'');
-        let runtime=null,contract=null,error='';
-        try{
-          runtime=await window.dominionDesktop?.getRuntimeInfo?.();
-          const response=await fetch('/meet/release-contract.json',{cache:'no-store'});
-          contract=response.ok?await response.json():null;
-        }catch(err){error=String(err?.message||err);}
-        return {href:String(location.href),body,runtime,contract,error};
-      })()
-    `);
+let lastError = null;
+let stableHref = '';
+let stableCount = 0;
 
-    if (snapshot?.body?.includes('Desktop update required')) break;
-    if (snapshot?.runtime?.meetReleaseId && snapshot?.contract?.releaseId) break;
-    await sleep(300);
+while (Date.now() < deadline) {
+  let target = null;
+  try { target = await getPageTarget(); } catch (error) { lastError = error; }
+  if (!target) {
+    await sleep(250);
+    continue;
   }
-} finally {
-  socket.close();
+
+  let socket = null;
+  try {
+    socket = await connect(target.webSocketDebuggerUrl);
+    const candidate = await evaluate(socket, snapshotExpression);
+    snapshot = candidate;
+
+    if (candidate?.body?.includes('Desktop update required')) break;
+
+    if (candidate?.href && candidate.href === stableHref) stableCount += 1;
+    else {
+      stableHref = String(candidate?.href || '');
+      stableCount = 1;
+    }
+
+    if (candidate?.runtime?.meetReleaseId && candidate?.contract?.releaseId && stableCount >= 2) break;
+  } catch (error) {
+    lastError = error;
+    if (!transientNavigationError(error)) throw error;
+    stableCount = 0;
+    await sleep(250);
+  } finally {
+    try { socket?.close(); } catch {}
+  }
+
+  await sleep(300);
 }
 
-assert.ok(snapshot, 'No live Meet renderer snapshot was captured');
+assert.ok(snapshot, `No live Meet renderer snapshot was captured: ${lastError?.message || 'unknown error'}`);
 console.log('LIVE_MEET_ACCEPTANCE', JSON.stringify({
   href: snapshot.href,
   bodyPreview: String(snapshot.body || '').slice(0, 240),
@@ -93,9 +122,10 @@ console.log('LIVE_MEET_ACCEPTANCE', JSON.stringify({
 }));
 
 assert.ok(!String(snapshot.body || '').includes('Desktop update required'), 'Live Meet rendered the false Desktop update required blocker');
-assert.ok(snapshot.runtime, `Desktop runtime info unavailable: ${snapshot.error || 'unknown error'}`);
+assert.ok(snapshot.runtime, `Desktop runtime info unavailable: ${snapshot.error || lastError?.message || 'unknown error'}`);
 assert.ok(snapshot.contract?.releaseId, 'Live release contract did not expose releaseId');
 assert.equal(snapshot.runtime.meetReleaseId, snapshot.contract.releaseId, 'Native runtime meetReleaseId does not match the live Meet contract');
 assert.equal(snapshot.runtime.meetReleaseCompatible, true, 'Native runtime did not mark the live Meet release compatible');
 assert.ok(Number(snapshot.runtime.bridgeVersion) >= Number(snapshot.contract.desktopBridge || 0), 'Native bridge is below the live Meet minimum');
-console.log(`Live Meet desktop contract acceptance passed: releaseId=${snapshot.contract.releaseId} bridge=${snapshot.runtime.bridgeVersion}/${snapshot.contract.desktopBridge}`);
+assert.ok(stableCount >= 2, 'Live Meet renderer never remained stable across two consecutive probes');
+console.log(`Live Meet desktop contract acceptance passed: releaseId=${snapshot.contract.releaseId} bridge=${snapshot.runtime.bridgeVersion}/${snapshot.contract.desktopBridge} stableHref=${snapshot.href}`);
