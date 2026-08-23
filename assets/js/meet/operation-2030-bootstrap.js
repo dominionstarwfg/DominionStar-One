@@ -38,6 +38,7 @@
   const quickDeviceMenuParity = load('/assets/js/meet/quick-device-menu-parity.js?v=1-zoom-class-device-menu', 'data-ds-quick-device-menu-parity');
   const receiverSideLayout = load('/assets/js/meet/receiver-side-layout-parity.js?v=1-zoom-class-side-by-side', 'data-ds-receiver-side-layout');
   const hostCohostUiParity = load('/assets/js/meet/host-cohost-ui-parity.js?v=1-authority-copy', 'data-ds-host-cohost-ui-parity');
+  const localRecording = load('/assets/js/meet/local-recording.js?v=1-visible-desktop-recording', 'data-ds-local-recording');
   const spotlight = load('/assets/js/meet/share-spotlight.js?v=2-operation-2030-certified', 'data-ds-share-spotlight');
   const handoff = load('/assets/js/meet/presentation-handoff.js?v=2-operation-2030-certified', 'data-ds-presentation-handoff');
   const arbitration = load('/assets/js/meet/share-arbitration.js?v=2-operation-2030-certified', 'data-ds-share-arbitration');
@@ -56,16 +57,16 @@
   const shareUi = load('/assets/js/meet/share-ui-2030.js?v=2-operation-2030-certified', 'data-ds-share-ui-2030', { after: shareOptimizationParity });
 
   const ready = Promise.all([
-    annotation, verticalAnnotationUi, presenterCommandParity, slideControl, microphoneIdentity, quickDeviceMenuParity, receiverSideLayout, hostCohostUiParity, spotlight, handoff, arbitration, arbitrationUi,
+    annotation, verticalAnnotationUi, presenterCommandParity, slideControl, microphoneIdentity, quickDeviceMenuParity, receiverSideLayout, hostCohostUiParity, localRecording, spotlight, handoff, arbitration, arbitrationUi,
     identitySettings, identityBridge, cameraPolish, dockPolish, nativeDockQuality, screenPermissionGuard,
     shareWatchdog, videoIntelligence, backgroundEffects, videoQualityParity, shareOptimizationParity, shareUi
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '1.12.0',
+    version: '1.13.0',
     ready,
     modules: Object.freeze([
-      'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity','microphone-device-identity','quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
+      'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity','microphone-device-identity','quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','local-recording','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
       'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030','native-dock-quality','screen-permission-ui-guard',
       'remote-share-watchdog','video-intelligence-compositor','background-effects-2030','video-quality-parity','share-optimization-parity','share-ui-2030'
     ])
