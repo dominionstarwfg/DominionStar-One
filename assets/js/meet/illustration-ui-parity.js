@@ -23,6 +23,12 @@
     #meetingToolbar .ds-illustration-secondary{display:none!important}
     #participantsPanel,#chatPanel{resize:both;overflow:auto;max-width:calc(100vw - 16px);max-height:calc(100vh - 96px);min-width:280px;min-height:220px}
     .join-request-toast.waiting-room-banner{z-index:2147483000!important}
+    #recordBtn .record-dot{width:17px;height:17px;border:2px solid currentColor;border-radius:50%;display:grid;place-items:center}
+    #recordBtn .record-dot::after{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+    #recordBtn.is-recording{color:#ff6370!important}
+    #recordingIndicator{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:2147482500;display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,95,108,.32);border-radius:999px;background:rgba(23,8,11,.92);color:#fff;font-size:11px;font-weight:750;box-shadow:0 12px 34px rgba(0,0,0,.32);backdrop-filter:blur(14px)}
+    #recordingIndicator[hidden]{display:none!important}
+    #recordingIndicator .recording-live-dot{width:8px;height:8px;border-radius:50%;background:#ff4d5d;box-shadow:0 0 0 4px rgba(255,77,93,.15)}
   `;
   document.head.append(style);
 
@@ -33,6 +39,63 @@
     ['meetingIntelligenceBtn','AI Notes']
   ]);
 
+  const ensureRecordingIndicator=()=>{
+    let indicator=$('recordingIndicator');
+    if(indicator)return indicator;
+    indicator=document.createElement('div');
+    indicator.id='recordingIndicator';
+    indicator.hidden=true;
+    indicator.setAttribute('role','status');
+    indicator.setAttribute('aria-live','polite');
+    indicator.innerHTML='<span class="recording-live-dot"></span><span>Recording</span>';
+    document.body.append(indicator);
+    return indicator;
+  };
+
+  const syncRecordingUi=recording=>{
+    const button=$('recordBtn');
+    const indicator=ensureRecordingIndicator();
+    if(button){
+      button.classList.toggle('is-recording',Boolean(recording));
+      button.setAttribute('aria-pressed',recording?'true':'false');
+      button.setAttribute('aria-label',recording?'Stop recording':'Record meeting');
+      const label=button.querySelector('.tool-label');
+      if(label)label.textContent=recording?'Stop Recording':'Record';
+    }
+    indicator.hidden=!recording;
+  };
+
+  const ensureRecordControl=()=>{
+    if(!toolbar)return null;
+    let button=$('recordBtn');
+    if(!button){
+      button=document.createElement('button');
+      button.id='recordBtn';
+      button.className='tool-button';
+      button.type='button';
+      button.setAttribute('aria-label','Record meeting');
+      button.setAttribute('aria-pressed','false');
+      button.innerHTML='<span class="tool-icon record-dot" aria-hidden="true"></span><span class="tool-label">Record</span>';
+      const reaction=$('reactionBtn');
+      toolbar.insertBefore(button,reaction||moreBtn||leaveBtn||null);
+      button.addEventListener('click',async()=>{
+        const recording=window.DominionLocalRecording;
+        if(!recording?.toggle){
+          window.dispatchEvent(new CustomEvent('dominion:recording-error',{detail:{message:'Recording is not ready yet.'}}));
+          return;
+        }
+        if(!recording.isRecording()&&!window.confirm('Start local recording? A visible Recording indicator will remain on screen until you stop.'))return;
+        try{await recording.toggle();syncRecordingUi(recording.isRecording());}
+        catch(error){
+          syncRecordingUi(false);
+          window.alert(String(error?.message||'Recording could not start.'));
+        }
+      });
+    }
+    syncRecordingUi(Boolean(window.DominionLocalRecording?.isRecording?.()));
+    return button;
+  };
+
   const normalizeToolbar=()=>{
     primarySecondaryIds.forEach(id=>$(id)?.classList.add('ds-illustration-secondary'));
     if(hostToolsBtn){
@@ -42,6 +105,10 @@
       const participants=$('participantsBtn');
       if(toolbar&&participants&&hostToolsBtn.parentElement===toolbar)toolbar.insertBefore(hostToolsBtn,participants);
     }
+    ensureRecordControl();
+    const record=$('recordBtn');
+    const reaction=$('reactionBtn');
+    if(toolbar&&record&&reaction&&record.nextElementSibling!==reaction)toolbar.insertBefore(record,reaction);
     if(leaveBtn){
       const isHost=Boolean(endAllBtn&&!endAllBtn.hidden);
       const label=leaveBtn.querySelector('.tool-label');
@@ -168,6 +235,9 @@
     }
   },true);
 
+  addEventListener('dominion:recording-started',()=>syncRecordingUi(true));
+  addEventListener('dominion:recording-stopped',()=>syncRecordingUi(false));
+  addEventListener('dominion:recording-error',event=>{syncRecordingUi(false);const message=String(event.detail?.message||'Recording error');console.error('DominionStar recording:',message);});
   [moreBtn,shareMoreBtn].forEach(button=>button?.addEventListener('click',()=>setTimeout(decorateGeneralMore,0)));
   if(deviceMenu)new MutationObserver(()=>setTimeout(decorateGeneralMore,0)).observe(deviceMenu,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   if(endAllBtn)new MutationObserver(normalizeToolbar).observe(endAllBtn,{attributes:true,attributeFilter:['hidden']});
@@ -183,8 +253,10 @@
   enforceOnePersonDockRule();
 
   window.DominionIllustrationUiParity=Object.freeze({
-    version:'1.1.0',
+    version:'1.2.0',
     normalizeToolbar,
+    ensureRecordControl,
+    syncRecordingUi,
     decorateGeneralMore,
     refineJoinRequests,
     enforceOnePersonDockRule,
