@@ -47,7 +47,7 @@ cat > "$COMPONENTS_PLIST" <<'PLIST'
     <key>BundleIsRelocatable</key>
     <false/>
     <key>BundleIsVersionChecked</key>
-    <true/>
+    <false/>
     <key>BundleHasStrictIdentifier</key>
     <true/>
     <key>BundleOverwriteAction</key>
