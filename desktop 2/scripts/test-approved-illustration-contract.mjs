@@ -9,6 +9,7 @@ const dockPolish = read('assets/js/meet/dock-polish-2030.js');
 const illustration = read('assets/js/meet/illustration-ui-parity.js');
 const localRecording = read('assets/js/meet/local-recording.js');
 const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
+const macPkgBuilder = read('desktop 2/scripts/build-macos-pkg.sh');
 
 const directPresenterOrder = ['audio','video','participants','chat','new-share','pause','layout','annotate','show-meeting','more','stop'];
 let cursor = -1;
@@ -41,5 +42,7 @@ assert(dockPolish.includes("POSITION_KEY='ds_meet_dock_geometry_v3'"), 'Particip
 assert(dockPolish.includes('ds-dock-resize-handle'), 'Participant dock must expose a real resize handle.');
 assert(dockPolish.includes('.tile-mic{display:grid!important'), 'Participant tile microphone state must remain visible.');
 assert(dockPolish.includes('saveGeometry') && dockPolish.includes('restoreGeometry'), 'Participant dock must save and restore its position and size.');
+
+assert(macPkgBuilder.includes('<key>BundleIsVersionChecked</key>\n    <false/>'), 'QA PKG must replace newer or equal prior DominionStar Meet builds instead of being rejected as a downgrade.');
 
 console.log('Approved DominionStar illustration contract passed.');
