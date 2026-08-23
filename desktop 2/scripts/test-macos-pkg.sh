@@ -18,6 +18,7 @@ SAMPLE_LOG="/tmp/dominionstar-startup.sample.txt"
 INSTALL_LOG="/var/log/dominionstar-meet-installer.log"
 SYSTEM_INSTALL_LOG="/var/log/install.log"
 APP_PID=""
+PRIOR_VERSION="9.9.9"
 
 cleanup() {
   if [ -n "$APP_PID" ] && kill -0 "$APP_PID" >/dev/null 2>&1; then
@@ -85,26 +86,26 @@ echo "PKG structure verified: version=$PAYLOAD_VERSION bundle=$PAYLOAD_ID"
 sudo -n true || fail "Intel runner does not provide non-interactive sudo"
 sudo rm -rf "$TEST_APP"
 sudo mkdir -p "$TEST_APP/Contents"
-cat > "$STALE_PLIST" <<'PLIST'
+cat > "$STALE_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>CFBundleIdentifier</key><string>com.dominionstar.desktop</string>
-  <key>CFBundleShortVersionString</key><string>1.1.8</string>
-  <key>CFBundleVersion</key><string>1.1.8</string>
+  <key>CFBundleShortVersionString</key><string>${PRIOR_VERSION}</string>
+  <key>CFBundleVersion</key><string>${PRIOR_VERSION}</string>
 </dict></plist>
 PLIST
 sudo cp "$STALE_PLIST" "$TEST_PLIST"
-sudo touch "$TEST_APP/STALE-1.1.8-SENTINEL"
+sudo touch "$TEST_APP/STALE-${PRIOR_VERSION}-SENTINEL"
 sudo rm -f "$INSTALL_LOG"
 
 if ! sudo /usr/sbin/installer -verboseR -pkg "$PKG" -target /; then
   show_installer_diagnostics
-  fail "macOS Installer rejected the clean-runtime PKG"
+  fail "macOS Installer rejected intentional replacement of prior ${PRIOR_VERSION} build"
 fi
 
 [ -f "$TEST_PLIST" ] || { show_installer_diagnostics; fail "Installer did not create Info.plist"; }
-[ ! -e "$TEST_APP/STALE-1.1.8-SENTINEL" ] || { show_installer_diagnostics; fail "Stale v1.1.8 bundle survived installation"; }
+[ ! -e "$TEST_APP/STALE-${PRIOR_VERSION}-SENTINEL" ] || { show_installer_diagnostics; fail "Prior ${PRIOR_VERSION} bundle survived installation"; }
 INSTALLED_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$TEST_PLIST")
 INSTALLED_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$TEST_PLIST")
 [ "$INSTALLED_VERSION" = "$VERSION" ] || { show_installer_diagnostics; fail "Installed version mismatch: $INSTALLED_VERSION"; }
@@ -115,10 +116,10 @@ EXECUTABLE="$TEST_APP/Contents/MacOS/DominionStar Meet"
 ARCHS=$(/usr/bin/lipo -archs "$EXECUTABLE")
 echo "$ARCHS" | grep -F 'x86_64' >/dev/null || fail "Universal executable is missing x86_64"
 echo "$ARCHS" | grep -F 'arm64' >/dev/null || fail "Universal executable is missing arm64"
-sudo grep -F 'Preparing existing app version 1.1.8' "$INSTALL_LOG" >/dev/null || fail "preinstall did not see stale 1.1.8"
+sudo grep -F "Preparing existing app version ${PRIOR_VERSION}" "$INSTALL_LOG" >/dev/null || fail "preinstall did not see prior ${PRIOR_VERSION} build"
 sudo grep -F 'Install attested successfully' "$INSTALL_LOG" >/dev/null || fail "postinstall attestation did not pass"
 
-echo "Replacement passed. Launching installed DominionStar Meet on Intel..."
+echo "Newer-build replacement passed. Launching installed DominionStar Meet on Intel..."
 rm -f "$PROBE" "$APP_LOG" "$SAMPLE_LOG"
 DOMINIONSTAR_STARTUP_PROBE="$PROBE" "$EXECUTABLE" >"$APP_LOG" 2>&1 &
 APP_PID=$!
@@ -155,4 +156,4 @@ done
 kill -9 "$APP_PID" >/dev/null 2>&1 || true
 APP_PID=""
 
-echo "macOS Intel acceptance passed: stale 1.1.8 -> $INSTALLED_VERSION; responsive native launch; archs=$ARCHS"
+echo "macOS Intel acceptance passed: prior ${PRIOR_VERSION} -> $INSTALLED_VERSION; responsive native launch; archs=$ARCHS"
