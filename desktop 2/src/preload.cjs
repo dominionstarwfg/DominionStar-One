@@ -60,6 +60,15 @@ async function applyLiveMeetReleaseCompatibility(info) {
   }
 }
 
+async function readNativeCaptureCapability() {
+  try {
+    const result = await ipcRenderer.invoke('desktop:native-capture-capability');
+    return result && typeof result === 'object' ? result : null;
+  } catch {
+    return null;
+  }
+}
+
 async function showNativeRemoteControlPrompt(payload = {}) {
   let result = { accepted: false, reason: 'prompt-failed' };
   try {
@@ -158,17 +167,26 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
   supportsSystemAudioShare: ['win32', 'darwin'].includes(process.platform),
   goHome: () => ipcRenderer.send('desktop:home'),
   showAccountChooser: () => ipcRenderer.send('desktop:account-chooser'),
+  getNativeCaptureCapability: () => readNativeCaptureCapability(),
   getRuntimeInfo: async () => {
-    const info = await ipcRenderer.invoke('desktop:runtime-info');
+    const [info, nativeCapture] = await Promise.all([
+      ipcRenderer.invoke('desktop:runtime-info'),
+      readNativeCaptureCapability()
+    ]);
     if (!info || typeof info !== 'object') return info;
     const appVersion = String(info.appVersion || info.buildVersion || RELEASE_VERSION);
+    const nativeSystemPicker = Boolean(nativeCapture?.ok && nativeCapture?.enabled);
     const normalized = {
       ...info,
       version: appVersion,
       appVersion,
       buildVersion: String(info.buildVersion || appVersion),
       electronVersion: String(info.electronVersion || process.versions.electron),
-      bridgeVersion: Number(info.bridgeVersion || BRIDGE_VERSION)
+      bridgeVersion: Number(info.bridgeVersion || BRIDGE_VERSION),
+      systemSharePicker: nativeSystemPicker,
+      customSharePicker: !nativeSystemPicker,
+      captureAuthority: String(nativeCapture?.authority || (nativeSystemPicker ? 'macos-system-picker' : 'dominionstar-custom-picker')),
+      nativeCaptureInstalled: Boolean(nativeCapture?.installed)
     };
     return applyLiveMeetReleaseCompatibility(normalized);
   },
