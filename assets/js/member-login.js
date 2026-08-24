@@ -120,16 +120,36 @@
   }
 
   if (isDesktop && params.get('oauth') === 'complete') {
-    showMessage('Finishing secure sign-in…', 'info');
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        window.location.replace(requestedDestination());
-        return;
+    showMessage('Finishing secure Google sign-in…', 'info');
+    try {
+      // OAuth was completed in the system browser, so its browser-local session
+      // does not automatically exist inside Electron. Supabase returns the
+      // implicit-flow credentials through the registered DominionStar deep link;
+      // explicitly establish the persistent desktop session before continuing.
+      const returned = new URLSearchParams(String(window.location.hash || '').replace(/^#/,''));
+      const accessToken = returned.get('access_token') || '';
+      const refreshToken = returned.get('refresh_token') || '';
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        if (error) throw error;
       }
-      await new Promise(resolve => setTimeout(resolve, 150));
+
+      const { data } = await supabase.auth.getSession();
+      if (!data?.session) {
+        throw new Error('Google sign-in returned without a usable DominionStar session.');
+      }
+
+      // Remove OAuth credentials from the visible renderer URL immediately after
+      // they have been persisted by Supabase.
+      history.replaceState(history.state, '', `${window.location.pathname}?desktop=1&oauth=complete`);
+      window.location.replace(requestedDestination());
+      return;
+    } catch (error) {
+      showMessage(error?.message || 'Google sign-in could not be completed.', 'error');
     }
-    showMessage('Google sign-in returned, but the session was not ready. Choose Continue with Google again.', 'error');
   }
 
   loginForm.addEventListener('submit', async event => {
