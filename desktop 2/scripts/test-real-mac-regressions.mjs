@@ -6,7 +6,11 @@ const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'u
 const memberLogin = read('assets/js/member-login.js');
 const camera = read('assets/js/meet/camera-device-stability.js');
 const screenGuard = read('assets/js/meet/screen-permission-ui-guard.js');
+const engine = read('assets/js/meeting-engine.js');
 const main = read('desktop 2/src/main-v2.mjs');
+const bootstrap = read('desktop 2/src/bootstrap.mjs');
+const preload = read('desktop 2/src/preload.cjs');
+const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
 
 // Real-device regression: desktop authentication must remain a Meet flow, not
 // embed the public DominionStar website inside the Electron application.
@@ -33,4 +37,16 @@ assert(screenGuard.includes('relaunchOnceAfterPermissionFlow'), 'Newly granted m
 assert(screenGuard.includes("restart.textContent = 'Retry Capture'"), 'Granted screen permission must retry capture instead of looping back to Settings.');
 assert(screenGuard.includes("version: '1.1.0'"), 'Updated macOS permission recovery layer must be active.');
 
-console.log('Real Mac auth/camera/screen-permission regression contract passed.');
+// Known-good August 16 recovery: supported Macs use one native picker authority.
+// The custom DominionStar picker remains a fallback for Windows/older macOS but
+// cannot compete with Apple's picker in the same share transaction.
+assert(bootstrap.includes("await import('./macos-native-capture-authority.mjs')"), 'Desktop bootstrap must install native macOS capture authority.');
+assert(nativeCapture.includes('major >= 15'), 'Native picker must be gated to supported macOS versions.');
+assert(nativeCapture.includes('{ useSystemPicker: true }'), 'Native capture authority must enable Electron system picker mode.');
+assert(nativeCapture.includes("authority: supportsNativeMacPicker() ? 'macos-system-picker' : 'dominionstar-custom-picker'"), 'Native capture capability must report a single authority.');
+assert(preload.includes('systemSharePicker: nativeSystemPicker'), 'Preload must expose native picker authority to meeting runtime.');
+assert(preload.includes('customSharePicker: !nativeSystemPicker'), 'Preload must disable the custom picker when native authority is active.');
+assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'), 'Meeting engine must consume the native picker capability.');
+assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'), 'Meeting engine must never open both picker authorities.');
+
+console.log('Real Mac auth/camera/single-authority screen-share regression contract passed.');
