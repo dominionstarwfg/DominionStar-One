@@ -11,6 +11,7 @@ const netlify=fs.readFileSync(new URL('../netlify.toml',import.meta.url),'utf8')
 const headers=fs.readFileSync(new URL('../_headers',import.meta.url),'utf8');
 
 const requireSource=(source,needle,message)=>{if(!source.includes(needle))throw new Error(message);};
+const forbidSource=(source,needle,message)=>{if(source.includes(needle))throw new Error(message);};
 
 // Video Off is a physical privacy boundary. Every local video track must be
 // detached and physically ended before a new camera track can be acquired.
@@ -35,6 +36,8 @@ requireSource(nativeCapture,'available: supportsNativeMacPicker()','Native picke
 requireSource(preload,"ipcRenderer.invoke('desktop:native-capture-capability')",'Renderer does not read the final capture authority.');
 requireSource(preload,'systemSharePicker: nativeSystemPicker','Renderer must expose the final system-picker state.');
 requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must expose the branded picker when native mode is disabled.');
+requireSource(preload,'installDesktopMeetRuntimeLayers','Desktop preload must own installation of the advanced Meet runtime.');
+requireSource(preload,'/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime','Desktop preload must own the Operation 2030 bootstrap URL.');
 requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Meeting engine must consume the desktop picker capability.');
 requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Meeting engine must route desktop sharing through the approved DominionStar picker.');
 
@@ -43,7 +46,9 @@ requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicke
 // lighter and must never depend on Electron/native permission bridges.
 requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Browser sharing must use standards-native getDisplayMedia.');
 requireSource(shareView,'const isDesktop = Boolean(window.dominionDesktop?.isDesktop)','Share controls must explicitly distinguish desktop from browser runtime.');
-requireSource(shareView,"if (isDesktop && !document.querySelector('script[data-ds-operation-2030-bootstrap]'))",'Ordinary browsers must not auto-load the full desktop Operation 2030 bootstrap.');
+forbidSource(shareView,"bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js",'Web share controls must never bootstrap Operation 2030; desktop preload is the sole owner.');
+requireSource(shareView,"if (!isDesktop && !document.querySelector('script[data-ds-share-annotation]'))",'Browser share fallbacks must be explicitly excluded from desktop mode.');
+requireSource(shareView,"if (!isDesktop && !document.querySelector('script[data-ds-share-arbitration]'))",'Browser arbitration fallback must be explicitly excluded from desktop mode.');
 requireSource(shareView,'media.__dsWebDisplayMediaBoundary = true','Browser display-media normalization boundary is missing.');
 requireSource(shareView,'if (!window.isSecureContext)','Browser sharing must fail clearly outside HTTPS instead of presenting a misleading permission error.');
 requireSource(shareView,"audio: chromiumFamily && Boolean(requested.audio)",'Safari/Firefox screen sharing must not be blocked by unsupported system-audio requests.');
@@ -52,4 +57,4 @@ requireSource(shareView,"name === 'InvalidStateError'",'Browser transient-user-a
 requireSource(netlify,'Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"','Netlify Meet route must explicitly allow browser camera, microphone, display capture and fullscreen.');
 requireSource(headers,'Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)','Published Netlify headers must preserve Meet media/display-capture permissions.');
 
-console.log('PASS camera privacy plus desktop/browser single-authority screen-share guardrails.');
+console.log('PASS camera privacy plus strict desktop-preload/browser-native screen-share ownership.');
