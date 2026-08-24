@@ -2,10 +2,13 @@ import fs from 'node:fs';
 
 const engine=fs.readFileSync(new URL('../assets/js/meeting-engine.js',import.meta.url),'utf8');
 const ui=fs.readFileSync(new URL('../assets/js/meet-next/executive6.js',import.meta.url),'utf8');
+const shareView=fs.readFileSync(new URL('../assets/js/meet/share-view-controls.js',import.meta.url),'utf8');
 const main=fs.readFileSync(new URL('../desktop 2/src/main-v2.mjs',import.meta.url),'utf8');
 const bootstrap=fs.readFileSync(new URL('../desktop 2/src/bootstrap.mjs',import.meta.url),'utf8');
 const preload=fs.readFileSync(new URL('../desktop 2/src/preload.cjs',import.meta.url),'utf8');
 const nativeCapture=fs.readFileSync(new URL('../desktop 2/src/macos-native-capture-authority.mjs',import.meta.url),'utf8');
+const netlify=fs.readFileSync(new URL('../netlify.toml',import.meta.url),'utf8');
+const headers=fs.readFileSync(new URL('../_headers',import.meta.url),'utf8');
 
 const requireSource=(source,needle,message)=>{if(!source.includes(needle))throw new Error(message);};
 
@@ -20,12 +23,11 @@ requireSource(ui,"video:state.video?{width:{ideal:1280},height:{ideal:720},frame
 requireSource(ui,"state.stream.removeTrack(track)",'Prejoin Video Off does not release its camera track.');
 requireSource(ui,'markPreviewCameraReleased()','Prejoin Video Off does not mark the hardware release boundary before Video On.');
 
-// Approved screen-share architecture: DominionStar owns the visible source
-// picker on macOS, Windows and Web. Apple/Electron native picker support may be
-// detected as a fallback capability but must not silently replace the approved
-// Screens / Application windows experience or create a second picker authority.
+// Desktop authority: the installed client owns a branded source picker backed
+// by Electron desktopCapturer. Apple/Electron native picker capability can be
+// detected as fallback capability but cannot silently replace DominionStar.
 requireSource(main,'function supportsMacSystemPicker() {\n  return false;\n}','Main capture handler must keep the native system picker disabled by default.');
-requireSource(main,"types: ['screen', 'window']",'DominionStar capture handler must enumerate real screens and windows.');
+requireSource(main,"types: ['screen', 'window']",'DominionStar desktop capture handler must enumerate real screens and windows.');
 requireSource(bootstrap,'macos-native-capture-authority.mjs','Desktop bootstrap must retain capture-capability reporting.');
 requireSource(nativeCapture,"authority: 'dominionstar-custom-picker'",'macOS capability must report DominionStar as primary capture authority.');
 requireSource(nativeCapture,'enabled: false','Native Apple picker must not be enabled as the default user-facing picker.');
@@ -36,4 +38,18 @@ requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must ex
 requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Meeting engine must consume the desktop picker capability.');
 requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Meeting engine must route desktop sharing through the approved DominionStar picker.');
 
-console.log('PASS camera privacy and approved single-authority DominionStar screen-share guardrails.');
+// Web/Netlify authority: standards-compliant browsers must own their own
+// screen/window chooser via getDisplayMedia. The web build is intentionally
+// lighter and must never depend on Electron/native permission bridges.
+requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Browser sharing must use standards-native getDisplayMedia.');
+requireSource(shareView,'const isDesktop = Boolean(window.dominionDesktop?.isDesktop)','Share controls must explicitly distinguish desktop from browser runtime.');
+requireSource(shareView,"if (isDesktop && !document.querySelector('script[data-ds-operation-2030-bootstrap]'))",'Ordinary browsers must not auto-load the full desktop Operation 2030 bootstrap.');
+requireSource(shareView,'media.__dsWebDisplayMediaBoundary = true','Browser display-media normalization boundary is missing.');
+requireSource(shareView,'if (!window.isSecureContext)','Browser sharing must fail clearly outside HTTPS instead of presenting a misleading permission error.');
+requireSource(shareView,"audio: chromiumFamily && Boolean(requested.audio)",'Safari/Firefox screen sharing must not be blocked by unsupported system-audio requests.');
+requireSource(shareView,"name === 'NotAllowedError' || name === 'SecurityError'",'Browser/OS screen-share denial must have an actionable recovery message.');
+requireSource(shareView,"name === 'InvalidStateError'",'Browser transient-user-activation failures must be diagnosed separately.');
+requireSource(netlify,'Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"','Netlify Meet route must explicitly allow browser camera, microphone, display capture and fullscreen.');
+requireSource(headers,'Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)','Published Netlify headers must preserve Meet media/display-capture permissions.');
+
+console.log('PASS camera privacy plus desktop/browser single-authority screen-share guardrails.');
