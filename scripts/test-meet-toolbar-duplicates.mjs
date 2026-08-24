@@ -10,6 +10,7 @@ const operationBootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const presenterHtml = read('desktop 2/src/presenter-toolbar.html');
 const presenterJs = read('desktop 2/src/presenter-toolbar.js');
+const presenterPreload = read('desktop 2/src/presenter-preload.cjs');
 const desktopMain = read('desktop 2/src/main-v2.mjs');
 const presenterParity = read('desktop 2/src/presenter-command-parity.mjs');
 
@@ -99,24 +100,31 @@ assert(desktopPreload.includes('const existing = document.querySelector(`script[
 assert.equal(countText(desktopPreload, "'/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime'"), 1, 'Desktop preload must have one Operation 2030 injection site.');
 assert.equal(countText(desktopPreload, "'/assets/js/meet/illustration-ui-parity.js?v=1-final-ui-blueprint'"), 1, 'Desktop preload must have one illustration parity injection site.');
 
-// 7) IPC duplicate-fire protection: two listeners intentionally share the
-// presenter channel, but they must own disjoint command sets. An overlap would
-// execute one toolbar click twice and is therefore a release blocker.
-const presenterRouterNeedle = "ipcMain.on('desktop:presenter-command'";
-assert(desktopMain.includes(presenterRouterNeedle), 'Main presenter command router is missing.');
-assert(presenterParity.includes(presenterRouterNeedle), 'Parity presenter command router is missing.');
-const presenterRouterStart = desktopMain.indexOf(presenterRouterNeedle);
+// 7) IPC duplicate-fire protection: core presenter actions and specialist
+// parity actions must enter native code through separate channels. This avoids
+// duplicate listener ownership entirely rather than merely keeping allowlists
+// disjoint on one shared channel.
+const coreChannel = 'desktop:presenter-command';
+const parityChannel = 'desktop:presenter-parity-command';
+assert(desktopMain.includes(`ipcMain.on('${coreChannel}'`), 'Main core presenter command router is missing.');
+assert(!desktopMain.includes(`ipcMain.on('${parityChannel}'`), 'Main core module must not own the parity presenter channel.');
+assert(presenterParity.includes(`ipcMain.on('${parityChannel}'`), 'Dedicated parity presenter command router is missing.');
+assert(!presenterParity.includes(`ipcMain.on('${coreChannel}'`), 'Parity module must not register a second core presenter command listener.');
+assert(presenterPreload.includes("const parityCommands=new Set(['layout','annotate','show-meeting','slide-control'])"), 'Presenter preload must declare the dedicated parity command set.');
+assert(presenterPreload.includes("parityCommands.has(command)?'desktop:presenter-parity-command':'desktop:presenter-command'"), 'Presenter preload must route parity and core controls onto separate IPC channels.');
+
+const presenterRouterStart = desktopMain.indexOf(`ipcMain.on('${coreChannel}'`);
 const presenterRouterSource = desktopMain.slice(presenterRouterStart, presenterRouterStart + 1800);
 const mainAllowedMatch = presenterRouterSource.match(/const allowed = new Set\(\[([^\]]+)\]\);/);
 assert(mainAllowedMatch, 'Unable to audit main presenter command allowlist.');
 const mainCommands = matches(mainAllowedMatch[1], /'([^']+)'/g).map(match => match[1]);
 const parityCommands = ['show-meeting','layout','annotate','slide-control'];
 const overlap = mainCommands.filter(command => parityCommands.includes(command));
-assert.deepEqual(overlap, [], `Presenter IPC command ownership overlaps and may double-fire: ${overlap.join(', ')}`);
+assert.deepEqual(overlap, [], `Presenter command ownership overlaps across core/parity channels: ${overlap.join(', ')}`);
 const nativeCommands = new Set([...presenterCommands, 'slide-control']);
 for (const command of nativeCommands) {
   if (command === 'more') continue; // More is consumed locally by presenter-toolbar.js.
   assert(mainCommands.includes(command) || parityCommands.includes(command), `Native presenter command ${command} has no command owner.`);
 }
 
-console.log(`DOMINIONSTAR_TOOLBAR_DUPLICATE_AUDIT_OK ids=${htmlIds.length} presenterCommands=${presenterCommands.length} bootstrapMarkers=${bootstrapMarkers.length}`);
+console.log(`DOMINIONSTAR_TOOLBAR_DUPLICATE_AUDIT_OK ids=${htmlIds.length} presenterCommands=${presenterCommands.length} bootstrapMarkers=${bootstrapMarkers.length} ipcChannels=2-separated`);
