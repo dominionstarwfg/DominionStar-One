@@ -5,13 +5,15 @@ const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'u
 
 const memberLogin = read('assets/js/member-login.js');
 const camera = read('assets/js/meet/camera-device-stability.js');
-const screenGuard = read('assets/js/meet/screen-permission-ui-guard.js');
+const picker = read('assets/js/meet/desktop-share-picker.js');
 const engine = read('assets/js/meeting-engine.js');
 const main = read('desktop 2/src/main-v2.mjs');
 const bootstrap = read('desktop 2/src/bootstrap.mjs');
 const preload = read('desktop 2/src/preload.cjs');
+const desktopSession = read('desktop 2/src/desktop-session.mjs');
 const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
 const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
+const screenLifecycle = read('desktop 2/src/screen-permission-lifecycle.mjs');
 
 // Desktop authentication is a Meet flow, not an embedded copy of the public site.
 assert(memberLogin.includes("provider: 'google'"), 'Desktop login must expose Google OAuth.');
@@ -24,43 +26,36 @@ assert(memberLogin.includes("returnLink.textContent = '← Back to DominionStar 
 assert(memberLogin.includes("return '/meet-home/?desktop=1'"), 'Desktop authentication must default back to Meet Home.');
 assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"), 'Native app must accept the DominionStar OAuth callback.');
 
-// The desktop shell is a meeting application, not a generic embedded browser.
+// Desktop shell must never expose Netlify review infrastructure.
 assert(bootstrap.indexOf("await import('./desktop-navigation-authority.mjs')") < bootstrap.indexOf("await import('./main-v2.mjs')"), 'Desktop navigation authority must load before main window startup.');
 assert(navigation.includes("const INTERNAL_PATHS = new Set(['/meet', '/meet-home', '/meet-login', '/member-login'])"), 'Desktop internal route allowlist changed unexpectedly.');
-assert(navigation.includes("const ACCOUNT_RETURN_PATHS = new Set(['/member-dashboard', '/workspace'])"), 'Desktop account-return routes must resolve back to Meet Home.');
 assert(navigation.includes("void shell.openExternal(url.toString())"), 'Public DominionStar routes must open in the system browser instead of replacing the desktop app.');
-assert(navigation.includes("target.searchParams.set('ntl-drawer-state', 'hidden')"), 'QA preview routes must request a hidden Netlify collaboration drawer.');
-assert(navigation.includes("Collaborate on this Deploy Preview"), 'QA desktop shell must actively remove leaked Netlify preview chrome.');
-assert(navigation.includes("Log in to the Netlify Drawer"), 'QA Netlify drawer removal must cover the collaboration prompt.');
-assert(navigation.includes("contents.executeJavaScript(script, true)"), 'QA preview chrome suppression must run inside the actual desktop renderer.');
-assert(navigation.includes("target.searchParams.set('desktop', '1')"), 'Internal desktop navigation must preserve desktop mode.');
+assert(desktopSession.includes("target.searchParams.set('ntl-drawer-state', 'hidden')"), 'Every preview load must request Netlify Drawer hidden state.');
+assert(navigation.includes("src.includes('app.netlify.com')") && navigation.includes("iframe.remove()"), 'Desktop navigation authority must remove cross-origin Netlify drawer frames.');
+assert(preload.includes('installQaPreviewChromeBlocker') && preload.includes('iframe[src*="app.netlify.com"]'), 'Preload must independently suppress injected Netlify review frames.');
+assert(navigation.includes('Collaborate on this Deploy Preview') && navigation.includes('Log in to the Netlify Drawer'), 'Visible-text cleanup must remain a fallback for Netlify variants.');
 
-// Camera can be visibly live even while enumerateDevices is briefly empty.
-assert(camera.includes('let lastLiveVideoTrack = null;'), 'Camera layer must retain the active video track.');
-assert(camera.includes("if (lastLiveVideoTrack?.readyState === 'live') return lastLiveVideoTrack;"), 'Active video track must be authoritative for camera identity.');
-assert(camera.includes('activeSynthetic: true'), 'Camera settings must synthesize an active-device row when enumeration lags.');
+// Camera Off is a physical privacy invariant, not a CSS state.
+assert(camera.includes('const prejoinCameraPreferenceOff'), 'Camera layer must know when prejoin Video Off is selected.');
+assert(camera.includes('const enforcePrejoinCameraPrivacy'), 'Camera layer must actively enforce Video Off.');
+assert(camera.includes("if (track.readyState !== 'ended') track.stop()"), 'Video Off must physically stop a live camera track.');
+assert(camera.includes('if (requested.video && prejoinCameraPreferenceOff()) stopVideoTracks(stream)'), 'Background/prejoin media requests must not resurrect the camera while Video Off is selected.');
+assert(camera.includes('unwrapPhysicalTrack'), 'Processed camera effects must retain the physical source as authority.');
+assert(camera.includes('knownLabels'), 'Camera layer must cache resolved hardware labels.');
+assert(camera.includes('looksOpaqueLabel'), 'Camera settings must reject opaque device IDs as user-facing labels.');
 assert(camera.includes('activeCameraDeviceId:'), 'Camera diagnostics must expose the active deviceId.');
-assert(camera.includes('scheduleDeviceRefresh'), 'Camera labels must be re-hydrated after media startup.');
 
-// macOS Screen Recording can change while the app is open. Permission recovery
-// must recognize both DominionStar-owned and Apple-owned Settings flows.
-assert(screenGuard.includes("window.addEventListener('blur'"), 'Screen permission recovery must detect OS-owned settings flows.');
-assert(screenGuard.includes('PERMISSION_FLOW_KEY'), 'Screen permission flow state must survive blur/focus transitions.');
-assert(screenGuard.includes('relaunchOnceAfterPermissionFlow'), 'Newly granted macOS screen permission must be applied by one controlled relaunch.');
-assert(screenGuard.includes("restart.textContent = 'Retry Capture'"), 'Granted screen permission must retry capture instead of looping back to Settings.');
-assert(screenGuard.includes("version: '1.1.0'"), 'Updated macOS permission recovery layer must be active.');
-
-// Approved UI authority: the DominionStar source picker owns the normal macOS
-// experience. Apple/Electron's picker can be detected as fallback capability,
-// but must not replace the approved Screens / Application windows interface.
+// One desktop screen-share authority: branded picker + native permission lifecycle.
 assert(bootstrap.includes("await import('./macos-native-capture-authority.mjs')"), 'Desktop bootstrap must retain capture capability reporting.');
-assert(nativeCapture.includes('major >= 15'), 'Native picker availability must be limited to supported macOS versions.');
 assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"), 'macOS must report DominionStar as the primary capture authority.');
 assert(nativeCapture.includes('enabled: false'), 'Apple system picker must be disabled as the primary user-facing picker.');
-assert(nativeCapture.includes('available: supportsNativeMacPicker()'), 'Apple system picker may remain detectable as an emergency fallback.');
-assert(preload.includes('systemSharePicker: nativeSystemPicker'), 'Preload must expose the final system-picker state.');
-assert(preload.includes('customSharePicker: !nativeSystemPicker'), 'Preload must expose DominionStar picker authority when native mode is off.');
-assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'), 'Meeting engine must consume capture authority.');
-assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'), 'Meeting engine must route normal desktop sharing through the approved DominionStar picker.');
+assert(preload.includes('systemSharePicker: nativeSystemPicker') && preload.includes('customSharePicker: !nativeSystemPicker'), 'Preload must expose one final capture authority.');
+assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'), 'Meeting engine must route desktop sharing through the branded picker.');
+assert(picker.includes('if(!dialog.open)dialog.showModal()'), 'Share click must open the branded picker immediately.');
+assert(picker.includes("data-filter=\"screen\">Screens"), 'Source picker must have a real Screens tab.');
+assert(picker.includes("data-filter=\"window\">Application windows"), 'Source picker must have a real Application windows tab.');
+assert(picker.includes('SOURCE_RETRY_DELAYS'), 'Share source enumeration must retry instead of appearing dead.');
+assert(screenLifecycle.includes('QA_PREVIEW_HOST'), 'QA preview must receive the same native screen-permission state as production.');
+assert(!read('assets/js/meet/operation-2030-bootstrap.js').includes('screen-permission-ui-guard.js'), 'Duplicate browser screen-permission authority must remain out of the active runtime.');
 
-console.log('Real Mac OAuth/navigation/camera/approved-share-picker regression contract passed.');
+console.log('Real Mac OAuth/navigation/camera-privacy/share-picker regression contract passed.');
