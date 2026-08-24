@@ -15,6 +15,7 @@ const hostedPresenterParity = read('assets/js/meet/presenter-command-web-parity.
 const nativePresenterParity = read('desktop 2/src/presenter-command-parity.mjs');
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const desktopMain = read('desktop 2/src/main-v2.mjs');
+const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
 const presenterDock = read('desktop 2/src/presenter-dock.mjs');
 const presenterDockHtml = read('desktop 2/src/presenter-dock.html');
 const qaWorkflow = read('.github/workflows/desktop-pr-verify.yml');
@@ -22,11 +23,14 @@ const qaWorkflow = read('.github/workflows/desktop-pr-verify.yml');
 const indexOfCommand = command => presenterToolbar.indexOf(`data-command="${command}"`);
 const assertBefore = (a, b) => assert(indexOfCommand(a) >= 0 && indexOfCommand(b) >= 0 && indexOfCommand(a) < indexOfCommand(b), `${a} must appear before ${b} in the approved presenter toolbar.`);
 
-assert(bootstrap.includes('screen-permission-ui-guard.js'), 'Certified runtime must keep the screen-permission guard.');
+assert(bootstrap.includes('screen-permission-ui-guard.js'), 'Certified runtime must keep the custom-picker screen-permission fallback.');
 assert(bootstrap.includes('quick-device-menu-parity.js'), 'Certified runtime must keep Zoom-class device menus.');
 assert(bootstrap.includes('share-optimization-parity.js'), 'Certified runtime must keep screen-share optimization.');
 assert(bootstrap.includes('presenter-command-web-parity.js'), 'Certified runtime must load presenter command routing.');
-assert(permission.includes('Capture initialization failed') && permission.includes('Retry Capture'), 'Granted screen permission must never loop back to another permission prompt.');
+assert(permission.includes("restart.textContent = 'Retry Capture'"), 'Granted fallback screen permission must retry capture instead of reopening Settings.');
+assert(permission.includes('settings.hidden = true'), 'Granted fallback permission must hide the Settings action.');
+assert(nativeCapture.includes('{ useSystemPicker: true }'), 'Supported macOS must finish with Electron/Apple native picker authority.');
+assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker') && desktopPreload.includes('customSharePicker: !nativeSystemPicker'), 'Renderer must advertise exactly one active share-picker authority.');
 for (const required of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…']) {
   assert(quickDeviceMenu.includes(required), `Quick device controls must retain ${required}.`);
 }
