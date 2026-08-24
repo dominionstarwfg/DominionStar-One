@@ -41,6 +41,7 @@
   [headers.values]
     Cache-Control = "no-store"
     X-Content-Type-Options = "nosniff"
+    Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"
 
 [[headers]]
   for = "/meet-home/*"
