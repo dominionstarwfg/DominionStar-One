@@ -3,16 +3,11 @@
 
   const isDesktop = Boolean(window.dominionDesktop?.isDesktop);
 
-  // The full Operation 2030 bootstrap belongs to the installed desktop client.
-  // Browser/Netlify users keep a standards-native, intentionally lighter
-  // runtime so desktop-only media/presenter layers cannot interfere with the
-  // browser's own screen-capture permission and chooser model.
-  if (isDesktop && !document.querySelector('script[data-ds-operation-2030-bootstrap]')) {
-    const bootstrap = document.createElement('script');
-    bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js?v=1-certified-release';
-    bootstrap.dataset.dsOperation2030Bootstrap = '1';
-    document.head.append(bootstrap);
-  }
+  // Runtime ownership is intentionally strict:
+  // - installed desktop: preload owns Operation 2030 and all advanced modules;
+  // - browser/Netlify: this page may load only the browser-safe fallbacks below.
+  // Keeping that boundary here prevents parser-time web scripts from racing the
+  // native preload and creating duplicate media/share authorities in Electron.
 
   // Browser screen sharing must remain standards-native. Web pages cannot and
   // should not enumerate arbitrary desktop windows themselves; the browser owns
@@ -73,7 +68,7 @@
     };
     media.__dsWebDisplayMediaBoundary = true;
     window.DominionWebScreenShare = Object.freeze({
-      version:'1.0.0',
+      version:'1.0.1',
       mode:'browser-native-picker',
       browser:browserName,
       secure:Boolean(window.isSecureContext),
@@ -231,10 +226,10 @@
   new MutationObserver(watchPresentation).observe(document.body,{attributes:true,attributeFilter:['class']});
   window.addEventListener('resize',()=>requestAnimationFrame(positionAnnotationToolbar),{passive:true});
 
-  // Browser-safe share controls load independently. In desktop mode the native
-  // bootstrap claims the same markers first, so these remain compatibility
-  // fallbacks without creating duplicate feature owners.
-  if (!document.querySelector('script[data-ds-share-annotation]')) {
+  // These compatibility modules are browser-only. The installed application
+  // receives the same/expanded capabilities through the trusted preload-owned
+  // Operation 2030 bootstrap, never through parser-time web fallback loading.
+  if (!isDesktop && !document.querySelector('script[data-ds-share-annotation]')) {
     const annotationScript = document.createElement('script');
     annotationScript.src = '/assets/js/meet/share-annotation.js?v=1-operation-2030';
     annotationScript.dataset.dsShareAnnotation = '1';
@@ -245,21 +240,21 @@
     document.head.append(annotationScript);
   }
 
-  if (!document.querySelector('script[data-ds-share-spotlight]')) {
+  if (!isDesktop && !document.querySelector('script[data-ds-share-spotlight]')) {
     const spotlightScript = document.createElement('script');
     spotlightScript.src = '/assets/js/meet/share-spotlight.js?v=1-operation-2030';
     spotlightScript.dataset.dsShareSpotlight = '1';
     document.head.append(spotlightScript);
   }
 
-  if (!document.querySelector('script[data-ds-presentation-handoff]')) {
+  if (!isDesktop && !document.querySelector('script[data-ds-presentation-handoff]')) {
     const handoffScript = document.createElement('script');
     handoffScript.src = '/assets/js/meet/presentation-handoff.js?v=1-operation-2030';
     handoffScript.dataset.dsPresentationHandoff = '1';
     document.head.append(handoffScript);
   }
 
-  if (!document.querySelector('script[data-ds-share-arbitration]')) {
+  if (!isDesktop && !document.querySelector('script[data-ds-share-arbitration]')) {
     const arbitrationScript = document.createElement('script');
     arbitrationScript.src = '/assets/js/meet/share-arbitration.js?v=1-operation-2030';
     arbitrationScript.dataset.dsShareArbitration = '1';
@@ -273,14 +268,14 @@
     document.head.append(arbitrationScript);
   }
 
-  if (!document.querySelector('script[data-ds-meeting-identity-bridge]')) {
+  if (!isDesktop && !document.querySelector('script[data-ds-meeting-identity-bridge]')) {
     const identityScript = document.createElement('script');
     identityScript.src = '/assets/js/meet/meeting-identity-bridge.js?v=1-operation-2030';
     identityScript.dataset.dsMeetingIdentityBridge = '1';
     document.head.append(identityScript);
   }
 
-  if (!document.querySelector('script[data-ds-camera-reaction-polish]')) {
+  if (!isDesktop && !document.querySelector('script[data-ds-camera-reaction-polish]')) {
     const polishScript = document.createElement('script');
     polishScript.src = '/assets/js/meet/camera-reaction-polish.js?v=2-operation-2030-rebased';
     polishScript.dataset.dsCameraReactionPolish = '1';
@@ -288,7 +283,7 @@
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '2.1.0',
+    version: '2.2.0',
     runtimeMode: isDesktop ? 'desktop' : 'browser',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent(), runtimeMode:isDesktop?'desktop':'browser' })
