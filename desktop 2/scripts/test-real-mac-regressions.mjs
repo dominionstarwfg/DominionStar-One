@@ -11,6 +11,7 @@ const main = read('desktop 2/src/main-v2.mjs');
 const bootstrap = read('desktop 2/src/bootstrap.mjs');
 const preload = read('desktop 2/src/preload.cjs');
 const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
+const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
 
 // Real-device regression: desktop authentication must remain a Meet flow, not
 // embed the public DominionStar website inside the Electron application.
@@ -20,6 +21,16 @@ assert(memberLogin.includes("skipBrowserRedirect: true"), 'Desktop Google OAuth 
 assert(memberLogin.includes("returnLink.textContent = '← Back to DominionStar Meet'"), 'Desktop login must return to DominionStar Meet, not the public platform.');
 assert(memberLogin.includes("return '/meet-home/?desktop=1'"), 'Desktop authentication must default back to Meet Home.');
 assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"), 'Native app must accept the DominionStar OAuth callback.');
+
+// The desktop shell is a meeting application, not an embedded browser for the
+// public DominionStar site. Register navigation authority before main-v2 creates
+// the first BrowserWindow and force QA preview chrome out of internal routes.
+assert(bootstrap.indexOf("await import('./desktop-navigation-authority.mjs')") < bootstrap.indexOf("await import('./main-v2.mjs')"), 'Desktop navigation authority must load before main window startup.');
+assert(navigation.includes("const INTERNAL_PATHS = new Set(['/meet', '/meet-home', '/meet-login', '/member-login'])"), 'Desktop internal route allowlist changed unexpectedly.');
+assert(navigation.includes("const ACCOUNT_RETURN_PATHS = new Set(['/member-dashboard', '/workspace'])"), 'Desktop account-return routes must resolve back to Meet Home.');
+assert(navigation.includes("void shell.openExternal(url.toString())"), 'Public DominionStar routes must open in the system browser instead of replacing the desktop app.');
+assert(navigation.includes("target.searchParams.set('ntl-drawer-state', 'hidden')"), 'QA preview routes must suppress the Netlify collaboration drawer.');
+assert(navigation.includes("target.searchParams.set('desktop', '1')"), 'Internal desktop navigation must preserve desktop mode.');
 
 // Real-device regression: camera can be visibly live even while enumerateDevices
 // is briefly empty. Settings must still identify the physical active track.
@@ -49,4 +60,4 @@ assert(preload.includes('customSharePicker: !nativeSystemPicker'), 'Preload must
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'), 'Meeting engine must consume the native picker capability.');
 assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'), 'Meeting engine must never open both picker authorities.');
 
-console.log('Real Mac auth/camera/single-authority screen-share regression contract passed.');
+console.log('Real Mac auth/navigation/camera/single-authority screen-share regression contract passed.');
