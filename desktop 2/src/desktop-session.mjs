@@ -4,6 +4,18 @@ export const FRESH_NAVIGATION_OPTIONS = Object.freeze({
 
 const preparedSessions = new WeakSet();
 const guardianFilteredSessions = new WeakSet();
+const NETLIFY_PREVIEW_HOST = /(?:^|\.)netlify\.app$/i;
+
+export function normalizeDesktopHostedUrl(value) {
+  const target = new URL(String(value || ''));
+  // Netlify officially supports ntl-drawer-state=hidden for automated/embedded
+  // Deploy Preview clients. DominionStar Meet is a desktop application, not a
+  // review surface, so every preview navigation is normalized before render.
+  if (NETLIFY_PREVIEW_HOST.test(target.hostname)) {
+    target.searchParams.set('ntl-drawer-state', 'hidden');
+  }
+  return target;
+}
 
 function installNativeGuardianAuthority(desktopSession) {
   if (!desktopSession || guardianFilteredSessions.has(desktopSession)) return;
@@ -48,7 +60,7 @@ export async function refreshHostedMeetingAssets(desktopSession, origin) {
 
 export async function loadFreshPage(window, url) {
   if (!window || window.isDestroyed()) return undefined;
-  const target = new URL(url);
+  const target = normalizeDesktopHostedUrl(url);
   try {
     await refreshHostedMeetingAssets(window.webContents.session, target.origin);
   } catch (error) {
