@@ -5,7 +5,7 @@
     "assets/js/meeting-engine.js": "096cb00f9775588c11b38d53829a3eec63dc0d68dd7efdc8d21a78d2c2c6f715",
     "assets/js/runtime/event-bus.js": "dec57ef8d067e22d755dd63e24ad922d5937d0b0a9b8c70c95586d6152dfacd3",
     "assets/js/runtime/guardian-certification.js": "158b7a02ca8e49eae1aecbb740a7dae71db52aa2496efce5406fc0c6b14448d3",
-    "assets/js/meet/camera-device-stability.js": "0516094f5719a1867bb6e06db306e0a77a9e023da51cb1a5326e182497d44920",
+    "assets/js/meet/camera-device-stability.js": "a439c0a304e85425529fdcb2f25002a60b5ff8dec8ee1e6db055fa28cf8dcc9e",
     "assets/js/meet/desktop-share-picker.js": "bec96cd11d1d2ba4d632af16eff88d7193238c188b3f05cec4739f979eb99713",
     "assets/js/meet/remote-control.js": "09e889b5dcc0ea8029ae85d783e530152b1f7c6926fcd09065dde194423296da",
     "assets/js/meet/live-transcription.js": "fbb51cac337a2c811eb7ffcf165d469b694b73a0f785c94c62ffd4ff24598cb1",
