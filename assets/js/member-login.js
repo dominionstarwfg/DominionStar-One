@@ -5,6 +5,8 @@
   const registerForm = document.getElementById('memberRegisterForm');
   const resetForm = document.getElementById('memberResetForm');
   const tabs = [...document.querySelectorAll('[data-member-tab]')];
+  const params = new URLSearchParams(window.location.search);
+  const isDesktop = params.get('desktop') === '1' && Boolean(window.dominionDesktop?.isDesktop);
 
   [loginForm, registerForm, resetForm].forEach(form => {
     if (form) {
@@ -25,7 +27,48 @@
     message.className = 'member-message';
   }
 
+  function desktopHome() {
+    if (isDesktop && window.dominionDesktop?.goHome) {
+      window.dominionDesktop.goHome();
+      return;
+    }
+    window.location.href = '/meet-home/?desktop=1';
+  }
+
+  function requestedDestination() {
+    const requestedNext = params.get('next') || '';
+    if (isDesktop) {
+      const allowed = ['/meet/','/meet-home/','/member-login/','/meet-login/'];
+      try {
+        const target = new URL(requestedNext || '/meet-home/?desktop=1', window.location.origin);
+        if (target.origin === window.location.origin && allowed.some(path => target.pathname === path || target.pathname === path.slice(0,-1))) {
+          target.searchParams.set('desktop','1');
+          return `${target.pathname}${target.search}${target.hash}`;
+        }
+      } catch {}
+      return '/meet-home/?desktop=1';
+    }
+    return requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+      ? requestedNext
+      : '/member-dashboard/';
+  }
+
   tabs.forEach(btn => btn.addEventListener('click', () => activate(btn.dataset.memberTab)));
+
+  if (isDesktop) {
+    document.documentElement.dataset.dominionDesktop = '1';
+    const returnLink = document.querySelector('a.text-link[href="/"]');
+    if (returnLink) {
+      returnLink.textContent = '← Back to DominionStar Meet';
+      returnLink.href = '/meet-home/?desktop=1';
+      returnLink.addEventListener('click', event => {
+        event.preventDefault();
+        desktopHome();
+      });
+    }
+    const systemCheck = document.querySelector('a.member-back-link');
+    if (systemCheck) systemCheck.hidden = true;
+  }
 
   if (!window.DSAuth?.ready) {
     showMessage('Authentication configuration is missing from this deployment.', 'error');
@@ -36,6 +79,57 @@
   if (!supabase) {
     showMessage('Authentication could not load. Check the internet connection, then refresh the page.', 'error');
     return;
+  }
+
+  if (isDesktop) {
+    const googleButton = document.createElement('button');
+    googleButton.id = 'desktopGoogleLogin';
+    googleButton.type = 'button';
+    googleButton.className = 'btn';
+    googleButton.style.cssText = 'width:100%;margin:0 0 14px;border:1px solid #ffffff24;background:#fff;color:#111827;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;';
+    googleButton.innerHTML = '<span aria-hidden="true" style="font-size:18px;font-weight:900">G</span><span>Continue with Google</span>';
+    loginForm.parentNode.insertBefore(googleButton, loginForm);
+
+    const divider = document.createElement('div');
+    divider.setAttribute('aria-hidden','true');
+    divider.style.cssText = 'display:flex;align-items:center;gap:10px;margin:0 0 14px;color:#8f99aa;font-size:12px;';
+    divider.innerHTML = '<span style="height:1px;background:#ffffff18;flex:1"></span><span>or sign in with email</span><span style="height:1px;background:#ffffff18;flex:1"></span>';
+    loginForm.parentNode.insertBefore(divider, loginForm);
+
+    googleButton.addEventListener('click', async () => {
+      googleButton.disabled = true;
+      showMessage('Opening secure Google sign-in…', 'info');
+      try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: 'dominionstar://auth/callback',
+            skipBrowserRedirect: true
+          }
+        });
+        if (error) throw error;
+        if (!data?.url) throw new Error('Google sign-in URL was not returned.');
+        const opened = await window.dominionDesktop?.openExternal?.(data.url);
+        if (!opened) throw new Error('DominionStar Meet could not open the secure Google sign-in window.');
+        showMessage('Complete Google sign-in in your browser. DominionStar Meet will return here automatically.', 'info');
+      } catch (error) {
+        googleButton.disabled = false;
+        showMessage(error?.message || 'Google sign-in could not start.', 'error');
+      }
+    });
+  }
+
+  if (isDesktop && params.get('oauth') === 'complete') {
+    showMessage('Finishing secure sign-in…', 'info');
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) {
+        window.location.replace(requestedDestination());
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+    showMessage('Google sign-in returned, but the session was not ready. Choose Continue with Google again.', 'error');
   }
 
   loginForm.addEventListener('submit', async event => {
@@ -56,11 +150,7 @@
       return;
     }
 
-    const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
-    const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//')
-      ? requestedNext
-      : '/member-dashboard/';
-    window.location.href = safeNext;
+    window.location.href = requestedDestination();
   });
 
   registerForm.addEventListener('submit', async event => {
@@ -101,7 +191,7 @@
     event.preventDefault();
     const email = resetForm.email.value.trim().toLowerCase();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/member-login/`
+      redirectTo: `${window.location.origin}/member-login/${isDesktop ? '?desktop=1' : ''}`
     });
     if (error) return showMessage(error.message, 'error');
     showMessage('Password reset email sent.', 'success');
