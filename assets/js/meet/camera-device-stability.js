@@ -41,8 +41,13 @@
     return source?.readyState === 'live' ? source : track;
   };
 
-  const prejoinCameraPreferenceOff = () => {
+  const prejoinCameraOff = () => {
     if (!document.body?.classList?.contains('prejoin-active')) return false;
+    const button = document.getElementById('preCam');
+    const pressed = String(button?.getAttribute?.('aria-pressed') || '').toLowerCase();
+    if (pressed === 'false') return true;
+    if (pressed === 'true') return false;
+    if (button && !button.classList.contains('active')) return true;
     return Boolean(document.getElementById('alwaysJoinCameraOff')?.checked);
   };
 
@@ -54,7 +59,7 @@
   };
 
   const enforcePrejoinCameraPrivacy = () => {
-    if (!prejoinCameraPreferenceOff()) return false;
+    if (!prejoinCameraOff()) return false;
     const preview = document.getElementById('prejoinVideo');
     if (preview?.srcObject instanceof MediaStream) stopVideoTracks(preview.srcObject);
     const physical = unwrapPhysicalTrack(lastLiveVideoTrack);
@@ -279,11 +284,10 @@
       }
     }
 
-    // Privacy invariant: if the prejoin preference says Camera Off, no video
-    // track is allowed to survive an unrelated/background media request. The
-    // user pressing Start Video clears that preference before requesting a new
-    // track, so intentional camera activation still works normally.
-    if (requested.video && prejoinCameraPreferenceOff()) stopVideoTracks(stream);
+    // Privacy invariant: actual prejoin Video state is authoritative. Saved
+    // preferences may initialize that state, but cannot override what the user
+    // currently sees and selected on the prejoin screen.
+    if (requested.video && prejoinCameraOff()) stopVideoTracks(stream);
     stream?.getTracks?.().forEach(rememberTrack);
     scheduleDeviceRefresh();
     setTimeout(enforcePrejoinCameraPrivacy, 0);
@@ -358,7 +362,7 @@
   setTimeout(() => { refreshDeviceNames().catch(() => {}); enforcePrejoinCameraPrivacy(); }, 900);
 
   window.DominionCameraDeviceStability = Object.freeze({
-    version:'1.3.0',
+    version:'1.4.0',
     refreshDeviceNames,
     enforcePrejoinCameraPrivacy,
     snapshot:async()=>({
@@ -366,7 +370,7 @@
       microphones:(await devices('audioinput')).map(device=>({id:device.deviceId,label:device.label||knownLabels.get(device.deviceId)||''})),
       activeCameraLabel:activeTrack('videoinput')?.label||'',
       activeCameraDeviceId:activeTrack('videoinput')?.getSettings?.().deviceId||'',
-      prejoinCameraOff:prejoinCameraPreferenceOff()
+      prejoinCameraOff:prejoinCameraOff()
     })
   });
 })();
