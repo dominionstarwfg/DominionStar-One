@@ -153,8 +153,7 @@ const realtimeAfter = `  window.DominionRuntime = { events: { publish(){ return 
   };
 });`;
 
-const presentationBefore = `  await host.waitForFunction(() => document.body.classList.contains('local-presentation-active'), null, { timeout: 5000 });
-  await guest.waitForFunction(() => document.body.classList.contains('presentation-active'), null, { timeout: 5000 });`;
+const presentationBefore = `  await guest.waitForFunction(() => document.body.classList.contains('presentation-active'), null, { timeout: 5000 });`;
 
 const presentationAfter = `${presentationBefore}
   assert(await host.locator('#meetingToolbar').isHidden(), 'normal meeting toolbar remained visible while presenting');
