@@ -1,15 +1,87 @@
 (() => {
   'use strict';
 
-  // Release-critical Operation 2030 modules must not depend on Shared Screen
-  // menu DOM or on an onclick handler being installed first. Start the single
-  // deterministic bootstrap before any feature-specific early return below.
-  if (!document.querySelector('script[data-ds-operation-2030-bootstrap]')) {
+  const isDesktop = Boolean(window.dominionDesktop?.isDesktop);
+
+  // The full Operation 2030 bootstrap belongs to the installed desktop client.
+  // Browser/Netlify users keep a standards-native, intentionally lighter
+  // runtime so desktop-only media/presenter layers cannot interfere with the
+  // browser's own screen-capture permission and chooser model.
+  if (isDesktop && !document.querySelector('script[data-ds-operation-2030-bootstrap]')) {
     const bootstrap = document.createElement('script');
     bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js?v=1-certified-release';
     bootstrap.dataset.dsOperation2030Bootstrap = '1';
     document.head.append(bootstrap);
   }
+
+  // Browser screen sharing must remain standards-native. Web pages cannot and
+  // should not enumerate arbitrary desktop windows themselves; the browser owns
+  // that chooser. This boundary only normalizes capability-safe constraints and
+  // converts ambiguous browser errors into actionable DominionStar messages.
+  const installBrowserDisplayMediaBoundary = () => {
+    const media = navigator.mediaDevices;
+    if (isDesktop || !media?.getDisplayMedia || media.__dsWebDisplayMediaBoundary) return false;
+    const nativeGetDisplayMedia = media.getDisplayMedia.bind(media);
+    const ua = String(navigator.userAgent || '');
+    const chromiumFamily = /(?:Chrome|Chromium|Edg)\//i.test(ua) && !/(?:OPR|SamsungBrowser)\//i.test(ua);
+    const browserName = /Edg\//i.test(ua) ? 'Microsoft Edge' : /Chrome\//i.test(ua) ? 'Google Chrome' : /Firefox\//i.test(ua) ? 'Firefox' : /Safari\//i.test(ua) && !/Chrome\//i.test(ua) ? 'Safari' : 'your browser';
+
+    const translate = error => {
+      const name = String(error?.name || '');
+      if (name === 'AbortError') {
+        const cancelled = new Error('Screen sharing was cancelled.');
+        cancelled.name = name;
+        cancelled.cause = error;
+        return cancelled;
+      }
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        const blocked = new Error(`Screen sharing is blocked by ${browserName} or your operating system. Allow screen recording/screen sharing for ${browserName}, then click Share Screen again.`);
+        blocked.name = name || 'NotAllowedError';
+        blocked.cause = error;
+        return blocked;
+      }
+      if (name === 'InvalidStateError') {
+        const activation = new Error('Click Share Screen directly from the meeting controls. Browsers require a fresh user action before they can open the screen chooser.');
+        activation.name = name;
+        activation.cause = error;
+        return activation;
+      }
+      if (name === 'NotSupportedError' || name === 'TypeError') {
+        const unsupported = new Error('This browser cannot start the requested screen-share mode. Use a current desktop version of Chrome, Edge, Safari, or Firefox and try again.');
+        unsupported.name = name || 'NotSupportedError';
+        unsupported.cause = error;
+        return unsupported;
+      }
+      return error;
+    };
+
+    media.getDisplayMedia = options => {
+      if (!window.isSecureContext) {
+        const error = new Error('Screen sharing requires a secure HTTPS connection. Open DominionStar Meet from its HTTPS address and try again.');
+        error.name = 'SecurityError';
+        return Promise.reject(error);
+      }
+      const requested = options && typeof options === 'object' ? options : {};
+      const safeOptions = {
+        video: requested.video || true,
+        // Chromium can expose tab/system audio where the selected source and
+        // operating system support it. Safari/Firefox remain video-first so an
+        // unsupported audio request can never block the screen picker itself.
+        audio: chromiumFamily && Boolean(requested.audio)
+      };
+      return nativeGetDisplayMedia(safeOptions).catch(error => Promise.reject(translate(error)));
+    };
+    media.__dsWebDisplayMediaBoundary = true;
+    window.DominionWebScreenShare = Object.freeze({
+      version:'1.0.0',
+      mode:'browser-native-picker',
+      browser:browserName,
+      secure:Boolean(window.isSecureContext),
+      systemAudioRequestedOnlyOnChromium:true
+    });
+    return true;
+  };
+  installBrowserDisplayMediaBoundary();
 
   const button = document.getElementById('shareViewerMoreBtn');
   const menu = document.getElementById('deviceMenu');
@@ -159,9 +231,9 @@
   new MutationObserver(watchPresentation).observe(document.body,{attributes:true,attributeFilter:['class']});
   window.addEventListener('resize',()=>requestAnimationFrame(positionAnnotationToolbar),{passive:true});
 
-  // Legacy per-feature loaders remain as compatibility fallbacks. The release
-  // bootstrap above owns deterministic loading and claims the same markers, so
-  // these blocks become no-ops on the certified path.
+  // Browser-safe share controls load independently. In desktop mode the native
+  // bootstrap claims the same markers first, so these remain compatibility
+  // fallbacks without creating duplicate feature owners.
   if (!document.querySelector('script[data-ds-share-annotation]')) {
     const annotationScript = document.createElement('script');
     annotationScript.src = '/assets/js/meet/share-annotation.js?v=1-operation-2030';
@@ -216,8 +288,9 @@
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '2.0.0',
+    version: '2.1.0',
+    runtimeMode: isDesktop ? 'desktop' : 'browser',
     applyView,
-    snapshot: () => ({ ...view, fitPercent: fitPercent() })
+    snapshot: () => ({ ...view, fitPercent: fitPercent(), runtimeMode:isDesktop?'desktop':'browser' })
   });
 })();
