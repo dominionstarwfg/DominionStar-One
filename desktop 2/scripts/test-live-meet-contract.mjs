@@ -122,10 +122,15 @@ console.log('LIVE_MEET_ACCEPTANCE', JSON.stringify({
 }));
 
 assert.ok(!String(snapshot.body || '').includes('Desktop update required'), 'Live Meet rendered the false Desktop update required blocker');
+assert.ok(!String(snapshot.body || '').includes('Collaborate on this Deploy Preview'), 'Netlify collaboration chrome leaked into the packaged desktop surface');
+assert.ok(!String(snapshot.body || '').includes('Log in to the Netlify Drawer'), 'Netlify drawer prompt leaked into the packaged desktop surface');
 assert.ok(snapshot.runtime, `Desktop runtime info unavailable: ${snapshot.error || lastError?.message || 'unknown error'}`);
 assert.ok(snapshot.contract?.releaseId, 'Live release contract did not expose releaseId');
 assert.equal(snapshot.runtime.meetReleaseId, snapshot.contract.releaseId, 'Native runtime meetReleaseId does not match the live Meet contract');
 assert.equal(snapshot.runtime.meetReleaseCompatible, true, 'Native runtime did not mark the live Meet release compatible');
 assert.ok(Number(snapshot.runtime.bridgeVersion) >= Number(snapshot.contract.desktopBridge || 0), 'Native bridge is below the live Meet minimum');
+assert.equal(snapshot.runtime.captureAuthority, 'dominionstar-custom-picker', 'Packaged desktop app must keep the approved DominionStar source picker as primary');
+assert.equal(snapshot.runtime.systemSharePicker, false, 'Packaged desktop app must not silently switch to Apple system picker');
+assert.equal(snapshot.runtime.customSharePicker, true, 'Packaged desktop app must expose the approved branded source picker');
 assert.ok(stableCount >= 2, 'Live Meet renderer never remained stable across two consecutive probes');
-console.log(`Live Meet desktop contract acceptance passed: releaseId=${snapshot.contract.releaseId} bridge=${snapshot.runtime.bridgeVersion}/${snapshot.contract.desktopBridge} stableHref=${snapshot.href}`);
+console.log(`Live Meet desktop contract acceptance passed: releaseId=${snapshot.contract.releaseId} bridge=${snapshot.runtime.bridgeVersion}/${snapshot.contract.desktopBridge} capture=${snapshot.runtime.captureAuthority} stableHref=${snapshot.href}`);
