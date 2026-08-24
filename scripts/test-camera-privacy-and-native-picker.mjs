@@ -3,6 +3,9 @@ import fs from 'node:fs';
 const engine=fs.readFileSync(new URL('../assets/js/meeting-engine.js',import.meta.url),'utf8');
 const ui=fs.readFileSync(new URL('../assets/js/meet-next/executive6.js',import.meta.url),'utf8');
 const main=fs.readFileSync(new URL('../desktop 2/src/main-v2.mjs',import.meta.url),'utf8');
+const bootstrap=fs.readFileSync(new URL('../desktop 2/src/bootstrap.mjs',import.meta.url),'utf8');
+const preload=fs.readFileSync(new URL('../desktop 2/src/preload.cjs',import.meta.url),'utf8');
+const nativeCapture=fs.readFileSync(new URL('../desktop 2/src/macos-native-capture-authority.mjs',import.meta.url),'utf8');
 
 const requireSource=(source,needle,message)=>{if(!source.includes(needle))throw new Error(message);};
 
@@ -18,14 +21,19 @@ requireSource(ui,"video:state.video?{width:{ideal:1280},height:{ideal:720},frame
 requireSource(ui,"state.stream.removeTrack(track)",'Prejoin Video Off does not release its camera track.');
 requireSource(ui,'markPreviewCameraReleased()','Prejoin Video Off does not mark the hardware release boundary before Video On.');
 
-// Zoom-parity desktop policy: DominionStar owns the source chooser. The Apple
-// system picker must never bypass the branded screen/window selection flow.
-requireSource(main,'function supportsMacSystemPicker()','Clean desktop runtime is missing the macOS picker capability gate.');
-requireSource(main,'return false;','Desktop runtime must keep the macOS system picker disabled.');
-requireSource(main,'{ useSystemPicker: supportsMacSystemPicker() }','Desktop capture session must receive the authoritative picker policy.');
-requireSource(main,'customSharePicker: !supportsMacSystemPicker()','Desktop runtime must advertise DominionStar custom share picker availability.');
-requireSource(main,'systemSharePicker: supportsMacSystemPicker()','Desktop runtime must advertise the native system picker as disabled.');
-requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Web meeting does not read the desktop picker capability.');
-requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Desktop screen sharing does not route through DominionStar source selection before capture.');
+// Real Mac recovery policy: keep the cross-platform DominionStar picker as the
+// fallback, but on macOS 15+ finish startup with exactly one effective authority:
+// Electron/Apple's proven native system picker. The meeting engine must then
+// bypass the branded custom picker instead of opening two competing pickers.
+requireSource(main,'{ useSystemPicker: supportsMacSystemPicker() }','Cross-platform fallback capture handler is missing.');
+requireSource(bootstrap,"await import('./macos-native-capture-authority.mjs')",'Desktop bootstrap does not install the macOS capture authority.');
+requireSource(nativeCapture,"Number.isFinite(major) && major >= 15",'Native picker authority is not restricted to supported macOS versions.');
+requireSource(nativeCapture,'{ useSystemPicker: true }','Native macOS capture authority does not enable Electron system picker mode.');
+requireSource(nativeCapture,"callback({});",'Native authority must defensively deny a second stale custom capture callback.');
+requireSource(preload,"ipcRenderer.invoke('desktop:native-capture-capability')",'Renderer does not read the final native capture authority.');
+requireSource(preload,'systemSharePicker: nativeSystemPicker','Renderer does not advertise native picker authority to the meeting engine.');
+requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer does not disable the custom picker when native capture owns the request.');
+requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Meeting engine does not read the desktop picker capability.');
+requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Meeting engine still risks opening the custom picker before the macOS system picker.');
 
-console.log('PASS all-track camera hardware privacy and DominionStar-authoritative screen-share picker guardrails.');
+console.log('PASS all-track camera privacy and single-authority macOS screen-share guardrails.');
