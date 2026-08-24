@@ -35,11 +35,13 @@ assert(navigation.includes("src.includes('app.netlify.com')") && navigation.incl
 assert(preload.includes('installQaPreviewChromeBlocker') && preload.includes('iframe[src*="app.netlify.com"]'), 'Preload must independently suppress injected Netlify review frames.');
 assert(navigation.includes('Collaborate on this Deploy Preview') && navigation.includes('Log in to the Netlify Drawer'), 'Visible-text cleanup must remain a fallback for Netlify variants.');
 
-// Camera Off is a physical privacy invariant, not a CSS state.
-assert(camera.includes('const prejoinCameraPreferenceOff'), 'Camera layer must know when prejoin Video Off is selected.');
+// Camera Off is a physical privacy invariant, not a CSS state or saved-preference guess.
+assert(camera.includes('const prejoinCameraOff'), 'Camera layer must calculate the actual current prejoin Video state.');
+assert(camera.includes("const button = document.getElementById('preCam')"), 'Prejoin Video button must participate directly in camera privacy authority.');
+assert(camera.includes("if (pressed === 'false') return true") && camera.includes("if (pressed === 'true') return false"), 'Visible prejoin Video state must override the saved camera preference.');
 assert(camera.includes('const enforcePrejoinCameraPrivacy'), 'Camera layer must actively enforce Video Off.');
 assert(camera.includes("if (track.readyState !== 'ended') track.stop()"), 'Video Off must physically stop a live camera track.');
-assert(camera.includes('if (requested.video && prejoinCameraPreferenceOff()) stopVideoTracks(stream)'), 'Background/prejoin media requests must not resurrect the camera while Video Off is selected.');
+assert(camera.includes('if (requested.video && prejoinCameraOff()) stopVideoTracks(stream)'), 'Background/prejoin media requests must not resurrect the camera while visible Video Off is selected.');
 assert(camera.includes('unwrapPhysicalTrack'), 'Processed camera effects must retain the physical source as authority.');
 assert(camera.includes('knownLabels'), 'Camera layer must cache resolved hardware labels.');
 assert(camera.includes('looksOpaqueLabel'), 'Camera settings must reject opaque device IDs as user-facing labels.');
