@@ -57,3 +57,8 @@
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer
+
+/meet/*
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)
