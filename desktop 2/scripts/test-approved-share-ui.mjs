@@ -26,8 +26,6 @@ const qaWorkflow = read('.github/workflows/desktop-pr-verify.yml');
 const indexOfCommand = command => presenterToolbar.indexOf(`data-command="${command}"`);
 const assertBefore = (a, b) => assert(indexOfCommand(a) >= 0 && indexOfCommand(b) >= 0 && indexOfCommand(a) < indexOfCommand(b), `${a} must appear before ${b} in the approved presenter toolbar.`);
 
-// One permission/source-selection owner only. The stale browser permission guard
-// previously competed with the custom picker and produced real-Mac loops.
 assert(!bootstrap.includes('screen-permission-ui-guard.js'), 'Certified desktop runtime must not load the duplicate screen-permission UI guard.');
 assert(bootstrap.includes('quick-device-menu-parity.js'), 'Certified runtime must keep Zoom-class device menus.');
 assert(bootstrap.includes('share-optimization-parity.js'), 'Certified runtime must keep screen-share optimization.');
@@ -35,7 +33,6 @@ assert(bootstrap.includes('presenter-command-web-parity.js'), 'Certified runtime
 assert(screenLifecycle.includes("ipcMain.handle('desktop:screen-permission-status'"), 'Native desktop lifecycle must own macOS permission state.');
 assert(screenLifecycle.includes('QA_PREVIEW_HOST'), 'QA preview must be trusted by the native screen-permission lifecycle.');
 
-// Approved source picker is the primary user-facing authority on macOS.
 assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"), 'macOS must report the approved DominionStar source picker as primary.');
 assert(nativeCapture.includes('enabled: false'), 'Apple system picker must not silently replace the approved source picker.');
 assert(nativeCapture.includes('available: supportsNativeMacPicker()'), 'Native macOS picker availability may remain detectable as fallback capability.');
@@ -45,7 +42,7 @@ assert(desktopSharePicker.includes('data-filter="screen">Screens'), 'Approved so
 assert(desktopSharePicker.includes('data-filter="window">Application windows'), 'Approved source picker must expose a real Application windows tab.');
 assert(desktopSharePicker.includes('SOURCE_RETRY_DELAYS'), 'Source picker must retry real source enumeration instead of becoming unresponsive.');
 assert(desktopSharePicker.includes('if(!dialog.open)dialog.showModal()'), 'Share click must open the branded picker immediately before source enumeration.');
-assert(desktopSharePicker.includes("permissionTitle.textContent='Screen access is active'"), 'Granted permission must be represented as active access, not another permission request.');
+assert(desktopSharePicker.includes("'Screen access is active'") && desktopSharePicker.includes('settingsButton.hidden=granted') && desktopSharePicker.includes('state?.requiresRestart'), 'Granted permission must be represented as active access, hide Settings, and distinguish the one-time restart case.');
 assert(desktopSharePicker.includes('optimize:optimize.checked'), 'Desktop share picker must return the Optimize for video sharing decision.');
 assert(desktopSharePicker.includes('role="switch" data-optimize'), 'Share options must use modern switch controls rather than checkbox-looking UI.');
 assert(illustrationParity.includes("applicationTab.textContent='Applications'"), 'Illustration layer must use the approved Applications tab label.');
@@ -58,7 +55,6 @@ for (const required of ['speakerSelect','Mirror my video','Blur background','Por
 assert(!quickDeviceMenu.includes("${checked?'✓ ':''}"), 'Quick video controls must not regress to checkmark-style toggles.');
 assert(quickDeviceMenu.includes('ds-quick-switch'), 'Quick video controls must use modern sliding switch treatment.');
 
-// Floating presenter toolbar: exact visible hierarchy from approved sharing art.
 const approvedPresenterOrder = ['audio','video','participants','chat','new-share','pause','layout','annotate','show-meeting','more','stop'];
 for (const command of approvedPresenterOrder) assert(indexOfCommand(command) >= 0, `Approved presenter toolbar must visibly expose ${command}.`);
 for (let i = 0; i < approvedPresenterOrder.length - 1; i += 1) assertBefore(approvedPresenterOrder[i], approvedPresenterOrder[i + 1]);
@@ -77,7 +73,6 @@ for (const [command, id] of [['audio','micBtn'],['video','camBtn'],['participant
 }
 assert(hostedPresenterParity.includes("safe === 'annotate'") && hostedPresenterParity.includes('DominionShareAnnotation'), 'Presenter Annotate must open the real synchronized annotation engine.');
 
-// Desktop presentation must have one presenter surface, not the old in-window strip plus the native toolbar at the same time.
 assert(illustrationParity.includes('#shareStatusBar.ds-native-presenter-active{display:none!important}'), 'Local desktop share must hide the obsolete in-window presenter strip.');
 assert(illustrationParity.includes("document.body.classList.contains('local-presentation-active')"), 'Illustration parity must detect local presentation mode.');
 assert(illustrationParity.includes('window.dominionDesktop.showPresenterToolbar?.()'), 'Local presentation must keep the native presenter toolbar authoritative.');
@@ -85,7 +80,6 @@ assert(shareLifecycle.includes('keepMeetingOffSharedDesktop'), 'Share lifecycle 
 assert(shareLifecycle.includes("String(command || '') === 'show-meeting'"), 'Only explicit Show Meeting may override the hidden meeting window during sharing.');
 assert(shareLifecycle.includes('setImmediate(keepMeetingOffSharedDesktop)'), 'macOS activation must not resurrect the meeting window over shared content.');
 
-// Normal meeting illustration contract.
 assert(illustrationParity.includes("label.textContent='Security'"), 'Normal meeting toolbar must use the approved Security label.');
 assert(illustrationParity.includes("label.textContent=isHost?'End':'Leave'"), 'Host must see End while attendees/co-hosts retain Leave behavior.');
 assert(illustrationParity.includes("decline.textContent='View'"), 'Waiting-room heads-up must use Admit/View instead of destructive Decline.');
