@@ -26,7 +26,7 @@ requireSource(ui,'markPreviewCameraReleased()','Prejoin Video Off does not mark 
 // Electron/Apple's proven native system picker. The meeting engine must then
 // bypass the branded custom picker instead of opening two competing pickers.
 requireSource(main,'{ useSystemPicker: supportsMacSystemPicker() }','Cross-platform fallback capture handler is missing.');
-requireSource(bootstrap,"await import('./macos-native-capture-authority.mjs')",'Desktop bootstrap does not install the macOS capture authority.');
+requireSource(bootstrap,'macos-native-capture-authority.mjs','Desktop bootstrap does not install the macOS capture authority.');
 requireSource(nativeCapture,"Number.isFinite(major) && major >= 15",'Native picker authority is not restricted to supported macOS versions.');
 requireSource(nativeCapture,'{ useSystemPicker: true }','Native macOS capture authority does not enable Electron system picker mode.');
 requireSource(nativeCapture,"callback({});",'Native authority must defensively deny a second stale custom capture callback.');
