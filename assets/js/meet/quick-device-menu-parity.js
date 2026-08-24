@@ -6,13 +6,25 @@
   const menu=$('deviceMenu');
   if(!menu)return;
 
+  const style=document.createElement('style');
+  style.textContent=`
+    #deviceMenu button[data-ds-quick-parity]{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important}
+    #deviceMenu button[data-ds-quick-parity]>.ds-quick-copy{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+    #deviceMenu .ds-quick-switch{width:38px;height:22px;flex:0 0 38px;border-radius:999px;background:#2a3444;border:1px solid #ffffff24;position:relative;transition:.18s ease;box-shadow:inset 0 1px 3px #0007}
+    #deviceMenu .ds-quick-switch::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#f7f9fc;left:2px;top:2px;transition:transform .18s ease;box-shadow:0 1px 4px #0008}
+    #deviceMenu .ds-quick-switch.on{background:#2f80ed;border-color:#55a2ff}
+    #deviceMenu .ds-quick-switch.on::after{transform:translateX(16px)}
+  `;
+  document.head.append(style);
+
   const dispatchChange=node=>node?.dispatchEvent(new Event('change',{bubbles:true}));
   const addDivider=()=>{const line=document.createElement('div');line.style.cssText='height:1px;background:#ffffff1f;margin:8px 0';menu.append(line);};
-  const addButton=(label,onClick,{checked=false,note=''}={})=>{
+  const addButton=(label,onClick,{checked=null,note=''}={})=>{
     const button=document.createElement('button');
     button.type='button';
     button.dataset.dsQuickParity='1';
-    button.innerHTML=`<span>${checked?'✓ ':''}${label}</span>${note?`<small>${note}</small>`:''}`;
+    const switchMarkup=checked===null?'':`<span class="ds-quick-switch${checked?' on':''}" role="presentation"></span>`;
+    button.innerHTML=`<span class="ds-quick-copy"><span>${label}</span>${note?`<small>${note}</small>`:''}</span>${switchMarkup}`;
     button.onclick=async()=>{try{await onClick();}catch(error){console.warn('Quick device action failed',error);}};
     menu.append(button);
     return button;
@@ -70,5 +82,5 @@
 
   new MutationObserver(decorate).observe(menu,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   decorate();
-  window.DominionQuickDeviceMenuParity=Object.freeze({version:'1.1.0',decorate,openSettings});
+  window.DominionQuickDeviceMenuParity=Object.freeze({version:'1.2.0',decorate,openSettings});
 })();
