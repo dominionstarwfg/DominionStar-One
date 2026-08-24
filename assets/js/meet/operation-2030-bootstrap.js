@@ -35,7 +35,7 @@
   const presenterCommandParity = load('/assets/js/meet/presenter-command-web-parity.js?v=2-slide-control-aware', 'data-ds-presenter-command-parity', { after: annotation });
   const slideControl = load('/assets/js/meet/slide-control-parity.js?v=1-encrypted-delegated-control', 'data-ds-slide-control-parity', { after: presenterCommandParity });
   const microphoneIdentity = load('/assets/js/meet/microphone-device-identity.js?v=1-hardware-identity', 'data-ds-microphone-device-identity');
-  const quickDeviceMenuParity = load('/assets/js/meet/quick-device-menu-parity.js?v=1-zoom-class-device-menu', 'data-ds-quick-device-menu-parity');
+  const quickDeviceMenuParity = load('/assets/js/meet/quick-device-menu-parity.js?v=2-modern-switch-ui', 'data-ds-quick-device-menu-parity');
   const receiverSideLayout = load('/assets/js/meet/receiver-side-layout-parity.js?v=1-zoom-class-side-by-side', 'data-ds-receiver-side-layout');
   const hostCohostUiParity = load('/assets/js/meet/host-cohost-ui-parity.js?v=1-authority-copy', 'data-ds-host-cohost-ui-parity');
   const localRecording = load('/assets/js/meet/local-recording.js?v=1-visible-desktop-recording', 'data-ds-local-recording');
@@ -48,9 +48,8 @@
   const cameraPolish = load('/assets/js/meet/camera-reaction-polish.js?v=3-operation-2030-certified', 'data-ds-camera-reaction-polish');
   const dockPolish = load('/assets/js/meet/dock-polish-2030.js?v=2-operation-2030-certified', 'data-ds-dock-polish-2030');
   const nativeDockQuality = load('/assets/js/meet/native-dock-quality.js?v=1-operation-2030-hd-dock', 'data-ds-native-dock-quality');
-  const screenPermissionGuard = load('/assets/js/meet/screen-permission-ui-guard.js?v=1-operation-2030-permission-state', 'data-ds-screen-permission-ui-guard');
   const shareWatchdog = load('/assets/js/meet/remote-share-watchdog.js?v=2-operation-2030-certified', 'data-ds-remote-share-watchdog');
-  const videoIntelligence = load('/assets/js/meet/video-intelligence-compositor.js?v=1-on-device-portrait-autoframe', 'data-ds-video-intelligence-compositor');
+  const videoIntelligence = load('/assets/js/meet/video-intelligence-compositor.js?v=2-bounded-autoframe', 'data-ds-video-intelligence-compositor');
   const backgroundEffects = load('/assets/js/meet/background-effects-2030.js?v=2-operation-2030-certified', 'data-ds-background-effects-2030', { after: videoIntelligence });
   const videoQualityParity = load('/assets/js/meet/video-quality-parity.js?v=1-low-light-original-ratio', 'data-ds-video-quality-parity', { after: backgroundEffects });
   const shareOptimizationParity = load('/assets/js/meet/share-optimization-parity.js?v=1-real-motion-detail-policy', 'data-ds-share-optimization-parity');
@@ -58,16 +57,16 @@
 
   const ready = Promise.all([
     annotation, verticalAnnotationUi, presenterCommandParity, slideControl, microphoneIdentity, quickDeviceMenuParity, receiverSideLayout, hostCohostUiParity, localRecording, spotlight, handoff, arbitration, arbitrationUi,
-    identitySettings, identityBridge, cameraPolish, dockPolish, nativeDockQuality, screenPermissionGuard,
+    identitySettings, identityBridge, cameraPolish, dockPolish, nativeDockQuality,
     shareWatchdog, videoIntelligence, backgroundEffects, videoQualityParity, shareOptimizationParity, shareUi
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '1.13.0',
+    version: '1.14.0',
     ready,
     modules: Object.freeze([
       'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity','microphone-device-identity','quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','local-recording','share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
-      'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030','native-dock-quality','screen-permission-ui-guard',
+      'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030','native-dock-quality',
       'remote-share-watchdog','video-intelligence-compositor','background-effects-2030','video-quality-parity','share-optimization-parity','share-ui-2030'
     ])
   });
