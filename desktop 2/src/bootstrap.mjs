@@ -32,6 +32,7 @@ app.on('before-quit', () => {
 });
 
 await import('./main-v2.mjs');
+await import('./macos-native-capture-authority.mjs');
 await import('./presenter-dock.mjs');
 await import('./presenter-command-parity.mjs');
 await import('./share-lifecycle.mjs');
