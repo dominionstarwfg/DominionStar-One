@@ -1,5 +1,6 @@
-import { app, shell } from 'electron';
+import { app, session, shell } from 'electron';
 
+const DESKTOP_PARTITION = 'persist:dominionstar-meet';
 const PRODUCTION_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);
 const QA_PREVIEW_HOST = /^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/i;
 const INTERNAL_PATHS = new Set(['/meet', '/meet-home', '/meet-login', '/member-login']);
@@ -60,9 +61,51 @@ function installNavigationAuthority(contents) {
   });
 }
 
+function installPreviewRequestNormalization() {
+  const desktopSession = session.fromPartition(DESKTOP_PARTITION);
+  desktopSession.webRequest.onBeforeRequest({ urls: ['https://*/*'] }, (details, callback) => {
+    if (details.resourceType !== 'mainFrame') {
+      callback({});
+      return;
+    }
+
+    let url;
+    try { url = new URL(String(details.url || '')); } catch {
+      callback({});
+      return;
+    }
+
+    if (!QA_PREVIEW_HOST.test(url.hostname)) {
+      callback({});
+      return;
+    }
+
+    const path = normalizedPath(url.pathname);
+    if (!INTERNAL_PATHS.has(path)) {
+      callback({});
+      return;
+    }
+
+    const normalized = normalizeInternalDesktopUrl(url);
+    if (normalized.toString() === url.toString()) {
+      callback({});
+      return;
+    }
+
+    callback({ redirectURL: normalized.toString() });
+  });
+}
+
 app.on('web-contents-created', (_event, contents) => {
   installNavigationAuthority(contents);
 });
+
+app.whenReady().then(() => {
+  // This is registered before main-v2's ready handler because this module is
+  // imported first by bootstrap.mjs. Programmatic loadURL() calls therefore get
+  // desktop mode and a hidden Netlify QA drawer before the first page renders.
+  installPreviewRequestNormalization();
+}).catch(() => {});
 
 export const DominionDesktopNavigationAuthority = Object.freeze({
   isDominionDesktopHost,
