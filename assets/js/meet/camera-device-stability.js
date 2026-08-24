@@ -16,13 +16,14 @@
       || /camera|video source|device|track|constraint/.test(message);
   };
   const clone = value => value && typeof value === 'object' && !Array.isArray(value) ? {...value} : value;
-  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
   const isGenericLabel = (label, fallback) => {
     const value = String(label || '').trim();
     return !value || new RegExp(`^${fallback}\\s*\\d+$`, 'i').test(value) || new RegExp(`^${fallback}$`, 'i').test(value);
   };
   let refreshingLabels = false;
   let lastHydrateAt = 0;
+  let lastLiveVideoTrack = null;
+  let lastLiveAudioTrack = null;
 
   const ensureNativePermission = async constraints => {
     if (!window.dominionDesktop?.isDesktop || !window.dominionDesktop?.getMediaPermissions) return;
@@ -58,12 +59,16 @@
     if (kind === 'videoinput') {
       const source = window.DominionBackgroundEffects2030?.getSourceTrack?.();
       if (source?.readyState === 'live') return source;
+      if (lastLiveVideoTrack?.readyState === 'live') return lastLiveVideoTrack;
     }
+    if (kind === 'audioinput' && lastLiveAudioTrack?.readyState === 'live') return lastLiveAudioTrack;
     return null;
   };
 
   const rememberTrack = track => {
     if (!track) return;
+    if (track.kind === 'video') lastLiveVideoTrack = track;
+    if (track.kind === 'audio') lastLiveAudioTrack = track;
     const settings = track.getSettings?.() || {};
     const key = track.kind === 'video' ? CAMERA_KEY : track.kind === 'audio' ? MIC_KEY : '';
     if (key && settings.deviceId) {
@@ -74,13 +79,23 @@
   const hydrateSelect = async (selectId, kind, fallback) => {
     const select = document.getElementById(selectId);
     if (!select) return;
-    const list = await devices(kind);
+    const enumerated = await devices(kind);
     const live = activeTrack(kind);
     const liveSettings = live?.getSettings?.() || {};
     const liveId = String(liveSettings.deviceId || '');
     const liveLabel = String(live?.label || '').trim();
     const stored = (() => { try { return localStorage.getItem(kind === 'videoinput' ? CAMERA_KEY : MIC_KEY) || ''; } catch (_) { return ''; } })();
     const preferred = liveId || select.value || stored;
+    const list = [...enumerated];
+
+    if (live && liveId && !list.some(device => device.deviceId === liveId)) {
+      list.unshift({ deviceId: liveId, label: liveLabel, kind });
+    }
+
+    if (!list.length && live) {
+      list.push({ deviceId: liveId || `active-${kind}`, label: liveLabel, kind, activeSynthetic: true });
+    }
+
     select.innerHTML = '';
     for (const device of list) {
       const option = document.createElement('option');
@@ -89,11 +104,13 @@
       const activeResolved = device.deviceId === liveId && liveLabel && !isGenericLabel(liveLabel, fallback) ? liveLabel : '';
       const enumeratedResolved = !isGenericLabel(enumeratedLabel, fallback) ? enumeratedLabel : '';
       const label = activeResolved || enumeratedResolved;
-      option.textContent = label || `${fallback} — name unavailable`;
+      option.textContent = label || (device.activeSynthetic ? `${fallback} in use — hardware name unavailable` : `${fallback} — name unavailable`);
       option.dataset.deviceLabelResolved = label ? '1' : '0';
+      if (device.deviceId === liveId) option.dataset.activeDevice = '1';
       select.append(option);
     }
     if (preferred && list.some(device => device.deviceId === preferred)) select.value = preferred;
+    else if (liveId && list.some(device => device.deviceId === liveId)) select.value = liveId;
   };
 
   const refreshDeviceNames = async () => {
@@ -108,6 +125,13 @@
     } finally {
       refreshingLabels = false;
     }
+  };
+
+  const scheduleDeviceRefresh = () => {
+    queueMicrotask(() => refreshDeviceNames().catch(() => {}));
+    setTimeout(() => refreshDeviceNames().catch(() => {}), 120);
+    setTimeout(() => refreshDeviceNames().catch(() => {}), 450);
+    setTimeout(() => refreshDeviceNames().catch(() => {}), 1100);
   };
 
   const relaxedVideo = base => {
@@ -138,7 +162,7 @@
       try {
         const stream = await nativeGetUserMedia({video:{...base,deviceId:{exact:id}},audio:false});
         const track = stream.getVideoTracks()[0];
-        if (track) { rememberTrack(track); queueMicrotask(refreshDeviceNames); return stream; }
+        if (track) { rememberTrack(track); scheduleDeviceRefresh(); return stream; }
         stream.getTracks().forEach(item => item.stop());
       } catch (error) {
         lastError = error;
@@ -151,7 +175,7 @@
       const track = stream.getVideoTracks()[0];
       if (!track) throw new Error('No camera track was provided.');
       rememberTrack(track);
-      queueMicrotask(refreshDeviceNames);
+      scheduleDeviceRefresh();
       return stream;
     } catch (error) {
       lastError = error;
@@ -167,6 +191,7 @@
     const stream = await nativeGetUserMedia({video:false,audio:audioConstraints || true});
     const track = stream.getAudioTracks()[0];
     if (track) rememberTrack(track);
+    scheduleDeviceRefresh();
     return stream;
   };
 
@@ -176,7 +201,7 @@
     try {
       const stream = await nativeGetUserMedia(requested);
       stream.getTracks().forEach(rememberTrack);
-      queueMicrotask(refreshDeviceNames);
+      scheduleDeviceRefresh();
       return stream;
     } catch (firstError) {
       if (hardPermissionError(firstError) || !requested.video || !retryableVideoError(firstError)) throw firstError;
@@ -212,8 +237,13 @@
       const original = engine[method];
       if (typeof original !== 'function') continue;
       engine[method] = async (...args) => {
-        try { return await original.apply(engine,args); }
-        catch (error) { throw translateCameraError(error); }
+        try {
+          const result = await original.apply(engine,args);
+          scheduleDeviceRefresh();
+          return result;
+        } catch (error) {
+          throw translateCameraError(error);
+        }
       };
     }
     engine.__dsCameraStabilityWrapped = true;
@@ -230,19 +260,16 @@
     selects.forEach(select => observer.observe(select,{childList:true}));
   };
 
-  media.addEventListener?.('devicechange', () => { refreshDeviceNames().catch(() => {}); });
+  media.addEventListener?.('devicechange', scheduleDeviceRefresh);
   document.addEventListener('loadedmetadata', event => {
     if (event.target instanceof HTMLVideoElement) {
       const track = event.target.srcObject?.getVideoTracks?.()[0];
       if (track) rememberTrack(track);
-      refreshDeviceNames().catch(() => {});
+      scheduleDeviceRefresh();
     }
   }, true);
   document.addEventListener('click', event => {
-    if (event.target.closest?.('#preSettings,#camMenuBtn,#micMenuBtn')) {
-      setTimeout(() => refreshDeviceNames().catch(() => {}), 40);
-      setTimeout(() => refreshDeviceNames().catch(() => {}), 220);
-    }
+    if (event.target.closest?.('#preSettings,#camMenuBtn,#micMenuBtn')) scheduleDeviceRefresh();
   }, true);
 
   const engineTimer = setInterval(() => { if (wrapEngine()) clearInterval(engineTimer); }, 25);
@@ -251,12 +278,13 @@
   setTimeout(() => refreshDeviceNames().catch(() => {}), 900);
 
   window.DominionCameraDeviceStability = Object.freeze({
-    version:'1.1.0',
+    version:'1.2.0',
     refreshDeviceNames,
     snapshot:async()=>({
       cameras:(await devices('videoinput')).map(device=>({id:device.deviceId,label:device.label||''})),
       microphones:(await devices('audioinput')).map(device=>({id:device.deviceId,label:device.label||''})),
-      activeCameraLabel:activeTrack('videoinput')?.label||''
+      activeCameraLabel:activeTrack('videoinput')?.label||'',
+      activeCameraDeviceId:activeTrack('videoinput')?.getSettings?.().deviceId||''
     })
   });
 })();
