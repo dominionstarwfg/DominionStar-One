@@ -17,6 +17,7 @@ on:
       - "package.json"
       - "PRODUCTION-CUTOVER-APPROVAL.json"
       - "scripts/audit-static-dependency-closure.mjs"
+      - "scripts/test-meet-toolbar-duplicates.mjs"
       - "scripts/browser-runtime-acceptance.mjs"
       - "scripts/browser-auth-boundary-acceptance.mjs"
       - "scripts/browser-guardian-action-acceptance.mjs"
@@ -54,6 +55,9 @@ jobs:
 
       - name: Verify local static dependency closure
         run: node scripts/audit-static-dependency-closure.mjs
+
+      - name: Audit Meet toolbars and duplicate ownership
+        run: node scripts/test-meet-toolbar-duplicates.mjs
 
       - name: Build isolated preview package
         run: bash scripts/build-netlify-preview.sh
