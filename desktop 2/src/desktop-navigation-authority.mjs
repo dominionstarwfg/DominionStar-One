@@ -40,13 +40,11 @@ function installNavigationAuthority(contents) {
     if (url.protocol !== 'https:' || !isDominionDesktopHost(url.hostname)) return;
 
     const path = normalizedPath(url.pathname);
-
     if (ACCOUNT_RETURN_PATHS.has(path)) {
       event.preventDefault();
       void contents.loadURL(desktopHomeFor(url)).catch(() => {});
       return;
     }
-
     if (!INTERNAL_PATHS.has(path)) {
       event.preventDefault();
       void shell.openExternal(url.toString()).catch(() => {});
@@ -68,10 +66,16 @@ function installPreviewChromeSuppression(contents) {
     try { current = new URL(String(contents.getURL?.() || '')); } catch { return; }
     if (!QA_PREVIEW_HOST.test(current.hostname)) return;
     const script = `(()=>{
-      if(window.__dsNetlifyPreviewSuppression)return;
-      window.__dsNetlifyPreviewSuppression=true;
+      if(window.__dsNetlifyPreviewSuppressionV2)return;
+      window.__dsNetlifyPreviewSuppressionV2=true;
       const phrases=['Collaborate on this Deploy Preview','Log in to the Netlify Drawer'];
       const removePreviewChrome=()=>{
+        for(const iframe of Array.from(document.querySelectorAll('iframe'))){
+          const src=String(iframe.getAttribute('src')||'').toLowerCase();
+          const title=String(iframe.getAttribute('title')||'').toLowerCase();
+          if(src.includes('app.netlify.com')||(src.includes('netlify.com')&&title.includes('netlify'))||title.includes('deploy preview'))iframe.remove();
+        }
+        for(const node of Array.from(document.querySelectorAll('[data-netlify-drawer],#netlify-drawer,netlify-drawer,netlify-toolbar'))){node.remove();}
         for(const node of Array.from(document.querySelectorAll('body *'))){
           const text=String(node.textContent||'').trim();
           if(!phrases.some(phrase=>text.includes(phrase)))continue;
@@ -86,6 +90,9 @@ function installPreviewChromeSuppression(contents) {
           target.remove();
         }
       };
+      const style=document.createElement('style');
+      style.textContent='iframe[src*="app.netlify.com"],iframe[title*="Deploy Preview" i],[data-netlify-drawer],#netlify-drawer,netlify-drawer,netlify-toolbar{display:none!important;visibility:hidden!important;pointer-events:none!important}';
+      (document.head||document.documentElement).append(style);
       removePreviewChrome();
       new MutationObserver(removePreviewChrome).observe(document.documentElement,{childList:true,subtree:true});
     })();`;
@@ -98,34 +105,14 @@ function installPreviewChromeSuppression(contents) {
 function installPreviewRequestNormalization() {
   const desktopSession = session.fromPartition(DESKTOP_PARTITION);
   desktopSession.webRequest.onBeforeRequest({ urls: ['https://*/*'] }, (details, callback) => {
-    if (details.resourceType !== 'mainFrame') {
-      callback({});
-      return;
-    }
-
+    if (details.resourceType !== 'mainFrame') { callback({}); return; }
     let url;
-    try { url = new URL(String(details.url || '')); } catch {
-      callback({});
-      return;
-    }
-
-    if (!QA_PREVIEW_HOST.test(url.hostname)) {
-      callback({});
-      return;
-    }
-
+    try { url = new URL(String(details.url || '')); } catch { callback({}); return; }
+    if (!QA_PREVIEW_HOST.test(url.hostname)) { callback({}); return; }
     const path = normalizedPath(url.pathname);
-    if (!INTERNAL_PATHS.has(path)) {
-      callback({});
-      return;
-    }
-
+    if (!INTERNAL_PATHS.has(path)) { callback({}); return; }
     const normalized = normalizeInternalDesktopUrl(url);
-    if (normalized.toString() === url.toString()) {
-      callback({});
-      return;
-    }
-
+    if (normalized.toString() === url.toString()) { callback({}); return; }
     callback({ redirectURL: normalized.toString() });
   });
 }
@@ -136,10 +123,6 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 app.whenReady().then(() => {
-  // Registered before main-v2's ready handler because this module is imported
-  // first by bootstrap.mjs. Programmatic loadURL() calls therefore enter desktop
-  // mode before the first page renders. QA-only Netlify chrome is also removed
-  // from the Electron surface so preview infrastructure never becomes product UI.
   installPreviewRequestNormalization();
 }).catch(() => {});
 
