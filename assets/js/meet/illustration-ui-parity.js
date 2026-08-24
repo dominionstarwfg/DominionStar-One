@@ -6,6 +6,7 @@
   const toolbar=$('meetingToolbar');
   const moreBtn=$('moreBtn');
   const shareMoreBtn=$('shareMoreBtn');
+  const shareStatusBar=$('shareStatusBar');
   const deviceMenu=$('deviceMenu');
   const filmstrip=$('filmstrip');
   const filmstripTrack=$('filmstripTrack');
@@ -29,6 +30,18 @@
     #recordingIndicator{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:2147482500;display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,95,108,.32);border-radius:999px;background:rgba(23,8,11,.92);color:#fff;font-size:11px;font-weight:750;box-shadow:0 12px 34px rgba(0,0,0,.32);backdrop-filter:blur(14px)}
     #recordingIndicator[hidden]{display:none!important}
     #recordingIndicator .recording-live-dot{width:8px;height:8px;border-radius:50%;background:#ff4d5d;box-shadow:0 0 0 4px rgba(255,77,93,.15)}
+    #shareStatusBar.ds-native-presenter-active{display:none!important}
+
+    /* Approved source-picker composition: branded, source-first, Zoom-familiar. */
+    #desktopSharePicker.ds-approved-source-picker{width:min(900px,92vw)!important;height:min(650px,86vh)!important}
+    #desktopSharePicker.ds-approved-source-picker main{display:flex!important;flex-direction:column!important;min-height:0!important}
+    #desktopSharePicker.ds-approved-source-picker .ds-share-content{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+    #desktopSharePicker.ds-approved-source-picker .ds-share-sources{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;padding:20px!important}
+    #desktopSharePicker.ds-approved-source-picker aside{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px 12px!important;padding:13px 20px!important;border-left:0!important;border-top:1px solid #ffffff17!important;background:#0d131de8!important}
+    #desktopSharePicker.ds-approved-source-picker aside>strong{grid-column:1/-1!important;font-size:11px!important;color:#f7e3a8!important}
+    #desktopSharePicker.ds-approved-source-picker aside label{margin:0!important;padding:9px 11px!important;align-items:center!important}
+    #desktopSharePicker.ds-approved-source-picker aside p,#desktopSharePicker.ds-approved-source-picker aside small{grid-column:1/-1!important}
+    @media(max-width:720px){#desktopSharePicker.ds-approved-source-picker .ds-share-sources{grid-template-columns:1fr!important}#desktopSharePicker.ds-approved-source-picker aside{grid-template-columns:1fr!important}}
   `;
   document.head.append(style);
 
@@ -115,6 +128,27 @@
       if(label)label.textContent=isHost?'End':'Leave';
       leaveBtn.setAttribute('aria-label',isHost?'End meeting options':'Leave meeting');
     }
+  };
+
+  const normalizeSharePicker=()=>{
+    const picker=$('desktopSharePicker');
+    if(!picker)return false;
+    picker.classList.add('ds-approved-source-picker');
+    const tabs=[...picker.querySelectorAll('[data-filter]')];
+    const applicationTab=tabs.find(button=>button.dataset.filter==='window');
+    if(applicationTab)applicationTab.textContent='Applications';
+    const brandStrong=picker.querySelector('.ds-share-brand strong');
+    const brandSmall=picker.querySelector('.ds-share-brand small');
+    if(brandStrong)brandStrong.textContent='Choose what to share';
+    if(brandSmall)brandSmall.textContent='Select a screen or application window.';
+    return true;
+  };
+
+  const syncDesktopPresenterUi=()=>{
+    const localDesktop=Boolean(window.dominionDesktop?.isDesktop&&document.body.classList.contains('local-presentation-active'));
+    if(shareStatusBar)shareStatusBar.classList.toggle('ds-native-presenter-active',localDesktop);
+    if(localDesktop)window.dominionDesktop.showPresenterToolbar?.();
+    normalizeSharePicker();
   };
 
   const appendSecondaryAction=(sourceId,label)=>{
@@ -244,17 +278,23 @@
   const toastLayer=$('toastLayer');
   if(toastLayer)new MutationObserver(()=>refineJoinRequests()).observe(toastLayer,{childList:true,subtree:true});
   if(filmstripTrack)new MutationObserver(enforceOnePersonDockRule).observe(filmstripTrack,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  new MutationObserver(syncDesktopPresenterUi).observe(document.body,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(normalizeSharePicker).observe(document.documentElement,{childList:true,subtree:true});
   installPanelPersistence(participantsPanel);
   installPanelPersistence(chatPanel);
   addEventListener('resize',()=>{[participantsPanel,chatPanel].forEach(panel=>{if(panel&&!panel.hidden)restorePanelGeometry(panel);});},{passive:true});
 
   normalizeToolbar();
+  normalizeSharePicker();
+  syncDesktopPresenterUi();
   refineJoinRequests();
   enforceOnePersonDockRule();
 
   window.DominionIllustrationUiParity=Object.freeze({
-    version:'1.2.0',
+    version:'1.3.0',
     normalizeToolbar,
+    normalizeSharePicker,
+    syncDesktopPresenterUi,
     ensureRecordControl,
     syncRecordingUi,
     decorateGeneralMore,
