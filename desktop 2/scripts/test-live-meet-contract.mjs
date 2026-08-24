@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 const port = Number(process.env.DOMINIONSTAR_CDP_PORT || 9222);
 const endpoint = `http://127.0.0.1:${port}`;
 const deadline = Date.now() + 30000;
-
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function getPageTarget() {
@@ -17,14 +16,8 @@ async function connect(url) {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(url);
     const timer = setTimeout(() => reject(new Error('CDP websocket open timeout')), 5000);
-    socket.addEventListener('open', () => {
-      clearTimeout(timer);
-      resolve(socket);
-    }, { once: true });
-    socket.addEventListener('error', () => {
-      clearTimeout(timer);
-      reject(new Error('CDP websocket error'));
-    }, { once: true });
+    socket.addEventListener('open', () => { clearTimeout(timer); resolve(socket); }, { once: true });
+    socket.addEventListener('error', () => { clearTimeout(timer); reject(new Error('CDP websocket error')); }, { once: true });
   });
 }
 
@@ -46,11 +39,7 @@ async function evaluate(socket, expression) {
     };
     socket.addEventListener('message', onMessage);
     socket.addEventListener('close', onClose, { once: true });
-    socket.send(JSON.stringify({
-      id,
-      method: 'Runtime.evaluate',
-      params: { expression, awaitPromise: true, returnByValue: true }
-    }));
+    socket.send(JSON.stringify({ id, method:'Runtime.evaluate', params:{ expression, awaitPromise:true, returnByValue:true } }));
   });
   if (result.error) throw new Error(result.error.message || 'CDP evaluate failed');
   if (result.result?.exceptionDetails) throw new Error(result.result.exceptionDetails.text || 'Renderer evaluation failed');
@@ -60,18 +49,19 @@ async function evaluate(socket, expression) {
 const snapshotExpression = `
   (async()=>{
     const body=String(document.body?.innerText||'');
+    const frames=[...document.querySelectorAll('iframe')].map(frame=>({src:String(frame.getAttribute('src')||''),title:String(frame.getAttribute('title')||'')}));
+    const netlifyNodes=document.querySelectorAll('[data-netlify-drawer],#netlify-drawer,netlify-drawer,netlify-toolbar').length;
     let runtime=null,contract=null,error='';
     try{
       runtime=await window.dominionDesktop?.getRuntimeInfo?.();
       const response=await fetch('/meet/release-contract.json',{cache:'no-store'});
       contract=response.ok?await response.json():null;
     }catch(err){error=String(err?.message||err);}
-    return {href:String(location.href),body,runtime,contract,error};
+    return {href:String(location.href),body,frames,netlifyNodes,runtime,contract,error};
   })()
 `;
 
 const transientNavigationError = error => /navigated|target closed|closed during evaluation|websocket|context was destroyed|cannot find context/i.test(String(error?.message || error));
-
 let snapshot = null;
 let lastError = null;
 let stableHref = '';
@@ -80,25 +70,15 @@ let stableCount = 0;
 while (Date.now() < deadline) {
   let target = null;
   try { target = await getPageTarget(); } catch (error) { lastError = error; }
-  if (!target) {
-    await sleep(250);
-    continue;
-  }
-
+  if (!target) { await sleep(250); continue; }
   let socket = null;
   try {
     socket = await connect(target.webSocketDebuggerUrl);
     const candidate = await evaluate(socket, snapshotExpression);
     snapshot = candidate;
-
     if (candidate?.body?.includes('Desktop update required')) break;
-
     if (candidate?.href && candidate.href === stableHref) stableCount += 1;
-    else {
-      stableHref = String(candidate?.href || '');
-      stableCount = 1;
-    }
-
+    else { stableHref = String(candidate?.href || ''); stableCount = 1; }
     if (candidate?.runtime?.meetReleaseId && candidate?.contract?.releaseId && stableCount >= 2) break;
   } catch (error) {
     lastError = error;
@@ -108,7 +88,6 @@ while (Date.now() < deadline) {
   } finally {
     try { socket?.close(); } catch {}
   }
-
   await sleep(300);
 }
 
@@ -116,6 +95,8 @@ assert.ok(snapshot, `No live Meet renderer snapshot was captured: ${lastError?.m
 console.log('LIVE_MEET_ACCEPTANCE', JSON.stringify({
   href: snapshot.href,
   bodyPreview: String(snapshot.body || '').slice(0, 240),
+  frames: snapshot.frames,
+  netlifyNodes: snapshot.netlifyNodes,
   runtime: snapshot.runtime,
   contract: snapshot.contract,
   error: snapshot.error
@@ -124,6 +105,12 @@ console.log('LIVE_MEET_ACCEPTANCE', JSON.stringify({
 assert.ok(!String(snapshot.body || '').includes('Desktop update required'), 'Live Meet rendered the false Desktop update required blocker');
 assert.ok(!String(snapshot.body || '').includes('Collaborate on this Deploy Preview'), 'Netlify collaboration chrome leaked into the packaged desktop surface');
 assert.ok(!String(snapshot.body || '').includes('Log in to the Netlify Drawer'), 'Netlify drawer prompt leaked into the packaged desktop surface');
+assert.equal(Number(snapshot.netlifyNodes || 0), 0, 'Netlify drawer DOM nodes leaked into the packaged desktop surface');
+const badFrames=(snapshot.frames||[]).filter(frame=>/netlify|deploy preview/i.test(`${frame.src} ${frame.title}`));
+assert.deepEqual(badFrames, [], `Netlify review iframe leaked into packaged desktop surface: ${JSON.stringify(badFrames)}`);
+if (/\.netlify\.app(?::\d+)?\//i.test(String(snapshot.href || ''))) {
+  assert.ok(String(snapshot.href).includes('ntl-drawer-state=hidden'), 'QA preview navigation must request Netlify Drawer hidden state.');
+}
 assert.ok(snapshot.runtime, `Desktop runtime info unavailable: ${snapshot.error || lastError?.message || 'unknown error'}`);
 assert.ok(snapshot.contract?.releaseId, 'Live release contract did not expose releaseId');
 assert.equal(snapshot.runtime.meetReleaseId, snapshot.contract.releaseId, 'Native runtime meetReleaseId does not match the live Meet contract');
