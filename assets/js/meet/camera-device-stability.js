@@ -20,10 +20,56 @@
     const value = String(label || '').trim();
     return !value || new RegExp(`^${fallback}\\s*\\d+$`, 'i').test(value) || new RegExp(`^${fallback}$`, 'i').test(value);
   };
+  const looksOpaqueLabel = (label, deviceId = '') => {
+    const value = String(label || '').trim();
+    const id = String(deviceId || '').trim();
+    if (!value) return true;
+    if (id && value === id) return true;
+    if (value.length > 52 && !/\s/.test(value)) return true;
+    if (/^[A-Za-z0-9+/_=-]{44,}$/.test(value)) return true;
+    return false;
+  };
+
   let refreshingLabels = false;
   let lastHydrateAt = 0;
   let lastLiveVideoTrack = null;
   let lastLiveAudioTrack = null;
+  const knownLabels = new Map();
+
+  const unwrapPhysicalTrack = track => {
+    const source = track?.__dsPhysicalSourceTrack;
+    return source?.readyState === 'live' ? source : track;
+  };
+
+  const prejoinCameraPreferenceOff = () => {
+    if (!document.body?.classList?.contains('prejoin-active')) return false;
+    return Boolean(document.getElementById('alwaysJoinCameraOff')?.checked);
+  };
+
+  const stopVideoTracks = stream => {
+    for (const track of stream?.getVideoTracks?.() || []) {
+      try { stream.removeTrack?.(track); } catch {}
+      try { if (track.readyState !== 'ended') track.stop(); } catch {}
+    }
+  };
+
+  const enforcePrejoinCameraPrivacy = () => {
+    if (!prejoinCameraPreferenceOff()) return false;
+    const preview = document.getElementById('prejoinVideo');
+    if (preview?.srcObject instanceof MediaStream) stopVideoTracks(preview.srcObject);
+    const physical = unwrapPhysicalTrack(lastLiveVideoTrack);
+    if (physical?.readyState === 'live') {
+      try { physical.stop(); } catch {}
+    }
+    lastLiveVideoTrack = null;
+    if (preview) {
+      preview.hidden = true;
+      try { preview.pause?.(); } catch {}
+    }
+    const fallback = document.getElementById('prejoinFallback');
+    if (fallback) fallback.hidden = false;
+    return true;
+  };
 
   const ensureNativePermission = async constraints => {
     if (!window.dominionDesktop?.isDesktop || !window.dominionDesktop?.getMediaPermissions) return;
@@ -45,8 +91,14 @@
   };
 
   const devices = async kind => {
-    try { return (await media.enumerateDevices()).filter(device => device.kind === kind && device.deviceId); }
-    catch (_) { return []; }
+    try {
+      const list = (await media.enumerateDevices()).filter(device => device.kind === kind && device.deviceId);
+      for (const device of list) {
+        const label = String(device.label || '').trim();
+        if (label && !looksOpaqueLabel(label, device.deviceId)) knownLabels.set(device.deviceId, label);
+      }
+      return list;
+    } catch (_) { return []; }
   };
 
   const activeTrack = kind => {
@@ -54,23 +106,28 @@
     for (const id of ids) {
       const stream = document.getElementById(id)?.srcObject;
       const track = kind === 'videoinput' ? stream?.getVideoTracks?.()[0] : stream?.getAudioTracks?.()[0];
-      if (track?.readyState === 'live') return track;
+      const resolved = unwrapPhysicalTrack(track);
+      if (resolved?.readyState === 'live') return resolved;
     }
     if (kind === 'videoinput') {
-      const source = window.DominionBackgroundEffects2030?.getSourceTrack?.();
+      const source = unwrapPhysicalTrack(window.DominionBackgroundEffects2030?.getSourceTrack?.());
       if (source?.readyState === 'live') return source;
-      if (lastLiveVideoTrack?.readyState === 'live') return lastLiveVideoTrack;
+      const remembered = unwrapPhysicalTrack(lastLiveVideoTrack);
+      if (remembered?.readyState === 'live') return remembered;
     }
     if (kind === 'audioinput' && lastLiveAudioTrack?.readyState === 'live') return lastLiveAudioTrack;
     return null;
   };
 
-  const rememberTrack = track => {
+  const rememberTrack = input => {
+    const track = unwrapPhysicalTrack(input);
     if (!track) return;
     if (track.kind === 'video') lastLiveVideoTrack = track;
     if (track.kind === 'audio') lastLiveAudioTrack = track;
     const settings = track.getSettings?.() || {};
     const key = track.kind === 'video' ? CAMERA_KEY : track.kind === 'audio' ? MIC_KEY : '';
+    const label = String(track.label || '').trim();
+    if (settings.deviceId && label && !looksOpaqueLabel(label, settings.deviceId)) knownLabels.set(settings.deviceId, label);
     if (key && settings.deviceId) {
       try { localStorage.setItem(key, settings.deviceId); } catch (_) {}
     }
@@ -83,7 +140,8 @@
     const live = activeTrack(kind);
     const liveSettings = live?.getSettings?.() || {};
     const liveId = String(liveSettings.deviceId || '');
-    const liveLabel = String(live?.label || '').trim();
+    const liveLabelRaw = String(live?.label || '').trim();
+    const liveLabel = looksOpaqueLabel(liveLabelRaw, liveId) ? String(knownLabels.get(liveId) || '') : liveLabelRaw;
     const stored = (() => { try { return localStorage.getItem(kind === 'videoinput' ? CAMERA_KEY : MIC_KEY) || ''; } catch (_) { return ''; } })();
     const preferred = liveId || select.value || stored;
     const list = [...enumerated];
@@ -91,7 +149,6 @@
     if (live && liveId && !list.some(device => device.deviceId === liveId)) {
       list.unshift({ deviceId: liveId, label: liveLabel, kind });
     }
-
     if (!list.length && live) {
       list.push({ deviceId: liveId || `active-${kind}`, label: liveLabel, kind, activeSynthetic: true });
     }
@@ -100,10 +157,12 @@
     for (const device of list) {
       const option = document.createElement('option');
       option.value = device.deviceId;
-      const enumeratedLabel = String(device.label || '').trim();
+      const enumeratedLabelRaw = String(device.label || '').trim();
+      const cached = String(knownLabels.get(device.deviceId) || '').trim();
+      const enumeratedLabel = looksOpaqueLabel(enumeratedLabelRaw, device.deviceId) ? cached : enumeratedLabelRaw;
       const activeResolved = device.deviceId === liveId && liveLabel && !isGenericLabel(liveLabel, fallback) ? liveLabel : '';
       const enumeratedResolved = !isGenericLabel(enumeratedLabel, fallback) ? enumeratedLabel : '';
-      const label = activeResolved || enumeratedResolved;
+      const label = activeResolved || enumeratedResolved || cached;
       option.textContent = label || (device.activeSynthetic ? `${fallback} in use — hardware name unavailable` : `${fallback} — name unavailable`);
       option.dataset.deviceLabelResolved = label ? '1' : '0';
       if (device.deviceId === liveId) option.dataset.activeDevice = '1';
@@ -198,27 +257,37 @@
   media.getUserMedia = async constraints => {
     const requested = {...(constraints || {})};
     await ensureNativePermission(requested);
+    let stream = null;
     try {
-      const stream = await nativeGetUserMedia(requested);
+      stream = await nativeGetUserMedia(requested);
       stream.getTracks().forEach(rememberTrack);
-      scheduleDeviceRefresh();
-      return stream;
     } catch (firstError) {
       if (hardPermissionError(firstError) || !requested.video || !retryableVideoError(firstError)) throw firstError;
+      const videoStream = await acquireVideo(requested.video);
+      if (!requested.audio) stream = videoStream;
+      else {
+        try {
+          const audioStream = await acquireAudio(requested.audio);
+          stream = new MediaStream([...videoStream.getVideoTracks(), ...audioStream.getAudioTracks()]);
+        } catch (audioError) {
+          if (hardPermissionError(audioError)) {
+            videoStream.getTracks().forEach(track => track.stop());
+            throw audioError;
+          }
+          stream = videoStream;
+        }
+      }
     }
 
-    const videoStream = await acquireVideo(requested.video);
-    if (!requested.audio) return videoStream;
-    try {
-      const audioStream = await acquireAudio(requested.audio);
-      return new MediaStream([...videoStream.getVideoTracks(), ...audioStream.getAudioTracks()]);
-    } catch (audioError) {
-      if (hardPermissionError(audioError)) {
-        videoStream.getTracks().forEach(track => track.stop());
-        throw audioError;
-      }
-      return videoStream;
-    }
+    // Privacy invariant: if the prejoin preference says Camera Off, no video
+    // track is allowed to survive an unrelated/background media request. The
+    // user pressing Start Video clears that preference before requesting a new
+    // track, so intentional camera activation still works normally.
+    if (requested.video && prejoinCameraPreferenceOff()) stopVideoTracks(stream);
+    stream?.getTracks?.().forEach(rememberTrack);
+    scheduleDeviceRefresh();
+    setTimeout(enforcePrejoinCameraPrivacy, 0);
+    return stream;
   };
 
   const translateCameraError = error => {
@@ -240,6 +309,7 @@
         try {
           const result = await original.apply(engine,args);
           scheduleDeviceRefresh();
+          setTimeout(enforcePrejoinCameraPrivacy, 0);
           return result;
         } catch (error) {
           throw translateCameraError(error);
@@ -266,25 +336,37 @@
       const track = event.target.srcObject?.getVideoTracks?.()[0];
       if (track) rememberTrack(track);
       scheduleDeviceRefresh();
+      setTimeout(enforcePrejoinCameraPrivacy, 0);
     }
   }, true);
   document.addEventListener('click', event => {
     if (event.target.closest?.('#preSettings,#camMenuBtn,#micMenuBtn')) scheduleDeviceRefresh();
+    if (event.target.closest?.('#preCam,#alwaysJoinCameraOff')) {
+      setTimeout(enforcePrejoinCameraPrivacy, 0);
+      setTimeout(enforcePrejoinCameraPrivacy, 100);
+    }
   }, true);
+
+  if (typeof MutationObserver === 'function') {
+    const privacyObserver = new MutationObserver(() => enforcePrejoinCameraPrivacy());
+    privacyObserver.observe(document.documentElement, { attributes:true, subtree:true, attributeFilter:['aria-pressed','class'] });
+  }
 
   const engineTimer = setInterval(() => { if (wrapEngine()) clearInterval(engineTimer); }, 25);
   setTimeout(() => clearInterval(engineTimer), 5000);
-  setTimeout(() => { installDeviceSelectAuthority(); refreshDeviceNames().catch(() => {}); }, 250);
-  setTimeout(() => refreshDeviceNames().catch(() => {}), 900);
+  setTimeout(() => { installDeviceSelectAuthority(); refreshDeviceNames().catch(() => {}); enforcePrejoinCameraPrivacy(); }, 250);
+  setTimeout(() => { refreshDeviceNames().catch(() => {}); enforcePrejoinCameraPrivacy(); }, 900);
 
   window.DominionCameraDeviceStability = Object.freeze({
-    version:'1.2.0',
+    version:'1.3.0',
     refreshDeviceNames,
+    enforcePrejoinCameraPrivacy,
     snapshot:async()=>({
-      cameras:(await devices('videoinput')).map(device=>({id:device.deviceId,label:device.label||''})),
-      microphones:(await devices('audioinput')).map(device=>({id:device.deviceId,label:device.label||''})),
+      cameras:(await devices('videoinput')).map(device=>({id:device.deviceId,label:device.label||knownLabels.get(device.deviceId)||''})),
+      microphones:(await devices('audioinput')).map(device=>({id:device.deviceId,label:device.label||knownLabels.get(device.deviceId)||''})),
       activeCameraLabel:activeTrack('videoinput')?.label||'',
-      activeCameraDeviceId:activeTrack('videoinput')?.getSettings?.().deviceId||''
+      activeCameraDeviceId:activeTrack('videoinput')?.getSettings?.().deviceId||'',
+      prejoinCameraOff:prejoinCameraPreferenceOff()
     })
   });
 })();
