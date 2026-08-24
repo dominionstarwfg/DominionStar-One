@@ -91,7 +91,7 @@ function installDisplayListeners() {
   return true;
 }
 
-ipcMain.on('desktop:presenter-command', (event, command = '') => {
+ipcMain.on('desktop:presenter-parity-command', (event, command = '') => {
   if (!presenterSender(event)) return;
   const safe = String(command || '');
   if (safe === 'show-meeting') {
