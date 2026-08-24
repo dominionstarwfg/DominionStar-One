@@ -31,6 +31,10 @@ app.on('before-quit', () => {
   destroyDesktopWindows();
 });
 
+// Register the desktop navigation boundary before main-v2 can create the first
+// BrowserWindow. Only Meet/auth routes belong inside the desktop application;
+// public DominionStar pages remain normal browser destinations.
+await import('./desktop-navigation-authority.mjs');
 await import('./main-v2.mjs');
 await import('./macos-native-capture-authority.mjs');
 await import('./presenter-dock.mjs');
