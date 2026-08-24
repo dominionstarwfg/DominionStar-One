@@ -117,7 +117,7 @@ jobs:
           fi
           echo "RECOVERED_FUNCTION_BASELINE_PLUS_CERTIFIED_DELTAS_OK"
 
-      - name: Verify recovered current production static baseline
+      - name: Verify recovered current production static baseline plus Meet-only headers delta
         shell: bash
         run: |
           set -euo pipefail
@@ -125,7 +125,6 @@ jobs:
           cat > /tmp/recovery-static.sha256 <<'EOF'
           a2d5f7e85f5cd892a24962abe389637be03bd431af55a29d74e2311a3cbe0207  index.html
           0629a1afb26c6f66f407f7b88caf3937944bf36932b855f76db46cc07c784cff  styles.css
-          cbd0a219721cb0aab1b3cf6b07aad24fe9c0083ff0867b3168eadeca3fe3f14c  _headers
           6edbe6fbb8da5916c4dec3d921607e9f4ec85e0f4fe59abf91a493b5242977e1  _redirects
           0f71720fc5fe1c9e31deacf1250d0099aef044b90e0615b72d52119af1c9ffd6  member-login/index.html
           74a8a2316c6c14b709cd42269369bacbfd93c6bfdcb7444738bf18e54ded6218  member-dashboard/index.html
@@ -142,6 +141,7 @@ jobs:
           python3 - <<'PY'
           import hashlib, json
           from pathlib import Path
+
           manifest=json.loads(Path('RECOVERED-PRODUCTION-STATIC-BASELINE.json').read_text())
           if manifest.get('rootPolicy') != 'preserve-current-working-production-root':
               raise SystemExit('Recovered root policy changed')
@@ -165,11 +165,30 @@ jobs:
           }
           if manifest.get('files') != expected:
               raise SystemExit('Recovered static manifest does not match certified hashes')
+
+          # Every recovered root/static file except _headers must remain byte
+          # identical. _headers is allowed exactly one additive /meet/* block,
+          # and stripping that block must reconstruct the certified baseline.
           for path,wanted in expected.items():
+              if path == '_headers':
+                  continue
               actual=hashlib.sha256(Path(path).read_bytes()).hexdigest()
               if actual != wanted:
                   raise SystemExit(f'{path}: {actual} != {wanted}')
+
+          header_path=Path('_headers')
+          current=header_path.read_text()
+          meet_block='''\n/meet/*\n  Cache-Control: no-store\n  X-Content-Type-Options: nosniff\n  Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)\n'''
+          if current.count('/meet/*') != 1:
+              raise SystemExit('Expected exactly one Meet header block')
+          if not current.endswith(meet_block):
+              raise SystemExit('Meet header delta is not the approved additive block')
+          recovered=current[:-len(meet_block)]
+          actual_baseline=hashlib.sha256(recovered.encode()).hexdigest()
+          if actual_baseline != expected['_headers']:
+              raise SystemExit(f'_headers recovered baseline {actual_baseline} != {expected["_headers"]}')
           print('CURRENT_PRODUCTION_STATIC_BASELINE_CERTIFIED')
+          print('CERTIFIED_MEET_HEADERS_DELTA_OK')
           PY
 
       - name: Verify protected RC13.1 Meet integrity
