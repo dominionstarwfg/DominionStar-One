@@ -18,6 +18,9 @@ const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
 assert(memberLogin.includes("provider: 'google'"), 'Desktop login must expose Google OAuth.');
 assert(memberLogin.includes("redirectTo: 'dominionstar://auth/callback'"), 'Desktop Google OAuth must return through the DominionStar deep link.');
 assert(memberLogin.includes("skipBrowserRedirect: true"), 'Desktop Google OAuth must use the system browser instead of embedding Google inside Electron.');
+assert(memberLogin.includes("returned.get('access_token')"), 'Desktop OAuth callback must consume the returned access token.');
+assert(memberLogin.includes("returned.get('refresh_token')"), 'Desktop OAuth callback must consume the returned refresh token.');
+assert(memberLogin.includes('supabase.auth.setSession({'), 'Desktop OAuth callback must persist the browser-authenticated session inside Electron.');
 assert(memberLogin.includes("returnLink.textContent = '← Back to DominionStar Meet'"), 'Desktop login must return to DominionStar Meet, not the public platform.');
 assert(memberLogin.includes("return '/meet-home/?desktop=1'"), 'Desktop authentication must default back to Meet Home.');
 assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"), 'Native app must accept the DominionStar OAuth callback.');
@@ -60,4 +63,4 @@ assert(preload.includes('customSharePicker: !nativeSystemPicker'), 'Preload must
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'), 'Meeting engine must consume the native picker capability.');
 assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'), 'Meeting engine must never open both picker authorities.');
 
-console.log('Real Mac auth/navigation/camera/single-authority screen-share regression contract passed.');
+console.log('Real Mac OAuth/navigation/camera/single-authority screen-share regression contract passed.');
