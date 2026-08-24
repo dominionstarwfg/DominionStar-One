@@ -4,10 +4,10 @@ let collapseTimer=0;
 let stopRecoveryTimer=0;
 let sharePaused=false;
 const EXPANDED_WIDTH=930;
-const EXPANDED_HEIGHT=64;
-const MENU_HEIGHT=250;
-const COLLAPSED_WIDTH=218;
-const COLLAPSED_HEIGHT=46;
+const EXPANDED_HEIGHT=96;
+const MENU_HEIGHT=330;
+const COLLAPSED_WIDTH=320;
+const COLLAPSED_HEIGHT=44;
 
 const slideControlMarkup='<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m9 9-3 3 3 3M15 9l3 3-3 3M8 21h8"/></svg>';
 if(menu&&!menu.querySelector('[data-command="slide-control"]')){
@@ -15,8 +15,7 @@ if(menu&&!menu.querySelector('[data-command="slide-control"]')){
   button.type='button';
   button.dataset.command='slide-control';
   button.innerHTML=`${slideControlMarkup}Slide Control`;
-  const stop=menu.querySelector('[data-command="stop"]');
-  menu.insertBefore(button,stop||null);
+  menu.append(button);
 }
 
 const pauseButtons=()=>[...document.querySelectorAll('[data-command="pause"]')];
@@ -39,7 +38,7 @@ const scheduleCollapse=()=>{
     menu.hidden=true;
     document.body.classList.add('collapsed');
     window.presenterBridge.resize?.(COLLAPSED_WIDTH,COLLAPSED_HEIGHT);
-  },2200);
+  },2400);
 };
 const expand=()=>{
   if(document.body.classList.contains('stopping'))return;
@@ -65,6 +64,7 @@ const beginStopTransition=()=>{
     scheduleCollapse();
   },2200);
 };
+
 document.addEventListener('pointerenter',expand);
 document.addEventListener('pointermove',scheduleCollapse);
 document.addEventListener('pointerleave',scheduleCollapse);
