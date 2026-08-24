@@ -142,7 +142,7 @@ jobs:
             assets/js/meet/operation-2030-bootstrap.js
             assets/js/meet/desktop-share-picker.js
             assets/js/meet/camera-device-stability.js
-            assets/js/meet/screen-permission-ui-guard.js
+            assets/js/meet/video-intelligence-compositor.js
             assets/js/meet/quick-device-menu-parity.js
             assets/js/meet/share-optimization-parity.js
             assets/js/meet/presenter-command-web-parity.js
