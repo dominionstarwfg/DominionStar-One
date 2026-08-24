@@ -119,6 +119,64 @@ function appendTrustedMeetScript(origin, path, marker) {
   }
 }
 
+function installQaPreviewChromeBlocker() {
+  let hostname = '';
+  try { hostname = String(window.location?.hostname || '').toLowerCase(); } catch {}
+  if (!hostname.endsWith('.netlify.app')) return false;
+
+  // Netlify's Deploy Preview Drawer is review infrastructure, not DominionStar
+  // product UI. The navigation layer requests its official hidden state; this
+  // renderer boundary also removes late-injected cross-origin review frames so
+  // they cannot cover meeting controls or intercept Share clicks.
+  try {
+    const style = document.createElement('style');
+    style.setAttribute('data-ds-netlify-chrome-blocker', '1');
+    style.textContent = `
+      iframe[src*="app.netlify.com"],
+      iframe[src*="netlify.com"][title*="Netlify" i],
+      iframe[title*="Deploy Preview" i],
+      [data-netlify-drawer],#netlify-drawer,netlify-drawer,netlify-toolbar,
+      [class*="netlify-drawer" i],[id*="netlify-drawer" i]{display:none!important;visibility:hidden!important;pointer-events:none!important}
+    `;
+    (document.head || document.documentElement).append(style);
+  } catch {}
+
+  const removeReviewFrames = root => {
+    if (!root?.querySelectorAll) return;
+    for (const iframe of root.querySelectorAll('iframe')) {
+      const src = String(iframe.getAttribute('src') || '').toLowerCase();
+      const title = String(iframe.getAttribute('title') || '').toLowerCase();
+      if (src.includes('app.netlify.com') || (src.includes('netlify.com') && title.includes('netlify')) || title.includes('deploy preview')) {
+        try { iframe.remove(); } catch {}
+      }
+    }
+    for (const node of root.querySelectorAll('[data-netlify-drawer],#netlify-drawer,netlify-drawer,netlify-toolbar')) {
+      try { node.remove(); } catch {}
+    }
+  };
+
+  removeReviewFrames(document);
+  if (typeof MutationObserver === 'function') {
+    const observer = new MutationObserver(records => {
+      for (const record of records) {
+        for (const node of record.addedNodes || []) {
+          if (node?.nodeType !== 1) continue;
+          const tag = String(node.tagName || '').toLowerCase();
+          const src = String(node.getAttribute?.('src') || '').toLowerCase();
+          const title = String(node.getAttribute?.('title') || '').toLowerCase();
+          if ((tag === 'iframe' && (src.includes('app.netlify.com') || title.includes('deploy preview'))) || tag === 'netlify-drawer' || tag === 'netlify-toolbar') {
+            try { node.remove(); } catch {}
+            continue;
+          }
+          removeReviewFrames(node);
+        }
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
+  return true;
+}
+
 function installDesktopMeetRuntimeLayers() {
   const origin = trustedMeetOriginAndRoute();
   if (!origin) return false;
@@ -252,6 +310,7 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
 }));
 
 window.addEventListener('DOMContentLoaded', () => {
+  installQaPreviewChromeBlocker();
   try {
     window.dispatchEvent(new CustomEvent('dominionstar:guardian-certification', { detail: nativeCertification }));
   } catch {}
