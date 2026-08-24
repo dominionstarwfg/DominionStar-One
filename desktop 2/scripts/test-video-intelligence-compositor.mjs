@@ -14,7 +14,7 @@ assert(compositor.includes('smooth(session.subject.cx') && compositor.includes('
 assert(compositor.includes("brightness(.80) saturate(.96)") && compositor.includes("brightness(1.18) saturate(1.04)"), 'Portrait Lighting must dim the surrounding scene and brighten the subject region in the outgoing canvas.');
 assert(compositor.includes('outputTrack.__dsVideoIntelligence = true'), 'Processed output must be tagged to prevent recursive re-processing.');
 assert(compositor.includes('outputTrack.__dsPhysicalSourceTrack = sourceTrack') && compositor.includes('getSourceTrack:'), 'Video intelligence must preserve a live path back to the physical camera.');
-assert(compositor.includes('upstreamStartMedia') && compositor.includes('existingStream:processed'), 'Processed frames must publish through the meeting engine media boundary.');
+assert(compositor.includes('const publish = throughCurrentPipeline ? engine.startMedia.bind(engine) : upstreamStartMedia') && /existingStream\s*:\s*processed/.test(compositor) && compositor.includes('await publish('), 'Processed frames must publish through the meeting engine media boundary.');
 
 // Real-device performance contract: effects must not monopolize the meeting UI.
 assert(compositor.includes('const OUTPUT_FPS = 24'), 'Processed video output must be capped below the UI refresh rate.');
