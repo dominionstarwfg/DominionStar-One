@@ -335,7 +335,7 @@ const engineStub = `
     },
     async shareScreen() {
       if (state.screenStream) return state.screenStream;
-      state.screenStream = makeStream('screen-' + state.participantId);
+      state.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       emit('screen-stream', { stream: state.screenStream, settings: { displaySurface: 'monitor' } });
       post({ type: 'screen-state', from: state.participantId, displayName: state.displayName, active: true });
       return state.screenStream;
@@ -401,6 +401,7 @@ context.on('page', page => {
 
 await context.addInitScript(() => {
   window.__DS_COPIED_TEXT__ = '';
+  window.__DS_DISPLAY_MEDIA_CALLS__ = [];
   window.__DS_MAKE_TEST_STREAM__ = label => {
     const canvas = document.createElement('canvas');
     canvas.width = 640;
@@ -419,7 +420,13 @@ await context.addInitScript(() => {
     configurable: true,
     value: {
       getUserMedia: async () => window.__DS_MAKE_TEST_STREAM__('preview-camera'),
-      getDisplayMedia: async () => window.__DS_MAKE_TEST_STREAM__('preview-screen'),
+      getDisplayMedia: async options => {
+        window.__DS_DISPLAY_MEDIA_CALLS__.push({
+          video: Boolean(options?.video),
+          audio: Boolean(options?.audio)
+        });
+        return window.__DS_MAKE_TEST_STREAM__('preview-screen');
+      },
       enumerateDevices: async () => [
         { kind: 'videoinput', deviceId: 'preview-camera', label: 'Preview Camera' },
         { kind: 'audioinput', deviceId: 'preview-mic', label: 'Preview Microphone' },
@@ -600,6 +607,19 @@ try {
 
   await host.locator('#shareBtn').click();
   await host.waitForFunction(() => document.body.classList.contains('local-presentation-active'), null, { timeout: 5000 });
+  const captureBoundary = await host.evaluate(() => ({
+    calls: Array.isArray(window.__DS_DISPLAY_MEDIA_CALLS__) ? window.__DS_DISPLAY_MEDIA_CALLS__.slice() : [],
+    mode: window.DominionWebScreenShare?.mode || '',
+    desktop: Boolean(window.dominionDesktop?.isDesktop),
+    desktopBootstrapLoaded: Boolean(document.querySelector('script[data-ds-operation-2030-bootstrap]'))
+  }));
+  assert(captureBoundary.calls.length === 1, `Share Screen did not traverse getDisplayMedia exactly once: ${JSON.stringify(captureBoundary)}`);
+  assert(captureBoundary.calls[0]?.video === true, 'Browser Share Screen did not request a video presentation track');
+  assert(captureBoundary.mode === 'browser-native-picker', `Web share boundary is not browser-native: ${captureBoundary.mode}`);
+  assert(captureBoundary.desktop === false, 'Web acceptance unexpectedly entered desktop mode');
+  assert(captureBoundary.desktopBootstrapLoaded === false, 'Web Share Screen loaded the desktop Operation 2030 bootstrap');
+  console.log('MEET_UI_OK Share Screen traverses browser-native getDisplayMedia without desktop bootstrap leakage');
+
   await guest.waitForFunction(() => document.body.classList.contains('presentation-active'), null, { timeout: 5000 });
   await guest.waitForFunction(() => {
     const video = document.getElementById('stageVideo');
