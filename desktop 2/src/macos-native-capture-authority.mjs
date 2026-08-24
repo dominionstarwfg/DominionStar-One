@@ -1,6 +1,5 @@
-import { app, ipcMain, session } from 'electron';
+import { ipcMain } from 'electron';
 
-const DESKTOP_PARTITION = 'persist:dominionstar-meet';
 const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);
 const QA_PREVIEW_HOST = /^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/i;
 
@@ -30,44 +29,34 @@ export function supportsNativeMacPicker() {
   return Number.isFinite(major) && major >= 15;
 }
 
-let installed = false;
-
-export function installMacNativeCaptureAuthority() {
-  if (!supportsNativeMacPicker()) return false;
-  const desktopSession = session.fromPartition(DESKTOP_PARTITION);
-
-  // This intentionally becomes the final display-capture authority on supported
-  // macOS versions. Electron documents that when useSystemPicker is available,
-  // the native picker owns selection and this callback is not invoked. The
-  // defensive empty callback prevents a stale custom selection from becoming a
-  // second authority if the OS picker is unexpectedly unavailable.
-  desktopSession.setDisplayMediaRequestHandler((_request, callback) => {
-    callback({});
-  }, { useSystemPicker: true });
-
-  installed = true;
-  return true;
-}
-
+// The approved DominionStar source picker is the primary capture authority on
+// every desktop platform. macOS's system picker remains detectable as a future
+// emergency fallback, but it must never silently replace the branded picker.
+// This prevents Apple UI from displacing the approved Screens / Application
+// windows experience and avoids two competing picker authorities.
 ipcMain.handle('desktop:native-capture-capability', event => {
   if (!rendererIsTrusted(event)) {
-    return { ok: false, enabled: false, platform: process.platform, systemVersion: '' };
+    return {
+      ok: false,
+      enabled: false,
+      available: false,
+      platform: process.platform,
+      systemVersion: '',
+      authority: 'dominionstar-custom-picker'
+    };
   }
   return {
     ok: true,
-    enabled: supportsNativeMacPicker(),
-    installed,
+    enabled: false,
+    available: supportsNativeMacPicker(),
+    installed: false,
     platform: process.platform,
     systemVersion: macSystemVersion(),
-    authority: supportsNativeMacPicker() ? 'macos-system-picker' : 'dominionstar-custom-picker'
+    authority: 'dominionstar-custom-picker'
   };
 });
 
-app.whenReady().then(() => {
-  // main-v2 installs the cross-platform custom capture fallback during its ready
-  // path. Install the macOS native authority on the next turn so supported Macs
-  // finish with exactly one effective picker authority.
-  setImmediate(() => {
-    installMacNativeCaptureAuthority();
-  });
-}).catch(() => {});
+export const DominionMacCaptureAuthority = Object.freeze({
+  primary: 'dominionstar-custom-picker',
+  nativeFallbackAvailable: supportsNativeMacPicker
+});
