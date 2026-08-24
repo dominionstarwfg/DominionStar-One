@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const read = rel => fs.readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8');
 
 const meetHtml = read('meet/index.html');
+const executive = read('assets/js/meet-next/executive6.js');
 const meetingEngine = read('assets/js/meeting-engine.js');
 const desktopSharePicker = read('assets/js/meet/desktop-share-picker.js');
 const shareView = read('assets/js/meet/share-view-controls.js');
@@ -12,6 +13,7 @@ const hostCohostUi = read('assets/js/meet/host-cohost-ui-parity.js');
 const quickDevices = read('assets/js/meet/quick-device-menu-parity.js');
 const dockPolish = read('assets/js/meet/dock-polish-2030.js');
 const shareAnnotation = read('assets/js/meet/share-annotation.js');
+const liveTranscription = read('assets/js/meet/live-transcription.js');
 const localRecording = read('assets/js/meet/local-recording.js');
 const presenterHtml = read('desktop 2/src/presenter-toolbar.html');
 const presenterJs = read('desktop 2/src/presenter-toolbar.js');
@@ -105,4 +107,36 @@ requireText(twoClient, 'one-click invitation carries room and passcode', 'Zoom p
 requireText(localRecording, 'new MediaRecorder(', 'Zoom parity: Record must be functional, not decorative.');
 requireText(localRecording, 'canvas.captureStream(30)', 'Zoom parity: local recording must capture the rendered meeting stage.');
 
-console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK host-cohost waiting-room share pause annotation dock devices chat record browser-desktop');
+// 11) Active-speaker behavior, Pin and Spotlight remain distinct. A local pin is
+// a local view choice; Spotlight is synchronized for everyone and overrides the
+// active-speaker election until removed.
+requireText(executive, 'function electActiveSpeaker(force=false,preferredId=\'\')', 'Zoom parity: active-speaker election is missing.');
+requireText(executive, 'if(state.spotlightParticipantId)', 'Zoom parity: Spotlight does not override active-speaker election.');
+requireText(executive, "add('Pin my video'", 'Zoom parity: local video Pin is missing.');
+requireText(executive, "'Spotlight for everyone'", 'Zoom parity: host/co-host Spotlight for everyone is missing.');
+requireText(executive, "engine.on('spotlight'", 'Zoom parity: synchronized Spotlight reception is missing.');
+
+// 12) Entry cues and remembered join preferences match desktop-meeting behavior.
+requireText(executive, "preferences:{joinMuted:false,joinCameraOff:false", 'Zoom parity: remembered join mic/camera preferences are missing.');
+requireText(meetHtml, 'id="alwaysJoinMuted"', 'Zoom parity: always-join-muted preference control is missing.');
+requireText(meetHtml, 'id="alwaysJoinCameraOff"', 'Zoom parity: always-join-camera-off preference control is missing.');
+requireText(executive, "playTone('join')", 'Zoom parity: participant join chime is missing.');
+
+// 13) Scheduling supports one-time and recurring meetings with stable meeting
+// credentials and explicit waiting-room/passcode choices.
+requireText(meetHtml, 'id="scheduleMeetingAction"', 'Zoom parity: Schedule meeting entry point is missing.');
+requireText(meetHtml, 'id="recurringMeetingAction"', 'Zoom parity: Recurring meeting entry point is missing.');
+requireText(executive, "$('scheduleRecurring')?.addEventListener('change'", 'Zoom parity: recurring schedule controls are not wired.');
+requireText(executive, "const recurring=$('scheduleRecurring').checked", 'Zoom parity: schedule submission does not persist recurring state.');
+requireText(executive, "frequency:recurring?$('scheduleFrequency').value:null", 'Zoom parity: recurring frequency is missing.');
+requireText(executive, 'link:buildMeetingJoinLink(pendingCredentials.id,{passcode,waiting:waitingRoom})', 'Zoom parity: scheduled meeting link does not carry its meeting security choices.');
+
+// 14) Live captions/transcription are meeting-aware and language-selectable.
+for (const language of ["{code:'en', label:'English'}","{code:'fr', label:'French'}","{code:'es', label:'Spanish'}","{code:'zh', label:'Mandarin Chinese'}"]) {
+  requireText(liveTranscription, language, `Zoom parity: live-caption language option is missing: ${language}`);
+}
+requireText(liveTranscription, 'window.SpeechRecognition || window.webkitSpeechRecognition', 'Zoom parity: browser speech-recognition path is missing.');
+requireText(liveTranscription, "engine.transcript?.({text,final:true", 'Zoom parity: finalized captions are not sent into meeting transcription.');
+requireText(liveTranscription, "stopButton.hidden=!(state.roomActive && snap.isHost)", 'Zoom parity: stop-captions-for-everyone must remain host-only.');
+
+console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK host-cohost waiting-room share pause annotation dock devices chat record speaker spotlight scheduling captions browser-desktop');
