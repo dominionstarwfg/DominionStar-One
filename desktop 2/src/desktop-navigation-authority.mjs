@@ -61,6 +61,40 @@ function installNavigationAuthority(contents) {
   });
 }
 
+function installPreviewChromeSuppression(contents) {
+  if (!contents || contents.isDestroyed?.()) return;
+  const suppress = () => {
+    let current;
+    try { current = new URL(String(contents.getURL?.() || '')); } catch { return; }
+    if (!QA_PREVIEW_HOST.test(current.hostname)) return;
+    const script = `(()=>{
+      if(window.__dsNetlifyPreviewSuppression)return;
+      window.__dsNetlifyPreviewSuppression=true;
+      const phrases=['Collaborate on this Deploy Preview','Log in to the Netlify Drawer'];
+      const removePreviewChrome=()=>{
+        for(const node of Array.from(document.querySelectorAll('body *'))){
+          const text=String(node.textContent||'').trim();
+          if(!phrases.some(phrase=>text.includes(phrase)))continue;
+          let target=node;
+          for(let depth=0;depth<5&&target.parentElement&&target.parentElement!==document.body;depth+=1){
+            const parent=target.parentElement;
+            const rect=parent.getBoundingClientRect();
+            const style=getComputedStyle(parent);
+            if(rect.height<=150&&(style.position==='fixed'||style.position==='sticky'||rect.width>=320))target=parent;
+            else break;
+          }
+          target.remove();
+        }
+      };
+      removePreviewChrome();
+      new MutationObserver(removePreviewChrome).observe(document.documentElement,{childList:true,subtree:true});
+    })();`;
+    void contents.executeJavaScript(script, true).catch(() => {});
+  };
+  contents.on('dom-ready', suppress);
+  contents.on('did-navigate-in-page', suppress);
+}
+
 function installPreviewRequestNormalization() {
   const desktopSession = session.fromPartition(DESKTOP_PARTITION);
   desktopSession.webRequest.onBeforeRequest({ urls: ['https://*/*'] }, (details, callback) => {
@@ -98,12 +132,14 @@ function installPreviewRequestNormalization() {
 
 app.on('web-contents-created', (_event, contents) => {
   installNavigationAuthority(contents);
+  installPreviewChromeSuppression(contents);
 });
 
 app.whenReady().then(() => {
-  // This is registered before main-v2's ready handler because this module is
-  // imported first by bootstrap.mjs. Programmatic loadURL() calls therefore get
-  // desktop mode and a hidden Netlify QA drawer before the first page renders.
+  // Registered before main-v2's ready handler because this module is imported
+  // first by bootstrap.mjs. Programmatic loadURL() calls therefore enter desktop
+  // mode before the first page renders. QA-only Netlify chrome is also removed
+  // from the Electron surface so preview infrastructure never becomes product UI.
   installPreviewRequestNormalization();
 }).catch(() => {});
 
