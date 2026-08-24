@@ -1,11 +1,14 @@
 import { app, ipcMain, systemPreferences } from 'electron';
 
 const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);
+const QA_PREVIEW_HOST = /^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/i;
 
 function isTrustedDesktopRenderer(event) {
   try {
     const url = new URL(String(event?.sender?.getURL?.() || ''));
-    return url.protocol === 'https:' && TRUSTED_HOSTS.has(url.hostname.toLowerCase());
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.toLowerCase();
+    return TRUSTED_HOSTS.has(host) || QA_PREVIEW_HOST.test(host);
   } catch {
     return false;
   }
