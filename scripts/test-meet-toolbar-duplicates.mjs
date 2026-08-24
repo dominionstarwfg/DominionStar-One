@@ -102,15 +102,18 @@ assert.equal(countText(desktopPreload, "'/assets/js/meet/illustration-ui-parity.
 // 7) IPC duplicate-fire protection: two listeners intentionally share the
 // presenter channel, but they must own disjoint command sets. An overlap would
 // execute one toolbar click twice and is therefore a release blocker.
-assert(desktopMain.includes("ipcMain.on('desktop:presenter-command'"), 'Main presenter command router is missing.');
-assert(presenterParity.includes("ipcMain.on('desktop:presenter-command'"), 'Parity presenter command router is missing.');
-const mainAllowedMatch = desktopMain.match(/const allowed = new Set\(\[([^\]]+)\]\);/);
+const presenterRouterNeedle = "ipcMain.on('desktop:presenter-command'";
+assert(desktopMain.includes(presenterRouterNeedle), 'Main presenter command router is missing.');
+assert(presenterParity.includes(presenterRouterNeedle), 'Parity presenter command router is missing.');
+const presenterRouterStart = desktopMain.indexOf(presenterRouterNeedle);
+const presenterRouterSource = desktopMain.slice(presenterRouterStart, presenterRouterStart + 1800);
+const mainAllowedMatch = presenterRouterSource.match(/const allowed = new Set\(\[([^\]]+)\]\);/);
 assert(mainAllowedMatch, 'Unable to audit main presenter command allowlist.');
 const mainCommands = matches(mainAllowedMatch[1], /'([^']+)'/g).map(match => match[1]);
 const parityCommands = ['show-meeting','layout','annotate','slide-control'];
 const overlap = mainCommands.filter(command => parityCommands.includes(command));
 assert.deepEqual(overlap, [], `Presenter IPC command ownership overlaps and may double-fire: ${overlap.join(', ')}`);
-const nativeCommands = new Set([...presenterCommands, ...(presenterJs.includes("data-command='slide-control'") ? ['slide-control'] : ['slide-control'])]);
+const nativeCommands = new Set([...presenterCommands, 'slide-control']);
 for (const command of nativeCommands) {
   if (command === 'more') continue; // More is consumed locally by presenter-toolbar.js.
   assert(mainCommands.includes(command) || parityCommands.includes(command), `Native presenter command ${command} has no command owner.`);
