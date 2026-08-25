@@ -268,13 +268,6 @@
     document.head.append(arbitrationScript);
   }
 
-  if (!isDesktop && !document.querySelector('script[data-ds-meeting-identity-bridge]')) {
-    const identityScript = document.createElement('script');
-    identityScript.src = '/assets/js/meet/meeting-identity-bridge.js?v=1-operation-2030';
-    identityScript.dataset.dsMeetingIdentityBridge = '1';
-    document.head.append(identityScript);
-  }
-
   if (!isDesktop && !document.querySelector('script[data-ds-reaction-polish]')) {
     const reactionScript = document.createElement('script');
     reactionScript.src = '/assets/js/meet/reaction-polish.js?v=1-reaction-only';
@@ -283,7 +276,7 @@
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '2.2.1',
+    version: '2.3.0-clean-browser-fallbacks',
     runtimeMode: isDesktop ? 'desktop' : 'browser',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent(), runtimeMode:isDesktop?'desktop':'browser' })
