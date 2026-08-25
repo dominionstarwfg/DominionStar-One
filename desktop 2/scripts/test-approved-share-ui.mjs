@@ -37,7 +37,7 @@ assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"), 'macOS
 assert(nativeCapture.includes('enabled: false'), 'Apple system picker must not silently replace the approved source picker.');
 assert(nativeCapture.includes('available: supportsNativeMacPicker()'), 'Native macOS picker availability may remain detectable as fallback capability.');
 assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker') && desktopPreload.includes('customSharePicker: !nativeSystemPicker'), 'Renderer must advertise exactly one active share-picker authority.');
-assert(desktopMain.includes('function supportsMacSystemPicker() {\n  return false;\n}'), 'Main display-capture handler must keep native picker disabled by default.');
+assert(/function supportsMacSystemPicker\(\)\s*\{\s*return false;\s*\}/.test(desktopMain), 'Main display-capture handler must keep native picker disabled by default.');
 assert(desktopSharePicker.includes('data-filter="screen">Screens'), 'Approved source picker must expose a real Screens tab.');
 assert(desktopSharePicker.includes('data-filter="window">Application windows'), 'Approved source picker must expose a real Application windows tab.');
 assert(desktopSharePicker.includes('SOURCE_RETRY_DELAYS'), 'Source picker must retry real source enumeration instead of becoming unresponsive.');
