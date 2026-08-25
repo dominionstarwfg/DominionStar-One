@@ -9,7 +9,8 @@ const dock=fs.readFileSync(new URL('../assets/js/meet/dock-layout-v2.js',import.
 const dockCss=fs.readFileSync(new URL('../assets/css/meet/dock-layout-v2.css',import.meta.url),'utf8');
 const background=fs.readFileSync(new URL('../assets/js/meet/background-effects-2030.js',import.meta.url),'utf8');
 const cameraPolish=fs.readFileSync(new URL('../assets/js/meet/camera-reaction-polish.js',import.meta.url),'utf8');
-const cameraStability=fs.readFileSync(new URL('../assets/js/meet/camera-device-stability.js',import.meta.url),'utf8');
+const cameraCatalog=fs.readFileSync(new URL('../assets/js/meet/camera-device-stability.js',import.meta.url),'utf8');
+const hotfix=fs.readFileSync(new URL('../assets/js/meet/hotfix-rc13-1-media-prejoin.js',import.meta.url),'utf8');
 const sharePicker=fs.readFileSync(new URL('../assets/js/meet/desktop-share-picker.js',import.meta.url),'utf8');
 const meetingIdentity=fs.readFileSync(new URL('../assets/js/meet/meeting-identity-settings.js',import.meta.url),'utf8');
 const personalRoom=fs.readFileSync(new URL('../assets/js/meet-next/personal-room.js',import.meta.url),'utf8');
@@ -56,18 +57,32 @@ assert(background.includes('const restoreStream = new MediaStream([current.sourc
 assert(background.includes('video[data-ds-background-processed="1"]{filter:none!important;}'),'Processed background video must own filter presentation and block legacy whole-frame CSS filters.');
 assert(cameraPolish.includes('DominionBackgroundEffects2030?.getSourceTrack?.()')&&cameraPolish.includes('const track = hardwareVideoTrack();'),'HD constraints must target the raw hardware camera source rather than the segmented canvas track.');
 
-assert(cameraStability.includes('enumerateDevices()')&&cameraStability.includes('deviceId:{exact:id}'),'Camera recovery must probe real enumerated hardware instead of repeatedly retrying one stale camera request.');
-assert(cameraStability.includes('track.getSettings?.()')&&cameraStability.includes('localStorage.setItem(key, settings.deviceId)'),'The camera layer must remember the device that actually opened, not a stale generic selection.');
-assert(cameraStability.includes('`${fallback} — name unavailable`'),'Unresolved camera labels must be presented as unresolved rather than pretending Camera 1 is a hardware name.');
-assert(cameraStability.includes('activeResolved')&&cameraStability.includes('MutationObserver'),'The active hardware label must remain authoritative when the base UI rebuilds device selectors.');
-assert(cameraStability.includes('getMediaPermissions')&&cameraStability.includes('requestMediaPermissions'),'Desktop camera acquisition must honor the native macOS permission bridge.');
-assert(cameraStability.includes('enforcePrejoinCameraPrivacy')&&cameraStability.includes("if (track.readyState !== 'ended') track.stop()"),'Prejoin Video Off must physically release the camera instead of leaving the macOS camera light active.');
-assert(cameraStability.includes('looksOpaqueLabel')&&cameraStability.includes('knownLabels'),'Camera settings must never promote an opaque device identifier to a hardware name.');
-assert(meetIndex.indexOf('/assets/js/meet/camera-device-stability.js') < meetIndex.indexOf('/assets/js/meeting-engine.js'),'Camera stability must load before the meeting engine so prejoin and in-meeting acquisition share one policy.');
+// Single-owner media contract: Executive 6 owns camera acquisition/toggling and
+// recovery. The device catalog may enumerate and label hardware, but it must
+// never wrap getUserMedia, wrap the engine, stop tracks, or observe the whole DOM.
+assert(ui.includes('const PREVIEW_CAMERA_RETRY_DELAYS_MS=[0,320,760,1400]')&&ui.includes('const acquireUserMediaStable=async constraints=>'),'Executive 6 must retain bounded real-camera retry and reacquisition.');
+assert(ui.includes('navigator.mediaDevices.enumerateDevices()')&&ui.includes('async function loadDevices()'),'Executive 6 must enumerate all attached camera/microphone/speaker devices.');
+assert(ui.includes("state.stream?.getVideoTracks?.().forEach(track=>{try{state.stream.removeTrack(track);}")&&ui.includes("track.readyState!=='ended')track.stop()"),'Visible prejoin Video Off must physically release the camera track.');
+assert(cameraCatalog.includes('enumerateDevices()')&&cameraCatalog.includes("cameraSelect")&&cameraCatalog.includes("microphoneSelect")&&cameraCatalog.includes("speakerSelect"),'Passive catalog must hydrate all three hardware selectors.');
+assert(cameraCatalog.includes('looksOpaque')&&cameraCatalog.includes('knownLabels'),'Device catalog must reject opaque IDs as user-facing hardware names.');
+assert(cameraCatalog.includes('replaceChildren(fragment)')&&cameraCatalog.includes('sameOptions'),'Device catalog must avoid repeated DOM churn when the device list did not change.');
+assert(!cameraCatalog.includes('media.getUserMedia ='),'Device catalog must never wrap getUserMedia.');
+assert(!cameraCatalog.includes('__dsCameraStabilityWrapped')&&!cameraCatalog.includes('engine[method] ='),'Device catalog must never wrap the meeting engine.');
+assert(!cameraCatalog.includes('MutationObserver'),'Device catalog must not run mutation-observer feedback loops.');
+assert(!cameraCatalog.includes('.stop()'),'Device catalog must never own physical camera shutdown.');
+assert(hotfix.includes('getMediaPermissions')&&hotfix.includes('requestMediaPermissions'),'Desktop host-prejoin permission checks must still honor the native macOS permission bridge.');
+assert(meetIndex.indexOf('/assets/js/meet/camera-device-stability.js') < meetIndex.indexOf('/assets/js/meeting-engine.js'),'Passive hardware catalog must load before the meeting engine so names are stable when settings open.');
+assert(!operationBootstrap.includes('microphone-device-identity.js'),'Desktop advanced runtime must not load a second microphone selector owner.');
+assert(operationBootstrap.includes('mediaIdle')&&operationBootstrap.includes("requestIdleCallback"),'Heavy camera/effect enhancements must wait until initial UI/media startup is idle.');
 assert(/function supportsMacSystemPicker\(\)\s*\{\s*return false;\s*\}/.test(desktopMain),'The macOS system share sheet must not bypass the DominionStar desktop source picker.');
 assert(desktopMain.includes('customSharePicker: !supportsMacSystemPicker()')&&desktopMain.includes('systemSharePicker: supportsMacSystemPicker()'),'Desktop runtime metadata must advertise DominionStar as the active share picker.');
 
-assert(screenPermissionLifecycle.includes("getMediaAccessStatus('screen')"),'macOS screen permission must be read directly instead of inferred from an empty source list.');
+// Screen permission contract: macOS status is useful, but real capture readiness
+// is authoritative. A non-empty screen preview must prevent the settings loop.
+assert(screenPermissionLifecycle.includes("getMediaAccessStatus('screen')"),'macOS screen permission status must still be observed.');
+assert(screenPermissionLifecycle.includes('desktopCapturer.getSources')&&screenPermissionLifecycle.includes('probeCaptureReadiness'),'Native lifecycle must probe real screen-capture readiness.');
+assert(screenPermissionLifecycle.includes('captureReady: true')&&screenPermissionLifecycle.includes('requiresRestart: false'),'Working capture sources must override stale permission/restart state.');
+assert(screenPermissionLifecycle.includes('sourceCount')&&screenPermissionLifecycle.includes('previewCount'),'Screen permission diagnostics must expose real source/preview counts.');
 assert(screenPermissionLifecycle.includes('desktop:screen-permission-status')&&screenPermissionLifecycle.includes('desktop:relaunch-for-permissions'),'The native shell must expose screen-permission status and a controlled permission relaunch.');
 assert(screenPermissionLifecycle.includes('QA_PREVIEW_HOST'),'The same native screen-permission lifecycle must operate on the exact QA preview used by the desktop build.');
 assert(desktopPreload.includes('getScreenPermissionStatus')&&desktopPreload.includes('relaunchForPermissions'),'The trusted preload must expose the screen-permission lifecycle to the hosted Meet UI.');
@@ -105,4 +120,4 @@ assert(desktopBootstrap.includes('remote-control-dialog.mjs'),'The desktop boots
 
 assert(personalRoom.includes("$('personalRoomForm')?.addEventListener('submit'")&&!personalRoom.includes("$('savePersonalRoom')?.addEventListener('click'"),'Personal Room Save must execute once through the form submit contract.');
 
-console.log('Media stability guardrails passed.');
+console.log('Media stability guardrails passed: single media owner, passive device catalog, capture-ready screen permission.');
