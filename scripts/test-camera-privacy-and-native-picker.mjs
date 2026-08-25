@@ -28,9 +28,8 @@ requireSource(ui,"state.stream.removeTrack(track)",'Prejoin Video Off does not r
 requireSource(ui,'markPreviewCameraReleased()','Prejoin Video Off does not mark the hardware release boundary before Video On.');
 
 // Physical-Mac authority: macOS 15+ must use Electron's native system picker.
-// The previous custom-only path could hang desktopCapturer after a Screen &
-// System Audio Recording permission transition. DominionStar's branded picker
-// remains a bounded fallback for older macOS and non-macOS desktop platforms.
+// DominionStar's branded picker remains a fallback only when the system picker
+// is unavailable.
 requireSource(bootstrap,'macos-native-capture-authority.mjs','Desktop bootstrap must retain capture-capability reporting.');
 requireSource(bootstrap,'macos-system-picker-session.mjs','Desktop bootstrap must install the physical-Mac system-picker session authority.');
 requireSource(nativeCapture,'const nativePicker = supportsNativeMacPicker()','macOS capture authority must resolve system-picker support once per request.');
@@ -48,17 +47,23 @@ requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.system
 requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Meeting engine must skip the custom picker when native system selection is active.');
 requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Native Mac and browser sharing must enter standards getDisplayMedia after source authority is resolved.');
 
-// Regression guard for the physical freeze: fallback UI must appear before any
-// runtime probe and every native/source wait must be bounded. Real capturable
-// previews override stale TCC text so users are not looped back to Settings.
-const showIndex=customPicker.indexOf('dialog.showModal()');
+// Physical freeze regression: the fallback UI is deliberately non-modal so a
+// stalled or denied share attempt cannot lock every other meeting control. The
+// fallback checks lightweight TCC permission before it ever asks Electron to
+// enumerate desktop sources, and all IPC/source waits remain time-bounded.
+const showIndex=customPicker.indexOf('dialog.show()');
 const runtimeIndex=customPicker.indexOf('getRuntimeInfo?.()');
 if(showIndex<0||runtimeIndex<0||showIndex>runtimeIndex)throw new Error('Fallback share picker must become visible before runtime/capability probing.');
+forbidSource(customPicker,'dialog.showModal()','Fallback share picker must stay non-modal so the meeting cannot be UI-locked.');
+requireSource(customPicker,'#desktopSharePicker::backdrop{background:transparent}','Fallback picker must not place a blocking backdrop over the meeting.');
 requireSource(customPicker,'const withTimeout=','Fallback share picker must bound native IPC waits instead of freezing indefinitely.');
 requireSource(customPicker,'const requestSources=()=>withTimeout','Fallback source enumeration must have an explicit timeout.');
-requireSource(screenLifecycle,'probeScreenCapture','Screen permission lifecycle must verify real capture capability.');
-requireSource(screenLifecycle,'if(probe.captureReady)','Successful capture must override stale macOS permission text.');
-requireSource(screenLifecycle,'CAPTURE_PROBE_TIMEOUT_MS','Permission probing must be bounded.');
+const permissionIndex=customPicker.indexOf('const permissionState=await status()');
+const sourceIndex=customPicker.indexOf('next=await requestSources()');
+if(permissionIndex<0||sourceIndex<0||permissionIndex>sourceIndex)throw new Error('macOS fallback must check permission before desktop source enumeration.');
+requireSource(screenLifecycle,"systemPreferences.getMediaAccessStatus('screen')",'Permission lifecycle must use the lightweight macOS TCC status API.');
+forbidSource(screenLifecycle,'desktopCapturer','Permission-status IPC must never enumerate desktop sources.');
+requireSource(screenLifecycle,'captureProbed:false','Permission status must explicitly remain a non-capture diagnostic.');
 
 // Web/Netlify authority: standards-compliant browsers own their own chooser via
 // getDisplayMedia. The web build must not depend on Electron/native bridges.
@@ -74,4 +79,4 @@ requireSource(shareView,"name === 'InvalidStateError'",'Browser transient-user-a
 requireSource(netlify,'Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"','Netlify Meet route must explicitly allow browser camera, microphone, display capture and fullscreen.');
 requireSource(headers,'Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)','Published Netlify headers must preserve Meet media/display-capture permissions.');
 
-console.log('PASS camera privacy plus physical-Mac native picker and bounded fallback screen-share ownership.');
+console.log('PASS camera privacy plus native Mac picker and non-blocking fallback ownership.');
