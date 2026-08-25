@@ -7,6 +7,9 @@ const main=fs.readFileSync(new URL('../desktop 2/src/main-v2.mjs',import.meta.ur
 const bootstrap=fs.readFileSync(new URL('../desktop 2/src/bootstrap.mjs',import.meta.url),'utf8');
 const preload=fs.readFileSync(new URL('../desktop 2/src/preload.cjs',import.meta.url),'utf8');
 const nativeCapture=fs.readFileSync(new URL('../desktop 2/src/macos-native-capture-authority.mjs',import.meta.url),'utf8');
+const nativePickerSession=fs.readFileSync(new URL('../desktop 2/src/macos-system-picker-session.mjs',import.meta.url),'utf8');
+const screenLifecycle=fs.readFileSync(new URL('../desktop 2/src/screen-permission-lifecycle.mjs',import.meta.url),'utf8');
+const customPicker=fs.readFileSync(new URL('../assets/js/meet/desktop-share-picker.js',import.meta.url),'utf8');
 const netlify=fs.readFileSync(new URL('../netlify.toml',import.meta.url),'utf8');
 const headers=fs.readFileSync(new URL('../_headers',import.meta.url),'utf8');
 
@@ -24,27 +27,41 @@ requireSource(ui,"video:state.video?{width:{ideal:1280},height:{ideal:720},frame
 requireSource(ui,"state.stream.removeTrack(track)",'Prejoin Video Off does not release its camera track.');
 requireSource(ui,'markPreviewCameraReleased()','Prejoin Video Off does not mark the hardware release boundary before Video On.');
 
-// Desktop authority: the installed client owns a branded source picker backed
-// by Electron desktopCapturer. Apple/Electron native picker capability can be
-// detected as fallback capability but cannot silently replace DominionStar.
-requireSource(main,'function supportsMacSystemPicker() {\n  return false;\n}','Main capture handler must keep the native system picker disabled by default.');
-requireSource(main,"types: ['screen', 'window']",'DominionStar desktop capture handler must enumerate real screens and windows.');
+// Physical-Mac authority: macOS 15+ must use Electron's native system picker.
+// The previous custom-only path could hang desktopCapturer after a Screen &
+// System Audio Recording permission transition. DominionStar's branded picker
+// remains a bounded fallback for older macOS and non-macOS desktop platforms.
 requireSource(bootstrap,'macos-native-capture-authority.mjs','Desktop bootstrap must retain capture-capability reporting.');
-requireSource(nativeCapture,"authority: 'dominionstar-custom-picker'",'macOS capability must report DominionStar as primary capture authority.');
-requireSource(nativeCapture,'enabled: false','Native Apple picker must not be enabled as the default user-facing picker.');
-requireSource(nativeCapture,'available: supportsNativeMacPicker()','Native picker availability may remain detectable as fallback capability.');
+requireSource(bootstrap,'macos-system-picker-session.mjs','Desktop bootstrap must install the physical-Mac system-picker session authority.');
+requireSource(nativeCapture,'const nativePicker = supportsNativeMacPicker()','macOS capture authority must resolve system-picker support once per request.');
+requireSource(nativeCapture,"enabled: nativePicker",'macOS 15+ capability must enable the native system picker.');
+requireSource(nativeCapture,"nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'",'macOS capability must expose native authority with DominionStar fallback.');
+requireSource(nativePickerSession,"session.fromPartition(DESKTOP_PARTITION)",'Native picker must target the same persistent DominionStar desktop session.');
+requireSource(nativePickerSession,'{ useSystemPicker: true }','macOS 15+ display capture must opt into Electron native system-picker handling.');
+requireSource(main,"types: ['screen', 'window']",'DominionStar fallback capture handler must still enumerate real screens and windows.');
 requireSource(preload,"ipcRenderer.invoke('desktop:native-capture-capability')",'Renderer does not read the final capture authority.');
 requireSource(preload,'systemSharePicker: nativeSystemPicker','Renderer must expose the final system-picker state.');
-requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must expose the branded picker when native mode is disabled.');
+requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must expose the branded picker only when native mode is unavailable.');
 requireSource(preload,'installDesktopMeetRuntimeLayers','Desktop preload must own installation of the advanced Meet runtime.');
 requireSource(preload,'/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime','Desktop preload must own the Operation 2030 bootstrap URL.');
 requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Meeting engine must consume the desktop picker capability.');
-requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Meeting engine must route desktop sharing through the approved DominionStar picker.');
+requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Meeting engine must skip the custom picker when native system selection is active.');
+requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Native Mac and browser sharing must enter standards getDisplayMedia after source authority is resolved.');
 
-// Web/Netlify authority: standards-compliant browsers must own their own
-// screen/window chooser via getDisplayMedia. The web build is intentionally
-// lighter and must never depend on Electron/native permission bridges.
-requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Browser sharing must use standards-native getDisplayMedia.');
+// Regression guard for the physical freeze: fallback UI must appear before any
+// runtime probe and every native/source wait must be bounded. Real capturable
+// previews override stale TCC text so users are not looped back to Settings.
+const showIndex=customPicker.indexOf('dialog.showModal()');
+const runtimeIndex=customPicker.indexOf('getRuntimeInfo?.()');
+if(showIndex<0||runtimeIndex<0||showIndex>runtimeIndex)throw new Error('Fallback share picker must become visible before runtime/capability probing.');
+requireSource(customPicker,'const withTimeout=','Fallback share picker must bound native IPC waits instead of freezing indefinitely.');
+requireSource(customPicker,'const requestSources=()=>withTimeout','Fallback source enumeration must have an explicit timeout.');
+requireSource(screenLifecycle,'probeScreenCapture','Screen permission lifecycle must verify real capture capability.');
+requireSource(screenLifecycle,'if(probe.captureReady)','Successful capture must override stale macOS permission text.');
+requireSource(screenLifecycle,'CAPTURE_PROBE_TIMEOUT_MS','Permission probing must be bounded.');
+
+// Web/Netlify authority: standards-compliant browsers own their own chooser via
+// getDisplayMedia. The web build must not depend on Electron/native bridges.
 requireSource(shareView,'const isDesktop = Boolean(window.dominionDesktop?.isDesktop)','Share controls must explicitly distinguish desktop from browser runtime.');
 forbidSource(shareView,"bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js",'Web share controls must never bootstrap Operation 2030; desktop preload is the sole owner.');
 requireSource(shareView,"if (!isDesktop && !document.querySelector('script[data-ds-share-annotation]'))",'Browser share fallbacks must be explicitly excluded from desktop mode.');
@@ -57,4 +74,4 @@ requireSource(shareView,"name === 'InvalidStateError'",'Browser transient-user-a
 requireSource(netlify,'Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"','Netlify Meet route must explicitly allow browser camera, microphone, display capture and fullscreen.');
 requireSource(headers,'Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)','Published Netlify headers must preserve Meet media/display-capture permissions.');
 
-console.log('PASS camera privacy plus strict desktop-preload/browser-native screen-share ownership.');
+console.log('PASS camera privacy plus physical-Mac native picker and bounded fallback screen-share ownership.');
