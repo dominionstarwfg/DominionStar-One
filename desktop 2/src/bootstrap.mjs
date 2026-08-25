@@ -8,13 +8,15 @@ function ensureMacQuitCommand(){
 }
 app.on('before-quit',()=>{if(quitting)return;quitting=true;destroyDesktopWindows();});
 
-// Native permission status is registered before the first BrowserWindow. The
-// status API is side-effect free; actual desktop capture is requested only by
-// the user's Share Screen action.
+// Native permission status is registered before the first BrowserWindow. Modern
+// macOS capture is handed to the OS system picker after main-v2 installs the
+// session policy; older platforms retain DominionStar's custom picker fallback.
 await import('./screen-permission-lifecycle.mjs');
 await import('./desktop-navigation-authority.mjs');
 await import('./main-v2.mjs');
 await import('./macos-native-capture-authority.mjs');
+await import('./macos-system-picker-session.mjs');
+await import('./desktop-home-injection.mjs');
 await import('./presenter-dock.mjs');
 await import('./presenter-command-parity.mjs');
 await import('./share-lifecycle.mjs');
