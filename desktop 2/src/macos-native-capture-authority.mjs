@@ -29,34 +29,36 @@ export function supportsNativeMacPicker() {
   return Number.isFinite(major) && major >= 15;
 }
 
-// The approved DominionStar source picker is the primary capture authority on
-// every desktop platform. macOS's system picker remains detectable as a future
-// emergency fallback, but it must never silently replace the branded picker.
-// This prevents Apple UI from displacing the approved Screens / Application
-// windows experience and avoids two competing picker authorities.
+// Physical Mac QA proved that desktopCapturer source enumeration can stall the
+// Electron process after Screen & System Audio Recording permission changes.
+// On macOS 15+ we therefore use Electron's native system-picker path. It hands
+// getDisplayMedia directly to macOS and avoids a second, competing permission
+// loop. The DominionStar source picker remains the fallback on older macOS and
+// on non-macOS desktop platforms.
 ipcMain.handle('desktop:native-capture-capability', event => {
+  const nativePicker = supportsNativeMacPicker();
   if (!rendererIsTrusted(event)) {
     return {
       ok: false,
       enabled: false,
-      available: false,
+      available: nativePicker,
       platform: process.platform,
-      systemVersion: '',
-      authority: 'dominionstar-custom-picker'
+      systemVersion: macSystemVersion(),
+      authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'
     };
   }
   return {
     ok: true,
-    enabled: false,
-    available: supportsNativeMacPicker(),
-    installed: false,
+    enabled: nativePicker,
+    available: nativePicker,
+    installed: nativePicker,
     platform: process.platform,
     systemVersion: macSystemVersion(),
-    authority: 'dominionstar-custom-picker'
+    authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'
   };
 });
 
 export const DominionMacCaptureAuthority = Object.freeze({
-  primary: 'dominionstar-custom-picker',
+  primary: supportsNativeMacPicker() ? 'macos-system-picker' : 'dominionstar-custom-picker',
   nativeFallbackAvailable: supportsNativeMacPicker
 });
