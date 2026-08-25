@@ -97,7 +97,7 @@ assert(desktopPreload.includes('installQaPreviewChromeBlocker'), 'Desktop preloa
 assert(desktopPreload.includes('iframe[src*="app.netlify.com"]'), 'Renderer-level blocker must target cross-origin Netlify review frames, not only body text.');
 assert(desktopSession.includes("target.searchParams.set('ntl-drawer-state', 'hidden')"), 'Every Netlify preview navigation must request the official hidden Drawer state.');
 assert(navigation.includes("iframe.getAttribute('src')") && navigation.includes("src.includes('app.netlify.com')"), 'Native navigation authority must remove injected Netlify review frames.');
-assert(navigation.includes('Collaborate on this Deploy Preview') && navigation.includes('Log in to the Netlify Drawer'), 'Text-based Netlify cleanup must remain as fallback.');
+assert(!navigation.includes('Collaborate on this Deploy Preview') && !navigation.includes('Log in to the Netlify Drawer'), 'Native preview cleanup must not depend on brittle Netlify UI copy.');
 assert(desktopPreload.includes('/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime'), 'Desktop advanced runtime must come from the certified bootstrap.');
 assert(desktopPreload.includes('/assets/js/meet/illustration-ui-parity.js?v=1-final-ui-blueprint'), 'Final illustration parity must load after the advanced runtime.');
 assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'), 'Native desktop bridge must remain at certified bridge 14.');
