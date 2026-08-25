@@ -87,14 +87,20 @@ assert(illustration.includes('#shareStatusBar.ds-native-presenter-active{display
 assert(illustration.includes("shareStatusBar.classList.toggle('ds-native-presenter-active',localDesktop)"), 'Desktop/native share toolbar ownership toggle is missing.');
 assert(shareView.includes("const isDesktop = Boolean(window.dominionDesktop?.isDesktop)"), 'Web share controls must distinguish browser from desktop.');
 assert(!shareView.includes("bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js"), 'Web share controls must not bootstrap the desktop runtime.');
+assert(!shareView.includes('meeting-identity-bridge.js'), 'Retired browser identity bridge must not be injected by share-view controls.');
 
-// 6) Script/module duplication: preload and Operation 2030 both use marker
-// guards. Every Operation 2030 load marker must be unique.
-assert(operationBootstrap.includes('if (window.DominionOperation2030Bootstrap) return;'), 'Operation 2030 must be single-install.');
-assert(operationBootstrap.includes('if (loaded.has(marker)) return loaded.get(marker);'), 'Operation 2030 must reuse in-flight module loads.');
+// 6) Script/module duplication: one Operation 2030 object owns advanced desktop
+// modules. Core startup is bounded; heavy feature groups stay lazy and every
+// script marker must remain unique regardless of source formatting.
+assert(/if\s*\(\s*window\.DominionOperation2030Bootstrap\s*\)\s*return/.test(operationBootstrap), 'Operation 2030 must be single-install.');
+assert(/if\s*\(\s*loaded\.has\(marker\)\s*\)\s*return\s+loaded\.get\(marker\)/.test(operationBootstrap), 'Operation 2030 must reuse in-flight module loads.');
 assert(operationBootstrap.includes('document.querySelector(`script[${marker}]`)'), 'Operation 2030 must reuse already-present module scripts.');
+assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"), 'Operation 2030 must use the cleaned lazy runtime.');
+assert.equal((operationBootstrap.match(/const core=\[/g)||[]).length,1,'Operation 2030 must expose one bounded core startup group.');
+assert(operationBootstrap.includes('loadMediaEnhancements')&&operationBootstrap.includes('loadPresentationTools'),'Advanced media and presentation tools must remain lazy.');
+assert(!operationBootstrap.includes('meeting-identity-settings')&&!operationBootstrap.includes('meeting-identity-bridge')&&!operationBootstrap.includes('media-effect-safety'),'Retired identity/effect override modules must not return.');
 const bootstrapMarkers = matches(operationBootstrap, /load\([^\n]*?'(data-ds-[^']+)'/g).map(match => match[1]);
-assert(bootstrapMarkers.length >= 20, 'Operation 2030 marker audit did not see the expected module set.');
+assert(bootstrapMarkers.length >= 18, 'Operation 2030 marker audit did not see the cleaned module set.');
 assert.deepEqual(duplicates(bootstrapMarkers), [], 'Operation 2030 contains duplicate module markers.');
 assert(desktopPreload.includes('const existing = document.querySelector(`script[${marker}]`)'), 'Desktop preload must reuse existing injected scripts.');
 assert.equal(countText(desktopPreload, "'/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime'"), 1, 'Desktop preload must have one Operation 2030 injection site.');
@@ -123,7 +129,7 @@ const overlap = mainCommands.filter(command => parityCommands.includes(command))
 assert.deepEqual(overlap, [], `Presenter command ownership overlaps across core/parity channels: ${overlap.join(', ')}`);
 const nativeCommands = new Set([...presenterCommands, 'slide-control']);
 for (const command of nativeCommands) {
-  if (command === 'more') continue; // More is consumed locally by presenter-toolbar.js.
+  if (command === 'more') continue;
   assert(mainCommands.includes(command) || parityCommands.includes(command), `Native presenter command ${command} has no command owner.`);
 }
 
