@@ -2,7 +2,7 @@
   'use strict';
   if(!window.dominionDesktop?.isDesktop)return;
   const REQUIRED_BRIDGE_VERSION=9;
-  const escape=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const escape=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
   const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const SOURCE_RETRY_DELAYS=[0,160,420,900,1600];
 
@@ -80,6 +80,7 @@
     let selected='';
     let filter='screen';
     let loadToken=0;
+    let permissionPanelVisited=false;
 
     permission.hidden=true;loading.hidden=true;list.hidden=false;confirm.disabled=true;
     audio.checked=false;optimize.checked=false;ownWindows.checked=false;
@@ -91,20 +92,26 @@
     const showProblem=async state=>{
       const screen=String(state?.screen||'unknown').toLowerCase();
       const granted=screen==='granted';
+      const restartRequired=Boolean(state?.requiresRestart||permissionPanelVisited);
       permission.hidden=false;loading.hidden=true;list.hidden=true;confirm.disabled=true;
-      settingsButton.hidden=granted;
-      retryButton.hidden=false;
-      restartButton.hidden=!Boolean(state?.requiresRestart);
-      if(granted){
-        permissionBadge.textContent=state?.requiresRestart?'RESTART REQUIRED':'CAPTURE INITIALIZATION';
-        permissionTitle.textContent=state?.requiresRestart?'Apply screen access':'Screen access is active';
-        permissionText.textContent=state?.requiresRestart?'macOS has granted Screen Recording access. Restart DominionStar Meet once to apply it to this app session.':'macOS permission is already granted, but the source list did not initialize yet.';
-        permissionNote.textContent=state?.requiresRestart?'Your meeting settings will be preserved.':'Use Retry. You do not need to change Privacy & Security again.';
+      settingsButton.hidden=granted||restartRequired;
+      retryButton.hidden=restartRequired;
+      restartButton.hidden=!restartRequired;
+      if(restartRequired){
+        permissionBadge.textContent='RESTART REQUIRED';
+        permissionTitle.textContent='Apply screen access';
+        permissionText.textContent='You returned from macOS Screen & System Audio Recording settings, but this running app session still cannot enumerate shareable screens. Restart DominionStar Meet once to activate the permission.';
+        permissionNote.textContent='You do not need to open Privacy & Security again. Your meeting settings will be preserved.';
+      }else if(granted){
+        permissionBadge.textContent='CAPTURE INITIALIZATION';
+        permissionTitle.textContent='Screen access is active';
+        permissionText.textContent='macOS permission is already granted, but the source list did not initialize yet.';
+        permissionNote.textContent='Use Retry. You do not need to change Privacy & Security again.';
       }else{
         permissionBadge.textContent='MACOS SCREEN ACCESS';
         permissionTitle.textContent=screen==='not-determined'?'Allow Screen Recording':'Screen Recording is blocked';
         permissionText.textContent='Open Privacy & Security → Screen & System Audio Recording and enable DominionStar Meet.';
-        permissionNote.textContent='After enabling access, return to DominionStar Meet. Restart only if macOS reports that the running session must be refreshed.';
+        permissionNote.textContent='After enabling access, return to DominionStar Meet. The app will retry automatically and will ask for one restart only if macOS requires it.';
       }
       selectionLabel.textContent=permissionTitle.textContent;
     };
@@ -130,10 +137,16 @@
         await showProblem(await status());
         return;
       }
+      if(sources.length)permissionPanelVisited=false;
       permission.hidden=true;list.hidden=false;selectionLabel.textContent=filter==='screen'?'Select a screen':'Select an application window';render();
     };
 
-    settingsButton.onclick=()=>window.dominionDesktop.openScreenRecordingSettings?.();
+    settingsButton.onclick=async()=>{
+      permissionPanelVisited=true;
+      const recover=()=>setTimeout(()=>{if(dialog.open)void loadSources();},450);
+      window.addEventListener('focus',recover,{once:true});
+      await window.dominionDesktop.openScreenRecordingSettings?.();
+    };
     retryButton.onclick=()=>void loadSources();
     restartButton.onclick=()=>window.dominionDesktop.relaunchForPermissions?.();
     ownWindows.onchange=()=>void loadSources();
