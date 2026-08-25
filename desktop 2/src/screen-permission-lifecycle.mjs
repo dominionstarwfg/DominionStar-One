@@ -13,9 +13,9 @@ function snapshot(raw,{requiresRestart=false}={}){
   return {ok:true,platform:process.platform,screen:raw,rawScreen:raw,initialScreen:initialScreenPermission,changedSinceLaunch:raw!==initialScreenPermission,requiresRestart:Boolean(requiresRestart),captureReady:false,captureProbed:false,sourceCount:0,screenCount:0,windowCount:0,previewCount:0,captureError:''};
 }
 
-// This API is intentionally side-effect free. It never calls desktopCapturer.
-// The actual source enumeration happens once, only after the user presses Share
-// Screen and the branded picker has confirmed that macOS reports access granted.
+// This API is intentionally side-effect free. It only reads macOS permission
+// state. Actual capture-source enumeration happens once, after the user presses
+// Share Screen and the branded picker confirms that macOS reports access granted.
 async function readScreenPermission(){
   const raw=rawScreenPermission();
   if(process.platform!=='darwin')return snapshot('granted');
