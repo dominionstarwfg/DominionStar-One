@@ -38,7 +38,7 @@
     "assets/css/meet/deep-clean-layout.css": "243d166d947f2440a487fc9b66915437e4b48a5f16c061e0d4c37a9b871990f8",
     "meet-login/index.html": "d70799aea96060f0a2c05e9ca6cbc7b73c6018b8b7a526e63897f236c6ac1b13",
     "assets/js/member-auth.js": "edf18c591337fa03cde5bd6de8b1b0aaca891ee813bf9cd8ff6bca392f335e95",
-    "meet-home/index.html": "c35ef7136fc52545b622604732f2e1780dc4bc4d03baf5c4f2ddfd8cd9552a5a",
+    "meet-home/index.html": "6c8e8384806daf434a699a5cb9529ed525273126767c244903f55818a87562f9",
     "meet/index.html": "b99b958ce2df7e9b774105a00749c875c8933024ba5470f4de0f245dacd8f15d",
     "netlify/functions/resolve-meeting-join.mjs": "74ad7e6a3c032f5ac86e663b37f7c9b134f6d385e008edcc00cf2a0b63110e40",
     "netlify/functions/meeting-host-alert.mjs": "abd2c86ae04930a849ecfd7490f19e4d27aba6502d930689197fbac81235b032",
