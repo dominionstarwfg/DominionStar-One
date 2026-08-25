@@ -20,6 +20,18 @@ assert(navigation.includes("rawPath.startsWith('/assets/')"), 'Bundled Meet asse
 assert(navigation.includes("rawPath.startsWith('/meet/')"), 'Bundled Meet route resources such as release-contract.json must be resolved locally.');
 assert(navigation.includes('net.fetch(pathToFileURL(candidate).toString()'), 'Local runtime files must be returned through Electron net.fetch.');
 
+// New Meeting must honor the desktop Home preference before a user starts the
+// meeting. Personal Room is an identity/default, not a competing meeting type.
+assert(navigation.includes('function installDesktopMeetingIdentityBootstrap(contents)'), 'Desktop Personal Room bootstrap authority is missing.');
+assert(navigation.includes("localStorage.getItem('ds_meet_identity_preferences_v1')"), 'Desktop New Meeting must read the Use Personal Room preference.');
+assert(navigation.includes('window.DominionPersonalRoom?.current?.()'), 'Desktop New Meeting must prefer the account-backed Personal Room authority.');
+assert(navigation.includes("['ds_meet_personal_room_v2','ds_meet_personal_room_v1']"), 'Desktop New Meeting must retain a stable Personal Room cache fallback.');
+assert(navigation.includes("typeof window.DominionStarEnterHostPrejoin!=='function'"), 'Desktop Personal Room bootstrap must route through the shared host prejoin owner.');
+assert(navigation.includes("window.__DS_DESKTOP_PERSONAL_ROOM_BOOTSTRAP='account-personal-room-v1'"), 'Desktop Personal Room bootstrap completion marker is missing.');
+assert(navigation.includes("window.__DS_DESKTOP_PERSONAL_ROOM_BOOTSTRAP='generated-meeting-v1'"), 'Desktop generated-meeting opt-out marker is missing.');
+assert(navigation.includes('attempts>=20'), 'Desktop Personal Room bootstrap retry must be bounded and non-blocking.');
+assert(navigation.includes('installDesktopMeetingIdentityBootstrap(contents);'), 'Desktop Personal Room authority must be installed for renderer contents.');
+
 const resources = Array.isArray(pkg.build?.extraResources) ? pkg.build.extraResources : [];
 const required = [
   ['../assets', 'desktop-runtime/assets'],
