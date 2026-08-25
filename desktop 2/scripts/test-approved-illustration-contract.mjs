@@ -33,7 +33,9 @@ assert(illustration.includes("label.textContent=isHost?'End':'Leave'"), 'Host mu
 assert(illustration.includes("button.id='recordBtn'") && illustration.includes("toolbar.insertBefore(button,reaction||moreBtn||leaveBtn||null)"), 'Record must be inserted directly before Reactions on the approved normal meeting toolbar.');
 assert(illustration.includes("label.textContent=recording?'Stop Recording':'Record'"), 'Record must visibly change to Stop Recording while active.');
 assert(illustration.includes("indicator.innerHTML='<span class=\"recording-live-dot\"></span><span>Recording</span>'"), 'Active recording must show a persistent visible Recording indicator.');
-assert(bootstrap.includes("local-recording.js?v=1-visible-desktop-recording") && bootstrap.includes("'local-recording'"), 'Certified desktop bootstrap must load the real recording module.');
+assert(bootstrap.includes("const loadRecording=()=>recording||(recording=load('/assets/js/meet/local-recording.js?v=2-on-demand','data-ds-local-recording'))"), 'Certified desktop bootstrap must retain exactly one on-demand loader for the real recording module.');
+assert(bootstrap.includes("event.target.closest?.('#recordBtn,[data-record-action]')") && bootstrap.includes('void loadRecording()'), 'Pressing Record must preload the real recording module through the single cleaned bootstrap.');
+assert((bootstrap.match(/local-recording\.js/g)||[]).length===1, 'Recording module must have exactly one bootstrap ownership path.');
 assert(localRecording.includes('new MediaRecorder('), 'Record must use the MediaRecorder API rather than a decorative button.');
 assert(localRecording.includes('canvas.captureStream(30)'), 'Record must capture the actual rendered meeting stage.');
 assert(localRecording.includes('anchor.download=`DominionStar-Meet-${safeFileTime()}.webm`'), 'Stopping Record must save a DominionStar Meet recording file.');
