@@ -17,6 +17,7 @@ const desktopSession = read('desktop 2/src/desktop-session.mjs');
 const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
 const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
 const screenLifecycle = read('desktop 2/src/screen-permission-lifecycle.mjs');
+const screenGuard = read('desktop 2/src/macos-screen-permission-guard.mjs');
 
 // Desktop authentication is a Meet flow, not an embedded copy of the public site.
 assert(memberLogin.includes("provider: 'google'"), 'Desktop login must expose Google OAuth.');
@@ -68,8 +69,11 @@ assert(operationBootstrap.includes('mediaIdle') && operationBootstrap.includes('
 assert(!operationBootstrap.includes('microphone-device-identity.js'), 'A duplicate microphone selector owner must not return.');
 assert(!operationBootstrap.includes('camera-reaction-polish.js'), 'Deleted camera/reaction selector bundle must not return.');
 
-// One desktop screen-share authority: branded picker + real native capture probe.
+// One desktop screen-share authority: branded picker + a one-way native macOS
+// permission lifecycle. Capture enumeration is forbidden until access is already
+// granted in the process that is going to use it.
 assert(bootstrap.includes("await import('./macos-native-capture-authority.mjs')"), 'Desktop bootstrap must retain capture capability reporting.');
+assert(bootstrap.includes("await import('./macos-screen-permission-guard.mjs')"), 'Desktop bootstrap must install the macOS capture guard before runtime modules.');
 assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"), 'macOS must report DominionStar as the primary capture authority.');
 assert(nativeCapture.includes('enabled: false'), 'Apple system picker must be disabled as the primary user-facing picker.');
 assert(preload.includes('systemSharePicker: nativeSystemPicker') && preload.includes('customSharePicker: !nativeSystemPicker'), 'Preload must expose one final capture authority.');
@@ -78,10 +82,15 @@ assert(picker.includes('if(!dialog.open)dialog.showModal()'), 'Share click must 
 assert(picker.includes("data-filter=\"screen\">Screens"), 'Source picker must have a real Screens tab.');
 assert(picker.includes("data-filter=\"window\">Application windows"), 'Source picker must have a real Application windows tab.');
 assert(picker.includes('SOURCE_RETRY_DELAYS'), 'Share source enumeration must retry instead of appearing dead.');
+assert(screenGuard.includes("systemPreferences.getMediaAccessStatus('screen')"), 'Native guard must inspect macOS Screen Recording status before capture.');
+assert(screenGuard.includes("permission !== 'granted'"), 'Native guard must block capture enumeration while permission is ungranted.');
+assert(screenGuard.includes('DOMINIONSTAR_SCREEN_PERMISSION_REQUIRED'), 'Ungrantable capture must fail inside DominionStar instead of invoking another macOS prompt.');
+assert(screenGuard.includes('DOMINIONSTAR_SCREEN_PERMISSION_RESTART_REQUIRED'), 'Returning from Screen Recording settings must require one clean app restart.');
 assert(screenLifecycle.includes('QA_PREVIEW_HOST'), 'QA preview must receive the same native screen-permission state as production.');
-assert(screenLifecycle.includes('desktopCapturer.getSources') && screenLifecycle.includes('probeCaptureReadiness'), 'Screen permission must be confirmed against the actual Electron capture backend.');
+assert(screenLifecycle.includes("if (raw !== 'granted') return blockedStatus(raw)"), 'Screen lifecycle must stop before capture probing while permission is ungranted.');
+assert(screenLifecycle.includes("if (initialScreenPermission !== 'granted')"), 'A newly granted permission must require a fresh process before capture probing.');
+assert(screenLifecycle.includes('desktopCapturer.getSources') && screenLifecycle.includes('probeCaptureReadiness'), 'A fresh granted process must confirm the actual Electron capture backend.');
 assert(screenLifecycle.includes('sourceCount') && screenLifecycle.includes('previewCount'), 'Screen permission diagnostics must report real source and preview counts.');
-assert(screenLifecycle.includes('if (capture.ready)') && screenLifecycle.includes("screen: 'granted'"), 'Real capture readiness must override stale macOS permission status.');
 assert(!operationBootstrap.includes('screen-permission-ui-guard.js'), 'Duplicate browser screen-permission authority must remain out of the active runtime.');
 
-console.log('Real Mac OAuth/navigation/single-owner-media/capture-readiness regression contract passed.');
+console.log('Real Mac OAuth/navigation/single-owner-media/one-way-screen-permission regression contract passed.');
