@@ -2,7 +2,7 @@
   'use strict';
   if (window.DominionMediaEffectSafety) return;
 
-  const RESET_DELAYS = [0, 120, 320, 700, 1200, 2000];
+  const RESET_DELAYS = [0, 120, 320, 700, 1200, 2000, 3500, 5500, 8000, 11000];
   const LEGACY_EFFECT_KEYS = [
     'ds_meet_portrait_lighting',
     'ds_meet_auto_framing',
@@ -20,10 +20,25 @@
     .map(id => document.getElementById(id))
     .filter(Boolean);
 
+  const sanitizeStoredPreferences = () => {
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('ds_meet_preferences:')) continue;
+        let value;
+        try { value = JSON.parse(localStorage.getItem(key) || '{}'); } catch { continue; }
+        if (!value || typeof value !== 'object') continue;
+        const next = { ...value, background:'none', brightness:100, touchAppearance:0 };
+        localStorage.setItem(key, JSON.stringify(next));
+      }
+    } catch (_) {}
+  };
+
   const clearLegacyEffectMemory = () => {
     for (const key of LEGACY_EFFECT_KEYS) {
       try { localStorage.removeItem(key); } catch (_) {}
     }
+    sanitizeStoredPreferences();
   };
 
   const neutralize = () => {
@@ -47,6 +62,7 @@
         video.style.filter = '';
       }
     }
+    clearLegacyEffectMemory();
   };
 
   const markExplicit = event => {
@@ -75,7 +91,7 @@
   });
 
   window.DominionMediaEffectSafety = Object.freeze({
-    version: '1.0.0-explicit-session-opt-in',
+    version: '1.1.0-explicit-session-opt-in',
     ready,
     neutralize,
     snapshot: () => ({ ...explicit })
