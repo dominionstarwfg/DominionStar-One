@@ -45,8 +45,15 @@ assert(presenterParity.includes("safe === 'slide-control'") && hostedParity.incl
   'Slide Control must traverse native presenter toolbar to the hosted meeting UI.');
 assert(bootstrap.includes('slide-control-parity.js') && bootstrap.includes('data-ds-slide-control-parity'),
   'Certified runtime must load delegated slide control.');
-assert(qa.includes("replaceOnce('src/slide-control-native.mjs',prodHosts") &&
+
+// QA native trust is rebound semantically by replacing the TRUSTED_HOSTS set in
+// every native authority with the exact deploy-preview hostname, then reading
+// each rewritten file back before the package is allowed to build. Do not tie
+// this guardrail to the retired prodHosts/replaceOnce implementation spelling.
+assert(qa.includes('const trustedHostsPattern=') &&
+       qa.includes("replacePattern('src/slide-control-native.mjs',trustedHostsPattern") &&
        qa.includes("'src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs'") &&
+       qa.includes("if(!fs.readFileSync(path,'utf8').includes(url.hostname))") &&
        qa.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'),
   'The clean desktop QA path must rebind and verify native slide-control trust to the exact PR preview.');
 
