@@ -129,6 +129,74 @@ function installNavigationAuthority(contents) {
   });
 }
 
+function installDesktopMeetingIdentityBootstrap(contents) {
+  if (!contents || contents.isDestroyed?.()) return;
+
+  const applyPersonalRoomIdentity = () => {
+    let current;
+    try { current = new URL(String(contents.getURL?.() || '')); } catch { return; }
+    if (!isDominionDesktopHost(current.hostname)) return;
+    if (normalizedPath(current.pathname) !== '/meet') return;
+    if (current.searchParams.get('desktop') !== '1') return;
+    const action = current.searchParams.get('action') || '';
+    if (!['new', 'share'].includes(action)) return;
+
+    // The legacy host-prejoin bootstrap may create temporary credentials as soon
+    // as /meet?action=new loads. Before a user can actually start the meeting,
+    // replace those temporary credentials with the signed-in account's Personal
+    // Room whenever "Use Personal Room" is enabled. The bounded retry waits only
+    // for the account-backed Personal Room module; it never blocks the renderer.
+    const script = `(()=>{
+      if(window.__dsDesktopPersonalRoomBootstrapInstalled)return;
+      window.__dsDesktopPersonalRoomBootstrapInstalled=true;
+      const params=new URLSearchParams(location.search);
+      const action=params.get('action')||'';
+      if(!['new','share'].includes(action))return;
+      let prefs={usePersonalForInstant:true};
+      try{prefs={...prefs,...JSON.parse(localStorage.getItem('ds_meet_identity_preferences_v1')||'{}')}}catch{}
+      if(prefs.usePersonalForInstant===false){
+        window.__DS_DESKTOP_PERSONAL_ROOM_BOOTSTRAP='generated-meeting-v1';
+        return;
+      }
+      const cachedRoom=()=>{
+        for(const key of ['ds_meet_personal_room_v2','ds_meet_personal_room_v1']){
+          try{
+            const value=JSON.parse(localStorage.getItem(key)||'null');
+            const id=String(value?.personalRoomId||'').replace(/\\D/g,'').slice(0,10);
+            if(id.length===10)return{...value,personalRoomId:id};
+          }catch{}
+        }
+        return null;
+      };
+      const start=()=>{
+        const room=window.DominionPersonalRoom?.current?.()||cachedRoom();
+        const id=String(room?.personalRoomId||'').replace(/\\D/g,'').slice(0,10);
+        if(id.length!==10||typeof window.DominionStarEnterHostPrejoin!=='function')return false;
+        window.DominionStarEnterHostPrejoin({
+          room:id,
+          passcode:String(room?.passcode||''),
+          waitingRoom:Boolean(room?.waitingRoomEnabled),
+          autoShare:action==='share'
+        });
+        window.__DS_DESKTOP_PERSONAL_ROOM_BOOTSTRAP='account-personal-room-v1';
+        return true;
+      };
+      if(start())return;
+      let attempts=0;
+      const timer=setInterval(()=>{
+        attempts+=1;
+        if(start()||attempts>=20)clearInterval(timer);
+      },100);
+      Promise.resolve(window.DominionPersonalRoom?.ready).then(()=>{
+        if(start())clearInterval(timer);
+      }).catch(()=>{});
+    })();`;
+    void contents.executeJavaScript(script, true).catch(() => {});
+  };
+
+  contents.on('dom-ready', applyPersonalRoomIdentity);
+}
+
 function installPreviewChromeSuppression(contents) {
   if (!contents || contents.isDestroyed?.()) return;
   const suppress = () => {
@@ -189,6 +257,7 @@ function installPreviewRequestNormalization() {
 
 app.on('web-contents-created', (_event, contents) => {
   installNavigationAuthority(contents);
+  installDesktopMeetingIdentityBootstrap(contents);
   installPreviewChromeSuppression(contents);
 });
 
