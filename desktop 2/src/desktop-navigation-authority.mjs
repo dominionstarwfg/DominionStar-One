@@ -45,6 +45,7 @@ function localRuntimeRelativePath(url) {
   catch { return ''; }
 
   const route = normalizedPath(rawPath);
+  if (route === '/meet-home' && url.searchParams.get('desktop') === '1') return 'meet-home/desktop.html';
   if (INTERNAL_PATHS.has(route)) return `${route.slice(1)}/index.html`;
   if (rawPath.startsWith('/assets/')) return rawPath.slice(1);
   if (rawPath.startsWith('/meet/')) return rawPath.slice(1);
