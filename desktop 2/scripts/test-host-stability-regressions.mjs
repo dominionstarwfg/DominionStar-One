@@ -33,6 +33,7 @@ for(const retired of [
   'assets/js/meet/meeting-identity-settings.js',
   'assets/js/meet/meeting-identity-bridge.js',
   'assets/js/meet/media-effect-safety.js',
+  'desktop 2/src/macos-screen-permission-guard.mjs',
   'desktop 2/src/launcher.html'
 ])assert.equal(exists(retired),false,`retired runtime file returned: ${retired}`);
 
@@ -41,10 +42,14 @@ assert.doesNotMatch(navigation,/resolveDesktopHostIdentity|installDesktopSetting
 assert.match(navigation,/installDesktopMeetingIdentityBootstrap/,'explicit Personal Room URL must still enter host prejoin');
 assert.match(navigation,/explicit-home-identity-v3/,'Personal Room bootstrap must come from the single Home authority');
 
-// macOS screen permission: picker checks lifecycle before source enumeration;
-// native lifecycle refuses capture probing while access is not granted.
+// macOS screen permission has one side-effect-free status authority. The picker
+// consults it before explicit source enumeration; passive status checks must
+// never import or call desktopCapturer/getSources.
 assert.match(picker,/getScreenPermissionStatus/,'share picker must consult native screen permission state');
-assert.match(lifecycle,/if \(raw !== 'granted'\) return blockedStatus\(raw\)/,'native lifecycle must not probe capture before permission is granted');
+assert.match(lifecycle,/systemPreferences\.getMediaAccessStatus\('screen'\)/,'native lifecycle must read macOS Screen Recording permission state');
+assert.match(lifecycle,/if\(raw!=='granted'\)return snapshot\(raw\);/,'ungranted screen access must return status without probing capture');
+assert.doesNotMatch(lifecycle,/desktopCapturer|getSources\s*\(/,'passive screen-permission status must never enumerate capture sources');
+assert.match(lifecycle,/captureProbed:false/,'screen-permission diagnostics must explicitly report that passive status did not probe capture');
 assert.match(lifecycle,/restart-required-after-screen-permission-change/,'permission change must require one fresh process');
 
 // Startup budget: advanced modules are on demand instead of all loading at once.
