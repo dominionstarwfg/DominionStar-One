@@ -31,6 +31,11 @@ app.on('before-quit', () => {
   destroyDesktopWindows();
 });
 
+// Install the macOS Screen Recording lifecycle guard before any runtime module
+// can enumerate desktop capture sources. This prevents a permission change from
+// causing another native modal prompt in the same process.
+await import('./macos-screen-permission-guard.mjs');
+
 // Register the desktop navigation boundary before main-v2 can create the first
 // BrowserWindow. Only Meet/auth routes belong inside the desktop application;
 // public DominionStar pages remain normal browser destinations.
