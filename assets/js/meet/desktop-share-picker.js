@@ -4,7 +4,8 @@
   const REQUIRED_BRIDGE_VERSION=9;
   const escape=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  const SOURCE_RETRY_DELAYS=[0,180,480,950];
+  const SOURCE_RETRY_DELAYS=[0,220,520];
+  const withTimeout=(promise,ms,fallback)=>new Promise(resolve=>{let settled=false;const timer=setTimeout(()=>{if(settled)return;settled=true;resolve(fallback);},ms);Promise.resolve(promise).then(value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value);}).catch(()=>{if(settled)return;settled=true;clearTimeout(timer);resolve(fallback);});});
 
   const ensure=()=>{
     let dialog=document.getElementById('desktopSharePicker');if(dialog)return dialog;
@@ -21,43 +22,43 @@
   };
 
   window.DominionDesktopSharePicker={choose:async()=>{
-    const runtime=await window.dominionDesktop.getRuntimeInfo?.().catch(()=>null);const bridgeVersion=Number(runtime?.bridgeVersion||window.dominionDesktop.bridgeVersion||0);if(bridgeVersion<REQUIRED_BRIDGE_VERSION)throw new Error('DominionStar Meet desktop capture is out of date. Reopen the latest desktop build.');
     const dialog=ensure();const list=dialog.querySelector('[data-sources]');const loading=dialog.querySelector('[data-loading]');const permission=dialog.querySelector('[data-permission]');const permissionBadge=dialog.querySelector('[data-permission-badge]');const permissionTitle=dialog.querySelector('[data-permission-title]');const permissionText=dialog.querySelector('[data-permission-copy]');const permissionNote=dialog.querySelector('[data-permission-note]');const settingsButton=dialog.querySelector('[data-open-settings]');const retryButton=dialog.querySelector('[data-retry-capture]');const restartButton=dialog.querySelector('[data-restart-app]');const confirm=dialog.querySelector('[data-confirm]');const audio=dialog.querySelector('[data-share-audio]');const optimize=dialog.querySelector('[data-optimize]');const ownWindows=dialog.querySelector('[data-own-windows]');const note=dialog.querySelector('[data-audio-note]');const selectionLabel=dialog.querySelector('[data-selection-label]');
-    let sources=[],selected='',filter='screen',loadToken=0,permissionPanelVisited=false;
-    const defaults=savedShareDefaults();audio.checked=defaults.shareSound;optimize.checked=defaults.shareOptimize;ownWindows.checked=defaults.shareOwnWindows;audio.disabled=!window.dominionDesktop.supportsSystemAudioShare;note.textContent=audio.disabled?'Computer sound is not available on this platform. Microphone audio continues normally.':'Computer sound will be included when Share sound is enabled.';selectionLabel.textContent='Select a screen';permission.hidden=true;loading.hidden=true;list.hidden=false;confirm.disabled=true;
+    let sources=[],selected='',filter='screen',loadToken=0,runtime={platform:window.dominionDesktop.platform,bridgeVersion:window.dominionDesktop.bridgeVersion};
+    const defaults=savedShareDefaults();audio.checked=defaults.shareSound;optimize.checked=defaults.shareOptimize;ownWindows.checked=defaults.shareOwnWindows;audio.disabled=!window.dominionDesktop.supportsSystemAudioShare;note.textContent=audio.disabled?'Computer sound is not available on this platform. Microphone audio continues normally.':'Computer sound will be included when Share sound is enabled.';selectionLabel.textContent='Preparing screen sharing…';permission.hidden=true;loading.hidden=false;list.hidden=true;confirm.disabled=true;
+    if(!dialog.open)dialog.showModal();window.dispatchEvent(new CustomEvent('dominionstar:share-picker-opened'));
 
-    const status=async()=>await window.dominionDesktop.getScreenPermissionStatus?.().catch(()=>null);
+    const runtimeResult=await withTimeout(window.dominionDesktop.getRuntimeInfo?.(),1800,null);if(runtimeResult&&typeof runtimeResult==='object')runtime=runtimeResult;
+    const bridgeVersion=Number(runtime?.bridgeVersion||window.dominionDesktop.bridgeVersion||0);if(bridgeVersion<REQUIRED_BRIDGE_VERSION){if(dialog.open)dialog.close();throw new Error('DominionStar Meet desktop capture is out of date. Reopen the latest desktop build.');}
+
+    const status=async()=>await withTimeout(window.dominionDesktop.getScreenPermissionStatus?.(),2200,{screen:'unknown',captureReady:false,requiresRestart:false,captureError:'permission-status-timeout'});
     const showProblem=state=>{
-      const screen=String(state?.screen||'unknown').toLowerCase();const granted=screen==='granted';const restartRequired=Boolean(state?.requiresRestart||(permissionPanelVisited&&granted));permission.hidden=false;loading.hidden=true;list.hidden=true;confirm.disabled=true;settingsButton.hidden=granted||restartRequired;retryButton.hidden=restartRequired;restartButton.hidden=!restartRequired;
+      const screen=String(state?.screen||'unknown').toLowerCase();const granted=screen==='granted'||Boolean(state?.captureReady);const restartRequired=Boolean(state?.requiresRestart&&!state?.captureReady);permission.hidden=false;loading.hidden=true;list.hidden=true;confirm.disabled=true;settingsButton.hidden=granted||restartRequired;retryButton.hidden=restartRequired;restartButton.hidden=!restartRequired;
       if(restartRequired){permissionBadge.textContent='RESTART REQUIRED';permissionTitle.textContent='Apply screen access';permissionText.textContent='macOS has your Screen & System Audio Recording change. Restart DominionStar Meet once before sharing.';permissionNote.textContent='Do not reopen Privacy & Security. Your meeting and saved preferences remain intact.';}
-      else if(granted){permissionBadge.textContent='SCREEN ACCESS';permissionTitle.textContent='Screen access is enabled';permissionText.textContent='DominionStar Meet could not enumerate shareable screens in this app process.';permissionNote.textContent='Retry once. If macOS shows its own Screen Recording prompt after a newly rebuilt QA app, that is an operating-system app-identity permission request.';}
-      else{permissionBadge.textContent='MACOS SCREEN ACCESS';permissionTitle.textContent=screen==='not-determined'?'Allow Screen Recording':'Screen Recording is blocked';permissionText.textContent='Open Privacy & Security → Screen & System Audio Recording and enable DominionStar Meet.';permissionNote.textContent='Return to DominionStar Meet after enabling it. The app will ask for one restart before capture.';}
+      else if(granted){permissionBadge.textContent='SCREEN ACCESS';permissionTitle.textContent='Screen access is active';permissionText.textContent='DominionStar Meet has screen access, but the source list was not returned.';permissionNote.textContent='Retry source loading. You do not need to reopen Privacy & Security.';}
+      else{permissionBadge.textContent='MACOS SCREEN ACCESS';permissionTitle.textContent=screen==='not-determined'?'Allow Screen Recording':'Screen Recording is blocked';permissionText.textContent='Open Privacy & Security → Screen & System Audio Recording and enable DominionStar Meet.';permissionNote.textContent='Return here after enabling it. DominionStar will verify real capture access before asking you to change anything again.';}
       selectionLabel.textContent=permissionTitle.textContent;
     };
     const render=()=>{const visible=sources.filter(source=>source.kind===filter);list.innerHTML=visible.length?visible.map(source=>`<button type="button" class="ds-share-source${source.id===selected?' selected':''}" data-source="${escape(source.id)}"><img src="${source.thumbnail}" alt=""><strong>${escape(source.name)}</strong><small>${source.kind==='screen'?'Entire screen':'Application window'}</small></button>`).join(''):`<div style="grid-column:1/-1;padding:56px 20px;text-align:center;color:#9eabba"><strong>No ${filter==='screen'?'screens':'application windows'} available</strong><p>Use Retry to refresh the source list.</p></div>`;};
+    const requestSources=()=>withTimeout(window.dominionDesktop.getShareSources({includeOwnWindows:ownWindows.checked}),2800,[]);
 
     const loadSources=async()=>{
-      const token=++loadToken;selected='';confirm.disabled=true;permission.hidden=true;list.hidden=true;loading.hidden=false;selectionLabel.textContent='Checking screen access…';
-      if(runtime?.platform==='darwin'){
-        const state=await status();if(token!==loadToken)return;const screen=String(state?.screen||'unknown').toLowerCase();
-        if(state?.requiresRestart||screen!=='granted'){showProblem(state);return;}
-      }
-      selectionLabel.textContent='Loading screens and windows…';let next=[];
-      for(const delay of SOURCE_RETRY_DELAYS){if(delay)await sleep(delay);if(token!==loadToken)return;next=await window.dominionDesktop.getShareSources({includeOwnWindows:ownWindows.checked}).catch(()=>[]);if(next.length)break;}
-      if(token!==loadToken)return;sources=Array.isArray(next)?next:[];loading.hidden=true;
-      if(!sources.length&&runtime?.platform==='darwin'){showProblem(await status());return;}
-      if(sources.length)permissionPanelVisited=false;permission.hidden=true;list.hidden=false;selectionLabel.textContent=filter==='screen'?'Select a screen':'Select an application window';render();
+      const token=++loadToken;selected='';confirm.disabled=true;permission.hidden=true;list.hidden=true;loading.hidden=false;selectionLabel.textContent='Loading screens and windows…';let next=[];
+      for(const delay of SOURCE_RETRY_DELAYS){if(delay)await sleep(delay);if(token!==loadToken||!dialog.open)return;next=await requestSources();if(Array.isArray(next)&&next.length)break;}
+      if(token!==loadToken||!dialog.open)return;sources=Array.isArray(next)?next:[];loading.hidden=true;
+      if(sources.length){permission.hidden=true;list.hidden=false;selectionLabel.textContent=filter==='screen'?'Select a screen':'Select an application window';render();return;}
+      if(runtime?.platform==='darwin'){showProblem(await status());return;}
+      permission.hidden=true;list.hidden=false;selectionLabel.textContent='No share sources available';render();
     };
 
     settingsButton.onclick=async()=>{
-      permissionPanelVisited=true;await window.dominionDesktop.openScreenRecordingSettings?.();
-      const recover=async()=>{if(!dialog.open)return;const current=await status();const screen=String(current?.screen||'unknown').toLowerCase();showProblem(screen==='granted'?{...current,requiresRestart:true}:current);};
+      await withTimeout(window.dominionDesktop.openScreenRecordingSettings?.(),1800,false);
+      const recover=async()=>{if(!dialog.open)return;const current=await status();if(current?.captureReady){void loadSources();return;}const screen=String(current?.screen||'unknown').toLowerCase();showProblem(screen==='granted'?{...current,requiresRestart:true}:current);};
       window.addEventListener('focus',recover,{once:true});
     };
     retryButton.onclick=()=>void loadSources();restartButton.onclick=()=>window.dominionDesktop.relaunchForPermissions?.();ownWindows.onchange=()=>void loadSources();
     dialog.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.filter;selected='';confirm.disabled=true;dialog.querySelectorAll('[data-filter]').forEach(item=>item.classList.toggle('active',item===button));selectionLabel.textContent=filter==='screen'?'Select a screen':'Select an application window';render();});
     list.onclick=event=>{const button=event.target.closest('[data-source]');if(!button)return;selected=button.dataset.source;const source=sources.find(item=>item.id===selected);confirm.disabled=!source;selectionLabel.textContent=source?`Ready to share: ${source.name}`:(filter==='screen'?'Select a screen':'Select an application window');render();};
-    if(!dialog.open)dialog.showModal();window.dispatchEvent(new CustomEvent('dominionstar:share-picker-opened'));void loadSources();
-    return new Promise(resolve=>{let settled=false;const finish=value=>{if(settled)return;settled=true;dialog.removeEventListener('close',closed);if(dialog.open)dialog.close();resolve(value);};const closed=()=>finish(null);dialog.addEventListener('close',closed,{once:true});confirm.onclick=()=>{const source=sources.find(item=>item.id===selected);if(!source)return;finish({sourceId:source.id,sourceName:source.name,displayId:source.displayId||'',kind:source.kind,audio:Boolean(audio.checked),optimize:optimize.checked,shareOwnWindow:Boolean(ownWindows.checked)});};});
+    void loadSources();
+    return new Promise(resolve=>{let settled=false;const finish=value=>{if(settled)return;settled=true;loadToken+=1;dialog.removeEventListener('close',closed);if(dialog.open)dialog.close();resolve(value);};const closed=()=>finish(null);dialog.addEventListener('close',closed,{once:true});confirm.onclick=()=>{const source=sources.find(item=>item.id===selected);if(!source)return;finish({sourceId:source.id,sourceName:source.name,displayId:source.displayId||'',kind:source.kind,audio:Boolean(audio.checked),optimize:optimize.checked,shareOwnWindow:Boolean(ownWindows.checked)});};});
   }};
 })();
