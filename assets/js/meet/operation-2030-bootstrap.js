@@ -40,9 +40,8 @@
     else setTimeout(done, 900);
   });
 
-  // Device IDs are machine-local data. This module only sanitizes account
-  // preference writes; it never acquires media or mutates device selectors.
   const devicePreferenceLocality = load('/assets/js/meet/device-preference-locality.js?v=1-machine-local', 'data-ds-device-preference-locality');
+  const reactionPolish = load('/assets/js/meet/reaction-polish.js?v=1-reaction-only', 'data-ds-reaction-polish');
 
   const annotation = load('/assets/js/meet/share-annotation.js?v=2-operation-2030-certified', 'data-ds-share-annotation');
   const verticalAnnotationUi = load('/assets/js/meet/annotation-vertical-ui.js?v=1-approved-zoom-rail', 'data-ds-annotation-vertical-ui', { after: annotation });
@@ -66,30 +65,29 @@
   const quickDeviceMenuParity = load('/assets/js/meet/quick-device-menu-parity.js?v=2-modern-switch-ui', 'data-ds-quick-device-menu-parity', { after: mediaIdle });
   const videoIntelligence = load('/assets/js/meet/video-intelligence-compositor.js?v=2-bounded-autoframe', 'data-ds-video-intelligence-compositor', { after: mediaIdle });
   const backgroundEffects = load('/assets/js/meet/background-effects-2030.js?v=2-operation-2030-certified', 'data-ds-background-effects-2030', { after: videoIntelligence });
-  const cameraPolish = load('/assets/js/meet/camera-reaction-polish.js?v=3-operation-2030-certified', 'data-ds-camera-reaction-polish', { after: backgroundEffects });
-  const videoQualityParity = load('/assets/js/meet/video-quality-parity.js?v=1-low-light-original-ratio', 'data-ds-video-quality-parity', { after: cameraPolish });
+  const videoQualityParity = load('/assets/js/meet/video-quality-parity.js?v=1-low-light-original-ratio', 'data-ds-video-quality-parity', { after: backgroundEffects });
 
   const ready = Promise.all([
-    devicePreferenceLocality,
+    devicePreferenceLocality, reactionPolish,
     annotation, verticalAnnotationUi, presenterCommandParity, slideControl, receiverSideLayout,
     hostCohostUiParity, localRecording, spotlight, handoff, arbitration, arbitrationUi,
     identitySettings, identityBridge, dockPolish, nativeDockQuality, shareWatchdog,
     shareOptimizationParity, shareUi, quickDeviceMenuParity, videoIntelligence,
-    backgroundEffects, cameraPolish, videoQualityParity
+    backgroundEffects, videoQualityParity
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '2.1.0-single-media-owner',
+    version: '2.2.0-single-media-owner',
     ready,
     mediaIdle,
     modules: Object.freeze([
-      'device-preference-locality',
+      'device-preference-locality','reaction-polish',
       'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity',
       'quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','local-recording',
       'share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
-      'meeting-identity-settings','meeting-identity-bridge','camera-reaction-polish','dock-polish-2030',
-      'native-dock-quality','remote-share-watchdog','video-intelligence-compositor',
-      'background-effects-2030','video-quality-parity','share-optimization-parity','share-ui-2030'
+      'meeting-identity-settings','meeting-identity-bridge','dock-polish-2030','native-dock-quality',
+      'remote-share-watchdog','video-intelligence-compositor','background-effects-2030',
+      'video-quality-parity','share-optimization-parity','share-ui-2030'
     ])
   });
 })();
