@@ -20,8 +20,6 @@ function walk(dir = root) {
 function cleanRef(raw = '') {
   let value = String(raw).trim();
   if (!value || value.startsWith('#') || value.startsWith('data:') || value.startsWith('blob:') || value.startsWith('mailto:') || value.startsWith('tel:') || value.startsWith('javascript:')) return null;
-  // Runtime/template expressions are not literal static dependencies. Treating
-  // them as filenames creates false failures such as `${esc(url)}`.
   if (value.includes('${') || value.includes('{{') || value.includes('}}') || value.includes('<%') || value.includes('%>')) return null;
   if (/^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith('//')) return null;
   value = value.split('#')[0].split('?')[0];
@@ -32,10 +30,9 @@ function cleanRef(raw = '') {
 function resolveRef(fromFile, ref) {
   const clean = cleanRef(ref);
   if (!clean) return null;
-  const abs = clean.startsWith('/')
+  return clean.startsWith('/')
     ? path.join(root, clean.replace(/^\/+/, ''))
     : path.resolve(path.dirname(fromFile), clean);
-  return abs;
 }
 
 function record(fromFile, ref, kind) {
@@ -78,9 +75,6 @@ for (const file of files) {
     }
   }
 
-  // Only parse CSS url(...) from actual CSS files. HTML frequently embeds
-  // application JavaScript that calls functions named url(...); scanning the
-  // entire document as CSS incorrectly turns function arguments into paths.
   if (ext === '.css') {
     for (const match of text.matchAll(/url\(\s*(["']?)([^)'"\s]+)\1\s*\)/gi)) record(file, match[2], 'css-url');
   }
@@ -90,9 +84,8 @@ for (const file of files) {
       const spec = match[2];
       if (spec.startsWith('./') || spec.startsWith('../') || spec.startsWith('/')) record(file, spec, 'js-import');
     }
-    // Dynamic loaders are part of the dependency graph too. This catches the
-    // class of stale `script.src='/assets/.../retired-file.js'` reference that
-    // static HTML inspection cannot see.
+    // Dynamic script/image loaders belong to the dependency graph too. Literal
+    // local asset assignments must resolve to a real repository file.
     for (const match of text.matchAll(/\.src\s*=\s*(["'])([^"']+)\1/g)) recordJsStaticAsset(file, match[2], 'js-src-assignment');
     for (const match of text.matchAll(/setAttribute\(\s*(["'])src\1\s*,\s*(["'])([^"']+)\2\s*\)/g)) recordJsStaticAsset(file, match[3], 'js-setattribute-src');
   }
