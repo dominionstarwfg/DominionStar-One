@@ -22,6 +22,7 @@ const meetIndex=read('meet/index.html');
 const desktopMain=read('desktop 2/src/main-v2.mjs');
 const desktopPreload=read('desktop 2/src/preload.cjs');
 const desktopBootstrap=read('desktop 2/src/bootstrap.mjs');
+const nativePickerSession=read('desktop 2/src/macos-system-picker-session.mjs');
 const presenterToolbar=read('desktop 2/src/presenter-toolbar.html');
 const presenterToolbarJs=read('desktop 2/src/presenter-toolbar.js');
 const presenterDockMain=read('desktop 2/src/presenter-dock.mjs');
@@ -77,21 +78,31 @@ assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings')&&!operationBootstrap.includes('meeting-identity-bridge')&&!operationBootstrap.includes('media-effect-safety'));
 
-// macOS permission status is side-effect free. It must not enumerate capture
-// devices until the branded picker receives explicit Share Screen intent.
+// Physical-Mac share stability. macOS 15+ uses Electron's native system picker
+// so custom desktopCapturer enumeration is not on the normal share path. The
+// fallback permission lifecycle is allowed one tiny diagnostic capture probe,
+// but it must be time-bounded and successful real capture overrides stale TCC
+// text instead of looping the user back through System Settings.
 assert(screenLifecycle.includes("getMediaAccessStatus('screen')"));
-assert(!screenLifecycle.includes('desktopCapturer'));
-assert(screenLifecycle.includes('captureProbed:false'));
-assert(screenLifecycle.includes('restart-required-after-screen-permission-change'));
+assert(screenLifecycle.includes('desktopCapturer.getSources'));
+assert(screenLifecycle.includes('thumbnailSize:{width:8,height:8}'));
+assert(screenLifecycle.includes('CAPTURE_PROBE_TIMEOUT_MS=1800'));
+assert(screenLifecycle.includes('captureProbed:true'));
+assert(screenLifecycle.includes('if(probe.captureReady)return'));
+assert(screenLifecycle.includes('requiresRestart:false'));
 assert(screenLifecycle.includes('desktop:screen-permission-status')&&screenLifecycle.includes('desktop:relaunch-for-permissions'));
 assert(desktopPreload.includes('getScreenPermissionStatus')&&desktopPreload.includes('relaunchForPermissions'));
 assert(desktopBootstrap.indexOf("screen-permission-lifecycle.mjs")<desktopBootstrap.indexOf("main-v2.mjs"));
+assert(desktopBootstrap.includes('macos-system-picker-session.mjs'));
+assert(nativePickerSession.includes('{ useSystemPicker: true }'));
 assert(sharePicker.includes('getScreenPermissionStatus'));
-assert(sharePicker.indexOf('getScreenPermissionStatus')<sharePicker.indexOf('getShareSources'));
-assert(sharePicker.includes("screen!=='granted'")&&sharePicker.includes('Restart DominionStar Meet'));
+assert(sharePicker.includes('const withTimeout='));
+assert(sharePicker.includes('const requestSources=()=>withTimeout'));
+assert(sharePicker.includes("if(sources.length){permission.hidden=true;list.hidden=false")&&sharePicker.includes("if(runtime?.platform==='darwin'){showProblem(await status());return;}"));
+assert(sharePicker.includes('if(current?.captureReady){void loadSources();return;}'));
+assert(sharePicker.includes('Restart DominionStar Meet'));
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
-assert(/function supportsMacSystemPicker\(\)\s*\{\s*return false;\s*\}/.test(desktopMain));
 
 // Desktop Personal Room has one account-backed authority. Retired random-ID
 // bridges/settings layers must remain absent.
@@ -122,4 +133,4 @@ assert(presenterToolbarJs.includes("window.presenterBridge.command('stop')")&&pr
 assert(desktopPreload.includes('showRemoteControlPrompt')&&desktopPreload.includes('onRemoteControlDecision'));
 assert(remoteControlDialog.includes("buttons: ['Deny', 'Approve']"));
 
-console.log('MEDIA_STABILITY_CLEAN_SINGLE_AUTHORITY_OK');
+console.log('MEDIA_STABILITY_PHYSICAL_MAC_SHARE_OK');
