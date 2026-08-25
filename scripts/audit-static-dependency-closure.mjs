@@ -50,6 +50,16 @@ function record(fromFile, ref, kind) {
   }
 }
 
+function recordJsStaticAsset(fromFile, ref, kind) {
+  const clean = cleanRef(ref);
+  if (!clean) return;
+  // JavaScript may assign routes to location.href; those are navigations, not
+  // file dependencies. Audit literal asset/file assignments while leaving route
+  // semantics to browser acceptance.
+  if (!clean.startsWith('/assets/') && !/\.[a-z0-9]{2,8}$/i.test(clean)) return;
+  record(fromFile, ref, kind);
+}
+
 const files = walk();
 for (const file of files) {
   const rel = path.relative(root, file).replaceAll(path.sep, '/');
@@ -80,6 +90,11 @@ for (const file of files) {
       const spec = match[2];
       if (spec.startsWith('./') || spec.startsWith('../') || spec.startsWith('/')) record(file, spec, 'js-import');
     }
+    // Dynamic loaders are part of the dependency graph too. This catches the
+    // class of stale `script.src='/assets/.../retired-file.js'` reference that
+    // static HTML inspection cannot see.
+    for (const match of text.matchAll(/\.src\s*=\s*(["'])([^"']+)\1/g)) recordJsStaticAsset(file, match[2], 'js-src-assignment');
+    for (const match of text.matchAll(/setAttribute\(\s*(["'])src\1\s*,\s*(["'])([^"']+)\2\s*\)/g)) recordJsStaticAsset(file, match[3], 'js-setattribute-src');
   }
 }
 
