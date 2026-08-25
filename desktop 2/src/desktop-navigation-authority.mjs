@@ -1,14 +1,18 @@
-import { app, session, shell } from 'electron';
+import { app, net, session, shell } from 'electron';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DESKTOP_PARTITION = 'persist:dominionstar-meet';
 const PRODUCTION_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);
 const QA_PREVIEW_HOST = /^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/i;
 const INTERNAL_PATHS = new Set(['/meet', '/meet-home', '/meet-login', '/member-login']);
 const ACCOUNT_RETURN_PATHS = new Set(['/member-dashboard', '/workspace']);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function normalizedPath(pathname = '/') {
-  const path = String(pathname || '/');
-  return path.length > 1 ? path.replace(/\/+$/, '') : path;
+  const value = String(pathname || '/');
+  return value.length > 1 ? value.replace(/\/+$/, '') : value;
 }
 
 function isDominionDesktopHost(hostname = '') {
@@ -30,6 +34,71 @@ function normalizeInternalDesktopUrl(url) {
   return target;
 }
 
+function desktopRuntimeRoot() {
+  if (app.isPackaged) return path.join(process.resourcesPath, 'desktop-runtime');
+  return path.resolve(__dirname, '..', '..');
+}
+
+function localRuntimeRelativePath(url) {
+  let rawPath;
+  try { rawPath = decodeURIComponent(String(url.pathname || '/')); }
+  catch { return ''; }
+
+  const route = normalizedPath(rawPath);
+  if (INTERNAL_PATHS.has(route)) return `${route.slice(1)}/index.html`;
+  if (rawPath.startsWith('/assets/')) return rawPath.slice(1);
+  if (rawPath.startsWith('/meet/')) return rawPath.slice(1);
+  if (rawPath === '/styles.css') return 'styles.css';
+  return '';
+}
+
+function resolveLocalRuntimeFile(url) {
+  const relative = localRuntimeRelativePath(url);
+  if (!relative) return '';
+
+  const root = desktopRuntimeRoot();
+  const candidate = path.resolve(root, relative);
+  const containment = path.relative(root, candidate);
+  if (!containment || containment.startsWith('..') || path.isAbsolute(containment)) return '';
+
+  try {
+    return fs.statSync(candidate).isFile() ? candidate : '';
+  } catch {
+    return '';
+  }
+}
+
+function installLocalDesktopRuntime() {
+  const desktopSession = session.fromPartition(DESKTOP_PARTITION);
+
+  // Keep the renderer's stable HTTPS origin for Supabase/OAuth compatibility,
+  // but serve DominionStar Meet itself from files bundled with the installer.
+  // Requests to CDNs, Supabase, and genuine backend endpoints continue through
+  // Chromium's normal HTTPS stack without recursively re-entering this handler.
+  desktopSession.protocol.handle('https', async (request) => {
+    let url;
+    try { url = new URL(String(request.url || '')); }
+    catch { return desktopSession.fetch(request, { bypassCustomProtocolHandlers: true }); }
+
+    if (!isDominionDesktopHost(url.hostname) || !['GET', 'HEAD'].includes(String(request.method || 'GET').toUpperCase())) {
+      return desktopSession.fetch(request, { bypassCustomProtocolHandlers: true });
+    }
+
+    const candidate = resolveLocalRuntimeFile(url);
+    if (!candidate) {
+      return desktopSession.fetch(request, { bypassCustomProtocolHandlers: true });
+    }
+
+    try {
+      return net.fetch(pathToFileURL(candidate).toString(), {
+        method: String(request.method || 'GET').toUpperCase() === 'HEAD' ? 'HEAD' : 'GET'
+      });
+    } catch {
+      return desktopSession.fetch(request, { bypassCustomProtocolHandlers: true });
+    }
+  });
+}
+
 function installNavigationAuthority(contents) {
   if (!contents || contents.isDestroyed?.()) return;
 
@@ -39,13 +108,13 @@ function installNavigationAuthority(contents) {
     if (url.protocol === 'file:') return;
     if (url.protocol !== 'https:' || !isDominionDesktopHost(url.hostname)) return;
 
-    const path = normalizedPath(url.pathname);
-    if (ACCOUNT_RETURN_PATHS.has(path)) {
+    const route = normalizedPath(url.pathname);
+    if (ACCOUNT_RETURN_PATHS.has(route)) {
       event.preventDefault();
       void contents.loadURL(desktopHomeFor(url)).catch(() => {});
       return;
     }
-    if (!INTERNAL_PATHS.has(path)) {
+    if (!INTERNAL_PATHS.has(route)) {
       event.preventDefault();
       void shell.openExternal(url.toString()).catch(() => {});
       return;
@@ -109,8 +178,8 @@ function installPreviewRequestNormalization() {
     let url;
     try { url = new URL(String(details.url || '')); } catch { callback({}); return; }
     if (!QA_PREVIEW_HOST.test(url.hostname)) { callback({}); return; }
-    const path = normalizedPath(url.pathname);
-    if (!INTERNAL_PATHS.has(path)) { callback({}); return; }
+    const route = normalizedPath(url.pathname);
+    if (!INTERNAL_PATHS.has(route)) { callback({}); return; }
     const normalized = normalizeInternalDesktopUrl(url);
     if (normalized.toString() === url.toString()) { callback({}); return; }
     callback({ redirectURL: normalized.toString() });
@@ -123,6 +192,7 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 app.whenReady().then(() => {
+  installLocalDesktopRuntime();
   installPreviewRequestNormalization();
 }).catch(() => {});
 
@@ -130,5 +200,7 @@ export const DominionDesktopNavigationAuthority = Object.freeze({
   isDominionDesktopHost,
   normalizedPath,
   internalPaths: Object.freeze([...INTERNAL_PATHS]),
-  accountReturnPaths: Object.freeze([...ACCOUNT_RETURN_PATHS])
+  accountReturnPaths: Object.freeze([...ACCOUNT_RETURN_PATHS]),
+  localRuntimeRelativePath,
+  resolveLocalRuntimeFile
 });
