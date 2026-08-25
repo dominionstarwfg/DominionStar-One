@@ -203,14 +203,19 @@ jobs:
             if(!text.includes(from)) throw new Error(`Expected QA binding marker missing in ${path}: ${from}`);
             fs.writeFileSync(path,text.replace(from,to));
           };
-          const prodHosts="const TRUSTED_HOSTS = new Set(['dominionstarld.com', 'www.dominionstarld.com']);";
+          const replacePattern=(path,pattern,to,label)=>{
+            let text=fs.readFileSync(path,'utf8');
+            if(!pattern.test(text)) throw new Error(`Expected QA binding marker missing in ${path}: ${label}`);
+            fs.writeFileSync(path,text.replace(pattern,to));
+          };
+          const trustedHostsPattern=/const\s+TRUSTED_HOSTS\s*=\s*new\s+Set\(\[\s*['"]dominionstarld\.com['"]\s*,\s*['"]www\.dominionstarld\.com['"]\s*\]\)\s*;/;
           replaceOnce('src/main-v2.mjs',"const APP_ORIGIN = 'https://dominionstarld.com';",`const APP_ORIGIN = '${url.origin}';`);
-          replaceOnce('src/main-v2.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          replacePattern('src/main-v2.mjs',trustedHostsPattern,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`,'TRUSTED_HOSTS');
           replaceOnce('src/preload.cjs',"const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);",`const TRUSTED_ORIGINS = new Set(['${url.origin}']);`);
-          replaceOnce('src/presenter-dock.mjs',"const TRUSTED_HOSTS=new Set(['dominionstarld.com','www.dominionstarld.com']);",`const TRUSTED_HOSTS=new Set(['${url.hostname}']);`);
-          replaceOnce('src/remote-control-dialog.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
-          replaceOnce('src/slide-control-native.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
-          replaceOnce('src/screen-permission-lifecycle.mjs',prodHosts,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`);
+          replacePattern('src/presenter-dock.mjs',trustedHostsPattern,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`,'TRUSTED_HOSTS');
+          replacePattern('src/remote-control-dialog.mjs',trustedHostsPattern,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`,'TRUSTED_HOSTS');
+          replacePattern('src/slide-control-native.mjs',trustedHostsPattern,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`,'TRUSTED_HOSTS');
+          replacePattern('src/screen-permission-lifecycle.mjs',trustedHostsPattern,`const TRUSTED_HOSTS = new Set(['${url.hostname}']);`,'TRUSTED_HOSTS');
           for(const path of ['src/main-v2.mjs','src/preload.cjs','src/presenter-dock.mjs','src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs']){
             if(!fs.readFileSync(path,'utf8').includes(url.hostname)) throw new Error(`QA preview trust did not reach ${path}`);
           }
