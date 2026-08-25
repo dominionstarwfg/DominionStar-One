@@ -3,73 +3,56 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(here, '..', '..');
-const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
+const here=path.dirname(fileURLToPath(import.meta.url));
+const root=path.resolve(here,'..','..');
+const read=relative=>fs.readFileSync(path.join(root,relative),'utf8');
+const exists=relative=>fs.existsSync(path.join(root,relative));
 
-const settingsAuthority = read('assets/js/meet/desktop-settings-authority.js');
-const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
-const permissionGuard = read('desktop 2/src/macos-screen-permission-guard.mjs');
-const permissionLifecycle = read('desktop 2/src/screen-permission-lifecycle.mjs');
-const desktopHome = read('meet-home/desktop.html');
+const home=read('meet-home/desktop.html');
+const controller=read('assets/js/meet/desktop-home-controller.js');
+const navigation=read('desktop 2/src/desktop-navigation-authority.mjs');
+const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
+const picker=read('assets/js/meet/desktop-share-picker.js');
+const bootstrap=read('assets/js/meet/operation-2030-bootstrap.js');
 
-// Personal Room identity must be fixed before the meeting renderer can reach
-// the legacy random-ID fallback.
-assert.match(navigation, /desktop-settings-authority\.js\?v=2-core-host-settings/,
-  'desktop Home must load the consolidated Settings authority');
-assert.match(navigation, /async function resolveDesktopHostIdentity\(contents\)/,
-  'desktop navigation must own Personal Room identity resolution');
-assert.match(navigation, /target\.searchParams\.set\('room', identity\.id\)/,
-  'Personal Room identity must be placed in navigation before pre-join loads');
-assert.match(navigation, /target\.searchParams\.set\('host', '1'\)/,
-  'Personal Room instant meeting must be marked as host entry before navigation');
-assert.match(navigation, /read\('ds_meet_identity_preferences_v1'\)/,
-  'Personal Room navigation must honor the Use Personal Room preference');
-assert.match(settingsAuthority, /if\(\$\('newMeeting'\)\)\$\('newMeeting'\)\.onclick=async/,
-  'desktop Settings authority must own New Meeting launch');
-assert.match(settingsAuthority, /room=await remoteRoom\(client,session\)/,
-  'New Meeting must refresh the account Personal Room before launch');
-assert.match(settingsAuthority, /launch\('new',room,usePersonal\)/,
-  'New Meeting must launch with the resolved Personal Room identity');
-assert.doesNotMatch(settingsAuthority, /background\s*:\s*['"]none['"].*brightness\s*:\s*100.*touchAppearance\s*:\s*0/s,
-  'New Meeting authority must not wipe saved background/appearance preferences');
+// One desktop Home authority. HTML is markup, not a competing application.
+assert.match(home,/desktop-home-controller\.js\?v=1-single-authority/,'desktop Home must load exactly one Home controller');
+assert.doesNotMatch(home,/const\s+randomDigits|applyNewMeetingPrefs|readRemoteRoom\s*=|saveSettings'\)\.onclick/,'desktop Home markup must not contain legacy application state owners');
+assert.match(controller,/DominionDesktopHomeController/,'single desktop Home controller must expose its authority');
+assert.match(controller,/meet_personal_rooms/,'Home controller must use the account Personal Room table');
+assert.doesNotMatch(controller,/randomDigits\s*=|Math\.random\(\).*personalRoom/i,'desktop Home must never invent a Personal Meeting ID');
+assert.match(controller,/action:share\?\(usePersonal\?'desktop-share':'share'\):\(usePersonal\?'desktop-new':'new'\)/,'Home must explicitly distinguish Personal Room from generated meeting launch');
+assert.match(controller,/background:String\(\$\('desktopBackground'\)/,'saved background preference must be read from Settings');
+assert.doesNotMatch(controller,/background\s*:\s*['"]none['"].*brightness\s*:\s*100.*touchAppearance\s*:\s*0/s,'navigation/start must not erase saved appearance preferences');
 
-for (const id of [
-  'desktopCameraSelect','desktopMicrophoneSelect','desktopSpeakerSelect','desktopMirrorVideo',
-  'desktopVideoQuality','desktopBackground','desktopBrightness','desktopAppearance',
-  'desktopShareSound','desktopShareOptimize','desktopShareOwnWindows'
-]) {
-  assert.match(settingsAuthority, new RegExp(id), `Settings must include persistent ${id}`);
-}
-assert.match(settingsAuthority, /meet_user_preferences/,
-  'host media preferences must persist to the account preference table');
+// Retired duplicate authorities must stay deleted.
+for(const retired of [
+  'assets/js/meet/desktop-host-stability-authority.js',
+  'assets/js/meet/desktop-settings-authority.js',
+  'assets/js/meet/desktop-share-permission-guard.js',
+  'assets/js/meet/meeting-identity-settings.js',
+  'assets/js/meet/meeting-identity-bridge.js',
+  'assets/js/meet/media-effect-safety.js',
+  'desktop 2/src/launcher.html'
+])assert.equal(exists(retired),false,`retired runtime file returned: ${retired}`);
 
-// Screen capture must be one-way on macOS: no desktopCapturer probing before
-// access is granted, and one clean restart after visiting the Privacy pane.
-assert.match(permissionGuard, /screenSettingsVisitedThisLaunch = true/,
-  'opening macOS Screen Recording settings must arm the current-process guard');
-assert.match(permissionGuard, /screenPermissionStatus\(\)/,
-  'native capture guard must inspect Screen Recording permission before enumeration');
-assert.match(permissionGuard, /permission !== 'granted'/,
-  'desktopCapturer must not run while macOS Screen Recording is ungranted');
-assert.match(permissionGuard, /DOMINIONSTAR_SCREEN_PERMISSION_REQUIRED/,
-  'ungranted screen access must fail locally without invoking the native capture sheet');
-assert.match(permissionGuard, /DOMINIONSTAR_SCREEN_PERMISSION_RESTART_REQUIRED/,
-  'desktopCapturer must be blocked until a clean restart after visiting Screen Recording settings');
-assert.match(permissionLifecycle, /if \(raw !== 'granted'\) return blockedStatus\(raw\)/,
-  'permission lifecycle must stop before capture probing when access is ungranted');
-assert.match(permissionLifecycle, /if \(initialScreenPermission !== 'granted'\)/,
-  'permission transition must require one clean process before capture probing');
-assert.match(permissionLifecycle, /restart-required-after-screen-permission-change/,
-  'permission lifecycle must report one restart after access changes during the running process');
+// Navigation no longer reads/invents user state or injects Settings/permission UI.
+assert.doesNotMatch(navigation,/resolveDesktopHostIdentity|installDesktopSettingsAuthority|installDesktopSharePermissionGuard/,'native navigation must not own Home account/settings state');
+assert.match(navigation,/installDesktopMeetingIdentityBootstrap/,'explicit Personal Room URL must still enter host prejoin');
+assert.match(navigation,/explicit-home-identity-v3/,'Personal Room bootstrap must come from the single Home authority');
 
-assert.match(desktopHome, /id="settingsDialog"/,
-  'desktop Home must retain one central Settings surface');
-assert.match(desktopHome, /id="defaultMic"/,
-  'Settings must retain join microphone default');
-assert.match(desktopHome, /id="defaultCamera"/,
-  'Settings must retain join camera default');
-assert.match(desktopHome, /id="settingsUsePersonal"/,
-  'Settings must retain Personal Room instant-meeting preference');
+// macOS screen permission: picker checks lifecycle before source enumeration;
+// native lifecycle refuses capture probing while access is not granted.
+assert.match(picker,/getScreenPermissionStatus/,'share picker must consult native screen permission state');
+assert.match(lifecycle,/if \(raw !== 'granted'\) return blockedStatus\(raw\)/,'native lifecycle must not probe capture before permission is granted');
+assert.match(lifecycle,/restart-required-after-screen-permission-change/,'permission change must require one fresh process');
 
-console.log('DOMINIONSTAR_HOST_STABILITY_REGRESSIONS_OK');
+// Startup budget: advanced modules are on demand instead of all loading at once.
+assert.match(bootstrap,/3\.0\.0-clean-lazy-runtime/,'desktop bootstrap must use clean lazy runtime');
+assert.match(bootstrap,/loadMediaEnhancements/,'advanced video processing must be lazy');
+assert.match(bootstrap,/loadPresentationTools/,'presentation extensions must be lazy');
+assert.doesNotMatch(bootstrap,/meeting-identity-settings|meeting-identity-bridge|media-effect-safety/,'retired identity/effect override layers must not return to startup');
+const immediateLoads=(bootstrap.match(/const core=\[/g)||[]).length;
+assert.equal(immediateLoads,1,'bootstrap must expose one bounded core group');
+
+console.log('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK');
