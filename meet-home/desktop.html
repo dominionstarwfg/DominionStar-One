@@ -6,197 +6,41 @@
   <title>DominionStar Meet</title>
   <link rel="icon" href="/assets/logo.jpeg">
   <style>
-    :root{color-scheme:dark;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#edf1f7;background:#090d14}
-    *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden}body{background:radial-gradient(circle at 58% -18%,#263249 0,#111722 38%,#090d14 76%)}button,input,select{font:inherit}
-    .shell{height:100vh;display:grid;grid-template-columns:238px minmax(0,1fr);overflow:hidden}
-    .rail{padding:25px 18px;background:#0b111bf0;border-right:1px solid #273145;display:flex;flex-direction:column;gap:27px}
-    .brand{display:flex;gap:11px;align-items:center;font-size:13px;font-weight:850;letter-spacing:.07em}.brand img{width:38px;height:38px;border-radius:10px}
-    .nav{display:grid;gap:7px}.nav button{border:0;border-radius:11px;padding:12px 13px;background:transparent;color:#aeb8c8;text-align:left;font-weight:680;cursor:pointer}.nav button:hover,.nav button.active{background:#263146;color:#fff}.nav b{display:inline-grid;width:23px;text-align:center;color:#d7ae47}
-    .account{margin-top:auto;border-top:1px solid #303949;padding-top:16px}.account-card{width:100%;display:grid;grid-template-columns:42px minmax(0,1fr);gap:10px;align-items:center;border:0;border-radius:12px;padding:8px;background:transparent;color:#fff;text-align:left;cursor:pointer}.account-card:hover{background:#202a3b}.avatar{display:grid;place-items:center;width:42px;height:42px;overflow:hidden;border-radius:50%;background:linear-gradient(145deg,#d3aa48,#865f12);font-weight:800}.avatar img{width:100%;height:100%;object-fit:cover}.account-card strong,.account-card small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-card small{margin-top:2px;color:#94a0b3;font-size:11px}.signout{margin:9px 7px 0;border:1px solid #465168;border-radius:9px;padding:8px 11px;background:transparent;color:#dce2ec;cursor:pointer}
-    .content{height:100vh;overflow:auto;padding:42px clamp(28px,4vw,58px)}.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}.hero h1{margin:0;font:700 clamp(31px,3vw,42px) Georgia,serif}.hero p{margin:8px 0 0;color:#99a6b9}.identity-pill{max-width:330px;padding:10px 13px;border:1px solid #39465b;border-radius:999px;background:#141c29;color:#b9c3d0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .actions{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:17px;margin:34px 0 28px}.action-shell{position:relative}.action{width:100%;height:146px;border:1px solid #303a4c;border-radius:18px;padding:21px 18px;background:#161d29;color:#f2f5fa;box-shadow:0 12px 35px #0003;text-align:left;cursor:pointer;transition:.16s}.action:hover{transform:translateY(-2px);border-color:#c29a32;background:#1b2432}.action i{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:#332d20;color:#e3bc55;font-style:normal;font-size:21px}.action strong,.action small{display:block}.action strong{margin:16px 0 5px;font-size:16px}.action small{color:#9ca8b9}.action.primary{background:linear-gradient(145deg,#c89b2d,#9f7418);border-color:#d0a43a;color:#fff}.action.primary i{background:#fff2;color:#fff}.action.primary small{color:#fff4ce}
-    .split-arrow{position:absolute;right:11px;top:11px;width:31px;height:31px;border:1px solid #ffffff2c;border-radius:9px;background:#15130f54;color:#fff;cursor:pointer;z-index:2}.new-menu{position:absolute;z-index:30;top:154px;left:0;width:300px;padding:10px;border:1px solid #3b465b;border-radius:14px;background:#111925;box-shadow:0 24px 65px #000c}.new-menu[hidden]{display:none}.menu-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 10px;border-radius:10px;color:#e8edf5}.menu-row+.menu-row{border-top:1px solid #ffffff12}.menu-copy{display:grid;gap:3px}.menu-copy small{color:#8f9bae;font-size:11px}.switch{appearance:none;-webkit-appearance:none;width:42px;height:24px;flex:0 0 42px;border:1px solid #ffffff2a;border-radius:999px;background-color:#273345;background-image:radial-gradient(circle at 12px 50%,#fff 0 7px,transparent 7.5px);cursor:pointer}.switch:checked{background-color:#2f80ed;border-color:#55a2ff;background-image:radial-gradient(circle at 30px 50%,#fff 0 7px,transparent 7.5px)}
-    .workspace{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.7fr);gap:20px}.card{background:#141b26;border:1px solid #2c3546;border-radius:18px;padding:22px;box-shadow:0 14px 38px #0002}.card h2{font-size:17px;margin:0 0 16px}.empty{padding:32px;text-align:center;border:1px dashed #3b4658;border-radius:14px;color:#98a5b7}.meeting-list{display:grid;gap:10px}.meeting-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:14px;border:1px solid #303a4c;border-radius:12px;background:#0f1621}.meeting-item strong,.meeting-item small{display:block}.meeting-item small{margin-top:4px;color:#929fb1}.meeting-item button{border:0;border-radius:9px;background:#d2a53a;color:#181206;padding:8px 12px;font-weight:800;cursor:pointer}.today{font-size:48px;font-weight:300;color:#d4aa40}.today small{display:block;margin-top:5px;color:#919daf;font-size:13px}.status-card p{margin:14px 0 0;color:#aab5c5;line-height:1.6}.status-line{display:flex;align-items:center;gap:9px;margin-top:16px;color:#c8d0da;font-size:13px}.status-dot{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 14px #35d07f88}
-    dialog{width:min(650px,calc(100vw - 32px));max-height:min(820px,calc(100vh - 40px));overflow:auto;border:1px solid #394458;border-radius:20px;background:#131a25;color:#fff;padding:0;box-shadow:0 30px 100px #000b}dialog::backdrop{background:#02050ab8;backdrop-filter:blur(5px)}.dialog-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:20px 22px;border-bottom:1px solid #30394a;background:#171f2b}.dialog-head h2{margin:0;font-size:18px}.dialog-head small{display:block;margin-top:4px;color:#929fb1}.close{border:1px solid #465168;background:#263043;color:#fff;border-radius:9px;width:36px;height:36px;font-size:20px;cursor:pointer}.settings-body,.profile-body{padding:22px;display:grid;gap:16px}.settings-section{display:grid;gap:11px;padding-bottom:17px;border-bottom:1px solid #ffffff14}.settings-section:last-of-type{border-bottom:0}.settings-section h3{margin:0;font-size:14px}.settings-section>small{color:#8f9bad}.setting{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #303a4c;border-radius:13px;padding:14px}.setting span{display:grid;gap:4px}.setting small{color:#929fb1}.setting select,.field input{min-width:190px;background:#0b111b;color:#fff;border:1px solid #3b4658;border-radius:9px;padding:9px}.field{display:grid;gap:7px}.field small{color:#8996a8}.field input{width:100%}.setting input[type=checkbox]{appearance:none;-webkit-appearance:none;width:44px;height:25px;border:1px solid #ffffff2a;border-radius:999px;background-color:#273345;background-image:radial-gradient(circle at 12px 50%,#fff 0 7px,transparent 7.5px);cursor:pointer}.setting input[type=checkbox]:checked{background-color:#2f80ed;border-color:#55a2ff;background-image:radial-gradient(circle at 31px 50%,#fff 0 7px,transparent 7.5px)}.settings-actions{display:flex;justify-content:flex-end;gap:9px}.gold-btn{border:0;border-radius:9px;background:#d2a53a;color:#181206;padding:10px 16px;font-weight:800;cursor:pointer}.secondary{border:1px solid #465168;border-radius:9px;background:#202a38;color:#f3f6fa;padding:10px 16px;font-weight:700;cursor:pointer}.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.detail{background:#0d131e;border:1px solid #30394a;border-radius:12px;padding:12px}.detail small,.detail strong{display:block}.detail small{color:#8e9caf;margin-bottom:5px}
-    @media(max-width:1050px){.actions{grid-template-columns:repeat(2,1fr)}.workspace{grid-template-columns:1fr}.shell{grid-template-columns:86px 1fr}.rail{padding:22px 11px}.brand span,.nav button span,.account{display:none}}@media(max-width:620px){html,body{overflow:auto}.shell{display:block;height:auto;min-height:100vh}.rail{display:none}.content{height:auto;min-height:100vh;padding:24px 15px}.actions{grid-template-columns:1fr 1fr}.hero{align-items:flex-start;flex-direction:column}.identity-pill{max-width:100%}}
+    :root{color-scheme:dark;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#edf1f7;background:#090d14}*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden}body{background:radial-gradient(circle at 58% -18%,#263249 0,#111722 38%,#090d14 76%)}button,input,select{font:inherit}.shell{height:100vh;display:grid;grid-template-columns:238px minmax(0,1fr);overflow:hidden}.rail{padding:25px 18px;background:#0b111bf0;border-right:1px solid #273145;display:flex;flex-direction:column;gap:27px}.brand{display:flex;gap:11px;align-items:center;font-size:13px;font-weight:850;letter-spacing:.07em}.brand img{width:38px;height:38px;border-radius:10px}.nav{display:grid;gap:7px}.nav button{border:0;border-radius:11px;padding:12px 13px;background:transparent;color:#aeb8c8;text-align:left;font-weight:680;cursor:pointer}.nav button:hover,.nav button.active{background:#263146;color:#fff}.nav b{display:inline-grid;width:23px;text-align:center;color:#d7ae47}.account{margin-top:auto;border-top:1px solid #303949;padding-top:16px}.account-card{width:100%;display:grid;grid-template-columns:42px minmax(0,1fr);gap:10px;align-items:center;border:0;border-radius:12px;padding:8px;background:transparent;color:#fff;text-align:left;cursor:pointer}.account-card:hover{background:#202a3b}.avatar{display:grid;place-items:center;width:42px;height:42px;overflow:hidden;border-radius:50%;background:linear-gradient(145deg,#d3aa48,#865f12);font-weight:800}.avatar img{width:100%;height:100%;object-fit:cover}.account-card strong,.account-card small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-card small{margin-top:2px;color:#94a0b3;font-size:11px}.signout{margin:9px 7px 0;border:1px solid #465168;border-radius:9px;padding:8px 11px;background:transparent;color:#dce2ec;cursor:pointer}.content{height:100vh;overflow:auto;padding:42px clamp(28px,4vw,58px)}.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}.hero h1{margin:0;font:700 clamp(31px,3vw,42px) Georgia,serif}.hero p{margin:8px 0 0;color:#99a6b9}.identity-pill{max-width:330px;padding:10px 13px;border:1px solid #39465b;border-radius:999px;background:#141c29;color:#b9c3d0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.actions{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:17px;margin:34px 0 28px}.action-shell{position:relative}.action{width:100%;height:146px;border:1px solid #303a4c;border-radius:18px;padding:21px 18px;background:#161d29;color:#f2f5fa;box-shadow:0 12px 35px #0003;text-align:left;cursor:pointer;transition:.16s}.action:hover{transform:translateY(-2px);border-color:#c29a32;background:#1b2432}.action i{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:#332d20;color:#e3bc55;font-style:normal;font-size:21px}.action strong,.action small{display:block}.action strong{margin:16px 0 5px;font-size:16px}.action small{color:#9ca8b9}.action.primary{background:linear-gradient(145deg,#c89b2d,#9f7418);border-color:#d0a43a;color:#fff}.action.primary i{background:#fff2;color:#fff}.action.primary small{color:#fff4ce}.split-arrow{position:absolute;right:11px;top:11px;width:31px;height:31px;border:1px solid #ffffff2c;border-radius:9px;background:#15130f54;color:#fff;cursor:pointer;z-index:2}.new-menu{position:absolute;z-index:30;top:154px;left:0;width:300px;padding:10px;border:1px solid #3b465b;border-radius:14px;background:#111925;box-shadow:0 24px 65px #000c}.new-menu[hidden]{display:none}.menu-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 10px;border-radius:10px;color:#e8edf5}.menu-row+.menu-row{border-top:1px solid #ffffff12}.menu-copy{display:grid;gap:3px}.menu-copy small{color:#8f9bae;font-size:11px}.switch,.setting input[type=checkbox]{appearance:none;-webkit-appearance:none;width:44px;height:25px;flex:0 0 44px;border:1px solid #ffffff2a;border-radius:999px;background-color:#273345;background-image:radial-gradient(circle at 12px 50%,#fff 0 7px,transparent 7.5px);cursor:pointer}.switch:checked,.setting input[type=checkbox]:checked{background-color:#2f80ed;border-color:#55a2ff;background-image:radial-gradient(circle at 31px 50%,#fff 0 7px,transparent 7.5px)}.workspace{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.7fr);gap:20px}.card{background:#141b26;border:1px solid #2c3546;border-radius:18px;padding:22px;box-shadow:0 14px 38px #0002}.card h2{font-size:17px;margin:0 0 16px}.empty{padding:32px;text-align:center;border:1px dashed #3b4658;border-radius:14px;color:#98a5b7}.meeting-list{display:grid;gap:10px}.meeting-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:14px;border:1px solid #303a4c;border-radius:12px;background:#0f1621}.meeting-item strong,.meeting-item small{display:block}.meeting-item small{margin-top:4px;color:#929fb1}.meeting-item button{border:0;border-radius:9px;background:#d2a53a;color:#181206;padding:8px 12px;font-weight:800;cursor:pointer}.today{font-size:48px;font-weight:300;color:#d4aa40}.today small{display:block;margin-top:5px;color:#919daf;font-size:13px}.status-card p{margin:14px 0 0;color:#aab5c5;line-height:1.6}.status-line{display:flex;align-items:center;gap:9px;margin-top:16px;color:#c8d0da;font-size:13px}.status-dot{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 14px #35d07f88}dialog{width:min(690px,calc(100vw - 32px));max-height:min(850px,calc(100vh - 40px));overflow:auto;border:1px solid #394458;border-radius:20px;background:#131a25;color:#fff;padding:0;box-shadow:0 30px 100px #000b}dialog::backdrop{background:#02050ab8;backdrop-filter:blur(5px)}.dialog-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:20px 22px;border-bottom:1px solid #30394a;background:#171f2b}.dialog-head h2{margin:0;font-size:18px}.dialog-head small{display:block;margin-top:4px;color:#929fb1}.close{border:1px solid #465168;background:#263043;color:#fff;border-radius:9px;width:36px;height:36px;font-size:20px;cursor:pointer}.settings-body,.profile-body{padding:22px;display:grid;gap:16px}.settings-section{display:grid;gap:11px;padding-bottom:17px;border-bottom:1px solid #ffffff14}.settings-section:last-of-type{border-bottom:0}.settings-section h3{margin:0;font-size:14px}.settings-section>small{color:#8f9bad}.setting{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #303a4c;border-radius:13px;padding:14px}.setting span{display:grid;gap:4px}.setting small{color:#929fb1}.setting select,.field input{min-width:190px;background:#0b111b;color:#fff;border:1px solid #3b4658;border-radius:9px;padding:9px}.field{display:grid;gap:7px}.field small{color:#8996a8}.field input{width:100%}.field input[type=range]{padding:0;border:0;accent-color:#d2a53a}.settings-actions{display:flex;justify-content:flex-end;gap:9px}.gold-btn{border:0;border-radius:9px;background:#d2a53a;color:#181206;padding:10px 16px;font-weight:800;cursor:pointer}.secondary{border:1px solid #465168;border-radius:9px;background:#202a38;color:#f3f6fa;padding:10px 16px;font-weight:700;cursor:pointer}.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.detail{background:#0d131e;border:1px solid #30394a;border-radius:12px;padding:12px}.detail small,.detail strong{display:block}.detail small{color:#8e9caf;margin-bottom:5px}@media(max-width:1050px){.actions{grid-template-columns:repeat(2,1fr)}.workspace{grid-template-columns:1fr}.shell{grid-template-columns:86px 1fr}.rail{padding:22px 11px}.brand span,.nav button span,.account{display:none}}@media(max-width:620px){.shell{grid-template-columns:1fr}.rail{display:none}.content{padding:24px 15px}.actions{grid-template-columns:1fr 1fr}.hero{align-items:flex-start;flex-direction:column}.identity-pill{max-width:100%}}
   </style>
 </head>
 <body>
-  <div class="shell">
-    <aside class="rail">
-      <div class="brand"><img src="/assets/logo.jpeg" alt=""><span>DOMINIONSTAR<br>MEET</span></div>
-      <nav class="nav">
-        <button id="homeNav" class="active"><b>⌂</b><span>Home</span></button>
-        <button id="meetingsNav"><b>▣</b><span>Meetings</span></button>
-        <button id="settingsNav"><b>⚙</b><span>Settings</span></button>
-      </nav>
-      <div class="account">
-        <button id="profileButton" class="account-card"><span class="avatar" id="accountAvatar">DS</span><span><strong id="accountName">Signed in</strong><small id="accountTitle">Meet account</small><small id="accountEmail"></small></span></button>
-        <button id="signOut" class="signout">Sign out</button>
-      </div>
-    </aside>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand"><img src="/assets/logo.jpeg" alt=""><span>DOMINIONSTAR<br>MEET</span></div>
+    <nav class="nav"><button id="homeNav" class="active"><b>⌂</b><span>Home</span></button><button id="meetingsNav"><b>▣</b><span>Meetings</span></button><button id="settingsNav"><b>⚙</b><span>Settings</span></button></nav>
+    <div class="account"><button id="profileButton" class="account-card"><span class="avatar" id="accountAvatar">DS</span><span><strong id="accountName">Signed in</strong><small id="accountTitle">Meet account</small><small id="accountEmail"></small></span></button><button id="signOut" class="signout">Sign out</button></div>
+  </aside>
+  <main class="content">
+    <header class="hero"><div><h1 id="greeting">Welcome to Meet</h1><p>Start, join, schedule, or present from one place.</p></div><div id="personalIdentity" class="identity-pill">Personal Room · Syncing…</div></header>
+    <section class="actions" aria-label="Meeting actions">
+      <div class="action-shell"><button class="action primary" id="newMeeting"><i>▣</i><strong>New Meeting</strong><small>Start instantly</small></button><button class="split-arrow" id="newMeetingMenuButton" aria-label="New Meeting options">⌄</button><div class="new-menu" id="newMeetingMenu" hidden><label class="menu-row"><span class="menu-copy"><strong>Start with video</strong><small>Use camera in pre-join</small></span><input id="startWithVideo" class="switch" type="checkbox"></label><label class="menu-row"><span class="menu-copy"><strong>Use Personal Room</strong><small id="newMeetingPersonalId">Personal Meeting ID</small></span><input id="usePersonalRoom" class="switch" type="checkbox" checked></label></div></div>
+      <button class="action" id="joinMeeting"><i>＋</i><strong>Join</strong><small>Enter a Meeting ID</small></button><button class="action" id="scheduleMeeting"><i>□</i><strong>Schedule</strong><small>One-time or recurring</small></button><button class="action" id="shareScreen"><i>↑</i><strong>Share Screen</strong><small>Start and present</small></button>
+    </section>
+    <section class="workspace"><article class="card" id="meetingsSection"><h2>Upcoming meetings</h2><div id="meetingList" class="meeting-list"></div></article><article class="card status-card"><h2>Today</h2><div class="today" id="today"></div><div class="status-line"><span class="status-dot"></span><span>DominionStar Meet is ready</span></div><p>Your meeting identity and device preferences stay with this account until you change them.</p></article></section>
+  </main>
+</div>
 
-    <main class="content">
-      <header class="hero"><div><h1 id="greeting">Welcome to Meet</h1><p>Start, join, schedule, or present from one place.</p></div><div id="personalIdentity" class="identity-pill">Personal Room · Syncing…</div></header>
-
-      <section class="actions" aria-label="Meeting actions">
-        <div class="action-shell">
-          <button class="action primary" id="newMeeting"><i>▣</i><strong>New Meeting</strong><small>Start instantly</small></button>
-          <button class="split-arrow" id="newMeetingMenuButton" aria-label="New Meeting options">⌄</button>
-          <div class="new-menu" id="newMeetingMenu" hidden>
-            <label class="menu-row"><span class="menu-copy"><strong>Start with video</strong><small>Use camera in pre-join</small></span><input id="startWithVideo" class="switch" type="checkbox"></label>
-            <label class="menu-row"><span class="menu-copy"><strong>Use Personal Room</strong><small id="newMeetingPersonalId">Personal Meeting ID</small></span><input id="usePersonalRoom" class="switch" type="checkbox" checked></label>
-          </div>
-        </div>
-        <button class="action" id="joinMeeting"><i>＋</i><strong>Join</strong><small>Enter a Meeting ID</small></button>
-        <button class="action" id="scheduleMeeting"><i>□</i><strong>Schedule</strong><small>One-time or recurring</small></button>
-        <button class="action" id="shareScreen"><i>↑</i><strong>Share Screen</strong><small>Start and present</small></button>
-      </section>
-
-      <section class="workspace">
-        <article class="card" id="meetingsSection"><h2>Upcoming meetings</h2><div id="meetingList" class="meeting-list"></div></article>
-        <article class="card status-card"><h2>Today</h2><div class="today" id="today"></div><div class="status-line"><span class="status-dot"></span><span>DominionStar Meet is ready</span></div><p>Camera effects stay off until you choose them. Device and meeting controls remain available in pre-join and during the meeting.</p></article>
-      </section>
-    </main>
+<dialog id="settingsDialog">
+  <header class="dialog-head"><div><h2>Settings</h2><small>Audio, video, meeting defaults, sharing, and Personal Room.</small></div><button class="close" id="closeSettings" aria-label="Close settings">×</button></header>
+  <div class="settings-body">
+    <section class="settings-section"><h3>Joining meetings</h3><small>Your default state before every meeting.</small><label class="setting"><span><strong>Microphone when joining</strong><small>You can override this in pre-join.</small></span><select id="defaultMic"><option value="muted">Muted</option><option value="on">On</option></select></label><label class="setting"><span><strong>Camera when joining</strong><small>You can override this in pre-join.</small></span><select id="defaultCamera"><option value="off">Off</option><option value="on">On</option></select></label></section>
+    <section class="settings-section"><h3>Audio & Video</h3><small>These choices remain selected until you change them.</small><label class="setting"><span><strong>Camera</strong><small>Preferred camera.</small></span><select id="desktopCameraSelect"><option value="">System default</option></select></label><label class="setting"><span><strong>Microphone</strong><small>Preferred microphone.</small></span><select id="desktopMicrophoneSelect"><option value="">System default</option></select></label><label class="setting"><span><strong>Speaker</strong><small>Preferred output when supported.</small></span><select id="desktopSpeakerSelect"><option value="">System default</option></select></label><label class="setting"><span><strong>Mirror my video</strong><small>Remember self-view orientation.</small></span><input id="desktopMirrorVideo" type="checkbox"></label><label class="setting"><span><strong>Video quality</strong><small>Preferred camera resolution.</small></span><select id="desktopVideoQuality"><option value="360">360p</option><option value="720">720p HD</option><option value="1080">1080p Full HD</option></select></label><label class="setting"><span><strong>Background</strong><small>None, blur, or portrait.</small></span><select id="desktopBackground"><option value="none">None</option><option value="blur">Blur</option><option value="portrait">Portrait</option></select></label><label class="field"><span>Brightness</span><input id="desktopBrightness" type="range" min="75" max="135" step="1"><small><span id="desktopBrightnessValue">100</span>%</small></label><label class="field"><span>Touch up appearance</span><input id="desktopAppearance" type="range" min="0" max="60" step="1"><small><span id="desktopAppearanceValue">0</span>%</small></label></section>
+    <section class="settings-section"><h3>New Meeting</h3><small>Personal Room is an identity option, not a separate meeting destination.</small><label class="setting"><span><strong>Use Personal Room for instant meetings</strong><small>New Meeting uses your Personal Meeting ID and passcode.</small></span><input id="settingsUsePersonal" type="checkbox"></label><label class="setting"><span><strong>Default Meeting ID when scheduling</strong><small>Recurring options stay inside Schedule.</small></span><select id="defaultScheduleIdentity"><option value="personal">Personal Room</option><option value="generated">Generate a unique Meeting ID</option></select></label></section>
+    <section class="settings-section"><h3>Screen Sharing</h3><small>Defaults for the source picker.</small><label class="setting"><span><strong>Share computer sound</strong><small>Include system audio when available.</small></span><input id="desktopShareSound" type="checkbox"></label><label class="setting"><span><strong>Optimize for video sharing</strong><small>Prefer motion when sharing video.</small></span><input id="desktopShareOptimize" type="checkbox"></label><label class="setting"><span><strong>Show DominionStar windows</strong><small>Off by default to prevent mirror recursion.</small></span><input id="desktopShareOwnWindows" type="checkbox"></label></section>
+    <section class="settings-section"><h3>Personal Room</h3><small>Your Personal Meeting ID is account-owned and is never replaced locally.</small><label class="field"><span>Personal link</span><input id="personalLinkName" autocomplete="off" placeholder="your-name"><small>Letters, numbers, and hyphens.</small></label><label class="field"><span>Personal Meeting ID</span><input id="personalRoomId" readonly></label><label class="setting"><span><strong>Require meeting passcode</strong><small>Protect your Personal Room.</small></span><input id="requirePasscode" type="checkbox" checked></label><label class="field" id="passcodeField"><span>Passcode</span><input id="personalPasscode" inputmode="numeric" maxlength="6"></label><label class="setting"><span><strong>Waiting Room</strong><small>Participants wait until host or co-host admits them.</small></span><input id="waitingRoom" type="checkbox"></label></section>
+    <div id="settingsStatus" style="min-height:18px;color:#e2bd57;font-size:12px"></div><div class="settings-actions"><button class="secondary" id="cancelSettings">Cancel</button><button class="gold-btn" id="saveSettings">Save Settings</button></div>
   </div>
+</dialog>
 
-  <dialog id="settingsDialog">
-    <header class="dialog-head"><div><h2>Settings</h2><small>Meeting defaults and Personal Room identity.</small></div><button class="close" id="closeSettings" aria-label="Close settings">×</button></header>
-    <div class="settings-body">
-      <section class="settings-section"><h3>Joining meetings</h3><small>These defaults can still be changed in pre-join.</small>
-        <label class="setting"><span><strong>Microphone when joining</strong><small>Choose your default audio state.</small></span><select id="defaultMic"><option value="muted">Muted</option><option value="on">On</option></select></label>
-        <label class="setting"><span><strong>Camera when joining</strong><small>Choose your default video state.</small></span><select id="defaultCamera"><option value="off">Off</option><option value="on">On</option></select></label>
-      </section>
-      <section class="settings-section"><h3>New Meeting</h3><small>Personal Room is a meeting identity, not a separate meeting type.</small>
-        <label class="setting"><span><strong>Use Personal Room for instant meetings</strong><small>New Meeting uses your Personal Meeting ID and passcode.</small></span><input id="settingsUsePersonal" type="checkbox"></label>
-        <label class="setting"><span><strong>Default Meeting ID when scheduling</strong><small>Recurring options remain inside Schedule.</small></span><select id="defaultScheduleIdentity"><option value="personal">Personal Room</option><option value="generated">Generate a unique Meeting ID</option></select></label>
-      </section>
-      <section class="settings-section"><h3>Personal Room</h3><small>Your Personal Room remains the same until you change its settings.</small>
-        <label class="field"><span>Personal link</span><input id="personalLinkName" autocomplete="off" placeholder="your-name"><small>Letters, numbers, and hyphens.</small></label>
-        <label class="field"><span>Personal Meeting ID</span><input id="personalRoomId" readonly></label>
-        <label class="setting"><span><strong>Require meeting passcode</strong><small>Guests enter this passcode unless the secure invite link carries it.</small></span><input id="requirePasscode" type="checkbox" checked></label>
-        <label class="field" id="passcodeField"><span>Passcode</span><input id="personalPasscode" inputmode="numeric" maxlength="6"></label>
-        <label class="setting"><span><strong>Waiting Room</strong><small>Participants wait until host or co-host admits them.</small></span><input id="waitingRoom" type="checkbox"></label>
-      </section>
-      <div id="settingsStatus" style="min-height:18px;color:#e2bd57;font-size:12px"></div>
-      <div class="settings-actions"><button class="secondary" id="cancelSettings">Cancel</button><button class="gold-btn" id="saveSettings">Save Settings</button></div>
-    </div>
-  </dialog>
-
-  <dialog id="profileDialog">
-    <header class="dialog-head"><div><h2>Meet profile</h2><small>Your DominionStar account identity.</small></div><button class="close" id="closeProfile" aria-label="Close profile">×</button></header>
-    <div class="profile-body"><div class="profile-grid"><div class="detail"><small>Name</small><strong id="profileName">—</strong></div><div class="detail"><small>Contract level / title</small><strong id="profileTitle">—</strong></div><div class="detail"><small>Email</small><strong id="profileEmail">—</strong></div><div class="detail"><small>Agent code</small><strong id="profileAgentCode">—</strong></div></div></div>
-  </dialog>
-
-  <script src="/assets/js/supabase-config.js?v=2-meet-auth"></script>
-  <script src="/assets/js/member-auth.js?v=2-meet-session-persistence"></script>
-  <script>
-  (async()=>{
-    'use strict';
-    const $=id=>document.getElementById(id);
-    const desktop=true;
-    const digits=value=>String(value||'').replace(/\D/g,'');
-    const formatId=value=>{const d=digits(value).slice(0,10);return d.length===10?d.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3'):d};
-    const slug=value=>String(value||'dominionstar-member').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').replace(/-{2,}/g,'-').slice(0,48)||'dominionstar-member';
-    const randomDigits=n=>Array.from({length:n},()=>Math.floor(Math.random()*10)).join('');
-    const json=(key,fallback={})=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback}catch(_){return fallback}};
-    const saveJson=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch(_){}};
-    const client=await window.DSAuth?.init?.();
-    const session=client?(await client.auth.getSession()).data.session:null;
-    if(!session){if(window.dominionDesktop?.showAccountChooser){window.dominionDesktop.showAccountChooser();return}location.replace('/meet-login/?mode=public');return}
-
-    const meta=session.user.user_metadata||{};
-    let profile=null;
-    let avatarUrl=meta.avatar_url||meta.picture||'';
-    try{const result=await client.from('member_profiles').select('full_name,preferred_name,email,agent_code,verification_status,rank,role,is_founder,avatar_path').eq('id',session.user.id).maybeSingle();if(!result.error)profile=result.data||null}catch(_){}
-    if(profile?.avatar_path){try{const signed=await client.storage.from('member-avatars').createSignedUrl(profile.avatar_path,3600);avatarUrl=signed.data?.signedUrl||avatarUrl}catch(_){}}
-    const displayName=profile?.preferred_name||profile?.full_name||meta.full_name||meta.name||(session.user.email||'Meet member').split('@')[0];
-    const title=profile?.rank||meta.title||'Meet member';
-    const initials=value=>String(value||'DS').trim().split(/\s+/).slice(0,2).map(v=>v[0]).join('').toUpperCase();
-    const avatar=$('accountAvatar');avatar.innerHTML=avatarUrl?`<img src="${String(avatarUrl).replace(/"/g,'&quot;')}" alt="">`:initials(displayName);
-    $('accountName').textContent=displayName;$('accountTitle').textContent=title;$('accountEmail').textContent=profile?.email||session.user.email||'';
-    $('profileName').textContent=displayName;$('profileTitle').textContent=title;$('profileEmail').textContent=profile?.email||session.user.email||'';$('profileAgentCode').textContent=profile?.agent_code||'Not linked';
-    const hour=new Date().getHours();$('greeting').textContent=`${hour<12?'Good morning':hour<18?'Good afternoon':'Good evening'}, ${displayName.split(/\s+/)[0]}.`;
-    const now=new Date();$('today').innerHTML=`${now.getDate()}<small>${now.toLocaleDateString(undefined,{month:'long',year:'numeric',weekday:'long'})}</small>`;
-
-    const mediaKey=`ds_meet_preferences:${session.user.id}`;
-    const identityKey='ds_meet_identity_preferences_v1';
-    const roomKey='ds_meet_personal_room_v2';
-    const legacyRoomKey='ds_meet_personal_room_v1';
-    const scheduleKey='ds_meet_scheduled_v1';
-    let mediaPrefs=json(mediaKey,{});
-    let identityPrefs={usePersonalForInstant:true,defaultScheduleIdentity:'personal',...json(identityKey,{})};
-    let room=json(roomKey,null)||json(legacyRoomKey,null);
-
-    const normalizeRoom=value=>value?{personalRoomId:String(value.personalRoomId||value.personal_room_id||''),personalLinkName:String(value.personalLinkName||value.personal_link_name||slug(displayName)),passcode:String(value.passcode??''),waitingRoomEnabled:Boolean(value.waitingRoomEnabled??value.waiting_room_enabled)}:null;
-    const readRemoteRoom=async()=>{try{const result=await client.from('meet_personal_rooms').select('*').eq('user_id',session.user.id).maybeSingle();if(result.error)return{ok:false,data:null};return{ok:true,data:result.data||null}}catch(_){return{ok:false,data:null}}};
-    const remote=await readRemoteRoom();
-    if(remote.ok&&remote.data){room=normalizeRoom(remote.data);saveJson(roomKey,room);saveJson(legacyRoomKey,room)}
-    $('personalIdentity').textContent=room?.personalRoomId?`Personal Room · ${formatId(room.personalRoomId)}`:'Personal Room · Set up in Settings';
-    $('newMeetingPersonalId').textContent=room?.personalRoomId?`Personal Meeting ID ${formatId(room.personalRoomId)}`:'Personal Meeting ID';
-
-    const go=action=>{const p=new URLSearchParams({desktop:'1',action});location.href=`/meet/?${p}`};
-    const applyNewMeetingPrefs=()=>{
-      mediaPrefs={...mediaPrefs,joinCameraOff:!$('startWithVideo').checked,background:'none',brightness:100,touchAppearance:0,updatedAt:new Date().toISOString()};
-      identityPrefs={...identityPrefs,usePersonalForInstant:Boolean($('usePersonalRoom').checked)};
-      saveJson(mediaKey,mediaPrefs);saveJson(identityKey,identityPrefs);
-    };
-    $('startWithVideo').checked=mediaPrefs.joinCameraOff===false;
-    $('usePersonalRoom').checked=identityPrefs.usePersonalForInstant!==false;
-    $('newMeeting').onclick=()=>{applyNewMeetingPrefs();go('new')};
-    $('newMeetingMenuButton').onclick=event=>{event.stopPropagation();$('newMeetingMenu').hidden=!$('newMeetingMenu').hidden};
-    document.addEventListener('click',event=>{if(!event.target.closest('.action-shell'))$('newMeetingMenu').hidden=true});
-    $('usePersonalRoom').onchange=applyNewMeetingPrefs;$('startWithVideo').onchange=applyNewMeetingPrefs;
-    $('joinMeeting').onclick=()=>go('join');$('scheduleMeeting').onclick=()=>go('schedule');$('shareScreen').onclick=()=>go('share');
-
-    const renderMeetings=()=>{
-      const stored=json(scheduleKey,[]);const list=Array.isArray(stored)?stored:[];const target=$('meetingList');
-      if(!list.length){target.innerHTML='<div class="empty">No upcoming meetings yet.<br>Use Schedule to create one.</div>';return}
-      const sorted=[...list].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||''))).slice(0,8);
-      target.innerHTML=sorted.map((item,index)=>`<div class="meeting-item"><span><strong>${String(item.topic||'DominionStar Meeting').replace(/[<>]/g,'')}</strong><small>${item.date||'Date not set'} · ${item.time||'Time not set'}${item.recurring?' · Recurring':''} · ${formatId(item.meetingId||item.id||'')}</small></span><button data-join-scheduled="${index}">Start</button></div>`).join('');
-      target.querySelectorAll('[data-join-scheduled]').forEach(button=>button.onclick=()=>{const item=sorted[Number(button.dataset.joinScheduled)];if(!item)return;location.href=`/meet/?desktop=1&action=join&room=${encodeURIComponent(item.meetingId||item.id||'')}`});
-    };
-    renderMeetings();
-    $('meetingsNav').onclick=()=>{$('meetingsSection').scrollIntoView({behavior:'smooth',block:'start'})};$('homeNav').onclick=()=>document.querySelector('.content').scrollTo({top:0,behavior:'smooth'});
-
-    const settings=$('settingsDialog');
-    const hydrateSettings=()=>{
-      mediaPrefs=json(mediaKey,mediaPrefs||{});identityPrefs={usePersonalForInstant:true,defaultScheduleIdentity:'personal',...json(identityKey,identityPrefs||{})};
-      $('defaultMic').value=mediaPrefs.joinMuted===false?'on':'muted';$('defaultCamera').value=mediaPrefs.joinCameraOff===false?'on':'off';$('settingsUsePersonal').checked=identityPrefs.usePersonalForInstant!==false;$('defaultScheduleIdentity').value=identityPrefs.defaultScheduleIdentity==='generated'?'generated':'personal';
-      const current=room||{personalRoomId:'',personalLinkName:slug(displayName),passcode:'',waitingRoomEnabled:false};
-      $('personalLinkName').value=current.personalLinkName||slug(displayName);$('personalRoomId').value=current.personalRoomId?formatId(current.personalRoomId):'Created when saved';$('requirePasscode').checked=current.passcode!=='';$('personalPasscode').value=current.passcode||'';$('passcodeField').hidden=!$('requirePasscode').checked;$('waitingRoom').checked=Boolean(current.waitingRoomEnabled);$('settingsStatus').textContent='';
-    };
-    $('settingsNav').onclick=()=>{hydrateSettings();settings.showModal()};$('closeSettings').onclick=()=>settings.close();$('cancelSettings').onclick=()=>settings.close();
-    $('requirePasscode').onchange=()=>{if($('requirePasscode').checked&&!$('personalPasscode').value)$('personalPasscode').value=randomDigits(6);$('passcodeField').hidden=!$('requirePasscode').checked};
-    $('personalPasscode').oninput=()=>{$('personalPasscode').value=digits($('personalPasscode').value).slice(0,6)};$('personalLinkName').oninput=()=>{$('personalLinkName').value=slug($('personalLinkName').value)};
-
-    $('saveSettings').onclick=async()=>{
-      const button=$('saveSettings'),status=$('settingsStatus');button.disabled=true;status.textContent='Saving…';
-      try{
-        mediaPrefs={...mediaPrefs,joinMuted:$('defaultMic').value==='muted',joinCameraOff:$('defaultCamera').value==='off',background:'none',brightness:100,touchAppearance:0,updatedAt:new Date().toISOString()};
-        identityPrefs={...identityPrefs,usePersonalForInstant:Boolean($('settingsUsePersonal').checked),defaultScheduleIdentity:$('defaultScheduleIdentity').value==='generated'?'generated':'personal'};
-        saveJson(mediaKey,mediaPrefs);saveJson(identityKey,identityPrefs);
-        try{await client.from('meet_user_preferences').upsert({user_id:session.user.id,join_muted:mediaPrefs.joinMuted,join_camera_off:mediaPrefs.joinCameraOff,mirror_video:mediaPrefs.mirror!==false,background_mode:'none',brightness:100,touch_appearance:0,video_quality:String(mediaPrefs.quality||'720'),camera_id:String(mediaPrefs.cameraId||''),microphone_id:String(mediaPrefs.microphoneId||''),speaker_id:String(mediaPrefs.speakerId||''),updated_at:new Date().toISOString()},{onConflict:'user_id'})}catch(_){}
-
-        const existing=await readRemoteRoom();
-        const existingId=String(existing.data?.personal_room_id||room?.personalRoomId||'');
-        const personalRoomId=/^\d{10}$/.test(digits(existingId))?digits(existingId):randomDigits(10);
-        const passcode=$('requirePasscode').checked?digits($('personalPasscode').value).slice(0,6):'';
-        if(passcode&&passcode.length<3)throw new Error('Passcode must contain 3–6 digits.');
-        const nextRoom={personalRoomId,personalLinkName:slug($('personalLinkName').value),passcode,waitingRoomEnabled:Boolean($('waitingRoom').checked)};
-        if(existing.ok){
-          const result=await client.from('meet_personal_rooms').upsert({user_id:session.user.id,personal_room_id:personalRoomId,personal_link_name:nextRoom.personalLinkName,passcode:nextRoom.passcode,waiting_room_enabled:nextRoom.waitingRoomEnabled,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-          if(result.error)throw result.error;
-        }
-        room=nextRoom;saveJson(roomKey,room);saveJson(legacyRoomKey,room);
-        $('personalIdentity').textContent=`Personal Room · ${formatId(room.personalRoomId)}`;$('newMeetingPersonalId').textContent=`Personal Meeting ID ${formatId(room.personalRoomId)}`;$('usePersonalRoom').checked=identityPrefs.usePersonalForInstant!==false;
-        status.textContent='Settings saved.';setTimeout(()=>settings.close(),420);
-      }catch(error){status.textContent=error?.message||'Could not save settings.'}finally{button.disabled=false}
-    };
-
-    const profileDialog=$('profileDialog');$('profileButton').onclick=()=>profileDialog.showModal();$('closeProfile').onclick=()=>profileDialog.close();
-    $('signOut').onclick=async()=>{try{await client.auth.signOut()}catch(_){}location.replace('/meet-login/?mode=public')};
-  })();
-  </script>
+<dialog id="profileDialog"><header class="dialog-head"><div><h2>Meet profile</h2><small>Your DominionStar account identity.</small></div><button class="close" id="closeProfile" aria-label="Close profile">×</button></header><div class="profile-body"><div class="profile-grid"><div class="detail"><small>Name</small><strong id="profileName">—</strong></div><div class="detail"><small>Contract level / title</small><strong id="profileTitle">—</strong></div><div class="detail"><small>Email</small><strong id="profileEmail">—</strong></div><div class="detail"><small>Agent code</small><strong id="profileAgentCode">—</strong></div></div></div></dialog>
+<script src="/assets/js/supabase-config.js?v=2-meet-auth"></script>
+<script src="/assets/js/member-auth.js?v=2-meet-session-persistence"></script>
+<script src="/assets/js/meet/desktop-home-controller.js?v=1-single-authority"></script>
 </body>
 </html>
