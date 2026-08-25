@@ -1,0 +1,123 @@
+name: DominionStar Meet Windows PR Verification
+
+on:
+  pull_request:
+    paths:
+      - "desktop 2/**"
+      - "assets/js/meet/**"
+      - "assets/js/meet-next/**"
+      - "assets/css/meet/**"
+      - "assets/css/meet-next/**"
+      - "meet/**"
+      - "scripts/test-meet-toolbar-duplicates.mjs"
+      - "scripts/test-zoom-behavior-parity.mjs"
+      - ".github/workflows/desktop-windows-pr-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-windows-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows Clean Runtime + x64/ARM64 Installer Acceptance
+    runs-on: windows-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: "desktop 2"
+
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Prove clean repository and single desktop codebase
+        shell: pwsh
+        run: |
+          git -C .. reset --hard HEAD
+          git -C .. clean -ffdx
+          $dirty = git -C .. status --porcelain
+          if ($dirty) { throw "Repository is not clean: $dirty" }
+          if (Test-Path "../desktop") { throw "Obsolete duplicate desktop/ codebase returned" }
+          if (Test-Path node_modules) { Remove-Item node_modules -Recurse -Force }
+          if (Test-Path dist) { Remove-Item dist -Recurse -Force }
+          Write-Host "DOMINIONSTAR_WINDOWS_REPOSITORY_CLEAN_OK"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: "desktop 2/package-lock.json"
+
+      - name: Install only locked dependencies
+        run: npm ci
+
+      - name: Prove cross-platform package identity and Windows targets
+        shell: pwsh
+        run: |
+          node -e "const p=require('./package.json'); if(p.build?.appId!=='com.dominionstar.desktop')throw Error('bundle id'); if(p.build?.productName!=='DominionStar Meet')throw Error('product'); const arch=p.build?.win?.target?.[0]?.arch||[]; if(!arch.includes('x64')||!arch.includes('arm64'))throw Error('Windows x64/arm64 targets missing'); if(!String(p.scripts?.['dist:windows']||'').startsWith('npm run clean &&'))throw Error('Windows build must clean first'); console.log('DOMINIONSTAR_WINDOWS_TARGETS_OK',arch.join(','));"
+
+      - name: Audit production dependency supply chain
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run complete DominionStar Meet runtime certification on Windows
+        run: npm run verify
+
+      - name: Build unsigned QA Windows x64 and ARM64 installers from empty dist
+        shell: pwsh
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          if (Test-Path dist) { Remove-Item dist -Recurse -Force }
+          npm run dist:windows
+
+      - name: Prove both Windows architectures were packaged
+        shell: pwsh
+        run: |
+          $installers = Get-ChildItem dist -File -Filter *.exe
+          if (-not $installers) { throw "No Windows NSIS installers were produced" }
+          $names = $installers.Name -join "`n"
+          Write-Host $names
+          if ($names -notmatch 'x64') { throw "Windows x64 installer missing" }
+          if ($names -notmatch 'arm64') { throw "Windows ARM64 installer missing" }
+          foreach ($file in $installers) {
+            if ($file.Length -lt 1MB) { throw "Installer is suspiciously small: $($file.Name)" }
+          }
+          Write-Host "DOMINIONSTAR_WINDOWS_X64_ARM64_PACKAGING_OK"
+
+      - name: Enforce installer size budget
+        run: node scripts/audit-artifact-sizes.mjs dist
+
+      - name: Prove Windows update metadata and checksums
+        shell: pwsh
+        run: |
+          $latest = Get-ChildItem dist -File -Filter latest*.yml
+          if (-not $latest) { throw "Windows update metadata missing" }
+          Get-ChildItem dist -File |
+            Where-Object { $_.Extension -in '.exe','.yml','.blockmap' } |
+            ForEach-Object {
+              $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+              "$hash  $($_.Name)"
+            } | Out-File dist/SHA256SUMS-Windows-QA.txt -Encoding utf8
+          if (-not (Test-Path dist/SHA256SUMS-Windows-QA.txt)) { throw "Windows checksums missing" }
+          Write-Host "DOMINIONSTAR_WINDOWS_QA_PROVENANCE_OK"
+
+      - name: Retain Windows QA installers for inspection
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-pr${{ github.event.pull_request.number }}-CLEAN-QA-windows
+          path: |
+            desktop 2/dist/*.exe
+            desktop 2/dist/*.blockmap
+            desktop 2/dist/latest*.yml
+            desktop 2/dist/SHA256SUMS-Windows-QA.txt
+          if-no-files-found: error
+          retention-days: 2
