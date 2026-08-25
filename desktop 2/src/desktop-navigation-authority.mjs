@@ -110,11 +110,28 @@ async function resolveDesktopHostIdentity(contents) {
   catch { return null; }
 }
 
+function personalBootstrapAction(action) {
+  return action === 'share' ? 'desktop-share' : 'desktop-new';
+}
+
 function enforceDesktopHostIdentity(contents, event, url) {
   const route = normalizedPath(url.pathname);
   const action = String(url.searchParams.get('action') || '');
   if (route !== '/meet' || url.searchParams.get('desktop') !== '1' || !['new', 'share'].includes(action)) return false;
-  if (url.searchParams.get('desktopIdentityResolved') === '1' || url.searchParams.get('room')) return false;
+
+  // If Home already supplied a Personal Room, rewrite the action before the
+  // renderer loads. The historical media hotfix auto-generates credentials for
+  // action=new/share; desktop-new/desktop-share deliberately bypass that path.
+  if (url.searchParams.get('room')) {
+    event.preventDefault();
+    const target = new URL(url.toString());
+    target.searchParams.set('action', personalBootstrapAction(action));
+    target.searchParams.set('desktopIdentityResolved', '1');
+    void contents.loadURL(target.toString()).catch(() => {});
+    return true;
+  }
+
+  if (url.searchParams.get('desktopIdentityResolved') === '1') return false;
 
   event.preventDefault();
   void resolveDesktopHostIdentity(contents).then(identity => {
@@ -122,6 +139,7 @@ function enforceDesktopHostIdentity(contents, event, url) {
     const target = new URL(url.toString());
     target.searchParams.set('desktopIdentityResolved', '1');
     if (identity?.usePersonal && identity?.id) {
+      target.searchParams.set('action', personalBootstrapAction(action));
       target.searchParams.set('host', '1');
       target.searchParams.set('room', identity.id);
       if (identity.personal) target.searchParams.set('personal', identity.personal);
@@ -169,26 +187,26 @@ function installNavigationAuthority(contents) {
   });
 }
 
-function installDesktopSettingsAuthority(contents) {
+function injectScriptOnRoute(contents, route, marker, src) {
   if (!contents || contents.isDestroyed?.()) return;
   const inject = () => {
     let current;
     try { current = new URL(String(contents.getURL?.() || '')); } catch { return; }
     if (!isDominionDesktopHost(current.hostname)) return;
-    if (normalizedPath(current.pathname) !== '/meet-home') return;
+    if (normalizedPath(current.pathname) !== route) return;
     if (current.searchParams.get('desktop') !== '1') return;
-
-    const script = `(()=>{
-      if(document.querySelector('script[data-ds-desktop-settings-authority]'))return;
-      const node=document.createElement('script');
-      node.src='/assets/js/meet/desktop-settings-authority.js?v=2-core-host-settings';
-      node.async=false;
-      node.setAttribute('data-ds-desktop-settings-authority','1');
-      document.head.append(node);
-    })();`;
+    const script = `(()=>{if(document.querySelector('script[data-ds-authority="${marker}"]'))return;const node=document.createElement('script');node.src='${src}';node.async=false;node.setAttribute('data-ds-authority','${marker}');document.head.append(node);})();`;
     void contents.executeJavaScript(script, true).catch(() => {});
   };
   contents.on('dom-ready', inject);
+}
+
+function installDesktopSettingsAuthority(contents) {
+  injectScriptOnRoute(contents, '/meet-home', 'desktop-settings', '/assets/js/meet/desktop-settings-authority.js?v=2-core-host-settings');
+}
+
+function installDesktopSharePermissionGuard(contents) {
+  injectScriptOnRoute(contents, '/meet', 'desktop-share-permission', '/assets/js/meet/desktop-share-permission-guard.js?v=1-one-way-permission');
 }
 
 function installDesktopMeetingIdentityBootstrap(contents) {
@@ -201,34 +219,24 @@ function installDesktopMeetingIdentityBootstrap(contents) {
     if (normalizedPath(current.pathname) !== '/meet') return;
     if (current.searchParams.get('desktop') !== '1') return;
     const action = current.searchParams.get('action') || '';
-    if (!['new', 'share'].includes(action)) return;
-    if (current.searchParams.get('room')) return;
+    if (!['desktop-new', 'desktop-share'].includes(action)) return;
+    const room = String(current.searchParams.get('room') || '').replace(/\D/g, '').slice(0,10);
+    if (room.length !== 10) return;
 
     const script = `(()=>{
       if(window.__dsDesktopPersonalRoomBootstrapInstalled)return;
       window.__dsDesktopPersonalRoomBootstrapInstalled=true;
       const params=new URLSearchParams(location.search);
       const action=params.get('action')||'';
-      if(!['new','share'].includes(action))return;
-      let prefs={usePersonalForInstant:true};
-      try{prefs={...prefs,...JSON.parse(localStorage.getItem('ds_meet_identity_preferences_v1')||'{}')}}catch{}
-      if(prefs.usePersonalForInstant===false){window.__DS_DESKTOP_PERSONAL_ROOM_BOOTSTRAP='generated-meeting-v1';return;}
-      const cachedRoom=()=>{
-        for(const key of ['ds_meet_personal_room_v2','ds_meet_personal_room_v1']){
-          try{const value=JSON.parse(localStorage.getItem(key)||'null');const id=String(value?.personalRoomId||'').replace(/\\D/g,'').slice(0,10);if(id.length===10)return{...value,personalRoomId:id};}catch{}
-        }
-        return null;
-      };
+      const room=String(params.get('room')||'').replace(/\\D/g,'').slice(0,10);
+      if(!['desktop-new','desktop-share'].includes(action)||room.length!==10)return;
       const start=()=>{
-        const room=window.DominionPersonalRoom?.current?.()||cachedRoom();
-        const id=String(room?.personalRoomId||'').replace(/\\D/g,'').slice(0,10);
-        if(id.length!==10||typeof window.DominionStarEnterHostPrejoin!=='function')return false;
-        window.DominionStarEnterHostPrejoin({room:id,passcode:String(room?.passcode||''),waitingRoom:Boolean(room?.waitingRoomEnabled),autoShare:action==='share'});
-        window.__DS_DESKTOP_PERSONAL_ROOM_BOOTSTRAP='account-personal-room-v1';return true;
+        if(typeof window.DominionStarEnterHostPrejoin!=='function')return false;
+        window.DominionStarEnterHostPrejoin({room,passcode:String(params.get('passcode')||''),waitingRoom:params.get('waiting')==='1',autoShare:action==='desktop-share'});
+        window.__DS_DESKTOP_PERSONAL_ROOM_BOOTSTRAP='navigation-authoritative-v2';return true;
       };
       if(start())return;
-      let attempts=0;const timer=setInterval(()=>{attempts+=1;if(start()||attempts>=20)clearInterval(timer);},100);
-      Promise.resolve(window.DominionPersonalRoom?.ready).then(()=>{if(start())clearInterval(timer);}).catch(()=>{});
+      let attempts=0;const timer=setInterval(()=>{attempts+=1;if(start()||attempts>=40)clearInterval(timer);},75);
     })();`;
     void contents.executeJavaScript(script, true).catch(() => {});
   };
@@ -283,6 +291,7 @@ function installPreviewRequestNormalization() {
 app.on('web-contents-created', (_event, contents) => {
   installNavigationAuthority(contents);
   installDesktopSettingsAuthority(contents);
+  installDesktopSharePermissionGuard(contents);
   installDesktopMeetingIdentityBootstrap(contents);
   installPreviewChromeSuppression(contents);
 });
