@@ -62,10 +62,11 @@ assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
-// Physical Mac Share Screen regression. macOS 15+ must delegate source choice to
-// Electron's native system picker. The old custom-only path froze after Screen
-// & System Audio Recording permission changes. A small fallback capture probe is
-// allowed only as bounded diagnostics so real capture can override stale TCC.
+// Physical Mac Share Screen regression. The failure reproduced on real hardware
+// when permission diagnostics touched source enumeration during the TCC change.
+// Status is now a lightweight TCC read; the branded fallback is non-modal and
+// only enumerates sources after access is granted. A changed permission gets one
+// fresh-process restart rather than another Privacy & Security loop.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert(bootstrap.indexOf("await import('./screen-permission-lifecycle.mjs')")<bootstrap.indexOf("await import('./main-v2.mjs')"));
@@ -73,16 +74,22 @@ assert(bootstrap.includes("await import('./macos-system-picker-session.mjs')"));
 assert(nativeCapture.includes('enabled: nativePicker'));
 assert(nativeCapture.includes("nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'"));
 assert(nativePickerSession.includes('{ useSystemPicker: true }'));
-assert(lifecycle.includes('desktopCapturer.getSources'));
-assert(lifecycle.includes('CAPTURE_PROBE_TIMEOUT_MS=1800'));
-assert(lifecycle.includes('if(probe.captureReady)return'));
-assert(lifecycle.includes('requiresRestart:false'));
+assert(lifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"));
+assert(!lifecycle.includes('desktopCapturer')&&!lifecycle.includes('getSources('));
+assert(lifecycle.includes('captureProbed:false'));
+assert(lifecycle.includes("requiresRestart:process.platform==='darwin'&&granted&&initialScreenPermission!=='granted'"));
+assert(lifecycle.includes('desktop:relaunch-for-permissions'));
 assert(picker.includes('getScreenPermissionStatus'));
 assert(picker.includes('const withTimeout='));
 assert(picker.includes('const requestSources=()=>withTimeout'));
-assert(picker.includes("if(sources.length){permission.hidden=true;list.hidden=false"));
-assert(picker.includes("if(runtime?.platform==='darwin'){showProblem(await status());return;}"));
-assert(picker.includes('if(current?.captureReady){void loadSources();return;}'));
+assert(picker.includes('if(!dialog.open)dialog.show()'));
+assert(!picker.includes('dialog.showModal()'));
+const permissionIndex=picker.indexOf('const permissionState=await status()');
+const sourceIndex=picker.indexOf('next=await requestSources()');
+assert(permissionIndex>=0&&sourceIndex>=0&&permissionIndex<sourceIndex);
+assert(picker.includes("if(screen!=='granted'||permissionState?.requiresRestart){showProblem(permissionState);return;}"));
+assert(picker.includes("if(screen==='granted'&&!current?.requiresRestart){void loadSources();return;}"));
+assert(picker.includes('showProblem({...current,requiresRestart:true})'));
 assert(picker.includes('Restart DominionStar Meet'));
 assert(preload.includes('systemSharePicker: nativeSystemPicker'));
 assert(preload.includes('customSharePicker: !nativeSystemPicker'));
