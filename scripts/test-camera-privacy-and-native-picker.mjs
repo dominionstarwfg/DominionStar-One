@@ -59,7 +59,7 @@ requireSource(customPicker,'const requestSources=()=>withTimeout','Fallback sour
 const permissionIndex=customPicker.indexOf('const permissionState=await status()');
 const sourceIndex=customPicker.indexOf('next=await requestSources()');
 if(permissionIndex<0||sourceIndex<0||permissionIndex>sourceIndex)throw new Error('macOS fallback must check permission before desktop source enumeration.');
-requireSource(customPicker,"if(screen!=='granted'){showProblem(permissionState);return;}",'Fallback must refuse source enumeration until macOS reports granted access.');
+requireSource(customPicker,"if(screen!=='granted'||permissionState?.requiresRestart){showProblem(permissionState);return;}",'Fallback must refuse source enumeration until macOS reports granted access and no restart is pending.');
 requireSource(screenLifecycle,"systemPreferences.getMediaAccessStatus('screen')",'Permission lifecycle must use the lightweight macOS TCC status API.');
 forbidSource(screenLifecycle,'desktopCapturer','Permission-status IPC must never enumerate desktop sources.');
 requireSource(screenLifecycle,'captureProbed:false','Permission status must explicitly remain a non-capture diagnostic.');
