@@ -53,13 +53,19 @@ requireText(twoClient, 'admission creates participant list and video dock on bot
 requireText(illustration, "decline.textContent='View'", 'Zoom parity: waiting-room heads-up must use Admit/View behavior.');
 
 // 4) Desktop sharing must present real screens/application windows and recover
-// cleanly when macOS permission is already granted.
+// cleanly when macOS permission is already granted. Returning from Privacy &
+// Security is a one-way transition: retry capture automatically, then offer one
+// app restart if the running Electron process still cannot enumerate sources.
 requireText(desktopSharePicker, 'data-filter="screen">Screens', 'Zoom parity: desktop share picker must expose Screens.');
 requireText(desktopSharePicker, 'data-filter="window">Application windows', 'Zoom parity: desktop share picker must expose application windows.');
 requireText(desktopSharePicker, 'Share sound', 'Zoom parity: desktop share picker must offer computer sound when supported.');
 requireText(desktopSharePicker, 'Optimize for video sharing', 'Zoom parity: desktop share picker must offer motion optimization.');
 requireText(desktopSharePicker, 'role="switch" data-optimize', 'Zoom parity: share options must use modern switches.');
-requireText(desktopSharePicker, "permissionTitle.textContent=state?.requiresRestart?'Apply screen access':'Screen access is active'", 'Zoom parity: granted macOS screen permission must not loop back to Settings.');
+requireText(desktopSharePicker, 'const restartRequired=Boolean(state?.requiresRestart||permissionPanelVisited);', 'Zoom parity: return from macOS screen settings must transition to restart recovery instead of reopening Settings.');
+requireText(desktopSharePicker, 'settingsButton.hidden=granted||restartRequired;', 'Zoom parity: Screen Recording Settings must disappear after permission has been visited or granted.');
+requireText(desktopSharePicker, 'restartButton.hidden=!restartRequired;', 'Zoom parity: macOS capture recovery must expose exactly one restart escalation when required.');
+requireText(desktopSharePicker, 'You do not need to open Privacy & Security again.', 'Zoom parity: permission recovery must explicitly prevent a Settings loop.');
+requireText(desktopSharePicker, "window.addEventListener('focus',recover,{once:true});", 'Zoom parity: returning from macOS Settings must automatically retry source enumeration.');
 requireText(desktopSharePicker, 'Use Retry. You do not need to change Privacy & Security again.', 'Zoom parity: granted screen permission must provide in-app retry recovery.');
 
 // 5) Browser sharing stays browser-native while desktop sharing stays native-app
