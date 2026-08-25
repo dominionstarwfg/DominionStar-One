@@ -1,44 +1,17 @@
 import { app, BrowserWindow, Menu, MenuItem } from 'electron';
 
-let quitting = false;
-
-function destroyDesktopWindows() {
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      try { win.destroy(); } catch {}
-    }
-  }
+let quitting=false;
+function destroyDesktopWindows(){for(const win of BrowserWindow.getAllWindows()){if(!win.isDestroyed()){try{win.destroy();}catch{}}}}
+function ensureMacQuitCommand(){
+  if(process.platform!=='darwin')return;const menu=Menu.getApplicationMenu();const appMenu=menu?.items?.[0]?.submenu;if(!appMenu||appMenu.items.some(item=>item.role==='quit'))return;
+  appMenu.append(new MenuItem({type:'separator'}));appMenu.append(new MenuItem({role:'quit',label:`Quit ${app.name||'DominionStar Meet'}`,accelerator:'Command+Q'}));
 }
+app.on('before-quit',()=>{if(quitting)return;quitting=true;destroyDesktopWindows();});
 
-function ensureMacQuitCommand() {
-  if (process.platform !== 'darwin') return;
-  const menu = Menu.getApplicationMenu();
-  const appMenu = menu?.items?.[0]?.submenu;
-  if (!appMenu) return;
-  if (appMenu.items.some((item) => item.role === 'quit')) return;
-
-  appMenu.append(new MenuItem({ type: 'separator' }));
-  appMenu.append(new MenuItem({
-    role: 'quit',
-    label: `Quit ${app.name || 'DominionStar Meet'}`,
-    accelerator: 'Command+Q'
-  }));
-}
-
-app.on('before-quit', () => {
-  if (quitting) return;
-  quitting = true;
-  destroyDesktopWindows();
-});
-
-// Install the macOS Screen Recording lifecycle guard before any runtime module
-// can enumerate desktop capture sources. This prevents a permission change from
-// causing another native modal prompt in the same process.
-await import('./macos-screen-permission-guard.mjs');
-
-// Register the desktop navigation boundary before main-v2 can create the first
-// BrowserWindow. Only Meet/auth routes belong inside the desktop application;
-// public DominionStar pages remain normal browser destinations.
+// Native permission status is registered before the first BrowserWindow. The
+// status API is side-effect free; actual desktop capture is requested only by
+// the user's Share Screen action.
+await import('./screen-permission-lifecycle.mjs');
 await import('./desktop-navigation-authority.mjs');
 await import('./main-v2.mjs');
 await import('./macos-native-capture-authority.mjs');
@@ -47,11 +20,5 @@ await import('./presenter-command-parity.mjs');
 await import('./share-lifecycle.mjs');
 await import('./remote-control-dialog.mjs');
 await import('./slide-control-native.mjs');
-await import('./screen-permission-lifecycle.mjs');
 
-app.whenReady().then(() => {
-  // main-v2 installs the production menu during its ready path. Add the native
-  // macOS Quit command after that menu exists so closing a window and quitting
-  // the application remain two distinct, deterministic actions.
-  setImmediate(ensureMacQuitCommand);
-}).catch(() => {});
+app.whenReady().then(()=>setImmediate(ensureMacQuitCommand)).catch(()=>{});
