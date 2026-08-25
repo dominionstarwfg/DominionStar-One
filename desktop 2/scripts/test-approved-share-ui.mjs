@@ -34,9 +34,10 @@ assert(bootstrap.includes('presenter-command-web-parity.js'), 'Certified runtime
 assert(screenLifecycle.includes("ipcMain.handle('desktop:screen-permission-status'"), 'Native desktop lifecycle must own macOS permission diagnostics.');
 assert(screenLifecycle.includes('QA_PREVIEW_HOST'), 'QA preview must be trusted by the native screen-permission lifecycle.');
 
-// Physical Mac QA is authoritative: macOS 15+ uses Electron's native system
-// picker so desktopCapturer enumeration cannot freeze the meeting after a TCC
-// permission transition. DominionStar's source picker remains the fallback.
+// Physical Mac QA is authoritative. The fallback share surface must never lock
+// the meeting UI, and passive screen-permission status must never enumerate
+// desktop sources. macOS permission is checked first; screens/windows are only
+// requested after access is granted, with every native wait bounded.
 assert(nativeCapture.includes('const nativePicker = supportsNativeMacPicker()'), 'macOS capture authority must resolve native picker availability.');
 assert(nativeCapture.includes('enabled: nativePicker'), 'macOS 15+ must enable the native system picker.');
 assert(nativeCapture.includes("nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'"), 'macOS must expose system-picker authority with DominionStar fallback.');
@@ -47,12 +48,21 @@ assert(desktopSharePicker.includes('data-filter="screen">Screens'), 'Fallback so
 assert(desktopSharePicker.includes('data-filter="window">Application windows'), 'Fallback source picker must expose a real Application windows tab.');
 assert(desktopSharePicker.includes('SOURCE_RETRY_DELAYS'), 'Fallback source picker must retry real source enumeration instead of becoming unresponsive.');
 assert(desktopSharePicker.includes('const withTimeout='), 'Fallback source picker must bound native IPC waits.');
-const pickerVisibleIndex=desktopSharePicker.indexOf('dialog.showModal()');
+const pickerVisibleIndex=desktopSharePicker.indexOf('dialog.show()');
 const runtimeProbeIndex=desktopSharePicker.indexOf('getRuntimeInfo?.()');
-assert(pickerVisibleIndex >= 0 && runtimeProbeIndex >= 0 && pickerVisibleIndex < runtimeProbeIndex, 'Fallback picker must become visible before runtime probing can stall.');
-assert(desktopSharePicker.includes("permissionTitle.textContent='Screen access is active'") && desktopSharePicker.includes('settingsButton.hidden=granted||restartRequired') && desktopSharePicker.includes('const granted=screen===\'granted\'||Boolean(state?.captureReady)') && desktopSharePicker.includes('const restartRequired=Boolean(state?.requiresRestart&&!state?.captureReady)'), 'Real capture access must hide Settings and prevent an unnecessary restart loop.');
-assert(desktopSharePicker.includes("window.addEventListener('focus',recover,{once:true})") && desktopSharePicker.includes('if(current?.captureReady){void loadSources();return;}'), 'Returning from macOS Settings must prefer real capture recovery before requesting restart.');
-assert(screenLifecycle.includes('desktopCapturer.getSources') && screenLifecycle.includes('CAPTURE_PROBE_TIMEOUT_MS') && screenLifecycle.includes('if(probe.captureReady)return'), 'Native permission diagnostics must use a bounded real-capture probe to override stale TCC text.');
+assert(pickerVisibleIndex >= 0 && runtimeProbeIndex >= 0 && pickerVisibleIndex < runtimeProbeIndex, 'Fallback picker must become visible before runtime probing.');
+assert(!desktopSharePicker.includes('dialog.showModal()'), 'Fallback picker must not be modal because a capture failure must never freeze the meeting controls.');
+assert(desktopSharePicker.includes('#desktopSharePicker::backdrop{background:transparent}'), 'Fallback picker must not place a blocking backdrop over the meeting.');
+const permissionIndex=desktopSharePicker.indexOf('const permissionState=await status()');
+const sourceIndex=desktopSharePicker.indexOf('next=await requestSources()');
+assert(permissionIndex >= 0 && sourceIndex >= 0 && permissionIndex < sourceIndex, 'macOS permission must be checked before desktop source enumeration.');
+assert(desktopSharePicker.includes("if(screen!=='granted'||permissionState?.requiresRestart){showProblem(permissionState);return;}"), 'Fallback picker must stop before enumeration when macOS access is unavailable or needs restart.');
+assert(desktopSharePicker.includes("if(screen==='granted'&&!current?.requiresRestart){void loadSources();return;}"), 'Returning from macOS Settings must load sources immediately when access is active.');
+assert(desktopSharePicker.includes('showProblem({...current,requiresRestart:true})'), 'Returning from Settings with a changed permission must expose one restart path instead of reopening Settings.');
+assert(screenLifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"), 'Native permission diagnostics must read the macOS TCC status.');
+assert(!screenLifecycle.includes('desktopCapturer') && !screenLifecycle.includes('getSources('), 'Passive native permission diagnostics must never enumerate desktop sources.');
+assert(screenLifecycle.includes('captureProbed:false'), 'Passive permission diagnostics must report that capture was not probed.');
+assert(screenLifecycle.includes("requiresRestart:process.platform==='darwin'&&granted&&initialScreenPermission!=='granted'"), 'A newly granted macOS permission must require exactly one fresh app process.');
 assert(desktopSharePicker.includes('optimize:optimize.checked'), 'Desktop fallback share picker must return the Optimize for video sharing decision.');
 assert(desktopSharePicker.includes('role="switch" data-optimize'), 'Share options must use modern switch controls rather than checkbox-looking UI.');
 assert(illustrationParity.includes("applicationTab.textContent='Applications'"), 'Illustration layer must use the approved Applications tab label.');
