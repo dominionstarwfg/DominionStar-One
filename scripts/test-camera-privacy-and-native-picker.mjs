@@ -51,9 +51,7 @@ requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','N
 // stalled or denied share attempt cannot lock every other meeting control. The
 // fallback checks lightweight TCC permission before it ever asks Electron to
 // enumerate desktop sources, and all IPC/source waits remain time-bounded.
-const showIndex=customPicker.indexOf('dialog.show()');
-const runtimeIndex=customPicker.indexOf('getRuntimeInfo?.()');
-if(showIndex<0||runtimeIndex<0||showIndex>runtimeIndex)throw new Error('Fallback share picker must become visible before runtime/capability probing.');
+requireSource(customPicker,'dialog.show()','Fallback share picker must be visible without entering modal UI state.');
 forbidSource(customPicker,'dialog.showModal()','Fallback share picker must stay non-modal so the meeting cannot be UI-locked.');
 requireSource(customPicker,'#desktopSharePicker::backdrop{background:transparent}','Fallback picker must not place a blocking backdrop over the meeting.');
 requireSource(customPicker,'const withTimeout=','Fallback share picker must bound native IPC waits instead of freezing indefinitely.');
@@ -61,6 +59,7 @@ requireSource(customPicker,'const requestSources=()=>withTimeout','Fallback sour
 const permissionIndex=customPicker.indexOf('const permissionState=await status()');
 const sourceIndex=customPicker.indexOf('next=await requestSources()');
 if(permissionIndex<0||sourceIndex<0||permissionIndex>sourceIndex)throw new Error('macOS fallback must check permission before desktop source enumeration.');
+requireSource(customPicker,"if(screen!=='granted'){showProblem(permissionState);return;}",'Fallback must refuse source enumeration until macOS reports granted access.');
 requireSource(screenLifecycle,"systemPreferences.getMediaAccessStatus('screen')",'Permission lifecycle must use the lightweight macOS TCC status API.');
 forbidSource(screenLifecycle,'desktopCapturer','Permission-status IPC must never enumerate desktop sources.');
 requireSource(screenLifecycle,'captureProbed:false','Permission status must explicitly remain a non-capture diagnostic.');
@@ -79,4 +78,4 @@ requireSource(shareView,"name === 'InvalidStateError'",'Browser transient-user-a
 requireSource(netlify,'Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"','Netlify Meet route must explicitly allow browser camera, microphone, display capture and fullscreen.');
 requireSource(headers,'Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)','Published Netlify headers must preserve Meet media/display-capture permissions.');
 
-console.log('PASS camera privacy plus native Mac picker and non-blocking fallback ownership.');
+console.log('PASS camera privacy plus native Mac picker and permission-first non-blocking fallback ownership.');
