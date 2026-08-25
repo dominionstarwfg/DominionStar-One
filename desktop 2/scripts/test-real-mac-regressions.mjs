@@ -16,8 +16,11 @@ const bootstrap=read('desktop 2/src/bootstrap.mjs');
 const preload=read('desktop 2/src/preload.cjs');
 const navigation=read('desktop 2/src/desktop-navigation-authority.mjs');
 const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
+const nativeCapture=read('desktop 2/src/macos-native-capture-authority.mjs');
+const nativePickerSession=read('desktop 2/src/macos-system-picker-session.mjs');
 const home=read('meet-home/desktop.html');
 const homeController=read('assets/js/meet/desktop-home-controller.js');
+const compactHome=read('assets/js/meet/desktop-home-compact-launch.js');
 
 // Authentication remains external-browser OAuth returning through deep link.
 assert(memberLogin.includes("provider: 'google'"));
@@ -33,6 +36,9 @@ assert(home.includes('desktop-home-controller.js?v=1-single-authority'));
 assert(homeController.includes('DominionDesktopHomeController'));
 assert(!navigation.includes('resolveDesktopHostIdentity'));
 assert(!navigation.includes('installDesktopSettingsAuthority'));
+assert(compactHome.includes("strong.textContent='Start Meeting'"));
+assert(compactHome.includes('role="switch"'));
+assert(compactHome.includes('personalButton?.remove?.()'));
 
 // Camera device catalog remains passive; media acquisition has bounded owners.
 assert(cameraCatalog.includes('enumerateDevices()'));
@@ -56,18 +62,31 @@ assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
-// Exactly one renderer permission flow and a side-effect-free native status API.
+// Physical Mac Share Screen regression. macOS 15+ must delegate source choice to
+// Electron's native system picker. The old custom-only path froze after Screen
+// & System Audio Recording permission changes. A small fallback capture probe is
+// allowed only as bounded diagnostics so real capture can override stale TCC.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert(bootstrap.indexOf("await import('./screen-permission-lifecycle.mjs')")<bootstrap.indexOf("await import('./main-v2.mjs')"));
-assert(lifecycle.includes('This API is intentionally side-effect free'));
-assert(!lifecycle.includes('desktopCapturer'));
-assert(lifecycle.includes('restart-required-after-screen-permission-change'));
+assert(bootstrap.includes("await import('./macos-system-picker-session.mjs')"));
+assert(nativeCapture.includes('enabled: nativePicker'));
+assert(nativeCapture.includes("nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'"));
+assert(nativePickerSession.includes('{ useSystemPicker: true }'));
+assert(lifecycle.includes('desktopCapturer.getSources'));
+assert(lifecycle.includes('CAPTURE_PROBE_TIMEOUT_MS=1800'));
+assert(lifecycle.includes('if(probe.captureReady)return'));
+assert(lifecycle.includes('requiresRestart:false'));
 assert(picker.includes('getScreenPermissionStatus'));
-assert(picker.indexOf('getScreenPermissionStatus')<picker.indexOf('getShareSources'));
-assert(picker.includes("screen!=='granted'"));
+assert(picker.includes('const withTimeout='));
+assert(picker.includes('const requestSources=()=>withTimeout'));
+assert(picker.includes("if(sources.length){permission.hidden=true;list.hidden=false"));
+assert(picker.includes("if(runtime?.platform==='darwin'){showProblem(await status());return;}"));
+assert(picker.includes('if(current?.captureReady){void loadSources();return;}'));
 assert(picker.includes('Restart DominionStar Meet'));
+assert(preload.includes('systemSharePicker: nativeSystemPicker'));
 assert(preload.includes('customSharePicker: !nativeSystemPicker'));
+assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.DominionDesktopSharePicker?.choose'));
 
-console.log('REAL_MAC_CLEAN_RUNTIME_CONTRACT_OK');
+console.log('REAL_MAC_PHYSICAL_SHARE_RECOVERY_CONTRACT_OK');
