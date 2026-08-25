@@ -275,15 +275,15 @@
     document.head.append(identityScript);
   }
 
-  if (!isDesktop && !document.querySelector('script[data-ds-camera-reaction-polish]')) {
-    const polishScript = document.createElement('script');
-    polishScript.src = '/assets/js/meet/camera-reaction-polish.js?v=2-operation-2030-rebased';
-    polishScript.dataset.dsCameraReactionPolish = '1';
-    document.head.append(polishScript);
+  if (!isDesktop && !document.querySelector('script[data-ds-reaction-polish]')) {
+    const reactionScript = document.createElement('script');
+    reactionScript.src = '/assets/js/meet/reaction-polish.js?v=1-reaction-only';
+    reactionScript.dataset.dsReactionPolish = '1';
+    document.head.append(reactionScript);
   }
 
   window.DominionShareViewerControls = Object.freeze({
-    version: '2.2.0',
+    version: '2.2.1',
     runtimeMode: isDesktop ? 'desktop' : 'browser',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent(), runtimeMode:isDesktop?'desktop':'browser' })
