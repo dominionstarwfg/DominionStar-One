@@ -7,11 +7,15 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(here, '..');
 const navigation = fs.readFileSync(path.join(desktopRoot, 'src', 'desktop-navigation-authority.mjs'), 'utf8');
 const pkg = JSON.parse(fs.readFileSync(path.join(desktopRoot, 'package.json'), 'utf8'));
+const focusedHome = path.resolve(desktopRoot, '..', 'meet-home', 'desktop.html');
 
 assert(navigation.includes("protocol.handle('https'"), 'Desktop session must intercept DominionStar HTTPS requests.');
 assert(navigation.includes('bypassCustomProtocolHandlers: true'), 'Non-local HTTPS requests must bypass the interceptor instead of recursing.');
 assert(navigation.includes("path.join(process.resourcesPath, 'desktop-runtime')"), 'Packaged app must serve Meet from its bundled desktop runtime.');
 assert(navigation.includes("path.resolve(__dirname, '..', '..')"), 'Development runtime must resolve the checked-out DominionStar source tree.');
+assert(navigation.includes("route === '/meet-home' && url.searchParams.get('desktop') === '1'"), 'Desktop Meet Home must resolve to the focused native desktop home.');
+assert(navigation.includes("return 'meet-home/desktop.html'"), 'Desktop Meet Home must serve the packaged desktop-only hub.');
+assert(fs.existsSync(focusedHome), 'Focused desktop Meet Home file is missing.');
 assert(navigation.includes("rawPath.startsWith('/assets/')"), 'Bundled Meet assets must be resolved locally.');
 assert(navigation.includes("rawPath.startsWith('/meet/')"), 'Bundled Meet route resources such as release-contract.json must be resolved locally.');
 assert(navigation.includes('net.fetch(pathToFileURL(candidate).toString()'), 'Local runtime files must be returned through Electron net.fetch.');
