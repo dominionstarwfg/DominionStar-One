@@ -10,6 +10,8 @@ const exists=relative=>fs.existsSync(path.join(root,relative));
 
 const home=read('meet-home/desktop.html');
 const controller=read('assets/js/meet/desktop-home-controller.js');
+const compactHome=read('assets/js/meet/desktop-home-compact-launch.js');
+const homeInjection=read('desktop 2/src/desktop-home-injection.mjs');
 const navigation=read('desktop 2/src/desktop-navigation-authority.mjs');
 const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
 const picker=read('assets/js/meet/desktop-share-picker.js');
@@ -24,6 +26,16 @@ assert.doesNotMatch(controller,/randomDigits\s*=|Math\.random\(\).*personalRoom/
 assert.match(controller,/action:share\?\(usePersonal\?'desktop-share':'share'\):\(usePersonal\?'desktop-new':'new'\)/,'Home must explicitly distinguish Personal Room from generated meeting launch');
 assert.match(controller,/background:String\(\$\('desktopBackground'\)/,'saved background preference must be read from Settings');
 assert.doesNotMatch(controller,/background\s*:\s*['"]none['"].*brightness\s*:\s*100.*touchAppearance\s*:\s*0/s,'navigation/start must not erase saved appearance preferences');
+
+// Physical-QA Home compaction: Personal Room is no longer a permanent action
+// card. Start Meeting owns one modern switch between the permanent room and a
+// fresh one-time meeting while preserving the account Personal Room identity.
+assert.match(homeInjection,/desktop-home-compact-launch\.js\?v=1-physical-qa/,'desktop Home must inject the physical-QA compact launch authority');
+assert.match(compactHome,/personalButton\?\.remove\?\.\(\)/,'desktop Home must remove the separate Personal Room action card');
+assert.match(compactHome,/strong\.textContent='Start Meeting'/,'desktop Home primary action must read Start Meeting');
+assert.match(compactHome,/role=\"switch\"/,'Start Meeting Personal Room choice must use a modern switch control');
+assert.match(compactHome,/action:'desktop-new'/,'Personal Room launch must retain the permanent room identity');
+assert.match(compactHome,/location\.href='\/meet\/\?desktop=1&action=new'/,'switching Personal Room off must launch a fresh one-time meeting');
 
 // Retired duplicate authorities must stay deleted.
 for(const retired of [
@@ -42,15 +54,18 @@ assert.doesNotMatch(navigation,/resolveDesktopHostIdentity|installDesktopSetting
 assert.match(navigation,/installDesktopMeetingIdentityBootstrap/,'explicit Personal Room URL must still enter host prejoin');
 assert.match(navigation,/explicit-home-identity-v3/,'Personal Room bootstrap must come from the single Home authority');
 
-// macOS screen permission has one side-effect-free status authority. The picker
-// consults it before explicit source enumeration; passive status checks must
-// never import or call desktopCapturer/getSources.
-assert.match(picker,/getScreenPermissionStatus/,'share picker must consult native screen permission state');
-assert.match(lifecycle,/systemPreferences\.getMediaAccessStatus\('screen'\)/,'native lifecycle must read macOS Screen Recording permission state');
-assert.match(lifecycle,/if\(raw!=='granted'\)return snapshot\(raw\);/,'ungranted screen access must return status without probing capture');
-assert.doesNotMatch(lifecycle,/desktopCapturer|getSources\s*\(/,'passive screen-permission status must never enumerate capture sources');
-assert.match(lifecycle,/captureProbed:false/,'screen-permission diagnostics must explicitly report that passive status did not probe capture');
-assert.match(lifecycle,/restart-required-after-screen-permission-change/,'permission change must require one fresh process');
+// Physical-Mac screen permission recovery. Unsigned QA app identity can leave
+// macOS TCC text stale, so real bounded capture evidence must be authoritative.
+// The fallback picker may inspect the lifecycle only after real source loading
+// fails; no permission/source IPC is allowed to wait forever.
+assert.match(picker,/getScreenPermissionStatus/,'fallback share picker must retain native screen-permission diagnostics');
+assert.match(picker,/const withTimeout=/,'fallback share picker must bound all native waits');
+assert.match(picker,/const requestSources=\(\)=>withTimeout/,'fallback source enumeration must have a bounded timeout');
+assert.match(lifecycle,/systemPreferences\.getMediaAccessStatus\('screen'\)/,'native lifecycle must still read macOS Screen Recording state');
+assert.match(lifecycle,/desktopCapturer\.getSources/,'native lifecycle must probe real capture availability when TCC state may be stale');
+assert.match(lifecycle,/CAPTURE_PROBE_TIMEOUT_MS/,'real capture probe must have a hard timeout');
+assert.match(lifecycle,/if\(probe\.captureReady\)return/,'successful real capture must override stale permission text');
+assert.match(lifecycle,/requiresRestart:false/,'successful real capture must suppress an unnecessary restart loop');
 
 // Startup budget: advanced modules are on demand instead of all loading at once.
 assert.match(bootstrap,/3\.0\.0-clean-lazy-runtime/,'desktop bootstrap must use clean lazy runtime');
