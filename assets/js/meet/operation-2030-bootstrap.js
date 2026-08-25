@@ -32,12 +32,18 @@
 
   // Camera/microphone acquisition is intentionally NOT owned here. The base
   // meeting runtime is the command owner. Advanced camera/effect layers wait for
-  // UI idle so they cannot race prejoin acquisition, selector hydration, or a
-  // user's immediate click.
+  // UI idle and for the explicit-effect safety policy so stale preferences from
+  // earlier builds cannot silently start GPU processing during prejoin.
   const mediaIdle = new Promise(resolve => {
     const done = () => resolve(true);
     if (typeof requestIdleCallback === 'function') requestIdleCallback(done, { timeout: 1400 });
     else setTimeout(done, 900);
+  });
+
+  const mediaEffectSafety = load('/assets/js/meet/media-effect-safety.js?v=1-explicit-session-opt-in', 'data-ds-media-effect-safety');
+  const effectSafeIdle = Promise.all([mediaIdle, mediaEffectSafety]).then(async () => {
+    try { await window.DominionMediaEffectSafety?.ready; } catch (_) {}
+    return true;
   });
 
   const devicePreferenceLocality = load('/assets/js/meet/device-preference-locality.js?v=1-machine-local', 'data-ds-device-preference-locality');
@@ -63,12 +69,12 @@
   const shareUi = load('/assets/js/meet/share-ui-2030.js?v=2-operation-2030-certified', 'data-ds-share-ui-2030', { after: shareOptimizationParity });
 
   const quickDeviceMenuParity = load('/assets/js/meet/quick-device-menu-parity.js?v=2-modern-switch-ui', 'data-ds-quick-device-menu-parity', { after: mediaIdle });
-  const videoIntelligence = load('/assets/js/meet/video-intelligence-compositor.js?v=2-bounded-autoframe', 'data-ds-video-intelligence-compositor', { after: mediaIdle });
+  const videoIntelligence = load('/assets/js/meet/video-intelligence-compositor.js?v=2-bounded-autoframe', 'data-ds-video-intelligence-compositor', { after: effectSafeIdle });
   const backgroundEffects = load('/assets/js/meet/background-effects-2030.js?v=2-operation-2030-certified', 'data-ds-background-effects-2030', { after: videoIntelligence });
   const videoQualityParity = load('/assets/js/meet/video-quality-parity.js?v=1-low-light-original-ratio', 'data-ds-video-quality-parity', { after: backgroundEffects });
 
   const ready = Promise.all([
-    devicePreferenceLocality, reactionPolish,
+    mediaEffectSafety, devicePreferenceLocality, reactionPolish,
     annotation, verticalAnnotationUi, presenterCommandParity, slideControl, receiverSideLayout,
     hostCohostUiParity, localRecording, spotlight, handoff, arbitration, arbitrationUi,
     identitySettings, identityBridge, dockPolish, nativeDockQuality, shareWatchdog,
@@ -77,11 +83,12 @@
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '2.2.0-single-media-owner',
+    version: '2.3.0-safe-media-startup',
     ready,
     mediaIdle,
+    effectSafeIdle,
     modules: Object.freeze([
-      'device-preference-locality','reaction-polish',
+      'media-effect-safety','device-preference-locality','reaction-polish',
       'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity',
       'quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','local-recording',
       'share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
