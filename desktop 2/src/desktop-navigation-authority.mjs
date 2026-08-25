@@ -129,6 +129,28 @@ function installNavigationAuthority(contents) {
   });
 }
 
+function installDesktopHostStabilityAuthority(contents) {
+  if (!contents || contents.isDestroyed?.()) return;
+  const inject = () => {
+    let current;
+    try { current = new URL(String(contents.getURL?.() || '')); } catch { return; }
+    if (!isDominionDesktopHost(current.hostname)) return;
+    if (normalizedPath(current.pathname) !== '/meet-home') return;
+    if (current.searchParams.get('desktop') !== '1') return;
+
+    const script = `(()=>{
+      if(document.querySelector('script[data-ds-host-stability-authority]'))return;
+      const node=document.createElement('script');
+      node.src='/assets/js/meet/desktop-host-stability-authority.js?v=1-host-stability';
+      node.async=false;
+      node.setAttribute('data-ds-host-stability-authority','1');
+      document.head.append(node);
+    })();`;
+    void contents.executeJavaScript(script, true).catch(() => {});
+  };
+  contents.on('dom-ready', inject);
+}
+
 function installDesktopMeetingIdentityBootstrap(contents) {
   if (!contents || contents.isDestroyed?.()) return;
 
@@ -141,11 +163,11 @@ function installDesktopMeetingIdentityBootstrap(contents) {
     const action = current.searchParams.get('action') || '';
     if (!['new', 'share'].includes(action)) return;
 
-    // The legacy host-prejoin bootstrap may create temporary credentials as soon
-    // as /meet?action=new loads. Before a user can actually start the meeting,
-    // replace those temporary credentials with the signed-in account's Personal
-    // Room whenever "Use Personal Room" is enabled. The bounded retry waits only
-    // for the account-backed Personal Room module; it never blocks the renderer.
+    // Primary host launches now arrive with account Personal Room credentials
+    // already present in the URL. Keep this bounded bootstrap only as a legacy
+    // fallback for older links that do not carry an explicit room identity.
+    if (current.searchParams.get('room')) return;
+
     const script = `(()=>{
       if(window.__dsDesktopPersonalRoomBootstrapInstalled)return;
       window.__dsDesktopPersonalRoomBootstrapInstalled=true;
@@ -257,6 +279,7 @@ function installPreviewRequestNormalization() {
 
 app.on('web-contents-created', (_event, contents) => {
   installNavigationAuthority(contents);
+  installDesktopHostStabilityAuthority(contents);
   installDesktopMeetingIdentityBootstrap(contents);
   installPreviewChromeSuppression(contents);
 });
