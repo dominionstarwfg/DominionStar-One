@@ -23,13 +23,16 @@ function rawScreenPermission() {
 const initialScreenPermission = rawScreenPermission();
 
 async function probeCaptureReadiness() {
-  if (process.platform !== 'darwin') return { ready: true, sourceCount: 1, previewCount: 1 };
   try {
+    // Use the same Electron desktopCapturer path on macOS and Windows. Do not
+    // declare Windows healthy merely because it lacks macOS TCC semantics.
     const sources = await desktopCapturer.getSources({
-      types: ['screen'],
+      types: ['screen','window'],
       thumbnailSize: { width: 160, height: 90 },
-      fetchWindowIcons: false
+      fetchWindowIcons: process.platform === 'win32'
     });
+    const screenCount = sources.filter(source => String(source.id || '').startsWith('screen:')).length;
+    const windowCount = Math.max(0, sources.length - screenCount);
     const previewCount = sources.filter(source => {
       try { return source.thumbnail && !source.thumbnail.isEmpty(); }
       catch { return false; }
@@ -37,12 +40,16 @@ async function probeCaptureReadiness() {
     return {
       ready: sources.length > 0 && previewCount > 0,
       sourceCount: sources.length,
+      screenCount,
+      windowCount,
       previewCount
     };
   } catch (error) {
     return {
       ready: false,
       sourceCount: 0,
+      screenCount: 0,
+      windowCount: 0,
       previewCount: 0,
       error: String(error?.message || error)
     };
@@ -52,7 +59,11 @@ async function probeCaptureReadiness() {
 async function readScreenPermission() {
   const raw = rawScreenPermission();
   const capture = await probeCaptureReadiness();
+
   if (process.platform !== 'darwin') {
+    // Windows does not use macOS Screen Recording TCC. Keep permission semantics
+    // granted, but report the real desktopCapturer health independently so the
+    // picker can diagnose an unavailable capture backend instead of lying.
     return {
       ok: true,
       platform: process.platform,
@@ -61,16 +72,19 @@ async function readScreenPermission() {
       initialScreen: 'granted',
       changedSinceLaunch: false,
       requiresRestart: false,
-      captureReady: true,
+      captureReady: capture.ready,
       sourceCount: capture.sourceCount,
-      previewCount: capture.previewCount
+      screenCount: capture.screenCount,
+      windowCount: capture.windowCount,
+      previewCount: capture.previewCount,
+      captureError: capture.error || ''
     };
   }
 
   // Real capture output is the strongest signal. macOS/TCC status can lag after
   // a user enables Screen Recording, especially during unsigned QA builds. If
-  // Electron can already enumerate non-empty screen previews, do not send the
-  // user back to System Settings and do not request a pointless relaunch.
+  // Electron can already enumerate non-empty previews, do not send the user back
+  // to System Settings and do not request a pointless relaunch.
   if (capture.ready) {
     return {
       ok: true,
@@ -82,6 +96,8 @@ async function readScreenPermission() {
       requiresRestart: false,
       captureReady: true,
       sourceCount: capture.sourceCount,
+      screenCount: capture.screenCount,
+      windowCount: capture.windowCount,
       previewCount: capture.previewCount
     };
   }
@@ -97,6 +113,8 @@ async function readScreenPermission() {
     requiresRestart: initialScreenPermission !== 'granted' && raw === 'granted',
     captureReady: false,
     sourceCount: capture.sourceCount,
+    screenCount: capture.screenCount,
+    windowCount: capture.windowCount,
     previewCount: capture.previewCount,
     captureError: capture.error || ''
   };
@@ -114,6 +132,8 @@ ipcMain.handle('desktop:screen-permission-status', async event => {
       requiresRestart: false,
       captureReady: false,
       sourceCount: 0,
+      screenCount: 0,
+      windowCount: 0,
       previewCount: 0
     };
   }
