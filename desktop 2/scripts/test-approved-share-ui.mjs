@@ -15,6 +15,7 @@ const nativePresenterParity = read('desktop 2/src/presenter-command-parity.mjs')
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const desktopMain = read('desktop 2/src/main-v2.mjs');
 const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
+const nativePickerSession = read('desktop 2/src/macos-system-picker-session.mjs');
 const screenLifecycle = read('desktop 2/src/screen-permission-lifecycle.mjs');
 const presenterDock = read('desktop 2/src/presenter-dock.mjs');
 const presenterDockHtml = read('desktop 2/src/presenter-dock.html');
@@ -30,24 +31,32 @@ assert(!bootstrap.includes('screen-permission-ui-guard.js'), 'Certified desktop 
 assert(bootstrap.includes('quick-device-menu-parity.js'), 'Certified runtime must keep Zoom-class device menus.');
 assert(bootstrap.includes('share-optimization-parity.js'), 'Certified runtime must keep screen-share optimization.');
 assert(bootstrap.includes('presenter-command-web-parity.js'), 'Certified runtime must load presenter command routing.');
-assert(screenLifecycle.includes("ipcMain.handle('desktop:screen-permission-status'"), 'Native desktop lifecycle must own macOS permission state.');
+assert(screenLifecycle.includes("ipcMain.handle('desktop:screen-permission-status'"), 'Native desktop lifecycle must own macOS permission diagnostics.');
 assert(screenLifecycle.includes('QA_PREVIEW_HOST'), 'QA preview must be trusted by the native screen-permission lifecycle.');
 
-assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"), 'macOS must report the approved DominionStar source picker as primary.');
-assert(nativeCapture.includes('enabled: false'), 'Apple system picker must not silently replace the approved source picker.');
-assert(nativeCapture.includes('available: supportsNativeMacPicker()'), 'Native macOS picker availability may remain detectable as fallback capability.');
+// Physical Mac QA is authoritative: macOS 15+ uses Electron's native system
+// picker so desktopCapturer enumeration cannot freeze the meeting after a TCC
+// permission transition. DominionStar's source picker remains the fallback.
+assert(nativeCapture.includes('const nativePicker = supportsNativeMacPicker()'), 'macOS capture authority must resolve native picker availability.');
+assert(nativeCapture.includes('enabled: nativePicker'), 'macOS 15+ must enable the native system picker.');
+assert(nativeCapture.includes("nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'"), 'macOS must expose system-picker authority with DominionStar fallback.');
+assert(nativePickerSession.includes("session.fromPartition(DESKTOP_PARTITION)"), 'Native system picker must bind to the DominionStar persistent session.');
+assert(nativePickerSession.includes('{ useSystemPicker: true }'), 'macOS 15+ display capture must opt into Electron native system-picker handling.');
 assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker') && desktopPreload.includes('customSharePicker: !nativeSystemPicker'), 'Renderer must advertise exactly one active share-picker authority.');
-assert(/function supportsMacSystemPicker\(\)\s*\{\s*return false;\s*\}/.test(desktopMain), 'Main display-capture handler must keep native picker disabled by default.');
-assert(desktopSharePicker.includes('data-filter="screen">Screens'), 'Approved source picker must expose a real Screens tab.');
-assert(desktopSharePicker.includes('data-filter="window">Application windows'), 'Approved source picker must expose a real Application windows tab.');
-assert(desktopSharePicker.includes('SOURCE_RETRY_DELAYS'), 'Source picker must retry real source enumeration instead of becoming unresponsive.');
-assert(desktopSharePicker.includes('if(!dialog.open)dialog.showModal()'), 'Share click must open the branded picker immediately before source enumeration.');
-assert(desktopSharePicker.includes("permissionTitle.textContent='Screen access is enabled'") && desktopSharePicker.includes('settingsButton.hidden=granted||restartRequired') && desktopSharePicker.includes('restartButton.hidden=!restartRequired') && desktopSharePicker.includes('const restartRequired=Boolean(state?.requiresRestart||(permissionPanelVisited&&granted))'), 'Granted screen access must hide Settings, distinguish normal access from the one-time restart case, and expose exactly one restart path after a permission change.');
-assert(desktopSharePicker.includes("window.addEventListener('focus',recover,{once:true})") && desktopSharePicker.includes("showProblem(screen==='granted'?{...current,requiresRestart:true}:current)"), 'Returning from macOS Settings must re-evaluate access once and transition newly granted permission to restart recovery.');
-assert(desktopSharePicker.includes('optimize:optimize.checked'), 'Desktop share picker must return the Optimize for video sharing decision.');
+assert(desktopSharePicker.includes('data-filter="screen">Screens'), 'Fallback source picker must expose a real Screens tab.');
+assert(desktopSharePicker.includes('data-filter="window">Application windows'), 'Fallback source picker must expose a real Application windows tab.');
+assert(desktopSharePicker.includes('SOURCE_RETRY_DELAYS'), 'Fallback source picker must retry real source enumeration instead of becoming unresponsive.');
+assert(desktopSharePicker.includes('const withTimeout='), 'Fallback source picker must bound native IPC waits.');
+const pickerVisibleIndex=desktopSharePicker.indexOf('dialog.showModal()');
+const runtimeProbeIndex=desktopSharePicker.indexOf('getRuntimeInfo?.()');
+assert(pickerVisibleIndex >= 0 && runtimeProbeIndex >= 0 && pickerVisibleIndex < runtimeProbeIndex, 'Fallback picker must become visible before runtime probing can stall.');
+assert(desktopSharePicker.includes("permissionTitle.textContent='Screen access is active'") && desktopSharePicker.includes('settingsButton.hidden=granted||restartRequired') && desktopSharePicker.includes('const granted=screen===\'granted\'||Boolean(state?.captureReady)') && desktopSharePicker.includes('const restartRequired=Boolean(state?.requiresRestart&&!state?.captureReady)'), 'Real capture access must hide Settings and prevent an unnecessary restart loop.');
+assert(desktopSharePicker.includes("window.addEventListener('focus',recover,{once:true})") && desktopSharePicker.includes('if(current?.captureReady){void loadSources();return;}'), 'Returning from macOS Settings must prefer real capture recovery before requesting restart.');
+assert(screenLifecycle.includes('desktopCapturer.getSources') && screenLifecycle.includes('CAPTURE_PROBE_TIMEOUT_MS') && screenLifecycle.includes('if(probe.captureReady)return'), 'Native permission diagnostics must use a bounded real-capture probe to override stale TCC text.');
+assert(desktopSharePicker.includes('optimize:optimize.checked'), 'Desktop fallback share picker must return the Optimize for video sharing decision.');
 assert(desktopSharePicker.includes('role="switch" data-optimize'), 'Share options must use modern switch controls rather than checkbox-looking UI.');
 assert(illustrationParity.includes("applicationTab.textContent='Applications'"), 'Illustration layer must use the approved Applications tab label.');
-assert(illustrationParity.includes('ds-approved-source-picker'), 'Illustration layer must enforce the approved source-picker composition.');
+assert(illustrationParity.includes('ds-approved-source-picker'), 'Illustration layer must preserve the approved source-picker composition where the fallback is used.');
 assert(shareOptimization.includes("track.contentHint = optimizeForVideo ? 'motion' : 'detail'"), 'Share optimization must affect the real presentation track.');
 
 for (const required of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…']) {
@@ -109,4 +118,4 @@ assert(presenterDock.includes('zoomClassDockSize'), 'Presenter participant dock 
 assert(presenterDockHtml.includes('data-layout="stack"') && presenterDockHtml.includes('data-layout="speaker"') && presenterDockHtml.includes('data-layout="grid"'), 'Presenter Layout must provide stack, speaker, and grid modes.');
 assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'), 'QA must still prove native trust rebinding before packaging.');
 
-console.log('Approved final-illustration share UI guardrails passed.');
+console.log('Approved physical-Mac share UI and final-illustration guardrails passed.');
