@@ -55,11 +55,11 @@ requireText(twoClient, 'waiting room is visible to guest and actionable by host'
 requireText(twoClient, 'admission creates participant list and video dock on both clients', 'Zoom parity: admitted participant continuity is missing.');
 requireText(illustration, "decline.textContent='View'", 'Zoom parity: waiting-room heads-up must use Admit/View behavior.');
 
-// 4) Physical-Mac sharing follows the reliable native path. macOS 15+ uses
-// Electron's system picker directly, eliminating the custom desktopCapturer
-// source-enumeration path that physical QA proved can freeze after permission
-// changes. The DominionStar picker remains a visible, bounded fallback; real
-// capture evidence can override stale TCC text rather than looping Settings.
+// 4) Physical-Mac sharing follows a permission-first native path. Permission
+// status is deliberately lightweight and must never enumerate capture sources.
+// The fallback picker appears immediately and remains non-modal, so a slow OS
+// transition cannot lock the rest of the meeting. Source enumeration begins
+// only after macOS reports Screen Recording access as granted.
 requireText(nativeCapture, 'const nativePicker = supportsNativeMacPicker()', 'Zoom parity: macOS native picker capability must be resolved.');
 requireText(nativeCapture, 'enabled: nativePicker', 'Zoom parity: macOS 15+ native screen picker must be enabled.');
 requireText(nativeCapture, "nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'", 'Zoom parity: macOS must retain a DominionStar fallback when system picker is unavailable.');
@@ -73,18 +73,20 @@ requireText(desktopSharePicker, 'Optimize for video sharing', 'Zoom parity: fall
 requireText(desktopSharePicker, 'role="switch" data-optimize', 'Zoom parity: share options must use modern switches.');
 requireText(desktopSharePicker, 'const withTimeout=', 'Zoom parity: fallback native IPC must never wait indefinitely.');
 requireText(desktopSharePicker, 'const requestSources=()=>withTimeout', 'Zoom parity: fallback source enumeration must be bounded.');
-const visibleIndex=desktopSharePicker.indexOf('dialog.showModal()');
+const visibleIndex=desktopSharePicker.indexOf('dialog.show()');
 const runtimeIndex=desktopSharePicker.indexOf('getRuntimeInfo?.()');
-assert(visibleIndex>=0&&runtimeIndex>=0&&visibleIndex<runtimeIndex,'Zoom parity: fallback picker must become visible before native probing can stall.');
-requireText(desktopSharePicker, "if(sources.length){permission.hidden=true;list.hidden=false", 'Zoom parity: real share sources must bypass permission-label recovery.');
-requireText(desktopSharePicker, "if(runtime?.platform==='darwin'){showProblem(await status());return;}", 'Zoom parity: permission diagnostics must run only after source enumeration fails.');
-requireText(desktopSharePicker, 'const granted=screen===\'granted\'||Boolean(state?.captureReady)', 'Zoom parity: real capture readiness must count as active access.');
-requireText(desktopSharePicker, 'const restartRequired=Boolean(state?.requiresRestart&&!state?.captureReady)', 'Zoom parity: working capture must suppress unnecessary restart escalation.');
+assert(visibleIndex>=0&&runtimeIndex>=0&&visibleIndex<runtimeIndex,'Zoom parity: fallback picker must become visible immediately and remain non-modal.');
+const permissionGateIndex=desktopSharePicker.indexOf("if(screen!=='granted'||permissionState?.requiresRestart)");
+const sourceRequestIndex=desktopSharePicker.indexOf('next=await requestSources()');
+assert(permissionGateIndex>=0&&sourceRequestIndex>=0&&permissionGateIndex<sourceRequestIndex,'Zoom parity: macOS permission must be checked before any source enumeration.');
+requireText(desktopSharePicker, "if(sources.length){settingsVisited=false;permission.hidden=true;list.hidden=false", 'Zoom parity: real share sources must bypass permission-label recovery.');
+requireText(desktopSharePicker, "const granted=screen==='granted'", 'Zoom parity: fallback picker must use the lightweight macOS permission state.');
 requireText(desktopSharePicker, 'settingsButton.hidden=granted||restartRequired;', 'Zoom parity: Screen Recording Settings must disappear after active access is proven.');
-requireText(desktopSharePicker, 'if(current?.captureReady){void loadSources();return;}', 'Zoom parity: returning from Settings must prefer real capture recovery over another permission loop.');
-requireText(screenLifecycle, 'CAPTURE_PROBE_TIMEOUT_MS=1800', 'Zoom parity: fallback permission capture probe must be time-bounded.');
-requireText(screenLifecycle, 'if(probe.captureReady)return', 'Zoom parity: successful real capture must override stale macOS TCC text.');
-requireText(desktopSharePicker, 'Do not reopen Privacy & Security.', 'Zoom parity: the one-time restart path must explicitly prevent a Settings loop.');
+requireText(desktopSharePicker, "if(screen==='granted'&&!current?.requiresRestart){void loadSources();return;}", 'Zoom parity: returning from Settings must proceed directly when macOS already exposes granted access.');
+requireText(screenLifecycle, 'permission status must never enumerate desktop capture sources', 'Zoom parity: screen-permission status must remain free of desktopCapturer calls.');
+assert(!screenLifecycle.includes('desktopCapturer.getSources'), 'Zoom parity: permission status may not probe desktop capture sources.');
+requireText(screenLifecycle, "captureReady:granted", 'Zoom parity: granted macOS access must be represented without a blocking capture probe.');
+requireText(desktopSharePicker, 'You do not need to reopen Privacy & Security again.', 'Zoom parity: the one-time restart path must explicitly prevent a Settings loop.');
 
 // 5) Browser sharing stays browser-native while desktop sharing stays native-app
 // controlled. The web client intentionally carries a lighter capability set.
