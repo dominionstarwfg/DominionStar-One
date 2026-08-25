@@ -4,7 +4,10 @@ import assert from 'node:assert/strict';
 const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
 
 const memberLogin = read('assets/js/member-login.js');
-const camera = read('assets/js/meet/camera-device-stability.js');
+const cameraCatalog = read('assets/js/meet/camera-device-stability.js');
+const ui = read('assets/js/meet-next/executive6.js');
+const hostPrejoin = read('assets/js/meet/hotfix-rc13-1-media-prejoin.js');
+const operationBootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
 const picker = read('assets/js/meet/desktop-share-picker.js');
 const engine = read('assets/js/meeting-engine.js');
 const main = read('desktop 2/src/main-v2.mjs');
@@ -35,19 +38,37 @@ assert(navigation.includes("src.includes('app.netlify.com')") && navigation.incl
 assert(preload.includes('installQaPreviewChromeBlocker') && preload.includes('iframe[src*="app.netlify.com"]'), 'Preload must independently suppress injected Netlify review frames.');
 assert(navigation.includes('Collaborate on this Deploy Preview') && navigation.includes('Log in to the Netlify Drawer'), 'Visible-text cleanup must remain a fallback for Netlify variants.');
 
-// Camera Off is a physical privacy invariant, not a CSS state or saved-preference guess.
-assert(camera.includes('const prejoinCameraOff'), 'Camera layer must calculate the actual current prejoin Video state.');
-assert(camera.includes("const button = document.getElementById('preCam')"), 'Prejoin Video button must participate directly in camera privacy authority.');
-assert(camera.includes("if (pressed === 'false') return true") && camera.includes("if (pressed === 'true') return false"), 'Visible prejoin Video state must override the saved camera preference.');
-assert(camera.includes('const enforcePrejoinCameraPrivacy'), 'Camera layer must actively enforce Video Off.');
-assert(camera.includes("if (track.readyState !== 'ended') track.stop()"), 'Video Off must physically stop a live camera track.');
-assert(camera.includes('if (requested.video && prejoinCameraOff()) stopVideoTracks(stream)'), 'Background/prejoin media requests must not resurrect the camera while visible Video Off is selected.');
-assert(camera.includes('unwrapPhysicalTrack'), 'Processed camera effects must retain the physical source as authority.');
-assert(camera.includes('knownLabels'), 'Camera layer must cache resolved hardware labels.');
-assert(camera.includes('looksOpaqueLabel'), 'Camera settings must reject opaque device IDs as user-facing labels.');
-assert(camera.includes('activeCameraDeviceId:'), 'Camera diagnostics must expose the active deviceId.');
+// Camera privacy and identity now use explicit single ownership. The passive
+// catalog may enumerate/name devices, but cannot acquire/stop camera hardware.
+assert(cameraCatalog.includes('enumerateDevices()'), 'Passive device catalog must enumerate attached hardware.');
+assert(cameraCatalog.includes('cameraSelect') && cameraCatalog.includes('microphoneSelect') && cameraCatalog.includes('speakerSelect'), 'Passive catalog must hydrate camera, microphone and speaker selectors.');
+assert(cameraCatalog.includes('knownLabels') && cameraCatalog.includes('looksOpaque'), 'Device catalog must cache real labels and reject opaque device IDs.');
+assert(cameraCatalog.includes('replaceChildren(fragment)') && cameraCatalog.includes('sameOptions'), 'Device catalog must avoid selector churn when hardware did not change.');
+assert(!cameraCatalog.includes('media.getUserMedia ='), 'Passive catalog must never wrap getUserMedia.');
+assert(!cameraCatalog.includes('MutationObserver'), 'Passive catalog must not run DOM-wide feedback observers.');
+assert(!cameraCatalog.includes('.stop()'), 'Passive catalog must never stop physical media tracks.');
 
-// One desktop screen-share authority: branded picker + native permission lifecycle.
+// Executive 6 / meeting engine own normal prejoin and in-meeting camera intent.
+assert(ui.includes('const PREVIEW_CAMERA_RETRY_DELAYS_MS=[0,320,760,1400]'), 'Normal prejoin must retain bounded camera reacquisition.');
+assert(ui.includes('const acquireUserMediaStable=async constraints=>'), 'Normal prejoin must use the stable acquisition path.');
+assert(ui.includes("state.stream?.getVideoTracks?.().forEach(track=>{try{state.stream.removeTrack(track);}"), 'Video Off must remove the camera from the current preview stream.');
+assert(ui.includes("track.readyState!=='ended')track.stop()"), 'Video Off must physically release camera hardware.');
+assert(engine.includes('state.lastCameraReleaseAt=Date.now()'), 'Meeting engine must remember physical camera release before reacquisition.');
+assert(engine.includes('recoverCameraTrack({intentSeq:seq})'), 'Meeting Video On must use bounded recovery tied to latest user intent.');
+
+// Desktop host prejoin is scoped to its temporary checkpoint only and hands off
+// once to the meeting engine without reintroducing a global media wrapper.
+assert(hostPrejoin.includes('await ensureNativeMediaPermissions(constraints);'), 'Host prejoin must honor native macOS camera/mic permission state.');
+assert(hostPrejoin.includes('stopTracks(hostPreviewStream);'), 'Host prejoin must release its temporary preview before meeting entry.');
+assert(hostPrejoin.includes('await sleep(220);'), 'Host preview handoff must remain short and deterministic.');
+assert(hostPrejoin.includes("await replaceHostTrack('audio',preferredDevice('microphone'));"), 'Mic On must acquire a missing microphone track on host prejoin.');
+assert(!hostPrejoin.includes('navigator.mediaDevices.getUserMedia ='), 'Host prejoin must never wrap getUserMedia globally.');
+assert(!hostPrejoin.includes('__dsLocalDeviceRouting'), 'Retired global media routing must not return.');
+assert(operationBootstrap.includes('mediaIdle') && operationBootstrap.includes('requestIdleCallback'), 'Advanced camera/effect modules must wait for initial UI/media startup to settle.');
+assert(!operationBootstrap.includes('microphone-device-identity.js'), 'A duplicate microphone selector owner must not return.');
+assert(!operationBootstrap.includes('camera-reaction-polish.js'), 'Deleted camera/reaction selector bundle must not return.');
+
+// One desktop screen-share authority: branded picker + real native capture probe.
 assert(bootstrap.includes("await import('./macos-native-capture-authority.mjs')"), 'Desktop bootstrap must retain capture capability reporting.');
 assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"), 'macOS must report DominionStar as the primary capture authority.');
 assert(nativeCapture.includes('enabled: false'), 'Apple system picker must be disabled as the primary user-facing picker.');
@@ -58,6 +79,9 @@ assert(picker.includes("data-filter=\"screen\">Screens"), 'Source picker must ha
 assert(picker.includes("data-filter=\"window\">Application windows"), 'Source picker must have a real Application windows tab.');
 assert(picker.includes('SOURCE_RETRY_DELAYS'), 'Share source enumeration must retry instead of appearing dead.');
 assert(screenLifecycle.includes('QA_PREVIEW_HOST'), 'QA preview must receive the same native screen-permission state as production.');
-assert(!read('assets/js/meet/operation-2030-bootstrap.js').includes('screen-permission-ui-guard.js'), 'Duplicate browser screen-permission authority must remain out of the active runtime.');
+assert(screenLifecycle.includes('desktopCapturer.getSources') && screenLifecycle.includes('probeCaptureReadiness'), 'Screen permission must be confirmed against the actual Electron capture backend.');
+assert(screenLifecycle.includes('sourceCount') && screenLifecycle.includes('previewCount'), 'Screen permission diagnostics must report real source and preview counts.');
+assert(screenLifecycle.includes('if (capture.ready)') && screenLifecycle.includes("screen: 'granted'"), 'Real capture readiness must override stale macOS permission status.');
+assert(!operationBootstrap.includes('screen-permission-ui-guard.js'), 'Duplicate browser screen-permission authority must remain out of the active runtime.');
 
-console.log('Real Mac OAuth/navigation/camera-privacy/share-picker regression contract passed.');
+console.log('Real Mac OAuth/navigation/single-owner-media/capture-readiness regression contract passed.');
