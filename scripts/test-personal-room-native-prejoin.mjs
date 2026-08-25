@@ -10,8 +10,17 @@ const main = fs.readFileSync('desktop 2/src/main-v2.mjs', 'utf8');
 const contract = JSON.parse(fs.readFileSync('meet/release-contract.json', 'utf8'));
 
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
-assert(home.includes('data-action="personal"'), 'Desktop Meet Home must expose Personal Room');
-assert(home.includes('Your permanent meeting room'), 'Personal Room must be clearly identified as permanent');
+
+// Personal Room belongs inside the compact New Meeting flow, not as a separate
+// permanent home-screen tile. The user chooses a fresh ID or Personal Room and
+// both routes continue through the same native host prejoin.
+assert(home.includes('id="newMeetingButton"'), 'Desktop Meet Home must expose New Meeting');
+assert(home.includes('id="newMeetingDialog"'), 'New Meeting must expose a compact meeting-identity chooser');
+assert(home.includes('data-meeting-mode="new"') && home.includes('New meeting ID'), 'New Meeting must offer a fresh meeting ID');
+assert(home.includes('data-meeting-mode="personal"') && home.includes('<strong>Personal Room</strong>'), 'New Meeting must offer Personal Room');
+assert(home.includes('role="radiogroup"') && home.includes('role="radio"'), 'Meeting identity chooser must use modern selectable controls');
+assert(home.includes('id="startSelectedMeeting"'), 'New Meeting chooser must have one Start Meeting action');
+assert(!home.includes('data-action="personal"'), 'Personal Room must not return as a standalone home-screen tile');
 assert(flow.includes("bootstrapAction === 'personal'"), 'Desktop Personal Room bootstrap is missing');
 assert(flow.includes('window.DominionStarEnterHostPrejoin'), 'Shared host prejoin hook is missing');
 assert(flow.includes('getMediaPermissions'), 'Hosted host prejoin does not query native media permission state');
@@ -37,4 +46,4 @@ for (const path of ['meet-home/index.html','meet/index.html','assets/js/meet-nex
     assert(contract.files[path] === actual, `Release contract hash mismatch for ${path}`);
   }
 }
-console.log('Personal Room + native desktop prejoin single-owner regression passed on bridge 14.');
+console.log('Personal Room + native desktop prejoin single-owner regression passed on bridge 14 with compact New Meeting ownership.');
