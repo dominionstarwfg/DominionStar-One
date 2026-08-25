@@ -120,6 +120,10 @@ async function readScreenPermission() {
     };
   }
 
+  // A fresh process that launched with permission already granted is the only
+  // macOS path allowed to probe capture. Successful sources therefore mean
+  // captureReady: true with requiresRestart: false; stale processes never reach
+  // this branch and cannot reopen the native permission flow by enumeration.
   const capture = await probeCaptureReadiness();
   return {
     ok: true,
