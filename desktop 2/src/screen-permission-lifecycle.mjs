@@ -58,6 +58,30 @@ async function probeCaptureReadiness() {
 
 async function readScreenPermission() {
   const raw = rawScreenPermission();
+
+  // macOS applies Screen & System Audio Recording permission to a process
+  // lifetime. If access changed from non-granted to granted after launch, do
+  // not immediately call desktopCapturer again in that stale process. Doing so
+  // can trigger the native permission sheet a second time and make the meeting
+  // appear frozen. Require exactly one clean relaunch first.
+  if (process.platform === 'darwin' && initialScreenPermission !== 'granted' && raw === 'granted') {
+    return {
+      ok: true,
+      platform: process.platform,
+      screen: 'granted',
+      rawScreen: raw,
+      initialScreen: initialScreenPermission,
+      changedSinceLaunch: true,
+      requiresRestart: true,
+      captureReady: false,
+      sourceCount: 0,
+      screenCount: 0,
+      windowCount: 0,
+      previewCount: 0,
+      captureError: 'restart-required-after-screen-permission-change'
+    };
+  }
+
   const capture = await probeCaptureReadiness();
 
   if (process.platform !== 'darwin') {
@@ -81,10 +105,9 @@ async function readScreenPermission() {
     };
   }
 
-  // Real capture output is the strongest signal. macOS/TCC status can lag after
-  // a user enables Screen Recording, especially during unsigned QA builds. If
-  // Electron can already enumerate non-empty previews, do not send the user back
-  // to System Settings and do not request a pointless relaunch.
+  // Real capture output is the strongest signal once the process has launched
+  // with permission already active. TCC status can be imperfect in unsigned QA,
+  // so usable source previews remain authoritative in that case.
   if (capture.ready) {
     return {
       ok: true,
@@ -110,7 +133,7 @@ async function readScreenPermission() {
     rawScreen: raw,
     initialScreen: initialScreenPermission,
     changedSinceLaunch,
-    requiresRestart: initialScreenPermission !== 'granted' && raw === 'granted',
+    requiresRestart: false,
     captureReady: false,
     sourceCount: capture.sourceCount,
     screenCount: capture.screenCount,
