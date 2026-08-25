@@ -31,14 +31,18 @@
   };
 
   // Camera/microphone acquisition is intentionally NOT owned here. The base
-  // meeting runtime is the single command owner. Advanced camera/effect layers
-  // are delayed until the initial prejoin/UI work has settled so they cannot
-  // race camera startup, selector hydration, or user clicks.
+  // meeting runtime is the command owner. Advanced camera/effect layers wait for
+  // UI idle so they cannot race prejoin acquisition, selector hydration, or a
+  // user's immediate click.
   const mediaIdle = new Promise(resolve => {
     const done = () => resolve(true);
     if (typeof requestIdleCallback === 'function') requestIdleCallback(done, { timeout: 1400 });
     else setTimeout(done, 900);
   });
+
+  // Device IDs are machine-local data. This module only sanitizes account
+  // preference writes; it never acquires media or mutates device selectors.
+  const devicePreferenceLocality = load('/assets/js/meet/device-preference-locality.js?v=1-machine-local', 'data-ds-device-preference-locality');
 
   const annotation = load('/assets/js/meet/share-annotation.js?v=2-operation-2030-certified', 'data-ds-share-annotation');
   const verticalAnnotationUi = load('/assets/js/meet/annotation-vertical-ui.js?v=1-approved-zoom-rail', 'data-ds-annotation-vertical-ui', { after: annotation });
@@ -66,6 +70,7 @@
   const videoQualityParity = load('/assets/js/meet/video-quality-parity.js?v=1-low-light-original-ratio', 'data-ds-video-quality-parity', { after: cameraPolish });
 
   const ready = Promise.all([
+    devicePreferenceLocality,
     annotation, verticalAnnotationUi, presenterCommandParity, slideControl, receiverSideLayout,
     hostCohostUiParity, localRecording, spotlight, handoff, arbitration, arbitrationUi,
     identitySettings, identityBridge, dockPolish, nativeDockQuality, shareWatchdog,
@@ -74,10 +79,11 @@
   ]);
 
   window.DominionOperation2030Bootstrap = Object.freeze({
-    version: '2.0.0-single-media-owner',
+    version: '2.1.0-single-media-owner',
     ready,
     mediaIdle,
     modules: Object.freeze([
+      'device-preference-locality',
       'share-annotation','annotation-vertical-ui','presenter-command-web-parity','slide-control-parity',
       'quick-device-menu-parity','receiver-side-layout-parity','host-cohost-ui-parity','local-recording',
       'share-spotlight','presentation-handoff','share-arbitration','share-arbitration-ui',
