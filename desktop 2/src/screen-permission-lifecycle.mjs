@@ -24,8 +24,6 @@ const initialScreenPermission = rawScreenPermission();
 
 async function probeCaptureReadiness() {
   try {
-    // Use the same Electron desktopCapturer path on macOS and Windows. Do not
-    // declare Windows healthy merely because it lacks macOS TCC semantics.
     const sources = await desktopCapturer.getSources({
       types: ['screen','window'],
       thumbnailSize: { width: 160, height: 90 },
@@ -56,15 +54,55 @@ async function probeCaptureReadiness() {
   }
 }
 
+function blockedStatus(raw) {
+  return {
+    ok: true,
+    platform: process.platform,
+    screen: raw,
+    rawScreen: raw,
+    initialScreen: initialScreenPermission,
+    changedSinceLaunch: raw !== initialScreenPermission,
+    requiresRestart: false,
+    captureReady: false,
+    sourceCount: 0,
+    screenCount: 0,
+    windowCount: 0,
+    previewCount: 0,
+    captureError: 'screen-permission-not-granted'
+  };
+}
+
 async function readScreenPermission() {
   const raw = rawScreenPermission();
 
-  // macOS applies Screen & System Audio Recording permission to a process
-  // lifetime. If access changed from non-granted to granted after launch, do
-  // not immediately call desktopCapturer again in that stale process. Doing so
-  // can trigger the native permission sheet a second time and make the meeting
-  // appear frozen. Require exactly one clean relaunch first.
-  if (process.platform === 'darwin' && initialScreenPermission !== 'granted' && raw === 'granted') {
+  if (process.platform !== 'darwin') {
+    const capture = await probeCaptureReadiness();
+    return {
+      ok: true,
+      platform: process.platform,
+      screen: 'granted',
+      rawScreen: 'granted',
+      initialScreen: 'granted',
+      changedSinceLaunch: false,
+      requiresRestart: false,
+      captureReady: capture.ready,
+      sourceCount: capture.sourceCount,
+      screenCount: capture.screenCount,
+      windowCount: capture.windowCount,
+      previewCount: capture.previewCount,
+      captureError: capture.error || ''
+    };
+  }
+
+  // Never probe desktopCapturer while macOS still reports Screen Recording as
+  // not granted. Probing in that state can invoke the native permission sheet
+  // repeatedly and leave the renderer behind a modal permission flow.
+  if (raw !== 'granted') return blockedStatus(raw);
+
+  // macOS applies a newly granted Screen & System Audio Recording permission
+  // to a fresh application process. Once the setting changes during this run,
+  // require one clean relaunch before any capture enumeration occurs.
+  if (initialScreenPermission !== 'granted') {
     return {
       ok: true,
       platform: process.platform,
@@ -83,58 +121,15 @@ async function readScreenPermission() {
   }
 
   const capture = await probeCaptureReadiness();
-
-  if (process.platform !== 'darwin') {
-    // Windows does not use macOS Screen Recording TCC. Keep permission semantics
-    // granted, but report the real desktopCapturer health independently so the
-    // picker can diagnose an unavailable capture backend instead of lying.
-    return {
-      ok: true,
-      platform: process.platform,
-      screen: 'granted',
-      rawScreen: 'granted',
-      initialScreen: 'granted',
-      changedSinceLaunch: false,
-      requiresRestart: false,
-      captureReady: capture.ready,
-      sourceCount: capture.sourceCount,
-      screenCount: capture.screenCount,
-      windowCount: capture.windowCount,
-      previewCount: capture.previewCount,
-      captureError: capture.error || ''
-    };
-  }
-
-  // Real capture output is the strongest signal once the process has launched
-  // with permission already active. TCC status can be imperfect in unsigned QA,
-  // so usable source previews remain authoritative in that case.
-  if (capture.ready) {
-    return {
-      ok: true,
-      platform: process.platform,
-      screen: 'granted',
-      rawScreen: raw,
-      initialScreen: initialScreenPermission,
-      changedSinceLaunch: raw !== initialScreenPermission,
-      requiresRestart: false,
-      captureReady: true,
-      sourceCount: capture.sourceCount,
-      screenCount: capture.screenCount,
-      windowCount: capture.windowCount,
-      previewCount: capture.previewCount
-    };
-  }
-
-  const changedSinceLaunch = raw !== initialScreenPermission;
   return {
     ok: true,
     platform: process.platform,
-    screen: raw,
+    screen: 'granted',
     rawScreen: raw,
     initialScreen: initialScreenPermission,
-    changedSinceLaunch,
+    changedSinceLaunch: false,
     requiresRestart: false,
-    captureReady: false,
+    captureReady: capture.ready,
     sourceCount: capture.sourceCount,
     screenCount: capture.screenCount,
     windowCount: capture.windowCount,
