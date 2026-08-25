@@ -35,9 +35,9 @@ function snapshot(raw){
 }
 
 // IMPORTANT: permission status must never enumerate desktop capture sources.
-// On macOS, desktopCapturer.getSources() can stall while Screen Recording
-// permission is being changed. Source enumeration happens only after this
-// lightweight TCC status gate reports granted.
+// On macOS, source enumeration can stall while Screen Recording permission is
+// being changed. Enumeration happens only after this lightweight TCC status
+// gate reports granted.
 async function readScreenPermission(){
   return snapshot(rawScreenPermission());
 }
