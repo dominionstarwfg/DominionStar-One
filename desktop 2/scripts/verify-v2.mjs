@@ -39,12 +39,13 @@ for (const marker of [
   "await import('./main-v2.mjs')",
   "app.on('before-quit'",
   'BrowserWindow.getAllWindows()',
-  "role: 'quit'",
-  "accelerator: 'Command+Q'",
   'setImmediate(ensureMacQuitCommand)'
 ]) {
   if (!bootstrap.includes(marker)) throw new Error(`Desktop quit lifecycle safeguard missing: ${marker}`);
 }
+if (!/role\s*:\s*['"]quit['"]/.test(bootstrap)) throw new Error('Desktop quit lifecycle safeguard missing: quit menu role');
+if (!/accelerator\s*:\s*['"]Command\+Q['"]/.test(bootstrap)) throw new Error('Desktop quit lifecycle safeguard missing: Command+Q accelerator');
+if (bootstrap.indexOf("screen-permission-lifecycle.mjs") > bootstrap.indexOf("main-v2.mjs")) throw new Error('Side-effect-free screen permission lifecycle must register before main runtime');
 
 const sandboxIndex = main.indexOf('app.enableSandbox();');
 const readyIndex = main.indexOf('app.whenReady()');
