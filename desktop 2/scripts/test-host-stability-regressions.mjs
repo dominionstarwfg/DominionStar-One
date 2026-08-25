@@ -54,18 +54,23 @@ assert.doesNotMatch(navigation,/resolveDesktopHostIdentity|installDesktopSetting
 assert.match(navigation,/installDesktopMeetingIdentityBootstrap/,'explicit Personal Room URL must still enter host prejoin');
 assert.match(navigation,/explicit-home-identity-v3/,'Personal Room bootstrap must come from the single Home authority');
 
-// Physical-Mac screen permission recovery. Unsigned QA app identity can leave
-// macOS TCC text stale, so real bounded capture evidence must be authoritative.
-// The fallback picker may inspect the lifecycle only after real source loading
-// fails; no permission/source IPC is allowed to wait forever.
+// Physical-Mac screen permission recovery is side-effect free. Passive status
+// reads only macOS TCC state; desktop source enumeration is reserved for explicit
+// Share Screen intent after access is granted. The picker is non-modal and every
+// native/source wait is bounded so a denied or stale permission cannot freeze UI.
 assert.match(picker,/getScreenPermissionStatus/,'fallback share picker must retain native screen-permission diagnostics');
 assert.match(picker,/const withTimeout=/,'fallback share picker must bound all native waits');
 assert.match(picker,/const requestSources=\(\)=>withTimeout/,'fallback source enumeration must have a bounded timeout');
-assert.match(lifecycle,/systemPreferences\.getMediaAccessStatus\('screen'\)/,'native lifecycle must still read macOS Screen Recording state');
-assert.match(lifecycle,/desktopCapturer\.getSources/,'native lifecycle must probe real capture availability when TCC state may be stale');
-assert.match(lifecycle,/CAPTURE_PROBE_TIMEOUT_MS/,'real capture probe must have a hard timeout');
-assert.match(lifecycle,/if\(probe\.captureReady\)return/,'successful real capture must override stale permission text');
-assert.match(lifecycle,/requiresRestart:false/,'successful real capture must suppress an unnecessary restart loop');
+assert.match(picker,/if\(!dialog\.open\)dialog\.show\(\)/,'fallback picker must open without blocking the meeting');
+assert.doesNotMatch(picker,/dialog\.showModal\(\)/,'fallback picker must never lock the meeting behind a modal dialog');
+const permissionIndex=picker.indexOf('const permissionState=await status()');
+const sourceIndex=picker.indexOf('next=await requestSources()');
+assert(permissionIndex>=0&&sourceIndex>=0&&permissionIndex<sourceIndex,'macOS permission must be checked before source enumeration');
+assert.match(lifecycle,/systemPreferences\.getMediaAccessStatus\('screen'\)/,'native lifecycle must read macOS Screen Recording state');
+assert.doesNotMatch(lifecycle,/desktopCapturer|getSources\s*\(/,'passive permission lifecycle must never enumerate capture sources');
+assert.match(lifecycle,/captureProbed:false/,'permission status must explicitly report that capture was not probed');
+assert.match(lifecycle,/requiresRestart:process\.platform==='darwin'&&granted&&initialScreenPermission!=='granted'/,'newly granted macOS access must require one fresh process');
+assert.match(lifecycle,/desktop:relaunch-for-permissions/,'permission lifecycle must expose one clean restart path');
 
 // Startup budget: advanced modules are on demand instead of all loading at once.
 assert.match(bootstrap,/3\.0\.0-clean-lazy-runtime/,'desktop bootstrap must use clean lazy runtime');
