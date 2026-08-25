@@ -1,0 +1,73 @@
+name: DominionStar Browser Cross-Platform Verification
+
+on:
+  pull_request:
+    paths:
+      - "**/*.html"
+      - "**/*.css"
+      - "assets/**"
+      - "meet/**"
+      - "meet-home/**"
+      - "meet-login/**"
+      - "scripts/browser-runtime-acceptance.mjs"
+      - "scripts/build-netlify-preview.sh"
+      - ".github/workflows/browser-cross-platform-pr-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-browser-cross-platform-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browsers:
+    name: ${{ matrix.browser }} Browser Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build isolated DominionStar preview
+        run: bash scripts/build-netlify-preview.sh
+
+      - name: Install isolated Playwright harness
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.55.0
+
+      - name: Install ${{ matrix.browser }} browser runtime
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Serve isolated preview and run browser acceptance
+        shell: bash
+        env:
+          DOMINIONSTAR_BROWSER: ${{ matrix.browser }}
+        run: |
+          set -euo pipefail
+          cd .preview-package/public
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ds-cross-browser-http.log 2>&1 &
+          server=$!
+          cd ../..
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for _ in {1..40}; do
+            curl -fsS http://127.0.0.1:4173/meet/ >/dev/null && break
+            sleep 0.25
+          done
+          DOMINIONSTAR_PREVIEW_URL=http://127.0.0.1:4173 node scripts/browser-runtime-acceptance.mjs
+
+      - name: Record browser engine certification
+        run: echo "DOMINIONSTAR_BROWSER_ENGINE_CERTIFIED ${{ matrix.browser }}"
