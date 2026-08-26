@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const read=rel=>fs.readFileSync(new URL(`../../${rel}`,import.meta.url),'utf8');
+const read=rel=>fs.readFileSync(new URL(`../../${rel}`,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const exists=rel=>fs.existsSync(new URL(`../../${rel}`,import.meta.url));
 const dynamicImportNeedle=file=>`await ${'import'}('./${file}')`;
 
@@ -22,8 +22,6 @@ const home=read('meet-home/desktop.html');
 const homeController=read('assets/js/meet/desktop-home-controller.js');
 const settingsGuard=read('desktop 2/src/desktop-home-settings-guard.mjs');
 
-// Authentication architecture: Google OAuth stays in the installed app's
-// persistent Electron partition and returns to the trusted member-login route.
 assert(memberLogin.includes("provider: 'google'"));
 assert(memberLogin.includes('const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`'));
 assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_RETURN'));
@@ -38,8 +36,6 @@ assert(memberLogin.includes('let { data } = await supabase.auth.getSession();'))
 assert(memberLogin.includes('supabase.auth.setSession({'));
 assert(memberLogin.includes("return '/meet-home/?desktop=1';"));
 
-// Desktop app owns Meet/auth routes. Home has one controller and exactly four
-// primary actions. Personal Room lives in Settings instead of a Home tile/menu.
 assert(bootstrap.indexOf(dynamicImportNeedle('desktop-navigation-authority.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(navigation.includes("INTERNAL_PATHS=new Set(['/meet','/meet-home','/meet-login','/member-login'])"));
 assert(navigation.includes('shell.openExternal(url.toString())'));
@@ -57,7 +53,6 @@ assert(!navigation.includes('installDesktopSettingsAuthority'));
 assert(bootstrap.includes(dynamicImportNeedle('desktop-home-settings-guard.mjs')));
 assert(settingsGuard.includes('usePersonalForInstant:false'));
 
-// Camera device catalog remains passive; media acquisition has bounded owners.
 assert(cameraCatalog.includes('enumerateDevices()'));
 assert(cameraCatalog.includes('cameraSelect')&&cameraCatalog.includes('microphoneSelect')&&cameraCatalog.includes('speakerSelect'));
 assert(!cameraCatalog.includes('media.getUserMedia ='));
@@ -72,17 +67,12 @@ assert(hostPrejoin.includes('stopTracks(hostPreviewStream);'));
 assert(hostPrejoin.includes('await sleep(220);'));
 assert(!hostPrejoin.includes('navigator.mediaDevices.getUserMedia ='));
 
-// Advanced meeting modules no longer all execute during startup.
 assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"));
 assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
-// Physical Mac Share Screen regression: one selected-source authority only.
-// Opening System Settings must close the picker before focus leaves. No capture
-// work may automatically resume when focus returns. A fresh process may probe
-// real sources because macOS TCC status can lag behind actual granted access.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
