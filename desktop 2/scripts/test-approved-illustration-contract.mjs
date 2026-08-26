@@ -11,19 +11,31 @@ const localRecording = read('assets/js/meet/local-recording.js');
 const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
 const macPkgBuilder = read('desktop 2/scripts/build-macos-pkg.sh');
 
-const directPresenterOrder = ['audio','video','participants','chat','new-share','pause','layout','annotate','show-meeting','more','stop'];
+const barStart=presenter.indexOf('<div class="bar"');
+const menuStart=presenter.indexOf('<div id="presenterMoreMenu"');
+assert(barStart>=0&&menuStart>barStart,'Approved presenter toolbar/menu structure is missing.');
+const directBar=presenter.slice(barStart,menuStart);
+const moreMenu=presenter.slice(menuStart);
+
+// Approved illustration: one compact Zoom-class presenter toolbar. Keep only
+// frequent controls directly visible; secondary presentation tools live in More.
+const directPresenterOrder = ['audio','video','pause','participants','chat','more','stop'];
 let cursor = -1;
 for (const command of directPresenterOrder) {
-  const index = presenter.indexOf(`data-command="${command}"`);
-  assert(index > cursor, `Approved screen-share toolbar must expose ${command} directly in the approved order.`);
+  const index = directBar.indexOf(`data-command="${command}"`);
+  assert(index > cursor, `Approved compact presenter toolbar must expose ${command} directly in the approved order.`);
   cursor = index;
 }
-assert(presenter.includes('<small>Share</small>'), 'Approved presenter toolbar must show Share directly.');
-assert(presenter.includes('<small>Layout</small>'), 'Approved presenter toolbar must show Layout directly.');
-assert(presenter.includes('<small>Show Meeting</small>'), 'Approved presenter toolbar must show Show Meeting directly.');
-assert(!presenter.match(/presenterMoreMenu[\s\S]*data-command="layout"/), 'Layout must not be moved under More.');
-assert(!presenter.match(/presenterMoreMenu[\s\S]*data-command="show-meeting"/), 'Show Meeting must not be moved under More.');
-assert(presenterJs.includes('EXPANDED_WIDTH=930'), 'Presenter window must reserve the full approved control hierarchy.');
+for(const command of ['new-share','annotate','layout','show-meeting']){
+  assert(!directBar.includes(`data-command="${command}"`),`${command} must not lengthen the primary presenter toolbar.`);
+  assert(moreMenu.includes(`data-command="${command}"`),`${command} must remain available under More.`);
+}
+assert(!presenter.includes('class="share-rail"'),'Approved illustration requires one toolbar, not a second share rail.');
+assert(directBar.includes('class="share-live"')&&directBar.includes('You are sharing'),'Primary toolbar must retain one compact sharing indicator.');
+assert(directBar.includes('class="share-stop"')&&directBar.includes('Stop Share'),'Stop Share must remain directly visible and red.');
+assert(presenterJs.includes('EXPANDED_WIDTH=610'), 'Presenter window must match the approved compact control hierarchy.');
+assert(presenterJs.includes('COLLAPSED_WIDTH=230'), 'Auto-hidden presenter state must remain compact.');
+assert(presenterJs.includes("label.textContent=sharePaused?'Resume':'Pause'"), 'Pause must visibly become Resume.');
 
 for (const id of ['participantsBtn','chatBtn','shareBtn','reactionBtn','moreBtn','leaveBtn']) {
   assert(meetHtml.includes(`id="${id}"`), `Normal meeting toolbar must retain ${id}.`);
@@ -45,9 +57,6 @@ assert(dockPolish.includes('ds-dock-resize-handle'), 'Participant dock must expo
 assert(dockPolish.includes('.tile-mic{display:grid!important'), 'Participant tile microphone state must remain visible.');
 assert(dockPolish.includes('saveGeometry') && dockPolish.includes('restoreGeometry'), 'Participant dock must save and restore its position and size.');
 
-// This macOS installer invariant is required even when the contract suite runs
-// on Windows. Match semantic plist content rather than one operating system's
-// checkout newline convention (LF vs CRLF).
 assert(/<key>BundleIsVersionChecked<\/key>\s*<false\/>/.test(macPkgBuilder), 'QA PKG must replace newer or equal prior DominionStar Meet builds instead of being rejected as a downgrade.');
 
-console.log('Approved DominionStar illustration contract passed.');
+console.log('Approved DominionStar illustration contract passed: compact presenter hierarchy, one sharing indicator, secondary tools under More.');
