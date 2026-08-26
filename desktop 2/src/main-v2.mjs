@@ -212,11 +212,14 @@ function publishDesktopLayout() {
   return layout;
 }
 
-// Use one display-media handler. DominionStar owns the visible source picker
-// on every desktop platform; macOS/Windows remain the underlying capture and
-// permission authorities.
+// Keep source selection out of DominionStar's meeting event loop wherever the
+// operating system provides a stable native picker. On macOS 15+ Electron can
+// delegate directly to Apple's ScreenCaptureKit picker. Older macOS and Windows
+// continue through DominionStar's compatibility picker.
 function supportsMacSystemPicker() {
-  return false;
+  if (process.platform !== 'darwin') return false;
+  const major = Number.parseInt(String(process.getSystemVersion?.() || '').split('.')[0] || '0', 10);
+  return Number.isFinite(major) && major >= 15;
 }
 
 function installPermissionPolicy(desktopSession) {
