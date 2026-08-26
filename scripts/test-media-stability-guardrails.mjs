@@ -22,7 +22,6 @@ const meetIndex=read('meet/index.html');
 const desktopMain=read('desktop 2/src/main-v2.mjs');
 const desktopPreload=read('desktop 2/src/preload.cjs');
 const desktopBootstrap=read('desktop 2/src/bootstrap.mjs');
-const nativePickerSession=read('desktop 2/src/macos-system-picker-session.mjs');
 const presenterToolbar=read('desktop 2/src/presenter-toolbar.html');
 const presenterToolbarJs=read('desktop 2/src/presenter-toolbar.js');
 const presenterDockMain=read('desktop 2/src/presenter-dock.mjs');
@@ -54,14 +53,13 @@ assert(background.includes("const audioTracks = rawStream.getAudioTracks().filte
 assert(background.includes('await restoreRawSession(current)'));
 assert(videoQuality.includes('DominionVideoIntelligenceCompositor?.getSourceTrack?.()')&&videoQuality.includes('DominionBackgroundEffects2030?.getSourceTrack?.()'));
 
-// Reaction presentation never owns media hardware and is now lazy.
+// Reaction presentation never owns media hardware and is lazy.
 assert(reactionPolish.includes('DominionReactionPolish'));
 assert(!reactionPolish.includes('enumerateDevices')&&!reactionPolish.includes('getUserMedia')&&!reactionPolish.includes('MutationObserver'));
 assert(operationBootstrap.includes('loadReactions'));
 assert(operationBootstrap.includes("reaction-polish.js?v=2-on-demand"));
 
-// Single-owner media: Executive 6 handles normal camera intent; host-prejoin
-// owns only its temporary preview; device catalog is passive.
+// Single-owner camera/media behavior.
 assert(ui.includes('const PREVIEW_CAMERA_RETRY_DELAYS_MS=[0,320,760,1400]'));
 assert(ui.includes('const acquireUserMediaStable=async constraints=>'));
 assert(cameraCatalog.includes('enumerateDevices()')&&cameraCatalog.includes('cameraSelect')&&cameraCatalog.includes('microphoneSelect')&&cameraCatalog.includes('speakerSelect'));
@@ -71,16 +69,19 @@ assert(hostPrejoin.includes('stopTracks(hostPreviewStream)')&&hostPrejoin.includ
 assert(!hostPrejoin.includes('navigator.mediaDevices.getUserMedia ='));
 assert(meetIndex.indexOf('/assets/js/meet/camera-device-stability.js')<meetIndex.indexOf('/assets/js/meeting-engine.js'));
 
-// Startup is bounded. Heavy video and presentation modules are lazy.
+// Startup is bounded. Heavy video/presentation modules are lazy.
 assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"));
 assert(operationBootstrap.includes('requestIdleCallback'));
 assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings')&&!operationBootstrap.includes('meeting-identity-bridge')&&!operationBootstrap.includes('media-effect-safety'));
 
-// Physical-Mac share stability. Permission status is a lightweight TCC read and
-// must never enumerate desktop sources. The branded fallback is non-modal, checks
-// permission first, and only enumerates screens/windows after access is granted.
+// Physical-Mac share stability: one display-media owner, passive permission
+// diagnostics, non-modal picker, no focus-triggered recovery, and single-flight
+// native source enumeration.
+assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
+assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
+assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert(screenLifecycle.includes("getMediaAccessStatus('screen')"));
 assert(!screenLifecycle.includes('desktopCapturer')&&!screenLifecycle.includes('getSources('));
 assert(screenLifecycle.includes('captureProbed:false'));
@@ -88,25 +89,22 @@ assert(screenLifecycle.includes("requiresRestart:process.platform==='darwin'&&gr
 assert(screenLifecycle.includes('desktop:screen-permission-status')&&screenLifecycle.includes('desktop:relaunch-for-permissions'));
 assert(desktopPreload.includes('getScreenPermissionStatus')&&desktopPreload.includes('relaunchForPermissions'));
 assert(desktopBootstrap.indexOf("screen-permission-lifecycle.mjs")<desktopBootstrap.indexOf("main-v2.mjs"));
-assert(desktopBootstrap.includes('macos-system-picker-session.mjs'));
-assert(nativePickerSession.includes('{ useSystemPicker: true }'));
+assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
+assert(desktopMain.includes('function supportsMacSystemPicker() {\n  return false;'));
+assert(desktopMain.includes('desktopSession.setDisplayMediaRequestHandler'));
 assert(sharePicker.includes('getScreenPermissionStatus'));
 assert(sharePicker.includes('const withTimeout='));
 assert(sharePicker.includes('const requestSources=()=>withTimeout'));
 assert(sharePicker.includes('if(!dialog.open)dialog.show()'));
 assert(!sharePicker.includes('dialog.showModal()'));
-const permissionIndex=sharePicker.indexOf('const permissionState=await status()');
-const sourceIndex=sharePicker.indexOf('next=await requestSources()');
-assert(permissionIndex>=0&&sourceIndex>=0&&permissionIndex<sourceIndex);
-assert(sharePicker.includes("if(screen!=='granted'||permissionState?.requiresRestart){showProblem(permissionState);return;}"));
-assert(sharePicker.includes("if(screen==='granted'&&!current?.requiresRestart){void loadSources();return;}"));
-assert(sharePicker.includes('showProblem({...current,requiresRestart:true})'));
-assert(sharePicker.includes('Restart DominionStar Meet'));
-assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
-assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
+assert(sharePicker.includes('markRestartNeeded();'));
+assert(sharePicker.includes("if(dialog.open)dialog.close('cancel')"));
+assert(!sharePicker.includes("window.addEventListener('focus'"));
+assert(desktopPreload.includes('let shareSourcesInFlight = null;'));
+assert(desktopPreload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
+assert(desktopPreload.includes('getShareSources: (options = {}) => getShareSourcesSingleFlight(options)'));
 
-// Desktop Personal Room has one account-backed authority. Retired random-ID
-// bridges/settings layers must remain absent.
+// Desktop Personal Room has one account-backed authority. No local random PMIs.
 assert(homeController.includes('meet_personal_rooms'));
 assert(homeController.includes('Personal Room identity is not configured. DominionStar will not generate a replacement ID locally.'));
 assert(!homeController.includes('randomDigits'));
@@ -134,4 +132,4 @@ assert(presenterToolbarJs.includes("window.presenterBridge.command('stop')")&&pr
 assert(desktopPreload.includes('showRemoteControlPrompt')&&desktopPreload.includes('onRemoteControlDecision'));
 assert(remoteControlDialog.includes("buttons: ['Deny', 'Approve']"));
 
-console.log('MEDIA_STABILITY_PHYSICAL_MAC_SHARE_OK');
+console.log('MEDIA_STABILITY_PHYSICAL_MAC_SHARE_OK single-owner no-auto-focus single-flight');
