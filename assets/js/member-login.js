@@ -7,6 +7,7 @@
   const tabs = [...document.querySelectorAll('[data-member-tab]')];
   const params = new URLSearchParams(window.location.search);
   const isDesktop = params.get('desktop') === '1' && Boolean(window.dominionDesktop?.isDesktop);
+  const DESKTOP_GOOGLE_START_URL = 'https://dominionstarld.com/meet-auth-start/?desktop=1';
 
   [loginForm, registerForm, resetForm].forEach(form => {
     if (form) {
@@ -51,12 +52,6 @@
     return requestedNext.startsWith('/') && !requestedNext.startsWith('//')
       ? requestedNext
       : '/member-dashboard/';
-  }
-
-  function desktopOAuthReturnUrl() {
-    const callback = new URL('/meet-auth-callback/', window.location.origin);
-    callback.searchParams.set('desktop','1');
-    return callback.toString();
   }
 
   tabs.forEach(btn => btn.addEventListener('click', () => activate(btn.dataset.memberTab)));
@@ -106,22 +101,14 @@
       googleButton.disabled = true;
       showMessage('Opening secure Google sign-in…', 'info');
       try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            // Do not ask Supabase to redirect directly to the custom app scheme.
-            // The public HTTPS callback is compatible with the configured site
-            // origin and exists only to hand the fragment back to DominionStar Meet.
-            redirectTo: desktopOAuthReturnUrl(),
-            skipBrowserRedirect: true,
-            queryParams: { prompt: 'select_account' }
-          }
-        });
-        if (error) throw error;
-        if (!data?.url) throw new Error('Google sign-in URL was not returned.');
-        const opened = await window.dominionDesktop?.openExternal?.(data.url);
+        // The system browser owns the OAuth round trip. It first visits a
+        // DominionStar Meet launch page on the production Site URL so that the
+        // same browser tab can mark itself as a desktop-auth session. Supabase's
+        // configured Site URL may then receive the OAuth tokens safely: the root
+        // relay immediately hands only that marked tab back to dominionstar://.
+        const opened = await window.dominionDesktop?.openExternal?.(DESKTOP_GOOGLE_START_URL);
         if (!opened) throw new Error('DominionStar Meet could not open the secure Google sign-in window.');
-        showMessage('Complete Google sign-in in your browser. DominionStar Meet will return here automatically.', 'info');
+        showMessage('Complete Google sign-in in your browser. The browser will return you to DominionStar Meet automatically.', 'info');
       } catch (error) {
         googleButton.disabled = false;
         showMessage(error?.message || 'Google sign-in could not start.', 'error');
@@ -137,10 +124,6 @@
   if (isDesktop && params.get('oauth') === 'complete') {
     showMessage('Finishing secure Google sign-in…', 'info');
     try {
-      // OAuth was completed in the system browser, so its browser-local session
-      // does not automatically exist inside Electron. The dedicated HTTPS return
-      // bridge hands implicit-flow credentials to the registered app deep link;
-      // establish the persistent Electron session before entering Meet Home.
       const returned = new URLSearchParams(String(window.location.hash || '').replace(/^#/,''));
       const accessToken = returned.get('access_token') || '';
       const refreshToken = returned.get('refresh_token') || '';
@@ -158,8 +141,6 @@
         throw new Error('Google sign-in returned without a usable DominionStar session.');
       }
 
-      // Remove OAuth credentials from the visible renderer URL immediately after
-      // they have been persisted by Supabase.
       history.replaceState(history.state, '', `${window.location.pathname}?desktop=1&oauth=complete`);
       window.location.replace(requestedDestination());
       return;
