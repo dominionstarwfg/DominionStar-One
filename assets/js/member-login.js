@@ -53,6 +53,12 @@
       : '/member-dashboard/';
   }
 
+  function desktopOAuthReturnUrl() {
+    const callback = new URL('/meet-auth-callback/', window.location.origin);
+    callback.searchParams.set('desktop','1');
+    return callback.toString();
+  }
+
   tabs.forEach(btn => btn.addEventListener('click', () => activate(btn.dataset.memberTab)));
 
   if (isDesktop) {
@@ -103,8 +109,12 @@
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: 'dominionstar://auth/callback',
-            skipBrowserRedirect: true
+            // Do not ask Supabase to redirect directly to the custom app scheme.
+            // The public HTTPS callback is compatible with the configured site
+            // origin and exists only to hand the fragment back to DominionStar Meet.
+            redirectTo: desktopOAuthReturnUrl(),
+            skipBrowserRedirect: true,
+            queryParams: { prompt: 'select_account' }
           }
         });
         if (error) throw error;
@@ -119,23 +129,29 @@
     });
   }
 
+  if (isDesktop && params.get('oauth') === 'error') {
+    const description = params.get('message') || 'Google sign-in did not complete. Please try again.';
+    showMessage(description.slice(0,240), 'error');
+  }
+
   if (isDesktop && params.get('oauth') === 'complete') {
     showMessage('Finishing secure Google sign-in…', 'info');
     try {
       // OAuth was completed in the system browser, so its browser-local session
-      // does not automatically exist inside Electron. Supabase returns the
-      // implicit-flow credentials through the registered DominionStar deep link;
-      // explicitly establish the persistent desktop session before continuing.
+      // does not automatically exist inside Electron. The dedicated HTTPS return
+      // bridge hands implicit-flow credentials to the registered app deep link;
+      // establish the persistent Electron session before entering Meet Home.
       const returned = new URLSearchParams(String(window.location.hash || '').replace(/^#/,''));
       const accessToken = returned.get('access_token') || '';
       const refreshToken = returned.get('refresh_token') || '';
-      if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        });
-        if (error) throw error;
+      if (!accessToken || !refreshToken) {
+        throw new Error('Google sign-in returned without a usable DominionStar desktop session.');
       }
+      const { error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+      if (error) throw error;
 
       const { data } = await supabase.auth.getSession();
       if (!data?.session) {
