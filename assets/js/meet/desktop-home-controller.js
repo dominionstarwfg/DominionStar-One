@@ -13,13 +13,16 @@
   const esc=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
 
   const ROOM_KEYS=['ds_meet_personal_room_v2','ds_meet_personal_room_v1'];
-  const IDENTITY_KEY='ds_meet_identity_preferences_v1';
+  // v2 intentionally starts with generated instant meetings so old experimental
+  // Personal Room defaults cannot silently re-open legacy meeting flows.
+  const IDENTITY_KEY='ds_meet_identity_preferences_v2';
   const SCHEDULE_KEY='ds_meet_scheduled_v1';
-  const state={client:null,session:null,profile:null,room:null,prefs:{},identity:{usePersonalForInstant:true,defaultScheduleIdentity:'personal'}};
+  const DEFAULT_IDENTITY=Object.freeze({usePersonalForInstant:false,defaultScheduleIdentity:'generated'});
+  const state={client:null,session:null,profile:null,room:null,prefs:{},identity:{...DEFAULT_IDENTITY}};
 
   const mediaKey=()=>`ds_meet_preferences:${state.session?.user?.id||'anonymous'}`;
   const localPrefs=()=>readJson(mediaKey(),{})||{};
-  const localIdentity=()=>({usePersonalForInstant:true,defaultScheduleIdentity:'personal',...(readJson(IDENTITY_KEY,{})||{})});
+  const localIdentity=()=>({...DEFAULT_IDENTITY,...(readJson(IDENTITY_KEY,{})||{})});
   const localRoom=()=>{
     for(const key of ROOM_KEYS){
       const raw=readJson(key,null);const id=digits(raw?.personalRoomId||raw?.personal_room_id||'').slice(0,10);
@@ -33,20 +36,15 @@
   async function loadAccount(){
     state.client=await window.DSAuth?.init?.();
     state.session=state.client?(await state.client.auth.getSession()).data.session:null;
-    if(!state.session){
-      location.replace('/member-login/?desktop=1');
-      return false;
-    }
+    if(!state.session){location.replace('/member-login/?desktop=1');return false;}
     const meta=state.session.user.user_metadata||{};
     try{
       const result=await state.client.from('member_profiles').select('full_name,preferred_name,email,agent_code,verification_status,rank,role,is_founder,avatar_path').eq('id',state.session.user.id).maybeSingle();
       if(!result.error)state.profile=result.data||null;
     }catch{}
-    state.prefs=localPrefs();
-    state.identity=localIdentity();
+    state.prefs=localPrefs();state.identity=localIdentity();
     await Promise.all([syncRemotePreferences(),syncPersonalRoom()]);
-    renderAccount(meta);
-    return true;
+    renderAccount(meta);return true;
   }
 
   async function syncRemotePreferences(){
@@ -55,13 +53,8 @@
       const result=await state.client.from('meet_user_preferences').select('*').eq('user_id',state.session.user.id).maybeSingle();
       if(result.error||!result.data)return;
       const row=result.data;
-      const remote={
-        joinMuted:Boolean(row.join_muted),joinCameraOff:Boolean(row.join_camera_off),mirror:row.mirror_video!==false,
-        background:String(row.background_mode||state.prefs.background||'none'),brightness:Number(row.brightness??state.prefs.brightness??100),touchAppearance:Number(row.touch_appearance??state.prefs.touchAppearance??0),
-        quality:String(row.video_quality||state.prefs.quality||'720'),cameraId:String(row.camera_id||state.prefs.cameraId||''),microphoneId:String(row.microphone_id||state.prefs.microphoneId||''),speakerId:String(row.speaker_id||state.prefs.speakerId||'')
-      };
-      state.prefs={...state.prefs,...remote};
-      writeJson(mediaKey(),state.prefs);
+      const remote={joinMuted:Boolean(row.join_muted),joinCameraOff:Boolean(row.join_camera_off),mirror:row.mirror_video!==false,background:String(row.background_mode||state.prefs.background||'none'),brightness:Number(row.brightness??state.prefs.brightness??100),touchAppearance:Number(row.touch_appearance??state.prefs.touchAppearance??0),quality:String(row.video_quality||state.prefs.quality||'720'),cameraId:String(row.camera_id||state.prefs.cameraId||''),microphoneId:String(row.microphone_id||state.prefs.microphoneId||''),speakerId:String(row.speaker_id||state.prefs.speakerId||'')};
+      state.prefs={...state.prefs,...remote};writeJson(mediaKey(),state.prefs);
     }catch{}
   }
 
@@ -72,10 +65,7 @@
       const result=await state.client.from('meet_personal_rooms').select('*').eq('user_id',state.session.user.id).maybeSingle();
       if(!result.error&&result.data){
         const id=digits(result.data.personal_room_id||'').slice(0,10);
-        if(id.length===10){
-          state.room={personalRoomId:id,personalLinkName:slug(result.data.personal_link_name||state.session.user.email?.split('@')[0]||'dominionstar-member'),passcode:digits(result.data.passcode||'').slice(0,6),waitingRoomEnabled:Boolean(result.data.waiting_room_enabled)};
-          cacheRoom(state.room);
-        }
+        if(id.length===10){state.room={personalRoomId:id,personalLinkName:slug(result.data.personal_link_name||state.session.user.email?.split('@')[0]||'dominionstar-member'),passcode:digits(result.data.passcode||'').slice(0,6),waitingRoomEnabled:Boolean(result.data.waiting_room_enabled)};cacheRoom(state.room);}
       }
     }catch{}
     return state.room;
@@ -83,15 +73,11 @@
 
   function renderAccount(meta={}){
     const displayName=state.profile?.preferred_name||state.profile?.full_name||meta.full_name||meta.name||(state.session?.user?.email||'Meet member').split('@')[0];
-    const title=state.profile?.rank||meta.title||'Meet member';
-    const email=state.profile?.email||state.session?.user?.email||'';
-    let avatarUrl=meta.avatar_url||meta.picture||'';
-    const initials=String(displayName||'DS').trim().split(/\s+/).slice(0,2).map(value=>value[0]).join('').toUpperCase();
-    const avatar=$('accountAvatar');if(avatar)avatar.textContent=initials;
+    const title=state.profile?.rank||meta.title||'Meet member';const email=state.profile?.email||state.session?.user?.email||'';let avatarUrl=meta.avatar_url||meta.picture||'';
+    const initials=String(displayName||'DS').trim().split(/\s+/).slice(0,2).map(value=>value[0]).join('').toUpperCase();const avatar=$('accountAvatar');if(avatar)avatar.textContent=initials;
     if($('accountName'))$('accountName').textContent=displayName;if($('accountTitle'))$('accountTitle').textContent=title;if($('accountEmail'))$('accountEmail').textContent=email;
     if($('profileName'))$('profileName').textContent=displayName;if($('profileTitle'))$('profileTitle').textContent=title;if($('profileEmail'))$('profileEmail').textContent=email;if($('profileAgentCode'))$('profileAgentCode').textContent=state.profile?.agent_code||'Not linked';
-    if(state.profile?.avatar_path){state.client.storage.from('member-avatars').createSignedUrl(state.profile.avatar_path,3600).then(result=>{avatarUrl=result.data?.signedUrl||avatarUrl;renderAvatar(avatar,avatarUrl,initials);}).catch(()=>renderAvatar(avatar,avatarUrl,initials));}
-    else renderAvatar(avatar,avatarUrl,initials);
+    if(state.profile?.avatar_path){state.client.storage.from('member-avatars').createSignedUrl(state.profile.avatar_path,3600).then(result=>{avatarUrl=result.data?.signedUrl||avatarUrl;renderAvatar(avatar,avatarUrl,initials);}).catch(()=>renderAvatar(avatar,avatarUrl,initials));}else renderAvatar(avatar,avatarUrl,initials);
     const hour=new Date().getHours();if($('greeting'))$('greeting').textContent=`${hour<12?'Good morning':hour<18?'Good afternoon':'Good evening'}, ${displayName.split(/\s+/)[0]}.`;
     const now=new Date();if($('today'))$('today').innerHTML=`${now.getDate()}<small>${esc(now.toLocaleDateString(undefined,{month:'long',year:'numeric',weekday:'long'}))}</small>`;
   }
@@ -110,53 +96,45 @@
   async function persistPreferences(next){
     state.prefs={...state.prefs,...next,updatedAt:new Date().toISOString()};writeJson(mediaKey(),state.prefs);
     if(!state.client||!state.session?.user)return;
-    try{
-      await state.client.from('meet_user_preferences').upsert({user_id:state.session.user.id,join_muted:Boolean(state.prefs.joinMuted),join_camera_off:Boolean(state.prefs.joinCameraOff),mirror_video:state.prefs.mirror!==false,background_mode:String(state.prefs.background||'none'),brightness:Number(state.prefs.brightness??100),touch_appearance:Number(state.prefs.touchAppearance??0),video_quality:String(state.prefs.quality||'720'),camera_id:String(state.prefs.cameraId||''),microphone_id:String(state.prefs.microphoneId||''),speaker_id:String(state.prefs.speakerId||''),updated_at:state.prefs.updatedAt},{onConflict:'user_id'});
-    }catch(error){console.warn('Meet preference sync deferred',error);}
+    try{await state.client.from('meet_user_preferences').upsert({user_id:state.session.user.id,join_muted:Boolean(state.prefs.joinMuted),join_camera_off:Boolean(state.prefs.joinCameraOff),mirror_video:state.prefs.mirror!==false,background_mode:String(state.prefs.background||'none'),brightness:Number(state.prefs.brightness??100),touch_appearance:Number(state.prefs.touchAppearance??0),video_quality:String(state.prefs.quality||'720'),camera_id:String(state.prefs.cameraId||''),microphone_id:String(state.prefs.microphoneId||''),speaker_id:String(state.prefs.speakerId||''),updated_at:state.prefs.updatedAt},{onConflict:'user_id'});}catch(error){console.warn('Meet preference sync deferred',error);}
   }
 
   function hydrateSettings(){
     state.identity=localIdentity();state.prefs=localPrefs();
-    if($('defaultMic'))$('defaultMic').value=state.prefs.joinMuted===false?'on':'muted';
-    if($('defaultCamera'))$('defaultCamera').value=state.prefs.joinCameraOff===false?'on':'off';
-    if($('desktopMirrorVideo'))$('desktopMirrorVideo').checked=state.prefs.mirror!==false;
-    if($('desktopVideoQuality'))$('desktopVideoQuality').value=['360','720','1080'].includes(String(state.prefs.quality))?String(state.prefs.quality):'720';
+    if($('defaultMic'))$('defaultMic').value=state.prefs.joinMuted===false?'on':'muted';if($('defaultCamera'))$('defaultCamera').value=state.prefs.joinCameraOff===false?'on':'off';
+    if($('desktopMirrorVideo'))$('desktopMirrorVideo').checked=state.prefs.mirror!==false;if($('desktopVideoQuality'))$('desktopVideoQuality').value=['360','720','1080'].includes(String(state.prefs.quality))?String(state.prefs.quality):'720';
     if($('desktopBackground'))$('desktopBackground').value=['none','blur','portrait'].includes(String(state.prefs.background))?String(state.prefs.background):'none';
-    if($('desktopBrightness'))$('desktopBrightness').value=String(Number.isFinite(Number(state.prefs.brightness))?Number(state.prefs.brightness):100);
-    if($('desktopAppearance'))$('desktopAppearance').value=String(Number.isFinite(Number(state.prefs.touchAppearance))?Number(state.prefs.touchAppearance):0);
+    if($('desktopBrightness'))$('desktopBrightness').value=String(Number.isFinite(Number(state.prefs.brightness))?Number(state.prefs.brightness):100);if($('desktopAppearance'))$('desktopAppearance').value=String(Number.isFinite(Number(state.prefs.touchAppearance))?Number(state.prefs.touchAppearance):0);
     if($('desktopBrightnessValue'))$('desktopBrightnessValue').textContent=$('desktopBrightness')?.value||'100';if($('desktopAppearanceValue'))$('desktopAppearanceValue').textContent=$('desktopAppearance')?.value||'0';
     if($('desktopShareSound'))$('desktopShareSound').checked=Boolean(state.prefs.shareSound);if($('desktopShareOptimize'))$('desktopShareOptimize').checked=Boolean(state.prefs.shareOptimize);if($('desktopShareOwnWindows'))$('desktopShareOwnWindows').checked=Boolean(state.prefs.shareOwnWindows);
-    if($('settingsUsePersonal'))$('settingsUsePersonal').checked=state.identity.usePersonalForInstant!==false;if($('defaultScheduleIdentity'))$('defaultScheduleIdentity').value=state.identity.defaultScheduleIdentity==='generated'?'generated':'personal';
+    if($('settingsUsePersonal'))$('settingsUsePersonal').checked=state.identity.usePersonalForInstant===true;if($('defaultScheduleIdentity'))$('defaultScheduleIdentity').value=state.identity.defaultScheduleIdentity==='personal'?'personal':'generated';
     if(state.room){if($('personalLinkName'))$('personalLinkName').value=state.room.personalLinkName||'';if($('personalRoomId'))$('personalRoomId').value=formatId(state.room.personalRoomId);if($('requirePasscode'))$('requirePasscode').checked=Boolean(state.room.passcode);if($('personalPasscode'))$('personalPasscode').value=state.room.passcode||'';if($('passcodeField'))$('passcodeField').hidden=!state.room.passcode;if($('waitingRoom'))$('waitingRoom').checked=Boolean(state.room.waitingRoomEnabled);}
-    else {if($('personalRoomId'))$('personalRoomId').value='Not configured';if($('settingsStatus'))$('settingsStatus').textContent='Personal Room identity has not been provisioned for this account.';}
+    else {if($('personalRoomId'))$('personalRoomId').value='Not configured';if($('settingsUsePersonal'))$('settingsUsePersonal').checked=false;if($('settingsStatus'))$('settingsStatus').textContent='Personal Room is not configured. New Meeting will use a fresh Meeting ID.';}
   }
 
-  function collectSettings(){
-    return {joinMuted:$('defaultMic')?.value!=='on',joinCameraOff:$('defaultCamera')?.value!=='on',mirror:Boolean($('desktopMirrorVideo')?.checked),quality:String($('desktopVideoQuality')?.value||state.prefs.quality||'720'),background:String($('desktopBackground')?.value||state.prefs.background||'none'),brightness:Number($('desktopBrightness')?.value??state.prefs.brightness??100),touchAppearance:Number($('desktopAppearance')?.value??state.prefs.touchAppearance??0),cameraId:String($('desktopCameraSelect')?.value||''),microphoneId:String($('desktopMicrophoneSelect')?.value||''),speakerId:String($('desktopSpeakerSelect')?.value||''),shareSound:Boolean($('desktopShareSound')?.checked),shareOptimize:Boolean($('desktopShareOptimize')?.checked),shareOwnWindows:Boolean($('desktopShareOwnWindows')?.checked)};
-  }
+  function collectSettings(){return {joinMuted:$('defaultMic')?.value!=='on',joinCameraOff:$('defaultCamera')?.value!=='on',mirror:Boolean($('desktopMirrorVideo')?.checked),quality:String($('desktopVideoQuality')?.value||state.prefs.quality||'720'),background:String($('desktopBackground')?.value||state.prefs.background||'none'),brightness:Number($('desktopBrightness')?.value??state.prefs.brightness??100),touchAppearance:Number($('desktopAppearance')?.value??state.prefs.touchAppearance??0),cameraId:String($('desktopCameraSelect')?.value||''),microphoneId:String($('desktopMicrophoneSelect')?.value||''),speakerId:String($('desktopSpeakerSelect')?.value||''),shareSound:Boolean($('desktopShareSound')?.checked),shareOptimize:Boolean($('desktopShareOptimize')?.checked),shareOwnWindows:Boolean($('desktopShareOwnWindows')?.checked)};}
 
   async function saveSettings(){
     const button=$('saveSettings'),status=$('settingsStatus');if(button)button.disabled=true;if(status)status.textContent='Saving…';
     try{
       await persistPreferences(collectSettings());
-      state.identity={...localIdentity(),usePersonalForInstant:Boolean($('settingsUsePersonal')?.checked),defaultScheduleIdentity:$('defaultScheduleIdentity')?.value==='generated'?'generated':'personal'};writeJson(IDENTITY_KEY,state.identity);
-      if(!state.room?.personalRoomId)throw new Error('Personal Room identity is not configured. DominionStar will not generate a replacement ID locally.');
-      const passcode=$('requirePasscode')?.checked?digits($('personalPasscode')?.value||'').slice(0,6):'';if(passcode&&passcode.length<3)throw new Error('Passcode must contain 3–6 digits.');
-      const next={personalRoomId:state.room.personalRoomId,personalLinkName:slug($('personalLinkName')?.value||state.room.personalLinkName||state.session.user.email?.split('@')[0]),passcode,waitingRoomEnabled:Boolean($('waitingRoom')?.checked)};
-      const result=await state.client.from('meet_personal_rooms').upsert({user_id:state.session.user.id,personal_room_id:next.personalRoomId,personal_link_name:next.personalLinkName,passcode:next.passcode,waiting_room_enabled:next.waitingRoomEnabled,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(result?.error)throw result.error;
-      state.room=next;cacheRoom(next);if(status)status.textContent='Settings saved.';setTimeout(()=>$('settingsDialog')?.close?.(),300);
+      const requestedPersonal=Boolean($('settingsUsePersonal')?.checked);const hasPersonal=Boolean(state.room?.personalRoomId);const usePersonal=requestedPersonal&&hasPersonal;
+      state.identity={...localIdentity(),usePersonalForInstant:usePersonal,defaultScheduleIdentity:$('defaultScheduleIdentity')?.value==='personal'?'personal':'generated'};writeJson(IDENTITY_KEY,state.identity);
+      if(state.room?.personalRoomId){
+        const passcode=$('requirePasscode')?.checked?digits($('personalPasscode')?.value||'').slice(0,6):'';if(passcode&&passcode.length<3)throw new Error('Passcode must contain 3–6 digits.');
+        const next={personalRoomId:state.room.personalRoomId,personalLinkName:slug($('personalLinkName')?.value||state.room.personalLinkName||state.session.user.email?.split('@')[0]),passcode,waitingRoomEnabled:Boolean($('waitingRoom')?.checked)};
+        const result=await state.client.from('meet_personal_rooms').upsert({user_id:state.session.user.id,personal_room_id:next.personalRoomId,personal_link_name:next.personalLinkName,passcode:next.passcode,waiting_room_enabled:next.waitingRoomEnabled,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(result?.error)throw result.error;state.room=next;cacheRoom(next);
+      }
+      if(requestedPersonal&&!hasPersonal){if($('settingsUsePersonal'))$('settingsUsePersonal').checked=false;if(status)status.textContent='Other settings saved. Personal Room is not configured, so New Meeting will use a fresh Meeting ID.';return;}
+      if(status)status.textContent='Settings saved.';setTimeout(()=>$('settingsDialog')?.close?.(),300);
     }catch(error){if(status)status.textContent=error?.message||'Could not save settings.';}finally{if(button)button.disabled=false;}
   }
 
   async function launchNew({share=false}={}){
-    state.identity=localIdentity();
-    const usePersonal=state.identity.usePersonalForInstant!==false;
-    if(usePersonal)await syncPersonalRoom();
+    state.identity=localIdentity();let usePersonal=state.identity.usePersonalForInstant===true;
+    if(usePersonal){await syncPersonalRoom();if(!state.room?.personalRoomId){usePersonal=false;state.identity={...state.identity,usePersonalForInstant:false};writeJson(IDENTITY_KEY,state.identity);}}
     const params=new URLSearchParams({desktop:'1',action:share?(usePersonal?'desktop-share':'share'):(usePersonal?'desktop-new':'new')});
-    if(usePersonal){
-      if(!state.room?.personalRoomId){hydrateSettings();if($('settingsStatus'))$('settingsStatus').textContent='Personal Room is not configured. Turn off “Use Personal Room for instant meetings” or configure your Personal Room.';$('settingsDialog')?.showModal?.();return;}
-      params.set('host','1');params.set('room',state.room.personalRoomId);if(state.room.passcode)params.set('passcode',state.room.passcode);if(state.room.waitingRoomEnabled)params.set('waiting','1');if(state.room.personalLinkName)params.set('personal',state.room.personalLinkName);
-    }
+    if(usePersonal){params.set('host','1');params.set('room',state.room.personalRoomId);if(state.room.passcode)params.set('passcode',state.room.passcode);if(state.room.waitingRoomEnabled)params.set('waiting','1');if(state.room.personalLinkName)params.set('personal',state.room.personalLinkName);}
     location.assign(`/meet/?${params.toString()}`);
   }
 
@@ -182,5 +160,5 @@
   }
 
   const ready=(async()=>{if(!await loadAccount())return false;wireUi();return true;})().catch(error=>{console.error('DominionStar desktop Home failed',error);const status=$('settingsStatus');if(status)status.textContent='Meet Home could not initialize. Quit and reopen DominionStar Meet.';return false;});
-  window.DominionDesktopHomeController=Object.freeze({version:'2.0.0-settings-own-meeting-identity',ready,snapshot:()=>({room:state.room?{...state.room}:null,prefs:{...state.prefs},identity:{...state.identity}})});
+  window.DominionDesktopHomeController=Object.freeze({version:'3.0.0-single-home-generated-default',ready,snapshot:()=>({room:state.room?{...state.room}:null,prefs:{...state.prefs},identity:{...state.identity}})});
 })();
