@@ -18,14 +18,13 @@ const preload=read('desktop 2/src/preload.cjs');
 const navigation=read('desktop 2/src/desktop-navigation-authority.mjs');
 const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
 const nativeCapture=read('desktop 2/src/macos-native-capture-authority.mjs');
-const nativePickerSession=read('desktop 2/src/macos-system-picker-session.mjs');
 const home=read('meet-home/desktop.html');
 const homeController=read('assets/js/meet/desktop-home-controller.js');
-const compactHome=read('assets/js/meet/desktop-home-compact-launch.js');
 
-// Authentication remains external-browser OAuth, but the browser returns first
-// through a dedicated HTTPS Meet bridge. This avoids Supabase falling back to a
-// public site URL when a custom scheme is not an approved OAuth redirect.
+// Authentication architecture: browser OAuth returns through a dedicated HTTPS
+// Meet bridge, then the custom protocol persists the session in Electron. The
+// hosted Supabase project must separately allow-list that redirect URL; physical
+// QA is the authority for that deployment configuration.
 assert(memberLogin.includes("provider: 'google'"));
 assert(memberLogin.includes("new URL('/meet-auth-callback/', window.location.origin)"));
 assert(memberLogin.includes('redirectTo: desktopOAuthReturnUrl()'));
@@ -35,17 +34,22 @@ assert(oauthReturn.includes('window.location.assign(deepLink.toString())'));
 assert(memberLogin.includes('supabase.auth.setSession({'));
 assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"));
 
-// Desktop app owns only Meet/auth routes. Public product pages stay external.
+// Desktop app owns Meet/auth routes. Home has one controller and exactly four
+// primary actions. Personal Room lives in Settings instead of a Home tile/menu.
 assert(bootstrap.indexOf("await import('./desktop-navigation-authority.mjs')")<bootstrap.indexOf("await import('./main-v2.mjs')"));
 assert(navigation.includes("INTERNAL_PATHS=new Set(['/meet','/meet-home','/meet-login','/member-login'])"));
 assert(navigation.includes('shell.openExternal(url.toString())'));
-assert(home.includes('desktop-home-controller.js?v=1-single-authority'));
-assert(homeController.includes('DominionDesktopHomeController'));
+assert(home.includes('desktop-home-controller.js?v=2-settings-own-meeting-identity'));
+assert(homeController.includes("version:'2.0.0-settings-own-meeting-identity'"));
+assert(home.includes('id="settingsUsePersonal"'));
+for(const id of ['newMeeting','joinMeeting','scheduleMeeting','shareScreen'])assert(home.includes(`id="${id}"`),`Home action missing: ${id}`);
+for(const retiredId of ['personalIdentity','newMeetingMenuButton','usePersonalRoom','startWithVideo','newMeetingPersonalId'])assert(!home.includes(`id="${retiredId}"`),`retired Home control returned: ${retiredId}`);
+assert.equal((home.match(/class="action(?: primary)?" id="/g)||[]).length,4);
+assert.equal(exists('assets/js/meet/desktop-home-compact-launch.js'),false);
+assert.equal(exists('desktop 2/src/desktop-home-injection.mjs'),false);
+assert(!bootstrap.includes('desktop-home-injection.mjs'));
 assert(!navigation.includes('resolveDesktopHostIdentity'));
 assert(!navigation.includes('installDesktopSettingsAuthority'));
-assert(compactHome.includes("strong.textContent='Start Meeting'"));
-assert(compactHome.includes('role="switch"'));
-assert(compactHome.includes('personalButton?.remove?.()'));
 
 // Camera device catalog remains passive; media acquisition has bounded owners.
 assert(cameraCatalog.includes('enumerateDevices()'));
@@ -69,38 +73,38 @@ assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
-// Physical Mac Share Screen regression. The failure reproduced on real hardware
-// when permission diagnostics touched source enumeration during the TCC change.
-// Status is now a lightweight TCC read; the branded fallback is non-modal and
-// only enumerates sources after access is granted. A changed permission gets one
-// fresh-process restart rather than another Privacy & Security loop.
+// Physical Mac Share Screen regression: one selected-source authority only.
+// Opening System Settings must close the picker before focus leaves. No capture
+// work may automatically resume when focus returns. A fresh process may probe
+// real sources because macOS TCC status can lag behind actual granted access.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
+assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
 assert(bootstrap.indexOf("await import('./screen-permission-lifecycle.mjs')")<bootstrap.indexOf("await import('./main-v2.mjs')"));
-assert(bootstrap.includes("await import('./macos-system-picker-session.mjs')"));
-assert(nativeCapture.includes('enabled: nativePicker'));
-assert(nativeCapture.includes("nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'"));
-assert(nativePickerSession.includes('{ useSystemPicker: true }'));
+assert(!bootstrap.includes('macos-system-picker-session.mjs'));
+assert(nativeCapture.includes('export function supportsNativeMacPicker() { return false; }'));
+assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"));
 assert(lifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"));
 assert(!lifecycle.includes('desktopCapturer')&&!lifecycle.includes('getSources('));
 assert(lifecycle.includes('captureProbed:false'));
-assert(lifecycle.includes("requiresRestart:process.platform==='darwin'&&granted&&initialScreenPermission!=='granted'"));
 assert(lifecycle.includes('desktop:relaunch-for-permissions'));
 assert(picker.includes('getScreenPermissionStatus'));
 assert(picker.includes('const withTimeout='));
 assert(picker.includes('const requestSources=()=>withTimeout'));
 assert(picker.includes('if(!dialog.open)dialog.show()'));
 assert(!picker.includes('dialog.showModal()'));
-const permissionIndex=picker.indexOf('const permissionState=await status()');
+assert(picker.includes('PERMISSION_RESTART_KEY'));
+assert(picker.includes('allowFreshProcessProbe'));
+assert(picker.includes("if(dialog.open)dialog.close('cancel')"));
+assert(!/addEventListener\(['"]focus['"]/.test(picker));
+const permissionIndex=picker.indexOf('permissionState=await status()');
 const sourceIndex=picker.indexOf('next=await requestSources()');
 assert(permissionIndex>=0&&sourceIndex>=0&&permissionIndex<sourceIndex);
-assert(picker.includes("if(screen!=='granted'||permissionState?.requiresRestart){showProblem(permissionState);return;}"));
-assert(picker.includes("if(screen==='granted'&&!current?.requiresRestart){void loadSources();return;}"));
-assert(picker.includes('showProblem({...current,requiresRestart:true})'));
 assert(picker.includes('Restart DominionStar Meet'));
 assert(preload.includes('systemSharePicker: nativeSystemPicker'));
 assert(preload.includes('customSharePicker: !nativeSystemPicker'));
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.DominionDesktopSharePicker?.choose'));
+assert(main.includes("{ useSystemPicker: false }"));
 
 console.log('REAL_MAC_PHYSICAL_SHARE_RECOVERY_CONTRACT_OK');
