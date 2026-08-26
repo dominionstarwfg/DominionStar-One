@@ -1,0 +1,65 @@
+name: Apply approved DominionStar Meet parity fix v3
+
+on:
+  push:
+    branches:
+      - prototype/meet-clean-foundation
+    paths:
+      - .github/workflows/apply-approved-meet-parity-fix-v3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: prototype/meet-clean-foundation
+          fetch-depth: 0
+
+      - name: Apply approved behavior and remaining guardrail correction
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, textwrap
+
+          # Reuse the already-reviewed v2 transformation instead of duplicating it.
+          source=Path('.github/workflows/apply-approved-meet-parity-fix-v2.yml').read_text()
+          match=re.search(r"          python3 - <<'PY'\n(.*?)\n          PY\n\n      - name: Verify desktop contracts",source,re.S)
+          if not match:
+              raise SystemExit('Unable to extract reviewed v2 transformation')
+          code=textwrap.dedent(match.group(1))
+          exec(compile(code,'approved-parity-v2.py','exec'),{})
+
+          # One additional suite still encoded the Apple picker as the expected UI.
+          p=Path('desktop 2/scripts/test-host-stability-regressions.mjs')
+          text=p.read_text()
+          text=text.replace("// Modern macOS uses one Electron handler with Apple's native picker. Fallback\n// source enumeration stays bounded for older macOS and Windows only.","// Modern macOS uses one Electron handler with the approved DominionStar picker.\n// macOS remains the underlying screen-capture permission authority.")
+          text=text.replace("assert.match(main,/major >= 15/,'native Mac picker must target macOS 15+');","assert.match(main,/return false;/,'Apple system picker must not replace the approved DominionStar picker');")
+          text=text.replace("assert.match(nativeCapture,/supportsNativeMacPicker/,'renderer native-picker capability is missing');","assert.match(nativeCapture,/supportsNativeMacPicker/,'renderer picker capability contract is missing');\nassert.match(nativeCapture,/return false;/,'renderer must select the DominionStar share picker');")
+          text=text.replace("assert.match(picker,/if\\(!dialog\\.open\\)dialog\\.show\\(\\)/,'fallback share picker must be non-modal');","assert.match(picker,/if\\(!dialog\\.open\\)dialog\\.show\\(\\)/,'approved share picker must be non-modal');")
+          text=text.replace("assert.doesNotMatch(picker,/dialog\\.showModal\\(\\)/,'fallback share picker must never lock the meeting');","assert.doesNotMatch(picker,/dialog\\.showModal\\(\\)/,'approved share picker must never lock the meeting');")
+          text=text.replace("assert.match(preload,/let shareSourcesInFlight = null/,'fallback source enumeration must be serialized');","assert.match(preload,/let shareSourcesInFlight = null/,'share source enumeration must be serialized');")
+          text=text.replace('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK one-home settings-owned native-mac-picker','DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK one-home settings-owned dominionstar-picker')
+          p.write_text(text)
+          PY
+
+      - name: Verify desktop contracts
+        run: |
+          git diff --check
+          npm --prefix "desktop 2" run verify
+
+      - name: Commit parity correction
+        shell: bash
+        run: |
+          rm -f .github/workflows/apply-approved-meet-parity-fix.yml
+          rm -f .github/workflows/apply-approved-meet-parity-fix-v2.yml
+          rm -f .github/workflows/apply-approved-meet-parity-fix-v3.yml
+          git config user.name "DominionStar QA Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(meet): restore approved auth and screen-share parity"
+          git push origin HEAD:prototype/meet-clean-foundation
