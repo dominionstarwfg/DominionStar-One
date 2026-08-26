@@ -7,19 +7,22 @@ const DESKTOP_PARTITION='persist:dominionstar-meet';
 const PRODUCTION_HOSTS=new Set(['dominionstarld.com','www.dominionstarld.com']);
 const QA_PREVIEW_HOST=/^deploy-preview-\d+--melodious-buttercream-a99450\.netlify\.app$/i;
 const INTERNAL_PATHS=new Set(['/meet','/meet-home','/meet-login','/member-login']);
+const DESKTOP_HOME_ALIASES=new Set(['/meet-home','/meet-home/index.html','/meet-home/desktop.html']);
 const ACCOUNT_RETURN_PATHS=new Set(['/member-dashboard','/workspace']);
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 
 function normalizedPath(pathname='/'){const value=String(pathname||'/');return value.length>1?value.replace(/\/+$/,''):value;}
 function isDominionDesktopHost(hostname=''){const host=String(hostname||'').toLowerCase();return PRODUCTION_HOSTS.has(host)||QA_PREVIEW_HOST.test(host);}
 function desktopHomeFor(url){const target=new URL('/meet-home/',url.origin);target.searchParams.set('desktop','1');if(QA_PREVIEW_HOST.test(target.hostname))target.searchParams.set('ntl-drawer-state','hidden');return target.toString();}
-function normalizeInternalDesktopUrl(url){const target=new URL(url.toString());target.searchParams.set('desktop','1');if(QA_PREVIEW_HOST.test(target.hostname))target.searchParams.set('ntl-drawer-state','hidden');return target;}
+function normalizeInternalDesktopUrl(url){const target=new URL(url.toString());const route=normalizedPath(target.pathname);if(DESKTOP_HOME_ALIASES.has(route))target.pathname='/meet-home/';target.searchParams.set('desktop','1');if(QA_PREVIEW_HOST.test(target.hostname))target.searchParams.set('ntl-drawer-state','hidden');return target;}
 function desktopRuntimeRoot(){return app.isPackaged?path.join(process.resourcesPath,'desktop-runtime'):path.resolve(__dirname,'..','..');}
 
 function localRuntimeRelativePath(url){
   let rawPath;try{rawPath=decodeURIComponent(String(url.pathname||'/'));}catch{return '';}
   const route=normalizedPath(rawPath);
-  if(route==='/meet-home'&&url.searchParams.get('desktop')==='1')return 'meet-home/desktop.html';
+  // Installed DominionStar Meet has exactly one Home implementation. Never let
+  // a missing query parameter fall through to the browser/Aurora Home page.
+  if(DESKTOP_HOME_ALIASES.has(route))return 'meet-home/desktop.html';
   if(INTERNAL_PATHS.has(route))return `${route.slice(1)}/index.html`;
   if(rawPath.startsWith('/assets/'))return rawPath.slice(1);
   if(rawPath.startsWith('/meet/'))return rawPath.slice(1);
@@ -51,7 +54,11 @@ function installNavigationAuthority(contents){
     if(url.protocol==='file:')return;
     if(url.protocol!=='https:'||!isDominionDesktopHost(url.hostname))return;
     const route=normalizedPath(url.pathname);
-    if(ACCOUNT_RETURN_PATHS.has(route)){event.preventDefault();void contents.loadURL(desktopHomeFor(url)).catch(()=>{});return;}
+    if(ACCOUNT_RETURN_PATHS.has(route)||DESKTOP_HOME_ALIASES.has(route)){
+      const home=desktopHomeFor(url);
+      if(url.toString()!==home){event.preventDefault();void contents.loadURL(home).catch(()=>{});}
+      return;
+    }
     if(!INTERNAL_PATHS.has(route)){event.preventDefault();void shell.openExternal(url.toString()).catch(()=>{});return;}
     const normalized=normalizeInternalDesktopUrl(url);
     if(normalized.toString()!==url.toString()){event.preventDefault();void contents.loadURL(normalized.toString()).catch(()=>{});}
@@ -89,7 +96,9 @@ function installPreviewRequestNormalization(){
   desktopSession.webRequest.onBeforeRequest({urls:['https://*/*']},(details,callback)=>{
     if(details.resourceType!=='mainFrame'){callback({});return;}
     let url;try{url=new URL(String(details.url||''));}catch{callback({});return;}
-    if(!QA_PREVIEW_HOST.test(url.hostname)||!INTERNAL_PATHS.has(normalizedPath(url.pathname))){callback({});return;}
+    if(!QA_PREVIEW_HOST.test(url.hostname)){callback({});return;}
+    const route=normalizedPath(url.pathname);
+    if(!INTERNAL_PATHS.has(route)&&!DESKTOP_HOME_ALIASES.has(route)){callback({});return;}
     const normalized=normalizeInternalDesktopUrl(url);if(normalized.toString()===url.toString()){callback({});return;}callback({redirectURL:normalized.toString()});
   });
 }
@@ -97,4 +106,4 @@ function installPreviewRequestNormalization(){
 app.on('web-contents-created',(_event,contents)=>{installNavigationAuthority(contents);installDesktopMeetingIdentityBootstrap(contents);installPreviewChromeSuppression(contents);});
 app.whenReady().then(()=>{installLocalDesktopRuntime();installPreviewRequestNormalization();}).catch(()=>{});
 
-export const DominionDesktopNavigationAuthority=Object.freeze({isDominionDesktopHost,normalizedPath,internalPaths:Object.freeze([...INTERNAL_PATHS]),accountReturnPaths:Object.freeze([...ACCOUNT_RETURN_PATHS]),localRuntimeRelativePath,resolveLocalRuntimeFile});
+export const DominionDesktopNavigationAuthority=Object.freeze({isDominionDesktopHost,normalizedPath,internalPaths:Object.freeze([...INTERNAL_PATHS]),homeAliases:Object.freeze([...DESKTOP_HOME_ALIASES]),accountReturnPaths:Object.freeze([...ACCOUNT_RETURN_PATHS]),localRuntimeRelativePath,resolveLocalRuntimeFile});
