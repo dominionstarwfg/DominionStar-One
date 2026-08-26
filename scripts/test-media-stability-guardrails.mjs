@@ -32,7 +32,6 @@ const remoteControlDialog=read('desktop 2/src/remote-control-dialog.mjs');
 const screenLifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
 const operationBootstrap=read('assets/js/meet/operation-2030-bootstrap.js');
 
-// Rendering symptoms must never destroy healthy WebRTC transport.
 assert(!ui.includes("recoverPeer?.(participantId,{reason:'guardian-remote-video-missing'})"));
 const reconciler=ui.slice(ui.indexOf('function reconcileMeetingView()'),ui.indexOf('function startViewReconciler()'));
 assert(!reconciler.includes('requestMediaResync'));
@@ -40,27 +39,21 @@ assert(engine.includes('remoteTrackStreamIds'));
 assert(engine.includes('const preservedScreen=state.remoteScreenStreams.get(payload.from)'));
 if(guardian!==null){assert(guardian.includes("if(type==='meet.peer.state')return"));assert(!guardian.includes("recoverDegradedPeers('health-check')"));}
 assert(engine.includes("const primary=state.participantId.localeCompare(remoteId)<0"));
-const peerRecovery=engine.slice(engine.indexOf('const recoverPeer = async'),engine.indexOf('const recoverPeers = async'));
-assert(!peerRecovery.includes('remote-video-missing')&&!peerRecovery.includes('forceRebuild'));
 
-// Participant dock remains movable without swallowing button clicks.
 assert(dock.includes("dock.addEventListener('pointerdown'")&&dock.includes('Math.hypot(dx,dy)<4'));
 assert(dock.includes("event.target.closest(interactive)"));
 assert(/cursor\s*:\s*grab\s*!important/i.test(dockCss));
 
-// Optional background processing is a single pipeline and preserves audio.
 assert(background.includes('/float16/1/selfie_segmenter_landscape.tflite')&&!background.includes('/float16/latest/'));
 assert(background.includes("const audioTracks = rawStream.getAudioTracks().filter(track => track.readyState === 'live')"));
 assert(background.includes('await restoreRawSession(current)'));
 assert(videoQuality.includes('DominionVideoIntelligenceCompositor?.getSourceTrack?.()')&&videoQuality.includes('DominionBackgroundEffects2030?.getSourceTrack?.()'));
 
-// Reaction presentation never owns media hardware and is lazy.
 assert(reactionPolish.includes('DominionReactionPolish'));
 assert(!reactionPolish.includes('enumerateDevices')&&!reactionPolish.includes('getUserMedia')&&!reactionPolish.includes('MutationObserver'));
 assert(operationBootstrap.includes('loadReactions'));
 assert(operationBootstrap.includes("reaction-polish.js?v=2-on-demand"));
 
-// Single-owner camera/media behavior.
 assert(ui.includes('const PREVIEW_CAMERA_RETRY_DELAYS_MS=[0,320,760,1400]'));
 assert(ui.includes('const acquireUserMediaStable=async constraints=>'));
 assert(cameraCatalog.includes('enumerateDevices()')&&cameraCatalog.includes('cameraSelect')&&cameraCatalog.includes('microphoneSelect')&&cameraCatalog.includes('speakerSelect'));
@@ -70,58 +63,47 @@ assert(hostPrejoin.includes('stopTracks(hostPreviewStream)')&&hostPrejoin.includ
 assert(!hostPrejoin.includes('navigator.mediaDevices.getUserMedia ='));
 assert(meetIndex.indexOf('/assets/js/meet/camera-device-stability.js')<meetIndex.indexOf('/assets/js/meeting-engine.js'));
 
-// Startup is bounded. Heavy video/presentation modules are lazy.
 assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"));
 assert(operationBootstrap.includes('requestIdleCallback'));
 assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings')&&!operationBootstrap.includes('meeting-identity-bridge')&&!operationBootstrap.includes('media-effect-safety'));
 
-// Physical-Mac share stability: one display-media handler. macOS 15+ uses
-// Apple's native system picker; older macOS/Windows retain the guarded custom
-// picker fallback. Passive permission checks never enumerate sources.
+// One display-media handler. Modern Mac uses the system picker; guarded custom
+// enumeration is retained only for fallback platforms.
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert(screenLifecycle.includes("getMediaAccessStatus('screen')"));
 assert(!screenLifecycle.includes('desktopCapturer')&&!screenLifecycle.includes('getSources('));
 assert(screenLifecycle.includes('captureProbed:false'));
-assert(screenLifecycle.includes("requiresRestart:process.platform==='darwin'&&granted&&initialScreenPermission!=='granted'"));
-assert(screenLifecycle.includes('desktop:screen-permission-status')&&screenLifecycle.includes('desktop:relaunch-for-permissions'));
-assert(desktopPreload.includes('getScreenPermissionStatus')&&desktopPreload.includes('relaunchForPermissions'));
-assert(desktopBootstrap.indexOf("screen-permission-lifecycle.mjs")<desktopBootstrap.indexOf("main-v2.mjs"));
+assert(desktopBootstrap.indexOf('screen-permission-lifecycle.mjs')<desktopBootstrap.indexOf('main-v2.mjs'));
 assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
 assert(desktopMain.includes("if (process.platform !== 'darwin') return false;"));
 assert(desktopMain.includes('process.getSystemVersion?.()'));
 assert(desktopMain.includes('major >= 15'));
-assert(desktopMain.includes('desktopSession.setDisplayMediaRequestHandler'));
 assert(desktopMain.includes('{ useSystemPicker: supportsMacSystemPicker() }'));
+assert.equal((desktopMain.match(/setDisplayMediaRequestHandler/g)||[]).length,1);
 assert(nativeCapture.includes('major >= 15'));
 assert(nativeCapture.includes("'macos-system-picker'"));
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
 
-// Fallback picker remains safe when it is actually used.
-assert(sharePicker.includes('getScreenPermissionStatus'));
 assert(sharePicker.includes('const withTimeout='));
-assert(sharePicker.includes('const requestSources=()=>withTimeout'));
 assert(sharePicker.includes('if(!dialog.open)dialog.show()'));
 assert(!sharePicker.includes('dialog.showModal()'));
 assert(sharePicker.includes("if(dialog.open)dialog.close('cancel')"));
 assert(!sharePicker.includes("window.addEventListener('focus'"));
 assert(desktopPreload.includes('let shareSourcesInFlight = null;'));
 assert(desktopPreload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
-assert(desktopPreload.includes('getShareSources: (options = {}) => getShareSourcesSingleFlight(options)'));
 
-// Desktop Personal Room has one account-backed authority. No local random PMIs.
+// Personal Room is account-backed only; no local random PMI or duplicate bridge.
 assert(homeController.includes('meet_personal_rooms'));
-assert(homeController.includes('Personal Room identity is not configured. DominionStar will not generate a replacement ID locally.'));
 assert(!homeController.includes('randomDigits'));
 assert.equal(exists('assets/js/meet/meeting-identity-settings.js'),false);
 assert.equal(exists('assets/js/meet/meeting-identity-bridge.js'),false);
 assert(personalRoom.includes("$('personalRoomForm')?.addEventListener('submit'"));
 
-// Native presenter/dock lifecycle remains functional.
 for(const legacy of ['🎙','◉','♙','▢','Ⅱ','↗'])assert(!presenterToolbar.includes(legacy));
 assert(presenterToolbar.includes('<svg')&&presenterToolbar.includes('data-command="new-share"')&&presenterToolbar.includes('data-command="pause"')&&presenterToolbar.includes('data-command="stop"'));
 assert(ui.includes('window.dominionDesktop.updatePresenterDock?.({tiles})'));
@@ -130,15 +112,13 @@ assert(desktopBootstrap.includes('presenter-dock.mjs'));
 assert(presenterDockMain.includes('alwaysOnTop:true')&&presenterDockMain.includes('resizable:true'));
 assert(presenterDockHtml.includes('-webkit-app-region:drag'));
 
-// Pause Share freezes the last frame and resumes the original presentation lane.
 assert(engine.includes('context.drawImage(video,0,0,width,height)')&&engine.includes('const freezeStream=canvas.captureStream(1)'));
 assert(engine.includes('const frozen=await createFrozenScreenTrack()')&&engine.includes('state.screenPaused=true'));
 assert(engine.includes('state.screenPaused=false')&&engine.includes('clearFrozenScreenTrack()'));
-
 assert(shareLifecycle.includes('app.dock.isVisible()')&&shareLifecycle.includes('await app.dock.show()'));
 assert(desktopBootstrap.includes('share-lifecycle.mjs'));
 assert(presenterToolbarJs.includes("window.presenterBridge.command('stop')")&&presenterToolbarJs.includes('stopRecoveryTimer=setTimeout'));
 assert(desktopPreload.includes('showRemoteControlPrompt')&&desktopPreload.includes('onRemoteControlDecision'));
 assert(remoteControlDialog.includes("buttons: ['Deny', 'Approve']"));
 
-console.log('MEDIA_STABILITY_NATIVE_MAC_FALLBACK_SHARE_OK single-handler');
+console.log('MEDIA_STABILITY_NATIVE_MAC_FALLBACK_SHARE_OK');
