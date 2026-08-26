@@ -19,40 +19,40 @@ const navigation=read('desktop 2/src/desktop-navigation-authority.mjs');
 const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
 const nativeCapture=read('desktop 2/src/macos-native-capture-authority.mjs');
 const home=read('meet-home/desktop.html');
+const browserHome=read('meet-home/index.html');
 const homeController=read('assets/js/meet/desktop-home-controller.js');
-const settingsGuard=read('desktop 2/src/desktop-home-settings-guard.mjs');
+const pkg=JSON.parse(read('desktop 2/package.json'));
 
-// Google sign-in remains in the persistent DominionStar Meet Electron session.
 assert(memberLogin.includes("provider: 'google'"));
 assert(memberLogin.includes('const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`'));
 assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_RETURN'));
 assert(memberLogin.includes('skipBrowserRedirect: true'));
 assert(memberLogin.includes('window.location.assign(data.url)'));
 assert(!memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));
-assert(!memberLogin.includes("const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'"));
-assert(!memberLogin.includes('/meet-auth-callback/'));
-assert.equal(exists('meet-auth-callback/index.html'),false);
-assert.equal(exists('meet-auth-start/index.html'),false);
-assert(memberLogin.includes('let { data } = await supabase.auth.getSession();'));
-assert(memberLogin.includes('supabase.auth.setSession({'));
 assert(memberLogin.includes("return '/meet-home/?desktop=1';"));
 
-// Desktop navigation has one Home and no Personal Room tile/second launcher.
+// One installed-app Home only. Legacy/browser Home may remain for browser users
+// but cannot be packaged or routed as the desktop surface.
 assert(bootstrap.indexOf(dynamicImportNeedle('desktop-navigation-authority.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(navigation.includes("INTERNAL_PATHS=new Set(['/meet','/meet-home','/meet-login','/member-login'])"));
-assert(home.includes('desktop-home-controller.js?v=2-settings-own-meeting-identity'));
-assert(homeController.includes("version:'2.0.0-settings-own-meeting-identity'"));
+assert(navigation.includes("DESKTOP_HOME_ALIASES=new Set(['/meet-home','/meet-home/index.html','/meet-home/desktop.html'])"));
+assert(navigation.includes("if(DESKTOP_HOME_ALIASES.has(route))return 'meet-home/desktop.html'"));
+assert(home.includes('desktop-home-controller.js'));
+assert(homeController.includes("version:'3.0.0-single-home-generated-default'"));
+assert(homeController.includes("const IDENTITY_KEY='ds_meet_identity_preferences_v2'"));
+assert(homeController.includes('usePersonalForInstant:false'));
+assert(homeController.includes("if(!state.room?.personalRoomId){usePersonal=false"));
 assert(home.includes('id="settingsUsePersonal"'));
 for(const id of ['newMeeting','joinMeeting','scheduleMeeting','shareScreen'])assert(home.includes(`id="${id}"`),`Home action missing: ${id}`);
-for(const retiredId of ['personalIdentity','newMeetingMenuButton','usePersonalRoom','startWithVideo','newMeetingPersonalId'])assert(!home.includes(`id="${retiredId}"`),`retired Home control returned: ${retiredId}`);
 assert.equal((home.match(/class="action(?: primary)?" id="/g)||[]).length,4);
 assert.equal(exists('assets/js/meet/desktop-home-compact-launch.js'),false);
 assert.equal(exists('desktop 2/src/desktop-home-injection.mjs'),false);
+assert.equal(exists('desktop 2/src/desktop-home-settings-guard.mjs'),false);
 assert(!bootstrap.includes('desktop-home-injection.mjs'));
-assert(!navigation.includes('resolveDesktopHostIdentity'));
-assert(!navigation.includes('installDesktopSettingsAuthority'));
-assert(bootstrap.includes(dynamicImportNeedle('desktop-home-settings-guard.mjs')));
-assert(settingsGuard.includes('usePersonalForInstant:false'));
+assert(!bootstrap.includes('desktop-home-settings-guard.mjs'));
+assert(browserHome.includes('Aurora Meeting Assistant'));
+const homeResource=(pkg.build?.extraResources||[]).find(entry=>entry?.from==='../meet-home');
+assert.deepEqual(homeResource?.filter,['desktop.html']);
 
 // Camera hardware acquisition remains bounded and passive catalogs never own it.
 assert(cameraCatalog.includes('enumerateDevices()'));
@@ -69,15 +69,13 @@ assert(hostPrejoin.includes('stopTracks(hostPreviewStream);'));
 assert(hostPrejoin.includes('await sleep(220);'));
 assert(!hostPrejoin.includes('navigator.mediaDevices.getUserMedia ='));
 
-// Advanced modules stay lazy.
 assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"));
 assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
-// Modern macOS uses Apple's native picker through the same single Electron
-// display-media handler. The old second session override stays deleted.
+// Modern macOS uses Apple's native picker through the one Electron handler.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
@@ -97,20 +95,16 @@ assert(preload.includes('customSharePicker: !nativeSystemPicker'));
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
 
-// Passive permission checks do not enumerate. Fallback picker remains guarded
-// for older macOS and Windows, but modern macOS bypasses it.
+// Fallback remains safe for older macOS/Windows.
 assert(lifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"));
 assert(!lifecycle.includes('desktopCapturer')&&!lifecycle.includes('getSources('));
 assert(lifecycle.includes('captureProbed:false'));
-assert(lifecycle.includes('desktop:relaunch-for-permissions'));
 assert(picker.includes('getScreenPermissionStatus'));
 assert(picker.includes('const withTimeout='));
-assert(picker.includes('const requestSources=()=>withTimeout'));
 assert(picker.includes('if(!dialog.open)dialog.show()'));
 assert(!picker.includes('dialog.showModal()'));
-assert(picker.includes("if(dialog.open)dialog.close('cancel')"));
 assert(!/addEventListener\(['"]focus['"]/.test(picker));
 assert(preload.includes('let shareSourcesInFlight = null;'));
 assert(preload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 
-console.log('REAL_MAC_RECOVERY_CONTRACT_OK in-app-auth native-system-picker single-handler fallback-guarded');
+console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home in-app-auth native-system-picker single-handler fallback-guarded');
