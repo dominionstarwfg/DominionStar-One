@@ -43,7 +43,7 @@ assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false,'comp
 assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
 assert(nativeCapture.includes('export function supportsNativeMacPicker() { return false; }'));
 assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"));
-assert(desktopMain.includes('function supportsMacSystemPicker() {\n  return false;'));
+assert(/function\s+supportsMacSystemPicker\s*\(\s*\)\s*\{\s*return\s+false\s*;/.test(desktopMain));
 assert(desktopMain.includes('desktopSession.setDisplayMediaRequestHandler'));
 assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker')&&desktopPreload.includes('customSharePicker: !nativeSystemPicker'));
 assert(desktopPreload.includes('let shareSourcesInFlight = null;'));
