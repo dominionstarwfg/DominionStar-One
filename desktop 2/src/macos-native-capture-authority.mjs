@@ -20,24 +20,41 @@ export function macSystemVersion() {
   catch { return ''; }
 }
 
-// Physical Mac QA is authoritative here. The OS system-picker path left an
-// in-flight getDisplayMedia transaction during the Screen Recording permission
-// transition and the meeting renderer became unresponsive on return. Until that
-// behavior is proven on physical Macs, DominionStar keeps one selected-source
-// authority in main-v2 on every platform.
-export function supportsNativeMacPicker() { return false; }
+export function supportsNativeMacPicker() {
+  if (process.platform !== 'darwin') return false;
+  const major = Number.parseInt(macSystemVersion().split('.')[0] || '', 10);
+  return Number.isFinite(major) && major >= 15;
+}
 
-ipcMain.handle('desktop:native-capture-capability', event => ({
-  ok: rendererIsTrusted(event),
-  enabled: false,
-  available: false,
-  installed: false,
-  platform: process.platform,
-  systemVersion: macSystemVersion(),
-  authority: 'dominionstar-custom-picker'
-}));
+// Physical Mac QA showed that desktopCapturer enumeration can stall after a
+// Screen & System Audio Recording permission transition. On macOS 15+ use the
+// operating system's single native picker. The DominionStar source picker stays
+// available only as the fallback on older macOS and non-macOS desktops.
+ipcMain.handle('desktop:native-capture-capability', event => {
+  const nativePicker = supportsNativeMacPicker();
+  if (!rendererIsTrusted(event)) {
+    return {
+      ok: false,
+      enabled: false,
+      available: nativePicker,
+      installed: false,
+      platform: process.platform,
+      systemVersion: macSystemVersion(),
+      authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'
+    };
+  }
+  return {
+    ok: true,
+    enabled: nativePicker,
+    available: nativePicker,
+    installed: nativePicker,
+    platform: process.platform,
+    systemVersion: macSystemVersion(),
+    authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'
+  };
+});
 
 export const DominionMacCaptureAuthority = Object.freeze({
-  primary: 'dominionstar-custom-picker',
-  nativeFallbackAvailable: () => false
+  primary: supportsNativeMacPicker() ? 'macos-system-picker' : 'dominionstar-custom-picker',
+  nativeFallbackAvailable: supportsNativeMacPicker
 });
