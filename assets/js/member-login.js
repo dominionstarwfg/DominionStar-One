@@ -104,10 +104,9 @@
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            // Keep OAuth in the persistent Electron partition. The browser may
-            // navigate through Google/Supabase, but the completed session returns
-            // to the installed app's own trusted member-login route instead of a
-            // second browser process or custom-protocol token relay.
+            // Authenticate with Google in the normal browser, then return the
+            // completed session to the installed app through its registered
+            // dominionstar:// auth callback.
             redirectTo: DESKTOP_OAUTH_CALLBACK,
             skipBrowserRedirect: true,
             queryParams: { prompt: 'select_account' }

@@ -212,9 +212,9 @@ function publishDesktopLayout() {
   return layout;
 }
 
-// Use one display-media handler. On macOS 15+ Electron delegates source
-// selection to Apple's native system picker; older macOS and other platforms
-// retain the DominionStar selected-source fallback below.
+// Use one display-media handler. DominionStar owns the visible source picker
+// on every desktop platform; macOS/Windows remain the underlying capture and
+// permission authorities.
 function supportsMacSystemPicker() {
   return false;
 }

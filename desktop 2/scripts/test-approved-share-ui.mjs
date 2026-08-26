@@ -57,7 +57,12 @@ assert(meetingEngine.includes('window.dominionDesktop?.isDesktop && !useNativeSy
 assert(desktopPreload.includes('let shareSourcesInFlight = null;'));
 assert(desktopPreload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 assert(desktopSharePicker.includes('data-filter="screen">Screens'));
-assert(desktopSharePicker.includes('data-filter="window">Applications'));
+assert(desktopSharePicker.includes('data-filter=\"window\">Applications'));
+assert(desktopSharePicker.includes('<span>Share system audio</span>'));
+assert(desktopSharePicker.includes('<span>Optimize for video sharing</span>'));
+assert(desktopSharePicker.includes('class=\"ds-share-switch-row\" hidden><span>Share DominionStar windows</span>'));
+assert(desktopSharePicker.includes('background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-color:#60a5fa'));
+
 assert(desktopSharePicker.includes('const withTimeout='));
 assert(desktopSharePicker.includes('const requestSources=()=>withTimeout'));
 assert(desktopSharePicker.includes('if(!dialog.open)dialog.show()'));
