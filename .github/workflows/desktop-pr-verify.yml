@@ -11,8 +11,8 @@ on:
       - "assets/css/meet/**"
       - "assets/css/meet-next/**"
       - "meet/**"
+      - "meet-home/**"
       - "member-login/**"
-      - "meet-auth-callback/**"
       - ".github/workflows/desktop-pr-verify.yml"
   workflow_dispatch:
 
@@ -46,6 +46,9 @@ jobs:
           git -C .. clean -ffdx
           test -z "$(git -C .. status --porcelain)"
           test ! -e ../desktop
+          test ! -e "src/macos-system-picker-session.mjs"
+          test ! -e "src/desktop-home-injection.mjs"
+          test ! -e "../assets/js/meet/desktop-home-compact-launch.js"
           echo "DOMINIONSTAR_DESKTOP_REPOSITORY_CLEAN_OK"
 
       - name: Setup Node
@@ -124,6 +127,9 @@ jobs:
           git -C .. clean -ffdx
           test -z "$(git -C .. status --porcelain)"
           test ! -e ../desktop
+          test ! -e "src/macos-system-picker-session.mjs"
+          test ! -e "src/desktop-home-injection.mjs"
+          test ! -e "../assets/js/meet/desktop-home-compact-launch.js"
           rm -rf node_modules dist
           echo "DOMINIONSTAR_DESKTOP_DEEP_CLEAN_OK"
 
@@ -138,7 +144,7 @@ jobs:
           echo "QA_PREVIEW_ORIGIN=$QA_PREVIEW_ORIGIN" >> "$GITHUB_ENV"
           echo "DOMINIONSTAR_DESKTOP_QA_PREVIEW $QA_PREVIEW_ORIGIN"
 
-      - name: Wait until deployed critical runtime and OAuth return match this PR
+      - name: Wait until deployed critical runtime and desktop login match this PR
         shell: bash
         run: |
           set -euo pipefail
@@ -186,27 +192,25 @@ jobs:
             fi
 
             if [ "$exact" -eq 1 ]; then
-              callback="$(mktemp)"
-              if ! curl --fail --silent --show-error --location --max-time 20 "$QA_PREVIEW_ORIGIN/meet-auth-callback/" -o "$callback"; then
+              login_html="$(mktemp)"
+              if ! curl --fail --silent --show-error --location --max-time 20 "$QA_PREVIEW_ORIGIN/member-login/" -o "$login_html"; then
                 exact=0
-              elif ! grep -Fq 'Return to DominionStar Meet' "$callback" \
-                || ! grep -Fq 'dominionstar://auth/callback' "$callback" \
-                || ! grep -Fq 'This page only returns authentication to the installed DominionStar Meet app.' "$callback"; then
-                echo "WAITING_FOR_DESKTOP_OAUTH_CALLBACK attempt=$attempt"
+              elif ! grep -Fq 'DominionStar Member Login' "$login_html" || ! grep -Fq '/assets/js/member-login.js' "$login_html"; then
+                echo "WAITING_FOR_DESKTOP_LOGIN_SURFACE attempt=$attempt"
                 exact=0
               fi
-              rm -f "$callback"
+              rm -f "$login_html"
             fi
 
             if [ "$exact" -eq 1 ]; then
               echo "DOMINIONSTAR_DESKTOP_EXACT_PREVIEW_OK attempt=$attempt"
-              echo "DOMINIONSTAR_DESKTOP_OAUTH_PREVIEW_OK"
+              echo "NOTE: Supabase Redirect URL allowlist for dominionstar://auth/callback remains a physical/backend QA gate"
               exit 0
             fi
             sleep 10
           done
 
-          echo "ERROR: Netlify deploy-preview did not converge to the current PR runtime and OAuth return within six minutes." >&2
+          echo "ERROR: Netlify deploy-preview did not converge to current PR runtime and desktop login within six minutes." >&2
           exit 1
 
       - name: Bind native desktop bridges to the exact QA preview
@@ -321,6 +325,7 @@ jobs:
           Protocol: dominionstar
           Production updater: disabled in this QA artifact
           Apple Developer signing/notarization: intentionally deferred during functional QA
+          Hosted OAuth redirect allowlist: manual physical/backend QA gate
           EOF
           shasum -a 256 "$OUT" | tee dist/qa/SHA256.txt
           echo "DOMINIONSTAR_MEET_CLEAN_QA_PKG $(basename "$OUT")"
