@@ -62,19 +62,22 @@ for(const retired of [
 assert.doesNotMatch(navigation,/resolveDesktopHostIdentity|installDesktopSettingsAuthority|installDesktopSharePermissionGuard/,'native navigation must not own Home account/settings state');
 assert.match(navigation,/installDesktopMeetingIdentityBootstrap/,'explicit Personal Room URL must still enter host prejoin');
 
-// Modern macOS uses one Electron handler with the approved DominionStar picker.
-// macOS remains the underlying screen-capture permission authority.
+// One Electron display-media handler, with native source selection on modern
+// macOS and DominionStar's non-modal picker as the compatibility fallback.
 assert.match(main,/function supportsMacSystemPicker\(\)/,'native Mac picker capability check is missing');
-assert.match(main,/return false;/,'Apple system picker must not replace the approved DominionStar picker');
+assert.match(main,/major >= 15/,'modern macOS must be eligible for the native ScreenCaptureKit picker');
 assert.match(main,/\{ useSystemPicker: supportsMacSystemPicker\(\) \}/,'single display-media handler must delegate to Apple when supported');
 assert.equal((main.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'desktop must expose one display-media handler');
 assert.match(nativeCapture,/supportsNativeMacPicker/,'renderer picker capability contract is missing');
-assert.match(nativeCapture,/return false;/,'renderer must select the DominionStar share picker');
+assert.match(nativeCapture,/major >= 15/,'renderer must report native picker capability on modern macOS');
+assert.match(nativeCapture,/macos-system-picker/,'native capture diagnostics must identify the modern macOS authority');
+assert.match(nativeCapture,/dominionstar-custom-picker/,'native capture diagnostics must retain the fallback DominionStar authority');
 assert.match(preload,/systemSharePicker: nativeSystemPicker/,'renderer must receive the native-picker capability');
-assert.match(picker,/if\(!dialog\.open\)dialog\.show\(\)/,'approved share picker must be non-modal');
-assert.doesNotMatch(picker,/dialog\.showModal\(\)/,'approved share picker must never lock the meeting');
+assert.match(preload,/customSharePicker: !nativeSystemPicker/,'renderer must expose exactly the inverse fallback-picker capability');
+assert.match(picker,/if\(!dialog\.open\)dialog\.show\(\)/,'fallback share picker must be non-modal');
+assert.doesNotMatch(picker,/dialog\.showModal\(\)/,'fallback share picker must never lock the meeting');
 assert.doesNotMatch(picker,/addEventListener\(['"]focus['"]/,'returning from System Settings must not auto-run fallback capture');
-assert.match(preload,/let shareSourcesInFlight = null/,'share source enumeration must be serialized');
+assert.match(preload,/let shareSourcesInFlight = null/,'fallback share source enumeration must be serialized');
 assert.match(lifecycle,/systemPreferences\.getMediaAccessStatus\('screen'\)/,'native lifecycle must read macOS Screen Recording state');
 assert.doesNotMatch(lifecycle,/desktopCapturer|getSources\s*\(/,'passive permission lifecycle must never enumerate capture sources');
 
@@ -83,4 +86,4 @@ assert.match(operationBootstrap,/loadMediaEnhancements/,'advanced video processi
 assert.match(operationBootstrap,/loadPresentationTools/,'presentation extensions must be lazy');
 assert.doesNotMatch(operationBootstrap,/meeting-identity-settings|meeting-identity-bridge|media-effect-safety/,'retired identity/effect override layers must not return to startup');
 
-console.log('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK one-home settings-owned dominionstar-picker');
+console.log('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK one-home settings-owned native-mac-picker fallback-dominionstar-picker');
