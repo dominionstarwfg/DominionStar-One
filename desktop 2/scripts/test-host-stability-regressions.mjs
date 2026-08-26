@@ -10,35 +10,30 @@ const exists=relative=>fs.existsSync(path.join(root,relative));
 
 const home=read('meet-home/desktop.html');
 const controller=read('assets/js/meet/desktop-home-controller.js');
-const compactHome=read('assets/js/meet/desktop-home-compact-launch.js');
-const homeInjection=read('desktop 2/src/desktop-home-injection.mjs');
 const navigation=read('desktop 2/src/desktop-navigation-authority.mjs');
 const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
 const picker=read('assets/js/meet/desktop-share-picker.js');
-const bootstrap=read('assets/js/meet/operation-2030-bootstrap.js');
+const desktopBootstrap=read('desktop 2/src/bootstrap.mjs');
+const operationBootstrap=read('assets/js/meet/operation-2030-bootstrap.js');
 
-// One desktop Home authority. HTML is markup, not a competing application.
-assert.match(home,/desktop-home-controller\.js\?v=1-single-authority/,'desktop Home must load exactly one Home controller');
-assert.doesNotMatch(home,/const\s+randomDigits|applyNewMeetingPrefs|readRemoteRoom\s*=|saveSettings'\)\.onclick/,'desktop Home markup must not contain legacy application state owners');
+// One desktop Home authority. Home exposes only the four meeting actions; all
+// Personal Room identity/default decisions live in Settings.
+assert.match(home,/desktop-home-controller\.js\?v=2-settings-own-meeting-identity/,'desktop Home must load the cleaned Home controller');
 assert.match(controller,/DominionDesktopHomeController/,'single desktop Home controller must expose its authority');
 assert.match(controller,/meet_personal_rooms/,'Home controller must use the account Personal Room table');
 assert.doesNotMatch(controller,/randomDigits\s*=|Math\.random\(\).*personalRoom/i,'desktop Home must never invent a Personal Meeting ID');
-assert.match(controller,/action:share\?\(usePersonal\?'desktop-share':'share'\):\(usePersonal\?'desktop-new':'new'\)/,'Home must explicitly distinguish Personal Room from generated meeting launch');
-assert.match(controller,/background:String\(\$\('desktopBackground'\)/,'saved background preference must be read from Settings');
-assert.doesNotMatch(controller,/background\s*:\s*['"]none['"].*brightness\s*:\s*100.*touchAppearance\s*:\s*0/s,'navigation/start must not erase saved appearance preferences');
+assert.match(controller,/const usePersonal=state\.identity\.usePersonalForInstant!==false/,'New Meeting must read the Personal Room choice from Settings state.');
+assert.match(home,/id="settingsUsePersonal"/,'Settings must own the Personal Room instant-meeting toggle.');
+for(const id of ['newMeeting','joinMeeting','scheduleMeeting','shareScreen'])assert.match(home,new RegExp(`id="${id}"`),`Home action ${id} is missing.`);
+for(const retiredId of ['personalIdentity','newMeetingMenuButton','newMeetingMenu','usePersonalRoom','startWithVideo','newMeetingPersonalId'])assert.doesNotMatch(home,new RegExp(`id="${retiredId}"`),`retired Home Personal Room control returned: ${retiredId}`);
+assert.equal((home.match(/class="action(?: primary)?" id="/g)||[]).length,4,'Desktop Home must expose exactly four primary action cards.');
+assert.doesNotMatch(controller,/\$\('usePersonalRoom'\)|\$\('startWithVideo'\)|newMeetingMenu/,'Home controller must not re-create per-click Personal Room controls.');
 
-// Physical-QA Home compaction: Personal Room is no longer a permanent action
-// card. Start Meeting owns one modern switch between the permanent room and a
-// fresh one-time meeting while preserving the account Personal Room identity.
-assert.match(homeInjection,/desktop-home-compact-launch\.js\?v=1-physical-qa/,'desktop Home must inject the physical-QA compact launch authority');
-assert.match(compactHome,/personalButton\?\.remove\?\.\(\)/,'desktop Home must remove the separate Personal Room action card');
-assert.match(compactHome,/strong\.textContent='Start Meeting'/,'desktop Home primary action must read Start Meeting');
-assert.match(compactHome,/role=\"switch\"/,'Start Meeting Personal Room choice must use a modern switch control');
-assert.match(compactHome,/action:'desktop-new'/,'Personal Room launch must retain the permanent room identity');
-assert.match(compactHome,/location\.href='\/meet\/\?desktop=1&action=new'/,'switching Personal Room off must launch a fresh one-time meeting');
-
-// Retired duplicate authorities must stay deleted.
+// Duplicate Home and capture authorities must stay deleted.
 for(const retired of [
+  'assets/js/meet/desktop-home-compact-launch.js',
+  'desktop 2/src/desktop-home-injection.mjs',
+  'desktop 2/src/macos-system-picker-session.mjs',
   'assets/js/meet/desktop-host-stability-authority.js',
   'assets/js/meet/desktop-settings-authority.js',
   'assets/js/meet/desktop-share-permission-guard.js',
@@ -48,36 +43,39 @@ for(const retired of [
   'desktop 2/src/macos-screen-permission-guard.mjs',
   'desktop 2/src/launcher.html'
 ])assert.equal(exists(retired),false,`retired runtime file returned: ${retired}`);
+assert.doesNotMatch(desktopBootstrap,/desktop-home-injection|macos-system-picker-session/,'desktop bootstrap must not load a second Home or capture authority.');
 
 // Navigation no longer reads/invents user state or injects Settings/permission UI.
 assert.doesNotMatch(navigation,/resolveDesktopHostIdentity|installDesktopSettingsAuthority|installDesktopSharePermissionGuard/,'native navigation must not own Home account/settings state');
 assert.match(navigation,/installDesktopMeetingIdentityBootstrap/,'explicit Personal Room URL must still enter host prejoin');
 assert.match(navigation,/explicit-home-identity-v3/,'Personal Room bootstrap must come from the single Home authority');
 
-// Physical-Mac screen permission recovery is side-effect free. Passive status
-// reads only macOS TCC state; desktop source enumeration is reserved for explicit
-// Share Screen intent after access is granted. The picker is non-modal and every
-// native/source wait is bounded so a denied or stale permission cannot freeze UI.
-assert.match(picker,/getScreenPermissionStatus/,'fallback share picker must retain native screen-permission diagnostics');
-assert.match(picker,/const withTimeout=/,'fallback share picker must bound all native waits');
-assert.match(picker,/const requestSources=\(\)=>withTimeout/,'fallback source enumeration must have a bounded timeout');
-assert.match(picker,/if\(!dialog\.open\)dialog\.show\(\)/,'fallback picker must open without blocking the meeting');
-assert.doesNotMatch(picker,/dialog\.showModal\(\)/,'fallback picker must never lock the meeting behind a modal dialog');
-const permissionIndex=picker.indexOf('const permissionState=await status()');
+// Physical-Mac permission handoff: System Settings never shares an in-flight
+// source-enumeration transaction with the meeting. The picker closes first and
+// does not install any focus listener. A fresh app process may then prove actual
+// source access even when macOS reports stale TCC state.
+assert.match(picker,/getScreenPermissionStatus/,'share picker must retain native permission diagnostics');
+assert.match(picker,/const withTimeout=/,'share picker must bound native waits');
+assert.match(picker,/const requestSources=\(\)=>withTimeout/,'source enumeration must have a bounded timeout');
+assert.match(picker,/if\(!dialog\.open\)dialog\.show\(\)/,'share picker must be non-modal');
+assert.doesNotMatch(picker,/dialog\.showModal\(\)/,'share picker must never lock the meeting behind a modal dialog');
+assert.match(picker,/if\(dialog\.open\)dialog\.close\('cancel'\);\s*await withTimeout\(window\.dominionDesktop\.openScreenRecordingSettings/,'picker must close before System Settings opens');
+assert.doesNotMatch(picker,/addEventListener\(['"]focus['"]/,'returning from System Settings must not auto-run capture on focus');
+assert.match(picker,/PERMISSION_RESTART_KEY/,'permission transition must persist an explicit fresh-process marker');
+assert.match(picker,/allowFreshProcessProbe/,'fresh process must be able to probe real sources when TCC status is stale');
+const permissionIndex=picker.indexOf('permissionState=await status()');
 const sourceIndex=picker.indexOf('next=await requestSources()');
-assert(permissionIndex>=0&&sourceIndex>=0&&permissionIndex<sourceIndex,'macOS permission must be checked before source enumeration');
+assert(permissionIndex>=0&&sourceIndex>=0&&permissionIndex<sourceIndex,'permission state must be read before source enumeration');
 assert.match(lifecycle,/systemPreferences\.getMediaAccessStatus\('screen'\)/,'native lifecycle must read macOS Screen Recording state');
 assert.doesNotMatch(lifecycle,/desktopCapturer|getSources\s*\(/,'passive permission lifecycle must never enumerate capture sources');
-assert.match(lifecycle,/captureProbed:false/,'permission status must explicitly report that capture was not probed');
-assert.match(lifecycle,/requiresRestart:process\.platform==='darwin'&&granted&&initialScreenPermission!=='granted'/,'newly granted macOS access must require one fresh process');
+assert.match(lifecycle,/captureProbed:false/,'permission status must report that capture was not probed');
 assert.match(lifecycle,/desktop:relaunch-for-permissions/,'permission lifecycle must expose one clean restart path');
 
-// Startup budget: advanced modules are on demand instead of all loading at once.
-assert.match(bootstrap,/3\.0\.0-clean-lazy-runtime/,'desktop bootstrap must use clean lazy runtime');
-assert.match(bootstrap,/loadMediaEnhancements/,'advanced video processing must be lazy');
-assert.match(bootstrap,/loadPresentationTools/,'presentation extensions must be lazy');
-assert.doesNotMatch(bootstrap,/meeting-identity-settings|meeting-identity-bridge|media-effect-safety/,'retired identity/effect override layers must not return to startup');
-const immediateLoads=(bootstrap.match(/const core=\[/g)||[]).length;
-assert.equal(immediateLoads,1,'bootstrap must expose one bounded core group');
+// Startup budget remains bounded and retired override layers stay gone.
+assert.match(operationBootstrap,/3\.0\.0-clean-lazy-runtime/,'desktop bootstrap must use clean lazy runtime');
+assert.match(operationBootstrap,/loadMediaEnhancements/,'advanced video processing must be lazy');
+assert.match(operationBootstrap,/loadPresentationTools/,'presentation extensions must be lazy');
+assert.doesNotMatch(operationBootstrap,/meeting-identity-settings|meeting-identity-bridge|media-effect-safety/,'retired identity/effect override layers must not return to startup');
+assert.equal((operationBootstrap.match(/const core=\[/g)||[]).length,1,'bootstrap must expose one bounded core group');
 
 console.log('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK');
