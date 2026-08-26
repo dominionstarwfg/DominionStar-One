@@ -117,17 +117,15 @@ assert.equal(snapshot.runtime.meetReleaseId, snapshot.contract.releaseId, 'Nativ
 assert.equal(snapshot.runtime.meetReleaseCompatible, true, 'Native runtime did not mark the live Meet release compatible');
 assert.ok(Number(snapshot.runtime.bridgeVersion) >= Number(snapshot.contract.desktopBridge || 0), 'Native bridge is below the live Meet minimum');
 
-// One capture authority, one picker. Modern macOS must expose Apple's native
-// system picker; non-macOS and older macOS retain the DominionStar fallback.
+// One visible selection authority, one picker. DominionStar owns the approved
+// Zoom-style source chooser on every desktop platform. On macOS the OS remains
+// the permission/capture authority, but Apple's native picker must not replace
+// the DominionStar chooser or create a second visible selection surface.
+assert.equal(snapshot.runtime.captureAuthority, 'dominionstar-custom-picker', 'Desktop must use the approved DominionStar source picker');
+assert.equal(snapshot.runtime.systemSharePicker, false, 'Desktop must not expose a second native system picker');
+assert.equal(snapshot.runtime.customSharePicker, true, 'Desktop must expose the approved DominionStar source picker');
 if (snapshot.runtime.platform === 'darwin') {
-  assert.equal(snapshot.runtime.captureAuthority, 'macos-system-picker', 'Modern macOS desktop must use the native system picker');
-  assert.equal(snapshot.runtime.systemSharePicker, true, 'Modern macOS desktop must advertise system screen selection');
-  assert.equal(snapshot.runtime.customSharePicker, false, 'Modern macOS desktop must bypass custom source enumeration');
-  assert.equal(snapshot.runtime.nativeCaptureInstalled, true, 'Modern macOS desktop must confirm native picker capability');
-} else {
-  assert.equal(snapshot.runtime.captureAuthority, 'dominionstar-custom-picker', 'Non-macOS desktop must retain the DominionStar source picker fallback');
-  assert.equal(snapshot.runtime.systemSharePicker, false, 'Non-macOS desktop must not advertise the macOS system picker');
-  assert.equal(snapshot.runtime.customSharePicker, true, 'Non-macOS desktop must expose the DominionStar fallback picker');
+  assert.equal(snapshot.runtime.nativeCaptureInstalled, false, 'macOS must not install the native system picker while DominionStar owns source selection');
 }
 
 assert.ok(stableCount >= 2, 'Live Meet renderer never remained stable across two consecutive probes');
