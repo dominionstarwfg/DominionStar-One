@@ -1,0 +1,216 @@
+name: Apply approved DominionStar Meet parity fix
+
+on:
+  push:
+    branches:
+      - prototype/meet-clean-foundation
+    paths:
+      - .github/workflows/apply-approved-meet-parity-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: prototype/meet-clean-foundation
+          fetch-depth: 0
+
+      - name: Apply approved desktop behavior
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path):
+              return Path(path).read_text()
+
+          def write(path, text):
+              Path(path).write_text(text)
+
+          def replace_once(path, old, new):
+              text = read(path)
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}: {old[:100]!r}')
+              write(path, text.replace(old, new, 1))
+
+          # 1) Google OAuth: browser for Google, registered deep link back to the installed app.
+          replace_once(
+              'assets/js/member-login.js',
+              '  const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`;',
+              "  const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';"
+          )
+          replace_once(
+              'assets/js/member-login.js',
+              "            // Keep OAuth in the persistent Electron partition. The browser may\n            // navigate through Google/Supabase, but the completed session returns\n            // to the installed app's own trusted member-login route instead of a\n            // second browser process or custom-protocol token relay.\n            redirectTo: DESKTOP_OAUTH_RETURN,",
+              "            // Google authenticates in the user's normal browser. Supabase then\n            // hands the completed session back to the installed app through its\n            // registered DominionStar protocol, matching native desktop behavior.\n            redirectTo: DESKTOP_OAUTH_CALLBACK,"
+          )
+          replace_once(
+              'assets/js/member-login.js',
+              '        window.location.assign(data.url);',
+              "        const opened = await window.dominionDesktop?.openExternal?.(data.url);\n        if (opened === false) throw new Error('Google sign-in could not open in the browser.');"
+          )
+
+          # Fallback for a Supabase project whose redirect allow-list falls back to Site URL.
+          oauth_return = Path('assets/js/desktop-oauth-return.js')
+          oauth_return.write_text("""(() => {
+            try {
+              const returned = new URLSearchParams(String(window.location.hash || '').replace(/^#/,''));
+              const accessToken = returned.get('access_token') || '';
+              const refreshToken = returned.get('refresh_token') || '';
+              if (!accessToken || !refreshToken) return;
+              const callback = `dominionstar://auth/callback${window.location.hash}`;
+              window.location.replace(callback);
+            } catch {}
+          })();
+          """)
+          index = read('index.html')
+          marker = '<script src="/assets/js/desktop-oauth-return.js"></script>'
+          if marker not in index:
+              if '</body>' not in index:
+                  raise SystemExit('index.html: closing body not found')
+              index = index.replace('</body>', f'  {marker}\n</body>', 1)
+              write('index.html', index)
+
+          # 2) Home: remove the unapproved explanatory sentence.
+          replace_once(
+              'meet-home/desktop.html',
+              '          <p>Meeting and device defaults live in Settings so Home stays simple.</p>\n',
+              ''
+          )
+
+          # 3) Share picker: DominionStar-approved picker is the primary desktop picker on macOS too.
+          main = read('desktop 2/src/main-v2.mjs')
+          old_picker = """// Use one display-media handler. On macOS 15+ Electron delegates source
+          // selection to Apple's native system picker; older macOS and other platforms
+          // retain the DominionStar selected-source fallback below.
+          function supportsMacSystemPicker() {
+            if (process.platform !== 'darwin') return false;
+            const major = Number(String(process.getSystemVersion?.() || '0').split('.')[0] || 0);
+            return Number.isFinite(major) && major >= 15;
+          }
+          """
+          new_picker = """// DominionStar owns the share-selection surface on every desktop platform.
+          // The operating system still provides capture permission and the media stream,
+          // but it must not replace the approved in-app picker with a second system UI.
+          function supportsMacSystemPicker() {
+            return false;
+          }
+          """
+          if main.count(old_picker) != 1:
+              raise SystemExit('main-v2.mjs: macOS picker authority block did not match exactly once')
+          main = main.replace(old_picker, new_picker, 1)
+          old_presenter = """  win.showInactive();
+            if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+          }
+          """
+          new_presenter = """  win.showInactive();
+            // Keep DominionStar Meet as the visible presentation surface. Content
+            // protection prevents the Meet UI from leaking into full-display capture;
+            // the presenter toolbar and participant dock float above it independently.
+            if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.showInactive();
+          }
+          """
+          if main.count(old_presenter) != 1:
+              raise SystemExit('main-v2.mjs: presenter hide block did not match exactly once')
+          main = main.replace(old_presenter, new_presenter, 1)
+          write('desktop 2/src/main-v2.mjs', main)
+
+          # The capability reporter must agree with the single custom-picker authority.
+          native = read('desktop 2/src/macos-native-capture-authority.mjs')
+          native = re.sub(
+              r"export function supportsNativeMacPicker\(\) \{.*?\n\}",
+              "export function supportsNativeMacPicker() {\n  return false;\n}",
+              native,
+              count=1,
+              flags=re.S
+          )
+          if 'return false;' not in native:
+              raise SystemExit('macos-native-capture-authority.mjs: custom picker override failed')
+          write('desktop 2/src/macos-native-capture-authority.mjs', native)
+
+          # Sharing must never repeatedly hide the meeting window.
+          lifecycle = read('desktop 2/src/share-lifecycle.mjs')
+          lifecycle = re.sub(
+              r"function keepMeetingOffSharedDesktop\(\) \{.*?\n\}",
+              "function keepMeetingOffSharedDesktop() {\n  // Retained as a compatibility export only. The approved presentation state\n  // keeps the meeting visible while native content protection excludes it from\n  // full-display capture.\n  return false;\n}",
+              lifecycle,
+              count=1,
+              flags=re.S
+          )
+          lifecycle = lifecycle.replace('  setImmediate(keepMeetingOffSharedDesktop);\n', '')
+          lifecycle = lifecycle.replace('    keepMeetingOffSharedDesktop();\n', '')
+          lifecycle = lifecycle.replace("  // main-v2 restores the normal meeting window on macOS activation. During a\n  // presentation that must not undo the Zoom-style presenter state. Re-hide it\n  // on the next turn unless the presenter explicitly chose Show meeting.\n  if (sharing && !meetingExplicitlyShown) setImmediate(keepMeetingOffSharedDesktop);\n", '')
+          write('desktop 2/src/share-lifecycle.mjs', lifecycle)
+
+          # Align visible picker copy with the approved illustration.
+          picker = read('assets/js/meet/desktop-share-picker.js')
+          picker = picker.replace('<strong>Share your screen</strong>', '<strong>Choose what to share</strong>')
+          picker = picker.replace('data-filter="window">Application windows', 'data-filter="window">Applications')
+          picker = picker.replace('<span>Share sound</span>', '<span>Share system audio</span>')
+          # Keep the internal own-window switch available to code, but remove the extra
+          # visible option from the approved primary picker.
+          picker = picker.replace('<label><input type="checkbox" data-own-windows', '<label hidden><input type="checkbox" data-own-windows')
+          # Approved primary action uses the familiar blue meeting action treatment.
+          picker = picker.replace('background:linear-gradient(135deg,#f5c85b,#c99619);color:#111827', 'background:linear-gradient(135deg,#3b82f6,#2563eb);color:#ffffff')
+          write('assets/js/meet/desktop-share-picker.js', picker)
+
+          # 4) Tests: make the contracts enforce the approved behavior rather than the regression.
+          oauth_test = read('desktop 2/scripts/test-desktop-google-oauth-return.mjs')
+          oauth_test = oauth_test.replace(
+              "assert(login.includes('const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`'),'Desktop OAuth must return to the trusted in-app member-login route.');",
+              "assert(login.includes(\"const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'\"),'Desktop OAuth must return through the registered app protocol.');"
+          )
+          oauth_test = oauth_test.replace("assert(login.includes('redirectTo: DESKTOP_OAUTH_RETURN')", "assert(login.includes('redirectTo: DESKTOP_OAUTH_CALLBACK')")
+          oauth_test = oauth_test.replace("assert(login.includes('window.location.assign(data.url)'),'Google OAuth must continue in the existing Electron webContents.');", "assert(login.includes('window.dominionDesktop?.openExternal?.(data.url)'),'Google OAuth must use the system browser before returning to the app.');")
+          oauth_test = oauth_test.replace("assert(!login.includes('window.dominionDesktop?.openExternal?.(data.url)'),'Desktop Google OAuth must not be handed to a second browser session.');\n", '')
+          oauth_test = oauth_test.replace("assert(!login.includes(\"const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'\"),'Custom-protocol token relay must not be the normal desktop Google sign-in path.');\n", '')
+          oauth_test = oauth_test.replace("assert.equal(exists('meet-auth-callback/index.html'),false,'Retired HTTPS OAuth callback page returned.');\n", '')
+          oauth_test = oauth_test.replace("assert.equal(exists('meet-auth-start/index.html'),false,'Temporary Site URL OAuth launch relay returned.');\n", '')
+          oauth_test = oauth_test.replace('in-app-persistent-session meet-home', 'system-browser deep-link meet-home')
+          write('desktop 2/scripts/test-desktop-google-oauth-return.mjs', oauth_test)
+
+          approved = read('desktop 2/scripts/test-approved-share-ui.mjs')
+          approved = approved.replace('// Physical Mac: exactly one Electron display-media authority. macOS 15+ uses\n// Apple\'s native system picker; the DominionStar source picker is fallback only.', '// Physical Mac: exactly one Electron display-media authority. The approved\n// DominionStar picker remains primary; Apple permission/capture APIs stay underneath it.')
+          approved = approved.replace("assert(nativeCapture.includes('major >= 15'));", "assert(nativeCapture.includes('return false;'));")
+          approved = approved.replace("assert(nativeCapture.includes(\"'macos-system-picker'\"));", "assert(nativeCapture.includes(\"'dominionstar-custom-picker'\"));")
+          approved = approved.replace("assert(desktopMain.includes(\"if (process.platform !== 'darwin') return false;\"));\nassert(desktopMain.includes('process.getSystemVersion?.()'));\nassert(desktopMain.includes('major >= 15'));", "assert(desktopMain.includes('function supportsMacSystemPicker()'));\nassert(desktopMain.includes('return false;'));")
+          approved = approved.replace('// Custom fallback picker remains non-modal/bounded for older macOS/Windows.', '// Approved custom picker remains non-modal and bounded on every desktop platform.')
+          approved = approved.replace('data-filter="window">Application windows', 'data-filter="window">Applications')
+          approved = approved.replace("assert(shareLifecycle.includes('setImmediate(keepMeetingOffSharedDesktop)'));", "assert(!shareLifecycle.includes('mainWindow.hide()'));\nassert(!shareLifecycle.includes('setImmediate(keepMeetingOffSharedDesktop)'));")
+          approved = approved.replace('Approved one-handler native-mac/fallback share UI and final-illustration guardrails passed.', 'Approved one-handler DominionStar share UI and final-illustration guardrails passed.')
+          write('desktop 2/scripts/test-approved-share-ui.mjs', approved)
+
+          mac_test = read('desktop 2/scripts/test-real-mac-regressions.mjs')
+          mac_test = mac_test.replace("assert(memberLogin.includes('const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`'));", "assert(memberLogin.includes(\"const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'\"));")
+          mac_test = mac_test.replace("assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_RETURN'));", "assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_CALLBACK'));")
+          mac_test = mac_test.replace("assert(memberLogin.includes('window.location.assign(data.url)'));", "assert(memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));")
+          mac_test = mac_test.replace("assert(!memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));\n", '')
+          mac_test = mac_test.replace('// Modern macOS uses Apple\'s native picker through the one Electron handler.', '// Modern macOS uses the approved DominionStar picker through the one Electron handler.')
+          mac_test = mac_test.replace("assert(nativeCapture.includes('major >= 15'));", "assert(nativeCapture.includes('return false;'));")
+          mac_test = mac_test.replace("assert(nativeCapture.includes(\"'macos-system-picker'\"));", "assert(nativeCapture.includes(\"'dominionstar-custom-picker'\"));")
+          mac_test = mac_test.replace("assert(main.includes(\"if (process.platform !== 'darwin') return false;\"));\nassert(main.includes('process.getSystemVersion?.()'));\nassert(main.includes('major >= 15'));", "assert(main.includes('function supportsMacSystemPicker()'));\nassert(main.includes('return false;'));")
+          mac_test = mac_test.replace('// Fallback remains safe for older macOS/Windows.', '// Custom picker permission path remains safe on macOS/Windows.')
+          mac_test = mac_test.replace('single-home in-app-auth native-system-picker single-handler fallback-guarded', 'single-home browser-deeplink-auth dominionstar-picker single-handler guarded')
+          write('desktop 2/scripts/test-real-mac-regressions.mjs', mac_test)
+          PY
+
+      - name: Verify desktop contracts
+        run: |
+          git diff --check
+          npm --prefix "desktop 2" run verify
+
+      - name: Commit parity correction
+        shell: bash
+        run: |
+          rm -f .github/workflows/apply-approved-meet-parity-fix.yml
+          git config user.name "DominionStar QA Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(meet): restore approved auth and screen-share parity"
+          git push origin HEAD:prototype/meet-clean-foundation
