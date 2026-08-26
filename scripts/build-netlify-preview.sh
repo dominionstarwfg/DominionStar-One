@@ -107,16 +107,35 @@ print('DOMINIONSTAR_PREVIEW_CANDIDATE_INVENTORY_OK', len(files), payload['candid
 print('BASELINE_CERTIFIED_RELEASE', baseline or 'none')
 PY
 
-test -s "$PUBLIC/sw.js"
-test -s "$PUBLIC/PREVIEW-NOT-PRODUCTION.txt"
-test ! -e "$PUBLIC/.github"
-test ! -e "$PUBLIC/desktop"
-test ! -e "$PUBLIC/desktop 2"
-test ! -e "$PUBLIC/scripts"
-test ! -e "$PUBLIC/supabase"
-test ! -e "$PUBLIC/netlify"
-test ! -e "$PUBLIC/package.json"
-test ! -e "$PUBLIC/netlify.toml"
-test ! -e "$ROOT/dist"
+require_file() {
+  local path="$1"
+  local label="$2"
+  if [ ! -s "$path" ]; then
+    echo "ERROR: preview safety check failed: missing $label ($path)" >&2
+    exit 45
+  fi
+}
 
+forbid_path() {
+  local path="$1"
+  local label="$2"
+  if [ -e "$path" ]; then
+    echo "ERROR: preview safety check failed: forbidden $label present ($path)" >&2
+    exit 46
+  fi
+}
+
+require_file "$PUBLIC/sw.js" "service worker"
+require_file "$PUBLIC/PREVIEW-NOT-PRODUCTION.txt" "preview marker"
+forbid_path "$PUBLIC/.github" ".github directory"
+forbid_path "$PUBLIC/desktop" "desktop directory"
+forbid_path "$PUBLIC/desktop 2" "desktop 2 directory"
+forbid_path "$PUBLIC/scripts" "scripts directory"
+forbid_path "$PUBLIC/supabase" "supabase directory"
+forbid_path "$PUBLIC/netlify" "netlify directory"
+forbid_path "$PUBLIC/package.json" "package.json"
+forbid_path "$PUBLIC/netlify.toml" "netlify.toml"
+forbid_path "$PUBLIC/dist" "production dist directory"
+
+echo "DOMINIONSTAR_PREVIEW_SAFETY_CHECKS_OK"
 echo "DOMINIONSTAR_PREVIEW_PACKAGE_READY=$PUBLIC"
