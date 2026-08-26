@@ -52,7 +52,7 @@ requireSource(preload,'systemSharePicker: nativeSystemPicker','Renderer must exp
 requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must keep the DominionStar picker as the fallback only.');
 requireSource(preload,'installDesktopMeetRuntimeLayers','Desktop preload must own advanced Meet runtime installation.');
 requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Meeting engine must select exactly one picker path.');
-requireSource(engine,'if (useNativeSystemPicker) {','Meeting engine must bypass the custom picker on supported macOS.');
+requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Custom source selection must be explicitly disabled whenever the native system picker is active.');
 requireSource(engine,'window.DominionDesktopSharePicker?.choose','Custom picker fallback must remain available.');
 requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Sharing must enter standards getDisplayMedia after the selected picker path.');
 
