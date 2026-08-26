@@ -37,7 +37,7 @@ for(const retired of ['desktop 2/src/macos-system-picker-session.mjs','desktop 2
 requireSource(bootstrap,dynamicImportNeedle('screen-permission-lifecycle.mjs'),'Desktop bootstrap must load screen permission lifecycle first.');
 requireSource(bootstrap,dynamicImportNeedle('main-v2.mjs'),'main-v2 must remain the Electron display-media owner.');
 forbidSource(bootstrap,'macos-system-picker-session.mjs','Second macOS display-media handler must never be reinstalled.');
-requireSource(main,'function supportsMacSystemPicker() {\n  return false;','Current physical-Mac architecture must keep the DominionStar picker authoritative.');
+assert(/function\s+supportsMacSystemPicker\s*\(\s*\)\s*\{\s*return\s+false\s*;/.test(main),'Current physical-Mac architecture must keep the DominionStar picker authoritative.');
 requireSource(main,'desktopSession.setDisplayMediaRequestHandler','Single Electron display-media handler is missing.');
 requireSource(main,"types: ['screen', 'window']",'Desktop capture must enumerate real screens and windows.');
 requireSource(preload,"ipcRenderer.invoke('desktop:native-capture-capability')",'Renderer must read native capture capability diagnostics.');
