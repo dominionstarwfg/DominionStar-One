@@ -117,20 +117,13 @@ assert.equal(snapshot.runtime.meetReleaseId, snapshot.contract.releaseId, 'Nativ
 assert.equal(snapshot.runtime.meetReleaseCompatible, true, 'Native runtime did not mark the live Meet release compatible');
 assert.ok(Number(snapshot.runtime.bridgeVersion) >= Number(snapshot.contract.desktopBridge || 0), 'Native bridge is below the live Meet minimum');
 
-// Exactly one source-selection authority must be active. Modern macOS delegates
-// source selection to Apple's native ScreenCaptureKit picker so desktop source
-// enumeration cannot stall the meeting process. DominionStar owns the meeting,
-// presenter controls and share lifecycle. Other desktop runtimes retain the
-// DominionStar chooser as the single fallback selection surface.
-if (snapshot.runtime.platform === 'darwin' && snapshot.runtime.systemSharePicker) {
-  assert.equal(snapshot.runtime.captureAuthority, 'macos-system-picker', 'Modern macOS must delegate source selection to the native system picker');
-  assert.equal(snapshot.runtime.customSharePicker, false, 'Modern macOS must not expose a second DominionStar source picker');
-  assert.equal(snapshot.runtime.nativeCaptureInstalled, true, 'Modern macOS native capture picker must be installed');
-} else {
-  assert.equal(snapshot.runtime.captureAuthority, 'dominionstar-custom-picker', 'Fallback desktop runtime must use the DominionStar source picker');
-  assert.equal(snapshot.runtime.systemSharePicker, false, 'Fallback desktop runtime must not expose a second system picker');
-  assert.equal(snapshot.runtime.customSharePicker, true, 'Fallback desktop runtime must expose the DominionStar source picker');
-}
+// Approved illustration requires one visible DominionStar Screens / Applications
+// chooser on every desktop platform. macOS remains the permission/capture
+// authority underneath, but must not surface a second picker.
+assert.equal(snapshot.runtime.captureAuthority, 'dominionstar-custom-picker', 'Desktop must use the approved DominionStar source chooser');
+assert.equal(snapshot.runtime.systemSharePicker, false, 'Desktop must not expose a second native source picker');
+assert.equal(snapshot.runtime.customSharePicker, true, 'Desktop must expose the approved Screens / Applications chooser');
+assert.equal(snapshot.runtime.nativeCaptureInstalled, false, 'Native source picker must remain disabled while DominionStar owns visible source selection');
 
 assert.ok(stableCount >= 2, 'Live Meet renderer never remained stable across two consecutive probes');
 console.log(`Live Meet desktop contract acceptance passed: releaseId=${snapshot.contract.releaseId} bridge=${snapshot.runtime.bridgeVersion}/${snapshot.contract.desktopBridge} capture=${snapshot.runtime.captureAuthority} stableHref=${snapshot.href}`);
