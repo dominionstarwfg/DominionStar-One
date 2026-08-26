@@ -6,6 +6,7 @@ const RELEASE_CONTRACT_PATH = '/meet/release-contract.json';
 const TRUSTED_ORIGINS = new Set(['https://dominionstarld.com', 'https://www.dominionstarld.com']);
 let remoteControlCapability = '';
 const remoteControlDecisionListeners = new Set();
+let shareSourcesInFlight = null;
 
 const nativeCertification = Object.freeze({
   mode: 'native-authoritative',
@@ -69,6 +70,20 @@ async function readNativeCaptureCapability() {
   }
 }
 
+// macOS Screen Recording transitions can leave Electron's native source
+// enumeration pending even after the renderer-side timeout has elapsed. Keep
+// exactly one native enumeration request alive at a time so picker retries reuse
+// the same promise instead of stacking capture calls and starving the app UI.
+function getShareSourcesSingleFlight(options = {}) {
+  if (shareSourcesInFlight) return shareSourcesInFlight;
+  const safeOptions = { includeOwnWindows: Boolean(options?.includeOwnWindows) };
+  shareSourcesInFlight = ipcRenderer.invoke('desktop:share-sources', safeOptions)
+    .then(value => Array.isArray(value) ? value : [])
+    .catch(() => [])
+    .finally(() => { shareSourcesInFlight = null; });
+  return shareSourcesInFlight;
+}
+
 async function showNativeRemoteControlPrompt(payload = {}) {
   let result = { accepted: false, reason: 'prompt-failed' };
   try {
@@ -124,10 +139,6 @@ function installQaPreviewChromeBlocker() {
   try { hostname = String(window.location?.hostname || '').toLowerCase(); } catch {}
   if (!hostname.endsWith('.netlify.app')) return false;
 
-  // Netlify's Deploy Preview Drawer is review infrastructure, not DominionStar
-  // product UI. The navigation layer requests its official hidden state; this
-  // renderer boundary also removes late-injected cross-origin review frames so
-  // they cannot cover meeting controls or intercept Share clicks.
   try {
     const style = document.createElement('style');
     style.setAttribute('data-ds-netlify-chrome-blocker', '1');
@@ -181,9 +192,6 @@ function installDesktopMeetRuntimeLayers() {
   const origin = trustedMeetOriginAndRoute();
   if (!origin) return false;
 
-  // One explicit bootstrap owns the advanced desktop meeting modules. This
-  // prevents useful camera/share/presenter layers from existing as orphaned
-  // repository files while keeping the public browser runtime unchanged.
   const bootstrap = appendTrustedMeetScript(
     origin,
     '/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime',
@@ -265,7 +273,7 @@ contextBridge.exposeInMainWorld('dominionDesktop', Object.freeze({
     return () => ipcRenderer.removeListener('desktop:update-status', listener);
   },
   openExternal: url => ipcRenderer.invoke('desktop:open-external', url),
-  getShareSources: (options = {}) => ipcRenderer.invoke('desktop:share-sources', options),
+  getShareSources: (options = {}) => getShareSourcesSingleFlight(options),
   getCaptureStatus: () => ipcRenderer.invoke('desktop:capture-status'),
   getMediaPermissions: () => ipcRenderer.invoke('desktop:media-permissions'),
   requestMediaPermissions: (kinds = []) => ipcRenderer.invoke('desktop:request-media-permissions', Array.isArray(kinds) ? kinds.filter(kind => ['camera','microphone'].includes(String(kind))) : []),
