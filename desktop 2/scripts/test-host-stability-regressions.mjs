@@ -70,7 +70,7 @@ assert.match(sharePickerAuthority,/Promise\.race\(\[sourceEnumerationInFlight, t
 assert.match(sharePickerAuthority,/useSystemPicker: false/,'native picker must not create a second visible source chooser');
 assert.match(nativeCapture,/supportsNativeMacPicker/,'renderer picker capability contract is missing');
 assert.match(nativeCapture,/supportsNativeMacPicker\(\)\s*\{\s*return false;\s*\}/,'renderer must report the approved DominionStar picker on macOS');
-assert.match(nativeCapture,/authority: 'dominionstar-custom-picker'/,'capture diagnostics must identify the DominionStar authority');
+assert.match(nativeCapture,/authority: nativePicker \? 'macos-system-picker' : 'dominionstar-custom-picker'/,'capture diagnostics must report the selected authority explicitly');
 assert.match(preload,/systemSharePicker: nativeSystemPicker/,'renderer must receive picker capability');
 assert.match(preload,/customSharePicker: !nativeSystemPicker/,'renderer must expose exactly the inverse custom-picker capability');
 assert.match(picker,/if\(!dialog\.open\)dialog\.show\(\)/,'share picker must be non-modal');
