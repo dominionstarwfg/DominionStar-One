@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const read = rel => fs.readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8');
 const exists = rel => fs.existsSync(new URL(`../${rel}`, import.meta.url));
 const requireText = (source, text, message) => assert(source.includes(text), message);
+const dynamicImportNeedle = file => `await ${'import'}('./${file}')`;
 
 const meetHtml = read('meet/index.html');
 const homeHtml = read('meet-home/desktop.html');
@@ -24,6 +25,7 @@ const screenLifecycle = read('desktop 2/src/screen-permission-lifecycle.mjs');
 const desktopMain = read('desktop 2/src/main-v2.mjs');
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const desktopBootstrap = read('desktop 2/src/bootstrap.mjs');
+const settingsGuard = read('desktop 2/src/desktop-home-settings-guard.mjs');
 const presenterHtml = read('desktop 2/src/presenter-toolbar.html');
 const presenterJs = read('desktop 2/src/presenter-toolbar.js');
 const shareLifecycle = read('desktop 2/src/share-lifecycle.mjs');
@@ -38,8 +40,8 @@ for (const retired of [
   'desktop 2/src/macos-screen-permission-guard.mjs',
   'assets/js/meet/desktop-share-permission-guard.js'
 ]) assert.equal(exists(retired), false, `Retired competing authority returned: ${retired}`);
-requireText(desktopBootstrap, "await import('./screen-permission-lifecycle.mjs')", 'Desktop must load lightweight screen-permission lifecycle.');
-requireText(desktopBootstrap, "await import('./main-v2.mjs')", 'main-v2 must remain the single Electron display-media owner.');
+requireText(desktopBootstrap, dynamicImportNeedle('screen-permission-lifecycle.mjs'), 'Desktop must load lightweight screen-permission lifecycle.');
+requireText(desktopBootstrap, dynamicImportNeedle('main-v2.mjs'), 'main-v2 must remain the single Electron display-media owner.');
 assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'), 'Second macOS display-media authority must never return.');
 assert(!desktopBootstrap.includes('desktop-home-injection.mjs'), 'Second Home authority must never return.');
 
@@ -52,14 +54,18 @@ requireText(homeHtml, 'id="settingsUsePersonal"', 'Personal Room instant-meeting
 requireText(homeHtml, 'Use Personal Room for instant meetings', 'Settings must explain the Personal Room instant-meeting default.');
 requireText(homeController, "$('newMeeting').onclick=()=>void launchNew({share:false})", 'New Meeting must have one launch path.');
 requireText(homeController, "$('shareScreen').onclick=()=>void launchNew({share:true})", 'Home Share Screen must have one launch path.');
+requireText(desktopBootstrap, dynamicImportNeedle('desktop-home-settings-guard.mjs'), 'Desktop must load Settings independence guard.');
+requireText(settingsGuard, 'if(roomValue.length===10||usePersonal)return', 'Configured Personal Room must remain owned by primary Home controller.');
+requireText(settingsGuard, 'usePersonalForInstant:false', 'Media/device settings must save when Personal Room is intentionally disabled.');
 
-// Desktop authentication must finish back in the installed application rather
-// than entering public DominionStar pages after successful Google sign-in.
-requireText(memberLogin, "const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'", 'Desktop Google login must target the installed-app callback.');
-requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_CALLBACK', 'Google OAuth must request the installed-app return URI.');
-requireText(desktopMain, "url.hostname === 'auth' && url.pathname === '/callback'", 'Electron must consume the DominionStar auth callback.');
-requireText(desktopMain, "new URL('/member-login/?desktop=1&oauth=complete', APP_ORIGIN)", 'Auth callback must return to desktop session completion, not the public homepage.');
-requireText(memberLogin, 'supabase.auth.setSession({', 'Returned OAuth credentials must establish the persistent Electron session.');
+// Desktop Google authentication stays in the installed app's persistent
+// Electron session instead of being handed to a second browser process.
+requireText(memberLogin, 'const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`', 'Desktop Google login must return to the trusted in-app login route.');
+requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_RETURN', 'Google OAuth must request the in-app desktop return URI.');
+requireText(memberLogin, 'window.location.assign(data.url)', 'Google OAuth must continue in the same persistent Electron webContents.');
+assert(!memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'), 'Google OAuth must not be externalized to a second browser session.');
+requireText(memberLogin, 'let { data } = await supabase.auth.getSession();', 'OAuth return must recognize the persistent authenticated session first.');
+requireText(memberLogin, 'supabase.auth.setSession({', 'Returned OAuth credentials must retain compatibility fallback.');
 requireText(memberLogin, "return '/meet-home/?desktop=1';", 'Desktop authentication must fail closed to Meet Home.');
 
 // Physical Mac Share Screen: permission status cannot enumerate sources; picker
@@ -67,7 +73,7 @@ requireText(memberLogin, "return '/meet-home/?desktop=1';", 'Desktop authenticat
 // renderer retries cannot stack native source enumeration calls.
 requireText(screenLifecycle, "systemPreferences.getMediaAccessStatus('screen')", 'macOS permission lifecycle must read TCC status.');
 assert(!screenLifecycle.includes('desktopCapturer') && !screenLifecycle.includes('getSources('), 'Passive screen-permission status must never enumerate capture sources.');
-requireText(screenLifecycle, 'captureProbed:false', 'Passive permission status must explicitly avoid a capture probe.');
+requireText(screenLifecycle, 'captureProbed:false', 'Passive screen-permission status must explicitly avoid a capture probe.');
 requireText(desktopMain, 'function supportsMacSystemPicker() {\n  return false;', 'DominionStar custom picker must remain the single macOS picker authority.');
 requireText(desktopMain, 'desktopSession.setDisplayMediaRequestHandler', 'Electron must retain one display-media handler.');
 requireText(desktopSharePicker, 'data-filter="screen">Screens', 'Share picker must expose real screens.');
@@ -151,4 +157,4 @@ for (const language of ["{code:'en', label:'English'}","{code:'fr', label:'Frenc
 requireText(liveTranscription, 'window.SpeechRecognition || window.webkitSpeechRecognition', 'Speech-recognition path is missing.');
 requireText(liveTranscription, "stopButton.hidden=!(state.roomActive && snap.isHost)", 'Stop captions for everyone must remain host-only.');
 
-console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK clean-home direct-auth single-capture no-freeze camera-mic waiting-room host-cohost dock pause-share chat scheduling captions');
+console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK clean-home in-app-auth single-capture no-freeze camera-mic waiting-room host-cohost dock pause-share chat scheduling captions');
