@@ -15,6 +15,7 @@ app.on('before-quit',()=>{if(quitting)return;quitting=true;destroyDesktopWindows
 // - meet-home/desktop.html + desktop-home-controller.js own Home and Settings;
 // - no post-load Home injector or second visible macOS picker may overwrite
 //   those authorities.
+// QA lock: this import order is part of the approved desktop illustration contract.
 await import('./share-picker-authority.mjs');
 await import('./screen-permission-lifecycle.mjs');
 await import('./desktop-navigation-authority.mjs');
