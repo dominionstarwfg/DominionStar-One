@@ -21,13 +21,18 @@ export function macSystemVersion() {
 }
 
 export function supportsNativeMacPicker() {
-  return false;
+  if (process.platform !== 'darwin') return false;
+  const major = Number.parseInt(macSystemVersion().split('.')[0] || '0', 10);
+  return Number.isFinite(major) && major >= 15;
 }
 
-// Physical Mac QA showed that desktopCapturer enumeration can stall after a
-// Screen & System Audio Recording permission transition. On macOS 15+ use the
-// operating system's single native picker. The DominionStar source picker stays
-// available only as the fallback on older macOS and non-macOS desktops.
+// macOS 15+ provides the operating-system screen/window picker through
+// Electron's useSystemPicker display-media path. Physical Mac QA showed that
+// desktopCapturer enumeration can stall the Electron main process around
+// Screen & System Audio Recording permission transitions, which makes the
+// entire meeting appear frozen. Use the native picker where Apple supports it;
+// keep the DominionStar picker only as the compatibility path on older macOS
+// and non-macOS desktops. DominionStar still owns the meeting/share lifecycle.
 ipcMain.handle('desktop:native-capture-capability', event => {
   const nativePicker = supportsNativeMacPicker();
   if (!rendererIsTrusted(event)) {
