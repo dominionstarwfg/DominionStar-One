@@ -5,7 +5,6 @@ const read=rel=>fs.readFileSync(new URL(`../../${rel}`,import.meta.url),'utf8');
 const exists=rel=>fs.existsSync(new URL(`../../${rel}`,import.meta.url));
 
 const memberLogin=read('assets/js/member-login.js');
-const oauthReturn=read('meet-auth-callback/index.html');
 const cameraCatalog=read('assets/js/meet/camera-device-stability.js');
 const ui=read('assets/js/meet-next/executive6.js');
 const hostPrejoin=read('assets/js/meet/hotfix-rc13-1-media-prejoin.js');
@@ -21,16 +20,16 @@ const nativeCapture=read('desktop 2/src/macos-native-capture-authority.mjs');
 const home=read('meet-home/desktop.html');
 const homeController=read('assets/js/meet/desktop-home-controller.js');
 
-// Authentication architecture: browser OAuth returns through a dedicated HTTPS
-// Meet bridge, then the custom protocol persists the session in Electron. The
-// hosted Supabase project must separately allow-list that redirect URL; physical
-// QA is the authority for that deployment configuration.
+// Authentication architecture: one browser-to-app return path. The hosted
+// Supabase project must allow-list dominionstar://auth/callback; physical QA is
+// authoritative for that hosted configuration.
 assert(memberLogin.includes("provider: 'google'"));
-assert(memberLogin.includes("new URL('/meet-auth-callback/', window.location.origin)"));
-assert(memberLogin.includes('redirectTo: desktopOAuthReturnUrl()'));
-assert(!memberLogin.includes("redirectTo: 'dominionstar://auth/callback'"));
-assert(oauthReturn.includes("new URL('dominionstar://auth/callback')"));
-assert(oauthReturn.includes('window.location.assign(deepLink.toString())'));
+assert(memberLogin.includes("const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'"));
+assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_CALLBACK'));
+assert(memberLogin.includes('skipBrowserRedirect: true'));
+assert(!memberLogin.includes('/meet-auth-callback/'));
+assert.equal(exists('meet-auth-callback/index.html'),false);
+assert.equal(exists('meet-auth-start/index.html'),false);
 assert(memberLogin.includes('supabase.auth.setSession({'));
 assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"));
 
