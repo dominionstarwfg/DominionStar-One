@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 const read=rel=>fs.readFileSync(new URL(`../../${rel}`,import.meta.url),'utf8');
 const exists=rel=>fs.existsSync(new URL(`../../${rel}`,import.meta.url));
+const dynamicImportNeedle=file=>`await ${'import'}('./${file}')`;
 
 const memberLogin=read('assets/js/member-login.js');
 const cameraCatalog=read('assets/js/meet/camera-device-stability.js');
@@ -19,23 +20,27 @@ const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
 const nativeCapture=read('desktop 2/src/macos-native-capture-authority.mjs');
 const home=read('meet-home/desktop.html');
 const homeController=read('assets/js/meet/desktop-home-controller.js');
+const settingsGuard=read('desktop 2/src/desktop-home-settings-guard.mjs');
 
-// Authentication architecture: one browser-to-app return path. The hosted
-// Supabase project must allow-list dominionstar://auth/callback; physical QA is
-// authoritative for that hosted configuration.
+// Authentication architecture: Google OAuth stays in the installed app's
+// persistent Electron partition and returns to the trusted member-login route.
 assert(memberLogin.includes("provider: 'google'"));
-assert(memberLogin.includes("const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'"));
-assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_CALLBACK'));
+assert(memberLogin.includes('const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`'));
+assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_RETURN'));
 assert(memberLogin.includes('skipBrowserRedirect: true'));
+assert(memberLogin.includes('window.location.assign(data.url)'));
+assert(!memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));
+assert(!memberLogin.includes("const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'"));
 assert(!memberLogin.includes('/meet-auth-callback/'));
 assert.equal(exists('meet-auth-callback/index.html'),false);
 assert.equal(exists('meet-auth-start/index.html'),false);
+assert(memberLogin.includes('let { data } = await supabase.auth.getSession();'));
 assert(memberLogin.includes('supabase.auth.setSession({'));
-assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"));
+assert(memberLogin.includes("return '/meet-home/?desktop=1';"));
 
 // Desktop app owns Meet/auth routes. Home has one controller and exactly four
 // primary actions. Personal Room lives in Settings instead of a Home tile/menu.
-assert(bootstrap.indexOf("await import('./desktop-navigation-authority.mjs')")<bootstrap.indexOf("await import('./main-v2.mjs')"));
+assert(bootstrap.indexOf(dynamicImportNeedle('desktop-navigation-authority.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(navigation.includes("INTERNAL_PATHS=new Set(['/meet','/meet-home','/meet-login','/member-login'])"));
 assert(navigation.includes('shell.openExternal(url.toString())'));
 assert(home.includes('desktop-home-controller.js?v=2-settings-own-meeting-identity'));
@@ -49,6 +54,8 @@ assert.equal(exists('desktop 2/src/desktop-home-injection.mjs'),false);
 assert(!bootstrap.includes('desktop-home-injection.mjs'));
 assert(!navigation.includes('resolveDesktopHostIdentity'));
 assert(!navigation.includes('installDesktopSettingsAuthority'));
+assert(bootstrap.includes(dynamicImportNeedle('desktop-home-settings-guard.mjs')));
+assert(settingsGuard.includes('usePersonalForInstant:false'));
 
 // Camera device catalog remains passive; media acquisition has bounded owners.
 assert(cameraCatalog.includes('enumerateDevices()'));
@@ -79,7 +86,7 @@ assert(!operationBootstrap.includes('media-effect-safety'));
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
-assert(bootstrap.indexOf("await import('./screen-permission-lifecycle.mjs')")<bootstrap.indexOf("await import('./main-v2.mjs')"));
+assert(bootstrap.indexOf(dynamicImportNeedle('screen-permission-lifecycle.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(!bootstrap.includes('macos-system-picker-session.mjs'));
 assert(nativeCapture.includes('export function supportsNativeMacPicker() { return false; }'));
 assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"));
@@ -102,8 +109,11 @@ assert(permissionIndex>=0&&sourceIndex>=0&&permissionIndex<sourceIndex);
 assert(picker.includes('Restart DominionStar Meet'));
 assert(preload.includes('systemSharePicker: nativeSystemPicker'));
 assert(preload.includes('customSharePicker: !nativeSystemPicker'));
+assert(preload.includes('let shareSourcesInFlight = null;'));
+assert(preload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.DominionDesktopSharePicker?.choose'));
-assert(main.includes("{ useSystemPicker: false }"));
+assert(main.includes('function supportsMacSystemPicker() {\n  return false;'));
+assert(main.includes('desktopSession.setDisplayMediaRequestHandler'));
 
-console.log('REAL_MAC_PHYSICAL_SHARE_RECOVERY_CONTRACT_OK');
+console.log('REAL_MAC_PHYSICAL_SHARE_RECOVERY_CONTRACT_OK in-app-auth single-picker single-flight');
