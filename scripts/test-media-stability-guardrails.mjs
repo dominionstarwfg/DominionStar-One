@@ -69,9 +69,9 @@ assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings')&&!operationBootstrap.includes('meeting-identity-bridge')&&!operationBootstrap.includes('media-effect-safety'));
 
-// One display-media handler and one visible picker. DominionStar owns source
-// selection on desktop while the OS remains the underlying permission/capture
-// authority. No Apple picker may silently create a second selection surface.
+// One display-media handler. macOS 15+ delegates source selection to Apple's
+// native picker so source enumeration cannot block the Electron meeting event
+// loop. The DominionStar picker remains a serialized compatibility fallback.
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
@@ -80,12 +80,14 @@ assert(!screenLifecycle.includes('desktopCapturer')&&!screenLifecycle.includes('
 assert(screenLifecycle.includes('captureProbed:false'));
 assert(desktopBootstrap.indexOf('screen-permission-lifecycle.mjs')<desktopBootstrap.indexOf('main-v2.mjs'));
 assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
-assert(desktopMain.includes("function supportsMacSystemPicker() {\n  return false;\n}"));
-assert(!desktopMain.includes('major >= 15'));
+assert(desktopMain.includes("if (process.platform !== 'darwin') return false;"));
+assert(desktopMain.includes('process.getSystemVersion?.()'));
+assert(desktopMain.includes('major >= 15'));
 assert(desktopMain.includes('{ useSystemPicker: supportsMacSystemPicker() }'));
 assert.equal((desktopMain.match(/setDisplayMediaRequestHandler/g)||[]).length,1);
-assert(nativeCapture.includes("export function supportsNativeMacPicker() {\n  return false;\n}"));
-assert(!nativeCapture.includes('major >= 15'));
+assert(nativeCapture.includes("if (process.platform !== 'darwin') return false;"));
+assert(nativeCapture.includes('major >= 15'));
+assert(nativeCapture.includes("'macos-system-picker'"));
 assert(nativeCapture.includes("'dominionstar-custom-picker'"));
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
@@ -122,4 +124,4 @@ assert(presenterToolbarJs.includes("window.presenterBridge.command('stop')")&&pr
 assert(desktopPreload.includes('showRemoteControlPrompt')&&desktopPreload.includes('onRemoteControlDecision'));
 assert(remoteControlDialog.includes("buttons: ['Deny', 'Approve']"));
 
-console.log('MEDIA_STABILITY_DOMINIONSTAR_CUSTOM_SHARE_OK');
+console.log('MEDIA_STABILITY_NATIVE_MAC_FALLBACK_SHARE_OK');
