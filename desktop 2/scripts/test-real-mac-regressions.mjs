@@ -74,6 +74,13 @@ assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
+// Modern macOS privacy metadata must match Apple's ScreenCaptureKit/CoreAudio
+// permission keys. Do not silently regress to obsolete/unrecognized names.
+const macPrivacy=pkg.build?.mac?.extendInfo||{};
+assert.ok(macPrivacy.NSScreenCaptureUsageDescription,'macOS package must declare NSScreenCaptureUsageDescription');
+assert.ok(macPrivacy.NSAudioCaptureUsageDescription,'macOS package must declare NSAudioCaptureUsageDescription');
+assert.equal(Object.prototype.hasOwnProperty.call(macPrivacy,'NSScreenCaptureDescription'),false,'obsolete NSScreenCaptureDescription key must not return');
+
 // Modern macOS uses Apple's native ScreenCaptureKit picker through the single
 // Electron display-media handler. This avoids desktopCapturer enumeration from
 // stalling the meeting around Screen Recording permission transitions. The
@@ -109,4 +116,4 @@ assert(!/addEventListener\(['"]focus['"]/.test(picker));
 assert(preload.includes('let shareSourcesInFlight = null;'));
 assert(preload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 
-console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth native-mac-picker fallback-dominionstar-picker single-handler guarded');
+console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth native-mac-picker privacy-keys fallback-dominionstar-picker single-handler guarded');
