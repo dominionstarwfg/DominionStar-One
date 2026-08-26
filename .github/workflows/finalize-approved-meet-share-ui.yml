@@ -60,14 +60,14 @@ jobs:
           # Lock the approved visible picker details into the regression suite.
           test=Path('desktop 2/scripts/test-approved-share-ui.mjs')
           text=test.read_text()
-          anchor="assert(picker.includes('data-filter=\"window\">Applications'));"
-          if anchor not in text: raise SystemExit('test-approved-share-ui.mjs: picker assertion anchor not found')
+          anchor="assert(desktopSharePicker.includes('data-filter=\"window\">Applications'));"
+          if anchor not in text: raise SystemExit('test-approved-share-ui.mjs: desktopSharePicker assertion anchor not found')
           additions=(
-              "assert(picker.includes('data-filter=\\\"window\\\">Applications'));\n"
-              "assert(picker.includes('<span>Share system audio</span>'));\n"
-              "assert(picker.includes('<span>Optimize for video sharing</span>'));\n"
-              "assert(picker.includes('class=\\\"ds-share-switch-row\\\" hidden><span>Share DominionStar windows</span>'));\n"
-              "assert(picker.includes('background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-color:#60a5fa'));\n"
+              "assert(desktopSharePicker.includes('data-filter=\\\"window\\\">Applications'));\n"
+              "assert(desktopSharePicker.includes('<span>Share system audio</span>'));\n"
+              "assert(desktopSharePicker.includes('<span>Optimize for video sharing</span>'));\n"
+              "assert(desktopSharePicker.includes('class=\\\"ds-share-switch-row\\\" hidden><span>Share DominionStar windows</span>'));\n"
+              "assert(desktopSharePicker.includes('background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-color:#60a5fa'));\n"
           )
           text=text.replace(anchor,additions,1)
           test.write_text(text)
