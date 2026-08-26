@@ -30,48 +30,47 @@ requireSource(ui,"video:state.video?{width:{ideal:1280},height:{ideal:720},frame
 requireSource(ui,"state.stream.removeTrack(track)",'Prejoin Camera Off does not detach its camera track.');
 requireSource(ui,'markPreviewCameraReleased()','Prejoin Camera Off does not mark the hardware-release boundary.');
 
-// One Electron display-media owner only. macOS 15+ delegates selection to the
-// operating system picker; the DominionStar picker remains the fallback on
-// older macOS and non-macOS platforms. No second session handler may return.
+// One Electron display-media owner and one visible source-selection surface.
+// DominionStar owns the approved Zoom-style picker on every desktop platform;
+// macOS/Windows remain the underlying permission and capture authorities.
 for(const retired of ['desktop 2/src/macos-system-picker-session.mjs','desktop 2/src/macos-screen-permission-guard.mjs','assets/js/meet/desktop-share-permission-guard.js']){
   assert.equal(exists(retired),false,`Retired capture authority returned: ${retired}`);
 }
 requireSource(bootstrap,dynamicImportNeedle('screen-permission-lifecycle.mjs'),'Desktop bootstrap must load screen permission lifecycle first.');
 requireSource(bootstrap,dynamicImportNeedle('main-v2.mjs'),'main-v2 must remain the single Electron display-media owner.');
 forbidSource(bootstrap,'macos-system-picker-session.mjs','Second macOS display-media handler must never be reinstalled.');
-requireSource(main,"if (process.platform !== 'darwin') return false;",'System picker must remain macOS-only.');
-requireSource(main,"process.getSystemVersion?.()",'macOS picker capability must be based on the real system version.');
-requireSource(main,'major >= 15','macOS 15+ must use the native system picker.');
+requireSource(main,"function supportsMacSystemPicker() {\n  return false;\n}",'Apple system picker must stay disabled while DominionStar owns source selection.');
 requireSource(main,'desktopSession.setDisplayMediaRequestHandler','Single Electron display-media handler is missing.');
-requireSource(main,'{ useSystemPicker: supportsMacSystemPicker() }','Single display-media handler must delegate to the system picker when supported.');
-requireSource(nativeCapture,'export function supportsNativeMacPicker()','Native capture capability reporter is missing.');
-requireSource(nativeCapture,'major >= 15','Native capture capability must match the macOS 15+ policy.');
-requireSource(nativeCapture,"'macos-system-picker'",'Native capture capability must identify the macOS system picker.');
+requireSource(main,'{ useSystemPicker: supportsMacSystemPicker() }','Single display-media handler must explicitly keep system-picker delegation disabled.');
+requireSource(main,"types: ['screen', 'window']",'DominionStar capture authority must resolve screens and application windows.');
+requireSource(nativeCapture,"export function supportsNativeMacPicker() {\n  return false;\n}",'Native capture capability reporter must keep Apple source selection disabled.');
+forbidSource(nativeCapture,'major >= 15','macOS version must not silently re-enable a second system picker.');
+requireSource(nativeCapture,"'dominionstar-custom-picker'",'Native capture diagnostics must identify DominionStar as source-selection authority.');
 requireSource(preload,"ipcRenderer.invoke('desktop:native-capture-capability')",'Renderer must read native capture capability diagnostics.');
 requireSource(preload,'systemSharePicker: nativeSystemPicker','Renderer must expose native system-picker state.');
-requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must keep the DominionStar picker as the fallback only.');
+requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must expose DominionStar source-picker state.');
 requireSource(preload,'installDesktopMeetRuntimeLayers','Desktop preload must own advanced Meet runtime installation.');
 requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Meeting engine must select exactly one picker path.');
-requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Custom source selection must be explicitly disabled whenever the native system picker is active.');
-requireSource(engine,'window.DominionDesktopSharePicker?.choose','Custom picker fallback must remain available.');
-requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Sharing must enter standards getDisplayMedia after the selected picker path.');
+requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','DominionStar source selection must be used when the native system picker is disabled.');
+requireSource(engine,'window.DominionDesktopSharePicker?.choose','DominionStar picker must remain available.');
+requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Sharing must enter standards getDisplayMedia after DominionStar source selection.');
 
-// Permission diagnostics remain passive. The custom fallback picker is bounded,
-// non-modal and single-flight so older macOS/Windows cannot stack native source
-// enumeration calls. Modern macOS bypasses this picker entirely.
+// Permission diagnostics remain passive. The DominionStar picker is bounded,
+// non-modal and single-flight so permission transitions cannot stack native
+// enumeration calls or create multiple competing picker surfaces.
 requireSource(screenLifecycle,"systemPreferences.getMediaAccessStatus('screen')",'Permission lifecycle must use lightweight macOS TCC state.');
 forbidSource(screenLifecycle,'desktopCapturer','Permission-status IPC must never enumerate desktop sources.');
 requireSource(screenLifecycle,'captureProbed:false','Permission status must remain a non-capture diagnostic.');
-requireSource(customPicker,'dialog.show()','Desktop fallback source picker must be visible without modal UI lock.');
-forbidSource(customPicker,'dialog.showModal()','Desktop fallback source picker must stay non-modal.');
-requireSource(customPicker,'#desktopSharePicker::backdrop{background:transparent}','Fallback picker backdrop must not intercept meeting controls.');
-requireSource(customPicker,'const withTimeout=','Fallback picker must bound native IPC waits.');
-requireSource(customPicker,'const requestSources=()=>withTimeout','Fallback source enumeration must be time-bounded.');
-requireSource(customPicker,"if(dialog.open)dialog.close('cancel')",'Fallback picker must close before macOS Settings opens.');
+requireSource(customPicker,'dialog.show()','DominionStar source picker must be visible without modal UI lock.');
+forbidSource(customPicker,'dialog.showModal()','DominionStar source picker must stay non-modal.');
+requireSource(customPicker,'#desktopSharePicker::backdrop{background:transparent}','Picker backdrop must not intercept meeting controls.');
+requireSource(customPicker,'const withTimeout=','Picker must bound native IPC waits.');
+requireSource(customPicker,'const requestSources=()=>withTimeout','Source enumeration must be time-bounded.');
+requireSource(customPicker,"if(dialog.open)dialog.close('cancel')",'Picker must close before macOS Settings opens.');
 forbidSource(customPicker,"window.addEventListener('focus'",'Returning from Settings must never auto-launch capture.');
-requireSource(preload,'let shareSourcesInFlight = null;','Fallback source enumeration must have a single-flight guard.');
-requireSource(preload,'if (shareSourcesInFlight) return shareSourcesInFlight;','Fallback retries must reuse the outstanding native request.');
-requireSource(preload,'getShareSources: (options = {}) => getShareSourcesSingleFlight(options)','Fallback bridge must route source enumeration through single-flight guard.');
+requireSource(preload,'let shareSourcesInFlight = null;','Source enumeration must have a single-flight guard.');
+requireSource(preload,'if (shareSourcesInFlight) return shareSourcesInFlight;','Picker retries must reuse the outstanding native request.');
+requireSource(preload,'getShareSources: (options = {}) => getShareSourcesSingleFlight(options)','Desktop bridge must route source enumeration through single-flight guard.');
 
 // Web/Netlify remains browser-native and independent of Electron bridges.
 requireSource(shareView,'const isDesktop = Boolean(window.dominionDesktop?.isDesktop)','Share controls must distinguish desktop and browser runtimes.');
@@ -83,4 +82,4 @@ requireSource(shareView,"name === 'NotAllowedError' || name === 'SecurityError'"
 requireSource(netlify,'Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"','Netlify Meet media permissions are incomplete.');
 requireSource(headers,'Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)','Published media/display-capture permissions are incomplete.');
 
-console.log('PASS camera privacy and one-handler native-mac/fallback desktop capture path.');
+console.log('PASS camera privacy and one-handler DominionStar desktop capture path.');
