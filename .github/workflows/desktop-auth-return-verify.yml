@@ -6,7 +6,6 @@ on:
       - "assets/js/member-auth.js"
       - "assets/js/member-login.js"
       - "member-login/**"
-      - "meet-auth-callback/**"
       - "desktop 2/src/main-v2.mjs"
       - "desktop 2/scripts/test-desktop-google-oauth-return.mjs"
       - ".github/workflows/desktop-auth-return-verify.yml"
@@ -21,7 +20,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Desktop OAuth callback + deployed preview
+    name: Desktop OAuth direct-app code contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -31,10 +30,10 @@ jobs:
           clean: true
           fetch-depth: 1
 
-      - name: Verify desktop OAuth architecture
+      - name: Verify one direct desktop OAuth return path
         run: node "desktop 2/scripts/test-desktop-google-oauth-return.mjs"
 
-      - name: Wait for deployed desktop auth return surface
+      - name: Wait for deployed desktop login JavaScript
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
@@ -48,8 +47,6 @@ jobs:
 
           for attempt in $(seq 1 36); do
             ready=1
-
-            # JavaScript is served byte-for-byte and must match this PR exactly.
             for rel in "${exact_js[@]}"; do
               tmp="$(mktemp)"
               if ! curl --fail --silent --show-error --location --max-time 20 "$ORIGIN/$rel" -o "$tmp"; then
@@ -69,37 +66,18 @@ jobs:
 
             if [ "$ready" -eq 1 ]; then
               login_html="$(mktemp)"
-              callback_html="$(mktemp)"
-              trap 'rm -f "$login_html" "$callback_html"' EXIT
-
-              if ! curl --fail --silent --show-error --location --max-time 20 "$ORIGIN/member-login/" -o "$login_html"; then
-                ready=0
-              elif ! grep -Fq 'DominionStar Member Login' "$login_html" || ! grep -Fq '/assets/js/member-login.js' "$login_html"; then
-                echo "WAITING_FOR_DESKTOP_MEMBER_LOGIN_SEMANTICS attempt=$attempt"
-                ready=0
+              if curl --fail --silent --show-error --location --max-time 20 "$ORIGIN/member-login/" -o "$login_html" \
+                && grep -Fq 'DominionStar Member Login' "$login_html" \
+                && grep -Fq '/assets/js/member-login.js' "$login_html"; then
+                rm -f "$login_html"
+                echo "DOMINIONSTAR_DESKTOP_OAUTH_CODE_PREVIEW_OK $ORIGIN"
+                echo "NOTE: hosted Supabase Redirect URLs remain a physical/backend QA gate for dominionstar://auth/callback"
+                exit 0
               fi
-
-              if [ "$ready" -eq 1 ]; then
-                if ! curl --fail --silent --show-error --location --max-time 20 "$ORIGIN/meet-auth-callback/" -o "$callback_html"; then
-                  ready=0
-                elif ! grep -Fq 'Return to DominionStar Meet' "$callback_html" \
-                  || ! grep -Fq 'dominionstar://auth/callback' "$callback_html" \
-                  || ! grep -Fq 'This page only returns authentication to the installed DominionStar Meet app.' "$callback_html"; then
-                  echo "WAITING_FOR_DESKTOP_OAUTH_CALLBACK_SEMANTICS attempt=$attempt"
-                  ready=0
-                fi
-              fi
-
-              rm -f "$login_html" "$callback_html"
-              trap - EXIT
-            fi
-
-            if [ "$ready" -eq 1 ]; then
-              echo "DOMINIONSTAR_DESKTOP_OAUTH_PREVIEW_OK $ORIGIN"
-              exit 0
+              rm -f "$login_html"
             fi
             sleep 10
           done
 
-          echo "ERROR: desktop OAuth callback surface did not converge to the current PR behavior." >&2
+          echo "ERROR: desktop login/auth JavaScript did not converge to current PR source." >&2
           exit 1
