@@ -15,6 +15,7 @@ app.on('before-quit',()=>{if(quitting)return;quitting=true;destroyDesktopWindows
 //   overwrite those authorities.
 await import('./screen-permission-lifecycle.mjs');
 await import('./desktop-navigation-authority.mjs');
+await import('./desktop-home-settings-guard.mjs');
 await import('./main-v2.mjs');
 await import('./macos-native-capture-authority.mjs');
 await import('./presenter-dock.mjs');
