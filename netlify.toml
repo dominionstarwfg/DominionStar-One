@@ -6,6 +6,14 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# Pull-request deploy previews must package the current candidate, not the last
+# production-certified release. Production continues to use the locked build
+# above, so this does not weaken production cutover protection.
+[context.deploy-preview]
+  command = "bash scripts/build-netlify-preview.sh"
+  publish = ".preview-package/public"
+  functions = "netlify/functions"
+
 [[redirects]]
   from = "/api/founder-data"
   to = "/.netlify/functions/founder-data"
