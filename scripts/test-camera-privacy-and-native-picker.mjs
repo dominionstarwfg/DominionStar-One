@@ -1,81 +1,75 @@
 import fs from 'node:fs';
+import assert from 'node:assert/strict';
 
-const engine=fs.readFileSync(new URL('../assets/js/meeting-engine.js',import.meta.url),'utf8');
-const ui=fs.readFileSync(new URL('../assets/js/meet-next/executive6.js',import.meta.url),'utf8');
-const shareView=fs.readFileSync(new URL('../assets/js/meet/share-view-controls.js',import.meta.url),'utf8');
-const main=fs.readFileSync(new URL('../desktop 2/src/main-v2.mjs',import.meta.url),'utf8');
-const bootstrap=fs.readFileSync(new URL('../desktop 2/src/bootstrap.mjs',import.meta.url),'utf8');
-const preload=fs.readFileSync(new URL('../desktop 2/src/preload.cjs',import.meta.url),'utf8');
-const nativeCapture=fs.readFileSync(new URL('../desktop 2/src/macos-native-capture-authority.mjs',import.meta.url),'utf8');
-const nativePickerSession=fs.readFileSync(new URL('../desktop 2/src/macos-system-picker-session.mjs',import.meta.url),'utf8');
-const screenLifecycle=fs.readFileSync(new URL('../desktop 2/src/screen-permission-lifecycle.mjs',import.meta.url),'utf8');
-const customPicker=fs.readFileSync(new URL('../assets/js/meet/desktop-share-picker.js',import.meta.url),'utf8');
-const netlify=fs.readFileSync(new URL('../netlify.toml',import.meta.url),'utf8');
-const headers=fs.readFileSync(new URL('../_headers',import.meta.url),'utf8');
+const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
+const exists=rel=>fs.existsSync(new URL(`../${rel}`,import.meta.url));
+const engine=read('assets/js/meeting-engine.js');
+const ui=read('assets/js/meet-next/executive6.js');
+const shareView=read('assets/js/meet/share-view-controls.js');
+const main=read('desktop 2/src/main-v2.mjs');
+const bootstrap=read('desktop 2/src/bootstrap.mjs');
+const preload=read('desktop 2/src/preload.cjs');
+const screenLifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
+const customPicker=read('assets/js/meet/desktop-share-picker.js');
+const netlify=read('netlify.toml');
+const headers=read('_headers');
 
 const requireSource=(source,needle,message)=>{if(!source.includes(needle))throw new Error(message);};
 const forbidSource=(source,needle,message)=>{if(source.includes(needle))throw new Error(message);};
 
-// Video Off is a physical privacy boundary. Every local video track must be
-// detached and physically ended before a new camera track can be acquired.
+// Camera Off is a real hardware privacy boundary and must support reliable
+// reacquisition rather than leaving a hidden live track behind.
 requireSource(engine,"const cameraTracks=[...(base?.getVideoTracks?.()||[])]",'Video Off does not enumerate every local camera track.');
-requireSource(engine,"if(base?.getVideoTracks?.().includes(item)){try{base.removeTrack(item);}catch(_){}}",'Video Off does not remove every camera track from the meeting stream.');
-requireSource(engine,"if(item?.readyState!=='ended'){try{item.stop();released=true;}catch(_){}}",'Video Off does not inspect and end every live physical camera track.');
-requireSource(engine,"if(released||cameraTracks.length)state.lastCameraReleaseAt=Date.now()",'Video Off does not record hardware release for stable reacquisition.');
-requireSource(engine,"Promise.allSettled([...state.peers.values()].map(peer=>syncPeerTracks(peer)))",'Video Off does not clear the negotiated camera senders after hardware release.');
-requireSource(ui,"video:state.video?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}}:false",'Prejoin does not preserve the HD/30 video contract.');
-requireSource(ui,"state.stream.removeTrack(track)",'Prejoin Video Off does not release its camera track.');
-requireSource(ui,'markPreviewCameraReleased()','Prejoin Video Off does not mark the hardware release boundary before Video On.');
+requireSource(engine,"if(base?.getVideoTracks?.().includes(item)){try{base.removeTrack(item);}catch(_){}}",'Video Off does not detach local camera tracks.');
+requireSource(engine,"if(item?.readyState!=='ended'){try{item.stop();released=true;}catch(_){}}",'Video Off does not physically stop live camera tracks.');
+requireSource(engine,"if(released||cameraTracks.length)state.lastCameraReleaseAt=Date.now()",'Camera hardware release is not recorded for stable reacquisition.');
+requireSource(engine,"Promise.allSettled([...state.peers.values()].map(peer=>syncPeerTracks(peer)))",'Camera Off does not clear negotiated peer senders.');
+requireSource(ui,"video:state.video?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}}:false",'Prejoin does not preserve HD/30 camera intent.');
+requireSource(ui,"state.stream.removeTrack(track)",'Prejoin Camera Off does not detach its camera track.');
+requireSource(ui,'markPreviewCameraReleased()','Prejoin Camera Off does not mark the hardware-release boundary.');
 
-// Physical-Mac authority: macOS 15+ must use Electron's native system picker.
-// DominionStar's branded picker remains a fallback only when the system picker
-// is unavailable.
-requireSource(bootstrap,'macos-native-capture-authority.mjs','Desktop bootstrap must retain capture-capability reporting.');
-requireSource(bootstrap,'macos-system-picker-session.mjs','Desktop bootstrap must install the physical-Mac system-picker session authority.');
-requireSource(nativeCapture,'const nativePicker = supportsNativeMacPicker()','macOS capture authority must resolve system-picker support once per request.');
-requireSource(nativeCapture,"enabled: nativePicker",'macOS 15+ capability must enable the native system picker.');
-requireSource(nativeCapture,"nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'",'macOS capability must expose native authority with DominionStar fallback.');
-requireSource(nativePickerSession,"session.fromPartition(DESKTOP_PARTITION)",'Native picker must target the same persistent DominionStar desktop session.');
-requireSource(nativePickerSession,'{ useSystemPicker: true }','macOS 15+ display capture must opt into Electron native system-picker handling.');
-requireSource(main,"types: ['screen', 'window']",'DominionStar fallback capture handler must still enumerate real screens and windows.');
-requireSource(preload,"ipcRenderer.invoke('desktop:native-capture-capability')",'Renderer does not read the final capture authority.');
-requireSource(preload,'systemSharePicker: nativeSystemPicker','Renderer must expose the final system-picker state.');
-requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must expose the branded picker only when native mode is unavailable.');
-requireSource(preload,'installDesktopMeetRuntimeLayers','Desktop preload must own installation of the advanced Meet runtime.');
-requireSource(preload,'/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime','Desktop preload must own the Operation 2030 bootstrap URL.');
-requireSource(engine,'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)','Meeting engine must consume the desktop picker capability.');
-requireSource(engine,'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose','Meeting engine must skip the custom picker when native system selection is active.');
-requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Native Mac and browser sharing must enter standards getDisplayMedia after source authority is resolved.');
+// One macOS display-media owner only. The second Electron session handler was a
+// physical regression and must stay deleted.
+for(const retired of ['desktop 2/src/macos-system-picker-session.mjs','desktop 2/src/macos-screen-permission-guard.mjs','assets/js/meet/desktop-share-permission-guard.js']){
+  assert.equal(exists(retired),false,`Retired capture authority returned: ${retired}`);
+}
+requireSource(bootstrap,"await import('./screen-permission-lifecycle.mjs')",'Desktop bootstrap must load screen permission lifecycle first.');
+requireSource(bootstrap,"await import('./main-v2.mjs')",'main-v2 must remain the Electron display-media owner.');
+forbidSource(bootstrap,'macos-system-picker-session.mjs','Second macOS display-media handler must never be reinstalled.');
+requireSource(main,'function supportsMacSystemPicker() {\n  return false;','Current physical-Mac architecture must keep the DominionStar picker authoritative.');
+requireSource(main,'desktopSession.setDisplayMediaRequestHandler','Single Electron display-media handler is missing.');
+requireSource(main,"types: ['screen', 'window']",'Desktop capture must enumerate real screens and windows.');
+requireSource(preload,"ipcRenderer.invoke('desktop:native-capture-capability')",'Renderer must read native capture capability diagnostics.');
+requireSource(preload,'customSharePicker: !nativeSystemPicker','Renderer must expose the DominionStar picker when system selection is not authoritative.');
+requireSource(preload,'installDesktopMeetRuntimeLayers','Desktop preload must own advanced Meet runtime installation.');
+requireSource(engine,'navigator.mediaDevices.getDisplayMedia(displayOptions)','Desktop/browser sharing must enter standards getDisplayMedia after source selection.');
 
-// Physical freeze regression: the fallback UI is deliberately non-modal so a
-// stalled or denied share attempt cannot lock every other meeting control. The
-// fallback checks lightweight TCC permission before it ever asks Electron to
-// enumerate desktop sources, and all IPC/source waits remain time-bounded.
-requireSource(customPicker,'dialog.show()','Fallback share picker must be visible without entering modal UI state.');
-forbidSource(customPicker,'dialog.showModal()','Fallback share picker must stay non-modal so the meeting cannot be UI-locked.');
-requireSource(customPicker,'#desktopSharePicker::backdrop{background:transparent}','Fallback picker must not place a blocking backdrop over the meeting.');
-requireSource(customPicker,'const withTimeout=','Fallback share picker must bound native IPC waits instead of freezing indefinitely.');
-requireSource(customPicker,'const requestSources=()=>withTimeout','Fallback source enumeration must have an explicit timeout.');
-const permissionIndex=customPicker.indexOf('const permissionState=await status()');
-const sourceIndex=customPicker.indexOf('next=await requestSources()');
-if(permissionIndex<0||sourceIndex<0||permissionIndex>sourceIndex)throw new Error('macOS fallback must check permission before desktop source enumeration.');
-requireSource(customPicker,"if(screen!=='granted'||permissionState?.requiresRestart){showProblem(permissionState);return;}",'Fallback must refuse source enumeration until macOS reports granted access and no restart is pending.');
-requireSource(screenLifecycle,"systemPreferences.getMediaAccessStatus('screen')",'Permission lifecycle must use the lightweight macOS TCC status API.');
+// Physical freeze regression: passive permission checks cannot enumerate
+// sources, the picker is non-modal, Settings closes the transaction, and retry
+// calls are single-flight rather than stacked native enumerations.
+requireSource(screenLifecycle,"systemPreferences.getMediaAccessStatus('screen')",'Permission lifecycle must use lightweight macOS TCC state.');
 forbidSource(screenLifecycle,'desktopCapturer','Permission-status IPC must never enumerate desktop sources.');
-requireSource(screenLifecycle,'captureProbed:false','Permission status must explicitly remain a non-capture diagnostic.');
+requireSource(screenLifecycle,'captureProbed:false','Permission status must remain a non-capture diagnostic.');
+requireSource(customPicker,'dialog.show()','Desktop source picker must be visible without modal UI lock.');
+forbidSource(customPicker,'dialog.showModal()','Desktop source picker must stay non-modal.');
+requireSource(customPicker,'#desktopSharePicker::backdrop{background:transparent}','Desktop picker backdrop must not intercept meeting controls.');
+requireSource(customPicker,'const withTimeout=','Desktop picker must bound native IPC waits.');
+requireSource(customPicker,'const requestSources=()=>withTimeout','Desktop source enumeration must be time-bounded.');
+requireSource(customPicker,'markRestartNeeded();','Opening macOS Settings must mark a clean permission transition.');
+requireSource(customPicker,"if(dialog.open)dialog.close('cancel')",'Picker must close before macOS Settings opens.');
+forbidSource(customPicker,"window.addEventListener('focus'",'Returning from Settings must never auto-launch capture.');
+requireSource(preload,'let shareSourcesInFlight = null;','Capture source enumeration must have a single-flight guard.');
+requireSource(preload,'if (shareSourcesInFlight) return shareSourcesInFlight;','Share retries must reuse the outstanding native request.');
+requireSource(preload,'getShareSources: (options = {}) => getShareSourcesSingleFlight(options)','Desktop bridge must route source enumeration through single-flight guard.');
 
-// Web/Netlify authority: standards-compliant browsers own their own chooser via
-// getDisplayMedia. The web build must not depend on Electron/native bridges.
-requireSource(shareView,'const isDesktop = Boolean(window.dominionDesktop?.isDesktop)','Share controls must explicitly distinguish desktop from browser runtime.');
-forbidSource(shareView,"bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js",'Web share controls must never bootstrap Operation 2030; desktop preload is the sole owner.');
-requireSource(shareView,"if (!isDesktop && !document.querySelector('script[data-ds-share-annotation]'))",'Browser share fallbacks must be explicitly excluded from desktop mode.');
-requireSource(shareView,"if (!isDesktop && !document.querySelector('script[data-ds-share-arbitration]'))",'Browser arbitration fallback must be explicitly excluded from desktop mode.');
-requireSource(shareView,'media.__dsWebDisplayMediaBoundary = true','Browser display-media normalization boundary is missing.');
-requireSource(shareView,'if (!window.isSecureContext)','Browser sharing must fail clearly outside HTTPS instead of presenting a misleading permission error.');
-requireSource(shareView,"audio: chromiumFamily && Boolean(requested.audio)",'Safari/Firefox screen sharing must not be blocked by unsupported system-audio requests.');
-requireSource(shareView,"name === 'NotAllowedError' || name === 'SecurityError'",'Browser/OS screen-share denial must have an actionable recovery message.');
-requireSource(shareView,"name === 'InvalidStateError'",'Browser transient-user-activation failures must be diagnosed separately.');
-requireSource(netlify,'Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"','Netlify Meet route must explicitly allow browser camera, microphone, display capture and fullscreen.');
-requireSource(headers,'Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)','Published Netlify headers must preserve Meet media/display-capture permissions.');
+// Web/Netlify remains browser-native and independent of Electron bridges.
+requireSource(shareView,'const isDesktop = Boolean(window.dominionDesktop?.isDesktop)','Share controls must distinguish desktop and browser runtimes.');
+forbidSource(shareView,"bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js",'Web share controls must not bootstrap desktop runtime.');
+requireSource(shareView,'media.__dsWebDisplayMediaBoundary = true','Browser display-media boundary is missing.');
+requireSource(shareView,'if (!window.isSecureContext)','Browser sharing must fail clearly outside HTTPS.');
+requireSource(shareView,"audio: chromiumFamily && Boolean(requested.audio)",'Safari/Firefox must not be forced into unsupported system-audio capture.');
+requireSource(shareView,"name === 'NotAllowedError' || name === 'SecurityError'",'Browser/OS screen-share denial needs actionable recovery.');
+requireSource(netlify,'Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)"','Netlify Meet media permissions are incomplete.');
+requireSource(headers,'Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), fullscreen=(self)','Published media/display-capture permissions are incomplete.');
 
-console.log('PASS camera privacy plus native Mac picker and permission-first non-blocking fallback ownership.');
+console.log('PASS camera privacy and single-owner non-blocking physical-Mac capture path.');
