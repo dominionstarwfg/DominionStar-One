@@ -10,12 +10,11 @@ app.on('before-quit',()=>{if(quitting)return;quitting=true;destroyDesktopWindows
 
 // Single-owner desktop foundation:
 // - main-v2 owns display-media request routing;
-// - meet-home/desktop.html + desktop-home-controller.js own Home;
+// - meet-home/desktop.html + desktop-home-controller.js own Home and Settings;
 // - no post-load Home injector or second macOS display-media handler may
 //   overwrite those authorities.
 await import('./screen-permission-lifecycle.mjs');
 await import('./desktop-navigation-authority.mjs');
-await import('./desktop-home-settings-guard.mjs');
 await import('./main-v2.mjs');
 await import('./macos-native-capture-authority.mjs');
 await import('./presenter-dock.mjs');
