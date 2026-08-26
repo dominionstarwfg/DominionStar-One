@@ -34,7 +34,6 @@
     return false;
   }
 
-
   const loadGlobalCallManager = () => {
     if (window.DominionStarGlobalCallManager || document.querySelector('script[data-ds-global-call-manager]')) return;
     const script = document.createElement('script');
@@ -71,7 +70,8 @@
     async signOut() {
       const client = await this.init();
       if (client) await client.auth.signOut();
-      window.location.href = '/member-login/';
+      const desktop = Boolean(window.dominionDesktop?.isDesktop);
+      window.location.href = desktop ? '/member-login/?desktop=1' : '/member-login/';
     }
   };
 })();
