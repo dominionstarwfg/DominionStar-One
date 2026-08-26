@@ -1,29 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>
-  (()=>{
-    'use strict';
-    let marked=false;
-    try{marked=sessionStorage.getItem('ds_desktop_oauth_return_v1')==='1';}catch{}
-    if(!marked)return;
-    const fragment=String(location.hash||'').replace(/^#/,'');
-    const values=new URLSearchParams(fragment);
-    if(!values.get('access_token')&&!values.get('error'))return;
-    try{sessionStorage.removeItem('ds_desktop_oauth_return_v1');}catch{}
-    document.documentElement.style.visibility='hidden';
-    const deepLink=`dominionstar://auth/callback${fragment?`#${fragment}`:''}`;
-    location.replace(deepLink);
-    // If the protocol handoff is blocked, never reveal the public website as if
-    // OAuth completed there. Show a focused recovery surface instead.
-    setTimeout(()=>{
-      document.documentElement.style.visibility='visible';
-      document.addEventListener('DOMContentLoaded',()=>{
-        document.body.innerHTML='<main style="min-height:100vh;display:grid;place-items:center;background:#090d14;color:#fff;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"><section style="max-width:520px;padding:36px;text-align:center;border:1px solid #ffffff20;border-radius:20px;background:#111925"><h1>Return to DominionStar Meet</h1><p style="color:#aeb8c7;line-height:1.6">Google sign-in is complete. Allow this browser to open DominionStar Meet. If no prompt appears, reopen DominionStar Meet and sign in again.</p></section></main>';
-      },{once:true});
-    },1600);
-  })();
-  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07090f">
