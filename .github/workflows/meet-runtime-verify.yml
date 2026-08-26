@@ -22,6 +22,7 @@ on:
       - "scripts/test-professional-meeting-controls.mjs"
       - "scripts/test-netlify-cutover-approval.sh"
       - "scripts/build-netlify-site.sh"
+      - "scripts/build-netlify-preview.sh"
       - "netlify.toml"
       - ".github/workflows/meet-runtime-verify.yml"
   workflow_dispatch:
@@ -65,7 +66,7 @@ jobs:
           node --check assets/js/meet/hotfix-rc13-1-media-prejoin.js
           node --check netlify/functions/resolve-meeting-join.mjs
 
-      - name: Camera privacy and native share picker
+      - name: Camera privacy and DominionStar share picker
         run: node scripts/test-camera-privacy-and-native-picker.mjs
 
       - name: Media stability guardrails
@@ -101,7 +102,54 @@ jobs:
       - name: Production camera, Pause Share and invitation behavior
         run: node scripts/test-production-meet-rc13.mjs
 
-      - name: Release contract integrity
+      - name: Release baseline metadata integrity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          contract=json.loads(Path('meet/release-contract.json').read_text())
+          expected_release='2026.08.16-rc13.1-modern-ui-contract'
+          if contract.get('releaseId') != expected_release:
+              raise SystemExit(f"Unexpected Meet releaseId: {contract.get('releaseId')!r}")
+          files=contract.get('files') or {}
+          if not files:
+              raise SystemExit('Meet release contract contains no file hashes')
+          print('MEET_RELEASE_BASELINE_METADATA_OK', expected_release, len(files))
+          PY
+
+      - name: PR candidate preview integrity
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/build-netlify-preview.sh
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          expected_release='2026.08.16-rc13.1-modern-ui-contract'
+          inventory=json.loads(Path('.preview-package/PREVIEW-SHA256.json').read_text())
+          if inventory.get('productionApproved') is not False:
+              raise SystemExit('PR preview must remain explicitly non-production')
+          if inventory.get('baselineCertifiedRelease') != expected_release:
+              raise SystemExit(f"Unexpected preview baseline: {inventory.get('baselineCertifiedRelease')!r}")
+          files=inventory.get('files') or {}
+          required={
+              'assets/js/meet/desktop-share-picker.js',
+              'assets/js/meeting-engine.js',
+              'meet/index.html',
+              'meet-home/index.html'
+          }
+          missing=sorted(required-set(files))
+          if missing:
+              raise SystemExit(f'PR preview inventory missing required files: {missing}')
+          print('MEET_PR_CANDIDATE_INTEGRITY_OK', len(files), expected_release)
+          PY
+
+      - name: Certified release hash integrity
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           python3 - <<'PY'
@@ -114,9 +162,6 @@ jobs:
               raise SystemExit(f"Unexpected Meet releaseId: {contract.get('releaseId')!r}")
 
           files=contract.get('files') or {}
-          if not files:
-              raise SystemExit('Meet release contract contains no file hashes')
-
           mismatches=[]
           for rel, expected_hash in sorted(files.items()):
               path=Path(rel)
