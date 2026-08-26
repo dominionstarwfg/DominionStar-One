@@ -9,10 +9,13 @@ function ensureMacQuitCommand(){
 app.on('before-quit',()=>{if(quitting)return;quitting=true;destroyDesktopWindows();});
 
 // Single-owner desktop foundation:
+// - share-picker-authority owns the one visible DominionStar source chooser and
+//   bounds native source enumeration so a stalled macOS probe cannot pile up;
 // - main-v2 owns display-media request routing;
 // - meet-home/desktop.html + desktop-home-controller.js own Home and Settings;
-// - no post-load Home injector or second macOS display-media handler may
-//   overwrite those authorities.
+// - no post-load Home injector or second visible macOS picker may overwrite
+//   those authorities.
+await import('./share-picker-authority.mjs');
 await import('./screen-permission-lifecycle.mjs');
 await import('./desktop-navigation-authority.mjs');
 await import('./main-v2.mjs');
