@@ -10,7 +10,7 @@
   const slug=value=>String(value||'dominionstar-member').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').replace(/-{2,}/g,'-').slice(0,48)||'dominionstar-member';
   const readJson=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch{return fallback;}};
   const writeJson=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{}};
-  const esc=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const esc=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
 
   const ROOM_KEYS=['ds_meet_personal_room_v2','ds_meet_personal_room_v1'];
   const IDENTITY_KEY='ds_meet_identity_preferences_v1';
@@ -34,8 +34,7 @@
     state.client=await window.DSAuth?.init?.();
     state.session=state.client?(await state.client.auth.getSession()).data.session:null;
     if(!state.session){
-      if(window.dominionDesktop?.showAccountChooser)window.dominionDesktop.showAccountChooser();
-      else location.replace('/meet-login/?mode=public');
+      location.replace('/member-login/?desktop=1');
       return false;
     }
     const meta=state.session.user.user_metadata||{};
@@ -95,15 +94,9 @@
     else renderAvatar(avatar,avatarUrl,initials);
     const hour=new Date().getHours();if($('greeting'))$('greeting').textContent=`${hour<12?'Good morning':hour<18?'Good afternoon':'Good evening'}, ${displayName.split(/\s+/)[0]}.`;
     const now=new Date();if($('today'))$('today').innerHTML=`${now.getDate()}<small>${esc(now.toLocaleDateString(undefined,{month:'long',year:'numeric',weekday:'long'}))}</small>`;
-    renderRoomIdentity();
   }
 
   function renderAvatar(node,url,initials){if(!node)return;if(!url){node.textContent=initials;return;}const img=document.createElement('img');img.src=url;img.alt='';img.onerror=()=>{node.textContent=initials;};node.replaceChildren(img);}
-  function renderRoomIdentity(){
-    const text=state.room?.personalRoomId?`Personal Room · ${formatId(state.room.personalRoomId)}`:'Personal Room · Not configured';
-    if($('personalIdentity'))$('personalIdentity').textContent=text;
-    if($('newMeetingPersonalId'))$('newMeetingPersonalId').textContent=state.room?.personalRoomId?`Personal Meeting ID ${formatId(state.room.personalRoomId)}`:'Personal Room unavailable';
-  }
 
   async function populateDevices(){
     let devices=[];try{devices=await navigator.mediaDevices?.enumerateDevices?.()||[];}catch{}
@@ -151,20 +144,20 @@
       const passcode=$('requirePasscode')?.checked?digits($('personalPasscode')?.value||'').slice(0,6):'';if(passcode&&passcode.length<3)throw new Error('Passcode must contain 3–6 digits.');
       const next={personalRoomId:state.room.personalRoomId,personalLinkName:slug($('personalLinkName')?.value||state.room.personalLinkName||state.session.user.email?.split('@')[0]),passcode,waitingRoomEnabled:Boolean($('waitingRoom')?.checked)};
       const result=await state.client.from('meet_personal_rooms').upsert({user_id:state.session.user.id,personal_room_id:next.personalRoomId,personal_link_name:next.personalLinkName,passcode:next.passcode,waiting_room_enabled:next.waitingRoomEnabled,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(result?.error)throw result.error;
-      state.room=next;cacheRoom(next);renderRoomIdentity();if($('usePersonalRoom'))$('usePersonalRoom').checked=state.identity.usePersonalForInstant!==false;if($('startWithVideo'))$('startWithVideo').checked=state.prefs.joinCameraOff===false;if(status)status.textContent='Settings saved.';setTimeout(()=>$('settingsDialog')?.close?.(),300);
+      state.room=next;cacheRoom(next);if(status)status.textContent='Settings saved.';setTimeout(()=>$('settingsDialog')?.close?.(),300);
     }catch(error){if(status)status.textContent=error?.message||'Could not save settings.';}finally{if(button)button.disabled=false;}
   }
 
   async function launchNew({share=false}={}){
-    await syncPersonalRoom();state.identity=localIdentity();const usePersonal=$('usePersonalRoom')?.checked!==false;
-    writeJson(IDENTITY_KEY,{...state.identity,usePersonalForInstant:usePersonal});
-    await persistPreferences({joinCameraOff:$('startWithVideo')?.checked!==true});
+    state.identity=localIdentity();
+    const usePersonal=state.identity.usePersonalForInstant!==false;
+    if(usePersonal)await syncPersonalRoom();
     const params=new URLSearchParams({desktop:'1',action:share?(usePersonal?'desktop-share':'share'):(usePersonal?'desktop-new':'new')});
     if(usePersonal){
-      if(!state.room?.personalRoomId){if($('settingsStatus'))$('settingsStatus').textContent='Personal Room is not configured. Settings will not invent a random replacement.';$('settingsDialog')?.showModal?.();return;}
+      if(!state.room?.personalRoomId){hydrateSettings();if($('settingsStatus'))$('settingsStatus').textContent='Personal Room is not configured. Turn off “Use Personal Room for instant meetings” or configure your Personal Room.';$('settingsDialog')?.showModal?.();return;}
       params.set('host','1');params.set('room',state.room.personalRoomId);if(state.room.passcode)params.set('passcode',state.room.passcode);if(state.room.waitingRoomEnabled)params.set('waiting','1');if(state.room.personalLinkName)params.set('personal',state.room.personalLinkName);
     }
-    location.href=`/meet/?${params.toString()}`;
+    location.assign(`/meet/?${params.toString()}`);
   }
 
   function renderMeetings(){
@@ -172,24 +165,22 @@
     if(!meetings.length){target.innerHTML='<div class="empty">No upcoming meetings yet.<br>Use Schedule to create one.</div>';return;}
     const sorted=[...meetings].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||''))).slice(0,8);
     target.innerHTML=sorted.map((item,index)=>`<div class="meeting-item"><span><strong>${esc(item.topic||'DominionStar Meeting')}</strong><small>${esc(item.date||'Date not set')} · ${esc(item.time||'Time not set')}${item.recurring?' · Recurring':''} · ${esc(formatId(item.meetingId||item.id||''))}</small></span><button data-start-scheduled="${index}">Start</button></div>`).join('');
-    target.querySelectorAll('[data-start-scheduled]').forEach(button=>button.onclick=()=>{const item=sorted[Number(button.dataset.startScheduled)];if(!item)return;const params=new URLSearchParams({desktop:'1',action:'scheduled',host:'1',room:digits(item.meetingId||item.id||'')});if(item.passcode)params.set('passcode',String(item.passcode));if(item.waitingRoom)params.set('waiting','1');location.href=`/meet/?${params}`;});
+    target.querySelectorAll('[data-start-scheduled]').forEach(button=>button.onclick=()=>{const item=sorted[Number(button.dataset.startScheduled)];if(!item)return;const params=new URLSearchParams({desktop:'1',action:'scheduled',host:'1',room:digits(item.meetingId||item.id||'')});if(item.passcode)params.set('passcode',String(item.passcode));if(item.waitingRoom)params.set('waiting','1');location.assign(`/meet/?${params.toString()}`);});
   }
 
   function wireUi(){
     renderMeetings();
-    if($('startWithVideo'))$('startWithVideo').checked=state.prefs.joinCameraOff===false;if($('usePersonalRoom'))$('usePersonalRoom').checked=state.identity.usePersonalForInstant!==false;
     if($('newMeeting'))$('newMeeting').onclick=()=>void launchNew({share:false});if($('shareScreen'))$('shareScreen').onclick=()=>void launchNew({share:true});
     if($('joinMeeting'))$('joinMeeting').onclick=()=>location.assign('/meet/?desktop=1&action=join');if($('scheduleMeeting'))$('scheduleMeeting').onclick=()=>location.assign('/meet/?desktop=1&action=schedule');
-    if($('newMeetingMenuButton'))$('newMeetingMenuButton').onclick=event=>{event.stopPropagation();$('newMeetingMenu').hidden=!$('newMeetingMenu').hidden;};document.addEventListener('click',event=>{if(!event.target.closest('.action-shell')&&$('newMeetingMenu'))$('newMeetingMenu').hidden=true;});
-    if($('startWithVideo'))$('startWithVideo').onchange=()=>void persistPreferences({joinCameraOff:!$('startWithVideo').checked});if($('usePersonalRoom'))$('usePersonalRoom').onchange=()=>writeJson(IDENTITY_KEY,{...localIdentity(),usePersonalForInstant:Boolean($('usePersonalRoom').checked)});
     if($('settingsNav'))$('settingsNav').onclick=async()=>{await syncPersonalRoom();state.prefs=localPrefs();state.identity=localIdentity();hydrateSettings();await populateDevices();$('settingsDialog')?.showModal?.();};
-    if($('closeSettings'))$('closeSettings').onclick=()=> $('settingsDialog')?.close?.();if($('cancelSettings'))$('cancelSettings').onclick=()=> $('settingsDialog')?.close?.();if($('saveSettings'))$('saveSettings').onclick=()=>void saveSettings();
+    if($('closeSettings'))$('closeSettings').onclick=()=>$('settingsDialog')?.close?.();if($('cancelSettings'))$('cancelSettings').onclick=()=>$('settingsDialog')?.close?.();if($('saveSettings'))$('saveSettings').onclick=()=>void saveSettings();
     if($('requirePasscode'))$('requirePasscode').onchange=()=>{if($('passcodeField'))$('passcodeField').hidden=!$('requirePasscode').checked;};if($('personalPasscode'))$('personalPasscode').oninput=()=>{$('personalPasscode').value=digits($('personalPasscode').value).slice(0,6);};if($('personalLinkName'))$('personalLinkName').oninput=()=>{$('personalLinkName').value=slug($('personalLinkName').value);};
     if($('desktopBrightness'))$('desktopBrightness').oninput=()=>{$('desktopBrightnessValue').textContent=$('desktopBrightness').value;};if($('desktopAppearance'))$('desktopAppearance').oninput=()=>{$('desktopAppearanceValue').textContent=$('desktopAppearance').value;};
-    if($('homeNav'))$('homeNav').onclick=()=>document.querySelector('.content')?.scrollTo?.({top:0,behavior:'smooth'});if($('meetingsNav'))$('meetingsNav').onclick=()=> $('meetingsSection')?.scrollIntoView?.({behavior:'smooth',block:'start'});
-    const profileDialog=$('profileDialog');if($('profileButton'))$('profileButton').onclick=()=>profileDialog?.showModal?.();if($('closeProfile'))$('closeProfile').onclick=()=>profileDialog?.close?.();if($('signOut'))$('signOut').onclick=async()=>{try{await state.client?.auth?.signOut?.();}catch{}location.replace('/meet-login/?mode=public');};
+    if($('homeNav'))$('homeNav').onclick=()=>document.querySelector('.content')?.scrollTo?.({top:0,behavior:'smooth'});if($('meetingsNav'))$('meetingsNav').onclick=()=>$('meetingsSection')?.scrollIntoView?.({behavior:'smooth',block:'start'});
+    const profileDialog=$('profileDialog');if($('profileButton'))$('profileButton').onclick=()=>profileDialog?.showModal?.();if($('closeProfile'))$('closeProfile').onclick=()=>profileDialog?.close?.();
+    if($('signOut'))$('signOut').onclick=async()=>{try{if(window.DSAuth?.signOut){await window.DSAuth.signOut();return;}await state.client?.auth?.signOut?.();}catch{}location.replace('/member-login/?desktop=1');};
   }
 
   const ready=(async()=>{if(!await loadAccount())return false;wireUi();return true;})().catch(error=>{console.error('DominionStar desktop Home failed',error);const status=$('settingsStatus');if(status)status.textContent='Meet Home could not initialize. Quit and reopen DominionStar Meet.';return false;});
-  window.DominionDesktopHomeController=Object.freeze({version:'1.0.0-single-authority',ready,snapshot:()=>({room:state.room?{...state.room}:null,prefs:{...state.prefs},identity:{...state.identity}})});
+  window.DominionDesktopHomeController=Object.freeze({version:'2.0.0-settings-own-meeting-identity',ready,snapshot:()=>({room:state.room?{...state.room}:null,prefs:{...state.prefs},identity:{...state.identity}})});
 })();
