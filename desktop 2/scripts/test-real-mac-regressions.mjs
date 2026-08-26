@@ -17,6 +17,7 @@ const bootstrap=read('desktop 2/src/bootstrap.mjs');
 const preload=read('desktop 2/src/preload.cjs');
 const navigation=read('desktop 2/src/desktop-navigation-authority.mjs');
 const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
+const sharePickerAuthority=read('desktop 2/src/share-picker-authority.mjs');
 const nativeCapture=read('desktop 2/src/macos-native-capture-authority.mjs');
 const home=read('meet-home/desktop.html');
 const browserHome=read('meet-home/index.html');
@@ -30,8 +31,8 @@ assert(memberLogin.includes('skipBrowserRedirect: true'));
 assert(memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));
 assert(memberLogin.includes("return '/meet-home/?desktop=1';"));
 
-// One installed-app Home only. Legacy/browser Home may remain for browser users
-// but cannot be packaged or routed as the desktop surface.
+assert(bootstrap.indexOf(dynamicImportNeedle('share-picker-authority.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
+assert(bootstrap.indexOf(dynamicImportNeedle('screen-permission-lifecycle.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(bootstrap.indexOf(dynamicImportNeedle('desktop-navigation-authority.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(navigation.includes("INTERNAL_PATHS=new Set(['/meet','/meet-home','/meet-login','/member-login'])"));
 assert(navigation.includes("DESKTOP_HOME_ALIASES=new Set(['/meet-home','/meet-home/index.html','/meet-home/desktop.html'])"));
@@ -47,13 +48,10 @@ assert.equal((home.match(/class="action(?: primary)?" id="/g)||[]).length,4);
 assert.equal(exists('assets/js/meet/desktop-home-compact-launch.js'),false);
 assert.equal(exists('desktop 2/src/desktop-home-injection.mjs'),false);
 assert.equal(exists('desktop 2/src/desktop-home-settings-guard.mjs'),false);
-assert(!bootstrap.includes('desktop-home-injection.mjs'));
-assert(!bootstrap.includes('desktop-home-settings-guard.mjs'));
 assert(browserHome.includes('Aurora Meeting Assistant'));
 const homeResource=(pkg.build?.extraResources||[]).find(entry=>entry?.from==='../meet-home');
 assert.deepEqual(homeResource?.filter,['desktop.html']);
 
-// Camera hardware acquisition remains bounded and passive catalogs never own it.
 assert(cameraCatalog.includes('enumerateDevices()'));
 assert(cameraCatalog.includes('cameraSelect')&&cameraCatalog.includes('microphoneSelect')&&cameraCatalog.includes('speakerSelect'));
 assert(!cameraCatalog.includes('media.getUserMedia ='));
@@ -74,37 +72,31 @@ assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
-// Modern macOS privacy metadata must match Apple's ScreenCaptureKit/CoreAudio
-// permission keys. Do not silently regress to obsolete/unrecognized names.
 const macPrivacy=pkg.build?.mac?.extendInfo||{};
 assert.ok(macPrivacy.NSScreenCaptureUsageDescription,'macOS package must declare NSScreenCaptureUsageDescription');
 assert.ok(macPrivacy.NSAudioCaptureUsageDescription,'macOS package must declare NSAudioCaptureUsageDescription');
 assert.equal(Object.prototype.hasOwnProperty.call(macPrivacy,'NSScreenCaptureDescription'),false,'obsolete NSScreenCaptureDescription key must not return');
 
-// Modern macOS uses Apple's native ScreenCaptureKit picker through the single
-// Electron display-media handler. This avoids desktopCapturer enumeration from
-// stalling the meeting around Screen Recording permission transitions. The
-// DominionStar picker remains the non-modal compatibility fallback.
+// Physical Mac sharing must match the approved Screens / Applications illustration
+// without letting native enumeration pile up or lock the meeting process.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
-assert(bootstrap.indexOf(dynamicImportNeedle('screen-permission-lifecycle.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(!bootstrap.includes('macos-system-picker-session.mjs'));
 assert(nativeCapture.includes('export function supportsNativeMacPicker()'));
-assert(nativeCapture.includes('major >= 15'));
-assert(nativeCapture.includes("'macos-system-picker'"));
-assert(nativeCapture.includes("'dominionstar-custom-picker'"));
-assert(main.includes('function supportsMacSystemPicker()'));
-assert(main.includes('major >= 15'));
+assert(/supportsNativeMacPicker\(\)\s*\{\s*return false;\s*\}/.test(nativeCapture));
+assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"));
+assert(sharePickerAuthority.includes('SOURCE_ENUMERATION_TIMEOUT_MS = 4500'));
+assert(sharePickerAuthority.includes('sourceEnumerationInFlight'));
+assert(sharePickerAuthority.includes('Promise.race([sourceEnumerationInFlight, timeoutResult()])'));
+assert(sharePickerAuthority.includes('useSystemPicker: false'));
 assert(main.includes('desktopSession.setDisplayMediaRequestHandler'));
-assert(main.includes('{ useSystemPicker: supportsMacSystemPicker() }'));
 assert.equal((main.match(/setDisplayMediaRequestHandler/g)||[]).length,1);
 assert(preload.includes('systemSharePicker: nativeSystemPicker'));
 assert(preload.includes('customSharePicker: !nativeSystemPicker'));
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
 
-// Fallback custom picker remains bounded and safe where native selection is unavailable.
 assert(lifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"));
 assert(!lifecycle.includes('desktopCapturer')&&!lifecycle.includes('getSources('));
 assert(lifecycle.includes('captureProbed:false'));
@@ -116,4 +108,4 @@ assert(!/addEventListener\(['"]focus['"]/.test(picker));
 assert(preload.includes('let shareSourcesInFlight = null;'));
 assert(preload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 
-console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth native-mac-picker privacy-keys fallback-dominionstar-picker single-handler guarded');
+console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth approved-custom-picker privacy-keys bounded-enumeration single-handler guarded');
