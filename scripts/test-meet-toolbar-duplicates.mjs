@@ -64,20 +64,32 @@ assert(executive.includes("querySelectorAll('.local-share-only').forEach(button=
 assert(executive.includes("querySelectorAll('.remote-share-only').forEach(button=>button.hidden=state.sharingParticipantId==='self')"), 'Remote-only Share action must be hidden for the local presenter.');
 assert(executive.includes("ids.sharePresenterControls.hidden = state.sharingParticipantId!=='self'"), 'Only the presenter may see the web presenter control strip.');
 
-// 4) Native desktop presenter toolbar: every command has one UI owner. More
-// owns Reactions/Slide Control; Layout/Annotate/Show Meeting stay direct.
+// 4) Native desktop presenter toolbar: each command has exactly one UI owner.
+// The approved compact direct bar keeps frequent controls visible and moves
+// secondary presentation actions under More so the toolbar stays Zoom-class.
 const presenterCommands = matches(presenterHtml, /data-command="([^"]+)"/g).map(match => match[1]);
 assert.deepEqual(duplicates(presenterCommands), [], 'Native presenter toolbar contains duplicate data-command owners.');
-const directOrder = ['audio','video','participants','chat','new-share','pause','layout','annotate','show-meeting','more','stop'];
+const barStart = presenterHtml.indexOf('<div class="bar"');
+const menuStart = presenterHtml.indexOf('<div id="presenterMoreMenu"');
+assert(barStart >= 0 && menuStart > barStart, 'Native presenter toolbar/menu structure is missing.');
+const directBar = presenterHtml.slice(barStart, menuStart);
+const moreMenu = presenterHtml.slice(menuStart);
+const directOrder = ['audio','video','pause','participants','chat','more','stop'];
 let cursor = -1;
 for (const command of directOrder) {
-  const index = presenterHtml.indexOf(`data-command="${command}"`);
-  assert(index > cursor, `Native presenter command ${command} is missing or out of approved order.`);
+  const index = directBar.indexOf(`data-command="${command}"`);
+  assert(index > cursor, `Native presenter command ${command} is missing or out of approved compact order.`);
   cursor = index;
 }
+for (const command of ['reactions','new-share','annotate','layout','show-meeting']) {
+  assert(!directBar.includes(`data-command="${command}"`), `${command} must not duplicate or lengthen the direct native presenter bar.`);
+  assert(moreMenu.includes(`data-command="${command}"`), `${command} must have one owner under native presenter More.`);
+}
 assert.equal(presenterCommands.filter(command => command === 'reactions').length, 1, 'Reactions must have one native presenter owner.');
-assert(presenterHtml.indexOf('id="presenterMoreMenu"') < presenterHtml.indexOf('data-command="reactions"'), 'Reactions must live under native presenter More.');
-assert(!presenterHtml.match(/<div class="controls">[\s\S]*?data-command="reactions"[\s\S]*?<\/div>\s*<\/div>/), 'Reactions must not be duplicated on the direct native presenter bar.');
+assert(!presenterHtml.includes('class="share-rail"'), 'Native presenter must expose one compact toolbar, not a second share rail.');
+assert(presenterHtml.includes('class="share-live"') && presenterHtml.includes('You are sharing'), 'Native presenter must retain one sharing indicator.');
+assert(presenterHtml.includes('class="share-stop"') && presenterHtml.includes('Stop Share'), 'Stop Share must remain directly visible.');
+assert(presenterJs.includes('EXPANDED_WIDTH=610'), 'Native presenter toolbar width must remain compact.');
 assert(presenterJs.includes("if(menu&&!menu.querySelector('[data-command=\"slide-control\"]'))"), 'Slide Control dynamic insertion must be idempotent.');
 assert(presenterJs.includes("document.querySelectorAll('[data-command]').forEach"), 'Native presenter command binding must attach once to the final command set.');
 
@@ -133,4 +145,4 @@ for (const command of nativeCommands) {
   assert(mainCommands.includes(command) || parityCommands.includes(command), `Native presenter command ${command} has no command owner.`);
 }
 
-console.log(`DOMINIONSTAR_TOOLBAR_DUPLICATE_AUDIT_OK ids=${htmlIds.length} presenterCommands=${presenterCommands.length} bootstrapMarkers=${bootstrapMarkers.length} ipcChannels=2-separated`);
+console.log(`DOMINIONSTAR_TOOLBAR_DUPLICATE_AUDIT_OK ids=${htmlIds.length} presenterCommands=${presenterCommands.length} bootstrapMarkers=${bootstrapMarkers.length} ipcChannels=2-separated compactPresenter=true`);
