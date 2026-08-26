@@ -1,0 +1,77 @@
+name: DominionStar Desktop OAuth Return Verification
+
+on:
+  pull_request:
+    paths:
+      - "assets/js/member-auth.js"
+      - "assets/js/member-login.js"
+      - "member-login/**"
+      - "meet-auth-callback/**"
+      - "desktop 2/src/main-v2.mjs"
+      - "desktop 2/scripts/test-desktop-google-oauth-return.mjs"
+      - ".github/workflows/desktop-auth-return-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-desktop-oauth-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Desktop OAuth callback + exact preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Verify desktop OAuth architecture
+        run: node "desktop 2/scripts/test-desktop-google-oauth-return.mjs"
+
+      - name: Wait for exact deployed desktop auth return surface
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          ORIGIN="https://deploy-preview-${PR_NUMBER}--melodious-buttercream-a99450.netlify.app"
+          files=(
+            assets/js/member-auth.js
+            assets/js/member-login.js
+            member-login/index.html
+            meet-auth-callback/index.html
+          )
+
+          for attempt in $(seq 1 36); do
+            exact=1
+            for rel in "${files[@]}"; do
+              tmp="$(mktemp)"
+              if ! curl --fail --silent --show-error --location --max-time 20 "$ORIGIN/$rel" -o "$tmp"; then
+                exact=0
+                rm -f "$tmp"
+                break
+              fi
+              local_hash="$(sha256sum "$rel" | awk '{print $1}')"
+              remote_hash="$(sha256sum "$tmp" | awk '{print $1}')"
+              rm -f "$tmp"
+              if [ "$local_hash" != "$remote_hash" ]; then
+                echo "WAITING_FOR_DESKTOP_AUTH_PREVIEW $rel local=$local_hash remote=$remote_hash attempt=$attempt"
+                exact=0
+                break
+              fi
+            done
+            if [ "$exact" -eq 1 ]; then
+              echo "DOMINIONSTAR_DESKTOP_OAUTH_PREVIEW_EXACT_OK $ORIGIN"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "ERROR: desktop OAuth callback surface did not converge to current PR source." >&2
+          exit 1
