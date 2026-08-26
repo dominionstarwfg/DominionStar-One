@@ -62,12 +62,13 @@ jobs:
           text=test.read_text()
           anchor="assert(picker.includes('data-filter=\"window\">Applications'));"
           if anchor not in text: raise SystemExit('test-approved-share-ui.mjs: picker assertion anchor not found')
-          additions="""assert(picker.includes('data-filter=\"window\">Applications'));
-assert(picker.includes('<span>Share system audio</span>'));
-assert(picker.includes('<span>Optimize for video sharing</span>'));
-assert(picker.includes('class=\"ds-share-switch-row\" hidden><span>Share DominionStar windows</span>'));
-assert(picker.includes('background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-color:#60a5fa'));
-"""
+          additions=(
+              "assert(picker.includes('data-filter=\\\"window\\\">Applications'));\n"
+              "assert(picker.includes('<span>Share system audio</span>'));\n"
+              "assert(picker.includes('<span>Optimize for video sharing</span>'));\n"
+              "assert(picker.includes('class=\\\"ds-share-switch-row\\\" hidden><span>Share DominionStar windows</span>'));\n"
+              "assert(picker.includes('background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-color:#60a5fa'));\n"
+          )
           text=text.replace(anchor,additions,1)
           test.write_text(text)
           PY
