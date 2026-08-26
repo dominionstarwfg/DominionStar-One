@@ -16,6 +16,7 @@ const headers=read('_headers');
 
 const requireSource=(source,needle,message)=>{if(!source.includes(needle))throw new Error(message);};
 const forbidSource=(source,needle,message)=>{if(source.includes(needle))throw new Error(message);};
+const dynamicImportNeedle=file=>`await ${'import'}('./${file}')`;
 
 // Camera Off is a real hardware privacy boundary and must support reliable
 // reacquisition rather than leaving a hidden live track behind.
@@ -33,8 +34,8 @@ requireSource(ui,'markPreviewCameraReleased()','Prejoin Camera Off does not mark
 for(const retired of ['desktop 2/src/macos-system-picker-session.mjs','desktop 2/src/macos-screen-permission-guard.mjs','assets/js/meet/desktop-share-permission-guard.js']){
   assert.equal(exists(retired),false,`Retired capture authority returned: ${retired}`);
 }
-requireSource(bootstrap,"await import('./screen-permission-lifecycle.mjs')",'Desktop bootstrap must load screen permission lifecycle first.');
-requireSource(bootstrap,"await import('./main-v2.mjs')",'main-v2 must remain the Electron display-media owner.');
+requireSource(bootstrap,dynamicImportNeedle('screen-permission-lifecycle.mjs'),'Desktop bootstrap must load screen permission lifecycle first.');
+requireSource(bootstrap,dynamicImportNeedle('main-v2.mjs'),'main-v2 must remain the Electron display-media owner.');
 forbidSource(bootstrap,'macos-system-picker-session.mjs','Second macOS display-media handler must never be reinstalled.');
 requireSource(main,'function supportsMacSystemPicker() {\n  return false;','Current physical-Mac architecture must keep the DominionStar picker authoritative.');
 requireSource(main,'desktopSession.setDisplayMediaRequestHandler','Single Electron display-media handler is missing.');
