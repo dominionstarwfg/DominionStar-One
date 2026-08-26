@@ -3,11 +3,11 @@ const more=document.querySelector('[data-command="more"]');
 let collapseTimer=0;
 let stopRecoveryTimer=0;
 let sharePaused=false;
-const EXPANDED_WIDTH=930;
-const EXPANDED_HEIGHT=96;
-const MENU_HEIGHT=330;
-const COLLAPSED_WIDTH=320;
-const COLLAPSED_HEIGHT=44;
+const EXPANDED_WIDTH=610;
+const EXPANDED_HEIGHT=66;
+const MENU_HEIGHT=360;
+const COLLAPSED_WIDTH=230;
+const COLLAPSED_HEIGHT=50;
 
 const slideControlMarkup='<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m9 9-3 3 3 3M15 9l3 3-3 3M8 21h8"/></svg>';
 if(menu&&!menu.querySelector('[data-command="slide-control"]')){
