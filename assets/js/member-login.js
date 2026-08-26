@@ -7,7 +7,7 @@
   const tabs = [...document.querySelectorAll('[data-member-tab]')];
   const params = new URLSearchParams(window.location.search);
   const isDesktop = params.get('desktop') === '1' && Boolean(window.dominionDesktop?.isDesktop);
-  const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`;
+  const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';
 
   [loginForm, registerForm, resetForm].forEach(form => {
     if (form) {
@@ -108,14 +108,15 @@
             // navigate through Google/Supabase, but the completed session returns
             // to the installed app's own trusted member-login route instead of a
             // second browser process or custom-protocol token relay.
-            redirectTo: DESKTOP_OAUTH_RETURN,
+            redirectTo: DESKTOP_OAUTH_CALLBACK,
             skipBrowserRedirect: true,
             queryParams: { prompt: 'select_account' }
           }
         });
         if (error) throw error;
         if (!data?.url) throw new Error('Google sign-in URL was not returned.');
-        window.location.assign(data.url);
+        const opened = await window.dominionDesktop?.openExternal?.(data.url);
+        if (opened === false) throw new Error('Google sign-in could not open in the browser.');
       } catch (error) {
         googleButton.disabled = false;
         showMessage(error?.message || 'Google sign-in could not start.', 'error');

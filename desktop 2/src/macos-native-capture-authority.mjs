@@ -21,9 +21,7 @@ export function macSystemVersion() {
 }
 
 export function supportsNativeMacPicker() {
-  if (process.platform !== 'darwin') return false;
-  const major = Number.parseInt(macSystemVersion().split('.')[0] || '', 10);
-  return Number.isFinite(major) && major >= 15;
+  return false;
 }
 
 // Physical Mac QA showed that desktopCapturer enumeration can stall after a

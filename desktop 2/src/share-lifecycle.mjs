@@ -37,15 +37,9 @@ function presenterSender(event) {
 }
 
 function keepMeetingOffSharedDesktop() {
-  if (!sharing || meetingExplicitlyShown) return false;
-  const win = meetingWindow();
-  if (!win || win.isDestroyed() || !win.isVisible()) return false;
-  try {
-    win.hide();
-    return true;
-  } catch {
-    return false;
-  }
+  // Compatibility export only. The approved presentation state keeps Meet visible;
+  // native content protection prevents the app surface from leaking into capture.
+  return false;
 }
 
 function startDockGuard() {
@@ -53,11 +47,9 @@ function startDockGuard() {
   meetingExplicitlyShown = false;
   clearInterval(dockGuardTimer);
   void ensureMacDockVisible();
-  setImmediate(keepMeetingOffSharedDesktop);
   dockGuardTimer = setInterval(() => {
     if (!sharing) return;
     void ensureMacDockVisible();
-    keepMeetingOffSharedDesktop();
   }, 500);
 }
 
@@ -78,10 +70,6 @@ ipcMain.on('desktop:presenter-command', (event, command = '') => {
 
 app.on('activate', () => {
   void ensureMacDockVisible();
-  // main-v2 restores the normal meeting window on macOS activation. During a
-  // presentation that must not undo the Zoom-style presenter state. Re-hide it
-  // on the next turn unless the presenter explicitly chose Show meeting.
-  if (sharing && !meetingExplicitlyShown) setImmediate(keepMeetingOffSharedDesktop);
 });
 
 app.on('before-quit', () => {

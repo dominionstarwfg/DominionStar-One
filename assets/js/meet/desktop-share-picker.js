@@ -17,13 +17,13 @@
     dialog=document.createElement('dialog');
     dialog.id='desktopSharePicker';
     dialog.innerHTML=`<form method="dialog">
-      <header><div class="ds-share-brand"><img src="/assets/logo.jpeg" alt=""><span><b>DOMINIONSTAR MEET</b><strong>Share your screen</strong><small>Choose exactly what meeting participants can see.</small></span></div><button value="cancel" aria-label="Close">×</button></header>
-      <nav><button type="button" class="active" data-filter="screen">Screens</button><button type="button" data-filter="window">Application windows</button></nav>
+      <header><div class="ds-share-brand"><img src="/assets/logo.jpeg" alt=""><span><b>DOMINIONSTAR MEET</b><strong>Choose what to share</strong><small>Choose exactly what meeting participants can see.</small></span></div><button value="cancel" aria-label="Close">×</button></header>
+      <nav><button type="button" class="active" data-filter="screen">Screens</button><button type="button" data-filter="window">Applications</button></nav>
       <main><section class="ds-share-content">
         <div class="ds-share-permission" data-permission hidden><span class="ds-permission-badge" data-permission-badge>SCREEN ACCESS</span><strong data-permission-title>Allow screen sharing</strong><p data-permission-copy></p><div class="ds-share-permission-actions"><button type="button" data-open-settings>Open System Settings</button><button type="button" class="secondary" data-retry-capture hidden>Retry</button><button type="button" class="secondary" data-restart-app hidden>Restart DominionStar Meet</button></div><small data-permission-note></small></div>
         <div class="ds-share-loading" data-loading hidden><span></span><strong>Loading screens and windows…</strong></div>
         <div class="ds-share-sources" data-sources></div>
-      </section><aside><strong>Sharing options</strong><label class="ds-share-switch-row"><span>Share sound</span><input type="checkbox" role="switch" data-share-audio></label><label class="ds-share-switch-row"><span>Optimize for video sharing</span><input type="checkbox" role="switch" data-optimize></label><label class="ds-share-switch-row"><span>Share DominionStar windows</span><input type="checkbox" role="switch" data-own-windows></label><p data-audio-note></p><small>DominionStar windows stay private by default to prevent mirror recursion.</small></aside></main>
+      </section><aside><strong>Sharing options</strong><label class="ds-share-switch-row"><span>Share system audio</span><input type="checkbox" role="switch" data-share-audio></label><label class="ds-share-switch-row"><span>Optimize for video sharing</span><input type="checkbox" role="switch" data-optimize></label><label class="ds-share-switch-row"><span>Share DominionStar windows</span><input type="checkbox" role="switch" data-own-windows></label><p data-audio-note></p><small>DominionStar windows stay private by default to prevent mirror recursion.</small></aside></main>
       <footer><span data-selection-label>Select a screen</span><div><button value="cancel">Cancel</button><button type="button" class="primary" data-confirm disabled>Share</button></div></footer>
     </form>`;
     const style=document.createElement('style');

@@ -216,9 +216,7 @@ function publishDesktopLayout() {
 // selection to Apple's native system picker; older macOS and other platforms
 // retain the DominionStar selected-source fallback below.
 function supportsMacSystemPicker() {
-  if (process.platform !== 'darwin') return false;
-  const major = Number(String(process.getSystemVersion?.() || '0').split('.')[0] || 0);
-  return Number.isFinite(major) && major >= 15;
+  return false;
 }
 
 function installPermissionPolicy(desktopSession) {
@@ -505,7 +503,7 @@ function showPresenterWindow() {
   const size = win.getSize();
   win.setPosition(Math.round(bounds.x + (bounds.width - size[0]) / 2), bounds.y + 18, false);
   win.showInactive();
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.showInactive();
 }
 
 function hidePresenterWindow({ restoreMeeting = false } = {}) {

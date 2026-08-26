@@ -24,11 +24,10 @@ const homeController=read('assets/js/meet/desktop-home-controller.js');
 const pkg=JSON.parse(read('desktop 2/package.json'));
 
 assert(memberLogin.includes("provider: 'google'"));
-assert(memberLogin.includes('const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`'));
-assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_RETURN'));
+assert(memberLogin.includes("const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'"));
+assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_CALLBACK'));
 assert(memberLogin.includes('skipBrowserRedirect: true'));
-assert(memberLogin.includes('window.location.assign(data.url)'));
-assert(!memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));
+assert(memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));
 assert(memberLogin.includes("return '/meet-home/?desktop=1';"));
 
 // One installed-app Home only. Legacy/browser Home may remain for browser users
@@ -75,18 +74,17 @@ assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
-// Modern macOS uses Apple's native picker through the one Electron handler.
+// Modern macOS uses the approved DominionStar picker through one Electron handler.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
 assert(bootstrap.indexOf(dynamicImportNeedle('screen-permission-lifecycle.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(!bootstrap.includes('macos-system-picker-session.mjs'));
 assert(nativeCapture.includes('export function supportsNativeMacPicker()'));
-assert(nativeCapture.includes('major >= 15'));
-assert(nativeCapture.includes("'macos-system-picker'"));
-assert(main.includes("if (process.platform !== 'darwin') return false;"));
-assert(main.includes('process.getSystemVersion?.()'));
-assert(main.includes('major >= 15'));
+assert(nativeCapture.includes('return false;'));
+assert(nativeCapture.includes("'dominionstar-custom-picker'"));
+assert(main.includes('function supportsMacSystemPicker()'));
+assert(main.includes('return false;'));
 assert(main.includes('desktopSession.setDisplayMediaRequestHandler'));
 assert(main.includes('{ useSystemPicker: supportsMacSystemPicker() }'));
 assert.equal((main.match(/setDisplayMediaRequestHandler/g)||[]).length,1);
@@ -95,7 +93,7 @@ assert(preload.includes('customSharePicker: !nativeSystemPicker'));
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
 
-// Fallback remains safe for older macOS/Windows.
+// Approved custom picker remains safe on macOS/Windows.
 assert(lifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"));
 assert(!lifecycle.includes('desktopCapturer')&&!lifecycle.includes('getSources('));
 assert(lifecycle.includes('captureProbed:false'));
@@ -107,4 +105,4 @@ assert(!/addEventListener\(['"]focus['"]/.test(picker));
 assert(preload.includes('let shareSourcesInFlight = null;'));
 assert(preload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 
-console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home in-app-auth native-system-picker single-handler fallback-guarded');
+console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth dominionstar-picker single-handler guarded');

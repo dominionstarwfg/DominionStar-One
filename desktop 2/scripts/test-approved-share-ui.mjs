@@ -37,16 +37,15 @@ assert(bootstrap.includes('presenter-command-web-parity.js'));
 assert(screenLifecycle.includes("ipcMain.handle('desktop:screen-permission-status'"));
 assert(screenLifecycle.includes('QA_PREVIEW_HOST'));
 
-// Physical Mac: exactly one Electron display-media authority. macOS 15+ uses
-// Apple's native system picker; the DominionStar source picker is fallback only.
+// Physical Mac: exactly one Electron display-media authority. DominionStar's
+// approved picker is primary while macOS remains the underlying capture authority.
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false,'competing system-picker session returned');
 assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
 assert(nativeCapture.includes('export function supportsNativeMacPicker()'));
-assert(nativeCapture.includes('major >= 15'));
-assert(nativeCapture.includes("'macos-system-picker'"));
-assert(desktopMain.includes("if (process.platform !== 'darwin') return false;"));
-assert(desktopMain.includes('process.getSystemVersion?.()'));
-assert(desktopMain.includes('major >= 15'));
+assert(nativeCapture.includes('return false;'));
+assert(nativeCapture.includes("'dominionstar-custom-picker'"));
+assert(desktopMain.includes('function supportsMacSystemPicker()'));
+assert(desktopMain.includes('return false;'));
 assert(desktopMain.includes('desktopSession.setDisplayMediaRequestHandler'));
 assert(desktopMain.includes('{ useSystemPicker: supportsMacSystemPicker() }'));
 assert.equal((desktopMain.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Desktop runtime must install exactly one display-media handler.');
@@ -54,11 +53,11 @@ assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker')&&desktop
 assert(meetingEngine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(meetingEngine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
 
-// Custom fallback picker remains non-modal/bounded for older macOS/Windows.
+// Approved custom picker remains non-modal/bounded on macOS and Windows.
 assert(desktopPreload.includes('let shareSourcesInFlight = null;'));
 assert(desktopPreload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 assert(desktopSharePicker.includes('data-filter="screen">Screens'));
-assert(desktopSharePicker.includes('data-filter="window">Application windows'));
+assert(desktopSharePicker.includes('data-filter="window">Applications'));
 assert(desktopSharePicker.includes('const withTimeout='));
 assert(desktopSharePicker.includes('const requestSources=()=>withTimeout'));
 assert(desktopSharePicker.includes('if(!dialog.open)dialog.show()'));
@@ -101,7 +100,8 @@ assert(illustrationParity.includes("document.body.classList.contains('local-pres
 assert(illustrationParity.includes('window.dominionDesktop.showPresenterToolbar?.()'));
 assert(shareLifecycle.includes('keepMeetingOffSharedDesktop'));
 assert(shareLifecycle.includes("String(command || '') === 'show-meeting'"));
-assert(shareLifecycle.includes('setImmediate(keepMeetingOffSharedDesktop)'));
+assert(!shareLifecycle.includes('win.hide()'));
+assert(!shareLifecycle.includes('setImmediate(keepMeetingOffSharedDesktop)'));
 
 // Normal meeting/dock behavior remains approved.
 assert(illustrationParity.includes("label.textContent='Security'"));
@@ -126,4 +126,4 @@ assert(nativePresenterParity.includes("safe === 'layout'")&&nativePresenterParit
 assert(nativePresenterParity.includes("safe === 'show-meeting'")&&nativePresenterParity.includes('showMeeting()'));
 assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'));
 
-console.log('Approved one-handler native-mac/fallback share UI and final-illustration guardrails passed.');
+console.log('Approved one-handler DominionStar share UI and final-illustration guardrails passed.');

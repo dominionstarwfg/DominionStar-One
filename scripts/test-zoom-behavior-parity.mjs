@@ -61,30 +61,32 @@ assert(browserHome.includes('Aurora Meeting Assistant'),'Browser Home fixture ch
 const homeResource=(pkg.build?.extraResources||[]).find(entry=>entry?.from==='../meet-home');
 assert.deepEqual(homeResource?.filter,['desktop.html'],'Desktop package must exclude meet-home/index.html.');
 
-// Google OAuth stays in the persistent Electron session and returns to Meet Home.
-requireText(memberLogin, 'const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`', 'Desktop Google login must return to the trusted in-app login route.');
-requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_RETURN', 'Google OAuth must request the in-app desktop return URI.');
-requireText(memberLogin, 'window.location.assign(data.url)', 'Google OAuth must continue in the same persistent Electron webContents.');
-assert(!memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'), 'Google OAuth must not be externalized to a second browser session.');
+// Google OAuth uses the normal browser and returns to the installed app through
+// the registered DominionStar deep link, then resolves to Meet Home.
+requireText(memberLogin, "const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'", 'Desktop Google login must return through the registered app protocol.');
+requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_CALLBACK', 'Google OAuth must request the desktop deep-link return URI.');
+requireText(memberLogin, 'window.dominionDesktop?.openExternal?.(data.url)', 'Google OAuth must authenticate in the normal browser.');
+assert(!memberLogin.includes('window.location.assign(data.url)'), 'Google OAuth must not strand the installed app inside the browser flow.');
+requireText(desktopMain, "url.hostname === 'auth' && url.pathname === '/callback'", 'Desktop must consume the auth callback deep link.');
 requireText(memberLogin, "return '/meet-home/?desktop=1';", 'Desktop authentication must fail closed to Meet Home.');
 
-// One display-media handler. macOS 15+ uses Apple's system picker. Older Mac
-// and Windows use the DominionStar selected-source fallback.
+// One display-media handler. The approved DominionStar picker is the visible
+// source-selection surface; macOS remains the underlying capture authority.
 requireText(screenLifecycle, "systemPreferences.getMediaAccessStatus('screen')", 'macOS permission lifecycle must read TCC status.');
 assert(!screenLifecycle.includes('desktopCapturer') && !screenLifecycle.includes('getSources('), 'Passive permission status must never enumerate capture sources.');
 requireText(desktopMain, 'function supportsMacSystemPicker()', 'macOS native-picker capability check is missing.');
-requireText(desktopMain, 'major >= 15', 'Native system picker must be limited to supported macOS versions.');
+requireText(desktopMain, 'return false;', 'Apple system picker must not replace the approved DominionStar picker.');
 requireText(desktopMain, 'desktopSession.setDisplayMediaRequestHandler', 'Electron display-media handler is missing.');
-requireText(desktopMain, '{ useSystemPicker: supportsMacSystemPicker() }', 'The single Electron handler must delegate to the macOS system picker when supported.');
+requireText(desktopMain, '{ useSystemPicker: supportsMacSystemPicker() }', 'The single Electron handler must preserve one capture authority.');
 assert.equal((desktopMain.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Desktop must have exactly one display-media handler.');
 requireText(nativeCapture, 'export function supportsNativeMacPicker()', 'Renderer capability reporting for native Mac picker is missing.');
 requireText(nativeCapture, "authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'", 'Native capture authority reporting is inconsistent.');
 requireText(meetingEngine, 'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)', 'Meeting engine must choose the native Mac path from runtime capability.');
-requireText(meetingEngine, 'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose', 'Custom picker must be fallback-only.');
+requireText(meetingEngine, 'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose', 'Approved DominionStar picker must own desktop source selection when the system picker is disabled.');
 
-// Fallback path remains non-modal and single-flight.
-requireText(desktopSharePicker, 'if(!dialog.open)dialog.show()', 'Fallback picker must remain non-modal.');
-assert(!desktopSharePicker.includes('dialog.showModal()'), 'Fallback picker must not lock the meeting.');
+// Approved DominionStar picker remains non-modal and single-flight.
+requireText(desktopSharePicker, 'if(!dialog.open)dialog.show()', 'Approved picker must remain non-modal.');
+assert(!desktopSharePicker.includes('dialog.showModal()'), 'Approved picker must not lock the meeting.');
 assert(!desktopSharePicker.includes("window.addEventListener('focus'"), 'Returning from System Settings must not automatically restart fallback capture.');
 requireText(desktopPreload, 'let shareSourcesInFlight = null;', 'Desktop bridge must serialize fallback source enumeration.');
 requireText(desktopPreload, 'if (shareSourcesInFlight) return shareSourcesInFlight;', 'Fallback retries must reuse one native source request.');
@@ -106,7 +108,8 @@ for (const command of ['audio','video','participants','chat','new-share','pause'
 requireText(presenterHtml, '-webkit-app-region:drag', 'Presenter toolbar must be movable.');
 requireText(presenterJs, "label.textContent=sharePaused?'Resume':'Pause'", 'Pause Share must visibly become Resume.');
 requireText(illustration, '#shareStatusBar.ds-native-presenter-active{display:none!important}', 'Desktop must not show duplicate presenter toolbars.');
-requireText(shareLifecycle, 'keepMeetingOffSharedDesktop', 'Meeting window must stay off the presented desktop unless explicitly shown.');
+requireText(shareLifecycle, 'keepMeetingOffSharedDesktop', 'Presentation lifecycle compatibility export is missing.');
+assert(!shareLifecycle.includes('win.hide()'), 'Presentation must keep DominionStar Meet visible instead of hiding it.');
 requireText(twoClient, 'share, private Pause Share presentation continuity, resume and stop', 'Pause/Resume/Stop continuity is not tested.');
 requireText(dockPolish, "POSITION_KEY='ds_meet_dock_geometry_v3'", 'Participant dock geometry persistence is missing.');
 requireText(dockPolish, 'ds-dock-resize-handle', 'Participant dock must be resizable.');
