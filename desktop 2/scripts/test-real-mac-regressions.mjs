@@ -74,17 +74,21 @@ assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
 assert(!operationBootstrap.includes('media-effect-safety'));
 
-// Modern macOS uses the approved DominionStar picker through one Electron handler.
+// Modern macOS uses Apple's native ScreenCaptureKit picker through the single
+// Electron display-media handler. This avoids desktopCapturer enumeration from
+// stalling the meeting around Screen Recording permission transitions. The
+// DominionStar picker remains the non-modal compatibility fallback.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
 assert(bootstrap.indexOf(dynamicImportNeedle('screen-permission-lifecycle.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(!bootstrap.includes('macos-system-picker-session.mjs'));
 assert(nativeCapture.includes('export function supportsNativeMacPicker()'));
-assert(nativeCapture.includes('return false;'));
+assert(nativeCapture.includes('major >= 15'));
+assert(nativeCapture.includes("'macos-system-picker'"));
 assert(nativeCapture.includes("'dominionstar-custom-picker'"));
 assert(main.includes('function supportsMacSystemPicker()'));
-assert(main.includes('return false;'));
+assert(main.includes('major >= 15'));
 assert(main.includes('desktopSession.setDisplayMediaRequestHandler'));
 assert(main.includes('{ useSystemPicker: supportsMacSystemPicker() }'));
 assert.equal((main.match(/setDisplayMediaRequestHandler/g)||[]).length,1);
@@ -93,7 +97,7 @@ assert(preload.includes('customSharePicker: !nativeSystemPicker'));
 assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
 
-// Approved custom picker remains safe on macOS/Windows.
+// Fallback custom picker remains bounded and safe where native selection is unavailable.
 assert(lifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"));
 assert(!lifecycle.includes('desktopCapturer')&&!lifecycle.includes('getSources('));
 assert(lifecycle.includes('captureProbed:false'));
@@ -105,4 +109,4 @@ assert(!/addEventListener\(['"]focus['"]/.test(picker));
 assert(preload.includes('let shareSourcesInFlight = null;'));
 assert(preload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 
-console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth dominionstar-picker single-handler guarded');
+console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth native-mac-picker fallback-dominionstar-picker single-handler guarded');
