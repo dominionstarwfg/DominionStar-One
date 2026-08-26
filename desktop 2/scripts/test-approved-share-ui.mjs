@@ -43,8 +43,11 @@ assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false,'comp
 assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
 assert(nativeCapture.includes('export function supportsNativeMacPicker() { return false; }'));
 assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"));
-assert(desktopMain.includes("{ useSystemPicker: false }"));
+assert(desktopMain.includes('function supportsMacSystemPicker() {\n  return false;'));
+assert(desktopMain.includes('desktopSession.setDisplayMediaRequestHandler'));
 assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker')&&desktopPreload.includes('customSharePicker: !nativeSystemPicker'));
+assert(desktopPreload.includes('let shareSourcesInFlight = null;'));
+assert(desktopPreload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 
 // The branded source picker remains non-modal and bounded. System Settings is a
 // terminal action for the current attempt: picker closes first, no focus handler
