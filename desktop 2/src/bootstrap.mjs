@@ -8,14 +8,15 @@ function ensureMacQuitCommand(){
 }
 app.on('before-quit',()=>{if(quitting)return;quitting=true;destroyDesktopWindows();});
 
-// One capture authority only. main-v2 owns the Electron display-media handler
-// for every desktop platform. macOS permission state is read separately, but no
-// second session handler is allowed to overwrite the selected-source contract.
+// Single-owner desktop foundation:
+// - main-v2 owns display-media request routing;
+// - meet-home/desktop.html + desktop-home-controller.js own Home;
+// - no post-load Home injector or second macOS display-media handler may
+//   overwrite those authorities.
 await import('./screen-permission-lifecycle.mjs');
 await import('./desktop-navigation-authority.mjs');
 await import('./main-v2.mjs');
 await import('./macos-native-capture-authority.mjs');
-await import('./desktop-home-injection.mjs');
 await import('./presenter-dock.mjs');
 await import('./presenter-command-parity.mjs');
 await import('./share-lifecycle.mjs');
