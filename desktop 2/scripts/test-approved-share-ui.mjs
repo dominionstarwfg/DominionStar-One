@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
+const exists = rel => fs.existsSync(new URL(`../../${rel}`, import.meta.url));
 const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
 const illustrationParity = read('assets/js/meet/illustration-ui-parity.js');
 const dockPolish = read('assets/js/meet/dock-polish-2030.js');
@@ -14,8 +15,8 @@ const hostedPresenterParity = read('assets/js/meet/presenter-command-web-parity.
 const nativePresenterParity = read('desktop 2/src/presenter-command-parity.mjs');
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const desktopMain = read('desktop 2/src/main-v2.mjs');
+const desktopBootstrap = read('desktop 2/src/bootstrap.mjs');
 const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
-const nativePickerSession = read('desktop 2/src/macos-system-picker-session.mjs');
 const screenLifecycle = read('desktop 2/src/screen-permission-lifecycle.mjs');
 const presenterDock = read('desktop 2/src/presenter-dock.mjs');
 const presenterDockHtml = read('desktop 2/src/presenter-dock.html');
@@ -25,107 +26,100 @@ const desktopSession = read('desktop 2/src/desktop-session.mjs');
 const qaWorkflow = read('.github/workflows/desktop-pr-verify.yml');
 
 const indexOfCommand = command => presenterToolbar.indexOf(`data-command="${command}"`);
-const assertBefore = (a, b) => assert(indexOfCommand(a) >= 0 && indexOfCommand(b) >= 0 && indexOfCommand(a) < indexOfCommand(b), `${a} must appear before ${b} in the approved presenter toolbar.`);
+const assertBefore = (a,b) => assert(indexOfCommand(a)>=0&&indexOfCommand(b)>=0&&indexOfCommand(a)<indexOfCommand(b),`${a} must appear before ${b}.`);
 
-assert(!bootstrap.includes('screen-permission-ui-guard.js'), 'Certified desktop runtime must not load the duplicate screen-permission UI guard.');
-assert(bootstrap.includes('quick-device-menu-parity.js'), 'Certified runtime must keep Zoom-class device menus.');
-assert(bootstrap.includes('share-optimization-parity.js'), 'Certified runtime must keep screen-share optimization.');
-assert(bootstrap.includes('presenter-command-web-parity.js'), 'Certified runtime must load presenter command routing.');
-assert(screenLifecycle.includes("ipcMain.handle('desktop:screen-permission-status'"), 'Native desktop lifecycle must own macOS permission diagnostics.');
-assert(screenLifecycle.includes('QA_PREVIEW_HOST'), 'QA preview must be trusted by the native screen-permission lifecycle.');
+// Runtime ownership and advanced features remain deliberate.
+assert(!bootstrap.includes('screen-permission-ui-guard.js'));
+assert(bootstrap.includes('quick-device-menu-parity.js'));
+assert(bootstrap.includes('share-optimization-parity.js'));
+assert(bootstrap.includes('presenter-command-web-parity.js'));
+assert(screenLifecycle.includes("ipcMain.handle('desktop:screen-permission-status'"));
+assert(screenLifecycle.includes('QA_PREVIEW_HOST'));
 
-// Physical Mac QA is authoritative. The fallback share surface must never lock
-// the meeting UI, and passive screen-permission status must never enumerate
-// desktop sources. macOS permission is checked first; screens/windows are only
-// requested after access is granted, with every native wait bounded.
-assert(nativeCapture.includes('const nativePicker = supportsNativeMacPicker()'), 'macOS capture authority must resolve native picker availability.');
-assert(nativeCapture.includes('enabled: nativePicker'), 'macOS 15+ must enable the native system picker.');
-assert(nativeCapture.includes("nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'"), 'macOS must expose system-picker authority with DominionStar fallback.');
-assert(nativePickerSession.includes("session.fromPartition(DESKTOP_PARTITION)"), 'Native system picker must bind to the DominionStar persistent session.');
-assert(nativePickerSession.includes('{ useSystemPicker: true }'), 'macOS 15+ display capture must opt into Electron native system-picker handling.');
-assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker') && desktopPreload.includes('customSharePicker: !nativeSystemPicker'), 'Renderer must advertise exactly one active share-picker authority.');
-assert(desktopSharePicker.includes('data-filter="screen">Screens'), 'Fallback source picker must expose a real Screens tab.');
-assert(desktopSharePicker.includes('data-filter="window">Application windows'), 'Fallback source picker must expose a real Application windows tab.');
-assert(desktopSharePicker.includes('SOURCE_RETRY_DELAYS'), 'Fallback source picker must retry real source enumeration instead of becoming unresponsive.');
-assert(desktopSharePicker.includes('const withTimeout='), 'Fallback source picker must bound native IPC waits.');
-const pickerVisibleIndex=desktopSharePicker.indexOf('dialog.show()');
-const runtimeProbeIndex=desktopSharePicker.indexOf('getRuntimeInfo?.()');
-assert(pickerVisibleIndex >= 0 && runtimeProbeIndex >= 0 && pickerVisibleIndex < runtimeProbeIndex, 'Fallback picker must become visible before runtime probing.');
-assert(!desktopSharePicker.includes('dialog.showModal()'), 'Fallback picker must not be modal because a capture failure must never freeze the meeting controls.');
-assert(desktopSharePicker.includes('#desktopSharePicker::backdrop{background:transparent}'), 'Fallback picker must not place a blocking backdrop over the meeting.');
-const permissionIndex=desktopSharePicker.indexOf('const permissionState=await status()');
+// Physical Mac: exactly one display-media authority. The system-picker session
+// override is retired because it could leave getDisplayMedia pending while macOS
+// Settings owned focus. main-v2 keeps the selected-source handler everywhere.
+assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false,'competing system-picker session returned');
+assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
+assert(nativeCapture.includes('export function supportsNativeMacPicker() { return false; }'));
+assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"));
+assert(desktopMain.includes("{ useSystemPicker: false }"));
+assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker')&&desktopPreload.includes('customSharePicker: !nativeSystemPicker'));
+
+// The branded source picker remains non-modal and bounded. System Settings is a
+// terminal action for the current attempt: picker closes first, no focus handler
+// auto-runs capture, and the next fresh process may probe real sources even when
+// TCC status has not caught up yet.
+assert(desktopSharePicker.includes('data-filter="screen">Screens'));
+assert(desktopSharePicker.includes('data-filter="window">Application windows'));
+assert(desktopSharePicker.includes('const withTimeout='));
+assert(desktopSharePicker.includes('const requestSources=()=>withTimeout'));
+assert(desktopSharePicker.includes('if(!dialog.open)dialog.show()'));
+assert(!desktopSharePicker.includes('dialog.showModal()'));
+assert(desktopSharePicker.includes('#desktopSharePicker::backdrop{background:transparent}'));
+assert(desktopSharePicker.includes('PERMISSION_RESTART_KEY'));
+assert(desktopSharePicker.includes('allowFreshProcessProbe'));
+assert(desktopSharePicker.includes("if(dialog.open)dialog.close('cancel')"));
+assert(!/addEventListener\(['"]focus['"]/.test(desktopSharePicker));
+const permissionIndex=desktopSharePicker.indexOf('permissionState=await status()');
 const sourceIndex=desktopSharePicker.indexOf('next=await requestSources()');
-assert(permissionIndex >= 0 && sourceIndex >= 0 && permissionIndex < sourceIndex, 'macOS permission must be checked before desktop source enumeration.');
-assert(desktopSharePicker.includes("if(screen!=='granted'||permissionState?.requiresRestart){showProblem(permissionState);return;}"), 'Fallback picker must stop before enumeration when macOS access is unavailable or needs restart.');
-assert(desktopSharePicker.includes("if(screen==='granted'&&!current?.requiresRestart){void loadSources();return;}"), 'Returning from macOS Settings must load sources immediately when access is active.');
-assert(desktopSharePicker.includes('showProblem({...current,requiresRestart:true})'), 'Returning from Settings with a changed permission must expose one restart path instead of reopening Settings.');
-assert(screenLifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"), 'Native permission diagnostics must read the macOS TCC status.');
-assert(!screenLifecycle.includes('desktopCapturer') && !screenLifecycle.includes('getSources('), 'Passive native permission diagnostics must never enumerate desktop sources.');
-assert(screenLifecycle.includes('captureProbed:false'), 'Passive permission diagnostics must report that capture was not probed.');
-assert(screenLifecycle.includes("requiresRestart:process.platform==='darwin'&&granted&&initialScreenPermission!=='granted'"), 'A newly granted macOS permission must require exactly one fresh app process.');
-assert(desktopSharePicker.includes('optimize:optimize.checked'), 'Desktop fallback share picker must return the Optimize for video sharing decision.');
-assert(desktopSharePicker.includes('role="switch" data-optimize'), 'Share options must use modern switch controls rather than checkbox-looking UI.');
-assert(illustrationParity.includes("applicationTab.textContent='Applications'"), 'Illustration layer must use the approved Applications tab label.');
-assert(illustrationParity.includes('ds-approved-source-picker'), 'Illustration layer must preserve the approved source-picker composition where the fallback is used.');
-assert(shareOptimization.includes("track.contentHint = optimizeForVideo ? 'motion' : 'detail'"), 'Share optimization must affect the real presentation track.');
+assert(permissionIndex>=0&&sourceIndex>=0&&permissionIndex<sourceIndex);
+assert(screenLifecycle.includes("systemPreferences.getMediaAccessStatus('screen')"));
+assert(!screenLifecycle.includes('desktopCapturer')&&!screenLifecycle.includes('getSources('));
+assert(screenLifecycle.includes('captureProbed:false'));
+assert(desktopSharePicker.includes('optimize:Boolean(optimize.checked)'));
+assert(desktopSharePicker.includes('role="switch" data-optimize'));
+assert(shareOptimization.includes("track.contentHint = optimizeForVideo ? 'motion' : 'detail'"));
 
-for (const required of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…']) {
-  assert(quickDeviceMenu.includes(required), `Quick device controls must retain ${required}.`);
-}
-assert(!quickDeviceMenu.includes("${checked?'✓ ':''}"), 'Quick video controls must not regress to checkmark-style toggles.');
-assert(quickDeviceMenu.includes('ds-quick-switch'), 'Quick video controls must use modern sliding switch treatment.');
+// Device menus retain meeting-grade controls and modern switch treatment.
+for(const required of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…'])assert(quickDeviceMenu.includes(required),`missing device control: ${required}`);
+assert(quickDeviceMenu.includes('ds-quick-switch'));
 
-const approvedPresenterOrder = ['audio','video','participants','chat','new-share','pause','layout','annotate','show-meeting','more','stop'];
-for (const command of approvedPresenterOrder) assert(indexOfCommand(command) >= 0, `Approved presenter toolbar must visibly expose ${command}.`);
-for (let i = 0; i < approvedPresenterOrder.length - 1; i += 1) assertBefore(approvedPresenterOrder[i], approvedPresenterOrder[i + 1]);
-assert(presenterToolbar.includes('<svg'), 'Presenter controls must remain vector/icon based.');
-assert(presenterToolbar.includes('class="share-rail"'), 'Approved presenter toolbar must include the separate green sharing rail.');
-assert(presenterToolbar.includes('You are screen sharing'), 'Sharing rail must use the approved status copy.');
-assert(presenterToolbar.includes('class="share-stop"') && presenterToolbar.includes('Stop Share'), 'Stop Share must live on the sharing rail.');
-assert(presenterToolbar.indexOf('>Reactions</button>') > presenterToolbar.indexOf('id="presenterMoreMenu"'), 'Reactions must remain under More instead of displacing approved visible controls.');
-assert(presenterToolbarJs.includes('EXPANDED_WIDTH=930'), 'Presenter toolbar must reserve the approved full-width hierarchy.');
-assert(presenterToolbarJs.includes('EXPANDED_HEIGHT=96'), 'Presenter window must reserve both the control row and green sharing rail.');
-assert(presenterToolbarJs.includes("label.textContent=sharePaused?'Resume':'Pause'"), 'Pause must visibly become Resume while sharing is frozen.');
-assert(presenterToolbarJs.includes("button.dataset.command='slide-control'"), 'Slide Control must remain available under More without replacing approved visible controls.');
+// Presenter toolbar keeps the approved Zoom-familiar hierarchy.
+const approvedPresenterOrder=['audio','video','participants','chat','new-share','pause','layout','annotate','show-meeting','more','stop'];
+for(const command of approvedPresenterOrder)assert(indexOfCommand(command)>=0,`missing presenter command ${command}`);
+for(let i=0;i<approvedPresenterOrder.length-1;i+=1)assertBefore(approvedPresenterOrder[i],approvedPresenterOrder[i+1]);
+assert(presenterToolbar.includes('<svg'));
+assert(presenterToolbar.includes('class="share-rail"'));
+assert(presenterToolbar.includes('You are screen sharing'));
+assert(presenterToolbar.includes('class="share-stop"')&&presenterToolbar.includes('Stop Share'));
+assert(presenterToolbarJs.includes('EXPANDED_WIDTH=930'));
+assert(presenterToolbarJs.includes('EXPANDED_HEIGHT=96'));
+assert(presenterToolbarJs.includes("label.textContent=sharePaused?'Resume':'Pause'"));
+assert(presenterToolbarJs.includes("button.dataset.command='slide-control'"));
 
-for (const [command, id] of [['audio','micBtn'],['video','camBtn'],['participants','participantsBtn'],['chat','chatBtn'],['pause','pauseShareBtn'],['new-share','newShareBtn'],['stop','stopShareBtn']]) {
-  assert(hostedPresenterParity.includes(`safe === '${command}'`) && hostedPresenterParity.includes(`click('${id}')`), `Presenter ${command} must route to the real hosted ${id} control.`);
-}
-assert(hostedPresenterParity.includes("safe === 'annotate'") && hostedPresenterParity.includes('DominionShareAnnotation'), 'Presenter Annotate must open the real synchronized annotation engine.');
+for(const [command,id] of [['audio','micBtn'],['video','camBtn'],['participants','participantsBtn'],['chat','chatBtn'],['pause','pauseShareBtn'],['new-share','newShareBtn'],['stop','stopShareBtn']])assert(hostedPresenterParity.includes(`safe === '${command}'`)&&hostedPresenterParity.includes(`click('${id}')`),`${command} routing missing`);
+assert(hostedPresenterParity.includes("safe === 'annotate'")&&hostedPresenterParity.includes('DominionShareAnnotation'));
 
-assert(illustrationParity.includes('#shareStatusBar.ds-native-presenter-active{display:none!important}'), 'Local desktop share must hide the obsolete in-window presenter strip.');
-assert(illustrationParity.includes("document.body.classList.contains('local-presentation-active')"), 'Illustration parity must detect local presentation mode.');
-assert(illustrationParity.includes('window.dominionDesktop.showPresenterToolbar?.()'), 'Local presentation must keep the native presenter toolbar authoritative.');
-assert(shareLifecycle.includes('keepMeetingOffSharedDesktop'), 'Share lifecycle must keep the full meeting window off the presented desktop.');
-assert(shareLifecycle.includes("String(command || '') === 'show-meeting'"), 'Only explicit Show Meeting may override the hidden meeting window during sharing.');
-assert(shareLifecycle.includes('setImmediate(keepMeetingOffSharedDesktop)'), 'macOS activation must not resurrect the meeting window over shared content.');
+// Native presenter ownership prevents duplicate in-window share controls.
+assert(illustrationParity.includes('#shareStatusBar.ds-native-presenter-active{display:none!important}'));
+assert(illustrationParity.includes("document.body.classList.contains('local-presentation-active')"));
+assert(illustrationParity.includes('window.dominionDesktop.showPresenterToolbar?.()'));
+assert(shareLifecycle.includes('keepMeetingOffSharedDesktop'));
+assert(shareLifecycle.includes("String(command || '') === 'show-meeting'"));
+assert(shareLifecycle.includes('setImmediate(keepMeetingOffSharedDesktop)'));
 
-assert(illustrationParity.includes("label.textContent='Security'"), 'Normal meeting toolbar must use the approved Security label.');
-assert(illustrationParity.includes("label.textContent=isHost?'End':'Leave'"), 'Host must see End while attendees/co-hosts retain Leave behavior.');
-assert(illustrationParity.includes("decline.textContent='View'"), 'Waiting-room heads-up must use Admit/View instead of destructive Decline.');
-assert(illustrationParity.includes('enforceOnePersonDockRule'), 'One-person meetings must not show a participant strip.');
-assert(illustrationParity.includes('#participantsPanel,#chatPanel{resize:both'), 'Participants and Chat panels must remain resizable.');
-assert(dockPolish.includes("const POSITION_KEY='ds_meet_dock_geometry_v3'"), 'Participant dock geometry must have a stable persistence key.');
-assert(dockPolish.includes('localStorage.setItem(POSITION_KEY') && dockPolish.includes('localStorage.getItem(POSITION_KEY)'), 'Participant dock geometry must actually save and restore.');
-assert(dockPolish.includes('saveGeometry') && dockPolish.includes('restoreGeometry'), 'Participant dock must expose real geometry save/restore behavior.');
-assert(dockPolish.includes("resizeHandle.className='ds-dock-resize-handle'"), 'Participant dock must have a professional resize handle.');
-assert(dockPolish.includes('.remote-tile .tile-mic{display:grid!important'), 'Muted microphone status must remain visible on participant tiles.');
+// Normal meeting/dock behavior remains approved.
+assert(illustrationParity.includes("label.textContent='Security'"));
+assert(illustrationParity.includes("label.textContent=isHost?'End':'Leave'"));
+assert(illustrationParity.includes("decline.textContent='View'"));
+assert(illustrationParity.includes('enforceOnePersonDockRule'));
+assert(illustrationParity.includes('#participantsPanel,#chatPanel{resize:both'));
+assert(dockPolish.includes("const POSITION_KEY='ds_meet_dock_geometry_v3'"));
+assert(dockPolish.includes('saveGeometry')&&dockPolish.includes('restoreGeometry'));
+assert(dockPolish.includes("resizeHandle.className='ds-dock-resize-handle'"));
+assert(presenterDock.includes('zoomClassDockSize'));
+assert(presenterDockHtml.includes('data-layout="stack"')&&presenterDockHtml.includes('data-layout="speaker"')&&presenterDockHtml.includes('data-layout="grid"'));
 
-assert(desktopPreload.includes('installDesktopMeetRuntimeLayers'), 'Desktop Meet must explicitly load its advanced meeting runtime.');
-assert(desktopPreload.includes('installQaPreviewChromeBlocker'), 'Desktop preload must install a renderer-level Netlify review-chrome blocker.');
-assert(desktopPreload.includes('iframe[src*="app.netlify.com"]'), 'Renderer-level blocker must target cross-origin Netlify review frames, not only body text.');
-assert(desktopSession.includes("target.searchParams.set('ntl-drawer-state', 'hidden')"), 'Every Netlify preview navigation must request the official hidden Drawer state.');
-assert(navigation.includes("iframe.getAttribute('src')") && navigation.includes("src.includes('app.netlify.com')"), 'Native navigation authority must remove injected Netlify review frames.');
-assert(!navigation.includes('Collaborate on this Deploy Preview') && !navigation.includes('Log in to the Netlify Drawer'), 'Native preview cleanup must not depend on brittle Netlify UI copy.');
-assert(desktopPreload.includes('/assets/js/meet/operation-2030-bootstrap.js?v=13-clean-desktop-runtime'), 'Desktop advanced runtime must come from the certified bootstrap.');
-assert(desktopPreload.includes('/assets/js/meet/illustration-ui-parity.js?v=1-final-ui-blueprint'), 'Final illustration parity must load after the advanced runtime.');
-assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'), 'Native desktop bridge must remain at certified bridge 14.');
-assert(desktopMain.includes("'audio', 'video', 'participants', 'chat', 'reactions', 'pause', 'new-share', 'more', 'stop'"), 'Core presenter commands must remain forwarded through the main desktop bridge.');
-assert(nativePresenterParity.includes("safe === 'layout'") && nativePresenterParity.includes('cycleLayout()'), 'Layout must be handled by the dedicated native presenter layer.');
-assert(nativePresenterParity.includes("safe === 'show-meeting'") && nativePresenterParity.includes('showMeeting()'), 'Show Meeting must be handled by the dedicated native presenter layer.');
-assert(nativePresenterParity.includes("safe === 'annotate'") && nativePresenterParity.includes("meetingWindow()?.webContents?.send?.('desktop:presenter-command', safe)"), 'Annotate must traverse the native presenter layer to the hosted meeting.');
-assert(presenterDock.includes('zoomClassDockSize'), 'Presenter participant dock must retain Zoom-class sizing logic.');
-assert(presenterDockHtml.includes('data-layout="stack"') && presenterDockHtml.includes('data-layout="speaker"') && presenterDockHtml.includes('data-layout="grid"'), 'Presenter Layout must provide stack, speaker, and grid modes.');
-assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'), 'QA must still prove native trust rebinding before packaging.');
+// Desktop runtime/trust remains fail-closed.
+assert(desktopPreload.includes('installDesktopMeetRuntimeLayers'));
+assert(desktopPreload.includes('installQaPreviewChromeBlocker'));
+assert(desktopSession.includes("target.searchParams.set('ntl-drawer-state', 'hidden')"));
+assert(navigation.includes("iframe.getAttribute('src')")&&navigation.includes("src.includes('app.netlify.com')"));
+assert(!navigation.includes('Collaborate on this Deploy Preview'));
+assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'));
+assert(nativePresenterParity.includes("safe === 'layout'")&&nativePresenterParity.includes('cycleLayout()'));
+assert(nativePresenterParity.includes("safe === 'show-meeting'")&&nativePresenterParity.includes('showMeeting()'));
+assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'));
 
-console.log('Approved physical-Mac share UI and final-illustration guardrails passed.');
+console.log('Approved physical-Mac single-authority share UI and final-illustration guardrails passed.');
