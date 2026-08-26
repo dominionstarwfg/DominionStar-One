@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Desktop OAuth callback + exact preview
+    name: Desktop OAuth callback + deployed preview
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -34,26 +34,26 @@ jobs:
       - name: Verify desktop OAuth architecture
         run: node "desktop 2/scripts/test-desktop-google-oauth-return.mjs"
 
-      - name: Wait for exact deployed desktop auth return surface
+      - name: Wait for deployed desktop auth return surface
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           PR_NUMBER="${{ github.event.pull_request.number }}"
           ORIGIN="https://deploy-preview-${PR_NUMBER}--melodious-buttercream-a99450.netlify.app"
-          files=(
+          exact_js=(
             assets/js/member-auth.js
             assets/js/member-login.js
-            member-login/index.html
-            meet-auth-callback/index.html
           )
 
           for attempt in $(seq 1 36); do
-            exact=1
-            for rel in "${files[@]}"; do
+            ready=1
+
+            # JavaScript is served byte-for-byte and must match this PR exactly.
+            for rel in "${exact_js[@]}"; do
               tmp="$(mktemp)"
               if ! curl --fail --silent --show-error --location --max-time 20 "$ORIGIN/$rel" -o "$tmp"; then
-                exact=0
+                ready=0
                 rm -f "$tmp"
                 break
               fi
@@ -61,17 +61,45 @@ jobs:
               remote_hash="$(sha256sum "$tmp" | awk '{print $1}')"
               rm -f "$tmp"
               if [ "$local_hash" != "$remote_hash" ]; then
-                echo "WAITING_FOR_DESKTOP_AUTH_PREVIEW $rel local=$local_hash remote=$remote_hash attempt=$attempt"
-                exact=0
+                echo "WAITING_FOR_DESKTOP_AUTH_JS $rel local=$local_hash remote=$remote_hash attempt=$attempt"
+                ready=0
                 break
               fi
             done
-            if [ "$exact" -eq 1 ]; then
-              echo "DOMINIONSTAR_DESKTOP_OAUTH_PREVIEW_EXACT_OK $ORIGIN"
+
+            if [ "$ready" -eq 1 ]; then
+              login_html="$(mktemp)"
+              callback_html="$(mktemp)"
+              trap 'rm -f "$login_html" "$callback_html"' EXIT
+
+              if ! curl --fail --silent --show-error --location --max-time 20 "$ORIGIN/member-login/" -o "$login_html"; then
+                ready=0
+              elif ! grep -Fq 'DominionStar Member Login' "$login_html" || ! grep -Fq '/assets/js/member-login.js' "$login_html"; then
+                echo "WAITING_FOR_DESKTOP_MEMBER_LOGIN_SEMANTICS attempt=$attempt"
+                ready=0
+              fi
+
+              if [ "$ready" -eq 1 ]; then
+                if ! curl --fail --silent --show-error --location --max-time 20 "$ORIGIN/meet-auth-callback/" -o "$callback_html"; then
+                  ready=0
+                elif ! grep -Fq 'Return to DominionStar Meet' "$callback_html" \
+                  || ! grep -Fq 'dominionstar://auth/callback' "$callback_html" \
+                  || ! grep -Fq 'This page only returns authentication to the installed DominionStar Meet app.' "$callback_html"; then
+                  echo "WAITING_FOR_DESKTOP_OAUTH_CALLBACK_SEMANTICS attempt=$attempt"
+                  ready=0
+                fi
+              fi
+
+              rm -f "$login_html" "$callback_html"
+              trap - EXIT
+            fi
+
+            if [ "$ready" -eq 1 ]; then
+              echo "DOMINIONSTAR_DESKTOP_OAUTH_PREVIEW_OK $ORIGIN"
               exit 0
             fi
             sleep 10
           done
 
-          echo "ERROR: desktop OAuth callback surface did not converge to current PR source." >&2
+          echo "ERROR: desktop OAuth callback surface did not converge to the current PR behavior." >&2
           exit 1
