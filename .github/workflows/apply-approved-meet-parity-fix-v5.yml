@@ -1,0 +1,91 @@
+name: Apply approved DominionStar Meet parity fix v5
+
+on:
+  push:
+    branches:
+      - prototype/meet-clean-foundation
+    paths:
+      - .github/workflows/apply-approved-meet-parity-fix-v5.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: prototype/meet-clean-foundation
+          fetch-depth: 0
+
+      - name: Apply approved behavior and Zoom parity correction
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, textwrap
+
+          source=Path('.github/workflows/apply-approved-meet-parity-fix-v4.yml').read_text()
+          match=re.search(r"          python3 - <<'PY'\n(.*?)\n          PY\n\n      - name: Verify desktop contracts",source,re.S)
+          if not match:
+              raise SystemExit('Unable to extract reviewed v4 transformation')
+          exec(compile(textwrap.dedent(match.group(1)),'approved-parity-v4.py','exec'),{})
+
+          p=Path('scripts/test-zoom-behavior-parity.mjs')
+          text=p.read_text()
+          old="""// Google OAuth stays in the persistent Electron session and returns to Meet Home.
+          requireText(memberLogin, 'const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`', 'Desktop Google login must return to the trusted in-app login route.');
+          requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_RETURN', 'Google OAuth must request the in-app desktop return URI.');
+          requireText(memberLogin, 'window.location.assign(data.url)', 'Google OAuth must continue in the same persistent Electron webContents.');
+          assert(!memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'), 'Google OAuth must not be externalized to a second browser session.');
+          requireText(memberLogin, "return '/meet-home/?desktop=1';", 'Desktop authentication must fail closed to Meet Home.');
+          """
+          new="""// Google OAuth uses the normal browser and returns to the installed app through
+          // the registered DominionStar deep link, then resolves to Meet Home.
+          requireText(memberLogin, "const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'", 'Desktop Google login must return through the registered app protocol.');
+          requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_CALLBACK', 'Google OAuth must request the desktop deep-link return URI.');
+          requireText(memberLogin, 'window.dominionDesktop?.openExternal?.(data.url)', 'Google OAuth must authenticate in the normal browser.');
+          assert(!memberLogin.includes('window.location.assign(data.url)'), 'Google OAuth must not strand the installed app inside the browser flow.');
+          requireText(desktopMain, "url.hostname === 'auth' && url.pathname === '/callback'", 'Desktop must consume the auth callback deep link.');
+          requireText(memberLogin, "return '/meet-home/?desktop=1';", 'Desktop authentication must fail closed to Meet Home.');
+          """
+          if old not in text: raise SystemExit('zoom parity: OAuth block not found')
+          text=text.replace(old,new,1)
+
+          old="""// One display-media handler. macOS 15+ uses Apple's system picker. Older Mac
+          // and Windows use the DominionStar selected-source fallback.
+          """
+          new="""// One display-media handler. The approved DominionStar picker is the visible
+          // source-selection surface; macOS remains the underlying capture authority.
+          """
+          if old not in text: raise SystemExit('zoom parity: picker comment not found')
+          text=text.replace(old,new,1)
+          text=text.replace("requireText(desktopMain, 'major >= 15', 'Native system picker must be limited to supported macOS versions.');","requireText(desktopMain, 'return false;', 'Apple system picker must not replace the approved DominionStar picker.');")
+          text=text.replace("requireText(desktopMain, '{ useSystemPicker: supportsMacSystemPicker() }', 'The single Electron handler must delegate to the macOS system picker when supported.');","requireText(desktopMain, '{ useSystemPicker: supportsMacSystemPicker() }', 'The single Electron handler must preserve one capture authority.');")
+          text=text.replace("requireText(meetingEngine, 'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose', 'Custom picker must be fallback-only.');","requireText(meetingEngine, 'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose', 'Approved DominionStar picker must own desktop source selection when the system picker is disabled.');")
+          text=text.replace('// Fallback path remains non-modal and single-flight.','// Approved DominionStar picker remains non-modal and single-flight.')
+          text=text.replace("requireText(desktopSharePicker, 'if(!dialog.open)dialog.show()', 'Fallback picker must remain non-modal.');","requireText(desktopSharePicker, 'if(!dialog.open)dialog.show()', 'Approved picker must remain non-modal.');")
+          text=text.replace("assert(!desktopSharePicker.includes('dialog.showModal()'), 'Fallback picker must not lock the meeting.');","assert(!desktopSharePicker.includes('dialog.showModal()'), 'Approved picker must not lock the meeting.');")
+          text=text.replace("requireText(shareLifecycle, 'keepMeetingOffSharedDesktop', 'Meeting window must stay off the presented desktop unless explicitly shown.');","requireText(shareLifecycle, 'keepMeetingOffSharedDesktop', 'Presentation lifecycle compatibility export is missing.');\nassert(!shareLifecycle.includes('win.hide()'), 'Presentation must keep DominionStar Meet visible instead of hiding it.');")
+          p.write_text(text)
+          PY
+
+      - name: Verify desktop contracts
+        run: |
+          git diff --check
+          npm --prefix "desktop 2" run verify
+
+      - name: Commit parity correction
+        shell: bash
+        run: |
+          rm -f .github/workflows/apply-approved-meet-parity-fix.yml
+          rm -f .github/workflows/apply-approved-meet-parity-fix-v2.yml
+          rm -f .github/workflows/apply-approved-meet-parity-fix-v3.yml
+          rm -f .github/workflows/apply-approved-meet-parity-fix-v4.yml
+          rm -f .github/workflows/apply-approved-meet-parity-fix-v5.yml
+          git config user.name "DominionStar QA Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(meet): restore approved auth and screen-share parity"
+          git push origin HEAD:prototype/meet-clean-foundation
