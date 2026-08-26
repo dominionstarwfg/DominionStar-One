@@ -14,6 +14,7 @@ const navigation=read('desktop 2/src/desktop-navigation-authority.mjs');
 const lifecycle=read('desktop 2/src/screen-permission-lifecycle.mjs');
 const picker=read('assets/js/meet/desktop-share-picker.js');
 const desktopBootstrap=read('desktop 2/src/bootstrap.mjs');
+const settingsGuard=read('desktop 2/src/desktop-home-settings-guard.mjs');
 const operationBootstrap=read('assets/js/meet/operation-2030-bootstrap.js');
 
 // One desktop Home authority. Home exposes only the four meeting actions; all
@@ -28,6 +29,16 @@ for(const id of ['newMeeting','joinMeeting','scheduleMeeting','shareScreen'])ass
 for(const retiredId of ['personalIdentity','newMeetingMenuButton','newMeetingMenu','usePersonalRoom','startWithVideo','newMeetingPersonalId'])assert.doesNotMatch(home,new RegExp(`id="${retiredId}"`),`retired Home Personal Room control returned: ${retiredId}`);
 assert.equal((home.match(/class="action(?: primary)?" id="/g)||[]).length,4,'Desktop Home must expose exactly four primary action cards.');
 assert.doesNotMatch(controller,/\$\('usePersonalRoom'\)|\$\('startWithVideo'\)|newMeetingMenu/,'Home controller must not re-create per-click Personal Room controls.');
+
+// Desktop media/device settings must remain saveable when Personal Room is
+// intentionally disabled or has not yet been provisioned.
+assert.match(desktopBootstrap,/desktop-home-settings-guard\.mjs/,'desktop bootstrap must load the Settings independence guard.');
+assert.match(settingsGuard,/event\.stopImmediatePropagation\(\)/,'Settings guard must take ownership only for the no-Personal-Room save case.');
+assert.match(settingsGuard,/if\(roomValue\.length===10\|\|usePersonal\)return/,'Configured/active Personal Room settings must remain owned by the primary Home controller.');
+assert.match(settingsGuard,/usePersonalForInstant:false/,'Saving without a Personal Room must persist that instant meetings should not require Personal Room.');
+for(const marker of ['cameraId','microphoneId','speakerId','joinMuted','joinCameraOff','mirror','quality','background','brightness','touchAppearance','shareSound','shareOptimize','shareOwnWindows'])assert.match(settingsGuard,new RegExp(marker),`Independent desktop settings save is missing ${marker}.`);
+assert.match(settingsGuard,/meet_user_preferences/,'Independent settings save should best-effort synchronize account preferences.');
+assert.match(settingsGuard,/Settings saved\./,'Independent settings save must provide successful UI feedback.');
 
 // Duplicate Home and capture authorities must stay deleted.
 for(const retired of [
@@ -78,4 +89,4 @@ assert.match(operationBootstrap,/loadPresentationTools/,'presentation extensions
 assert.doesNotMatch(operationBootstrap,/meeting-identity-settings|meeting-identity-bridge|media-effect-safety/,'retired identity/effect override layers must not return to startup');
 assert.equal((operationBootstrap.match(/const core=\[/g)||[]).length,1,'bootstrap must expose one bounded core group');
 
-console.log('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK');
+console.log('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK settings-independent single-capture');
