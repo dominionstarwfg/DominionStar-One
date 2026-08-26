@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
+const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const exists=rel=>fs.existsSync(new URL(`../${rel}`,import.meta.url));
 
 const engine=read('assets/js/meeting-engine.js');
@@ -22,6 +22,7 @@ const meetIndex=read('meet/index.html');
 const desktopMain=read('desktop 2/src/main-v2.mjs');
 const desktopPreload=read('desktop 2/src/preload.cjs');
 const desktopBootstrap=read('desktop 2/src/bootstrap.mjs');
+const nativeCapture=read('desktop 2/src/macos-native-capture-authority.mjs');
 const presenterToolbar=read('desktop 2/src/presenter-toolbar.html');
 const presenterToolbarJs=read('desktop 2/src/presenter-toolbar.js');
 const presenterDockMain=read('desktop 2/src/presenter-dock.mjs');
@@ -76,9 +77,9 @@ assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings')&&!operationBootstrap.includes('meeting-identity-bridge')&&!operationBootstrap.includes('media-effect-safety'));
 
-// Physical-Mac share stability: one display-media owner, passive permission
-// diagnostics, non-modal picker, no focus-triggered recovery, and single-flight
-// native source enumeration.
+// Physical-Mac share stability: one display-media handler. macOS 15+ uses
+// Apple's native system picker; older macOS/Windows retain the guarded custom
+// picker fallback. Passive permission checks never enumerate sources.
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
@@ -90,14 +91,22 @@ assert(screenLifecycle.includes('desktop:screen-permission-status')&&screenLifec
 assert(desktopPreload.includes('getScreenPermissionStatus')&&desktopPreload.includes('relaunchForPermissions'));
 assert(desktopBootstrap.indexOf("screen-permission-lifecycle.mjs")<desktopBootstrap.indexOf("main-v2.mjs"));
 assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
-assert(desktopMain.includes('function supportsMacSystemPicker() {\n  return false;'));
+assert(desktopMain.includes("if (process.platform !== 'darwin') return false;"));
+assert(desktopMain.includes('process.getSystemVersion?.()'));
+assert(desktopMain.includes('major >= 15'));
 assert(desktopMain.includes('desktopSession.setDisplayMediaRequestHandler'));
+assert(desktopMain.includes('{ useSystemPicker: supportsMacSystemPicker() }'));
+assert(nativeCapture.includes('major >= 15'));
+assert(nativeCapture.includes("'macos-system-picker'"));
+assert(engine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
+assert(engine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
+
+// Fallback picker remains safe when it is actually used.
 assert(sharePicker.includes('getScreenPermissionStatus'));
 assert(sharePicker.includes('const withTimeout='));
 assert(sharePicker.includes('const requestSources=()=>withTimeout'));
 assert(sharePicker.includes('if(!dialog.open)dialog.show()'));
 assert(!sharePicker.includes('dialog.showModal()'));
-assert(sharePicker.includes('markRestartNeeded();'));
 assert(sharePicker.includes("if(dialog.open)dialog.close('cancel')"));
 assert(!sharePicker.includes("window.addEventListener('focus'"));
 assert(desktopPreload.includes('let shareSourcesInFlight = null;'));
@@ -132,4 +141,4 @@ assert(presenterToolbarJs.includes("window.presenterBridge.command('stop')")&&pr
 assert(desktopPreload.includes('showRemoteControlPrompt')&&desktopPreload.includes('onRemoteControlDecision'));
 assert(remoteControlDialog.includes("buttons: ['Deny', 'Approve']"));
 
-console.log('MEDIA_STABILITY_PHYSICAL_MAC_SHARE_OK single-owner no-auto-focus single-flight');
+console.log('MEDIA_STABILITY_NATIVE_MAC_FALLBACK_SHARE_OK single-handler');
