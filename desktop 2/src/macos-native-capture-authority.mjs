@@ -20,11 +20,16 @@ export function macSystemVersion() {
   catch { return ''; }
 }
 
-// DominionStar owns the one visible source-selection surface on every desktop
-// platform so the installed app matches the approved illustration. macOS still
-// owns TCC permission and ScreenCaptureKit capture underneath. Native source
-// enumeration is bounded/single-flight by share-picker-authority.mjs so a slow
-// permission transition cannot stack capture requests or freeze the meeting UI.
+// Locked approved design contract: DominionStar owns the single visible source
+// chooser on every desktop platform. macOS still owns TCC permission and the
+// underlying ScreenCaptureKit capture boundary.
+export const ApprovedDominionStarCapture = Object.freeze({
+  authority: 'dominionstar-custom-picker'
+});
+
+// Native source enumeration is bounded/single-flight by share-picker-authority.mjs
+// so a slow permission transition cannot stack capture requests or freeze the
+// meeting UI. A second visible Apple picker therefore remains disabled.
 export function supportsNativeMacPicker() {
   return false;
 }
@@ -44,6 +49,6 @@ ipcMain.handle('desktop:native-capture-capability', event => {
 });
 
 export const DominionMacCaptureAuthority = Object.freeze({
-  primary: supportsNativeMacPicker() ? 'macos-system-picker' : 'dominionstar-custom-picker',
+  primary: ApprovedDominionStarCapture.authority,
   nativeFallbackAvailable: supportsNativeMacPicker
 });
