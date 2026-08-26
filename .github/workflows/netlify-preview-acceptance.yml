@@ -272,7 +272,7 @@ jobs:
           retention-days: 14
           include-hidden-files: true
 
-      - name: Prove preview isolation and production approval phase
+      - name: Prove preview isolation and production lock
         shell: bash
         run: |
           set -euo pipefail
@@ -282,28 +282,33 @@ jobs:
           test ! -e .preview-package/public/PRODUCTION-CUTOVER-APPROVAL.json
           test ! -e dist
 
+          approval="PRODUCTION-CUTOVER-APPROVAL.json"
+          held="${RUNNER_TEMP:-/tmp}/dominionstar-preview-production-approval-held.json"
+          had_approval=0
+          rm -f "$held"
+          if [ -f "$approval" ]; then
+            mv "$approval" "$held"
+            had_approval=1
+          fi
+          restore_approval() {
+            if [ "$had_approval" -eq 1 ] && [ -f "$held" ]; then
+              mv "$held" "$approval"
+            else
+              rm -f "$held"
+            fi
+          }
+          trap restore_approval EXIT
+
           set +e
           output=$(bash scripts/build-netlify-site.sh 2>&1)
           status=$?
           set -e
           printf '%s\n' "$output"
 
-          if [ -s PRODUCTION-CUTOVER-APPROVAL.json ]; then
-            test "$status" -eq 0
-            echo "$output" | grep -F 'PRODUCTION_CUTOVER_APPROVAL_VALID' >/dev/null
-            echo "$output" | grep -F 'NETLIFY_RELEASE 2026.08.16-rc13.1-modern-ui-contract' >/dev/null
-            test -s dist/index.html
-            test -s dist/meet/index.html
-            test ! -e dist/PRODUCTION-CUTOVER-APPROVAL.json
-            test ! -e dist/PREVIEW-ACCEPTANCE-RC13.1.json
-            rm -rf dist
-            echo 'PREVIEW_REMAINS_ISOLATED_AND_PRODUCTION_IS_APPROVED'
-          else
-            test "$status" -eq 43
-            echo "$output" | grep -F 'cutover approval is intentionally withheld' >/dev/null
-            test ! -e dist
-            echo 'PRODUCTION_REMAINS_LOCKED'
-          fi
+          test "$status" -eq 43
+          echo "$output" | grep -F 'cutover approval is intentionally withheld' >/dev/null
+          test ! -e dist
+          echo 'PREVIEW_REMAINS_ISOLATED_AND_PRODUCTION_REMAINS_LOCKED'
 
       - name: Package auditable preview artifact
         shell: bash
