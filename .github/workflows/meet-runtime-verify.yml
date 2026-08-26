@@ -187,6 +187,24 @@ jobs:
       - name: Prove Netlify production remains fail-closed
         shell: bash
         run: |
+          set -euo pipefail
+          approval="PRODUCTION-CUTOVER-APPROVAL.json"
+          held="${RUNNER_TEMP:-/tmp}/dominionstar-production-cutover-approval-held.json"
+          had_approval=0
+          rm -f "$held"
+          if [ -f "$approval" ]; then
+            mv "$approval" "$held"
+            had_approval=1
+          fi
+          restore_approval() {
+            if [ "$had_approval" -eq 1 ] && [ -f "$held" ]; then
+              mv "$held" "$approval"
+            else
+              rm -f "$held"
+            fi
+          }
+          trap restore_approval EXIT
+
           set +e
           output=$(bash scripts/build-netlify-site.sh 2>&1)
           status=$?
@@ -207,21 +225,8 @@ jobs:
             exit 0
           fi
 
-          if [ "$status" -ne 0 ]; then
-            echo "ERROR: Netlify build failed unexpectedly with status $status" >&2
-            exit "$status"
-          fi
-
-          test ! -e dist/.github
-          test ! -e dist/desktop
-          test ! -e 'dist/desktop 2'
-          test ! -e dist/scripts
-          test ! -e dist/supabase
-          test ! -e dist/netlify
-          test ! -e dist/PRODUCTION-CUTOVER-APPROVAL.json
-          node --check dist/assets/js/meeting-engine.js
-          node --check dist/assets/js/meet-next/executive6.js
-          echo "COMPLETE_APPROVED_PRODUCTION_SURFACE_BUILT"
+          echo "ERROR: fail-closed QA expected production build status 42 or 43, received $status" >&2
+          exit 1
 
       - name: Verify current live desktop contract remains compatible
         working-directory: desktop 2
