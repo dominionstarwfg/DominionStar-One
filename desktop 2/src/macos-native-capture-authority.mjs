@@ -16,49 +16,28 @@ function rendererIsTrusted(event) {
 
 export function macSystemVersion() {
   if (process.platform !== 'darwin') return '';
-  try {
-    return String(process.getSystemVersion?.() || '');
-  } catch {
-    return '';
-  }
+  try { return String(process.getSystemVersion?.() || ''); }
+  catch { return ''; }
 }
 
-export function supportsNativeMacPicker() {
-  if (process.platform !== 'darwin') return false;
-  const major = Number.parseInt(macSystemVersion().split('.')[0] || '', 10);
-  return Number.isFinite(major) && major >= 15;
-}
+// Physical Mac QA is authoritative here. The OS system-picker path left an
+// in-flight getDisplayMedia transaction during the Screen Recording permission
+// transition and the meeting renderer became unresponsive on return. Until that
+// behavior is proven on physical Macs, DominionStar keeps one selected-source
+// authority in main-v2 on every platform.
+export function supportsNativeMacPicker() { return false; }
 
-// Physical Mac QA proved that desktopCapturer source enumeration can stall the
-// Electron process after Screen & System Audio Recording permission changes.
-// On macOS 15+ we therefore use Electron's native system-picker path. It hands
-// getDisplayMedia directly to macOS and avoids a second, competing permission
-// loop. The DominionStar source picker remains the fallback on older macOS and
-// on non-macOS desktop platforms.
-ipcMain.handle('desktop:native-capture-capability', event => {
-  const nativePicker = supportsNativeMacPicker();
-  if (!rendererIsTrusted(event)) {
-    return {
-      ok: false,
-      enabled: false,
-      available: nativePicker,
-      platform: process.platform,
-      systemVersion: macSystemVersion(),
-      authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'
-    };
-  }
-  return {
-    ok: true,
-    enabled: nativePicker,
-    available: nativePicker,
-    installed: nativePicker,
-    platform: process.platform,
-    systemVersion: macSystemVersion(),
-    authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'
-  };
-});
+ipcMain.handle('desktop:native-capture-capability', event => ({
+  ok: rendererIsTrusted(event),
+  enabled: false,
+  available: false,
+  installed: false,
+  platform: process.platform,
+  systemVersion: macSystemVersion(),
+  authority: 'dominionstar-custom-picker'
+}));
 
 export const DominionMacCaptureAuthority = Object.freeze({
-  primary: supportsNativeMacPicker() ? 'macos-system-picker' : 'dominionstar-custom-picker',
-  nativeFallbackAvailable: supportsNativeMacPicker
+  primary: 'dominionstar-custom-picker',
+  nativeFallbackAvailable: () => false
 });
