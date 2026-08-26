@@ -6,9 +6,13 @@ on:
       - "desktop 2/**"
       - "assets/js/meet/**"
       - "assets/js/meet-next/**"
+      - "assets/js/member-auth.js"
+      - "assets/js/member-login.js"
       - "assets/css/meet/**"
       - "assets/css/meet-next/**"
       - "meet/**"
+      - "member-login/**"
+      - "meet-auth-callback/**"
       - ".github/workflows/desktop-pr-verify.yml"
   workflow_dispatch:
 
@@ -134,7 +138,7 @@ jobs:
           echo "QA_PREVIEW_ORIGIN=$QA_PREVIEW_ORIGIN" >> "$GITHUB_ENV"
           echo "DOMINIONSTAR_DESKTOP_QA_PREVIEW $QA_PREVIEW_ORIGIN"
 
-      - name: Wait until deployed critical runtime files exactly match this PR
+      - name: Wait until deployed critical runtime and OAuth return match this PR
         shell: bash
         run: |
           set -euo pipefail
@@ -148,6 +152,8 @@ jobs:
             assets/js/meet/presenter-command-web-parity.js
             assets/js/meet/illustration-ui-parity.js
             assets/js/meet/native-dock-quality.js
+            assets/js/member-auth.js
+            assets/js/member-login.js
           )
 
           for attempt in $(seq 1 36); do
@@ -180,13 +186,27 @@ jobs:
             fi
 
             if [ "$exact" -eq 1 ]; then
+              callback="$(mktemp)"
+              if ! curl --fail --silent --show-error --location --max-time 20 "$QA_PREVIEW_ORIGIN/meet-auth-callback/" -o "$callback"; then
+                exact=0
+              elif ! grep -Fq 'Return to DominionStar Meet' "$callback" \
+                || ! grep -Fq 'dominionstar://auth/callback' "$callback" \
+                || ! grep -Fq 'This page only returns authentication to the installed DominionStar Meet app.' "$callback"; then
+                echo "WAITING_FOR_DESKTOP_OAUTH_CALLBACK attempt=$attempt"
+                exact=0
+              fi
+              rm -f "$callback"
+            fi
+
+            if [ "$exact" -eq 1 ]; then
               echo "DOMINIONSTAR_DESKTOP_EXACT_PREVIEW_OK attempt=$attempt"
+              echo "DOMINIONSTAR_DESKTOP_OAUTH_PREVIEW_OK"
               exit 0
             fi
             sleep 10
           done
 
-          echo "ERROR: Netlify deploy-preview did not converge to the current PR source within six minutes." >&2
+          echo "ERROR: Netlify deploy-preview did not converge to the current PR runtime and OAuth return within six minutes." >&2
           exit 1
 
       - name: Bind native desktop bridges to the exact QA preview
