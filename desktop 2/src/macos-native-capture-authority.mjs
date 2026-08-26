@@ -31,18 +31,19 @@ export function supportsNativeMacPicker() {
 
 ipcMain.handle('desktop:native-capture-capability', event => {
   const trusted = rendererIsTrusted(event);
+  const nativePicker = supportsNativeMacPicker();
   return {
     ok: trusted,
-    enabled: false,
+    enabled: nativePicker,
     available: process.platform === 'darwin',
-    installed: false,
+    installed: nativePicker,
     platform: process.platform,
     systemVersion: macSystemVersion(),
-    authority: 'dominionstar-custom-picker'
+    authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'
   };
 });
 
 export const DominionMacCaptureAuthority = Object.freeze({
-  primary: 'dominionstar-custom-picker',
-  nativeFallbackAvailable: () => false
+  primary: supportsNativeMacPicker() ? 'macos-system-picker' : 'dominionstar-custom-picker',
+  nativeFallbackAvailable: supportsNativeMacPicker
 });
