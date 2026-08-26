@@ -5,6 +5,7 @@ const read=rel=>fs.readFileSync(new URL(`../../${rel}`,import.meta.url),'utf8');
 const exists=rel=>fs.existsSync(new URL(`../../${rel}`,import.meta.url));
 
 const memberLogin=read('assets/js/member-login.js');
+const oauthReturn=read('meet-auth-callback/index.html');
 const cameraCatalog=read('assets/js/meet/camera-device-stability.js');
 const ui=read('assets/js/meet-next/executive6.js');
 const hostPrejoin=read('assets/js/meet/hotfix-rc13-1-media-prejoin.js');
@@ -22,9 +23,15 @@ const home=read('meet-home/desktop.html');
 const homeController=read('assets/js/meet/desktop-home-controller.js');
 const compactHome=read('assets/js/meet/desktop-home-compact-launch.js');
 
-// Authentication remains external-browser OAuth returning through deep link.
+// Authentication remains external-browser OAuth, but the browser returns first
+// through a dedicated HTTPS Meet bridge. This avoids Supabase falling back to a
+// public site URL when a custom scheme is not an approved OAuth redirect.
 assert(memberLogin.includes("provider: 'google'"));
-assert(memberLogin.includes("redirectTo: 'dominionstar://auth/callback'"));
+assert(memberLogin.includes("new URL('/meet-auth-callback/', window.location.origin)"));
+assert(memberLogin.includes('redirectTo: desktopOAuthReturnUrl()'));
+assert(!memberLogin.includes("redirectTo: 'dominionstar://auth/callback'"));
+assert(oauthReturn.includes("new URL('dominionstar://auth/callback')"));
+assert(oauthReturn.includes('window.location.assign(deepLink.toString())'));
 assert(memberLogin.includes('supabase.auth.setSession({'));
 assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"));
 
