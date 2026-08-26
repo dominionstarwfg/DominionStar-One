@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8').replace(/\r\n/g,'\n');
+const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const exists = rel => fs.existsSync(new URL(`../../${rel}`, import.meta.url));
 const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
 const illustrationParity = read('assets/js/meet/illustration-ui-parity.js');
@@ -17,6 +17,7 @@ const nativePresenterParity = read('desktop 2/src/presenter-command-parity.mjs')
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const desktopMain = read('desktop 2/src/main-v2.mjs');
 const desktopBootstrap = read('desktop 2/src/bootstrap.mjs');
+const sharePickerAuthority = read('desktop 2/src/share-picker-authority.mjs');
 const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
 const screenLifecycle = read('desktop 2/src/screen-permission-lifecycle.mjs');
 const presenterDock = read('desktop 2/src/presenter-dock.mjs');
@@ -26,10 +27,14 @@ const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
 const desktopSession = read('desktop 2/src/desktop-session.mjs');
 const qaWorkflow = read('.github/workflows/desktop-pr-verify.yml');
 
-const indexOfCommand = command => presenterToolbar.indexOf(`data-command="${command}"`);
-const assertBefore = (a,b) => assert(indexOfCommand(a)>=0&&indexOfCommand(b)>=0&&indexOfCommand(a)<indexOfCommand(b),`${a} must appear before ${b}.`);
+const barStart=presenterToolbar.indexOf('<div class="bar"');
+const menuStart=presenterToolbar.indexOf('<div id="presenterMoreMenu"');
+assert(barStart>=0&&menuStart>barStart,'Presenter toolbar structure is missing.');
+const directBar=presenterToolbar.slice(barStart,menuStart);
+const moreMenu=presenterToolbar.slice(menuStart);
+const indexOfDirectCommand = command => directBar.indexOf(`data-command="${command}"`);
+const assertBefore = (a,b) => assert(indexOfDirectCommand(a)>=0&&indexOfDirectCommand(b)>=0&&indexOfDirectCommand(a)<indexOfDirectCommand(b),`${a} must appear before ${b}.`);
 
-// Runtime ownership and advanced features remain deliberate.
 assert(!bootstrap.includes('screen-permission-ui-guard.js'));
 assert(bootstrap.includes('quick-device-menu-parity.js'));
 assert(bootstrap.includes('share-optimization-parity.js'));
@@ -37,23 +42,23 @@ assert(bootstrap.includes('presenter-command-web-parity.js'));
 assert(screenLifecycle.includes("ipcMain.handle('desktop:screen-permission-status'"));
 assert(screenLifecycle.includes('QA_PREVIEW_HOST'));
 
-// Physical Mac: exactly one Electron display-media authority. DominionStar's
-// approved picker is primary while macOS remains the underlying capture authority.
+// One visible source-selection authority matching the approved illustration.
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false,'competing system-picker session returned');
-assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'));
+assert(desktopBootstrap.indexOf("await import('./share-picker-authority.mjs')")<desktopBootstrap.indexOf("await import('./main-v2.mjs')"),'Share-picker authority must install before main-v2.');
+assert(sharePickerAuthority.includes('SOURCE_ENUMERATION_TIMEOUT_MS = 4500'),'Native source enumeration must be bounded.');
+assert(sharePickerAuthority.includes('sourceEnumerationInFlight'),'Native source enumeration must be single-flight.');
+assert(sharePickerAuthority.includes('Promise.race([sourceEnumerationInFlight, timeoutResult()])'),'A stalled source probe must return control instead of freezing the meeting.');
+assert(sharePickerAuthority.includes('useSystemPicker: false'),'Apple native picker must not create a second visible selection surface.');
 assert(nativeCapture.includes('export function supportsNativeMacPicker()'));
-assert(nativeCapture.includes('return false;'));
-assert(nativeCapture.includes("'dominionstar-custom-picker'"));
-assert(desktopMain.includes('function supportsMacSystemPicker()'));
-assert(desktopMain.includes('return false;'));
+assert(nativeCapture.includes('return false;'),'Renderer capability must choose the DominionStar picker.');
+assert(nativeCapture.includes("authority: 'dominionstar-custom-picker'"));
 assert(desktopMain.includes('desktopSession.setDisplayMediaRequestHandler'));
-assert(desktopMain.includes('{ useSystemPicker: supportsMacSystemPicker() }'));
 assert.equal((desktopMain.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Desktop runtime must install exactly one display-media handler.');
 assert(desktopPreload.includes('systemSharePicker: nativeSystemPicker')&&desktopPreload.includes('customSharePicker: !nativeSystemPicker'));
 assert(meetingEngine.includes('const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)'));
 assert(meetingEngine.includes('window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose'));
 
-// Approved custom picker remains non-modal/bounded on macOS and Windows.
+// Approved Screens / Applications chooser remains non-modal and bounded.
 assert(desktopPreload.includes('let shareSourcesInFlight = null;'));
 assert(desktopPreload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 assert(desktopSharePicker.includes('data-filter="screen">Screens'));
@@ -62,7 +67,6 @@ assert(desktopSharePicker.includes('<span>Share system audio</span>'));
 assert(desktopSharePicker.includes('<span>Optimize for video sharing</span>'));
 assert(desktopSharePicker.includes('class=\"ds-share-switch-row\" hidden><span>Share DominionStar windows</span>'));
 assert(desktopSharePicker.includes('background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-color:#60a5fa'));
-
 assert(desktopSharePicker.includes('const withTimeout='));
 assert(desktopSharePicker.includes('const requestSources=()=>withTimeout'));
 assert(desktopSharePicker.includes('if(!dialog.open)dialog.show()'));
@@ -79,27 +83,29 @@ assert(desktopSharePicker.includes('optimize:Boolean(optimize.checked)'));
 assert(desktopSharePicker.includes('role="switch" data-optimize'));
 assert(shareOptimization.includes("track.contentHint = optimizeForVideo ? 'motion' : 'detail'"));
 
-// Device menus retain meeting-grade controls and modern switch treatment.
 for(const required of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…'])assert(quickDeviceMenu.includes(required),`missing device control: ${required}`);
 assert(quickDeviceMenu.includes('ds-quick-switch'));
 
-// Presenter toolbar keeps the approved Zoom-familiar hierarchy.
-const approvedPresenterOrder=['audio','video','participants','chat','new-share','pause','layout','annotate','show-meeting','more','stop'];
-for(const command of approvedPresenterOrder)assert(indexOfCommand(command)>=0,`missing presenter command ${command}`);
+// Approved compact presenter hierarchy: frequent actions direct, secondary tools under More.
+const approvedPresenterOrder=['audio','video','pause','participants','chat','more','stop'];
+for(const command of approvedPresenterOrder)assert(indexOfDirectCommand(command)>=0,`missing direct presenter command ${command}`);
 for(let i=0;i<approvedPresenterOrder.length-1;i+=1)assertBefore(approvedPresenterOrder[i],approvedPresenterOrder[i+1]);
+for(const command of ['new-share','annotate','layout','show-meeting']){
+  assert(!directBar.includes(`data-command="${command}"`),`${command} must not lengthen the primary sharing toolbar.`);
+  assert(moreMenu.includes(`data-command="${command}"`),`${command} must remain available under More.`);
+}
 assert(presenterToolbar.includes('<svg'));
-assert(presenterToolbar.includes('class="share-rail"'));
-assert(presenterToolbar.includes('You are screen sharing'));
-assert(presenterToolbar.includes('class="share-stop"')&&presenterToolbar.includes('Stop Share'));
-assert(presenterToolbarJs.includes('EXPANDED_WIDTH=930'));
-assert(presenterToolbarJs.includes('EXPANDED_HEIGHT=96'));
+assert(!presenterToolbar.includes('class="share-rail"'),'There must be one toolbar, not a second share rail.');
+assert(directBar.includes('class="share-live"')&&directBar.includes('You are sharing'));
+assert(directBar.includes('class="share-stop"')&&directBar.includes('Stop Share'));
+assert(presenterToolbarJs.includes('EXPANDED_WIDTH=610'));
+assert(presenterToolbarJs.includes('EXPANDED_HEIGHT=66'));
 assert(presenterToolbarJs.includes("label.textContent=sharePaused?'Resume':'Pause'"));
 assert(presenterToolbarJs.includes("button.dataset.command='slide-control'"));
 
 for(const [command,id] of [['audio','micBtn'],['video','camBtn'],['participants','participantsBtn'],['chat','chatBtn'],['pause','pauseShareBtn'],['new-share','newShareBtn'],['stop','stopShareBtn']])assert(hostedPresenterParity.includes(`safe === '${command}'`)&&hostedPresenterParity.includes(`click('${id}')`),`${command} routing missing`);
 assert(hostedPresenterParity.includes("safe === 'annotate'")&&hostedPresenterParity.includes('DominionShareAnnotation'));
 
-// Native presenter ownership prevents duplicate in-window share controls.
 assert(illustrationParity.includes('#shareStatusBar.ds-native-presenter-active{display:none!important}'));
 assert(illustrationParity.includes("document.body.classList.contains('local-presentation-active')"));
 assert(illustrationParity.includes('window.dominionDesktop.showPresenterToolbar?.()'));
@@ -108,7 +114,6 @@ assert(shareLifecycle.includes("String(command || '') === 'show-meeting'"));
 assert(!shareLifecycle.includes('win.hide()'));
 assert(!shareLifecycle.includes('setImmediate(keepMeetingOffSharedDesktop)'));
 
-// Normal meeting/dock behavior remains approved.
 assert(illustrationParity.includes("label.textContent='Security'"));
 assert(illustrationParity.includes("label.textContent=isHost?'End':'Leave'"));
 assert(illustrationParity.includes("decline.textContent='View'"));
@@ -120,7 +125,6 @@ assert(dockPolish.includes("resizeHandle.className='ds-dock-resize-handle'"));
 assert(presenterDock.includes('zoomClassDockSize'));
 assert(presenterDockHtml.includes('data-layout="stack"')&&presenterDockHtml.includes('data-layout="speaker"')&&presenterDockHtml.includes('data-layout="grid"'));
 
-// Desktop runtime/trust remains fail-closed.
 assert(desktopPreload.includes('installDesktopMeetRuntimeLayers'));
 assert(desktopPreload.includes('installQaPreviewChromeBlocker'));
 assert(desktopSession.includes("target.searchParams.set('ntl-drawer-state', 'hidden')"));
@@ -131,4 +135,4 @@ assert(nativePresenterParity.includes("safe === 'layout'")&&nativePresenterParit
 assert(nativePresenterParity.includes("safe === 'show-meeting'")&&nativePresenterParity.includes('showMeeting()'));
 assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'));
 
-console.log('Approved one-handler DominionStar share UI and final-illustration guardrails passed.');
+console.log('Approved DominionStar share UI passed: compact one-toolbar presenter hierarchy, custom Screens/Applications picker, bounded native enumeration.');
