@@ -7,7 +7,7 @@
   const tabs = [...document.querySelectorAll('[data-member-tab]')];
   const params = new URLSearchParams(window.location.search);
   const isDesktop = params.get('desktop') === '1' && Boolean(window.dominionDesktop?.isDesktop);
-  const DESKTOP_GOOGLE_START_URL = 'https://dominionstarld.com/meet-auth-start/?desktop=1';
+  const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';
 
   [loginForm, registerForm, resetForm].forEach(form => {
     if (form) {
@@ -101,14 +101,22 @@
       googleButton.disabled = true;
       showMessage('Opening secure Google sign-in…', 'info');
       try {
-        // The system browser owns the OAuth round trip. It first visits a
-        // DominionStar Meet launch page on the production Site URL so that the
-        // same browser tab can mark itself as a desktop-auth session. Supabase's
-        // configured Site URL may then receive the OAuth tokens safely: the root
-        // relay immediately hands only that marked tab back to dominionstar://.
-        const opened = await window.dominionDesktop?.openExternal?.(DESKTOP_GOOGLE_START_URL);
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            // One return path only: the system browser hands the completed OAuth
+            // session directly to the installed DominionStar Meet protocol. This
+            // URI must be present in Supabase Authentication → Redirect URLs.
+            redirectTo: DESKTOP_OAUTH_CALLBACK,
+            skipBrowserRedirect: true,
+            queryParams: { prompt: 'select_account' }
+          }
+        });
+        if (error) throw error;
+        if (!data?.url) throw new Error('Google sign-in URL was not returned.');
+        const opened = await window.dominionDesktop?.openExternal?.(data.url);
         if (!opened) throw new Error('DominionStar Meet could not open the secure Google sign-in window.');
-        showMessage('Complete Google sign-in in your browser. The browser will return you to DominionStar Meet automatically.', 'info');
+        showMessage('Complete Google sign-in in your browser. Allow the browser to reopen DominionStar Meet when prompted.', 'info');
       } catch (error) {
         googleButton.disabled = false;
         showMessage(error?.message || 'Google sign-in could not start.', 'error');
