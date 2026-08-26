@@ -12,7 +12,6 @@
 [context.deploy-preview]
   command = "bash scripts/build-netlify-preview.sh"
   publish = ".preview-package/public"
-  functions = "netlify/functions"
 
 [[redirects]]
   from = "/api/founder-data"
