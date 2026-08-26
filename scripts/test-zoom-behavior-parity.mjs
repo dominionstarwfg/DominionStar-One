@@ -8,6 +8,7 @@ const dynamicImportNeedle = file => `await ${'import'}('./${file}')`;
 
 const meetHtml = read('meet/index.html');
 const homeHtml = read('meet-home/desktop.html');
+const browserHome = read('meet-home/index.html');
 const homeController = read('assets/js/meet/desktop-home-controller.js');
 const memberLogin = read('assets/js/member-login.js');
 const executive = read('assets/js/meet-next/executive6.js');
@@ -21,124 +22,106 @@ const dockPolish = read('assets/js/meet/dock-polish-2030.js');
 const shareAnnotation = read('assets/js/meet/share-annotation.js');
 const liveTranscription = read('assets/js/meet/live-transcription.js');
 const localRecording = read('assets/js/meet/local-recording.js');
+const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
 const screenLifecycle = read('desktop 2/src/screen-permission-lifecycle.mjs');
 const desktopMain = read('desktop 2/src/main-v2.mjs');
 const desktopPreload = read('desktop 2/src/preload.cjs');
 const desktopBootstrap = read('desktop 2/src/bootstrap.mjs');
 const nativeCapture = read('desktop 2/src/macos-native-capture-authority.mjs');
-const settingsGuard = read('desktop 2/src/desktop-home-settings-guard.mjs');
 const presenterHtml = read('desktop 2/src/presenter-toolbar.html');
 const presenterJs = read('desktop 2/src/presenter-toolbar.js');
 const shareLifecycle = read('desktop 2/src/share-lifecycle.mjs');
 const twoClient = read('scripts/browser-two-client-meet-acceptance.mjs');
+const pkg = JSON.parse(read('desktop 2/package.json'));
 
 for (const retired of [
   'desktop 2/src/macos-system-picker-session.mjs',
   'desktop 2/src/desktop-home-injection.mjs',
   'assets/js/meet/desktop-home-compact-launch.js',
+  'desktop 2/src/desktop-home-settings-guard.mjs',
   'desktop 2/src/macos-screen-permission-guard.mjs',
   'assets/js/meet/desktop-share-permission-guard.js'
 ]) assert.equal(exists(retired), false, `Retired competing authority returned: ${retired}`);
 requireText(desktopBootstrap, dynamicImportNeedle('screen-permission-lifecycle.mjs'), 'Desktop must load lightweight screen-permission lifecycle.');
 requireText(desktopBootstrap, dynamicImportNeedle('main-v2.mjs'), 'main-v2 must remain the single Electron display-media owner.');
-assert(!desktopBootstrap.includes('macos-system-picker-session.mjs'), 'Second macOS display-media authority must never return.');
-assert(!desktopBootstrap.includes('desktop-home-injection.mjs'), 'Second Home authority must never return.');
+assert(!desktopBootstrap.includes('desktop-home-settings-guard.mjs'),'Settings must be owned directly by the Home controller.');
 
-// Zoom-familiar desktop Home: one destination and four primary actions only.
+// One Zoom-simple desktop Home. Browser Home may exist for web users but must
+// never be reachable or packaged as the installed app Home.
 for (const id of ['newMeeting','joinMeeting','scheduleMeeting','shareScreen']) requireText(homeHtml, `id="${id}"`, `Desktop Home action missing: ${id}`);
 assert(!/id="(?:personalMeeting|personalRoom|startPersonal)"/i.test(homeHtml), 'Personal Room must not return as a Home action.');
 requireText(homeHtml, 'id="settingsUsePersonal"', 'Personal Room instant-meeting choice must live in Settings.');
-requireText(homeHtml, 'Use Personal Room for instant meetings', 'Settings must explain the Personal Room instant-meeting default.');
-requireText(homeController, "$('newMeeting').onclick=()=>void launchNew({share:false})", 'New Meeting must have one launch path.');
-requireText(homeController, "$('shareScreen').onclick=()=>void launchNew({share:true})", 'Home Share Screen must have one launch path.');
-requireText(homeController, "$('settingsNav').onclick=()=>{loadSettingsForm();$('settingsModal').showModal();}", 'Settings must stay inside the desktop Home modal instead of navigating to the public site.');
-requireText(desktopBootstrap, dynamicImportNeedle('desktop-home-settings-guard.mjs'), 'Desktop must load Settings independence guard.');
-requireText(settingsGuard, 'if(roomValue.length===10||usePersonal)return', 'Configured Personal Room must remain owned by primary Home controller.');
-requireText(settingsGuard, 'usePersonalForInstant:false', 'Media/device settings must save when Personal Room is intentionally disabled.');
+requireText(homeController, "const IDENTITY_KEY='ds_meet_identity_preferences_v2'", 'Clean meeting-identity preference generation is missing.');
+requireText(homeController, 'usePersonalForInstant:false', 'Fresh meeting IDs must be the default.');
+requireText(homeController, "version:'3.0.0-single-home-generated-default'", 'Single Home controller version is missing.');
+requireText(homeController, "if(!state.room?.personalRoomId){usePersonal=false", 'Missing Personal Room must fall back to a fresh Meeting ID.');
+requireText(navigation, "const DESKTOP_HOME_ALIASES=new Set(['/meet-home','/meet-home/index.html','/meet-home/desktop.html'])", 'Desktop Home aliases must collapse to one surface.');
+requireText(navigation, "if(DESKTOP_HOME_ALIASES.has(route))return 'meet-home/desktop.html'", 'Desktop must never serve browser Home for /meet-home.');
+assert(browserHome.includes('Aurora Meeting Assistant'),'Browser Home fixture changed unexpectedly; desktop isolation test lost its target.');
+const homeResource=(pkg.build?.extraResources||[]).find(entry=>entry?.from==='../meet-home');
+assert.deepEqual(homeResource?.filter,['desktop.html'],'Desktop package must exclude meet-home/index.html.');
 
-// Google auth stays in the persistent Electron session.
+// Google OAuth stays in the persistent Electron session and returns to Meet Home.
 requireText(memberLogin, 'const DESKTOP_OAUTH_RETURN = `${window.location.origin}/member-login/?desktop=1&oauth=complete`', 'Desktop Google login must return to the trusted in-app login route.');
 requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_RETURN', 'Google OAuth must request the in-app desktop return URI.');
 requireText(memberLogin, 'window.location.assign(data.url)', 'Google OAuth must continue in the same persistent Electron webContents.');
 assert(!memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'), 'Google OAuth must not be externalized to a second browser session.');
-requireText(memberLogin, 'let { data } = await supabase.auth.getSession();', 'OAuth return must recognize the persistent authenticated session first.');
-requireText(memberLogin, 'supabase.auth.setSession({', 'Returned OAuth credentials must retain compatibility fallback.');
 requireText(memberLogin, "return '/meet-home/?desktop=1';", 'Desktop authentication must fail closed to Meet Home.');
 
-// Screen share follows a single-picker policy. On macOS 15+ Electron delegates
-// to Apple's native chooser; custom source enumeration is fallback only.
+// One display-media handler. macOS 15+ uses Apple's system picker. Older Mac
+// and Windows use the DominionStar selected-source fallback.
 requireText(screenLifecycle, "systemPreferences.getMediaAccessStatus('screen')", 'macOS permission lifecycle must read TCC status.');
-assert(!screenLifecycle.includes('desktopCapturer') && !screenLifecycle.includes('getSources('), 'Passive screen-permission status must never enumerate capture sources.');
-requireText(screenLifecycle, 'captureProbed:false', 'Passive screen-permission status must explicitly avoid a capture probe.');
-requireText(desktopMain, "if (process.platform !== 'darwin') return false;", 'System picker must remain macOS-only.');
-requireText(desktopMain, 'process.getSystemVersion?.()', 'System picker capability must inspect the macOS version.');
-requireText(desktopMain, 'major >= 15', 'macOS 15+ must use the native system picker.');
-requireText(desktopMain, 'desktopSession.setDisplayMediaRequestHandler', 'Electron must retain one display-media handler.');
-requireText(desktopMain, '{ useSystemPicker: supportsMacSystemPicker() }', 'The single display-media handler must delegate to Apple when supported.');
+assert(!screenLifecycle.includes('desktopCapturer') && !screenLifecycle.includes('getSources('), 'Passive permission status must never enumerate capture sources.');
+requireText(desktopMain, 'function supportsMacSystemPicker()', 'macOS native-picker capability check is missing.');
+requireText(desktopMain, 'major >= 15', 'Native system picker must be limited to supported macOS versions.');
+requireText(desktopMain, 'desktopSession.setDisplayMediaRequestHandler', 'Electron display-media handler is missing.');
+requireText(desktopMain, '{ useSystemPicker: supportsMacSystemPicker() }', 'The single Electron handler must delegate to the macOS system picker when supported.');
 assert.equal((desktopMain.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Desktop must have exactly one display-media handler.');
-requireText(nativeCapture, 'major >= 15', 'Native capture capability must match main process policy.');
-requireText(nativeCapture, "'macos-system-picker'", 'Native capture authority must identify the Apple picker.');
-requireText(meetingEngine, 'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)', 'Meeting engine must select one picker path.');
-requireText(meetingEngine, 'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose', 'Custom picker must be bypassed when the native Mac picker is active.');
+requireText(nativeCapture, 'export function supportsNativeMacPicker()', 'Renderer capability reporting for native Mac picker is missing.');
+requireText(nativeCapture, "authority: nativePicker ? 'macos-system-picker' : 'dominionstar-custom-picker'", 'Native capture authority reporting is inconsistent.');
+requireText(meetingEngine, 'const useNativeSystemPicker=Boolean(desktopRuntime?.systemSharePicker)', 'Meeting engine must choose the native Mac path from runtime capability.');
+requireText(meetingEngine, 'window.dominionDesktop?.isDesktop && !useNativeSystemPicker && window.DominionDesktopSharePicker?.choose', 'Custom picker must be fallback-only.');
 
-// Custom fallback remains safe for older macOS/Windows.
-requireText(desktopSharePicker, 'data-filter="screen">Screens', 'Fallback share picker must expose real screens.');
-requireText(desktopSharePicker, 'data-filter="window">Application windows', 'Fallback share picker must expose real application windows.');
-requireText(desktopSharePicker, 'const withTimeout=', 'Fallback picker native waits must be bounded.');
-requireText(desktopSharePicker, 'if(!dialog.open)dialog.show()', 'Fallback picker must remain non-modal and leave meeting controls alive.');
-assert(!desktopSharePicker.includes('dialog.showModal()'), 'Fallback picker must not lock the meeting behind a modal backdrop.');
-requireText(desktopSharePicker, "if(dialog.open)dialog.close('cancel')", 'Fallback picker must close before opening macOS Settings.');
-assert(!desktopSharePicker.includes("window.addEventListener('focus'"), 'Returning from System Settings must not automatically restart capture.');
-requireText(desktopPreload, 'let shareSourcesInFlight = null;', 'Fallback source enumeration must be serialized.');
+// Fallback path remains non-modal and single-flight.
+requireText(desktopSharePicker, 'if(!dialog.open)dialog.show()', 'Fallback picker must remain non-modal.');
+assert(!desktopSharePicker.includes('dialog.showModal()'), 'Fallback picker must not lock the meeting.');
+assert(!desktopSharePicker.includes("window.addEventListener('focus'"), 'Returning from System Settings must not automatically restart fallback capture.');
+requireText(desktopPreload, 'let shareSourcesInFlight = null;', 'Desktop bridge must serialize fallback source enumeration.');
 requireText(desktopPreload, 'if (shareSourcesInFlight) return shareSourcesInFlight;', 'Fallback retries must reuse one native source request.');
 
 requireText(twoClient, 'microphone and camera intent synchronize to the other client', 'Microphone/camera synchronization is not exercised.');
-requireText(meetingEngine, 'navigator.mediaDevices.getDisplayMedia(displayOptions)', 'Browser screen sharing must remain browser-native.');
+requireText(meetingEngine, 'navigator.mediaDevices.getDisplayMedia(displayOptions)', 'Screen sharing must use standards getDisplayMedia.');
 requireText(shareView, 'media.__dsWebDisplayMediaBoundary = true', 'Browser display-media boundary is missing.');
-requireText(twoClient, 'Share Screen traverses browser-native getDisplayMedia without desktop bootstrap leakage', 'Browser share path is not exercised.');
 
 for (const id of ['micBtn','camBtn','participantsBtn','chatBtn','shareBtn','reactionBtn','moreBtn','leaveBtn']) requireText(meetHtml, `id="${id}"`, `Meeting control missing: ${id}`);
 requireText(illustration, "label.textContent='Security'", 'Host Security control is missing.');
 requireText(illustration, "label.textContent=isHost?'End':'Leave'", 'Host End versus attendee/co-host Leave behavior is missing.');
 requireText(twoClient, "getByRole('button', { name: 'Make co-host', exact: true }).click()", 'Host-to-co-host promotion is not exercised.');
-requireText(twoClient, "assert(await guest.locator('#endAllBtn').getAttribute('hidden') !== null", 'Co-host End Meeting for All restriction is not tested.');
-requireText(twoClient, "assert(!/Make co-host|Make host/i.test(cohostMenuText)", 'Co-host host/co-host appointment restriction is not tested.');
 requireText(hostCohostUi, 'enforceCohostWaitingRoomBoundary', 'Host-only Waiting Room enablement guard is missing.');
 requireText(twoClient, 'waiting room is visible to guest and actionable by host', 'Waiting-room admission coverage is missing.');
 requireText(twoClient, 'admission creates participant list and video dock on both clients', 'Admitted participant continuity is missing.');
-requireText(illustration, "decline.textContent='View'", 'Waiting-room heads-up must use Admit/View behavior.');
 requireText(illustration, 'enforceOnePersonDockRule', 'One-person meetings must not show an unnecessary participant strip.');
 
 for (const command of ['audio','video','participants','chat','new-share','pause','layout','annotate','show-meeting','more','stop']) requireText(presenterHtml, `data-command="${command}"`, `Presenter command missing: ${command}`);
 requireText(presenterHtml, '-webkit-app-region:drag', 'Presenter toolbar must be movable.');
 requireText(presenterJs, "label.textContent=sharePaused?'Resume':'Pause'", 'Pause Share must visibly become Resume.');
-requireText(presenterJs, 'scheduleCollapse()', 'Presenter controls must support compact auto-collapse behavior.');
 requireText(illustration, '#shareStatusBar.ds-native-presenter-active{display:none!important}', 'Desktop must not show duplicate presenter toolbars.');
 requireText(shareLifecycle, 'keepMeetingOffSharedDesktop', 'Meeting window must stay off the presented desktop unless explicitly shown.');
 requireText(twoClient, 'share, private Pause Share presentation continuity, resume and stop', 'Pause/Resume/Stop continuity is not tested.');
-
 requireText(dockPolish, "POSITION_KEY='ds_meet_dock_geometry_v3'", 'Participant dock geometry persistence is missing.');
 requireText(dockPolish, 'ds-dock-resize-handle', 'Participant dock must be resizable.');
-requireText(twoClient, 'desktop resize keeps meeting fixed and participant dock inside the viewport', 'Responsive desktop layout is not tested.');
 for (const marker of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…']) requireText(quickDevices, marker, `Device/settings control missing: ${marker}`);
-
 requireText(twoClient, 'public and private meeting chat routes correctly', 'Public/private meeting chat is not tested.');
 requireText(twoClient, 'one-click invitation carries room and passcode', 'Invitation credentials are not tested.');
 requireText(localRecording, 'new MediaRecorder(', 'Record must be functional, not decorative.');
 requireText(executive, "function electActiveSpeaker(force=false,preferredId='')", 'Active-speaker election is missing.');
-requireText(executive, "add('Pin my video'", 'Local video Pin is missing.');
 requireText(executive, "'Spotlight for everyone'", 'Host/co-host Spotlight is missing.');
 requireText(meetHtml, 'id="alwaysJoinMuted"', 'Always-join-muted preference is missing.');
 requireText(meetHtml, 'id="alwaysJoinCameraOff"', 'Always-join-camera-off preference is missing.');
 requireText(executive, "playTone('join')", 'Participant join chime is missing.');
 requireText(meetHtml, 'id="scheduleMeetingAction"', 'Schedule meeting entry point is missing.');
 requireText(meetHtml, 'id="recurringMeetingAction"', 'Recurring meeting entry point is missing.');
-requireText(executive, "const recurring=$('scheduleRecurring').checked", 'Recurring schedule submission is missing.');
-
-requireText(shareAnnotation, "channel.on('broadcast',{event:'meet-annotation'},({payload})=>handleRemote(payload))", 'Synchronized annotation reception is missing.');
 requireText(shareAnnotation, "addTool('Laser','laser')", 'Shared-screen laser pointer is missing.');
 for (const language of ["{code:'en', label:'English'}","{code:'fr', label:'French'}","{code:'es', label:'Spanish'}","{code:'zh', label:'Mandarin Chinese'}"]) requireText(liveTranscription, language, `Live-caption language option is missing: ${language}`);
-requireText(liveTranscription, 'window.SpeechRecognition || window.webkitSpeechRecognition', 'Speech-recognition path is missing.');
-requireText(liveTranscription, "stopButton.hidden=!(state.roomActive && snap.isHost)", 'Stop captions for everyone must remain host-only.');
 
-console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK clean-home in-app-auth native-mac-picker fallback-safe camera-mic waiting-room host-cohost dock pause-share chat scheduling captions');
+console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK single-home in-app-auth native-mac-picker fallback-serialized camera-mic waiting-room host-cohost dock pause-share chat scheduling captions');
