@@ -48,7 +48,7 @@
       {
         "from": "../meet-home",
         "to": "desktop-runtime/meet-home",
-        "filter": ["**/*"]
+        "filter": ["desktop.html"]
       },
       {
         "from": "../meet-login",
@@ -68,30 +68,16 @@
     "protocols": [
       {
         "name": "DominionStar Meeting Link",
-        "schemes": [
-          "dominionstar"
-        ]
+        "schemes": ["dominionstar"]
       }
     ],
     "artifactName": "DominionStar-Meet-${version}-${os}-${arch}.${ext}",
     "publish": [
-      {
-        "provider": "github",
-        "owner": "dominionstarwfg",
-        "repo": "DominionStar-One"
-      }
+      {"provider": "github","owner": "dominionstarwfg","repo": "DominionStar-One"}
     ],
     "win": {
       "icon": "build/icon.svg",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ]
+      "target": [{"target": "nsis","arch": ["x64","arm64"]}]
     },
     "nsis": {
       "oneClick": false,
@@ -105,18 +91,8 @@
       "category": "public.app-category.business",
       "identity": null,
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "universal"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "universal"
-          ]
-        }
+        {"target": "dmg","arch": ["universal"]},
+        {"target": "zip","arch": ["universal"]}
       ],
       "notarize": false,
       "hardenedRuntime": true,
