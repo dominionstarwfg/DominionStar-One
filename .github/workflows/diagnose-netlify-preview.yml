@@ -1,0 +1,57 @@
+name: Diagnose Netlify Deploy Preview
+
+on:
+  push:
+    branches:
+      - prototype/meet-clean-foundation
+    paths:
+      - .github/workflows/diagnose-netlify-preview.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: prototype/meet-clean-foundation
+          clean: true
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run preview builder directly
+        run: bash scripts/build-netlify-preview.sh
+
+      - name: Verify generated preview surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s .preview-package/public/index.html
+          test -s .preview-package/public/meet/index.html
+          test -s .preview-package/public/meet-home/index.html
+          test -s .preview-package/public/member-login/index.html
+          test -s .preview-package/public/assets/js/meet/desktop-share-picker.js
+          test -s .preview-package/PREVIEW-SHA256.json
+          echo DOMINIONSTAR_PREVIEW_DIRECT_BUILD_OK
+
+      - name: Parse Netlify deploy-preview configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes netlify-cli@latest build --dry --context deploy-preview
+
+      - name: Reproduce Netlify deploy-preview build
+        shell: bash
+        env:
+          CONTEXT: deploy-preview
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          npx --yes netlify-cli@latest build --context deploy-preview
+          echo DOMINIONSTAR_NETLIFY_PREVIEW_REPRO_OK
