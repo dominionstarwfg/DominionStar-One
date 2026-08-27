@@ -13,6 +13,8 @@ export function createMeetingService({auth}){
   const hostQueue=roomId=>auth.rpc('meet_v2_host_queue',{p_room_id:roomId});
   const decide=(participantId,decision)=>auth.rpc('meet_v2_decide_participant',{p_participant_id:participantId,p_decision:decision});
   const snapshot=roomId=>auth.rpc('meet_v2_room_snapshot',{p_room_id:roomId});
+  const setCohost=(participantId,enabled)=>auth.rpc('meet_v2_set_cohost',{p_participant_id:participantId,p_enabled:Boolean(enabled)});
+  const removeParticipant=participantId=>auth.rpc('meet_v2_remove_participant',{p_participant_id:participantId});
   const endRoom=roomId=>auth.rpc('meet_v2_end_room',{p_room_id:roomId});
-  return Object.freeze({createRoom,requestJoin,joinStatus,markJoined,leaveRoom,hostQueue,decide,snapshot,endRoom});
+  return Object.freeze({createRoom,requestJoin,joinStatus,markJoined,leaveRoom,hostQueue,decide,snapshot,setCohost,removeParticipant,endRoom});
 }
