@@ -37,6 +37,10 @@ ipcMain.handle('meeting:snapshot',(_event,{roomId})=>meetingService?.snapshot(ro
 ipcMain.handle('meeting:set-cohost',(_event,{participantId,enabled})=>meetingService?.setCohost(participantId,enabled));
 ipcMain.handle('meeting:remove-participant',(_event,{participantId})=>meetingService?.removeParticipant(participantId));
 ipcMain.handle('meeting:end',(_event,{roomId})=>meetingService?.endRoom(roomId));
+ipcMain.handle('meeting:context',()=>meetingService?.context?.()||{});
+ipcMain.handle('meeting:signal-send',(_event,{toParticipantId,type,payload})=>meetingService?.sendSignal(toParticipantId,type,payload));
+ipcMain.handle('meeting:signal-pull',(_event,{afterId,limit})=>meetingService?.pullSignals(afterId,limit));
+ipcMain.handle('meeting:signal-prune',(_event,{roomId})=>meetingService?.pruneSignals(roomId));
 
 app.whenReady().then(async()=>{
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
