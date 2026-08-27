@@ -23,6 +23,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify production auth dependency resolves
+        working-directory: meet-desktop
+        run: |
+          npm install --omit=dev --ignore-scripts --no-audit --no-fund
+          node -e "import('@supabase/supabase-js').then(m=>{if(typeof m.createClient!=='function')process.exit(2);console.log('SUPABASE_JS_RUNTIME_OK')})"
       - name: Verify desktop source syntax
         run: |
           node --check 'meet-desktop/src/main.mjs'
