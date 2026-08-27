@@ -1,0 +1,92 @@
+name: DominionStar Meet Mac QA Certification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/rebuild-mac-qa-certify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac-qa:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Checkout exact rebuild candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clean all generated state
+        run: |
+          rm -rf meet-desktop/node_modules meet-desktop/dist meet-desktop/release .package-audit
+          find . -maxdepth 2 -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' | xargs -I{} rm -f '{}' || true
+
+      - name: Install only rebuild dependencies
+        working-directory: meet-desktop
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run complete source certification
+        working-directory: meet-desktop
+        run: |
+          node scripts/verify-foundation.mjs
+          node scripts/verify-auth.mjs
+          node scripts/verify-meeting-lifecycle.mjs
+          node scripts/verify-media-authority.mjs
+          node scripts/verify-share-authority.mjs
+          node scripts/verify-webrtc-transport.mjs
+          node scripts/verify-turn-relay.mjs
+          node scripts/verify-diagnostics.mjs
+
+      - name: Build unsigned universal QA app
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          du -sh "$APP_PATH"
+
+      - name: Audit packaged app contents
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-app.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify macOS metadata
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$APP/Contents/Info.plist" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$APP/Contents/Info.plist" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' "$APP/Contents/Info.plist" >/dev/null
+          test -x "$APP/Contents/MacOS/DominionStar Meet"
+
+      - name: Create clean QA archive
+        shell: bash
+        run: |
+          mkdir -p qa-artifact
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
+          shasum -a 256 qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip | tee qa-artifact/SHA256.txt
+          du -h qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
+
+      - name: Upload certified QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-clean-rebuild-mac-qa
+          path: qa-artifact/*
+          if-no-files-found: error
+          retention-days: 14
