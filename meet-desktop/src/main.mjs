@@ -1,4 +1,4 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, session, shell } from 'electron';
+import { app, BrowserWindow, desktopCapturer, ipcMain, session, shell, systemPreferences } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDesktopAuth } from './auth-service.mjs';
@@ -13,6 +13,52 @@ let desktopAuth=null;
 let meetingService=null;
 let shareService=null;
 
+const localRendererUrl=value=>String(value||'').startsWith('file://');
+const permissionStatus=kind=>{if(process.platform!=='darwin')return 'granted';try{return systemPreferences.getMediaAccessStatus(kind);}catch{return 'unknown';}};
+const nativeMediaPermissions=()=>({platform:process.platform,camera:permissionStatus('camera'),microphone:permissionStatus('microphone'),screen:permissionStatus('screen')});
+
+async function requestNativeMediaPermissions(kinds=[]){
+  if(process.platform!=='darwin')return {...nativeMediaPermissions(),ok:true};
+  const requested=new Set(Array.isArray(kinds)?kinds.map(String):[]);
+  for(const kind of ['camera','microphone']){
+    if(!requested.has(kind))continue;
+    if(permissionStatus(kind)!=='not-determined')continue;
+    try{await systemPreferences.askForMediaAccess(kind);}catch{}
+  }
+  const status=nativeMediaPermissions();
+  return {...status,ok:[...requested].every(kind=>!['denied','restricted'].includes(String(status[kind]||'')))};
+}
+
+async function requestScreenPermission(){
+  if(process.platform!=='darwin')return {ok:true,status:'granted',restartRequired:false};
+  const before=permissionStatus('screen');
+  if(before==='granted')return {ok:true,status:'granted',restartRequired:false};
+  if(before==='not-determined'||before==='unknown'){
+    try{await desktopCapturer.getSources({types:['screen'],thumbnailSize:{width:1,height:1},fetchWindowIcons:false});}catch{}
+  }
+  const after=permissionStatus('screen');
+  return {ok:after==='granted',status:after,restartRequired:before!=='granted'&&after==='granted'};
+}
+
+async function openPrivacySettings(kind='screen'){
+  if(process.platform!=='darwin')return {ok:false,platform:process.platform};
+  const pane={screen:'Privacy_ScreenCapture',camera:'Privacy_Camera',microphone:'Privacy_Microphone'}[String(kind)]||'Privacy_ScreenCapture';
+  try{await shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`);return {ok:true};}
+  catch{try{await shell.openPath('/System/Applications/System Settings.app');return {ok:true};}catch{return {ok:false};}}
+}
+
+function installLocalPermissionPolicy(desktopSession){
+  const allowed=new Set(['media','camera','microphone','audioCapture','videoCapture','display-capture','notifications','fullscreen']);
+  desktopSession.setPermissionRequestHandler((webContents,permission,callback,details={})=>{
+    const source=details.requestingUrl||webContents?.getURL()||'';
+    callback(localRendererUrl(source)&&allowed.has(permission));
+  });
+  desktopSession.setPermissionCheckHandler((webContents,permission,requestingOrigin)=>{
+    const source=requestingOrigin||webContents?.getURL()||'';
+    return localRendererUrl(source)&&allowed.has(permission);
+  });
+}
+
 function createMainWindow(){
   mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});
   mainWindow.webContents.setWindowOpenHandler(({url})=>{if(/^https:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
@@ -25,7 +71,12 @@ function createMainWindow(){
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production'}));
 ipcMain.handle('auth:get-state',()=>desktopAuth?.getState?.()||{ready:false,signedIn:false,user:null});
 ipcMain.handle('auth:start-google',()=>desktopAuth?.startGoogle?.());
+ipcMain.handle('auth:sign-in-password',(_event,{email,password}={})=>desktopAuth?.signInPassword?.(email,password));
 ipcMain.handle('auth:sign-out',()=>desktopAuth?.signOut?.());
+ipcMain.handle('media:get-permissions',()=>nativeMediaPermissions());
+ipcMain.handle('media:request-permissions',(_event,{kinds=[]}={})=>requestNativeMediaPermissions(kinds));
+ipcMain.handle('media:request-screen',()=>requestScreenPermission());
+ipcMain.handle('media:open-privacy',(_event,{kind='screen'}={})=>openPrivacySettings(kind));
 ipcMain.handle('meeting:create',(_event,input)=>meetingService?.createRoom(input));
 ipcMain.handle('meeting:request-join',(_event,input)=>meetingService?.requestJoin(input));
 ipcMain.handle('meeting:join-status',(_event,{participantId,joinToken})=>meetingService?.joinStatus(participantId,joinToken));
@@ -44,10 +95,11 @@ ipcMain.handle('meeting:signal-prune',(_event,{roomId})=>meetingService?.pruneSi
 ipcMain.handle('meeting:ice-config',(_event,{force=false,ttl=7200}={})=>meetingService?.iceConfig({force:Boolean(force),ttl:Number(ttl)||7200}));
 
 app.whenReady().then(async()=>{
+  installLocalPermissionPolicy(session.defaultSession);
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
   await desktopAuth.initialize();
   meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
-  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform});
+  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});
 });
