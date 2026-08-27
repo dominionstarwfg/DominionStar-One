@@ -17,147 +17,42 @@ const callbackErrorHtml=message=>`<!doctype html><meta charset="utf-8"><title>Do
 function userSummary(user){
   if(!user)return null;
   const metadata=user.user_metadata||{};
-  return {
-    id:String(user.id||''),
-    email:String(user.email||''),
-    name:String(metadata.full_name||metadata.name||user.email?.split('@')[0]||'DominionStar Member'),
-    avatarUrl:String(metadata.avatar_url||metadata.picture||'')
-  };
+  return {id:String(user.id||''),email:String(user.email||''),name:String(metadata.full_name||metadata.name||user.email?.split('@')[0]||'DominionStar Member'),avatarUrl:String(metadata.avatar_url||metadata.picture||'')};
 }
 
 function createEncryptedStorage(app){
   const storagePath=path.join(app.getPath('userData'),'auth','supabase-session.bin');
   let cache=null;
-  const load=async()=>{
-    if(cache)return cache;
-    cache={};
-    try{
-      const encoded=await readFile(storagePath,'utf8');
-      if(!encoded||!safeStorage.isEncryptionAvailable())return cache;
-      const json=safeStorage.decryptString(Buffer.from(encoded,'base64'));
-      const parsed=JSON.parse(json);
-      if(parsed&&typeof parsed==='object')cache=parsed;
-    }catch{}
-    return cache;
-  };
-  const persist=async()=>{
-    if(!safeStorage.isEncryptionAvailable())return;
-    await mkdir(path.dirname(storagePath),{recursive:true});
-    const encrypted=safeStorage.encryptString(JSON.stringify(cache||{}));
-    await writeFile(storagePath,encrypted.toString('base64'),{encoding:'utf8',mode:0o600});
-  };
-  return {
-    getItem:async key=>String((await load())[key]??'')||null,
-    setItem:async(key,value)=>{const data=await load();data[key]=value;await persist();},
-    removeItem:async key=>{const data=await load();delete data[key];await persist();}
-  };
+  const load=async()=>{if(cache)return cache;cache={};try{const encoded=await readFile(storagePath,'utf8');if(!encoded||!safeStorage.isEncryptionAvailable())return cache;const json=safeStorage.decryptString(Buffer.from(encoded,'base64'));const parsed=JSON.parse(json);if(parsed&&typeof parsed==='object')cache=parsed;}catch{}return cache;};
+  const persist=async()=>{if(!safeStorage.isEncryptionAvailable())return;await mkdir(path.dirname(storagePath),{recursive:true});const encrypted=safeStorage.encryptString(JSON.stringify(cache||{}));await writeFile(storagePath,encrypted.toString('base64'),{encoding:'utf8',mode:0o600});};
+  return {getItem:async key=>String((await load())[key]??'')||null,setItem:async(key,value)=>{const data=await load();data[key]=value;await persist();},removeItem:async key=>{const data=await load();delete data[key];await persist();}};
 }
 
 export function createDesktopAuth({app,shell,getMainWindow}){
-  let client=null;
-  let callbackServer=null;
-  let subscription=null;
-
-  const foregroundApp=()=>{
-    const win=getMainWindow?.();
-    if(!win||win.isDestroyed())return;
-    if(win.isMinimized())win.restore();
-    win.show();
-    win.focus();
-  };
-
-  const emitState=async()=>{
-    const state=await getState();
-    const win=getMainWindow?.();
-    if(win&&!win.isDestroyed())win.webContents.send('auth:changed',state);
-    return state;
-  };
+  let client=null;let callbackServer=null;let subscription=null;
+  const foregroundApp=()=>{const win=getMainWindow?.();if(!win||win.isDestroyed())return;if(win.isMinimized())win.restore();win.show();win.focus();};
+  const emitState=async()=>{const state=await getState();const win=getMainWindow?.();if(win&&!win.isDestroyed())win.webContents.send('auth:changed',state);return state;};
 
   async function initialize(){
     if(client)return;
-    client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
-      auth:{
-        flowType:'pkce',
-        persistSession:true,
-        autoRefreshToken:true,
-        detectSessionInUrl:false,
-        storage:createEncryptedStorage(app)
-      }
-    });
-    const {data}=client.auth.onAuthStateChange(()=>setTimeout(()=>void emitState(),0));
-    subscription=data?.subscription||null;
-    app.once('before-quit',()=>{
-      subscription?.unsubscribe?.();
-      callbackServer?.close?.();
-    });
+    client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storage:createEncryptedStorage(app)}});
+    const {data}=client.auth.onAuthStateChange(()=>setTimeout(()=>void emitState(),0));subscription=data?.subscription||null;
+    app.once('before-quit',()=>{subscription?.unsubscribe?.();callbackServer?.close?.();});
   }
-
-  async function getState(){
-    if(!client)return {ready:false,signedIn:false,user:null};
-    const {data,error}=await client.auth.getSession();
-    if(error||!data?.session)return {ready:true,signedIn:false,user:null,error:error?.message||''};
-    return {ready:true,signedIn:true,user:userSummary(data.session.user)};
-  }
-
+  async function getState(){if(!client)return {ready:false,signedIn:false,user:null};const {data,error}=await client.auth.getSession();if(error||!data?.session)return {ready:true,signedIn:false,user:null,error:error?.message||''};return {ready:true,signedIn:true,user:userSummary(data.session.user)};}
   async function ensureCallbackServer(){
     if(callbackServer?.listening)return;
-    callbackServer=http.createServer(async(req,res)=>{
-      try{
-        const requestUrl=new URL(req.url||'/',CALLBACK_URL);
-        if(req.method!=='GET'||requestUrl.pathname!==CALLBACK_PATH){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});res.end('Not found');return;}
-        const providerError=requestUrl.searchParams.get('error_description')||requestUrl.searchParams.get('error');
-        if(providerError)throw new Error(providerError);
-        const code=requestUrl.searchParams.get('code');
-        if(!code)throw new Error('The authentication callback did not contain a PKCE authorization code.');
-        const {data,error}=await client.auth.exchangeCodeForSession(code);
-        if(error||!data?.session)throw new Error(error?.message||'Supabase did not return a desktop session.');
-        res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
-        res.end(callbackSuccessHtml);
-        foregroundApp();
-        await emitState();
-      }catch(error){
-        res.writeHead(400,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
-        res.end(callbackErrorHtml(error?.message));
-        const win=getMainWindow?.();
-        if(win&&!win.isDestroyed())win.webContents.send('auth:error',{message:String(error?.message||error)});
-        foregroundApp();
-      }
-    });
-    await new Promise((resolve,reject)=>{
-      const onError=error=>{callbackServer?.removeListener('listening',onListening);reject(error);};
-      const onListening=()=>{callbackServer?.removeListener('error',onError);resolve();};
-      callbackServer.once('error',onError);
-      callbackServer.once('listening',onListening);
-      callbackServer.listen(CALLBACK_PORT,CALLBACK_HOST);
-    });
+    callbackServer=http.createServer(async(req,res)=>{try{const requestUrl=new URL(req.url||'/',CALLBACK_URL);if(req.method!=='GET'||requestUrl.pathname!==CALLBACK_PATH){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});res.end('Not found');return;}const providerError=requestUrl.searchParams.get('error_description')||requestUrl.searchParams.get('error');if(providerError)throw new Error(providerError);const code=requestUrl.searchParams.get('code');if(!code)throw new Error('The authentication callback did not contain a PKCE authorization code.');const {data,error}=await client.auth.exchangeCodeForSession(code);if(error||!data?.session)throw new Error(error?.message||'Supabase did not return a desktop session.');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(callbackSuccessHtml);foregroundApp();await emitState();}catch(error){res.writeHead(400,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(callbackErrorHtml(error?.message));const win=getMainWindow?.();if(win&&!win.isDestroyed())win.webContents.send('auth:error',{message:String(error?.message||error)});foregroundApp();}});
+    await new Promise((resolve,reject)=>{const onError=error=>{callbackServer?.removeListener('listening',onListening);reject(error);};const onListening=()=>{callbackServer?.removeListener('error',onError);resolve();};callbackServer.once('error',onError);callbackServer.once('listening',onListening);callbackServer.listen(CALLBACK_PORT,CALLBACK_HOST);});
   }
-
   async function startGoogle(){
     if(!client)await initialize();
-    try{await ensureCallbackServer();}
-    catch(error){
-      if(error?.code==='EADDRINUSE')throw new Error(`DominionStar Meet cannot start Google sign-in because local callback port ${CALLBACK_PORT} is already in use.`);
-      throw error;
-    }
-    const {data,error}=await client.auth.signInWithOAuth({
-      provider:'google',
-      options:{redirectTo:CALLBACK_URL,skipBrowserRedirect:true,queryParams:{prompt:'select_account'}}
-    });
-    if(error||!data?.url)throw new Error(error?.message||'Google sign-in URL was not created.');
-    const authorizationUrl=new URL(data.url);
-    const redirect=authorizationUrl.searchParams.get('redirect_to');
-    if(redirect!==CALLBACK_URL)throw new Error('Desktop authentication refused an unexpected redirect destination.');
-    await shell.openExternal(data.url);
-    return {ok:true,callbackUrl:CALLBACK_URL};
+    try{await ensureCallbackServer();}catch(error){if(error?.code==='EADDRINUSE')throw new Error(`DominionStar Meet cannot start Google sign-in because local callback port ${CALLBACK_PORT} is already in use.`);throw error;}
+    const {data,error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:CALLBACK_URL,skipBrowserRedirect:true,queryParams:{prompt:'select_account'}}});
+    if(error||!data?.url)throw new Error(error?.message||'Google sign-in URL was not created.');const authorizationUrl=new URL(data.url);const redirect=authorizationUrl.searchParams.get('redirect_to');if(redirect!==CALLBACK_URL)throw new Error('Desktop authentication refused an unexpected redirect destination.');await shell.openExternal(data.url);return {ok:true,callbackUrl:CALLBACK_URL};
   }
+  async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;await emitState();return {ok:true};}
+  async function rpc(name,args={}){if(!client)await initialize();const {data,error}=await client.rpc(name,args);if(error)throw new Error(error.message||`Meeting service failed: ${name}`);return data;}
 
-  async function signOut(){
-    if(!client)return {ok:true};
-    const {error}=await client.auth.signOut();
-    if(error)throw error;
-    await emitState();
-    return {ok:true};
-  }
-
-  return Object.freeze({initialize,getState,startGoogle,signOut,callbackUrl:CALLBACK_URL});
+  return Object.freeze({initialize,getState,startGoogle,signOut,rpc,callbackUrl:CALLBACK_URL});
 }
