@@ -13,8 +13,11 @@ assert(media.includes('state.stream.removeTrack(track)'),'Camera Off must detach
 assert(media.includes('track.enabled=false'),'Mute must disable the live microphone track without destroying the meeting.');
 assert(media.includes('selectCamera')&&media.includes('selectMicrophone')&&media.includes('selectSpeaker'),'Camera, microphone, and speaker selection must be explicit.');
 assert(media.includes("width:{ideal:1280}")&&media.includes("frameRate:{ideal:30,max:30}"),'Prejoin camera intent must remain HD at up to 30fps.');
+assert(media.includes('userPreferencesLocked:false'),'Media authority must track whether the user changed prejoin defaults.');
+assert(media.includes('if(!state.userPreferencesLocked){state.cameraOn=options.cameraOn!==false;state.micOn=Boolean(options.micOn);}'),'Admission/restart must not overwrite user-selected camera or microphone state.');
+assert(media.includes('state.userPreferencesLocked=true'),'Explicit media changes must lock the current session preferences.');
 assert(app.includes("await loadScript('./media-controller.js')"),'Single room controller must load one isolated media authority.');
-assert(app.includes("await media.startPreview({cameraOn:true,micOn:false})"),'Prejoin must start camera-on and microphone-muted by default.');
+assert(app.includes("await media.startPreview({cameraOn:true,micOn:false})"),'Initial prejoin must default camera-on and microphone-muted.');
 assert(app.includes("$('#prejoinContinue').textContent=mode==='host'?'Start':'Join'"),'Host and participant prejoin actions must be explicit.');
 assert(app.includes('meeting.setCohost')&&app.includes('meeting.removeParticipant'),'Participant management UI must use the narrow native meeting bridge.');
 assert(service.includes("auth.rpc('meet_v2_set_cohost'")&&service.includes("auth.rpc('meet_v2_remove_participant'"),'Host/cohost authority must be enforced through backend RPC.');
@@ -22,4 +25,4 @@ assert(main.includes("ipcMain.handle('meeting:set-cohost'")&&main.includes("ipcM
 assert(preload.includes('setCohost:')&&preload.includes('removeParticipant:'),'Renderer role controls must use a narrow IPC bridge.');
 assert(!app.includes('getDisplayMedia')&&!media.includes('getDisplayMedia'),'Screen sharing must remain excluded from this foundation.');
 assert(!app.includes('supabase')&&!media.includes('supabase'),'Renderer must not own database authority.');
-console.log('DOMINIONSTAR_PREJOIN_MEDIA_AUTHORITY_OK camera-release mic-mute devices host-cohost screen-share-excluded');
+console.log('DOMINIONSTAR_PREJOIN_MEDIA_AUTHORITY_OK camera-release mic-mute devices preference-preservation host-cohost screen-share-excluded');
