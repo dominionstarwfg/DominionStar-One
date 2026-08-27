@@ -12,6 +12,7 @@
   const live=kind=>state.stream?.getTracks?.().filter(track=>track.kind===kind&&track.readyState==='live')||[];
   const unique=values=>[...new Set(values.filter(Boolean).map(String))];
   const mediaError=error=>String(error?.message||error||'Media device unavailable.').replace(/^.*?:\s*/,'');
+  const ensureStream=()=>{if(!(state.stream instanceof MediaStream))state.stream=new MediaStream();return state.stream;};
 
   async function ensurePermissions(kinds){
     if(!desktopMedia?.permissions)return null;
@@ -33,16 +34,18 @@
     if(!navigator.mediaDevices?.enumerateDevices)return {cameras:[],microphones:[],speakers:[]};
     const devices=await navigator.mediaDevices.enumerateDevices();
     const label=(device,index,prefix)=>String(device.label||'').trim()||`${prefix} ${index+1}`;
-    const cameras=devices.filter(d=>d.kind==='videoinput').map((d,i)=>({id:d.deviceId,label:label(d,i,'Camera')}));
-    const microphones=devices.filter(d=>d.kind==='audioinput').map((d,i)=>({id:d.deviceId,label:label(d,i,'Microphone')}));
-    const speakers=devices.filter(d=>d.kind==='audiooutput').map((d,i)=>({id:d.deviceId,label:label(d,i,'Speaker')}));
-    return {cameras,microphones,speakers};
+    return {
+      cameras:devices.filter(d=>d.kind==='videoinput').map((d,i)=>({id:d.deviceId,label:label(d,i,'Camera')})),
+      microphones:devices.filter(d=>d.kind==='audioinput').map((d,i)=>({id:d.deviceId,label:label(d,i,'Microphone')})),
+      speakers:devices.filter(d=>d.kind==='audiooutput').map((d,i)=>({id:d.deviceId,label:label(d,i,'Speaker')}))
+    };
   }
 
   const videoConstraints=id=>({deviceId:id?{ideal:id}:undefined,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}});
   const audioConstraints=id=>({deviceId:id?{ideal:id}:undefined,echoCancellation:true,noiseSuppression:true,autoGainControl:true});
 
   async function acquireKind(kind,preferredId=''){
+    await ensurePermissions([kind==='video'?'camera':'microphone']);
     const devices=await enumerate();
     const catalog=kind==='video'?devices.cameras:devices.microphones;
     const candidates=unique([preferredId,...catalog.map(item=>item.id)]);
@@ -59,50 +62,63 @@
         return track;
       }catch(error){lastError=error;}
     }
-    const label=kind==='video'?'video source':'audio source';
-    throw new Error(lastError?.message||`Could not start ${label}`);
+    throw new Error(lastError?.message||`Could not start ${kind==='video'?'video source':'audio source'}`);
   }
 
-  async function rebuild(){
-    if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera and microphone are unavailable on this device.');
-    const kinds=[];if(state.cameraOn)kinds.push('camera');if(state.micOn)kinds.push('microphone');
-    await ensurePermissions(kinds);
-    const old=state.stream;
-    const next=new MediaStream();
-    try{
-      if(state.cameraOn)next.addTrack(await acquireKind('video',state.cameraId));
-      if(state.micOn)next.addTrack(await acquireKind('audio',state.microphoneId));
-    }catch(error){
-      stopTracks(next.getTracks());
-      state.lastError=mediaError(error);
-      throw error;
+  function removeKind(kind){
+    const stream=ensureStream();
+    for(const track of [...stream.getTracks()].filter(track=>track.kind===kind)){
+      try{stream.removeTrack(track);}catch{}
+      stopTrack(track);
     }
-    state.stream=next;state.lastError='';
-    stopTracks(old?.getTracks?.()||[]);
-    emit();
-    return next;
+  }
+
+  async function replaceKind(kind,preferredId=''){
+    const current=live(kind)[0];
+    const currentId=String(current?.getSettings?.().deviceId||'');
+    if(current&&preferredId&&currentId===String(preferredId))return current;
+    const fresh=await acquireKind(kind,preferredId);
+    removeKind(kind);
+    ensureStream().addTrack(fresh);
+    state.lastError='';emit();return fresh;
+  }
+
+  async function startPreview(options={}){
+    if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera and microphone are unavailable on this device.');
+    if(!state.userPreferencesLocked){state.cameraOn=options.cameraOn!==false;state.micOn=Boolean(options.micOn);}
+    if(options.cameraId)state.cameraId=String(options.cameraId);
+    if(options.microphoneId)state.microphoneId=String(options.microphoneId);
+    stopTracks(state.stream?.getTracks?.()||[]);state.stream=new MediaStream();
+    const failures=[];
+    if(state.cameraOn){try{await replaceKind('video',state.cameraId);}catch(error){state.cameraOn=false;failures.push(mediaError(error));}}
+    if(state.micOn){try{await replaceKind('audio',state.microphoneId);}catch(error){state.micOn=false;failures.push(mediaError(error));}}
+    state.lastError=failures.join(' • ');emit();
+    const result={stream:state.stream,devices:await enumerate(),state:api.snapshot(),warning:state.lastError};
+    if(failures.length&&state.stream.getTracks().length===0)throw Object.assign(new Error(state.lastError),{mediaResult:result});
+    return result;
   }
 
   const api=Object.freeze({
-    async startPreview(options={}){
-      if(!state.userPreferencesLocked){state.cameraOn=options.cameraOn!==false;state.micOn=Boolean(options.micOn);}
-      if(options.cameraId)state.cameraId=String(options.cameraId);
-      if(options.microphoneId)state.microphoneId=String(options.microphoneId);
-      await rebuild();return {stream:state.stream,devices:await enumerate(),state:api.snapshot()};
-    },
+    startPreview,
     async setCamera(on){
-      const enabled=Boolean(on);state.userPreferencesLocked=true;if(state.cameraOn===enabled)return api.snapshot();
-      if(!enabled){state.cameraOn=false;stopTracks(live('video'));for(const track of state.stream?.getVideoTracks?.()||[]){try{state.stream.removeTrack(track);}catch{}}emit();return api.snapshot();}
-      state.cameraOn=true;try{await rebuild();}catch(error){state.cameraOn=false;emit();throw error;}return api.snapshot();
+      const enabled=Boolean(on);state.userPreferencesLocked=true;if(state.cameraOn===enabled&&(!enabled||live('video').length))return api.snapshot();
+      if(!enabled){state.cameraOn=false;removeKind('video');emit();return api.snapshot();}
+      state.cameraOn=true;try{await replaceKind('video',state.cameraId);}catch(error){state.cameraOn=false;state.lastError=mediaError(error);emit();throw error;}return api.snapshot();
     },
     async setMicrophone(on){
-      const enabled=Boolean(on);state.userPreferencesLocked=true;if(state.micOn===enabled)return api.snapshot();
-      if(!enabled){state.micOn=false;for(const track of state.stream?.getAudioTracks?.()||[])track.enabled=false;emit();return api.snapshot();}
+      const enabled=Boolean(on);state.userPreferencesLocked=true;
+      if(!enabled){state.micOn=false;for(const track of live('audio'))track.enabled=false;emit();return api.snapshot();}
       state.micOn=true;if(live('audio').length){live('audio').forEach(track=>track.enabled=true);emit();return api.snapshot();}
-      try{await rebuild();}catch(error){state.micOn=false;emit();throw error;}return api.snapshot();
+      try{await replaceKind('audio',state.microphoneId);}catch(error){state.micOn=false;state.lastError=mediaError(error);emit();throw error;}return api.snapshot();
     },
-    async selectCamera(id){const previous=state.cameraId;state.userPreferencesLocked=true;state.cameraId=String(id||'');savePref('camera',state.cameraId);if(state.cameraOn){try{await rebuild();}catch(error){state.cameraId=previous;savePref('camera',previous);throw error;}}emit();return api.snapshot();},
-    async selectMicrophone(id){const previous=state.microphoneId;state.userPreferencesLocked=true;state.microphoneId=String(id||'');savePref('microphone',state.microphoneId);if(state.micOn){try{await rebuild();}catch(error){state.microphoneId=previous;savePref('microphone',previous);throw error;}}emit();return api.snapshot();},
+    async selectCamera(id){
+      const wanted=String(id||''),previous=state.cameraId;state.userPreferencesLocked=true;if(wanted===previous&&live('video').length)return api.snapshot();
+      state.cameraId=wanted;savePref('camera',wanted);if(state.cameraOn){try{await replaceKind('video',wanted);}catch(error){state.cameraId=previous;savePref('camera',previous);throw error;}}emit();return api.snapshot();
+    },
+    async selectMicrophone(id){
+      const wanted=String(id||''),previous=state.microphoneId;state.userPreferencesLocked=true;if(wanted===previous&&live('audio').length)return api.snapshot();
+      state.microphoneId=wanted;savePref('microphone',wanted);if(state.micOn){try{await replaceKind('audio',wanted);}catch(error){state.microphoneId=previous;savePref('microphone',previous);throw error;}}emit();return api.snapshot();
+    },
     async selectSpeaker(id,element){state.userPreferencesLocked=true;state.speakerId=String(id||'');savePref('speaker',state.speakerId);if(element?.setSinkId&&state.speakerId)await element.setSinkId(state.speakerId);emit();return api.snapshot();},
     setMirror(on){state.userPreferencesLocked=true;state.mirror=Boolean(on);savePref('mirror',state.mirror);emit();return api.snapshot();},
     stop(){stopTracks(state.stream?.getTracks?.()||[]);state.stream=null;emit();},
