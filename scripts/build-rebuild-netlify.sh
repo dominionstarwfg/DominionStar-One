@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE="$ROOT/meet-desktop/ui"
 DIST="$ROOT/rebuild-dist"
 
-for required in index.html styles.css auth.css app.js; do
+for required in index.html styles.css auth.css meeting.css app.js; do
   if [ ! -s "$SOURCE/$required" ]; then
     echo "ERROR: shared desktop UI source is incomplete: $required" >&2
     exit 41
@@ -24,8 +24,6 @@ cat > "$DIST/_headers" <<'HEADERS'
   X-Frame-Options: DENY
 HEADERS
 
-# Fail closed: preview and installed app share exactly the same UI files. No
-# legacy website, Meet runtime, desktop runtime, or backend source may enter it.
 for forbidden in desktop 'desktop 2' meet meet-home meet-login .github supabase netlify; do
   if [ -e "$DIST/$forbidden" ]; then
     echo "ERROR: forbidden legacy path reached rebuild-dist: $forbidden" >&2
@@ -33,7 +31,7 @@ for forbidden in desktop 'desktop 2' meet meet-home meet-login .github supabase 
   fi
 done
 
-for file in index.html styles.css auth.css app.js; do
+for file in index.html styles.css auth.css meeting.css app.js; do
   cmp "$SOURCE/$file" "$DIST/$file"
 done
 echo "DOMINIONSTAR_REBUILD_NETLIFY_SHARED_UI_OK"
