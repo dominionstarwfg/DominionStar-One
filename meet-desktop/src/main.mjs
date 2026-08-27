@@ -1,21 +1,25 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, desktopCapturer, ipcMain, session, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDesktopAuth } from './auth-service.mjs';
 import { createMeetingService } from './meeting-service.mjs';
+import { createShareService } from './share-service.mjs';
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
+const uiDir=path.join(__dirname,'..','ui');
+const preloadPath=path.join(__dirname,'preload.cjs');
 let mainWindow=null;
 let desktopAuth=null;
 let meetingService=null;
+let shareService=null;
 
 function createMainWindow(){
-  mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});
+  mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});
   mainWindow.webContents.setWindowOpenHandler(({url})=>{if(/^https:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
   mainWindow.webContents.on('will-navigate',(event,url)=>{if(url.startsWith('file://'))return;event.preventDefault();if(/^https:\/\//i.test(url))void shell.openExternal(url);});
   mainWindow.once('ready-to-show',()=>mainWindow?.show());
-  void mainWindow.loadFile(path.join(__dirname,'..','ui','index.html'));
-  mainWindow.on('closed',()=>{mainWindow=null;});
+  void mainWindow.loadFile(path.join(uiDir,'index.html'));
+  mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home'}));
@@ -34,5 +38,12 @@ ipcMain.handle('meeting:set-cohost',(_event,{participantId,enabled})=>meetingSer
 ipcMain.handle('meeting:remove-participant',(_event,{participantId})=>meetingService?.removeParticipant(participantId));
 ipcMain.handle('meeting:end',(_event,{roomId})=>meetingService?.endRoom(roomId));
 
-app.whenReady().then(async()=>{desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});await desktopAuth.initialize();meetingService=createMeetingService({auth:desktopAuth});createMainWindow();app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});});
+app.whenReady().then(async()=>{
+  desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
+  await desktopAuth.initialize();
+  meetingService=createMeetingService({auth:desktopAuth});
+  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform});
+  createMainWindow();
+  app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});
+});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
