@@ -37,6 +37,7 @@ jobs:
           node --check 'meet-desktop/src/share-service.mjs'
           node --check 'meet-desktop/src/preload.cjs'
           node --check 'meet-desktop/ui/auth-password.js'
+          node --check 'meet-desktop/ui/av-settings.js'
           node --check 'meet-desktop/ui/media-controller.js'
           node --check 'meet-desktop/ui/share-controller.js'
           node --check 'meet-desktop/ui/share-integration.js'
@@ -53,6 +54,8 @@ jobs:
         run: node 'meet-desktop/scripts/verify-meeting-lifecycle.mjs'
       - name: Verify prejoin media and role authority
         run: node 'meet-desktop/scripts/verify-media-authority.mjs'
+      - name: Verify restored audio video settings
+        run: node 'meet-desktop/scripts/verify-av-settings.mjs'
       - name: Verify nonblocking screen-share authority
         run: node 'meet-desktop/scripts/verify-share-authority.mjs'
       - name: Verify real-time participant media transport
