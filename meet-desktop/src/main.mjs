@@ -30,6 +30,8 @@ ipcMain.handle('meeting:leave',(_event,{participantId,joinToken})=>meetingServic
 ipcMain.handle('meeting:host-queue',(_event,{roomId})=>meetingService?.hostQueue(roomId));
 ipcMain.handle('meeting:decide',(_event,{participantId,decision})=>meetingService?.decide(participantId,decision));
 ipcMain.handle('meeting:snapshot',(_event,{roomId})=>meetingService?.snapshot(roomId));
+ipcMain.handle('meeting:set-cohost',(_event,{participantId,enabled})=>meetingService?.setCohost(participantId,enabled));
+ipcMain.handle('meeting:remove-participant',(_event,{participantId})=>meetingService?.removeParticipant(participantId));
 ipcMain.handle('meeting:end',(_event,{roomId})=>meetingService?.endRoom(roomId));
 
 app.whenReady().then(async()=>{desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});await desktopAuth.initialize();meetingService=createMeetingService({auth:desktopAuth});createMainWindow();app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});});
