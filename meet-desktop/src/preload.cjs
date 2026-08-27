@@ -5,8 +5,11 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
   environment:()=>invoke('app:get-environment'),
   auth:Object.freeze({
-    getState:()=>invoke('auth:get-state'),startGoogle:()=>invoke('auth:start-google'),signOut:()=>invoke('auth:sign-out'),
+    getState:()=>invoke('auth:get-state'),startGoogle:()=>invoke('auth:start-google'),signInPassword:(email,password)=>invoke('auth:sign-in-password',{email,password}),signOut:()=>invoke('auth:sign-out'),
     onChanged:callback=>listen('auth:changed',callback),onError:callback=>listen('auth:error',callback)
+  }),
+  media:Object.freeze({
+    permissions:()=>invoke('media:get-permissions'),request:kinds=>invoke('media:request-permissions',{kinds:Array.isArray(kinds)?kinds:[]}),requestScreen:()=>invoke('media:request-screen'),openPrivacy:kind=>invoke('media:open-privacy',{kind})
   }),
   meeting:Object.freeze({
     create:input=>invoke('meeting:create',input),requestJoin:input=>invoke('meeting:request-join',input),
