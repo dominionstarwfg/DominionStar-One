@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE="$ROOT/meet-desktop/ui"
 DIST="$ROOT/rebuild-dist"
 
-for required in index.html styles.css auth.css auth-password.js meeting.css media-controller.js app.js share-controller.js share-integration.js share.css share-picker.html share-picker.css share-picker.js presenter-toolbar.html presenter-toolbar.css presenter-toolbar.js webrtc-controller.js webrtc.css diagnostics.js diagnostics.css; do
+for required in index.html styles.css auth.css auth-password.js av-settings.js av-settings.css meeting.css media-controller.js app.js share-controller.js share-integration.js share.css share-picker.html share-picker.css share-picker.js presenter-toolbar.html presenter-toolbar.css presenter-toolbar.js webrtc-controller.js webrtc.css diagnostics.js diagnostics.css; do
   if [ ! -s "$SOURCE/$required" ]; then
     echo "ERROR: shared desktop UI source is incomplete: $required" >&2
     exit 41
@@ -31,7 +31,7 @@ for forbidden in desktop 'desktop 2' meet meet-home meet-login .github supabase 
   fi
 done
 
-for file in index.html styles.css auth.css auth-password.js meeting.css media-controller.js app.js share-controller.js share-integration.js share.css share-picker.html share-picker.css share-picker.js presenter-toolbar.html presenter-toolbar.css presenter-toolbar.js webrtc-controller.js webrtc.css diagnostics.js diagnostics.css; do
+for file in index.html styles.css auth.css auth-password.js av-settings.js av-settings.css meeting.css media-controller.js app.js share-controller.js share-integration.js share.css share-picker.html share-picker.css share-picker.js presenter-toolbar.html presenter-toolbar.css presenter-toolbar.js webrtc-controller.js webrtc.css diagnostics.js diagnostics.css; do
   cmp "$SOURCE/$file" "$DIST/$file"
 done
 echo "DOMINIONSTAR_REBUILD_NETLIFY_SHARED_UI_OK"
