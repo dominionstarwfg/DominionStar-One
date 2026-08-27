@@ -1,0 +1,28 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
+const auth=read('src/auth-service.mjs');
+const service=read('src/meeting-service.mjs');
+const main=read('src/main.mjs');
+const preload=read('src/preload.cjs');
+const peer=read('ui/webrtc-controller.js');
+
+assert(auth.includes('client.functions.invoke'),'Permanent relay credentials must stay behind an authenticated server function.');
+assert(auth.includes('invokeServerFunction'),'Main-process auth must own Edge Function invocation.');
+assert(service.includes("auth.invokeServerFunction('meet-v2-turn-credentials'"),'Meeting service must request temporary TURN credentials from the protected broker.');
+assert(service.includes('const hasRelay=servers=>'),'Meeting service must validate an actual TURN relay server.');
+assert(service.includes("throw new Error('turn_relay_unavailable')"),'Meeting service must fail closed without TURN.');
+assert(service.includes('turnCache.expiresAtMs-now>10*60*1000'),'Valid temporary credentials should be reused rather than fetched per peer.');
+assert(service.includes('turnCache={roomId:current.roomId,iceServers:servers,expiresAtMs'),'TURN cache must be scoped to the active room.');
+assert(service.includes("turnCache={roomId:'',iceServers:[],expiresAtMs:0"),'Leaving/ending a room must clear cached relay credentials.');
+assert(main.includes("ipcMain.handle('meeting:ice-config'"),'Electron main process must own the relay credential IPC boundary.');
+assert(preload.includes("iceConfig:(force=false,ttl=7200)=>invoke('meeting:ice-config'"),'Renderer must receive only temporary ICE configuration.');
+assert(!preload.includes('invokeServerFunction')&&!preload.includes('meet-v2-turn-credentials'),'Renderer bridge must never expose the generic Edge Function transport or broker name.');
+assert(peer.includes("setTransportStatus('Preparing TURN relay…','pending')"),'WebRTC must visibly enter relay preparation before peer startup.');
+assert(peer.indexOf('await loadIceConfig(false)')<peer.indexOf('state.running=true'),'Peer transport must obtain valid TURN configuration before becoming active.');
+assert(peer.includes('REFRESH_MARGIN_MS=10*60*1000'),'TURN credentials must refresh before expiry.');
+assert(peer.includes('state.timers.relay=setTimeout(()=>void refreshRelay(),delay)'),'Long meetings must schedule credential refresh.');
+assert(peer.includes('record.pc.setConfiguration(iceConfiguration())')&&peer.includes('record.pc.restartIce()'),'Refreshed credentials must reach active RTCPeerConnections.');
+assert(peer.includes("setTransportStatus('TURN relay not configured','error')"),'Missing server-side relay setup must be explicit, not silently downgraded.');
+assert(!peer.includes('const ICE_SERVERS='),'Static ICE credentials/config must not return to the renderer.');
+console.log('DOMINIONSTAR_TURN_RELAY_OK server-broker temporary-credentials fail-closed refresh-before-expiry active-peer-ice-restart renderer-isolated');
