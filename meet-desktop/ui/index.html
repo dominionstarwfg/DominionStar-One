@@ -8,7 +8,21 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="app-shell">
+  <section id="bootScreen" class="boot-screen" aria-live="polite">
+    <div class="boot-mark">✦</div><strong>DominionStar Meet</strong><span>Opening your workspace…</span>
+  </section>
+
+  <section id="authGate" class="auth-gate" hidden aria-label="Sign in to DominionStar Meet">
+    <div class="auth-window">
+      <div class="auth-brand"><span class="auth-star">✦</span><div><span>DOMINIONSTAR</span><strong>Meet</strong></div></div>
+      <div class="auth-copy"><p class="eyebrow">DESKTOP WORKSPACE</p><h1>Sign in to DominionStar Meet</h1><p>Use your DominionStar account to open your meeting workspace.</p></div>
+      <button id="googleSignIn" class="google-button" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
+      <p id="authStatus" class="auth-status" role="status" aria-live="polite">Your browser opens only for Google verification. When sign-in finishes, DominionStar Meet returns to the foreground automatically.</p>
+      <div class="auth-security"><span>Secure desktop sign-in</span><small>PKCE authorization code flow • local callback • no public-site handoff</small></div>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell" hidden>
     <aside class="sidebar" aria-label="Primary navigation">
       <div class="brand-mark" aria-label="DominionStar Meet"><span class="brand-star">✦</span></div>
       <nav class="side-nav">
@@ -24,13 +38,13 @@
         <div class="brand-copy"><span>DOMINIONSTAR</span><strong>Meet</strong></div>
         <div class="topbar-actions">
           <button class="icon-button" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></button>
-          <button class="profile-button" data-open="profile"><span class="avatar">DS</span><span class="profile-copy"><strong>DominionStar</strong><small>Available</small></span><svg class="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button>
+          <button class="profile-button" data-open="profile"><span id="profileAvatar" class="avatar">DS</span><span class="profile-copy"><strong id="profileName">DominionStar</strong><small>Available</small></span><svg class="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button>
         </div>
       </header>
 
       <main class="content" id="homeSection">
         <section class="welcome-row">
-          <div><p class="eyebrow">WORKSPACE</p><h1>Good evening</h1><p>Start, join, or schedule a DominionStar meeting.</p></div>
+          <div><p class="eyebrow">WORKSPACE</p><h1 id="welcomeHeading">Good evening</h1><p>Start, join, or schedule a DominionStar meeting.</p></div>
           <div class="clock-card"><strong id="clockTime">--:--</strong><span id="clockDate">Loading date…</span></div>
         </section>
 
@@ -61,6 +75,8 @@
   <dialog id="scheduleDialog" class="modal"><form method="dialog"><header><div><p class="eyebrow">SCHEDULE</p><h2>Schedule a meeting</h2></div><button class="modal-close" value="cancel" aria-label="Close">×</button></header><label><span>Topic</span><input placeholder="Leadership training"></label><div class="two-col"><label><span>Date</span><input type="date"></label><label><span>Time</span><input type="time"></label></div><div class="modal-actions"><button value="cancel" class="secondary-button">Cancel</button><button value="schedule" class="primary-button">Schedule</button></div></form></dialog>
 
   <dialog id="settingsDialog" class="modal settings-modal"><form method="dialog"><header><div><p class="eyebrow">PREFERENCES</p><h2>Settings</h2></div><button class="modal-close" value="cancel" aria-label="Close">×</button></header><div class="settings-list"><button type="button" class="settings-row"><span><strong>Audio</strong><small>Microphone and speaker preferences</small></span><span>›</span></button><button type="button" class="settings-row"><span><strong>Video</strong><small>Camera and appearance</small></span><span>›</span></button><button type="button" class="settings-row"><span><strong>Meetings</strong><small>Join defaults and notifications</small></span><span>›</span></button><button type="button" class="settings-row"><span><strong>Sharing</strong><small>Screen share defaults</small></span><span>›</span></button></div><p class="settings-note">No Personal Room or backend setting is shown until its database migration exists and passes validation.</p></form></dialog>
+
+  <dialog id="profileDialog" class="modal compact-modal"><form method="dialog"><header><div><p class="eyebrow">ACCOUNT</p><h2 id="profileDialogName">DominionStar Member</h2></div><button class="modal-close" value="cancel" aria-label="Close">×</button></header><div class="account-summary"><span id="profileDialogAvatar" class="account-avatar">DS</span><div><strong id="profileDialogEmail">Visual preview</strong><small>Signed in to DominionStar Meet</small></div></div><div class="modal-actions"><button id="signOutButton" type="button" class="secondary-button danger-outline">Sign out</button><button value="ok" class="primary-button">Done</button></div></form></dialog>
 
   <dialog id="foundationDialog" class="modal compact-modal"><form method="dialog"><header><div><p class="eyebrow">FOUNDATION CHECK</p><h2 id="foundationTitle">Action ready</h2></div><button class="modal-close" value="cancel" aria-label="Close">×</button></header><p id="foundationCopy">This action is intentionally isolated until its engine is added.</p><div class="modal-actions"><button value="ok" class="primary-button">OK</button></div></form></dialog>
 
