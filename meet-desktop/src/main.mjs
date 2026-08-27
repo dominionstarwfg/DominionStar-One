@@ -1,9 +1,11 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createDesktopAuth } from './auth-service.mjs';
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 let mainWindow=null;
+let desktopAuth=null;
 
 function createMainWindow(){
   mainWindow=new BrowserWindow({
@@ -45,8 +47,13 @@ ipcMain.handle('app:get-environment',()=>({
   packaged:app.isPackaged,
   surface:'local-desktop-home'
 }));
+ipcMain.handle('auth:get-state',()=>desktopAuth?.getState?.()||{ready:false,signedIn:false,user:null});
+ipcMain.handle('auth:start-google',()=>desktopAuth?.startGoogle?.());
+ipcMain.handle('auth:sign-out',()=>desktopAuth?.signOut?.());
 
-app.whenReady().then(()=>{
+app.whenReady().then(async()=>{
+  desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
+  await desktopAuth.initialize();
   createMainWindow();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});
 });
