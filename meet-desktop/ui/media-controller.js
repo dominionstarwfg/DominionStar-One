@@ -55,4 +55,6 @@
   });
   window.DominionMediaController=api;
   if(!document.querySelector('script[data-ds-share-integration]')){const script=document.createElement('script');script.src='./share-integration.js';script.dataset.dsShareIntegration='1';document.head.append(script);}
+  if(!document.querySelector('link[data-ds-webrtc-style]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./webrtc.css';link.dataset.dsWebrtcStyle='1';document.head.append(link);}
+  if(!document.querySelector('script[data-ds-webrtc-controller]')){const script=document.createElement('script');script.src='./webrtc-controller.js';script.dataset.dsWebrtcController='1';document.head.append(script);}
 })();
