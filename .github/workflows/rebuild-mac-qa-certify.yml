@@ -51,7 +51,7 @@ jobs:
           node scripts/verify-turn-relay.mjs
           node scripts/verify-diagnostics.mjs
 
-      - name: Build unsigned universal QA app
+      - name: Build universal QA app
         working-directory: meet-desktop
         run: npx electron-builder --mac dir --universal --publish never
 
@@ -64,6 +64,15 @@ jobs:
           echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
           du -sh "$APP_PATH"
 
+      - name: Apply stable ad-hoc QA signature and media entitlements
+        shell: bash
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          codesign --force --deep --sign - --options runtime --entitlements meet-desktop/build/entitlements.mac.plist "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.device.camera'
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.device.audio-input'
+
       - name: Audit packaged app contents
         working-directory: meet-desktop
         run: node scripts/verify-packaged-app.mjs "../${{ steps.app.outputs.path }}"
@@ -75,6 +84,7 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$APP/Contents/Info.plist" >/dev/null
           /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$APP/Contents/Info.plist" >/dev/null
           /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' "$APP/Contents/Info.plist" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSAudioCaptureUsageDescription' "$APP/Contents/Info.plist" >/dev/null
           test -x "$APP/Contents/MacOS/DominionStar Meet"
 
       - name: Create clean QA archive
