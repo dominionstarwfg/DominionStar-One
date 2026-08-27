@@ -1,6 +1,6 @@
 import { createShareSourceAuthority } from './share-source-authority.mjs';
 
-export function createShareService({BrowserWindow,desktopCapturer,desktopSession,ipcMain,path,uiDir,preloadPath,getMainWindow,platform}){
+export function createShareService({BrowserWindow,desktopCapturer,desktopSession,ipcMain,path,uiDir,preloadPath,getMainWindow,platform,ensureScreenPermission,openPrivacySettings}){
   let pickerWindow=null;
   let toolbarWindow=null;
   let pendingSelection=null;
@@ -70,7 +70,16 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     callback(response);
   },{useSystemPicker:false});
 
-  ipcMain.handle('share:open-picker',()=>openPicker());
+  ipcMain.handle('share:open-picker',async()=>{
+    if(platform==='darwin'&&typeof ensureScreenPermission==='function'){
+      const permission=await ensureScreenPermission();
+      if(!permission?.ok){
+        if(typeof openPrivacySettings==='function')await openPrivacySettings('screen').catch?.(()=>{});
+        return {opened:false,permissionRequired:true,status:String(permission?.status||'unknown'),restartRequired:Boolean(permission?.restartRequired)};
+      }
+    }
+    return openPicker();
+  });
   ipcMain.handle('share:list-sources',async(_event,options={})=>{
     try{
       const result=await authority.list(options);
