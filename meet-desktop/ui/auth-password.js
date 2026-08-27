@@ -1,4 +1,7 @@
 (()=>{
+  if(!document.querySelector('link[data-ds-av-settings]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./av-settings.css';link.dataset.dsAvSettings='1';document.head.append(link);}
+  if(!document.querySelector('script[data-ds-av-settings]')){const script=document.createElement('script');script.src='./av-settings.js';script.dataset.dsAvSettings='1';document.head.append(script);}
+
   const form=document.querySelector('#emailSignInForm');
   const email=document.querySelector('#emailSignInEmail');
   const password=document.querySelector('#emailSignInPassword');
