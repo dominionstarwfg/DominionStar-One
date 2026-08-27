@@ -32,12 +32,15 @@ jobs:
         run: |
           node --check 'meet-desktop/src/main.mjs'
           node --check 'meet-desktop/src/auth-service.mjs'
+          node --check 'meet-desktop/src/meeting-service.mjs'
           node --check 'meet-desktop/src/preload.cjs'
           node --check 'meet-desktop/ui/app.js'
       - name: Verify clean Home contract
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
       - name: Verify desktop PKCE authentication contract
         run: node 'meet-desktop/scripts/verify-auth.mjs'
+      - name: Verify Meet V2 room lifecycle
+        run: node 'meet-desktop/scripts/verify-meeting-lifecycle.mjs'
       - name: Verify Netlify publishes the same UI
         run: bash scripts/build-rebuild-netlify.sh
       - name: Assert legacy runtime is absent
