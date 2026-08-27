@@ -7,7 +7,18 @@
   const addScript=src=>new Promise((resolve,reject)=>{if(document.querySelector(`script[src="${src}"]`))return resolve();const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=reject;document.head.append(script);});
 
   async function findMeetingSurface(){for(let i=0;i<120;i++){const overlay=document.querySelector('#meetingOverlay');if(overlay&&window.DominionMediaController)return overlay;await wait(50);}return null;}
-  function toast(message,kind=''){let node=document.querySelector('#shareToast');if(!node){node=document.createElement('div');node.id='shareToast';document.body.append(node);}node.className=`share-toast ${kind}`.trim();node.textContent=String(message||'');node.hidden=false;clearTimeout(node.__timer);node.__timer=setTimeout(()=>{node.hidden=true;},4200);}
+  function toast(message,kind=''){let node=document.querySelector('#shareToast');if(!node){node=document.createElement('div');node.id='shareToast';document.body.append(node);}node.className=`share-toast ${kind}`.trim();node.textContent=String(message||'');node.hidden=false;clearTimeout(node.__timer);node.__timer=setTimeout(()=>{node.hidden=true;},6500);}
+  async function openPickerWithPermission(){
+    if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
+    const result=await bridge.openPicker();
+    if(result?.permissionRequired){
+      const status=String(result.status||'unknown');
+      const restart=result.restartRequired?' Restart DominionStar Meet after granting access.':'';
+      toast(`macOS Screen Recording permission is ${status}. Allow DominionStar Meet in Privacy & Security > Screen & System Audio Recording.${restart}`,'error');
+      return false;
+    }
+    return result?.opened!==false;
+  }
 
   async function boot(){
     addStyle('./share.css');
@@ -40,7 +51,7 @@
       event.currentTarget.blur();
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return;}
       if(share.snapshot().active){toast('A share is already active. Use the floating toolbar to pause or stop it.');return;}
-      requestAnimationFrame(()=>setTimeout(()=>{void bridge.openPicker().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));},0));
+      requestAnimationFrame(()=>setTimeout(()=>{void openPickerWithPermission().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));},0));
     });
 
     bridge?.onSourceSelected?.(async selection=>{
@@ -62,7 +73,7 @@
       }catch(error){toast(error?.message||'Share control failed.','error');}
     });
 
-    window.DominionShareIntegration=Object.freeze({open:()=>bridge?.openPicker?.(),stop:()=>share.stop(),state:()=>share.snapshot()});
+    window.DominionShareIntegration=Object.freeze({open:()=>openPickerWithPermission(),stop:()=>share.stop(),state:()=>share.snapshot()});
   }
   void boot();
 })();
