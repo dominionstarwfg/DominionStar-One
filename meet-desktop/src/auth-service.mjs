@@ -53,6 +53,13 @@ export function createDesktopAuth({app,shell,getMainWindow}){
   }
   async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;await emitState();return {ok:true};}
   async function rpc(name,args={}){if(!client)await initialize();const {data,error}=await client.rpc(name,args);if(error)throw new Error(error.message||`Meeting service failed: ${name}`);return data;}
+  async function invokeServerFunction(name,body={}){
+    if(!client)await initialize();
+    const {data,error}=await client.functions.invoke(String(name||''),{body:body||{}});
+    if(error)throw new Error(error.message||`Server function failed: ${name}`);
+    if(data?.error)throw new Error(String(data.error));
+    return data;
+  }
 
-  return Object.freeze({initialize,getState,startGoogle,signOut,rpc,callbackUrl:CALLBACK_URL});
+  return Object.freeze({initialize,getState,startGoogle,signOut,rpc,invokeServerFunction,callbackUrl:CALLBACK_URL});
 }
