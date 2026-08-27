@@ -36,6 +36,7 @@ jobs:
           node --check 'meet-desktop/src/share-source-authority.mjs'
           node --check 'meet-desktop/src/share-service.mjs'
           node --check 'meet-desktop/src/preload.cjs'
+          node --check 'meet-desktop/ui/auth-password.js'
           node --check 'meet-desktop/ui/media-controller.js'
           node --check 'meet-desktop/ui/share-controller.js'
           node --check 'meet-desktop/ui/share-integration.js'
@@ -46,7 +47,7 @@ jobs:
           node --check 'meet-desktop/ui/app.js'
       - name: Verify clean Home contract
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
-      - name: Verify desktop PKCE authentication contract
+      - name: Verify desktop authentication contract
         run: node 'meet-desktop/scripts/verify-auth.mjs'
       - name: Verify Meet V2 room lifecycle
         run: node 'meet-desktop/scripts/verify-meeting-lifecycle.mjs'
