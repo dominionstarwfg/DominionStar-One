@@ -16,9 +16,15 @@
     <div class="auth-window">
       <div class="auth-brand"><span class="auth-star">✦</span><div><span>DOMINIONSTAR</span><strong>Meet</strong></div></div>
       <div class="auth-copy"><p class="eyebrow">DESKTOP WORKSPACE</p><h1>Sign in to DominionStar Meet</h1><p>Use your DominionStar account to open your meeting workspace.</p></div>
+      <form id="emailSignInForm" class="email-auth-form">
+        <label><span>Email</span><input id="emailSignInEmail" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+        <label><span>Password</span><input id="emailSignInPassword" type="password" autocomplete="current-password" placeholder="Password" required></label>
+        <button id="emailSignInButton" class="primary-button email-signin-button" type="submit">Sign in</button>
+      </form>
+      <div class="auth-divider"><span>or</span></div>
       <button id="googleSignIn" class="google-button" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
-      <p id="authStatus" class="auth-status" role="status" aria-live="polite">Your browser opens only for Google verification. When sign-in finishes, DominionStar Meet returns to the foreground automatically.</p>
-      <div class="auth-security"><span>Secure desktop sign-in</span><small>PKCE authorization code flow • local callback • no public-site handoff</small></div>
+      <p id="authStatus" class="auth-status" role="status" aria-live="polite">Sign in with your email and password, or continue with Google. Google verification returns directly to DominionStar Meet.</p>
+      <div class="auth-security"><span>Secure desktop sign-in</span><small>Encrypted local session • PKCE Google return • no public-site handoff</small></div>
     </div>
   </section>
 
@@ -80,6 +86,7 @@
 
   <dialog id="foundationDialog" class="modal compact-modal"><form method="dialog"><header><div><p class="eyebrow">FOUNDATION CHECK</p><h2 id="foundationTitle">Action ready</h2></div><button class="modal-close" value="cancel" aria-label="Close">×</button></header><p id="foundationCopy">This action is intentionally isolated until its engine is added.</p><div class="modal-actions"><button value="ok" class="primary-button">OK</button></div></form></dialog>
 
+  <script src="./auth-password.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
