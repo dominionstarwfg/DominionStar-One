@@ -33,8 +33,14 @@ jobs:
           node --check 'meet-desktop/src/main.mjs'
           node --check 'meet-desktop/src/auth-service.mjs'
           node --check 'meet-desktop/src/meeting-service.mjs'
+          node --check 'meet-desktop/src/share-source-authority.mjs'
+          node --check 'meet-desktop/src/share-service.mjs'
           node --check 'meet-desktop/src/preload.cjs'
           node --check 'meet-desktop/ui/media-controller.js'
+          node --check 'meet-desktop/ui/share-controller.js'
+          node --check 'meet-desktop/ui/share-integration.js'
+          node --check 'meet-desktop/ui/share-picker.js'
+          node --check 'meet-desktop/ui/presenter-toolbar.js'
           node --check 'meet-desktop/ui/app.js'
       - name: Verify clean Home contract
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
@@ -44,6 +50,8 @@ jobs:
         run: node 'meet-desktop/scripts/verify-meeting-lifecycle.mjs'
       - name: Verify prejoin media and role authority
         run: node 'meet-desktop/scripts/verify-media-authority.mjs'
+      - name: Verify nonblocking screen-share authority
+        run: node 'meet-desktop/scripts/verify-share-authority.mjs'
       - name: Verify Netlify publishes the same UI
         run: bash scripts/build-rebuild-netlify.sh
       - name: Assert legacy runtime is absent
