@@ -42,6 +42,7 @@ jobs:
           node --check 'meet-desktop/ui/share-picker.js'
           node --check 'meet-desktop/ui/presenter-toolbar.js'
           node --check 'meet-desktop/ui/webrtc-controller.js'
+          node --check 'meet-desktop/ui/diagnostics.js'
           node --check 'meet-desktop/ui/app.js'
       - name: Verify clean Home contract
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
@@ -57,6 +58,8 @@ jobs:
         run: node 'meet-desktop/scripts/verify-webrtc-transport.mjs'
       - name: Verify TURN relay reliability architecture
         run: node 'meet-desktop/scripts/verify-turn-relay.mjs'
+      - name: Verify physical QA diagnostics
+        run: node 'meet-desktop/scripts/verify-diagnostics.mjs'
       - name: Verify Netlify publishes the same UI
         run: bash scripts/build-rebuild-netlify.sh
       - name: Assert legacy runtime is absent
