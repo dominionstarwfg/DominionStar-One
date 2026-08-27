@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE="$ROOT/meet-desktop/ui"
 DIST="$ROOT/rebuild-dist"
 
-for required in index.html styles.css app.js; do
+for required in index.html styles.css auth.css app.js; do
   if [ ! -s "$SOURCE/$required" ]; then
     echo "ERROR: shared desktop UI source is incomplete: $required" >&2
     exit 41
@@ -33,7 +33,7 @@ for forbidden in desktop 'desktop 2' meet meet-home meet-login .github supabase 
   fi
 done
 
-cmp "$SOURCE/index.html" "$DIST/index.html"
-cmp "$SOURCE/styles.css" "$DIST/styles.css"
-cmp "$SOURCE/app.js" "$DIST/app.js"
+for file in index.html styles.css auth.css app.js; do
+  cmp "$SOURCE/$file" "$DIST/$file"
+done
 echo "DOMINIONSTAR_REBUILD_NETLIFY_SHARED_UI_OK"
