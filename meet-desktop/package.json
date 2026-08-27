@@ -28,10 +28,13 @@
       "category": "public.app-category.business",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
         "NSCameraUsageDescription": "DominionStar Meet uses your camera only when you choose to turn video on in a meeting.",
         "NSMicrophoneUsageDescription": "DominionStar Meet uses your microphone only when you choose to use audio in a meeting.",
-        "NSScreenCaptureUsageDescription": "DominionStar Meet uses screen capture only when you explicitly choose to share a screen or application."
+        "NSScreenCaptureUsageDescription": "DominionStar Meet uses screen capture only when you explicitly choose to share a screen or application.",
+        "NSAudioCaptureUsageDescription": "DominionStar Meet captures system audio only when you explicitly choose to share audio with your screen."
       }
     }
   }
