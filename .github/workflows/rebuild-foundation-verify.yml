@@ -1,0 +1,43 @@
+name: DominionStar Meet Rebuild Foundation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'meet-desktop/**'
+      - 'scripts/build-rebuild-netlify.sh'
+      - 'netlify.toml'
+      - '.github/workflows/rebuild-foundation-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout rebuild candidate
+        uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify desktop source syntax
+        run: |
+          node --check 'meet-desktop/src/main.mjs'
+          node --check 'meet-desktop/src/preload.cjs'
+          node --check 'meet-desktop/ui/app.js'
+      - name: Verify clean Home contract
+        run: node 'meet-desktop/scripts/verify-foundation.mjs'
+      - name: Verify Netlify publishes the same UI
+        run: bash scripts/build-rebuild-netlify.sh
+      - name: Assert legacy runtime is absent
+        run: |
+          test ! -e desktop
+          test ! -e 'desktop 2'
+          test ! -e meet
+          test ! -e meet-home
+          test ! -e meet-login
+          test ! -e assets/js/meeting-engine.js
+          echo DOMINIONSTAR_REBUILD_LEGACY_ABSENT_OK
