@@ -41,6 +41,7 @@ ipcMain.handle('meeting:context',()=>meetingService?.context?.()||{});
 ipcMain.handle('meeting:signal-send',(_event,{toParticipantId,type,payload})=>meetingService?.sendSignal(toParticipantId,type,payload));
 ipcMain.handle('meeting:signal-pull',(_event,{afterId,limit})=>meetingService?.pullSignals(afterId,limit));
 ipcMain.handle('meeting:signal-prune',(_event,{roomId})=>meetingService?.pruneSignals(roomId));
+ipcMain.handle('meeting:ice-config',(_event,{force=false,ttl=7200}={})=>meetingService?.iceConfig({force:Boolean(force),ttl:Number(ttl)||7200}));
 
 app.whenReady().then(async()=>{
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
