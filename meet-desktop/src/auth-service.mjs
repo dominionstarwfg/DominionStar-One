@@ -51,6 +51,17 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     const {data,error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:CALLBACK_URL,skipBrowserRedirect:true,queryParams:{prompt:'select_account'}}});
     if(error||!data?.url)throw new Error(error?.message||'Google sign-in URL was not created.');const authorizationUrl=new URL(data.url);const redirect=authorizationUrl.searchParams.get('redirect_to');if(redirect!==CALLBACK_URL)throw new Error('Desktop authentication refused an unexpected redirect destination.');await shell.openExternal(data.url);return {ok:true,callbackUrl:CALLBACK_URL};
   }
+  async function signInPassword(email,password){
+    if(!client)await initialize();
+    const normalizedEmail=String(email||'').trim().toLowerCase();
+    const normalizedPassword=String(password||'');
+    if(!normalizedEmail||!normalizedEmail.includes('@'))throw new Error('Enter a valid email address.');
+    if(!normalizedPassword)throw new Error('Enter your password.');
+    const {data,error}=await client.auth.signInWithPassword({email:normalizedEmail,password:normalizedPassword});
+    if(error||!data?.session)throw new Error(error?.message||'Email sign-in could not be completed.');
+    foregroundApp();
+    return emitState();
+  }
   async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;await emitState();return {ok:true};}
   async function rpc(name,args={}){if(!client)await initialize();const {data,error}=await client.rpc(name,args);if(error)throw new Error(error.message||`Meeting service failed: ${name}`);return data;}
   async function invokeServerFunction(name,body={}){
@@ -61,5 +72,5 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     return data;
   }
 
-  return Object.freeze({initialize,getState,startGoogle,signOut,rpc,invokeServerFunction,callbackUrl:CALLBACK_URL});
+  return Object.freeze({initialize,getState,startGoogle,signInPassword,signOut,rpc,invokeServerFunction,callbackUrl:CALLBACK_URL});
 }
