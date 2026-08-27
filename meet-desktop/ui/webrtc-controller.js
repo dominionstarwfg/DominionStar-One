@@ -2,22 +2,30 @@
   if(window.DominionWebRTCController)return;
   const desktop=window.dominionDesktop;
   const meeting=desktop?.meeting;
-  if(!desktop?.isDesktop||!meeting?.context||!meeting?.sendSignal||!meeting?.pullSignals)return;
+  if(!desktop?.isDesktop||!meeting?.context||!meeting?.sendSignal||!meeting?.pullSignals||!meeting?.iceConfig)return;
 
-  const ICE_SERVERS=[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']}];
-  const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800;
-  const state={running:false,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),timers:{signals:0,snapshot:0,speaker:0},mediaUnsub:null,shareUnsub:null};
+  const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800,RELAY_RETRY_MS=30000,REFRESH_MARGIN_MS=10*60*1000;
+  const state={running:false,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),timers:{signals:0,snapshot:0,speaker:0,relay:0,diagnostics:0},mediaUnsub:null,shareUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',nextStartAttemptAt:0};
   const q=s=>document.querySelector(s);
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const initials=name=>String(name||'Participant').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'P';
   const localMedia=()=>window.DominionMediaController?.stream?.()||null;
   const shareMedia=()=>window.DominionShareController?.outputStream?.()||null;
+  const serverUrls=server=>(Array.isArray(server?.urls)?server.urls:[server?.urls]).filter(Boolean).map(String);
+  const hasRelay=servers=>(servers||[]).some(server=>serverUrls(server).some(url=>/^turns?:/i.test(url))&&Boolean(server?.username)&&Boolean(server?.credential));
 
+  function ensureTransportStatus(){
+    const head=q('.meeting-head');if(!head)return null;
+    let badge=q('#transportStatus');
+    if(!badge){badge=document.createElement('span');badge.id='transportStatus';badge.className='transport-status';badge.textContent='Preparing network…';head.append(badge);}
+    return badge;
+  }
+  function setTransportStatus(text,kind='') {const badge=ensureTransportStatus();if(!badge)return;badge.textContent=text;badge.dataset.kind=kind;}
   function ensureUi(){
     const stage=q('.stage');if(!stage)return null;
     let layer=q('#remoteMediaLayer');
     if(!layer){layer=document.createElement('div');layer.id='remoteMediaLayer';layer.className='remote-media-layer';layer.innerHTML='<video id="remoteShareVideo" class="remote-share-video" autoplay playsinline></video><div id="remoteTileStrip" class="remote-tile-strip"></div><div id="remoteAudioBin" class="remote-audio-bin" aria-hidden="true"></div>';stage.append(layer);}
-    return layer;
+    ensureTransportStatus();return layer;
   }
   function participantName(id){return state.participants.get(id)?.displayName||'Participant';}
   function ensureTile(id){
@@ -37,15 +45,47 @@
   function hideRemoteShare(id){const video=q('#remoteShareVideo');if(!video||String(video.dataset.peerId||'')!==String(id))return;video.srcObject=null;video.hidden=true;delete video.dataset.peerId;document.body.classList.remove('remote-share-active');}
   async function playRemoteAudio(id,stream){const audio=ensureAudio(id);if(!audio)return;audio.srcObject=stream;const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(audio.setSinkId&&speakerId)await audio.setSinkId(speakerId).catch(()=>{});void audio.play().catch(()=>{});}
 
+  function iceConfiguration(){return {iceServers:state.iceServers,bundlePolicy:'max-bundle',iceCandidatePoolSize:4,iceTransportPolicy:'all'};}
+  function validRelayConfig(){return hasRelay(state.iceServers)&&state.iceExpiresAtMs>Date.now()+5*60*1000;}
+  async function loadIceConfig(force=false){
+    const config=await meeting.iceConfig(force,7200);
+    const servers=Array.isArray(config?.iceServers)?config.iceServers:[];
+    const expiresAtMs=Number(config?.expiresAtMs)||0;
+    if(!hasRelay(servers)||expiresAtMs<=Date.now()+5*60*1000)throw new Error('turn_relay_unavailable');
+    state.iceServers=servers;state.iceExpiresAtMs=expiresAtMs;state.iceProvider=String(config?.provider||'relay');
+    setTransportStatus(`TURN ready • ${state.iceProvider}`,'ready');scheduleRelayRefresh();return config;
+  }
+  function scheduleRelayRefresh(){
+    clearTimeout(state.timers.relay);state.timers.relay=0;
+    if(!state.iceExpiresAtMs)return;
+    const delay=Math.max(60000,state.iceExpiresAtMs-Date.now()-REFRESH_MARGIN_MS);
+    state.timers.relay=setTimeout(()=>void refreshRelay(),delay);
+  }
+  async function refreshRelay(){
+    if(!state.running)return;
+    try{
+      await loadIceConfig(true);
+      for(const record of state.peers.values()){
+        try{record.pc.setConfiguration(iceConfiguration());record.pc.restartIce();if(isInitiator(record.id))void initiate(record,true);}catch{}
+      }
+      setTransportStatus(`TURN refreshed • ${state.iceProvider}`,'ready');
+    }catch{
+      setTransportStatus('TURN refresh retrying','warning');
+      clearTimeout(state.timers.relay);state.timers.relay=setTimeout(()=>void refreshRelay(),60000);
+    }
+  }
+
   function createPeerRecord(remoteId){
-    const pc=new RTCPeerConnection({iceServers:ICE_SERVERS,bundlePolicy:'max-bundle'});
-    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,reconnectTimer:0,audioContext:null,analyser:null,audioSource:null,lastLevel:0};
+    if(!validRelayConfig())throw new Error('turn_relay_unavailable');
+    const pc=new RTCPeerConnection(iceConfiguration());
+    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,reconnectTimer:0,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
     state.peers.set(remoteId,record);ensureTile(remoteId);
     pc.onicecandidate=event=>{if(event.candidate)void meeting.sendSignal(remoteId,'ice',{candidate:event.candidate.toJSON?.()||event.candidate}).catch(()=>{});};
+    pc.onicecandidateerror=()=>setTransportStatus('Network path retrying','warning');
     pc.ontrack=event=>handleRemoteTrack(record,event);
     pc.onconnectionstatechange=()=>{
       const status=pc.connectionState;setTileState(remoteId,status==='connected'?'Connected':status==='connecting'?'Connecting…':status);
-      if(status==='failed'||status==='closed')scheduleReconnect(record,0);else if(status==='disconnected')scheduleReconnect(record,RECONNECT_MS);else if(status==='connected'){clearTimeout(record.reconnectTimer);record.reconnectTimer=0;}
+      if(status==='failed'||status==='closed'){void loadIceConfig(true).catch(()=>{});scheduleReconnect(record,0);}else if(status==='disconnected')scheduleReconnect(record,RECONNECT_MS);else if(status==='connected'){clearTimeout(record.reconnectTimer);record.reconnectTimer=0;}
     };
     return record;
   }
@@ -66,16 +106,16 @@
     const audio=media?.getAudioTracks?.()[0]||null,camera=media?.getVideoTracks?.()[0]||null,screen=share?.getVideoTracks?.()[0]||null;
     await Promise.all([lanes[0]?.sender?.replaceTrack(audio),lanes[1]?.sender?.replaceTrack(camera),lanes[2]?.sender?.replaceTrack(screen)].filter(Boolean));
   }
-  async function initiate(record){
+  async function initiate(record,iceRestart=false){
     if(record.makingOffer||record.pc.signalingState!=='stable')return;
     prepareOfferer(record);await syncLocalTracks(record);record.makingOffer=true;
-    try{const offer=await record.pc.createOffer();await record.pc.setLocalDescription(offer);await meeting.sendSignal(record.id,'offer',{sdp:record.pc.localDescription});}finally{record.makingOffer=false;}
+    try{const offer=await record.pc.createOffer(iceRestart?{iceRestart:true}:undefined);await record.pc.setLocalDescription(offer);await meeting.sendSignal(record.id,'offer',{sdp:record.pc.localDescription});}finally{record.makingOffer=false;}
   }
   async function flushIce(record){if(!record.pc.remoteDescription)return;while(record.pendingIce.length){const candidate=record.pendingIce.shift();try{await record.pc.addIceCandidate(candidate);}catch{}}}
   async function handleSignal(signal){
     const remoteId=String(signal.fromParticipantId||'');if(!remoteId||remoteId===state.context?.participantId)return;
     if(signal.type==='bye'){closePeer(remoteId);return;}
-    const record=ensurePeer(remoteId),payload=signal.payload||{};
+    let record;try{record=ensurePeer(remoteId);}catch{return;}const payload=signal.payload||{};
     if(signal.type==='offer'){
       if(!payload.sdp)return;await record.pc.setRemoteDescription(payload.sdp);record.transceivers=record.pc.getTransceivers().slice(0,3);await syncLocalTracks(record);await flushIce(record);
       const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:record.pc.localDescription});return;
@@ -99,15 +139,28 @@
     }
     document.querySelectorAll('.remote-peer-tile').forEach(tile=>tile.classList.toggle('active-speaker',tile.dataset.peerId===loudest));
   }
+  async function sampleTransport(record){
+    try{
+      const stats=await record.pc.getStats();let pair=null;
+      stats.forEach(report=>{if(report.type==='candidate-pair'&&report.state==='succeeded'&&(report.nominated||!pair))pair=report;});
+      if(!pair)return;const local=stats.get(pair.localCandidateId),remote=stats.get(pair.remoteCandidateId);const relay=local?.candidateType==='relay'||remote?.candidateType==='relay';record.transport=relay?'relay':'direct';
+    }catch{}
+  }
+  async function sampleTransports(){
+    for(const record of state.peers.values())await sampleTransport(record);
+    const values=[...state.peers.values()].map(record=>record.transport);
+    if(values.includes('relay'))setTransportStatus('Connected via TURN relay','relay');
+    else if(values.includes('direct'))setTransportStatus('Direct connection • TURN standby','ready');
+  }
   function scheduleReconnect(record,delay){
-    if(!state.running||record.reconnectTimer)return;record.reconnectTimer=setTimeout(()=>{record.reconnectTimer=0;const id=record.id;closePeer(id,false);if(state.participants.has(id)){const next=ensurePeer(id);if(isInitiator(id))void initiate(next).catch(()=>scheduleReconnect(next,RECONNECT_MS));}},Math.max(0,delay));
+    if(!state.running||record.reconnectTimer)return;record.reconnectTimer=setTimeout(()=>{record.reconnectTimer=0;const id=record.id;closePeer(id,false);if(state.participants.has(id)){try{const next=ensurePeer(id);if(isInitiator(id))void initiate(next).catch(()=>scheduleReconnect(next,RECONNECT_MS));}catch{setTransportStatus('TURN unavailable','error');}}},Math.max(0,delay));
   }
   function closePeer(id,remove=true){
     const record=state.peers.get(id);if(!record)return;clearTimeout(record.reconnectTimer);try{record.pc.ontrack=null;record.pc.onicecandidate=null;record.pc.close();}catch{}try{record.audioContext?.close?.();}catch{}state.peers.delete(id);hideRemoteShare(id);if(remove)removeTile(id);
   }
   async function reconcileParticipants(){
     if(!state.context?.roomId)return;const snapshot=await meeting.snapshot(state.context.roomId);const current=new Map();
-    for(const p of snapshot.participants||[]){const id=String(p.participantId||'');if(!id||id===state.context.participantId)continue;current.set(id,p);state.participants.set(id,p);updateTileIdentity(id);const peer=ensurePeer(id);if(isInitiator(id)&&peer.pc.signalingState==='stable'&&peer.pc.connectionState==='new')void initiate(peer).catch(()=>scheduleReconnect(peer,RECONNECT_MS));}
+    for(const p of snapshot.participants||[]){const id=String(p.participantId||'');if(!id||id===state.context.participantId)continue;current.set(id,p);state.participants.set(id,p);updateTileIdentity(id);let peer;try{peer=ensurePeer(id);}catch{setTransportStatus('TURN unavailable','error');continue;}if(isInitiator(id)&&peer.pc.signalingState==='stable'&&peer.pc.connectionState==='new')void initiate(peer).catch(()=>scheduleReconnect(peer,RECONNECT_MS));}
     for(const id of [...state.peers.keys()])if(!current.has(id))closePeer(id);
     for(const id of [...state.participants.keys()])if(!current.has(id))state.participants.delete(id);
   }
@@ -116,23 +169,25 @@
   }
   async function syncAllSenders(){for(const record of state.peers.values()){try{await syncLocalTracks(record);}catch{}}const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(speakerId)for(const audio of document.querySelectorAll('#remoteAudioBin audio'))if(audio.setSinkId)void audio.setSinkId(speakerId).catch(()=>{});}
   async function start(){
-    if(state.running)return;const context=await meeting.context();if(!context?.roomId||!context?.participantId||context.state!=='joined')return;
-    state.running=true;state.context=context;state.lastSignalId=0;ensureUi();
+    if(state.running||Date.now()<state.nextStartAttemptAt)return;const context=await meeting.context();if(!context?.roomId||!context?.participantId||context.state!=='joined')return;
+    ensureUi();setTransportStatus('Preparing TURN relay…','pending');
+    try{await loadIceConfig(false);}catch{state.nextStartAttemptAt=Date.now()+RELAY_RETRY_MS;setTransportStatus('TURN relay not configured','error');return;}
+    state.running=true;state.context=context;state.lastSignalId=0;state.nextStartAttemptAt=0;
     state.mediaUnsub=window.DominionMediaController?.onChange?.(()=>void syncAllSenders());
     state.shareUnsub=window.DominionShareController?.onChange?.(()=>void syncAllSenders());
     await reconcileParticipants().catch(()=>{});await pullSignals();
-    state.timers.signals=setInterval(()=>void pullSignals(),POLL_MS);state.timers.snapshot=setInterval(()=>void reconcileParticipants(),SNAPSHOT_MS);state.timers.speaker=setInterval(sampleSpeakers,SPEAKER_MS);
+    state.timers.signals=setInterval(()=>void pullSignals(),POLL_MS);state.timers.snapshot=setInterval(()=>void reconcileParticipants(),SNAPSHOT_MS);state.timers.speaker=setInterval(sampleSpeakers,SPEAKER_MS);state.timers.diagnostics=setInterval(()=>void sampleTransports(),4000);
   }
   async function stop(){
-    if(!state.running)return;state.running=false;for(const key of Object.keys(state.timers)){clearInterval(state.timers[key]);state.timers[key]=0;}state.mediaUnsub?.();state.shareUnsub?.();state.mediaUnsub=null;state.shareUnsub=null;
-    for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.context=null;state.lastSignalId=0;document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();
+    if(!state.running){state.context=null;return;}state.running=false;for(const key of Object.keys(state.timers)){clearInterval(state.timers[key]);clearTimeout(state.timers[key]);state.timers[key]=0;}state.mediaUnsub?.();state.shareUnsub?.();state.mediaUnsub=null;state.shareUnsub=null;
+    for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.context=null;state.lastSignalId=0;state.iceServers=[];state.iceExpiresAtMs=0;state.iceProvider='';document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();
   }
   async function lifecycleProbe(){
     const inRoom=!q('#meetingOverlay')?.hidden;const context=await meeting.context().catch(()=>({}));
-    if(inRoom&&context?.state==='joined'&&!state.running)void start();
+    if(inRoom&&context?.state==='joined'&&!state.running&&Date.now()>=state.nextStartAttemptAt)void start();
     if((!inRoom||!context?.roomId)&&state.running)void stop();
   }
   setInterval(()=>void lifecycleProbe(),500);
-  const api=Object.freeze({start,stop,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||''})});
+  const api=Object.freeze({start,stop,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',relayReady:validRelayConfig(),relayProvider:state.iceProvider,relayExpiresAt:state.iceExpiresAtMs})});
   window.DominionWebRTCController=api;
 })();
