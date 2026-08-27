@@ -31,11 +31,13 @@ jobs:
       - name: Clean all generated state
         run: |
           rm -rf meet-desktop/node_modules meet-desktop/dist meet-desktop/release .package-audit
-          find . -maxdepth 2 -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' | xargs -I{} rm -f '{}' || true
+          find . -maxdepth 2 \( -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' \) -print0 | xargs -0 -I{} rm -f '{}' || true
 
       - name: Install only rebuild dependencies
         working-directory: meet-desktop
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm ls --depth=0
 
       - name: Run complete source certification
         working-directory: meet-desktop
