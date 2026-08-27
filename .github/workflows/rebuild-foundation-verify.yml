@@ -55,6 +55,8 @@ jobs:
         run: node 'meet-desktop/scripts/verify-share-authority.mjs'
       - name: Verify real-time participant media transport
         run: node 'meet-desktop/scripts/verify-webrtc-transport.mjs'
+      - name: Verify TURN relay reliability architecture
+        run: node 'meet-desktop/scripts/verify-turn-relay.mjs'
       - name: Verify Netlify publishes the same UI
         run: bash scripts/build-rebuild-netlify.sh
       - name: Assert legacy runtime is absent
