@@ -30,8 +30,16 @@ assert.equal(enumerateCount,2,'A later source refresh may start only after the o
 assert.equal(recovered.ok,true);
 assert.equal(authority.get('screen:second')?.id,'screen:second');
 
+assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS screen capture must have a native permission authority.');
+assert(main.includes("permissionStatus('screen')"),'Screen Recording permission must be checked independently from camera/microphone.');
+assert(main.includes("desktopCapturer.getSources({types:['screen'],thumbnailSize:{width:1,height:1},fetchWindowIcons:false})"),'First Share attempt must trigger macOS screen-capture authorization without opening the full chooser.');
+assert(main.includes("media:request-screen"),'Renderer must have a narrow screen-permission command.');
 assert.equal((service.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Exactly one Electron display-media handler may own capture.');
 assert(service.includes('{useSystemPicker:false}'),'A second native picker must not appear over the approved DominionStar chooser.');
+assert(service.includes("if(platform==='darwin'&&typeof ensureScreenPermission==='function')"),'Share picker must preflight macOS Screen Recording permission.');
+assert(service.includes('permissionRequired:true'),'Denied/unconfigured Screen Recording permission must be returned explicitly.');
+assert(service.indexOf('ensureScreenPermission()')<service.indexOf('return openPicker()'),'Permission preflight must happen before the custom source chooser opens.');
+assert(service.includes("openPrivacySettings('screen')"),'Share permission failure must open the correct macOS Privacy pane.');
 assert(service.includes("types:['screen','window']"),'Source authority must enumerate both screens and application windows.');
 assert(service.includes('timeoutMs:4500'),'Production source enumeration must be bounded.');
 assert(service.includes('if(pickerWindow&&!pickerWindow.isDestroyed())'),'Share picker must be single-instance.');
@@ -40,7 +48,8 @@ assert(!preload.includes('desktopCapturer')&&!picker.includes('desktopCapturer')
 assert(preload.includes('sharePicker:Object.freeze')&&preload.includes('presenter:Object.freeze'),'Picker and presenter controls must use narrow IPC bridges.');
 assert(pickerHtml.includes('data-filter="screen">Screens')&&pickerHtml.includes('data-filter="window">Applications'),'Approved picker must expose Screens and Applications.');
 assert(!picker.includes('showModal')&&!pickerHtml.includes('<dialog'),'Share chooser must not be a modal dialog inside the meeting renderer.');
-assert(integration.includes('requestAnimationFrame(()=>setTimeout'),'Share click must release before opening the native picker window.');
+assert(integration.includes('requestAnimationFrame(()=>setTimeout'),'Share click must release before permission/picker work starts.');
+assert(integration.includes('openPickerWithPermission'),'Meeting UI must understand native permission failure without freezing.');
 assert.equal((controller.match(/getDisplayMedia/g)||[]).length,2,'Display capture authority must stay isolated to the share controller and its capability check.');
 assert(controller.includes("context.drawImage(videoElement,0,0,width,height)"),'Pause must freeze the exact last shared frame.');
 assert(controller.includes('canvas.captureStream(1)'),'Pause must create a frozen presentation stream rather than showing black.');
@@ -49,4 +58,4 @@ assert(controller.includes('stopTracks(state.liveStream)'),'Stop Share must rele
 for(const command of ['audio','video','pause','participants','show-meeting','stop'])assert(toolbar.includes(`data-command="${command}"`),`Presenter toolbar is missing ${command}.`);
 assert(media.includes("script.src='./share-integration.js'"),'Desktop and Netlify must load the same isolated share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK single-flight bounded nonmodal picker pause-freeze resume stop floating-toolbar');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker pause-freeze resume stop floating-toolbar');
