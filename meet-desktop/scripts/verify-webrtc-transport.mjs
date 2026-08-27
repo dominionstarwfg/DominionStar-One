@@ -35,7 +35,8 @@ assert(media.includes("link.href='./webrtc.css'"),'Peer layout stylesheet must b
 assert(css.includes('.remote-peer-tile.active-speaker')&&css.includes('.remote-share-video'),'Remote active-speaker and shared-content layouts are missing.');
 
 assert(!peer.includes('stun:stun.l.google.com'),'Production peer transport must not rely on a hardcoded STUN-only list.');
-assert(peer.includes('meeting.iceConfig(false,7200)'),'WebRTC must request short-lived ICE configuration before starting.');
+assert(peer.includes('const config=await meeting.iceConfig(force,7200)'),'WebRTC relay loader must request short-lived ICE configuration.');
+assert(peer.indexOf('await loadIceConfig(false)')<peer.indexOf('state.running=true'),'WebRTC must obtain valid TURN configuration before becoming active.');
 assert(peer.includes("throw new Error('turn_relay_unavailable')"),'WebRTC must fail closed when relay configuration is unavailable.');
 assert(peer.includes('pc.setConfiguration(iceConfiguration())')&&peer.includes('pc.restartIce()'),'Active peer connections must accept refreshed TURN credentials and restart ICE.');
 assert(peer.includes('createOffer(iceRestart?{iceRestart:true}:undefined)'),'Credential refresh must support deterministic ICE restart offers.');
