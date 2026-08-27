@@ -54,4 +54,5 @@
     onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}
   });
   window.DominionMediaController=api;
+  if(!document.querySelector('script[data-ds-share-integration]')){const script=document.createElement('script');script.src='./share-integration.js';script.dataset.dsShareIntegration='1';document.head.append(script);}
 })();
