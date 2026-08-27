@@ -4,6 +4,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let pickerWindow=null;
   let toolbarWindow=null;
   let pendingSelection=null;
+  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:''};
 
   const authority=createShareSourceAuthority({
     timeoutMs:4500,
@@ -43,7 +44,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed())pickerWindow.close();pickerWindow=null;}
 
   function openToolbar(){
-    if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.show();toolbarWindow.focus();return;}
+    if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive();return;}
     toolbarWindow=new BrowserWindow({width:760,height:74,minWidth:560,minHeight:74,maxHeight:74,show:false,frame:false,transparent:false,backgroundColor:'#16191d',resizable:true,fullscreenable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
     const main=getMainWindow?.();
     if(main&&!main.isDestroyed()){
@@ -51,6 +52,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       toolbarWindow.setBounds({x:Math.round(bounds.x+(bounds.width-760)/2),y:Math.max(24,bounds.y+18),width:760,height:74});
     }
     toolbarWindow.setAlwaysOnTop(true,'floating');
+    toolbarWindow.webContents.once('did-finish-load',()=>toolbarWindow?.webContents.send('share:toolbar-state',lastToolbarState));
     toolbarWindow.once('ready-to-show',()=>toolbarWindow?.showInactive());
     void toolbarWindow.loadFile(path.join(uiDir,'presenter-toolbar.html'));
     toolbarWindow.on('closed',()=>{toolbarWindow=null;});
@@ -79,16 +81,22 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{
     const source=authority.get(sourceId);
     if(!source)return {ok:false,error:'share_source_not_available'};
-    pendingSelection={source,options:{optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)}};
+    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)};
+    pendingSelection={source,options:normalizedOptions};
     closePicker();
-    queueMicrotask(()=>sendMain('share:source-selected',{sourceId:String(source.id),name:String(source.name||'Shared content'),options:pendingSelection?.options||options}));
+    queueMicrotask(()=>sendMain('share:source-selected',{sourceId:String(source.id),name:String(source.name||'Shared content'),options:normalizedOptions}));
     return {ok:true};
   });
   ipcMain.handle('share:cancel-picker',()=>{closePicker();return {ok:true};});
-  ipcMain.handle('share:capture-started',(_event,state={})=>{openToolbar();toolbarWindow?.webContents.send('share:toolbar-state',state);return {ok:true};});
-  ipcMain.handle('share:capture-state',(_event,state={})=>{toolbarWindow?.webContents.send('share:toolbar-state',state);return {ok:true};});
-  ipcMain.handle('share:capture-stopped',()=>{closeToolbar();return {ok:true};});
-  ipcMain.handle('share:presenter-command',(_event,command)=>{sendMain('share:presenter-command',String(command||''));return {ok:true};});
+  ipcMain.handle('share:capture-started',(_event,state={})=>{lastToolbarState={...lastToolbarState,...state};openToolbar();return {ok:true};});
+  ipcMain.handle('share:capture-state',(_event,state={})=>{lastToolbarState={...lastToolbarState,...state};toolbarWindow?.webContents.send('share:toolbar-state',lastToolbarState);return {ok:true};});
+  ipcMain.handle('share:capture-stopped',()=>{lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:''};closeToolbar();return {ok:true};});
+  ipcMain.handle('share:presenter-command',(_event,command)=>{
+    const normalized=String(command||'');
+    if(normalized==='show-meeting'){const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}}
+    sendMain('share:presenter-command',normalized);
+    return {ok:true};
+  });
 
   return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority});
 }
