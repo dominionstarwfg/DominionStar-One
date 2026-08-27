@@ -11,8 +11,8 @@ const css=read('ui/webrtc.css');
 for(const rpc of ['meet_v2_send_signal','meet_v2_pull_signals','meet_v2_prune_signals'])assert(service.includes(rpc),`Missing signaling RPC ${rpc}`);
 assert(service.includes("let current={roomId:'',participantId:''"),'Meeting service must own current media context.');
 assert(service.includes('const context=()=>Object.freeze({...current})'),'Meeting context must be returned as an immutable copy.');
-for(const channel of ['meeting:context','meeting:signal-send','meeting:signal-pull','meeting:signal-prune'])assert(main.includes(channel),`Missing signaling IPC ${channel}`);
-for(const method of ['context:()=>','sendSignal:','pullSignals:','pruneSignals:'])assert(preload.includes(method),`Missing narrow renderer transport method ${method}`);
+for(const channel of ['meeting:context','meeting:signal-send','meeting:signal-pull','meeting:signal-prune','meeting:ice-config'])assert(main.includes(channel),`Missing signaling/ICE IPC ${channel}`);
+for(const method of ['context:()=>','sendSignal:','pullSignals:','pruneSignals:','iceConfig:'])assert(preload.includes(method),`Missing narrow renderer transport method ${method}`);
 assert(!peer.includes('createClient(')&&!peer.includes('.from('),'Renderer WebRTC must not construct or query the database client directly.');
 
 assert(peer.includes('new RTCPeerConnection'),'WebRTC peer connection authority is missing.');
@@ -34,7 +34,15 @@ assert(media.includes("script.src='./webrtc-controller.js'"),'Media authority mu
 assert(media.includes("link.href='./webrtc.css'"),'Peer layout stylesheet must be loaded once.');
 assert(css.includes('.remote-peer-tile.active-speaker')&&css.includes('.remote-share-video'),'Remote active-speaker and shared-content layouts are missing.');
 
+assert(!peer.includes('stun:stun.l.google.com'),'Production peer transport must not rely on a hardcoded STUN-only list.');
+assert(peer.includes('meeting.iceConfig(false,7200)'),'WebRTC must request short-lived ICE configuration before starting.');
+assert(peer.includes("throw new Error('turn_relay_unavailable')"),'WebRTC must fail closed when relay configuration is unavailable.');
+assert(peer.includes('pc.setConfiguration(iceConfiguration())')&&peer.includes('pc.restartIce()'),'Active peer connections must accept refreshed TURN credentials and restart ICE.');
+assert(peer.includes('createOffer(iceRestart?{iceRestart:true}:undefined)'),'Credential refresh must support deterministic ICE restart offers.');
+assert(peer.includes("setTransportStatus('Connected via TURN relay','relay')")&&peer.includes("setTransportStatus('Direct connection • TURN standby','ready')"),'Physical QA must expose selected network path.');
+assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.transport-status[data-kind="error"]'),'Transport status must visibly distinguish relay and failure states.');
+
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 assert.equal(ids[0].localeCompare(ids[1])<0,true,'Deterministic initiator policy sanity check failed.');
 assert.equal(ids[1].localeCompare(ids[0])<0,false,'Both peers must never initiate the same pair.');
-console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect isolated-signaling');
+console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect turn-aware isolated-signaling');
