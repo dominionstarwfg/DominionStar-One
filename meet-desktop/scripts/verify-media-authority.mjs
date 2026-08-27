@@ -13,16 +13,17 @@ assert(main.includes('systemPreferences.askForMediaAccess(kind)'),'macOS camera/
 for(const channel of ['media:get-permissions','media:request-permissions','media:request-screen','media:open-privacy'])assert(main.includes(channel),`Missing native media IPC ${channel}.`);
 assert(preload.includes('media:Object.freeze({')&&preload.includes('permissions:()=>')&&preload.includes('request:kinds=>'),'Renderer must receive only narrow native media permission commands.');
 assert(media.includes("desktopMedia=window.dominionDesktop?.media||null"),'Media controller must consume native permission authority.');
-assert(media.includes("await ensurePermissions(kinds)"),'Media acquisition must check native permission state first.');
+assert(media.includes("await ensurePermissions([kind==='video'?'camera':'microphone'])"),'Each hardware lane must check its own native permission before acquisition.');
 assert(media.includes("deviceId:id?{ideal:id}:undefined"),'Preferred cameras and microphones must use soft ideal selection rather than brittle exact locking.');
 assert(!media.includes('{exact:state.cameraId}')&&!media.includes('{exact:state.microphoneId}'),'Exact persisted device locking must not return.');
 assert(media.includes("const candidates=unique([preferredId,...catalog.map(item=>item.id)])"),'Media authority must fall back across available physical devices.');
 assert(media.includes("state.cameraId=actualId;savePref('camera',actualId)")&&media.includes("state.microphoneId=actualId;savePref('microphone',actualId)"),'Actual working device IDs must be remembered.');
 assert(media.includes("ds_meet_camera_id")&&media.includes("ds_meet_microphone_id")&&media.includes("ds_meet_speaker_id"),'Stable device preferences from the proven desktop behavior must be preserved locally.');
-assert(media.includes("stopTracks(live('video'))"),'Camera Off must physically stop the live video track.');
-assert(media.includes('state.stream.removeTrack(track)'),'Camera Off must detach the stopped video track from the local stream.');
-assert(media.includes('track.enabled=false'),'Mute must disable the live microphone track without destroying the meeting.');
-assert(media.includes("catch(error){state.cameraOn=false;emit();throw error;}"),'A failed camera restart must revert the visible camera state instead of leaving a false ON state.');
+assert(media.includes("removeKind('video')"),'Camera Off must physically remove and stop only the video track.');
+assert(media.includes('stopTrack(track)'),'Removed hardware tracks must actually be stopped.');
+assert(media.includes("for(const track of live('audio'))track.enabled=false"),'Mute must disable the live microphone track without destroying camera video.');
+assert(media.includes("await replaceKind('video',state.cameraId)")&&media.includes("await replaceKind('audio',state.microphoneId)"),'Camera and microphone startup must be independent operations.');
+assert(media.includes("catch(error){state.cameraOn=false;state.lastError=mediaError(error);emit();throw error;}"),'A failed camera restart must revert the visible camera state instead of leaving a false ON state.');
 assert(media.includes('selectCamera')&&media.includes('selectMicrophone')&&media.includes('selectSpeaker'),'Camera, microphone, and speaker selection must be explicit.');
 assert(media.includes("width:{ideal:1280}")&&media.includes("frameRate:{ideal:30,max:30}"),'Prejoin camera intent must remain HD at up to 30fps.');
 assert(media.includes('userPreferencesLocked:false'),'Media authority must track whether the user changed prejoin defaults.');
@@ -37,4 +38,4 @@ assert(main.includes("ipcMain.handle('meeting:set-cohost'")&&main.includes("ipcM
 assert(preload.includes('setCohost:')&&preload.includes('removeParticipant:'),'Renderer role controls must use a narrow IPC bridge.');
 assert(!app.includes('getDisplayMedia')&&!media.includes('getDisplayMedia'),'Screen sharing must remain excluded from the media authority.');
 assert(!app.includes('supabase')&&!media.includes('supabase'),'Renderer must not own database authority.');
-console.log('DOMINIONSTAR_PREJOIN_MEDIA_AUTHORITY_OK native-permissions camera-release soft-device-fallback persistent-devices mic-mute host-cohost');
+console.log('DOMINIONSTAR_PREJOIN_MEDIA_AUTHORITY_OK native-permissions independent-lanes camera-release soft-device-fallback persistent-devices mic-mute host-cohost');
