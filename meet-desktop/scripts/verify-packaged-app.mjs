@@ -116,7 +116,7 @@ assert(zoomCss.includes('.zoom-leave-dialog')&&zoomCss.includes('.zoom-admit-all
 assert(participantControls.includes("type==='host:mute'")&&participantControls.includes("type==='host:stop-video'"),'Packaged participant controls must support verified forced mute and stop-video.');
 assert(participantControls.includes("type==='host:ask-unmute'")&&participantControls.includes("type==='host:ask-start-video'"),'Packaged participant controls must require consent for unmute and start-video requests.');
 assert(participantControls.includes('authorizedSender')&&participantControls.includes("['host','cohost'].includes"),'Packaged participant controls must verify host/co-host authority before executing media commands.');
-assert(participantControls.includes("'Mute All'")&&participantControls.includes("'Ask All to Unmute'"),'Packaged participant panel must expose bulk Zoom-style audio controls.');
+assert(participantControls.includes('Mute All')&&participantControls.includes('Ask All to Unmute'),'Packaged participant panel must expose bulk Zoom-style audio controls.');
 assert(participantControls.includes("filter(p=>String(p.role||'').toLowerCase()!=='host')"),'Packaged bulk media controls must exclude the host.');
 assert(webrtc.includes("String(signal.type||'').startsWith('host:')"),'Packaged WebRTC must dispatch host-control signals to the participant-control layer.');
 assert(participantCss.includes('.participant-control-menu')&&participantCss.includes('.participant-control-prompt'),'Packaged participant controls must include dedicated desktop styling.');
