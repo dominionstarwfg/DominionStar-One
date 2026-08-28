@@ -21,7 +21,10 @@ assert(enhancements.includes("Touch up my appearance")&&enhancements.includes("T
 assert(enhancements.includes("Portrait lighting")&&enhancements.includes("Portrait lighting intensity"),'Video appearance must expose portrait lighting and intensity.');
 assert(enhancements.includes("ds_meet_touch_up")&&enhancements.includes("ds_meet_portrait_light"),'Appearance preferences must persist locally across meetings.');
 assert(enhancements.includes("Auto framing")&&enhancements.includes("Auto framing strength")&&enhancements.includes("faceDetectionSupported"),'Video settings must expose capability-gated auto framing.');
+assert(enhancements.includes("Blur my background")&&enhancements.includes("Background blur strength")&&enhancements.includes("setBackgroundBlur"),'Video settings must expose functional background blur and strength.');
 assert(effects.includes("new FaceDetector")&&effects.includes("cropForFrame")&&effects.includes("canvas.captureStream?.(30)"),'Auto framing must create a real processed outgoing camera track using on-device face detection and canvas capture.');
+assert(effects.includes("state.backgroundBlur")&&effects.includes("ctx.ellipse")&&effects.includes("blurPx"),'Background blur must render a blurred background while preserving a foreground person region.');
+assert(effects.includes("setAppearance")&&effects.includes("state.touchUp")&&effects.includes("state.portraitLight"),'Touch-up and portrait lighting must feed the processed outgoing camera path.');
 assert(effects.includes("ds_meet_auto_frame")&&effects.includes("ds_meet_auto_frame_strength"),'Auto framing preferences must persist locally.');
 assert(webrtc.includes("await effects.outputStream(raw)")&&webrtc.includes("state.effectsUnsub=window.DominionVideoEffects?.onChange"),'WebRTC must send the processed camera track and resync peers when effects change.');
 assert(enhancements.includes("HD · 720p")&&enhancements.includes("Balanced · 540p")&&enhancements.includes("Data saver · 360p"),'Video quality settings must expose practical conferencing tiers.');
@@ -30,4 +33,4 @@ assert(enhancements.includes('installMeetingQuickMenus')&&enhancements.includes(
 assert(enhancements.includes('Audio & Video Settings…'),'Quick menus must lead to advanced settings.');
 assert(media.includes('ds_meet_camera_id')&&media.includes('ds_meet_microphone_id')&&media.includes('ds_meet_speaker_id'),'AV parity depends on persistent clean device preferences.');
 assert(css.includes('.av-quick-menu')&&css.includes('.av-video-preview')&&css.includes('.av-settings-detail')&&css.includes('.av-range-row'),'AV settings must have dedicated desktop styling including appearance sliders.');
-console.log('DOMINIONSTAR_AV_SETTINGS_PARITY_OK devices quick-menus mirror original-ratio low-light-auto-manual touch-up portrait-lighting auto-framing processed-outgoing-track quality clean-media-authority');
+console.log('DOMINIONSTAR_AV_SETTINGS_PARITY_OK devices quick-menus mirror original-ratio low-light-auto-manual touch-up portrait-lighting auto-framing background-blur processed-outgoing-track quality clean-media-authority');
