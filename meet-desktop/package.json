@@ -23,6 +23,9 @@
     "productName": "DominionStar Meet",
     "asar": true,
     "files": ["src/**/*", "ui/**/*", "package.json"],
+    "extraResources": [
+      {"from":"../assets/logo.jpeg","to":"branding/dominionstar-logo.jpeg"}
+    ],
     "artifactName": "DominionStar-Meet-Rebuild-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.business",
