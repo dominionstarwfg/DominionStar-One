@@ -4,6 +4,9 @@
 
 create extension if not exists pgcrypto with schema extensions;
 
+alter table public.meet_v2_participants
+  add column if not exists last_seen_at timestamptz;
+
 alter table public.meet_v2_rooms
   drop constraint if exists meet_v2_rooms_room_code_check;
 alter table public.meet_v2_rooms
@@ -45,6 +48,26 @@ alter table public.meet_v2_participants
 alter table public.meet_v2_participants
   add constraint meet_v2_participants_state_check
   check (state in ('waiting_host','waiting','admitted','declined','joined','left','removed'));
+
+with ranked_active_members as (
+  select id,
+         row_number() over (
+           partition by room_id,member_id
+           order by case state when 'joined' then 0 when 'admitted' then 1 when 'waiting' then 2 else 3 end,
+                    coalesce(joined_at,admitted_at,requested_at,created_at) desc,
+                    created_at desc
+         ) as rn
+  from public.meet_v2_participants
+  where member_id is not null and state in ('waiting_host','waiting','admitted','joined')
+)
+update public.meet_v2_participants p
+set state='left',left_at=coalesce(p.left_at,now()),updated_at=now()
+from ranked_active_members r
+where p.id=r.id and r.rn>1;
+
+create unique index if not exists meet_v2_one_active_member_per_room_idx
+  on public.meet_v2_participants(room_id,member_id)
+  where member_id is not null and state in ('waiting_host','waiting','admitted','joined');
 
 
 create table if not exists public.meet_v2_personal_rooms (
@@ -223,8 +246,8 @@ begin
   where room_id=v_room.id and role='host' and state in ('waiting','admitted','joined');
 
   v_name := coalesce(public.meet_v2_host_name(v_user),'Host');
-  insert into public.meet_v2_participants(room_id,member_id,display_name,role,state,admitted_at,joined_at)
-  values(v_room.id,v_user,v_name,'host','joined',now(),now())
+  insert into public.meet_v2_participants(room_id,member_id,display_name,role,state,admitted_at,joined_at,last_seen_at)
+  values(v_room.id,v_user,v_name,'host','joined',now(),now(),now())
   returning * into v_participant;
 
   update public.meet_v2_rooms
@@ -560,6 +583,26 @@ begin
 end
 $$;
 
+create or replace function public.meet_v2_touch_presence(p_participant_id uuid,p_join_token uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_participant public.meet_v2_participants;
+begin
+  update public.meet_v2_participants
+  set last_seen_at=now(),updated_at=now()
+  where id=p_participant_id
+    and join_token=p_join_token
+    and state in ('admitted','joined')
+  returning * into v_participant;
+  if not found then raise exception 'participant_not_active'; end if;
+  return jsonb_build_object('participantId',v_participant.id,'state',v_participant.state,'lastSeenAt',v_participant.last_seen_at);
+end
+$$;
+
 create or replace function public.meet_v2_room_snapshot(p_room_id uuid)
 returns jsonb
 language plpgsql
@@ -592,11 +635,16 @@ begin
     'role',p.role,
     'state',p.state,
     'joinedAt',p.joined_at,
+    'lastSeenAt',p.last_seen_at,
     'canHost',(p.member_id is not null and p.state='joined')
   ) order by case p.role when 'host' then 0 when 'cohost' then 1 else 2 end,p.created_at),'[]'::jsonb)
   into v_people
   from public.meet_v2_participants p
-  where p.room_id=p_room_id and p.state in ('admitted','joined');
+  where p.room_id=p_room_id
+    and (
+      p.state='admitted'
+      or (p.state='joined' and coalesce(p.last_seen_at,p.joined_at,p.updated_at)>now()-interval '75 seconds')
+    );
 
   return jsonb_build_object(
     'roomId',v_room.id,'roomCode',v_room.room_code,'title',v_room.title,
@@ -892,6 +940,7 @@ grant execute on function public.meet_v2_list_host_schedules() to authenticated;
 grant execute on function public.meet_v2_cancel_schedule(uuid) to authenticated;
 grant execute on function public.meet_v2_mark_schedule_started(uuid) to authenticated;
 grant execute on function public.meet_v2_update_room_passcode(uuid,text) to authenticated;
+grant execute on function public.meet_v2_touch_presence(uuid,uuid) to authenticated;
 grant execute on function public.meet_v2_room_snapshot(uuid) to authenticated;
 grant execute on function public.meet_v2_host_queue(uuid) to authenticated;
 grant execute on function public.meet_v2_decide_participant(uuid,text) to authenticated;
