@@ -82,8 +82,10 @@ assert(parityCss.includes('repeat(auto-fit,minmax(118px,1fr))'),'Packaged user-r
 for(const id of ['roomChat','roomRecord','roomReactions'])assert(features.includes(`'${id}'`),`Packaged meeting feature missing ${id}.`);
 assert(features.includes("broadcast('chat',payload)")&&features.includes("broadcast('reaction',payload)"),'Packaged Chat and Reactions must use authenticated meeting signaling.');
 assert(features.includes('new MediaRecorder('),'Packaged Record control must create a real local MediaRecorder.');
-assert(zoomBehavior.includes("version:'1.0.1'"),'Packaged app must include the stabilized Zoom behavior layer.');
-assert(zoomBehavior.includes('Leave Meeting')&&zoomBehavior.includes('End Meeting for All'),'Packaged host exit must distinguish leave from end-for-all.');
+assert(zoomBehavior.includes("version:'1.0.2'"),'Packaged app must include the stabilized Zoom behavior layer.');
+assert(zoomBehavior.includes('Assign Host & Leave')&&zoomBehavior.includes('End Meeting for All'),'Packaged host exit must expose handoff versus end-for-all choices.');
+assert(zoomBehavior.includes('Host transfer is required before leaving'),'Packaged host leave must remain blocked until a real handoff authority is certified.');
+assert(!zoomBehavior.includes("meeting.leave(ctx.participantId,ctx.joinToken)"),'Packaged host UI must not bypass the backend host-transfer safeguard.');
 assert(zoomBehavior.includes("button.id='zoomAdmitAll'")&&zoomBehavior.includes("meeting.decide(p.participantId,'admit')"),'Packaged waiting room must include Admit All.');
 assert(zoomBehavior.includes("select.id='meetingChatRecipient'")&&zoomBehavior.includes("meeting.sendSignal(target,'chat',payload)"),'Packaged chat must support direct private recipients.');
 assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Packaged private-chat recipient sync must be mutation-loop safe.');
@@ -102,4 +104,4 @@ assert(shareService.includes('ensureScreenPermission()')&&shareService.includes(
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior leave-vs-end admit-all private-chat share webrtc diagnostics');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior guarded-host-handoff admit-all private-chat share webrtc diagnostics');
