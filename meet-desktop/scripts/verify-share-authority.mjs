@@ -11,6 +11,7 @@ const pickerHtml=read('ui/share-picker.html');
 const controller=read('ui/share-controller.js');
 const integration=read('ui/share-integration.js');
 const toolbar=read('ui/presenter-toolbar.html');
+const annotation=read('ui/share-annotation.js');
 const media=read('ui/media-controller.js');
 
 let enumerateCount=0;
@@ -53,9 +54,13 @@ assert(integration.includes('openPickerWithPermission'),'Meeting UI must underst
 assert.equal((controller.match(/getDisplayMedia/g)||[]).length,2,'Display capture authority must stay isolated to the share controller and its capability check.');
 assert(controller.includes("context.drawImage(videoElement,0,0,width,height)"),'Pause must freeze the exact last shared frame.');
 assert(controller.includes('canvas.captureStream(1)'),'Pause must create a frozen presentation stream rather than showing black.');
-assert(controller.includes('return state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Resume must switch presentation output back to the live capture stream.');
+assert(controller.includes('const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Paused/unpaused base output must deterministically switch between frozen and live capture.');
+assert(controller.includes('state.paused=false;if(state.annotationCanvas)startComposite()'),'Resume must restore the live base and rebuild annotation composition when annotations are active.');
+assert(controller.includes('function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}'),'Presentation output must use live/frozen base directly unless annotation composition is active.');
+assert(controller.includes('if(state.compositeVideo.srcObject!==base)')&&controller.includes('const base=baseOutputStream()'),'Annotation composition must continuously follow the current live/frozen base stream.');
+assert(annotation.includes('setAnnotationCanvas'),'Annotation UI must attach its canvas through the share controller rather than a separate capture authority.');
 assert(controller.includes('stopTracks(state.liveStream)'),'Stop Share must release the live screen-capture track.');
 for(const command of ['audio','video','pause','participants','show-meeting','stop'])assert(toolbar.includes(`data-command="${command}"`),`Presenter toolbar is missing ${command}.`);
 assert(media.includes("script.src='./share-integration.js'"),'Desktop and Netlify must load the same isolated share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker pause-freeze resume stop floating-toolbar');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker pause-freeze live-resume annotation-composite stop floating-toolbar');
