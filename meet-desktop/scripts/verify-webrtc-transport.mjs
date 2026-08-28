@@ -29,6 +29,10 @@ assert(peer.includes('async function recoverNetwork()')&&peer.includes('await lo
 assert(peer.includes("showRecovery('Connection interrupted'")&&peer.includes("showRecovery('Reconnecting…'"),'Temporary network loss must keep the meeting visible with a reconnect state instead of returning to join UI.');
 assert(!peer.includes('meeting.requestJoin(')&&!peer.includes('meeting.markJoined('),'WebRTC reconnect must never re-run meeting admission or join identity flows.');
 assert(peer.includes('networkOnline:navigator.onLine!==false')&&peer.includes('recovering:false'),'Reconnect state must be tracked independently from meeting identity.');
+assert(peer.includes('async function touchPresence(force=false)')&&peer.includes('now-state.lastPresenceTouchAt<15000'),'Live participant presence must heartbeat through the existing transport loop with bounded frequency.');
+assert(peer.includes('await meeting.touchPresence(state.context.participantId,state.context.joinToken)'),'Presence heartbeat must reuse the existing participant identity and join token.');
+assert(peer.includes('for(const id of [...state.peers.keys()])if(!current.has(id))closePeer(id)'),'Roster reconciliation must close stale peer connections and remove ghost tiles.');
+assert(peer.includes('for(const id of [...state.participants.keys()])if(!current.has(id))state.participants.delete(id)'),'Roster reconciliation must purge stale participant cache entries.');
 assert(main.includes('powerMonitor')&&main.includes("powerMonitor.on('suspend'")&&main.includes("powerMonitor.on('resume'")&&main.includes("powerMonitor.on('lock-screen'")&&main.includes("powerMonitor.on('unlock-screen'"),'Native shell must emit Mac sleep/wake and lock/unlock lifecycle events.');
 assert(preload.includes("power:Object.freeze({onChanged:callback=>listen('app:power-event',callback)})"),'Renderer must receive power lifecycle only through the narrow preload bridge.');
 assert(peer.includes('async function handlePowerEvent(event={})')&&peer.includes("type==='suspend'||type==='lock-screen'")&&peer.includes("type==='resume'||type==='unlock-screen'"),'WebRTC must preserve session state across native suspend/lock and recover on resume/unlock.');
@@ -57,4 +61,4 @@ assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.tran
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 assert.equal(ids[0].localeCompare(ids[1])<0,true,'Deterministic initiator policy sanity check failed.');
 assert.equal(ids[1].localeCompare(ids[0])<0,false,'Both peers must never initiate the same pair.');
-console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair turn-refresh track-resync turn-aware isolated-signaling');
+console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling');
