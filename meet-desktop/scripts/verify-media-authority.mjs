@@ -26,6 +26,7 @@ assert(media.includes("for(const track of live('audio'))track.enabled=false"),'M
 assert(media.includes("await replaceKind('video',state.cameraId)")&&media.includes("await replaceKind('audio',state.microphoneId)"),'Camera and microphone startup must be independent operations.');
 assert(media.includes("catch(error){state.cameraOn=false;state.lastError=mediaError(error);emit();throw error;}"),'A failed camera restart must revert the visible camera state instead of leaving a false ON state.');
 assert(media.includes('selectCamera')&&media.includes('selectMicrophone')&&media.includes('selectSpeaker'),'Camera, microphone, and speaker selection must be explicit.');
+assert(media.includes('async recoverAfterResume()')&&media.includes("replaceKind('video',desired.cameraId,true)")&&media.includes("replaceKind('audio',desired.microphoneId,true)"),'System wake recovery must reacquire only desired dead media lanes through the existing authority.');
 assert(media.includes("width:{ideal:1280}")&&media.includes("frameRate:{ideal:30,max:30}"),'Prejoin camera intent must remain HD at up to 30fps.');
 assert(media.includes('userPreferencesLocked:false'),'Media authority must track whether the user changed prejoin defaults.');
 assert(media.includes('if(!state.userPreferencesLocked){state.cameraOn=options.cameraOn!==false;state.micOn=Boolean(options.micOn);}'),'Admission/restart must not overwrite user-selected camera or microphone state.');
