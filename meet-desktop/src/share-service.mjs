@@ -66,7 +66,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     pendingSelection=null;
     if(!selection?.source){callback({});return;}
     const response={video:selection.source};
-    if(selection.options?.shareAudio&&platform==='win32')response.audio='loopback';
+    if(selection.options?.shareAudio&&(platform==='win32'||platform==='darwin'))response.audio='loopback';
     callback(response);
   },{useSystemPicker:false});
 
@@ -102,7 +102,9 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:capture-stopped',()=>{lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:''};closeToolbar();return {ok:true};});
   ipcMain.handle('share:presenter-command',(_event,command)=>{
     const normalized=String(command||'');
-    if(normalized==='show-meeting'){const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}}
+    if(['show-meeting','participants','chat','annotate'].includes(normalized)){
+      const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}
+    }
     sendMain('share:presenter-command',normalized);
     return {ok:true};
   });
