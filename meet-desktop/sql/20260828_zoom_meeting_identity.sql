@@ -17,7 +17,8 @@ alter table public.meet_v2_rooms
   add column if not exists duration_minutes integer,
   add column if not exists recurrence jsonb,
   add column if not exists occurrence_count integer not null default 0,
-  add column if not exists last_started_at timestamptz;
+  add column if not exists last_started_at timestamptz,
+  add column if not exists active_host_id uuid references auth.users(id) on delete set null;
 
 alter table public.meet_v2_rooms
   drop constraint if exists meet_v2_rooms_meeting_kind_check;
@@ -219,7 +220,7 @@ begin
   values(v_room.id,v_user,v_name,'host','joined',now(),now()) returning * into v_participant;
 
   update public.meet_v2_rooms set
-    status='live',started_at=now(),ended_at=null,last_started_at=now(),
+    status='live',started_at=now(),ended_at=null,last_started_at=now(),active_host_id=v_user,
     occurrence_count=occurrence_count+1,updated_at=now()
   where id=v_room.id returning * into v_room;
 
@@ -276,12 +277,12 @@ begin
   insert into public.meet_v2_rooms(
     room_code,host_id,title,status,passcode_digest,passcode_value,
     waiting_room_enabled,external_guests_allowed,meeting_kind,reusable,
-    started_at,last_started_at,occurrence_count
+    started_at,last_started_at,occurrence_count,active_host_id
   ) values(
     public.meet_v2_unique_room_code(11),v_user,coalesce(nullif(trim(p_title),''),'DominionStar Meeting'),'live',
     extensions.crypt(p_passcode,extensions.gen_salt('bf')),p_passcode,
     coalesce(p_waiting_room_enabled,true),coalesce(p_external_guests_allowed,true),'instant',false,
-    now(),now(),1
+    now(),now(),1,v_user
   ) returning * into v_room;
 
   insert into public.meet_v2_participants(room_id,member_id,display_name,role,state,admitted_at,joined_at)
@@ -492,6 +493,241 @@ begin
 end
 $$;
 
+create or replace function public.meet_v2_room_snapshot(p_room_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_allowed boolean;
+  v_room public.meet_v2_rooms;
+  v_people jsonb;
+begin
+  if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
+  select * into v_room from public.meet_v2_rooms where id=p_room_id;
+  if not found then raise exception 'meeting_not_found'; end if;
+
+  select (v_room.host_id=v_user)
+      or (v_room.active_host_id=v_user)
+      or exists(
+        select 1 from public.meet_v2_participants p
+        where p.room_id=p_room_id and p.member_id=v_user and p.state in ('admitted','joined')
+      )
+  into v_allowed;
+  if not v_allowed then raise exception 'meeting_access_required'; end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'participantId',p.id,
+    'memberId',p.member_id,
+    'displayName',p.display_name,
+    'role',p.role,
+    'state',p.state,
+    'joinedAt',p.joined_at,
+    'canHost',(p.member_id is not null and p.state='joined')
+  ) order by case p.role when 'host' then 0 when 'cohost' then 1 else 2 end,p.created_at),'[]'::jsonb)
+  into v_people
+  from public.meet_v2_participants p
+  where p.room_id=p_room_id and p.state in ('admitted','joined');
+
+  return jsonb_build_object(
+    'roomId',v_room.id,'roomCode',v_room.room_code,'title',v_room.title,
+    'status',v_room.status,'waitingRoomEnabled',v_room.waiting_room_enabled,
+    'ownerId',v_room.host_id,'activeHostId',v_room.active_host_id,
+    'participants',v_people
+  );
+end
+$$;
+
+create or replace function public.meet_v2_host_queue(p_room_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_allowed boolean;
+  v_items jsonb;
+begin
+  if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
+  select exists(
+    select 1 from public.meet_v2_rooms r
+      where r.id=p_room_id and coalesce(r.active_host_id,r.host_id)=v_user
+    union all
+    select 1 from public.meet_v2_participants p
+      where p.room_id=p_room_id and p.member_id=v_user and p.role='cohost' and p.state in ('admitted','joined')
+  ) into v_allowed;
+  if not v_allowed then raise exception 'host_authority_required'; end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'participantId',p.id,'displayName',p.display_name,'role',p.role,
+    'state',p.state,'requestedAt',p.requested_at
+  ) order by p.requested_at),'[]'::jsonb)
+  into v_items from public.meet_v2_participants p where p.room_id=p_room_id and p.state='waiting';
+
+  return jsonb_build_object('roomId',p_room_id,'waiting',v_items);
+end
+$$;
+
+create or replace function public.meet_v2_decide_participant(p_participant_id uuid,p_decision text)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_participant public.meet_v2_participants;
+  v_allowed boolean;
+  v_new_state text;
+begin
+  if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
+  select * into v_participant from public.meet_v2_participants where id=p_participant_id for update;
+  if not found then raise exception 'participant_not_found'; end if;
+
+  select exists(
+    select 1 from public.meet_v2_rooms r
+      where r.id=v_participant.room_id and coalesce(r.active_host_id,r.host_id)=v_user
+    union all
+    select 1 from public.meet_v2_participants p
+      where p.room_id=v_participant.room_id and p.member_id=v_user and p.role='cohost' and p.state in ('admitted','joined')
+  ) into v_allowed;
+  if not v_allowed then raise exception 'host_authority_required'; end if;
+  if v_participant.state <> 'waiting' then raise exception 'participant_not_waiting'; end if;
+
+  v_new_state := case p_decision when 'admit' then 'admitted' when 'decline' then 'declined' else null end;
+  if v_new_state is null then raise exception 'invalid_decision'; end if;
+
+  update public.meet_v2_participants
+  set state=v_new_state,
+      admitted_at=case when v_new_state='admitted' then now() else admitted_at end,
+      decision_at=now(),decision_by=v_user,updated_at=now()
+  where id=p_participant_id returning * into v_participant;
+
+  return jsonb_build_object('participantId',v_participant.id,'state',v_participant.state);
+end
+$$;
+
+create or replace function public.meet_v2_set_cohost(p_participant_id uuid,p_enabled boolean)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_actor uuid := auth.uid();
+  v_target public.meet_v2_participants%rowtype;
+  v_room public.meet_v2_rooms%rowtype;
+begin
+  if v_actor is null then raise exception 'authentication_required'; end if;
+  select * into v_target from public.meet_v2_participants where id=p_participant_id for update;
+  if not found then raise exception 'participant_not_found'; end if;
+  select * into v_room from public.meet_v2_rooms where id=v_target.room_id;
+  if coalesce(v_room.active_host_id,v_room.host_id) <> v_actor then raise exception 'host_authority_required'; end if;
+  if v_target.role='host' then raise exception 'host_role_cannot_change'; end if;
+  if v_target.state not in ('admitted','joined') then raise exception 'participant_not_active'; end if;
+
+  update public.meet_v2_participants
+  set role=case when p_enabled then 'cohost' else case when member_id is null then 'guest' else 'participant' end end,
+      updated_at=now()
+  where id=p_participant_id;
+
+  return jsonb_build_object('ok',true,'participantId',p_participant_id,'role',case when p_enabled then 'cohost' else case when v_target.member_id is null then 'guest' else 'participant' end end);
+end
+$$;
+
+create or replace function public.meet_v2_remove_participant(p_participant_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_actor uuid := auth.uid();
+  v_target public.meet_v2_participants%rowtype;
+  v_room public.meet_v2_rooms%rowtype;
+  v_actor_role text;
+begin
+  if v_actor is null then raise exception 'authentication_required'; end if;
+  select * into v_target from public.meet_v2_participants where id=p_participant_id for update;
+  if not found then raise exception 'participant_not_found'; end if;
+  select * into v_room from public.meet_v2_rooms where id=v_target.room_id;
+  if v_target.role='host' then raise exception 'host_cannot_be_removed'; end if;
+
+  if coalesce(v_room.active_host_id,v_room.host_id)=v_actor then
+    v_actor_role := 'host';
+  else
+    select role into v_actor_role
+    from public.meet_v2_participants
+    where room_id=v_target.room_id and member_id=v_actor and state in ('admitted','joined')
+    order by created_at desc limit 1;
+  end if;
+  if coalesce(v_actor_role,'') not in ('host','cohost') then raise exception 'host_authority_required'; end if;
+
+  update public.meet_v2_participants
+  set state='removed',left_at=now(),updated_at=now(),decision_at=now(),decision_by=v_actor
+  where id=p_participant_id;
+
+  return jsonb_build_object('ok',true,'participantId',p_participant_id,'state','removed');
+end
+$$;
+
+create or replace function public.meet_v2_transfer_host_and_leave(p_target_participant_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_actor uuid := auth.uid();
+  v_room public.meet_v2_rooms%rowtype;
+  v_target public.meet_v2_participants%rowtype;
+  v_old_host public.meet_v2_participants%rowtype;
+begin
+  if v_actor is null then raise exception 'authentication_required'; end if;
+
+  select * into v_target from public.meet_v2_participants where id=p_target_participant_id for update;
+  if not found then raise exception 'participant_not_found'; end if;
+
+  select * into v_room from public.meet_v2_rooms where id=v_target.room_id for update;
+  if not found then raise exception 'meeting_not_found'; end if;
+  if coalesce(v_room.active_host_id,v_room.host_id)<>v_actor then raise exception 'host_authority_required'; end if;
+  if v_target.state<>'joined' then raise exception 'participant_not_joined'; end if;
+  if v_target.member_id is null then raise exception 'signed_in_participant_required_for_host'; end if;
+  if v_target.member_id=v_actor then raise exception 'cannot_transfer_host_to_self'; end if;
+
+  select * into v_old_host
+  from public.meet_v2_participants
+  where room_id=v_room.id and member_id=v_actor and role='host' and state='joined'
+  order by created_at desc limit 1
+  for update;
+  if not found then raise exception 'active_host_participant_not_found'; end if;
+
+  update public.meet_v2_participants
+  set role='host',updated_at=now()
+  where id=v_target.id;
+
+  update public.meet_v2_participants
+  set role='participant',state='left',left_at=now(),updated_at=now()
+  where id=v_old_host.id;
+
+  update public.meet_v2_rooms
+  set active_host_id=v_target.member_id,updated_at=now()
+  where id=v_room.id;
+
+  return jsonb_build_object(
+    'roomId',v_room.id,
+    'previousHostParticipantId',v_old_host.id,
+    'newHostParticipantId',v_target.id,
+    'newHostMemberId',v_target.member_id,
+    'newHostName',v_target.display_name,
+    'state','left'
+  );
+end
+$$;
+
 create or replace function public.meet_v2_end_room(p_room_id uuid)
 returns jsonb
 language plpgsql
@@ -501,21 +737,20 @@ as $$
 declare
   v_user uuid := auth.uid();
 begin
-  if not exists(select 1 from public.meet_v2_rooms where id=p_room_id and host_id=v_user) then
-    raise exception 'host_authority_required';
-  end if;
+  if not exists(
+    select 1 from public.meet_v2_rooms
+    where id=p_room_id and coalesce(active_host_id,host_id)=v_user
+  ) then raise exception 'host_authority_required'; end if;
 
-  update public.meet_v2_rooms set status='ended',ended_at=now(),updated_at=now() where id=p_room_id;
-  update public.meet_v2_participants set
-    state=case when state in ('waiting','admitted','joined') then 'left' else state end,
-    left_at=case when state in ('admitted','joined') then now() else left_at end,
-    updated_at=now()
+  update public.meet_v2_rooms
+  set status='ended',ended_at=now(),active_host_id=null,updated_at=now()
+  where id=p_room_id;
+
+  update public.meet_v2_participants
+  set state=case when state in ('waiting','admitted','joined') then 'left' else state end,
+      left_at=case when state in ('admitted','joined') then now() else left_at end,
+      updated_at=now()
   where room_id=p_room_id;
-
-  update public.meet_v2_schedules set
-    status=case when recurrence is null or coalesce(recurrence->>'repeat','never')='never' then 'ended' else 'scheduled' end,
-    updated_at=now()
-  where room_id=p_room_id and host_id=v_user and status='started';
 
   return jsonb_build_object('roomId',p_room_id,'status','ended');
 end
@@ -530,3 +765,10 @@ grant execute on function public.meet_v2_list_host_schedules() to authenticated;
 grant execute on function public.meet_v2_cancel_schedule(uuid) to authenticated;
 grant execute on function public.meet_v2_mark_schedule_started(uuid) to authenticated;
 grant execute on function public.meet_v2_update_room_passcode(uuid,text) to authenticated;
+grant execute on function public.meet_v2_room_snapshot(uuid) to authenticated;
+grant execute on function public.meet_v2_host_queue(uuid) to authenticated;
+grant execute on function public.meet_v2_decide_participant(uuid,text) to authenticated;
+grant execute on function public.meet_v2_set_cohost(uuid,boolean) to authenticated;
+grant execute on function public.meet_v2_remove_participant(uuid) to authenticated;
+grant execute on function public.meet_v2_transfer_host_and_leave(uuid) to authenticated;
+grant execute on function public.meet_v2_end_room(uuid) to authenticated;
