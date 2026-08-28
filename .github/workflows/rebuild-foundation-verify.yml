@@ -38,6 +38,7 @@ jobs:
           node --check 'meet-desktop/src/preload.cjs'
           node --check 'meet-desktop/ui/auth-password.js'
           node --check 'meet-desktop/ui/av-settings.js'
+          node --check 'meet-desktop/ui/video-effects.js'
           node --check 'meet-desktop/ui/meeting-parity.js'
           node --check 'meet-desktop/ui/meeting-features.js'
           node --check 'meet-desktop/ui/zoom-behavior.js'
