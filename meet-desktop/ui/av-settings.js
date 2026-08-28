@@ -11,6 +11,12 @@
   const localVideos=()=>['prejoinVideo','localMeetingVideo','presenterCameraTile','settingsVideoPreview'].map(id=>document.getElementById(id)).filter(Boolean);
   const currentVideoTrack=media=>media?.stream?.()?.getVideoTracks?.().find(track=>track.readyState==='live')||null;
   const safeLabel=(value,fallback)=>String(value||'').trim()||fallback;
+  const effects=()=>window.DominionVideoEffects||null;
+  async function previewStream(media){
+    const raw=currentVideoTrack(media);if(!raw)return media.stream();
+    const fx=effects();if(!fx?.outputStream)return media.stream();
+    try{return await fx.outputStream(raw)||media.stream();}catch{return media.stream();}
+  }
 
   function closeMenu(){menu?.remove();menu=null;}
   function option(select,item){const node=document.createElement('option');node.value=String(item.id||'');node.textContent=safeLabel(item.label,'Device');select.append(node);}
@@ -69,7 +75,7 @@
   }
   async function openVideoSettings(media){
     const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Video','Camera, framing, and image preferences.');
-    const preview=document.createElement('div');preview.className='av-video-preview';preview.innerHTML='<video id="settingsVideoPreview" autoplay playsinline muted></video><span>Camera preview</span>';detail.append(preview);const video=preview.querySelector('video');video.srcObject=media.stream();void video.play().catch(()=>{});
+    const preview=document.createElement('div');preview.className='av-video-preview';preview.innerHTML='<video id="settingsVideoPreview" autoplay playsinline muted></video><span>Camera preview</span>';detail.append(preview);const video=preview.querySelector('video');video.srcObject=await previewStream(media);void video.play().catch(()=>{});
     const camera=addSelect(detail,'Camera','data-av-camera');
     const qualityLabel=document.createElement('label');qualityLabel.className='av-field';qualityLabel.innerHTML='<span>Video quality</span><select data-av-quality><option value="720">HD · 720p</option><option value="540">Balanced · 540p</option><option value="360">Data saver · 360p</option></select>';detail.append(qualityLabel);const quality=qualityLabel.querySelector('select');quality.value=state.quality;
     addToggle(detail,'Mirror my video',media.snapshot().mirror,value=>{media.setMirror(value);applyMirror(media);});
@@ -81,8 +87,20 @@
     addRange(detail,'Touch up intensity',state.touchUpLevel,0,100,value=>{state.touchUpLevel=value;applyAppearance();});
     addToggle(detail,'Portrait lighting',state.portraitLight,value=>{state.portraitLight=value;applyAppearance();});
     addRange(detail,'Portrait lighting intensity',state.portraitLevel,0,100,value=>{state.portraitLevel=value;applyAppearance();});
+    const fx=effects(),fxSnap=fx?.snapshot?.()||{};
+    if(fx){
+      const autoFrame=addToggle(detail,'Auto framing',Boolean(fxSnap.autoFrame),async value=>{
+        fx.setAutoFrame(Boolean(value));video.srcObject=await previewStream(media);void video.play().catch(()=>{});
+      });
+      autoFrame.disabled=!fxSnap.faceDetectionSupported;
+      if(!fxSnap.faceDetectionSupported){
+        const note=document.createElement('p');note.className='av-effects-note';note.textContent='Auto framing requires on-device face detection support on this desktop.';detail.append(note);
+      }
+      const strength=addRange(detail,'Auto framing strength',Number(fxSnap.strength)||55,0,100,value=>fx.setStrength(value));
+      strength.disabled=!fxSnap.faceDetectionSupported;
+    }
     const privacy=document.createElement('button');privacy.type='button';privacy.className='secondary-button av-privacy';privacy.textContent='Open macOS Camera Privacy';privacy.onclick=()=>media.openPrivacy?.('camera');detail.append(privacy);
-    await fillSelects(media,detail);camera.onchange=async()=>{await media.selectCamera(camera.value);video.srcObject=media.stream();applyMirror(media);applyOriginalRatio();applyAppearance();await applyQuality(media);if(state.lowLight)await applyLowLight(media);};quality.onchange=async()=>{state.quality=quality.value;await applyQuality(media);};applyMirror(media);applyOriginalRatio();
+    await fillSelects(media,detail);camera.onchange=async()=>{await media.selectCamera(camera.value);video.srcObject=await previewStream(media);applyMirror(media);applyOriginalRatio();applyAppearance();await applyQuality(media);if(state.lowLight)await applyLowLight(media);};quality.onchange=async()=>{state.quality=quality.value;await applyQuality(media);};applyMirror(media);applyOriginalRatio();
   }
   function openInfoSettings(title,copy){const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,title,copy);const note=document.createElement('div');note.className='av-info-card';note.textContent=title==='Meetings'?'Join, waiting-room, host, and notification defaults will be added only after the core meeting path is physically approved.':'Screen sharing remains owned by the isolated nonblocking share subsystem. Share defaults will be exposed here after macOS Screen Recording permission passes physical QA.';detail.append(note);}
 
