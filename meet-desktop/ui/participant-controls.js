@@ -63,7 +63,7 @@
   async function send(target,type){if(!canManage()||!meeting?.sendSignal)return false;await meeting.sendSignal(target,type,{at:new Date().toISOString()});return true;}
   async function sendAll(type){
     if(busy||!canManage())return;busy=true;syncPanelActions();
-    try{const list=await peers();await Promise.allSettled(list.map(p=>send(p.participantId,type)));toast(type==='host:mute'?'Mute request sent to all participants':'Unmute requests sent to all participants');}
+    try{const list=(await peers()).filter(p=>String(p.role||'').toLowerCase()!=='host');await Promise.allSettled(list.map(p=>send(p.participantId,type)));toast(type==='host:mute'?'Mute request sent to all participants':'Unmute requests sent to all participants');}
     finally{busy=false;syncPanelActions();}
   }
 
