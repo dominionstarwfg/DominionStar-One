@@ -7,6 +7,7 @@ if(!appPath)throw new Error('Usage: node verify-packaged-interactions.mjs <Domin
 const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=9300+Math.floor(Math.random()*300);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const TIMEOUT_MS=5000;
 let stderr='';
 
 const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{
@@ -19,7 +20,7 @@ async function target(){
   for(let i=0;i<80;i+=1){
     if(child.exitCode!==null)throw new Error(`Packaged app exited before interaction test.\n${stderr}`);
     try{
-      const response=await fetch(`http://127.0.0.1:${port}/json/list`);
+      const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(1000)});
       if(response.ok){
         const targets=await response.json();
         const page=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://'));
@@ -34,26 +35,23 @@ async function target(){
 function connect(url){
   return new Promise((resolve,reject)=>{
     const socket=new WebSocket(url);
-    socket.addEventListener('open',()=>resolve(socket),{once:true});
-    socket.addEventListener('error',event=>reject(event?.error||new Error('CDP WebSocket failed.')),{once:true});
+    const timer=setTimeout(()=>{try{socket.close();}catch{}reject(new Error('Timed out opening DevTools WebSocket.'));},TIMEOUT_MS);
+    socket.addEventListener('open',()=>{clearTimeout(timer);resolve(socket);},{once:true});
+    socket.addEventListener('error',event=>{clearTimeout(timer);reject(event?.error||new Error('CDP WebSocket failed.'));},{once:true});
   });
 }
 
-const page=await target();
-const socket=await connect(page.webSocketDebuggerUrl);
+let socket=null;
 let nextId=0;
 const pending=new Map();
-socket.addEventListener('message',event=>{
-  const message=JSON.parse(String(event.data));
-  if(!message.id)return;
-  const waiter=pending.get(message.id);if(!waiter)return;
-  pending.delete(message.id);
-  if(message.error)waiter.reject(new Error(message.error.message||'CDP error'));
-  else waiter.resolve(message.result);
-});
+function settlePending(error){for(const [id,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(error);}pending.clear();}
 function cdp(method,params={}){
   return new Promise((resolve,reject)=>{
-    const id=++nextId;pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params}));
+    if(!socket||socket.readyState!==WebSocket.OPEN)return reject(new Error(`CDP socket is not open for ${method}.`));
+    const id=++nextId;
+    const timer=setTimeout(()=>{pending.delete(id);reject(new Error(`Timed out waiting for CDP ${method}.`));},TIMEOUT_MS);
+    pending.set(id,{resolve,reject,timer});
+    socket.send(JSON.stringify({id,method,params}));
   });
 }
 async function evaluate(expression){
@@ -66,10 +64,22 @@ async function waitFor(expression,label){
     try{if(await evaluate(`Boolean(${expression})`))return;}catch{}
     await sleep(150);
   }
-  throw new Error(`Timed out waiting for ${label}`);
+  throw new Error(`Timed out waiting for ${label}.`);
 }
 
+let failure=null;
 try{
+  const page=await target();
+  socket=await connect(page.webSocketDebuggerUrl);
+  socket.addEventListener('message',event=>{
+    const message=JSON.parse(String(event.data));
+    if(!message.id)return;
+    const waiter=pending.get(message.id);if(!waiter)return;
+    pending.delete(message.id);clearTimeout(waiter.timer);
+    if(message.error)waiter.reject(new Error(message.error.message||'CDP error'));
+    else waiter.resolve(message.result);
+  });
+  socket.addEventListener('close',()=>settlePending(new Error('CDP WebSocket closed.')));
   await cdp('Runtime.enable');
   await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures","desktop UI controllers");
 
@@ -147,9 +157,16 @@ try{
   assert.ok(String(dock.grid).split(' ').filter(Boolean).length>=2,'Four participant tiles must render as an internal multi-column grid.');
 
   console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence meeting-panels chat reactions more adaptive-full-stage-dock');
+}catch(error){
+  failure=error;
+  console.error(error?.stack||String(error));
+  if(stderr.trim())console.error(stderr.trim());
 }finally{
-  try{socket.close();}catch{}
+  settlePending(new Error('Interaction test shutting down.'));
+  try{socket?.close();}catch{}
   try{child.kill('SIGTERM');}catch{}
-  await sleep(300);
+  await sleep(400);
   if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}
 }
+
+process.exit(failure?1:0);
