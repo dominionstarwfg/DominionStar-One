@@ -1,1 +1,50 @@
-.room-share-control{background:#123150!important;border-color:#255f91!important}.meeting-overlay.share-active .meeting-footer{display:none}.meeting-overlay.share-active .stage{position:relative;padding:0;background:#05080c;overflow:hidden}.shared-content-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#05080c;z-index:4}.share-stage-label{position:absolute;left:18px;top:16px;z-index:7;padding:7px 10px;border-radius:9px;background:rgba(15,19,24,.86);border:1px solid rgba(255,255,255,.1);font-size:10px;color:#eef3f7;backdrop-filter:blur(10px)}.share-stage-label strong{color:#4bd27d}.presenter-camera-tile{position:absolute;right:18px;top:18px;z-index:8;width:180px;aspect-ratio:16/10;border-radius:12px;border:1px solid #39434e;background:#08101a;object-fit:cover;box-shadow:0 12px 30px rgba(0,0,0,.34)}.meeting-overlay.share-active .stage-card,.meeting-overlay.share-active #localMeetingVideo{display:none!important}.meeting-overlay.share-active .room-side.collapsed{display:none}.meeting-overlay.share-active .meeting-body:has(.room-side.collapsed){grid-template-columns:1fr}.share-toast{position:fixed;left:50%;bottom:24px;z-index:100;transform:translateX(-50%);padding:10px 14px;border:1px solid #48525d;border-radius:10px;background:#171d24;color:#eef4f8;font-size:10px;box-shadow:0 14px 30px rgba(0,0,0,.35)}.share-toast.error{border-color:#7b3440;background:#28151a}@media(max-width:900px){.presenter-camera-tile{width:140px}.share-stage-label{left:10px;top:10px}}
+.room-share-control{background:#123150!important;border-color:#255f91!important}
+.meeting-overlay.share-active .meeting-footer{display:none}
+.meeting-overlay.share-active .stage{position:relative;padding:0;background:#05080c;overflow:hidden}
+.shared-content-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#05080c;z-index:4}
+.share-stage-label{position:absolute;left:18px;top:16px;z-index:7;padding:7px 10px;border-radius:9px;background:rgba(15,19,24,.86);border:1px solid rgba(255,255,255,.1);font-size:10px;color:#eef3f7;backdrop-filter:blur(10px)}
+.share-stage-label strong{color:#4bd27d}
+.presenter-camera-tile{position:absolute;right:18px;top:18px;z-index:8;width:180px;aspect-ratio:16/10;border-radius:12px;border:1px solid #39434e;background:#08101a;object-fit:cover;box-shadow:0 12px 30px rgba(0,0,0,.34)}
+.meeting-overlay.share-active .stage-card,.meeting-overlay.share-active #localMeetingVideo{display:none!important}
+.meeting-overlay.share-active .room-side.collapsed{display:none}
+.meeting-overlay.share-active .meeting-body:has(.room-side.collapsed){grid-template-columns:1fr}
+.share-toast{position:fixed;left:50%;bottom:24px;z-index:100;transform:translateX(-50%);padding:10px 14px;border:1px solid #48525d;border-radius:10px;background:#171d24;color:#eef4f8;font-size:10px;box-shadow:0 14px 30px rgba(0,0,0,.35)}
+.share-toast.error{border-color:#7b3440;background:#28151a}
+
+@media(max-width:900px){
+  .presenter-camera-tile{width:140px}
+  .share-stage-label{left:10px;top:10px}
+}
+
+/* During an active desktop share the Electron main window is intentionally
+   resized into a Zoom-style floating participant panel. The live share track
+   continues through WebRTC; this compact surface only keeps meeting video and
+   participant identity visible to the presenter. */
+@media(max-width:560px) and (max-height:360px){
+  .meeting-overlay.share-active .meeting-shell{grid-template-rows:minmax(0,1fr)!important}
+  .meeting-overlay.share-active .meeting-head,
+  .meeting-overlay.share-active .meeting-footer,
+  .meeting-overlay.share-active .shared-content-video,
+  .meeting-overlay.share-active #remoteShareVideo,
+  .meeting-overlay.share-active #remoteActiveSpeakerStage,
+  .meeting-overlay.share-active #localMeetingVideo,
+  .meeting-overlay.share-active #stageFallback,
+  .meeting-overlay.share-active .stage-card,
+  .meeting-overlay.share-active .share-stage-label,
+  .meeting-overlay.share-active .presenter-camera-tile,
+  .meeting-overlay.share-active .room-side{display:none!important}
+  .meeting-overlay.share-active .meeting-body,
+  .meeting-overlay.share-active .stage{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;background:#03070c!important}
+  .meeting-overlay.share-active .participant-video-dock,
+  .meeting-overlay.share-active .participant-video-dock[hidden],
+  .meeting-overlay.share-active .participant-video-dock.dock-empty{display:block!important;position:absolute!important;inset:8px!important;width:auto!important;height:auto!important;max-width:none!important;max-height:none!important;border-radius:11px!important;background:rgba(4,8,13,.98)!important}
+  .meeting-overlay.share-active .participant-video-dock-head{height:27px!important}
+  .meeting-overlay.share-active .participant-video-dock-body{height:calc(100% - 27px)!important;max-height:none!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-auto-rows:minmax(0,1fr)!important;gap:4px!important;padding:4px!important;overflow:hidden!important}
+  .meeting-overlay.share-active .participant-video-dock.count-1 .participant-video-dock-body{grid-template-columns:minmax(0,1fr)!important}
+  .meeting-overlay.share-active .participant-video-dock .remote-tile-strip{display:contents!important}
+  .meeting-overlay.share-active .participant-video-dock .remote-peer-tile{width:100%!important;height:100%!important;min-height:0!important;aspect-ratio:auto!important;border-radius:7px!important}
+  .meeting-overlay.share-active .participant-video-dock .remote-peer-tile:nth-of-type(n+5){display:none!important}
+  .meeting-overlay.share-active .participant-video-resize{display:none!important}
+  .meeting-overlay.share-active .participant-video-dock.minimized{inset:8px 8px auto 8px!important;width:auto!important;height:30px!important}
+  .meeting-overlay.share-active .participant-video-dock.minimized .participant-video-dock-body{display:none!important}
+}
