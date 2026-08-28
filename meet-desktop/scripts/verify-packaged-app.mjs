@@ -15,7 +15,7 @@ assert(fs.existsSync(path.join(resources,'branding','dominionstar-logo.jpeg')),'
 const listing=execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'list',asarPath],{encoding:'utf8'});
 const required=[
   '/src/main.mjs','/src/auth-service.mjs','/src/meeting-service.mjs','/src/share-service.mjs','/src/share-source-authority.mjs','/src/preload.cjs',
-  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/zoom-behavior.js','/ui/zoom-behavior.css','/ui/preferences.js','/ui/personal-room.js','/ui/personal-room.css','/ui/schedule-controller.js','/ui/schedule.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
+  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/video-effects.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/zoom-behavior.js','/ui/zoom-behavior.css','/ui/preferences.js','/ui/personal-room.js','/ui/personal-room.css','/ui/schedule-controller.js','/ui/schedule.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
   '/ui/webrtc-controller.js','/ui/webrtc.css','/ui/diagnostics.js','/ui/diagnostics.css','/package.json'
 ];
 for(const item of required)assert(listing.includes(item),`Packaged ASAR is missing ${item}`);
@@ -26,7 +26,7 @@ fs.rmSync(unpackDir,{recursive:true,force:true});
 execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'extract',asarPath,unpackDir]);
 const read=(...parts)=>fs.readFileSync(path.join(unpackDir,...parts),'utf8');
 const main=read('src','main.mjs'),auth=read('src','auth-service.mjs'),meeting=read('src','meeting-service.mjs'),preload=read('src','preload.cjs'),share=read('src','share-source-authority.mjs'),shareService=read('src','share-service.mjs');
-const media=read('ui','media-controller.js'),authPassword=read('ui','auth-password.js'),html=read('ui','index.html'),av=read('ui','av-settings.js'),parity=read('ui','meeting-parity.js'),parityCss=read('ui','meeting-parity.css'),features=read('ui','meeting-features.js'),zoomBehavior=read('ui','zoom-behavior.js'),zoomCss=read('ui','zoom-behavior.css'),preferences=read('ui','preferences.js'),personal=read('ui','personal-room.js'),schedule=read('ui','schedule-controller.js'),scheduleCss=read('ui','schedule.css'),shareController=read('ui','share-controller.js'),annotation=read('ui','share-annotation.js'),webrtc=read('ui','webrtc-controller.js');
+const media=read('ui','media-controller.js'),videoEffects=read('ui','video-effects.js'),authPassword=read('ui','auth-password.js'),html=read('ui','index.html'),av=read('ui','av-settings.js'),parity=read('ui','meeting-parity.js'),parityCss=read('ui','meeting-parity.css'),features=read('ui','meeting-features.js'),zoomBehavior=read('ui','zoom-behavior.js'),zoomCss=read('ui','zoom-behavior.css'),preferences=read('ui','preferences.js'),personal=read('ui','personal-room.js'),schedule=read('ui','schedule-controller.js'),scheduleCss=read('ui','schedule.css'),shareController=read('ui','share-controller.js'),annotation=read('ui','share-annotation.js'),webrtc=read('ui','webrtc-controller.js');
 
 assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged desktop must launch the local Home file.');
 assert(!main.includes('dominionstarld.com'),'Packaged desktop must not launch the public website.');
@@ -46,6 +46,9 @@ for(const bridge of ['personalRoom:','updatePersonalRoom:','startPersonalRoom:',
 assert(main.includes("'meeting:personal-room'")&&main.includes("'meeting:schedule'")&&main.includes("'meeting:start-schedule'"),'Packaged main process must own Personal Room and schedule IPC.');
 assert(media.includes("deviceId:id?{ideal:id}:undefined"),'Packaged camera authority must use resilient soft device preference.');
 assert(media.includes("const candidates=unique([preferredId,...catalog.map(item=>item.id)])"),'Packaged camera authority must fall back to another available device.');
+assert(authPassword.includes("script.src='./video-effects.js'"),'Packaged renderer must load the isolated video effects processor.');
+assert(videoEffects.includes('new FaceDetector')&&videoEffects.includes('canvas.captureStream?.(30)')&&videoEffects.includes('cropForFrame'),'Packaged auto framing must create a real processed camera stream.');
+assert(av.includes('Auto framing')&&av.includes('Auto framing strength'),'Packaged video settings must expose auto framing controls.');
 for(const script of ['./av-settings.js','./meeting-parity.js','./meeting-features.js','./zoom-behavior.js','./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Packaged Home must load ${script}.`);
 for(const style of ['./schedule.css','./personal-room.css'])assert(html.includes(`<link rel=\"stylesheet\" href=\"${style}\">`),`Packaged Home must load ${style}.`);
 assert(!html.includes('aria-label="Search"')&&!html.includes('data-section="contacts"')&&!html.includes('id="contactsSection"'),'Packaged Home must not contain dead Search or Contacts chrome.');
@@ -105,5 +108,6 @@ assert(shareService.includes('createShareSourceAuthority'),'Packaged share servi
 assert(shareService.includes('ensureScreenPermission()')&&shareService.includes('permissionRequired:true'),'Packaged share picker must preflight native Screen Recording permission.');
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
+assert(webrtc.includes('await effects.outputStream(raw)')&&webrtc.includes('state.effectsUnsub=window.DominionVideoEffects?.onChange'),'Packaged WebRTC must send the processed camera track when video effects are enabled.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior guarded-host-handoff admit-all private-chat bounded-sync share webrtc diagnostics');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior guarded-host-handoff admit-all private-chat bounded-sync auto-framing processed-camera share webrtc diagnostics');
