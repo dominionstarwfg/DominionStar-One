@@ -102,6 +102,8 @@
       blur.disabled=!fxSnap.faceDetectionSupported;
       const blurStrength=addRange(detail,'Background blur strength',Number(fxSnap.blurStrength)||55,0,100,value=>fx.setBlurStrength(value));
       blurStrength.disabled=!fxSnap.faceDetectionSupported;
+      addToggle(detail,'Optimize outgoing video with de-noise',Boolean(fxSnap.denoise),value=>fx.setDenoise(Boolean(value)));
+      addRange(detail,'Video de-noise strength',Number(fxSnap.denoiseStrength)||45,0,100,value=>fx.setDenoiseStrength(value));
       if(!fxSnap.faceDetectionSupported){
         const note=document.createElement('p');note.className='av-effects-note';note.textContent='Auto framing and background blur require on-device face detection support on this desktop.';detail.append(note);
       }
@@ -132,6 +134,9 @@
       const fx=effects(),fxSnap=fx?.snapshot?.()||{};
       if(fx&&fxSnap.faceDetectionSupported){
         const blur=document.createElement('button');blur.type='button';blur.textContent=`${fxSnap.backgroundBlur?'✓ ':''}Blur my background`;blur.onclick=()=>{fx.setBackgroundBlur(!fx.snapshot().backgroundBlur);closeMenu();};menu.append(blur);
+      }
+      if(fx){
+        const denoise=document.createElement('button');denoise.type='button';denoise.textContent=`${fxSnap.denoise?'✓ ':''}Optimize outgoing video with de-noise`;denoise.onclick=()=>{fx.setDenoise(!fx.snapshot().denoise);closeMenu();};menu.append(denoise);
       }
     }
     const divider=document.createElement('hr');menu.append(divider);const settings=document.createElement('button');settings.type='button';settings.textContent='Audio & Video Settings…';settings.onclick=()=>{closeMenu();const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();kind==='audio'?void openAudioSettings(media):void openVideoSettings(media);};menu.append(settings);
