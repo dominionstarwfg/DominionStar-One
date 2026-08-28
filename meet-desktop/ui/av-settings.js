@@ -83,11 +83,54 @@
     detail.append(wrap);
   }
 
+  async function testSpeaker(media,speakerId,status){
+    let context=null,oscillator=null,audio=null;
+    try{
+      context=new AudioContext();oscillator=context.createOscillator();const gain=context.createGain();const destination=context.createMediaStreamDestination();
+      oscillator.type='sine';oscillator.frequency.value=660;gain.gain.value=.1;oscillator.connect(gain);gain.connect(destination);
+      audio=document.createElement('audio');audio.autoplay=true;audio.srcObject=destination.stream;if(audio.setSinkId&&speakerId)await audio.setSinkId(speakerId);
+      status.textContent='Playing test tone…';oscillator.start();await audio.play().catch(()=>{});
+      setTimeout(()=>{try{oscillator.stop();context.close();}catch{}if(audio)audio.srcObject=null;status.textContent='Speaker test complete.';},900);
+    }catch(error){try{oscillator?.stop();context?.close();}catch{}status.textContent=String(error?.message||'Speaker test unavailable.');}
+  }
+  async function testMicrophone(media,meter,status){
+    let stream=null,context=null,raf=0;
+    try{
+      stream=await media.testMicrophoneStream();context=new AudioContext();const source=context.createMediaStreamSource(stream),analyser=context.createAnalyser();analyser.fftSize=512;source.connect(analyser);
+      const data=new Uint8Array(analyser.fftSize),started=performance.now();status.textContent='Speak normally — checking microphone input…';
+      const tick=()=>{let sum=0;analyser.getByteTimeDomainData(data);for(const v of data){const n=(v-128)/128;sum+=n*n;}meter.value=Math.round(Math.min(1,Math.sqrt(sum/data.length)*4.5)*100);if(performance.now()-started<4000)raf=requestAnimationFrame(tick);else{status.textContent='Microphone test complete.';meter.value=0;for(const track of stream.getTracks())track.stop();context.close();}};
+      tick();
+    }catch(error){cancelAnimationFrame(raf);for(const track of stream?.getTracks?.()||[])track.stop();try{context?.close();}catch{}status.textContent=String(error?.message||'Microphone test unavailable.');meter.value=0;}
+  }
   async function openAudioSettings(media){
-    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Audio','Choose the microphone and speaker used by DominionStar Meet.');
-    const mic=addSelect(detail,'Microphone','data-av-microphone'),speaker=addSelect(detail,'Speaker','data-av-speaker');
+    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Audio','Microphone, speaker, and audio-processing preferences.');
+    const devices=avGroup(detail,'Devices','Choose and test the hardware DominionStar Meet uses.');
+    const mic=addSelect(devices,'Microphone','data-av-microphone'),speaker=addSelect(devices,'Speaker','data-av-speaker');
+    const testRow=document.createElement('div');testRow.className='av-audio-test-row';
+    const micTest=document.createElement('button');micTest.type='button';micTest.className='secondary-button';micTest.textContent='Test Microphone';
+    const speakerTest=document.createElement('button');speakerTest.type='button';speakerTest.className='secondary-button';speakerTest.textContent='Test Speaker';
+    testRow.append(micTest,speakerTest);devices.append(testRow);
+    const meter=document.createElement('progress');meter.className='av-mic-meter';meter.max=100;meter.value=0;devices.append(meter);
+    const testStatus=document.createElement('p');testStatus.className='av-effects-note';testStatus.textContent='Use the tests to verify the selected devices.';devices.append(testStatus);
+
+    const processing=avGroup(detail,'Audio processing','Controls that affect the live microphone track.');
+    const snap=media.snapshot();
+    const echo=addToggle(processing,'Echo cancellation',Boolean(snap.echoCancellation),value=>void media.setAudioProcessing({echoCancellation:value}));
+    const suppress=addToggle(processing,'Noise suppression',Boolean(snap.noiseSuppression),value=>void media.setAudioProcessing({noiseSuppression:value}));
+    const gain=addToggle(processing,'Automatically adjust microphone volume',Boolean(snap.autoGainControl),value=>void media.setAudioProcessing({autoGainControl:value}));
+    const original=addToggle(processing,'Original sound for musicians',Boolean(snap.originalSound),async value=>{
+      await media.setAudioProcessing({originalSound:value});
+      const disabled=Boolean(value);echo.disabled=disabled;suppress.disabled=disabled;gain.disabled=disabled;
+    });
+    const originalOn=Boolean(snap.originalSound);echo.disabled=originalOn;suppress.disabled=originalOn;gain.disabled=originalOn;
+    const note=document.createElement('p');note.className='av-effects-note';note.textContent='Original sound bypasses echo cancellation, noise suppression, and automatic gain so music and full-range audio are altered less.';processing.append(note);
+
     const privacy=document.createElement('button');privacy.type='button';privacy.className='secondary-button av-privacy';privacy.textContent='Open macOS Microphone Privacy';privacy.onclick=()=>media.openPrivacy?.('microphone');detail.append(privacy);
-    await fillSelects(media,detail);mic.onchange=async()=>{await media.selectMicrophone(mic.value);};speaker.onchange=async()=>{await media.selectSpeaker(speaker.value,$('#localMeetingVideo'));};
+    await fillSelects(media,detail);
+    mic.onchange=async()=>{await media.selectMicrophone(mic.value);};
+    speaker.onchange=async()=>{await media.selectSpeaker(speaker.value,$('#localMeetingVideo'));};
+    micTest.onclick=()=>void testMicrophone(media,meter,testStatus);
+    speakerTest.onclick=()=>void testSpeaker(media,speaker.value,testStatus);
   }
   function avGroup(parent,title,copy=''){
     const section=document.createElement('section');section.className='av-zoom-group';
