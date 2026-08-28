@@ -5,3 +5,17 @@
 .zoom-host-candidate:hover{background:#18212c;border-color:rgba(255,255,255,.14)}
 .zoom-host-candidate>span:first-child{display:grid;gap:2px}.zoom-host-candidate strong{font-size:10px}.zoom-host-candidate small{font-size:8px;color:#8797aa}
 .zoom-host-candidate>span:last-child{font-size:9px;color:#e1b13c;font-weight:750;white-space:nowrap}
+
+.zoom-participant-menu{position:fixed;z-index:740;width:220px;padding:7px;border:1px solid rgba(255,255,255,.12);border-radius:11px;background:#111923;box-shadow:0 18px 46px rgba(0,0,0,.46)}
+.zoom-participant-menu button{width:100%;border:0;border-radius:8px;background:transparent;color:#edf3f8;text-align:left;padding:9px 10px;font-size:10px;cursor:pointer}
+.zoom-participant-menu button:hover{background:rgba(255,255,255,.07)}.zoom-participant-menu button.danger{color:#ff7b85}
+.zoom-participant-menu button.danger:hover{background:rgba(213,66,80,.12)}.zoom-participant-more{min-width:48px}
+.zoom-rename-dialog,.zoom-unmute-dialog{border:1px solid rgba(255,255,255,.13);border-radius:14px;background:#111923;color:#eef4fa;box-shadow:0 24px 70px rgba(0,0,0,.55);padding:0}
+.zoom-rename-dialog::backdrop,.zoom-unmute-dialog::backdrop{background:rgba(0,0,0,.56)}
+.zoom-rename-dialog form,.zoom-unmute-dialog>div{width:min(420px,calc(100vw - 36px));display:grid;gap:13px;padding:18px}
+.zoom-rename-dialog h3,.zoom-unmute-dialog h3{margin:0;font-size:15px}.zoom-rename-dialog label{display:grid;gap:7px;font-size:10px}
+.zoom-rename-dialog input{height:40px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:#09121d;color:#eef4fa;padding:0 10px;outline:none}
+.zoom-rename-dialog form>div,.zoom-unmute-dialog>div>div{display:flex;justify-content:flex-end;gap:8px}
+.zoom-rename-dialog button,.zoom-unmute-dialog button{height:34px;padding:0 12px;border:0;border-radius:8px;cursor:pointer}
+.zoom-rename-dialog .secondary,.zoom-unmute-dialog .secondary{background:#252d36;color:#eef4fa}.zoom-rename-dialog .primary,.zoom-unmute-dialog .primary{background:#2d78d4;color:#fff}
+.zoom-rename-status,.zoom-unmute-copy{margin:0;color:#9aabba;font-size:10px;line-height:1.45}
