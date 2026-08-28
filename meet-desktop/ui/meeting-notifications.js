@@ -55,6 +55,8 @@
   function onWaiting(event){
     const d=event.detail||{},items=Array.isArray(d.items)?d.items:[],added=Array.isArray(d.added)?d.added:[];
     participantBadge(items.length);
+    const attention=added.length>0&&!document.hasFocus();
+    const badgeCall=desktop.notifications?.setWaitingCount?.(items.length,attention);if(badgeCall&&typeof badgeCall.catch==='function')void badgeCall.catch(()=>{});
     if(!added.length)return;
     const list=names(added),body=list.length===1?list[0]+' is waiting to join':list.length+' people are waiting to join';
     toast('Waiting Room',body);native('DominionStar Meet — Waiting Room',body);play('waiting');
@@ -70,7 +72,7 @@
       toast('Participant left',body);native('DominionStar Meet',body);play('leave');
     }
   }
-  function reset(){participantBadge(0);const node=q('#meetingEventToast');if(node)node.hidden=true;}
+  function reset(){participantBadge(0);const badgeCall=desktop.notifications?.setWaitingCount?.(0,false);if(badgeCall&&typeof badgeCall.catch==='function')void badgeCall.catch(()=>{});const node=q('#meetingEventToast');if(node)node.hidden=true;}
   window.addEventListener('dominion:waiting-room-update',onWaiting);
   window.addEventListener('dominion:participant-presence',onPresence);
   window.addEventListener('dominion:meeting-ended',reset);
