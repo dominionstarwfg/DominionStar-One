@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const media=()=>window.DominionMediaController||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  let menu=null,prompt=null,busy=false;
+  let menu=null,prompt=null,renameDialog=null,busy=false,spotlightParticipantId='';
   const esc=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const localRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');
   const canManage=()=>['host','cohost'].includes(localRole());
@@ -56,6 +56,11 @@
     }
     if(type==='host:ask-start-video'){
       await requestConsent({title:'Start video?',copy:`${sender} is asking you to start your video.`,confirmLabel:'Start Video',action:()=>media()?.setCamera?.(true)});
+      return;
+    }
+    if(type==='host:spotlight'){
+      spotlightParticipantId=String(detail.payload?.participantId||'');
+      window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:spotlightParticipantId}}));
     }
   }
   window.addEventListener('dominion:meeting-signal',event=>void handleHostSignal(event),true);
@@ -63,8 +68,24 @@
   async function send(target,type){if(!canManage()||!meeting?.sendSignal)return false;await meeting.sendSignal(target,type,{at:new Date().toISOString()});return true;}
   async function sendAll(type){
     if(busy||!canManage())return;busy=true;syncPanelActions();
-    try{const list=(await peers()).filter(p=>String(p.role||'').toLowerCase()!=='host');await Promise.allSettled(list.map(p=>send(p.participantId,type)));toast(type==='host:mute'?'Mute request sent to all participants':'Unmute requests sent to all participants');}
-    finally{busy=false;syncPanelActions();}
+    try{
+      const list=(await peers()).filter(p=>String(p.role||'').toLowerCase()!=='host');
+      await Promise.allSettled(list.map(p=>send(p.participantId,type)));
+      const labels={'host:mute':'All participants muted','host:ask-unmute':'Unmute requests sent','host:stop-video':'Video stopped for all participants','host:ask-start-video':'Start-video requests sent'};
+      toast(labels[type]||'Meeting-wide action sent');
+    } finally{busy=false;syncPanelActions();}
+  }
+
+  function ensureRenameDialog(){
+    if(renameDialog?.isConnected)return renameDialog;
+    renameDialog=document.createElement('dialog');renameDialog.className='participant-control-prompt participant-rename-prompt';
+    renameDialog.innerHTML='<form method="dialog"><header><strong>Rename participant</strong></header><label><span>Name</span><input maxlength="100" autocomplete="off"></label><p class="participant-rename-status"></p><div><button type="button" class="secondary-button" data-rename-cancel>Cancel</button><button type="submit" class="primary-button">Rename</button></div></form>';
+    document.body.append(renameDialog);renameDialog.querySelector('[data-rename-cancel]').onclick=()=>renameDialog.close();return renameDialog;
+  }
+  function renameParticipant(id,currentName){
+    const dialog=ensureRenameDialog(),input=dialog.querySelector('input'),status=dialog.querySelector('.participant-rename-status'),form=dialog.querySelector('form');
+    input.value=String(currentName||'');status.textContent='';if(!dialog.open)dialog.showModal();setTimeout(()=>{input.focus();input.select();},20);
+    form.onsubmit=async event=>{event.preventDefault();const name=String(input.value||'').trim();if(!name){status.textContent='Enter a name.';return;}const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{await meeting.renameParticipant(id,name);dialog.close();toast('Participant renamed');}catch(error){status.textContent=String(error?.message||error||'Rename failed.');}finally{buttons.forEach(b=>b.disabled=false);}};
   }
 
   function closeMenu(){menu?.remove();menu=null;}
@@ -78,6 +99,12 @@
     add('Ask to Unmute',()=>send(id,'host:ask-unmute'));
     add('Stop Video',()=>send(id,'host:stop-video'));
     add('Ask to Start Video',()=>send(id,'host:ask-start-video'));
+    add(spotlightParticipantId===id?'Remove Spotlight':'Spotlight for Everyone',async()=>{
+      const next=spotlightParticipantId===id?'':id;spotlightParticipantId=next;
+      window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:next}}));
+      const list=await peers();await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'host:spotlight',{participantId:next,at:new Date().toISOString()})));
+    });
+    add('Rename',()=>renameParticipant(id,name));
     if(localRole()==='host'&&role!=='cohost')add('Make Co-host',async()=>{await meeting.setCohost(id,true);});
     if(localRole()==='host'&&role==='cohost')add('Remove Co-host',async()=>{await meeting.setCohost(id,false);});
     add('Remove',async()=>{await meeting.removeParticipant(id);},true);
@@ -101,10 +128,12 @@
     if(!canManage()){footer?.remove();return;}
     if(!footer){
       footer=document.createElement('div');footer.id='participantBulkActions';footer.className='participant-bulk-actions';
-      footer.innerHTML='<button type="button" data-mute-all>Mute All</button><button type="button" data-ask-all>Ask All to Unmute</button>';
+      footer.innerHTML='<button type="button" data-mute-all>Mute All</button><button type="button" data-ask-all>Ask All to Unmute</button><button type="button" data-stop-video-all>Stop Video for All</button><button type="button" data-ask-video-all>Ask All to Start Video</button>';
       side.append(footer);
       footer.querySelector('[data-mute-all]').onclick=()=>void sendAll('host:mute');
       footer.querySelector('[data-ask-all]').onclick=()=>void sendAll('host:ask-unmute');
+      footer.querySelector('[data-stop-video-all]').onclick=()=>void sendAll('host:stop-video');
+      footer.querySelector('[data-ask-video-all]').onclick=()=>void sendAll('host:ask-start-video');
     }
     qa('#participantBulkActions button').forEach(b=>b.disabled=busy);
   }
@@ -112,5 +141,5 @@
   function sync(){if(!inMeeting()){closeMenu();return;}syncRoster();syncPanelActions();}
   document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();},true);
   const timer=setInterval(sync,800);sync();
-  window.DominionParticipantControls=Object.freeze({version:'1.0.0',sync,sendAll,dispose:()=>{clearInterval(timer);closeMenu();prompt?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'1.1.0',sync,sendAll,dispose:()=>{clearInterval(timer);closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
