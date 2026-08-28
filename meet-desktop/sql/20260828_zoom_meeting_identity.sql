@@ -213,25 +213,30 @@ declare
   v_name text;
 begin
   if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
-  select * into v_room from public.meet_v2_rooms where id=p_room_id and host_id=v_user;
+  select * into v_room from public.meet_v2_rooms where id=p_room_id and host_id=v_user for update;
   if not found then raise exception 'host_authority_required'; end if;
   if v_room.status='cancelled' then raise exception 'meeting_not_found'; end if;
   if v_room.status='ended' and not v_room.reusable then raise exception 'meeting_expired'; end if;
 
-  update public.meet_v2_participants set
-    state=case when state in ('waiting','admitted','joined') and role='host' then 'left' else state end,
-    left_at=case when state in ('admitted','joined') and role='host' then now() else left_at end,
-    updated_at=now()
+  update public.meet_v2_participants
+  set state='left',left_at=coalesce(left_at,now()),updated_at=now()
   where room_id=v_room.id and role='host' and state in ('waiting','admitted','joined');
 
   v_name := coalesce(public.meet_v2_host_name(v_user),'Host');
   insert into public.meet_v2_participants(room_id,member_id,display_name,role,state,admitted_at,joined_at)
-  values(v_room.id,v_user,v_name,'host','joined',now(),now()) returning * into v_participant;
+  values(v_room.id,v_user,v_name,'host','joined',now(),now())
+  returning * into v_participant;
 
-  update public.meet_v2_rooms set
-    status='live',started_at=now(),ended_at=null,last_started_at=now(),active_host_id=v_user,
-    occurrence_count=occurrence_count+1,updated_at=now()
+  update public.meet_v2_rooms
+  set status='live',started_at=now(),ended_at=null,last_started_at=now(),active_host_id=v_user,
+      occurrence_count=occurrence_count+1,updated_at=now()
   where id=v_room.id returning * into v_room;
+
+  update public.meet_v2_participants
+  set state=case when v_room.waiting_room_enabled then 'waiting' else 'admitted' end,
+      admitted_at=case when v_room.waiting_room_enabled then admitted_at else coalesce(admitted_at,now()) end,
+      updated_at=now()
+  where room_id=v_room.id and state='waiting_host';
 
   return jsonb_build_object(
     'roomId',v_room.id,'roomCode',v_room.room_code,'title',v_room.title,
@@ -240,7 +245,8 @@ begin
     'externalGuestsAllowed',v_room.external_guests_allowed,
     'participantId',v_participant.id,'joinToken',v_participant.join_token,
     'role','host','state','joined','meetingKind',v_room.meeting_kind,
-    'reusable',v_room.reusable
+    'reusable',v_room.reusable,'muteOnEntry',v_room.mute_on_entry,
+    'meetingLocked',v_room.meeting_locked
   );
 end
 $$;
@@ -467,7 +473,8 @@ declare
   v_role text;
   v_existing public.meet_v2_participants;
 begin
-  select * into v_room from public.meet_v2_rooms where room_code=regexp_replace(coalesce(p_room_code,''),'[^0-9]','','g');
+  select * into v_room from public.meet_v2_rooms
+  where room_code=regexp_replace(coalesce(p_room_code,''),'[^0-9]','','g');
   if not found or v_room.status in ('ended','cancelled') then raise exception 'meeting_not_found'; end if;
   if v_room.meeting_locked then raise exception 'meeting_locked'; end if;
   if extensions.crypt(coalesce(p_passcode,''),v_room.passcode_digest) <> v_room.passcode_digest then raise exception 'incorrect_passcode'; end if;
@@ -491,9 +498,15 @@ begin
   end if;
 
   v_role := case when v_user is null then 'guest' else 'participant' end;
-  v_state := case when v_room.status<>'live' then 'waiting_host' when v_room.waiting_room_enabled then 'waiting' else 'admitted' end;
+  v_state := case
+    when v_room.status<>'live' then 'waiting_host'
+    when v_room.waiting_room_enabled then 'waiting'
+    else 'admitted'
+  end;
+
   insert into public.meet_v2_participants(room_id,member_id,display_name,role,state,admitted_at)
-  values(v_room.id,v_user,coalesce(nullif(trim(p_display_name),''),'Guest'),v_role,v_state,case when v_state='admitted' then now() end)
+  values(v_room.id,v_user,coalesce(nullif(trim(p_display_name),''),'Guest'),v_role,v_state,
+         case when v_state='admitted' then now() end)
   returning * into v_participant;
 
   return jsonb_build_object(
@@ -502,10 +515,12 @@ begin
     'role',v_participant.role,'state',v_participant.state,
     'waitingRoomEnabled',v_room.waiting_room_enabled,
     'meetingKind',v_room.meeting_kind,'reusable',v_room.reusable,
-    'muteOnEntry',v_room.mute_on_entry,'meetingLocked',v_room.meeting_locked
+    'muteOnEntry',v_room.mute_on_entry,'meetingLocked',v_room.meeting_locked,
+    'waitReason',case when v_participant.state='waiting_host' then 'host' when v_participant.state='waiting' then 'admission' else null end,
+    'hostStarted',(v_room.status='live')
   );
 end
-$;
+$$;
 
 create or replace function public.meet_v2_join_status(p_participant_id uuid,p_join_token uuid)
 returns jsonb
