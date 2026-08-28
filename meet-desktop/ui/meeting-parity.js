@@ -1,5 +1,6 @@
 (()=>{
   if(window.DominionMeetingParity)return;
+  if(!document.querySelector('link[data-ds-meeting-parity]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-parity.css';link.dataset.dsMeetingParity='1';document.head.append(link);}
   const q=s=>document.querySelector(s);
   const qa=s=>[...document.querySelectorAll(s)];
   const SVG=Object.freeze({
