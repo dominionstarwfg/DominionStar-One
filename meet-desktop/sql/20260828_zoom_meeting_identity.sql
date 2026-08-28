@@ -40,6 +40,13 @@ alter table public.meet_v2_rooms
   add constraint meet_v2_rooms_duration_check
   check (duration_minutes is null or duration_minutes between 15 and 480);
 
+alter table public.meet_v2_participants
+  drop constraint if exists meet_v2_participants_state_check;
+alter table public.meet_v2_participants
+  add constraint meet_v2_participants_state_check
+  check (state in ('waiting_host','waiting','admitted','declined','joined','left','removed'));
+
+
 create table if not exists public.meet_v2_personal_rooms (
   host_id uuid primary key references auth.users(id) on delete cascade,
   room_id uuid not null unique references public.meet_v2_rooms(id) on delete cascade,
@@ -476,13 +483,15 @@ begin
         'participantId',v_existing.id,'joinToken',v_existing.join_token,'role',v_existing.role,
         'state',v_existing.state,'waitingRoomEnabled',v_room.waiting_room_enabled,
         'meetingKind',v_room.meeting_kind,'reusable',v_room.reusable,
-        'muteOnEntry',v_room.mute_on_entry,'meetingLocked',v_room.meeting_locked
+        'muteOnEntry',v_room.mute_on_entry,'meetingLocked',v_room.meeting_locked,
+        'waitReason',case when v_existing.state='waiting_host' then 'host' when v_existing.state='waiting' then 'admission' else null end,
+        'hostStarted',(v_room.status='live')
       );
     end if;
   end if;
 
   v_role := case when v_user is null then 'guest' else 'participant' end;
-  v_state := case when v_room.waiting_room_enabled then 'waiting' else 'admitted' end;
+  v_state := case when v_room.status<>'live' then 'waiting_host' when v_room.waiting_room_enabled then 'waiting' else 'admitted' end;
   insert into public.meet_v2_participants(room_id,member_id,display_name,role,state,admitted_at)
   values(v_room.id,v_user,coalesce(nullif(trim(p_display_name),''),'Guest'),v_role,v_state,case when v_state='admitted' then now() end)
   returning * into v_participant;
@@ -503,21 +512,38 @@ returns jsonb
 language plpgsql
 security definer
 set search_path to 'public'
-as $
+as $$
 declare
   v_participant public.meet_v2_participants;
   v_room public.meet_v2_rooms;
 begin
-  select * into v_participant from public.meet_v2_participants where id=p_participant_id and join_token=p_join_token;
+  select * into v_participant
+  from public.meet_v2_participants
+  where id=p_participant_id and join_token=p_join_token
+  for update;
   if not found then raise exception 'join_request_not_found'; end if;
+
   select * into v_room from public.meet_v2_rooms where id=v_participant.room_id;
+  if not found then raise exception 'meeting_not_found'; end if;
+
+  if v_participant.state='waiting_host' and v_room.status='live' then
+    update public.meet_v2_participants
+    set state=case when v_room.waiting_room_enabled then 'waiting' else 'admitted' end,
+        admitted_at=case when v_room.waiting_room_enabled then admitted_at else coalesce(admitted_at,now()) end,
+        updated_at=now()
+    where id=v_participant.id
+    returning * into v_participant;
+  end if;
+
   return jsonb_build_object(
     'roomId',v_room.id,'roomCode',v_room.room_code,'title',v_room.title,'roomStatus',v_room.status,
     'participantId',v_participant.id,'role',v_participant.role,'state',v_participant.state,
-    'waitingRoomEnabled',v_room.waiting_room_enabled,'muteOnEntry',v_room.mute_on_entry,'meetingLocked',v_room.meeting_locked
+    'waitingRoomEnabled',v_room.waiting_room_enabled,'muteOnEntry',v_room.mute_on_entry,
+    'meetingLocked',v_room.meeting_locked,'hostStarted',(v_room.status='live'),
+    'waitReason',case when v_participant.state='waiting_host' then 'host' when v_participant.state='waiting' then 'admission' else null end
   );
 end
-$;
+$$;
 
 create or replace function public.meet_v2_room_snapshot(p_room_id uuid)
 returns jsonb
