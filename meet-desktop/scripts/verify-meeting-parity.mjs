@@ -21,7 +21,7 @@ assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Par
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Participant management panel must be closed by default so solo video owns the stage.');
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Video dock orientation must respond to dock position.');
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Remote active speaker must be promotable to the main stage.');
-assert(parity.includes("snapshot.videoLive&&(sharing()||remotePromoted)"),'Local self video belongs in the floating dock only when sharing or another speaker owns the stage.');
+assert(parity.includes("snapshot.videoLive&&!hideSelf&&(sharing()||remotePromoted)"),'Local self video belongs in the floating dock only when sharing or another speaker owns the stage, and Hide Self View must suppress only the local tile.');
 assert(parity.includes('dock.dataset.count=String(Math.min(count,9))'),'Dock layout must be driven by visible participant count.');
 assert(parity.includes('for(let i=1;i<=9;i++'),'Dock must expose count classes through nine visible tiles.');
 assert(parity.includes('desktop.meeting.context()')&&parity.includes('Passcode ${pass}'),'Meeting ID and passcode must remain visible from native meeting context.');
