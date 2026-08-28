@@ -52,12 +52,15 @@ assert(!html.includes('aria-label="Search"')&&!html.includes('data-section="cont
 assert(!html.includes('will live here')&&!html.includes('wired after'),'Packaged Home must not contain developer placeholder copy.');
 assert(personal.includes('Use Personal Meeting ID')&&personal.includes('useForInstant'),'Packaged New Meeting must support Personal Meeting ID behavior.');
 assert(personal.includes('pattern="[0-9]{3,7}"')&&personal.includes('maxlength="7"'),'Packaged Personal Room editor must enforce 3–7 digits.');
+assert(!personal.includes("digits(q('#personalRoomPasscode')?.value).slice"),'Packaged Personal Room editor must reject overlong passcodes instead of silently truncating them.');
 assert(personal.includes('meeting.startPersonalRoom()'),'Packaged Personal Room Start must reopen the persistent room.');
 assert(personal.includes('meeting.updatePersonalRoom'),'Packaged Settings must update Personal Room passcode/preferences server-side.');
 assert(schedule.includes('Generate Automatically')&&schedule.includes('Personal Meeting ID'),'Packaged Schedule must expose Zoom-style Meeting ID choices.');
 for(const repeat of ['Daily','Weekly','Monthly','Every weekday','Custom'])assert(schedule.includes(`>${repeat}<`),`Packaged Schedule missing recurrence option ${repeat}.`);
 assert(schedule.includes('await meeting.schedule('),'Packaged Schedule must create a persistent scheduled identity rather than an instant room.');
 assert(!schedule.includes('await meeting.create({title,passcode'),'Packaged Schedule must not create a fresh live room as its scheduling mechanism.');
+assert(!schedule.includes("digits(q('#schedulePasscode')?.value).slice"),'Packaged Schedule must reject overlong passcodes instead of silently truncating them.');
+assert(!schedule.includes("replace(/\\D/g,'').slice(0,11)"),'Packaged Schedule must not hide an invalid server Meeting ID by truncating it for display.');
 assert(schedule.includes('await meeting.startSchedule(item.scheduleId)'),'Packaged recurring Start must reopen the existing scheduled identity.');
 assert(schedule.includes("mode==='personal'&&recurrence"),'Packaged Schedule must prevent fixed recurrence from silently using the Personal Meeting ID.');
 assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.schedule-option-grid'),'Packaged scheduled/recurring meetings must have real desktop layouts.');
