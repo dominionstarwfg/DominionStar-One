@@ -37,6 +37,12 @@ assert(migration.includes("meeting_kind in ('instant','personal','scheduled','re
 assert(migration.includes('use_for_instant boolean not null default true'),'Personal Room instant-meeting preference must be server-backed.');
 assert(migration.includes("p_passcode,'') !~ '^[0-9]{3,7}$'"),'Backend must enforce the same 3–7 digit passcode policy.');
 assert(migration.includes('active_host_id uuid references auth.users(id)'),'Backend must separate live active-host authority from persistent meeting ownership.');
+assert(!/\nas \$\n/.test(migration)&&!/\nend\n\$;\n/.test(migration),'Staged meeting migration must not contain malformed single-dollar PL/pgSQL delimiters.');
+assert(migration.includes("state in ('waiting_host','waiting','admitted','declined','joined','left','removed')"),'Participant lifecycle must distinguish waiting for host from Waiting Room admission.');
+assert(migration.includes("when v_room.status<>'live' then 'waiting_host'"),'Participants arriving before host start must enter waiting_host instead of the admission queue.');
+assert(migration.includes("where room_id=v_room.id and state='waiting_host'"),'Starting the host session must move pre-host participants into Waiting Room or admitted state.');
+assert(migration.includes("if v_participant.state='waiting_host' and v_room.status='live' then"),'Join-status polling must automatically advance a pre-host participant when the host starts.');
+assert(migration.includes("'waitReason',case when v_participant.state='waiting_host' then 'host'"),'Join status must explicitly tell the desktop why a participant is waiting.');
 assert(migration.includes('meet_v2_transfer_host_and_leave')&&migration.includes('set active_host_id=v_target.member_id'),'Backend must atomically transfer active host authority without transferring Personal Room or schedule ownership.');
 assert(migration.includes("if v_target.member_id is null then raise exception 'signed_in_participant_required_for_host'"),'Host transfer must reject guests that cannot safely inherit authenticated host authority.');
 assert(migration.includes("'memberId',p.member_id")&&migration.includes("'canHost',(p.member_id is not null and p.state='joined')"),'Room snapshots must identify signed-in and host-eligible participants.');
@@ -44,13 +50,17 @@ assert(migration.includes('coalesce(v_room.active_host_id,v_room.host_id)'),'Hos
 
 assert(reusePatch.includes("v_room.status='ended' and not v_room.reusable"),'Ended one-time rooms must remain closed while reusable rooms remain eligible for another occurrence.');
 assert(reusePatch.includes("if v_room.status='ended' and v_room.reusable then"),'Reusable Personal/recurring rooms must explicitly reopen their waiting state.');
-assert(reusePatch.includes("set status='waiting'"),'A reusable room must accept waiting-room arrivals before the host starts its next occurrence.');
+assert(reusePatch.includes("set status='waiting'"),'A reusable room must accept arrivals before the host starts its next occurrence.');
+assert(reusePatch.includes("when v_room.status<>'live' then 'waiting_host'")&&reusePatch.includes("'hostStarted',(v_room.status='live')"),'Reusable meeting join patch must preserve waiting-for-host semantics.');
 
 assert(ui.includes("newMeeting.id='newMeetingDialog'"),'New Meeting must open a real creation flow.');
 assert(ui.includes('id="joinPasscode"'),'Join must request a passcode.');
 assert(ui.includes("prejoin.id='prejoinOverlay'"),'New/Join flow must pass through a dedicated prejoin surface.');
 assert(ui.includes("waiting.id='waitingOverlay'"),'Waiting Room surface is missing.');
 assert(ui.includes("timers.waiting=setInterval(()=>void pollJoinStatus(),1000)"),'Waiting participant must poll for admission without blocking UI.');
+assert(ui.includes("['waiting_host','waiting'].includes(response.state)"),'Join flow must route both pre-host and admission waits into the waiting surface instead of attempting to mark joined.');
+assert(ui.includes("Waiting for the host to start this meeting")&&ui.includes("You are in the Waiting Room"),'Desktop must present distinct Zoom-style waiting-for-host and Waiting Room messages.');
+assert(ui.includes("previousState=activeRoom.state")&&ui.includes("if(previousState!==state.state)renderWaitingState(state)"),'Waiting UI must transition automatically when the host starts without requiring the participant to retry.');
 assert(ui.includes("timers.queue=setInterval(()=>void refreshQueue(),900)"),'Host/cohost waiting-room queue must update independently.');
 assert(ui.includes('data-decision="admit"')&&ui.includes('data-decision="decline"'),'Host/cohost must have Admit and Decline controls.');
 assert(ui.includes("activeRoom.role==='host'?'End':'Leave'"),'Host and participant exit semantics must differ.');
