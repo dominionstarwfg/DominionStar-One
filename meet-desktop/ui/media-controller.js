@@ -1,10 +1,10 @@
 (()=>{
   if(window.DominionMediaController)return;
   const desktopMedia=window.dominionDesktop?.media||null;
-  const KEYS=Object.freeze({camera:'ds_meet_camera_id',microphone:'ds_meet_microphone_id',speaker:'ds_meet_speaker_id',mirror:'ds_meet_mirror'});
+  const KEYS=Object.freeze({camera:'ds_meet_camera_id',microphone:'ds_meet_microphone_id',speaker:'ds_meet_speaker_id',mirror:'ds_meet_mirror',echoCancellation:'ds_meet_echo_cancellation',noiseSuppression:'ds_meet_noise_suppression',autoGainControl:'ds_meet_auto_gain_control',originalSound:'ds_meet_original_sound'});
   const readPref=(key,fallback='')=>{try{const value=localStorage.getItem(KEYS[key]);return value===null?fallback:value;}catch{return fallback;}};
   const savePref=(key,value)=>{try{localStorage.setItem(KEYS[key],String(value??''));}catch{}};
-  const state={stream:null,cameraId:readPref('camera'),microphoneId:readPref('microphone'),speakerId:readPref('speaker'),cameraOn:true,micOn:false,mirror:readPref('mirror','true')!=='false',userPreferencesLocked:false,lastError:'',permissionState:null};
+  const state={stream:null,cameraId:readPref('camera'),microphoneId:readPref('microphone'),speakerId:readPref('speaker'),cameraOn:true,micOn:false,mirror:readPref('mirror','true')!=='false',echoCancellation:readPref('echoCancellation','true')!=='false',noiseSuppression:readPref('noiseSuppression','true')!=='false',autoGainControl:readPref('autoGainControl','true')!=='false',originalSound:readPref('originalSound','false')==='true',userPreferencesLocked:false,lastError:'',permissionState:null};
   const listeners=new Set();
   const emit=()=>{const snapshot=api.snapshot();for(const fn of listeners){try{fn(snapshot);}catch{}}};
   const stopTrack=track=>{if(track&&track.readyState!=='ended'){try{track.stop();}catch{}}};
@@ -42,7 +42,7 @@
   }
 
   const videoConstraints=id=>({deviceId:id?{ideal:id}:undefined,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}});
-  const audioConstraints=id=>({deviceId:id?{ideal:id}:undefined,echoCancellation:true,noiseSuppression:true,autoGainControl:true});
+  const audioConstraints=id=>({deviceId:id?{ideal:id}:undefined,echoCancellation:state.originalSound?false:state.echoCancellation,noiseSuppression:state.originalSound?false:state.noiseSuppression,autoGainControl:state.originalSound?false:state.autoGainControl,channelCount:state.originalSound?{ideal:2}:undefined,sampleRate:state.originalSound?{ideal:48000}:undefined});
 
   async function acquireKind(kind,preferredId=''){
     await ensurePermissions([kind==='video'?'camera':'microphone']);
@@ -121,13 +121,29 @@
     },
     async selectSpeaker(id,element){state.userPreferencesLocked=true;state.speakerId=String(id||'');savePref('speaker',state.speakerId);if(element?.setSinkId&&state.speakerId)await element.setSinkId(state.speakerId);emit();return api.snapshot();},
     setMirror(on){state.userPreferencesLocked=true;state.mirror=Boolean(on);savePref('mirror',state.mirror);emit();return api.snapshot();},
+    async setAudioProcessing(next={}){
+      const previous={echoCancellation:state.echoCancellation,noiseSuppression:state.noiseSuppression,autoGainControl:state.autoGainControl,originalSound:state.originalSound};
+      if('echoCancellation' in next)state.echoCancellation=Boolean(next.echoCancellation);
+      if('noiseSuppression' in next)state.noiseSuppression=Boolean(next.noiseSuppression);
+      if('autoGainControl' in next)state.autoGainControl=Boolean(next.autoGainControl);
+      if('originalSound' in next)state.originalSound=Boolean(next.originalSound);
+      savePref('echoCancellation',state.echoCancellation);savePref('noiseSuppression',state.noiseSuppression);savePref('autoGainControl',state.autoGainControl);savePref('originalSound',state.originalSound);
+      if(state.micOn&&live('audio').length){try{await replaceKind('audio',state.microphoneId);}catch(error){Object.assign(state,previous);throw error;}}
+      emit();return api.snapshot();
+    },
+    async testMicrophoneStream(){
+      await ensurePermissions(['microphone']);
+      const track=await acquireKind('audio',state.microphoneId);
+      track.enabled=true;
+      return new MediaStream([track]);
+    },
     stop(){stopTracks(state.stream?.getTracks?.()||[]);state.stream=null;emit();},
-    resetPreferences(){state.userPreferencesLocked=false;state.cameraId='';state.microphoneId='';state.speakerId='';state.cameraOn=true;state.micOn=false;state.mirror=true;for(const key of Object.keys(KEYS))savePref(key,key==='mirror'?'true':'');emit();},
+    resetPreferences(){state.userPreferencesLocked=false;state.cameraId='';state.microphoneId='';state.speakerId='';state.cameraOn=true;state.micOn=false;state.mirror=true;state.echoCancellation=true;state.noiseSuppression=true;state.autoGainControl=true;state.originalSound=false;for(const key of Object.keys(KEYS)){const v=key==='mirror'||['echoCancellation','noiseSuppression','autoGainControl'].includes(key)?'true':key==='originalSound'?'false':'';savePref(key,v);}emit();},
     stream(){return state.stream;},
     enumerate,
     permissions:()=>desktopMedia?.permissions?.()||Promise.resolve(null),
     openPrivacy:kind=>desktopMedia?.openPrivacy?.(kind),
-    snapshot(){return {cameraOn:state.cameraOn,micOn:state.micOn,mirror:state.mirror,cameraId:state.cameraId,microphoneId:state.microphoneId,speakerId:state.speakerId,preferencesLocked:state.userPreferencesLocked,videoLive:live('video').length>0,audioLive:live('audio').length>0,lastError:state.lastError,permissionState:state.permissionState};},
+    snapshot(){return {cameraOn:state.cameraOn,micOn:state.micOn,mirror:state.mirror,cameraId:state.cameraId,microphoneId:state.microphoneId,speakerId:state.speakerId,echoCancellation:state.echoCancellation,noiseSuppression:state.noiseSuppression,autoGainControl:state.autoGainControl,originalSound:state.originalSound,preferencesLocked:state.userPreferencesLocked,videoLive:live('video').length>0,audioLive:live('audio').length>0,lastError:state.lastError,permissionState:state.permissionState};},
     onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}
   });
   window.DominionMediaController=api;
