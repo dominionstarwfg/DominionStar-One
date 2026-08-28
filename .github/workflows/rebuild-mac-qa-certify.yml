@@ -43,6 +43,7 @@ jobs:
       - name: Run complete source certification
         working-directory: meet-desktop
         run: |
+          node --check ui/personal-room.js
           node --check ui/schedule-controller.js
           node --check ui/preferences.js
           node --check ui/meeting-features.js
