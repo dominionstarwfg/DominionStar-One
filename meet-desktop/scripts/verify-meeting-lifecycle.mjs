@@ -31,7 +31,12 @@ assert(migration.includes("public.meet_v2_unique_room_code(10)"),'Personal Room 
 assert(migration.includes("public.meet_v2_unique_room_code(11)"),'Generated instant/scheduled meetings must use 11-digit identities.');
 assert(migration.includes("meeting_kind in ('instant','personal','scheduled','recurring')"),'Backend must distinguish meeting identity kinds.');
 assert(migration.includes('use_for_instant boolean not null default true'),'Personal Room instant-meeting preference must be server-backed.');
-assert(migration.includes("p_passcode,'') !~ '^[0-9]{3,7}
+assert(migration.includes("p_passcode,'') !~ '^[0-9]{3,7}$'"),'Backend must enforce the same 3–7 digit passcode policy.');
+assert(migration.includes('active_host_id uuid references auth.users(id)'),'Backend must separate live active-host authority from persistent meeting ownership.');
+assert(migration.includes('meet_v2_transfer_host_and_leave')&&migration.includes('set active_host_id=v_target.member_id'),'Backend must atomically transfer active host authority without transferring the Personal Room/schedule owner.');
+assert(migration.includes("if v_target.member_id is null then raise exception 'signed_in_participant_required_for_host'"),'Host transfer must reject guests that cannot safely inherit authenticated host authority.');
+assert(migration.includes("'memberId',p.member_id")&&migration.includes("'canHost',(p.member_id is not null and p.state='joined')"),'Room snapshots must identify the signed-in self participant and host-eligible participants.');
+assert(migration.includes('coalesce(v_room.active_host_id,v_room.host_id)'),'Host/co-host authority functions must honor the current active host while retaining owner fallback.');
 assert(reusePatch.includes("v_room.status='ended' and not v_room.reusable"),'Ended one-time rooms must remain closed while reusable rooms remain eligible for another occurrence.');
 assert(reusePatch.includes("if v_room.status='ended' and v_room.reusable then"),'Reusable Personal/recurring rooms must explicitly reopen their waiting state.');
 assert(reusePatch.includes("set status='waiting'"),'A reusable room must accept waiting-room arrivals before the host starts its next occurrence.');
