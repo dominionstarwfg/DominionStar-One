@@ -41,6 +41,7 @@ jobs:
           node --check 'meet-desktop/ui/meeting-parity.js'
           node --check 'meet-desktop/ui/meeting-features.js'
           node --check 'meet-desktop/ui/preferences.js'
+          node --check 'meet-desktop/ui/schedule-controller.js'
           node --check 'meet-desktop/ui/media-controller.js'
           node --check 'meet-desktop/ui/share-controller.js'
           node --check 'meet-desktop/ui/share-integration.js'
