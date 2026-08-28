@@ -1,4 +1,4 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, session, shell, systemPreferences } from 'electron';
+import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, session, shell, systemPreferences } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDesktopAuth } from './auth-service.mjs';
@@ -89,6 +89,12 @@ ipcMain.handle('media:get-permissions',()=>nativeMediaPermissions());
 ipcMain.handle('media:request-permissions',(_event,{kinds=[]}={})=>requestNativeMediaPermissions(kinds));
 ipcMain.handle('media:request-screen',()=>requestScreenPermission());
 ipcMain.handle('media:open-privacy',(_event,{kind='screen'}={})=>openPrivacySettings(kind));
+ipcMain.handle('notifications:meeting',(_event,{title='DominionStar Meet',body='Meeting update'}={})=>{
+  if(!Notification?.isSupported?.())return {shown:false};
+  const notification=new Notification({title:String(title||'DominionStar Meet').slice(0,80),body:String(body||'Meeting update').slice(0,220),silent:true});
+  notification.on('click',()=>{if(mainWindow&&!mainWindow.isDestroyed()){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.show();mainWindow.focus();}});
+  notification.show();return {shown:true};
+});
 ipcMain.handle('meeting:create',(_event,input)=>meetingService?.createRoom(input));
 ipcMain.handle('meeting:personal-room',()=>qaInteractionFixtures?{...qaPersonalRoom}:meetingService?.personalRoom());
 ipcMain.handle('meeting:update-personal-room',(_event,input)=>{if(!qaInteractionFixtures)return meetingService?.updatePersonalRoom(input);qaPersonalRoom={...qaPersonalRoom,...input,passcode:String(input?.passcode||qaPersonalRoom.passcode)};return {...qaPersonalRoom};});
