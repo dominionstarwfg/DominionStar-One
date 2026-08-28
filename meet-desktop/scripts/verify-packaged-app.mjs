@@ -10,6 +10,7 @@ assert(fs.existsSync(absolute),'Packaged .app does not exist.');
 const resources=path.join(absolute,'Contents','Resources');
 const asarPath=path.join(resources,'app.asar');
 assert(fs.existsSync(asarPath),'Packaged app.asar is missing.');
+assert(fs.existsSync(path.join(resources,'branding','dominionstar-logo.jpeg')),'Packaged app must include the real DominionStar logo resource.');
 
 const listing=execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'list',asarPath],{encoding:'utf8'});
 const required=[
@@ -40,17 +41,29 @@ assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged deskto
 assert(!main.includes('dominionstarld.com'),'Packaged desktop must not launch the public website.');
 assert(main.includes('systemPreferences.getMediaAccessStatus(kind)'),'Packaged desktop must include native macOS media permission authority.');
 assert(main.includes("permissionStatus('screen')"),'Packaged desktop must check Screen Recording permission before sharing.');
-assert(auth.includes('flowType:\'pkce\''),'Packaged Google auth must use PKCE.');
+assert(auth.includes("flowType:'pkce'"),'Packaged Google auth must use PKCE.');
 assert(auth.includes("CALLBACK_HOST='127.0.0.1'"),'Packaged auth must use the loopback callback.');
 assert(auth.includes('client.auth.signInWithPassword'),'Packaged app must include email/password sign-in.');
 assert(preload.includes('signInPassword:')&&authPassword.includes('auth.signInPassword'),'Packaged renderer must expose email/password only through narrow native auth IPC.');
-assert(meeting.includes("passcode.length<3"),'Packaged meeting lifecycle must accept 3-digit passcodes such as 360.');
+assert(preload.includes('brand:Object.freeze({logoUrl})'),'Packaged bridge must expose the real DominionStar logo resource.');
+assert(meeting.includes("passcode.length<3"),'Packaged meeting lifecycle must accept 3-digit passcodes.');
+assert(meeting.includes("roomCode:'',passcode:'',title:''"),'Packaged meeting context must retain Meeting ID and passcode.');
 assert(media.includes("deviceId:id?{ideal:id}:undefined"),'Packaged camera authority must use resilient soft device preference.');
 assert(media.includes("const candidates=unique([preferredId,...catalog.map(item=>item.id)])"),'Packaged camera authority must fall back to another available device.');
-assert(html.includes('<script src="./av-settings.js"></script>')&&html.includes('<script src="./meeting-parity.js"></script>'),'Packaged Home must load A/V settings and meeting parity, not merely contain them.');
+assert(html.includes('<script src="./av-settings.js"></script>')&&html.includes('<script src="./meeting-parity.js"></script>'),'Packaged Home must load A/V settings and meeting parity.');
 assert(av.includes("caret.className='meeting-control av-device-caret'"),'Packaged meeting must retain mic/video device-option carets.');
-assert(parity.includes("side.dataset.floatingDock='1'")&&parity.includes("button.id='roomSettings'")&&parity.includes("button.id='roomMore'"),'Packaged meeting must include floating participant dock plus Settings/More controls.');
-assert(parityCss.includes('resize:both')&&parityCss.includes('padding-left:86px'),'Packaged meeting chrome must include resizable dock and macOS titlebar clearance.');
+assert(parity.includes("version:'2.0.0-zoom-adaptive-dock'"),'Packaged meeting must include the adaptive Zoom-style video dock engine.');
+assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Packaged participant management panel must be closed by default.');
+assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Packaged video dock must adapt orientation to position.');
+assert(parity.includes("tile.classList.add('stage-promoted')"),'Packaged meeting must support active-speaker stage promotion.');
+assert(parity.includes('desktop.meeting.context()')&&parity.includes('Passcode ${pass}'),'Packaged meeting must keep Meeting ID and passcode visible.');
+assert(parity.includes("button.id='roomSettings'")&&parity.includes("button.id='roomMore'"),'Packaged meeting must include functional Settings and More controls.');
+assert(parityCss.includes('.meeting-body{position:relative!important;display:block!important'),'Packaged meeting must not reserve a permanent participant sidebar column.');
+assert(parityCss.includes('.stage{position:absolute!important;inset:0!important'),'Packaged meeting stage must use the full canvas.');
+assert(parityCss.includes('.room-side{position:absolute!important'),'Packaged participant management panel must overlay rather than shrink the stage.');
+assert(parityCss.includes('.count-4 .participant-video-dock-body')&&parityCss.includes('grid-template-columns:repeat(2,176px)'),'Packaged participant video dock must grid at four to six tiles.');
+assert(parityCss.includes('.count-7 .participant-video-dock-body')&&parityCss.includes('grid-template-columns:repeat(3,150px)'),'Packaged participant video dock must expand into a compact larger grid.');
+assert(parityCss.includes('repeat(auto-fit,minmax(118px,1fr))'),'Packaged user-resized video dock must recompute its grid.');
 assert(share.includes('let inFlight=null'),'Packaged share authority must keep exactly one native source enumeration in flight.');
 assert(share.includes('Promise.race([inFlight,timeoutResult()])'),'Packaged share source enumeration must remain bounded by timeout.');
 assert(share.includes('.finally(()=>{inFlight=null;})'),'Packaged share authority must release single-flight state after enumeration.');
@@ -59,4 +72,4 @@ assert(shareService.includes('ensureScreenPermission()')&&shareService.includes(
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home email-google-auth passcode-360 native-media-permissions camera-fallback loaded-av floating-dock bounded-share webrtc diagnostics no-legacy-runtime');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home real-brand email-google-auth credentials camera-fallback zoom-full-stage adaptive-video-dock bounded-share webrtc diagnostics no-legacy-runtime');
