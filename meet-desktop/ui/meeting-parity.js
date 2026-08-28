@@ -15,7 +15,7 @@
     more:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>',
     exit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h9a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8M12 8l-4 4 4 4M8 12h9"/></svg>'
   });
-  let moreMenu=null,securityMenu=null,panelDrag=null,dockDrag=null,dockResize=null,lastMeta='';
+  let moreMenu=null,securityMenu=null,panelDrag=null,dockDrag=null,dockResize=null,lastMeta='',spotlightParticipantId='';
   if(!document.querySelector('link[data-ds-meeting-parity]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-parity.css';link.dataset.dsMeetingParity='1';document.head.append(link);}
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
   const formatCode=value=>String(value||'').replace(/\D/g,'').replace(/(\d{3})(?=\d)/g,'$1 ').trim();
