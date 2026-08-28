@@ -177,6 +177,10 @@
       if(state.backgroundPersistence==='all'){write('virtualBackground',next);write('virtualBackgroundData',next==='custom'?state.backgroundData:'');}
       emit();return {ok:true,...api.snapshot()};
     },
+    clearTransientMeetingEffects(){
+      if(state.backgroundPersistence==='current'&&state.virtualBackground!=='none'){state.virtualBackground='none';state.backgroundImage=null;state.backgroundData='';emit();}
+      return api.snapshot();
+    },
     setBackgroundPersistence(mode='all'){
       state.backgroundPersistence=mode==='current'?'current':'all';write('backgroundPersistence',state.backgroundPersistence);
       if(state.backgroundPersistence==='all'){write('virtualBackground',state.virtualBackground);write('virtualBackgroundData',state.virtualBackground==='custom'?state.backgroundData:'');}
