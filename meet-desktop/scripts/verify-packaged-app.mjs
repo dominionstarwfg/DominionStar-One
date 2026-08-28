@@ -39,6 +39,8 @@ assert(preload.includes('signInPassword:')&&authPassword.includes('auth.signInPa
 assert(preload.includes('brand:Object.freeze({logoUrl})'),'Packaged bridge must expose the real DominionStar logo resource.');
 assert(meeting.includes("/^\\d{3,7}$/"),'Packaged meeting authority must enforce 3–7 digit passcodes.');
 assert(meeting.includes("/^\\d{10,11}$/"),'Packaged meeting authority must accept Personal and generated Meeting ID lengths.');
+assert(!meeting.includes('.slice(0,7)'),'Packaged meeting authority must reject overlong passcodes instead of truncating them.');
+assert(!meeting.includes('.slice(0,11)'),'Packaged meeting authority must reject overlong Meeting IDs instead of truncating them.');
 assert(meeting.includes("roomCode:'',passcode:'',title:''"),'Packaged meeting context must retain Meeting ID and passcode.');
 for(const bridge of ['personalRoom:','updatePersonalRoom:','startPersonalRoom:','schedule:','listSchedules:','startSchedule:','cancelSchedule:'])assert(preload.includes(bridge),`Packaged bridge missing ${bridge}`);
 assert(main.includes("'meeting:personal-room'")&&main.includes("'meeting:schedule'")&&main.includes("'meeting:start-schedule'"),'Packaged main process must own Personal Room and schedule IPC.');
@@ -90,4 +92,4 @@ assert(shareService.includes('ensureScreenPermission()')&&shareService.includes(
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage share webrtc diagnostics');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage share webrtc diagnostics');
