@@ -10,6 +10,7 @@ const ui=read('ui/app.js');
 const personal=read('ui/personal-room.js');
 const schedule=read('ui/schedule-controller.js');
 const migration=read('sql/20260828_zoom_meeting_identity.sql');
+const reusePatch=read('sql/20260828_zoom_meeting_identity_reuse_patch.sql');
 const css=read('ui/meeting.css');
 
 for(const rpc of ['meet_v2_create_room','meet_v2_get_personal_room','meet_v2_update_personal_room','meet_v2_start_personal_room','meet_v2_schedule_meeting','meet_v2_list_host_schedules','meet_v2_mark_schedule_started','meet_v2_cancel_schedule','meet_v2_request_join','meet_v2_join_status','meet_v2_mark_joined','meet_v2_leave_room','meet_v2_host_queue','meet_v2_decide_participant','meet_v2_room_snapshot','meet_v2_set_cohost','meet_v2_remove_participant','meet_v2_end_room'])assert(service.includes(rpc),`Missing meeting RPC ${rpc}`);
@@ -31,6 +32,9 @@ assert(migration.includes("public.meet_v2_unique_room_code(11)"),'Generated inst
 assert(migration.includes("meeting_kind in ('instant','personal','scheduled','recurring')"),'Backend must distinguish meeting identity kinds.');
 assert(migration.includes('use_for_instant boolean not null default true'),'Personal Room instant-meeting preference must be server-backed.');
 assert(migration.includes("p_passcode,'') !~ '^[0-9]{3,7}$'"),'Backend must enforce the same 3–7 digit passcode policy.');
+assert(reusePatch.includes("v_room.status='ended' and not v_room.reusable"),'Ended one-time rooms must remain closed while reusable rooms remain eligible for another occurrence.');
+assert(reusePatch.includes("if v_room.status='ended' and v_room.reusable then"),'Reusable Personal/recurring rooms must explicitly reopen their waiting state.');
+assert(reusePatch.includes("set status='waiting'"),'A reusable room must accept waiting-room arrivals before the host starts its next occurrence.');
 assert(ui.includes("newMeeting.id='newMeetingDialog'"),'New Meeting must open a real creation flow.');
 assert(ui.includes('id=\"joinPasscode\"'),'Join must request a passcode.');
 assert(ui.includes("prejoin.id='prejoinOverlay'"),'New/Join flow must pass through a dedicated prejoin surface.');
@@ -42,4 +46,4 @@ assert(ui.includes("activeRoom.role==='host'?'End':'Leave'"),'Host and participa
 assert(ui.includes('meeting.setCohost')&&ui.includes('meeting.removeParticipant'),'Role and removal controls must use backend authority.');
 assert(css.includes('.meeting-overlay')&&css.includes('.waiting-overlay')&&css.includes('.prejoin-overlay'),'Prejoin, meeting, and waiting-room surfaces must be dedicated desktop layers.');
 assert(!ui.includes('getDisplayMedia')&&!service.includes('getDisplayMedia'),'Screen sharing must remain outside this lifecycle authority.');
-console.log('DOMINIONSTAR_MEET_V2_LIFECYCLE_OK personal-id generated-id passcode-3-7 recurring-identity schedule prejoin waiting admit cohost leave end');
+console.log('DOMINIONSTAR_MEET_V2_LIFECYCLE_OK personal-id generated-id passcode-3-7 reusable-waiting recurring-identity schedule prejoin waiting admit cohost leave end');
