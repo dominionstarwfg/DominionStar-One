@@ -48,7 +48,10 @@ assert(media.includes("deviceId:id?{ideal:id}:undefined"),'Packaged camera autho
 assert(media.includes("const candidates=unique([preferredId,...catalog.map(item=>item.id)])"),'Packaged camera authority must fall back to another available device.');
 assert(authPassword.includes("script.src='./video-effects.js'"),'Packaged renderer must load the isolated video effects processor.');
 assert(videoEffects.includes('new FaceDetector')&&videoEffects.includes('canvas.captureStream?.(30)')&&videoEffects.includes('cropForFrame'),'Packaged auto framing must create a real processed camera stream.');
+assert(videoEffects.includes('state.backgroundBlur')&&videoEffects.includes('ctx.ellipse')&&videoEffects.includes('blurPx'),'Packaged background blur must preserve a foreground person region and blur the outgoing background.');
+assert(videoEffects.includes('setAppearance')&&videoEffects.includes('state.touchUp')&&videoEffects.includes('state.portraitLight'),'Packaged touch-up and portrait lighting must be part of the outgoing processed camera path.');
 assert(av.includes('Auto framing')&&av.includes('Auto framing strength'),'Packaged video settings must expose auto framing controls.');
+assert(av.includes('Blur my background')&&av.includes('Background blur strength'),'Packaged video settings must expose background blur controls.');
 for(const script of ['./av-settings.js','./meeting-parity.js','./meeting-features.js','./zoom-behavior.js','./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Packaged Home must load ${script}.`);
 for(const style of ['./schedule.css','./personal-room.css'])assert(html.includes(`<link rel=\"stylesheet\" href=\"${style}\">`),`Packaged Home must load ${style}.`);
 assert(!html.includes('aria-label="Search"')&&!html.includes('data-section="contacts"')&&!html.includes('id="contactsSection"'),'Packaged Home must not contain dead Search or Contacts chrome.');
@@ -110,4 +113,4 @@ assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC tr
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 assert(webrtc.includes('await effects.outputStream(raw)')&&webrtc.includes('state.effectsUnsub=window.DominionVideoEffects?.onChange'),'Packaged WebRTC must send the processed camera track when video effects are enabled.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior guarded-host-handoff admit-all private-chat bounded-sync auto-framing processed-camera share webrtc diagnostics');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior guarded-host-handoff admit-all private-chat bounded-sync auto-framing background-blur processed-camera share webrtc diagnostics');
