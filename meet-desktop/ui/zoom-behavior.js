@@ -39,23 +39,25 @@
     if(leaveDialog?.isConnected)return leaveDialog;
     leaveDialog=document.createElement('dialog');
     leaveDialog.id='zoomLeaveDialog';leaveDialog.className='zoom-leave-dialog';
-    leaveDialog.innerHTML='<div class="zoom-leave-card"><header><div><p>MEETING</p><h2>Leave meeting?</h2></div><button type="button" data-zoom-leave-close aria-label="Close">×</button></header><p class="zoom-leave-copy">Choose whether to leave the meeting running or end it for everyone.</p><div class="zoom-leave-actions"><button type="button" class="secondary" data-zoom-leave-only>Leave Meeting</button><button type="button" class="danger" data-zoom-end-all>End Meeting for All</button><button type="button" class="cancel" data-zoom-leave-close>Cancel</button></div><p class="zoom-leave-status" role="status" aria-live="polite"></p></div>';
+    leaveDialog.innerHTML='<div class="zoom-leave-card"><header><div><p>MEETING</p><h2>End or leave meeting</h2></div><button type="button" data-zoom-leave-close aria-label="Close">×</button></header><p class="zoom-leave-copy">Zoom-style host leave requires transferring host control first. DominionStar will not bypass that safeguard.</p><div class="zoom-leave-actions"><button type="button" class="secondary" data-zoom-host-handoff>Assign Host & Leave</button><button type="button" class="danger" data-zoom-end-all>End Meeting for All</button><button type="button" class="cancel" data-zoom-leave-close>Cancel</button></div><p class="zoom-leave-status" role="status" aria-live="polite"></p></div>';
     document.body.append(leaveDialog);
     qa('[data-zoom-leave-close]').forEach(button=>button.addEventListener('click',()=>leaveDialog.close()));
-    leaveDialog.querySelector('[data-zoom-leave-only]').addEventListener('click',()=>void leaveHostMeeting(false));
-    leaveDialog.querySelector('[data-zoom-end-all]').addEventListener('click',()=>void leaveHostMeeting(true));
+    leaveDialog.querySelector('[data-zoom-host-handoff]').addEventListener('click',()=>showHostHandoffBlocker());
+    leaveDialog.querySelector('[data-zoom-end-all]').addEventListener('click',()=>void endForAll());
     return leaveDialog;
   }
 
-  async function leaveHostMeeting(endForAll){
+  function showHostHandoffBlocker(){
+    const dialog=ensureLeaveDialog(),status=dialog.querySelector('.zoom-leave-status');
+    status.textContent='Host transfer is required before leaving and remains a release blocker until the transfer authority is certified. Use End Meeting for All or Cancel in this QA build.';
+  }
+
+  async function endForAll(){
     const dialog=ensureLeaveDialog(),status=dialog.querySelector('.zoom-leave-status'),buttons=[...dialog.querySelectorAll('button')];
-    buttons.forEach(button=>button.disabled=true);status.textContent=endForAll?'Ending meeting for everyone…':'Leaving meeting…';
+    buttons.forEach(button=>button.disabled=true);status.textContent='Ending meeting for everyone…';
     try{
-      const ctx=await context();
-      if(endForAll){if(!ctx.roomId)throw new Error('Meeting context is unavailable.');await meeting.end(ctx.roomId);}
-      else{if(!ctx.participantId||!ctx.joinToken)throw new Error('Meeting participant context is unavailable.');await meeting.leave(ctx.participantId,ctx.joinToken);}
-      dialog.close();
-      location.reload();
+      const ctx=await context();if(!ctx.roomId)throw new Error('Meeting context is unavailable.');
+      await meeting.end(ctx.roomId);dialog.close();location.reload();
     }catch(error){status.textContent=String(error?.message||error||'Meeting could not close.');buttons.forEach(button=>button.disabled=false);}
   }
 
@@ -144,8 +146,8 @@
   function sync(){
     hardenPasscodes();installLeaveGuard();patchChat();syncAdmitAll();
     const exit=q('#roomExitButton');if(exit&&role()==='host'){
-      const label=exit.querySelector('.ds-control-label');if(label)label.textContent='Leave';else exit.textContent='Leave';
-      exit.setAttribute('aria-label','Leave meeting or end meeting for all');
+      const label=exit.querySelector('.ds-control-label');if(label)label.textContent='End';else exit.textContent='End';
+      exit.setAttribute('aria-label','End or leave meeting');
     }
     if(chatPatched&&!q('#meetingChatPanel')?.hidden)void refreshChatRecipients();
   }
@@ -153,5 +155,5 @@
   const observer=new MutationObserver(()=>sync());observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   setInterval(()=>{if(isMeetingOpen())sync();},900);
   sync();
-  window.DominionZoomBehavior=Object.freeze({version:'1.0.1',sync,admitAll,refreshChatRecipients});
+  window.DominionZoomBehavior=Object.freeze({version:'1.0.2',sync,admitAll,refreshChatRecipients});
 })();
