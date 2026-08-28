@@ -129,10 +129,12 @@
 
   function patchChat(){
     const panel=q('#meetingChatPanel'),form=q('#meetingChatForm'),input=q('#meetingChatInput');if(!panel||!form||!input)return;
+    let created=false;
     if(!q('#meetingChatRecipient')){
-      const select=document.createElement('select');select.id='meetingChatRecipient';select.className='meeting-chat-recipient';select.setAttribute('aria-label','Chat recipient');select.innerHTML='<option value="everyone">Everyone</option>';form.insertBefore(select,input);
+      const select=document.createElement('select');select.id='meetingChatRecipient';select.className='meeting-chat-recipient';select.setAttribute('aria-label','Chat recipient');select.innerHTML='<option value="everyone">Everyone</option>';form.insertBefore(select,input);created=true;
     }
-    form.onsubmit=sendZoomChat;chatPatched=true;void refreshChatRecipients();
+    form.onsubmit=sendZoomChat;chatPatched=true;
+    if(created||!panel.hidden)void refreshChatRecipients();
   }
 
   function interceptIncomingChat(event){
@@ -144,7 +146,9 @@
   window.addEventListener('dominion:meeting-signal',interceptIncomingChat,true);
 
   function sync(){
-    hardenPasscodes();installLeaveGuard();patchChat();syncAdmitAll();
+    hardenPasscodes();
+    if(!isMeetingOpen())return;
+    installLeaveGuard();patchChat();syncAdmitAll();
     const exit=q('#roomExitButton');if(exit&&role()==='host'){
       const label=exit.querySelector('.ds-control-label');if(label)label.textContent='End';else exit.textContent='End';
       exit.setAttribute('aria-label','End or leave meeting');
@@ -152,8 +156,7 @@
     if(chatPatched&&!q('#meetingChatPanel')?.hidden)void refreshChatRecipients();
   }
 
-  const observer=new MutationObserver(()=>sync());observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  setInterval(()=>{if(isMeetingOpen())sync();},900);
+  const syncTimer=setInterval(sync,900);
   sync();
-  window.DominionZoomBehavior=Object.freeze({version:'1.0.2',sync,admitAll,refreshChatRecipients});
+  window.DominionZoomBehavior=Object.freeze({version:'1.0.3',sync,admitAll,refreshChatRecipients,dispose:()=>clearInterval(syncTimer)});
 })();
