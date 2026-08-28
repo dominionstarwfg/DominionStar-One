@@ -7,7 +7,6 @@ const css=read('ui/meeting-parity.css');
 const zoomBehavior=read('ui/zoom-behavior.js');
 const participantControls=read('ui/participant-controls.js');
 const zoomCss=read('ui/zoom-behavior.css');
-const participantControls=read('ui/participant-controls.js');
 const participantCss=read('ui/participant-controls.css');
 const webrtc=read('ui/webrtc-controller.js');
 const av=read('ui/av-settings.js');
