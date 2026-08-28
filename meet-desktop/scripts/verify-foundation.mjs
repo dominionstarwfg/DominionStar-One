@@ -57,9 +57,12 @@ assert(schedule.includes("mode==='personal'&&recurrence"),'Fixed recurrence must
 assert(schedule.includes("/^\\d{3,7}$/"),'Generated scheduled meeting passcodes must be validated as 3–7 digits.');
 assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.scheduled-home-list')&&scheduleCss.includes('.schedule-option-grid'),'Scheduled and recurring meetings must render on Home, Meetings, and Schedule surfaces.');
 
-for(const key of ['joinMuted','joinVideoOff','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
+for(const key of ['joinMuted','joinVideoOff','showJoinPreview','hideSelfView','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
 for(const section of ['Meetings','Share Screen','Chat','Recording','Accessibility','Keyboard Shortcuts','About'])assert(preferences.includes(`'${section}'`),`Preferences section missing: ${section}`);
 assert(!preferences.includes('will be added'),'Preferences must not expose dead future-feature copy.');
+assert(preferences.includes('Show video preview before joining')&&preferences.includes('Hide my self view in meetings'),'Meeting preferences must expose Zoom-style join-preview and self-view choices.');
+assert(js.includes("DominionPreferences?.read?.('showJoinPreview')===false")&&js.includes('joinUsingSavedDefaults'),'Skipping preview must still enter through the saved media defaults and normal meeting authority.');
+assert(js.includes("DominionPreferences?.read?.('hideSelfView')")&&js.includes("$('#localMeetingVideo').hidden=!s.videoLive||hideSelf"),'Hide Self View must affect only the local meeting video surface.');
 
 assert(shareService.includes('compactMainWindow'),'Desktop sharing must own a native compact meeting-window mode.');
 assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during a share must compact the meeting window instead of losing participant video.');
