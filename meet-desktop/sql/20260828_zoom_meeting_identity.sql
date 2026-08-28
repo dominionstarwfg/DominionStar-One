@@ -475,7 +475,8 @@ begin
         'roomId',v_room.id,'roomCode',v_room.room_code,'title',v_room.title,
         'participantId',v_existing.id,'joinToken',v_existing.join_token,'role',v_existing.role,
         'state',v_existing.state,'waitingRoomEnabled',v_room.waiting_room_enabled,
-        'meetingKind',v_room.meeting_kind,'reusable',v_room.reusable
+        'meetingKind',v_room.meeting_kind,'reusable',v_room.reusable,
+        'muteOnEntry',v_room.mute_on_entry,'meetingLocked',v_room.meeting_locked
       );
     end if;
   end if;
