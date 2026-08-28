@@ -94,15 +94,25 @@ jobs:
         working-directory: meet-desktop
         run: node scripts/verify-packaged-app.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Verify macOS metadata
+      - name: Verify macOS metadata and branded identity
+        shell: bash
         run: |
           APP="${{ steps.app.outputs.path }}"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
-          /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$APP/Contents/Info.plist" >/dev/null
-          /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$APP/Contents/Info.plist" >/dev/null
-          /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' "$APP/Contents/Info.plist" >/dev/null
-          /usr/libexec/PlistBuddy -c 'Print :NSAudioCaptureUsageDescription' "$APP/Contents/Info.plist" >/dev/null
+          PLIST="$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$PLIST" | grep -Fx 'DominionStar Meet'
+          /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSAudioCaptureUsageDescription' "$PLIST" >/dev/null
+          ICON_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$PLIST")"
+          test -n "$ICON_NAME"
+          case "$ICON_NAME" in *.icns) ;; *) ICON_NAME="$ICON_NAME.icns" ;; esac
+          test "$ICON_NAME" != 'electron.icns'
+          test -f "$APP/Contents/Resources/$ICON_NAME"
+          test -s "$APP/Contents/Resources/$ICON_NAME"
           test -x "$APP/Contents/MacOS/DominionStar Meet"
+          echo "DOMINIONSTAR_MAC_BRANDED_IDENTITY_OK icon=$ICON_NAME"
 
       - name: Launch packaged app smoke test
         shell: bash
