@@ -19,6 +19,8 @@ const presenterCss=read('ui/presenter-toolbar.css');
 const presenterJs=read('ui/presenter-toolbar.js');
 const packageJson=JSON.parse(read('package.json'));
 const appIcon=read('build/icon.svg');
+const meetingNotifications=read('ui/meeting-notifications.js');
+const meetingNotificationsCss=read('ui/meeting-notifications.css');
 
 assert(main.includes("const uiDir=path.join(__dirname,'..','ui')"),'Desktop must define one local UI directory authority.');
 assert(main.includes("mainWindow.loadFile(path.join(uiDir,'index.html'))"),'Desktop must load Home from the local UI directory.');
@@ -30,7 +32,7 @@ for(const section of ['homeSection','meetingsSection'])assert(html.includes(`id=
 assert(!html.includes('id="contactsSection"')&&!html.includes('data-section="contacts"'),'Dead Contacts placeholder must not ship.');
 assert(!html.includes('aria-label="Search"'),'Dead Search control must not ship.');
 assert(!html.includes('will live here')&&!html.includes('wired after'),'Developer placeholder copy must not ship.');
-for(const script of ['./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Desktop must load ${script}.`);
+for(const script of ['./meeting-notifications.js','./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Desktop must load ${script}.`);
 for(const style of ['./personal-room.css','./schedule.css'])assert(html.includes(`<link rel=\"stylesheet\" href=\"${style}\">`),`Desktop must load ${style}.`);
 assert(html.includes('id="scheduleForm"')&&html.includes('id="scheduledMeetingList"'),'Schedule and Meetings must have real UI surfaces.');
 assert(!html.includes('meet_personal_rooms'),'Undeployed legacy backend table name must never leak into the Home UI.');
@@ -58,12 +60,19 @@ assert(schedule.includes("mode==='personal'&&recurrence"),'Fixed recurrence must
 assert(schedule.includes("/^\\d{3,7}$/"),'Generated scheduled meeting passcodes must be validated as 3–7 digits.');
 assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.scheduled-home-list')&&scheduleCss.includes('.schedule-option-grid'),'Scheduled and recurring meetings must render on Home, Meetings, and Schedule surfaces.');
 
-for(const key of ['joinMuted','joinVideoOff','showJoinPreview','hideSelfView','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
+for(const key of ['joinMuted','joinVideoOff','showJoinPreview','hideSelfView','waitingRoomSound','joinLeaveSound','desktopMeetingNotifications','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
 for(const section of ['Meetings','Share Screen','Chat','Recording','Accessibility','Keyboard Shortcuts','About'])assert(preferences.includes(`'${section}'`),`Preferences section missing: ${section}`);
 assert(!preferences.includes('will be added'),'Preferences must not expose dead future-feature copy.');
 assert(preferences.includes('Show video preview before joining')&&preferences.includes('Hide my self view in meetings'),'Meeting preferences must expose Zoom-style join-preview and self-view choices.');
 assert(js.includes("DominionPreferences?.read?.('showJoinPreview')===false")&&js.includes('joinUsingSavedDefaults'),'Skipping preview must still enter through the saved media defaults and normal meeting authority.');
 assert(js.includes("DominionPreferences?.read?.('hideSelfView')")&&js.includes("$('#localMeetingVideo').hidden=!s.videoLive||hideSelf"),'Hide Self View must affect only the local meeting video surface.');
+assert(preferences.includes('Play a sound when someone enters the Waiting Room')&&preferences.includes('Play a sound when participants join or leave')&&preferences.includes('Show desktop meeting notifications'),'Meeting preferences must expose Zoom-style waiting-room and join/leave notification controls.');
+assert(js.includes("new CustomEvent('dominion:waiting-room-update'")&&js.includes("new CustomEvent('dominion:participant-presence'"),'Existing room polling must emit notification events instead of adding another backend poller.');
+assert(meetingNotifications.includes("version:'1.0.0'")&&meetingNotifications.includes("participantBadge(items.length)")&&meetingNotifications.includes("play('waiting')")&&meetingNotifications.includes("play('join')")&&meetingNotifications.includes("play('leave')"),'Meeting notification layer must provide waiting-room badge and sound cues.');
+assert(meetingNotifications.includes("if(!pref('desktopMeetingNotifications',true)||document.hasFocus())return"),'Native meeting notifications must be reserved for background/unfocused app state.');
+assert(meetingNotificationsCss.includes('.waiting-room-badge')&&meetingNotificationsCss.includes('.meeting-event-toast'),'Meeting notification visuals must ship with dedicated styling.');
+assert(main.includes("Notification, session")&&main.includes("ipcMain.handle('notifications:meeting'"),'Native shell must own desktop meeting notifications.');
+assert(preload.includes("notifications:Object.freeze({showMeeting:"),'Renderer must access native meeting notifications only through a narrow bridge.');
 
 assert(shareService.includes('compactMainWindow'),'Desktop sharing must own a native compact meeting-window mode.');
 assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during a share must compact the meeting window instead of losing participant video.');
