@@ -5,8 +5,10 @@ const enhancements=read('ui/av-settings.js');
 const css=read('ui/av-settings.css');
 const loader=read('ui/auth-password.js');
 const media=read('ui/media-controller.js');
+const effects=read('ui/video-effects.js');
+const webrtc=read('ui/webrtc-controller.js');
 
-assert(loader.includes("link.href='./av-settings.css'")&&loader.includes("script.src='./av-settings.js'"),'Shared desktop UI must load the clean AV settings module.');
+assert(loader.includes("link.href='./av-settings.css'")&&loader.includes("script.src='./av-settings.js'")&&loader.includes("script.src='./video-effects.js'"),'Shared desktop UI must load AV settings and the isolated video effects processor.');
 assert(enhancements.includes('window.DominionMediaController'),'AV settings must build on the clean media authority, not the legacy meeting engine.');
 assert(!enhancements.includes('DominionStarMeetingEngine')&&!enhancements.includes('getDisplayMedia'),'AV settings must not import legacy engine or screen-share authority.');
 for(const attr of ['data-av-camera','data-av-microphone','data-av-speaker'])assert(enhancements.includes(attr),`AV settings missing ${attr}.`);
@@ -18,10 +20,14 @@ assert(enhancements.includes("Low light mode")&&enhancements.includes("Manual lo
 assert(enhancements.includes("Touch up my appearance")&&enhancements.includes("Touch up intensity")&&enhancements.includes("applyAppearance()"),'Video appearance must expose a persistent touch-up control and intensity.');
 assert(enhancements.includes("Portrait lighting")&&enhancements.includes("Portrait lighting intensity"),'Video appearance must expose portrait lighting and intensity.');
 assert(enhancements.includes("ds_meet_touch_up")&&enhancements.includes("ds_meet_portrait_light"),'Appearance preferences must persist locally across meetings.');
+assert(enhancements.includes("Auto framing")&&enhancements.includes("Auto framing strength")&&enhancements.includes("faceDetectionSupported"),'Video settings must expose capability-gated auto framing.');
+assert(effects.includes("new FaceDetector")&&effects.includes("cropForFrame")&&effects.includes("canvas.captureStream?.(30)"),'Auto framing must create a real processed outgoing camera track using on-device face detection and canvas capture.');
+assert(effects.includes("ds_meet_auto_frame")&&effects.includes("ds_meet_auto_frame_strength"),'Auto framing preferences must persist locally.');
+assert(webrtc.includes("await effects.outputStream(raw)")&&webrtc.includes("state.effectsUnsub=window.DominionVideoEffects?.onChange"),'WebRTC must send the processed camera track and resync peers when effects change.');
 assert(enhancements.includes("HD · 720p")&&enhancements.includes("Balanced · 540p")&&enhancements.includes("Data saver · 360p"),'Video quality settings must expose practical conferencing tiers.');
 assert(enhancements.includes('track.applyConstraints({width:{ideal:width},height:{ideal:height},frameRate:{ideal:fps,max:fps}})'),'Video quality must apply to the live camera track.');
 assert(enhancements.includes('installMeetingQuickMenus')&&enhancements.includes('av-device-caret'),'Mic/video quick-device menus must be attached beside meeting controls.');
 assert(enhancements.includes('Audio & Video Settings…'),'Quick menus must lead to advanced settings.');
 assert(media.includes('ds_meet_camera_id')&&media.includes('ds_meet_microphone_id')&&media.includes('ds_meet_speaker_id'),'AV parity depends on persistent clean device preferences.');
 assert(css.includes('.av-quick-menu')&&css.includes('.av-video-preview')&&css.includes('.av-settings-detail')&&css.includes('.av-range-row'),'AV settings must have dedicated desktop styling including appearance sliders.');
-console.log('DOMINIONSTAR_AV_SETTINGS_PARITY_OK devices quick-menus mirror original-ratio low-light-auto-manual touch-up portrait-lighting quality clean-media-authority');
+console.log('DOMINIONSTAR_AV_SETTINGS_PARITY_OK devices quick-menus mirror original-ratio low-light-auto-manual touch-up portrait-lighting auto-framing processed-outgoing-track quality clean-media-authority');
