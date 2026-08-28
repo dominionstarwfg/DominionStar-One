@@ -229,11 +229,20 @@
     try{record.audioContext?.close?.();const context=new AudioContext();const source=context.createMediaStreamSource(stream);const analyser=context.createAnalyser();analyser.fftSize=512;source.connect(analyser);record.audioContext=context;record.audioSource=source;record.analyser=analyser;}catch{}
   }
   function sampleSpeakers(){
-    let loudest=null,max=.012;
+    const ranked=[];
     for(const record of state.peers.values()){
-      if(!record.analyser)continue;const data=new Uint8Array(record.analyser.fftSize);record.analyser.getByteTimeDomainData(data);let sum=0;for(const v of data){const n=(v-128)/128;sum+=n*n;}record.lastLevel=Math.sqrt(sum/data.length);if(record.lastLevel>max){max=record.lastLevel;loudest=record.id;}
+      if(!record.analyser)continue;
+      const data=new Uint8Array(record.analyser.fftSize);record.analyser.getByteTimeDomainData(data);let sum=0;
+      for(const v of data){const n=(v-128)/128;sum+=n*n;}
+      record.lastLevel=Math.sqrt(sum/data.length);if(record.lastLevel>.012)ranked.push({id:record.id,level:record.lastLevel});
     }
-    document.querySelectorAll('.remote-peer-tile').forEach(tile=>tile.classList.toggle('active-speaker',tile.dataset.peerId===loudest));
+    ranked.sort((a,b)=>b.level-a.level);const top=ranked.slice(0,4),loudest=top[0]?.id||'';
+    document.querySelectorAll('.remote-peer-tile').forEach(tile=>{
+      const id=String(tile.dataset.peerId||''),rank=top.findIndex(item=>item.id===id);
+      tile.classList.toggle('active-speaker',id===loudest);
+      for(let i=1;i<=4;i++)tile.classList.toggle(`active-speaker-rank-${i}`,rank===i-1);
+    });
+    window.dispatchEvent(new CustomEvent('dominion:active-speakers',{detail:{participantIds:top.map(item=>item.id)}}));
   }
   async function sampleTransport(record){
     try{
