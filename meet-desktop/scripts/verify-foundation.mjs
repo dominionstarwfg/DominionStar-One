@@ -8,6 +8,8 @@ const html=read('ui/index.html');
 const css=read('ui/styles.css');
 const js=read('ui/app.js');
 const preferences=read('ui/preferences.js');
+const personal=read('ui/personal-room.js');
+const personalCss=read('ui/personal-room.css');
 const schedule=read('ui/schedule-controller.js');
 const scheduleCss=read('ui/schedule.css');
 
@@ -21,22 +23,34 @@ for(const section of ['homeSection','meetingsSection'])assert(html.includes(`id=
 assert(!html.includes('id="contactsSection"')&&!html.includes('data-section="contacts"'),'Dead Contacts placeholder must not ship.');
 assert(!html.includes('aria-label="Search"'),'Dead Search control must not ship.');
 assert(!html.includes('will live here')&&!html.includes('wired after'),'Developer placeholder copy must not ship.');
-assert(html.includes('<script src="./preferences.js"></script>'),'Desktop must load the working Preferences module.');
-assert(html.includes('<script src="./schedule-controller.js"></script>')&&html.includes('<link rel="stylesheet" href="./schedule.css">'),'Desktop must load the working Schedule module and styling.');
+for(const script of ['./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Desktop must load ${script}.`);
+for(const style of ['./personal-room.css','./schedule.css'])assert(html.includes(`<link rel=\"stylesheet\" href=\"${style}\">`),`Desktop must load ${style}.`);
 assert(html.includes('id="scheduleForm"')&&html.includes('id="scheduledMeetingList"'),'Schedule and Meetings must have real UI surfaces.');
-assert(!html.includes('meet_personal_rooms'),'Undeployed backend table name must never leak into the Home UI.');
+assert(!html.includes('meet_personal_rooms'),'Undeployed legacy backend table name must never leak into the Home UI.');
 assert(css.includes('.action-card:active{transform:translateY(0) scale(.99)}'),'Action controls must visibly release after click.');
 assert(js.includes("document.body.dataset.shareAfterJoin='1';openDialog('join')"),'Home Share must enter the real meeting/share flow.');
 assert(!js.includes("notice('Share remains isolated'"),'Home Share must not return to the old placeholder notice.');
 assert(!js.includes('getDisplayMedia'),'Home/room controller must not own screen capture.');
 assert(js.includes("greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'"),'Home greeting must be time-aware.');
-assert(js.includes('const randomPasscode=()=>'),'Instant meetings must not use a fixed personal passcode.');
-assert(schedule.includes("await meeting.create({title,passcode,waitingRoomEnabled:true,externalGuestsAllowed:true})"),'Schedule must create real Meet V2 credentials with Waiting Room forced on.');
-assert(schedule.includes("const STORE='ds_meet_scheduled_v2'"),'Scheduled meeting metadata must persist on the desktop.');
-assert(schedule.includes("room.value=formatId(item.roomCode)")&&schedule.includes('pass.value=item.passcode'),'Starting a scheduled meeting must route its real credentials through the ordinary Join/prejoin authority.');
-assert(schedule.includes("meeting.end(item.roomId)"),'Deleting a scheduled meeting must close its backend room where possible.');
-assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.scheduled-home-list'),'Scheduled meetings must render on Home and Meetings surfaces.');
+
+assert(personal.includes('Use Personal Meeting ID'),'New Meeting must expose the Personal Meeting ID choice.');
+assert(personal.includes('useForInstant'),'Personal Meeting ID instant-meeting preference must be respected.');
+assert(personal.includes('meeting.startPersonalRoom()'),'Personal Room Start must reopen the persistent Personal Room identity.');
+assert(personal.includes('meeting.updatePersonalRoom'),'Personal Room settings must persist through the meeting authority.');
+assert(personal.includes('pattern="[0-9]{3,7}"')&&personal.includes('maxlength="7"'),'Personal Room passcode UI must accept 3–7 digits only.');
+assert(personal.includes('Changing the passcode does not change the Personal Meeting ID.'),'Personal Room editor must communicate stable Meeting ID behavior.');
+assert(personalCss.includes('.personal-room-card')&&personalCss.includes('.personal-room-modal'),'Personal Room must have a real Meetings card and editor layout.');
+
+assert(schedule.includes('Generate Automatically')&&schedule.includes('Personal Meeting ID'),'Schedule must offer generated identity or Personal Meeting ID.');
+for(const repeat of ['Daily','Weekly','Monthly','Every weekday','Custom'])assert(schedule.includes(`>${repeat}<`),`Schedule recurrence option missing ${repeat}.`);
+assert(schedule.includes('await meeting.schedule('),'Schedule must create a persistent scheduled identity through the meeting authority.');
+assert(!schedule.includes('await meeting.create({title,passcode'),'Schedule must not create a fresh live room as its scheduling mechanism.');
+assert(schedule.includes('await meeting.startSchedule(item.scheduleId)'),'Starting a scheduled/recurring meeting must reopen the existing meeting identity.');
+assert(schedule.includes("mode==='personal'&&recurrence"),'Fixed recurrence must not silently reuse the Personal Meeting ID.');
+assert(schedule.includes("/^\\d{3,7}$/"),'Generated scheduled meeting passcodes must be validated as 3–7 digits.');
+assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.scheduled-home-list')&&scheduleCss.includes('.schedule-option-grid'),'Scheduled and recurring meetings must render on Home, Meetings, and Schedule surfaces.');
+
 for(const key of ['joinMuted','joinVideoOff','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
 for(const section of ['Meetings','Share Screen','Chat','Recording','Accessibility','Keyboard Shortcuts','About'])assert(preferences.includes(`'${section}'`),`Preferences section missing: ${section}`);
 assert(!preferences.includes('will be added'),'Preferences must not expose dead future-feature copy.');
-console.log('DOMINIONSTAR_DESKTOP_FOUNDATION_OK local-home four-primary-actions time-aware-identity live-preferences working-schedule no-dead-home-chrome responsive-controls real-share-entry isolated-share-module');
+console.log('DOMINIONSTAR_DESKTOP_FOUNDATION_OK local-home four-primary-actions personal-room stable-identity passcode-3-7 recurring-schedules live-preferences no-dead-home-chrome responsive-controls real-share-entry isolated-share-module');
