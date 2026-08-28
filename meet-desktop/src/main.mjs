@@ -78,6 +78,15 @@ ipcMain.handle('media:request-permissions',(_event,{kinds=[]}={})=>requestNative
 ipcMain.handle('media:request-screen',()=>requestScreenPermission());
 ipcMain.handle('media:open-privacy',(_event,{kind='screen'}={})=>openPrivacySettings(kind));
 ipcMain.handle('meeting:create',(_event,input)=>meetingService?.createRoom(input));
+ipcMain.handle('meeting:personal-room',()=>meetingService?.personalRoom());
+ipcMain.handle('meeting:update-personal-room',(_event,input)=>meetingService?.updatePersonalRoom(input));
+ipcMain.handle('meeting:start-personal-room',()=>meetingService?.startPersonalRoom());
+ipcMain.handle('meeting:start-host-room',(_event,{roomId})=>meetingService?.startHostRoom(roomId));
+ipcMain.handle('meeting:schedule',(_event,input)=>meetingService?.scheduleRoom(input));
+ipcMain.handle('meeting:list-schedules',()=>meetingService?.listSchedules());
+ipcMain.handle('meeting:cancel-schedule',(_event,{scheduleId})=>meetingService?.cancelSchedule(scheduleId));
+ipcMain.handle('meeting:start-schedule',(_event,{scheduleId})=>meetingService?.startSchedule(scheduleId));
+ipcMain.handle('meeting:update-room-passcode',(_event,{roomId,passcode})=>meetingService?.updateRoomPasscode(roomId,passcode));
 ipcMain.handle('meeting:request-join',(_event,input)=>meetingService?.requestJoin(input));
 ipcMain.handle('meeting:join-status',(_event,{participantId,joinToken})=>meetingService?.joinStatus(participantId,joinToken));
 ipcMain.handle('meeting:mark-joined',(_event,{participantId,joinToken})=>meetingService?.markJoined(participantId,joinToken));
