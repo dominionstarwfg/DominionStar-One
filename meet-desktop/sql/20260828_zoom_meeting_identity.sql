@@ -674,6 +674,38 @@ begin
 end
 $$;
 
+create or replace function public.meet_v2_rename_participant(p_participant_id uuid,p_display_name text)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_actor uuid := auth.uid();
+  v_target public.meet_v2_participants%rowtype;
+  v_room public.meet_v2_rooms%rowtype;
+  v_actor_role text;
+  v_name text := nullif(trim(coalesce(p_display_name,'')),'');
+begin
+  if v_actor is null then raise exception 'authentication_required'; end if;
+  if v_name is null or char_length(v_name)>100 then raise exception 'invalid_display_name'; end if;
+  select * into v_target from public.meet_v2_participants where id=p_participant_id for update;
+  if not found then raise exception 'participant_not_found'; end if;
+  select * into v_room from public.meet_v2_rooms where id=v_target.room_id;
+  if coalesce(v_room.active_host_id,v_room.host_id)=v_actor then
+    v_actor_role:='host';
+  else
+    select role into v_actor_role from public.meet_v2_participants
+    where room_id=v_target.room_id and member_id=v_actor and state in ('admitted','joined')
+    order by created_at desc limit 1;
+  end if;
+  if coalesce(v_actor_role,'') not in ('host','cohost') then raise exception 'host_authority_required'; end if;
+  if v_target.role='host' and v_actor_role<>'host' then raise exception 'cohost_cannot_rename_host'; end if;
+  update public.meet_v2_participants set display_name=v_name,updated_at=now() where id=p_participant_id;
+  return jsonb_build_object('ok',true,'participantId',p_participant_id,'displayName',v_name);
+end
+$$;
+
 create or replace function public.meet_v2_transfer_host_and_leave(p_target_participant_id uuid)
 returns jsonb
 language plpgsql
@@ -770,5 +802,6 @@ grant execute on function public.meet_v2_host_queue(uuid) to authenticated;
 grant execute on function public.meet_v2_decide_participant(uuid,text) to authenticated;
 grant execute on function public.meet_v2_set_cohost(uuid,boolean) to authenticated;
 grant execute on function public.meet_v2_remove_participant(uuid) to authenticated;
+grant execute on function public.meet_v2_rename_participant(uuid,text) to authenticated;
 grant execute on function public.meet_v2_transfer_host_and_leave(uuid) to authenticated;
 grant execute on function public.meet_v2_end_room(uuid) to authenticated;
