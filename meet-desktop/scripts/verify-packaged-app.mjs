@@ -15,7 +15,7 @@ assert(fs.existsSync(path.join(resources,'branding','dominionstar-logo.jpeg')),'
 const listing=execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'list',asarPath],{encoding:'utf8'});
 const required=[
   '/src/main.mjs','/src/auth-service.mjs','/src/meeting-service.mjs','/src/share-service.mjs','/src/share-source-authority.mjs','/src/preload.cjs',
-  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/preferences.js','/ui/schedule-controller.js','/ui/schedule.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
+  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/preferences.js','/ui/personal-room.js','/ui/personal-room.css','/ui/schedule-controller.js','/ui/schedule.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
   '/ui/webrtc-controller.js','/ui/webrtc.css','/ui/diagnostics.js','/ui/diagnostics.css','/package.json'
 ];
 for(const item of required)assert(listing.includes(item),`Packaged ASAR is missing ${item}`);
@@ -24,25 +24,10 @@ for(const forbidden of ['/desktop/','/desktop 2/','/meet-home/','/meet-login/','
 const unpackDir=path.resolve('.package-audit');
 fs.rmSync(unpackDir,{recursive:true,force:true});
 execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'extract',asarPath,unpackDir]);
-const main=fs.readFileSync(path.join(unpackDir,'src','main.mjs'),'utf8');
-const auth=fs.readFileSync(path.join(unpackDir,'src','auth-service.mjs'),'utf8');
-const meeting=fs.readFileSync(path.join(unpackDir,'src','meeting-service.mjs'),'utf8');
-const preload=fs.readFileSync(path.join(unpackDir,'src','preload.cjs'),'utf8');
-const share=fs.readFileSync(path.join(unpackDir,'src','share-source-authority.mjs'),'utf8');
-const shareService=fs.readFileSync(path.join(unpackDir,'src','share-service.mjs'),'utf8');
-const media=fs.readFileSync(path.join(unpackDir,'ui','media-controller.js'),'utf8');
-const authPassword=fs.readFileSync(path.join(unpackDir,'ui','auth-password.js'),'utf8');
-const html=fs.readFileSync(path.join(unpackDir,'ui','index.html'),'utf8');
-const av=fs.readFileSync(path.join(unpackDir,'ui','av-settings.js'),'utf8');
-const parity=fs.readFileSync(path.join(unpackDir,'ui','meeting-parity.js'),'utf8');
-const parityCss=fs.readFileSync(path.join(unpackDir,'ui','meeting-parity.css'),'utf8');
-const features=fs.readFileSync(path.join(unpackDir,'ui','meeting-features.js'),'utf8');
-const preferences=fs.readFileSync(path.join(unpackDir,'ui','preferences.js'),'utf8');
-const schedule=fs.readFileSync(path.join(unpackDir,'ui','schedule-controller.js'),'utf8');
-const scheduleCss=fs.readFileSync(path.join(unpackDir,'ui','schedule.css'),'utf8');
-const shareController=fs.readFileSync(path.join(unpackDir,'ui','share-controller.js'),'utf8');
-const annotation=fs.readFileSync(path.join(unpackDir,'ui','share-annotation.js'),'utf8');
-const webrtc=fs.readFileSync(path.join(unpackDir,'ui','webrtc-controller.js'),'utf8');
+const read=(...parts)=>fs.readFileSync(path.join(unpackDir,...parts),'utf8');
+const main=read('src','main.mjs'),auth=read('src','auth-service.mjs'),meeting=read('src','meeting-service.mjs'),preload=read('src','preload.cjs'),share=read('src','share-source-authority.mjs'),shareService=read('src','share-service.mjs');
+const media=read('ui','media-controller.js'),authPassword=read('ui','auth-password.js'),html=read('ui','index.html'),av=read('ui','av-settings.js'),parity=read('ui','meeting-parity.js'),parityCss=read('ui','meeting-parity.css'),features=read('ui','meeting-features.js'),preferences=read('ui','preferences.js'),personal=read('ui','personal-room.js'),schedule=read('ui','schedule-controller.js'),scheduleCss=read('ui','schedule.css'),shareController=read('ui','share-controller.js'),annotation=read('ui','share-annotation.js'),webrtc=read('ui','webrtc-controller.js');
+
 assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged desktop must launch the local Home file.');
 assert(!main.includes('dominionstarld.com'),'Packaged desktop must not launch the public website.');
 assert(main.includes('systemPreferences.getMediaAccessStatus(kind)'),'Packaged desktop must include native macOS media permission authority.');
@@ -52,20 +37,28 @@ assert(auth.includes("CALLBACK_HOST='127.0.0.1'"),'Packaged auth must use the lo
 assert(auth.includes('client.auth.signInWithPassword'),'Packaged app must include email/password sign-in.');
 assert(preload.includes('signInPassword:')&&authPassword.includes('auth.signInPassword'),'Packaged renderer must expose email/password only through narrow native auth IPC.');
 assert(preload.includes('brand:Object.freeze({logoUrl})'),'Packaged bridge must expose the real DominionStar logo resource.');
-assert(meeting.includes("passcode.length<3"),'Packaged meeting lifecycle must accept 3-digit passcodes.');
+assert(meeting.includes("/^\\d{3,7}$/"),'Packaged meeting authority must enforce 3–7 digit passcodes.');
+assert(meeting.includes("/^\\d{10,11}$/"),'Packaged meeting authority must accept Personal and generated Meeting ID lengths.');
 assert(meeting.includes("roomCode:'',passcode:'',title:''"),'Packaged meeting context must retain Meeting ID and passcode.');
+for(const bridge of ['personalRoom:','updatePersonalRoom:','startPersonalRoom:','schedule:','listSchedules:','startSchedule:','cancelSchedule:'])assert(preload.includes(bridge),`Packaged bridge missing ${bridge}`);
+assert(main.includes("'meeting:personal-room'")&&main.includes("'meeting:schedule'")&&main.includes("'meeting:start-schedule'"),'Packaged main process must own Personal Room and schedule IPC.');
 assert(media.includes("deviceId:id?{ideal:id}:undefined"),'Packaged camera authority must use resilient soft device preference.');
 assert(media.includes("const candidates=unique([preferredId,...catalog.map(item=>item.id)])"),'Packaged camera authority must fall back to another available device.');
-for(const script of ['./av-settings.js','./meeting-parity.js','./meeting-features.js','./preferences.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Packaged Home must load ${script}.`);
-assert(html.includes('<link rel="stylesheet" href="./schedule.css">'),'Packaged Home must load Schedule styling.');
+for(const script of ['./av-settings.js','./meeting-parity.js','./meeting-features.js','./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Packaged Home must load ${script}.`);
+for(const style of ['./schedule.css','./personal-room.css'])assert(html.includes(`<link rel=\"stylesheet\" href=\"${style}\">`),`Packaged Home must load ${style}.`);
 assert(!html.includes('aria-label="Search"')&&!html.includes('data-section="contacts"')&&!html.includes('id="contactsSection"'),'Packaged Home must not contain dead Search or Contacts chrome.');
 assert(!html.includes('will live here')&&!html.includes('wired after'),'Packaged Home must not contain developer placeholder copy.');
-assert(html.includes('id="scheduleForm"')&&html.includes('id="scheduledMeetingList"'),'Packaged Home must contain working Schedule and Meetings surfaces.');
-assert(schedule.includes("await meeting.create({title,passcode,waitingRoomEnabled:true,externalGuestsAllowed:true})"),'Packaged Schedule must create real Meet V2 credentials with Waiting Room on.');
-assert(schedule.includes("const STORE='ds_meet_scheduled_v2'"),'Packaged Schedule must persist its local meeting metadata.');
-assert(schedule.includes("room.value=formatId(item.roomCode)")&&schedule.includes('pass.value=item.passcode'),'Packaged scheduled Start must feed real credentials through the standard Join/prejoin path.');
-assert(schedule.includes('meeting.end(item.roomId)'),'Packaged scheduled Delete must close its backend room where possible.');
-assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.scheduled-home-list'),'Packaged scheduled meetings must have real Home and Meetings layouts.');
+assert(personal.includes('Use Personal Meeting ID')&&personal.includes('useForInstant'),'Packaged New Meeting must support Personal Meeting ID behavior.');
+assert(personal.includes('pattern="[0-9]{3,7}"')&&personal.includes('maxlength="7"'),'Packaged Personal Room editor must enforce 3–7 digits.');
+assert(personal.includes('meeting.startPersonalRoom()'),'Packaged Personal Room Start must reopen the persistent room.');
+assert(personal.includes('meeting.updatePersonalRoom'),'Packaged Settings must update Personal Room passcode/preferences server-side.');
+assert(schedule.includes('Generate Automatically')&&schedule.includes('Personal Meeting ID'),'Packaged Schedule must expose Zoom-style Meeting ID choices.');
+for(const repeat of ['Daily','Weekly','Monthly','Every weekday','Custom'])assert(schedule.includes(`>${repeat}<`),`Packaged Schedule missing recurrence option ${repeat}.`);
+assert(schedule.includes('await meeting.schedule('),'Packaged Schedule must create a persistent scheduled identity rather than an instant room.');
+assert(!schedule.includes('await meeting.create({title,passcode'),'Packaged Schedule must not create a fresh live room as its scheduling mechanism.');
+assert(schedule.includes('await meeting.startSchedule(item.scheduleId)'),'Packaged recurring Start must reopen the existing scheduled identity.');
+assert(schedule.includes("mode==='personal'&&recurrence"),'Packaged Schedule must prevent fixed recurrence from silently using the Personal Meeting ID.');
+assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.schedule-option-grid'),'Packaged scheduled/recurring meetings must have real desktop layouts.');
 assert(av.includes("caret.className='meeting-control av-device-caret'"),'Packaged meeting must retain mic/video device-option carets.');
 assert(parity.includes("version:'2.0.0-zoom-adaptive-dock'"),'Packaged meeting must include the adaptive Zoom-style video dock engine.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Packaged participant management panel must be closed by default.');
@@ -97,4 +90,4 @@ assert(shareService.includes('ensureScreenPermission()')&&shareService.includes(
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home working-schedule no-dead-home-chrome real-brand email-google-auth credentials camera-fallback zoom-full-stage adaptive-video-dock settings-more live-chat-record-reactions preferences annotation-composite bounded-share webrtc diagnostics no-legacy-runtime');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage share webrtc diagnostics');
