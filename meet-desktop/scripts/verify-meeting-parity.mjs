@@ -40,7 +40,7 @@ assert(css.includes('.participant-video-dock.user-resized .participant-video-doc
 assert(css.includes('.participant-video-dock.minimized'),'Participant video dock must support Zoom-style minimization.');
 assert(css.includes('@media(max-width:760px)'),'Meeting layout must adapt for compact desktop windows.');
 
-assert(zoomBehavior.includes("version:'1.0.2'"),'Zoom behavior guard version is missing.');
+assert(zoomBehavior.includes("version:'1.0.3'"),'Zoom behavior guard version is missing.');
 assert(zoomBehavior.includes('Assign Host & Leave')&&zoomBehavior.includes('End Meeting for All'),'Host exit must expose Zoom-style handoff versus end-for-all choices.');
 assert(zoomBehavior.includes('Host transfer is required before leaving'),'Host leave must remain blocked until a real transfer authority is certified.');
 assert(!zoomBehavior.includes("meeting.leave(ctx.participantId,ctx.joinToken)"),'Host UI must never bypass the backend host-transfer safeguard with a plain leave call.');
@@ -49,8 +49,10 @@ assert(zoomBehavior.includes("button.id='zoomAdmitAll'")&&zoomBehavior.includes(
 assert(zoomBehavior.includes("select.id='meetingChatRecipient'")&&zoomBehavior.includes('<option value="everyone">Everyone</option>'),'Meeting chat must expose Everyone and participant recipient selection.');
 assert(zoomBehavior.includes("meeting.sendSignal(target,'chat',payload)"),'Private chat must send only to the selected participant.');
 assert(zoomBehavior.includes("interceptIncomingChat")&&zoomBehavior.includes("event.stopImmediatePropagation()"),'Upgraded chat must prevent duplicate rendering by the legacy broadcast handler.');
-assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Chat recipient synchronization must not create a mutation-observer render loop.');
+assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Chat recipient synchronization must avoid redundant DOM rewrites.');
+assert(!zoomBehavior.includes('new MutationObserver('),'Zoom behavior layer must not install a DOM-wide mutation observer.');
+assert(zoomBehavior.includes('const syncTimer=setInterval(sync,900)')&&zoomBehavior.includes('if(!isMeetingOpen())return;'),'Zoom behavior synchronization must be bounded and meeting-state driven.');
 assert(zoomBehavior.includes("input.maxLength=7")&&zoomBehavior.includes("input.pattern='[0-9]{3,7}'"),'Join and new-meeting passcode fields must match the 3–7 digit meeting authority.');
 assert(zoomCss.includes('.zoom-leave-dialog')&&zoomCss.includes('.zoom-admit-all')&&zoomCss.includes('.meeting-chat-recipient'),'Zoom behavior upgrades must ship with dedicated desktop styling.');
 
-console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive guarded-host-handoff admit-all private-chat stable-observer');
+console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive guarded-host-handoff admit-all private-chat bounded-sync');
