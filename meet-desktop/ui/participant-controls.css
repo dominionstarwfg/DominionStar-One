@@ -9,3 +9,4 @@
 .participant-control-prompt header strong{font-size:15px}.participant-control-prompt p{margin:0;color:#9babbc;font-size:10px;line-height:1.55}
 .participant-control-prompt form>div{display:flex;justify-content:flex-end;gap:8px}.participant-control-toast{position:fixed;left:50%;bottom:86px;z-index:900;transform:translateX(-50%);padding:9px 13px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:#151d27;color:#eff4f8;font-size:9px;box-shadow:0 14px 34px rgba(0,0,0,.4)}
 @media(max-width:720px){.participant-bulk-actions{flex-direction:column}.participant-control-menu{width:190px}}
+.participant-bulk-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.participant-rename-prompt label{display:grid;gap:7px;font-size:10px}.participant-rename-prompt input{height:38px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#09121d;color:#eef4fa;padding:0 10px}.participant-rename-status{min-height:14px;margin:0;color:#9aabba;font-size:9px}
