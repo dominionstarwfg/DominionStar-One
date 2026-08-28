@@ -3,6 +3,8 @@
   const $=selector=>document.querySelector(selector),$$=selector=>[...document.querySelectorAll(selector)];
   let allSources=[],filter='screen',selectedId='';
   const loading=$('#loadingState'),error=$('#errorState'),grid=$('#sourceGrid'),shareButton=$('#shareButton'),selectedName=$('#selectedName');
+  const pref=key=>{try{return localStorage.getItem(key)==='1';}catch{return false;}};
+  $('#optimizeVideo').checked=pref('ds_pref_share_optimize');$('#shareAudio').checked=pref('ds_pref_share_audio');
 
   function setBusy(busy){loading.hidden=!busy;if(busy){error.hidden=true;grid.hidden=true;}$$('button,input').forEach(control=>{if(control.id==='cancelTop'||control.id==='cancelBottom')return;if(busy&&control.id!=='retrySources')control.disabled=true;});}
   function restoreControls(){for(const tab of $$('.tab'))tab.disabled=false;$('#optimizeVideo').disabled=false;$('#showDominionStar').disabled=false;shareButton.disabled=!selectedId;}
@@ -35,6 +37,6 @@
     catch(err){shareButton.textContent='Share';shareButton.disabled=false;error.hidden=false;grid.hidden=false;$('#errorCopy').textContent=String(err?.message||err);}
   });
 
-  window.dominionDesktop?.environment?.().then(info=>{const supported=info?.platform==='win32';$('#shareAudio').disabled=!supported;$('#audioSupportCopy').textContent=supported?'Include system audio from the shared source.':'System audio sharing will be enabled in a later macOS audio phase.';}).catch(()=>{});
+  window.dominionDesktop?.environment?.().then(info=>{const platform=String(info?.platform||'');const supported=platform==='win32'||platform==='darwin';$('#shareAudio').disabled=!supported;$('#shareAudioRow').classList.toggle('disabled',!supported);$('#audioSupportCopy').textContent=supported?'Include system audio from the shared desktop when the operating system permits it.':'System audio sharing is unavailable on this desktop platform.';}).catch(()=>{$('#shareAudio').disabled=true;});
   void refresh();
 })();
