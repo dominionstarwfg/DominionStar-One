@@ -3,7 +3,7 @@
   const STORAGE=Object.freeze({autoFrame:'ds_meet_auto_frame',autoFrameStrength:'ds_meet_auto_frame_strength',backgroundBlur:'ds_meet_background_blur',blurStrength:'ds_meet_background_blur_strength',denoise:'ds_meet_video_denoise',denoiseStrength:'ds_meet_video_denoise_strength'});
   const read=(key,fallback='')=>{try{const v=localStorage.getItem(STORAGE[key]);return v===null?fallback:v;}catch{return fallback;}};
   const write=(key,value)=>{try{localStorage.setItem(STORAGE[key],String(value));}catch{}};
-  const state={enabled:read('autoFrame','0')==='1',strength:Number(read('autoFrameStrength','55'))||55,backgroundBlur:read('backgroundBlur','0')==='1',blurStrength:Number(read('blurStrength','55'))||55,denoise:read('denoise','0')==='1',denoiseStrength:Number(read('denoiseStrength','45'))||45,touchUp:false,touchUpLevel:25,portraitLight:false,portraitLevel:35,sourceTrack:null,canvas:null,ctx:null,video:null,stream:null,frameHandle:0,faceDetector:null,lastFace:null,lastDetectAt:0,previousFrame:null};
+  const state={enabled:read('autoFrame','0')==='1',strength:Number(read('autoFrameStrength','55'))||55,backgroundBlur:read('backgroundBlur','0')==='1',blurStrength:Number(read('blurStrength','55'))||55,denoise:read('denoise','0')==='1',denoiseStrength:Number(read('denoiseStrength','45'))||45,touchUp:false,touchUpLevel:25,portraitLight:false,portraitLevel:35,sourceTrack:null,canvas:null,ctx:null,video:null,stream:null,frameHandle:0,faceDetector:null,lastFace:null,lastDetectAt:0,previousFrame:null,currentFrame:null};
   const listeners=new Set();
   const emit=()=>{const snap=api.snapshot();for(const fn of listeners){try{fn(snap);}catch{}}};
 
@@ -17,7 +17,7 @@
     if(faceDetectionSupported()){try{state.faceDetector=new FaceDetector({fastMode:true,maxDetectedFaces:1});}catch{}}
   }
   function stopLoop(){if(state.frameHandle)cancelAnimationFrame(state.frameHandle);state.frameHandle=0;}
-  function stopOutput(){stopLoop();for(const track of state.stream?.getTracks?.()||[]){try{track.stop();}catch{}}state.stream=null;state.video&&(state.video.srcObject=null);state.previousFrame=null;}
+  function stopOutput(){stopLoop();for(const track of state.stream?.getTracks?.()||[]){try{track.stop();}catch{}}state.stream=null;state.video&&(state.video.srcObject=null);state.previousFrame=null;state.currentFrame=null;}
   async function detectFace(){
     if(!state.faceDetector||!state.video||state.video.readyState<2)return;
     if(performance.now()-state.lastDetectAt<220)return;
@@ -85,11 +85,11 @@
         if(!state.previousFrame){state.previousFrame=document.createElement('canvas');state.previousFrame.width=c.width;state.previousFrame.height=c.height;}
         const pctx=state.previousFrame.getContext('2d',{alpha:false});
         if(pctx){
-          const current=document.createElement('canvas');current.width=c.width;current.height=c.height;
-          const currentCtx=current.getContext('2d',{alpha:false});
-          currentCtx?.drawImage(c,0,0);
+          if(!state.currentFrame){state.currentFrame=document.createElement('canvas');state.currentFrame.width=c.width;state.currentFrame.height=c.height;}
+          const currentCtx=state.currentFrame.getContext('2d',{alpha:false});
+          currentCtx?.clearRect(0,0,c.width,c.height);currentCtx?.drawImage(c,0,0);
           ctx.save();ctx.globalAlpha=historyWeight;ctx.drawImage(state.previousFrame,0,0,c.width,c.height);ctx.restore();
-          pctx.globalAlpha=1;pctx.clearRect(0,0,c.width,c.height);pctx.drawImage(current,0,0);
+          pctx.globalAlpha=1;pctx.clearRect(0,0,c.width,c.height);pctx.drawImage(state.currentFrame,0,0);
         }
       }else state.previousFrame=null;
     }
