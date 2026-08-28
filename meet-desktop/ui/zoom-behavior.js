@@ -197,12 +197,12 @@
     const detail=event.detail||{},type=String(detail.type||'');if(!type.startsWith('host:'))return;
     const {sender,allowed}=await senderAuthority(detail.fromParticipantId);if(!allowed)return;
     const command=type.slice(5),payload=detail.payload||{};
-    if(command==='mute'){await media()?.setMicrophone?.(false).catch?.(()=>{});return;}
-    if(command==='stop-video'){await media()?.setCamera?.(false).catch?.(()=>{});return;}
+    if(command==='mute'){try{await media()?.setMicrophone?.(false);}catch{}return;}
+    if(command==='stop-video'){try{await media()?.setCamera?.(false);}catch{}return;}
     if(command==='ask-unmute'){
       const dialog=ensureUnmuteDialog();dialog.querySelector('.zoom-unmute-copy').textContent=`${String(sender?.displayName||'The host')} asked you to unmute.`;
       dialog.querySelector('[data-unmute-decline]').onclick=()=>dialog.close();
-      dialog.querySelector('[data-unmute-accept]').onclick=async()=>{dialog.close();await media()?.setMicrophone?.(true).catch?.(()=>{});};
+      dialog.querySelector('[data-unmute-accept]').onclick=async()=>{dialog.close();try{await media()?.setMicrophone?.(true);}catch{}};
       if(!dialog.open)dialog.showModal();return;
     }
     if(command==='spotlight'){
