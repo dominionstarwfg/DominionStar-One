@@ -70,7 +70,7 @@
   function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false});}else if(detail.type==='reaction'){const emoji=String(payload.emoji||'');if(reactions.includes(emoji))showReaction(emoji,String(payload.name||detail.fromDisplayName||'Participant'));}}
   window.addEventListener('dominion:meeting-signal',handleSignal);
   document.addEventListener('pointerdown',event=>{if(state.reactionMenu&&!state.reactionMenu.contains(event.target)&&event.target!==q('#roomReactions'))closeReactionMenu();},true);
-  const observer=new MutationObserver(()=>{if(inMeeting())ensureUi();});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  const observer=new MutationObserver(()=>{if(inMeeting())ensureUi();});observer.observe(document.body,{childList:true,subtree:true});
   setInterval(()=>{if(inMeeting())ensureUi();else if(state.recording)void stopRecording();},600);
   ensureUi();
   window.DominionMeetingFeatures=Object.freeze({toggleChat,openReactions,sendReaction,toggleRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,messageCount:state.messages.length})});
