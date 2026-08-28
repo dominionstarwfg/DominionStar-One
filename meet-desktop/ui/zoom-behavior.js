@@ -39,17 +39,49 @@
     if(leaveDialog?.isConnected)return leaveDialog;
     leaveDialog=document.createElement('dialog');
     leaveDialog.id='zoomLeaveDialog';leaveDialog.className='zoom-leave-dialog';
-    leaveDialog.innerHTML='<div class="zoom-leave-card"><header><div><p>MEETING</p><h2>End or leave meeting</h2></div><button type="button" data-zoom-leave-close aria-label="Close">×</button></header><p class="zoom-leave-copy">Zoom-style host leave requires transferring host control first. DominionStar will not bypass that safeguard.</p><div class="zoom-leave-actions"><button type="button" class="secondary" data-zoom-host-handoff>Assign Host & Leave</button><button type="button" class="danger" data-zoom-end-all>End Meeting for All</button><button type="button" class="cancel" data-zoom-leave-close>Cancel</button></div><p class="zoom-leave-status" role="status" aria-live="polite"></p></div>';
+    leaveDialog.innerHTML='<div class="zoom-leave-card"><header><div><p>MEETING</p><h2>End or leave meeting</h2></div><button type="button" data-zoom-leave-close aria-label="Close">×</button></header><p class="zoom-leave-copy">To keep the meeting running, assign another signed-in participant as host before you leave.</p><div class="zoom-host-candidates" hidden></div><div class="zoom-leave-actions"><button type="button" class="secondary" data-zoom-host-handoff>Assign Host & Leave</button><button type="button" class="danger" data-zoom-end-all>End Meeting for All</button><button type="button" class="cancel" data-zoom-leave-close>Cancel</button></div><p class="zoom-leave-status" role="status" aria-live="polite"></p></div>';
     document.body.append(leaveDialog);
     qa('[data-zoom-leave-close]').forEach(button=>button.addEventListener('click',()=>leaveDialog.close()));
-    leaveDialog.querySelector('[data-zoom-host-handoff]').addEventListener('click',()=>showHostHandoffBlocker());
+    leaveDialog.querySelector('[data-zoom-host-handoff]').addEventListener('click',()=>void showHostHandoffChoices());
     leaveDialog.querySelector('[data-zoom-end-all]').addEventListener('click',()=>void endForAll());
     return leaveDialog;
   }
 
-  function showHostHandoffBlocker(){
+  async function showHostHandoffChoices(){
+    const dialog=ensureLeaveDialog(),status=dialog.querySelector('.zoom-leave-status'),box=dialog.querySelector('.zoom-host-candidates');
+    status.textContent='Loading eligible participants…';box.hidden=true;box.innerHTML='';
+    try{
+      const list=await peers();
+      const eligible=list.filter(p=>String(p.role||'').toLowerCase()!=='guest'&&p.canHost!==false);
+      if(!eligible.length){
+        status.textContent='No eligible signed-in participant is available to become host. Admit or ask a DominionStar member to join, or end the meeting for everyone.';
+        return;
+      }
+      status.textContent='Choose the participant who should become host:';
+      for(const participant of eligible){
+        const button=document.createElement('button');button.type='button';button.className='zoom-host-candidate';
+        const name=String(participant.displayName||'Participant');
+        button.innerHTML=`<span><strong>${esc(name)}</strong><small>${String(participant.role||'participant').toLowerCase()==='cohost'?'Co-host':'Participant'}</small></span><span>Assign & Leave</span>`;
+        button.addEventListener('click',()=>void transferHostAndLeave(participant,button));
+        box.append(button);
+      }
+      box.hidden=false;
+    }catch(error){status.textContent=String(error?.message||error||'Could not load participants.');}
+  }
+
+  async function transferHostAndLeave(participant,button){
     const dialog=ensureLeaveDialog(),status=dialog.querySelector('.zoom-leave-status');
-    status.textContent='Host transfer is required before leaving and remains a release blocker until the transfer authority is certified. Use End Meeting for All or Cancel in this QA build.';
+    if(!meeting?.transferHostAndLeave){status.textContent='Host transfer authority is unavailable in this build.';return;}
+    const buttons=[...dialog.querySelectorAll('button')];buttons.forEach(node=>node.disabled=true);
+    status.textContent=`Assigning ${String(participant.displayName||'participant')} as host and leaving…`;
+    try{
+      await meeting.transferHostAndLeave(participant.participantId);
+      dialog.close();location.reload();
+    }catch(error){
+      const raw=String(error?.message||error||'Host transfer failed.');
+      const copy=raw.includes('signed_in_participant_required_for_host')?'Only a signed-in DominionStar participant can receive host control.':raw.includes('participant_not_joined')?'That participant is not fully joined yet.':raw;
+      status.textContent=copy;buttons.forEach(node=>node.disabled=false);button?.focus?.();
+    }
   }
 
   async function endForAll(){
@@ -158,5 +190,5 @@
 
   const syncTimer=setInterval(sync,900);
   sync();
-  window.DominionZoomBehavior=Object.freeze({version:'1.0.3',sync,admitAll,refreshChatRecipients,dispose:()=>clearInterval(syncTimer)});
+  window.DominionZoomBehavior=Object.freeze({version:'1.1.0',sync,admitAll,refreshChatRecipients,showHostHandoffChoices,dispose:()=>clearInterval(syncTimer)});
 })();
