@@ -3,7 +3,7 @@
   const STORAGE=Object.freeze({autoFrame:'ds_meet_auto_frame',autoFrameStrength:'ds_meet_auto_frame_strength',backgroundBlur:'ds_meet_background_blur',blurStrength:'ds_meet_background_blur_strength',denoise:'ds_meet_video_denoise',denoiseStrength:'ds_meet_video_denoise_strength',virtualBackground:'ds_meet_virtual_background',virtualBackgroundData:'ds_meet_virtual_background_data',backgroundPersistence:'ds_meet_background_persistence'});
   const read=(key,fallback='')=>{try{const v=localStorage.getItem(STORAGE[key]);return v===null?fallback:v;}catch{return fallback;}};
   const write=(key,value)=>{try{localStorage.setItem(STORAGE[key],String(value));}catch{}};
-  const state={enabled:read('autoFrame','0')==='1',strength:Number(read('autoFrameStrength','55'))||55,backgroundBlur:read('backgroundBlur','0')==='1',blurStrength:Number(read('blurStrength','55'))||55,denoise:read('denoise','0')==='1',denoiseStrength:Number(read('denoiseStrength','45'))||45,virtualBackground:read('virtualBackground','none'),backgroundData:read('virtualBackgroundData',''),backgroundPersistence:read('backgroundPersistence','all'),backgroundImage:null,touchUp:false,touchUpLevel:25,portraitLight:false,portraitLevel:35,sourceTrack:null,canvas:null,ctx:null,video:null,stream:null,frameHandle:0,faceDetector:null,lastFace:null,lastDetectAt:0,previousFrame:null,currentFrame:null};
+  const state={enabled:read('autoFrame','0')==='1',strength:Number(read('autoFrameStrength','55'))||55,backgroundBlur:read('backgroundBlur','0')==='1',blurStrength:Number(read('blurStrength','55'))||55,denoise:read('denoise','0')==='1',denoiseStrength:Number(read('denoiseStrength','45'))||45,virtualBackground:read('virtualBackground','none'),backgroundData:read('virtualBackgroundData',''),backgroundPersistence:read('backgroundPersistence','all'),backgroundImage:null,touchUp:false,touchUpLevel:25,portraitLight:false,portraitLevel:35,sourceTrack:null,canvas:null,ctx:null,video:null,stream:null,frameHandle:0,faceDetector:null,lastFace:null,lastDetectAt:0,previousFrame:null,currentFrame:null,personLayer:null,maskLayer:null,performanceMode:'full',renderAvgMs:0,slowFrames:0,healthyFrames:0};
   const listeners=new Set();
   const emit=()=>{const snap=api.snapshot();for(const fn of listeners){try{fn(snap);}catch{}}};
 
@@ -39,10 +39,10 @@
     if(faceDetectionSupported()){try{state.faceDetector=new FaceDetector({fastMode:true,maxDetectedFaces:1});}catch{}}
   }
   function stopLoop(){if(state.frameHandle)cancelAnimationFrame(state.frameHandle);state.frameHandle=0;}
-  function stopOutput(){stopLoop();for(const track of state.stream?.getTracks?.()||[]){try{track.stop();}catch{}}state.stream=null;state.video&&(state.video.srcObject=null);state.previousFrame=null;state.currentFrame=null;}
+  function stopOutput(){stopLoop();for(const track of state.stream?.getTracks?.()||[]){try{track.stop();}catch{}}state.stream=null;state.video&&(state.video.srcObject=null);state.previousFrame=null;state.currentFrame=null;state.personLayer=null;state.maskLayer=null;state.renderAvgMs=0;state.slowFrames=0;state.healthyFrames=0;state.performanceMode='full';}
   async function detectFace(){
     if(!state.faceDetector||!state.video||state.video.readyState<2)return;
-    if(performance.now()-state.lastDetectAt<220)return;
+    const detectInterval=state.performanceMode==='balanced'?360:220;if(performance.now()-state.lastDetectAt<detectInterval)return;
     state.lastDetectAt=performance.now();
     try{
       const faces=await state.faceDetector.detect(state.video);
@@ -74,9 +74,28 @@
     }
     return {sx,sy,cropW,cropH};
   }
+  function ensureCompositeLayers(c){
+    if(!state.personLayer){state.personLayer=document.createElement('canvas');state.maskLayer=document.createElement('canvas');}
+    if(state.personLayer.width!==c.width||state.personLayer.height!==c.height){state.personLayer.width=c.width;state.personLayer.height=c.height;state.maskLayer.width=c.width;state.maskLayer.height=c.height;}
+    return {person:state.personLayer,pctx:state.personLayer.getContext('2d'),mask:state.maskLayer,mctx:state.maskLayer.getContext('2d')};
+  }
+  function compositePerson(ctx,c,v,sx,sy,cropW,cropH,fx,fy,personW,personH,filter='none'){
+    const {person,pctx,mask,mctx}=ensureCompositeLayers(c);if(!pctx||!mctx)return;
+    pctx.clearRect(0,0,c.width,c.height);pctx.filter=filter;pctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);pctx.filter='none';
+    mctx.clearRect(0,0,c.width,c.height);mctx.save();mctx.translate(fx,fy+personH*.27);mctx.scale(Math.max(1,personW*.5),Math.max(1,personH*.5));
+    const gradient=mctx.createRadialGradient(0,0,.74,0,0,1);gradient.addColorStop(0,'rgba(255,255,255,1)');gradient.addColorStop(.82,'rgba(255,255,255,.98)');gradient.addColorStop(.93,'rgba(255,255,255,.72)');gradient.addColorStop(1,'rgba(255,255,255,0)');
+    mctx.fillStyle=gradient;mctx.beginPath();mctx.arc(0,0,1,0,Math.PI*2);mctx.fill();mctx.restore();
+    pctx.globalCompositeOperation='destination-in';pctx.drawImage(mask,0,0);pctx.globalCompositeOperation='source-over';ctx.drawImage(person,0,0);
+  }
+  function updatePerformanceGovernor(renderMs){
+    const alpha=.08;state.renderAvgMs=state.renderAvgMs?state.renderAvgMs*(1-alpha)+renderMs*alpha:renderMs;
+    if(state.renderAvgMs>27){state.slowFrames+=1;state.healthyFrames=0;}else if(state.renderAvgMs<17){state.healthyFrames+=1;state.slowFrames=Math.max(0,state.slowFrames-2);}else{state.slowFrames=Math.max(0,state.slowFrames-1);state.healthyFrames=0;}
+    if(state.performanceMode==='full'&&state.slowFrames>=45){state.performanceMode='balanced';state.slowFrames=0;state.healthyFrames=0;emit();}
+    else if(state.performanceMode==='balanced'&&state.healthyFrames>=240){state.performanceMode='full';state.slowFrames=0;state.healthyFrames=0;emit();}
+  }
   function draw(){
     if(!state.stream||!state.sourceTrack||state.sourceTrack.readyState!=='live')return;
-    const v=state.video,ctx=state.ctx,c=state.canvas;
+    const frameStarted=performance.now();const v=state.video,ctx=state.ctx,c=state.canvas;
     if(v.readyState>=2){
       const sw=v.videoWidth||1280,sh=v.videoHeight||720;
       if(c.width!==1280||c.height!==720){c.width=1280;c.height=720;}
@@ -94,10 +113,9 @@
         const personW=Math.max(fw*2.9,c.width*.3),personH=Math.max(fh*5.5,c.height*.74);
         const soften=state.touchUp?Math.min(1.2,.15+(state.touchUpLevel/100)*1.05):0;
         const fgBrightness=state.portraitLight?1+Math.min(.18,(state.portraitLevel/100)*.18):1;
-        ctx.save();ctx.beginPath();ctx.ellipse(fx,fy+personH*.27,personW*.5,personH*.5,0,0,Math.PI*2);ctx.clip();
-        ctx.filter=`${soften?`blur(${soften}px) `:''}brightness(${fgBrightness}) contrast(${state.touchUp?.98:1})`;ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);ctx.restore();
+        compositePerson(ctx,c,v,sx,sy,cropW,cropH,fx,fy,personW,personH,`${soften?`blur(${soften}px) `:''}brightness(${fgBrightness}) contrast(${state.touchUp?.98:1})`);
       }else if((state.backgroundBlur||appearanceActive)&&state.lastFace){
-        const blurPx=state.backgroundBlur?8+Math.round((Math.max(0,Math.min(100,state.blurStrength))/100)*24):0;
+        const requestedBlur=8+Math.round((Math.max(0,Math.min(100,state.blurStrength))/100)*24);const blurPx=state.backgroundBlur?(state.performanceMode==='balanced'?Math.min(16,requestedBlur):requestedBlur):0;
         const bgBrightness=state.portraitLight?Math.max(.72,1-(state.portraitLevel/100)*.22):1;
         ctx.save();ctx.filter=`${blurPx?`blur(${blurPx}px) `:''}brightness(${bgBrightness})`;ctx.drawImage(v,sx,sy,cropW,cropH,-18,-18,c.width+36,c.height+36);ctx.restore();
         const face=state.lastFace;
@@ -108,14 +126,13 @@
         const personW=Math.max(fw*2.8,c.width*.28),personH=Math.max(fh*5.3,c.height*.72);
         const soften=state.touchUp?Math.min(1.2,.15+(state.touchUpLevel/100)*1.05):0;
         const fgBrightness=state.portraitLight?1+Math.min(.18,(state.portraitLevel/100)*.18):1;
-        ctx.save();ctx.beginPath();ctx.ellipse(fx,fy+personH*.27,personW*.5,personH*.5,0,0,Math.PI*2);ctx.clip();
-        ctx.filter=`${soften?`blur(${soften}px) `:''}brightness(${fgBrightness}) contrast(${state.touchUp?.98:1})`;ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);ctx.restore();
+        compositePerson(ctx,c,v,sx,sy,cropW,cropH,fx,fy,personW,personH,`${soften?`blur(${soften}px) `:''}brightness(${fgBrightness}) contrast(${state.touchUp?.98:1})`);
       }else{
         const soften=state.touchUp?Math.min(.8,(state.touchUpLevel/100)*.8):0;
         const bright=state.portraitLight?1+Math.min(.08,(state.portraitLevel/100)*.08):1;
         ctx.filter=`${soften?`blur(${soften}px) `:''}brightness(${bright})`;ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);ctx.filter='none';
       }
-      if(state.denoise){
+      if(state.denoise&&state.performanceMode==='full'){
         const historyWeight=Math.max(.06,Math.min(.34,.06+(state.denoiseStrength/100)*.28));
         if(!state.previousFrame){state.previousFrame=document.createElement('canvas');state.previousFrame.width=c.width;state.previousFrame.height=c.height;}
         const pctx=state.previousFrame.getContext('2d',{alpha:false});
@@ -128,7 +145,7 @@
         }
       }else state.previousFrame=null;
     }
-    state.frameHandle=requestAnimationFrame(draw);
+    updatePerformanceGovernor(performance.now()-frameStarted);state.frameHandle=requestAnimationFrame(draw);
   }
   async function attach(track){
     if(state.sourceTrack===track&&state.stream)return state.stream;
@@ -172,7 +189,7 @@
       emit();return api.snapshot();
     },
     stop(){stopOutput();state.sourceTrack=null;state.lastFace=null;emit();},
-    snapshot(){return {autoFrame:state.enabled,strength:state.strength,backgroundBlur:state.backgroundBlur,blurStrength:state.blurStrength,denoise:state.denoise,denoiseStrength:state.denoiseStrength,virtualBackground:state.virtualBackground,backgroundPersistence:state.backgroundPersistence,customBackgroundLoaded:Boolean(state.backgroundImage||state.backgroundData),touchUp:state.touchUp,touchUpLevel:state.touchUpLevel,portraitLight:state.portraitLight,portraitLevel:state.portraitLevel,faceDetectionSupported:faceDetectionSupported(),processing:Boolean(state.stream)};},
+    snapshot(){return {autoFrame:state.enabled,strength:state.strength,backgroundBlur:state.backgroundBlur,blurStrength:state.blurStrength,denoise:state.denoise,denoiseStrength:state.denoiseStrength,virtualBackground:state.virtualBackground,backgroundPersistence:state.backgroundPersistence,customBackgroundLoaded:Boolean(state.backgroundImage||state.backgroundData),touchUp:state.touchUp,touchUpLevel:state.touchUpLevel,portraitLight:state.portraitLight,portraitLevel:state.portraitLevel,faceDetectionSupported:faceDetectionSupported(),processing:Boolean(state.stream),performanceMode:state.performanceMode,renderAvgMs:Number(state.renderAvgMs.toFixed(1))};},
     onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}
   });
   if(state.virtualBackground==='custom'&&state.backgroundData)void loadBackgroundImage(state.backgroundData);
