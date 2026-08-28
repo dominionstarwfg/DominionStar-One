@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const media=read('ui/media-controller.js');
 const app=read('ui/app.js');
+const zoomBehavior=read('ui/zoom-behavior.js');
 const service=read('src/meeting-service.mjs');
 const main=read('src/main.mjs');
 const preload=read('src/preload.cjs');
@@ -32,7 +33,7 @@ assert(media.includes('state.userPreferencesLocked=true'),'Explicit media change
 assert(app.includes("await loadScript('./media-controller.js')"),'Single room controller must load one isolated media authority.');
 assert(app.includes("await media.startPreview({cameraOn:true,micOn:false})"),'Initial prejoin must default camera-on and microphone-muted.');
 assert(app.includes("$('#prejoinContinue').textContent=mode==='host'?'Start':'Join'"),'Host and participant prejoin actions must be explicit.');
-assert(app.includes('meeting.setCohost')&&app.includes('meeting.removeParticipant'),'Participant management UI must use the narrow native meeting bridge.');
+assert(zoomBehavior.includes('meeting.setCohost')&&zoomBehavior.includes('meeting.removeParticipant'),'Participant management UI must use the narrow native meeting bridge through the Zoom-style More menu.');
 assert(service.includes("auth.rpc('meet_v2_set_cohost'")&&service.includes("auth.rpc('meet_v2_remove_participant'"),'Host/cohost authority must be enforced through backend RPC.');
 assert(main.includes("ipcMain.handle('meeting:set-cohost'")&&main.includes("ipcMain.handle('meeting:remove-participant'"),'Native shell must own role-management commands.');
 assert(preload.includes('setCohost:')&&preload.includes('removeParticipant:'),'Renderer role controls must use a narrow IPC bridge.');
