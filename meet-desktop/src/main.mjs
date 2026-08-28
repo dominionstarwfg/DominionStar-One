@@ -1,4 +1,4 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, session, shell, systemPreferences } from 'electron';
+import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, session, shell, systemPreferences } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDesktopAuth } from './auth-service.mjs';
@@ -144,6 +144,13 @@ app.whenReady().then(async()=>{
   meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
   shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
+  const sendPowerEvent=(type)=>{
+    if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('app:power-event',{type,at:Date.now()});
+  };
+  powerMonitor.on('suspend',()=>sendPowerEvent('suspend'));
+  powerMonitor.on('resume',()=>sendPowerEvent('resume'));
+  powerMonitor.on('lock-screen',()=>sendPowerEvent('lock-screen'));
+  powerMonitor.on('unlock-screen',()=>sendPowerEvent('unlock-screen'));
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});
 });
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
