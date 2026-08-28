@@ -1,0 +1,25 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
+const html=read('ui/index.html');
+const parity=read('ui/meeting-parity.js');
+const css=read('ui/meeting-parity.css');
+const av=read('ui/av-settings.js');
+
+assert(html.includes('<script src="./av-settings.js"></script>'),'Desktop Home must actually load the restored A/V settings module.');
+assert(html.includes('<script src="./meeting-parity.js"></script>'),'Desktop Home must actually load the meeting parity module.');
+assert(html.includes('<link rel="stylesheet" href="./av-settings.css">'),'Desktop Home must load A/V settings styling.');
+assert(parity.includes("link.href='./meeting-parity.css'"),'Meeting parity styling must load after the core meeting layer.');
+assert(parity.includes("side.dataset.floatingDock='1'"),'Participant panel must become a floating desktop dock.');
+assert(parity.includes("head.addEventListener('pointerdown'"),'Participant dock must support direct drag movement.');
+assert(parity.includes('new ResizeObserver(()=>clampDock()).observe(side)'),'Participant dock must stay constrained when resized.');
+assert(parity.includes("overlay.classList.toggle('participants-hidden',!show)"),'Participants control must independently show/hide the dock.');
+assert(parity.includes("if(role!=='host')return")&&parity.includes("stage.textContent=name"),'Host stage identity must sync to the actual host roster identity.');
+assert(parity.includes("button.id='roomSettings'")&&parity.includes("button.id='roomMore'"),'Meeting toolbar must expose Settings and More controls.');
+assert(parity.includes("q('#meetDiagnosticsButton')?.click()"),'More menu must keep physical-QA diagnostics reachable.');
+assert(av.includes("caret.className='meeting-control av-device-caret'"),'Mic and camera controls must retain dedicated device-option carets.');
+assert(css.includes('padding-left:86px'),'macOS meeting header must reserve the traffic-light/titlebar area.');
+assert(css.includes('resize:both'),'Participant dock must be user-resizable.');
+assert(css.includes('.meeting-overlay.participants-hidden .room-side'),'Collapsed participant state must remove the dock without changing the stage.');
+assert(css.includes('@media(max-width:820px)'),'Meeting chrome must have a compact-window layout contract.');
+console.log('DOMINIONSTAR_MEETING_PARITY_OK loaded-av floating-movable-resizable-dock responsive-stage icon-toolbar host-identity settings-more');
