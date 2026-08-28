@@ -38,6 +38,7 @@ assert(css.includes('.action-card:active{transform:translateY(0) scale(.99)}'),'
 assert(js.includes("document.body.dataset.shareAfterJoin='1';openDialog('join')"),'Home Share must enter the real meeting/share flow.');
 assert(!js.includes("notice('Share remains isolated'"),'Home Share must not return to the old placeholder notice.');
 assert(!js.includes('getDisplayMedia'),'Home/room controller must not own screen capture.');
+assert(!/(?<!\\$)\\$\\([^\\n;]{0,180}\\)\\.forEach/.test(js),'Home bootstrap must never call forEach on the single-element $ selector; multi-element bindings must use $.');
 assert(js.includes("greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'"),'Home greeting must be time-aware.');
 
 assert(personal.includes('Use Personal Meeting ID'),'New Meeting must expose the Personal Meeting ID choice.');
