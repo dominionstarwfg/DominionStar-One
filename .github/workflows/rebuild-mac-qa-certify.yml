@@ -46,6 +46,8 @@ jobs:
           node scripts/verify-auth.mjs
           node scripts/verify-meeting-lifecycle.mjs
           node scripts/verify-media-authority.mjs
+          node scripts/verify-av-settings.mjs
+          node scripts/verify-meeting-parity.mjs
           node scripts/verify-share-authority.mjs
           node scripts/verify-webrtc-transport.mjs
           node scripts/verify-turn-relay.mjs
