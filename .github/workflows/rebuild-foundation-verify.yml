@@ -41,6 +41,7 @@ jobs:
           node --check 'meet-desktop/ui/meeting-parity.js'
           node --check 'meet-desktop/ui/meeting-features.js'
           node --check 'meet-desktop/ui/preferences.js'
+          node --check 'meet-desktop/ui/personal-room.js'
           node --check 'meet-desktop/ui/schedule-controller.js'
           node --check 'meet-desktop/ui/media-controller.js'
           node --check 'meet-desktop/ui/share-controller.js'
@@ -55,7 +56,7 @@ jobs:
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
       - name: Verify desktop authentication contract
         run: node 'meet-desktop/scripts/verify-auth.mjs'
-      - name: Verify Meet V2 room lifecycle
+      - name: Verify Zoom-style meeting identity lifecycle
         run: node 'meet-desktop/scripts/verify-meeting-lifecycle.mjs'
       - name: Verify prejoin media and role authority
         run: node 'meet-desktop/scripts/verify-media-authority.mjs'
