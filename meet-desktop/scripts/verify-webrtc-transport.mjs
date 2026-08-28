@@ -24,6 +24,12 @@ assert(peer.includes('replaceTrack(audio)')&&peer.includes('replaceTrack(camera)
 assert(peer.includes("meeting.sendSignal(record.id,'offer'")&&peer.includes("meeting.sendSignal(remoteId,'answer'")&&peer.includes("meeting.sendSignal(remoteId,'ice'"),'Offer/answer/ICE exchange is incomplete.');
 assert(peer.includes('pendingIce.push(payload.candidate)')&&peer.includes('flushIce(record)'),'Early ICE must be queued until the remote description exists.');
 assert(peer.includes('scheduleReconnect(record,RECONNECT_MS)'),'Peer reconnect handling is missing.');
+assert(peer.includes("window.addEventListener('offline',handleOffline)")&&peer.includes("window.addEventListener('online',handleOnline)"),'WebRTC must react explicitly to desktop network loss and recovery.');
+assert(peer.includes('async function recoverNetwork()')&&peer.includes('await loadIceConfig(true)')&&peer.includes('pc.restartIce()')&&peer.includes('await syncAllSenders()'),'Network recovery must refresh ICE/TURN, restart peer transport, and resync outgoing tracks.');
+assert(peer.includes("showRecovery('Connection interrupted'")&&peer.includes("showRecovery('Reconnecting…'"),'Temporary network loss must keep the meeting visible with a reconnect state instead of returning to join UI.');
+assert(!peer.includes('meeting.requestJoin(')&&!peer.includes('meeting.markJoined('),'WebRTC reconnect must never re-run meeting admission or join identity flows.');
+assert(peer.includes('networkOnline:navigator.onLine!==false')&&peer.includes('recovering:false'),'Reconnect state must be tracked independently from meeting identity.');
+assert(css.includes('.network-recovery-banner')&&css.includes('.network-recovery-banner[hidden]'),'Reconnect UI must ship with the WebRTC transport stylesheet.');
 assert(peer.includes('setInterval(()=>void pullSignals(),POLL_MS)')&&peer.includes('setInterval(()=>void reconcileParticipants(),SNAPSHOT_MS)'),'Signaling and roster reconciliation must be independent.');
 assert(peer.includes('playRemoteAudio')&&peer.includes('audio.srcObject=stream')&&peer.includes('audio.play()'),'Remote microphone audio must render through a real media element.');
 assert(peer.includes('audio.setSinkId')&&peer.includes('speakerId'),'Selected speaker routing must be honored where supported.');
@@ -46,4 +52,4 @@ assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.tran
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 assert.equal(ids[0].localeCompare(ids[1])<0,true,'Deterministic initiator policy sanity check failed.');
 assert.equal(ids[1].localeCompare(ids[0])<0,false,'Both peers must never initiate the same pair.');
-console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect turn-aware isolated-signaling');
+console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery turn-refresh track-resync turn-aware isolated-signaling');
