@@ -131,6 +131,15 @@
       if(state.micOn&&live('audio').length){try{await replaceKind('audio',state.microphoneId,true);}catch(error){Object.assign(state,previous);throw error;}}
       emit();return api.snapshot();
     },
+    async recoverAfterResume(){
+      const desired={cameraOn:state.cameraOn,micOn:state.micOn,cameraId:state.cameraId,microphoneId:state.microphoneId,speakerId:state.speakerId};
+      const videoAlive=live('video').length>0,audioAlive=live('audio').length>0;
+      if(desired.cameraOn&&!videoAlive){try{await replaceKind('video',desired.cameraId,true);}catch{}}
+      if(desired.micOn&&!audioAlive){try{await replaceKind('audio',desired.microphoneId,true);}catch{}}
+      if(!desired.cameraOn)for(const track of live('video'))track.enabled=false;
+      if(!desired.micOn)for(const track of live('audio'))track.enabled=false;
+      emit();return api.snapshot();
+    },
     async testMicrophoneStream(){
       const existing=live('audio')[0];if(existing){const clone=existing.clone();clone.enabled=true;return new MediaStream([clone]);}
       await ensurePermissions(['microphone']);
