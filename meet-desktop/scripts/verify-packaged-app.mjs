@@ -108,7 +108,10 @@ assert(!zoomBehavior.includes('new MutationObserver('),'Packaged Zoom behavior m
 assert(zoomBehavior.includes('const syncTimer=setInterval(sync,900)')&&zoomBehavior.includes('if(!isMeetingOpen())return;'),'Packaged Zoom behavior synchronization must be bounded and meeting-state driven.');
 assert(zoomBehavior.includes("input.maxLength=7")&&zoomBehavior.includes("input.pattern='[0-9]{3,7}'"),'Packaged new/join passcode controls must match the 3–7 digit authority.');
 assert(zoomCss.includes('.zoom-leave-dialog')&&zoomCss.includes('.zoom-admit-all')&&zoomCss.includes('.meeting-chat-recipient'),'Packaged Zoom behavior styling must be present.');
-for(const key of ['joinMuted','joinVideoOff','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Packaged preferences missing ${key}.`);
+for(const key of ['joinMuted','joinVideoOff','showJoinPreview','hideSelfView','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Packaged preferences missing ${key}.`);
+assert(preferences.includes('Show video preview before joining')&&preferences.includes('Hide my self view in meetings'),'Packaged meeting settings must expose join-preview and self-view controls.');
+assert(read('ui','app.js').includes('joinUsingSavedDefaults')&&read('ui','app.js').includes("DominionPreferences?.read?.('showJoinPreview')===false"),'Packaged app must skip preview only through saved defaults and the normal meeting flow.');
+assert(parity.includes("DominionPreferences?.read?.('hideSelfView')"),'Packaged participant dock must honor Hide Self View without stopping the camera.');
 assert(annotation.includes('setAnnotationCanvas')&&annotation.includes('share-annotation-canvas'),'Packaged annotation UI must attach a real drawing canvas to the share controller.');
 assert(shareController.includes('canvas.captureStream(30)'),'Packaged share controller must create an outgoing composite stream for annotations.');
 assert(shareController.includes('ctx.drawImage(state.annotationCanvas'),'Packaged share controller must draw annotations into the outgoing shared frame.');
