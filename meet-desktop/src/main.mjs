@@ -76,6 +76,7 @@ function createMainWindow(){
   mainWindow.webContents.setWindowOpenHandler(({url})=>{if(/^https:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
   mainWindow.webContents.on('will-navigate',(event,url)=>{if(url.startsWith('file://'))return;event.preventDefault();if(/^https:\/\//i.test(url))void shell.openExternal(url);});
   mainWindow.once('ready-to-show',()=>mainWindow?.show());
+  mainWindow.on('focus',()=>{try{mainWindow?.flashFrame(false);}catch{}});
   void mainWindow.loadFile(path.join(uiDir,'index.html'));
   mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
 }
@@ -89,10 +90,22 @@ ipcMain.handle('media:get-permissions',()=>nativeMediaPermissions());
 ipcMain.handle('media:request-permissions',(_event,{kinds=[]}={})=>requestNativeMediaPermissions(kinds));
 ipcMain.handle('media:request-screen',()=>requestScreenPermission());
 ipcMain.handle('media:open-privacy',(_event,{kind='screen'}={})=>openPrivacySettings(kind));
+ipcMain.handle('notifications:set-waiting-count',(_event,{count=0,attention=false}={})=>{
+  const value=Math.max(0,Math.min(999,Number(count)||0));
+  try{app.setBadgeCount?.(value);}catch{}
+  if(process.platform==='darwin'&&app.dock){
+    try{app.dock.setBadge(value?String(value):'');}catch{}
+    if(attention&&value>0&&mainWindow&&!mainWindow.isFocused()){try{app.dock.bounce('informational');}catch{}}
+  }
+  if(mainWindow&&!mainWindow.isDestroyed()){
+    try{mainWindow.flashFrame(Boolean(attention&&value>0&&!mainWindow.isFocused()));}catch{}
+  }
+  return {count:value};
+});
 ipcMain.handle('notifications:meeting',(_event,{title='DominionStar Meet',body='Meeting update'}={})=>{
   if(!Notification?.isSupported?.())return {shown:false};
   const notification=new Notification({title:String(title||'DominionStar Meet').slice(0,80),body:String(body||'Meeting update').slice(0,220),silent:true});
-  notification.on('click',()=>{if(mainWindow&&!mainWindow.isDestroyed()){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.show();mainWindow.focus();}});
+  notification.on('click',()=>{if(mainWindow&&!mainWindow.isDestroyed()){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.show();mainWindow.focus();try{mainWindow.flashFrame(false);}catch{}}});
   notification.show();return {shown:true};
 });
 ipcMain.handle('meeting:create',(_event,input)=>meetingService?.createRoom(input));
