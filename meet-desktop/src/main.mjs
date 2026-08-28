@@ -8,10 +8,21 @@ import { createShareService } from './share-service.mjs';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const uiDir=path.join(__dirname,'..','ui');
 const preloadPath=path.join(__dirname,'preload.cjs');
+const qaInteractionFixtures=app.isPackaged&&app.getVersion().includes('-')&&process.argv.includes('--qa-interaction-fixtures');
 let mainWindow=null;
 let desktopAuth=null;
 let meetingService=null;
 let shareService=null;
+let qaPersonalRoom={roomId:'qa-personal-room',roomCode:'2468013579',passcode:'360',title:'Personal Meeting Room',useForInstant:true,waitingRoomEnabled:true,externalGuestsAllowed:true,status:'ready'};
+let qaSchedules=[];
+
+function qaSchedule(input={}){
+  const scheduleId=`qa-schedule-${qaSchedules.length+1}`;
+  const item={scheduleId,roomId:`qa-room-${qaSchedules.length+1}`,roomCode:String(81000000000+qaSchedules.length+1),passcode:String(input.passcode||'360'),title:String(input.title||'DominionStar Meeting'),scheduledStart:String(input.scheduledStart||new Date(Date.now()+3600000).toISOString()),durationMinutes:Number(input.durationMinutes)||60,recurrence:input.recurrence||null,waitingRoomEnabled:input.waitingRoomEnabled!==false,externalGuestsAllowed:input.externalGuestsAllowed!==false,status:'scheduled'};
+  qaSchedules.push(item);return item;
+}
+function qaCancelSchedule(scheduleId){const item=qaSchedules.find(value=>String(value.scheduleId)===String(scheduleId));if(item)item.status='cancelled';return item||null;}
+function qaStartSchedule(scheduleId){const item=qaSchedules.find(value=>String(value.scheduleId)===String(scheduleId));if(!item)throw new Error('qa_schedule_not_found');item.status='started';return {...item};}
 
 const localRendererUrl=value=>String(value||'').startsWith('file://');
 const permissionStatus=kind=>{if(process.platform!=='darwin')return 'granted';try{return systemPreferences.getMediaAccessStatus(kind);}catch{return 'unknown';}};
@@ -68,7 +79,7 @@ function createMainWindow(){
   mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
 }
 
-ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production'}));
+ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures}));
 ipcMain.handle('auth:get-state',()=>desktopAuth?.getState?.()||{ready:false,signedIn:false,user:null});
 ipcMain.handle('auth:start-google',()=>desktopAuth?.startGoogle?.());
 ipcMain.handle('auth:sign-in-password',(_event,{email,password}={})=>desktopAuth?.signInPassword?.(email,password));
@@ -78,14 +89,14 @@ ipcMain.handle('media:request-permissions',(_event,{kinds=[]}={})=>requestNative
 ipcMain.handle('media:request-screen',()=>requestScreenPermission());
 ipcMain.handle('media:open-privacy',(_event,{kind='screen'}={})=>openPrivacySettings(kind));
 ipcMain.handle('meeting:create',(_event,input)=>meetingService?.createRoom(input));
-ipcMain.handle('meeting:personal-room',()=>meetingService?.personalRoom());
-ipcMain.handle('meeting:update-personal-room',(_event,input)=>meetingService?.updatePersonalRoom(input));
-ipcMain.handle('meeting:start-personal-room',()=>meetingService?.startPersonalRoom());
+ipcMain.handle('meeting:personal-room',()=>qaInteractionFixtures?{...qaPersonalRoom}:meetingService?.personalRoom());
+ipcMain.handle('meeting:update-personal-room',(_event,input)=>{if(!qaInteractionFixtures)return meetingService?.updatePersonalRoom(input);qaPersonalRoom={...qaPersonalRoom,...input,passcode:String(input?.passcode||qaPersonalRoom.passcode)};return {...qaPersonalRoom};});
+ipcMain.handle('meeting:start-personal-room',()=>qaInteractionFixtures?{...qaPersonalRoom}:meetingService?.startPersonalRoom());
 ipcMain.handle('meeting:start-host-room',(_event,{roomId})=>meetingService?.startHostRoom(roomId));
-ipcMain.handle('meeting:schedule',(_event,input)=>meetingService?.scheduleRoom(input));
-ipcMain.handle('meeting:list-schedules',()=>meetingService?.listSchedules());
-ipcMain.handle('meeting:cancel-schedule',(_event,{scheduleId})=>meetingService?.cancelSchedule(scheduleId));
-ipcMain.handle('meeting:start-schedule',(_event,{scheduleId})=>meetingService?.startSchedule(scheduleId));
+ipcMain.handle('meeting:schedule',(_event,input)=>qaInteractionFixtures?qaSchedule(input):meetingService?.scheduleRoom(input));
+ipcMain.handle('meeting:list-schedules',()=>qaInteractionFixtures?qaSchedules.filter(item=>item.status!=='cancelled').map(item=>({...item})):meetingService?.listSchedules());
+ipcMain.handle('meeting:cancel-schedule',(_event,{scheduleId})=>qaInteractionFixtures?qaCancelSchedule(scheduleId):meetingService?.cancelSchedule(scheduleId));
+ipcMain.handle('meeting:start-schedule',(_event,{scheduleId})=>qaInteractionFixtures?qaStartSchedule(scheduleId):meetingService?.startSchedule(scheduleId));
 ipcMain.handle('meeting:update-room-passcode',(_event,{roomId,passcode})=>meetingService?.updateRoomPasscode(roomId,passcode));
 ipcMain.handle('meeting:request-join',(_event,input)=>meetingService?.requestJoin(input));
 ipcMain.handle('meeting:join-status',(_event,{participantId,joinToken})=>meetingService?.joinStatus(participantId,joinToken));
