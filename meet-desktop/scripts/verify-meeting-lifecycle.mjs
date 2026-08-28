@@ -37,6 +37,12 @@ assert(migration.includes("meeting_kind in ('instant','personal','scheduled','re
 assert(migration.includes('use_for_instant boolean not null default true'),'Personal Room instant-meeting preference must be server-backed.');
 assert(migration.includes("p_passcode,'') !~ '^[0-9]{3,7}$'"),'Backend must enforce the same 3–7 digit passcode policy.');
 assert(migration.includes('active_host_id uuid references auth.users(id)'),'Backend must separate live active-host authority from persistent meeting ownership.');
+assert(migration.includes('last_seen_at timestamptz'),'Participant lifecycle must persist heartbeat freshness.');
+assert(migration.includes('meet_v2_one_active_member_per_room_idx'),'Signed-in members must be protected from duplicate active participant rows in one room.');
+assert(migration.includes('pg_advisory_xact_lock(hashtext'),'Concurrent signed-in joins must serialize before active-participant reuse.');
+assert(migration.includes('meet_v2_touch_presence')&&migration.includes("state in ('admitted','joined')"),'Backend must expose a token-bound participant presence heartbeat.');
+assert(migration.includes("now()-interval '75 seconds'"),'Room snapshots must prune stale participant sessions after a reconnect grace period.');
+assert(migration.includes("p.state='admitted' and coalesce(p.admitted_at,p.updated_at)>now()-interval '75 seconds'"),'Admitted-but-never-joined rows must not remain as ghost roster entries indefinitely.');
 assert(!/\nas \$\n/.test(migration)&&!/\nend\n\$;\n/.test(migration),'Staged meeting migration must not contain malformed single-dollar PL/pgSQL delimiters.');
 assert(migration.includes("state in ('waiting_host','waiting','admitted','declined','joined','left','removed')"),'Participant lifecycle must distinguish waiting for host from Waiting Room admission.');
 assert(migration.includes("when v_room.status<>'live' then 'waiting_host'"),'Participants arriving before host start must enter waiting_host instead of the admission queue.');
