@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{};
   const meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+  const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const localName=()=>String(q('#profileName')?.textContent||q('#stageName')?.textContent||'You').trim()||'You';
   const isMeetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const role=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase();
@@ -20,6 +20,7 @@
       if(!input)continue;
       input.maxLength=7;
       input.pattern='[0-9]{3,7}';
+      input.title='Passcode must contain 3 to 7 digits';
       input.setAttribute('aria-description','Passcode must contain 3 to 7 digits');
     }
   }
@@ -79,7 +80,7 @@
     }finally{queueBusy=false;setTimeout(syncAdmitAll,100);}
   }
 
-  async function syncAdmitAll(){
+  function syncAdmitAll(){
     const section=q('#waitingQueueSection'),heading=section?.querySelector('h3');if(!section||!heading)return;
     let button=heading.querySelector('#zoomAdmitAll');
     if(!button){button=document.createElement('button');button.id='zoomAdmitAll';button.type='button';button.className='zoom-admit-all';button.textContent='Admit All';button.addEventListener('click',()=>void admitAll());heading.append(button);}
@@ -101,8 +102,12 @@
   async function refreshChatRecipients(){
     const select=q('#meetingChatRecipient');if(!select)return;
     const current=select.value||'everyone';const list=await peers();
-    select.innerHTML='<option value="everyone">Everyone</option>'+list.map(p=>`<option value="${esc(p.participantId)}">${esc(p.displayName||'Participant')}</option>`).join('');
-    if([...select.options].some(option=>option.value===current))select.value=current;
+    const signature=list.map(p=>`${String(p.participantId)}:${String(p.displayName||'Participant')}`).join('|');
+    if(select.dataset.recipientSignature!==signature){
+      select.dataset.recipientSignature=signature;
+      select.innerHTML='<option value="everyone">Everyone</option>'+list.map(p=>`<option value="${esc(p.participantId)}">${esc(p.displayName||'Participant')}</option>`).join('');
+    }
+    if([...select.options].some(option=>option.value===current))select.value=current;else select.value='everyone';
   }
 
   async function sendZoomChat(event){
@@ -148,5 +153,5 @@
   const observer=new MutationObserver(()=>sync());observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   setInterval(()=>{if(isMeetingOpen())sync();},900);
   sync();
-  window.DominionZoomBehavior=Object.freeze({version:'1.0.0',sync,admitAll,refreshChatRecipients});
+  window.DominionZoomBehavior=Object.freeze({version:'1.0.1',sync,admitAll,refreshChatRecipients});
 })();
