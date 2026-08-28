@@ -12,6 +12,11 @@ const personal=read('ui/personal-room.js');
 const personalCss=read('ui/personal-room.css');
 const schedule=read('ui/schedule-controller.js');
 const scheduleCss=read('ui/schedule.css');
+const shareService=read('src/share-service.mjs');
+const shareCss=read('ui/share.css');
+const presenterHtml=read('ui/presenter-toolbar.html');
+const presenterCss=read('ui/presenter-toolbar.css');
+const presenterJs=read('ui/presenter-toolbar.js');
 
 assert(main.includes("const uiDir=path.join(__dirname,'..','ui')"),'Desktop must define one local UI directory authority.');
 assert(main.includes("mainWindow.loadFile(path.join(uiDir,'index.html'))"),'Desktop must load Home from the local UI directory.');
@@ -53,4 +58,19 @@ assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.scheduled-
 for(const key of ['joinMuted','joinVideoOff','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
 for(const section of ['Meetings','Share Screen','Chat','Recording','Accessibility','Keyboard Shortcuts','About'])assert(preferences.includes(`'${section}'`),`Preferences section missing: ${section}`);
 assert(!preferences.includes('will be added'),'Preferences must not expose dead future-feature copy.');
-console.log('DOMINIONSTAR_DESKTOP_FOUNDATION_OK local-home four-primary-actions personal-room stable-identity passcode-3-7 recurring-schedules live-preferences no-dead-home-chrome responsive-controls real-share-entry isolated-share-module');
+
+assert(shareService.includes('compactMainWindow'),'Desktop sharing must own a native compact meeting-window mode.');
+assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during a share must compact the meeting window instead of losing participant video.');
+assert(shareService.includes("main.setAlwaysOnTop(true,'floating')"),'Compact participant video must remain above the presented content.');
+assert(shareService.includes('main.setMinimumSize(300,190)'),'Share mode must temporarily release the normal full meeting minimum size.');
+assert(shareService.includes('restoreMainWindowAfterShare'),'Stopping a share must restore the original meeting window geometry.');
+assert(shareService.includes('setContentProtection'),'Presenter meeting chrome must request capture exclusion through Electron.');
+assert(shareService.includes("meetingVisible:false")&&shareService.includes("meetingVisible:true"),'Presenter controls must track compact versus full meeting visibility.');
+assert(shareCss.includes('@media(max-width:560px) and (max-height:360px)'),'Share UI must have a dedicated compact participant-panel layout.');
+assert(shareCss.includes('.participant-video-dock.count-1'),'Compact video panel must adapt to the participant count.');
+assert(presenterHtml.includes('<svg viewBox="0 0 24 24"'),'Presenter toolbar must use vector controls.');
+for(const legacyGlyph of ['◉','▣','♙','▢','Ⅱ','✎','▤'])assert(!presenterHtml.includes(legacyGlyph),`Presenter toolbar must not regress to legacy glyph ${legacyGlyph}.`);
+assert(presenterCss.includes('.icon svg'),'Presenter toolbar must explicitly style its vector icon system.');
+assert(presenterJs.includes("state?.meetingVisible?'Hide meeting':'Show meeting'"),'Presenter toolbar must expose the real meeting-window visibility state.');
+
+console.log('DOMINIONSTAR_DESKTOP_FOUNDATION_OK local-home four-primary-actions personal-room stable-identity passcode-3-7 recurring-schedules live-preferences no-dead-home-chrome responsive-controls real-share-entry isolated-share-module native-compact-share-window vector-presenter-controls');
