@@ -23,16 +23,17 @@
   async function boot(){
     addStyle('./share.css');
     if(!window.DominionShareController)await addScript('./share-controller.js');
+    if(!window.DominionShareAnnotation)await addScript('./share-annotation.js');
     const overlay=await findMeetingSurface();
     if(!overlay)return;
     const media=window.DominionMediaController,share=window.DominionShareController;
-    const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage'),side=overlay.querySelector('.room-side');
+    const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
 
-    const button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share Screen';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));
-    const sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);
-    const label=document.createElement('div');label.id='shareStageLabel';label.className='share-stage-label';label.hidden=true;stage.append(label);
-    const cameraTile=document.createElement('video');cameraTile.id='presenterCameraTile';cameraTile.className='presenter-camera-tile';cameraTile.autoplay=true;cameraTile.playsInline=true;cameraTile.muted=true;cameraTile.hidden=true;stage.append(cameraTile);
+    let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share Screen';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}
+    let sharedVideo=stage.querySelector('#sharedContentVideo');if(!sharedVideo){sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);}
+    let label=stage.querySelector('#shareStageLabel');if(!label){label=document.createElement('div');label.id='shareStageLabel';label.className='share-stage-label';label.hidden=true;stage.append(label);}
+    let cameraTile=stage.querySelector('#presenterCameraTile');if(!cameraTile){cameraTile=document.createElement('video');cameraTile.id='presenterCameraTile';cameraTile.className='presenter-camera-tile';cameraTile.autoplay=true;cameraTile.playsInline=true;cameraTile.muted=true;cameraTile.hidden=true;stage.append(cameraTile);}
 
     function applyLayout(){
       const state=share.snapshot(),mediaState=media.snapshot();
@@ -41,16 +42,17 @@
       label.hidden=!state.active;
       if(state.active){
         const output=share.outputStream();if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
-        label.innerHTML=`<strong>${state.paused?'Paused':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
+        label.innerHTML=`<strong>${state.paused?'Paused':state.annotating?'Annotating':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
         const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;
-      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;side?.classList.remove('collapsed');}
+      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;window.DominionShareAnnotation?.deactivate?.();}
+      window.DominionMeetingParity?.syncVideoDock?.();
       void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName});
     }
 
     button.addEventListener('click',event=>{
       event.currentTarget.blur();
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return;}
-      if(share.snapshot().active){toast('A share is already active. Use the floating toolbar to pause or stop it.');return;}
+      if(share.snapshot().active){toast('A share is already active. Use the floating toolbar to pause, annotate, start a new share, or stop.');return;}
       requestAnimationFrame(()=>setTimeout(()=>{void openPickerWithPermission().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));},0));
     });
 
@@ -62,13 +64,21 @@
     share.onChange(()=>applyLayout());
     media.onChange(()=>{if(share.snapshot().active)applyLayout();});
 
-    bridge?.onPresenterCommand?.(async command=>{
+    bridge?.onPresenterCommand?.(async rawCommand=>{
+      const command=String(rawCommand||'');
       try{
         if(command==='pause'){await share.togglePause(sharedVideo);applyLayout();return;}
         if(command==='stop'){await share.stop();applyLayout();return;}
         if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return;}
         if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return;}
-        if(command==='participants'){side?.classList.toggle('collapsed');return;}
+        if(command==='participants'){window.DominionMeetingParity?.toggleParticipants?.();return;}
+        if(command==='chat'){window.DominionMeetingFeatures?.toggleChat?.();return;}
+        if(command==='annotate'){window.DominionShareAnnotation?.toggle?.();applyLayout();return;}
+        if(command==='new-share'){window.DominionShareAnnotation?.deactivate?.();await share.stop();applyLayout();await openPickerWithPermission();return;}
+        if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return;}
+        if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return;}
+        if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return;}
+        if(command.startsWith('reaction:')){await window.DominionMeetingFeatures?.sendReaction?.(command.slice('reaction:'.length));return;}
         if(command==='show-meeting'){window.focus();return;}
       }catch(error){toast(error?.message||'Share control failed.','error');}
     });
