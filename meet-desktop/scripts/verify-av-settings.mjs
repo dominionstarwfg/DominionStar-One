@@ -35,6 +35,10 @@ assert(effects.includes("state.denoise")&&effects.includes("historyWeight")&&eff
 assert(effects.includes("setVirtualBackground")&&effects.includes("drawVirtualBackground")&&effects.includes("virtualBackgroundData"),'Virtual backgrounds must render through the outgoing processed camera path and persist when requested.');
 assert(effects.includes("state.virtualBackground!=='none'")&&effects.includes("ctx.ellipse"),'Virtual background rendering must preserve a detected presenter region instead of replacing the entire frame.');
 assert(effects.includes("setBackgroundPersistence")&&effects.includes("backgroundPersistence==='all'"),'Virtual background persistence must support all-meetings versus current-meeting behavior.');
+assert(effects.includes("compositePerson")&&effects.includes("createRadialGradient")&&effects.includes("globalCompositeOperation='destination-in'"),'Foreground compositing must feather presenter edges rather than use a hard clip.');
+assert(effects.includes("updatePerformanceGovernor")&&effects.includes("performanceMode==='balanced'")&&effects.includes("state.renderAvgMs>27"),'Video effects must automatically degrade heavy processing under sustained render load.');
+assert(effects.includes("state.denoise&&state.performanceMode==='full'")&&effects.includes("Math.min(16,requestedBlur)"),'Balanced mode must reduce de-noise and cap blur cost without changing saved user preferences.');
+assert(effects.includes("clearTransientMeetingEffects")&&webrtc.includes("clearTransientMeetingEffects?.()"),'Current-meeting virtual backgrounds must reset when the meeting ends.');
 assert(effects.includes("ds_meet_auto_frame")&&effects.includes("ds_meet_auto_frame_strength"),'Auto framing preferences must persist locally.');
 assert(webrtc.includes("await effects.outputStream(raw)")&&webrtc.includes("state.effectsUnsub=window.DominionVideoEffects?.onChange"),'WebRTC must send the processed camera track and resync peers when effects change.');
 assert(enhancements.includes("HD · 720p")&&enhancements.includes("Balanced · 540p")&&enhancements.includes("Data saver · 360p"),'Video quality settings must expose practical conferencing tiers.');
@@ -43,4 +47,4 @@ assert(enhancements.includes('installMeetingQuickMenus')&&enhancements.includes(
 assert(enhancements.includes('Audio & Video Settings…'),'Quick menus must lead to advanced settings.');
 assert(media.includes('ds_meet_camera_id')&&media.includes('ds_meet_microphone_id')&&media.includes('ds_meet_speaker_id'),'AV parity depends on persistent clean device preferences.');
 assert(css.includes('.av-quick-menu')&&css.includes('.av-video-preview')&&css.includes('.av-settings-detail')&&css.includes('.av-range-row'),'AV settings must have dedicated desktop styling including appearance sliders.');
-console.log('DOMINIONSTAR_AV_SETTINGS_PARITY_OK devices quick-menus mirror original-ratio low-light-auto-manual touch-up portrait-lighting auto-framing background-blur virtual-backgrounds video-denoise processed-outgoing-track quality clean-media-authority');
+console.log('DOMINIONSTAR_AV_SETTINGS_PARITY_OK devices quick-menus mirror original-ratio low-light-auto-manual touch-up portrait-lighting auto-framing background-blur virtual-backgrounds feathered-foreground adaptive-performance video-denoise processed-outgoing-track quality clean-media-authority');
