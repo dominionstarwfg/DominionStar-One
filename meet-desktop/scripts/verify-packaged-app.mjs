@@ -80,6 +80,10 @@ assert(schedule.includes('await meeting.startSchedule(item.scheduleId)'),'Packag
 assert(schedule.includes("mode==='personal'&&recurrence"),'Packaged Schedule must prevent fixed recurrence from silently using the Personal Meeting ID.');
 assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.schedule-option-grid'),'Packaged scheduled/recurring meetings must have real desktop layouts.');
 assert(av.includes("caret.className='meeting-control av-device-caret'"),'Packaged meeting must retain mic/video device-option carets.');
+assert(av.includes("avGroup(detail,'Camera'")&&av.includes("avGroup(detail,'Appearance'")&&av.includes("avGroup(detail,'Background & Effects'")&&av.includes("summary.textContent='Advanced'"),'Packaged Video settings must preserve the approved Zoom-style hierarchy.');
+assert(av.includes('Test Microphone')&&av.includes('Test Speaker')&&av.includes('Test Speaker & Microphone…'),'Packaged Audio settings must expose microphone/speaker tests from settings and the quick menu.');
+assert(av.includes('Echo cancellation')&&av.includes('Noise suppression')&&av.includes('Automatically adjust microphone volume')&&av.includes('Original sound for musicians'),'Packaged Audio settings must expose real microphone processing controls.');
+assert(media.includes("replaceKind('audio',state.microphoneId,true)"),'Packaged audio-processing changes must reacquire the live microphone with updated constraints.');
 assert(parity.includes("version:'2.0.0-zoom-adaptive-dock'"),'Packaged meeting must include the adaptive Zoom-style video dock engine.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Packaged participant management panel must be closed by default.');
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Packaged video dock must adapt orientation to position.');
