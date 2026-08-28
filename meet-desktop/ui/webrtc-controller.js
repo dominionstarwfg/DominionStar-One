@@ -11,6 +11,13 @@
   const initials=name=>String(name||'Participant').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'P';
   const localMedia=()=>window.DominionMediaController?.stream?.()||null;
   const shareMedia=()=>window.DominionShareController?.outputStream?.()||null;
+  async function localCameraTrack(){
+    const raw=localMedia()?.getVideoTracks?.()[0]||null;
+    if(!raw)return null;
+    const effects=window.DominionVideoEffects;
+    if(!effects?.outputStream)return raw;
+    try{return (await effects.outputStream(raw))?.getVideoTracks?.()[0]||raw;}catch{return raw;}
+  }
   const serverUrls=server=>(Array.isArray(server?.urls)?server.urls:[server?.urls]).filter(Boolean).map(String);
   const hasRelay=servers=>(servers||[]).some(server=>serverUrls(server).some(url=>/^turns?:/i.test(url))&&Boolean(server?.username)&&Boolean(server?.credential));
 
@@ -106,7 +113,7 @@
   async function syncLocalTracks(record){
     const lanes=transceivers(record);if(lanes.length<3)return;
     const media=localMedia(),share=shareMedia();
-    const audio=media?.getAudioTracks?.()[0]||null,camera=media?.getVideoTracks?.()[0]||null,screen=share?.getVideoTracks?.()[0]||null;
+    const audio=media?.getAudioTracks?.()[0]||null,camera=await localCameraTrack(),screen=share?.getVideoTracks?.()[0]||null;
     await Promise.all([lanes[0]?.sender?.replaceTrack(audio),lanes[1]?.sender?.replaceTrack(camera),lanes[2]?.sender?.replaceTrack(screen)].filter(Boolean));
   }
   async function initiate(record,iceRestart=false){
