@@ -40,6 +40,7 @@ jobs:
           node --check 'meet-desktop/ui/av-settings.js'
           node --check 'meet-desktop/ui/meeting-parity.js'
           node --check 'meet-desktop/ui/meeting-features.js'
+          node --check 'meet-desktop/ui/zoom-behavior.js'
           node --check 'meet-desktop/ui/preferences.js'
           node --check 'meet-desktop/ui/personal-room.js'
           node --check 'meet-desktop/ui/schedule-controller.js'
@@ -65,7 +66,7 @@ jobs:
         run: node 'meet-desktop/scripts/verify-media-authority.mjs'
       - name: Verify restored audio video settings
         run: node 'meet-desktop/scripts/verify-av-settings.mjs'
-      - name: Verify approved meeting chrome and floating dock
+      - name: Verify approved meeting chrome and Zoom behavior
         run: node 'meet-desktop/scripts/verify-meeting-parity.mjs'
       - name: Verify nonblocking screen-share authority
         run: node 'meet-desktop/scripts/verify-share-authority.mjs'
