@@ -15,7 +15,7 @@ assert(fs.existsSync(path.join(resources,'branding','dominionstar-logo.jpeg')),'
 const listing=execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'list',asarPath],{encoding:'utf8'});
 const required=[
   '/src/main.mjs','/src/auth-service.mjs','/src/meeting-service.mjs','/src/share-service.mjs','/src/share-source-authority.mjs','/src/preload.cjs',
-  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
+  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/preferences.js','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
   '/ui/webrtc-controller.js','/ui/webrtc.css','/ui/diagnostics.js','/ui/diagnostics.css','/package.json'
 ];
 for(const item of required)assert(listing.includes(item),`Packaged ASAR is missing ${item}`);
@@ -36,6 +36,9 @@ const html=fs.readFileSync(path.join(unpackDir,'ui','index.html'),'utf8');
 const av=fs.readFileSync(path.join(unpackDir,'ui','av-settings.js'),'utf8');
 const parity=fs.readFileSync(path.join(unpackDir,'ui','meeting-parity.js'),'utf8');
 const parityCss=fs.readFileSync(path.join(unpackDir,'ui','meeting-parity.css'),'utf8');
+const features=fs.readFileSync(path.join(unpackDir,'ui','meeting-features.js'),'utf8');
+const preferences=fs.readFileSync(path.join(unpackDir,'ui','preferences.js'),'utf8');
+const annotation=fs.readFileSync(path.join(unpackDir,'ui','share-annotation.js'),'utf8');
 const webrtc=fs.readFileSync(path.join(unpackDir,'ui','webrtc-controller.js'),'utf8');
 assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged desktop must launch the local Home file.');
 assert(!main.includes('dominionstarld.com'),'Packaged desktop must not launch the public website.');
@@ -50,7 +53,7 @@ assert(meeting.includes("passcode.length<3"),'Packaged meeting lifecycle must ac
 assert(meeting.includes("roomCode:'',passcode:'',title:''"),'Packaged meeting context must retain Meeting ID and passcode.');
 assert(media.includes("deviceId:id?{ideal:id}:undefined"),'Packaged camera authority must use resilient soft device preference.');
 assert(media.includes("const candidates=unique([preferredId,...catalog.map(item=>item.id)])"),'Packaged camera authority must fall back to another available device.');
-assert(html.includes('<script src="./av-settings.js"></script>')&&html.includes('<script src="./meeting-parity.js"></script>'),'Packaged Home must load A/V settings and meeting parity.');
+for(const script of ['./av-settings.js','./meeting-parity.js','./meeting-features.js','./preferences.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Packaged Home must load ${script}.`);
 assert(av.includes("caret.className='meeting-control av-device-caret'"),'Packaged meeting must retain mic/video device-option carets.');
 assert(parity.includes("version:'2.0.0-zoom-adaptive-dock'"),'Packaged meeting must include the adaptive Zoom-style video dock engine.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Packaged participant management panel must be closed by default.');
@@ -64,6 +67,11 @@ assert(parityCss.includes('.room-side{position:absolute!important'),'Packaged pa
 assert(parityCss.includes('.count-4 .participant-video-dock-body')&&parityCss.includes('grid-template-columns:repeat(2,176px)'),'Packaged participant video dock must grid at four to six tiles.');
 assert(parityCss.includes('.count-7 .participant-video-dock-body')&&parityCss.includes('grid-template-columns:repeat(3,150px)'),'Packaged participant video dock must expand into a compact larger grid.');
 assert(parityCss.includes('repeat(auto-fit,minmax(118px,1fr))'),'Packaged user-resized video dock must recompute its grid.');
+for(const id of ['roomChat','roomRecord','roomReactions'])assert(features.includes(`'${id}'`),`Packaged meeting feature missing ${id}.`);
+assert(features.includes("broadcast('chat',payload)")&&features.includes("broadcast('reaction',payload)"),'Packaged Chat and Reactions must use authenticated meeting signaling.');
+assert(features.includes('new MediaRecorder('),'Packaged Record control must create a real local MediaRecorder.');
+for(const key of ['joinMuted','joinVideoOff','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Packaged preferences missing ${key}.`);
+assert(annotation.includes('canvas.captureStream'),'Packaged annotation must composite into an outgoing media stream.');
 assert(share.includes('let inFlight=null'),'Packaged share authority must keep exactly one native source enumeration in flight.');
 assert(share.includes('Promise.race([inFlight,timeoutResult()])'),'Packaged share source enumeration must remain bounded by timeout.');
 assert(share.includes('.finally(()=>{inFlight=null;})'),'Packaged share authority must release single-flight state after enumeration.');
@@ -72,4 +80,4 @@ assert(shareService.includes('ensureScreenPermission()')&&shareService.includes(
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home real-brand email-google-auth credentials camera-fallback zoom-full-stage adaptive-video-dock bounded-share webrtc diagnostics no-legacy-runtime');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home real-brand email-google-auth credentials camera-fallback zoom-full-stage adaptive-video-dock live-chat-record-reactions preferences annotation bounded-share webrtc diagnostics no-legacy-runtime');
