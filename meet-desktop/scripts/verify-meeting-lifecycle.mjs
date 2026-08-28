@@ -14,9 +14,11 @@ assert(auth.includes('async function rpc(name,args={})'),'Supabase RPC transport
 assert(!ui.includes('createClient(')&&!ui.includes('.from('),'Renderer must not own Supabase/database access.');
 for(const channel of ['meeting:create','meeting:request-join','meeting:join-status','meeting:mark-joined','meeting:leave','meeting:host-queue','meeting:decide','meeting:snapshot','meeting:set-cohost','meeting:remove-participant','meeting:end'])assert(main.includes(channel),`Missing IPC owner ${channel}`);
 for(const method of ['create:','requestJoin:','joinStatus:','markJoined:','leave:','hostQueue:','decide:','snapshot:','setCohost:','removeParticipant:','end:'])assert(preload.includes(method),`Missing renderer bridge method ${method}`);
-assert(service.includes("if(passcode.length<3)throw new Error('Passcode must be at least 3 digits.')"),'New Meeting must accept the existing 3-digit passcode standard.');
-assert(service.includes("if(passcode.length<3)throw new Error('Enter the meeting passcode.')"),'Join must accept 3-digit meeting passcodes.');
-assert(ui.includes('value=\"360\"'),'Default DominionStar QA passcode must remain 360.');
+assert(service.includes("if(passcode.length<3)throw new Error('Passcode must be at least 3 digits.')"),'New Meeting must accept valid 3–10 digit passcodes.');
+assert(service.includes("if(passcode.length<3)throw new Error('Enter the meeting passcode.')"),'Join must accept valid 3–10 digit meeting passcodes.');
+assert(ui.includes('const randomPasscode=()=>'),'New Meeting must generate a fresh passcode by default.');
+assert(ui.includes('value=\"${randomPasscode()}\"'),'New Meeting dialog must use a generated passcode rather than a fixed personal/default passcode.');
+assert(!ui.includes('value=\"360\"'),'A personal or QA passcode must never be hard-coded into New Meeting.');
 assert(ui.includes("newMeeting.id='newMeetingDialog'"),'New Meeting must open a real creation flow.');
 assert(ui.includes('id=\"joinPasscode\"'),'Join must request a passcode.');
 assert(ui.includes("prejoin.id='prejoinOverlay'"),'New/Join flow must pass through a dedicated prejoin surface.');
@@ -28,4 +30,4 @@ assert(ui.includes("activeRoom.role==='host'?'End':'Leave'"),'Host and participa
 assert(ui.includes('meeting.setCohost')&&ui.includes('meeting.removeParticipant'),'Role and removal controls must use backend authority.');
 assert(css.includes('.meeting-overlay')&&css.includes('.waiting-overlay')&&css.includes('.prejoin-overlay'),'Prejoin, meeting, and waiting-room surfaces must be dedicated desktop layers.');
 assert(!ui.includes('getDisplayMedia')&&!service.includes('getDisplayMedia'),'Screen sharing must remain outside this lifecycle foundation.');
-console.log('DOMINIONSTAR_MEET_V2_LIFECYCLE_OK passcode-360 create prejoin join waiting admit decline cohost roster leave end isolated-no-share');
+console.log('DOMINIONSTAR_MEET_V2_LIFECYCLE_OK fresh-passcode create prejoin join waiting admit decline cohost roster leave end isolated-no-share');
