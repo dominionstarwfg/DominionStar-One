@@ -18,7 +18,9 @@ alter table public.meet_v2_rooms
   add column if not exists recurrence jsonb,
   add column if not exists occurrence_count integer not null default 0,
   add column if not exists last_started_at timestamptz,
-  add column if not exists active_host_id uuid references auth.users(id) on delete set null;
+  add column if not exists active_host_id uuid references auth.users(id) on delete set null,
+  add column if not exists meeting_locked boolean not null default false,
+  add column if not exists mute_on_entry boolean not null default false;
 
 alter table public.meet_v2_rooms
   drop constraint if exists meet_v2_rooms_meeting_kind_check;
@@ -460,6 +462,7 @@ declare
 begin
   select * into v_room from public.meet_v2_rooms where room_code=regexp_replace(coalesce(p_room_code,''),'[^0-9]','','g');
   if not found or v_room.status in ('ended','cancelled') then raise exception 'meeting_not_found'; end if;
+  if v_room.meeting_locked then raise exception 'meeting_locked'; end if;
   if extensions.crypt(coalesce(p_passcode,''),v_room.passcode_digest) <> v_room.passcode_digest then raise exception 'incorrect_passcode'; end if;
   if v_user is null and not v_room.external_guests_allowed then raise exception 'guest_access_disabled'; end if;
 
@@ -488,10 +491,32 @@ begin
     'participantId',v_participant.id,'joinToken',v_participant.join_token,
     'role',v_participant.role,'state',v_participant.state,
     'waitingRoomEnabled',v_room.waiting_room_enabled,
-    'meetingKind',v_room.meeting_kind,'reusable',v_room.reusable
+    'meetingKind',v_room.meeting_kind,'reusable',v_room.reusable,
+    'muteOnEntry',v_room.mute_on_entry,'meetingLocked',v_room.meeting_locked
   );
 end
-$$;
+$;
+
+create or replace function public.meet_v2_join_status(p_participant_id uuid,p_join_token uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $
+declare
+  v_participant public.meet_v2_participants;
+  v_room public.meet_v2_rooms;
+begin
+  select * into v_participant from public.meet_v2_participants where id=p_participant_id and join_token=p_join_token;
+  if not found then raise exception 'join_request_not_found'; end if;
+  select * into v_room from public.meet_v2_rooms where id=v_participant.room_id;
+  return jsonb_build_object(
+    'roomId',v_room.id,'roomCode',v_room.room_code,'title',v_room.title,'roomStatus',v_room.status,
+    'participantId',v_participant.id,'role',v_participant.role,'state',v_participant.state,
+    'waitingRoomEnabled',v_room.waiting_room_enabled,'muteOnEntry',v_room.mute_on_entry,'meetingLocked',v_room.meeting_locked
+  );
+end
+$;
 
 create or replace function public.meet_v2_room_snapshot(p_room_id uuid)
 returns jsonb
@@ -535,6 +560,7 @@ begin
     'roomId',v_room.id,'roomCode',v_room.room_code,'title',v_room.title,
     'status',v_room.status,'waitingRoomEnabled',v_room.waiting_room_enabled,
     'ownerId',v_room.host_id,'activeHostId',v_room.active_host_id,
+    'meetingLocked',v_room.meeting_locked,'muteOnEntry',v_room.mute_on_entry,
     'participants',v_people
   );
 end
@@ -674,6 +700,33 @@ begin
 end
 $$;
 
+create or replace function public.meet_v2_set_security(p_room_id uuid,p_locked boolean,p_mute_on_entry boolean)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_room public.meet_v2_rooms%rowtype;
+  v_role text;
+begin
+  if v_user is null then raise exception 'authentication_required'; end if;
+  select * into v_room from public.meet_v2_rooms where id=p_room_id for update;
+  if not found then raise exception 'meeting_not_found'; end if;
+  if coalesce(v_room.active_host_id,v_room.host_id)=v_user then
+    v_role:='host';
+  else
+    select role into v_role from public.meet_v2_participants
+    where room_id=p_room_id and member_id=v_user and state in ('admitted','joined')
+    order by created_at desc limit 1;
+  end if;
+  if coalesce(v_role,'') not in ('host','cohost') then raise exception 'host_authority_required'; end if;
+  update public.meet_v2_rooms set meeting_locked=coalesce(p_locked,false),mute_on_entry=coalesce(p_mute_on_entry,false),updated_at=now() where id=p_room_id returning * into v_room;
+  return jsonb_build_object('roomId',v_room.id,'meetingLocked',v_room.meeting_locked,'muteOnEntry',v_room.mute_on_entry);
+end
+$$;
+
 create or replace function public.meet_v2_rename_participant(p_participant_id uuid,p_display_name text)
 returns jsonb
 language plpgsql
@@ -803,5 +856,6 @@ grant execute on function public.meet_v2_decide_participant(uuid,text) to authen
 grant execute on function public.meet_v2_set_cohost(uuid,boolean) to authenticated;
 grant execute on function public.meet_v2_remove_participant(uuid) to authenticated;
 grant execute on function public.meet_v2_rename_participant(uuid,text) to authenticated;
+grant execute on function public.meet_v2_set_security(uuid,boolean,boolean) to authenticated;
 grant execute on function public.meet_v2_transfer_host_and_leave(uuid) to authenticated;
 grant execute on function public.meet_v2_end_room(uuid) to authenticated;
