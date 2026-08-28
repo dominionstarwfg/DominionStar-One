@@ -43,6 +43,7 @@ jobs:
           node --check 'meet-desktop/ui/meeting-features.js'
           node --check 'meet-desktop/ui/zoom-behavior.js'
           node --check 'meet-desktop/ui/participant-controls.js'
+          node --check 'meet-desktop/ui/meeting-notifications.js'
           node --check 'meet-desktop/ui/preferences.js'
           node --check 'meet-desktop/ui/personal-room.js'
           node --check 'meet-desktop/ui/schedule-controller.js'
