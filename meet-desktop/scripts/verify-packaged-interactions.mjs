@@ -54,6 +54,8 @@ function connect(url){
 
 let socket=null;
 let nextId=0;
+let lastPausedEvent=null;
+const pauseWaiters=[];
 const pending=new Map();
 function settlePending(error){for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(error);}pending.clear();}
 function cdp(method,params={}){
@@ -65,10 +67,40 @@ function cdp(method,params={}){
     socket.send(JSON.stringify({id,method,params}));
   });
 }
+function fireCdp(method,params={}){
+  if(!socket||socket.readyState!==WebSocket.OPEN)return;
+  socket.send(JSON.stringify({id:++nextId,method,params}));
+}
 async function evaluate(expression){
   const result=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
   if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Renderer evaluation failed.');
   return result.result?.value;
+}
+function formatPausedStack(event){
+  const frames=event?.params?.callFrames||[];
+  if(!frames.length)return 'Renderer paused without JavaScript call frames.';
+  return frames.slice(0,18).map((frame,index)=>{
+    const name=frame.functionName||'<anonymous>',url=frame.url||'<inline>',line=(frame.location?.lineNumber??-1)+1,column=(frame.location?.columnNumber??-1)+1;
+    return `${index+1}. ${name} — ${url}:${line}:${column}`;
+  }).join('\n');
+}
+function waitPaused(timeoutMs=2500){
+  if(lastPausedEvent){const event=lastPausedEvent;lastPausedEvent=null;return Promise.resolve(event);}
+  return new Promise(resolve=>{
+    const waiter={resolve,timer:0};
+    waiter.timer=setTimeout(()=>{const index=pauseWaiters.indexOf(waiter);if(index>=0)pauseWaiters.splice(index,1);resolve(null);},timeoutMs);
+    pauseWaiters.push(waiter);
+  });
+}
+async function captureBusyStack(){
+  try{
+    fireCdp('Debugger.pause');
+    const event=await waitPaused();
+    const stack=formatPausedStack(event);
+    console.error('RENDERER_BUSY_STACK\n'+stack);
+    fireCdp('Debugger.resume');
+    return stack;
+  }catch(error){return `Unable to capture renderer stack: ${error?.message||error}`;}
 }
 async function waitFor(expression,label,timeoutMs=CONTROLLER_TIMEOUT_MS){
   const deadline=Date.now()+timeoutMs;
@@ -77,8 +109,10 @@ async function waitFor(expression,label,timeoutMs=CONTROLLER_TIMEOUT_MS){
     try{if(await evaluate(`Boolean(${expression})`))return;}catch(error){lastError=error;}
     await sleep(200);
   }
+  const busy=lastError&&String(lastError.message).includes('Runtime.evaluate')?await captureBusyStack():'';
   const suffix=lastError?` Last CDP error: ${lastError.message}`:'';
-  throw new Error(`Timed out waiting for ${label} within ${timeoutMs}ms.${suffix}`);
+  const stack=busy?`\nRenderer busy stack:\n${busy}`:'';
+  throw new Error(`Timed out waiting for ${label} within ${timeoutMs}ms.${suffix}${stack}`);
 }
 const mark=label=>console.log(`INTERACTION_STAGE_OK ${label}`);
 
@@ -88,6 +122,10 @@ try{
   socket=await connect(page.webSocketDebuggerUrl);mark('debug-socket');
   socket.addEventListener('message',event=>{
     const message=JSON.parse(String(event.data));
+    if(message.method==='Debugger.paused'){
+      if(pauseWaiters.length){const waiter=pauseWaiters.shift();clearTimeout(waiter.timer);waiter.resolve(message);}else lastPausedEvent=message;
+      return;
+    }
     if(!message.id)return;
     const waiter=pending.get(message.id);if(!waiter)return;
     pending.delete(message.id);clearTimeout(waiter.timer);
@@ -95,11 +133,10 @@ try{
     else waiter.resolve(message.result);
   });
   socket.addEventListener('close',()=>settlePending(new Error('CDP WebSocket closed.')));
-  await cdp('Runtime.enable');mark('runtime-enabled');
+  await cdp('Runtime.enable');
+  await cdp('Debugger.enable');mark('runtime-enabled');
   await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.dominionDesktop?.meeting","desktop UI controllers");mark('controllers-loaded');
 
-  // Authentication is independently certified. This interaction gate exposes the
-  // already-loaded local shell only to exercise packaged controls without a QA account.
   await evaluate(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
     document.querySelector('#authGate').hidden=true;
