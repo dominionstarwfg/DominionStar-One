@@ -4,6 +4,8 @@ const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const html=read('ui/index.html');
 const parity=read('ui/meeting-parity.js');
 const css=read('ui/meeting-parity.css');
+const zoomBehavior=read('ui/zoom-behavior.js');
+const zoomCss=read('ui/zoom-behavior.css');
 const av=read('ui/av-settings.js');
 const meetingService=read('src/meeting-service.mjs');
 const preload=read('src/preload.cjs');
@@ -11,6 +13,8 @@ const pkg=JSON.parse(read('package.json'));
 
 assert(html.includes('<script src="./av-settings.js"></script>'),'Desktop Home must load the restored A/V settings module.');
 assert(html.includes('<script src="./meeting-parity.js"></script>'),'Desktop Home must load the meeting parity module.');
+assert(html.includes('<script src="./zoom-behavior.js"></script>'),'Desktop Home must load the Zoom-standard behavior guard.');
+assert(html.indexOf('./meeting-features.js')<html.indexOf('./zoom-behavior.js'),'Zoom behavior guard must load after base meeting features so it can upgrade them.');
 assert(parity.includes("version:'2.0.0-zoom-adaptive-dock'"),'Zoom-style adaptive dock engine version is missing.');
 assert(parity.includes("GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1'"),'Participant video dock geometry must persist independently.');
 assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Participant management panel geometry must remain separate from video dock geometry.');
@@ -19,7 +23,7 @@ assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bott
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Remote active speaker must be promotable to the main stage.');
 assert(parity.includes("snapshot.videoLive&&(sharing()||remotePromoted)"),'Local self video belongs in the floating dock only when sharing or another speaker owns the stage.');
 assert(parity.includes('dock.dataset.count=String(Math.min(count,9))'),'Dock layout must be driven by visible participant count.');
-assert(parity.includes('for(let i=1;i<=9;i++'), 'Dock must expose count classes through nine visible tiles.');
+assert(parity.includes('for(let i=1;i<=9;i++'),'Dock must expose count classes through nine visible tiles.');
 assert(parity.includes('desktop.meeting.context()')&&parity.includes('Passcode ${pass}'),'Meeting ID and passcode must remain visible from native meeting context.');
 assert(parity.includes("hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'"),'Home greeting must adapt to local time.');
 assert(preload.includes("brand:Object.freeze({logoUrl})"),'Desktop bridge must expose the packaged real DominionStar logo.');
@@ -35,4 +39,17 @@ assert(css.includes('.count-7 .participant-video-dock-body')&&css.includes('grid
 assert(css.includes('.participant-video-dock.user-resized .participant-video-dock-body')&&css.includes('repeat(auto-fit,minmax(118px,1fr))'),'User-resized participant dock must recompute its internal grid automatically.');
 assert(css.includes('.participant-video-dock.minimized'),'Participant video dock must support Zoom-style minimization.');
 assert(css.includes('@media(max-width:760px)'),'Meeting layout must adapt for compact desktop windows.');
-console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive');
+
+assert(zoomBehavior.includes("version:'1.0.1'"),'Zoom behavior guard version is missing.');
+assert(zoomBehavior.includes('Leave Meeting')&&zoomBehavior.includes('End Meeting for All'),'Host exit must distinguish leave from end-for-all.');
+assert(zoomBehavior.includes("event.stopImmediatePropagation()"),'Host Leave guard must intercept the legacy one-click end action.');
+assert(zoomBehavior.includes("meeting.leave(ctx.participantId,ctx.joinToken)")&&zoomBehavior.includes('meeting.end(ctx.roomId)'),'Host exit choices must route to distinct meeting authority actions.');
+assert(zoomBehavior.includes("button.id='zoomAdmitAll'")&&zoomBehavior.includes("meeting.decide(p.participantId,'admit')"),'Waiting room must expose Admit All through the existing host authority.');
+assert(zoomBehavior.includes("select.id='meetingChatRecipient'")&&zoomBehavior.includes('<option value="everyone">Everyone</option>'),'Meeting chat must expose Everyone and participant recipient selection.');
+assert(zoomBehavior.includes("meeting.sendSignal(target,'chat',payload)"),'Private chat must send only to the selected participant.');
+assert(zoomBehavior.includes("event.stopImmediatePropagation()")&&zoomBehavior.includes("interceptIncomingChat"),'Upgraded chat must prevent duplicate rendering by the legacy broadcast handler.');
+assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Chat recipient synchronization must not create a mutation-observer render loop.');
+assert(zoomBehavior.includes("input.maxLength=7")&&zoomBehavior.includes("input.pattern='[0-9]{3,7}'"),'Join and new-meeting passcode fields must match the 3–7 digit meeting authority.');
+assert(zoomCss.includes('.zoom-leave-dialog')&&zoomCss.includes('.zoom-admit-all')&&zoomCss.includes('.meeting-chat-recipient'),'Zoom behavior upgrades must ship with dedicated desktop styling.');
+
+console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive leave-vs-end admit-all private-chat stable-observer');
