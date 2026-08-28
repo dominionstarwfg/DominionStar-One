@@ -47,6 +47,7 @@ jobs:
           node --check ui/schedule-controller.js
           node --check ui/preferences.js
           node --check ui/meeting-features.js
+          node --check ui/video-effects.js
           node --check ui/zoom-behavior.js
           node --check ui/share-annotation.js
           node --check scripts/verify-meeting-identity-runtime.mjs
