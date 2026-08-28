@@ -15,7 +15,7 @@ assert(fs.existsSync(path.join(resources,'branding','dominionstar-logo.jpeg')),'
 const listing=execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'list',asarPath],{encoding:'utf8'});
 const required=[
   '/src/main.mjs','/src/auth-service.mjs','/src/meeting-service.mjs','/src/share-service.mjs','/src/share-source-authority.mjs','/src/preload.cjs',
-  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/preferences.js','/ui/personal-room.js','/ui/personal-room.css','/ui/schedule-controller.js','/ui/schedule.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
+  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/zoom-behavior.js','/ui/zoom-behavior.css','/ui/preferences.js','/ui/personal-room.js','/ui/personal-room.css','/ui/schedule-controller.js','/ui/schedule.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
   '/ui/webrtc-controller.js','/ui/webrtc.css','/ui/diagnostics.js','/ui/diagnostics.css','/package.json'
 ];
 for(const item of required)assert(listing.includes(item),`Packaged ASAR is missing ${item}`);
@@ -26,7 +26,7 @@ fs.rmSync(unpackDir,{recursive:true,force:true});
 execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'extract',asarPath,unpackDir]);
 const read=(...parts)=>fs.readFileSync(path.join(unpackDir,...parts),'utf8');
 const main=read('src','main.mjs'),auth=read('src','auth-service.mjs'),meeting=read('src','meeting-service.mjs'),preload=read('src','preload.cjs'),share=read('src','share-source-authority.mjs'),shareService=read('src','share-service.mjs');
-const media=read('ui','media-controller.js'),authPassword=read('ui','auth-password.js'),html=read('ui','index.html'),av=read('ui','av-settings.js'),parity=read('ui','meeting-parity.js'),parityCss=read('ui','meeting-parity.css'),features=read('ui','meeting-features.js'),preferences=read('ui','preferences.js'),personal=read('ui','personal-room.js'),schedule=read('ui','schedule-controller.js'),scheduleCss=read('ui','schedule.css'),shareController=read('ui','share-controller.js'),annotation=read('ui','share-annotation.js'),webrtc=read('ui','webrtc-controller.js');
+const media=read('ui','media-controller.js'),authPassword=read('ui','auth-password.js'),html=read('ui','index.html'),av=read('ui','av-settings.js'),parity=read('ui','meeting-parity.js'),parityCss=read('ui','meeting-parity.css'),features=read('ui','meeting-features.js'),zoomBehavior=read('ui','zoom-behavior.js'),zoomCss=read('ui','zoom-behavior.css'),preferences=read('ui','preferences.js'),personal=read('ui','personal-room.js'),schedule=read('ui','schedule-controller.js'),scheduleCss=read('ui','schedule.css'),shareController=read('ui','share-controller.js'),annotation=read('ui','share-annotation.js'),webrtc=read('ui','webrtc-controller.js');
 
 assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged desktop must launch the local Home file.');
 assert(!main.includes('dominionstarld.com'),'Packaged desktop must not launch the public website.');
@@ -46,7 +46,7 @@ for(const bridge of ['personalRoom:','updatePersonalRoom:','startPersonalRoom:',
 assert(main.includes("'meeting:personal-room'")&&main.includes("'meeting:schedule'")&&main.includes("'meeting:start-schedule'"),'Packaged main process must own Personal Room and schedule IPC.');
 assert(media.includes("deviceId:id?{ideal:id}:undefined"),'Packaged camera authority must use resilient soft device preference.');
 assert(media.includes("const candidates=unique([preferredId,...catalog.map(item=>item.id)])"),'Packaged camera authority must fall back to another available device.');
-for(const script of ['./av-settings.js','./meeting-parity.js','./meeting-features.js','./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Packaged Home must load ${script}.`);
+for(const script of ['./av-settings.js','./meeting-parity.js','./meeting-features.js','./zoom-behavior.js','./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Packaged Home must load ${script}.`);
 for(const style of ['./schedule.css','./personal-room.css'])assert(html.includes(`<link rel=\"stylesheet\" href=\"${style}\">`),`Packaged Home must load ${style}.`);
 assert(!html.includes('aria-label="Search"')&&!html.includes('data-section="contacts"')&&!html.includes('id="contactsSection"'),'Packaged Home must not contain dead Search or Contacts chrome.');
 assert(!html.includes('will live here')&&!html.includes('wired after'),'Packaged Home must not contain developer placeholder copy.');
@@ -82,6 +82,13 @@ assert(parityCss.includes('repeat(auto-fit,minmax(118px,1fr))'),'Packaged user-r
 for(const id of ['roomChat','roomRecord','roomReactions'])assert(features.includes(`'${id}'`),`Packaged meeting feature missing ${id}.`);
 assert(features.includes("broadcast('chat',payload)")&&features.includes("broadcast('reaction',payload)"),'Packaged Chat and Reactions must use authenticated meeting signaling.');
 assert(features.includes('new MediaRecorder('),'Packaged Record control must create a real local MediaRecorder.');
+assert(zoomBehavior.includes("version:'1.0.1'"),'Packaged app must include the stabilized Zoom behavior layer.');
+assert(zoomBehavior.includes('Leave Meeting')&&zoomBehavior.includes('End Meeting for All'),'Packaged host exit must distinguish leave from end-for-all.');
+assert(zoomBehavior.includes("button.id='zoomAdmitAll'")&&zoomBehavior.includes("meeting.decide(p.participantId,'admit')"),'Packaged waiting room must include Admit All.');
+assert(zoomBehavior.includes("select.id='meetingChatRecipient'")&&zoomBehavior.includes("meeting.sendSignal(target,'chat',payload)"),'Packaged chat must support direct private recipients.');
+assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Packaged private-chat recipient sync must be mutation-loop safe.');
+assert(zoomBehavior.includes("input.maxLength=7")&&zoomBehavior.includes("input.pattern='[0-9]{3,7}'"),'Packaged new/join passcode controls must match the 3–7 digit authority.');
+assert(zoomCss.includes('.zoom-leave-dialog')&&zoomCss.includes('.zoom-admit-all')&&zoomCss.includes('.meeting-chat-recipient'),'Packaged Zoom behavior styling must be present.');
 for(const key of ['joinMuted','joinVideoOff','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Packaged preferences missing ${key}.`);
 assert(annotation.includes('setAnnotationCanvas')&&annotation.includes('share-annotation-canvas'),'Packaged annotation UI must attach a real drawing canvas to the share controller.');
 assert(shareController.includes('canvas.captureStream(30)'),'Packaged share controller must create an outgoing composite stream for annotations.');
@@ -95,4 +102,4 @@ assert(shareService.includes('ensureScreenPermission()')&&shareService.includes(
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage share webrtc diagnostics');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior leave-vs-end admit-all private-chat share webrtc diagnostics');
