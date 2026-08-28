@@ -5,7 +5,7 @@
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const state={items:[],busy:false,loaded:false,error:''};
   const esc=value=>String(value??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const digits=value=>String(value||'').replace(/\D/g,'').slice(0,11);
+  const digits=value=>String(value||'').replace(/\D/g,'');
   const formatId=value=>{const d=digits(value);return d.length>6?`${d.slice(0,3)} ${d.slice(3,6)} ${d.slice(6)}`:d.length>3?`${d.slice(0,3)} ${d.slice(3)}`:d;};
   const randomPasscode=()=>String(Math.floor(100000+Math.random()*900000));
   const whenMs=item=>Date.parse(String(item.scheduledStart||''))||0;
@@ -59,7 +59,7 @@
   function recurrenceValue(){const repeat=String(q('#scheduleRepeat')?.value||'never');if(repeat==='never')return null;if(repeat==='custom')return {repeat,interval:Math.max(1,Math.min(12,Number(q('#scheduleRepeatInterval')?.value)||1)),unit:String(q('#scheduleRepeatUnit')?.value||'week')};return {repeat,interval:1};}
   async function schedule(event){
     event.preventDefault();event.stopPropagation();if(state.busy)return;ensureScheduleOptions();
-    const dialog=q('#scheduleDialog'),status=q('#scheduleStatus'),submit=q('#scheduleSubmit'),title=String(q('#scheduleTopic')?.value||'').trim()||'DominionStar Meeting',date=String(q('#scheduleDate')?.value||''),time=String(q('#scheduleTime')?.value||''),duration=Math.max(15,Math.min(480,Number(q('#scheduleDuration')?.value)||60)),mode=String(q('#scheduleMeetingIdMode')?.value||'auto'),passcode=digits(q('#schedulePasscode')?.value).slice(0,7),recurrence=recurrenceValue();
+    const dialog=q('#scheduleDialog'),status=q('#scheduleStatus'),submit=q('#scheduleSubmit'),title=String(q('#scheduleTopic')?.value||'').trim()||'DominionStar Meeting',date=String(q('#scheduleDate')?.value||''),time=String(q('#scheduleTime')?.value||''),duration=Math.max(15,Math.min(480,Number(q('#scheduleDuration')?.value)||60)),mode=String(q('#scheduleMeetingIdMode')?.value||'auto'),passcode=digits(q('#schedulePasscode')?.value),recurrence=recurrenceValue();
     if(!date||!time){status.hidden=false;status.textContent='Choose a date and time.';return;}const startsAt=new Date(`${date}T${time}`);if(!Number.isFinite(startsAt.getTime())||startsAt.getTime()<Date.now()-60_000){status.hidden=false;status.textContent='Choose a future start time.';return;}
     if(mode==='personal'&&recurrence){status.hidden=false;status.textContent='Personal Meeting ID is already reusable at any time. Use Generate Automatically for a fixed recurring series.';return;}
     if(mode!=='personal'&&!/^\d{3,7}$/.test(passcode)){status.hidden=false;status.textContent='Passcode must contain 3 to 7 digits.';return;}
