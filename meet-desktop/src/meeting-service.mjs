@@ -7,13 +7,35 @@ const QA_DIRECT_ICE=Object.freeze([{urls:['stun:stun.l.google.com:19302','stun:s
 
 export function createMeetingService({auth,allowDirectQa=false}){
   if(!auth?.rpc||!auth?.invokeServerFunction)throw new Error('Meeting service requires authenticated RPC and server-function transport.');
-  let current={roomId:'',participantId:'',joinToken:'',role:'',state:''};
+  let current={roomId:'',roomCode:'',passcode:'',title:'',participantId:'',joinToken:'',role:'',state:''};
   let turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false};
   const cloneIce=value=>Object.freeze({...value,iceServers:value.iceServers.map(server=>({...server,urls:Array.isArray(server.urls)?[...server.urls]:server.urls}))});
-  const remember=value=>{if(value?.roomId)current={roomId:String(value.roomId),participantId:String(value.participantId||current.participantId||''),joinToken:String(value.joinToken||current.joinToken||''),role:String(value.role||current.role||''),state:String(value.state||current.state||'')};return value;};
-  const clear=()=>{current={roomId:'',participantId:'',joinToken:'',role:'',state:''};turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false};};
-  async function createRoom(input={}){const passcode=normalizePasscode(input.passcode);if(passcode.length<3)throw new Error('Passcode must be at least 3 digits.');return remember(await auth.rpc('meet_v2_create_room',{p_title:normalizeTitle(input.title),p_passcode:passcode,p_waiting_room_enabled:input.waitingRoomEnabled!==false,p_external_guests_allowed:input.externalGuestsAllowed!==false}));}
-  async function requestJoin(input={}){const roomCode=normalizeRoomCode(input.roomCode);const passcode=normalizePasscode(input.passcode);const displayName=normalizeName(input.displayName);if(roomCode.length!==10)throw new Error('Meeting ID must contain 10 digits.');if(passcode.length<3)throw new Error('Enter the meeting passcode.');if(!displayName)throw new Error('Enter your display name.');return remember(await auth.rpc('meet_v2_request_join',{p_room_code:roomCode,p_passcode:passcode,p_display_name:displayName}));}
+  const remember=value=>{
+    if(value?.roomId)current={
+      roomId:String(value.roomId),
+      roomCode:String(value.roomCode||current.roomCode||''),
+      passcode:String(value.passcode||current.passcode||''),
+      title:String(value.title||current.title||''),
+      participantId:String(value.participantId||current.participantId||''),
+      joinToken:String(value.joinToken||current.joinToken||''),
+      role:String(value.role||current.role||''),
+      state:String(value.state||current.state||'')
+    };
+    return value;
+  };
+  const clear=()=>{current={roomId:'',roomCode:'',passcode:'',title:'',participantId:'',joinToken:'',role:'',state:''};turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false};};
+  async function createRoom(input={}){
+    const passcode=normalizePasscode(input.passcode);if(passcode.length<3)throw new Error('Passcode must be at least 3 digits.');
+    const title=normalizeTitle(input.title);
+    const result=await auth.rpc('meet_v2_create_room',{p_title:title,p_passcode:passcode,p_waiting_room_enabled:input.waitingRoomEnabled!==false,p_external_guests_allowed:input.externalGuestsAllowed!==false});
+    return remember({...result,title,passcode,roomCode:String(result?.roomCode||'')});
+  }
+  async function requestJoin(input={}){
+    const roomCode=normalizeRoomCode(input.roomCode);const passcode=normalizePasscode(input.passcode);const displayName=normalizeName(input.displayName);
+    if(roomCode.length!==10)throw new Error('Meeting ID must contain 10 digits.');if(passcode.length<3)throw new Error('Enter the meeting passcode.');if(!displayName)throw new Error('Enter your display name.');
+    const result=await auth.rpc('meet_v2_request_join',{p_room_code:roomCode,p_passcode:passcode,p_display_name:displayName});
+    return remember({...result,roomCode,passcode,title:String(result?.title||'DominionStar Meeting')});
+  }
   const joinStatus=async(participantId,joinToken)=>remember(await auth.rpc('meet_v2_join_status',{p_participant_id:participantId,p_join_token:joinToken}));
   const markJoined=async(participantId,joinToken)=>remember(await auth.rpc('meet_v2_mark_joined',{p_participant_id:participantId,p_join_token:joinToken}));
   const leaveRoom=async(participantId,joinToken)=>{const result=await auth.rpc('meet_v2_leave_room',{p_participant_id:participantId,p_join_token:joinToken});clear();return result;};
