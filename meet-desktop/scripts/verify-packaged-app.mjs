@@ -101,10 +101,11 @@ assert(parityCss.includes('repeat(auto-fit,minmax(118px,1fr))'),'Packaged user-r
 for(const id of ['roomChat','roomRecord','roomReactions'])assert(features.includes(`'${id}'`),`Packaged meeting feature missing ${id}.`);
 assert(features.includes("broadcast('chat',payload)")&&features.includes("broadcast('reaction',payload)"),'Packaged Chat and Reactions must use authenticated meeting signaling.');
 assert(features.includes('new MediaRecorder('),'Packaged Record control must create a real local MediaRecorder.');
-assert(zoomBehavior.includes("version:'1.0.3'"),'Packaged app must include the stabilized Zoom behavior layer.');
+assert(zoomBehavior.includes("version:'1.1.0'"),'Packaged app must include the stabilized Zoom behavior layer.');
 assert(zoomBehavior.includes('Assign Host & Leave')&&zoomBehavior.includes('End Meeting for All'),'Packaged host exit must expose handoff versus end-for-all choices.');
-assert(zoomBehavior.includes('Host transfer is required before leaving'),'Packaged host leave must remain blocked until a real handoff authority is certified.');
+assert(zoomBehavior.includes('showHostHandoffChoices')&&zoomBehavior.includes('meeting.transferHostAndLeave(participant.participantId)'),'Packaged host leave must use the real atomic handoff authority.');
 assert(!zoomBehavior.includes("meeting.leave(ctx.participantId,ctx.joinToken)"),'Packaged host UI must not bypass the backend host-transfer safeguard.');
+assert(preload.includes('transferHostAndLeave:')&&main.includes("'meeting:transfer-host-and-leave'")&&meeting.includes('meet_v2_transfer_host_and_leave'),'Packaged desktop must wire host handoff across renderer bridge, main IPC, and meeting service.');
 assert(zoomBehavior.includes("button.id='zoomAdmitAll'")&&zoomBehavior.includes("meeting.decide(p.participantId,'admit')"),'Packaged waiting room must include Admit All.');
 assert(zoomBehavior.includes("select.id='meetingChatRecipient'")&&zoomBehavior.includes("meeting.sendSignal(target,'chat',payload)"),'Packaged chat must support direct private recipients.');
 assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Packaged private-chat recipient sync must avoid redundant DOM rewrites.');
@@ -129,4 +130,4 @@ assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC tr
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 assert(webrtc.includes('await effects.outputStream(raw)')&&webrtc.includes('state.effectsUnsub=window.DominionVideoEffects?.onChange'),'Packaged WebRTC must send the processed camera track when video effects are enabled.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior guarded-host-handoff admit-all private-chat bounded-sync auto-framing background-blur virtual-backgrounds feathered-foreground adaptive-performance video-denoise processed-camera share webrtc diagnostics');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior atomic-host-handoff admit-all private-chat bounded-sync auto-framing background-blur virtual-backgrounds feathered-foreground adaptive-performance video-denoise processed-camera share webrtc diagnostics');
