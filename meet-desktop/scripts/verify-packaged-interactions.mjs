@@ -102,6 +102,16 @@ async function captureBusyStack(){
     return stack;
   }catch(error){return `Unable to capture renderer stack: ${error?.message||error}`;}
 }
+async function evaluateDiagnosed(expression,label){
+  try{return await evaluate(expression);}
+  catch(error){
+    if(String(error?.message||'').includes('Runtime.evaluate')){
+      const stack=await captureBusyStack();
+      throw new Error(`${label} stalled. ${error.message}\nRenderer busy stack:\n${stack}`);
+    }
+    throw new Error(`${label} failed. ${error?.message||error}`);
+  }
+}
 async function waitFor(expression,label,timeoutMs=CONTROLLER_TIMEOUT_MS){
   const deadline=Date.now()+timeoutMs;
   let lastError=null;
@@ -167,12 +177,14 @@ try{
   assert.equal(await evaluate(`(()=>{document.querySelector('.nav-button[data-section="meetings"]').click();return !document.querySelector('#meetingsSection').hidden;})()`),true,'Meetings navigation did not switch sections.');
   assert.equal(await evaluate(`Boolean(document.querySelector('#personalRoomCard')&&document.querySelector('#scheduledMeetingList'))`),true,'Meetings surface is missing Personal Room or scheduled meetings area.');mark('meetings-surface');
 
-  await evaluate(`(()=>{
+  mark('meeting-entry-start');
+  await evaluateDiagnosed(`(()=>{
     document.querySelector('#appShell').hidden=true;
     const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;
     window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);
     return true;
-  })()`);
+  })()`,'meeting-entry transition');
+  mark('meeting-entry-complete');
   await sleep(300);
   await waitFor("document.querySelector('#roomParticipants')&&document.querySelector('#roomMore')&&document.querySelector('#roomSettings')&&document.querySelector('#roomChat')&&document.querySelector('#roomReactions')","meeting controls",7000);mark('meeting-controls');
 
