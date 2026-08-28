@@ -30,7 +30,7 @@ jobs:
 
       - name: Clean all generated state
         run: |
-          rm -rf meet-desktop/node_modules meet-desktop/dist meet-desktop/release .package-audit
+          rm -rf meet-desktop/node_modules meet-desktop/dist meet-desktop/release .package-audit qa-artifact
           find . -maxdepth 2 \( -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' \) -print0 | xargs -0 -I{} rm -f '{}' || true
 
       - name: Install only rebuild dependencies
@@ -53,7 +53,7 @@ jobs:
           node scripts/verify-turn-relay.mjs
           node scripts/verify-diagnostics.mjs
 
-      - name: Build universal QA app
+      - name: Build and sign universal QA app once
         working-directory: meet-desktop
         run: npx electron-builder --mac dir --universal --publish never
 
@@ -66,14 +66,20 @@ jobs:
           echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
           du -sh "$APP_PATH"
 
-      - name: Apply stable ad-hoc QA signature and media entitlements
+      - name: Verify electron-builder signature and Electron QA entitlements
         shell: bash
         run: |
           APP="${{ steps.app.outputs.path }}"
-          codesign --force --deep --sign - --options runtime --entitlements meet-desktop/build/entitlements.mac.plist "$APP"
+          FRAMEWORK="$APP/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+          test -f "$FRAMEWORK"
           codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.cs.allow-jit'
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.cs.disable-library-validation'
           codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.device.camera'
           codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.device.audio-input'
+          codesign -dv --verbose=4 "$APP" 2>&1 | grep -E 'Identifier=|TeamIdentifier=|Signature='
+          codesign -dv --verbose=4 "$FRAMEWORK" 2>&1 | grep -E 'Identifier=|TeamIdentifier=|Signature='
+          otool -L "$APP/Contents/MacOS/DominionStar Meet" | grep -F '@rpath/Electron Framework.framework/Electron Framework'
 
       - name: Audit packaged app contents
         working-directory: meet-desktop
@@ -88,6 +94,33 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' "$APP/Contents/Info.plist" >/dev/null
           /usr/libexec/PlistBuddy -c 'Print :NSAudioCaptureUsageDescription' "$APP/Contents/Info.plist" >/dev/null
           test -x "$APP/Contents/MacOS/DominionStar Meet"
+
+      - name: Launch packaged app smoke test
+        shell: bash
+        run: |
+          SOURCE_APP="${{ steps.app.outputs.path }}"
+          TEST_ROOT="$RUNNER_TEMP/dominionstar-meet-launch-smoke"
+          TEST_APP="$TEST_ROOT/DominionStar Meet.app"
+          LOG="$RUNNER_TEMP/dominionstar-meet-launch.log"
+          rm -rf "$TEST_ROOT" "$LOG"
+          mkdir -p "$TEST_ROOT"
+          ditto "$SOURCE_APP" "$TEST_APP"
+          ELECTRON_ENABLE_LOGGING=1 "$TEST_APP/Contents/MacOS/DominionStar Meet" >"$LOG" 2>&1 &
+          PID=$!
+          sleep 8
+          if ! kill -0 "$PID" 2>/dev/null; then
+            echo 'ERROR: packaged DominionStar Meet terminated during launch smoke test.' >&2
+            cat "$LOG" >&2 || true
+            exit 91
+          fi
+          kill "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || true
+          if grep -E 'different Team IDs|Library not loaded: @rpath/Electron Framework|DYLD.*Library missing' "$LOG"; then
+            echo 'ERROR: Electron framework/signing launch defect detected.' >&2
+            cat "$LOG" >&2 || true
+            exit 92
+          fi
+          echo DOMINIONSTAR_MAC_PACKAGED_LAUNCH_OK
 
       - name: Create clean QA archive
         shell: bash
