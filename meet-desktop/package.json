@@ -26,6 +26,7 @@
     "artifactName": "DominionStar-Meet-Rebuild-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.business",
+      "identity": "-",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
