@@ -7,7 +7,11 @@
   const localName=()=>String(q('#profileName')?.textContent||q('#stageName')?.textContent||'You').trim()||'You';
   const isMeetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const role=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase();
+  const media=()=>window.DominionMediaController||null;
   let leaveDialog=null;
+  let participantMenu=null;
+  let renameDialog=null;
+  let spotlightParticipantId='';
   let chatPatched=false;
   let queueBusy=false;
 
@@ -122,6 +126,92 @@
     button.hidden=count<2;button.disabled=queueBusy;button.textContent=queueBusy?'Admitting…':'Admit All';
   }
 
+
+  function closeParticipantMenu(){participantMenu?.remove();participantMenu=null;}
+  function participantMenuAt(anchor){
+    closeParticipantMenu();const menu=document.createElement('div');menu.className='zoom-participant-menu';document.body.append(menu);
+    const r=anchor.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-240,r.right-220))}px`;menu.style.top=`${Math.max(10,Math.min(innerHeight-320,r.bottom+6))}px`;participantMenu=menu;return menu;
+  }
+  async function sendHostCommand(participantId,command,payload={}){
+    if(!meeting?.sendSignal)return;
+    await meeting.sendSignal(participantId,`host:${command}`,{...payload,at:new Date().toISOString()});
+  }
+  async function setSpotlight(participantId){
+    const next=spotlightParticipantId===String(participantId||'')?'':String(participantId||'');
+    spotlightParticipantId=next;
+    window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:next}}));
+    const list=await peers();
+    await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'host:spotlight',{participantId:next,at:new Date().toISOString()})));
+  }
+  function ensureRenameDialog(){
+    if(renameDialog?.isConnected)return renameDialog;
+    renameDialog=document.createElement('dialog');renameDialog.className='zoom-rename-dialog';
+    renameDialog.innerHTML='<form method="dialog"><h3>Rename participant</h3><label><span>Name</span><input maxlength="100" autocomplete="off"></label><p class="zoom-rename-status" role="status"></p><div><button type="button" class="secondary" data-rename-cancel>Cancel</button><button type="submit" class="primary">Rename</button></div></form>';
+    document.body.append(renameDialog);renameDialog.querySelector('[data-rename-cancel]').onclick=()=>renameDialog.close();return renameDialog;
+  }
+  async function renameParticipant(participantId,currentName){
+    const dialog=ensureRenameDialog(),input=dialog.querySelector('input'),status=dialog.querySelector('.zoom-rename-status'),form=dialog.querySelector('form');
+    input.value=String(currentName||'');status.textContent='';if(!dialog.open)dialog.showModal();setTimeout(()=>{input.focus();input.select();},20);
+    form.onsubmit=async event=>{event.preventDefault();const name=String(input.value||'').trim();if(!name)return status.textContent='Enter a name.';const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
+      try{await meeting.renameParticipant(participantId,name);dialog.close();}catch(error){status.textContent=String(error?.message||error||'Rename failed.');}finally{buttons.forEach(b=>b.disabled=false);}
+    };
+  }
+  async function openParticipantActions(button,row){
+    const localRole=role();if(!['host','co-host','cohost'].includes(localRole))return;
+    const participantId=String(row.dataset.participantId||''),targetRole=String(row.dataset.participantRole||'participant').toLowerCase(),name=String(row.dataset.participantName||'Participant');
+    const menu=participantMenuAt(button);
+    const add=(label,action,{danger=false,disabled=false}={})=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;if(danger)b.classList.add('danger');b.onclick=()=>{closeParticipantMenu();void action();};menu.append(b);};
+    const isHost=localRole==='host';
+    if(targetRole!=='host'){
+      add('Mute',()=>sendHostCommand(participantId,'mute'));
+      add('Ask to Unmute',()=>sendHostCommand(participantId,'ask-unmute'));
+      add('Stop Video',()=>sendHostCommand(participantId,'stop-video'));
+      add(spotlightParticipantId===participantId?'Remove Spotlight':'Spotlight for Everyone',()=>setSpotlight(participantId));
+      add('Rename',()=>renameParticipant(participantId,name));
+      if(isHost)add(targetRole==='cohost'?'Remove Co-host':'Make Co-host',()=>meeting.setCohost(participantId,targetRole!=='cohost'));
+      add('Remove',()=>meeting.removeParticipant(participantId),{danger:true});
+    }
+  }
+  function patchParticipantControls(){
+    const localRole=role();if(!['host','co-host','cohost'].includes(localRole))return;
+    for(const row of qa('#participantRoster .person-row')){
+      if(row.dataset.zoomActionsInstalled)return void 0;
+      row.dataset.zoomActionsInstalled='1';
+      const targetRole=String(row.dataset.participantRole||'participant').toLowerCase();
+      if(targetRole==='host')continue;
+      const actions=row.querySelector('.participant-actions')||(()=>{const span=document.createElement('span');span.className='participant-actions';row.append(span);return span;})();
+      const more=document.createElement('button');more.type='button';more.className='mini-btn zoom-participant-more';more.textContent='More';more.setAttribute('aria-label',`More options for ${row.dataset.participantName||'participant'}`);more.onclick=event=>{event.stopPropagation();void openParticipantActions(more,row);};actions.append(more);
+    }
+  }
+  async function senderAuthority(fromParticipantId){
+    const list=await peers();const sender=list.find(p=>String(p.participantId)===String(fromParticipantId));
+    const senderRole=String(sender?.role||'').toLowerCase();return {sender,allowed:['host','cohost'].includes(senderRole)};
+  }
+  function ensureUnmuteDialog(name){
+    let dialog=q('#zoomUnmuteRequestDialog');if(dialog)return dialog;
+    dialog=document.createElement('dialog');dialog.id='zoomUnmuteRequestDialog';dialog.className='zoom-unmute-dialog';
+    dialog.innerHTML='<div><h3>Unmute microphone?</h3><p class="zoom-unmute-copy"></p><div><button type="button" class="secondary" data-unmute-decline>Stay Muted</button><button type="button" class="primary" data-unmute-accept>Unmute</button></div></div>';
+    document.body.append(dialog);return dialog;
+  }
+  async function handleHostControl(event){
+    const detail=event.detail||{},type=String(detail.type||'');if(!type.startsWith('host:'))return;
+    const {sender,allowed}=await senderAuthority(detail.fromParticipantId);if(!allowed)return;
+    const command=type.slice(5),payload=detail.payload||{};
+    if(command==='mute'){await media()?.setMicrophone?.(false).catch?.(()=>{});return;}
+    if(command==='stop-video'){await media()?.setCamera?.(false).catch?.(()=>{});return;}
+    if(command==='ask-unmute'){
+      const dialog=ensureUnmuteDialog();dialog.querySelector('.zoom-unmute-copy').textContent=`${String(sender?.displayName||'The host')} asked you to unmute.`;
+      dialog.querySelector('[data-unmute-decline]').onclick=()=>dialog.close();
+      dialog.querySelector('[data-unmute-accept]').onclick=async()=>{dialog.close();await media()?.setMicrophone?.(true).catch?.(()=>{});};
+      if(!dialog.open)dialog.showModal();return;
+    }
+    if(command==='spotlight'){
+      spotlightParticipantId=String(payload.participantId||'');window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:spotlightParticipantId}}));return;
+    }
+  }
+  window.addEventListener('dominion:meeting-signal',event=>void handleHostControl(event),true);
+  document.addEventListener('pointerdown',event=>{if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();},true);
+
   function chatMessages(){return q('#meetingChatMessages');}
   function appendChat({text,name,own=false,privateMessage=false,peerName='',at=Date.now()}){
     const box=chatMessages();if(!box)return;
@@ -180,7 +270,7 @@
   function sync(){
     hardenPasscodes();
     if(!isMeetingOpen())return;
-    installLeaveGuard();patchChat();syncAdmitAll();
+    installLeaveGuard();patchChat();syncAdmitAll();patchParticipantControls();
     const exit=q('#roomExitButton');if(exit&&role()==='host'){
       const label=exit.querySelector('.ds-control-label');if(label)label.textContent='End';else exit.textContent='End';
       exit.setAttribute('aria-label','End or leave meeting');
@@ -190,5 +280,5 @@
 
   const syncTimer=setInterval(sync,900);
   sync();
-  window.DominionZoomBehavior=Object.freeze({version:'1.1.0',sync,admitAll,refreshChatRecipients,showHostHandoffChoices,dispose:()=>clearInterval(syncTimer)});
+  window.DominionZoomBehavior=Object.freeze({version:'1.2.0',sync,admitAll,refreshChatRecipients,showHostHandoffChoices,setSpotlight,dispose:()=>clearInterval(syncTimer)});
 })();
