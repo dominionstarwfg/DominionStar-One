@@ -133,6 +133,8 @@ jobs:
 
       - name: Exercise packaged desktop controls
         working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Create clean QA archive
