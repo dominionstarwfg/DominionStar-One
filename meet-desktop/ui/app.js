@@ -52,7 +52,7 @@
     if(mode==='host'){enterRoom();return;}
     pendingMediaPreferences=media.snapshot();
     const response=await meeting.requestJoin(pendingJoin);activeRoom=response;pendingJoin=null;
-    if(response.state==='waiting')showWaiting();else{if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);activeRoom.state='joined';if(response.muteOnEntry)await media.setMicrophone(false).catch(()=>{});enterRoom();}
+    if(['waiting_host','waiting'].includes(response.state))showWaiting(response);else{if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);activeRoom.state='joined';if(response.muteOnEntry)await media.setMicrophone(false).catch(()=>{});enterRoom();}
   }
   async function openPrejoin(mode){
     if(window.DominionPreferences?.read?.('showJoinPreview')===false){await joinUsingSavedDefaults(mode);return;}
@@ -60,10 +60,41 @@
   async function prepareNewMeeting(event){event.preventDefault();if(!meeting)return notice('Desktop meeting engine required','Start meetings from the installed desktop rebuild.');const button=$('#startMeetingButton'),error=$('#newMeetingError');button.disabled=true;error.hidden=true;try{activeRoom=await meeting.create({title:$('#newMeetingTitle').value,passcode:$('#newMeetingPasscode').value,waitingRoomEnabled:$('#newMeetingWaiting').checked,externalGuestsAllowed:$('#newMeetingGuests').checked});activeRoom.role='host';dialogs.newMeeting.close();$('#newMeetingPasscode').value=randomPasscode();await openPrejoin('host');}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
   async function prepareJoinMeeting(event){event.preventDefault();pendingJoin={roomCode:$('#joinRoomCode').value,passcode:$('#joinPasscode').value,displayName:$('#joinDisplayName').value||authState.user?.name};dialogs.join.close();await openPrejoin('participant');}
   function cancelPrejoin(){media.stop();$('#prejoinOverlay').hidden=true;$('#appShell').hidden=false;if($('#prejoinOverlay').dataset.mode==='host'&&activeRoom?.roomId)void meeting.end(activeRoom.roomId).catch(()=>{});activeRoom=null;pendingJoin=null;pendingMediaPreferences=null;document.body.dataset.shareAfterJoin='';}
-  async function continueFromPrejoin(){const button=$('#prejoinContinue'),error=$('#prejoinError');button.disabled=true;error.hidden=true;try{if($('#prejoinOverlay').dataset.mode==='host'){enterRoom();return;}pendingMediaPreferences=media.snapshot();const response=await meeting.requestJoin(pendingJoin);activeRoom=response;pendingJoin=null;$('#prejoinOverlay').hidden=true;if(response.state==='waiting')showWaiting();else{if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);activeRoom.state='joined';if(response.muteOnEntry)await media.setMicrophone(false).catch(()=>{});enterRoom();}}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
+  async function continueFromPrejoin(){const button=$('#prejoinContinue'),error=$('#prejoinError');button.disabled=true;error.hidden=true;try{if($('#prejoinOverlay').dataset.mode==='host'){enterRoom();return;}pendingMediaPreferences=media.snapshot();const response=await meeting.requestJoin(pendingJoin);activeRoom=response;pendingJoin=null;$('#prejoinOverlay').hidden=true;if(['waiting_host','waiting'].includes(response.state))showWaiting(response);else{if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);activeRoom.state='joined';if(response.muteOnEntry)await media.setMicrophone(false).catch(()=>{});enterRoom();}}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
 
-  function showWaiting(){pendingMediaPreferences=pendingMediaPreferences||media.snapshot();media.stop();$('#prejoinOverlay').hidden=true;$('#waitingOverlay').hidden=false;$('#waitingTitle').textContent=`Waiting to join ${activeRoom.title||'DominionStar Meeting'}`;clearTimer('waiting');timers.waiting=setInterval(()=>void pollJoinStatus(),1000);}
-  async function pollJoinStatus(){if(!activeRoom?.participantId)return;try{const state=await meeting.joinStatus(activeRoom.participantId,activeRoom.joinToken);if(state.state==='admitted'){clearTimer('waiting');await meeting.markJoined(activeRoom.participantId,activeRoom.joinToken);activeRoom={...activeRoom,...state,state:'joined'};const prefs=pendingMediaPreferences||{};await media.startPreview({cameraOn:prefs.cameraOn!==false,micOn:state.muteOnEntry?false:Boolean(prefs.micOn),cameraId:prefs.cameraId,microphoneId:prefs.microphoneId});media.setMirror(prefs.mirror!==false);if(prefs.speakerId)await media.selectSpeaker(prefs.speakerId,$('#localMeetingVideo'));pendingMediaPreferences=null;enterRoom();}else if(['declined','removed'].includes(state.state)||state.roomStatus==='ended'){clearTimer('waiting');$('#waitingTitle').textContent=state.state==='declined'?'The host declined this request':'This meeting is no longer available';$('#waitingCopy').textContent='Return to Home to continue.';}}catch(e){$('#waitingCopy').textContent=errorText(e);}}
+  function renderWaitingState(state=activeRoom){
+    const hostWait=state?.state==='waiting_host'||state?.waitReason==='host'||state?.hostStarted===false;
+    if(hostWait){
+      $('#waitingTitle').textContent='Waiting for the host to start this meeting';
+      $('#waitingCopy').textContent='You are connected to the correct meeting. DominionStar Meet will move you forward automatically when the host starts it.';
+      $('#waitingOverlay').dataset.waitingState='host';
+    }else{
+      $('#waitingTitle').textContent='The host has been notified';
+      $('#waitingCopy').textContent='You are in the Waiting Room. The host or co-host can admit you when ready.';
+      $('#waitingOverlay').dataset.waitingState='admission';
+    }
+  }
+  function showWaiting(state=activeRoom){pendingMediaPreferences=pendingMediaPreferences||media.snapshot();media.stop();$('#prejoinOverlay').hidden=true;$('#waitingOverlay').hidden=false;activeRoom={...activeRoom,...state};renderWaitingState(activeRoom);clearTimer('waiting');timers.waiting=setInterval(()=>void pollJoinStatus(),1000);}
+  async function pollJoinStatus(){
+    if(!activeRoom?.participantId)return;
+    try{
+      const previousState=activeRoom.state,state=await meeting.joinStatus(activeRoom.participantId,activeRoom.joinToken);
+      activeRoom={...activeRoom,...state};
+      if(['waiting_host','waiting'].includes(state.state)){
+        if(previousState!==state.state)renderWaitingState(state);
+        return;
+      }
+      if(state.state==='admitted'){
+        clearTimer('waiting');await meeting.markJoined(activeRoom.participantId,activeRoom.joinToken);activeRoom={...activeRoom,...state,state:'joined'};
+        const prefs=pendingMediaPreferences||{};
+        await media.startPreview({cameraOn:prefs.cameraOn!==false,micOn:state.muteOnEntry?false:Boolean(prefs.micOn),cameraId:prefs.cameraId,microphoneId:prefs.microphoneId});
+        media.setMirror(prefs.mirror!==false);if(prefs.speakerId)await media.selectSpeaker(prefs.speakerId,$('#localMeetingVideo'));pendingMediaPreferences=null;enterRoom();return;
+      }
+      if(['declined','removed'].includes(state.state)||['ended','cancelled'].includes(state.roomStatus)){
+        clearTimer('waiting');$('#waitingTitle').textContent=state.state==='declined'?'The host declined this request':'This meeting is no longer available';$('#waitingCopy').textContent='Return to Home to continue.';$('#waitingOverlay').dataset.waitingState='closed';
+      }
+    }catch(e){$('#waitingCopy').textContent=errorText(e);}
+  }
   async function cancelWaiting(){const room=activeRoom;clearTimer('waiting');$('#cancelWaiting').disabled=true;try{if(room?.participantId&&room?.joinToken)await meeting.leave(room.participantId,room.joinToken);}catch(e){console.warn('Waiting-room cleanup failed',e);}finally{$('#waitingOverlay').hidden=true;$('#appShell').hidden=false;$('#cancelWaiting').disabled=false;activeRoom=null;pendingMediaPreferences=null;document.body.dataset.shareAfterJoin='';showSection('home');}}
 
   function enterRoom(){$('#prejoinOverlay').hidden=true;$('#waitingOverlay').hidden=true;$('#appShell').hidden=true;$('#meetingOverlay').hidden=false;$('#roomTitle').textContent=activeRoom.title||'DominionStar Meeting';$('#roomCodeLabel').textContent=`Meeting ID ${roomCode(activeRoom.roomCode)}${activeRoom.passcode?`  •  Passcode ${activeRoom.passcode}`:''}`;$('#roomRole').textContent=activeRoom.role==='host'?'Host':activeRoom.role==='cohost'?'Co-host':'Participant';$('#stageName').textContent=authState.user?.name||'DominionStar Member';$('#stageAvatar').textContent=initials(authState.user?.name);$('#roomExitButton').textContent=activeRoom.role==='host'?'End':'Leave';$('#waitingQueueSection').hidden=!['host','cohost'].includes(activeRoom.role);attachPreview();startPolling();if(document.body.dataset.shareAfterJoin==='1'){document.body.dataset.shareAfterJoin='';setTimeout(()=>$('#roomShare')?.click(),650);}}
