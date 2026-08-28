@@ -14,10 +14,14 @@ assert(enhancements.includes("media.selectCamera(camera.value)")&&enhancements.i
 assert(enhancements.includes("Mirror my video")&&enhancements.includes('media.setMirror'),'Mirror control must be functional.');
 assert(enhancements.includes("Original ratio")&&enhancements.includes("video.style.objectFit=state.originalRatio?'contain':''"),'Original-ratio control must affect the actual local video surfaces.');
 assert(enhancements.includes("Adjust for low light")&&enhancements.includes('getCapabilities')&&enhancements.includes('applyConstraints({advanced:[advanced]})'),'Low-light adjustment must remain camera-aware rather than a fake whole-frame filter.');
+assert(enhancements.includes("Low light mode")&&enhancements.includes("Manual low light")&&enhancements.includes("state.lowLightMode==='manual'"),'Low-light parity must expose Auto and Manual behavior with a real camera constraint path.');
+assert(enhancements.includes("Touch up my appearance")&&enhancements.includes("Touch up intensity")&&enhancements.includes("applyAppearance()"),'Video appearance must expose a persistent touch-up control and intensity.');
+assert(enhancements.includes("Portrait lighting")&&enhancements.includes("Portrait lighting intensity"),'Video appearance must expose portrait lighting and intensity.');
+assert(enhancements.includes("ds_meet_touch_up")&&enhancements.includes("ds_meet_portrait_light"),'Appearance preferences must persist locally across meetings.');
 assert(enhancements.includes("HD · 720p")&&enhancements.includes("Balanced · 540p")&&enhancements.includes("Data saver · 360p"),'Video quality settings must expose practical conferencing tiers.');
 assert(enhancements.includes('track.applyConstraints({width:{ideal:width},height:{ideal:height},frameRate:{ideal:fps,max:fps}})'),'Video quality must apply to the live camera track.');
 assert(enhancements.includes('installMeetingQuickMenus')&&enhancements.includes('av-device-caret'),'Mic/video quick-device menus must be attached beside meeting controls.');
 assert(enhancements.includes('Audio & Video Settings…'),'Quick menus must lead to advanced settings.');
 assert(media.includes('ds_meet_camera_id')&&media.includes('ds_meet_microphone_id')&&media.includes('ds_meet_speaker_id'),'AV parity depends on persistent clean device preferences.');
-assert(css.includes('.av-quick-menu')&&css.includes('.av-video-preview')&&css.includes('.av-settings-detail'),'AV settings must have dedicated desktop styling.');
-console.log('DOMINIONSTAR_AV_SETTINGS_PARITY_OK devices quick-menus mirror original-ratio low-light quality clean-media-authority');
+assert(css.includes('.av-quick-menu')&&css.includes('.av-video-preview')&&css.includes('.av-settings-detail')&&css.includes('.av-range-row'),'AV settings must have dedicated desktop styling including appearance sliders.');
+console.log('DOMINIONSTAR_AV_SETTINGS_PARITY_OK devices quick-menus mirror original-ratio low-light-auto-manual touch-up portrait-lighting quality clean-media-authority');
