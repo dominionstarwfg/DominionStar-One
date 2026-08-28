@@ -91,9 +91,25 @@
 
   function closeMenus(){moreMenu?.remove();moreMenu=null;securityMenu?.remove();securityMenu=null;}
   function menuAt(anchor,className){const menu=document.createElement('div');menu.className=className;document.body.append(menu);const r=anchor.getBoundingClientRect();menu.style.left=`${clamp(r.left,10,innerWidth-240)}px`;menu.style.bottom=`${Math.max(78,innerHeight-r.top+8)}px`;return menu;}
-  function openSecurity(anchor){closeMenus();securityMenu=menuAt(anchor,'meeting-more-menu security-menu');const meta=lastMeta||q('#roomCodeLabel')?.textContent||'Meeting protected';securityMenu.innerHTML=`<div class="menu-heading"><strong>Security</strong><small>${meta}</small></div><button type="button" data-security-copy>Copy meeting information</button><button type="button" data-security-participants>Open Participants</button>`;securityMenu.querySelector('[data-security-copy]').onclick=async()=>{try{await navigator.clipboard.writeText(meta);}catch{}closeMenus();};securityMenu.querySelector('[data-security-participants]').onclick=()=>{toggleParticipants(true);closeMenus();};}
+  async function openSecurity(anchor){
+    closeMenus();securityMenu=menuAt(anchor,'meeting-more-menu security-menu');
+    const meta=lastMeta||q('#roomCodeLabel')?.textContent||'Meeting protected';
+    const role=String(q('#roomRole')?.textContent||'').toLowerCase().replace('-',''),canManage=['host','cohost'].includes(role);
+    let snapshot=null,ctx=null;
+    try{ctx=await desktop.meeting?.context?.();if(ctx?.roomId&&desktop.meeting?.snapshot)snapshot=await desktop.meeting.snapshot(ctx.roomId);}catch{}
+    const locked=Boolean(snapshot?.meetingLocked),muteOnEntry=Boolean(snapshot?.muteOnEntry);
+    securityMenu.innerHTML=`<div class="menu-heading"><strong>Security</strong><small>${meta}</small></div><button type="button" data-security-copy>Copy meeting information</button><button type="button" data-security-participants>Open Participants</button>${canManage?`<div class="security-separator"></div><button type="button" data-security-lock aria-pressed="${locked}">${locked?'✓ ':''}Lock Meeting</button><button type="button" data-security-mute-entry aria-pressed="${muteOnEntry}">${muteOnEntry?'✓ ':''}Mute Participants on Entry</button>`:''}`;
+    securityMenu.querySelector('[data-security-copy]').onclick=async()=>{try{await navigator.clipboard.writeText(meta);}catch{}closeMenus();};
+    securityMenu.querySelector('[data-security-participants]').onclick=()=>{toggleParticipants(true);closeMenus();};
+    const persist=async next=>{
+      if(!ctx?.roomId||!desktop.meeting?.setSecurity)return;
+      try{await desktop.meeting.setSecurity(ctx.roomId,next);closeMenus();void openSecurity(anchor);}catch{}
+    };
+    const lockButton=securityMenu.querySelector('[data-security-lock]');if(lockButton)lockButton.onclick=()=>void persist({locked:!locked,muteOnEntry});
+    const muteButton=securityMenu.querySelector('[data-security-mute-entry]');if(muteButton)muteButton.onclick=()=>void persist({locked,muteOnEntry:!muteOnEntry});
+  }
   function openMore(anchor){closeMenus();moreMenu=menuAt(anchor,'meeting-more-menu');const dock=q('#participantVideoDock');const add=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{closeMenus();action();};moreMenu.append(b);};add('Meeting settings',()=>{const d=q('#settingsDialog');if(d&&!d.open)d.showModal();});add('Reset participant video panel',resetVideoDock);add('Diagnostics',()=>q('#meetDiagnosticsButton')?.click());if(dock&&!dock.hidden)add('Hide participant video',()=>{dock.hidden=true;});}
-  function installMeetingControls(){const footer=q('.meeting-footer'),exit=q('#roomExitButton');if(!footer||!exit)return;if(!q('#roomSecurity')){const b=document.createElement('button');b.id='roomSecurity';b.type='button';b.className='meeting-control';b.textContent='Security';b.onclick=event=>{event.stopPropagation();openSecurity(b);};footer.insertBefore(b,q('#roomParticipants')||exit);}if(!q('#roomSettings')){const b=document.createElement('button');b.id='roomSettings';b.type='button';b.className='meeting-control';b.textContent='Settings';b.onclick=()=>{const d=q('#settingsDialog');if(d&&!d.open)d.showModal();};footer.insertBefore(b,exit);}if(!q('#roomMore')){const b=document.createElement('button');b.id='roomMore';b.type='button';b.className='meeting-control';b.textContent='More';b.onclick=event=>{event.stopPropagation();openMore(b);};footer.insertBefore(b,exit);}const participants=q('#roomParticipants');if(participants&&!participants.dataset.dsZoomBound){participants.dataset.dsZoomBound='1';participants.setAttribute('aria-pressed','false');participants.addEventListener('click',()=>toggleParticipants());}decorateControls();}
+  function installMeetingControls(){const footer=q('.meeting-footer'),exit=q('#roomExitButton');if(!footer||!exit)return;if(!q('#roomSecurity')){const b=document.createElement('button');b.id='roomSecurity';b.type='button';b.className='meeting-control';b.textContent='Security';b.onclick=event=>{event.stopPropagation();void openSecurity(b);};footer.insertBefore(b,q('#roomParticipants')||exit);}if(!q('#roomSettings')){const b=document.createElement('button');b.id='roomSettings';b.type='button';b.className='meeting-control';b.textContent='Settings';b.onclick=()=>{const d=q('#settingsDialog');if(d&&!d.open)d.showModal();};footer.insertBefore(b,exit);}if(!q('#roomMore')){const b=document.createElement('button');b.id='roomMore';b.type='button';b.className='meeting-control';b.textContent='More';b.onclick=event=>{event.stopPropagation();openMore(b);};footer.insertBefore(b,exit);}const participants=q('#roomParticipants');if(participants&&!participants.dataset.dsZoomBound){participants.dataset.dsZoomBound='1';participants.setAttribute('aria-pressed','false');participants.addEventListener('click',()=>toggleParticipants());}decorateControls();}
 
   function install(){syncBrand();syncGreeting();installParticipantPanel();installMeetingControls();ensureVideoDock();syncVideoDock();void syncMeetingMeta();}
   document.addEventListener('pointerdown',event=>{if((moreMenu&&!moreMenu.contains(event.target)&&event.target!==q('#roomMore'))||(securityMenu&&!securityMenu.contains(event.target)&&event.target!==q('#roomSecurity')))closeMenus();},true);
@@ -101,5 +117,5 @@
   window.addEventListener('dominion:spotlight-change',event=>setSpotlight(event.detail?.participantId||''));
   setInterval(()=>{syncGreeting();if(meetingOpen()){void syncMeetingMeta();syncVideoDock();}},700);
   install();
-  window.DominionMeetingParity=Object.freeze({version:'2.1.0-zoom-host-controls',install,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight});
+  window.DominionMeetingParity=Object.freeze({version:'2.2.0-zoom-security-controls',install,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight});
 })();
