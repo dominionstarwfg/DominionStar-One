@@ -62,7 +62,7 @@ assert(participantControls.includes("type==='host:mute'")&&participantControls.i
 assert(participantControls.includes("type==='host:ask-unmute'")&&participantControls.includes("type==='host:ask-start-video'"),'Unmute and start-video must be consent requests rather than forced activation.');
 assert(participantControls.includes('authorizedSender')&&participantControls.includes("['host','cohost'].includes"),'Incoming participant-control commands must verify host/co-host authority before touching local media.');
 assert(participantControls.includes("media()?.setMicrophone?.(false)")&&participantControls.includes("media()?.setCamera?.(false)"),'Verified host controls must call the existing media authority rather than manipulate tracks directly.');
-assert(participantControls.includes("'Mute All'")&&participantControls.includes("'Ask All to Unmute'"),'Participant panel must expose Zoom-style bulk audio controls.');
+assert(participantControls.includes('Mute All')&&participantControls.includes('Ask All to Unmute'),'Participant panel must expose Zoom-style bulk audio controls.');
 assert(participantControls.includes("filter(p=>String(p.role||'').toLowerCase()!=='host')"),'Bulk participant controls must never target the host.');
 assert(webrtc.includes("String(signal.type||'').startsWith('host:')"),'WebRTC signaling must dispatch host media-control messages to the verified participant-control layer.');
 assert(participantCss.includes('.participant-control-menu')&&participantCss.includes('.participant-bulk-actions')&&participantCss.includes('.participant-control-prompt'),'Participant media controls must ship with dedicated desktop UI styling.');
