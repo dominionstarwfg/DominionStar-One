@@ -33,7 +33,7 @@
     const dialog=ensureEditDialog();q('#personalRoomId').textContent=formatId(state.room.roomCode);q('#personalRoomPasscode').value=String(state.room.passcode||'');q('#personalUseInstant').checked=state.room.useForInstant!==false;q('#personalWaiting').checked=state.room.waitingRoomEnabled!==false;q('#personalGuests').checked=state.room.externalGuestsAllowed!==false;q('#personalRoomStatus').hidden=true;if(!dialog.open)dialog.showModal();
   }
   async function save(event){
-    event.preventDefault();const status=q('#personalRoomStatus'),button=q('#personalRoomSave'),passcode=digits(q('#personalRoomPasscode')?.value).slice(0,7);
+    event.preventDefault();const status=q('#personalRoomStatus'),button=q('#personalRoomSave'),passcode=digits(q('#personalRoomPasscode')?.value);
     if(!/^\d{3,7}$/.test(passcode)){status.hidden=false;status.textContent='Passcode must contain 3 to 7 digits.';return;}
     button.disabled=true;status.hidden=false;status.textContent='Saving Personal Room…';
     try{state.room=await meeting.updatePersonalRoom({passcode,useForInstant:q('#personalUseInstant').checked,waitingRoomEnabled:q('#personalWaiting').checked,externalGuestsAllowed:q('#personalGuests').checked});status.textContent='Personal Room saved.';render();setTimeout(()=>q('#personalRoomDialog')?.close(),450);}
