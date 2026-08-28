@@ -89,43 +89,65 @@
     const privacy=document.createElement('button');privacy.type='button';privacy.className='secondary-button av-privacy';privacy.textContent='Open macOS Microphone Privacy';privacy.onclick=()=>media.openPrivacy?.('microphone');detail.append(privacy);
     await fillSelects(media,detail);mic.onchange=async()=>{await media.selectMicrophone(mic.value);};speaker.onchange=async()=>{await media.selectSpeaker(speaker.value,$('#localMeetingVideo'));};
   }
+  function avGroup(parent,title,copy=''){
+    const section=document.createElement('section');section.className='av-zoom-group';
+    const head=document.createElement('div');head.className='av-zoom-group-head';
+    const strong=document.createElement('strong');strong.textContent=title;head.append(strong);
+    if(copy){const small=document.createElement('small');small.textContent=copy;head.append(small);}
+    section.append(head);parent.append(section);return section;
+  }
+  function avDivider(parent){const line=document.createElement('div');line.className='av-zoom-divider';parent.append(line);return line;}
   async function openVideoSettings(media){
-    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Video','Camera, framing, and image preferences.');
-    const preview=document.createElement('div');preview.className='av-video-preview';preview.innerHTML='<video id="settingsVideoPreview" autoplay playsinline muted></video><span>Camera preview</span>';detail.append(preview);const video=preview.querySelector('video');video.srcObject=await previewStream(media);void video.play().catch(()=>{});
-    const camera=addSelect(detail,'Camera','data-av-camera');
-    const qualityLabel=document.createElement('label');qualityLabel.className='av-field';qualityLabel.innerHTML='<span>Video quality</span><select data-av-quality><option value="720">HD · 720p</option><option value="540">Balanced · 540p</option><option value="360">Data saver · 360p</option></select>';detail.append(qualityLabel);const quality=qualityLabel.querySelector('select');quality.value=state.quality;
-    addToggle(detail,'Mirror my video',media.snapshot().mirror,value=>{media.setMirror(value);applyMirror(media);});
-    addToggle(detail,'Original ratio',state.originalRatio,value=>{state.originalRatio=value;applyOriginalRatio();});
-    addToggle(detail,'Adjust for low light',state.lowLight,value=>{state.lowLight=value;void applyLowLight(media);});
-    const lowMode=addSelect(detail,'Low light mode','data-av-low-light-mode');lowMode.append(new Option('Auto','auto'),new Option('Manual','manual'));lowMode.value=state.lowLightMode;lowMode.onchange=()=>{state.lowLightMode=lowMode.value;void applyLowLight(media);};
-    addRange(detail,'Manual low light',state.lowLightLevel,0,100,value=>{state.lowLightLevel=value;if(state.lowLight&&state.lowLightMode==='manual')void applyLowLight(media);});
-    addToggle(detail,'Touch up my appearance',state.touchUp,value=>{state.touchUp=value;applyAppearance();});
-    addRange(detail,'Touch up intensity',state.touchUpLevel,0,100,value=>{state.touchUpLevel=value;applyAppearance();});
-    addToggle(detail,'Portrait lighting',state.portraitLight,value=>{state.portraitLight=value;applyAppearance();});
-    addRange(detail,'Portrait lighting intensity',state.portraitLevel,0,100,value=>{state.portraitLevel=value;applyAppearance();});
+    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Video','Camera and video preferences.');
+
+    const cameraGroup=avGroup(detail,'Camera','Select your camera and review the live preview.');
+    const camera=addSelect(cameraGroup,'Camera','data-av-camera');
+    const preview=document.createElement('div');preview.className='av-video-preview zoom-reference-preview';preview.innerHTML='<video id="settingsVideoPreview" autoplay playsinline muted></video><span>Camera preview</span>';cameraGroup.append(preview);
+    const video=preview.querySelector('video');video.srcObject=await previewStream(media);void video.play().catch(()=>{});
+
+    const basic=avGroup(detail,'Video','Core camera behavior');
+    const qualityRow=document.createElement('div');qualityRow.className='av-zoom-inline-options';basic.append(qualityRow);
+    const qualityLabel=document.createElement('label');qualityLabel.className='av-field compact';qualityLabel.innerHTML='<span>Video quality</span><select data-av-quality><option value="720">HD · 720p</option><option value="540">Balanced · 540p</option><option value="360">Data saver · 360p</option></select>';qualityRow.append(qualityLabel);
+    const quality=qualityLabel.querySelector('select');quality.value=state.quality;
+    addToggle(basic,'Original ratio',state.originalRatio,value=>{state.originalRatio=value;applyOriginalRatio();});
+    addToggle(basic,'Mirror my video',media.snapshot().mirror,value=>{media.setMirror(value);applyMirror(media);});
+
+    const appearance=avGroup(detail,'Appearance','Match the familiar Zoom-style video controls.');
+    const touch=addToggle(appearance,'Touch up my appearance',state.touchUp,value=>{state.touchUp=value;applyAppearance();});
+    const touchRange=addRange(appearance,'Touch up intensity',state.touchUpLevel,0,100,value=>{state.touchUpLevel=value;applyAppearance();});touchRange.disabled=!touch.checked;touch.onchange=()=>{state.touchUp=touch.checked;touchRange.disabled=!touch.checked;applyAppearance();};
+    const low=addToggle(appearance,'Adjust for low light',state.lowLight,value=>{state.lowLight=value;void applyLowLight(media);});
+    const lowMode=addSelect(appearance,'Low light mode','data-av-low-light-mode');lowMode.append(new Option('Auto','auto'),new Option('Manual','manual'));lowMode.value=state.lowLightMode;lowMode.onchange=()=>{state.lowLightMode=lowMode.value;manualRange.disabled=lowMode.value!=='manual'||!low.checked;void applyLowLight(media);};
+    const manualRange=addRange(appearance,'Manual low light',state.lowLightLevel,0,100,value=>{state.lowLightLevel=value;if(state.lowLight&&state.lowLightMode==='manual')void applyLowLight(media);});manualRange.disabled=state.lowLightMode!=='manual'||!state.lowLight;
+    low.onchange=()=>{state.lowLight=low.checked;lowMode.disabled=!low.checked;manualRange.disabled=!low.checked||lowMode.value!=='manual';void applyLowLight(media);};lowMode.disabled=!state.lowLight;
+    const portrait=addToggle(appearance,'Portrait lighting',state.portraitLight,value=>{state.portraitLight=value;applyAppearance();});
+    const portraitRange=addRange(appearance,'Portrait lighting intensity',state.portraitLevel,0,100,value=>{state.portraitLevel=value;applyAppearance();});portraitRange.disabled=!portrait.checked;portrait.onchange=()=>{state.portraitLight=portrait.checked;portraitRange.disabled=!portrait.checked;applyAppearance();};
+
+    const effectsGroup=avGroup(detail,'Background & Effects','Applied to the outgoing video participants receive.');
     const fx=effects(),fxSnap=fx?.snapshot?.()||{};
     if(fx){
-      const autoFrame=addToggle(detail,'Auto framing',Boolean(fxSnap.autoFrame),async value=>{
-        fx.setAutoFrame(Boolean(value));video.srcObject=await previewStream(media);void video.play().catch(()=>{});
-      });
+      const autoFrame=addToggle(effectsGroup,'Auto framing',Boolean(fxSnap.autoFrame),async value=>{fx.setAutoFrame(Boolean(value));video.srcObject=await previewStream(media);void video.play().catch(()=>{});});
       autoFrame.disabled=!fxSnap.faceDetectionSupported;
-      const strength=addRange(detail,'Auto framing strength',Number(fxSnap.strength)||55,0,100,value=>fx.setStrength(value));
-      strength.disabled=!fxSnap.faceDetectionSupported;
-      const blur=addToggle(detail,'Blur my background',Boolean(fxSnap.backgroundBlur),async value=>{
-        fx.setBackgroundBlur(Boolean(value));video.srcObject=await previewStream(media);void video.play().catch(()=>{});
-      });
+      const strength=addRange(effectsGroup,'Auto framing strength',Number(fxSnap.strength)||55,0,100,value=>fx.setStrength(value));strength.disabled=!fxSnap.faceDetectionSupported||!fxSnap.autoFrame;
+      autoFrame.onchange=async()=>{fx.setAutoFrame(autoFrame.checked);strength.disabled=!autoFrame.checked||!fx.snapshot().faceDetectionSupported;video.srcObject=await previewStream(media);void video.play().catch(()=>{});};
+
+      const blur=addToggle(effectsGroup,'Blur my background',Boolean(fxSnap.backgroundBlur),async value=>{fx.setBackgroundBlur(Boolean(value));video.srcObject=await previewStream(media);void video.play().catch(()=>{});});
       blur.disabled=!fxSnap.faceDetectionSupported;
-      const blurStrength=addRange(detail,'Background blur strength',Number(fxSnap.blurStrength)||55,0,100,value=>fx.setBlurStrength(value));
-      blurStrength.disabled=!fxSnap.faceDetectionSupported;
-      addBackgroundPicker(detail,fx,video,media);
-      addToggle(detail,'Optimize outgoing video with de-noise',Boolean(fxSnap.denoise),value=>fx.setDenoise(Boolean(value)));
-      addRange(detail,'Video de-noise strength',Number(fxSnap.denoiseStrength)||45,0,100,value=>fx.setDenoiseStrength(value));
-      if(!fxSnap.faceDetectionSupported){
-        const note=document.createElement('p');note.className='av-effects-note';note.textContent='Auto framing and background blur require on-device face detection support on this desktop.';detail.append(note);
-      }
+      const blurStrength=addRange(effectsGroup,'Background blur strength',Number(fxSnap.blurStrength)||55,0,100,value=>fx.setBlurStrength(value));blurStrength.disabled=!fxSnap.faceDetectionSupported||!fxSnap.backgroundBlur;
+      blur.onchange=async()=>{fx.setBackgroundBlur(blur.checked);blurStrength.disabled=!blur.checked||!fx.snapshot().faceDetectionSupported;video.srcObject=await previewStream(media);void video.play().catch(()=>{});};
+
+      addBackgroundPicker(effectsGroup,fx,video,media);
+      if(!fxSnap.faceDetectionSupported){const note=document.createElement('p');note.className='av-effects-note';note.textContent='Auto framing and person-aware background effects require on-device face detection support on this desktop.';effectsGroup.append(note);}
     }
-    const privacy=document.createElement('button');privacy.type='button';privacy.className='secondary-button av-privacy';privacy.textContent='Open macOS Camera Privacy';privacy.onclick=()=>media.openPrivacy?.('camera');detail.append(privacy);
-    await fillSelects(media,detail);camera.onchange=async()=>{await media.selectCamera(camera.value);video.srcObject=await previewStream(media);applyMirror(media);applyOriginalRatio();applyAppearance();await applyQuality(media);if(state.lowLight)await applyLowLight(media);};quality.onchange=async()=>{state.quality=quality.value;await applyQuality(media);};applyMirror(media);applyOriginalRatio();
+
+    const advanced=document.createElement('details');advanced.className='av-advanced-panel';const summary=document.createElement('summary');summary.textContent='Advanced';advanced.append(summary);detail.append(advanced);
+    const advancedBody=document.createElement('div');advancedBody.className='av-advanced-body';advanced.append(advancedBody);
+    if(fx){addToggle(advancedBody,'Optimize outgoing video with de-noise',Boolean(fxSnap.denoise),value=>fx.setDenoise(Boolean(value)));addRange(advancedBody,'Video de-noise strength',Number(fxSnap.denoiseStrength)||45,0,100,value=>fx.setDenoiseStrength(value));}
+    const privacy=document.createElement('button');privacy.type='button';privacy.className='secondary-button av-privacy';privacy.textContent='Open macOS Camera Privacy';privacy.onclick=()=>media.openPrivacy?.('camera');advancedBody.append(privacy);
+
+    await fillSelects(media,detail);
+    camera.onchange=async()=>{await media.selectCamera(camera.value);video.srcObject=await previewStream(media);applyMirror(media);applyOriginalRatio();applyAppearance();await applyQuality(media);if(state.lowLight)await applyLowLight(media);};
+    quality.onchange=async()=>{state.quality=quality.value;await applyQuality(media);};
+    applyMirror(media);applyOriginalRatio();applyAppearance();
   }
   function openInfoSettings(title,copy){const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,title,copy);const note=document.createElement('div');note.className='av-info-card';note.textContent=title==='Meetings'?'Join, waiting-room, host, and notification defaults will be added only after the core meeting path is physically approved.':'Screen sharing remains owned by the isolated nonblocking share subsystem. Share defaults will be exposed here after macOS Screen Recording permission passes physical QA.';detail.append(note);}
 
