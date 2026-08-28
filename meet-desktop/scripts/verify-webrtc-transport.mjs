@@ -29,6 +29,11 @@ assert(peer.includes('async function recoverNetwork()')&&peer.includes('await lo
 assert(peer.includes("showRecovery('Connection interrupted'")&&peer.includes("showRecovery('Reconnecting…'"),'Temporary network loss must keep the meeting visible with a reconnect state instead of returning to join UI.');
 assert(!peer.includes('meeting.requestJoin(')&&!peer.includes('meeting.markJoined('),'WebRTC reconnect must never re-run meeting admission or join identity flows.');
 assert(peer.includes('networkOnline:navigator.onLine!==false')&&peer.includes('recovering:false'),'Reconnect state must be tracked independently from meeting identity.');
+assert(main.includes('powerMonitor')&&main.includes("powerMonitor.on('suspend'")&&main.includes("powerMonitor.on('resume'")&&main.includes("powerMonitor.on('lock-screen'")&&main.includes("powerMonitor.on('unlock-screen'"),'Native shell must emit Mac sleep/wake and lock/unlock lifecycle events.');
+assert(preload.includes("power:Object.freeze({onChanged:callback=>listen('app:power-event',callback)})"),'Renderer must receive power lifecycle only through the narrow preload bridge.');
+assert(peer.includes('async function handlePowerEvent(event={})')&&peer.includes("type==='suspend'||type==='lock-screen'")&&peer.includes("type==='resume'||type==='unlock-screen'"),'WebRTC must preserve session state across native suspend/lock and recover on resume/unlock.');
+assert(media.includes('async recoverAfterResume()')&&media.includes("if(desired.cameraOn&&!videoAlive)")&&media.includes("if(desired.micOn&&!audioAlive)"),'Media authority must reacquire only dead camera/mic tracks after wake.');
+assert(peer.includes('await window.DominionMediaController?.recoverAfterResume?.()')&&peer.includes('setTimeout(()=>void recoverNetwork(),220)'),'Resume must repair media first, then reuse the existing network recovery path.');
 assert(css.includes('.network-recovery-banner')&&css.includes('.network-recovery-banner[hidden]'),'Reconnect UI must ship with the WebRTC transport stylesheet.');
 assert(peer.includes('setInterval(()=>void pullSignals(),POLL_MS)')&&peer.includes('setInterval(()=>void reconcileParticipants(),SNAPSHOT_MS)'),'Signaling and roster reconciliation must be independent.');
 assert(peer.includes('playRemoteAudio')&&peer.includes('audio.srcObject=stream')&&peer.includes('audio.play()'),'Remote microphone audio must render through a real media element.');
@@ -52,4 +57,4 @@ assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.tran
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 assert.equal(ids[0].localeCompare(ids[1])<0,true,'Deterministic initiator policy sanity check failed.');
 assert.equal(ids[1].localeCompare(ids[0])<0,false,'Both peers must never initiate the same pair.');
-console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery turn-refresh track-resync turn-aware isolated-signaling');
+console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair turn-refresh track-resync turn-aware isolated-signaling');
