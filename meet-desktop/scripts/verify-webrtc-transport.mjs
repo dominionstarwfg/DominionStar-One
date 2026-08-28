@@ -9,7 +9,7 @@ const media=read('ui/media-controller.js');
 const css=read('ui/webrtc.css');
 
 for(const rpc of ['meet_v2_send_signal','meet_v2_pull_signals','meet_v2_prune_signals'])assert(service.includes(rpc),`Missing signaling RPC ${rpc}`);
-assert(service.includes("let current={roomId:'',participantId:''"),'Meeting service must own current media context.');
+assert(service.includes("let current={roomId:'',roomCode:'',passcode:'',title:'',participantId:''"),'Meeting service must own current media context plus visible meeting credentials.');
 assert(service.includes('const context=()=>Object.freeze({...current})'),'Meeting context must be returned as an immutable copy.');
 for(const channel of ['meeting:context','meeting:signal-send','meeting:signal-pull','meeting:signal-prune','meeting:ice-config'])assert(main.includes(channel),`Missing signaling/ICE IPC ${channel}`);
 for(const method of ['context:()=>','sendSignal:','pullSignals:','pruneSignals:','iceConfig:'])assert(preload.includes(method),`Missing narrow renderer transport method ${method}`);
