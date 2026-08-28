@@ -67,6 +67,21 @@
   function showSettingsList(){const dialog=$('#settingsDialog');if(!dialog)return;dialog.querySelector('.settings-list').hidden=false;dialog.querySelector('.settings-note').hidden=false;const detail=dialog.querySelector('#avSettingsDetail');if(detail)detail.hidden=true;}
   function addSelect(detail,labelText,attr){const label=document.createElement('label');label.className='av-field';const span=document.createElement('span');span.textContent=labelText;const select=document.createElement('select');select.setAttribute(attr,'1');label.append(span,select);detail.append(label);return select;}
   function addToggle(detail,labelText,checked,onChange){const label=document.createElement('label');label.className='av-toggle-row';const span=document.createElement('span');span.textContent=labelText;const input=document.createElement('input');input.type='checkbox';input.checked=Boolean(checked);input.onchange=()=>onChange(input.checked);label.append(span,input);detail.append(label);return input;}
+  function addBackgroundPicker(detail,fx,video,media){
+    const snap=fx.snapshot();const wrap=document.createElement('section');wrap.className='av-backgrounds';const title=document.createElement('div');title.className='av-backgrounds-head';title.innerHTML='<strong>Virtual background</strong><small>Applied to the outgoing camera feed</small>';wrap.append(title);
+    const grid=document.createElement('div');grid.className='av-background-grid';
+    const items=[['none','None'],['aurora','Dominion Aurora'],['studio','Studio']];
+    for(const [id,label] of items){
+      const b=document.createElement('button');b.type='button';b.className='av-background-card';b.dataset.background=id;b.classList.toggle('selected',snap.virtualBackground===id);b.innerHTML=`<span class="av-bg-swatch ${id}"></span><strong>${label}</strong>`;
+      b.onclick=async()=>{await fx.setVirtualBackground(id);video.srcObject=await previewStream(media);void video.play().catch(()=>{});wrap.querySelectorAll('.av-background-card').forEach(n=>n.classList.toggle('selected',n===b));};grid.append(b);
+    }
+    const upload=document.createElement('label');upload.className='av-background-card upload';upload.innerHTML='<span class="av-bg-swatch custom">+</span><strong>Custom image</strong><input type="file" accept="image/png,image/jpeg,image/webp" hidden>';
+    const input=upload.querySelector('input');input.onchange=()=>{const file=input.files?.[0];if(!file)return;if(file.size>1024*1024){input.value='';const note=wrap.querySelector('.av-background-status');if(note)note.textContent='Custom background must be 1 MB or smaller.';return;}const reader=new FileReader();reader.onload=async()=>{const result=await fx.setVirtualBackground('custom',String(reader.result||''));const note=wrap.querySelector('.av-background-status');if(!result?.ok){if(note)note.textContent='Could not use that image.';return;}video.srcObject=await previewStream(media);void video.play().catch(()=>{});wrap.querySelectorAll('.av-background-card').forEach(n=>n.classList.remove('selected'));upload.classList.add('selected');if(note)note.textContent='Custom background ready.';};reader.readAsDataURL(file);};grid.append(upload);wrap.append(grid);
+    const persist=addSelect(wrap,'Keep virtual background for','data-av-background-persistence');persist.append(new Option('All meetings','all'),new Option('Current meeting only','current'));persist.value=snap.backgroundPersistence||'all';persist.onchange=()=>fx.setBackgroundPersistence(persist.value);
+    const status=document.createElement('p');status.className='av-background-status';status.textContent=snap.faceDetectionSupported?'Background processing is available on this desktop.':'Virtual backgrounds require on-device face detection support on this desktop.';wrap.append(status);
+    if(!snap.faceDetectionSupported)grid.querySelectorAll('button,label.upload').forEach(node=>{node.classList.add('disabled');if(node.tagName==='BUTTON')node.disabled=true;const file=node.querySelector?.('input');if(file)file.disabled=true;});
+    detail.append(wrap);
+  }
 
   async function openAudioSettings(media){
     const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Audio','Choose the microphone and speaker used by DominionStar Meet.');
@@ -102,6 +117,7 @@
       blur.disabled=!fxSnap.faceDetectionSupported;
       const blurStrength=addRange(detail,'Background blur strength',Number(fxSnap.blurStrength)||55,0,100,value=>fx.setBlurStrength(value));
       blurStrength.disabled=!fxSnap.faceDetectionSupported;
+      addBackgroundPicker(detail,fx,video,media);
       addToggle(detail,'Optimize outgoing video with de-noise',Boolean(fxSnap.denoise),value=>fx.setDenoise(Boolean(value)));
       addRange(detail,'Video de-noise strength',Number(fxSnap.denoiseStrength)||45,0,100,value=>fx.setDenoiseStrength(value));
       if(!fxSnap.faceDetectionSupported){
@@ -134,6 +150,7 @@
       const fx=effects(),fxSnap=fx?.snapshot?.()||{};
       if(fx&&fxSnap.faceDetectionSupported){
         const blur=document.createElement('button');blur.type='button';blur.textContent=`${fxSnap.backgroundBlur?'✓ ':''}Blur my background`;blur.onclick=()=>{fx.setBackgroundBlur(!fx.snapshot().backgroundBlur);closeMenu();};menu.append(blur);
+        const backgrounds=document.createElement('button');backgrounds.type='button';backgrounds.textContent='Backgrounds & Effects…';backgrounds.onclick=()=>{closeMenu();const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();void openVideoSettings(media);};menu.append(backgrounds);
       }
       if(fx){
         const denoise=document.createElement('button');denoise.type='button';denoise.textContent=`${fxSnap.denoise?'✓ ':''}Optimize outgoing video with de-noise`;denoise.onclick=()=>{fx.setDenoise(!fx.snapshot().denoise);closeMenu();};menu.append(denoise);
