@@ -57,6 +57,7 @@ assert(participantControls.includes("if(localRole()==='host'&&role!=='cohost')ad
 assert(participantControls.includes('authorizedSender')&&participantControls.includes("['host','cohost'].includes(String(sender?.role||'').toLowerCase())"),'Remote participant-control signals must verify sender role before touching local media.');
 assert(participantControls.includes('requestConsent')&&participantControls.includes("type==='host:ask-unmute'"),'Ask to Unmute must require participant consent.');
 assert(participantControls.includes('Spotlight for Everyone')&&parity.includes('spotlightParticipantId')&&parity.includes("spotlightTile||q('#remoteTileStrip .remote-peer-tile.active-speaker')"),'Spotlight must override active-speaker promotion through the meeting stage authority.');
+assert(parity.includes("lastMeta='',spotlightParticipantId=''"),'Meeting stage must own initialized spotlight state before any render or dock synchronization runs.');
 assert(!read('ui/app.js').includes('data-cohost='),'Legacy inline participant authority buttons must not duplicate the Zoom-style More menu.');
 assert(parity.includes('Lock Meeting')&&parity.includes('Mute Participants on Entry')&&parity.includes('desktop.meeting.setSecurity'),'Security menu must use server-backed Lock Meeting and Mute-on-Entry controls.');
 assert(zoomBehavior.includes("select.id='meetingChatRecipient'")&&zoomBehavior.includes('<option value="everyone">Everyone</option>'),'Meeting chat must expose Everyone and participant recipient selection.');
