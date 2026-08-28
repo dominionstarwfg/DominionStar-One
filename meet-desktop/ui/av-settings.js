@@ -93,11 +93,17 @@
         fx.setAutoFrame(Boolean(value));video.srcObject=await previewStream(media);void video.play().catch(()=>{});
       });
       autoFrame.disabled=!fxSnap.faceDetectionSupported;
-      if(!fxSnap.faceDetectionSupported){
-        const note=document.createElement('p');note.className='av-effects-note';note.textContent='Auto framing requires on-device face detection support on this desktop.';detail.append(note);
-      }
       const strength=addRange(detail,'Auto framing strength',Number(fxSnap.strength)||55,0,100,value=>fx.setStrength(value));
       strength.disabled=!fxSnap.faceDetectionSupported;
+      const blur=addToggle(detail,'Blur my background',Boolean(fxSnap.backgroundBlur),async value=>{
+        fx.setBackgroundBlur(Boolean(value));video.srcObject=await previewStream(media);void video.play().catch(()=>{});
+      });
+      blur.disabled=!fxSnap.faceDetectionSupported;
+      const blurStrength=addRange(detail,'Background blur strength',Number(fxSnap.blurStrength)||55,0,100,value=>fx.setBlurStrength(value));
+      blurStrength.disabled=!fxSnap.faceDetectionSupported;
+      if(!fxSnap.faceDetectionSupported){
+        const note=document.createElement('p');note.className='av-effects-note';note.textContent='Auto framing and background blur require on-device face detection support on this desktop.';detail.append(note);
+      }
     }
     const privacy=document.createElement('button');privacy.type='button';privacy.className='secondary-button av-privacy';privacy.textContent='Open macOS Camera Privacy';privacy.onclick=()=>media.openPrivacy?.('camera');detail.append(privacy);
     await fillSelects(media,detail);camera.onchange=async()=>{await media.selectCamera(camera.value);video.srcObject=await previewStream(media);applyMirror(media);applyOriginalRatio();applyAppearance();await applyQuality(media);if(state.lowLight)await applyLowLight(media);};quality.onchange=async()=>{state.quality=quality.value;await applyQuality(media);};applyMirror(media);applyOriginalRatio();
@@ -122,6 +128,10 @@
       const mirror=document.createElement('button');mirror.type='button';mirror.textContent=`${snapshot.mirror?'✓ ':''}Mirror my video`;mirror.onclick=()=>{media.setMirror(!media.snapshot().mirror);applyMirror(media);closeMenu();};menu.append(mirror);
       const original=document.createElement('button');original.type='button';original.textContent=`${state.originalRatio?'✓ ':''}Original ratio`;original.onclick=()=>{state.originalRatio=!state.originalRatio;applyOriginalRatio();closeMenu();};menu.append(original);
       const low=document.createElement('button');low.type='button';low.textContent=`${state.lowLight?'✓ ':''}Adjust for low light`;low.onclick=()=>{state.lowLight=!state.lowLight;void applyLowLight(media);closeMenu();};menu.append(low);
+      const fx=effects(),fxSnap=fx?.snapshot?.()||{};
+      if(fx&&fxSnap.faceDetectionSupported){
+        const blur=document.createElement('button');blur.type='button';blur.textContent=`${fxSnap.backgroundBlur?'✓ ':''}Blur my background`;blur.onclick=()=>{fx.setBackgroundBlur(!fx.snapshot().backgroundBlur);closeMenu();};menu.append(blur);
+      }
     }
     const divider=document.createElement('hr');menu.append(divider);const settings=document.createElement('button');settings.type='button';settings.textContent='Audio & Video Settings…';settings.onclick=()=>{closeMenu();const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();kind==='audio'?void openAudioSettings(media):void openVideoSettings(media);};menu.append(settings);
     const rect=anchor.getBoundingClientRect(),width=280,left=Math.min(window.innerWidth-width-12,Math.max(12,rect.left));menu.style.left=`${left}px`;menu.style.bottom=`${Math.max(74,window.innerHeight-rect.top+8)}px`;
