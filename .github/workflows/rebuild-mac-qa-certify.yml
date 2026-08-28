@@ -49,6 +49,7 @@ jobs:
           node --check ui/meeting-features.js
           node --check ui/video-effects.js
           node --check ui/zoom-behavior.js
+          node --check ui/participant-controls.js
           node --check ui/share-annotation.js
           node --check scripts/verify-meeting-identity-runtime.mjs
           node --check scripts/verify-packaged-interactions.mjs
