@@ -73,8 +73,8 @@ try{
   await cdp('Runtime.enable');
   await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures","desktop UI controllers");
 
-  // Auth is separately certified. For interaction testing expose the already-loaded
-  // local desktop shell without submitting credentials or mutating auth state.
+  // Authentication is independently certified. This interaction gate exposes the
+  // already-loaded local shell only to exercise packaged controls without a QA account.
   await evaluate(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
     document.querySelector('#authGate').hidden=true;
@@ -86,7 +86,6 @@ try{
   })()`);
   await sleep(400);
 
-  // Home: each primary action must execute a visible transition.
   assert.equal(await evaluate(`(()=>{document.querySelector('[data-action="new-meeting"]').click();return document.querySelector('#newMeetingDialog').open;})()`),true,'New Meeting did not open its dialog.');
   assert.equal(await evaluate(`Boolean(document.querySelector('#newMeetingUsePersonal')&&document.querySelector('#newMeetingPasscode')?.maxLength===7)`),true,'New Meeting is missing Personal Meeting ID choice or 3–7 digit passcode limit.');
   await evaluate(`document.querySelector('#newMeetingDialog').close()`);
@@ -95,8 +94,8 @@ try{
   await evaluate(`document.querySelector('#joinDialog').close()`);
 
   assert.equal(await evaluate(`(()=>{document.querySelector('[data-open="schedule"]').click();return document.querySelector('#scheduleDialog').open;})()`),true,'Schedule did not open its dialog.');
-  assert.equal(await evaluate(`Boolean(document.querySelector('#scheduleMeetingIdMode')&&document.querySelector('#scheduleRecurrence'))`),true,'Schedule is missing Meeting ID or recurrence controls.');
-  assert.equal(await evaluate(`(()=>{const recurrence=document.querySelector('#scheduleRecurrence');recurrence.value='weekly';recurrence.dispatchEvent(new Event('change',{bubbles:true}));return document.querySelector('#scheduleMeetingIdMode').value!=='personal';})()`),true,'Recurring schedule did not keep generated meeting identity semantics.');
+  assert.equal(await evaluate(`Boolean(document.querySelector('#scheduleMeetingIdMode')&&document.querySelector('#scheduleRepeat'))`),true,'Schedule is missing Meeting ID or recurrence controls.');
+  assert.equal(await evaluate(`(()=>{const mode=document.querySelector('#scheduleMeetingIdMode'),repeat=document.querySelector('#scheduleRepeat');mode.value='personal';mode.dispatchEvent(new Event('change',{bubbles:true}));repeat.value='weekly';repeat.dispatchEvent(new Event('change',{bubbles:true}));return mode.value==='personal'&&repeat.value==='never';})()`),true,'Personal Meeting ID did not prevent a fixed recurring series.');
   await evaluate(`document.querySelector('#scheduleDialog').close()`);
 
   assert.equal(await evaluate(`(()=>{document.querySelector('[data-open="settings"]').click();return document.querySelector('#settingsDialog').open;})()`),true,'Settings did not open.');
@@ -106,8 +105,6 @@ try{
   assert.equal(await evaluate(`(()=>{document.querySelector('.nav-button[data-section="meetings"]').click();return !document.querySelector('#meetingsSection').hidden;})()`),true,'Meetings navigation did not switch sections.');
   assert.equal(await evaluate(`Boolean(document.querySelector('#personalRoomCard')&&document.querySelector('#scheduledMeetingList'))`),true,'Meetings surface is missing Personal Room or scheduled meetings area.');
 
-  // Meeting: force the already-created local meeting surface visible. No backend call,
-  // camera, or screen permission is needed to test toolbar/panel interaction semantics.
   await evaluate(`(()=>{
     document.querySelector('#appShell').hidden=true;
     const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;
@@ -132,9 +129,7 @@ try{
   assert.equal(await evaluate(`(()=>{document.querySelector('#roomSettings').click();return document.querySelector('#settingsDialog').open;})()`),true,'Meeting Settings control did not open Settings.');
   await evaluate(`document.querySelector('#settingsDialog').close()`);
 
-  // Full-stage geometry must survive the packaged CSS, and four participant tiles
-  // must produce an internal grid in the floating video dock rather than a sidebar.
-  const geometry=await evaluate(`(()=>{const body=getComputedStyle(document.querySelector('.meeting-body'));const stage=getComputedStyle(document.querySelector('.stage'));const side=getComputedStyle(document.querySelector('.room-side'));return {bodyDisplay:body.display,stagePosition:stage.position,stageInset:[stage.top,stage.right,stage.bottom,stage.left],sidePosition:side.position};})()`);
+  const geometry=await evaluate(`(()=>{const body=getComputedStyle(document.querySelector('.meeting-body'));const stage=getComputedStyle(document.querySelector('.stage'));const side=getComputedStyle(document.querySelector('.room-side'));return {bodyDisplay:body.display,stagePosition:stage.position,sidePosition:side.position};})()`);
   assert.equal(geometry.bodyDisplay,'block','Meeting body must be full-stage block layout.');
   assert.equal(geometry.stagePosition,'absolute','Meeting stage must fill the meeting canvas.');
   assert.equal(geometry.sidePosition,'absolute','Participant management panel must overlay the stage.');
@@ -149,7 +144,7 @@ try{
   })()`);
   assert.equal(dock.hidden,false,'Four participant tiles must show the floating video dock.');
   assert.match(dock.className,/count-4/,'Four participant tiles must select the four-tile adaptive dock state.');
-  assert.ok(String(dock.grid).split(' ').length>=2,'Four participant tiles must render as an internal multi-column grid.');
+  assert.ok(String(dock.grid).split(' ').filter(Boolean).length>=2,'Four participant tiles must render as an internal multi-column grid.');
 
   console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence meeting-panels chat reactions more adaptive-full-stage-dock');
 }finally{
