@@ -8,7 +8,9 @@ const media=read('ui/media-controller.js');
 const effects=read('ui/video-effects.js');
 const webrtc=read('ui/webrtc-controller.js');
 
-assert(loader.includes("link.href='./av-settings.css'")&&loader.includes("script.src='./av-settings.js'")&&loader.includes("script.src='./video-effects.js'"),'Shared desktop UI must load AV settings and the isolated video effects processor.');
+assert(loader.includes("link.href='./av-settings.css'")&&loader.includes("script.src='./av-settings.js'")&&loader.includes("script.src='./video-effects.js'"),'Shared desktop UI fallback must load AV settings and the isolated video effects processor.');
+const home=read('ui/index.html');
+assert(home.indexOf('./video-effects.js')<home.indexOf('./av-settings.js'),'Desktop Home must load video effects before AV settings so persisted appearance state reaches the outgoing camera deterministically.');
 assert(enhancements.includes('window.DominionMediaController'),'AV settings must build on the clean media authority, not the legacy meeting engine.');
 assert(!enhancements.includes('DominionStarMeetingEngine')&&!enhancements.includes('getDisplayMedia'),'AV settings must not import legacy engine or screen-share authority.');
 for(const attr of ['data-av-camera','data-av-microphone','data-av-speaker'])assert(enhancements.includes(attr),`AV settings missing ${attr}.`);
