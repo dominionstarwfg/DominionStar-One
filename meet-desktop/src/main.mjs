@@ -108,6 +108,7 @@ ipcMain.handle('meeting:decide',(_event,{participantId,decision})=>meetingServic
 ipcMain.handle('meeting:snapshot',(_event,{roomId})=>meetingService?.snapshot(roomId));
 ipcMain.handle('meeting:set-cohost',(_event,{participantId,enabled})=>meetingService?.setCohost(participantId,enabled));
 ipcMain.handle('meeting:remove-participant',(_event,{participantId})=>meetingService?.removeParticipant(participantId));
+ipcMain.handle('meeting:rename-participant',(_event,{participantId,displayName})=>meetingService?.renameParticipant(participantId,displayName));
 ipcMain.handle('meeting:transfer-host-and-leave',(_event,{participantId})=>meetingService?.transferHostAndLeave(participantId));
 ipcMain.handle('meeting:end',(_event,{roomId})=>meetingService?.endRoom(roomId));
 ipcMain.handle('meeting:context',()=>meetingService?.context?.()||{});
