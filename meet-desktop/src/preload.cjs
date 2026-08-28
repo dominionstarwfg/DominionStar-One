@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
   environment:()=>invoke('app:get-environment'),
   brand:Object.freeze({logoUrl}),
+  power:Object.freeze({onChanged:callback=>listen('app:power-event',callback)}),
   auth:Object.freeze({
     getState:()=>invoke('auth:get-state'),startGoogle:()=>invoke('auth:start-google'),signInPassword:(email,password)=>invoke('auth:sign-in-password',{email,password}),signOut:()=>invoke('auth:sign-out'),
     onChanged:callback=>listen('auth:changed',callback),onError:callback=>listen('auth:error',callback)
