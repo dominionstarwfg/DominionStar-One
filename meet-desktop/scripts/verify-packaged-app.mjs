@@ -38,6 +38,7 @@ const parity=fs.readFileSync(path.join(unpackDir,'ui','meeting-parity.js'),'utf8
 const parityCss=fs.readFileSync(path.join(unpackDir,'ui','meeting-parity.css'),'utf8');
 const features=fs.readFileSync(path.join(unpackDir,'ui','meeting-features.js'),'utf8');
 const preferences=fs.readFileSync(path.join(unpackDir,'ui','preferences.js'),'utf8');
+const shareController=fs.readFileSync(path.join(unpackDir,'ui','share-controller.js'),'utf8');
 const annotation=fs.readFileSync(path.join(unpackDir,'ui','share-annotation.js'),'utf8');
 const webrtc=fs.readFileSync(path.join(unpackDir,'ui','webrtc-controller.js'),'utf8');
 assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged desktop must launch the local Home file.');
@@ -73,7 +74,10 @@ for(const id of ['roomChat','roomRecord','roomReactions'])assert(features.includ
 assert(features.includes("broadcast('chat',payload)")&&features.includes("broadcast('reaction',payload)"),'Packaged Chat and Reactions must use authenticated meeting signaling.');
 assert(features.includes('new MediaRecorder('),'Packaged Record control must create a real local MediaRecorder.');
 for(const key of ['joinMuted','joinVideoOff','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Packaged preferences missing ${key}.`);
-assert(annotation.includes('canvas.captureStream'),'Packaged annotation must composite into an outgoing media stream.');
+assert(annotation.includes('setAnnotationCanvas')&&annotation.includes('share-annotation-canvas'),'Packaged annotation UI must attach a real drawing canvas to the share controller.');
+assert(shareController.includes('canvas.captureStream(30)'),'Packaged share controller must create an outgoing composite stream for annotations.');
+assert(shareController.includes('ctx.drawImage(state.annotationCanvas'),'Packaged share controller must draw annotations into the outgoing shared frame.');
+assert(shareController.includes('state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream()'),'Packaged outgoing share must switch to annotation composite only while annotations are active.');
 assert(share.includes('let inFlight=null'),'Packaged share authority must keep exactly one native source enumeration in flight.');
 assert(share.includes('Promise.race([inFlight,timeoutResult()])'),'Packaged share source enumeration must remain bounded by timeout.');
 assert(share.includes('.finally(()=>{inFlight=null;})'),'Packaged share authority must release single-flight state after enumeration.');
@@ -82,4 +86,4 @@ assert(shareService.includes('ensureScreenPermission()')&&shareService.includes(
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home real-brand email-google-auth credentials camera-fallback zoom-full-stage adaptive-video-dock settings-more live-chat-record-reactions preferences annotation bounded-share webrtc diagnostics no-legacy-runtime');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home real-brand email-google-auth credentials camera-fallback zoom-full-stage adaptive-video-dock settings-more live-chat-record-reactions preferences annotation-composite bounded-share webrtc diagnostics no-legacy-runtime');
