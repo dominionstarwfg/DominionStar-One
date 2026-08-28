@@ -127,6 +127,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
   const hostQueue=roomId=>auth.rpc('meet_v2_host_queue',{p_room_id:roomId});
   const decide=(participantId,decision)=>auth.rpc('meet_v2_decide_participant',{p_participant_id:participantId,p_decision:decision});
   const snapshot=roomId=>auth.rpc('meet_v2_room_snapshot',{p_room_id:roomId});
+  const touchPresence=(participantId,joinToken)=>auth.rpc('meet_v2_touch_presence',{p_participant_id:participantId,p_join_token:joinToken});
   const setCohost=(participantId,enabled)=>auth.rpc('meet_v2_set_cohost',{p_participant_id:participantId,p_enabled:Boolean(enabled)});
   const removeParticipant=participantId=>auth.rpc('meet_v2_remove_participant',{p_participant_id:participantId});
   const renameParticipant=(participantId,displayName)=>auth.rpc('meet_v2_rename_participant',{p_participant_id:participantId,p_display_name:normalizeName(displayName)});
@@ -215,6 +216,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
     hostQueue,
     decide,
     snapshot,
+    touchPresence,
     setCohost,
     removeParticipant,
     renameParticipant,
