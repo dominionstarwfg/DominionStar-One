@@ -115,8 +115,12 @@
     try{const offer=await record.pc.createOffer(iceRestart?{iceRestart:true}:undefined);await record.pc.setLocalDescription(offer);await meeting.sendSignal(record.id,'offer',{sdp:record.pc.localDescription});}finally{record.makingOffer=false;}
   }
   async function flushIce(record){if(!record.pc.remoteDescription)return;while(record.pendingIce.length){const candidate=record.pendingIce.shift();try{await record.pc.addIceCandidate(candidate);}catch{}}}
+  function dispatchMeetingSignal(signal,remoteId){
+    window.dispatchEvent(new CustomEvent('dominion:meeting-signal',{detail:{id:Number(signal.id)||0,type:String(signal.type||''),fromParticipantId:remoteId,fromDisplayName:participantName(remoteId),payload:signal.payload||{},createdAt:signal.createdAt||''}}));
+  }
   async function handleSignal(signal){
     const remoteId=String(signal.fromParticipantId||'');if(!remoteId||remoteId===state.context?.participantId)return;
+    if(signal.type==='chat'||signal.type==='reaction'){dispatchMeetingSignal(signal,remoteId);return;}
     if(signal.type==='bye'){closePeer(remoteId);return;}
     let record;try{record=ensurePeer(remoteId);}catch{return;}const payload=signal.payload||{};
     if(signal.type==='offer'){
