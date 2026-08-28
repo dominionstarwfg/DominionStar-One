@@ -3,7 +3,7 @@
   const STORAGE=Object.freeze({autoFrame:'ds_meet_auto_frame',autoFrameStrength:'ds_meet_auto_frame_strength',backgroundBlur:'ds_meet_background_blur',blurStrength:'ds_meet_background_blur_strength'});
   const read=(key,fallback='')=>{try{const v=localStorage.getItem(STORAGE[key]);return v===null?fallback:v;}catch{return fallback;}};
   const write=(key,value)=>{try{localStorage.setItem(STORAGE[key],String(value));}catch{}};
-  const state={enabled:read('autoFrame','0')==='1',strength:Number(read('autoFrameStrength','55'))||55,backgroundBlur:read('backgroundBlur','0')==='1',blurStrength:Number(read('blurStrength','55'))||55,sourceTrack:null,canvas:null,ctx:null,video:null,stream:null,frameHandle:0,faceDetector:null,lastFace:null,lastDetectAt:0};
+  const state={enabled:read('autoFrame','0')==='1',strength:Number(read('autoFrameStrength','55'))||55,backgroundBlur:read('backgroundBlur','0')==='1',blurStrength:Number(read('blurStrength','55'))||55,touchUp:false,touchUpLevel:25,portraitLight:false,portraitLevel:35,sourceTrack:null,canvas:null,ctx:null,video:null,stream:null,frameHandle:0,faceDetector:null,lastFace:null,lastDetectAt:0};
   const listeners=new Set();
   const emit=()=>{const snap=api.snapshot();for(const fn of listeners){try{fn(snap);}catch{}}};
 
@@ -60,20 +60,25 @@
       if(c.width!==1280||c.height!==720){c.width=1280;c.height=720;}
       void detectFace();
       const {sx,sy,cropW,cropH}=cropForFrame(sw,sh);
-      if(state.backgroundBlur&&state.lastFace){
-        const blurPx=8+Math.round((Math.max(0,Math.min(100,state.blurStrength))/100)*24);
-        ctx.save();ctx.filter=`blur(${blurPx}px)`;ctx.drawImage(v,sx,sy,cropW,cropH,-18,-18,c.width+36,c.height+36);ctx.restore();
+      const appearanceActive=state.touchUp||state.portraitLight;
+      if((state.backgroundBlur||appearanceActive)&&state.lastFace){
+        const blurPx=state.backgroundBlur?8+Math.round((Math.max(0,Math.min(100,state.blurStrength))/100)*24):0;
+        const bgBrightness=state.portraitLight?Math.max(.72,1-(state.portraitLevel/100)*.22):1;
+        ctx.save();ctx.filter=`${blurPx?`blur(${blurPx}px) `:''}brightness(${bgBrightness})`;ctx.drawImage(v,sx,sy,cropW,cropH,-18,-18,c.width+36,c.height+36);ctx.restore();
         const face=state.lastFace;
         const fx=((face.x+face.width/2-sx)/cropW)*c.width;
         const fy=((face.y+face.height*.52-sy)/cropH)*c.height;
         const fw=(face.width/cropW)*c.width;
         const fh=(face.height/cropH)*c.height;
         const personW=Math.max(fw*2.8,c.width*.28),personH=Math.max(fh*5.3,c.height*.72);
-        ctx.save();
-        ctx.beginPath();ctx.ellipse(fx,fy+personH*.27,personW*.5,personH*.5,0,0,Math.PI*2);ctx.clip();
-        ctx.filter='none';ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);ctx.restore();
+        const soften=state.touchUp?Math.min(1.2,.15+(state.touchUpLevel/100)*1.05):0;
+        const fgBrightness=state.portraitLight?1+Math.min(.18,(state.portraitLevel/100)*.18):1;
+        ctx.save();ctx.beginPath();ctx.ellipse(fx,fy+personH*.27,personW*.5,personH*.5,0,0,Math.PI*2);ctx.clip();
+        ctx.filter=`${soften?`blur(${soften}px) `:''}brightness(${fgBrightness}) contrast(${state.touchUp?.98:1})`;ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);ctx.restore();
       }else{
-        ctx.filter='none';ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);
+        const soften=state.touchUp?Math.min(.8,(state.touchUpLevel/100)*.8):0;
+        const bright=state.portraitLight?1+Math.min(.08,(state.portraitLevel/100)*.08):1;
+        ctx.filter=`${soften?`blur(${soften}px) `:''}brightness(${bright})`;ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);ctx.filter='none';
       }
     }
     state.frameHandle=requestAnimationFrame(draw);
@@ -90,13 +95,18 @@
   }
   const api=Object.freeze({
     async attach(track){return attach(track);},
-    async outputStream(track){if(!state.enabled&&!state.backgroundBlur)return track?new MediaStream([track]):null;return attach(track);},
+    async outputStream(track){if(!state.enabled&&!state.backgroundBlur&&!state.touchUp&&!state.portraitLight)return track?new MediaStream([track]):null;return attach(track);},
     setAutoFrame(on){state.enabled=Boolean(on);write('autoFrame',state.enabled?'1':'0');state.lastFace=null;emit();return api.snapshot();},
     setStrength(value){state.strength=Math.max(0,Math.min(100,Number(value)||0));write('autoFrameStrength',state.strength);emit();return api.snapshot();},
     setBackgroundBlur(on){state.backgroundBlur=Boolean(on);write('backgroundBlur',state.backgroundBlur?'1':'0');state.lastFace=null;emit();return api.snapshot();},
     setBlurStrength(value){state.blurStrength=Math.max(0,Math.min(100,Number(value)||0));write('blurStrength',state.blurStrength);emit();return api.snapshot();},
+    setAppearance({touchUp=false,touchUpLevel=25,portraitLight=false,portraitLevel=35}={}){
+      state.touchUp=Boolean(touchUp);state.touchUpLevel=Math.max(0,Math.min(100,Number(touchUpLevel)||0));
+      state.portraitLight=Boolean(portraitLight);state.portraitLevel=Math.max(0,Math.min(100,Number(portraitLevel)||0));
+      emit();return api.snapshot();
+    },
     stop(){stopOutput();state.sourceTrack=null;state.lastFace=null;emit();},
-    snapshot(){return {autoFrame:state.enabled,strength:state.strength,backgroundBlur:state.backgroundBlur,blurStrength:state.blurStrength,faceDetectionSupported:faceDetectionSupported(),processing:Boolean(state.stream)};},
+    snapshot(){return {autoFrame:state.enabled,strength:state.strength,backgroundBlur:state.backgroundBlur,blurStrength:state.blurStrength,touchUp:state.touchUp,touchUpLevel:state.touchUpLevel,portraitLight:state.portraitLight,portraitLevel:state.portraitLevel,faceDetectionSupported:faceDetectionSupported(),processing:Boolean(state.stream)};},
     onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}
   });
   window.DominionVideoEffects=api;
