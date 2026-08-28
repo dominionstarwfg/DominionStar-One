@@ -61,17 +61,6 @@
       void detectFace();
       const {sx,sy,cropW,cropH}=cropForFrame(sw,sh);
       const appearanceActive=state.touchUp||state.portraitLight;
-      if(state.denoise){
-        const alpha=Math.max(.08,Math.min(.42,.08+(state.denoiseStrength/100)*.34));
-        if(!state.previousFrame){state.previousFrame=document.createElement('canvas');state.previousFrame.width=c.width;state.previousFrame.height=c.height;}
-        const pctx=state.previousFrame.getContext('2d',{alpha:false});
-        if(pctx){
-          pctx.globalAlpha=1;pctx.drawImage(c,0,0);
-          ctx.globalAlpha=1-alpha;ctx.drawImage(state.previousFrame,0,0,c.width,c.height);
-          ctx.globalAlpha=alpha;ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);
-          ctx.globalAlpha=1;
-        }
-      }
       if((state.backgroundBlur||appearanceActive)&&state.lastFace){
         const blurPx=state.backgroundBlur?8+Math.round((Math.max(0,Math.min(100,state.blurStrength))/100)*24):0;
         const bgBrightness=state.portraitLight?Math.max(.72,1-(state.portraitLevel/100)*.22):1;
@@ -91,6 +80,18 @@
         const bright=state.portraitLight?1+Math.min(.08,(state.portraitLevel/100)*.08):1;
         ctx.filter=`${soften?`blur(${soften}px) `:''}brightness(${bright})`;ctx.drawImage(v,sx,sy,cropW,cropH,0,0,c.width,c.height);ctx.filter='none';
       }
+      if(state.denoise){
+        const historyWeight=Math.max(.06,Math.min(.34,.06+(state.denoiseStrength/100)*.28));
+        if(!state.previousFrame){state.previousFrame=document.createElement('canvas');state.previousFrame.width=c.width;state.previousFrame.height=c.height;}
+        const pctx=state.previousFrame.getContext('2d',{alpha:false});
+        if(pctx){
+          const current=document.createElement('canvas');current.width=c.width;current.height=c.height;
+          const currentCtx=current.getContext('2d',{alpha:false});
+          currentCtx?.drawImage(c,0,0);
+          ctx.save();ctx.globalAlpha=historyWeight;ctx.drawImage(state.previousFrame,0,0,c.width,c.height);ctx.restore();
+          pctx.globalAlpha=1;pctx.clearRect(0,0,c.width,c.height);pctx.drawImage(current,0,0);
+        }
+      }else state.previousFrame=null;
     }
     state.frameHandle=requestAnimationFrame(draw);
   }
