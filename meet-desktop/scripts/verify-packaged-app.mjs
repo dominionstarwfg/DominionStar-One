@@ -60,7 +60,9 @@ assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hid
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Packaged video dock must adapt orientation to position.');
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Packaged meeting must support active-speaker stage promotion.');
 assert(parity.includes('desktop.meeting.context()')&&parity.includes('Passcode ${pass}'),'Packaged meeting must keep Meeting ID and passcode visible.');
-assert(parity.includes("button.id='roomSettings'")&&parity.includes("button.id='roomMore'"),'Packaged meeting must include functional Settings and More controls.');
+assert(parity.includes("b.id='roomSettings'")&&parity.includes("q('#settingsDialog')")&&parity.includes('d.showModal()'),'Packaged Settings control must open the real Settings dialog.');
+assert(parity.includes("b.id='roomMore'")&&parity.includes('openMore(b)'),'Packaged More control must open the real meeting menu.');
+for(const action of ["add('Meeting settings'","add('Reset participant video panel'","add('Diagnostics'"])assert(parity.includes(action),`Packaged More menu is missing functional action: ${action}`);
 assert(parityCss.includes('.meeting-body{position:relative!important;display:block!important'),'Packaged meeting must not reserve a permanent participant sidebar column.');
 assert(parityCss.includes('.stage{position:absolute!important;inset:0!important'),'Packaged meeting stage must use the full canvas.');
 assert(parityCss.includes('.room-side{position:absolute!important'),'Packaged participant management panel must overlay rather than shrink the stage.');
@@ -80,4 +82,4 @@ assert(shareService.includes('ensureScreenPermission()')&&shareService.includes(
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home real-brand email-google-auth credentials camera-fallback zoom-full-stage adaptive-video-dock live-chat-record-reactions preferences annotation bounded-share webrtc diagnostics no-legacy-runtime');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED local-home real-brand email-google-auth credentials camera-fallback zoom-full-stage adaptive-video-dock settings-more live-chat-record-reactions preferences annotation bounded-share webrtc diagnostics no-legacy-runtime');
