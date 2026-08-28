@@ -17,6 +17,8 @@ const shareCss=read('ui/share.css');
 const presenterHtml=read('ui/presenter-toolbar.html');
 const presenterCss=read('ui/presenter-toolbar.css');
 const presenterJs=read('ui/presenter-toolbar.js');
+const packageJson=JSON.parse(read('package.json'));
+const appIcon=read('build/icon.svg');
 
 assert(main.includes("const uiDir=path.join(__dirname,'..','ui')"),'Desktop must define one local UI directory authority.');
 assert(main.includes("mainWindow.loadFile(path.join(uiDir,'index.html'))"),'Desktop must load Home from the local UI directory.');
@@ -73,4 +75,11 @@ for(const legacyGlyph of ['◉','▣','♙','▢','Ⅱ','✎','▤'])assert(!pre
 assert(presenterCss.includes('.icon svg'),'Presenter toolbar must explicitly style its vector icon system.');
 assert(presenterJs.includes("state?.meetingVisible?'Hide meeting':'Show meeting'"),'Presenter toolbar must expose the real meeting-window visibility state.');
 
-console.log('DOMINIONSTAR_DESKTOP_FOUNDATION_OK local-home four-primary-actions personal-room stable-identity passcode-3-7 recurring-schedules live-preferences no-dead-home-chrome responsive-controls real-share-entry isolated-share-module native-compact-share-window vector-presenter-controls');
+assert(packageJson.build?.appId==='com.dominionstar.desktop','Desktop rebuild must preserve the DominionStar macOS/Windows application identity.');
+assert(packageJson.build?.productName==='DominionStar Meet','Desktop rebuild must preserve the DominionStar Meet product name.');
+assert(packageJson.build?.mac?.icon==='build/icon.svg','macOS package must use the DominionStar Meet app icon.');
+assert(packageJson.build?.win?.icon==='build/icon.svg','Windows package must use the DominionStar Meet app icon.');
+assert(appIcon.includes('<title id="title">DominionStar Meet</title>'),'Branded desktop icon must identify DominionStar Meet.');
+assert(appIcon.includes('geometric D monogram')&&appIcon.includes('url(#gold)')&&appIcon.includes('url(#orbit)'),'Desktop icon must retain the approved DominionStar D/star/orbit artwork.');
+
+console.log('DOMINIONSTAR_DESKTOP_FOUNDATION_OK local-home four-primary-actions personal-room stable-identity passcode-3-7 recurring-schedules live-preferences no-dead-home-chrome responsive-controls real-share-entry isolated-share-module native-compact-share-window vector-presenter-controls branded-app-identity');
