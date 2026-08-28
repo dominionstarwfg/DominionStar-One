@@ -48,9 +48,11 @@ jobs:
           node --check ui/preferences.js
           node --check ui/meeting-features.js
           node --check ui/share-annotation.js
+          node --check scripts/verify-meeting-identity-runtime.mjs
           node scripts/verify-foundation.mjs
           node scripts/verify-auth.mjs
           node scripts/verify-meeting-lifecycle.mjs
+          node scripts/verify-meeting-identity-runtime.mjs
           node scripts/verify-media-authority.mjs
           node scripts/verify-av-settings.mjs
           node scripts/verify-meeting-parity.mjs
