@@ -36,6 +36,7 @@
       video.style.filter=`brightness(${1+portrait}) contrast(${1-soften*.35}) saturate(${1-soften*.22})`;
       video.style.setProperty('--ds-touch-up',String(soften));
     }
+    effects()?.setAppearance?.({touchUp:state.touchUp,touchUpLevel:state.touchUpLevel,portraitLight:state.portraitLight,portraitLevel:state.portraitLevel});
   }
   function addRange(detail,labelText,value,min,max,onInput){
     const label=document.createElement('label');label.className='av-range-row';const head=document.createElement('span');head.textContent=labelText;const input=document.createElement('input');input.type='range';input.min=String(min);input.max=String(max);input.value=String(value);input.oninput=()=>onInput(Number(input.value));label.append(head,input);detail.append(label);return input;
