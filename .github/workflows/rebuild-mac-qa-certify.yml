@@ -49,6 +49,7 @@ jobs:
           node --check ui/meeting-features.js
           node --check ui/share-annotation.js
           node --check scripts/verify-meeting-identity-runtime.mjs
+          node --check scripts/verify-packaged-interactions.mjs
           node scripts/verify-foundation.mjs
           node scripts/verify-auth.mjs
           node scripts/verify-meeting-lifecycle.mjs
@@ -129,6 +130,10 @@ jobs:
             exit 92
           fi
           echo DOMINIONSTAR_MAC_PACKAGED_LAUNCH_OK
+
+      - name: Exercise packaged desktop controls
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Create clean QA archive
         shell: bash
