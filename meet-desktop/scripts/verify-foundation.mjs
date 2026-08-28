@@ -72,6 +72,9 @@ assert(meetingNotifications.includes("version:'1.0.0'")&&meetingNotifications.in
 assert(meetingNotifications.includes("if(!pref('desktopMeetingNotifications',true)||document.hasFocus())return"),'Native meeting notifications must be reserved for background/unfocused app state.');
 assert(meetingNotificationsCss.includes('.waiting-room-badge')&&meetingNotificationsCss.includes('.meeting-event-toast'),'Meeting notification visuals must ship with dedicated styling.');
 assert(main.includes("Notification, session")&&main.includes("ipcMain.handle('notifications:meeting'"),'Native shell must own desktop meeting notifications.');
+assert(main.includes("ipcMain.handle('notifications:set-waiting-count'")&&main.includes("app.dock.setBadge")&&main.includes("app.dock.bounce('informational')")&&main.includes("mainWindow.flashFrame"),'Background Waiting Room alerts must use native app badge and attention behavior.');
+assert(meetingNotifications.includes("desktop.notifications?.setWaitingCount?.(items.length,attention)")&&meetingNotifications.includes("desktop.notifications?.setWaitingCount?.(0,false)"),'Waiting Room count must stay synchronized with the native shell and clear when the meeting ends.');
+assert(preload.includes("setWaitingCount:(count,attention=false)"),'Renderer must access waiting-room native attention only through the narrow notification bridge.');
 assert(preload.includes("notifications:Object.freeze({showMeeting:"),'Renderer must access native meeting notifications only through a narrow bridge.');
 
 assert(shareService.includes('compactMainWindow'),'Desktop sharing must own a native compact meeting-window mode.');
