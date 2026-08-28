@@ -84,7 +84,7 @@ assert(av.includes("avGroup(detail,'Camera'")&&av.includes("avGroup(detail,'Appe
 assert(av.includes('Test Microphone')&&av.includes('Test Speaker')&&av.includes('Test Speaker & Microphone…'),'Packaged Audio settings must expose microphone/speaker tests from settings and the quick menu.');
 assert(av.includes('Echo cancellation')&&av.includes('Noise suppression')&&av.includes('Automatically adjust microphone volume')&&av.includes('Original sound for musicians'),'Packaged Audio settings must expose real microphone processing controls.');
 assert(media.includes("replaceKind('audio',state.microphoneId,true)"),'Packaged audio-processing changes must reacquire the live microphone with updated constraints.');
-assert(parity.includes("version:'2.0.0-zoom-adaptive-dock'"),'Packaged meeting must include the adaptive Zoom-style video dock engine.');
+assert(parity.includes("version:'2.1.0-zoom-host-controls'"),'Packaged meeting must include the adaptive Zoom-style video dock engine.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Packaged participant management panel must be closed by default.');
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Packaged video dock must adapt orientation to position.');
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Packaged meeting must support active-speaker stage promotion.');
@@ -101,12 +101,19 @@ assert(parityCss.includes('repeat(auto-fit,minmax(118px,1fr))'),'Packaged user-r
 for(const id of ['roomChat','roomRecord','roomReactions'])assert(features.includes(`'${id}'`),`Packaged meeting feature missing ${id}.`);
 assert(features.includes("broadcast('chat',payload)")&&features.includes("broadcast('reaction',payload)"),'Packaged Chat and Reactions must use authenticated meeting signaling.');
 assert(features.includes('new MediaRecorder('),'Packaged Record control must create a real local MediaRecorder.');
-assert(zoomBehavior.includes("version:'1.1.0'"),'Packaged app must include the stabilized Zoom behavior layer.');
+assert(zoomBehavior.includes("version:'1.2.0'"),'Packaged app must include the stabilized Zoom behavior layer.');
 assert(zoomBehavior.includes('Assign Host & Leave')&&zoomBehavior.includes('End Meeting for All'),'Packaged host exit must expose handoff versus end-for-all choices.');
 assert(zoomBehavior.includes('showHostHandoffChoices')&&zoomBehavior.includes('meeting.transferHostAndLeave(participant.participantId)'),'Packaged host leave must use the real atomic handoff authority.');
 assert(!zoomBehavior.includes("meeting.leave(ctx.participantId,ctx.joinToken)"),'Packaged host UI must not bypass the backend host-transfer safeguard.');
 assert(preload.includes('transferHostAndLeave:')&&main.includes("'meeting:transfer-host-and-leave'")&&meeting.includes('meet_v2_transfer_host_and_leave'),'Packaged desktop must wire host handoff across renderer bridge, main IPC, and meeting service.');
 assert(zoomBehavior.includes("button.id='zoomAdmitAll'")&&zoomBehavior.includes("meeting.decide(p.participantId,'admit')"),'Packaged waiting room must include Admit All.');
+assert(zoomBehavior.includes("add('Mute'")&&zoomBehavior.includes("add('Ask to Unmute'")&&zoomBehavior.includes("add('Stop Video'"),'Packaged participant More menu must expose host/co-host media controls.');
+assert(zoomBehavior.includes("meeting.renameParticipant(participantId,name)")&&preload.includes('renameParticipant:' )&&main.includes("'meeting:rename-participant'")&&meeting.includes('meet_v2_rename_participant'),'Packaged participant rename must be wired through renderer bridge, IPC, and backend authority.');
+assert(zoomBehavior.includes("if(isHost)add(targetRole==='cohost'?'Remove Co-host':'Make Co-host'"),'Packaged co-host promotion control must remain host-only.');
+assert(zoomBehavior.includes("senderAuthority")&&zoomBehavior.includes("['host','cohost'].includes(senderRole)"),'Packaged remote media controls must verify host/co-host sender authority.');
+assert(zoomBehavior.includes('zoomUnmuteRequestDialog'),'Packaged Ask to Unmute must preserve participant consent.');
+assert(zoomBehavior.includes('setSpotlight(participantId)')&&parity.includes('spotlightParticipantId'),'Packaged Spotlight must drive the meeting stage authority.');
+assert(!read('ui','app.js').includes('data-cohost='),'Packaged roster must not retain duplicate inline participant authority buttons.');
 assert(zoomBehavior.includes("select.id='meetingChatRecipient'")&&zoomBehavior.includes("meeting.sendSignal(target,'chat',payload)"),'Packaged chat must support direct private recipients.');
 assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Packaged private-chat recipient sync must avoid redundant DOM rewrites.');
 assert(!zoomBehavior.includes('new MutationObserver('),'Packaged Zoom behavior must not install a DOM-wide mutation observer.');
@@ -137,4 +144,4 @@ assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC tr
 assert(webrtc.includes('meeting.iceConfig'),'Packaged app must include relay-capable ICE configuration.');
 assert(webrtc.includes('await effects.outputStream(raw)')&&webrtc.includes('state.effectsUnsub=window.DominionVideoEffects?.onChange'),'Packaged WebRTC must send the processed camera track when video effects are enabled.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
-console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior atomic-host-handoff admit-all private-chat participant-media-controls bounded-sync auto-framing background-blur virtual-backgrounds feathered-foreground adaptive-performance video-denoise processed-camera share webrtc diagnostics');
+console.log('DOMINIONSTAR_PACKAGED_APP_CERTIFIED personal-room persistent-passcode exact-input-validation recurring-identity generated-11-digit schedule no-dead-home-chrome real-brand auth media zoom-stage zoom-behavior atomic-host-handoff participant-more mute ask-unmute stop-video rename spotlight host-only-cohost admit-all private-chat participant-media-controls bounded-sync auto-framing background-blur virtual-backgrounds feathered-foreground adaptive-performance video-denoise processed-camera share webrtc diagnostics');
