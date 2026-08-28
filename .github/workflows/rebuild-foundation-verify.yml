@@ -52,12 +52,15 @@ jobs:
           node --check 'meet-desktop/ui/webrtc-controller.js'
           node --check 'meet-desktop/ui/diagnostics.js'
           node --check 'meet-desktop/ui/app.js'
+          node --check 'meet-desktop/scripts/verify-meeting-identity-runtime.mjs'
       - name: Verify clean Home contract
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
       - name: Verify desktop authentication contract
         run: node 'meet-desktop/scripts/verify-auth.mjs'
       - name: Verify Zoom-style meeting identity lifecycle
         run: node 'meet-desktop/scripts/verify-meeting-lifecycle.mjs'
+      - name: Exercise meeting identity runtime
+        run: node 'meet-desktop/scripts/verify-meeting-identity-runtime.mjs'
       - name: Verify prejoin media and role authority
         run: node 'meet-desktop/scripts/verify-media-authority.mjs'
       - name: Verify restored audio video settings
