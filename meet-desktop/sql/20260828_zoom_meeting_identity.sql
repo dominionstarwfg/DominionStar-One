@@ -504,6 +504,7 @@ begin
   if v_user is null and not v_room.external_guests_allowed then raise exception 'guest_access_disabled'; end if;
 
   if v_user is not null then
+    perform pg_advisory_xact_lock(hashtext(v_room.id::text||':'||v_user::text));
     select * into v_existing from public.meet_v2_participants
     where room_id=v_room.id and member_id=v_user and state not in ('left','removed','declined')
     order by created_at desc limit 1;
@@ -642,7 +643,7 @@ begin
   from public.meet_v2_participants p
   where p.room_id=p_room_id
     and (
-      p.state='admitted'
+      (p.state='admitted' and coalesce(p.admitted_at,p.updated_at)>now()-interval '75 seconds')
       or (p.state='joined' and coalesce(p.last_seen_at,p.joined_at,p.updated_at)>now()-interval '75 seconds')
     );
 
