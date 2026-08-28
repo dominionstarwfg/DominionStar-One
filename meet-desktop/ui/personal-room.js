@@ -89,7 +89,10 @@
   async function startPersonal(){await load(true);if(!state.room)return;try{const room=await meeting.startPersonalRoom();state.hostStart=room;beginHostPrejoin(room,'personal');}catch(error){state.error=String(error?.message||error);renderCard();}}
 
   function decorateHostPrejoin(){
-    const kind=document.body.dataset.persistentHostStart;if(!kind)return;const overlay=q('#prejoinOverlay');if(!overlay||overlay.hidden)return;const title=q('#prejoinTitle'),button=q('#prejoinContinue');if(title)title.textContent=document.body.dataset.persistentHostTitle||'DominionStar Meeting';if(button)button.textContent='Start';
+    const kind=document.body.dataset.persistentHostStart;if(!kind)return;const overlay=q('#prejoinOverlay');if(!overlay||overlay.hidden)return;
+    const title=q('#prejoinTitle'),button=q('#prejoinContinue'),nextTitle=document.body.dataset.persistentHostTitle||'DominionStar Meeting';
+    if(title&&title.textContent!==nextTitle)title.textContent=nextTitle;
+    if(button&&button.textContent!=='Start')button.textContent='Start';
   }
   function interceptHostCancel(){
     for(const id of ['#prejoinCancel','#closePrejoin']){const b=q(id);if(!b||b.dataset.dsPersistentCancel)return;b.dataset.dsPersistentCancel='1';b.addEventListener('click',()=>{const roomId=document.body.dataset.persistentHostRoomId;if(roomId)void meeting?.end?.(roomId).catch(()=>{});clearHostStart();},true);}
