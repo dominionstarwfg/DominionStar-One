@@ -73,10 +73,10 @@
     }
   }
 
-  async function replaceKind(kind,preferredId=''){
+  async function replaceKind(kind,preferredId='',force=false){
     const current=live(kind)[0];
     const currentId=String(current?.getSettings?.().deviceId||'');
-    if(current&&preferredId&&currentId===String(preferredId))return current;
+    if(!force&&current&&preferredId&&currentId===String(preferredId))return current;
     const fresh=await acquireKind(kind,preferredId);
     removeKind(kind);
     ensureStream().addTrack(fresh);
@@ -128,14 +128,13 @@
       if('autoGainControl' in next)state.autoGainControl=Boolean(next.autoGainControl);
       if('originalSound' in next)state.originalSound=Boolean(next.originalSound);
       savePref('echoCancellation',state.echoCancellation);savePref('noiseSuppression',state.noiseSuppression);savePref('autoGainControl',state.autoGainControl);savePref('originalSound',state.originalSound);
-      if(state.micOn&&live('audio').length){try{await replaceKind('audio',state.microphoneId);}catch(error){Object.assign(state,previous);throw error;}}
+      if(state.micOn&&live('audio').length){try{await replaceKind('audio',state.microphoneId,true);}catch(error){Object.assign(state,previous);throw error;}}
       emit();return api.snapshot();
     },
     async testMicrophoneStream(){
+      const existing=live('audio')[0];if(existing){const clone=existing.clone();clone.enabled=true;return new MediaStream([clone]);}
       await ensurePermissions(['microphone']);
-      const track=await acquireKind('audio',state.microphoneId);
-      track.enabled=true;
-      return new MediaStream([track]);
+      const track=await acquireKind('audio',state.microphoneId);track.enabled=true;return new MediaStream([track]);
     },
     stop(){stopTracks(state.stream?.getTracks?.()||[]);state.stream=null;emit();},
     resetPreferences(){state.userPreferencesLocked=false;state.cameraId='';state.microphoneId='';state.speakerId='';state.cameraOn=true;state.micOn=false;state.mirror=true;state.echoCancellation=true;state.noiseSuppression=true;state.autoGainControl=true;state.originalSound=false;for(const key of Object.keys(KEYS)){const v=key==='mirror'||['echoCancellation','noiseSuppression','autoGainControl'].includes(key)?'true':key==='originalSound'?'false':'';savePref(key,v);}emit();},
