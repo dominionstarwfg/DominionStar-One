@@ -1,9 +1,17 @@
 const {contextBridge,ipcRenderer}=require('electron');
+const fs=require('node:fs');
+const path=require('node:path');
+const {pathToFileURL}=require('node:url');
 const invoke=(channel,payload)=>ipcRenderer.invoke(channel,payload);
 const listen=(channel,callback)=>{if(typeof callback!=='function')return()=>{};const handler=(_event,payload)=>callback(payload);ipcRenderer.on(channel,handler);return()=>ipcRenderer.removeListener(channel,handler);};
+const packagedLogo=path.join(process.resourcesPath,'branding','dominionstar-logo.jpeg');
+const developmentLogo=path.join(__dirname,'..','..','assets','logo.jpeg');
+const logoPath=fs.existsSync(packagedLogo)?packagedLogo:developmentLogo;
+const logoUrl=fs.existsSync(logoPath)?pathToFileURL(logoPath).href:'';
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
   environment:()=>invoke('app:get-environment'),
+  brand:Object.freeze({logoUrl}),
   auth:Object.freeze({
     getState:()=>invoke('auth:get-state'),startGoogle:()=>invoke('auth:start-google'),signInPassword:(email,password)=>invoke('auth:sign-in-password',{email,password}),signOut:()=>invoke('auth:sign-out'),
     onChanged:callback=>listen('auth:changed',callback),onError:callback=>listen('auth:error',callback)
