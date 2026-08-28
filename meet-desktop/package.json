@@ -27,7 +27,11 @@
       {"from":"../assets/logo.jpeg","to":"branding/dominionstar-logo.jpeg"}
     ],
     "artifactName": "DominionStar-Meet-Rebuild-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "icon": "build/icon.svg"
+    },
     "mac": {
+      "icon": "build/icon.svg",
       "category": "public.app-category.business",
       "identity": "-",
       "hardenedRuntime": true,
