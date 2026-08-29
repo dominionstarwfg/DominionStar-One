@@ -156,13 +156,31 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Create clean QA archive
+      - name: Create installable QA DMG and archive
         shell: bash
         run: |
-          mkdir -p qa-artifact
+          mkdir -p qa-artifact "$RUNNER_TEMP/dominionstar-qa-dmg"
+          ditto "${{ steps.app.outputs.path }}" "$RUNNER_TEMP/dominionstar-qa-dmg/DominionStar Meet.app"
+          ln -s /Applications "$RUNNER_TEMP/dominionstar-qa-dmg/Applications"
+          hdiutil create -volname "DominionStar Meet QA" -srcfolder "$RUNNER_TEMP/dominionstar-qa-dmg" -ov -format UDZO qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-Installer.dmg
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
-          shasum -a 256 qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip | tee qa-artifact/SHA256.txt
-          du -h qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
+          shasum -a 256 qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-Installer.dmg qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip | tee qa-artifact/SHA256.txt
+          du -h qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-Installer.dmg qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
+
+      - name: Verify QA DMG installer layout
+        shell: bash
+        run: |
+          DMG="qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-Installer.dmg"
+          MOUNT="$RUNNER_TEMP/dominionstar-qa-installer-mount"
+          mkdir -p "$MOUNT"
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT"
+          test -d "$MOUNT/DominionStar Meet.app"
+          test -L "$MOUNT/Applications"
+          test "$(readlink "$MOUNT/Applications")" = "/Applications"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$MOUNT/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
+          codesign --verify --deep --strict --verbose=2 "$MOUNT/DominionStar Meet.app"
+          hdiutil detach "$MOUNT"
+          echo DOMINIONSTAR_QA_DMG_INSTALLER_OK
 
       - name: Upload certified QA artifact
         uses: actions/upload-artifact@v4
