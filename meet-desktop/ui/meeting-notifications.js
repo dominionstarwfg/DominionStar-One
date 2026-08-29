@@ -9,7 +9,7 @@
   }
 
   const pref=(key,fallback=true)=>{
-    try{const p=window.DominionPreferences;return p?.read?Boolean(p.read(key)):fallback;}catch{return fallback;}
+    try{const p=window.DominionPreferences;if(!p?.read)return fallback;const value=p.read(key);return value==null?fallback:Boolean(value);}catch{return fallback;}
   };
   function context(){
     try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();return audioContext;}catch{return null;}
