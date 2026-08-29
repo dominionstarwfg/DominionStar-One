@@ -36,7 +36,7 @@
 
   function toggleChat(force){ensureUi();const panel=q('#meetingChatPanel'),button=q('#roomChat');if(!panel)return;const show=typeof force==='boolean'?force:panel.hidden;panel.hidden=!show;button?.setAttribute('aria-pressed',String(show));if(show)requestAnimationFrame(()=>q('#meetingChatInput')?.focus());return show;}
   function renderMessages(){const box=q('#meetingChatMessages');if(!box)return;if(!state.messages.length){box.innerHTML='<div class="meeting-chat-empty">Messages sent in this meeting appear here.</div>';return;}box.innerHTML=state.messages.slice(-200).map(m=>`<article class="meeting-chat-message${m.own?' own':''}"><strong>${esc(m.name)}</strong><p>${esc(m.text)}</p><time>${esc(nowLabel(m.at))}</time></article>`).join('');box.scrollTop=box.scrollHeight;}
-  function appendMessage(message){state.messages.push(message);renderMessages();if(!message.own&&q('#meetingChatPanel')?.hidden){const button=q('#roomChat');button?.classList.add('has-unread');setTimeout(()=>button?.classList.remove('has-unread'),5000);}}
+  function appendMessage(message){state.messages.push(message);renderMessages();if(!message.own&&q('#meetingChatPanel')?.hidden){const button=q('#roomChat');button?.classList.add('has-unread');setTimeout(()=>button?.classList.remove('has-unread'),5000);window.DominionMeetingNotifications?.chat?.(message.name||'Participant');}}
   async function sendChat(event){event?.preventDefault?.();const input=q('#meetingChatInput'),text=String(input?.value||'').trim();if(!text)return;input.value='';const payload={text:text.slice(0,2000),name:localName(),at:new Date().toISOString()};appendMessage({...payload,own:true});await broadcast('chat',payload);}
 
   function closeReactionMenu(){state.reactionMenu?.remove();state.reactionMenu=null;}
