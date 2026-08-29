@@ -7,7 +7,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let shareActive=false;
   let savedMainWindowState=null;
   let mainMinimizeHandler=null;
-  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,meetingVisible:true};
+  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
 
   const authority=createShareSourceAuthority({
     timeoutMs:4500,
@@ -220,7 +220,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     shareActive=false;
     detachShareWindowLifecycle();
     restoreMainWindowAfterShare();
-    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,meetingVisible:true};
+    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
     closeToolbar();
     return {ok:true};
   });
