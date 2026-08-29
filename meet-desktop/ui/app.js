@@ -107,6 +107,7 @@
     if(!activeRoom?.roomId)return;
     try{
       const snapshot=await meeting.snapshot(activeRoom.roomId);if(snapshot.status==='ended')return returnHome();
+      window.dispatchEvent(new CustomEvent('dominion:meeting-snapshot',{detail:snapshot}));
       const people=snapshot.participants||[],current=new Map(people.map(p=>[String(p.participantId),p]));
       if(participantEventsInitialized){
         const joined=people.filter(p=>!lastParticipantMap.has(String(p.participantId)));
