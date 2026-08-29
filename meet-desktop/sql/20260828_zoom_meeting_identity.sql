@@ -915,7 +915,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path to 'public'
-as $
+as $$
 declare
   v_user uuid := auth.uid();
   v_room public.meet_v2_rooms%rowtype;
@@ -955,14 +955,14 @@ begin
     'transcriptEnabled',v_room.transcript_enabled
   );
 end
-$;
+$$;
 
 create or replace function public.meet_v2_publish_caption(p_participant_id uuid,p_text text,p_speaker_name text)
 returns jsonb
 language plpgsql
 security definer
 set search_path to 'public'
-as $
+as $$
 declare
   v_user uuid := auth.uid();
   v_participant public.meet_v2_participants%rowtype;
@@ -987,14 +987,14 @@ begin
 
   return jsonb_build_object('roomId',v_room.id,'lineId',v_line_id,'speakerName',v_name,'text',v_text,'spokenAt',v_spoken_at,'retained',v_room.transcript_enabled);
 end
-$;
+$$;
 
 create or replace function public.meet_v2_get_transcript(p_room_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path to 'public'
-as $
+as $$
 declare
   v_user uuid := auth.uid();
   v_room public.meet_v2_rooms%rowtype;
@@ -1020,7 +1020,7 @@ begin
 
   return jsonb_build_object('roomId',p_room_id,'transcriptEnabled',v_room.transcript_enabled,'lines',v_lines);
 end
-$;
+$$;
 
 create or replace function public.meet_v2_rename_participant(p_participant_id uuid,p_display_name text)
 returns jsonb
