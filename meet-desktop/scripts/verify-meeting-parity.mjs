@@ -29,6 +29,10 @@ assert(parity.includes("GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1'"),'Partici
 assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Participant management panel geometry must remain separate from video dock geometry.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Participant management panel must be closed by default so solo video owns the stage.');
 assert(parity.includes("window.addEventListener('dominion:meeting-ui-ready',()=>install())"),'Zoom parity must install after the live meeting DOM is created.');
+assert(parity.includes("if(key===toolbarOrderKey&&visible===key)return"),'Primary toolbar ordering must be idempotent so periodic reconciliation cannot make controls dance.');
+assert(parity.includes("overlay.dataset.dsParityInstalled='1'"),'Meeting parity must mark the live shell installed instead of rebuilding it on every poll.');
+assert(css.includes(".meeting-footer #roomRecord")&&css.includes("display:none!important"),'Record must remain structurally hidden from the primary toolbar and accessible through More.');
+assert(css.includes(".meeting-control.is-off .ds-control-icon::after"),'Muted mic and stopped video must display an explicit red slash state.');
 assert(parity.includes("decorate(q('#roomMic'),SVG.mic)")&&parity.includes("decorate(q('#roomCamera'),SVG.video)")&&parity.includes("decorate(q('#roomShare'),SVG.share)")&&parity.includes("decorate(q('#roomParticipants'),SVG.participants)")&&parity.includes("decorate(q('#roomChat'),SVG.chat)")&&parity.includes("decorate(q('#roomReactions'),SVG.reactions)"),'Primary meeting controls must have modern SVG icon coverage.');
 assert(parity.includes("for(const id of ['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions','roomMore','roomExitButton'])"),'Primary toolbar order must stay Mic, Video, Share, Participants, Chat, Reactions, More, End/Leave.');
 assert(parity.includes("for(const id of ['roomSecurity','roomSettings','roomRecord','roomRecordStop'])"),'Secondary host/settings/record controls must stay out of the primary toolbar.');
