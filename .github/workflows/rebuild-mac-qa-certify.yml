@@ -51,9 +51,12 @@ jobs:
           node --check ui/video-effects.js
           node --check ui/zoom-behavior.js
           node --check ui/participant-controls.js
+          node --check ui/participants-window.js
+          node --check ui/physical-zoom-parity.js
           node --check ui/meeting-notifications.js
           node --check ui/share-annotation.js
           node --check scripts/verify-meeting-identity-runtime.mjs
+          node --check scripts/verify-physical-zoom-parity.mjs
           node --check scripts/verify-packaged-interactions.mjs
           node scripts/verify-foundation.mjs
           node scripts/verify-auth.mjs
@@ -62,6 +65,7 @@ jobs:
           node scripts/verify-media-authority.mjs
           node scripts/verify-av-settings.mjs
           node scripts/verify-meeting-parity.mjs
+          node scripts/verify-physical-zoom-parity.mjs
           node scripts/verify-share-authority.mjs
           node scripts/verify-webrtc-transport.mjs
           node scripts/verify-turn-relay.mjs
