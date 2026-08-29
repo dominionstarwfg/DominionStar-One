@@ -27,8 +27,7 @@ alter table public.meet_v2_rooms
   add column if not exists chat_policy text not null default 'everyone' check (chat_policy in ('everyone','host_cohost','disabled')),
   add column if not exists caption_mode text not null default 'off' check (caption_mode in ('off','manual')),
   add column if not exists captioner_participant_id uuid references public.meet_v2_participants(id) on delete set null,
-  add column if not exists transcript_enabled boolean not null default false,
-  add column if not exists recording_allowed boolean not null default false;
+  add column if not exists transcript_enabled boolean not null default false;
 
 alter table public.meet_v2_rooms
   drop constraint if exists meet_v2_rooms_meeting_kind_check;
@@ -47,6 +46,10 @@ alter table public.meet_v2_rooms
 alter table public.meet_v2_rooms
   add constraint meet_v2_rooms_duration_check
   check (duration_minutes is null or duration_minutes between 15 and 480);
+
+alter table public.meet_v2_participants
+  add column if not exists recording_allowed boolean not null default false,
+  add column if not exists is_recording boolean not null default false;
 
 alter table public.meet_v2_participants
   drop constraint if exists meet_v2_participants_state_check;
@@ -657,7 +660,7 @@ begin
     'state',p.state,
     'joinedAt',p.joined_at,
     'lastSeenAt',p.last_seen_at,
-    'canHost',(p.member_id is not null and p.state='joined'),'recordingAllowed',p.recording_allowed
+    'canHost',(p.member_id is not null and p.state='joined'),'recordingAllowed',p.recording_allowed,'isRecording',p.is_recording
   ) order by case p.role when 'host' then 0 when 'cohost' then 1 else 2 end,p.created_at),'[]'::jsonb)
   into v_people
   from public.meet_v2_participants p
@@ -895,6 +898,10 @@ begin
   v_from_role:=lower(coalesce(v_from.role,'participant'));
   v_to_role:=lower(coalesce(v_to.role,'participant'));
 
+  if p_signal_type='recording-state' then
+    if v_from_role not in ('host','cohost') and not coalesce(v_from.recording_allowed,false) then raise exception 'recording_authority_required'; end if;
+  end if;
+
   if p_signal_type='chat' then
     if v_room.chat_policy='disabled' and v_from_role not in ('host','cohost') then raise exception 'meeting_chat_disabled'; end if;
     if v_room.chat_policy='host_cohost' and v_from_role not in ('host','cohost') and v_to_role not in ('host','cohost') then raise exception 'chat_host_cohost_only'; end if;
@@ -1052,7 +1059,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path to 'public'
-as $
+as $$
 declare
   v_actor uuid := auth.uid();
   v_target public.meet_v2_participants%rowtype;
@@ -1068,7 +1075,27 @@ begin
   update public.meet_v2_participants set recording_allowed=coalesce(p_enabled,false),updated_at=now() where id=p_participant_id;
   return jsonb_build_object('ok',true,'participantId',p_participant_id,'recordingAllowed',coalesce(p_enabled,false));
 end
-$;
+$$;
+
+create or replace function public.meet_v2_set_recording_state(p_participant_id uuid,p_active boolean)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_participant public.meet_v2_participants%rowtype;
+begin
+  if v_user is null then raise exception 'authentication_required'; end if;
+  select * into v_participant from public.meet_v2_participants where id=p_participant_id for update;
+  if not found then raise exception 'participant_not_found'; end if;
+  if v_participant.member_id is distinct from v_user or v_participant.state<>'joined' then raise exception 'recording_sender_not_authorized'; end if;
+  if v_participant.role not in ('host','cohost') and not coalesce(v_participant.recording_allowed,false) then raise exception 'recording_authority_required'; end if;
+  update public.meet_v2_participants set is_recording=coalesce(p_active,false),updated_at=now() where id=p_participant_id;
+  return jsonb_build_object('ok',true,'participantId',p_participant_id,'isRecording',coalesce(p_active,false));
+end
+$$;
 
 create or replace function public.meet_v2_transfer_host_and_leave(p_target_participant_id uuid)
 returns jsonb
@@ -1168,6 +1195,7 @@ grant execute on function public.meet_v2_decide_participant(uuid,text) to authen
 grant execute on function public.meet_v2_set_cohost(uuid,boolean) to authenticated;
 grant execute on function public.meet_v2_remove_participant(uuid) to authenticated;
 grant execute on function public.meet_v2_set_recording_permission(uuid,boolean) to authenticated;
+grant execute on function public.meet_v2_set_recording_state(uuid,boolean) to authenticated;
 grant execute on function public.meet_v2_rename_participant(uuid,text) to authenticated;
 grant execute on function public.meet_v2_set_security(uuid,boolean,boolean) to authenticated;
 grant execute on function public.meet_v2_set_chat_policy(uuid,text) to authenticated;
