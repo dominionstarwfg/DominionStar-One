@@ -26,9 +26,13 @@
   function play(kind){
     if(kind==='waiting'&&!pref('waitingRoomSound',true))return;
     if((kind==='join'||kind==='leave')&&!pref('joinLeaveSound',true))return;
+    if(kind==='chat'&&!pref('chatSound',true))return;
+    const ctx=context(),speakerId=String(window.DominionMediaController?.snapshot?.().speakerId||'');
+    if(ctx?.setSinkId&&speakerId){try{void ctx.setSinkId(speakerId);}catch{}}
     if(kind==='waiting'){tone(660,0,.11);tone(880,.14,.16);}
     if(kind==='join'){tone(620,0,.09);tone(820,.11,.12);}
     if(kind==='leave'){tone(620,0,.09);tone(440,.11,.13);}
+    if(kind==='chat'){tone(860,0,.09);}
   }
   function ensureToast(){
     let node=q('#meetingEventToast');if(node)return node;
@@ -72,9 +76,13 @@
       toast('Participant left',body);native('DominionStar Meet',body);play('leave');
     }
   }
+  function chat(name='Participant'){
+    const sender=String(name||'Participant').trim()||'Participant';
+    play('chat');native('DominionStar Meet — Chat',sender+' sent a message');
+  }
   function reset(){participantBadge(0);const badgeCall=desktop.notifications?.setWaitingCount?.(0,false);if(badgeCall&&typeof badgeCall.catch==='function')void badgeCall.catch(()=>{});const node=q('#meetingEventToast');if(node)node.hidden=true;}
   window.addEventListener('dominion:waiting-room-update',onWaiting);
   window.addEventListener('dominion:participant-presence',onPresence);
   window.addEventListener('dominion:meeting-ended',reset);
-  window.DominionMeetingNotifications=Object.freeze({version:'1.0.0',play,toast,participantBadge,reset});
+  window.DominionMeetingNotifications=Object.freeze({version:'1.1.0',play,toast,chat,participantBadge,reset});
 })();
