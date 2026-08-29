@@ -864,7 +864,7 @@ declare
   v_to_role text;
 begin
   if v_user is null then raise exception 'authentication_required'; end if;
-  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
+  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
   select * into v_from from public.meet_v2_participants where id=p_from_participant_id;
   select * into v_to from public.meet_v2_participants where id=p_to_participant_id;
   if v_from.id is null then raise exception 'participant_not_found'; end if;
