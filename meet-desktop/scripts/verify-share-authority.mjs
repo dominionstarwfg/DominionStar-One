@@ -56,6 +56,8 @@ assert(!integration.includes('getDisplayMedia')&&!preload.includes('getDisplayMe
 assert(controller.includes("context.drawImage(videoElement,0,0,width,height)"),'Pause must freeze the exact last shared frame.');
 assert(controller.includes('canvas.captureStream(1)'),'Pause must create a frozen presentation stream rather than showing black.');
 assert(controller.includes('const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Paused/unpaused base output must deterministically switch between frozen and live capture.');
+assert(controller.includes("for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone())"),'Pause must freeze video while preserving shared computer audio on the presentation stream.');
+assert(controller.includes("track.contentHint=optimize?'motion':'detail'")&&controller.includes("audioTrack.contentHint='music'"),'Share capture must signal motion/detail intent and music-quality system audio to the media pipeline.');
 assert(controller.includes('state.paused=false;if(state.annotationCanvas)startComposite()'),'Resume must restore the live base and rebuild annotation composition when annotations are active.');
 assert(controller.includes('function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}'),'Presentation output must use live/frozen base directly unless annotation composition is active.');
 assert(controller.includes('if(state.compositeVideo.srcObject!==base)')&&controller.includes('const base=baseOutputStream()'),'Annotation composition must continuously follow the current live/frozen base stream.');
@@ -74,4 +76,4 @@ assert(service.includes('if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbar
 for(const command of ['audio','video','pause','participants','show-meeting','stop'])assert(toolbar.includes(`data-command="${command}"`),`Presenter toolbar is missing ${command}.`);
 assert(media.includes("script.src='./share-integration.js'"),'Desktop and Netlify must load the same isolated share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker transactional-new-share pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop single-floating-toolbar');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker transactional-new-share system-audio optimize-video pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop single-floating-toolbar');
