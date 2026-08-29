@@ -119,6 +119,9 @@
     });
     if(row.dataset.raisedHand==='1')add('Lower Hand',()=>send(id,'host:lower-hand'));
     add('Rename',()=>renameParticipant(id,name));
+    if(localRole()==='host'&&row.dataset.recordEligible==='1'&&role!=='cohost'){
+      add(row.dataset.recordingAllowed==='1'?'Forbid Record':'Allow Record',async()=>{await meeting.setRecordingPermission(id,row.dataset.recordingAllowed!=='1');});
+    }
     if(localRole()==='host'&&role!=='cohost')add('Make Co-host',async()=>{await meeting.setCohost(id,true);});
     if(localRole()==='host'&&role==='cohost')add('Remove Co-host',async()=>{await meeting.setCohost(id,false);});
     add('Remove',async()=>{await meeting.removeParticipant(id);},true);
@@ -156,5 +159,5 @@
   function sync(){if(!inMeeting()){closeMenu();return;}syncRoster();syncPanelActions();}
   document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();},true);
   const timer=setInterval(sync,800);sync();
-  window.DominionParticipantControls=Object.freeze({version:'1.2.0',sync,sendAll,dispose:()=>{clearInterval(timer);closeMenu();prompt?.remove();renameDialog?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'1.3.0',sync,sendAll,dispose:()=>{clearInterval(timer);closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
