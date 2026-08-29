@@ -27,7 +27,7 @@
     if(!badge){badge=document.createElement('span');badge.id='transportStatus';badge.className='transport-status';badge.textContent='Preparing network…';head.append(badge);}
     return badge;
   }
-  function setTransportStatus(text,kind=''){const badge=ensureTransportStatus();if(!badge)return;badge.textContent=text;badge.dataset.kind=kind;}
+  function setTransportStatus(text,kind=''){const badge=ensureTransportStatus();if(!badge)return;badge.textContent=text;badge.dataset.kind=kind;const remoteCount=state.participants.size;badge.hidden=remoteCount===0||kind==='ready'||kind==='pending';}
   function ensureRecoveryBanner(){
     let banner=q('#networkRecoveryBanner');if(banner)return banner;
     banner=document.createElement('div');banner.id='networkRecoveryBanner';banner.className='network-recovery-banner';banner.hidden=true;banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');
@@ -75,7 +75,7 @@
     if(!servers.length||expiresAtMs<=Date.now()+5*60*1000)throw new Error('ice_configuration_unavailable');
     if(!qaDirectOnly&&!hasRelay(servers))throw new Error('turn_relay_unavailable');
     state.iceServers=servers;state.iceExpiresAtMs=expiresAtMs;state.iceProvider=String(config?.provider||'network');state.qaDirectOnly=qaDirectOnly;
-    if(qaDirectOnly)setTransportStatus('Direct QA • TURN deferred','warning');else setTransportStatus(`TURN ready • ${state.iceProvider}`,'ready');
+    if(qaDirectOnly)setTransportStatus('Direct connection','warning');else setTransportStatus(`TURN ready • ${state.iceProvider}`,'ready');
     scheduleIceRefresh();return config;
   }
   function scheduleIceRefresh(){
@@ -91,7 +91,7 @@
       for(const record of state.peers.values()){
         try{record.pc.setConfiguration(iceConfiguration());record.pc.restartIce();if(isInitiator(record.id))void initiate(record,true);}catch{}
       }
-      if(state.qaDirectOnly)setTransportStatus('Direct QA • TURN deferred','warning');else setTransportStatus(`TURN refreshed • ${state.iceProvider}`,'ready');
+      if(state.qaDirectOnly)setTransportStatus('Direct connection','warning');else setTransportStatus(`TURN refreshed • ${state.iceProvider}`,'ready');
     }catch{
       setTransportStatus('Network refresh retrying','warning');
       clearTimeout(state.timers.ice);state.timers.ice=setTimeout(()=>void refreshIce(),60000);
@@ -126,7 +126,7 @@
       }
       await pullSignals();
       await syncAllSenders();
-      setTransportStatus(state.qaDirectOnly?'Direct QA connection • TURN deferred':`Network restored • ${state.iceProvider}`,'ready');
+      setTransportStatus(state.qaDirectOnly?'Direct connection restored':`Network restored • ${state.iceProvider}`,'ready');
       hideRecovery();
     }catch{
       setTransportStatus('Reconnecting…','warning');
@@ -262,7 +262,7 @@
     for(const record of state.peers.values())await sampleTransport(record);
     const values=[...state.peers.values()].map(record=>record.transport);
     if(values.includes('relay'))setTransportStatus('Connected via TURN relay','relay');
-    else if(values.includes('direct')&&state.qaDirectOnly)setTransportStatus('Direct QA connection • TURN deferred','warning');
+    else if(values.includes('direct')&&state.qaDirectOnly)setTransportStatus('Direct connection restored','warning');
     else if(values.includes('direct'))setTransportStatus('Direct connection • TURN standby','ready');
   }
   function scheduleReconnect(record,delay){
@@ -284,7 +284,7 @@
   async function start(){
     if(state.running||Date.now()<state.nextStartAttemptAt)return;const context=await meeting.context();if(!context?.roomId||!context?.participantId||context.state!=='joined')return;
     ensureUi();setTransportStatus('Preparing network…','pending');
-    try{await loadIceConfig(false);}catch{state.nextStartAttemptAt=Date.now()+ICE_RETRY_MS;setTransportStatus('Network configuration unavailable','error');return;}
+    try{await loadIceConfig(false);}catch{state.nextStartAttemptAt=Date.now()+ICE_RETRY_MS;setTransportStatus('Network relay unavailable','warning');return;}
     state.running=true;state.context=context;state.lastSignalId=0;state.nextStartAttemptAt=0;state.networkOnline=navigator.onLine!==false;state.recovering=false;state.systemSuspended=false;state.lastPresenceTouchAt=0;
     state.mediaUnsub=window.DominionMediaController?.onChange?.(()=>void syncAllSenders());
     state.shareUnsub=window.DominionShareController?.onChange?.(()=>void syncAllSenders());
