@@ -75,13 +75,18 @@
     if(canManage()){
       const sep=document.createElement('div');sep.className='caption-menu-separator';menu.append(sep);
       const title=document.createElement('strong');title.textContent='Host controls';menu.append(title);
-      const select=document.createElement('select');select.className='captioner-select';select.setAttribute('aria-label','Manual captioner');
-      select.innerHTML='<option value="">Select manual captioner</option>'+state.participants.filter(p=>String(p.state||'joined')==='joined'&&p.memberId).map(p=>'<option value="'+esc(p.participantId)+'">'+esc(p.displayName||'Participant')+'</option>').join('');
-      if(state.snapshot?.captionerParticipantId)select.value=String(state.snapshot.captionerParticipantId);menu.append(select);
-      add(state.captionMode==='manual'?'Update Manual Captioner':'Start Manual Captions',async()=>{
+      add('I will type',async()=>{
+        const ctx=await context();if(!ctx.roomId||!ctx.participantId)return;
+        await meeting.setCaptionState(ctx.roomId,{mode:'manual',captionerParticipantId:ctx.participantId,transcriptEnabled:state.transcriptEnabled});
+      },{active:state.captionMode==='manual'&&String(state.snapshot?.captionerParticipantId||'')===String(state.localParticipantId||'')});
+      const select=document.createElement('select');select.className='captioner-select';select.setAttribute('aria-label','Assign participant to type captions');
+      const others=state.participants.filter(p=>String(p.state||'joined')==='joined'&&p.memberId&&String(p.participantId)!==String(state.localParticipantId||''));
+      select.innerHTML='<option value="">Assign participant to type</option>'+others.map(p=>'<option value="'+esc(p.participantId)+'">'+esc(p.displayName||'Participant')+'</option>').join('');
+      if(state.snapshot?.captionerParticipantId&&String(state.snapshot.captionerParticipantId)!==String(state.localParticipantId||''))select.value=String(state.snapshot.captionerParticipantId);menu.append(select);
+      add('Assign participant',async()=>{
         if(!select.value)return;
         const ctx=await context();await meeting.setCaptionState(ctx.roomId,{mode:'manual',captionerParticipantId:select.value,transcriptEnabled:state.transcriptEnabled});
-      });
+      },{disabled:others.length===0});
       if(state.captionMode==='manual')add('Stop Manual Captions',async()=>{const ctx=await context();await meeting.setCaptionState(ctx.roomId,{mode:'off',captionerParticipantId:null,transcriptEnabled:state.transcriptEnabled});});
       add('Retain Meeting Transcript',async()=>{const ctx=await context();await meeting.setCaptionState(ctx.roomId,{mode:state.captionMode,captionerParticipantId:state.snapshot?.captionerParticipantId||null,transcriptEnabled:!state.transcriptEnabled});},{active:state.transcriptEnabled,disabled:state.captionMode==='off'});
       if(state.transcriptEnabled)add('Download Retained Transcript',()=>void downloadTranscript());
@@ -150,5 +155,5 @@
   document.addEventListener('pointerdown',event=>{if(state.menu&&!state.menu.contains(event.target)&&!event.target.closest?.('#roomCaptionsMenu'))closeMenu();},true);
   setInterval(()=>{if(inMeeting()){ensureUi();prune();}else{closeMenu();state.history=[];state.snapshot=null;state.captioner=false;state.panelOpen=false;}},1500);
   ensureUi();
-  window.DominionMeetingCaptions=Object.freeze({version:'1.2.0',toggle:()=>{state.show=!state.show;render();return state.show;},openPanel:()=>{state.panelOpen=true;render();},snapshot:()=>({show:state.show,panelOpen:state.panelOpen,captionMode:state.captionMode,captioner:state.captioner,transcriptEnabled:state.transcriptEnabled,lineCount:state.history.length})});
+  window.DominionMeetingCaptions=Object.freeze({version:'1.3.0',toggle:()=>{state.show=!state.show;render();return state.show;},openPanel:()=>{state.panelOpen=true;render();},snapshot:()=>({show:state.show,panelOpen:state.panelOpen,captionMode:state.captionMode,captioner:state.captioner,transcriptEnabled:state.transcriptEnabled,lineCount:state.history.length})});
 })();
