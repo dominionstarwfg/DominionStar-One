@@ -7,7 +7,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let shareActive=false;
   let savedMainWindowState=null;
   let mainMinimizeHandler=null;
-  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',meetingVisible:true};
+  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,meetingVisible:true};
 
   const authority=createShareSourceAuthority({
     timeoutMs:4500,
@@ -153,11 +153,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   function openToolbar(){
     if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive();publishToolbarState();return;}
-    toolbarWindow=new BrowserWindow({width:760,height:74,minWidth:560,minHeight:74,maxHeight:74,show:false,frame:false,transparent:false,backgroundColor:'#16191d',resizable:true,fullscreenable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
+    toolbarWindow=new BrowserWindow({width:820,height:74,minWidth:620,minHeight:74,maxHeight:74,show:false,frame:false,transparent:false,backgroundColor:'#16191d',resizable:true,fullscreenable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
     const main=getMainWindow?.();
     if(main&&!main.isDestroyed()){
       const bounds=savedMainWindowState?.bounds||main.getBounds();
-      toolbarWindow.setBounds({x:Math.round(bounds.x+(bounds.width-760)/2),y:Math.max(24,bounds.y+18),width:760,height:74});
+      toolbarWindow.setBounds({x:Math.round(bounds.x+(bounds.width-820)/2),y:Math.max(24,bounds.y+18),width:820,height:74});
     }
     toolbarWindow.setAlwaysOnTop(true,'floating');
     protectMeetingChrome(toolbarWindow,true);
@@ -220,7 +220,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     shareActive=false;
     detachShareWindowLifecycle();
     restoreMainWindowAfterShare();
-    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',meetingVisible:true};
+    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,meetingVisible:true};
     closeToolbar();
     return {ok:true};
   });
