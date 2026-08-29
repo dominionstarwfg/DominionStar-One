@@ -1,2 +1,0 @@
-DominionStar Meet v1.1.8 predeployment certification witness.
-Final clean-checkout certification requested after native bootstrap and release-metadata hardening.
