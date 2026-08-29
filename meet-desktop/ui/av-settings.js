@@ -229,7 +229,14 @@
 
   function installSettings(media){
     const dialog=$('#settingsDialog');if(!dialog||dialog.dataset.avInstalled)return;dialog.dataset.avInstalled='1';
-    for(const row of dialog.querySelectorAll('.settings-row')){const title=row.querySelector('strong')?.textContent?.trim();if(title==='Audio')row.onclick=()=>void openAudioSettings(media);else if(title==='Video')row.onclick=()=>void openVideoSettings(media);else if(title==='Meetings')row.onclick=()=>openInfoSettings('Meetings','Meeting defaults');else if(title==='Sharing')row.onclick=()=>openInfoSettings('Sharing','Screen-share defaults');}
+    // One settings authority per category. A/V owns only Audio and Video.
+    // All other categories are owned by preferences.js so no placeholder card
+    // can overwrite a working settings page.
+    for(const row of dialog.querySelectorAll('.settings-row')){
+      const title=row.querySelector('strong')?.textContent?.trim();
+      if(title==='Audio')row.onclick=()=>void openAudioSettings(media);
+      else if(title==='Video')row.onclick=()=>void openVideoSettings(media);
+    }
     dialog.addEventListener('close',showSettingsList);
   }
 
