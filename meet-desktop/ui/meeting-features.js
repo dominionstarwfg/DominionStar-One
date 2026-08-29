@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const reactions=['👏','👍','❤️','😂','😮','🎉'];
-  const state={messages:[],reactionMenu:null,reactions:new Map(),reactionTimers:new Map(),raisedHands:new Map(),localHandRaised:false,meetingSnapshot:null,remoteRecorders:new Map(),recordingNoticeSeen:new Set(),recordingConsent:null,recording:false,recorder:null,recordChunks:[],recordStream:null,recordCanvas:null,recordFrame:0,audioContext:null};
+  const state={messages:[],reactionMenu:null,reactions:new Map(),reactionTimers:new Map(),raisedHands:new Map(),localHandRaised:false,meetingSnapshot:null,remoteRecorders:new Map(),recordingNoticeSeen:new Set(),recordingConsent:null,recording:false,recordingPaused:false,recorder:null,recordChunks:[],recordStream:null,recordCanvas:null,recordFrame:0,audioContext:null};
   if(!document.querySelector('link[href="./meeting-features.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-features.css';document.head.append(link);}
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const nowLabel=value=>{try{return new Date(value||Date.now()).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}catch{return ''}};
@@ -30,7 +30,8 @@
     if(!q('#meetingRecordingConsent')){const dialog=document.createElement('dialog');dialog.id='meetingRecordingConsent';dialog.className='meeting-recording-consent';dialog.innerHTML='<div class="recording-consent-card"><span class="recording-consent-orbit"><i></i></span><div><p>RECORDING NOTICE</p><h3>This meeting is being recorded</h3><span id="meetingRecordingConsentCopy">A participant started a local recording.</span></div><div class="recording-consent-actions"><button type="button" data-recording-leave class="danger">Leave Meeting</button><button type="button" data-recording-accept class="primary">Continue</button></div></div>';body.append(dialog);dialog.querySelector('[data-recording-accept]').onclick=()=>dialog.close();dialog.querySelector('[data-recording-leave]').onclick=()=>{dialog.close();q('#roomExitButton')?.click();};}
     const ensureButton=(id,label,before,handler)=>{let b=q(`#${id}`);if(b)return b;b=document.createElement('button');b.id=id;b.type='button';b.className='meeting-control';b.textContent=label;b.onclick=handler;footer.insertBefore(b,before||exit);return b;};
     ensureButton('roomChat','Chat',q('#roomSettings')||exit,()=>toggleChat());
-    ensureButton('roomRecord','Record',q('#roomSettings')||exit,()=>void toggleRecording());
+    const recordButton=ensureButton('roomRecord','Record',q('#roomSettings')||exit,()=>void toggleRecording());
+    const stopButton=ensureButton('roomRecordStop','Stop',q('#roomSettings')||exit,()=>void stopRecording());stopButton.classList.add('recording-stop-control');stopButton.hidden=!state.recording;
     ensureButton('roomReactions','Reactions',q('#roomSettings')||exit,event=>openReactions(event.currentTarget));
     return true;
   }
@@ -109,11 +110,16 @@
     const role=String(participant?.role||localRole()).toLowerCase();return {allowed:['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed),participant,ctx,snapshot:snap};
   }
   function syncRecordingUi(){
-    const button=q('#roomRecord');if(!button)return;
+    const button=q('#roomRecord'),stopButton=q('#roomRecordStop');if(!button)return;
     const snap=state.meetingSnapshot,ctxPromise=meeting?.context?.();
     Promise.resolve(ctxPromise).then(ctx=>{
       const participant=(snap?.participants||[]).find(p=>String(p.participantId)===String(ctx?.participantId||''));const role=String(participant?.role||localRole()).toLowerCase();
-      const allowed=['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed);button.hidden=!allowed&&!state.recording;button.disabled=!allowed&&!state.recording;button.title=allowed?'Record this meeting locally':'The host has not allowed you to record';
+      const allowed=['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed);
+      if(state.recording&&!allowed){void stopRecording({reason:'revoked'});return;}
+      button.hidden=!allowed&&!state.recording;button.disabled=!allowed&&!state.recording;
+      if(state.recording){button.title=state.recordingPaused?'Resume recording':'Pause recording';}
+      else button.title=allowed?'Record this meeting locally':'The host has not allowed you to record';
+      if(stopButton){stopButton.hidden=!state.recording;stopButton.disabled=!state.recording;}
     }).catch(()=>{});
   }
   function syncRemoteRecordingFromSnapshot(){
@@ -121,7 +127,7 @@
     const active=new Map();
     for(const p of state.meetingSnapshot?.participants||[]){
       const id=String(p.participantId||'');if(!id||id===ctxId||!p.isRecording)continue;
-      const name=String(p.displayName||'Participant');active.set(id,{name,at:Date.now()});
+      const name=String(p.displayName||'Participant');active.set(id,{name,paused:Boolean(p.recordingPaused),at:Date.now()});
       if(!state.recordingNoticeSeen.has(id)){state.recordingNoticeSeen.add(id);showRecordingConsent(name);}
     }
     state.remoteRecorders=active;
@@ -129,12 +135,20 @@
   function updateRecordingIndicator(){
     const indicator=q('#meetingRecordingIndicator'),owner=q('#meetingRecordingOwner');if(!indicator)return;
     const active=state.recording||state.remoteRecorders.size>0;indicator.hidden=!active;
-    if(owner){if(state.recording&&state.remoteRecorders.size===0)owner.textContent='You';else if(state.remoteRecorders.size===1)owner.textContent=[...state.remoteRecorders.values()][0]?.name||'';else if(state.remoteRecorders.size>1)owner.textContent=`${state.remoteRecorders.size+(state.recording?1:0)} recorders`;else owner.textContent='';}
-    for(const row of qa('#participantRoster [data-participant-id]')){const id=String(row.dataset.participantId||'');const remote=state.remoteRecorders.has(id);let badge=row.querySelector('.recording-participant-badge');if(remote&&!badge){badge=document.createElement('span');badge.className='recording-participant-badge';badge.textContent='REC';badge.title='Recording';row.querySelector('.person-copy')?.append(badge);}if(!remote)badge?.remove();}
+    const remoteValues=[...state.remoteRecorders.values()],allPaused=active&&(state.recording?state.recordingPaused:true)&&remoteValues.every(item=>item.paused);
+    indicator.classList.toggle('paused',Boolean(allPaused));
+    const label=indicator.querySelector('span');if(label)label.textContent=allPaused?'Recording paused':'Recording';
+    if(owner){if(state.recording&&state.remoteRecorders.size===0)owner.textContent='You';else if(state.remoteRecorders.size===1)owner.textContent=remoteValues[0]?.name||'';else if(state.remoteRecorders.size>1)owner.textContent=`${state.remoteRecorders.size+(state.recording?1:0)} recorders`;else owner.textContent='';}
+    for(const row of qa('#participantRoster [data-participant-id]')){
+      const id=String(row.dataset.participantId||''),remote=state.remoteRecorders.get(id);let badge=row.querySelector('.recording-participant-badge');
+      if(remote&&!badge){badge=document.createElement('span');badge.className='recording-participant-badge';row.querySelector('.person-copy')?.append(badge);}
+      if(remote&&badge){badge.textContent=remote.paused?'PAUSED':'REC';badge.classList.toggle('paused',Boolean(remote.paused));badge.title=remote.paused?'Recording paused':'Recording';}
+      if(!remote)badge?.remove();
+    }
   }
-  async function announceRecording(active){
-    const ctx=await meeting?.context?.(),participantId=String(ctx?.participantId||''),payload={active:Boolean(active),name:localName(),participantId,at:new Date().toISOString()};
-    if(participantId&&meeting?.setRecordingState)await meeting.setRecordingState(participantId,Boolean(active));
+  async function announceRecording(active,paused=false){
+    const ctx=await meeting?.context?.(),participantId=String(ctx?.participantId||''),payload={active:Boolean(active),paused:Boolean(paused),name:localName(),participantId,at:new Date().toISOString()};
+    if(participantId&&meeting?.setRecordingState)await meeting.setRecordingState(participantId,Boolean(active),Boolean(paused));
     await broadcast('recording-state',payload);
   }
   function showRecordingConsent(name){
@@ -143,8 +157,8 @@
     dialog.showModal();
   }
   function handleRecordingState(detail){
-    const payload=detail.payload||{},id=String(detail.fromParticipantId||payload.participantId||''),active=Boolean(payload.active),name=String(payload.name||detail.fromDisplayName||'Participant');
-    if(!id)return;if(active){state.remoteRecorders.set(id,{name,at:Date.now()});if(!state.recordingNoticeSeen.has(id)){state.recordingNoticeSeen.add(id);showRecordingConsent(name);}}else{state.remoteRecorders.delete(id);state.recordingNoticeSeen.delete(id);}updateRecordingIndicator();
+    const payload=detail.payload||{},id=String(detail.fromParticipantId||payload.participantId||''),active=Boolean(payload.active),paused=Boolean(payload.paused),name=String(payload.name||detail.fromDisplayName||'Participant');
+    if(!id)return;if(active){state.remoteRecorders.set(id,{name,paused,at:Date.now()});if(!state.recordingNoticeSeen.has(id)){state.recordingNoticeSeen.add(id);showRecordingConsent(name);}}else{state.remoteRecorders.delete(id);state.recordingNoticeSeen.delete(id);}updateRecordingIndicator();
   }
 
   function visibleStageVideo(){return [q('#sharedContentVideo'),q('#remoteShareVideo'),q('#remoteActiveSpeakerStage'),q('#localMeetingVideo')].find(video=>video&&!video.hidden&&video.srcObject&&video.readyState>=2)||null;}
@@ -171,27 +185,48 @@
     recorder.ondataavailable=e=>{if(e.data?.size)state.recordChunks.push(e.data);};
     recorder.onstop=()=>{const blob=new Blob(state.recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob),a=document.createElement('a');const stamp=new Date().toISOString().replace(/[:.]/g,'-');a.href=url;a.download=`DominionStar-Meet-${stamp}.webm`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);state.recordChunks=[];stopRecordResources();};
     try{
-      if(meeting?.setRecordingState)await meeting.setRecordingState(authority.ctx.participantId,true);
-      recorder.start(1000);state.recording=true;updateRecordingIndicator();
-      await broadcast('recording-state',{active:true,name:localName(),participantId:String(authority.ctx.participantId||''),at:new Date().toISOString()});
-      const button=q('#roomRecord');button?.classList.add('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Stop Record';else button.textContent='Stop Record';}
+      if(meeting?.setRecordingState)await meeting.setRecordingState(authority.ctx.participantId,true,false);
+      recorder.start(1000);state.recording=true;state.recordingPaused=false;updateRecordingIndicator();
+      await broadcast('recording-state',{active:true,paused:false,name:localName(),participantId:String(authority.ctx.participantId||''),at:new Date().toISOString()});
+      const button=q('#roomRecord');button?.classList.add('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Pause';else button.textContent='Pause';}
       window.DominionMeetingParity?.install?.();
     }catch(error){
       try{if(recorder.state!=='inactive')recorder.stop();}catch{}
-      try{if(meeting?.setRecordingState&&authority.ctx?.participantId)await meeting.setRecordingState(authority.ctx.participantId,false);}catch{}
+      try{if(meeting?.setRecordingState&&authority.ctx?.participantId)await meeting.setRecordingState(authority.ctx.participantId,false,false);}catch{}
       state.recorder=null;state.recording=false;stopRecordResources();throw error;
     }
   }
-  async function stopRecording(){
-    if(!state.recording)return;state.recording=false;
-    const ctx=await meeting?.context?.().catch?.(()=>null);
-    try{if(meeting?.setRecordingState&&ctx?.participantId)await meeting.setRecordingState(ctx.participantId,false);}catch{}
-    await broadcast('recording-state',{active:false,name:localName(),participantId:String(ctx?.participantId||''),at:new Date().toISOString()}).catch(()=>{});
-    updateRecordingIndicator();const button=q('#roomRecord');button?.classList.remove('recording');
-    if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Record';else button.textContent='Record';}
-    if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();else stopRecordResources();state.recorder=null;
+  async function pauseRecording(){
+    if(!state.recording||state.recordingPaused||!state.recorder||state.recorder.state!=='recording')return;
+    state.recorder.pause();state.recordingPaused=true;await announceRecording(true,true).catch(()=>{});updateRecordingIndicator();syncRecordingUi();
+    const button=q('#roomRecord'),label=button?.querySelector('.ds-control-label');if(label)label.textContent='Resume';else if(button)button.textContent='Resume';
   }
-  async function toggleRecording(){try{state.recording?await stopRecording():await startRecording();}catch(error){stopRecordResources();state.recording=false;const title=q('#foundationTitle'),copy=q('#foundationCopy'),dialog=q('#foundationDialog');if(title)title.textContent='Recording unavailable';if(copy)copy.textContent=String(error?.message||error);if(dialog&&!dialog.open)dialog.showModal();}}
+  async function resumeRecording(){
+    if(!state.recording||!state.recordingPaused||!state.recorder||state.recorder.state!=='paused')return;
+    state.recorder.resume();state.recordingPaused=false;await announceRecording(true,false).catch(()=>{});updateRecordingIndicator();syncRecordingUi();
+    const button=q('#roomRecord'),label=button?.querySelector('.ds-control-label');if(label)label.textContent='Pause';else if(button)button.textContent='Pause';
+  }
+  async function stopRecording({reason=''}={}){
+    if(!state.recording)return;state.recording=false;state.recordingPaused=false;
+    const ctx=await meeting?.context?.().catch?.(()=>null);
+    try{if(meeting?.setRecordingState&&ctx?.participantId)await meeting.setRecordingState(ctx.participantId,false,false);}catch{}
+    await broadcast('recording-state',{active:false,paused:false,name:localName(),participantId:String(ctx?.participantId||''),at:new Date().toISOString()}).catch(()=>{});
+    updateRecordingIndicator();const button=q('#roomRecord'),stopButton=q('#roomRecordStop');button?.classList.remove('recording');
+    if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Record';else button.textContent='Record';}
+    if(stopButton)stopButton.hidden=true;
+    if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();else stopRecordResources();state.recorder=null;
+    if(reason==='revoked')window.DominionMeetingNotifications?.toast?.('The host removed your recording permission. Recording stopped.','info');
+  }
+  async function toggleRecording(){
+    try{
+      if(!state.recording)await startRecording();
+      else if(state.recordingPaused)await resumeRecording();
+      else await pauseRecording();
+    }catch(error){
+      stopRecordResources();state.recording=false;state.recordingPaused=false;
+      const title=q('#foundationTitle'),copy=q('#foundationCopy'),dialog=q('#foundationDialog');if(title)title.textContent='Recording unavailable';if(copy)copy.textContent=String(error?.message||error);if(dialog&&!dialog.open)dialog.showModal();
+    }
+  }
 
   function setVideoLayout(mode){const dock=q('#participantVideoDock');if(!dock)return;dock.classList.remove('layout-speaker');if(mode==='hide'){dock.hidden=true;return;}dock.hidden=false;if(mode==='speaker')dock.classList.add('layout-speaker');window.DominionMeetingParity?.syncVideoDock?.();}
 
@@ -207,5 +242,5 @@
   if(overlay)observer.observe(overlay,{attributes:true,attributeFilter:['hidden']});
   setInterval(()=>{if(inMeeting()){ensureUi();decorateRaisedHands();decorateReactions();syncRecordingUi();updateRecordingIndicator();}else{for(const timer of state.reactionTimers.values())clearTimeout(timer);state.reactionTimers.clear();state.reactions.clear();state.remoteRecorders.clear();state.recordingNoticeSeen.clear();state.raisedHands.clear();state.localHandRaised=false;state.meetingSnapshot=null;if(state.recording)void stopRecording();}},600);
   ensureUi();
-  window.DominionMeetingFeatures=Object.freeze({version:'1.2.0',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))})});
+  window.DominionMeetingFeatures=Object.freeze({version:'1.3.0',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,recordingPaused:state.recordingPaused,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))})});
 })();
