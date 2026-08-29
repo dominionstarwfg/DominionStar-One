@@ -883,7 +883,7 @@ declare
   v_to_role text;
 begin
   if v_user is null then raise exception 'authentication_required'; end if;
-  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','caption','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
+  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','caption','caption-request','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
   select * into v_from from public.meet_v2_participants where id=p_from_participant_id;
   select * into v_to from public.meet_v2_participants where id=p_to_participant_id;
   if v_from.id is null then raise exception 'participant_not_found'; end if;
@@ -934,7 +934,7 @@ begin
     where room_id=p_room_id and member_id=v_user and state in ('admitted','joined')
     order by created_at desc limit 1;
   end if;
-  if coalesce(v_role,'') not in ('host','cohost') then raise exception 'host_authority_required'; end if;
+  if coalesce(v_room.active_host_id,v_room.host_id)<>v_user then raise exception 'host_authority_required'; end if;
 
   if v_mode='manual' then
     if p_captioner_participant_id is null then raise exception 'captioner_required'; end if;
