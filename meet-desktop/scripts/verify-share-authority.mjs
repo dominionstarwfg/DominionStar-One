@@ -73,7 +73,10 @@ assert(controller.indexOf('const {stream,track}=await acquireDisplay(options);',
 assert(integration.includes("if(replacing){await share.replaceSource")&&integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must keep the current share active while the source picker is open.');
 assert(!integration.includes("if(command==='new-share'){window.DominionShareAnnotation?.deactivate?.();await share.stop()"),'New Share must never stop the current presentation before replacement succeeds.');
 assert(service.includes('if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive();publishToolbarState();return;}'),'Presenter toolbar must remain single-instance across share-source changes.');
+assert(toolbar.includes('shareSourceLabel')&&toolbar.includes('shareAudioFlag')&&toolbar.includes('shareOptimizeFlag'),'Presenter toolbar must expose current source, Computer Sound, and Optimize-for-Video state.');
+assert(integration.includes('shareAudio:Boolean(state.options?.shareAudio)')&&integration.includes('optimizeVideo:Boolean(state.options?.optimizeVideo)'),'Presenter toolbar state must be driven from the real active share options.');
+assert(service.includes('shareAudio:false,optimizeVideo:false'),'Presenter toolbar shell must reset share-option state when sharing stops.');
 for(const command of ['audio','video','pause','participants','show-meeting','stop'])assert(toolbar.includes(`data-command="${command}"`),`Presenter toolbar is missing ${command}.`);
 assert(media.includes("script.src='./share-integration.js'"),'Desktop and Netlify must load the same isolated share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker transactional-new-share system-audio optimize-video pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop single-floating-toolbar');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker transactional-new-share system-audio optimize-video presenter-state pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop single-floating-toolbar');
