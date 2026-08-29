@@ -1,0 +1,169 @@
+name: DominionStar Meet Mac QA Certification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/rebuild-mac-qa-certify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac-qa:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+    steps:
+      - name: Checkout exact rebuild candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clean all generated state
+        run: |
+          rm -rf meet-desktop/node_modules meet-desktop/dist meet-desktop/release .package-audit qa-artifact
+          find . -maxdepth 2 \( -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' \) -print0 | xargs -0 -I{} rm -f '{}' || true
+
+      - name: Install only rebuild dependencies
+        working-directory: meet-desktop
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm ls --depth=0
+
+      - name: Run complete source certification
+        working-directory: meet-desktop
+        run: |
+          node --check ui/personal-room.js
+          node --check ui/schedule-controller.js
+          node --check ui/preferences.js
+          node --check ui/meeting-features.js
+          node --check ui/meeting-captions.js
+          node --check ui/video-effects.js
+          node --check ui/zoom-behavior.js
+          node --check ui/participant-controls.js
+          node --check ui/meeting-notifications.js
+          node --check ui/share-annotation.js
+          node --check scripts/verify-meeting-identity-runtime.mjs
+          node --check scripts/verify-packaged-interactions.mjs
+          node scripts/verify-foundation.mjs
+          node scripts/verify-auth.mjs
+          node scripts/verify-meeting-lifecycle.mjs
+          node scripts/verify-meeting-identity-runtime.mjs
+          node scripts/verify-media-authority.mjs
+          node scripts/verify-av-settings.mjs
+          node scripts/verify-meeting-parity.mjs
+          node scripts/verify-share-authority.mjs
+          node scripts/verify-webrtc-transport.mjs
+          node scripts/verify-turn-relay.mjs
+          node scripts/verify-diagnostics.mjs
+
+      - name: Build and sign universal QA app once
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          du -sh "$APP_PATH"
+
+      - name: Verify electron-builder signature and Electron QA entitlements
+        shell: bash
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          FRAMEWORK="$APP/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+          test -f "$FRAMEWORK"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.cs.allow-jit'
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.cs.disable-library-validation'
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.device.camera'
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.device.audio-input'
+          codesign -dv --verbose=4 "$APP" 2>&1 | grep -E 'Identifier=|TeamIdentifier=|Signature='
+          codesign -dv --verbose=4 "$FRAMEWORK" 2>&1 | grep -E 'Identifier=|TeamIdentifier=|Signature='
+          otool -L "$APP/Contents/MacOS/DominionStar Meet" | grep -F '@rpath/Electron Framework.framework/Electron Framework'
+
+      - name: Audit packaged app contents
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-app.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify macOS metadata and branded identity
+        shell: bash
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          PLIST="$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$PLIST" | grep -Fx 'DominionStar Meet'
+          /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSAudioCaptureUsageDescription' "$PLIST" >/dev/null
+          ICON_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$PLIST")"
+          test -n "$ICON_NAME"
+          case "$ICON_NAME" in *.icns) ;; *) ICON_NAME="$ICON_NAME.icns" ;; esac
+          test "$ICON_NAME" != 'electron.icns'
+          test -f "$APP/Contents/Resources/$ICON_NAME"
+          test -s "$APP/Contents/Resources/$ICON_NAME"
+          test -x "$APP/Contents/MacOS/DominionStar Meet"
+          echo "DOMINIONSTAR_MAC_BRANDED_IDENTITY_OK icon=$ICON_NAME"
+
+      - name: Launch packaged app smoke test
+        shell: bash
+        run: |
+          SOURCE_APP="${{ steps.app.outputs.path }}"
+          TEST_ROOT="$RUNNER_TEMP/dominionstar-meet-launch-smoke"
+          TEST_APP="$TEST_ROOT/DominionStar Meet.app"
+          LOG="$RUNNER_TEMP/dominionstar-meet-launch.log"
+          rm -rf "$TEST_ROOT" "$LOG"
+          mkdir -p "$TEST_ROOT"
+          ditto "$SOURCE_APP" "$TEST_APP"
+          ELECTRON_ENABLE_LOGGING=1 "$TEST_APP/Contents/MacOS/DominionStar Meet" >"$LOG" 2>&1 &
+          PID=$!
+          sleep 8
+          if ! kill -0 "$PID" 2>/dev/null; then
+            echo 'ERROR: packaged DominionStar Meet terminated during launch smoke test.' >&2
+            cat "$LOG" >&2 || true
+            exit 91
+          fi
+          kill "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || true
+          if grep -E 'different Team IDs|Library not loaded: @rpath/Electron Framework|DYLD.*Library missing' "$LOG"; then
+            echo 'ERROR: Electron framework/signing launch defect detected.' >&2
+            cat "$LOG" >&2 || true
+            exit 92
+          fi
+          echo DOMINIONSTAR_MAC_PACKAGED_LAUNCH_OK
+
+      - name: Exercise packaged desktop controls
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Create clean QA archive
+        shell: bash
+        run: |
+          mkdir -p qa-artifact
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
+          shasum -a 256 qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip | tee qa-artifact/SHA256.txt
+          du -h qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
+
+      - name: Upload certified QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-clean-rebuild-mac-qa
+          path: qa-artifact/*
+          if-no-files-found: error
+          retention-days: 14
