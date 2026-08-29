@@ -1,0 +1,37 @@
+(()=>{
+  const desktop=window.dominionDesktop||{},meeting=desktop.meeting||{},auth=desktop.auth||{},participantsBridge=desktop.participants||{};
+  const q=s=>document.querySelector(s);let mediaStates={},lastSnapshot=null,ctx=null,localUser=null,toastTimer=0;
+  const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const initials=name=>String(name||'Participant').trim().split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'P';
+  const micSvg=off=>`<svg class="${off?'off':''}" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6${off?'M4 4l16 16':''}"/></svg>`;
+  const videoSvg=off=>`<svg class="${off?'off':''}" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z${off?'M4 4l16 16':''}"/></svg>`;
+  function toast(text){const node=q('#participantToast');node.textContent=String(text||'');node.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.hidden=true,2300);}
+  function roleLabel(p){const local=String(p.participantId||'')===String(ctx?.participantId||'');const role=String(p.role||'participant').toLowerCase();if(role==='host')return local?'(Host, me)':'(Host)';if(role==='cohost')return local?'(Co-host, me)':'(Co-host)';return local?'(me)':'';}
+  function stateFor(id){return mediaStates[String(id)]||{};}
+  function avatarStyle(p,state){const url=String(state.avatarUrl||((String(p.participantId||'')===String(ctx?.participantId||''))?localUser?.avatarUrl:'')||'').trim();return url?`style="background-image:url('${url.replace(/'/g,'%27')}')"`:'';}
+  function render(){
+    const list=q('#participantsList'),people=(lastSnapshot?.participants||[]).filter(p=>['admitted','joined'].includes(String(p.state||'joined')));
+    people.sort((a,b)=>{const rank=v=>String(v.role||'participant').toLowerCase()==='host'?0:String(v.role||'participant').toLowerCase()==='cohost'?1:2;return rank(a)-rank(b)||String(a.displayName||'').localeCompare(String(b.displayName||''));});
+    q('#participantsTitle').textContent=`Participants (${people.length})`;
+    if(!people.length){list.innerHTML='<div class="participants-empty">No participants yet.</div>';return;}
+    list.innerHTML=people.map(p=>{const id=String(p.participantId||''),state=stateFor(id),name=String(p.displayName||'Participant'),url=String(state.avatarUrl||((id===String(ctx?.participantId||''))?localUser?.avatarUrl:'')||'').trim();return `<div class="participant-row" data-participant-id="${esc(id)}" data-role="${esc(String(p.role||'participant'))}"><span class="participant-avatar" ${avatarStyle(p,state)}>${url?'':initials(name)}</span><span class="participant-copy"><strong>${esc(name)}</strong><small>${esc(roleLabel(p))}</small></span><span class="participant-state">${micSvg(state.micOn===false)}${videoSvg(state.cameraOn===false)}${String(p.role||'').toLowerCase()==='host'?'':`<button class="participant-more" type="button" aria-label="More controls for ${esc(name)}">•••</button>`}</span></div>`;}).join('');
+    list.querySelectorAll('.participant-more').forEach(button=>button.onclick=event=>{event.stopPropagation();openParticipantMenu(button.closest('.participant-row'));});
+  }
+  async function refresh(){try{ctx=await meeting.context?.()||{};if(!ctx.roomId)return;lastSnapshot=await meeting.snapshot?.(ctx.roomId)||{};q('#muteOnEntry').checked=Boolean(lastSnapshot?.muteOnEntry);render();}catch{}}
+  async function peerList(){const people=(lastSnapshot?.participants||[]).filter(p=>String(p.participantId||'')!==String(ctx?.participantId||'')&&['admitted','joined'].includes(String(p.state||'joined')));return people;}
+  async function sendAll(type){const peers=await peerList();await Promise.allSettled(peers.filter(p=>String(p.role||'').toLowerCase()!=='host').map(p=>meeting.sendSignal?.(p.participantId,type,{at:new Date().toISOString()})));}
+  function closePopovers(){q('#invitePopover').hidden=true;q('#morePopover').hidden=true;document.querySelector('.participant-action-menu')?.remove();}
+  function openParticipantMenu(row){closePopovers();if(!row||!['host','cohost'].includes(String(ctx?.role||'').toLowerCase()))return;const id=String(row.dataset.participantId||''),role=String(row.dataset.role||'participant').toLowerCase();let menu=document.createElement('div');menu.className='popover participant-action-menu';const add=(label,type)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=async()=>{menu.remove();await meeting.sendSignal?.(id,type,{at:new Date().toISOString()});};menu.append(b);};add('Mute','host:mute');add('Ask to Unmute','host:ask-unmute');add('Stop Video','host:stop-video');add('Ask to Start Video','host:ask-start-video');if(String(ctx?.role||'').toLowerCase()==='host'){const co=document.createElement('button');co.type='button';co.textContent=role==='cohost'?'Remove Co-host':'Make Co-host';co.onclick=async()=>{menu.remove();await meeting.setCohost?.(id,role!=='cohost');await refresh();};menu.append(co);const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.className='danger';remove.onclick=async()=>{menu.remove();await meeting.removeParticipant?.(id);await refresh();};menu.append(remove);}document.querySelector('.participants-shell').append(menu);}
+  q('#inviteButton').onclick=()=>{closePopovers();const pop=q('#invitePopover');pop.hidden=false;q('#inviteMeetingId').textContent=`Meeting ID: ${String(ctx?.roomCode||'').replace(/(\d{3})(?=\d)/g,'$1 ')}`;q('#invitePasscode').textContent=`Passcode: ${String(ctx?.passcode||'')}`;};
+  q('#copyInviteButton').onclick=async()=>{const copy=`DominionStar Meet\nMeeting ID: ${String(ctx?.roomCode||'')}\nPasscode: ${String(ctx?.passcode||'')}`;try{await navigator.clipboard.writeText(copy);toast('Invitation copied');}catch{toast('Copy unavailable');}};
+  q('#muteAllButton').onclick=async()=>{q('#muteAllButton').disabled=true;try{await sendAll('host:mute');toast('All participants muted');}finally{q('#muteAllButton').disabled=false;}};
+  q('#moreButton').onclick=()=>{const next=q('#morePopover').hidden;closePopovers();q('#morePopover').hidden=!next;};
+  q('#askAllUnmute').onclick=async()=>{closePopovers();await sendAll('host:ask-unmute');toast('Unmute requests sent');};
+  q('#muteOnEntry').onchange=async event=>{try{await meeting.setSecurity?.(ctx.roomId,{locked:Boolean(lastSnapshot?.locked),muteOnEntry:Boolean(event.target.checked)});toast(event.target.checked?'Mute upon entry enabled':'Mute upon entry disabled');}catch{event.target.checked=!event.target.checked;toast('Could not change mute upon entry');}};
+  q('#joinLeaveSound').checked=localStorage.getItem('ds_pref_join_leave_sound')!=='0';q('#joinLeaveSound').onchange=event=>localStorage.setItem('ds_pref_join_leave_sound',event.target.checked?'1':'0');
+  document.addEventListener('pointerdown',event=>{if(!event.target.closest('.popover,#inviteButton,#moreButton,.participant-more'))closePopovers();},true);
+  participantsBridge.onMediaState?.(state=>{mediaStates=state&&typeof state==='object'?state:{};render();});
+  participantsBridge.getMediaState?.().then(state=>{mediaStates=state&&typeof state==='object'?state:{};render();}).catch(()=>{});
+  auth.getState?.().then(state=>{localUser=state?.user||null;render();}).catch(()=>{});
+  setInterval(refresh,700);void refresh();
+})();
