@@ -22,8 +22,11 @@ assert(authService.includes('callbackServer.listen(CALLBACK_PORT,CALLBACK_HOST)'
 assert(authService.includes('safeStorage.encryptString')&&authService.includes('safeStorage.decryptString'),'Desktop session storage must be encrypted when OS encryption is available.');
 assert(authService.includes("if(redirect!==CALLBACK_URL)throw new Error('Desktop authentication refused an unexpected redirect destination.')"),'Desktop must fail closed when Supabase changes the redirect destination.');
 assert(authService.includes('client.auth.signInWithPassword'),'Email/password desktop sign-in must use Supabase auth in the main process.');
-assert(authService.includes("client.from('member_profiles').select('full_name,preferred_name,email,rank,agent_code,is_founder')"),'Desktop auth must resolve the signed-in DominionStar member profile instead of relying only on Google metadata.');
+assert(authService.includes("client.from('member_profiles').select('full_name,preferred_name,email,rank,agent_code,is_founder,avatar_path')"),'Desktop auth must resolve the signed-in DominionStar member profile instead of relying only on Google metadata.');
 assert(authService.includes("name:preferred||full||String(metadata.full_name"),'Member profile preferred/full name must take precedence over provider display metadata.');
+assert(authService.includes("avatar_path")&&authService.includes("client.storage.from('member-avatars').createSignedUrl"),'Desktop auth must resolve persisted member avatars from the private avatar bucket.');
+assert(authService.includes("async function updateAvatar(dataUrl)")&&authService.includes("client.storage.from('member-avatars').upload"),'Desktop auth must persist updated member profile pictures.');
+assert(preload.includes('updateAvatar:dataUrl=>invoke(\'auth:update-avatar\''),'Renderer must update profile pictures only through the narrow auth bridge.');
 for(const forbidden of ['dominionstarld.com','#access_token','dominionstar://auth'])assert(!authService.includes(forbidden),`Forbidden legacy auth path returned: ${forbidden}`);
 
 assert(main.includes("ipcMain.handle('auth:start-google'"),'Native shell must own the Google sign-in command.');

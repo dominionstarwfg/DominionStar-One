@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   brand:Object.freeze({logoUrl}),
   power:Object.freeze({onChanged:callback=>listen('app:power-event',callback)}),
   auth:Object.freeze({
-    getState:()=>invoke('auth:get-state'),startGoogle:()=>invoke('auth:start-google'),signInPassword:(email,password)=>invoke('auth:sign-in-password',{email,password}),signOut:()=>invoke('auth:sign-out'),
+    getState:()=>invoke('auth:get-state'),startGoogle:()=>invoke('auth:start-google'),signInPassword:(email,password)=>invoke('auth:sign-in-password',{email,password}),updateAvatar:dataUrl=>invoke('auth:update-avatar',{dataUrl}),signOut:()=>invoke('auth:sign-out'),
     onChanged:callback=>listen('auth:changed',callback),onError:callback=>listen('auth:error',callback)
   }),
   notifications:Object.freeze({showMeeting:(title,body)=>invoke('notifications:meeting',{title,body}),setWaitingCount:(count,attention=false)=>invoke('notifications:set-waiting-count',{count,attention})}),

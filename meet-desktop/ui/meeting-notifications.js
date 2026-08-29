@@ -9,7 +9,7 @@
   }
 
   const pref=(key,fallback=true)=>{
-    try{const p=window.DominionPreferences;return p?.read?Boolean(p.read(key)):fallback;}catch{return fallback;}
+    try{const p=window.DominionPreferences;if(!p?.read)return fallback;const value=p.read(key);return value==null?fallback:Boolean(value);}catch{return fallback;}
   };
   function context(){
     try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();return audioContext;}catch{return null;}
@@ -33,7 +33,14 @@
     if(kind==='join'){tone(620,0,.09);tone(820,.11,.12);}
     if(kind==='leave'){tone(620,0,.09);tone(440,.11,.13);}
     if(kind==='chat'){tone(860,0,.09);}
+    if(kind==='mic-off'){tone(510,0,.06,.035);tone(360,.075,.08,.03);}
+    if(kind==='mic-on'){tone(430,0,.06,.03);tone(650,.075,.08,.035);}
+    if(kind==='video-off'){tone(470,0,.055,.026);}
+    if(kind==='video-on'){tone(650,0,.055,.026);}
   }
+  function unlockAudio(){const ctx=context();if(ctx?.state==='suspended')void ctx.resume().catch(()=>{});}
+  window.addEventListener('pointerdown',unlockAudio,{once:false,passive:true});
+  window.addEventListener('keydown',unlockAudio,{once:false});
   function ensureToast(){
     let node=q('#meetingEventToast');if(node)return node;
     node=document.createElement('div');node.id='meetingEventToast';node.className='meeting-event-toast';node.hidden=true;node.innerHTML='<strong></strong><span></span>';document.body.append(node);return node;

@@ -112,7 +112,7 @@ for(const action of ["add('Meeting settings'","add('Reset participant video pane
 assert(!parity.includes("add('Diagnostics'"),'Packaged production More menu must not expose QA Diagnostics.');
 assert(parity.includes("window.addEventListener('dominion:meeting-ui-ready',()=>install())"),'Packaged Zoom parity must install after the live meeting DOM exists.');
 assert(parity.includes("decorate(q('#roomMic'),SVG.mic)")&&parity.includes("decorate(q('#roomCamera'),SVG.video)")&&parity.includes("decorate(q('#roomShare'),SVG.share)")&&parity.includes("decorate(q('#roomParticipants'),SVG.participants)")&&parity.includes("decorate(q('#roomChat'),SVG.chat)")&&parity.includes("decorate(q('#roomReactions'),SVG.reactions)"),'Packaged primary controls must retain modern SVG icon decoration.');
-assert(parity.includes("for(const id of ['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions','roomMore','roomExitButton'])"),'Packaged primary meeting toolbar order changed unexpectedly.');
+assert(parity.includes("const desired=['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions','roomMore','roomExitButton']"),'Packaged primary meeting toolbar order changed unexpectedly.');
 assert(parityCss.includes('.meeting-body{position:relative!important;display:block!important'),'Packaged meeting must not reserve a permanent participant sidebar column.');
 assert(parityCss.includes('.stage{position:absolute!important;inset:0!important'),'Packaged meeting stage must use the full canvas.');
 assert(parityCss.includes('.room-side{position:absolute!important'),'Packaged participant management panel must overlay rather than shrink the stage.');

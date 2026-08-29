@@ -44,3 +44,9 @@
 .meeting-control.recording-stop-control{color:#ff7186}.meeting-control.recording-stop-control .ds-control-icon,.meeting-control.recording-stop-control .ds-control-label{color:#ff7186}
 .recording-participant-badge.paused{border-color:rgba(230,189,82,.24);background:rgba(230,189,82,.1);color:#e6bd52}
 .more-menu #presenterStopRecord{color:#ff7186}
+
+/* Zoom-style reaction tray: compact, tactile, and visually distinct from plain text/emoji. */
+.meeting-reaction-menu{gap:7px;padding:8px 9px;border-radius:14px;background:rgba(10,18,29,.96);backdrop-filter:blur(20px);box-shadow:0 22px 60px rgba(0,0,0,.5)}
+.meeting-reaction-menu>button:not(.reaction-hand-button){width:42px;height:42px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));font-size:22px;transition:transform .12s ease,background .12s ease,border-color .12s ease}
+.meeting-reaction-menu>button:not(.reaction-hand-button):hover{transform:translateY(-2px) scale(1.06);background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.18)}
+.meeting-reaction-menu .reaction-hand-button{height:42px;border:1px solid rgba(229,184,66,.18);border-radius:11px;background:rgba(229,184,66,.07)}
