@@ -141,7 +141,7 @@ ipcMain.handle('meeting:set-cohost',(_event,{participantId,enabled})=>meetingSer
 ipcMain.handle('meeting:remove-participant',(_event,{participantId})=>meetingService?.removeParticipant(participantId));
 ipcMain.handle('meeting:rename-participant',(_event,{participantId,displayName})=>meetingService?.renameParticipant(participantId,displayName));
 ipcMain.handle('meeting:set-recording-permission',(_event,{participantId,enabled})=>meetingService?.setRecordingPermission(participantId,enabled));
-ipcMain.handle('meeting:set-recording-state',(_event,{participantId,active})=>meetingService?.setRecordingState(participantId,active));
+ipcMain.handle('meeting:set-recording-state',(_event,{participantId,active,paused})=>meetingService?.setRecordingState(participantId,active,paused));
 ipcMain.handle('meeting:set-security',(_event,{roomId,options})=>meetingService?.setSecurity(roomId,options));
 ipMainHandleChatPolicy();
 ipMainHandleCaptions();
