@@ -41,7 +41,7 @@
   function ensureUi(){
     const stage=q('.stage');if(!stage)return null;
     let layer=q('#remoteMediaLayer');
-    if(!layer){layer=document.createElement('div');layer.id='remoteMediaLayer';layer.className='remote-media-layer';layer.innerHTML='<video id="remoteShareVideo" class="remote-share-video" autoplay playsinline></video><div id="remoteTileStrip" class="remote-tile-strip"></div><div id="remoteAudioBin" class="remote-audio-bin" aria-hidden="true"></div>';stage.append(layer);}
+    if(!layer){layer=document.createElement('div');layer.id='remoteMediaLayer';layer.className='remote-media-layer';layer.innerHTML='<video id="remoteShareVideo" class="remote-share-video" autoplay playsinline></video><div id="remoteShareBanner" class="remote-share-banner" hidden><span class="remote-share-dot"></span><strong>Participant is sharing</strong></div><div id="remoteTileStrip" class="remote-tile-strip"></div><div id="remoteAudioBin" class="remote-audio-bin" aria-hidden="true"></div>';stage.append(layer);}
     ensureTransportStatus();return layer;
   }
   function participantName(id){return state.participants.get(id)?.displayName||'Participant';}
@@ -54,13 +54,13 @@
   }
   function ensureAudio(id){ensureUi();const bin=q('#remoteAudioBin');if(!bin)return null;let audio=bin.querySelector(`[data-audio-peer="${CSS.escape(id)}"]`);if(!audio){audio=document.createElement('audio');audio.autoplay=true;audio.dataset.audioPeer=id;bin.append(audio);}return audio;}
   function ensureShareAudio(id){ensureUi();const bin=q('#remoteAudioBin');if(!bin)return null;let audio=bin.querySelector(`[data-share-audio-peer="${CSS.escape(id)}"]`);if(!audio){audio=document.createElement('audio');audio.autoplay=true;audio.dataset.shareAudioPeer=id;bin.append(audio);}return audio;}
-  function updateTileIdentity(id){const tile=ensureTile(id);if(!tile)return;const name=participantName(id);tile.querySelector('strong').textContent=name;tile.querySelector('.remote-peer-fallback span').textContent=initials(name);}
+  function updateTileIdentity(id){const tile=ensureTile(id);if(!tile)return;const name=participantName(id);tile.querySelector('strong').textContent=name;tile.querySelector('.remote-peer-fallback span').textContent=initials(name);const share=q('#remoteShareVideo'),banner=q('#remoteShareBanner');if(share&&banner&&String(share.dataset.peerId||'')===String(id)){const label=banner.querySelector('strong');if(label)label.textContent=`${name} is sharing`;}}
   function removeTile(id){q(`#remoteTileStrip [data-peer-id="${CSS.escape(id)}"]`)?.remove();q(`#remoteAudioBin [data-audio-peer="${CSS.escape(id)}"]`)?.remove();q(`#remoteAudioBin [data-share-audio-peer="${CSS.escape(id)}"]`)?.remove();}
   function setTileState(id,text){const tile=ensureTile(id);if(tile)tile.querySelector('small').textContent=text;}
   function showRemoteCamera(id,stream){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');video.srcObject=stream;video.hidden=false;tile.querySelector('.remote-peer-fallback').hidden=true;void video.play().catch(()=>{});}
   function hideRemoteCamera(id){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');video.srcObject=null;video.hidden=true;tile.querySelector('.remote-peer-fallback').hidden=false;}
-  function showRemoteShare(id,stream){ensureUi();const video=q('#remoteShareVideo');if(!video)return;video.dataset.peerId=id;video.srcObject=stream;video.hidden=false;document.body.classList.add('remote-share-active');void video.play().catch(()=>{});}
-  function hideRemoteShare(id){const video=q('#remoteShareVideo');if(!video||String(video.dataset.peerId||'')!==String(id))return;video.srcObject=null;video.hidden=true;delete video.dataset.peerId;document.body.classList.remove('remote-share-active');}
+  function showRemoteShare(id,stream){ensureUi();const video=q('#remoteShareVideo'),banner=q('#remoteShareBanner');if(!video)return;video.dataset.peerId=id;video.srcObject=stream;video.hidden=false;if(banner){banner.hidden=false;const label=banner.querySelector('strong');if(label)label.textContent=`${participantName(id)} is sharing`;}document.body.classList.add('remote-share-active');void video.play().catch(()=>{});}
+  function hideRemoteShare(id){const video=q('#remoteShareVideo');if(!video||String(video.dataset.peerId||'')!==String(id))return;video.srcObject=null;video.hidden=true;delete video.dataset.peerId;const banner=q('#remoteShareBanner');if(banner)banner.hidden=true;document.body.classList.remove('remote-share-active');}
   async function routeAudioElement(audio,stream){if(!audio)return;audio.srcObject=stream;const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(audio.setSinkId&&speakerId)await audio.setSinkId(speakerId).catch(()=>{});void audio.play().catch(()=>{});}
   async function playRemoteAudio(id,stream){return routeAudioElement(ensureAudio(id),stream);}
   async function playRemoteShareAudio(id,stream){return routeAudioElement(ensureShareAudio(id),stream);}
