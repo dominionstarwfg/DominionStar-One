@@ -182,7 +182,7 @@ assert(share.includes('.finally(()=>{inFlight=null;})'),'Packaged share authorit
 assert(shareService.includes('createShareSourceAuthority'),'Packaged share service must use the isolated source authority.');
 assert(shareService.includes('ensureScreenPermission()')&&shareService.includes('permissionRequired:true'),'Packaged share picker must preflight native Screen Recording permission.');
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
-assert((webrtc.match(/addTransceiver\('audio'/g)||[]).length===2&&(webrtc.match(/addTransceiver\('video'/g)||[]).length===2,'Packaged peer transport must contain microphone, camera, screen-video, and shared-system-audio lanes.');
+assert((webrtc.match(/addTransceiver\('audio'/g)||[]).length===2 && (webrtc.match(/addTransceiver\('video'/g)||[]).length===2,'Packaged peer transport must contain microphone, camera, screen-video, and shared-system-audio lanes.');
 assert(webrtc.includes('replaceTrack(shareAudio)')&&webrtc.includes("if(index===3&&event.track.kind==='audio')")&&webrtc.includes('playRemoteShareAudio'),'Packaged Share Computer Sound must travel on its own WebRTC lane to remote participants.');
 assert(webrtc.includes("degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced'")&&webrtc.includes('4500000:2500000'),'Packaged Optimize for Video must tune the outgoing screen sender.');
 assert(shareController.includes("track.contentHint=optimize?'motion':'detail'")&&shareController.includes("audioTrack.contentHint='music'"),'Packaged share capture must set appropriate screen and system-audio content hints.');
