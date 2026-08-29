@@ -66,7 +66,7 @@
     if(!button||!icon||button.querySelector('.ds-control-icon'))return;
     const text=String(button.textContent||button.getAttribute('aria-label')||'Control').trim();button.textContent='';const i=document.createElement('span');i.className='ds-control-icon';i.innerHTML=icon;const l=document.createElement('span');l.className='ds-control-label';l.textContent=text;button.append(i,l);button.setAttribute('aria-label',text);
   }
-  function decorateControls(){decorate(q('#roomMic'),SVG.mic);decorate(q('#roomCamera'),SVG.video);decorate(q('#roomSecurity'),SVG.security);decorate(q('#roomParticipants'),SVG.participants);decorate(q('#roomShare'),SVG.share);decorate(q('#roomChat'),SVG.chat);decorate(q('#roomRecord'),SVG.record);decorate(q('#roomRecordStop'),SVG.stop);decorate(q('#roomReactions'),SVG.reactions);decorate(q('#roomCaptions'),SVG.captions);decorate(q('#roomSettings'),SVG.settings);decorate(q('#roomMore'),SVG.more);decorate(q('#roomExitButton'),SVG.exit);}
+  function decorateControls(){decorate(q('#prejoinMic'),SVG.mic);decorate(q('#prejoinCamera'),SVG.video);decorate(q('#roomMic'),SVG.mic);decorate(q('#roomCamera'),SVG.video);decorate(q('#roomSecurity'),SVG.security);decorate(q('#roomParticipants'),SVG.participants);decorate(q('#roomShare'),SVG.share);decorate(q('#roomChat'),SVG.chat);decorate(q('#roomRecord'),SVG.record);decorate(q('#roomRecordStop'),SVG.stop);decorate(q('#roomReactions'),SVG.reactions);decorate(q('#roomCaptions'),SVG.captions);decorate(q('#roomSettings'),SVG.settings);decorate(q('#roomMore'),SVG.more);decorate(q('#roomExitButton'),SVG.exit);}
   function ensureViewButton(){
     const head=q('.meeting-head');if(!head)return null;let button=q('#meetingViewButton');if(button)return button;
     button=document.createElement('button');button.id='meetingViewButton';button.type='button';button.className='meeting-view-button';button.textContent='View';button.setAttribute('aria-haspopup','menu');
@@ -251,5 +251,5 @@
   window.addEventListener('dominion:meeting-ui-ready',()=>install());
   setInterval(()=>{syncGreeting();if(q('#meetingOverlay'))install();if(meetingOpen()){void syncMeetingMeta();decorateControls();syncShareLayout();syncVideoDock();}},500);
   install();
-  window.DominionMeetingParity=Object.freeze({version:'2.6.0-live-shell-zoom-parity',install,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout});
+  window.DominionMeetingParity=Object.freeze({version:'2.6.0-live-shell-zoom-parity',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout});
 })();
