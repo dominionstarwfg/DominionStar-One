@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const reactions=['👏','👍','❤️','😂','😮','🎉'];
-  const state={messages:[],reactionMenu:null,reactions:new Map(),reactionTimers:new Map(),raisedHands:new Map(),localHandRaised:false,recording:false,recorder:null,recordChunks:[],recordStream:null,recordCanvas:null,recordFrame:0,audioContext:null};
+  const state={messages:[],reactionMenu:null,reactions:new Map(),reactionTimers:new Map(),raisedHands:new Map(),localHandRaised:false,meetingSnapshot:null,remoteRecorders:new Map(),recordingConsent:null,recording:false,recorder:null,recordChunks:[],recordStream:null,recordCanvas:null,recordFrame:0,audioContext:null};
   if(!document.querySelector('link[href="./meeting-features.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-features.css';document.head.append(link);}
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const nowLabel=value=>{try{return new Date(value||Date.now()).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}catch{return ''}};
@@ -26,7 +26,8 @@
       const panel=document.createElement('aside');panel.id='meetingChatPanel';panel.className='meeting-chat-panel';panel.hidden=true;panel.innerHTML='<header><strong>Meeting Chat</strong><button type="button" data-chat-close aria-label="Close chat">×</button></header><div id="meetingChatMessages" class="meeting-chat-messages"><div class="meeting-chat-empty">Messages sent in this meeting appear here.</div></div><form id="meetingChatForm" class="meeting-chat-form"><input id="meetingChatInput" maxlength="2000" autocomplete="off" placeholder="Message everyone"><button type="submit">Send</button></form>';body.append(panel);panel.querySelector('[data-chat-close]').onclick=()=>toggleChat(false);panel.querySelector('form').onsubmit=sendChat;
     }
     if(!q('#meetingReactionLayer')){const layer=document.createElement('div');layer.id='meetingReactionLayer';layer.className='meeting-reaction-layer';body.append(layer);}
-    if(!q('#meetingRecordingIndicator')){const indicator=document.createElement('div');indicator.id='meetingRecordingIndicator';indicator.className='meeting-recording-indicator';indicator.hidden=true;indicator.innerHTML='<i></i><span>Recording</span>';body.append(indicator);}
+    if(!q('#meetingRecordingIndicator')){const indicator=document.createElement('div');indicator.id='meetingRecordingIndicator';indicator.className='meeting-recording-indicator';indicator.hidden=true;indicator.innerHTML='<i></i><span>Recording</span><small id="meetingRecordingOwner"></small>';body.append(indicator);}
+    if(!q('#meetingRecordingConsent')){const dialog=document.createElement('dialog');dialog.id='meetingRecordingConsent';dialog.className='meeting-recording-consent';dialog.innerHTML='<div class="recording-consent-card"><span class="recording-consent-orbit"><i></i></span><div><p>RECORDING NOTICE</p><h3>This meeting is being recorded</h3><span id="meetingRecordingConsentCopy">A participant started a local recording.</span></div><div class="recording-consent-actions"><button type="button" data-recording-leave class="danger">Leave Meeting</button><button type="button" data-recording-accept class="primary">Continue</button></div></div>';body.append(dialog);dialog.querySelector('[data-recording-accept]').onclick=()=>dialog.close();dialog.querySelector('[data-recording-leave]').onclick=()=>{dialog.close();q('#roomExitButton')?.click();};}
     const ensureButton=(id,label,before,handler)=>{let b=q(`#${id}`);if(b)return b;b=document.createElement('button');b.id=id;b.type='button';b.className='meeting-control';b.textContent=label;b.onclick=handler;footer.insertBefore(b,before||exit);return b;};
     ensureButton('roomChat','Chat',q('#roomSettings')||exit,()=>toggleChat());
     ensureButton('roomRecord','Record',q('#roomSettings')||exit,()=>void toggleRecording());
@@ -101,6 +102,40 @@
     const id=String(participantId||'');if(!id)return false;state.raisedHands.delete(id);decorateRaisedHands();return true;
   }
 
+  function localRole(){return String(q('#roomRole')?.textContent||'participant').trim().toLowerCase().replace('-','');}
+  async function recordingAuthority(){
+    const ctx=await meeting?.context?.();if(!ctx?.participantId)return {allowed:false,participant:null,ctx};
+    const snap=state.meetingSnapshot||await meeting?.snapshot?.(ctx.roomId);const participant=(snap?.participants||[]).find(p=>String(p.participantId)===String(ctx.participantId));
+    const role=String(participant?.role||localRole()).toLowerCase();return {allowed:['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed),participant,ctx,snapshot:snap};
+  }
+  function syncRecordingUi(){
+    const button=q('#roomRecord');if(!button)return;
+    const snap=state.meetingSnapshot,ctxPromise=meeting?.context?.();
+    Promise.resolve(ctxPromise).then(ctx=>{
+      const participant=(snap?.participants||[]).find(p=>String(p.participantId)===String(ctx?.participantId||''));const role=String(participant?.role||localRole()).toLowerCase();
+      const allowed=['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed);button.hidden=!allowed&&!state.recording;button.disabled=!allowed&&!state.recording;button.title=allowed?'Record this meeting locally':'The host has not allowed you to record';
+    }).catch(()=>{});
+  }
+  function updateRecordingIndicator(){
+    const indicator=q('#meetingRecordingIndicator'),owner=q('#meetingRecordingOwner');if(!indicator)return;
+    const active=state.recording||state.remoteRecorders.size>0;indicator.hidden=!active;
+    if(owner){if(state.recording&&state.remoteRecorders.size===0)owner.textContent='You';else if(state.remoteRecorders.size===1)owner.textContent=[...state.remoteRecorders.values()][0]?.name||'';else if(state.remoteRecorders.size>1)owner.textContent=`${state.remoteRecorders.size+(state.recording?1:0)} recorders`;else owner.textContent='';}
+    for(const row of qa('#participantRoster [data-participant-id]')){const id=String(row.dataset.participantId||'');const remote=state.remoteRecorders.has(id);let badge=row.querySelector('.recording-participant-badge');if(remote&&!badge){badge=document.createElement('span');badge.className='recording-participant-badge';badge.textContent='REC';badge.title='Recording';row.querySelector('.person-copy')?.append(badge);}if(!remote)badge?.remove();}
+  }
+  async function announceRecording(active){
+    const ctx=await meeting?.context?.(),payload={active:Boolean(active),name:localName(),participantId:String(ctx?.participantId||''),at:new Date().toISOString()};
+    await broadcast('recording-state',payload);
+  }
+  function showRecordingConsent(name){
+    const dialog=q('#meetingRecordingConsent'),copy=q('#meetingRecordingConsentCopy');if(!dialog||dialog.open)return;
+    if(copy)copy.textContent=`${String(name||'A participant')} started recording this meeting. Continue to remain in the meeting, or leave now.`;
+    dialog.showModal();
+  }
+  function handleRecordingState(detail){
+    const payload=detail.payload||{},id=String(detail.fromParticipantId||payload.participantId||''),active=Boolean(payload.active),name=String(payload.name||detail.fromDisplayName||'Participant');
+    if(!id)return;if(active){state.remoteRecorders.set(id,{name,at:Date.now()});showRecordingConsent(name);}else state.remoteRecorders.delete(id);updateRecordingIndicator();
+  }
+
   function visibleStageVideo(){return [q('#sharedContentVideo'),q('#remoteShareVideo'),q('#remoteActiveSpeakerStage'),q('#localMeetingVideo')].find(video=>video&&!video.hidden&&video.srcObject&&video.readyState>=2)||null;}
   function stopRecordResources(){cancelAnimationFrame(state.recordFrame);state.recordFrame=0;for(const track of state.recordStream?.getTracks?.()||[]){try{track.stop();}catch{}}state.recordStream=null;try{state.audioContext?.close?.();}catch{}state.audioContext=null;state.recordCanvas=null;}
   async function buildRecordingStream(){
@@ -117,19 +152,22 @@
     state.recordStream=stream;return stream;
   }
   async function startRecording(){
-    if(state.recording)return;const stream=await buildRecordingStream();const choices=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];const mime=choices.find(type=>MediaRecorder.isTypeSupported?.(type))||'';const recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);state.recordChunks=[];state.recorder=recorder;recorder.ondataavailable=e=>{if(e.data?.size)state.recordChunks.push(e.data);};recorder.onstop=()=>{const blob=new Blob(state.recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob),a=document.createElement('a');const stamp=new Date().toISOString().replace(/[:.]/g,'-');a.href=url;a.download=`DominionStar-Meet-${stamp}.webm`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);state.recordChunks=[];stopRecordResources();};recorder.start(1000);state.recording=true;q('#meetingRecordingIndicator').hidden=false;const button=q('#roomRecord');button?.classList.add('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Stop Record';else button.textContent='Stop Record';}window.DominionMeetingParity?.install?.();}
-  async function stopRecording(){if(!state.recording)return;state.recording=false;q('#meetingRecordingIndicator').hidden=true;const button=q('#roomRecord');button?.classList.remove('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Record';else button.textContent='Record';}if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();else stopRecordResources();state.recorder=null;}
+    if(state.recording)return;
+    const authority=await recordingAuthority();if(!authority.allowed)throw new Error('The host has not allowed you to record this meeting.');
+    const stream=await buildRecordingStream();const choices=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];const mime=choices.find(type=>MediaRecorder.isTypeSupported?.(type))||'';const recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);state.recordChunks=[];state.recorder=recorder;recorder.ondataavailable=e=>{if(e.data?.size)state.recordChunks.push(e.data);};recorder.onstop=()=>{const blob=new Blob(state.recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob),a=document.createElement('a');const stamp=new Date().toISOString().replace(/[:.]/g,'-');a.href=url;a.download=`DominionStar-Meet-${stamp}.webm`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);state.recordChunks=[];stopRecordResources();};recorder.start(1000);state.recording=true;updateRecordingIndicator();await announceRecording(true);const button=q('#roomRecord');button?.classList.add('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Stop Record';else button.textContent='Stop Record';}window.DominionMeetingParity?.install?.();}
+  async function stopRecording(){if(!state.recording)return;state.recording=false;await announceRecording(false).catch(()=>{});updateRecordingIndicator();const button=q('#roomRecord');button?.classList.remove('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Record';else button.textContent='Record';}if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();else stopRecordResources();state.recorder=null;}
   async function toggleRecording(){try{state.recording?await stopRecording():await startRecording();}catch(error){stopRecordResources();state.recording=false;const title=q('#foundationTitle'),copy=q('#foundationCopy'),dialog=q('#foundationDialog');if(title)title.textContent='Recording unavailable';if(copy)copy.textContent=String(error?.message||error);if(dialog&&!dialog.open)dialog.showModal();}}
 
   function setVideoLayout(mode){const dock=q('#participantVideoDock');if(!dock)return;dock.classList.remove('layout-speaker');if(mode==='hide'){dock.hidden=true;return;}dock.hidden=false;if(mode==='speaker')dock.classList.add('layout-speaker');window.DominionMeetingParity?.syncVideoDock?.();}
 
-  function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false});}else if(detail.type==='reaction'){if(payload.kind==='hand'){const id=String(detail.fromParticipantId||payload.participantId||''),raised=Boolean(payload.raised);if(id){if(raised)state.raisedHands.set(id,{name:String(payload.name||detail.fromDisplayName||'Participant'),at:Date.now()});else state.raisedHands.delete(id);decorateRaisedHands();}return;}const emoji=String(payload.emoji||'');if(reactions.includes(emoji)){const id=String(detail.fromParticipantId||payload.participantId||'');const name=String(payload.name||detail.fromDisplayName||'Participant');if(id)setParticipantReaction(id,emoji,name);showReaction(emoji,name);}}}
+  function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='recording-state'){handleRecordingState(detail);return;}if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false});}else if(detail.type==='reaction'){if(payload.kind==='hand'){const id=String(detail.fromParticipantId||payload.participantId||''),raised=Boolean(payload.raised);if(id){if(raised)state.raisedHands.set(id,{name:String(payload.name||detail.fromDisplayName||'Participant'),at:Date.now()});else state.raisedHands.delete(id);decorateRaisedHands();}return;}const emoji=String(payload.emoji||'');if(reactions.includes(emoji)){const id=String(detail.fromParticipantId||payload.participantId||'');const name=String(payload.name||detail.fromDisplayName||'Participant');if(id)setParticipantReaction(id,emoji,name);showReaction(emoji,name);}}}
   window.addEventListener('dominion:meeting-signal',handleSignal);
+  window.addEventListener('dominion:meeting-snapshot',event=>{state.meetingSnapshot=event.detail||null;syncRecordingUi();updateRecordingIndicator();});
   document.addEventListener('pointerdown',event=>{if(state.reactionMenu&&!state.reactionMenu.contains(event.target)&&event.target!==q('#roomReactions'))closeReactionMenu();},true);
   const overlay=q('#meetingOverlay');
   const observer=new MutationObserver(()=>{if(inMeeting())ensureUi();});
   if(overlay)observer.observe(overlay,{attributes:true,attributeFilter:['hidden']});
-  setInterval(()=>{if(inMeeting()){ensureUi();decorateRaisedHands();decorateReactions();}else{for(const timer of state.reactionTimers.values())clearTimeout(timer);state.reactionTimers.clear();state.reactions.clear();state.raisedHands.clear();state.localHandRaised=false;if(state.recording)void stopRecording();}},600);
+  setInterval(()=>{if(inMeeting()){ensureUi();decorateRaisedHands();decorateReactions();syncRecordingUi();updateRecordingIndicator();}else{for(const timer of state.reactionTimers.values())clearTimeout(timer);state.reactionTimers.clear();state.reactions.clear();state.remoteRecorders.clear();state.raisedHands.clear();state.localHandRaised=false;state.meetingSnapshot=null;if(state.recording)void stopRecording();}},600);
   ensureUi();
-  window.DominionMeetingFeatures=Object.freeze({version:'1.1.0',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))})});
+  window.DominionMeetingFeatures=Object.freeze({version:'1.2.0',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))})});
 })();
