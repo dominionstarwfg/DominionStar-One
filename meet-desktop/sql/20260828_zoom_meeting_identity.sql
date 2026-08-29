@@ -919,7 +919,6 @@ as $$
 declare
   v_user uuid := auth.uid();
   v_room public.meet_v2_rooms%rowtype;
-  v_role text;
   v_mode text := lower(trim(coalesce(p_mode,'off')));
   v_captioner public.meet_v2_participants%rowtype;
 begin
@@ -927,13 +926,6 @@ begin
   if v_mode not in ('off','manual') then raise exception 'invalid_caption_mode'; end if;
   select * into v_room from public.meet_v2_rooms where id=p_room_id for update;
   if not found then raise exception 'meeting_not_found'; end if;
-  if coalesce(v_room.active_host_id,v_room.host_id)=v_user then
-    v_role:='host';
-  else
-    select role into v_role from public.meet_v2_participants
-    where room_id=p_room_id and member_id=v_user and state in ('admitted','joined')
-    order by created_at desc limit 1;
-  end if;
   if coalesce(v_room.active_host_id,v_room.host_id)<>v_user then raise exception 'host_authority_required'; end if;
 
   if v_mode='manual' then
