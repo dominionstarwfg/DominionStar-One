@@ -18,7 +18,12 @@
   function showSection(name){Object.entries(sections).forEach(([key,node])=>{if(node)node.hidden=key!==name;});$$('.nav-button[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===name));}
   function openDialog(name){const d=dialogs[name];if(d&&!d.open)d.showModal();}
   function notice(title,copy){$('#foundationTitle').textContent=title;$('#foundationCopy').textContent=copy;const d=$('#foundationDialog');if(!d.open)d.showModal();}
-  function identity(user){const name=String(user?.name||'DominionStar Member'),email=String(user?.email||''),short=initials(name);$('#profileName').textContent=name;$('#profileAvatar').textContent=short;$('#profileDialogName').textContent=name;$('#profileDialogEmail').textContent=email||'DominionStar account';$('#profileDialogAvatar').textContent=short;const rank=String(user?.rank||'').trim();const profileStatus=document.querySelector('.profile-copy small');if(profileStatus)profileStatus.textContent=rank||'Available';const first=name.split(/\s+/)[0],hour=new Date().getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';if(first)$('#welcomeHeading').textContent=`${greeting}, ${first}`;}
+  function setAvatar(node,user,short){
+    if(!node)return;const url=String(user?.avatarUrl||'').trim();node.textContent='';
+    if(url){const img=document.createElement('img');img.src=url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{node.textContent=short;};node.append(img);node.classList.add('has-photo');}
+    else{node.textContent=short;node.classList.remove('has-photo');}
+  }
+  function identity(user){const name=String(user?.name||'DominionStar Member'),email=String(user?.email||''),short=initials(name);$('#profileName').textContent=name;setAvatar($('#profileAvatar'),user,short);$('#profileDialogName').textContent=name;$('#profileDialogEmail').textContent=email||'DominionStar account';setAvatar($('#profileDialogAvatar'),user,short);const rank=String(user?.rank||'').trim();const profileStatus=document.querySelector('.profile-copy small');if(profileStatus)profileStatus.textContent=rank||'Available';const first=name.split(/\s+/)[0],hour=new Date().getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';if(first)$('#welcomeHeading').textContent=`${greeting}, ${first}`;}
   function showHome(state=authState){authState=state;$('#bootScreen').hidden=true;$('#authGate').hidden=true;$('#appShell').hidden=false;$('#meetingOverlay').hidden=true;$('#waitingOverlay').hidden=true;$('#prejoinOverlay').hidden=true;identity(state.user);showSection('home');}
   function showAuth(message='',kind=''){stopPolling();media.stop();$('#bootScreen').hidden=true;$('#appShell').hidden=true;$('#meetingOverlay').hidden=true;$('#waitingOverlay').hidden=true;$('#prejoinOverlay').hidden=true;$('#authGate').hidden=false;const status=$('#authStatus');if(message)status.textContent=message;status.classList.toggle('error',kind==='error');status.classList.toggle('success',kind==='success');$('#googleSignIn').disabled=false;}
 
@@ -36,6 +41,18 @@
     $('#newMeetingForm').onsubmit=prepareNewMeeting;$('#joinMeetingForm').onsubmit=prepareJoinMeeting;$('#closePrejoin').onclick=cancelPrejoin;$('#prejoinCancel').onclick=cancelPrejoin;$('#prejoinContinue').onclick=continueFromPrejoin;$('#cancelWaiting').onclick=cancelWaiting;$('#roomExitButton').onclick=exitRoom;
     $('#prejoinMic').onclick=()=>toggleMic($('#prejoinMic'));$('#prejoinCamera').onclick=()=>toggleCamera($('#prejoinCamera'));$('#roomMic').onclick=()=>toggleMic($('#roomMic'));$('#roomCamera').onclick=()=>toggleCamera($('#roomCamera'));
     $('#cameraSelect').onchange=async e=>{await media.selectCamera(e.target.value);attachPreview();};$('#microphoneSelect').onchange=e=>media.selectMicrophone(e.target.value);$('#speakerSelect').onchange=e=>media.selectSpeaker(e.target.value,$('#localMeetingVideo'));$('#mirrorPreview').onchange=e=>{media.setMirror(e.target.checked);applyMirror();};
+    const avatarInput=$('#profileAvatarInput'),avatarButton=$('#changeProfilePicture'),avatarStatus=$('#profileAvatarStatus');
+    if(avatarButton&&avatarInput)avatarButton.onclick=()=>avatarInput.click();
+    if(avatarInput)avatarInput.onchange=async()=>{
+      const file=avatarInput.files?.[0];if(!file)return;
+      if(!/^image\/(png|jpeg|webp)$/i.test(file.type)||file.size>5*1024*1024){if(avatarStatus){avatarStatus.textContent='Use a PNG, JPG, or WebP image up to 5 MB.';avatarStatus.hidden=false;}avatarInput.value='';return;}
+      avatarButton.disabled=true;if(avatarStatus){avatarStatus.textContent='Updating profile picture…';avatarStatus.hidden=false;}
+      try{
+        const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||new Error('Could not read image.'));reader.readAsDataURL(file);});
+        const state=await auth.updateAvatar(dataUrl);authState=state;identity(state.user);if(avatarStatus)avatarStatus.textContent='Profile picture updated.';
+      }catch(error){if(avatarStatus)avatarStatus.textContent=errorText(error);}
+      finally{avatarButton.disabled=false;avatarInput.value='';}
+    };
   }
 
   async function fillDevices(){const devices=await media.enumerate();const fill=(id,items)=>{$(id).innerHTML=items.map(v=>`<option value="${esc(v.id)}">${esc(v.label)}</option>`).join('')||'<option value="">Default</option>';};fill('#cameraSelect',devices.cameras);fill('#microphoneSelect',devices.microphones);fill('#speakerSelect',devices.speakers);}
@@ -43,9 +60,9 @@
   function attachPreview(){const stream=media.stream();for(const video of [$('#prejoinVideo'),$('#localMeetingVideo')]){if(video&&video.srcObject!==stream)video.srcObject=stream;}const s=media.snapshot();$('#prejoinVideo').hidden=!s.videoLive;$('#prejoinAvatar').hidden=s.videoLive;const hideSelf=hideSelfView();$('#localMeetingVideo').hidden=!s.videoLive||hideSelf;$('#stageFallback').hidden=s.videoLive&&!hideSelf;syncMediaLabels();applyMirror();}
   function applyMirror(){const mirrored=media.snapshot().mirror;$('#prejoinVideo').style.transform=mirrored?'scaleX(-1)':'none';$('#localMeetingVideo').style.transform=mirrored?'scaleX(-1)':'none';}
   function setControlLabel(id,text){const button=$(id);if(!button)return;const label=button.querySelector('.ds-control-label');if(label)label.textContent=text;else button.textContent=text;button.setAttribute('aria-label',text);}
-  function syncMediaLabels(){const s=media.snapshot();for(const id of ['#prejoinMic','#roomMic'])setControlLabel(id,s.micOn?'Mute':'Unmute');for(const id of ['#prejoinCamera','#roomCamera'])setControlLabel(id,s.cameraOn?'Stop Video':'Start Video');window.DominionMeetingParity?.decorateControls?.();}
-  async function toggleMic(button){button.disabled=true;try{await media.setMicrophone(!media.snapshot().micOn);attachPreview();}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}}
-  async function toggleCamera(button){button.disabled=true;try{await media.setCamera(!media.snapshot().cameraOn);attachPreview();}catch(e){notice('Camera unavailable',errorText(e));}finally{button.disabled=false;}}
+  function syncMediaLabels(){const s=media.snapshot();for(const id of ['#prejoinMic','#roomMic']){const node=$(id);setControlLabel(id,s.micOn?'Mute':'Unmute');node?.classList.toggle('is-off',!s.micOn);node?.setAttribute('aria-pressed',String(!s.micOn));}for(const id of ['#prejoinCamera','#roomCamera']){const node=$(id);setControlLabel(id,s.cameraOn?'Stop Video':'Start Video');node?.classList.toggle('is-off',!s.cameraOn);node?.setAttribute('aria-pressed',String(!s.cameraOn));}window.DominionMeetingParity?.decorateControls?.();}
+  async function toggleMic(button){button.disabled=true;const wasOn=media.snapshot().micOn;try{await media.setMicrophone(!wasOn);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().micOn?'mic-on':'mic-off');}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}}
+  async function toggleCamera(button){button.disabled=true;const wasOn=media.snapshot().cameraOn;try{await media.setCamera(!wasOn);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().cameraOn?'video-on':'video-off');}catch(e){notice('Camera unavailable',errorText(e));}finally{button.disabled=false;}}
 
   async function joinUsingSavedDefaults(mode){
     const prefs=window.DominionPreferences;const cameraOn=!Boolean(prefs?.read?.('joinVideoOff')),micOn=!Boolean(prefs?.read?.('joinMuted'));
