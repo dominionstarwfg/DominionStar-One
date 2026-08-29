@@ -64,7 +64,9 @@ assert(hostPrejoin.includes('stopTracks(hostPreviewStream)')&&hostPrejoin.includ
 assert(!hostPrejoin.includes('navigator.mediaDevices.getUserMedia ='));
 assert(meetIndex.indexOf('/assets/js/meet/camera-device-stability.js')<meetIndex.indexOf('/assets/js/meeting-engine.js'));
 
-assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"));
+assert(operationBootstrap.includes("version:'3.1.0-single-dock-layout-authority'"));
+assert(operationBootstrap.includes('/assets/js/meet/dock-resize-quality.js?v=1-single-layout-authority'));
+assert(!operationBootstrap.includes('/assets/js/meet/dock-polish-2030.js'));
 assert(operationBootstrap.includes('requestIdleCallback'));
 assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
