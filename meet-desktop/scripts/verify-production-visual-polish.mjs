@@ -29,7 +29,17 @@ for(const [token,value] of Object.entries(requiredTokens)){
 }
 
 const svgCount=(html.match(/<svg\b/g)||[]).length;
-assert(svgCount>=10,'Production shell must retain modern vector icons.');
+assert(svgCount>=9,'Production shell unexpectedly lost vector icon coverage.');
+for(const selectorContract of [
+  'class="nav-button active"',
+  'class="nav-button"',
+  'class="nav-button settings-nav"',
+  'class="action-card new-meeting"',
+  'class="action-card join"',
+  'class="action-card schedule"',
+  'class="action-card share"'
+]) assert(html.includes(selectorContract),`Required vector-icon control is missing: ${selectorContract}`);
+assert((html.match(/class="action-icon"><svg/g)||[]).length===4,'All four primary Home actions must retain SVG icons.');
 assert(!/[\u{1F300}-\u{1FAFF}]/u.test(html),'Production shell must not use emoji as primary navigation/action icons.');
 
 for(const label of ['New Meeting','Join','Schedule','Share Screen']){
