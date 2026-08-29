@@ -45,7 +45,9 @@ assert(pickerHtml.includes('Share sound')&&pickerHtml.includes('Optimize for vid
 assert(!pickerHtml.includes('Presenter layout'),'Do not ship decorative presenter-layout controls without implemented presenter-layout behavior.');
 assert(shareController.includes('getDisplayMediaBounded')&&shareController.includes("error.code='screen_capture_restart_required'")&&shareController.includes('timeoutMs=8000'),'Screen capture must have a bounded physical-Mac watchdog instead of spinning forever after a TCC change.');
 assert(main.includes("ipcMain.handle('app:restart'")&&main.includes('app.relaunch()')&&preload.includes("app:Object.freeze({restart:()=>invoke('app:restart')})"),'Renderer must have a narrow one-click app restart path for macOS TCC activation.');
-assert(shareIntegration.includes('showRestartRequired')&&shareIntegration.includes('desktop.app.restart()'),'Failed post-permission capture must offer one-click DominionStar restart instead of a dead loading state.');
+assert(shareIntegration.includes('showRestartRequired')&&shareIntegration.includes("banner.id='shareRestartBanner'")&&shareIntegration.includes('share-restart-now')&&shareIntegration.includes('desktop.app?.restart?.()'),'Failed post-permission capture must offer a one-click nonblocking DominionStar restart banner instead of a dead loading state.');
+assert(!shareIntegration.includes('showModal'),'Screen-permission recovery must not block or freeze the meeting behind a modal.');
+assert(acceptanceCss.includes('.share-restart-banner{position:fixed')&&acceptanceCss.includes('.share-restart-now'),'Restart recovery must render as a visible floating action surface.');
 assert(picker.includes("restartButton.id='restartDominionStar'")&&picker.includes("desktop.app?.restart?.()")&&picker.includes("err.code='share_source_timeout'"),'Share picker must time out source discovery and expose the restart recovery path.');
 
 assert(preload.includes('participants:Object.freeze'),'Participants utility window must use a narrow preload bridge.');
@@ -59,4 +61,4 @@ assert(participants.includes("add('Ask to Unmute','host:ask-unmute')")&&particip
 assert(physical.includes("desktop.participants?.toggle?.()")&&physical.includes("side.hidden=true"),'Main Participants control must open the utility window and keep the obsolete inline panel hidden.');
 assert(participantsCss.includes('-webkit-app-region:drag'),'Participants title bar must be independently draggable like a utility window.');
 
-console.log('DOMINIONSTAR_PHYSICAL_ZOOM_PARITY_OK attached-av-carets profile-camera-off-fallback full-hd-1080 readable-settings left-floating-reactions bounded-screen-capture one-click-tcc-restart functional-source-picker native-participants-window invite-mute-more remote-avatar-state');
+console.log('DOMINIONSTAR_PHYSICAL_ZOOM_PARITY_OK attached-av-carets profile-camera-off-fallback full-hd-1080 readable-settings left-floating-reactions bounded-screen-capture nonblocking-one-click-tcc-restart functional-source-picker native-participants-window invite-mute-more remote-avatar-state');
