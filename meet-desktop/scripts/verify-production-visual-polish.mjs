@@ -51,7 +51,7 @@ assert(shareIntegration.includes("button.textContent='Share Screen'"),'Share Scr
 for(const command of ['pause','new-share','stop','annotate','participants','chat']){
   assert(shareIntegration.includes(command),`Share presenter command missing: ${command}`);
 }
-for(const text of ['Screens','Applications','Share sound','Optimize for video sharing']){
+for(const text of ['Entire screen','Application windows','Share sound','Optimize for video sharing']){
   assert((read('ui/share-picker.html')+sharePicker).includes(text),`Share picker text is missing: ${text}`);
 }
 for(const text of ['Mute','Stop Video','Participants','Leave']){
