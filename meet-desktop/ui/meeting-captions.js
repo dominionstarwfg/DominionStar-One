@@ -5,7 +5,7 @@
   const state={show:Boolean(window.DominionPreferences?.read?.('alwaysShowCaptions')),panelOpen:false,menu:null,history:[],snapshot:null,participants:[],localParticipantId:'',role:'participant',captioner:false,transcriptEnabled:false,captionMode:'off',drag:null};
   const esc=v=>String(v||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const inMeeting=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
-  const canManage=()=>['host','cohost'].includes(state.role);
+  const canManage=()=>state.role==='host';
   const now=()=>Date.now();
   const pref=(name,fallback)=>{try{const value=window.DominionPreferences?.read?.(name);return value===undefined?fallback:value;}catch{return fallback;}};
   function captionStyle(){
@@ -87,9 +87,26 @@
       if(state.transcriptEnabled)add('Download Retained Transcript',()=>void downloadTranscript());
       const note=document.createElement('p');note.className='caption-menu-note';note.textContent='Automated captions are not enabled in this QA build until a stable speech engine is certified.';menu.append(note);
     }else if(state.captionMode==='off'){
-      const note=document.createElement('p');note.className='caption-menu-note';note.textContent='Captions are currently off. Ask the host to enable manual captions.';menu.append(note);
+      add('Request Captions',()=>void requestCaptions());
+      const note=document.createElement('p');note.className='caption-menu-note';note.textContent='The host controls manual captioning. You can request that captions be enabled.';menu.append(note);
     }
     document.body.append(menu);const r=anchor.getBoundingClientRect();menu.style.left=Math.max(10,Math.min(innerWidth-menu.offsetWidth-10,r.left))+'px';menu.style.bottom=Math.max(76,innerHeight-r.top+8)+'px';
+  }
+
+  async function requestCaptions(){
+    const ctx=await context();if(!ctx.participantId)return;
+    const hosts=state.participants.filter(p=>String(p.role||'').toLowerCase()==='host'&&String(p.participantId||'')!==String(ctx.participantId));
+    if(!hosts.length){window.DominionMeetingNotifications?.toast?.('No host is currently available.','info');return;}
+    const name=String(state.participants.find(p=>String(p.participantId)===String(ctx.participantId))?.displayName||'Participant');
+    const payload={name,at:new Date().toISOString()};
+    await Promise.allSettled(hosts.map(p=>meeting.sendSignal(p.participantId,'caption-request',payload)));
+    window.DominionMeetingNotifications?.toast?.('Caption request sent to the host.','info');
+  }
+
+  function handleCaptionRequest(detail){
+    if(state.role!=='host')return;
+    const payload=detail.payload||{},name=String(payload.name||detail.fromDisplayName||'Participant');
+    window.DominionMeetingNotifications?.toast?.(`${name} requested captions.`,'waiting');
   }
 
   async function publishManual(event){
@@ -120,7 +137,12 @@
     void context().then(ctx=>{state.localParticipantId=String(ctx?.participantId||'');state.captioner=state.captionMode==='manual'&&String(snapshot?.captionerParticipantId||'')===state.localParticipantId;render();});
   }
 
-  function handleSignal(event){const detail=event.detail||{};if(String(detail.type||'')!=='caption')return;const payload=detail.payload||{};addLine({text:payload.text,name:payload.name||detail.fromDisplayName||'Captioner',at:payload.at||detail.createdAt});}
+  function handleSignal(event){
+    const detail=event.detail||{},type=String(detail.type||'');
+    if(type==='caption-request'){handleCaptionRequest(detail);return;}
+    if(type!=='caption')return;
+    const payload=detail.payload||{};addLine({text:payload.text,name:payload.name||detail.fromDisplayName||'Captioner',at:payload.at||detail.createdAt});
+  }
 
   window.addEventListener('dominion:meeting-snapshot',event=>{if(inMeeting()){ensureUi();applySnapshot(event.detail||{});}});
   window.addEventListener('dominion:meeting-signal',handleSignal);
@@ -128,5 +150,5 @@
   document.addEventListener('pointerdown',event=>{if(state.menu&&!state.menu.contains(event.target)&&!event.target.closest?.('#roomCaptionsMenu'))closeMenu();},true);
   setInterval(()=>{if(inMeeting()){ensureUi();prune();}else{closeMenu();state.history=[];state.snapshot=null;state.captioner=false;state.panelOpen=false;}},1500);
   ensureUi();
-  window.DominionMeetingCaptions=Object.freeze({version:'1.1.0',toggle:()=>{state.show=!state.show;render();return state.show;},openPanel:()=>{state.panelOpen=true;render();},snapshot:()=>({show:state.show,panelOpen:state.panelOpen,captionMode:state.captionMode,captioner:state.captioner,transcriptEnabled:state.transcriptEnabled,lineCount:state.history.length})});
+  window.DominionMeetingCaptions=Object.freeze({version:'1.2.0',toggle:()=>{state.show=!state.show;render();return state.show;},openPanel:()=>{state.panelOpen=true;render();},snapshot:()=>({show:state.show,panelOpen:state.panelOpen,captionMode:state.captionMode,captioner:state.captioner,transcriptEnabled:state.transcriptEnabled,lineCount:state.history.length})});
 })();
