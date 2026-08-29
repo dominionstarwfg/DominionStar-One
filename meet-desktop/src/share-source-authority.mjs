@@ -9,8 +9,10 @@ export function createShareSourceAuthority({enumerateSources,timeoutMs=4500}){
     return `${kind}:${Boolean(options?.includeDominionStar)?'all':'filtered'}`;
   };
   const timeoutResult=()=>new Promise(resolve=>{
-    const timer=setTimeout(()=>resolve({ok:false,timedOut:true,sources:[]}),timeoutMs);
-    timer.unref?.();
+    // This timeout is a UI recovery guarantee. Keep it referenced until it
+    // fires so a stalled native ScreenCaptureKit enumeration always releases
+    // the picker instead of leaving an unresolved IPC request behind.
+    setTimeout(()=>resolve({ok:false,timedOut:true,sources:[]}),timeoutMs);
   });
 
   async function list(options={}){
