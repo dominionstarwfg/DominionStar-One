@@ -97,7 +97,11 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     const bytes=Buffer.from(match[2],'base64');if(!bytes.length||bytes.length>5*1024*1024)throw new Error('profile_image_too_large');
     const ext=mime==='image/jpeg'?'jpg':mime.split('/')[1];const userId=String(data.session.user.id);const path=`${userId}/avatar.${ext}`;
     const upload=await client.storage.from('member-avatars').upload(path,bytes,{contentType:mime,upsert:true,cacheControl:'3600'});if(upload.error)throw new Error(upload.error.message||'avatar_upload_failed');
-    const saved=await client.from('member_profiles').update({avatar_path:path,updated_at:new Date().toISOString()}).eq('id',userId);if(saved.error)throw new Error(saved.error.message||'avatar_profile_update_failed');
+    const current=await client.from('member_profiles').select('full_name,phone,address_line1,address_line2,city,state,postal_code,country').eq('id',userId).maybeSingle();if(current.error||!current.data)throw new Error(current.error?.message||'profile_not_found');
+    const profile=current.data;
+    const saved=await client.rpc('update_own_contact_profile',{
+      new_full_name:profile.full_name||'',new_phone:profile.phone||'',new_address_line1:profile.address_line1||'',new_address_line2:profile.address_line2||'',new_city:profile.city||'',new_state:profile.state||'',new_postal_code:profile.postal_code||'',new_country:profile.country||'',new_avatar_path:path
+    });if(saved.error)throw new Error(saved.error.message||'avatar_profile_update_failed');
     return emitState();
   }
   async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;await emitState();return {ok:true};}
