@@ -59,7 +59,7 @@
       const sep=document.createElement('div');sep.className='caption-menu-separator';menu.append(sep);
       const title=document.createElement('strong');title.textContent='Host controls';menu.append(title);
       const select=document.createElement('select');select.className='captioner-select';select.setAttribute('aria-label','Manual captioner');
-      select.innerHTML='<option value="">Select manual captioner</option>'+state.participants.filter(p=>String(p.state||'joined')==='joined').map(p=>'<option value="'+esc(p.participantId)+'">'+esc(p.displayName||'Participant')+'</option>').join('');
+      select.innerHTML='<option value="">Select manual captioner</option>'+state.participants.filter(p=>String(p.state||'joined')==='joined'&&p.memberId).map(p=>'<option value="'+esc(p.participantId)+'">'+esc(p.displayName||'Participant')+'</option>').join('');
       if(state.snapshot?.captionerParticipantId)select.value=String(state.snapshot.captionerParticipantId);menu.append(select);
       add(state.captionMode==='manual'?'Update Manual Captioner':'Start Manual Captions',async()=>{
         if(!select.value)return;
