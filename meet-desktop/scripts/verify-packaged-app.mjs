@@ -218,7 +218,8 @@ assert(share.includes('let inFlight=null'),'Packaged share authority must keep e
 assert(share.includes('Promise.race([inFlight,timeoutResult()])'),'Packaged share source enumeration must remain bounded by timeout.');
 assert(share.includes("if(inFlight===tracked){inFlight=null;inFlightKey='';}"),'Packaged share authority must release only the completing active single-flight enumeration.');
 assert(shareService.includes('createShareSourceAuthority'),'Packaged share service must use the isolated source authority.');
-assert.equal((read('ui','index.html').match(/share-integration\.js/g)||[]).length,1,'Packaged desktop HTML must load native Share integration exactly once.');
+assert.equal((read('ui','media-controller.js').match(/script\.src='\.\/share-integration\.js'/g)||[]).length,1,'Packaged media controller must own exactly one native Share integration bootstrap path.');
+assert(!read('ui','index.html').includes('<script src="./share-integration.js"></script>'),'Packaged desktop HTML must not install a competing static Share integration loader.');
 assert(read('ui','share-integration.js').includes("button.id='roomShare'"),'Packaged Share integration must create the in-meeting Share Screen control.');
 assert(shareService.includes('ensureScreenPermission()')&&shareService.includes('permissionRequired:true'),'Packaged share picker must preflight native Screen Recording permission.');
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
