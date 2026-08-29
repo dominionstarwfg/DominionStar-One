@@ -59,7 +59,7 @@
     bridge?.onSourceSelected?.(async selection=>{
       const replacing=share.snapshot().active;
       try{
-        if(replacing)await share.replaceSource({name:selection?.name,options:selection?.options||{}});
+        if(replacing){await share.replaceSource({name:selection?.name,options:selection?.options||{}});window.DominionShareAnnotation?.deactivate?.();}
         else await share.start({name:selection?.name,options:selection?.options||{}});
         applyLayout();
         if(replacing)toast(`Now sharing ${String(selection?.name||'new source')}`);
@@ -82,7 +82,7 @@
         if(command==='participants'){window.DominionMeetingParity?.toggleParticipants?.();return;}
         if(command==='chat'){window.DominionMeetingFeatures?.toggleChat?.();return;}
         if(command==='annotate'){window.DominionShareAnnotation?.toggle?.();applyLayout();return;}
-        if(command==='new-share'){window.DominionShareAnnotation?.deactivate?.();applyLayout();await openPickerWithPermission();return;}
+        if(command==='new-share'){await openPickerWithPermission();return;}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return;}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return;}
         if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return;}
