@@ -42,10 +42,11 @@ async function requestNativeMediaPermissions(kinds=[]){
 }
 
 async function requestScreenPermission(){
-  if(process.platform!=='darwin')return {ok:true,status:'granted',restartRequired:false};
-  const status=permissionStatus('screen');
-  if(status==='granted')return {ok:true,status:'granted',restartRequired:false,passive:true};
-  return {ok:false,status,restartRequired:true,passive:true};
+  if(process.platform!=='darwin')return {ok:true,status:'granted',diagnosticStatus:'granted',restartRequired:false,passive:true};
+  // Electron's cached TCC status can remain "denied" after the user enables
+  // Screen Recording. Native source discovery is the authority; this value is
+  // retained for diagnostics only and must never block the picker.
+  return {ok:true,status:'native-source-authority',diagnosticStatus:permissionStatus('screen'),restartRequired:false,passive:true};
 }
 
 async function openPrivacySettings(kind='screen'){
@@ -89,7 +90,13 @@ function createMainWindow(){
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
-ipcMain.handle('app:restart',()=>{setTimeout(()=>{app.relaunch();app.exit(0);},80);return {ok:true};});
+ipcMain.handle('app:restart',()=>{
+  const execPath=process.execPath;
+  const args=process.argv.slice(1).filter(arg=>arg!=='--screen-permission-restart');
+  args.push('--screen-permission-restart');
+  setTimeout(()=>{app.relaunch({execPath,args});app.exit(0);},80);
+  return {ok:true,execPath,version:app.getVersion(),installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()};
+});
 ipcMain.handle('auth:get-state',()=>desktopAuth?.getState?.()||{ready:false,signedIn:false,user:null});
 ipcMain.handle('auth:start-google',()=>desktopAuth?.startGoogle?.());
 ipcMain.handle('auth:sign-in-password',(_event,{email,password}={})=>desktopAuth?.signInPassword?.(email,password));
