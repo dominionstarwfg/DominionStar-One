@@ -84,3 +84,7 @@
   .meeting-overlay.share-side-by-side .share-layout-splitter{display:none!important}
   .meeting-overlay.share-side-by-side #participantVideoDock{inset:8px!important;width:auto!important;height:auto!important;border-radius:11px!important}
 }
+
+.view-menu button[data-apply-view-everyone]{font-weight:800;color:#f0cf70;background:rgba(229,184,66,.07)}
+.view-menu button[data-apply-view-everyone]:hover{background:rgba(229,184,66,.13)}
+.view-menu button[data-apply-view-everyone]:disabled{opacity:.55;cursor:default}
