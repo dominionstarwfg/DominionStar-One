@@ -17,11 +17,19 @@
       dialog.querySelector('[data-permission-cancel]').onclick=()=>{dialog.hidden=true;};
       dialog.querySelector('[data-permission-open]').onclick=async()=>{await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});dialog.hidden=true;};
     }
-    const copy=dialog.querySelector('[data-permission-copy]');if(copy)copy.textContent=`macOS reports Screen Recording as ${status}. Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording.${restartRequired?' Restart DominionStar Meet after enabling it.':''}`;
+    const copy=dialog.querySelector('[data-permission-copy]');if(copy)copy.textContent=restartRequired?'DominionStar Meet is enabled in macOS Screen & System Audio Recording, but macOS applies a new screen-recording grant after the app restarts. Quit DominionStar Meet completely, reopen it from Applications, then click Share Screen again.':`macOS reports Screen Recording as ${status}. Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording.`;
     dialog.hidden=false;
   }
   async function openPickerWithPermission(){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
+    // Re-read the OS permission on every Share click. If the user enabled the
+    // toggle while DominionStar Meet stayed open, macOS may still report the
+    // old TCC state until the application is fully quit and reopened.
+    const permission=await window.dominionDesktop?.media?.requestScreen?.().catch(()=>null);
+    if(permission&&!permission.ok){
+      showScreenPermissionDialog(String(permission.status||'unknown'),Boolean(permission.restartRequired));
+      return false;
+    }
     const result=await bridge.openPicker();
     if(result?.permissionRequired){showScreenPermissionDialog(String(result.status||'unknown'),Boolean(result.restartRequired));return false;}
     return result?.opened!==false;
