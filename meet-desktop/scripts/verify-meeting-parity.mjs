@@ -118,7 +118,7 @@ assert(features.includes('setParticipantReaction')&&features.includes('state.rea
 assert(features.includes('participant-reaction-indicator')&&features.includes('remote-reaction-indicator'),'Emoji reactions must appear beside the participant name and on the participant video tile.');
 assert(features.includes("if(payload.kind==='hand')")&&features.includes('setParticipantReaction(id,emoji,name)'),'Raise Hand must remain a separate persistent state from temporary emoji reactions.');
 assert(featuresCss.includes('.participant-reaction-indicator')&&featuresCss.includes('.remote-reaction-indicator'),'Temporary meeting reactions must ship with dedicated roster/video styling.');
-assert(features.includes("version:'1.3.0'")&&features.includes('recordingAuthority'),'Record must verify Zoom-style recording authority before starting.');
+assert(features.includes("version:'1.4.0-zoom-chat-shell'")&&features.includes('recordingAuthority'),'Record must verify Zoom-style recording authority before starting.');
 assert(features.includes('meetingRecordingConsent')&&features.includes('syncRemoteRecordingFromSnapshot'),'Recording participants must be notified in real time and late joiners must inherit active recording state.');
 assert(features.includes('recording-participant-badge')&&featuresCss.includes('.recording-participant-badge'),'Participants list must identify active recorders.');
 assert(participantControls.includes("'Forbid Record':'Allow Record'")&&participantControls.includes('meeting.setRecordingPermission'),'Host participant More menu must expose Allow Record / Forbid Record through backend authority.');
