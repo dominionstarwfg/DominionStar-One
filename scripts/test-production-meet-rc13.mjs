@@ -38,7 +38,9 @@ forbidSource(flowSource,'__dsLocalDeviceRouting','Retired global device routing 
 for(const key of ['camera_id','microphone_id','speaker_id']) requireSource(deviceLocalitySource,`delete sanitized.${key}`,`${key} can leak into remote preference sync.`);
 forbidSource(deviceLocalitySource,'getUserMedia','Device-locality boundary must never acquire media.');
 requireSource(bootstrapSource,'device-preference-locality.js','Clean bootstrap does not load the device-locality boundary.');
-requireSource(bootstrapSource,"version:'3.0.0-clean-lazy-runtime'",'Production Meet is not using the cleaned lazy runtime.');
+requireSource(bootstrapSource,"version:'3.1.0-single-dock-layout-authority'",'Production Meet is not using the single-authority clean runtime.');
+requireSource(bootstrapSource,'dock-resize-quality.js?v=1-single-layout-authority','Clean runtime lost its resize-only dock quality layer.');
+forbidSource(bootstrapSource,'dock-polish-2030.js','Legacy competing dock geometry authority returned.');
 requireSource(bootstrapSource,'const core=[','Device locality is no longer part of the bounded core bootstrap.');
 assert.equal((bootstrapSource.match(/device-preference-locality\.js/g)||[]).length,1,'Device-locality boundary is loaded more than once.');
 for(const retired of ['meeting-identity-settings','meeting-identity-bridge','media-effect-safety']) forbidSource(bootstrapSource,retired,`Retired runtime override returned: ${retired}`);
