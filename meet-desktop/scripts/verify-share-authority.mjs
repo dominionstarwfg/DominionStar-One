@@ -8,7 +8,7 @@ const main=read('src/main.mjs');
 const preload=read('src/preload.cjs');
 const picker=read('ui/share-picker.js');
 const pickerHtml=read('ui/share-picker.html');
-const indexHtml=read('ui/index.html');
+const mediaController=read('ui/media-controller.js');
 const controller=read('ui/share-controller.js');
 const integration=read('ui/share-integration.js');
 const toolbar=read('ui/presenter-toolbar.html');
@@ -55,7 +55,8 @@ assert(!preload.includes('desktopCapturer')&&!picker.includes('desktopCapturer')
 assert(preload.includes('sharePicker:Object.freeze')&&preload.includes('presenter:Object.freeze'),'Picker and presenter controls must use narrow IPC bridges.');
 assert(pickerHtml.includes('data-filter="screen">Screens')&&pickerHtml.includes('data-filter="window">Applications'),'Approved picker must expose Screens and Applications.');
 assert(!picker.includes('showModal')&&!pickerHtml.includes('<dialog'),'Share chooser must not be a modal dialog inside the meeting renderer.');
-assert.equal((indexHtml.match(/share-integration\.js/g)||[]).length,1,'The packaged meeting shell must load the native share integration exactly once.');
+assert.equal((mediaController.match(/script\.src='\.\/share-integration\.js'/g)||[]).length,1,'Media controller must own exactly one Share integration bootstrap path.');
+assert(mediaController.includes("script.dataset.dsShareIntegration='1'"),'Share integration bootstrap must be explicitly marked/idempotent.');
 assert(integration.includes("let button=overlay.querySelector('#roomShare')")&&integration.includes("button.id='roomShare'"),'Loaded share integration must create the in-meeting Share Screen control.');
 assert(integration.includes('requestAnimationFrame(()=>setTimeout'),'Share click must release before permission/picker work starts.');
 assert(integration.includes('openPickerWithPermission'),'Meeting UI must understand native permission failure without freezing.');
