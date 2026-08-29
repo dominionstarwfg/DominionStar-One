@@ -43,13 +43,17 @@ async function requestNativeMediaPermissions(kinds=[]){
 
 async function requestScreenPermission(){
   if(process.platform!=='darwin')return {ok:true,status:'granted',restartRequired:false};
-  const before=permissionStatus('screen');
-  if(before==='granted')return {ok:true,status:'granted',restartRequired:false};
-  if(before==='not-determined'||before==='unknown'){
-    try{await desktopCapturer.getSources({types:['screen'],thumbnailSize:{width:1,height:1},fetchWindowIcons:false});}catch{}
-  }
-  const after=permissionStatus('screen');
-  return {ok:after==='granted',status:after,restartRequired:before!=='granted'&&after==='granted'};
+  // Physical-Mac rule: clicking Share must never probe desktopCapturer merely to
+  // discover permission state. That native call can block Electron's main loop
+  // while macOS/TCC is transitioning. Read TCC passively; the picker remains
+  // responsive and explains how to grant access when permission is not active.
+  const status=permissionStatus('screen');
+  return {
+    ok:status==='granted',
+    status,
+    restartRequired:false,
+    passive:true
+  };
 }
 
 async function openPrivacySettings(kind='screen'){
