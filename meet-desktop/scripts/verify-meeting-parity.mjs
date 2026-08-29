@@ -48,7 +48,7 @@ assert(preload.includes("brand:Object.freeze({logoUrl})"),'Desktop bridge must e
 assert(parity.includes("head&&!head.querySelector('.ds-meeting-brand')"),'Meeting header must install DominionStar logo/name branding.');
 assert((pkg.build?.extraResources||[]).some(entry=>entry?.from==='../assets/logo.jpeg'&&entry?.to==='branding/dominionstar-logo.jpeg'),'Desktop package must include the real DominionStar logo asset.');
 assert(meetingService.includes("roomCode:'',passcode:'',title:''"),'Native meeting context must retain visible meeting credentials.');
-assert(av.includes("caret.className='meeting-control av-device-caret'"),'Mic and camera controls must retain dedicated device-option carets.');
+assert(av.includes("caret.className='av-device-caret attached-device-caret'")&&av.includes("button.classList.add('has-device-caret')"),'Mic and camera controls must retain dedicated device-option carets attached to their parent controls.');
 assert(css.includes('.meeting-body{position:relative!important;display:block!important'),'Meeting body must not reserve a permanent participant sidebar column.');
 assert(css.includes('.stage{position:absolute!important;inset:0!important'),'Meeting stage must consume the full available canvas.');
 assert(css.includes('.room-side{position:absolute!important'),'Participant management must overlay the stage instead of shrinking it.');
