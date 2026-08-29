@@ -132,7 +132,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
   const removeParticipant=participantId=>auth.rpc('meet_v2_remove_participant',{p_participant_id:participantId});
   const renameParticipant=(participantId,displayName)=>auth.rpc('meet_v2_rename_participant',{p_participant_id:participantId,p_display_name:normalizeName(displayName)});
   const setRecordingPermission=(participantId,enabled)=>auth.rpc('meet_v2_set_recording_permission',{p_participant_id:participantId,p_enabled:Boolean(enabled)});
-  const setRecordingState=(participantId,active)=>auth.rpc('meet_v2_set_recording_state',{p_participant_id:participantId,p_active:Boolean(active)});
+  const setRecordingState=(participantId,active,paused=false)=>auth.rpc('meet_v2_set_recording_state',{p_participant_id:participantId,p_active:Boolean(active),p_paused:Boolean(paused)});
   const setSecurity=(roomId,{locked=false,muteOnEntry=false}={})=>auth.rpc('meet_v2_set_security',{p_room_id:roomId,p_locked:Boolean(locked),p_mute_on_entry:Boolean(muteOnEntry)});
   const setChatPolicy=(roomId,policy='everyone')=>auth.rpc('meet_v2_set_chat_policy',{p_room_id:roomId,p_policy:String(policy||'everyone')});
   const setCaptionState=(roomId,{mode='off',captionerParticipantId=null,transcriptEnabled=false}={})=>auth.rpc('meet_v2_set_caption_state',{p_room_id:roomId,p_mode:String(mode||'off'),p_captioner_participant_id:captionerParticipantId||null,p_transcript_enabled:Boolean(transcriptEnabled)});
