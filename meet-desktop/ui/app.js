@@ -42,7 +42,8 @@
   function hideSelfView(){return Boolean(window.DominionPreferences?.read?.('hideSelfView'));}
   function attachPreview(){const stream=media.stream();for(const video of [$('#prejoinVideo'),$('#localMeetingVideo')]){if(video&&video.srcObject!==stream)video.srcObject=stream;}const s=media.snapshot();$('#prejoinVideo').hidden=!s.videoLive;$('#prejoinAvatar').hidden=s.videoLive;const hideSelf=hideSelfView();$('#localMeetingVideo').hidden=!s.videoLive||hideSelf;$('#stageFallback').hidden=s.videoLive&&!hideSelf;syncMediaLabels();applyMirror();}
   function applyMirror(){const mirrored=media.snapshot().mirror;$('#prejoinVideo').style.transform=mirrored?'scaleX(-1)':'none';$('#localMeetingVideo').style.transform=mirrored?'scaleX(-1)':'none';}
-  function syncMediaLabels(){const s=media.snapshot();for(const id of ['#prejoinMic','#roomMic'])$(id).textContent=s.micOn?'Mute':'Unmute';for(const id of ['#prejoinCamera','#roomCamera'])$(id).textContent=s.cameraOn?'Stop Video':'Start Video';}
+  function setControlLabel(id,text){const button=$(id);if(!button)return;const label=button.querySelector('.ds-control-label');if(label)label.textContent=text;else button.textContent=text;button.setAttribute('aria-label',text);}
+  function syncMediaLabels(){const s=media.snapshot();for(const id of ['#prejoinMic','#roomMic'])setControlLabel(id,s.micOn?'Mute':'Unmute');for(const id of ['#prejoinCamera','#roomCamera'])setControlLabel(id,s.cameraOn?'Stop Video':'Start Video');window.DominionMeetingParity?.decorateControls?.();}
   async function toggleMic(button){button.disabled=true;try{await media.setMicrophone(!media.snapshot().micOn);attachPreview();}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}}
   async function toggleCamera(button){button.disabled=true;try{await media.setCamera(!media.snapshot().cameraOn);attachPreview();}catch(e){notice('Camera unavailable',errorText(e));}finally{button.disabled=false;}}
 
