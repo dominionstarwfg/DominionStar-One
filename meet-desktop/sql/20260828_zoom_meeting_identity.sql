@@ -23,7 +23,8 @@ alter table public.meet_v2_rooms
   add column if not exists last_started_at timestamptz,
   add column if not exists active_host_id uuid references auth.users(id) on delete set null,
   add column if not exists meeting_locked boolean not null default false,
-  add column if not exists mute_on_entry boolean not null default false;
+  add column if not exists mute_on_entry boolean not null default false,
+  add column if not exists chat_policy text not null default 'everyone' check (chat_policy in ('everyone','host_cohost','disabled'));
 
 alter table public.meet_v2_rooms
   drop constraint if exists meet_v2_rooms_meeting_kind_check;
@@ -651,7 +652,7 @@ begin
     'roomId',v_room.id,'roomCode',v_room.room_code,'title',v_room.title,
     'status',v_room.status,'waitingRoomEnabled',v_room.waiting_room_enabled,
     'ownerId',v_room.host_id,'activeHostId',v_room.active_host_id,
-    'meetingLocked',v_room.meeting_locked,'muteOnEntry',v_room.mute_on_entry,
+    'meetingLocked',v_room.meeting_locked,'muteOnEntry',v_room.mute_on_entry,'chatPolicy',v_room.chat_policy,
     'participants',v_people
   );
 end
@@ -818,6 +819,73 @@ begin
 end
 $$;
 
+create or replace function public.meet_v2_set_chat_policy(p_room_id uuid,p_policy text)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_room public.meet_v2_rooms%rowtype;
+  v_role text;
+  v_policy text := lower(trim(coalesce(p_policy,'')));
+begin
+  if v_user is null then raise exception 'authentication_required'; end if;
+  if v_policy not in ('everyone','host_cohost','disabled') then raise exception 'invalid_chat_policy'; end if;
+  select * into v_room from public.meet_v2_rooms where id=p_room_id for update;
+  if not found then raise exception 'meeting_not_found'; end if;
+  if coalesce(v_room.active_host_id,v_room.host_id)=v_user then
+    v_role:='host';
+  else
+    select role into v_role from public.meet_v2_participants
+    where room_id=p_room_id and member_id=v_user and state in ('admitted','joined')
+    order by created_at desc limit 1;
+  end if;
+  if coalesce(v_role,'') not in ('host','cohost') then raise exception 'host_authority_required'; end if;
+  update public.meet_v2_rooms set chat_policy=v_policy,updated_at=now() where id=p_room_id returning * into v_room;
+  return jsonb_build_object('roomId',v_room.id,'chatPolicy',v_room.chat_policy);
+end
+$$;
+
+create or replace function public.meet_v2_send_signal(p_from_participant_id uuid,p_to_participant_id uuid,p_signal_type text,p_payload jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_user uuid:=auth.uid();
+  v_from public.meet_v2_participants%rowtype;
+  v_to public.meet_v2_participants%rowtype;
+  v_room public.meet_v2_rooms%rowtype;
+  v_id bigint;
+  v_from_role text;
+  v_to_role text;
+begin
+  if v_user is null then raise exception 'authentication_required'; end if;
+  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
+  select * into v_from from public.meet_v2_participants where id=p_from_participant_id;
+  select * into v_to from public.meet_v2_participants where id=p_to_participant_id;
+  if v_from.id is null then raise exception 'participant_not_found'; end if;
+  if v_from.member_id<>v_user or v_from.state not in ('admitted','joined') then raise exception 'signal_sender_not_authorized'; end if;
+  if v_to.id is null or v_to.room_id<>v_from.room_id or v_to.state not in ('admitted','joined') then raise exception 'signal_target_not_available'; end if;
+
+  select * into v_room from public.meet_v2_rooms where id=v_from.room_id;
+  v_from_role:=lower(coalesce(v_from.role,'participant'));
+  v_to_role:=lower(coalesce(v_to.role,'participant'));
+
+  if p_signal_type='chat' then
+    if v_room.chat_policy='disabled' and v_from_role not in ('host','cohost') then raise exception 'meeting_chat_disabled'; end if;
+    if v_room.chat_policy='host_cohost' and v_from_role not in ('host','cohost') and v_to_role not in ('host','cohost') then raise exception 'chat_host_cohost_only'; end if;
+  end if;
+
+  insert into public.meet_v2_signals(room_id,from_participant_id,to_participant_id,signal_type,payload)
+  values(v_from.room_id,v_from.id,v_to.id,p_signal_type,coalesce(p_payload,'{}'::jsonb)) returning id into v_id;
+  return jsonb_build_object('ok',true,'signalId',v_id);
+end
+$$;
+
 create or replace function public.meet_v2_rename_participant(p_participant_id uuid,p_display_name text)
 returns jsonb
 language plpgsql
@@ -949,5 +1017,7 @@ grant execute on function public.meet_v2_set_cohost(uuid,boolean) to authenticat
 grant execute on function public.meet_v2_remove_participant(uuid) to authenticated;
 grant execute on function public.meet_v2_rename_participant(uuid,text) to authenticated;
 grant execute on function public.meet_v2_set_security(uuid,boolean,boolean) to authenticated;
+grant execute on function public.meet_v2_set_chat_policy(uuid,text) to authenticated;
+grant execute on function public.meet_v2_send_signal(uuid,uuid,text,jsonb) to authenticated;
 grant execute on function public.meet_v2_transfer_host_and_leave(uuid) to authenticated;
 grant execute on function public.meet_v2_end_room(uuid) to authenticated;
