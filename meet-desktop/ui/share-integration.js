@@ -46,7 +46,7 @@
         const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;
       }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;window.DominionShareAnnotation?.deactivate?.();}
       window.DominionMeetingParity?.syncVideoDock?.();
-      void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName});
+      void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo)});
     }
 
     button.addEventListener('click',event=>{
