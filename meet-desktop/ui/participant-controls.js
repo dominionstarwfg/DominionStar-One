@@ -58,6 +58,11 @@
       await requestConsent({title:'Start video?',copy:`${sender} is asking you to start your video.`,confirmLabel:'Start Video',action:()=>media()?.setCamera?.(true)});
       return;
     }
+    if(type==='host:lower-hand'){
+      await window.DominionMeetingFeatures?.setLocalHand?.(false,{broadcastChange:true});
+      toast(`${sender} lowered your hand`);
+      return;
+    }
     if(type==='host:spotlight'){
       spotlightParticipantId=String(detail.payload?.participantId||'');
       window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:spotlightParticipantId}}));
@@ -79,7 +84,7 @@
     try{
       const list=(await peers()).filter(p=>String(p.role||'').toLowerCase()!=='host');
       await Promise.allSettled(list.map(p=>send(p.participantId,type)));
-      const labels={'host:mute':'All participants muted','host:ask-unmute':'Unmute requests sent','host:stop-video':'Video stopped for all participants','host:ask-start-video':'Start-video requests sent'};
+      const labels={'host:mute':'All participants muted','host:ask-unmute':'Unmute requests sent','host:stop-video':'Video stopped for all participants','host:ask-start-video':'Start-video requests sent','host:lower-hand':'All raised hands lowered'};
       toast(labels[type]||'Meeting-wide action sent');
     } finally{busy=false;syncPanelActions();}
   }
@@ -112,6 +117,7 @@
       window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:next}}));
       const list=await peers();await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'host:spotlight',{participantId:next,at:new Date().toISOString()})));
     });
+    if(row.dataset.raisedHand==='1')add('Lower Hand',()=>send(id,'host:lower-hand'));
     add('Rename',()=>renameParticipant(id,name));
     if(localRole()==='host'&&role!=='cohost')add('Make Co-host',async()=>{await meeting.setCohost(id,true);});
     if(localRole()==='host'&&role==='cohost')add('Remove Co-host',async()=>{await meeting.setCohost(id,false);});
@@ -136,12 +142,13 @@
     if(!canManage()){footer?.remove();return;}
     if(!footer){
       footer=document.createElement('div');footer.id='participantBulkActions';footer.className='participant-bulk-actions';
-      footer.innerHTML='<button type="button" data-mute-all>Mute All</button><button type="button" data-ask-all>Ask All to Unmute</button><button type="button" data-stop-video-all>Stop Video for All</button><button type="button" data-ask-video-all>Ask All to Start Video</button>';
+      footer.innerHTML='<button type="button" data-mute-all>Mute All</button><button type="button" data-ask-all>Ask All to Unmute</button><button type="button" data-stop-video-all>Stop Video for All</button><button type="button" data-ask-video-all>Ask All to Start Video</button><button type="button" data-lower-hands>Lower All Hands</button>';
       side.append(footer);
       footer.querySelector('[data-mute-all]').onclick=()=>void sendAll('host:mute');
       footer.querySelector('[data-ask-all]').onclick=()=>void sendAll('host:ask-unmute');
       footer.querySelector('[data-stop-video-all]').onclick=()=>void sendAll('host:stop-video');
       footer.querySelector('[data-ask-video-all]').onclick=()=>void sendAll('host:ask-start-video');
+      footer.querySelector('[data-lower-hands]').onclick=()=>void sendAll('host:lower-hand');
     }
     qa('#participantBulkActions button').forEach(b=>b.disabled=busy);
   }
