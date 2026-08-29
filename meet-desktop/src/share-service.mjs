@@ -3,6 +3,8 @@ import { createShareSourceAuthority } from './share-source-authority.mjs';
 export function createShareService({BrowserWindow,desktopCapturer,desktopSession,ipcMain,path,uiDir,preloadPath,getMainWindow,platform,ensureScreenPermission,openPrivacySettings}){
   let pickerWindow=null;
   let toolbarWindow=null;
+  let participantWindow=null;
+  let participantMediaState={};
   let pendingSelection=null;
   let shareActive=false;
   let savedMainWindowState=null;
@@ -21,8 +23,10 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   const serialize=source=>({id:String(source.id),name:String(source.name||'Untitled source'),kind:String(source.id||'').startsWith('screen:')?'screen':'window',thumbnail:source.thumbnail?.isEmpty?.()?'' : source.thumbnail?.toDataURL?.()||'',icon:source.appIcon?.isEmpty?.()?'' : source.appIcon?.toDataURL?.()||''});
   const publishToolbarState=()=>{if(toolbarWindow&&!toolbarWindow.isDestroyed())toolbarWindow.webContents.send('share:toolbar-state',lastToolbarState);};
+  const publishParticipantMediaState=()=>{if(participantWindow&&!participantWindow.isDestroyed())participantWindow.webContents.send('participants:media-state',participantMediaState);};
 
   function positionNearMain(win,width,height){const main=getMainWindow?.();if(!main||main.isDestroyed())return;const bounds=main.getBounds();win.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:Math.round(bounds.y+(bounds.height-height)/2),width,height});}
+  function positionParticipants(win){const main=getMainWindow?.();if(!main||main.isDestroyed())return;const bounds=main.getBounds(),width=320,height=Math.min(480,Math.max(380,Math.round(bounds.height*.58)));win.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:Math.round(bounds.y+78),width,height});}
   function protectMeetingChrome(win,enabled=true){if(!win||win.isDestroyed())return;try{win.setContentProtection(Boolean(enabled));}catch{}}
   function rememberMainWindow(){
     const main=getMainWindow?.();if(!main||main.isDestroyed()||savedMainWindowState)return main||null;
@@ -53,6 +57,15 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function attachShareWindowLifecycle(){const main=getMainWindow?.();if(!main||main.isDestroyed()||mainMinimizeHandler)return;mainMinimizeHandler=event=>{if(!shareActive)return;event?.preventDefault?.();compactMainWindow({focus:false});};main.on('minimize',mainMinimizeHandler);}
   function detachShareWindowLifecycle(){const main=getMainWindow?.();if(main&&!main.isDestroyed()&&mainMinimizeHandler)main.removeListener('minimize',mainMinimizeHandler);mainMinimizeHandler=null;}
 
+  function openParticipantWindow(){
+    if(participantWindow&&!participantWindow.isDestroyed()){participantWindow.show();participantWindow.focus();publishParticipantMediaState();return {opened:true,reused:true};}
+    const main=getMainWindow?.();
+    participantWindow=new BrowserWindow({width:320,height:430,minWidth:280,minHeight:320,show:false,backgroundColor:'#202020',title:'Participants',titleBarStyle:platform==='darwin'?'hiddenInset':'default',trafficLightPosition:platform==='darwin'?{x:14,y:14}:undefined,resizable:true,minimizable:true,maximizable:false,fullscreenable:false,alwaysOnTop:false,parent:main&&!main.isDestroyed()?main:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
+    positionParticipants(participantWindow);participantWindow.removeMenu?.();participantWindow.webContents.once('did-finish-load',()=>publishParticipantMediaState());participantWindow.once('ready-to-show',()=>{participantWindow?.show();participantWindow?.focus();});void participantWindow.loadFile(path.join(uiDir,'participants-window.html'));participantWindow.on('closed',()=>{participantWindow=null;});return {opened:true,reused:false};
+  }
+  function closeParticipantWindow(){if(participantWindow&&!participantWindow.isDestroyed())participantWindow.close();participantWindow=null;return {closed:true};}
+  function toggleParticipantWindow(){if(participantWindow&&!participantWindow.isDestroyed()&&participantWindow.isVisible()){closeParticipantWindow();return {opened:false};}return openParticipantWindow();}
+
   function openPicker(){
     if(pickerWindow&&!pickerWindow.isDestroyed()){pickerWindow.show();pickerWindow.focus();return {opened:true,reused:true};}
     pickerWindow=new BrowserWindow({width:980,height:690,minWidth:820,minHeight:560,show:false,backgroundColor:'#202020',title:'Choose what to share',resizable:true,fullscreenable:false,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
@@ -70,6 +83,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   desktopSession.setDisplayMediaRequestHandler((_request,callback)=>{const selection=pendingSelection;pendingSelection=null;if(!selection?.source){callback({});return;}const response={video:selection.source};if(selection.options?.shareAudio&&(platform==='win32'||platform==='darwin'))response.audio='loopback';callback(response);},{useSystemPicker:false});
 
+  ipcMain.handle('participants:toggle-window',()=>toggleParticipantWindow());
+  ipcMain.handle('participants:close-window',()=>closeParticipantWindow());
+  ipcMain.handle('participants:update-media-state',(_event,{state={}}={})=>{participantMediaState=state&&typeof state==='object'?state:{};publishParticipantMediaState();return {ok:true};});
+  ipcMain.handle('participants:get-media-state',()=>participantMediaState);
+
   // Do not pre-block Share with systemPreferences.getMediaAccessStatus('screen').
   // On physical Macs that value can remain stale after the user enables Screen
   // Recording. The actual ScreenCaptureKit source enumeration below is the
@@ -84,7 +102,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:capture-started',(_event,state={})=>{shareActive=true;rememberMainWindow();attachShareWindowLifecycle();lastToolbarState={...lastToolbarState,...state,meetingVisible:false};openToolbar();compactMainWindow({focus:false});return {ok:true};});
   ipcMain.handle('share:capture-state',(_event,state={})=>{lastToolbarState={...lastToolbarState,...state};publishToolbarState();return {ok:true};});
   ipcMain.handle('share:capture-stopped',()=>{shareActive=false;detachShareWindowLifecycle();restoreMainWindowAfterShare();lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};closeToolbar();return {ok:true};});
-  ipcMain.handle('share:presenter-command',(_event,command)=>{const normalized=String(command||'');if(normalized==='show-meeting'&&shareActive){if(lastToolbarState.meetingVisible)compactMainWindow({focus:false});else showMeetingWindow({focus:true});}else if(['participants','chat','annotate'].includes(normalized)&&shareActive){showMeetingWindow({focus:true});}else if(['show-meeting','participants','chat','annotate'].includes(normalized)){const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}}sendMain('share:presenter-command',normalized);return {ok:true};});
+  ipcMain.handle('share:presenter-command',(_event,command)=>{const normalized=String(command||'');if(normalized==='show-meeting'&&shareActive){if(lastToolbarState.meetingVisible)compactMainWindow({focus:false});else showMeetingWindow({focus:true});}else if(normalized==='participants'){openParticipantWindow();}else if(['chat','annotate'].includes(normalized)&&shareActive){showMeetingWindow({focus:true});}else if(['show-meeting','chat','annotate'].includes(normalized)){const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}}sendMain('share:presenter-command',normalized);return {ok:true};});
 
-  return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority});
+  return Object.freeze({openPicker,closePicker,closeToolbar,openParticipantWindow,closeParticipantWindow,sourceAuthority:authority});
 }
