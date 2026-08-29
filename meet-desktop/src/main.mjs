@@ -64,6 +64,12 @@ function ipMainHandleChatPolicy(){
   ipcMain.handle('meeting:set-chat-policy',(_event,{roomId,policy})=>meetingService?.setChatPolicy(roomId,policy));
 }
 
+function ipMainHandleCaptions(){
+  if(!ipcMain.listenerCount('meeting:set-caption-state'))ipcMain.handle('meeting:set-caption-state',(_event,{roomId,options})=>meetingService?.setCaptionState(roomId,options));
+  if(!ipcMain.listenerCount('meeting:publish-caption'))ipcMain.handle('meeting:publish-caption',(_event,{participantId,text,speakerName})=>meetingService?.publishCaption(participantId,text,speakerName));
+  if(!ipcMain.listenerCount('meeting:get-transcript'))ipcMain.handle('meeting:get-transcript',(_event,{roomId})=>meetingService?.transcript(roomId));
+}
+
 function installLocalPermissionPolicy(desktopSession){
   const allowed=new Set(['media','camera','microphone','audioCapture','videoCapture','display-capture','notifications','fullscreen']);
   desktopSession.setPermissionRequestHandler((webContents,permission,callback,details={})=>{
@@ -136,6 +142,7 @@ ipcMain.handle('meeting:remove-participant',(_event,{participantId})=>meetingSer
 ipcMain.handle('meeting:rename-participant',(_event,{participantId,displayName})=>meetingService?.renameParticipant(participantId,displayName));
 ipcMain.handle('meeting:set-security',(_event,{roomId,options})=>meetingService?.setSecurity(roomId,options));
 ipMainHandleChatPolicy();
+ipMainHandleCaptions();
 ipcMain.handle('meeting:transfer-host-and-leave',(_event,{participantId})=>meetingService?.transferHostAndLeave(participantId));
 ipcMain.handle('meeting:end',(_event,{roomId})=>meetingService?.endRoom(roomId));
 ipcMain.handle('meeting:context',()=>meetingService?.context?.()||{});
