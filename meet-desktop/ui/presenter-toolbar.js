@@ -8,7 +8,7 @@
   document.addEventListener('pointerdown',event=>{if(!event.target.closest('.more-wrap')){more.hidden=true;closeReactions();}},true);
   bridge?.onState?.(state=>{
     const paused=Boolean(state?.paused);toolbar.classList.toggle('paused',paused);$('#pauseLabel').textContent=paused?'Resume':'Pause';$('#shareStateLabel').textContent=paused?'Share paused':'You are sharing';
-    $('#audioLabel').textContent=state?.micOn?'Mute':'Unmute';$('#videoLabel').textContent=state?.cameraOn?'Stop Video':'Start Video';
+    $('#audioLabel').textContent=state?.micOn?'Mute':'Unmute';$('#videoLabel').textContent=state?.cameraOn?'Stop Video':'Start Video';const source=$('#shareSourceLabel');if(source)source.textContent=String(state?.sourceName||'Shared content');const audioFlag=$('#shareAudioFlag');if(audioFlag)audioFlag.hidden=!state?.shareAudio;const optimizeFlag=$('#shareOptimizeFlag');if(optimizeFlag)optimizeFlag.hidden=!state?.optimizeVideo;
     const meetingLabel=$('#meetingLabel');if(meetingLabel)meetingLabel.textContent=state?.meetingVisible?'Hide meeting':'Show meeting';
   });
 })();
