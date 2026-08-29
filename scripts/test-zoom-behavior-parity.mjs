@@ -9,10 +9,8 @@ const dynamicImportNeedle = file => `await ${'import'}('./${file}')`;
 const meetHtml = read('meet/index.html');
 const homeHtml = read('meet-home/desktop.html');
 const browserHome = read('meet-home/index.html');
-const publicHome = read('index.html');
 const homeController = read('assets/js/meet/desktop-home-controller.js');
 const memberLogin = read('assets/js/member-login.js');
-const desktopOAuthReturn = read('assets/js/desktop-oauth-return.js');
 const executive = read('assets/js/meet-next/executive6.js');
 const meetingEngine = read('assets/js/meeting-engine.js');
 const desktopSharePicker = read('assets/js/meet/desktop-share-picker.js');
@@ -64,18 +62,17 @@ assert(browserHome.includes('Aurora Meeting Assistant'),'Browser Home fixture ch
 const homeResource=(pkg.build?.extraResources||[]).find(entry=>entry?.from==='../meet-home');
 assert.deepEqual(homeResource?.filter,['desktop.html'],'Desktop package must exclude meet-home/index.html.');
 
-// Google OAuth authenticates in the normal browser, completes on the trusted
-// DominionStar HTTPS origin, then the landing relay invokes the registered
-// dominionstar:// protocol so the installed app consumes the callback.
-requireText(memberLogin, 'const DESKTOP_OAUTH_BROWSER_RETURN = `${window.location.origin}/`;', 'Desktop Google login must return first to the trusted DominionStar HTTPS origin.');
-requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_BROWSER_RETURN', 'Google OAuth must request the trusted browser return URI.');
+// Google OAuth runs in the normal browser and returns directly to the installed
+// app through the registered dominionstar:// callback. The callback must be in
+// Supabase Auth > URL Configuration > Additional Redirect URLs.
+requireText(memberLogin, "const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';", 'Desktop Google login must use the registered app protocol.');
+requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_CALLBACK', 'Google OAuth must request the direct desktop callback URI.');
+requireText(memberLogin, 'skipBrowserRedirect: true', 'Desktop OAuth must keep browser navigation outside the installed renderer.');
 requireText(memberLogin, 'window.dominionDesktop?.openExternal?.(data.url)', 'Google OAuth must authenticate in the normal browser.');
 assert(!memberLogin.includes('window.location.assign(data.url)'), 'Google OAuth must not strand the installed app inside the browser flow.');
-requireText(publicHome, '<script src="/assets/js/desktop-oauth-return.js"></script>', 'Public landing must load the desktop OAuth relay.');
-requireText(desktopOAuthReturn, 'dominionstar://auth/callback', 'Browser OAuth relay must invoke the registered app protocol.');
-requireText(desktopOAuthReturn, "params.get('access_token')", 'Browser OAuth relay must carry the completed access token.');
-requireText(desktopOAuthReturn, "params.get('refresh_token')", 'Browser OAuth relay must carry the completed refresh token.');
 requireText(desktopMain, "url.hostname === 'auth' && url.pathname === '/callback'", 'Desktop must consume the auth callback deep link.');
+requireText(desktopMain, "app.setAsDefaultProtocolClient('dominionstar'", 'Desktop must register the DominionStar protocol with the OS.');
+assert.equal(pkg.build?.protocols?.[0]?.schemes?.[0],'dominionstar','Desktop package must declare the DominionStar protocol.');
 requireText(memberLogin, "return '/meet-home/?desktop=1';", 'Desktop authentication must fail closed to Meet Home.');
 
 // One display-media handler. The approved DominionStar picker is the visible
@@ -139,4 +136,4 @@ requireText(meetHtml, 'id="recurringMeetingAction"', 'Recurring meeting entry po
 requireText(shareAnnotation, "addTool('Laser','laser')", 'Shared-screen laser pointer is missing.');
 for (const language of ["{code:'en', label:'English'}","{code:'fr', label:'French'}","{code:'es', label:'Spanish'}","{code:'zh', label:'Mandarin Chinese'}"]) requireText(liveTranscription, language, `Live-caption language option is missing: ${language}`);
 
-console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK single-home trusted-browser-oauth-relay native-mac-picker fallback-serialized camera-mic waiting-room host-cohost single-dock-authority pause-share chat scheduling captions');
+console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK single-home direct-desktop-oauth native-mac-picker fallback-serialized camera-mic waiting-room host-cohost single-dock-authority pause-share chat scheduling captions');
