@@ -65,7 +65,12 @@ for(const color of ['#ff3b30','#2d8cff','#28c76f','#ffffff'])assert(annotation.i
 assert(controller.includes('state.paused=true;if(state.annotationCanvas)startComposite()'),'Pause must keep annotation composition attached to the frozen last frame.');
 assert(controller.includes('const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Annotations must share the same deterministic frozen/live presentation base.');
 assert(controller.includes('stopTracks(state.liveStream)'),'Stop Share must release the live screen-capture track.');
+assert(controller.includes('async function replaceSource')&&controller.includes('const previousLive=state.liveStream'),'New Share must have an explicit transactional source-replacement path.');
+assert(controller.indexOf('const {stream,track}=await acquireDisplay(options);',controller.indexOf('async function replaceSource'))<controller.indexOf('stopTracks(previousFrozen);stopTracks(previousLive);',controller.indexOf('async function replaceSource')),'New Share must acquire the replacement source before releasing the current presentation.');
+assert(integration.includes("if(replacing){await share.replaceSource")&&integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must keep the current share active while the source picker is open.');
+assert(!integration.includes("if(command==='new-share'){window.DominionShareAnnotation?.deactivate?.();await share.stop()"),'New Share must never stop the current presentation before replacement succeeds.');
+assert(service.includes('if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive();publishToolbarState();return;}'),'Presenter toolbar must remain single-instance across share-source changes.');
 for(const command of ['audio','video','pause','participants','show-meeting','stop'])assert(toolbar.includes(`data-command="${command}"`),`Presenter toolbar is missing ${command}.`);
 assert(media.includes("script.src='./share-integration.js'"),'Desktop and Netlify must load the same isolated share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop floating-toolbar');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker transactional-new-share pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop single-floating-toolbar');
