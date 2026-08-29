@@ -10,6 +10,7 @@ const desktopBootstrap = read('desktop 2/src/bootstrap.mjs');
 const presenterToolbar = read('desktop 2/src/presenter-toolbar.js');
 const presenterParity = read('desktop 2/src/presenter-command-parity.mjs');
 const hostedParity = read('assets/js/meet/presenter-command-web-parity.js');
+const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
 const qa = read('.github/workflows/desktop-pr-verify.yml');
 
 assert(web.includes("name:'ECDH'") && web.includes("name:'AES-GCM'"),
@@ -46,15 +47,15 @@ assert(presenterParity.includes("safe === 'slide-control'") && hostedParity.incl
 assert(bootstrap.includes('slide-control-parity.js') && bootstrap.includes('data-ds-slide-control-parity'),
   'Certified runtime must load delegated slide control.');
 
-// QA native trust is rebound semantically by replacing the TRUSTED_HOSTS set in
-// every native authority with the exact deploy-preview hostname, then reading
-// each rewritten file back before the package is allowed to build. Do not tie
-// this guardrail to the retired prodHosts/replaceOnce implementation spelling.
-assert(qa.includes('const trustedHostsPattern=') &&
-       qa.includes("replacePattern('src/slide-control-native.mjs',trustedHostsPattern") &&
-       qa.includes("'src/remote-control-dialog.mjs','src/slide-control-native.mjs','src/screen-permission-lifecycle.mjs'") &&
-       qa.includes("if(!fs.readFileSync(path,'utf8').includes(url.hostname))") &&
-       qa.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'),
-  'The clean desktop QA path must rebind and verify native slide-control trust to the exact PR preview.');
+// Desktop QA no longer mutates native trust to a temporary Netlify hostname.
+// It keeps the canonical DominionStar origin and serves the exact PR runtime
+// from the packaged local desktop-runtime through the trusted HTTPS handler.
+assert(navigation.includes("const PRODUCTION_HOSTS=new Set(['dominionstarld.com','www.dominionstarld.com'])") &&
+       navigation.includes("function installLocalDesktopRuntime()") &&
+       navigation.includes("desktopSession.protocol.handle('https'") &&
+       qa.includes('DOMINIONSTAR_DESKTOP_LOCAL_RUNTIME_CERTIFIED') &&
+       qa.includes('Runtime source: packaged local desktop-runtime served under https://dominionstarld.com') &&
+       !qa.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'),
+  'The clean desktop QA path must preserve canonical native trust and certify packaged PR runtime ownership.');
 
-console.log('Encrypted delegated slide-control guardrails passed.');
+console.log('Encrypted delegated slide-control guardrails passed with packaged local runtime trust.');
