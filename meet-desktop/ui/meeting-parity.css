@@ -51,8 +51,9 @@
   overflow:auto!important;
   align-content:start!important;
 }
-.meeting-overlay.share-side-by-side[data-share-view="speaker"] #participantVideoDock .participant-video-dock-body{grid-template-columns:1fr!important}
-.meeting-overlay.share-side-by-side[data-share-view="speaker"] #participantVideoDock .remote-peer-tile{width:100%!important;height:auto!important;aspect-ratio:16/9!important}
+.meeting-overlay.share-side-by-side[data-share-view="speaker"] #participantVideoDock .participant-video-dock-body{grid-template-columns:1fr!important;align-content:center!important}
+.meeting-overlay.share-side-by-side[data-share-view="speaker"] #participantVideoDock .remote-peer-tile{display:none!important}
+.meeting-overlay.share-side-by-side[data-share-view="speaker"] #participantVideoDock .remote-peer-tile.share-featured{display:block!important;width:100%!important;height:auto!important;aspect-ratio:16/9!important}
 .meeting-overlay.share-side-by-side[data-share-view="gallery"] #participantVideoDock .participant-video-dock-body{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 .meeting-overlay.share-side-by-side[data-share-view="gallery"] #participantVideoDock .remote-peer-tile{width:100%!important;height:auto!important;aspect-ratio:16/9!important}
 .meeting-overlay.share-side-by-side[data-share-view="multi"] #participantVideoDock .participant-video-dock-body{grid-template-columns:repeat(2,minmax(0,1fr))!important}
