@@ -48,7 +48,7 @@ assert(!js.includes('getDisplayMedia'),'Home/room controller must not own screen
 assert(!/(?<!\\$)\\$\\([^\\n;]{0,180}\\)\\.forEach/.test(js),'Home bootstrap must never call forEach on the single-element $ selector; multi-element bindings must use $.');
 assert(js.includes("greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'"),'Home greeting must be time-aware.');
 assert(js.includes("new CustomEvent('dominion:meeting-ui-ready')"),'Base meeting UI must announce when the live DOM exists so parity modules cannot race startup.');
-assert(js.includes("class="meeting-overlay participants-hidden"")&&js.includes("class="room-side" hidden"),'Base meeting shell must never flash the Participants/Waiting Room panel open.');
+assert(js.includes('class="meeting-overlay participants-hidden"')&&js.includes('class="room-side" hidden'),'Base meeting shell must never flash the Participants/Waiting Room panel open.');
 assert(js.includes("profileStatus.textContent=rank||'Available'"),'Home account chip must use resolved member rank when available.');
 
 assert(personal.includes('Use Personal Meeting ID'),'New Meeting must expose the Personal Meeting ID choice.');
