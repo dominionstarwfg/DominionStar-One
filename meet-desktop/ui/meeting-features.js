@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const reactions=['👍','👏','❤️','😂','🎉','🤔'];
-  const state={messages:[],reactionMenu:null,recording:false,recorder:null,recordChunks:[],recordStream:null,recordCanvas:null,recordFrame:0,audioContext:null};
+  const state={messages:[],reactionMenu:null,raisedHands:new Map(),localHandRaised:false,recording:false,recorder:null,recordChunks:[],recordStream:null,recordCanvas:null,recordFrame:0,audioContext:null};
   if(!document.querySelector('link[href="./meeting-features.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-features.css';document.head.append(link);}
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const nowLabel=value=>{try{return new Date(value||Date.now()).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}catch{return ''}};
@@ -40,9 +40,41 @@
   async function sendChat(event){event?.preventDefault?.();const input=q('#meetingChatInput'),text=String(input?.value||'').trim();if(!text)return;input.value='';const payload={text:text.slice(0,2000),name:localName(),at:new Date().toISOString()};appendMessage({...payload,own:true});await broadcast('chat',payload);}
 
   function closeReactionMenu(){state.reactionMenu?.remove();state.reactionMenu=null;}
-  function openReactions(anchor=q('#roomReactions')){ensureUi();closeReactionMenu();if(!anchor)return;const menu=document.createElement('div');menu.className='meeting-reaction-menu';for(const emoji of reactions){const b=document.createElement('button');b.type='button';b.textContent=emoji;b.setAttribute('aria-label',`React ${emoji}`);b.onclick=()=>{closeReactionMenu();void sendReaction(emoji);};menu.append(b);}document.body.append(menu);state.reactionMenu=menu;const r=anchor.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-menu.offsetWidth-10,r.left))}px`;menu.style.bottom=`${Math.max(76,innerHeight-r.top+8)}px`;}
+  function openReactions(anchor=q('#roomReactions')){ensureUi();closeReactionMenu();if(!anchor)return;const menu=document.createElement('div');menu.className='meeting-reaction-menu';for(const emoji of reactions){const b=document.createElement('button');b.type='button';b.textContent=emoji;b.setAttribute('aria-label',`React ${emoji}`);b.onclick=()=>{closeReactionMenu();void sendReaction(emoji);};menu.append(b);}const divider=document.createElement('span');divider.className='reaction-divider';menu.append(divider);const hand=document.createElement('button');hand.type='button';hand.className='reaction-hand-button';hand.textContent=state.localHandRaised?'✋ Lower Hand':'✋ Raise Hand';hand.setAttribute('aria-pressed',String(state.localHandRaised));hand.onclick=()=>{closeReactionMenu();void toggleRaiseHand();};menu.append(hand);document.body.append(menu);state.reactionMenu=menu;const r=anchor.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-menu.offsetWidth-10,r.left))}px`;menu.style.bottom=`${Math.max(76,innerHeight-r.top+8)}px`;}
   function showReaction(emoji,name){ensureUi();const layer=q('#meetingReactionLayer');if(!layer)return;const bubble=document.createElement('div');bubble.className='meeting-reaction-bubble';bubble.innerHTML=`<b>${esc(emoji)}</b><span>${esc(name)}</span>`;layer.append(bubble);setTimeout(()=>bubble.remove(),3300);}
   async function sendReaction(emoji){if(!reactions.includes(emoji))return;const payload={emoji,name:localName(),at:new Date().toISOString()};showReaction(emoji,payload.name);await broadcast('reaction',payload);}
+  async function localParticipant(){
+    try{const ctx=await meeting?.context?.();return {participantId:String(ctx?.participantId||''),name:localName()};}catch{return {participantId:'',name:localName()};}
+  }
+  function decorateRaisedHands(){
+    for(const row of qa('#participantRoster [data-participant-id]')){
+      const id=String(row.dataset.participantId||''),raised=state.raisedHands.has(id);row.dataset.raisedHand=raised?'1':'0';
+      let badge=row.querySelector('.raised-hand-indicator');
+      if(raised&&!badge){badge=document.createElement('span');badge.className='raised-hand-indicator';badge.textContent='✋';badge.title='Hand raised';row.querySelector('.person-copy')?.append(badge);}
+      if(!raised)badge?.remove();
+    }
+    for(const tile of qa('.remote-peer-tile[data-peer-id]')){
+      const id=String(tile.dataset.peerId||''),raised=state.raisedHands.has(id);tile.classList.toggle('hand-raised',raised);
+      let badge=tile.querySelector('.remote-raised-hand');
+      if(raised&&!badge){badge=document.createElement('span');badge.className='remote-raised-hand';badge.textContent='✋';badge.title='Hand raised';tile.append(badge);}
+      if(!raised)badge?.remove();
+    }
+    const button=q('#roomReactions');button?.classList.toggle('hand-raised',state.localHandRaised);
+    if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent=state.localHandRaised?'Lower Hand':'Reactions';}
+  }
+  async function setLocalHand(raised,{broadcastChange=true}={}){
+    state.localHandRaised=Boolean(raised);const me=await localParticipant();
+    if(me.participantId){
+      if(state.localHandRaised)state.raisedHands.set(me.participantId,{name:me.name,at:Date.now()});else state.raisedHands.delete(me.participantId);
+    }
+    decorateRaisedHands();
+    if(broadcastChange)await broadcast('reaction',{kind:'hand',raised:state.localHandRaised,name:me.name,participantId:me.participantId,at:new Date().toISOString()});
+    return state.localHandRaised;
+  }
+  async function toggleRaiseHand(){return setLocalHand(!state.localHandRaised);}
+  async function lowerParticipantHand(participantId){
+    const id=String(participantId||'');if(!id)return false;state.raisedHands.delete(id);decorateRaisedHands();return true;
+  }
 
   function visibleStageVideo(){return [q('#sharedContentVideo'),q('#remoteShareVideo'),q('#remoteActiveSpeakerStage'),q('#localMeetingVideo')].find(video=>video&&!video.hidden&&video.srcObject&&video.readyState>=2)||null;}
   function stopRecordResources(){cancelAnimationFrame(state.recordFrame);state.recordFrame=0;for(const track of state.recordStream?.getTracks?.()||[]){try{track.stop();}catch{}}state.recordStream=null;try{state.audioContext?.close?.();}catch{}state.audioContext=null;state.recordCanvas=null;}
@@ -66,13 +98,13 @@
 
   function setVideoLayout(mode){const dock=q('#participantVideoDock');if(!dock)return;dock.classList.remove('layout-speaker');if(mode==='hide'){dock.hidden=true;return;}dock.hidden=false;if(mode==='speaker')dock.classList.add('layout-speaker');window.DominionMeetingParity?.syncVideoDock?.();}
 
-  function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false});}else if(detail.type==='reaction'){const emoji=String(payload.emoji||'');if(reactions.includes(emoji))showReaction(emoji,String(payload.name||detail.fromDisplayName||'Participant'));}}
+  function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false});}else if(detail.type==='reaction'){if(payload.kind==='hand'){const id=String(detail.fromParticipantId||payload.participantId||''),raised=Boolean(payload.raised);if(id){if(raised)state.raisedHands.set(id,{name:String(payload.name||detail.fromDisplayName||'Participant'),at:Date.now()});else state.raisedHands.delete(id);decorateRaisedHands();}return;}const emoji=String(payload.emoji||'');if(reactions.includes(emoji))showReaction(emoji,String(payload.name||detail.fromDisplayName||'Participant'));}else if(detail.type==='host:lower-hand'){void setLocalHand(false,{broadcastChange:true});}}
   window.addEventListener('dominion:meeting-signal',handleSignal);
   document.addEventListener('pointerdown',event=>{if(state.reactionMenu&&!state.reactionMenu.contains(event.target)&&event.target!==q('#roomReactions'))closeReactionMenu();},true);
   const overlay=q('#meetingOverlay');
   const observer=new MutationObserver(()=>{if(inMeeting())ensureUi();});
   if(overlay)observer.observe(overlay,{attributes:true,attributeFilter:['hidden']});
-  setInterval(()=>{if(inMeeting())ensureUi();else if(state.recording)void stopRecording();},600);
+  setInterval(()=>{if(inMeeting()){ensureUi();decorateRaisedHands();}else{state.raisedHands.clear();state.localHandRaised=false;if(state.recording)void stopRecording();}},600);
   ensureUi();
-  window.DominionMeetingFeatures=Object.freeze({toggleChat,openReactions,sendReaction,toggleRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,messageCount:state.messages.length})});
+  window.DominionMeetingFeatures=Object.freeze({version:'1.1.0',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()]})});
 })();
