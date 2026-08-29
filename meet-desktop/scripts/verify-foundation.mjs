@@ -21,6 +21,8 @@ const packageJson=JSON.parse(read('package.json'));
 const appIcon=read('build/icon.svg');
 const meetingNotifications=read('ui/meeting-notifications.js');
 const meetingNotificationsCss=read('ui/meeting-notifications.css');
+const meetingCaptions=read('ui/meeting-captions.js');
+const meetingCaptionsCss=read('ui/meeting-captions.css');
 
 assert(main.includes("const uiDir=path.join(__dirname,'..','ui')"),'Desktop must define one local UI directory authority.');
 assert(main.includes("mainWindow.loadFile(path.join(uiDir,'index.html'))"),'Desktop must load Home from the local UI directory.');
@@ -32,7 +34,7 @@ for(const section of ['homeSection','meetingsSection'])assert(html.includes(`id=
 assert(!html.includes('id="contactsSection"')&&!html.includes('data-section="contacts"'),'Dead Contacts placeholder must not ship.');
 assert(!html.includes('aria-label="Search"'),'Dead Search control must not ship.');
 assert(!html.includes('will live here')&&!html.includes('wired after'),'Developer placeholder copy must not ship.');
-for(const script of ['./meeting-notifications.js','./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Desktop must load ${script}.`);
+for(const script of ['./meeting-captions.js','./meeting-notifications.js','./preferences.js','./personal-room.js','./schedule-controller.js'])assert(html.includes(`<script src=\"${script}\"></script>`),`Desktop must load ${script}.`);
 for(const style of ['./personal-room.css','./schedule.css'])assert(html.includes(`<link rel=\"stylesheet\" href=\"${style}\">`),`Desktop must load ${style}.`);
 assert(html.includes('id="scheduleForm"')&&html.includes('id="scheduledMeetingList"'),'Schedule and Meetings must have real UI surfaces.');
 assert(!html.includes('meet_personal_rooms'),'Undeployed legacy backend table name must never leak into the Home UI.');
@@ -79,6 +81,13 @@ assert(main.includes("ipcMain.handle('notifications:set-waiting-count'")&&main.i
 assert(meetingNotifications.includes("desktop.notifications?.setWaitingCount?.(items.length,attention)")&&meetingNotifications.includes("desktop.notifications?.setWaitingCount?.(0,false)"),'Waiting Room count must stay synchronized with the native shell and clear when the meeting ends.');
 assert(preload.includes("setWaitingCount:(count,attention=false)"),'Renderer must access waiting-room native attention only through the narrow notification bridge.');
 assert(preload.includes("notifications:Object.freeze({showMeeting:"),'Renderer must access native meeting notifications only through a narrow bridge.');
+assert(js.includes("new CustomEvent('dominion:meeting-snapshot'"),'Existing room snapshot polling must publish one shared local state event for captions and other meeting modules.');
+assert(meetingCaptions.includes("version:'1.0.0'")&&meetingCaptions.includes("roomCaptions")&&meetingCaptions.includes("roomCaptionsMenu"),'Meeting shell must expose Zoom-style Show/Hide Captions plus a caption-options control.');
+assert(meetingCaptions.includes('const cutoff=now()-180000')&&meetingCaptions.includes("Past 3 minutes"),'Live caption history must remain a short three-minute accessibility window rather than a retained transcript.');
+assert(meetingCaptions.includes('setCaptionState')&&meetingCaptions.includes('Select manual captioner')&&meetingCaptions.includes('Start Manual Captions'),'Caption host controls must use server-backed manual-captioner authority.');
+assert(meetingCaptions.includes('Retain Meeting Transcript')&&meetingCaptions.includes('Download Retained Transcript'),'Retained transcript must remain a separate explicit host choice from live captions.');
+assert(meetingCaptions.includes('Automated captions are not enabled in this QA build until a stable speech engine is certified.'),'Desktop must not expose fake automated captions before a stable speech engine is certified.');
+assert(meetingCaptionsCss.includes('.meeting-caption-overlay')&&meetingCaptionsCss.includes('.meeting-caption-panel')&&meetingCaptionsCss.includes('.meeting-caption-menu'),'Live captions, full-caption panel, and caption options must have dedicated desktop styling.');
 
 assert(shareService.includes('compactMainWindow'),'Desktop sharing must own a native compact meeting-window mode.');
 assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during a share must compact the meeting window instead of losing participant video.');
