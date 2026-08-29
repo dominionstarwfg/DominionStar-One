@@ -13,7 +13,15 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     timeoutMs:4500,
     enumerateSources:async options=>{
       const includeDominionStar=Boolean(options?.includeDominionStar);
-      const sources=await desktopCapturer.getSources({types:['screen','window'],thumbnailSize:{width:360,height:220},fetchWindowIcons:true});
+      const kind=String(options?.kind||'screen')==='window'?'window':'screen';
+      // Physical-Mac rule: enumerate one source class at a time. Asking
+      // ScreenCaptureKit for every screen + every application window + icons
+      // on the first click is unnecessarily expensive and can stall Electron.
+      const sources=await desktopCapturer.getSources({
+        types:[kind],
+        thumbnailSize:{width:256,height:144},
+        fetchWindowIcons:false
+      });
       return sources.filter(source=>includeDominionStar||!/DominionStar Meet/i.test(String(source.name||'')));
     }
   });
@@ -183,8 +191,16 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(platform==='darwin'&&typeof ensureScreenPermission==='function'){
       const permission=await ensureScreenPermission();
       if(!permission?.ok){
-        if(typeof openPrivacySettings==='function')await openPrivacySettings('screen').catch?.(()=>{});
-        return {opened:false,permissionRequired:true,status:String(permission?.status||'unknown'),restartRequired:Boolean(permission?.restartRequired)};
+        // Do not open System Settings automatically and do not run native source
+        // discovery here. Return immediately so the meeting process never
+        // appears frozen. The UI can offer the explicit permission action.
+        return {
+          opened:false,
+          permissionRequired:true,
+          status:String(permission?.status||'unknown'),
+          restartRequired:Boolean(permission?.restartRequired),
+          passive:true
+        };
       }
     }
     return openPicker();
