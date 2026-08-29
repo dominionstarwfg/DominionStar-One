@@ -38,8 +38,9 @@ assert.equal(grouped.get('window:one')?.id,'window:one','Window source must rema
 assert.equal(grouped.snapshot().sourceCount,2,'Combined source authority must retain both source groups.');
 
 assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS media status may remain available for diagnostics/settings.');
-assert(main.includes("permissionStatus('screen')"),'Screen Recording status must remain independently observable from camera/microphone.');
-assert(main.includes("media:request-screen"),'Renderer must retain a narrow screen-permission diagnostics command.');
+assert(main.includes("diagnosticStatus:permissionStatus('screen')"),'Screen Recording status must remain independently observable for diagnostics only.');
+assert(main.includes("status:'native-source-authority'")&&main.includes("media:request-screen"),'Screen permission IPC must defer authority to native source discovery.');
+assert(!/requestScreenPermission[\\s\\S]*?return \\{ok:false/.test(main),'A cached macOS TCC status must never block native source discovery.');
 assert.equal((service.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Exactly one Electron display-media handler may own capture.');
 assert(service.includes('{useSystemPicker:false}'),'Only one source-selection authority may own display capture.');
 assert(service.includes("ipcMain.handle('share:open-picker',()=>openPicker())"),'Share must open the actual source picker without a stale TCC-status pre-gate.');
