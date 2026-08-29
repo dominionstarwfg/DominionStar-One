@@ -24,10 +24,15 @@ assert(html.includes('<script src="./zoom-behavior.js"></script>'),'Desktop Home
 assert(html.includes('<script src="./participant-controls.js"></script>'),'Desktop Home must load the verified participant-control layer.');
 assert(html.includes('<script src="./meeting-captions.js"></script>'),'Desktop Home must load the live captions/transcript layer.');
 assert(html.indexOf('./meeting-features.js')<html.indexOf('./zoom-behavior.js'),'Zoom behavior guard must load after base meeting features so it can upgrade them.');
-assert(parity.includes("version:'2.5.0-zoom-host-view-control'"),'Zoom-style adaptive dock engine version is missing.');
+assert(parity.includes("version:'2.6.0-live-shell-zoom-parity'"),'Live meeting shell must use the post-DOM Zoom parity engine.');
 assert(parity.includes("GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1'"),'Participant video dock geometry must persist independently.');
 assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Participant management panel geometry must remain separate from video dock geometry.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Participant management panel must be closed by default so solo video owns the stage.');
+assert(parity.includes("window.addEventListener('dominion:meeting-ui-ready',()=>install())"),'Zoom parity must install after the live meeting DOM is created.');
+assert(parity.includes("decorate(q('#roomMic'),SVG.mic)")&&parity.includes("decorate(q('#roomCamera'),SVG.video)")&&parity.includes("decorate(q('#roomShare'),SVG.share)")&&parity.includes("decorate(q('#roomParticipants'),SVG.participants)")&&parity.includes("decorate(q('#roomChat'),SVG.chat)")&&parity.includes("decorate(q('#roomReactions'),SVG.reactions)"),'Primary meeting controls must have modern SVG icon coverage.');
+assert(parity.includes("for(const id of ['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions','roomMore','roomExitButton'])"),'Primary toolbar order must stay Mic, Video, Share, Participants, Chat, Reactions, More, End/Leave.');
+assert(parity.includes("for(const id of ['roomSecurity','roomSettings','roomRecord','roomRecordStop'])"),'Secondary host/settings/record controls must stay out of the primary toolbar.');
+assert(!parity.includes("add('Diagnostics'"),'Diagnostics must not be exposed in the production More menu.');
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Video dock orientation must respond to dock position.');
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Remote active speaker must be promotable to the main stage.');
 assert(parity.includes("snapshot.videoLive&&!hideSelf&&(sharing()||remotePromoted)"),'Local self video belongs in the floating dock only when sharing or another speaker owns the stage, and Hide Self View must suppress only the local tile.');
@@ -36,6 +41,7 @@ assert(parity.includes('for(let i=1;i<=9;i++'),'Dock must expose count classes t
 assert(parity.includes('desktop.meeting.context()')&&parity.includes('Passcode ${pass}'),'Meeting ID and passcode must remain visible from native meeting context.');
 assert(parity.includes("hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'"),'Home greeting must adapt to local time.');
 assert(preload.includes("brand:Object.freeze({logoUrl})"),'Desktop bridge must expose the packaged real DominionStar logo.');
+assert(parity.includes("head&&!head.querySelector('.ds-meeting-brand')"),'Meeting header must install DominionStar logo/name branding.');
 assert((pkg.build?.extraResources||[]).some(entry=>entry?.from==='../assets/logo.jpeg'&&entry?.to==='branding/dominionstar-logo.jpeg'),'Desktop package must include the real DominionStar logo asset.');
 assert(meetingService.includes("roomCode:'',passcode:'',title:''"),'Native meeting context must retain visible meeting credentials.');
 assert(av.includes("caret.className='meeting-control av-device-caret'"),'Mic and camera controls must retain dedicated device-option carets.');
