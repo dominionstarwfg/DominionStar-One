@@ -76,6 +76,7 @@ assert(migration.includes('meeting_locked boolean not null default false')&&migr
 assert(migration.includes("chat_policy text not null default 'everyone'")&&migration.includes("chat_policy in ('everyone','host_cohost','disabled')"),'Meeting chat policy must be server-backed with constrained policy values.');
 assert(migration.includes('meet_v2_set_chat_policy')&&migration.includes("if coalesce(v_role,'') not in ('host','cohost')"),'Only host/co-host authority may change participant chat policy.');
 assert(migration.includes("if v_room.chat_policy='disabled'")&&migration.includes("if v_room.chat_policy='host_cohost'"),'Signal backend must enforce meeting chat policy rather than trusting renderer recipient controls.');
+assert(migration.includes("'host:lower-hand'"),'Authenticated meeting signaling must explicitly allow the verified host Lower Hand command.');
 assert(migration.includes("if v_room.meeting_locked then raise exception 'meeting_locked'"),'Locked meetings must reject new join requests in backend authority.');
 assert(migration.includes('meet_v2_set_security')&&migration.includes("coalesce(v_role,'') not in ('host','cohost')"),'Only host/co-host authority may change Lock Meeting or Mute on Entry.');
 assert(migration.includes("'muteOnEntry',v_room.mute_on_entry")&&ui.includes('response.muteOnEntry')&&ui.includes('state.muteOnEntry?false:Boolean(prefs.micOn)'),'Mute on Entry must travel from backend join state into the real local microphone state.');
@@ -83,4 +84,4 @@ assert(migration.includes("'muteOnEntry',v_room.mute_on_entry")&&ui.includes('re
 assert(css.includes('.meeting-overlay')&&css.includes('.waiting-overlay')&&css.includes('.prejoin-overlay'),'Prejoin, meeting, and waiting-room surfaces must be dedicated desktop layers.');
 assert(!ui.includes('getDisplayMedia')&&!service.includes('getDisplayMedia'),'Screen sharing must remain outside this lifecycle authority.');
 
-console.log('DOMINIONSTAR_MEET_V2_LIFECYCLE_OK personal-id generated-id passcode-3-7 reusable-waiting recurring-identity schedule prejoin waiting admit cohost atomic-host-handoff leave end');
+console.log('DOMINIONSTAR_MEET_V2_LIFECYCLE_OK personal-id generated-id passcode-3-7 reusable-waiting recurring-identity schedule prejoin waiting admit cohost atomic-host-handoff raise-hand-authority leave end');
