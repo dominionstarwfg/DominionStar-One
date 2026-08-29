@@ -44,7 +44,7 @@ assert(css.includes('.participant-video-dock.user-resized .participant-video-doc
 assert(css.includes('.participant-video-dock.minimized'),'Participant video dock must support Zoom-style minimization.');
 assert(css.includes('@media(max-width:760px)'),'Meeting layout must adapt for compact desktop windows.');
 
-assert(zoomBehavior.includes("version:'1.3.0'"),'Zoom behavior guard version is missing.');
+assert(zoomBehavior.includes("version:'1.4.0'"),'Zoom behavior guard version is missing.');
 assert(zoomBehavior.includes('Assign Host & Leave')&&zoomBehavior.includes('End Meeting for All'),'Host exit must expose Zoom-style handoff versus end-for-all choices.');
 assert(zoomBehavior.includes('showHostHandoffChoices')&&zoomBehavior.includes('meeting.transferHostAndLeave(participant.participantId)'),'Host leave must offer a real participant chooser and call the atomic transfer authority.');
 assert(!zoomBehavior.includes("meeting.leave(ctx.participantId,ctx.joinToken)"),'Host UI must never bypass the backend host-transfer safeguard with a plain leave call.');
@@ -95,4 +95,4 @@ assert(parity.includes("desktop.meeting.sendSignal(p.participantId,'host:view-la
 assert(parity.includes("window.addEventListener('dominion:host-view-layout'")&&parity.includes('applyViewMode(mode)'),'Authorized meeting-wide View changes must reuse the local adaptive View authority.');
 assert(parity.includes('spotlightParticipantId?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`)'),'Side-by-side Speaker must prioritize Spotlight before automatic active-speaker selection.');
 assert(css.includes('button[data-apply-view-everyone]'),'Host meeting-wide View action must have dedicated desktop styling.');
-console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat participant-media-controls mute-all ask-unmute stop-video ask-start-video bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share draggable-divider hide-video-panel host-view-broadcast spotlight-side-by-side');
+console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat unread-chat chat-policy participant-media-controls mute-all ask-unmute stop-video ask-start-video bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share draggable-divider hide-video-panel host-view-broadcast spotlight-side-by-side');
