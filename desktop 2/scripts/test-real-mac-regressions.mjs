@@ -6,6 +6,8 @@ const exists=rel=>fs.existsSync(new URL(`../../${rel}`,import.meta.url));
 const dynamicImportNeedle=file=>`await ${'import'}('./${file}')`;
 
 const memberLogin=read('assets/js/member-login.js');
+const publicHome=read('index.html');
+const desktopOAuthReturn=read('assets/js/desktop-oauth-return.js');
 const cameraCatalog=read('assets/js/meet/camera-device-stability.js');
 const ui=read('assets/js/meet-next/executive6.js');
 const hostPrejoin=read('assets/js/meet/hotfix-rc13-1-media-prejoin.js');
@@ -25,11 +27,16 @@ const homeController=read('assets/js/meet/desktop-home-controller.js');
 const pkg=JSON.parse(read('desktop 2/package.json'));
 
 assert(memberLogin.includes("provider: 'google'"));
-assert(memberLogin.includes("const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'"));
-assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_CALLBACK'));
+assert(memberLogin.includes('const DESKTOP_OAUTH_BROWSER_RETURN = `${window.location.origin}/`;'));
+assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_BROWSER_RETURN'));
 assert(memberLogin.includes('skipBrowserRedirect: true'));
 assert(memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));
 assert(memberLogin.includes("return '/meet-home/?desktop=1';"));
+assert(publicHome.includes('<script src="/assets/js/desktop-oauth-return.js"></script>'));
+assert(desktopOAuthReturn.includes('dominionstar://auth/callback'));
+assert(desktopOAuthReturn.includes("params.get('access_token')"));
+assert(desktopOAuthReturn.includes("params.get('refresh_token')"));
+assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"));
 
 assert(bootstrap.indexOf(dynamicImportNeedle('share-picker-authority.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(bootstrap.indexOf(dynamicImportNeedle('screen-permission-lifecycle.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
@@ -66,7 +73,9 @@ assert(hostPrejoin.includes('stopTracks(hostPreviewStream);'));
 assert(hostPrejoin.includes('await sleep(220);'));
 assert(!hostPrejoin.includes('navigator.mediaDevices.getUserMedia ='));
 
-assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"));
+assert(operationBootstrap.includes("version:'3.1.0-single-dock-layout-authority'"));
+assert(operationBootstrap.includes('/assets/js/meet/dock-resize-quality.js?v=1-single-layout-authority'));
+assert(!operationBootstrap.includes('/assets/js/meet/dock-polish-2030.js'));
 assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
@@ -108,4 +117,4 @@ assert(!/addEventListener\(['"]focus['"]/.test(picker));
 assert(preload.includes('let shareSourcesInFlight = null;'));
 assert(preload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 
-console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth approved-custom-picker privacy-keys bounded-enumeration single-handler guarded');
+console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home trusted-browser-oauth-relay approved-custom-picker privacy-keys bounded-enumeration single-handler single-dock-runtime');
