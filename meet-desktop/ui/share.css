@@ -49,8 +49,7 @@
   .meeting-overlay.share-active .participant-video-dock.minimized .participant-video-dock-body{display:none!important}
 }
 
-.share-permission-dialog{border:0;padding:0;background:transparent;color:#f5f7fb}
-.share-permission-dialog::backdrop{background:rgba(0,0,0,.64);backdrop-filter:blur(6px)}
+.share-permission-dialog{position:fixed;z-index:1200;left:50%;top:50%;transform:translate(-50%,-50%);border:0;padding:0;background:transparent;color:#f5f7fb}.share-permission-dialog[hidden]{display:none!important}
 .share-permission-card{width:min(470px,calc(100vw - 36px));display:grid;grid-template-columns:auto 1fr;gap:14px;padding:20px;border:1px solid rgba(255,255,255,.13);border-radius:16px;background:#0d1825;box-shadow:0 24px 70px rgba(0,0,0,.58)}
 .share-permission-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(47,128,237,.14);color:#78b3ff}
 .share-permission-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
