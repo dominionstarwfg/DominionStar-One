@@ -30,6 +30,8 @@
     const stream=await navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
     const track=stream.getVideoTracks()[0];
     if(!track){stopTracks(stream);throw new Error('No screen capture track was returned.');}
+    try{track.contentHint=optimize?'motion':'detail';}catch{}
+    for(const audioTrack of stream.getAudioTracks?.()||[]){try{audioTrack.contentHint='music';}catch{}}
     return {stream,track};
   }
 
@@ -72,6 +74,7 @@
     if(!context)throw new Error('Unable to freeze the shared frame.');
     context.drawImage(videoElement,0,0,width,height);
     const frozen=canvas.captureStream(1);
+    for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone());}catch{}}
     state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();await bridge?.captureState?.({sourceName:state.sourceName,paused:true});return snapshot();
   }
 
