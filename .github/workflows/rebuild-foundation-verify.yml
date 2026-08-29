@@ -41,6 +41,7 @@ jobs:
           node --check 'meet-desktop/ui/video-effects.js'
           node --check 'meet-desktop/ui/meeting-parity.js'
           node --check 'meet-desktop/ui/meeting-features.js'
+          node --check 'meet-desktop/ui/meeting-captions.js'
           node --check 'meet-desktop/ui/zoom-behavior.js'
           node --check 'meet-desktop/ui/participant-controls.js'
           node --check 'meet-desktop/ui/meeting-notifications.js'
