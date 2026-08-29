@@ -11,3 +11,9 @@
 .annotation-colors button[data-annotation-color="#28c76f"]{background:#28c76f!important}
 .annotation-colors button[data-annotation-color="#ffffff"]{background:#fff!important}
 .annotation-colors button.active{box-shadow:0 0 0 2px #111820,0 0 0 4px rgba(255,255,255,.82)}
+
+.raised-hand-indicator{display:inline-flex;align-items:center;margin-left:6px;font-size:12px;vertical-align:middle;filter:drop-shadow(0 2px 5px rgba(0,0,0,.3))}
+.remote-peer-tile .remote-raised-hand{position:absolute;top:7px;right:7px;z-index:5;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:rgba(10,16,24,.9);border:1px solid rgba(255,255,255,.16);font-size:15px;box-shadow:0 5px 16px rgba(0,0,0,.28)}
+.remote-peer-tile.hand-raised{border-color:#e8bd4f!important}.meeting-control.hand-raised .ds-control-icon,.meeting-control.hand-raised .ds-control-label{color:#e8bd4f}
+.meeting-reaction-menu .reaction-divider{width:1px;height:30px;align-self:center;background:rgba(255,255,255,.12);margin:0 2px}
+.meeting-reaction-menu .reaction-hand-button{width:auto;min-width:94px;padding:0 10px;font-size:10px;font-weight:760;color:#f0d16f}
