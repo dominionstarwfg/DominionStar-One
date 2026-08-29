@@ -976,7 +976,7 @@ begin
   if v_text='' or char_length(v_text)>2000 then raise exception 'invalid_caption_text'; end if;
   if v_name='' then v_name:='Captioner'; end if;
   select * into v_participant from public.meet_v2_participants where id=p_participant_id;
-  if not found or v_participant.member_id<>v_user or v_participant.state<>'joined' then raise exception 'caption_sender_not_authorized'; end if;
+  if not found or v_participant.member_id is distinct from v_user or v_participant.state<>'joined' then raise exception 'caption_sender_not_authorized'; end if;
   select * into v_room from public.meet_v2_rooms where id=v_participant.room_id;
   if v_room.caption_mode<>'manual' or v_room.captioner_participant_id<>v_participant.id then raise exception 'captioner_authority_required'; end if;
 
