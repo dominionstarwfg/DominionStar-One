@@ -1,0 +1,23 @@
+/* Physical Mac acceptance polish: readable Settings + Zoom-style reaction travel. */
+.settings-modal{color:#f7f9fc}
+.settings-modal .eyebrow{color:#b9c6d5!important}
+.settings-modal .settings-row strong{color:#f5f8fb!important;font-size:13px}
+.settings-modal .settings-row small,.settings-modal .settings-note{color:#b8c5d4!important;font-size:11px!important;line-height:1.5}
+.settings-modal .av-detail-head h3{color:#f8fafc!important;font-size:18px!important}
+.settings-modal .av-detail-head p{color:#c0ccda!important;font-size:11px!important;line-height:1.55!important}
+.settings-modal .av-field>span,.settings-modal .av-toggle-row,.settings-modal .av-range-row{color:#e8eef5!important;font-size:11px!important}
+.settings-modal .av-field select{color:#f7f9fc!important;background:#0b1828!important;border-color:rgba(255,255,255,.17)!important}
+.settings-modal .av-zoom-group{border-bottom-color:rgba(255,255,255,.11)!important}
+.settings-modal .av-zoom-group-head strong{color:#f4f7fa!important;font-size:14px!important}
+.settings-modal .av-zoom-group-head small{color:#b9c5d3!important;font-size:10px!important;line-height:1.5!important}
+.settings-modal .av-effects-note,.settings-modal .av-background-status,.settings-modal .av-backgrounds-head small{color:#b4c1cf!important;font-size:10px!important;line-height:1.5!important}
+.settings-modal .av-advanced-panel summary{color:#eef3f8!important;font-size:11px!important}
+.settings-modal .av-preview-meta>span{color:#f6f8fb!important;font-size:9px!important}
+.settings-modal .av-preview-meta>small{color:#d3dce6!important;font-size:9px!important}
+.av-quality-status{display:block;margin-top:7px;color:#b9c8d8;font-size:10px;line-height:1.45}
+.av-quality-status.success{color:#8de0b4}.av-quality-status.limited{color:#efc96a}
+
+/* Zoom-style meeting reaction: default lane is left and the reaction travels upward. */
+.meeting-reaction-bubble{left:24px!important;right:auto!important;bottom:88px!important;top:auto!important;animation:dsReactionFloatLeft 3.7s cubic-bezier(.2,.72,.28,1) forwards!important;will-change:transform,opacity}
+@keyframes dsReactionFloatLeft{0%{opacity:0;transform:translate3d(0,18px,0) scale(.9)}10%{opacity:1;transform:translate3d(0,0,0) scale(1)}72%{opacity:1;transform:translate3d(0,-56vh,0) scale(1.02)}100%{opacity:0;transform:translate3d(0,-68vh,0) scale(.94)}}
+@media(max-width:760px){.meeting-reaction-bubble{left:14px!important;right:auto!important}}

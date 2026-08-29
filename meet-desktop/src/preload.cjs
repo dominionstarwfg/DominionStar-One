@@ -6,6 +6,7 @@ const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../as
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
   environment:()=>invoke('app:get-environment'),
+  app:Object.freeze({restart:()=>invoke('app:restart')}),
   brand:Object.freeze({logoUrl}),
   power:Object.freeze({onChanged:callback=>listen('app:power-event',callback)}),
   auth:Object.freeze({

@@ -45,9 +45,6 @@ async function requestScreenPermission(){
   if(process.platform!=='darwin')return {ok:true,status:'granted',restartRequired:false};
   const status=permissionStatus('screen');
   if(status==='granted')return {ok:true,status:'granted',restartRequired:false,passive:true};
-  // macOS can require a full app restart before a newly-enabled Screen
-  // Recording TCC grant is visible to Electron. Report that truthfully so the
-  // UI never keeps presenting the same permission card after the user toggles it.
   return {ok:false,status,restartRequired:true,passive:true};
 }
 
@@ -92,6 +89,7 @@ function createMainWindow(){
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:restart',()=>{setTimeout(()=>{app.relaunch();app.exit(0);},80);return {ok:true};});
 ipcMain.handle('auth:get-state',()=>desktopAuth?.getState?.()||{ready:false,signedIn:false,user:null});
 ipcMain.handle('auth:start-google',()=>desktopAuth?.startGoogle?.());
 ipcMain.handle('auth:sign-in-password',(_event,{email,password}={})=>desktopAuth?.signInPassword?.(email,password));

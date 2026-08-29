@@ -3,11 +3,15 @@ import assert from 'node:assert/strict';
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const physical=read('ui/physical-zoom-parity.js');
 const physicalCss=read('ui/physical-zoom-parity.css');
+const acceptance=read('ui/physical-acceptance-polish.js');
+const acceptanceCss=read('ui/physical-acceptance-polish.css');
 const authBootstrap=read('ui/auth-password.js');
 const app=read('ui/app.js');
 const av=read('ui/av-settings.js');
+const main=read('src/main.mjs');
 const preload=read('src/preload.cjs');
 const shareService=read('src/share-service.mjs');
+const shareController=read('ui/share-controller.js');
 const shareIntegration=read('ui/share-integration.js');
 const sourceAuthority=read('src/share-source-authority.mjs');
 const pickerHtml=read('ui/share-picker.html');
@@ -17,12 +21,18 @@ const participantsCss=read('ui/participants-window.css');
 const participants=read('ui/participants-window.js');
 
 assert(authBootstrap.includes("physical-zoom-parity.css")&&authBootstrap.includes("physical-zoom-parity.js"),'Physical Zoom parity layer must load in every desktop session.');
+assert(authBootstrap.includes("physical-acceptance-polish.css")&&authBootstrap.includes("physical-acceptance-polish.js"),'Physical Mac acceptance polish must load in every desktop session.');
 assert(av.includes("caret.className='av-device-caret attached-device-caret'")&&av.includes("button.insertAdjacentElement('afterend',caret)"),'Mic/Video device arrows must be created adjacent to the corresponding control.');
 assert(physical.includes("if(button.nextElementSibling!==caret)button.insertAdjacentElement('afterend',caret)"),'Toolbar reconciliation must repair any detached Mic/Video caret instead of leaving orphan arrows.');
 assert(physicalCss.includes('.av-device-caret.zoom-attached-caret')&&physicalCss.includes('margin-left:-20px'),'Physical toolbar must visually bind each device caret to its Mic/Video split control.');
 assert(physical.includes("setFallback(q('#prejoinAvatar'),currentUser)")&&physical.includes("setFallback(q('#stageAvatar'),currentUser)"),'Signed-in profile picture must be used for camera-off prejoin and meeting stage fallback.');
 assert(app.includes('id="stageAvatar"')&&app.includes('id="prejoinAvatar"'),'Camera-off profile fallback surfaces must exist.');
 assert(physical.includes("detail.type||'')!=='host:media-state'")&&physical.includes('syncRemoteProfiles()'),'Remote camera-off identity must propagate to video-tile fallback.');
+
+assert(acceptance.includes("option.value='1080'")&&acceptance.includes("option.textContent='Full HD · 1080p'")&&acceptance.includes('width:{ideal:1920}')&&acceptance.includes('height:{ideal:1080}'),'Video settings must expose and actually request Full HD 1080p.');
+assert(acceptance.includes("localStorage.getItem(QUALITY_KEY)")&&acceptance.includes("media.onChange(()=>{if(storedQuality()==='1080')"),'Full HD selection must persist and reapply after camera changes.');
+assert(acceptanceCss.includes('.settings-modal .av-detail-head p{color:#c0ccda')&&acceptanceCss.includes('.settings-modal .av-zoom-group-head small{color:#b9c5d3'),'Dark Settings text must use readable high-contrast colors.');
+assert(acceptanceCss.includes('.meeting-reaction-bubble{left:24px!important;right:auto!important')&&acceptanceCss.includes('@keyframes dsReactionFloatLeft')&&acceptanceCss.includes('translate3d(0,-68vh,0)'),'Meeting reactions must originate on the left and travel upward like the approved Zoom reference.');
 
 assert(shareService.includes("ipcMain.handle('share:open-picker',()=>openPicker())"),'Share must open the source chooser before consulting stale macOS screen status.');
 assert(!shareIntegration.includes('requestScreen?.()'),'Renderer Share flow must not gate the picker with stale systemPreferences screen status.');
@@ -33,6 +43,10 @@ assert(picker.includes("kind:'screen'")&&picker.includes("kind:'window'"),'Share
 assert(picker.includes('const first=screens[0]||windows[0]||null'),'Share chooser must preselect the first available source.');
 assert(pickerHtml.includes('Share sound')&&pickerHtml.includes('Optimize for video sharing'),'Share chooser must expose functional sound and optimization options.');
 assert(!pickerHtml.includes('Presenter layout'),'Do not ship decorative presenter-layout controls without implemented presenter-layout behavior.');
+assert(shareController.includes('getDisplayMediaBounded')&&shareController.includes("error.code='screen_capture_restart_required'")&&shareController.includes('timeoutMs=8000'),'Screen capture must have a bounded physical-Mac watchdog instead of spinning forever after a TCC change.');
+assert(main.includes("ipcMain.handle('app:restart'")&&main.includes('app.relaunch()')&&preload.includes("app:Object.freeze({restart:()=>invoke('app:restart')})"),'Renderer must have a narrow one-click app restart path for macOS TCC activation.');
+assert(shareIntegration.includes('showRestartRequired')&&shareIntegration.includes('desktop.app.restart()'),'Failed post-permission capture must offer one-click DominionStar restart instead of a dead loading state.');
+assert(picker.includes("restartButton.id='restartDominionStar'")&&picker.includes("desktop.app?.restart?.()")&&picker.includes("err.code='share_source_timeout'"),'Share picker must time out source discovery and expose the restart recovery path.');
 
 assert(preload.includes('participants:Object.freeze'),'Participants utility window must use a narrow preload bridge.');
 assert(shareService.includes("titleBarStyle:platform==='darwin'?'hiddenInset':'default'"),'Participants must be a macOS native-style utility BrowserWindow.');
@@ -45,4 +59,4 @@ assert(participants.includes("add('Ask to Unmute','host:ask-unmute')")&&particip
 assert(physical.includes("desktop.participants?.toggle?.()")&&physical.includes("side.hidden=true"),'Main Participants control must open the utility window and keep the obsolete inline panel hidden.');
 assert(participantsCss.includes('-webkit-app-region:drag'),'Participants title bar must be independently draggable like a utility window.');
 
-console.log('DOMINIONSTAR_PHYSICAL_ZOOM_PARITY_OK attached-av-carets profile-camera-off-fallback no-stale-screen-gate functional-source-picker native-participants-window invite-mute-more remote-avatar-state');
+console.log('DOMINIONSTAR_PHYSICAL_ZOOM_PARITY_OK attached-av-carets profile-camera-off-fallback full-hd-1080 readable-settings left-floating-reactions bounded-screen-capture one-click-tcc-restart functional-source-picker native-participants-window invite-mute-more remote-avatar-state');
