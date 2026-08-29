@@ -45,6 +45,8 @@ assert(webrtc.includes('if(!current.has(id))closePeer(id)'),'Packaged roster rec
 assert(main.includes("ipcMain.handle('notifications:meeting'")&&main.includes('new Notification('),'Packaged desktop must provide native background meeting notifications.');
 assert(main.includes("ipcMain.handle('notifications:set-waiting-count'")&&main.includes('app.dock.setBadge')&&main.includes("app.dock.bounce('informational')")&&main.includes('mainWindow.flashFrame'),'Packaged desktop must expose native Waiting Room badge and attention behavior while unfocused.');
 assert(preload.includes("notifications:Object.freeze({showMeeting:")&&preload.includes('setWaitingCount:'),'Packaged renderer must use a narrow notification bridge for alerts and Waiting Room badge state.');
+assert(meetingNotifications.includes("version:'1.1.0'")&&meetingNotifications.includes("ctx?.setSinkId&&speakerId"),'Packaged meeting alerts must route to the selected speaker where supported.');
+assert(meetingNotifications.includes("function chat(name='Participant')")&&features.includes("DominionMeetingNotifications?.chat?.(message.name||'Participant')"),'Packaged incoming chat must use the shared notification sound authority.');
 assert(main.includes("permissionStatus('screen')"),'Packaged desktop must check Screen Recording permission before sharing.');
 assert(auth.includes("flowType:'pkce'"),'Packaged Google auth must use PKCE.');
 assert(auth.includes("CALLBACK_HOST='127.0.0.1'"),'Packaged auth must use the loopback callback.');
