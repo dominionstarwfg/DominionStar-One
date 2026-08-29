@@ -38,7 +38,7 @@
       {
         "from": "../assets",
         "to": "desktop-runtime/assets",
-        "filter": ["**/*"]
+        "filter": ["**/*", "!js/meet/dock-polish-2030.js"]
       },
       {
         "from": "../meet",
