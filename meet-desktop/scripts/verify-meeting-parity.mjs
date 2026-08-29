@@ -24,7 +24,7 @@ assert(html.includes('<script src="./zoom-behavior.js"></script>'),'Desktop Home
 assert(html.includes('<script src="./participant-controls.js"></script>'),'Desktop Home must load the verified participant-control layer.');
 assert(html.includes('<script src="./meeting-captions.js"></script>'),'Desktop Home must load the live captions/transcript layer.');
 assert(html.indexOf('./meeting-features.js')<html.indexOf('./zoom-behavior.js'),'Zoom behavior guard must load after base meeting features so it can upgrade them.');
-assert(parity.includes("version:'2.6.0-live-shell-zoom-parity'"),'Live meeting shell must use the post-DOM Zoom parity engine.');
+assert(parity.includes("version:'2.7.0-chat-share-dock-parity'"),'Live meeting shell must use the post-DOM Zoom parity engine.');
 assert(parity.includes("GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1'"),'Participant video dock geometry must persist independently.');
 assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Participant management panel geometry must remain separate from video dock geometry.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Participant management panel must be closed by default so solo video owns the stage.');
@@ -83,7 +83,11 @@ assert(parity.includes("window.addEventListener('dominion:active-speakers'"),'Me
 assert(parity.includes("sharing()?'Side-by-side: Speaker':'Speaker'")&&parity.includes("sharing()?'Side-by-side: Gallery':'Gallery'")&&parity.includes("sharing()?'Side-by-side: Multi-speaker':'Multi-speaker'"),'View menu must switch to Zoom-style side-by-side labels while shared content is active.');
 assert(parity.includes("splitter.setAttribute('role','separator')")&&parity.includes("saveShareSplit(ratio)"),'Shared content and participant video must expose a persistent draggable side-by-side divider.');
 assert(parity.includes("overlay.classList.toggle('share-side-by-side',active&&showPanel&&!floatingPanel)")&&parity.includes("overlay.classList.toggle('share-panel-floating',floatingPanel)")&&parity.includes("overlay.classList.toggle('share-panel-hidden',active&&!showPanel)"),'Share layout must support side-by-side, floating Video Panel, and Hide/Show Video Panel behavior.');
-assert(parity.includes("const floatingPanel=active&&showPanel&&dock.classList.contains('user-positioned')"),'A user-moved participant video panel must remain floating during screen sharing.');
+assert(parity.includes("const floatingPanel=active&&showPanel&&!sideBySide"),'Screen sharing must default to a floating participant video panel, with side-by-side available only when explicitly selected.');
+assert(parity.includes("DominionPreferences?.read?.('shareSideBySide')===true"),'Side-by-side sharing must remain an explicit user preference rather than the default share layout.');
+assert(parity.includes("Use Floating Video Panel")&&parity.includes("Use Side-by-side Video"),'Share View controls must let the user switch between floating and side-by-side participant video.');
+assert(features.includes("id='meetingChatRecipient'")||features.includes('id="meetingChatRecipient"'),'Meeting chat shell must contain a recipient selector for Everyone/private messaging.');
+assert(features.includes("void window.DominionZoomBehavior?.refreshChatRecipients?.()"),'Meeting chat shell must defer recipient/policy authority to the Zoom behavior layer.');
 assert(!parity.includes("dock.classList.remove('user-positioned')"),'Screen-share reconciliation must never erase the user-positioned video panel state.');
 assert(parity.includes("panel.textContent=visible?'Hide Video Panel':'Show Video Panel'"),'View menu must expose Zoom-style Hide/Show Video Panel during sharing.');
 assert(parity.includes("featured?.classList.add('share-featured')"),'Side-by-side Speaker must select a single spotlight/current speaker rather than displaying the full gallery.');
