@@ -115,13 +115,30 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Create production archive and checksum
+      - name: Create installable DMG, archive, and checksums
         shell: bash
         run: |
-          mkdir -p production-artifact
+          mkdir -p production-artifact "$RUNNER_TEMP/dominionstar-dmg"
+          ditto "${{ steps.app.outputs.path }}" "$RUNNER_TEMP/dominionstar-dmg/DominionStar Meet.app"
+          ln -s /Applications "$RUNNER_TEMP/dominionstar-dmg/Applications"
+          hdiutil create -volname "DominionStar Meet Installer" -srcfolder "$RUNNER_TEMP/dominionstar-dmg" -ov -format UDZO production-artifact/DominionStar-Meet-2.0.0-Mac-Installer.dmg
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" production-artifact/DominionStar-Meet-2.0.0-Mac-universal.zip
-          shasum -a 256 production-artifact/DominionStar-Meet-2.0.0-Mac-universal.zip | tee production-artifact/SHA256.txt
-          printf 'commit=%s\nversion=2.0.0\nsource=main\n' "$GITHUB_SHA" > production-artifact/BUILD-PROVENANCE.txt
+          shasum -a 256 production-artifact/DominionStar-Meet-2.0.0-Mac-Installer.dmg production-artifact/DominionStar-Meet-2.0.0-Mac-universal.zip | tee production-artifact/SHA256.txt
+          printf 'commit=%s\nversion=2.0.0\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\n' "$GITHUB_SHA" > production-artifact/BUILD-PROVENANCE.txt
+
+      - name: Verify installer layout and installed app identity
+        shell: bash
+        run: |
+          DMG="production-artifact/DominionStar-Meet-2.0.0-Mac-Installer.dmg"
+          MOUNT="$RUNNER_TEMP/dominionstar-installer-mount"
+          mkdir -p "$MOUNT"
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT"
+          test -d "$MOUNT/DominionStar Meet.app"
+          test -L "$MOUNT/Applications"
+          test "$(readlink "$MOUNT/Applications")" = "/Applications"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$MOUNT/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
+          codesign --verify --deep --strict --verbose=2 "$MOUNT/DominionStar Meet.app"
+          hdiutil detach "$MOUNT"
 
       - name: Upload production artifact
         uses: actions/upload-artifact@v4

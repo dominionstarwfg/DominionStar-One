@@ -50,6 +50,8 @@ assert(js.includes("greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Go
 assert(js.includes("new CustomEvent('dominion:meeting-ui-ready')"),'Base meeting UI must announce when the live DOM exists so parity modules cannot race startup.');
 assert(js.includes("room.className='meeting-overlay participants-hidden'")&&js.includes('<aside class="room-side" hidden>'),'Base meeting shell must never flash the Participants/Waiting Room panel open.');
 assert(js.includes("profileStatus.textContent=rank||'Available'"),'Home account chip must use resolved member rank when available.');
+assert(main.includes('app.isInApplicationsFolder()'),'Packaged Mac app must expose stable /Applications installation state.');
+assert(js.includes("info?.installedInApplications===false")&&js.includes('Install DominionStar Meet first'),'Renderer must warn when a packaged Mac copy is run outside /Applications so TCC permissions bind to the installed app.');
 assert(html.includes('id="changeProfilePicture"')&&html.includes('id="profileAvatarInput"'),'Profile dialog must expose profile-picture editing.');
 assert(js.includes("auth.updateAvatar(dataUrl)")&&js.includes("setAvatar($('#profileAvatar')"),'Desktop Home must upload and render the signed-in member avatar.');
 assert(js.includes("classList.toggle('is-off',!s.micOn)")&&js.includes("classList.toggle('is-off',!s.cameraOn)"),'Prejoin and meeting controls must expose mic/video off state.');
