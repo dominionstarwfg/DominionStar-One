@@ -145,7 +145,7 @@ try{
   socket.addEventListener('close',()=>settlePending(new Error('CDP WebSocket closed.')));
   await cdp('Runtime.enable');
   await cdp('Debugger.enable');mark('runtime-enabled');
-  await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.dominionDesktop?.meeting","desktop UI controllers");mark('controllers-loaded');
+  await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareIntegration&&window.dominionDesktop?.meeting&&window.dominionDesktop?.share","desktop UI + native share controllers");mark('controllers-loaded');
 
   await evaluate(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -185,6 +185,9 @@ try{
     return true;
   })()`,'meeting-entry transition');
   mark('meeting-entry-complete');
+  assert.equal(await evaluate(`Boolean(window.DominionShareIntegration&&document.querySelector('#roomShare'))`),true,'Packaged meeting renderer did not wire the native Share Screen integration.');
+  assert.equal(await evaluate(`document.querySelector('#roomShare')?.textContent?.trim()==='Share Screen'`),true,'Packaged meeting Share Screen control is missing or mislabeled.');
+  mark('share-integration-wired');
   await sleep(300);
   await waitFor("document.querySelector('#roomParticipants')&&document.querySelector('#roomMore')&&document.querySelector('#roomSettings')&&document.querySelector('#roomChat')&&document.querySelector('#roomReactions')","meeting controls",7000);mark('meeting-controls');
 
