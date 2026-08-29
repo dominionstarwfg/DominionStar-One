@@ -133,6 +133,7 @@ assert(!navigation.includes('Collaborate on this Deploy Preview'));
 assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'));
 assert(nativePresenterParity.includes("safe === 'layout'")&&nativePresenterParity.includes('cycleLayout()'));
 assert(nativePresenterParity.includes("safe === 'show-meeting'")&&nativePresenterParity.includes('showMeeting()'));
-assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'));
+assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_LOCAL_RUNTIME_CERTIFIED'));
+assert(!qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'));
 
-console.log('Approved DominionStar share UI passed: compact one-toolbar presenter hierarchy, custom Screens/Applications picker, bounded native enumeration.');
+console.log('Approved DominionStar share UI passed: compact one-toolbar presenter hierarchy, custom Screens/Applications picker, bounded native enumeration, packaged local QA runtime.');
