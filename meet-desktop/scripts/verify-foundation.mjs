@@ -23,6 +23,8 @@ const meetingNotifications=read('ui/meeting-notifications.js');
 const meetingNotificationsCss=read('ui/meeting-notifications.css');
 const meetingCaptions=read('ui/meeting-captions.js');
 const meetingCaptionsCss=read('ui/meeting-captions.css');
+const meetingFeatures=read('ui/meeting-features.js');
+const meetingFeaturesCss=read('ui/meeting-features.css');
 
 assert(main.includes("const uiDir=path.join(__dirname,'..','ui')"),'Desktop must define one local UI directory authority.');
 assert(main.includes("mainWindow.loadFile(path.join(uiDir,'index.html'))"),'Desktop must load Home from the local UI directory.');
@@ -76,6 +78,14 @@ assert(meetingNotifications.includes("if(kind==='chat'&&!pref('chatSound',true))
 assert(read('ui/meeting-features.js').includes("DominionMeetingNotifications?.chat?.(message.name||'Participant')"),'Incoming hidden-panel chat messages must use the shared notification authority.');
 assert(meetingNotifications.includes("if(!pref('desktopMeetingNotifications',true)||document.hasFocus())return"),'Native meeting notifications must be reserved for background/unfocused app state.');
 assert(meetingNotificationsCss.includes('.waiting-room-badge')&&meetingNotificationsCss.includes('.meeting-event-toast'),'Meeting notification visuals must ship with dedicated styling.');
+assert(meetingFeatures.includes("version:'1.2.0'")&&meetingFeatures.includes('recordingAuthority()'),'Recording must have a dedicated permission check before creating a local recording.');
+assert(meetingFeatures.includes("['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed)"),'Recording authority must allow host/co-host by role and ordinary participants only through explicit host permission.');
+assert(meetingFeatures.includes("meeting.setRecordingState(authority.ctx.participantId,true)")&&meetingFeatures.includes("meeting.setRecordingState(authority.ctx.participantId,false)"),'Recording start/stop must persist authoritative participant recording state.');
+assert(meetingFeatures.includes("broadcast('recording-state'")&&meetingFeatures.includes('syncRemoteRecordingFromSnapshot'),'Recording state must notify current participants and remain discoverable to late joiners.');
+assert(meetingFeatures.includes('meetingRecordingConsent')&&meetingFeatures.includes('Leave Meeting')&&meetingFeatures.includes('Continue'),'Participants must receive a recording notice with a clear leave-or-continue choice.');
+assert(meetingFeatures.includes("pref('recordMic')")&&meetingFeatures.includes("pref('recordRemote')"),'Recording audio preferences must control the actual recording mixer.');
+assert(meetingFeatures.includes('await meeting.setRecordingState(authority.ctx.participantId,false)')&&meetingFeatures.includes("if(recorder.state!=='inactive')recorder.stop()"),'Failed recording startup must roll back server state and stop recorder resources.');
+assert(meetingFeaturesCss.includes('.meeting-recording-consent')&&meetingFeaturesCss.includes('.recording-consent-orbit')&&meetingFeaturesCss.includes('.recording-participant-badge'),'Recording notice, status, and participant badges must ship with dedicated futuristic desktop styling.');
 assert(main.includes('Notification')&&main.includes("ipcMain.handle('notifications:meeting'")&&main.includes('new Notification('),'Native shell must own desktop meeting notifications.');
 assert(main.includes("ipcMain.handle('notifications:set-waiting-count'")&&main.includes("app.dock.setBadge")&&main.includes("app.dock.bounce('informational')")&&main.includes("mainWindow.flashFrame"),'Background Waiting Room alerts must use native app badge and attention behavior.');
 assert(meetingNotifications.includes("desktop.notifications?.setWaitingCount?.(items.length,attention)")&&meetingNotifications.includes("desktop.notifications?.setWaitingCount?.(0,false)"),'Waiting Room count must stay synchronized with the native shell and clear when the meeting ends.');
