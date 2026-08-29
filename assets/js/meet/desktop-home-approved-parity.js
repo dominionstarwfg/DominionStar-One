@@ -5,9 +5,15 @@
   const route = String(location.pathname || '/').replace(/\/+$/, '') || '/';
   if (route !== '/meet-home' || !window.dominionDesktop?.isDesktop) return;
 
+  // Hide the retired readiness line synchronously before the next paint, then
+  // remove it from the DOM. This prevents even a transient flash while keeping
+  // the cleanup fail-safe if stale cached markup is ever encountered.
+  const cleanupStyle = document.createElement('style');
+  cleanupStyle.id = 'ds-approved-home-cleanup';
+  cleanupStyle.textContent = '.status-line{display:none!important}';
+  (document.head || document.documentElement).appendChild(cleanupStyle);
+
   const apply = () => {
-    // The approved desktop illustration keeps the Today card clean. The
-    // experimental readiness banner was never part of the approved Home flow.
     document.querySelector('.status-line')?.remove();
     document.documentElement.dataset.dsApprovedDesktopHome = '1';
   };
@@ -19,7 +25,7 @@
   }
 
   window.DominionDesktopHomeApprovedParity = Object.freeze({
-    version: '1.0.0',
+    version: '1.1.0-no-readiness-flash',
     apply
   });
 })();
