@@ -42,7 +42,7 @@
     if(text)text.textContent=JSON.stringify(report,null,2);return report;
   }
 
-  function syncVisibility(){ensureUi();const button=q('#meetDiagnosticsButton');if(button)button.hidden=!q('#meetingOverlay')||q('#meetingOverlay').hidden;}
+  function syncVisibility(){ensureUi();const button=q('#meetDiagnosticsButton');if(!button)return;let enabled=false;try{enabled=localStorage.getItem('ds_meet_physical_qa_diagnostics')==='1';}catch{}button.hidden=!enabled||!q('#meetingOverlay')||q('#meetingOverlay').hidden;}
   setInterval(syncVisibility,500);ensureUi();syncVisibility();
   window.DominionMeetDiagnostics=Object.freeze({collect,refresh});
 })();
