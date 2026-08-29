@@ -70,13 +70,13 @@
     const sync=()=>{const personal=Boolean(toggle?.checked);if(passLabel)passLabel.hidden=personal;if(personal&&state.room)q('#newMeetingPersonalSummary').textContent=`${formatId(state.room.roomCode)} · Passcode ${state.room.passcode}`;else q('#newMeetingPersonalSummary').textContent='Use your permanent Personal Room.';};
     toggle?.addEventListener('change',sync);
     form.addEventListener('submit',async event=>{
-      if(!toggle?.checked)return;
+      if(!toggle?.checked||!state.room)return;
       event.preventDefault();event.stopImmediatePropagation();const button=q('#startMeetingButton'),error=q('#newMeetingError');button.disabled=true;error.hidden=true;
       try{const room=await meeting.startPersonalRoom();state.hostStart=room;q('#newMeetingDialog')?.close();beginHostPrejoin(room,'personal');}
       catch(e){error.textContent=String(e?.message||e);error.hidden=false;}
       finally{button.disabled=false;}
     },true);
-    q('[data-action="new-meeting"]')?.addEventListener('click',()=>{void load().then(()=>{toggle.checked=state.room?.useForInstant!==false;if(!toggle.checked&&passInput)passInput.value=randomPasscode();sync();});},true);
+    q('[data-action="new-meeting"]')?.addEventListener('click',()=>{void load().then(()=>{toggle.checked=Boolean(state.room&&state.room.useForInstant!==false);if(!toggle.checked&&passInput)passInput.value=randomPasscode();sync();});},true);
     sync();
   }
 

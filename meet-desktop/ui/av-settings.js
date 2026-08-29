@@ -225,11 +225,16 @@
     quality.onchange=async()=>{state.quality=quality.value;await applyQuality(media);};
     applyMirror(media);applyOriginalRatio();applyAppearance();
   }
-  function openInfoSettings(title,copy){const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,title,copy);const note=document.createElement('div');note.className='av-info-card';note.textContent=title==='Meetings'?'Join, waiting-room, host, and notification defaults will be added only after the core meeting path is physically approved.':'Screen sharing remains owned by the isolated nonblocking share subsystem. Share defaults will be exposed here after macOS Screen Recording permission passes physical QA.';detail.append(note);}
-
   function installSettings(media){
     const dialog=$('#settingsDialog');if(!dialog||dialog.dataset.avInstalled)return;dialog.dataset.avInstalled='1';
-    for(const row of dialog.querySelectorAll('.settings-row')){const title=row.querySelector('strong')?.textContent?.trim();if(title==='Audio')row.onclick=()=>void openAudioSettings(media);else if(title==='Video')row.onclick=()=>void openVideoSettings(media);else if(title==='Meetings')row.onclick=()=>openInfoSettings('Meetings','Meeting defaults');else if(title==='Sharing')row.onclick=()=>openInfoSettings('Sharing','Screen-share defaults');}
+    // One settings authority per category. A/V owns only Audio and Video.
+    // All other categories are owned by preferences.js so no placeholder card
+    // can overwrite a working settings page.
+    for(const row of dialog.querySelectorAll('.settings-row')){
+      const title=row.querySelector('strong')?.textContent?.trim();
+      if(title==='Audio')row.onclick=()=>void openAudioSettings(media);
+      else if(title==='Video')row.onclick=()=>void openVideoSettings(media);
+    }
     dialog.addEventListener('close',showSettingsList);
   }
 

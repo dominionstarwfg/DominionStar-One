@@ -8,6 +8,7 @@ const html=read('ui/index.html');
 const css=read('ui/styles.css');
 const js=read('ui/app.js');
 const preferences=read('ui/preferences.js');
+const avSettings=read('ui/av-settings.js');
 const personal=read('ui/personal-room.js');
 const personalCss=read('ui/personal-room.css');
 const schedule=read('ui/schedule-controller.js');
@@ -49,6 +50,8 @@ assert(js.includes("greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Go
 
 assert(personal.includes('Use Personal Meeting ID'),'New Meeting must expose the Personal Meeting ID choice.');
 assert(personal.includes('useForInstant'),'Personal Meeting ID instant-meeting preference must be respected.');
+assert(personal.includes("toggle.checked=Boolean(state.room&&state.room.useForInstant!==false)"),'New Meeting must never select Personal Meeting ID unless a Personal Room actually loaded.');
+assert(personal.includes("if(!toggle?.checked||!state.room)return"),'Unavailable Personal Room must fall through to a normal instant meeting instead of blocking New Meeting.');
 assert(personal.includes('meeting.startPersonalRoom()'),'Personal Room Start must reopen the persistent Personal Room identity.');
 assert(personal.includes('meeting.updatePersonalRoom'),'Personal Room settings must persist through the meeting authority.');
 assert(personal.includes('pattern="[0-9]{3,7}"')&&personal.includes('maxlength="7"'),'Personal Room passcode UI must accept 3–7 digits only.');
@@ -67,6 +70,9 @@ assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.scheduled-
 for(const key of ['joinMuted','joinVideoOff','showJoinPreview','hideSelfView','waitingRoomSound','joinLeaveSound','desktopMeetingNotifications','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts','captionFontSize','captionFontType','captionTheme','captionPosition','alwaysShowCaptions'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
 for(const section of ['Meetings','Share Screen','Chat','Recording','Accessibility','Keyboard Shortcuts','About'])assert(preferences.includes(`'${section}'`),`Preferences section missing: ${section}`);
 assert(!preferences.includes('will be added'),'Preferences must not expose dead future-feature copy.');
+assert(!avSettings.includes("else if(title==='Meetings')")&&!avSettings.includes("else if(title==='Sharing')"),'A/V settings must not own or overwrite Meetings/Sharing preference actions.');
+assert(!avSettings.includes('core meeting path is physically approved')&&!avSettings.includes('Share defaults will be exposed here'),'Decorative settings placeholder copy must not ship.');
+assert(preferences.includes("dialog.querySelector('.settings-list').hidden=true")&&preferences.includes("form.scrollTop=0"),'Settings category clicks must replace the list with actionable controls at the top of the modal.');
 assert(preferences.includes('Show video preview before joining')&&preferences.includes('Hide my self view in meetings'),'Meeting preferences must expose Zoom-style join-preview and self-view choices.');
 assert(js.includes("DominionPreferences?.read?.('showJoinPreview')===false")&&js.includes('joinUsingSavedDefaults'),'Skipping preview must still enter through the saved media defaults and normal meeting authority.');
 assert(js.includes("DominionPreferences?.read?.('hideSelfView')")&&js.includes("$('#localMeetingVideo').hidden=!s.videoLive||hideSelf"),'Hide Self View must affect only the local meeting video surface.');
