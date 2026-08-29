@@ -24,7 +24,7 @@ assert(html.includes('<script src="./zoom-behavior.js"></script>'),'Desktop Home
 assert(html.includes('<script src="./participant-controls.js"></script>'),'Desktop Home must load the verified participant-control layer.');
 assert(html.includes('<script src="./meeting-captions.js"></script>'),'Desktop Home must load the live captions/transcript layer.');
 assert(html.indexOf('./meeting-features.js')<html.indexOf('./zoom-behavior.js'),'Zoom behavior guard must load after base meeting features so it can upgrade them.');
-assert(parity.includes("version:'2.6.0-live-shell-zoom-parity'"),'Live meeting shell must use the post-DOM Zoom parity engine.');
+assert(parity.includes("version:'2.7.0-chat-share-dock-parity'"),'Live meeting shell must use the post-DOM Zoom parity engine.');
 assert(parity.includes("GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1'"),'Participant video dock geometry must persist independently.');
 assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Participant management panel geometry must remain separate from video dock geometry.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Participant management panel must be closed by default so solo video owns the stage.');
@@ -48,7 +48,7 @@ assert(preload.includes("brand:Object.freeze({logoUrl})"),'Desktop bridge must e
 assert(parity.includes("head&&!head.querySelector('.ds-meeting-brand')"),'Meeting header must install DominionStar logo/name branding.');
 assert((pkg.build?.extraResources||[]).some(entry=>entry?.from==='../assets/logo.jpeg'&&entry?.to==='branding/dominionstar-logo.jpeg'),'Desktop package must include the real DominionStar logo asset.');
 assert(meetingService.includes("roomCode:'',passcode:'',title:''"),'Native meeting context must retain visible meeting credentials.');
-assert(av.includes("caret.className='meeting-control av-device-caret'"),'Mic and camera controls must retain dedicated device-option carets.');
+assert(av.includes("caret.className='av-device-caret attached-device-caret'")&&av.includes("button.classList.add('has-device-caret')"),'Mic and camera controls must retain dedicated device-option carets attached to their parent controls.');
 assert(css.includes('.meeting-body{position:relative!important;display:block!important'),'Meeting body must not reserve a permanent participant sidebar column.');
 assert(css.includes('.stage{position:absolute!important;inset:0!important'),'Meeting stage must consume the full available canvas.');
 assert(css.includes('.room-side{position:absolute!important'),'Participant management must overlay the stage instead of shrinking it.');
@@ -82,8 +82,12 @@ assert(parity.includes("dock.classList.toggle('gallery-stage'")&&parity.includes
 assert(parity.includes("window.addEventListener('dominion:active-speakers'"),'Meeting layout must react to ranked active-speaker updates.');
 assert(parity.includes("sharing()?'Side-by-side: Speaker':'Speaker'")&&parity.includes("sharing()?'Side-by-side: Gallery':'Gallery'")&&parity.includes("sharing()?'Side-by-side: Multi-speaker':'Multi-speaker'"),'View menu must switch to Zoom-style side-by-side labels while shared content is active.');
 assert(parity.includes("splitter.setAttribute('role','separator')")&&parity.includes("saveShareSplit(ratio)"),'Shared content and participant video must expose a persistent draggable side-by-side divider.');
-assert(parity.includes("overlay.classList.toggle('share-side-by-side',active&&showPanel&&!floatingPanel)")&&parity.includes("overlay.classList.toggle('share-panel-floating',floatingPanel)")&&parity.includes("overlay.classList.toggle('share-panel-hidden',active&&!showPanel)"),'Share layout must support side-by-side, floating Video Panel, and Hide/Show Video Panel behavior.');
-assert(parity.includes("const floatingPanel=active&&showPanel&&dock.classList.contains('user-positioned')"),'A user-moved participant video panel must remain floating during screen sharing.');
+assert(parity.includes("overlay.classList.toggle('share-side-by-side',sideBySide)")&&parity.includes("overlay.classList.toggle('share-panel-floating',floatingPanel)")&&parity.includes("overlay.classList.toggle('share-panel-hidden',active&&!showPanel)"),'Share layout must support explicit side-by-side, default floating Video Panel, and Hide/Show Video Panel behavior.');
+assert(parity.includes("const floatingPanel=active&&showPanel&&!sideBySide"),'Screen sharing must default to a floating participant video panel, with side-by-side available only when explicitly selected.');
+assert(parity.includes("DominionPreferences?.read?.('shareSideBySide')===true"),'Side-by-side sharing must remain an explicit user preference rather than the default share layout.');
+assert(parity.includes("Use Floating Video Panel")&&parity.includes("Use Side-by-side Video"),'Share View controls must let the user switch between floating and side-by-side participant video.');
+assert(features.includes("id='meetingChatRecipient'")||features.includes('id="meetingChatRecipient"'),'Meeting chat shell must contain a recipient selector for Everyone/private messaging.');
+assert(features.includes("void window.DominionZoomBehavior?.refreshChatRecipients?.()"),'Meeting chat shell must defer recipient/policy authority to the Zoom behavior layer.');
 assert(!parity.includes("dock.classList.remove('user-positioned')"),'Screen-share reconciliation must never erase the user-positioned video panel state.');
 assert(parity.includes("panel.textContent=visible?'Hide Video Panel':'Show Video Panel'"),'View menu must expose Zoom-style Hide/Show Video Panel during sharing.');
 assert(parity.includes("featured?.classList.add('share-featured')"),'Side-by-side Speaker must select a single spotlight/current speaker rather than displaying the full gallery.');
@@ -114,7 +118,7 @@ assert(features.includes('setParticipantReaction')&&features.includes('state.rea
 assert(features.includes('participant-reaction-indicator')&&features.includes('remote-reaction-indicator'),'Emoji reactions must appear beside the participant name and on the participant video tile.');
 assert(features.includes("if(payload.kind==='hand')")&&features.includes('setParticipantReaction(id,emoji,name)'),'Raise Hand must remain a separate persistent state from temporary emoji reactions.');
 assert(featuresCss.includes('.participant-reaction-indicator')&&featuresCss.includes('.remote-reaction-indicator'),'Temporary meeting reactions must ship with dedicated roster/video styling.');
-assert(features.includes("version:'1.3.0'")&&features.includes('recordingAuthority'),'Record must verify Zoom-style recording authority before starting.');
+assert(features.includes("version:'1.4.0-zoom-chat-shell'")&&features.includes('recordingAuthority'),'Record must verify Zoom-style recording authority before starting.');
 assert(features.includes('meetingRecordingConsent')&&features.includes('syncRemoteRecordingFromSnapshot'),'Recording participants must be notified in real time and late joiners must inherit active recording state.');
 assert(features.includes('recording-participant-badge')&&featuresCss.includes('.recording-participant-badge'),'Participants list must identify active recorders.');
 assert(participantControls.includes("'Forbid Record':'Allow Record'")&&participantControls.includes('meeting.setRecordingPermission'),'Host participant More menu must expose Allow Record / Forbid Record through backend authority.');

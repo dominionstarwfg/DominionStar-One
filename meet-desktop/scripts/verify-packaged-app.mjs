@@ -96,12 +96,12 @@ assert(!schedule.includes("replace(/\\D/g,'').slice(0,11)"),'Packaged Schedule m
 assert(schedule.includes('await meeting.startSchedule(item.scheduleId)'),'Packaged recurring Start must reopen the existing scheduled identity.');
 assert(schedule.includes("mode==='personal'&&recurrence"),'Packaged Schedule must prevent fixed recurrence from silently using the Personal Meeting ID.');
 assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.schedule-option-grid'),'Packaged scheduled/recurring meetings must have real desktop layouts.');
-assert(av.includes("caret.className='meeting-control av-device-caret'"),'Packaged meeting must retain mic/video device-option carets.');
+assert(av.includes("caret.className='av-device-caret attached-device-caret'")&&av.includes("button.classList.add('has-device-caret')"),'Packaged meeting must retain mic/video device-option carets attached to their controls.');
 assert(av.includes("avGroup(detail,'Camera'")&&av.includes("avGroup(detail,'Appearance'")&&av.includes("avGroup(detail,'Background & Effects'")&&av.includes("summary.textContent='Advanced'"),'Packaged Video settings must preserve the approved Zoom-style hierarchy.');
 assert(av.includes('Test Microphone')&&av.includes('Test Speaker')&&av.includes('Test Speaker & Microphone…'),'Packaged Audio settings must expose microphone/speaker tests from settings and the quick menu.');
 assert(av.includes('Echo cancellation')&&av.includes('Noise suppression')&&av.includes('Automatically adjust microphone volume')&&av.includes('Original sound for musicians'),'Packaged Audio settings must expose real microphone processing controls.');
 assert(media.includes("replaceKind('audio',state.microphoneId,true)"),'Packaged audio-processing changes must reacquire the live microphone with updated constraints.');
-assert(parity.includes("version:'2.6.0-live-shell-zoom-parity'"),'Packaged meeting must include the post-DOM Zoom-style meeting engine.');
+assert(parity.includes("version:'2.7.0-chat-share-dock-parity'"),'Packaged meeting must include the post-DOM Zoom-style meeting engine.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Packaged participant management panel must be closed by default.');
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Packaged video dock must adapt orientation to position.');
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Packaged meeting must support active-speaker stage promotion.');
@@ -124,7 +124,7 @@ assert(features.includes("broadcast('chat',payload)")&&features.includes("broadc
 assert(features.includes('new MediaRecorder('),'Packaged Record control must create a real local MediaRecorder.');
 assert(features.includes('state.recorder.pause()')&&features.includes('state.recorder.resume()')&&features.includes('async function pauseRecording')&&features.includes('async function resumeRecording'),'Packaged computer recording must support Pause/Resume without starting a second recorder.');
 assert(features.includes("stopRecording({reason:'revoked'})")&&features.includes('The host removed your recording permission.'),'Packaged recording must stop immediately and notify the participant when host permission is revoked.');
-assert(features.includes("version:'1.3.0'")&&features.includes('recordingAuthority()')&&features.includes("['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed)"),'Packaged recording must enforce Zoom-style host/co-host or host-granted participant authority.');
+assert(features.includes("version:'1.4.0-zoom-chat-shell'")&&features.includes('recordingAuthority()')&&features.includes("['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed)"),'Packaged recording must enforce Zoom-style host/co-host or host-granted participant authority.');
 assert(features.includes('meetingRecordingConsent')&&features.includes('Leave Meeting')&&features.includes('Continue'),'Packaged participants must receive a clear recording notice with leave-or-continue choice.');
 assert(features.includes('syncRemoteRecordingFromSnapshot')&&features.includes("broadcast('recording-state'"),'Packaged recording state must notify current participants and remain visible to late joiners.');
 assert(features.includes("pref('recordMic')")&&features.includes("pref('recordRemote')"),'Packaged recording mixer must honor microphone and participant-audio preferences.');
@@ -172,6 +172,9 @@ assert(!read('ui','app.js').includes('data-cohost='),'Packaged roster must not r
 assert(parity.includes('Lock Meeting')&&parity.includes('Mute Participants on Entry')&&preload.includes('setSecurity:')&&main.includes("'meeting:set-security'")&&meeting.includes('meet_v2_set_security'),'Packaged Security menu must use server-backed Lock Meeting and Mute-on-Entry authority.');
 assert(parity.includes("button.id='meetingViewButton'")&&parity.includes("['speaker','gallery','multi']"),'Packaged meeting must expose Speaker, Gallery, and Multi-speaker views.');
 assert(parity.includes("return stage.width<900||stage.height<560?'top':'right'")&&parity.includes("user-positioned"),'Packaged participant dock must auto-reflow for compact windows without overriding manual placement.');
+assert(parity.includes("const floatingPanel=active&&showPanel&&!sideBySide")&&parity.includes("DominionPreferences?.read?.('shareSideBySide')===true"),'Packaged screen sharing must default to the movable floating video panel while preserving optional side-by-side mode.');
+assert(features.includes('meetingChatRecipient')&&features.includes('In-meeting messages'),'Packaged Chat must render a polished recipient-aware in-meeting panel.');
+
 assert(parityCss.includes('.participant-video-dock.gallery-stage')&&parityCss.includes('.participant-video-dock.multi-speaker-stage')&&parityCss.includes('.active-speaker-rank-4'),'Packaged adaptive view styling must include Gallery and up-to-four-speaker Multi-speaker layouts.');
 assert(webrtc.includes("ranked.slice(0,4)")&&webrtc.includes("new CustomEvent('dominion:active-speakers'"),'Packaged WebRTC must rank and publish up to four active speakers for layout intelligence.');
 assert(parity.includes("sharing()?'Side-by-side: Speaker':'Speaker'")&&parity.includes("sharing()?'Side-by-side: Gallery':'Gallery'")&&parity.includes("sharing()?'Side-by-side: Multi-speaker':'Multi-speaker'"),'Packaged View menu must expose Zoom-style side-by-side share layouts.');

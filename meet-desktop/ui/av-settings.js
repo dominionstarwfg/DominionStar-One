@@ -265,7 +265,7 @@
 
   function installMeetingQuickMenus(media){
     const mic=$('#roomMic'),camera=$('#roomCamera');if(!mic||!camera||mic.dataset.avQuickInstalled)return;mic.dataset.avQuickInstalled='1';
-    for(const [button,kind] of [[mic,'audio'],[camera,'video']]){const caret=document.createElement('button');caret.type='button';caret.className='meeting-control av-device-caret';caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.textContent='⌃';button.insertAdjacentElement('afterend',caret);caret.onclick=event=>{event.stopPropagation();void openQuickMenu(media,kind,caret);};}
+    for(const [button,kind] of [[mic,'audio'],[camera,'video']]){const caret=document.createElement('button');caret.type='button';caret.className='av-device-caret attached-device-caret';caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.innerHTML='<span aria-hidden="true">⌃</span>';button.classList.add('has-device-caret');button.insertAdjacentElement('afterend',caret);caret.onclick=event=>{event.stopPropagation();void openQuickMenu(media,kind,caret);};}
   }
 
   waitForMedia().then(media=>{

@@ -101,3 +101,17 @@
 .meeting-control.is-off .ds-control-icon::after,.preview-controls button.is-off .ds-control-icon::after{content:"";position:absolute;width:24px;height:2px;border-radius:2px;background:#ff5368;transform:rotate(-45deg);box-shadow:0 0 0 1px rgba(6,12,20,.65)}
 .preview-controls button.is-off{border-color:rgba(255,83,104,.34);background:rgba(255,83,104,.08)}
 .meeting-control.is-off:hover{background:rgba(255,83,104,.08)!important}
+
+/* Physical Mac polish: Zoom-like split-button carets and centered floating participants */
+.meeting-footer .meeting-control.has-device-caret{min-width:66px!important;padding-right:16px!important}
+.meeting-footer .av-device-caret.attached-device-caret{position:relative!important;align-self:center!important;flex:0 0 16px!important;min-width:16px!important;width:16px!important;height:32px!important;margin:0 2px 0 -15px!important;padding:0!important;border:0!important;border-radius:5px!important;background:transparent!important;color:#eef4fa!important;display:grid!important;place-items:center!important;font-size:10px!important;line-height:1!important;z-index:2}
+.meeting-footer .av-device-caret.attached-device-caret:hover{background:rgba(255,255,255,.09)!important}
+.room-side{width:360px;min-width:300px;border-radius:10px!important;background:#121212!important;border-color:#343434!important;box-shadow:0 18px 55px rgba(0,0,0,.58)!important}
+.room-side-head{height:48px;padding:0 12px 0 16px;background:#171717!important;border-bottom:1px solid #303030!important}
+.room-side-head strong{font-size:13px;font-weight:700;color:#f5f5f5}.room-side-head small{font-size:9px;color:#9b9b9b}
+.room-side-head button{width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:#ddd;font-size:18px}.room-side-head button:hover{background:#2b2b2b}
+.room-side>section{padding:12px 14px!important}.room-side h3{font-size:10px;color:#aaa;margin:4px 0 9px!important}
+.room-side .person-row,.room-side .queue-card{border:0!important;border-radius:7px!important;background:transparent!important;margin:0 0 3px!important;padding:7px 5px!important}
+.room-side .person-row:hover,.room-side .queue-card:hover{background:#222!important}
+.room-side .person-badge{width:30px;height:30px;border-radius:8px;background:#26384a}
+.room-side .person-copy strong{font-size:11px}.room-side .person-copy small{font-size:9px;color:#999}
