@@ -145,6 +145,12 @@
       await ensurePermissions(['microphone']);
       const track=await acquireKind('audio',state.microphoneId);track.enabled=true;return new MediaStream([track]);
     },
+    async testCameraStream(cameraId=state.cameraId){
+      const existing=live('video')[0],wanted=String(cameraId||state.cameraId||''),existingId=String(existing?.getSettings?.().deviceId||'');
+      if(existing&&(!wanted||wanted===existingId)){const clone=existing.clone();clone.enabled=true;return new MediaStream([clone]);}
+      await ensurePermissions(['camera']);
+      const track=await acquireKind('video',wanted);track.enabled=true;return new MediaStream([track]);
+    },
     stop(){stopTracks(state.stream?.getTracks?.()||[]);state.stream=null;emit();},
     resetPreferences(){state.userPreferencesLocked=false;state.cameraId='';state.microphoneId='';state.speakerId='';state.cameraOn=true;state.micOn=false;state.mirror=true;state.echoCancellation=true;state.noiseSuppression=true;state.autoGainControl=true;state.originalSound=false;for(const key of Object.keys(KEYS)){const v=key==='mirror'||['echoCancellation','noiseSuppression','autoGainControl'].includes(key)?'true':key==='originalSound'?'false':'';savePref(key,v);}emit();},
     stream(){return state.stream;},
