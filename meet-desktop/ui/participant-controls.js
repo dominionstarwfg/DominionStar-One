@@ -61,6 +61,14 @@
     if(type==='host:spotlight'){
       spotlightParticipantId=String(detail.payload?.participantId||'');
       window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:spotlightParticipantId}}));
+      return;
+    }
+    if(type==='host:view-layout'){
+      const mode=String(detail.payload?.mode||'');
+      if(['speaker','gallery','multi'].includes(mode)){
+        window.dispatchEvent(new CustomEvent('dominion:host-view-layout',{detail:{mode,sharing:Boolean(detail.payload?.sharing),from:sender}}));
+        toast(`${sender} changed the meeting view`);
+      }
     }
   }
   window.addEventListener('dominion:meeting-signal',event=>void handleHostSignal(event),true);
@@ -141,5 +149,5 @@
   function sync(){if(!inMeeting()){closeMenu();return;}syncRoster();syncPanelActions();}
   document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();},true);
   const timer=setInterval(sync,800);sync();
-  window.DominionParticipantControls=Object.freeze({version:'1.1.0',sync,sendAll,dispose:()=>{clearInterval(timer);closeMenu();prompt?.remove();renameDialog?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'1.2.0',sync,sendAll,dispose:()=>{clearInterval(timer);closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
