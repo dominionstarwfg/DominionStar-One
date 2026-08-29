@@ -69,6 +69,12 @@
     closeMenus();viewMenu=menuAt(anchor,'meeting-more-menu view-menu');const current=readView();
     const items=[['speaker',sharing()?'Side-by-side: Speaker':'Speaker'],['gallery',sharing()?'Side-by-side: Gallery':'Gallery'],['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']];
     for(const [mode,label] of items){const b=document.createElement('button');b.type='button';b.textContent=`${current===mode?'✓ ':''}${label}`;b.onclick=()=>{applyViewMode(mode);closeMenus();};viewMenu.append(b);}
+    if(sharing()){
+      const divider=document.createElement('div');divider.className='view-menu-divider';viewMenu.append(divider);
+      const visible=window.DominionPreferences?.read?.('shareVideoDock')!==false;
+      const panel=document.createElement('button');panel.type='button';panel.textContent=visible?'Hide Video Panel':'Show Video Panel';
+      panel.onclick=()=>{window.DominionPreferences?.write?.('shareVideoDock',!visible);syncShareLayout();syncVideoDock();closeMenus();};viewMenu.append(panel);
+    }
   }
 
   function ensureShareSplitter(){
@@ -93,6 +99,7 @@
     overlay.classList.toggle('share-panel-hidden',active&&!showPanel);
     overlay.dataset.shareView=active?mode:'';
     splitter.hidden=!(active&&showPanel);
+    if(active&&!showPanel)dock.hidden=true;
     if(active&&showPanel){
       stage.style.setProperty('--share-content-ratio',String(readShareSplit()));
       dock.classList.remove('gallery-stage','multi-speaker-stage');
