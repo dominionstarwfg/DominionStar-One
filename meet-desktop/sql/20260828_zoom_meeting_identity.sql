@@ -24,7 +24,10 @@ alter table public.meet_v2_rooms
   add column if not exists active_host_id uuid references auth.users(id) on delete set null,
   add column if not exists meeting_locked boolean not null default false,
   add column if not exists mute_on_entry boolean not null default false,
-  add column if not exists chat_policy text not null default 'everyone' check (chat_policy in ('everyone','host_cohost','disabled'));
+  add column if not exists chat_policy text not null default 'everyone' check (chat_policy in ('everyone','host_cohost','disabled')),
+  add column if not exists caption_mode text not null default 'off' check (caption_mode in ('off','manual')),
+  add column if not exists captioner_participant_id uuid references public.meet_v2_participants(id) on delete set null,
+  add column if not exists transcript_enabled boolean not null default false;
 
 alter table public.meet_v2_rooms
   drop constraint if exists meet_v2_rooms_meeting_kind_check;
@@ -70,6 +73,21 @@ create unique index if not exists meet_v2_one_active_member_per_room_idx
   on public.meet_v2_participants(room_id,member_id)
   where member_id is not null and state in ('waiting_host','waiting','admitted','joined');
 
+
+create table if not exists public.meet_v2_transcript_lines (
+  id bigserial primary key,
+  room_id uuid not null references public.meet_v2_rooms(id) on delete cascade,
+  participant_id uuid references public.meet_v2_participants(id) on delete set null,
+  speaker_name text not null check (char_length(speaker_name) between 1 and 100),
+  caption_text text not null check (char_length(caption_text) between 1 and 2000),
+  spoken_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists meet_v2_transcript_lines_room_time_idx
+  on public.meet_v2_transcript_lines(room_id,spoken_at);
+
+alter table public.meet_v2_transcript_lines enable row level security;
 
 create table if not exists public.meet_v2_personal_rooms (
   host_id uuid primary key references auth.users(id) on delete cascade,
@@ -653,6 +671,7 @@ begin
     'status',v_room.status,'waitingRoomEnabled',v_room.waiting_room_enabled,
     'ownerId',v_room.host_id,'activeHostId',v_room.active_host_id,
     'meetingLocked',v_room.meeting_locked,'muteOnEntry',v_room.mute_on_entry,'chatPolicy',v_room.chat_policy,
+    'captionMode',v_room.caption_mode,'captionerParticipantId',v_room.captioner_participant_id,'transcriptEnabled',v_room.transcript_enabled,
     'participants',v_people
   );
 end
@@ -864,7 +883,7 @@ declare
   v_to_role text;
 begin
   if v_user is null then raise exception 'authentication_required'; end if;
-  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
+  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','caption','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
   select * into v_from from public.meet_v2_participants where id=p_from_participant_id;
   select * into v_to from public.meet_v2_participants where id=p_to_participant_id;
   if v_from.id is null then raise exception 'participant_not_found'; end if;
@@ -885,6 +904,123 @@ begin
   return jsonb_build_object('ok',true,'signalId',v_id);
 end
 $$;
+
+create or replace function public.meet_v2_set_caption_state(
+  p_room_id uuid,
+  p_mode text,
+  p_captioner_participant_id uuid default null,
+  p_transcript_enabled boolean default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $
+declare
+  v_user uuid := auth.uid();
+  v_room public.meet_v2_rooms%rowtype;
+  v_role text;
+  v_mode text := lower(trim(coalesce(p_mode,'off')));
+  v_captioner public.meet_v2_participants%rowtype;
+begin
+  if v_user is null then raise exception 'authentication_required'; end if;
+  if v_mode not in ('off','manual') then raise exception 'invalid_caption_mode'; end if;
+  select * into v_room from public.meet_v2_rooms where id=p_room_id for update;
+  if not found then raise exception 'meeting_not_found'; end if;
+  if coalesce(v_room.active_host_id,v_room.host_id)=v_user then
+    v_role:='host';
+  else
+    select role into v_role from public.meet_v2_participants
+    where room_id=p_room_id and member_id=v_user and state in ('admitted','joined')
+    order by created_at desc limit 1;
+  end if;
+  if coalesce(v_role,'') not in ('host','cohost') then raise exception 'host_authority_required'; end if;
+
+  if v_mode='manual' then
+    if p_captioner_participant_id is null then raise exception 'captioner_required'; end if;
+    select * into v_captioner from public.meet_v2_participants where id=p_captioner_participant_id;
+    if not found or v_captioner.room_id<>p_room_id or v_captioner.state<>'joined' then raise exception 'captioner_not_available'; end if;
+  end if;
+
+  update public.meet_v2_rooms
+  set caption_mode=v_mode,
+      captioner_participant_id=case when v_mode='manual' then p_captioner_participant_id else null end,
+      transcript_enabled=coalesce(p_transcript_enabled,false),
+      updated_at=now()
+  where id=p_room_id returning * into v_room;
+
+  return jsonb_build_object(
+    'roomId',v_room.id,'captionMode',v_room.caption_mode,
+    'captionerParticipantId',v_room.captioner_participant_id,
+    'transcriptEnabled',v_room.transcript_enabled
+  );
+end
+$;
+
+create or replace function public.meet_v2_publish_caption(p_participant_id uuid,p_text text,p_speaker_name text)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $
+declare
+  v_user uuid := auth.uid();
+  v_participant public.meet_v2_participants%rowtype;
+  v_room public.meet_v2_rooms%rowtype;
+  v_text text := trim(coalesce(p_text,''));
+  v_name text := left(trim(coalesce(p_speaker_name,'')),100);
+  v_line_id bigint;
+  v_spoken_at timestamptz := now();
+begin
+  if v_user is null then raise exception 'authentication_required'; end if;
+  if v_text='' or char_length(v_text)>2000 then raise exception 'invalid_caption_text'; end if;
+  if v_name='' then v_name:='Captioner'; end if;
+  select * into v_participant from public.meet_v2_participants where id=p_participant_id;
+  if not found or v_participant.member_id<>v_user or v_participant.state<>'joined' then raise exception 'caption_sender_not_authorized'; end if;
+  select * into v_room from public.meet_v2_rooms where id=v_participant.room_id;
+  if v_room.caption_mode<>'manual' or v_room.captioner_participant_id<>v_participant.id then raise exception 'captioner_authority_required'; end if;
+
+  if v_room.transcript_enabled then
+    insert into public.meet_v2_transcript_lines(room_id,participant_id,speaker_name,caption_text,spoken_at)
+    values(v_room.id,v_participant.id,v_name,v_text,v_spoken_at) returning id into v_line_id;
+  end if;
+
+  return jsonb_build_object('roomId',v_room.id,'lineId',v_line_id,'speakerName',v_name,'text',v_text,'spokenAt',v_spoken_at,'retained',v_room.transcript_enabled);
+end
+$;
+
+create or replace function public.meet_v2_get_transcript(p_room_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $
+declare
+  v_user uuid := auth.uid();
+  v_room public.meet_v2_rooms%rowtype;
+  v_role text;
+  v_lines jsonb;
+begin
+  if v_user is null then raise exception 'authentication_required'; end if;
+  select * into v_room from public.meet_v2_rooms where id=p_room_id;
+  if not found then raise exception 'meeting_not_found'; end if;
+  if coalesce(v_room.active_host_id,v_room.host_id)=v_user or v_room.host_id=v_user then
+    v_role:='host';
+  else
+    select role into v_role from public.meet_v2_participants
+    where room_id=p_room_id and member_id=v_user and state in ('admitted','joined','left')
+    order by created_at desc limit 1;
+  end if;
+  if coalesce(v_role,'') not in ('host','cohost') then raise exception 'transcript_access_denied'; end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'lineId',t.id,'speakerName',t.speaker_name,'text',t.caption_text,'spokenAt',t.spoken_at
+  ) order by t.spoken_at,t.id),'[]'::jsonb)
+  into v_lines from public.meet_v2_transcript_lines t where t.room_id=p_room_id;
+
+  return jsonb_build_object('roomId',p_room_id,'transcriptEnabled',v_room.transcript_enabled,'lines',v_lines);
+end
+$;
 
 create or replace function public.meet_v2_rename_participant(p_participant_id uuid,p_display_name text)
 returns jsonb
@@ -1018,6 +1154,9 @@ grant execute on function public.meet_v2_remove_participant(uuid) to authenticat
 grant execute on function public.meet_v2_rename_participant(uuid,text) to authenticated;
 grant execute on function public.meet_v2_set_security(uuid,boolean,boolean) to authenticated;
 grant execute on function public.meet_v2_set_chat_policy(uuid,text) to authenticated;
+grant execute on function public.meet_v2_set_caption_state(uuid,text,uuid,boolean) to authenticated;
+grant execute on function public.meet_v2_publish_caption(uuid,text,text) to authenticated;
+grant execute on function public.meet_v2_get_transcript(uuid) to authenticated;
 grant execute on function public.meet_v2_send_signal(uuid,uuid,text,jsonb) to authenticated;
 grant execute on function public.meet_v2_transfer_host_and_leave(uuid) to authenticated;
 grant execute on function public.meet_v2_end_room(uuid) to authenticated;
