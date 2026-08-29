@@ -14,10 +14,21 @@ export const CALLBACK_URL=`http://${CALLBACK_HOST}:${CALLBACK_PORT}${CALLBACK_PA
 const callbackSuccessHtml=`<!doctype html><meta charset="utf-8"><title>DominionStar Meet</title><style>body{margin:0;background:#07111f;color:#f5f7fb;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;display:grid;place-items:center}.card{width:min(520px,calc(100% - 48px));padding:34px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:#0d1a2a;text-align:center}.mark{color:#e5b842;font-size:28px}h1{font-size:22px;margin:14px 0 8px}p{color:#91a0b4;line-height:1.55;margin:0}</style><div class="card"><div class="mark">✦</div><h1>Signed in to DominionStar Meet</h1><p>You can close this browser window. DominionStar Meet is returning to the foreground.</p></div>`;
 const callbackErrorHtml=message=>`<!doctype html><meta charset="utf-8"><title>DominionStar Meet sign-in error</title><style>body{margin:0;background:#07111f;color:#f5f7fb;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;display:grid;place-items:center}.card{width:min(520px,calc(100% - 48px));padding:34px;border:1px solid rgba(232,78,97,.32);border-radius:20px;background:#0d1a2a}h1{font-size:22px;margin:0 0 10px}p{color:#c5cfdb;line-height:1.55;margin:0}</style><div class="card"><h1>Sign-in could not be completed</h1><p>${String(message||'Unknown authentication error').replace(/[<>&"]/g,char=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[char]))}</p></div>`;
 
-function userSummary(user){
+function userSummary(user,profile=null){
   if(!user)return null;
   const metadata=user.user_metadata||{};
-  return {id:String(user.id||''),email:String(user.email||''),name:String(metadata.full_name||metadata.name||user.email?.split('@')[0]||'DominionStar Member'),avatarUrl:String(metadata.avatar_url||metadata.picture||'')};
+  const preferred=String(profile?.preferred_name||'').trim();
+  const full=String(profile?.full_name||'').trim();
+  return {
+    id:String(user.id||''),
+    email:String(profile?.email||user.email||''),
+    name:preferred||full||String(metadata.full_name||metadata.name||user.email?.split('@')[0]||'DominionStar Member'),
+    avatarUrl:String(metadata.avatar_url||metadata.picture||''),
+    rank:String(profile?.rank||''),
+    agentCode:String(profile?.agent_code||''),
+    isFounder:Boolean(profile?.is_founder),
+    memberProfile:Boolean(profile)
+  };
 }
 
 function createEncryptedStorage(app){
@@ -39,7 +50,17 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     const {data}=client.auth.onAuthStateChange(()=>setTimeout(()=>void emitState(),0));subscription=data?.subscription||null;
     app.once('before-quit',()=>{subscription?.unsubscribe?.();callbackServer?.close?.();});
   }
-  async function getState(){if(!client)return {ready:false,signedIn:false,user:null};const {data,error}=await client.auth.getSession();if(error||!data?.session)return {ready:true,signedIn:false,user:null,error:error?.message||''};return {ready:true,signedIn:true,user:userSummary(data.session.user)};}
+  async function getState(){
+    if(!client)return {ready:false,signedIn:false,user:null};
+    const {data,error}=await client.auth.getSession();
+    if(error||!data?.session)return {ready:true,signedIn:false,user:null,error:error?.message||''};
+    let profile=null;
+    try{
+      const result=await client.from('member_profiles').select('full_name,preferred_name,email,rank,agent_code,is_founder').eq('id',data.session.user.id).maybeSingle();
+      if(!result.error)profile=result.data||null;
+    }catch{}
+    return {ready:true,signedIn:true,user:userSummary(data.session.user,profile)};
+  }
   async function ensureCallbackServer(){
     if(callbackServer?.listening)return;
     callbackServer=http.createServer(async(req,res)=>{try{const requestUrl=new URL(req.url||'/',CALLBACK_URL);if(req.method!=='GET'||requestUrl.pathname!==CALLBACK_PATH){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});res.end('Not found');return;}const providerError=requestUrl.searchParams.get('error_description')||requestUrl.searchParams.get('error');if(providerError)throw new Error(providerError);const code=requestUrl.searchParams.get('code');if(!code)throw new Error('The authentication callback did not contain a PKCE authorization code.');const {data,error}=await client.auth.exchangeCodeForSession(code);if(error||!data?.session)throw new Error(error?.message||'Supabase did not return a desktop session.');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(callbackSuccessHtml);foregroundApp();await emitState();}catch(error){res.writeHead(400,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(callbackErrorHtml(error?.message));const win=getMainWindow?.();if(win&&!win.isDestroyed())win.webContents.send('auth:error',{message:String(error?.message||error)});foregroundApp();}});
