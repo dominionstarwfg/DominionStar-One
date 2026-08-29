@@ -27,7 +27,8 @@ alter table public.meet_v2_rooms
   add column if not exists chat_policy text not null default 'everyone' check (chat_policy in ('everyone','host_cohost','disabled')),
   add column if not exists caption_mode text not null default 'off' check (caption_mode in ('off','manual')),
   add column if not exists captioner_participant_id uuid references public.meet_v2_participants(id) on delete set null,
-  add column if not exists transcript_enabled boolean not null default false;
+  add column if not exists transcript_enabled boolean not null default false,
+  add column if not exists recording_allowed boolean not null default false;
 
 alter table public.meet_v2_rooms
   drop constraint if exists meet_v2_rooms_meeting_kind_check;
@@ -656,7 +657,7 @@ begin
     'state',p.state,
     'joinedAt',p.joined_at,
     'lastSeenAt',p.last_seen_at,
-    'canHost',(p.member_id is not null and p.state='joined')
+    'canHost',(p.member_id is not null and p.state='joined'),'recordingAllowed',p.recording_allowed
   ) order by case p.role when 'host' then 0 when 'cohost' then 1 else 2 end,p.created_at),'[]'::jsonb)
   into v_people
   from public.meet_v2_participants p
@@ -883,7 +884,7 @@ declare
   v_to_role text;
 begin
   if v_user is null then raise exception 'authentication_required'; end if;
-  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','caption','caption-request','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
+  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','caption','caption-request','recording-state','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
   select * into v_from from public.meet_v2_participants where id=p_from_participant_id;
   select * into v_to from public.meet_v2_participants where id=p_to_participant_id;
   if v_from.id is null then raise exception 'participant_not_found'; end if;
@@ -1046,6 +1047,29 @@ begin
 end
 $$;
 
+create or replace function public.meet_v2_set_recording_permission(p_participant_id uuid,p_enabled boolean)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $
+declare
+  v_actor uuid := auth.uid();
+  v_target public.meet_v2_participants%rowtype;
+  v_room public.meet_v2_rooms%rowtype;
+begin
+  if v_actor is null then raise exception 'authentication_required'; end if;
+  select * into v_target from public.meet_v2_participants where id=p_participant_id for update;
+  if not found then raise exception 'participant_not_found'; end if;
+  select * into v_room from public.meet_v2_rooms where id=v_target.room_id;
+  if coalesce(v_room.active_host_id,v_room.host_id)<>v_actor then raise exception 'host_authority_required'; end if;
+  if v_target.role in ('host','cohost') then raise exception 'host_roles_already_record'; end if;
+  if v_target.state<>'joined' then raise exception 'participant_not_joined'; end if;
+  update public.meet_v2_participants set recording_allowed=coalesce(p_enabled,false),updated_at=now() where id=p_participant_id;
+  return jsonb_build_object('ok',true,'participantId',p_participant_id,'recordingAllowed',coalesce(p_enabled,false));
+end
+$;
+
 create or replace function public.meet_v2_transfer_host_and_leave(p_target_participant_id uuid)
 returns jsonb
 language plpgsql
@@ -1143,6 +1167,7 @@ grant execute on function public.meet_v2_host_queue(uuid) to authenticated;
 grant execute on function public.meet_v2_decide_participant(uuid,text) to authenticated;
 grant execute on function public.meet_v2_set_cohost(uuid,boolean) to authenticated;
 grant execute on function public.meet_v2_remove_participant(uuid) to authenticated;
+grant execute on function public.meet_v2_set_recording_permission(uuid,boolean) to authenticated;
 grant execute on function public.meet_v2_rename_participant(uuid,text) to authenticated;
 grant execute on function public.meet_v2_set_security(uuid,boolean,boolean) to authenticated;
 grant execute on function public.meet_v2_set_chat_policy(uuid,text) to authenticated;
