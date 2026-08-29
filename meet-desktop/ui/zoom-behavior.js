@@ -9,6 +9,8 @@
   const role=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase();
   let leaveDialog=null;
   let chatPatched=false;
+  let unreadCount=0;
+  let chatPolicy='everyone';
   let queueBusy=false;
 
   if(!document.querySelector('link[data-ds-zoom-behavior]')){
@@ -124,6 +126,14 @@
 
 
   function chatMessages(){return q('#meetingChatMessages');}
+  function updateUnread(clear=false){
+    if(clear)unreadCount=0;
+    const button=q('#roomChat');if(!button)return;
+    let badge=button.querySelector('.meeting-chat-unread-badge');
+    if(unreadCount<=0){badge?.remove();button.classList.remove('has-unread');button.setAttribute('aria-label','Chat');return;}
+    if(!badge){badge=document.createElement('span');badge.className='meeting-chat-unread-badge';button.append(badge);}
+    badge.textContent=unreadCount>99?'99+':String(unreadCount);button.classList.add('has-unread');button.setAttribute('aria-label',`Chat, ${unreadCount} unread message${unreadCount===1?'':'s'}`);
+  }
   function appendChat({text,name,own=false,privateMessage=false,peerName='',at=Date.now()}){
     const box=chatMessages();if(!box)return;
     box.querySelector('.meeting-chat-empty')?.remove();
@@ -131,33 +141,80 @@
     const scope=privateMessage?(own?`Private to ${peerName||'participant'}`:`Private from ${name}`):'Everyone';
     article.innerHTML=`<strong>${esc(name)} <span class="meeting-chat-scope">${esc(scope)}</span></strong><p>${esc(text)}</p><time>${new Date(at||Date.now()).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</time>`;
     box.append(article);while(box.children.length>200)box.firstElementChild?.remove();box.scrollTop=box.scrollHeight;
-    if(!own&&q('#meetingChatPanel')?.hidden){const button=q('#roomChat');button?.classList.add('has-unread');setTimeout(()=>button?.classList.remove('has-unread'),5000);}
+    if(!own&&q('#meetingChatPanel')?.hidden){unreadCount+=1;updateUnread();window.DominionMeetingNotifications?.chat?.(name||'Participant');}
   }
 
-  async function refreshChatRecipients(){
-    const select=q('#meetingChatRecipient');if(!select)return;
-    const current=select.value||'everyone';const list=await peers();
-    const signature=list.map(p=>`${String(p.participantId)}:${String(p.displayName||'Participant')}`).join('|');
-    if(select.dataset.recipientSignature!==signature){
-      select.dataset.recipientSignature=signature;
-      select.innerHTML='<option value="everyone">Everyone</option>'+list.map(p=>`<option value="${esc(p.participantId)}">${esc(p.displayName||'Participant')}</option>`).join('');
+  async function chatSnapshot(){
+    const ctx=await context();if(!ctx.roomId||!meeting?.snapshot)return {ctx,list:[],policy:'everyone'};
+    try{const snap=await meeting.snapshot(ctx.roomId);return {ctx,snap,list:snap?.participants||[],policy:String(snap?.chatPolicy||'everyone')};}
+    catch{return {ctx,list:[],policy:'everyone'};}
+  }
+  function canManageChat(){const current=role().replace('-','');return ['host','cohost'].includes(current);}
+  function ensureChatPolicyControl(panel){
+    const header=panel?.querySelector('header');if(!header)return null;
+    let select=q('#meetingChatPolicy');
+    if(!select){
+      select=document.createElement('select');select.id='meetingChatPolicy';select.className='meeting-chat-policy';select.setAttribute('aria-label','Participant chat permissions');
+      select.innerHTML='<option value="everyone">Participants can chat: Everyone</option><option value="host_cohost">Participants can chat: Host & Co-hosts</option><option value="disabled">Participants cannot chat</option>';
+      header.insertBefore(select,header.querySelector('[data-chat-close]'));
+      select.onchange=async()=>{
+        const ctx=await context();if(!ctx.roomId||!meeting?.setChatPolicy)return;
+        select.disabled=true;
+        try{const result=await meeting.setChatPolicy(ctx.roomId,select.value);chatPolicy=String(result?.chatPolicy||select.value);await refreshChatRecipients();}
+        catch{select.value=chatPolicy;}
+        finally{select.disabled=false;}
+      };
     }
-    if([...select.options].some(option=>option.value===current))select.value=current;else select.value='everyone';
+    select.hidden=!canManageChat();select.value=chatPolicy;return select;
+  }
+  async function refreshChatRecipients(){
+    const select=q('#meetingChatRecipient'),input=q('#meetingChatInput'),send=q('#meetingChatForm button[type="submit"]');if(!select||!input)return;
+    const {ctx,list,policy}=await chatSnapshot();chatPolicy=policy;
+    const localId=String(ctx.participantId||''),currentRole=role().replace('-',''),manager=['host','cohost'].includes(currentRole);
+    const peersList=list.filter(p=>String(p.participantId||'')&&String(p.participantId)!==localId&&['admitted','joined'].includes(String(p.state||'joined')));
+    const current=select.value||'everyone';
+    let options='';
+    if(manager||policy==='everyone'){
+      options='<option value="everyone">Everyone</option>'+peersList.map(p=>`<option value="${esc(p.participantId)}">${esc(p.displayName||'Participant')}</option>`).join('');
+      input.disabled=false;if(send)send.disabled=false;
+      input.placeholder='Message everyone';
+    }else if(policy==='host_cohost'){
+      const managers=peersList.filter(p=>['host','cohost'].includes(String(p.role||'').toLowerCase()));
+      options='<option value="host_cohost">Host & Co-hosts</option>'+managers.map(p=>`<option value="${esc(p.participantId)}">${esc(p.displayName||'Host')}</option>`).join('');
+      input.disabled=managers.length===0;if(send)send.disabled=managers.length===0;
+      input.placeholder=managers.length?'Message host & co-hosts':'No host is available';
+    }else{
+      options='<option value="disabled">Chat disabled by host</option>';input.disabled=true;if(send)send.disabled=true;input.placeholder='Chat disabled by host';
+    }
+    const signature=`${policy}|${peersList.map(p=>`${String(p.participantId)}:${String(p.displayName||'Participant')}:${String(p.role||'participant')}`).join('|')}`;
+    if(select.dataset.recipientSignature!==signature){select.dataset.recipientSignature=signature;select.innerHTML=options;}
+    if([...select.options].some(option=>option.value===current))select.value=current;
+    ensureChatPolicyControl(q('#meetingChatPanel'));
   }
 
   async function sendZoomChat(event){
     event?.preventDefault?.();
-    const input=q('#meetingChatInput'),select=q('#meetingChatRecipient'),text=String(input?.value||'').trim();if(!text||!meeting?.sendSignal)return;
-    input.value='';const target=String(select?.value||'everyone'),list=await peers();const payload={text:text.slice(0,2000),name:localName(),at:new Date().toISOString(),private:target!=='everyone'};
-    if(target==='everyone'){
-      appendChat({...payload,own:true,privateMessage:false});
-      await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'chat',payload)));
-      return;
+    const input=q('#meetingChatInput'),select=q('#meetingChatRecipient'),text=String(input?.value||'').trim();if(!text||!meeting?.sendSignal||input?.disabled)return;
+    input.value='';const target=String(select?.value||'everyone');const {list}=await chatSnapshot();const ctx=await context();
+    const peersList=list.filter(p=>String(p.participantId||'')&&String(p.participantId)!==String(ctx.participantId||'')&&['admitted','joined'].includes(String(p.state||'joined')));
+    const payload={text:text.slice(0,2000),name:localName(),at:new Date().toISOString(),private:target!=='everyone'};
+    try{
+      if(target==='everyone'){
+        appendChat({...payload,own:true,privateMessage:false});
+        await Promise.allSettled(peersList.map(p=>meeting.sendSignal(p.participantId,'chat',payload)));return;
+      }
+      if(target==='host_cohost'){
+        const managers=peersList.filter(p=>['host','cohost'].includes(String(p.role||'').toLowerCase()));
+        if(!managers.length)throw new Error('No host or co-host is available.');
+        payload.toName='Host & Co-hosts';appendChat({...payload,own:true,privateMessage:true,peerName:payload.toName});
+        await Promise.allSettled(managers.map(p=>meeting.sendSignal(p.participantId,'chat',payload)));return;
+      }
+      if(target==='disabled')return;
+      const peer=peersList.find(p=>String(p.participantId)===target);if(!peer)throw new Error('That participant is no longer in the meeting.');
+      payload.toName=String(peer.displayName||'Participant');appendChat({...payload,own:true,privateMessage:true,peerName:payload.toName});await meeting.sendSignal(target,'chat',payload);
+    }catch(error){
+      appendChat({text:String(error?.message||error||'Message could not be sent.'),name:'DominionStar Meet',own:true});await refreshChatRecipients();
     }
-    const peer=list.find(p=>String(p.participantId)===target);if(!peer){appendChat({text:'That participant is no longer in the meeting.',name:'DominionStar Meet',own:true});await refreshChatRecipients();return;}
-    payload.toName=String(peer.displayName||'Participant');
-    appendChat({...payload,own:true,privateMessage:true,peerName:payload.toName});
-    await meeting.sendSignal(target,'chat',payload);
   }
 
   function patchChat(){
@@ -166,7 +223,9 @@
     if(!q('#meetingChatRecipient')){
       const select=document.createElement('select');select.id='meetingChatRecipient';select.className='meeting-chat-recipient';select.setAttribute('aria-label','Chat recipient');select.innerHTML='<option value="everyone">Everyone</option>';form.insertBefore(select,input);created=true;
     }
-    form.onsubmit=sendZoomChat;chatPatched=true;
+    form.onsubmit=sendZoomChat;chatPatched=true;ensureChatPolicyControl(panel);
+    const close=panel.querySelector('[data-chat-close]');if(close&&!close.dataset.dsUnreadClear){close.dataset.dsUnreadClear='1';close.addEventListener('click',()=>updateUnread(true));}
+    const button=q('#roomChat');if(button&&!button.dataset.dsUnreadClear){button.dataset.dsUnreadClear='1';button.addEventListener('click',()=>{if(q('#meetingChatPanel')&&!q('#meetingChatPanel').hidden)updateUnread(true);},false);}
     if(created||!panel.hidden)void refreshChatRecipients();
   }
 
@@ -186,10 +245,10 @@
       const label=exit.querySelector('.ds-control-label');if(label)label.textContent='End';else exit.textContent='End';
       exit.setAttribute('aria-label','End or leave meeting');
     }
-    if(chatPatched&&!q('#meetingChatPanel')?.hidden)void refreshChatRecipients();
+    if(chatPatched&&!q('#meetingChatPanel')?.hidden){updateUnread(true);void refreshChatRecipients();}
   }
 
   const syncTimer=setInterval(sync,900);
   sync();
-  window.DominionZoomBehavior=Object.freeze({version:'1.3.0',sync,admitAll,refreshChatRecipients,showHostHandoffChoices,dispose:()=>clearInterval(syncTimer)});
+  window.DominionZoomBehavior=Object.freeze({version:'1.4.0',sync,admitAll,refreshChatRecipients,showHostHandoffChoices,dispose:()=>clearInterval(syncTimer)});
 })();
