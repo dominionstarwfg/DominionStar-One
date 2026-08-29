@@ -19,3 +19,11 @@
 .zoom-rename-dialog button,.zoom-unmute-dialog button{height:34px;padding:0 12px;border:0;border-radius:8px;cursor:pointer}
 .zoom-rename-dialog .secondary,.zoom-unmute-dialog .secondary{background:#252d36;color:#eef4fa}.zoom-rename-dialog .primary,.zoom-unmute-dialog .primary{background:#2d78d4;color:#fff}
 .zoom-rename-status,.zoom-unmute-copy{margin:0;color:#9aabba;font-size:10px;line-height:1.45}
+
+.meeting-chat-panel header{gap:8px}.meeting-chat-panel header strong{flex:1}
+.meeting-chat-policy{max-width:190px;height:30px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#0b1725;color:#dce6ef;padding:0 7px;font-size:8px}
+.meeting-chat-policy[hidden]{display:none}.meeting-chat-policy:disabled{opacity:.55}
+.meeting-chat-unread-badge{position:absolute;top:3px;right:5px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e24b61;color:#fff;font-size:8px;font-weight:850;display:grid;place-items:center;box-shadow:0 0 0 2px #111820}
+.meeting-control.has-unread::after{display:none}
+#meetingChatInput:disabled,#meetingChatRecipient:disabled,.meeting-chat-form button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:760px){.meeting-chat-policy{max-width:145px}.meeting-chat-panel header strong{font-size:10px}}
