@@ -100,6 +100,7 @@ ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app
 ipcMain.handle('auth:get-state',()=>desktopAuth?.getState?.()||{ready:false,signedIn:false,user:null});
 ipcMain.handle('auth:start-google',()=>desktopAuth?.startGoogle?.());
 ipcMain.handle('auth:sign-in-password',(_event,{email,password}={})=>desktopAuth?.signInPassword?.(email,password));
+ipcMain.handle('auth:update-avatar',(_event,{dataUrl}={})=>desktopAuth?.updateAvatar?.(dataUrl));
 ipcMain.handle('auth:sign-out',()=>desktopAuth?.signOut?.());
 ipcMain.handle('media:get-permissions',()=>nativeMediaPermissions());
 ipcMain.handle('media:request-permissions',(_event,{kinds=[]}={})=>requestNativeMediaPermissions(kinds));
