@@ -94,3 +94,10 @@
 .preview-controls .ds-control-label{font-size:10px;font-weight:800}
 
 .meeting-footer .meeting-control[hidden],.meeting-footer .caption-control-cluster[hidden]{display:none!important}
+
+/* Primary toolbar state must be stable. Secondary controls live under More even if feature modules toggle [hidden]. */
+.meeting-footer #roomSecurity,.meeting-footer #roomSettings,.meeting-footer #roomRecord,.meeting-footer #roomRecordStop,.meeting-footer .caption-control-cluster{display:none!important}
+.meeting-control.is-off .ds-control-icon,.preview-controls button.is-off .ds-control-icon{position:relative;color:#ff5368}
+.meeting-control.is-off .ds-control-icon::after,.preview-controls button.is-off .ds-control-icon::after{content:"";position:absolute;width:24px;height:2px;border-radius:2px;background:#ff5368;transform:rotate(-45deg);box-shadow:0 0 0 1px rgba(6,12,20,.65)}
+.preview-controls button.is-off{border-color:rgba(255,83,104,.34);background:rgba(255,83,104,.08)}
+.meeting-control.is-off:hover{background:rgba(255,83,104,.08)!important}
