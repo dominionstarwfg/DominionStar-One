@@ -60,6 +60,8 @@ assert(mediaController.includes("script.dataset.dsShareIntegration='1'"),'Share 
 assert(integration.includes("let button=overlay.querySelector('#roomShare')")&&integration.includes("button.id='roomShare'"),'Loaded share integration must create the in-meeting Share Screen control.');
 assert(integration.includes('requestAnimationFrame(()=>setTimeout'),'Share click must release before permission/picker work starts.');
 assert(integration.includes('openPickerWithPermission'),'Meeting UI must understand native permission failure without freezing.');
+assert(integration.includes('showScreenPermissionDialog')&&integration.includes('Open System Settings'),'Denied macOS Screen Recording must present an actionable permission recovery dialog.');
+assert(integration.includes("window.dominionDesktop?.media?.openPrivacy?.('screen')"),'Permission recovery must open the correct macOS Privacy & Security pane through the native bridge.');
 assert((controller.match(/getDisplayMedia/g)||[]).length>=2,'Display capture authority must remain implemented inside the isolated share controller.');
 assert(!integration.includes('getDisplayMedia')&&!preload.includes('getDisplayMedia')&&!picker.includes('getDisplayMedia'),'No renderer integration, preload bridge, or picker surface may acquire display media directly.');
 assert(controller.includes("context.drawImage(videoElement,0,0,width,height)"),'Pause must freeze the exact last shared frame.');
