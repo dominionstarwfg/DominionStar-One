@@ -19,7 +19,7 @@ assert(html.includes('<script src="./meeting-parity.js"></script>'),'Desktop Hom
 assert(html.includes('<script src="./zoom-behavior.js"></script>'),'Desktop Home must load the Zoom-standard behavior guard.');
 assert(html.includes('<script src="./participant-controls.js"></script>'),'Desktop Home must load the verified participant-control layer.');
 assert(html.indexOf('./meeting-features.js')<html.indexOf('./zoom-behavior.js'),'Zoom behavior guard must load after base meeting features so it can upgrade them.');
-assert(parity.includes("version:'2.4.0-zoom-share-layouts'"),'Zoom-style adaptive dock engine version is missing.');
+assert(parity.includes("version:'2.5.0-zoom-host-view-control'"),'Zoom-style adaptive dock engine version is missing.');
 assert(parity.includes("GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1'"),'Participant video dock geometry must persist independently.');
 assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Participant management panel geometry must remain separate from video dock geometry.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Participant management panel must be closed by default so solo video owns the stage.');
@@ -89,4 +89,10 @@ assert(participantControls.includes("filter(p=>String(p.role||'').toLowerCase()!
 assert(webrtc.includes("String(signal.type||'').startsWith('host:')"),'WebRTC signaling must dispatch host media-control messages to the verified participant-control layer.');
 assert(participantCss.includes('.participant-control-menu')&&participantCss.includes('.participant-bulk-actions')&&participantCss.includes('.participant-control-prompt'),'Participant media controls must ship with dedicated desktop UI styling.');
 
-console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat participant-media-controls mute-all ask-unmute stop-video ask-start-video bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share draggable-divider hide-video-panel');
+assert(participantControls.includes("type==='host:view-layout'")&&participantControls.includes('authorizedSender(detail.fromParticipantId)'),'Meeting-wide View changes must pass through verified host/co-host signal authority.');
+assert(parity.includes("applyAll.dataset.applyViewEveryone='1'")&&parity.includes('Apply ${modeLabel} to Everyone'),'Host/co-host View menu must expose Apply Current View to Everyone.');
+assert(parity.includes("desktop.meeting.sendSignal(p.participantId,'host:view-layout',payload)"),'Apply View to Everyone must broadcast through authenticated meeting signaling.');
+assert(parity.includes("window.addEventListener('dominion:host-view-layout'")&&parity.includes('applyViewMode(mode)'),'Authorized meeting-wide View changes must reuse the local adaptive View authority.');
+assert(parity.includes('spotlightParticipantId?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`)'),'Side-by-side Speaker must prioritize Spotlight before automatic active-speaker selection.');
+assert(css.includes('button[data-apply-view-everyone]'),'Host meeting-wide View action must have dedicated desktop styling.');
+console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat participant-media-controls mute-all ask-unmute stop-video ask-start-video bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share draggable-divider hide-video-panel host-view-broadcast spotlight-side-by-side');
