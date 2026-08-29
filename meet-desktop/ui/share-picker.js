@@ -19,14 +19,23 @@
   async function refresh(){
     selectedId='';selectedName.textContent='Choose a source';shareButton.disabled=true;setBusy(true);
     try{
-      const result=await bridge?.listSources?.({includeDominionStar:$('#showDominionStar').checked});
+      const result=await bridge?.listSources?.({
+        includeDominionStar:$('#showDominionStar').checked,
+        kind:filter==='window'?'window':'screen'
+      });
       if(!result?.ok){error.hidden=false;loading.hidden=true;grid.hidden=true;$('#errorCopy').textContent=result?.timedOut?'Source discovery is taking too long. Your meeting is still active; try again.':(result?.error||'Check Screen Recording permission and try again.');return;}
       allSources=result.sources||[];render();
     }catch(err){error.hidden=false;loading.hidden=true;grid.hidden=true;$('#errorCopy').textContent=String(err?.message||err||'Unable to load share sources.');}
     finally{restoreControls();}
   }
 
-  $$('.tab').forEach(tab=>tab.addEventListener('click',()=>{filter=tab.dataset.filter;$$('.tab').forEach(item=>item.classList.toggle('active',item===tab));render();}));
+  $('.tab').forEach(tab=>tab.addEventListener('click',()=>{
+    const next=tab.dataset.filter==='window'?'window':'screen';
+    if(next===filter)return;
+    filter=next;
+    $('.tab').forEach(item=>item.classList.toggle('active',item===tab));
+    void refresh();
+  }));
   $('#showDominionStar').addEventListener('change',()=>void refresh());
   $('#retrySources').addEventListener('click',()=>void refresh());
   const cancel=()=>void bridge?.cancel?.();$('#cancelTop').addEventListener('click',cancel);$('#cancelBottom').addEventListener('click',cancel);
