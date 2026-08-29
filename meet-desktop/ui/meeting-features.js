@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const reactions=['👏','👍','❤️','😂','😮','🎉'];
-  const state={messages:[],reactionMenu:null,reactions:new Map(),reactionTimers:new Map(),raisedHands:new Map(),localHandRaised:false,meetingSnapshot:null,remoteRecorders:new Map(),recordingNoticeSeen:new Set(),recordingConsent:null,recording:false,recordingPaused:false,recorder:null,recordChunks:[],recordStream:null,recordCanvas:null,recordFrame:0,audioContext:null};
+  const state={messages:[],reactionMenu:null,reactions:new Map(),reactionTimers:new Map(),raisedHands:new Map(),localHandRaised:false,meetingSnapshot:null,remoteRecorders:new Map(),recordingNoticeSeen:new Set(),recordingConsent:null,lastRecordingAllowed:null,recording:false,recordingPaused:false,recorder:null,recordChunks:[],recordStream:null,recordCanvas:null,recordFrame:0,audioContext:null};
   if(!document.querySelector('link[href="./meeting-features.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-features.css';document.head.append(link);}
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const nowLabel=value=>{try{return new Date(value||Date.now()).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}catch{return ''}};
@@ -115,6 +115,12 @@
     Promise.resolve(ctxPromise).then(ctx=>{
       const participant=(snap?.participants||[]).find(p=>String(p.participantId)===String(ctx?.participantId||''));const role=String(participant?.role||localRole()).toLowerCase();
       const allowed=['host','cohost'].includes(role)||Boolean(participant?.recordingAllowed);
+      if(!['host','cohost'].includes(role)&&participant){
+        if(state.lastRecordingAllowed!==null&&state.lastRecordingAllowed!==Boolean(participant.recordingAllowed)){
+          window.DominionMeetingNotifications?.toast?.(participant.recordingAllowed?'The host allowed you to record this meeting.':'The host removed your recording permission.','info');
+        }
+        state.lastRecordingAllowed=Boolean(participant.recordingAllowed);
+      }else state.lastRecordingAllowed=true;
       if(state.recording&&!allowed){void stopRecording({reason:'revoked'});return;}
       button.hidden=!allowed&&!state.recording;button.disabled=!allowed&&!state.recording;
       if(state.recording){button.title=state.recordingPaused?'Resume recording':'Pause recording';}
@@ -240,7 +246,7 @@
   const overlay=q('#meetingOverlay');
   const observer=new MutationObserver(()=>{if(inMeeting())ensureUi();});
   if(overlay)observer.observe(overlay,{attributes:true,attributeFilter:['hidden']});
-  setInterval(()=>{if(inMeeting()){ensureUi();decorateRaisedHands();decorateReactions();syncRecordingUi();updateRecordingIndicator();}else{for(const timer of state.reactionTimers.values())clearTimeout(timer);state.reactionTimers.clear();state.reactions.clear();state.remoteRecorders.clear();state.recordingNoticeSeen.clear();state.raisedHands.clear();state.localHandRaised=false;state.meetingSnapshot=null;if(state.recording)void stopRecording();}},600);
+  setInterval(()=>{if(inMeeting()){ensureUi();decorateRaisedHands();decorateReactions();syncRecordingUi();updateRecordingIndicator();}else{for(const timer of state.reactionTimers.values())clearTimeout(timer);state.reactionTimers.clear();state.reactions.clear();state.remoteRecorders.clear();state.recordingNoticeSeen.clear();state.raisedHands.clear();state.localHandRaised=false;state.meetingSnapshot=null;state.lastRecordingAllowed=null;if(state.recording)void stopRecording();}},600);
   ensureUi();
-  window.DominionMeetingFeatures=Object.freeze({version:'1.3.0',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,recordingPaused:state.recordingPaused,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))})});
+  window.DominionMeetingFeatures=Object.freeze({version:'1.3.0',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,stopRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,recordingPaused:state.recordingPaused,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))})});
 })();
