@@ -22,16 +22,16 @@ for(const item of required)assert(listing.includes(item),`Packaged ASAR is missi
 for(const forbidden of ['/desktop/','/desktop 2/','/meet-home/','/meet-login/','/assets/js/meeting-engine.js'])assert(!listing.includes(forbidden),`Legacy runtime leaked into packaged ASAR: ${forbidden}`);
 
 const unpackDir=path.resolve('.package-audit');
-assert(participantControls.includes("type==='host:view-layout'")&&participantControls.includes('authorizedSender(detail.fromParticipantId)'),'Packaged meeting-wide View changes must verify host/co-host sender authority.');
-assert(parity.includes("applyAll.dataset.applyViewEveryone='1'")&&parity.includes("desktop.meeting.sendSignal(p.participantId,'host:view-layout',payload)"),'Packaged host/co-host View menu must broadcast Apply View to Everyone through meeting signaling.');
-assert(parity.includes("window.addEventListener('dominion:host-view-layout'")&&parity.includes('applyViewMode(mode)'),'Packaged clients must apply authorized host View broadcasts through the local View engine.');
-assert(parity.includes('spotlightParticipantId?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`)')&&parity.includes("featured?.classList.add('share-featured')"),'Packaged Side-by-side Speaker must feature Spotlight for Everyone before automatic active speaker.');
-assert(parityCss.includes('button[data-apply-view-everyone]'),'Packaged host Apply View action must include dedicated styling.');
 fs.rmSync(unpackDir,{recursive:true,force:true});
 execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'extract',asarPath,unpackDir]);
 const read=(...parts)=>fs.readFileSync(path.join(unpackDir,...parts),'utf8');
 const main=read('src','main.mjs'),auth=read('src','auth-service.mjs'),meeting=read('src','meeting-service.mjs'),preload=read('src','preload.cjs'),share=read('src','share-source-authority.mjs'),shareService=read('src','share-service.mjs');
 const appUi=read('ui','app.js'),media=read('ui','media-controller.js'),videoEffects=read('ui','video-effects.js'),authPassword=read('ui','auth-password.js'),html=read('ui','index.html'),av=read('ui','av-settings.js'),parity=read('ui','meeting-parity.js'),parityCss=read('ui','meeting-parity.css'),features=read('ui','meeting-features.js'),zoomBehavior=read('ui','zoom-behavior.js'),zoomCss=read('ui','zoom-behavior.css'),participantControls=read('ui','participant-controls.js'),participantCss=read('ui','participant-controls.css'),meetingNotifications=read('ui','meeting-notifications.js'),meetingNotificationsCss=read('ui','meeting-notifications.css'),preferences=read('ui','preferences.js'),personal=read('ui','personal-room.js'),schedule=read('ui','schedule-controller.js'),scheduleCss=read('ui','schedule.css'),shareController=read('ui','share-controller.js'),annotation=read('ui','share-annotation.js'),webrtc=read('ui','webrtc-controller.js');
+assert(participantControls.includes("type==='host:view-layout'")&&participantControls.includes('authorizedSender(detail.fromParticipantId)'),'Packaged meeting-wide View changes must verify host/co-host sender authority.');
+assert(parity.includes("applyAll.dataset.applyViewEveryone='1'")&&parity.includes("desktop.meeting.sendSignal(p.participantId,'host:view-layout',payload)"),'Packaged host/co-host View menu must broadcast Apply View to Everyone through meeting signaling.');
+assert(parity.includes("window.addEventListener('dominion:host-view-layout'")&&parity.includes('applyViewMode(mode)'),'Packaged clients must apply authorized host View broadcasts through the local View engine.');
+assert(parity.includes('spotlightParticipantId?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`)')&&parity.includes("featured?.classList.add('share-featured')"),'Packaged Side-by-side Speaker must feature Spotlight for Everyone before automatic active speaker.');
+assert(parityCss.includes('button[data-apply-view-everyone]'),'Packaged host Apply View action must include dedicated styling.');
 
 assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged desktop must launch the local Home file.');
 assert(!main.includes('dominionstarld.com'),'Packaged desktop must not launch the public website.');
