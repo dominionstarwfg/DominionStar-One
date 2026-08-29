@@ -8,19 +8,21 @@
 
   async function findMeetingSurface(){for(let i=0;i<120;i++){const overlay=document.querySelector('#meetingOverlay');if(overlay&&window.DominionMediaController)return overlay;await wait(50);}return null;}
   function toast(message,kind=''){let node=document.querySelector('#shareToast');if(!node){node=document.createElement('div');node.id='shareToast';document.body.append(node);}node.className=`share-toast ${kind}`.trim();node.textContent=String(message||'');node.hidden=false;clearTimeout(node.__timer);node.__timer=setTimeout(()=>{node.hidden=true;},6500);}
+  function hideRestartBanner(){const banner=document.querySelector('#shareRestartBanner');if(banner)banner.hidden=true;}
   function showRestartRequired(){
-    const dialog=document.querySelector('#foundationDialog'),title=document.querySelector('#foundationTitle'),copy=document.querySelector('#foundationCopy');
-    if(!dialog||!title||!copy||!desktop?.app?.restart){toast('macOS activated Screen Recording, but DominionStar Meet must restart once before ScreenCaptureKit can use the new permission.','error');return;}
-    const action=dialog.querySelector('.primary-button');if(!action){toast('Restart DominionStar Meet once, then Share Screen again.','error');return;}
-    title.textContent='Restart DominionStar Meet';
-    copy.textContent='macOS has changed Screen Recording permission for DominionStar Meet, but this running process still has the old permission state. Restart once to activate screen sharing. Your signed-in account will remain saved.';
-    action.type='button';action.removeAttribute('value');action.textContent='Restart DominionStar Meet';
-    const reset=()=>{action.type='submit';action.value='ok';action.textContent='OK';action.onclick=null;dialog.removeEventListener('close',reset);};
-    action.onclick=()=>void desktop.app.restart();dialog.addEventListener('close',reset);
-    if(!dialog.open)dialog.showModal();
+    let banner=document.querySelector('#shareRestartBanner');
+    if(!banner){
+      banner=document.createElement('section');banner.id='shareRestartBanner';banner.className='share-restart-banner';banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');
+      banner.innerHTML='<span class="share-restart-icon" aria-hidden="true">↻</span><div class="share-restart-copy"><strong>Restart DominionStar Meet to activate screen sharing</strong><span>macOS changed Screen Recording permission, but this running process still has the previous permission state. Restart once, then choose Share Screen again.</span></div><div class="share-restart-actions"><button type="button" class="share-restart-dismiss">Dismiss</button><button type="button" class="share-restart-now">Restart DominionStar Meet</button></div>';
+      document.body.append(banner);
+      banner.querySelector('.share-restart-dismiss').onclick=hideRestartBanner;
+      banner.querySelector('.share-restart-now').onclick=()=>void desktop.app?.restart?.();
+    }
+    banner.hidden=false;
   }
   async function openSharePicker(){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
+    hideRestartBanner();
     const result=await bridge.openPicker();
     return result?.opened!==false;
   }
@@ -65,7 +67,7 @@
       try{
         if(replacing){await share.replaceSource({name:selection?.name,options:selection?.options||{}});window.DominionShareAnnotation?.deactivate?.();}
         else await share.start({name:selection?.name,options:selection?.options||{}});
-        applyLayout();if(replacing)toast(`Now sharing ${String(selection?.name||'new source')}`);
+        hideRestartBanner();applyLayout();if(replacing)toast(`Now sharing ${String(selection?.name||'new source')}`);
       }catch(error){
         applyLayout();
         if(error?.code==='screen_capture_restart_required'){showRestartRequired();return;}
@@ -96,6 +98,7 @@
       }catch(error){toast(error?.message||'Share control failed.','error');}
     });
 
+    window.addEventListener('dominion:meeting-ended',hideRestartBanner);
     window.DominionShareIntegration=Object.freeze({open:()=>openSharePicker(),stop:()=>share.stop(),state:()=>share.snapshot()});
   }
   void boot();
