@@ -59,11 +59,8 @@
       state.sourceName=String(name||track.label||'Shared content');state.options={...options};
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       stopTracks(previousFrozen);stopTracks(previousLive);
-      await bridge?.captureState?.({sourceName:state.sourceName,paused:false});
+      try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false});}catch{}
       return snapshot();
-    }catch(error){
-      state.liveStream=previousLive;state.frozenStream=previousFrozen;
-      throw error;
     }finally{state.busy=false;emit();}
   }
 
