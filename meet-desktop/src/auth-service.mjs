@@ -23,7 +23,7 @@ function userSummary(user,profile=null){
     id:String(user.id||''),
     email:String(profile?.email||user.email||''),
     name:preferred||full||String(metadata.full_name||metadata.name||user.email?.split('@')[0]||'DominionStar Member'),
-    avatarUrl:String(metadata.avatar_url||metadata.picture||''),
+    avatarUrl:String(profile?.avatar_url||metadata.avatar_url||metadata.picture||''),
     rank:String(profile?.rank||''),
     agentCode:String(profile?.agent_code||''),
     isFounder:Boolean(profile?.is_founder),
@@ -56,8 +56,14 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     if(error||!data?.session)return {ready:true,signedIn:false,user:null,error:error?.message||''};
     let profile=null;
     try{
-      const result=await client.from('member_profiles').select('full_name,preferred_name,email,rank,agent_code,is_founder').eq('id',data.session.user.id).maybeSingle();
-      if(!result.error)profile=result.data||null;
+      const result=await client.from('member_profiles').select('full_name,preferred_name,email,rank,agent_code,is_founder,avatar_path').eq('id',data.session.user.id).maybeSingle();
+      if(!result.error){
+        profile=result.data||null;
+        if(profile?.avatar_path){
+          const signed=await client.storage.from('member-avatars').createSignedUrl(String(profile.avatar_path),3600);
+          if(!signed.error&&signed.data?.signedUrl)profile={...profile,avatar_url:signed.data.signedUrl};
+        }
+      }
     }catch{}
     return {ready:true,signedIn:true,user:userSummary(data.session.user,profile)};
   }
@@ -83,6 +89,17 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     foregroundApp();
     return emitState();
   }
+  async function updateAvatar(dataUrl){
+    if(!client)await initialize();
+    const {data,error}=await client.auth.getSession();if(error||!data?.session?.user)throw new Error('authentication_required');
+    const match=String(dataUrl||'').match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/i);if(!match)throw new Error('invalid_profile_image');
+    const mime=match[1].toLowerCase()==='jpeg'?'image/jpeg':`image/${match[1].toLowerCase()}`;
+    const bytes=Buffer.from(match[2],'base64');if(!bytes.length||bytes.length>5*1024*1024)throw new Error('profile_image_too_large');
+    const ext=mime==='image/jpeg'?'jpg':mime.split('/')[1];const userId=String(data.session.user.id);const path=`${userId}/avatar.${ext}`;
+    const upload=await client.storage.from('member-avatars').upload(path,bytes,{contentType:mime,upsert:true,cacheControl:'3600'});if(upload.error)throw new Error(upload.error.message||'avatar_upload_failed');
+    const saved=await client.from('member_profiles').update({avatar_path:path,updated_at:new Date().toISOString()}).eq('id',userId);if(saved.error)throw new Error(saved.error.message||'avatar_profile_update_failed');
+    return emitState();
+  }
   async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;await emitState();return {ok:true};}
   async function rpc(name,args={}){if(!client)await initialize();const {data,error}=await client.rpc(name,args);if(error)throw new Error(error.message||`Meeting service failed: ${name}`);return data;}
   async function invokeServerFunction(name,body={}){
@@ -93,5 +110,5 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     return data;
   }
 
-  return Object.freeze({initialize,getState,startGoogle,signInPassword,signOut,rpc,invokeServerFunction,callbackUrl:CALLBACK_URL});
+  return Object.freeze({initialize,getState,startGoogle,signInPassword,updateAvatar,signOut,rpc,invokeServerFunction,callbackUrl:CALLBACK_URL});
 }
