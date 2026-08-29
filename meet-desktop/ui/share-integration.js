@@ -11,14 +11,14 @@
   function showScreenPermissionDialog(status='unknown',restartRequired=false){
     let dialog=document.querySelector('#screenPermissionDialog');
     if(!dialog){
-      dialog=document.createElement('dialog');dialog.id='screenPermissionDialog';dialog.className='share-permission-dialog';
+      dialog=document.createElement('section');dialog.id='screenPermissionDialog';dialog.className='share-permission-dialog';dialog.hidden=true;dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','false');
       dialog.innerHTML='<div class="share-permission-card"><div class="share-permission-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="m8 11 4-4 4 4M12 7v8M8 21h8"/></svg></div><div><p>SCREEN SHARING PERMISSION</p><h3>Allow DominionStar Meet to record your screen</h3><span data-permission-copy>macOS requires Screen & System Audio Recording access before you can share.</span></div><div class="share-permission-actions"><button type="button" data-permission-cancel>Not now</button><button type="button" data-permission-open>Open System Settings</button></div></div>';
       document.body.append(dialog);
-      dialog.querySelector('[data-permission-cancel]').onclick=()=>dialog.close();
-      dialog.querySelector('[data-permission-open]').onclick=async()=>{await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});dialog.close();};
+      dialog.querySelector('[data-permission-cancel]').onclick=()=>{dialog.hidden=true;};
+      dialog.querySelector('[data-permission-open]').onclick=async()=>{await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});dialog.hidden=true;};
     }
     const copy=dialog.querySelector('[data-permission-copy]');if(copy)copy.textContent=`macOS reports Screen Recording as ${status}. Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording.${restartRequired?' Restart DominionStar Meet after enabling it.':''}`;
-    if(!dialog.open)dialog.showModal();
+    dialog.hidden=false;
   }
   async function openPickerWithPermission(){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
