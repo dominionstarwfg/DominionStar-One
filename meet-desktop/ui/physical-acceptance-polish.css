@@ -1,0 +1,38 @@
+/* Physical Mac acceptance polish: readable Settings + Zoom-style reaction travel. */
+.settings-modal{color:#f7f9fc}
+.settings-modal .eyebrow{color:#b9c6d5!important}
+.settings-modal .settings-row strong{color:#f5f8fb!important;font-size:13px}
+.settings-modal .settings-row small,.settings-modal .settings-note{color:#b8c5d4!important;font-size:11px!important;line-height:1.5}
+.settings-modal .av-detail-head h3{color:#f8fafc!important;font-size:18px!important}
+.settings-modal .av-detail-head p{color:#c0ccda!important;font-size:11px!important;line-height:1.55!important}
+.settings-modal .av-field>span,.settings-modal .av-toggle-row,.settings-modal .av-range-row{color:#e8eef5!important;font-size:11px!important}
+.settings-modal .av-field select{color:#f7f9fc!important;background:#0b1828!important;border-color:rgba(255,255,255,.17)!important}
+.settings-modal .av-zoom-group{border-bottom-color:rgba(255,255,255,.11)!important}
+.settings-modal .av-zoom-group-head strong{color:#f4f7fa!important;font-size:14px!important}
+.settings-modal .av-zoom-group-head small{color:#b9c5d3!important;font-size:10px!important;line-height:1.5!important}
+.settings-modal .av-effects-note,.settings-modal .av-background-status,.settings-modal .av-backgrounds-head small{color:#b4c1cf!important;font-size:10px!important;line-height:1.5!important}
+.settings-modal .av-advanced-panel summary{color:#eef3f8!important;font-size:11px!important}
+.settings-modal .av-preview-meta>span{color:#f6f8fb!important;font-size:9px!important}
+.settings-modal .av-preview-meta>small{color:#d3dce6!important;font-size:9px!important}
+.av-quality-status{display:block;margin-top:7px;color:#b9c8d8;font-size:10px;line-height:1.45}
+.av-quality-status.success{color:#8de0b4}.av-quality-status.limited{color:#efc96a}
+
+/* Zoom-style meeting reaction: default lane is left and the reaction travels upward. */
+.meeting-reaction-bubble{left:24px!important;right:auto!important;bottom:88px!important;top:auto!important;animation:dsReactionFloatLeft 3.7s cubic-bezier(.2,.72,.28,1) forwards!important;will-change:transform,opacity}
+@keyframes dsReactionFloatLeft{0%{opacity:0;transform:translate3d(0,18px,0) scale(.9)}10%{opacity:1;transform:translate3d(0,0,0) scale(1)}72%{opacity:1;transform:translate3d(0,-56vh,0) scale(1.02)}100%{opacity:0;transform:translate3d(0,-68vh,0) scale(.94)}}
+@media(max-width:760px){.meeting-reaction-bubble{left:14px!important;right:auto!important}}
+
+/* Non-blocking macOS Screen Recording activation recovery. */
+.share-restart-banner{position:fixed;z-index:760;left:50%;bottom:92px;transform:translateX(-50%);width:min(620px,calc(100vw - 36px));display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 13px;border:1px solid rgba(83,151,244,.34);border-radius:14px;background:rgba(9,20,34,.97);box-shadow:0 18px 58px rgba(0,0,0,.5),0 0 32px rgba(47,128,237,.08);backdrop-filter:blur(18px);color:#f6f9fc}
+.share-restart-banner[hidden]{display:none!important}.share-restart-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:rgba(47,128,237,.14);color:#84b5fb;font-size:19px}.share-restart-copy{display:grid;gap:3px;min-width:0}.share-restart-copy strong{font-size:11px;color:#f8fafc}.share-restart-copy span{font-size:9px;line-height:1.45;color:#bdc9d6}.share-restart-actions{display:flex;gap:7px;align-items:center}.share-restart-actions button{height:34px;padding:0 11px;border-radius:9px;font:inherit;font-size:9px;font-weight:780;cursor:pointer}.share-restart-dismiss{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);color:#e8eef5}.share-restart-now{border:0;background:#2f80ed;color:#fff;box-shadow:0 6px 18px rgba(47,128,237,.2)}
+@media(max-width:680px){.share-restart-banner{grid-template-columns:36px 1fr;bottom:78px}.share-restart-actions{grid-column:1/-1;justify-content:flex-end}.share-restart-icon{width:34px;height:34px}}
+
+
+/* Primary toolbar has one owner. Recording remains available from More. */
+#roomRecord,#roomRecordStop{display:none!important}
+
+/* Zoom-like reactions float as bare emoji, without a dark pill or name tag. */
+.meeting-reaction-bubble{padding:0!important;gap:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important}
+.meeting-reaction-bubble b{font-size:30px!important;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.38))}
+.meeting-reaction-bubble span{display:none!important}
+.remote-peer-tile .remote-reaction-indicator{width:auto!important;height:auto!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:23px!important;filter:drop-shadow(0 3px 7px rgba(0,0,0,.4))}

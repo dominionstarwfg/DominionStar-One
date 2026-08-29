@@ -2,24 +2,19 @@ export function createShareSourceAuthority({enumerateSources,timeoutMs=4500}){
   if(typeof enumerateSources!=='function')throw new Error('Share source authority requires an enumerator.');
   let inFlight=null;
   let inFlightKey='';
-  let sourceMap=new Map();
+  const sourceMaps=new Map();
 
   const keyFor=options=>{
     const kind=String(options?.kind||'screen')==='window'?'window':'screen';
     return `${kind}:${Boolean(options?.includeDominionStar)?'all':'filtered'}`;
   };
   const timeoutResult=()=>new Promise(resolve=>{
-    // This timeout is a UI recovery guarantee. Keep it referenced until it
-    // fires so a stalled native ScreenCaptureKit enumeration always releases
-    // the picker instead of leaving an unresolved IPC request behind.
     setTimeout(()=>resolve({ok:false,timedOut:true,sources:[]}),timeoutMs);
   });
+  const mergedMap=()=>{const map=new Map();for(const sources of sourceMaps.values())for(const [id,source] of sources)map.set(id,source);return map;};
 
   async function list(options={}){
     const requestedKey=keyFor(options);
-    // Keep exactly one native ScreenCaptureKit enumeration active at a time.
-    // A second tab click never stacks another native call while the first is
-    // unresolved. Same-key requests reuse the current promise.
     if(inFlight){
       if(inFlightKey===requestedKey)return Promise.race([inFlight,timeoutResult()]);
       const previous=inFlight;
@@ -32,7 +27,7 @@ export function createShareSourceAuthority({enumerateSources,timeoutMs=4500}){
       .then(()=>enumerateSources(options))
       .then(sources=>{
         const safe=Array.isArray(sources)?sources:[];
-        sourceMap=new Map(safe.map(source=>[String(source.id),source]));
+        sourceMaps.set(requestedKey,new Map(safe.map(source=>[String(source.id),source])));
         return {ok:true,timedOut:false,sources:safe};
       })
       .finally(()=>{
@@ -42,8 +37,8 @@ export function createShareSourceAuthority({enumerateSources,timeoutMs=4500}){
     return Promise.race([tracked,timeoutResult()]);
   }
 
-  const get=id=>sourceMap.get(String(id||''))||null;
+  const get=id=>mergedMap().get(String(id||''))||null;
   const busy=()=>Boolean(inFlight);
-  const snapshot=()=>Object.freeze({busy:Boolean(inFlight),key:inFlightKey,sourceCount:sourceMap.size});
+  const snapshot=()=>Object.freeze({busy:Boolean(inFlight),key:inFlightKey,sourceCount:mergedMap().size});
   return Object.freeze({list,get,busy,snapshot});
 }

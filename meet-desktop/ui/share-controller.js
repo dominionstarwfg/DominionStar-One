@@ -25,9 +25,23 @@
     const stream=canvas.captureStream(30);for(const track of baseOutputStream()?.getAudioTracks?.()||[]){try{stream.addTrack(track.clone());}catch{}}state.compositeStream=stream;compositeFrame();emit();
   }
 
+  function screenCaptureRestartError(){const error=new Error('macOS enabled Screen Recording, but this running DominionStar Meet process has not refreshed the permission yet. Restart DominionStar Meet once, then choose Share Screen again.');error.code='screen_capture_restart_required';return error;}
+  function getDisplayMediaBounded(constraints,timeoutMs=8000){
+    return new Promise((resolve,reject)=>{
+      let settled=false,timer=null;
+      let request;
+      try{request=navigator.mediaDevices.getDisplayMedia(constraints);}catch(error){reject(error);return;}
+      timer=setTimeout(()=>{if(settled)return;settled=true;reject(screenCaptureRestartError());},timeoutMs);
+      Promise.resolve(request).then(stream=>{
+        if(settled){stopTracks(stream);return;}
+        settled=true;clearTimeout(timer);resolve(stream);
+      },error=>{if(settled)return;settled=true;clearTimeout(timer);reject(error);});
+    });
+  }
+
   async function acquireDisplay(options={}){
     const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio);
-    const stream=await navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
+    const stream=await getDisplayMediaBounded({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
     const track=stream.getVideoTracks()[0];
     if(!track){stopTracks(stream);throw new Error('No screen capture track was returned.');}
     try{track.contentHint=optimize?'motion':'detail';}catch{}

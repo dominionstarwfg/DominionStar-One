@@ -6,6 +6,7 @@ const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../as
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
   environment:()=>invoke('app:get-environment'),
+  app:Object.freeze({restart:()=>invoke('app:restart')}),
   brand:Object.freeze({logoUrl}),
   power:Object.freeze({onChanged:callback=>listen('app:power-event',callback)}),
   auth:Object.freeze({
@@ -25,6 +26,9 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     snapshot:roomId=>invoke('meeting:snapshot',{roomId}),touchPresence:(participantId,joinToken)=>invoke('meeting:touch-presence',{participantId,joinToken}),setCohost:(participantId,enabled)=>invoke('meeting:set-cohost',{participantId,enabled}),removeParticipant:participantId=>invoke('meeting:remove-participant',{participantId}),renameParticipant:(participantId,displayName)=>invoke('meeting:rename-participant',{participantId,displayName}),setRecordingPermission:(participantId,enabled)=>invoke('meeting:set-recording-permission',{participantId,enabled}),setRecordingState:(participantId,active,paused=false)=>invoke('meeting:set-recording-state',{participantId,active,paused}),setSecurity:(roomId,options)=>invoke('meeting:set-security',{roomId,options}),setChatPolicy:(roomId,policy)=>invoke('meeting:set-chat-policy',{roomId,policy}),setCaptionState:(roomId,options)=>invoke('meeting:set-caption-state',{roomId,options}),publishCaption:(participantId,text,speakerName)=>invoke('meeting:publish-caption',{participantId,text,speakerName}),transcript:roomId=>invoke('meeting:get-transcript',{roomId}),transferHostAndLeave:participantId=>invoke('meeting:transfer-host-and-leave',{participantId}),end:roomId=>invoke('meeting:end',{roomId}),
     context:()=>invoke('meeting:context'),sendSignal:(toParticipantId,type,payload)=>invoke('meeting:signal-send',{toParticipantId,type,payload}),pullSignals:(afterId=0,limit=100)=>invoke('meeting:signal-pull',{afterId,limit}),pruneSignals:roomId=>invoke('meeting:signal-prune',{roomId}),
     iceConfig:(force=false,ttl=7200)=>invoke('meeting:ice-config',{force:Boolean(force),ttl:Number(ttl)||7200})
+  }),
+  participants:Object.freeze({
+    toggle:()=>invoke('participants:toggle-window'),close:()=>invoke('participants:close-window'),updateMediaState:state=>invoke('participants:update-media-state',{state}),getMediaState:()=>invoke('participants:get-media-state'),onMediaState:callback=>listen('participants:media-state',callback)
   }),
   share:Object.freeze({
     openPicker:()=>invoke('share:open-picker'),onSourceSelected:callback=>listen('share:source-selected',callback),
