@@ -33,6 +33,7 @@
     const recordButton=ensureButton('roomRecord','Record',q('#roomSettings')||exit,()=>void toggleRecording());
     const stopButton=ensureButton('roomRecordStop','Stop',q('#roomSettings')||exit,()=>void stopRecording());stopButton.classList.add('recording-stop-control');stopButton.hidden=!state.recording;
     ensureButton('roomReactions','Reactions',q('#roomSettings')||exit,event=>openReactions(event.currentTarget));
+    window.DominionMeetingParity?.decorateControls?.();
     return true;
   }
 

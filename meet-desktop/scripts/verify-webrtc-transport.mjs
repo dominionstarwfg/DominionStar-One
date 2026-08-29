@@ -59,10 +59,10 @@ assert(css.includes('.remote-peer-tile.active-speaker')&&css.includes('.remote-s
 assert(!peer.includes('stun:stun.l.google.com'),'Production peer transport must not rely on a hardcoded STUN-only list.');
 assert(peer.includes('const config=await meeting.iceConfig(force,7200)'),'WebRTC relay loader must request short-lived ICE configuration.');
 assert(peer.indexOf('await loadIceConfig(false)')<peer.indexOf('state.running=true'),'WebRTC must obtain valid TURN configuration before becoming active.');
-assert(peer.includes("throw new Error('turn_relay_unavailable')"),'WebRTC must fail closed when relay configuration is unavailable.');
+assert(service.includes("turnCache.provider=allowDirectQa?'direct-qa':'direct-fallback'"),'TURN outage must degrade to a bounded direct/STUN fallback instead of blocking the entire meeting.');
 assert(peer.includes('pc.setConfiguration(iceConfiguration())')&&peer.includes('pc.restartIce()'),'Active peer connections must accept refreshed TURN credentials and restart ICE.');
 assert(peer.includes('createOffer(iceRestart?{iceRestart:true}:undefined)'),'Credential refresh must support deterministic ICE restart offers.');
-assert(peer.includes("setTransportStatus('Connected via TURN relay','relay')")&&peer.includes("setTransportStatus('Direct connection • TURN standby','ready')"),'Physical QA must expose selected network path.');
+assert(peer.includes("badge.hidden=remoteCount===0||kind==='ready'||kind==='pending'"),'Solo meetings must not surface transport diagnostics as persistent meeting-header warnings.');
 assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.transport-status[data-kind="error"]'),'Transport status must visibly distinguish relay and failure states.');
 
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];

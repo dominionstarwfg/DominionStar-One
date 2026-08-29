@@ -12,8 +12,8 @@ assert(auth.includes('invokeServerFunction'),'Main-process auth must own Edge Fu
 assert(service.includes("auth.invokeServerFunction('meet-v2-turn-credentials'"),'Meeting service must request temporary TURN credentials from the protected broker.');
 assert(service.includes('const hasRelay=servers=>'),'Meeting service must validate an actual TURN relay server.');
 assert(service.includes('allowDirectQa=false'),'Direct-only connectivity must be opt-in and disabled by default.');
-assert(service.includes('if(!allowDirectQa)throw error'),'Production must still fail closed when relay acquisition fails.');
-assert(service.includes("provider:'direct-qa'")&&service.includes('qaDirectOnly:true'),'Prerelease QA must expose an explicit direct-only ICE mode rather than pretending TURN exists.');
+assert(service.includes("turnCache.provider=allowDirectQa?'direct-qa':'direct-fallback'"),'Production TURN outage must degrade explicitly to direct/STUN instead of blocking the meeting.');
+assert(service.includes("provider:'direct-qa'")&&service.includes('qaDirectOnly:true'),'The shared direct fallback must remain explicitly marked and never pretend TURN exists.');
 assert(service.includes('QA_DIRECT_ICE'),'QA direct connectivity must live in the main-process meeting service, not the renderer.');
 assert(service.includes('turnCache.expiresAtMs-now>10*60*1000'),'Valid temporary network configuration should be reused rather than fetched per peer.');
 assert(service.includes("turnCache={roomId:'',iceServers:[],expiresAtMs:0"),'Leaving/ending a room must clear cached ICE state.');
@@ -25,8 +25,8 @@ assert(!preload.includes('invokeServerFunction')&&!preload.includes('meet-v2-tur
 assert(peer.includes("setTransportStatus('Preparing network…','pending')"),'WebRTC must visibly prepare network transport before peer startup.');
 assert(peer.indexOf('await loadIceConfig(false)')<peer.indexOf('state.running=true'),'Peer transport must obtain ICE configuration before becoming active.');
 assert(peer.includes('const qaDirectOnly=Boolean(config?.qaDirectOnly)'),'Renderer must distinguish explicit QA direct mode from relay-ready mode.');
-assert(peer.includes("setTransportStatus('Direct QA • TURN deferred','warning')"),'QA direct mode must be visibly labeled as non-production networking.');
+assert(peer.includes("setTransportStatus('Direct connection','warning')"),'Direct fallback must remain visibly distinguishable from TURN when remote participants exist.');
 assert(peer.includes('REFRESH_MARGIN_MS=10*60*1000'),'TURN credentials must refresh before expiry.');
 assert(peer.includes('record.pc.setConfiguration(iceConfiguration())')&&peer.includes('record.pc.restartIce()'),'Refreshed credentials must reach active RTCPeerConnections.');
 assert(!peer.includes('stun:stun.l.google.com'),'Static QA STUN configuration must not live in the renderer.');
-console.log('DOMINIONSTAR_TURN_RELAY_OK production-fail-closed qa-direct-explicit server-broker temporary-credentials refresh active-peer-ice-restart renderer-isolated');
+console.log('DOMINIONSTAR_TURN_RELAY_OK production-degraded-direct-fallback relay-preferred server-broker temporary-credentials refresh active-peer-ice-restart renderer-isolated');

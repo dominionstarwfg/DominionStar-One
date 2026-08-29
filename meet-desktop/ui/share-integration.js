@@ -8,15 +8,22 @@
 
   async function findMeetingSurface(){for(let i=0;i<120;i++){const overlay=document.querySelector('#meetingOverlay');if(overlay&&window.DominionMediaController)return overlay;await wait(50);}return null;}
   function toast(message,kind=''){let node=document.querySelector('#shareToast');if(!node){node=document.createElement('div');node.id='shareToast';document.body.append(node);}node.className=`share-toast ${kind}`.trim();node.textContent=String(message||'');node.hidden=false;clearTimeout(node.__timer);node.__timer=setTimeout(()=>{node.hidden=true;},6500);}
+  function showScreenPermissionDialog(status='unknown',restartRequired=false){
+    let dialog=document.querySelector('#screenPermissionDialog');
+    if(!dialog){
+      dialog=document.createElement('section');dialog.id='screenPermissionDialog';dialog.className='share-permission-dialog';dialog.hidden=true;dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','false');
+      dialog.innerHTML='<div class="share-permission-card"><div class="share-permission-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="m8 11 4-4 4 4M12 7v8M8 21h8"/></svg></div><div><p>SCREEN SHARING PERMISSION</p><h3>Allow DominionStar Meet to record your screen</h3><span data-permission-copy>macOS requires Screen & System Audio Recording access before you can share.</span></div><div class="share-permission-actions"><button type="button" data-permission-cancel>Not now</button><button type="button" data-permission-open>Open System Settings</button></div></div>';
+      document.body.append(dialog);
+      dialog.querySelector('[data-permission-cancel]').onclick=()=>{dialog.hidden=true;};
+      dialog.querySelector('[data-permission-open]').onclick=async()=>{await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});dialog.hidden=true;};
+    }
+    const copy=dialog.querySelector('[data-permission-copy]');if(copy)copy.textContent=`macOS reports Screen Recording as ${status}. Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording.${restartRequired?' Restart DominionStar Meet after enabling it.':''}`;
+    dialog.hidden=false;
+  }
   async function openPickerWithPermission(){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
     const result=await bridge.openPicker();
-    if(result?.permissionRequired){
-      const status=String(result.status||'unknown');
-      const restart=result.restartRequired?' Restart DominionStar Meet after granting access.':'';
-      toast(`macOS Screen Recording permission is ${status}. Allow DominionStar Meet in Privacy & Security > Screen & System Audio Recording.${restart}`,'error');
-      return false;
-    }
+    if(result?.permissionRequired){showScreenPermissionDialog(String(result.status||'unknown'),Boolean(result.restartRequired));return false;}
     return result?.opened!==false;
   }
 
@@ -30,7 +37,7 @@
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
 
-    let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share Screen';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}
+    let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share Screen';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
     let sharedVideo=stage.querySelector('#sharedContentVideo');if(!sharedVideo){sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);}
     let label=stage.querySelector('#shareStageLabel');if(!label){label=document.createElement('div');label.id='shareStageLabel';label.className='share-stage-label';label.hidden=true;stage.append(label);}
     let cameraTile=stage.querySelector('#presenterCameraTile');if(!cameraTile){cameraTile=document.createElement('video');cameraTile.id='presenterCameraTile';cameraTile.className='presenter-camera-tile';cameraTile.autoplay=true;cameraTile.playsInline=true;cameraTile.muted=true;cameraTile.hidden=true;stage.append(cameraTile);}

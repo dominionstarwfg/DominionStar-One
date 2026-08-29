@@ -187,11 +187,19 @@ try{
   mark('meeting-entry-complete');
   assert.equal(await evaluate(`Boolean(window.DominionShareIntegration&&document.querySelector('#roomShare'))`),true,'Packaged meeting renderer did not wire the native Share Screen integration.');
   assert.equal(await evaluate(`document.querySelector('#roomShare')?.textContent?.trim()==='Share Screen'`),true,'Packaged meeting Share Screen control is missing or mislabeled.');
+  await evaluate(`window.DominionMeetingParity.install();window.DominionMeetingParity.decorateControls();true`);
+  assert.equal(await evaluate(`document.querySelector('.room-side')?.hidden===true&&document.querySelector('#meetingOverlay')?.classList.contains('participants-hidden')`),true,'Packaged meeting must start with Participants/Waiting Room closed.');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.ds-meeting-brand img')&&document.querySelector('.ds-meeting-brand strong')?.textContent==='DominionStar Meet')`),true,'Packaged live meeting header must contain DominionStar logo and name.');
+  const primaryToolbar=await evaluate(`[...document.querySelector('.meeting-footer').children].filter(node=>node.id&&getComputedStyle(node).display!=='none').map(node=>node.id)`);
+  assert.deepEqual(primaryToolbar,['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions','roomMore','roomExitButton'],'Packaged primary toolbar must remain Mic, Video, Share, Participants, Chat, Reactions, More, End/Leave.');
+  assert.equal(await evaluate(`['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions','roomMore','roomExitButton'].every(id=>Boolean(document.querySelector('#'+id+' .ds-control-icon svg')))`),true,'Every primary meeting control must render a modern SVG icon.');
+  assert.equal(await evaluate(`document.querySelector('#meetDiagnosticsButton')?.hidden!==false`),true,'Diagnostics must not be visible in the normal production meeting UI.');
+  assert.equal(await evaluate(`(()=>{document.querySelector('#roomMore').click();const menu=document.querySelector('.meeting-more-menu');const text=menu?.textContent||'';menu?.remove();return !text.includes('Diagnostics')&&text.includes('Meeting settings');})()`),true,'Production More menu must contain working secondary controls without Diagnostics.');
   mark('share-integration-wired');
   await sleep(300);
   await waitFor("document.querySelector('#roomParticipants')&&document.querySelector('#roomMore')&&document.querySelector('#roomSettings')&&document.querySelector('#roomChat')&&document.querySelector('#roomReactions')","meeting controls",7000);mark('meeting-controls');
 
-  assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');side.hidden=true;document.querySelector('#roomParticipants').click();return side.hidden===false;})()`),true,'Participants control did not open the management panel.');
+  assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();return side.hidden===false&&!document.querySelector('#meetingOverlay').classList.contains('participants-hidden');})()`),true,'Participants control did not open the management panel on demand.');
   assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();return side.hidden===true;})()`),true,'Participants control did not close the management panel.');mark('participants');
 
   assert.equal(await evaluate(`(()=>{document.querySelector('#roomChat').click();return document.querySelector('#meetingChatPanel').hidden===false;})()`),true,'Chat control did not open chat.');

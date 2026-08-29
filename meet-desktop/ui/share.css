@@ -48,3 +48,13 @@
   .meeting-overlay.share-active .participant-video-dock.minimized{inset:8px 8px auto 8px!important;width:auto!important;height:30px!important}
   .meeting-overlay.share-active .participant-video-dock.minimized .participant-video-dock-body{display:none!important}
 }
+
+.share-permission-dialog{position:fixed;z-index:1200;left:50%;top:50%;transform:translate(-50%,-50%);border:0;padding:0;background:transparent;color:#f5f7fb}.share-permission-dialog[hidden]{display:none!important}
+.share-permission-card{width:min(470px,calc(100vw - 36px));display:grid;grid-template-columns:auto 1fr;gap:14px;padding:20px;border:1px solid rgba(255,255,255,.13);border-radius:16px;background:#0d1825;box-shadow:0 24px 70px rgba(0,0,0,.58)}
+.share-permission-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(47,128,237,.14);color:#78b3ff}
+.share-permission-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.share-permission-card p{grid-column:2;margin:0 0 4px;color:#83bfff;font-size:9px;font-weight:800;letter-spacing:.1em}
+.share-permission-card h3{margin:0 0 6px;font-size:17px}.share-permission-card span{color:#9caec1;font-size:11px;line-height:1.5}
+.share-permission-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.share-permission-actions button{height:38px;padding:0 13px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:#182537;color:#eef4fa;font-weight:750;cursor:pointer}
+.share-permission-actions [data-permission-open]{border-color:#2f80ed;background:#2f80ed;color:#fff}

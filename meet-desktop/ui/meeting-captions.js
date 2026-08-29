@@ -63,6 +63,7 @@
       const caret=document.createElement('button');caret.id='roomCaptionsMenu';caret.type='button';caret.className='meeting-control caption-caret';caret.textContent='⌃';caret.setAttribute('aria-label','Caption options');caret.onclick=event=>{event.stopPropagation();void openMenu(caret);};
       cluster.append(button,caret);footer.insertBefore(cluster,q('#roomSettings')||exit);
     }
+    window.DominionMeetingParity?.decorateControls?.();
     render();return true;
   }
 

@@ -199,8 +199,11 @@ export function createMeetingService({auth,allowDirectQa=false}){
       };
       return cloneIce(turnCache);
     }catch(error){
-      if(!allowDirectQa)throw error;
-      return directQaConfig(now);
+      // Keep the meeting usable when the relay broker is temporarily unavailable.
+      // Direct/STUN is a degraded fallback, not a substitute for production TURN.
+      const fallback=directQaConfig(now);
+      turnCache.provider=allowDirectQa?'direct-qa':'direct-fallback';
+      return cloneIce(turnCache);
     }
   }
 
