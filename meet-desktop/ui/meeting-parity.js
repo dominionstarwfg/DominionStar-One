@@ -115,10 +115,12 @@
   function syncShareLayout(){
     const overlay=q('#meetingOverlay'),stage=q('.stage'),dock=q('#participantVideoDock'),splitter=ensureShareSplitter();if(!overlay||!stage||!dock||!splitter)return;
     const active=sharing(),mode=readView(),showPanel=window.DominionPreferences?.read?.('shareVideoDock')!==false;
-    overlay.classList.toggle('share-side-by-side',active&&showPanel);
+    const floatingPanel=active&&showPanel&&dock.classList.contains('user-positioned');
+    overlay.classList.toggle('share-side-by-side',active&&showPanel&&!floatingPanel);
+    overlay.classList.toggle('share-panel-floating',floatingPanel);
     overlay.classList.toggle('share-panel-hidden',active&&!showPanel);
     overlay.dataset.shareView=active?mode:'';
-    splitter.hidden=!(active&&showPanel);
+    splitter.hidden=!(active&&showPanel&&!floatingPanel);
     qa('#participantVideoDock .remote-peer-tile').forEach(tile=>tile.classList.remove('share-featured'));
     if(active&&showPanel&&mode==='speaker'){
       const featured=(spotlightParticipantId?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`):null)
@@ -129,13 +131,23 @@
     }
     if(active&&!showPanel)dock.hidden=true;
     if(active&&showPanel){
-      stage.style.setProperty('--share-content-ratio',String(readShareSplit()));
       dock.classList.remove('gallery-stage','multi-speaker-stage');
-      dock.dataset.orientation='vertical';
-      dock.dataset.anchor='right';
-      dock.classList.remove('user-positioned');
-      dock.style.left='';dock.style.top='14px';dock.style.right='14px';dock.style.bottom='14px';
+      if(floatingPanel){
+        stage.style.removeProperty('--share-content-ratio');
+        const anchor=dock.dataset.anchor||'right';
+        dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical';
+        const stageRect=stage.getBoundingClientRect(),rect=dock.getBoundingClientRect();
+        const left=clamp(rect.left-stageRect.left,8,Math.max(8,stageRect.width-rect.width-8));
+        const top=clamp(rect.top-stageRect.top,8,Math.max(8,stageRect.height-rect.height-8));
+        dock.style.left=`${left}px`;dock.style.top=`${top}px`;dock.style.right='auto';dock.style.bottom='auto';
+      }else{
+        stage.style.setProperty('--share-content-ratio',String(readShareSplit()));
+        dock.dataset.orientation='vertical';
+        dock.dataset.anchor='right';
+        dock.style.left='';dock.style.top='14px';dock.style.right='14px';dock.style.bottom='14px';
+      }
     }else{
+      overlay.classList.remove('share-panel-floating');
       stage.style.removeProperty('--share-content-ratio');
     }
   }
