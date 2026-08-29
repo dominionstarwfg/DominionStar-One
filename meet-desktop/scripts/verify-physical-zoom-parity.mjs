@@ -24,6 +24,7 @@ assert(authBootstrap.includes("physical-zoom-parity.css")&&authBootstrap.include
 assert(authBootstrap.includes("physical-acceptance-polish.css")&&authBootstrap.includes("physical-acceptance-polish.js"),'Physical Mac acceptance polish must load in every desktop session.');
 assert(av.includes("caret.className='av-device-caret attached-device-caret'")&&av.includes("button.insertAdjacentElement('afterend',caret)"),'Mic/Video device arrows must be created adjacent to the corresponding control.');
 assert(physical.includes("if(button.nextElementSibling!==caret)button.insertAdjacentElement('afterend',caret)"),'Toolbar reconciliation must repair any detached Mic/Video caret instead of leaving orphan arrows.');
+assert(physical.indexOf("window.DominionMeetingParity?.install?.()")<physical.indexOf("const micAttached=attachCaret(q('#roomMic'))"),'Toolbar arrangement must finish before Mic/Video carets are attached so the arranger cannot detach them again.');
 assert(physicalCss.includes('.av-device-caret.zoom-attached-caret')&&physicalCss.includes('margin-left:-20px'),'Physical toolbar must visually bind each device caret to its Mic/Video split control.');
 assert(physical.includes("setFallback(q('#prejoinAvatar'),currentUser)")&&physical.includes("setFallback(q('#stageAvatar'),currentUser)"),'Signed-in profile picture must be used for camera-off prejoin and meeting stage fallback.');
 assert(app.includes('id="stageAvatar"')&&app.includes('id="prejoinAvatar"'),'Camera-off profile fallback surfaces must exist.');
