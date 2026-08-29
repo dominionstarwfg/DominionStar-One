@@ -17,10 +17,14 @@ assert(!peer.includes('createClient(')&&!peer.includes('.from('),'Renderer WebRT
 
 assert(peer.includes('new RTCPeerConnection'),'WebRTC peer connection authority is missing.');
 assert(peer.includes("localeCompare(String(remoteId))<0"),'Peer offer ownership must be deterministic.');
-assert.equal((peer.match(/addTransceiver\('/g)||[]).length,3,'Each peer must have exactly three media lanes.');
-assert(peer.includes("addTransceiver('audio',{direction:'sendrecv'})"),'Microphone lane is missing.');
+assert.equal((peer.match(/addTransceiver\('/g)||[]).length,4,'Each peer must have exactly four independent media lanes: microphone, camera, screen video, and shared system audio.');
+assert.equal((peer.match(/addTransceiver\('audio'/g)||[]).length,2,'Microphone and shared-system-audio must use independent audio lanes.');
 assert.equal((peer.match(/addTransceiver\('video'/g)||[]).length,2,'Camera and screen must have independent video lanes.');
-assert(peer.includes('replaceTrack(audio)')&&peer.includes('replaceTrack(camera)')&&peer.includes('replaceTrack(screen)'),'Local media changes must replace tracks without rebuilding the room.');
+assert(peer.includes('replaceTrack(audio)')&&peer.includes('replaceTrack(camera)')&&peer.includes('replaceTrack(screen)')&&peer.includes('replaceTrack(shareAudio)'),'Local mic, camera, screen, and system-audio changes must replace tracks without rebuilding the room.');
+assert(peer.includes("if(index===3&&event.track.kind==='audio')")&&peer.includes('playRemoteShareAudio'),'Remote shared computer sound must play through a dedicated presentation-audio receiver lane.');
+assert(peer.includes('data-share-audio-peer')&&peer.includes('routeAudioElement'),'Shared computer sound must remain separate from participant microphone playback while following the selected speaker device.');
+assert(peer.includes("degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced'")&&peer.includes('4500000:2500000'),'Optimize for Video must change outgoing screen-share transport behavior, not just picker copy.');
+assert(peer.includes('shareAudioSender')&&peer.includes('maxBitrate=128000'),'Shared system audio must have explicit outgoing audio transport parameters.');
 assert(peer.includes("meeting.sendSignal(record.id,'offer'")&&peer.includes("meeting.sendSignal(remoteId,'answer'")&&peer.includes("meeting.sendSignal(remoteId,'ice'"),'Offer/answer/ICE exchange is incomplete.');
 assert(peer.includes('pendingIce.push(payload.candidate)')&&peer.includes('flushIce(record)'),'Early ICE must be queued until the remote description exists.');
 assert(peer.includes('scheduleReconnect(record,RECONNECT_MS)'),'Peer reconnect handling is missing.');
@@ -61,4 +65,4 @@ assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.tran
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 assert.equal(ids[0].localeCompare(ids[1])<0,true,'Deterministic initiator policy sanity check failed.');
 assert.equal(ids[1].localeCompare(ids[0])<0,false,'Both peers must never initiate the same pair.');
-console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling');
+console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK four-lanes system-audio optimize-video deterministic-offer three-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling');
