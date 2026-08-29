@@ -49,7 +49,8 @@ alter table public.meet_v2_rooms
 
 alter table public.meet_v2_participants
   add column if not exists recording_allowed boolean not null default false,
-  add column if not exists is_recording boolean not null default false;
+  add column if not exists is_recording boolean not null default false,
+  add column if not exists recording_paused boolean not null default false;
 
 alter table public.meet_v2_participants
   drop constraint if exists meet_v2_participants_state_check;
@@ -660,7 +661,7 @@ begin
     'state',p.state,
     'joinedAt',p.joined_at,
     'lastSeenAt',p.last_seen_at,
-    'canHost',(p.member_id is not null and p.state='joined'),'recordingAllowed',p.recording_allowed,'isRecording',p.is_recording
+    'canHost',(p.member_id is not null and p.state='joined'),'recordingAllowed',p.recording_allowed,'isRecording',p.is_recording,'recordingPaused',p.recording_paused
   ) order by case p.role when 'host' then 0 when 'cohost' then 1 else 2 end,p.created_at),'[]'::jsonb)
   into v_people
   from public.meet_v2_participants p
@@ -1072,12 +1073,12 @@ begin
   if coalesce(v_room.active_host_id,v_room.host_id)<>v_actor then raise exception 'host_authority_required'; end if;
   if v_target.role in ('host','cohost') then raise exception 'host_roles_already_record'; end if;
   if v_target.state<>'joined' then raise exception 'participant_not_joined'; end if;
-  update public.meet_v2_participants set recording_allowed=coalesce(p_enabled,false),updated_at=now() where id=p_participant_id;
+  update public.meet_v2_participants set recording_allowed=coalesce(p_enabled,false),is_recording=case when coalesce(p_enabled,false) then is_recording else false end,recording_paused=case when coalesce(p_enabled,false) then recording_paused else false end,updated_at=now() where id=p_participant_id;
   return jsonb_build_object('ok',true,'participantId',p_participant_id,'recordingAllowed',coalesce(p_enabled,false));
 end
 $$;
 
-create or replace function public.meet_v2_set_recording_state(p_participant_id uuid,p_active boolean)
+create or replace function public.meet_v2_set_recording_state(p_participant_id uuid,p_active boolean,p_paused boolean default false)
 returns jsonb
 language plpgsql
 security definer
@@ -1092,8 +1093,12 @@ begin
   if not found then raise exception 'participant_not_found'; end if;
   if v_participant.member_id is distinct from v_user or v_participant.state<>'joined' then raise exception 'recording_sender_not_authorized'; end if;
   if v_participant.role not in ('host','cohost') and not coalesce(v_participant.recording_allowed,false) then raise exception 'recording_authority_required'; end if;
-  update public.meet_v2_participants set is_recording=coalesce(p_active,false),updated_at=now() where id=p_participant_id;
-  return jsonb_build_object('ok',true,'participantId',p_participant_id,'isRecording',coalesce(p_active,false));
+  update public.meet_v2_participants
+  set is_recording=coalesce(p_active,false),
+      recording_paused=case when coalesce(p_active,false) then coalesce(p_paused,false) else false end,
+      updated_at=now()
+  where id=p_participant_id;
+  return jsonb_build_object('ok',true,'participantId',p_participant_id,'isRecording',coalesce(p_active,false),'recordingPaused',case when coalesce(p_active,false) then coalesce(p_paused,false) else false end);
 end
 $$;
 
@@ -1195,7 +1200,8 @@ grant execute on function public.meet_v2_decide_participant(uuid,text) to authen
 grant execute on function public.meet_v2_set_cohost(uuid,boolean) to authenticated;
 grant execute on function public.meet_v2_remove_participant(uuid) to authenticated;
 grant execute on function public.meet_v2_set_recording_permission(uuid,boolean) to authenticated;
-grant execute on function public.meet_v2_set_recording_state(uuid,boolean) to authenticated;
+grant execute on function public.meet_v2_set_recording_state(uuid,boolean,boolean) to authenticated;
+
 grant execute on function public.meet_v2_rename_participant(uuid,text) to authenticated;
 grant execute on function public.meet_v2_set_security(uuid,boolean,boolean) to authenticated;
 grant execute on function public.meet_v2_set_chat_policy(uuid,text) to authenticated;
