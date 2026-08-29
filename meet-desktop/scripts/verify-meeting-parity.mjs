@@ -6,6 +6,8 @@ const parity=read('ui/meeting-parity.js');
 const css=read('ui/meeting-parity.css');
 const zoomBehavior=read('ui/zoom-behavior.js');
 const participantControls=read('ui/participant-controls.js');
+const features=read('ui/meeting-features.js');
+const featuresCss=read('ui/meeting-features.css');
 const zoomCss=read('ui/zoom-behavior.css');
 const participantCss=read('ui/participant-controls.css');
 const webrtc=read('ui/webrtc-controller.js');
@@ -85,6 +87,13 @@ assert(participantControls.includes("type==='host:ask-unmute'")&&participantCont
 assert(participantControls.includes('authorizedSender')&&participantControls.includes("['host','cohost'].includes"),'Incoming participant-control commands must verify host/co-host authority before touching local media.');
 assert(participantControls.includes("media()?.setMicrophone?.(false)")&&participantControls.includes("media()?.setCamera?.(false)"),'Verified host controls must call the existing media authority rather than manipulate tracks directly.');
 assert(participantControls.includes('Mute All')&&participantControls.includes('Ask All to Unmute'),'Participant panel must expose Zoom-style bulk audio controls.');
+assert(features.includes("kind:'hand'")&&features.includes('toggleRaiseHand')&&features.includes('raisedHands:new Map()'),'Raise Hand must be persistent meeting state, not a timed emoji reaction.');
+assert(features.includes("hand.textContent=state.localHandRaised?'✋ Lower Hand':'✋ Raise Hand'"),'Reactions menu must toggle Raise Hand / Lower Hand for the local participant.');
+assert(features.includes('raised-hand-indicator')&&features.includes('remote-raised-hand'),'Raised Hand must decorate both participant roster and video tile state.');
+assert(participantControls.includes("type==='host:lower-hand'")&&participantControls.includes("await window.DominionMeetingFeatures?.setLocalHand?.(false"),'Host/co-host Lower Hand must pass through verified participant-control authority before changing local hand state.');
+assert(participantControls.includes("row.dataset.raisedHand==='1'")&&participantControls.includes("add('Lower Hand'"),'Host/co-host participant More menu must expose Lower Hand only for a raised participant.');
+assert(participantControls.includes('Lower All Hands')&&participantControls.includes("sendAll('host:lower-hand')"),'Participant panel must expose Lower All Hands.');
+assert(featuresCss.includes('.raised-hand-indicator')&&featuresCss.includes('.remote-peer-tile.hand-raised'),'Raised Hand must have dedicated roster and video styling.');
 assert(participantControls.includes("filter(p=>String(p.role||'').toLowerCase()!=='host')"),'Bulk participant controls must never target the host.');
 assert(webrtc.includes("String(signal.type||'').startsWith('host:')"),'WebRTC signaling must dispatch host media-control messages to the verified participant-control layer.');
 assert(participantCss.includes('.participant-control-menu')&&participantCss.includes('.participant-bulk-actions')&&participantCss.includes('.participant-control-prompt'),'Participant media controls must ship with dedicated desktop UI styling.');
@@ -95,4 +104,4 @@ assert(parity.includes("desktop.meeting.sendSignal(p.participantId,'host:view-la
 assert(parity.includes("window.addEventListener('dominion:host-view-layout'")&&parity.includes('applyViewMode(mode)'),'Authorized meeting-wide View changes must reuse the local adaptive View authority.');
 assert(parity.includes('spotlightParticipantId?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`)'),'Side-by-side Speaker must prioritize Spotlight before automatic active-speaker selection.');
 assert(css.includes('button[data-apply-view-everyone]'),'Host meeting-wide View action must have dedicated desktop styling.');
-console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat unread-chat chat-policy participant-media-controls mute-all ask-unmute stop-video ask-start-video bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share draggable-divider hide-video-panel host-view-broadcast spotlight-side-by-side');
+console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat unread-chat chat-policy participant-media-controls mute-all ask-unmute stop-video ask-start-video raise-hand lower-hand lower-all-hands bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share draggable-divider hide-video-panel host-view-broadcast spotlight-side-by-side');
