@@ -103,7 +103,11 @@
         "NSCameraUsageDescription": "DominionStar Meet uses your camera when you choose to join a meeting with video.",
         "NSMicrophoneUsageDescription": "DominionStar Meet uses your microphone when you choose to speak in a meeting.",
         "NSAudioCaptureUsageDescription": "DominionStar Meet uses system audio only when you explicitly choose to include computer sound in a screen share.",
-        "NSScreenCaptureUsageDescription": "DominionStar Meet uses screen capture only when you choose to share your screen."
+        "NSScreenCaptureUsageDescription": "DominionStar Meet uses screen capture only when you choose to share your screen.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true
+        }
       }
     }
   }
