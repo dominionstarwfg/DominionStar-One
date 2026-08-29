@@ -5,17 +5,42 @@
   const read=(key,fallback='')=>{try{const value=localStorage.getItem(STORAGE[key]);return value===null?fallback:value;}catch{return fallback;}};
   const write=(key,value)=>{try{localStorage.setItem(STORAGE[key],String(value));}catch{}};
   const state={quality:read('quality','720'),lowLight:read('lowLight','0')==='1',lowLightMode:read('lowLightMode','auto'),lowLightLevel:Number(read('lowLightLevel','65'))||65,originalRatio:read('originalRatio','0')==='1',touchUp:read('touchUp','0')==='1',touchUpLevel:Number(read('touchUpLevel','25'))||25,portraitLight:read('portraitLight','0')==='1',portraitLevel:Number(read('portraitLevel','35'))||35};
-  let menu=null;
+  let menu=null,settingsPreviewRaw=null;
 
   const waitForMedia=()=>new Promise(resolve=>{let tries=0;const tick=()=>{if(window.DominionMediaController)return resolve(window.DominionMediaController);if(++tries>160)return resolve(null);setTimeout(tick,50);};tick();});
   const localVideos=()=>['prejoinVideo','localMeetingVideo','presenterCameraTile','settingsVideoPreview'].map(id=>document.getElementById(id)).filter(Boolean);
   const currentVideoTrack=media=>media?.stream?.()?.getVideoTracks?.().find(track=>track.readyState==='live')||null;
   const safeLabel=(value,fallback)=>String(value||'').trim()||fallback;
   const effects=()=>window.DominionVideoEffects||null;
-  async function previewStream(media){
-    const raw=currentVideoTrack(media);if(!raw)return media.stream();
-    const fx=effects();if(!fx?.outputStream)return media.stream();
-    try{return await fx.outputStream(raw)||media.stream();}catch{return media.stream();}
+  async function previewStream(media,sourceStream=null){
+    const raw=sourceStream?.getVideoTracks?.().find(track=>track.readyState==='live')||currentVideoTrack(media);
+    const fallback=sourceStream||media.stream();
+    if(!raw)return fallback;
+    const fx=effects();if(!fx?.outputStream)return fallback;
+    try{return await fx.outputStream(raw)||fallback;}catch{return fallback;}
+  }
+  function stopSettingsPreview(){
+    for(const track of settingsPreviewRaw?.getTracks?.()||[]){try{track.stop();}catch{}}
+    settingsPreviewRaw=null;
+    const video=$('#settingsVideoPreview');if(video)video.srcObject=null;
+  }
+  async function startSettingsPreview(media,video,cameraId=''){
+    stopSettingsPreview();
+    const status=video?.closest('.av-video-preview')?.querySelector('.av-preview-status');
+    try{
+      settingsPreviewRaw=await media.testCameraStream?.(cameraId||media.snapshot().cameraId);
+      if(!settingsPreviewRaw?.getVideoTracks?.().length)throw new Error('Camera preview unavailable.');
+      video.srcObject=await previewStream(media,settingsPreviewRaw);
+      await video.play().catch(()=>{});
+      video.closest('.av-video-preview')?.classList.remove('preview-unavailable');
+      if(status)status.textContent='Live preview';
+      return true;
+    }catch(error){
+      if(video)video.srcObject=null;
+      video?.closest('.av-video-preview')?.classList.add('preview-unavailable');
+      if(status)status.textContent=String(error?.message||'Camera preview unavailable');
+      return false;
+    }
   }
 
   function closeMenu(){menu?.remove();menu=null;}
@@ -64,7 +89,7 @@
     detail=document.createElement('section');detail.id='avSettingsDetail';detail.className='av-settings-detail';detail.hidden=true;dialog.querySelector('form')?.insertBefore(detail,dialog.querySelector('.settings-note'));return detail;
   }
   function detailHeader(detail,title,copy){detail.innerHTML='';const header=document.createElement('header');header.className='av-detail-head';const back=document.createElement('button');back.type='button';back.className='secondary-button av-back';back.textContent='‹ Back';const text=document.createElement('div');const h=document.createElement('h3');h.textContent=title;const p=document.createElement('p');p.textContent=copy;text.append(h,p);header.append(back,text);detail.append(header);back.onclick=()=>showSettingsList();}
-  function showSettingsList(){const dialog=$('#settingsDialog');if(!dialog)return;dialog.querySelector('.settings-list').hidden=false;dialog.querySelector('.settings-note').hidden=false;const detail=dialog.querySelector('#avSettingsDetail');if(detail)detail.hidden=true;}
+  function showSettingsList(){stopSettingsPreview();const dialog=$('#settingsDialog');if(!dialog)return;dialog.classList.remove('av-video-settings-open');dialog.querySelector('.settings-list').hidden=false;dialog.querySelector('.settings-note').hidden=false;const detail=dialog.querySelector('#avSettingsDetail');if(detail)detail.hidden=true;}
   function addSelect(detail,labelText,attr){const label=document.createElement('label');label.className='av-field';const span=document.createElement('span');span.textContent=labelText;const select=document.createElement('select');select.setAttribute(attr,'1');label.append(span,select);detail.append(label);return select;}
   function addToggle(detail,labelText,checked,onChange){const label=document.createElement('label');label.className='av-toggle-row';const span=document.createElement('span');span.textContent=labelText;const input=document.createElement('input');input.type='checkbox';input.checked=Boolean(checked);input.onchange=()=>onChange(input.checked);label.append(span,input);detail.append(label);return input;}
   function addBackgroundPicker(detail,fx,video,media){
@@ -73,7 +98,7 @@
     const items=[['none','None'],['aurora','Dominion Aurora'],['studio','Studio']];
     for(const [id,label] of items){
       const b=document.createElement('button');b.type='button';b.className='av-background-card';b.dataset.background=id;b.classList.toggle('selected',snap.virtualBackground===id);b.innerHTML=`<span class="av-bg-swatch ${id}"></span><strong>${label}</strong>`;
-      b.onclick=async()=>{await fx.setVirtualBackground(id);video.srcObject=await previewStream(media);void video.play().catch(()=>{});wrap.querySelectorAll('.av-background-card').forEach(n=>n.classList.toggle('selected',n===b));};grid.append(b);
+      b.onclick=async()=>{await fx.setVirtualBackground(id);video.srcObject=await previewStream(media,settingsPreviewRaw);void video.play().catch(()=>{});wrap.querySelectorAll('.av-background-card').forEach(n=>n.classList.toggle('selected',n===b));};grid.append(b);
     }
     const upload=document.createElement('label');upload.className='av-background-card upload';upload.innerHTML='<span class="av-bg-swatch custom">+</span><strong>Custom image</strong><input type="file" accept="image/png,image/jpeg,image/webp" hidden>';
     const input=upload.querySelector('input');input.onchange=()=>{const file=input.files?.[0];if(!file)return;if(file.size>1024*1024){input.value='';const note=wrap.querySelector('.av-background-status');if(note)note.textContent='Custom background must be 1 MB or smaller.';return;}const reader=new FileReader();reader.onload=async()=>{const result=await fx.setVirtualBackground('custom',String(reader.result||''));const note=wrap.querySelector('.av-background-status');if(!result?.ok){if(note)note.textContent='Could not use that image.';return;}video.srcObject=await previewStream(media);void video.play().catch(()=>{});wrap.querySelectorAll('.av-background-card').forEach(n=>n.classList.remove('selected'));upload.classList.add('selected');if(note)note.textContent='Custom background ready.';};reader.readAsDataURL(file);};grid.append(upload);wrap.append(grid);
@@ -141,12 +166,12 @@
   }
   function avDivider(parent){const line=document.createElement('div');line.className='av-zoom-divider';parent.append(line);return line;}
   async function openVideoSettings(media){
-    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Video','Camera and video preferences.');
+    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.classList.add('av-video-settings-open');dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Video','Preview your camera and tune the same core video behaviors users expect from Zoom.');
 
     const cameraGroup=avGroup(detail,'Camera','Select your camera and review the live preview.');
     const camera=addSelect(cameraGroup,'Camera','data-av-camera');
-    const preview=document.createElement('div');preview.className='av-video-preview zoom-reference-preview';preview.innerHTML='<video id="settingsVideoPreview" autoplay playsinline muted></video><span>Camera preview</span>';cameraGroup.append(preview);
-    const video=preview.querySelector('video');video.srcObject=await previewStream(media);void video.play().catch(()=>{});
+    const preview=document.createElement('div');preview.className='av-video-preview zoom-reference-preview';preview.innerHTML='<video id="settingsVideoPreview" autoplay playsinline muted></video><div class="av-preview-meta"><span>Camera preview</span><small class="av-preview-status">Starting camera…</small></div>';cameraGroup.append(preview);
+    const video=preview.querySelector('video');
 
     const basic=avGroup(detail,'Video','Core camera behavior');
     const qualityRow=document.createElement('div');qualityRow.className='av-zoom-inline-options';basic.append(qualityRow);
@@ -188,7 +213,15 @@
     const privacy=document.createElement('button');privacy.type='button';privacy.className='secondary-button av-privacy';privacy.textContent='Open macOS Camera Privacy';privacy.onclick=()=>media.openPrivacy?.('camera');advancedBody.append(privacy);
 
     await fillSelects(media,detail);
-    camera.onchange=async()=>{await media.selectCamera(camera.value);video.srcObject=await previewStream(media);applyMirror(media);applyOriginalRatio();applyAppearance();await applyQuality(media);if(state.lowLight)await applyLowLight(media);};
+    await startSettingsPreview(media,video,camera.value);
+    camera.onchange=async()=>{
+      camera.disabled=true;
+      try{
+        await media.selectCamera(camera.value);
+        await startSettingsPreview(media,video,camera.value);
+        applyMirror(media);applyOriginalRatio();applyAppearance();await applyQuality(media);if(state.lowLight)await applyLowLight(media);
+      } finally{camera.disabled=false;}
+    };
     quality.onchange=async()=>{state.quality=quality.value;await applyQuality(media);};
     applyMirror(media);applyOriginalRatio();applyAppearance();
   }
