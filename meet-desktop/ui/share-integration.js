@@ -57,8 +57,16 @@
     });
 
     bridge?.onSourceSelected?.(async selection=>{
-      try{await share.start({name:selection?.name,options:selection?.options||{}});applyLayout();}
-      catch(error){await share.stop().catch(()=>{});applyLayout();toast(error?.message||'Screen sharing could not start.','error');}
+      const replacing=share.snapshot().active;
+      try{
+        if(replacing)await share.replaceSource({name:selection?.name,options:selection?.options||{}});
+        else await share.start({name:selection?.name,options:selection?.options||{}});
+        applyLayout();
+        if(replacing)toast(`Now sharing ${String(selection?.name||'new source')}`);
+      } catch(error){
+        applyLayout();
+        toast(replacing?(error?.message||'The new source could not start. Your current share is still active.'):(error?.message||'Screen sharing could not start.'),'error');
+      }
     });
 
     share.onChange(()=>applyLayout());
@@ -74,7 +82,7 @@
         if(command==='participants'){window.DominionMeetingParity?.toggleParticipants?.();return;}
         if(command==='chat'){window.DominionMeetingFeatures?.toggleChat?.();return;}
         if(command==='annotate'){window.DominionShareAnnotation?.toggle?.();applyLayout();return;}
-        if(command==='new-share'){window.DominionShareAnnotation?.deactivate?.();await share.stop();applyLayout();await openPickerWithPermission();return;}
+        if(command==='new-share'){window.DominionShareAnnotation?.deactivate?.();applyLayout();await openPickerWithPermission();return;}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return;}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return;}
         if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return;}
