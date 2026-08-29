@@ -216,8 +216,10 @@ assert(read('ui','webrtc.css').includes('.remote-share-banner'),'Packaged remote
 assert(read('ui','share.css').includes('.meeting-overlay.share-active .meeting-footer{display:none}'),'Packaged active share must suppress the ordinary meeting footer so the presenter toolbar is the share-control surface.');
 assert(share.includes('let inFlight=null'),'Packaged share authority must keep exactly one native source enumeration in flight.');
 assert(share.includes('Promise.race([inFlight,timeoutResult()])'),'Packaged share source enumeration must remain bounded by timeout.');
-assert(share.includes('.finally(()=>{inFlight=null;})'),'Packaged share authority must release single-flight state after enumeration.');
+assert(share.includes("if(inFlight===tracked){inFlight=null;inFlightKey='';}"),'Packaged share authority must release only the completing active single-flight enumeration.');
 assert(shareService.includes('createShareSourceAuthority'),'Packaged share service must use the isolated source authority.');
+assert.equal((read('ui','index.html').match(/share-integration\.js/g)||[]).length,1,'Packaged desktop HTML must load native Share integration exactly once.');
+assert(read('ui','share-integration.js').includes("button.id='roomShare'"),'Packaged Share integration must create the in-meeting Share Screen control.');
 assert(shareService.includes('ensureScreenPermission()')&&shareService.includes('permissionRequired:true'),'Packaged share picker must preflight native Screen Recording permission.');
 assert(webrtc.includes('RTCPeerConnection'),'Packaged app must include WebRTC transport.');
 assert((webrtc.match(/addTransceiver\('audio'/g)||[]).length===2 && (webrtc.match(/addTransceiver\('video'/g)||[]).length===2,'Packaged peer transport must contain microphone, camera, screen-video, and shared-system-audio lanes.');
