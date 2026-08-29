@@ -96,7 +96,7 @@ assert(!schedule.includes("replace(/\\D/g,'').slice(0,11)"),'Packaged Schedule m
 assert(schedule.includes('await meeting.startSchedule(item.scheduleId)'),'Packaged recurring Start must reopen the existing scheduled identity.');
 assert(schedule.includes("mode==='personal'&&recurrence"),'Packaged Schedule must prevent fixed recurrence from silently using the Personal Meeting ID.');
 assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.schedule-option-grid'),'Packaged scheduled/recurring meetings must have real desktop layouts.');
-assert(av.includes("caret.className='meeting-control av-device-caret'"),'Packaged meeting must retain mic/video device-option carets.');
+assert(av.includes("caret.className='av-device-caret attached-device-caret'")&&av.includes("button.classList.add('has-device-caret')"),'Packaged meeting must retain mic/video device-option carets attached to their controls.');
 assert(av.includes("avGroup(detail,'Camera'")&&av.includes("avGroup(detail,'Appearance'")&&av.includes("avGroup(detail,'Background & Effects'")&&av.includes("summary.textContent='Advanced'"),'Packaged Video settings must preserve the approved Zoom-style hierarchy.');
 assert(av.includes('Test Microphone')&&av.includes('Test Speaker')&&av.includes('Test Speaker & Microphone…'),'Packaged Audio settings must expose microphone/speaker tests from settings and the quick menu.');
 assert(av.includes('Echo cancellation')&&av.includes('Noise suppression')&&av.includes('Automatically adjust microphone volume')&&av.includes('Original sound for musicians'),'Packaged Audio settings must expose real microphone processing controls.');
