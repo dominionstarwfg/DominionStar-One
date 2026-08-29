@@ -62,7 +62,7 @@ assert(schedule.includes("mode==='personal'&&recurrence"),'Fixed recurrence must
 assert(schedule.includes("/^\\d{3,7}$/"),'Generated scheduled meeting passcodes must be validated as 3–7 digits.');
 assert(scheduleCss.includes('.scheduled-row')&&scheduleCss.includes('.scheduled-home-list')&&scheduleCss.includes('.schedule-option-grid'),'Scheduled and recurring meetings must render on Home, Meetings, and Schedule surfaces.');
 
-for(const key of ['joinMuted','joinVideoOff','showJoinPreview','hideSelfView','waitingRoomSound','joinLeaveSound','desktopMeetingNotifications','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
+for(const key of ['joinMuted','joinVideoOff','showJoinPreview','hideSelfView','waitingRoomSound','joinLeaveSound','desktopMeetingNotifications','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts','captionFontSize','captionFontType','captionTheme','captionPosition','alwaysShowCaptions'])assert(preferences.includes(`${key}:`),`Preferences missing ${key}.`);
 for(const section of ['Meetings','Share Screen','Chat','Recording','Accessibility','Keyboard Shortcuts','About'])assert(preferences.includes(`'${section}'`),`Preferences section missing: ${section}`);
 assert(!preferences.includes('will be added'),'Preferences must not expose dead future-feature copy.');
 assert(preferences.includes('Show video preview before joining')&&preferences.includes('Hide my self view in meetings'),'Meeting preferences must expose Zoom-style join-preview and self-view choices.');
@@ -82,12 +82,18 @@ assert(meetingNotifications.includes("desktop.notifications?.setWaitingCount?.(i
 assert(preload.includes("setWaitingCount:(count,attention=false)"),'Renderer must access waiting-room native attention only through the narrow notification bridge.');
 assert(preload.includes("notifications:Object.freeze({showMeeting:"),'Renderer must access native meeting notifications only through a narrow bridge.');
 assert(js.includes("new CustomEvent('dominion:meeting-snapshot'"),'Existing room snapshot polling must publish one shared local state event for captions and other meeting modules.');
-assert(meetingCaptions.includes("version:'1.0.0'")&&meetingCaptions.includes("roomCaptions")&&meetingCaptions.includes("roomCaptionsMenu"),'Meeting shell must expose Zoom-style Show/Hide Captions plus a caption-options control.');
+assert(meetingCaptions.includes("version:'1.1.0'")&&meetingCaptions.includes("roomCaptions")&&meetingCaptions.includes("roomCaptionsMenu"),'Meeting shell must expose Zoom-style Show/Hide Captions plus a caption-options control.');
 assert(meetingCaptions.includes('const cutoff=now()-180000')&&meetingCaptions.includes("Past 3 minutes"),'Live caption history must remain a short three-minute accessibility window rather than a retained transcript.');
 assert(meetingCaptions.includes('setCaptionState')&&meetingCaptions.includes('Select manual captioner')&&meetingCaptions.includes('Start Manual Captions'),'Caption host controls must use server-backed manual-captioner authority.');
 assert(meetingCaptions.includes('Retain Meeting Transcript')&&meetingCaptions.includes('Download Retained Transcript'),'Retained transcript must remain a separate explicit host choice from live captions.');
 assert(meetingCaptions.includes('Automated captions are not enabled in this QA build until a stable speech engine is certified.'),'Desktop must not expose fake automated captions before a stable speech engine is certified.');
 assert(meetingCaptionsCss.includes('.meeting-caption-overlay')&&meetingCaptionsCss.includes('.meeting-caption-panel')&&meetingCaptionsCss.includes('.meeting-caption-menu'),'Live captions, full-caption panel, and caption options must have dedicated desktop styling.');
+assert(preferences.includes('Closed Captioning')&&preferences.includes('captionFontSize')&&preferences.includes('captionFontType')&&preferences.includes('captionTheme')&&preferences.includes('captionPosition')&&preferences.includes('alwaysShowCaptions'),'Accessibility settings must expose Zoom-style personal caption display preferences.');
+assert(meetingCaptions.includes("pref('captionFontSize'")&&meetingCaptions.includes("pref('captionFontType'")&&meetingCaptions.includes("pref('captionTheme'")&&meetingCaptions.includes("pref('captionPosition'"),'Live caption rendering must read personal accessibility preferences rather than meeting authority state.');
+assert(meetingCaptions.includes("window.addEventListener('dominion:preference-change'"),'Caption appearance changes must apply immediately without restarting the meeting.');
+assert(meetingCaptions.includes("overlay.classList.toggle('caption-popout'")&&meetingCaptionsCss.includes('.meeting-caption-overlay.caption-popout')&&meetingCaptionsCss.includes('resize:both'),'Caption Position must support pinned-bottom and movable/resizable pop-out overlay behavior.');
+assert(meetingCaptions.includes("pref('alwaysShowCaptions',false)")&&preferences.includes('Always show captions when available'),'Always-show captions must remain a local user preference.');
+assert(!preferences.includes('setCaptionState(')&&!preferences.includes('publishCaption('),'Personal Accessibility settings must never modify host caption/transcript authority.');
 
 assert(shareService.includes('compactMainWindow'),'Desktop sharing must own a native compact meeting-window mode.');
 assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during a share must compact the meeting window instead of losing participant video.');
