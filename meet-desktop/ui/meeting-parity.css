@@ -92,3 +92,5 @@
 .preview-controls button{display:flex;align-items:center;justify-content:center;gap:8px}
 .preview-controls .ds-control-icon{width:18px;height:18px}.preview-controls .ds-control-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .preview-controls .ds-control-label{font-size:10px;font-weight:800}
+
+.meeting-footer .meeting-control[hidden],.meeting-footer .caption-control-cluster[hidden]{display:none!important}
