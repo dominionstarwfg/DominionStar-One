@@ -205,9 +205,15 @@ try{
   await waitFor("document.querySelector('#roomParticipants')&&document.querySelector('#roomMore')&&document.querySelector('#roomSettings')&&document.querySelector('#roomChat')&&document.querySelector('#roomReactions')","meeting controls",7000);mark('meeting-controls');
 
   assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();return side.hidden===false&&!document.querySelector('#meetingOverlay').classList.contains('participants-hidden');})()`),true,'Participants control did not open the management panel on demand.');
+  const participantPanelGeometry=await evaluate(`(()=>{const side=document.querySelector('.room-side').getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect();return {top:Math.round(side.top-body.top),centerDelta:Math.round(Math.abs((side.left+side.width/2)-(body.left+body.width/2))),position:getComputedStyle(document.querySelector('.room-side')).position};})()`);
+  assert.ok(participantPanelGeometry.top<=24,'Participants panel must open near the top of the meeting.');
+  assert.ok(participantPanelGeometry.centerDelta<=24,'Participants panel must open centered horizontally by default.');
+  assert.equal(participantPanelGeometry.position,'absolute','Participants panel must float over the meeting rather than shrink the stage.');
   assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();return side.hidden===true;})()`),true,'Participants control did not close the management panel.');mark('participants');
 
   assert.equal(await evaluate(`(()=>{document.querySelector('#roomChat').click();return document.querySelector('#meetingChatPanel').hidden===false;})()`),true,'Chat control did not open chat.');
+  assert.equal(await evaluate(`Boolean(document.querySelector('#meetingChatRecipient')&&document.querySelector('#meetingChatInput')&&document.querySelector('#meetingChatForm'))`),true,'Chat must expose recipient targeting, message entry, and send controls.');
+  assert.equal(await evaluate(`document.querySelector('#meetingChatRecipient')?.options?.[0]?.value==='everyone'`),true,'Chat must default to Everyone while retaining private-recipient support.');
   assert.equal(await evaluate(`(()=>{document.querySelector('#roomChat').click();return document.querySelector('#meetingChatPanel').hidden===true;})()`),true,'Chat control did not close chat.');mark('chat');
 
   assert.equal(await evaluate(`(()=>{document.querySelector('#roomReactions').click();return Boolean(document.querySelector('.meeting-reaction-menu'));})()`),true,'Reactions control did not open its menu.');
@@ -234,7 +240,17 @@ try{
   })()`);
   assert.equal(dock.hidden,false,'Four participant tiles must show the floating video dock.');
   assert.match(dock.className,/count-4/,'Four participant tiles must select the four-tile adaptive dock state.');
-  assert.ok(String(dock.grid).split(' ').filter(Boolean).length>=2,'Four participant tiles must render as an internal multi-column grid.');mark('adaptive-dock');
+  assert.ok(String(dock.grid).split(' ').filter(Boolean).length>=2,'Four participant tiles must render as an internal multi-column grid.');
+  const shareDock=await evaluate(`(()=>{
+    const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');
+    overlay.classList.add('share-active');window.DominionPreferences?.write?.('shareVideoDock',true);window.DominionPreferences?.write?.('shareSideBySide',false);
+    window.DominionMeetingParity.syncShareLayout();window.DominionMeetingParity.syncVideoDock();
+    const result={floating:overlay.classList.contains('share-panel-floating'),sideBySide:overlay.classList.contains('share-side-by-side'),orientation:dock.dataset.orientation,right:getComputedStyle(dock).right};
+    overlay.classList.remove('share-active');window.DominionMeetingParity.syncShareLayout();window.DominionMeetingParity.syncVideoDock();return result;
+  })()`);
+  assert.equal(shareDock.floating,true,'Screen sharing must default to the floating participant video panel.');
+  assert.equal(shareDock.sideBySide,false,'Side-by-side video must not replace the default floating share dock unless explicitly selected.');
+  assert.equal(shareDock.orientation,'vertical','Default share-time video panel must start as a vertical right-side dock.');mark('adaptive-dock');
 
   console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence meeting-panels chat reactions more adaptive-full-stage-dock');
 }catch(error){
