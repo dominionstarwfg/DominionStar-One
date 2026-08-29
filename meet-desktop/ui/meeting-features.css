@@ -38,3 +38,9 @@
 .recording-consent-card>div:nth-child(2){position:relative;display:grid;gap:6px;align-content:start}.recording-consent-card p{margin:0;color:#6f9ee8;font-size:7px;font-weight:850;letter-spacing:.13em}.recording-consent-card h3{margin:0;font-size:16px;letter-spacing:-.015em}.recording-consent-card #meetingRecordingConsentCopy{color:#9facbb;font-size:10px;line-height:1.55}
 .recording-consent-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-top:6px;position:relative}.recording-consent-actions button{height:36px;padding:0 14px;border:0;border-radius:9px;font-size:9px;font-weight:780;cursor:pointer}.recording-consent-actions .danger{background:rgba(255,74,98,.12);color:#ff7084;border:1px solid rgba(255,74,98,.18)}.recording-consent-actions .primary{background:linear-gradient(180deg,#347fe6,#2468c8);color:#fff;box-shadow:0 8px 20px rgba(37,105,204,.2)}
 @media(max-width:620px){.recording-consent-card{grid-template-columns:46px minmax(0,1fr);padding:18px;gap:12px}.recording-consent-orbit{width:44px;height:44px}.meeting-recording-indicator small{display:none}}
+
+.meeting-recording-indicator.paused{border-color:rgba(235,190,82,.28);box-shadow:0 10px 30px rgba(0,0,0,.3),0 0 26px rgba(235,190,82,.08)}
+.meeting-recording-indicator.paused i{background:#e6bd52;box-shadow:0 0 0 4px rgba(230,189,82,.12),0 0 18px rgba(230,189,82,.3);animation:none}
+.meeting-control.recording-stop-control{color:#ff7186}.meeting-control.recording-stop-control .ds-control-icon,.meeting-control.recording-stop-control .ds-control-label{color:#ff7186}
+.recording-participant-badge.paused{border-color:rgba(230,189,82,.24);background:rgba(230,189,82,.1);color:#e6bd52}
+.more-menu #presenterStopRecord{color:#ff7186}
