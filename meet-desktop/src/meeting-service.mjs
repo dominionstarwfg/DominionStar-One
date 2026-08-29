@@ -132,6 +132,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
   const removeParticipant=participantId=>auth.rpc('meet_v2_remove_participant',{p_participant_id:participantId});
   const renameParticipant=(participantId,displayName)=>auth.rpc('meet_v2_rename_participant',{p_participant_id:participantId,p_display_name:normalizeName(displayName)});
   const setSecurity=(roomId,{locked=false,muteOnEntry=false}={})=>auth.rpc('meet_v2_set_security',{p_room_id:roomId,p_locked:Boolean(locked),p_mute_on_entry:Boolean(muteOnEntry)});
+  const setChatPolicy=(roomId,policy='everyone')=>auth.rpc('meet_v2_set_chat_policy',{p_room_id:roomId,p_policy:String(policy||'everyone')});
   const transferHostAndLeave=async participantId=>{const result=await auth.rpc('meet_v2_transfer_host_and_leave',{p_target_participant_id:participantId});clear();return result;};
   const endRoom=async roomId=>{const result=await auth.rpc('meet_v2_end_room',{p_room_id:roomId});clear();return result;};
   const context=()=>Object.freeze({...current});
@@ -221,6 +222,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
     removeParticipant,
     renameParticipant,
     setSecurity,
+    setChatPolicy,
     transferHostAndLeave,
     endRoom,
     context,
