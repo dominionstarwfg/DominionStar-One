@@ -155,8 +155,9 @@
     const stream=canvas.captureStream(30);
     try{
       const ac=new AudioContext(),dest=ac.createMediaStreamDestination();state.audioContext=ac;const sources=[];
-      const local=window.DominionMediaController?.stream?.();if(local?.getAudioTracks?.().length)sources.push(local);
-      for(const audio of qa('#remoteAudioBin audio'))if(audio.srcObject?.getAudioTracks?.().length)sources.push(audio.srcObject);
+      const pref=name=>{try{return window.DominionPreferences?.read?.(name)!==false;}catch{return true;}};
+      const local=window.DominionMediaController?.stream?.();if(pref('recordMic')&&local?.getAudioTracks?.().length)sources.push(local);
+      if(pref('recordRemote'))for(const audio of qa('#remoteAudioBin audio'))if(audio.srcObject?.getAudioTracks?.().length)sources.push(audio.srcObject);
       for(const source of sources){try{ac.createMediaStreamSource(source).connect(dest);}catch{}}
       for(const track of dest.stream.getAudioTracks())stream.addTrack(track);
     }catch{}
@@ -165,8 +166,31 @@
   async function startRecording(){
     if(state.recording)return;
     const authority=await recordingAuthority();if(!authority.allowed)throw new Error('The host has not allowed you to record this meeting.');
-    const stream=await buildRecordingStream();const choices=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];const mime=choices.find(type=>MediaRecorder.isTypeSupported?.(type))||'';const recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);state.recordChunks=[];state.recorder=recorder;recorder.ondataavailable=e=>{if(e.data?.size)state.recordChunks.push(e.data);};recorder.onstop=()=>{const blob=new Blob(state.recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob),a=document.createElement('a');const stamp=new Date().toISOString().replace(/[:.]/g,'-');a.href=url;a.download=`DominionStar-Meet-${stamp}.webm`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);state.recordChunks=[];stopRecordResources();};recorder.start(1000);state.recording=true;updateRecordingIndicator();await announceRecording(true);const button=q('#roomRecord');button?.classList.add('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Stop Record';else button.textContent='Stop Record';}window.DominionMeetingParity?.install?.();}
-  async function stopRecording(){if(!state.recording)return;state.recording=false;await announceRecording(false).catch(()=>{});updateRecordingIndicator();const button=q('#roomRecord');button?.classList.remove('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Record';else button.textContent='Record';}if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();else stopRecordResources();state.recorder=null;}
+    const stream=await buildRecordingStream();const choices=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];const mime=choices.find(type=>MediaRecorder.isTypeSupported?.(type))||'';
+    const recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);state.recordChunks=[];state.recorder=recorder;
+    recorder.ondataavailable=e=>{if(e.data?.size)state.recordChunks.push(e.data);};
+    recorder.onstop=()=>{const blob=new Blob(state.recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob),a=document.createElement('a');const stamp=new Date().toISOString().replace(/[:.]/g,'-');a.href=url;a.download=`DominionStar-Meet-${stamp}.webm`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);state.recordChunks=[];stopRecordResources();};
+    try{
+      if(meeting?.setRecordingState)await meeting.setRecordingState(authority.ctx.participantId,true);
+      recorder.start(1000);state.recording=true;updateRecordingIndicator();
+      await broadcast('recording-state',{active:true,name:localName(),participantId:String(authority.ctx.participantId||''),at:new Date().toISOString()});
+      const button=q('#roomRecord');button?.classList.add('recording');if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Stop Record';else button.textContent='Stop Record';}
+      window.DominionMeetingParity?.install?.();
+    }catch(error){
+      try{if(recorder.state!=='inactive')recorder.stop();}catch{}
+      try{if(meeting?.setRecordingState&&authority.ctx?.participantId)await meeting.setRecordingState(authority.ctx.participantId,false);}catch{}
+      state.recorder=null;state.recording=false;stopRecordResources();throw error;
+    }
+  }
+  async function stopRecording(){
+    if(!state.recording)return;state.recording=false;
+    const ctx=await meeting?.context?.().catch?.(()=>null);
+    try{if(meeting?.setRecordingState&&ctx?.participantId)await meeting.setRecordingState(ctx.participantId,false);}catch{}
+    await broadcast('recording-state',{active:false,name:localName(),participantId:String(ctx?.participantId||''),at:new Date().toISOString()}).catch(()=>{});
+    updateRecordingIndicator();const button=q('#roomRecord');button?.classList.remove('recording');
+    if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent='Record';else button.textContent='Record';}
+    if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();else stopRecordResources();state.recorder=null;
+  }
   async function toggleRecording(){try{state.recording?await stopRecording():await startRecording();}catch(error){stopRecordResources();state.recording=false;const title=q('#foundationTitle'),copy=q('#foundationCopy'),dialog=q('#foundationDialog');if(title)title.textContent='Recording unavailable';if(copy)copy.textContent=String(error?.message||error);if(dialog&&!dialog.open)dialog.showModal();}}
 
   function setVideoLayout(mode){const dock=q('#participantVideoDock');if(!dock)return;dock.classList.remove('layout-speaker');if(mode==='hide'){dock.hidden=true;return;}dock.hidden=false;if(mode==='speaker')dock.classList.add('layout-speaker');window.DominionMeetingParity?.syncVideoDock?.();}
