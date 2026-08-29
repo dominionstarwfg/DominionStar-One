@@ -7,12 +7,10 @@
   const tabs = [...document.querySelectorAll('[data-member-tab]')];
   const params = new URLSearchParams(window.location.search);
   const isDesktop = params.get('desktop') === '1' && Boolean(window.dominionDesktop?.isDesktop);
-  // Google completes on the already-trusted DominionStar SITE_URL. The public
-  // landing page loads desktop-oauth-return.js, which immediately relays the
-  // returned Supabase fragment to dominionstar://auth/callback and re-opens the
-  // installed application. This avoids depending on a custom scheme being in
-  // Supabase's hosted redirect allow-list.
-  const DESKTOP_OAUTH_BROWSER_RETURN = `${window.location.origin}/`;
+  // Supabase supports custom deep-link redirect URLs for native desktop apps.
+  // This exact URI must be present in Auth > URL Configuration > Additional
+  // Redirect URLs for the hosted project.
+  const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';
 
   [loginForm, registerForm, resetForm].forEach(form => {
     if (form) {
@@ -109,10 +107,7 @@
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            // Finish in the normal browser on the trusted DominionStar site.
-            // The root-page relay then hands the returned token fragment to the
-            // installed app through its registered dominionstar:// protocol.
-            redirectTo: DESKTOP_OAUTH_BROWSER_RETURN,
+            redirectTo: DESKTOP_OAUTH_CALLBACK,
             skipBrowserRedirect: true,
             queryParams: { prompt: 'select_account' }
           }
