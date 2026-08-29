@@ -47,6 +47,9 @@ assert(peer.includes('setInterval(()=>void pullSignals(),POLL_MS)')&&peer.includ
 assert(peer.includes('playRemoteAudio')&&peer.includes('audio.srcObject=stream')&&peer.includes('audio.play()'),'Remote microphone audio must render through a real media element.');
 assert(peer.includes('audio.setSinkId')&&peer.includes('speakerId'),'Selected speaker routing must be honored where supported.');
 assert(peer.includes('showRemoteCamera')&&peer.includes('showRemoteShare'),'Remote camera and shared content must render independently.');
+assert(peer.includes('remoteShareBanner')&&peer.includes('is sharing'),'Remote participants must see presenter identity without presenter-only toolbar chrome.');
+assert(!peer.includes('Share paused')&&!peer.includes('share paused'),'Remote share transport must not reveal presenter-only Pause state; viewers keep the frozen frame silently.');
+assert(css.includes('.remote-share-banner')&&css.includes('.remote-share-dot'),'Remote share identity must ship with dedicated viewer styling.');
 assert(peer.includes('active-speaker')&&peer.includes('createAnalyser()'),'Active-speaker detection must use the remote audio signal.');
 assert(peer.includes("window.DominionMediaController?.onChange")&&peer.includes("window.DominionShareController?.onChange"),'Camera/mic/share track changes must propagate to existing peers.');
 assert(media.includes("script.src='./webrtc-controller.js'"),'Media authority must load the isolated peer controller.');
@@ -65,4 +68,4 @@ assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.tran
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 assert.equal(ids[0].localeCompare(ids[1])<0,true,'Deterministic initiator policy sanity check failed.');
 assert.equal(ids[1].localeCompare(ids[0])<0,false,'Both peers must never initiate the same pair.');
-console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK four-lanes system-audio optimize-video deterministic-offer four-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling');
+console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK four-lanes system-audio optimize-video remote-share-identity presenter-state-isolation deterministic-offer four-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling');
