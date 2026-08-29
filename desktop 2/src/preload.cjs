@@ -76,7 +76,10 @@ async function readNativeCaptureCapability() {
 // the same promise instead of stacking capture calls and starving the app UI.
 function getShareSourcesSingleFlight(options = {}) {
   if (shareSourcesInFlight) return shareSourcesInFlight;
-  const safeOptions = { includeOwnWindows: Boolean(options?.includeOwnWindows) };
+  const safeOptions = {
+    includeOwnWindows: Boolean(options?.includeOwnWindows),
+    kind: String(options?.kind || 'screen') === 'window' ? 'window' : 'screen'
+  };
   shareSourcesInFlight = ipcRenderer.invoke('desktop:share-sources', safeOptions)
     .then(value => Array.isArray(value) ? value : [])
     .catch(() => [])

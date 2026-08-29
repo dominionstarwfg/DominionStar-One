@@ -80,9 +80,11 @@ assert.match(preload,/let shareSourcesInFlight = null/,'renderer share source en
 assert.match(lifecycle,/systemPreferences\.getMediaAccessStatus\('screen'\)/,'native lifecycle must read macOS Screen Recording state');
 assert.doesNotMatch(lifecycle,/desktopCapturer|getSources\s*\(/,'passive permission lifecycle must never enumerate capture sources');
 
-assert.match(operationBootstrap,/3\.0\.0-clean-lazy-runtime/,'desktop bootstrap must use clean lazy runtime');
+assert.match(operationBootstrap,/3\.1\.0-single-dock-layout-authority/,'desktop bootstrap must use the single-authority clean runtime');
+assert.match(operationBootstrap,/dock-resize-quality\.js\?v=1-single-layout-authority/,'desktop bootstrap must load resize-only dock quality');
+assert.doesNotMatch(operationBootstrap,/dock-polish-2030\.js/,'desktop bootstrap must not restore the competing dock geometry authority');
 assert.match(operationBootstrap,/loadMediaEnhancements/,'advanced video processing must be lazy');
 assert.match(operationBootstrap,/loadPresentationTools/,'presentation extensions must be lazy');
 assert.doesNotMatch(operationBootstrap,/meeting-identity-settings|meeting-identity-bridge|media-effect-safety/,'retired identity/effect override layers must not return to startup');
 
-console.log('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK one-home settings-owned approved-custom-picker bounded-enumeration');
+console.log('DOMINIONSTAR_CLEAN_SINGLE_AUTHORITY_CONTRACT_OK one-home settings-owned approved-custom-picker bounded-enumeration single-dock-authority');

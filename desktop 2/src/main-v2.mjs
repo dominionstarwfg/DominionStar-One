@@ -217,9 +217,11 @@ function publishDesktopLayout() {
 // delegate directly to Apple's ScreenCaptureKit picker. Older macOS and Windows
 // continue through DominionStar's compatibility picker.
 function supportsMacSystemPicker() {
-  if (process.platform !== 'darwin') return false;
-  const major = Number.parseInt(String(process.getSystemVersion?.() || '').split('.')[0] || '0', 10);
-  return Number.isFinite(major) && major >= 15;
+  // One visible capture authority only. DominionStar owns source selection on
+  // every desktop platform; macOS owns permission/TCC and underlying capture.
+  // Returning true here creates a second ScreenCaptureKit picker and can deadlock
+  // a real Mac share request against DominionStar's selected-source transaction.
+  return false;
 }
 
 function installPermissionPolicy(desktopSession) {
@@ -266,8 +268,9 @@ function installPermissionPolicy(desktopSession) {
         callback({});
         return;
       }
+      const requestedType = selection.kind === 'window' ? 'window' : 'screen';
       const freshSources = await desktopCapturer.getSources({
-        types: ['screen', 'window'],
+        types: [requestedType],
         thumbnailSize: { width: 0, height: 0 },
         fetchWindowIcons: false
       });
@@ -657,9 +660,14 @@ ipcMain.handle('desktop:open-external', async (event, value = '') => {
 ipcMain.handle('desktop:share-sources', async (event, options = {}) => {
   if (!isDesktopRoute(event.sender.getURL())) return [];
   try {
+    // Do not enumerate the entire Mac window server on the first Share click.
+    // Load only the active source class; Applications are enumerated lazily when
+    // the user selects that tab. Smaller previews also reduce ScreenCaptureKit
+    // work and keep Electron's main loop responsive on physical Macs.
+    const requestedKind = String(options.kind || 'screen') === 'window' ? 'window' : 'screen';
     const sources = await desktopCapturer.getSources({
-      types: ['screen', 'window'],
-      thumbnailSize: { width: 384, height: 240 },
+      types: [requestedKind],
+      thumbnailSize: { width: 256, height: 144 },
       fetchWindowIcons: false
     });
     const ownSourceId = typeof mainWindow?.getMediaSourceId === 'function' ? mainWindow.getMediaSourceId() : '';

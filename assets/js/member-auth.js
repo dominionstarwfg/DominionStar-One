@@ -43,6 +43,19 @@
     document.head.appendChild(script);
   };
 
+  const loadDesktopHomeParity = () => {
+    const route = String(window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    if (route !== '/meet-home' || !window.dominionDesktop?.isDesktop) return;
+    if (window.DominionDesktopHomeApprovedParity || document.querySelector('script[data-ds-desktop-home-approved-parity]')) return;
+    const script = document.createElement('script');
+    script.src = '/assets/js/meet/desktop-home-approved-parity.js?v=1-approved-home';
+    script.async = false;
+    script.dataset.dsDesktopHomeApprovedParity = 'true';
+    document.head.appendChild(script);
+  };
+
+  loadDesktopHomeParity();
+
   window.DSAuth = {
     ready: configured,
     client: null,

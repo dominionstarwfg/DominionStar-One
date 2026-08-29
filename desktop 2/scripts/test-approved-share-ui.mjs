@@ -5,7 +5,8 @@ const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url),'ut
 const exists = rel => fs.existsSync(new URL(`../../${rel}`, import.meta.url));
 const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
 const illustrationParity = read('assets/js/meet/illustration-ui-parity.js');
-const dockPolish = read('assets/js/meet/dock-polish-2030.js');
+const dockLayout = read('assets/js/meet/dock-layout-v2.js');
+const dockResize = read('assets/js/meet/dock-resize-quality.js');
 const quickDeviceMenu = read('assets/js/meet/quick-device-menu-parity.js');
 const shareOptimization = read('assets/js/meet/share-optimization-parity.js');
 const desktopSharePicker = read('assets/js/meet/desktop-share-picker.js');
@@ -26,6 +27,7 @@ const shareLifecycle = read('desktop 2/src/share-lifecycle.mjs');
 const navigation = read('desktop 2/src/desktop-navigation-authority.mjs');
 const desktopSession = read('desktop 2/src/desktop-session.mjs');
 const qaWorkflow = read('.github/workflows/desktop-pr-verify.yml');
+const packageJson = JSON.parse(read('desktop 2/package.json'));
 
 const barStart=presenterToolbar.indexOf('<div class="bar"');
 const menuStart=presenterToolbar.indexOf('<div id="presenterMoreMenu"');
@@ -119,9 +121,14 @@ assert(illustrationParity.includes("label.textContent=isHost?'End':'Leave'"));
 assert(illustrationParity.includes("decline.textContent='View'"));
 assert(illustrationParity.includes('enforceOnePersonDockRule'));
 assert(illustrationParity.includes('#participantsPanel,#chatPanel{resize:both'));
-assert(dockPolish.includes("const POSITION_KEY='ds_meet_dock_geometry_v3'"));
-assert(dockPolish.includes('saveGeometry')&&dockPolish.includes('restoreGeometry'));
-assert(dockPolish.includes("resizeHandle.className='ds-dock-resize-handle'"));
+assert(dockLayout.includes("dock.dataset.positionOwner='dock-layout-v2'"));
+assert(dockLayout.includes('const setOrientation=orientation=>'));
+assert(dockResize.includes("position: 'dock-layout-v2'"));
+assert(dockResize.includes("orientation: 'dock-layout-v2'"));
+assert(dockResize.includes("resize: 'dock-resize-quality'"));
+assert(!exists('assets/js/meet/dock-polish-2030.js'),'Retired dock-polish authority must not remain in source.');
+const packagedAssets=(packageJson.build?.extraResources||[]).find(entry=>entry?.from==='../assets');
+assert(packagedAssets?.filter?.includes('!js/meet/dock-polish-2030.js'),'Desktop package must explicitly exclude retired dock-polish authority.');
 assert(presenterDock.includes('zoomClassDockSize'));
 assert(presenterDockHtml.includes('data-layout="stack"')&&presenterDockHtml.includes('data-layout="speaker"')&&presenterDockHtml.includes('data-layout="grid"'));
 
@@ -133,6 +140,7 @@ assert(!navigation.includes('Collaborate on this Deploy Preview'));
 assert(desktopMain.includes('const DESKTOP_BRIDGE_VERSION = 14;'));
 assert(nativePresenterParity.includes("safe === 'layout'")&&nativePresenterParity.includes('cycleLayout()'));
 assert(nativePresenterParity.includes("safe === 'show-meeting'")&&nativePresenterParity.includes('showMeeting()'));
-assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'));
+assert(qaWorkflow.includes('DOMINIONSTAR_DESKTOP_LOCAL_RUNTIME_CERTIFIED'));
+assert(!qaWorkflow.includes('DOMINIONSTAR_DESKTOP_NATIVE_TRUST_OK'));
 
-console.log('Approved DominionStar share UI passed: compact one-toolbar presenter hierarchy, custom Screens/Applications picker, bounded native enumeration.');
+console.log('Approved DominionStar share UI passed: compact one-toolbar presenter hierarchy, custom Screens/Applications picker, bounded native enumeration, packaged local QA runtime, retired dock authority removed.');

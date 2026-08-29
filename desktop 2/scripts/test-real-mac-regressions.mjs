@@ -25,11 +25,14 @@ const homeController=read('assets/js/meet/desktop-home-controller.js');
 const pkg=JSON.parse(read('desktop 2/package.json'));
 
 assert(memberLogin.includes("provider: 'google'"));
-assert(memberLogin.includes("const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'"));
+assert(memberLogin.includes("const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';"));
 assert(memberLogin.includes('redirectTo: DESKTOP_OAUTH_CALLBACK'));
 assert(memberLogin.includes('skipBrowserRedirect: true'));
 assert(memberLogin.includes('window.dominionDesktop?.openExternal?.(data.url)'));
 assert(memberLogin.includes("return '/meet-home/?desktop=1';"));
+assert.equal(pkg.build?.protocols?.[0]?.schemes?.[0],'dominionstar');
+assert(main.includes("url.hostname === 'auth' && url.pathname === '/callback'"));
+assert(main.includes("app.setAsDefaultProtocolClient('dominionstar'"));
 
 assert(bootstrap.indexOf(dynamicImportNeedle('share-picker-authority.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
 assert(bootstrap.indexOf(dynamicImportNeedle('screen-permission-lifecycle.mjs'))<bootstrap.indexOf(dynamicImportNeedle('main-v2.mjs')));
@@ -66,7 +69,9 @@ assert(hostPrejoin.includes('stopTracks(hostPreviewStream);'));
 assert(hostPrejoin.includes('await sleep(220);'));
 assert(!hostPrejoin.includes('navigator.mediaDevices.getUserMedia ='));
 
-assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"));
+assert(operationBootstrap.includes("version:'3.1.0-single-dock-layout-authority'"));
+assert(operationBootstrap.includes('/assets/js/meet/dock-resize-quality.js?v=1-single-layout-authority'));
+assert(!operationBootstrap.includes('/assets/js/meet/dock-polish-2030.js'));
 assert(operationBootstrap.includes('loadMediaEnhancements'));
 assert(operationBootstrap.includes('loadPresentationTools'));
 assert(!operationBootstrap.includes('meeting-identity-settings'));
@@ -77,8 +82,6 @@ assert.ok(macPrivacy.NSScreenCaptureUsageDescription,'macOS package must declare
 assert.ok(macPrivacy.NSAudioCaptureUsageDescription,'macOS package must declare NSAudioCaptureUsageDescription');
 assert.equal(Object.prototype.hasOwnProperty.call(macPrivacy,'NSScreenCaptureDescription'),false,'obsolete NSScreenCaptureDescription key must not return');
 
-// Physical Mac sharing must match the approved Screens / Applications illustration
-// without letting native enumeration pile up or lock the meeting process.
 assert.equal(exists('assets/js/meet/desktop-share-permission-guard.js'),false);
 assert.equal(exists('desktop 2/src/macos-screen-permission-guard.mjs'),false);
 assert.equal(exists('desktop 2/src/macos-system-picker-session.mjs'),false);
@@ -108,4 +111,4 @@ assert(!/addEventListener\(['"]focus['"]/.test(picker));
 assert(preload.includes('let shareSourcesInFlight = null;'));
 assert(preload.includes('if (shareSourcesInFlight) return shareSourcesInFlight;'));
 
-console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home browser-deeplink-auth approved-custom-picker privacy-keys bounded-enumeration single-handler guarded');
+console.log('REAL_MAC_RECOVERY_CONTRACT_OK single-home direct-desktop-oauth approved-custom-picker privacy-keys bounded-enumeration single-handler single-dock-runtime');

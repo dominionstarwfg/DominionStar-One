@@ -18,7 +18,8 @@ const shareView = read('assets/js/meet/share-view-controls.js');
 const illustration = read('assets/js/meet/illustration-ui-parity.js');
 const hostCohostUi = read('assets/js/meet/host-cohost-ui-parity.js');
 const quickDevices = read('assets/js/meet/quick-device-menu-parity.js');
-const dockPolish = read('assets/js/meet/dock-polish-2030.js');
+const dockLayout = read('assets/js/meet/dock-layout-v2.js');
+const dockResize = read('assets/js/meet/dock-resize-quality.js');
 const shareAnnotation = read('assets/js/meet/share-annotation.js');
 const liveTranscription = read('assets/js/meet/live-transcription.js');
 const localRecording = read('assets/js/meet/local-recording.js');
@@ -61,13 +62,17 @@ assert(browserHome.includes('Aurora Meeting Assistant'),'Browser Home fixture ch
 const homeResource=(pkg.build?.extraResources||[]).find(entry=>entry?.from==='../meet-home');
 assert.deepEqual(homeResource?.filter,['desktop.html'],'Desktop package must exclude meet-home/index.html.');
 
-// Google OAuth uses the normal browser and returns to the installed app through
-// the registered DominionStar deep link, then resolves to Meet Home.
-requireText(memberLogin, "const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback'", 'Desktop Google login must return through the registered app protocol.');
-requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_CALLBACK', 'Google OAuth must request the desktop deep-link return URI.');
+// Google OAuth runs in the normal browser and returns directly to the installed
+// app through the registered dominionstar:// callback. The callback must be in
+// Supabase Auth > URL Configuration > Additional Redirect URLs.
+requireText(memberLogin, "const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';", 'Desktop Google login must use the registered app protocol.');
+requireText(memberLogin, 'redirectTo: DESKTOP_OAUTH_CALLBACK', 'Google OAuth must request the direct desktop callback URI.');
+requireText(memberLogin, 'skipBrowserRedirect: true', 'Desktop OAuth must keep browser navigation outside the installed renderer.');
 requireText(memberLogin, 'window.dominionDesktop?.openExternal?.(data.url)', 'Google OAuth must authenticate in the normal browser.');
 assert(!memberLogin.includes('window.location.assign(data.url)'), 'Google OAuth must not strand the installed app inside the browser flow.');
 requireText(desktopMain, "url.hostname === 'auth' && url.pathname === '/callback'", 'Desktop must consume the auth callback deep link.');
+requireText(desktopMain, "app.setAsDefaultProtocolClient('dominionstar'", 'Desktop must register the DominionStar protocol with the OS.');
+assert.equal(pkg.build?.protocols?.[0]?.schemes?.[0],'dominionstar','Desktop package must declare the DominionStar protocol.');
 requireText(memberLogin, "return '/meet-home/?desktop=1';", 'Desktop authentication must fail closed to Meet Home.');
 
 // One display-media handler. The approved DominionStar picker is the visible
@@ -111,8 +116,12 @@ requireText(illustration, '#shareStatusBar.ds-native-presenter-active{display:no
 requireText(shareLifecycle, 'keepMeetingOffSharedDesktop', 'Presentation lifecycle compatibility export is missing.');
 assert(!shareLifecycle.includes('win.hide()'), 'Presentation must keep DominionStar Meet visible instead of hiding it.');
 requireText(twoClient, 'share, private Pause Share presentation continuity, resume and stop', 'Pause/Resume/Stop continuity is not tested.');
-requireText(dockPolish, "POSITION_KEY='ds_meet_dock_geometry_v3'", 'Participant dock geometry persistence is missing.');
-requireText(dockPolish, 'ds-dock-resize-handle', 'Participant dock must be resizable.');
+requireText(dockLayout, "dock.dataset.positionOwner='dock-layout-v2'", 'Participant dock must expose one position/orientation authority.');
+requireText(dockLayout, 'const setOrientation=orientation=>', 'Participant dock orientation authority is missing.');
+requireText(dockResize, "position: 'dock-layout-v2'", 'Resize layer must defer dock position to dock-layout-v2.');
+requireText(dockResize, "orientation: 'dock-layout-v2'", 'Resize layer must defer dock orientation to dock-layout-v2.');
+requireText(dockResize, "resize: 'dock-resize-quality'", 'Participant dock resize authority is missing.');
+assert(!dockResize.includes('POSITION_KEY')&&!dockResize.includes('--ds-dock-left')&&!dockResize.includes('--ds-dock-top'),'Resize layer must never own dock geometry position.');
 for (const marker of ['speakerSelect','Mirror my video','Blur background','Portrait background','qualitySelect','Touch Up Appearance','Audio & Video Settings…']) requireText(quickDevices, marker, `Device/settings control missing: ${marker}`);
 requireText(twoClient, 'public and private meeting chat routes correctly', 'Public/private meeting chat is not tested.');
 requireText(twoClient, 'one-click invitation carries room and passcode', 'Invitation credentials are not tested.');
@@ -127,4 +136,4 @@ requireText(meetHtml, 'id="recurringMeetingAction"', 'Recurring meeting entry po
 requireText(shareAnnotation, "addTool('Laser','laser')", 'Shared-screen laser pointer is missing.');
 for (const language of ["{code:'en', label:'English'}","{code:'fr', label:'French'}","{code:'es', label:'Spanish'}","{code:'zh', label:'Mandarin Chinese'}"]) requireText(liveTranscription, language, `Live-caption language option is missing: ${language}`);
 
-console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK single-home in-app-auth native-mac-picker fallback-serialized camera-mic waiting-room host-cohost dock pause-share chat scheduling captions');
+console.log('DOMINIONSTAR_ZOOM_BEHAVIOR_PARITY_OK single-home direct-desktop-oauth native-mac-picker fallback-serialized camera-mic waiting-room host-cohost single-dock-authority pause-share chat scheduling captions');

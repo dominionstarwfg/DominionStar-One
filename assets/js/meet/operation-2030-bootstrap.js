@@ -15,12 +15,15 @@
   const idle=new Promise(resolve=>{const done=()=>resolve(true);if(typeof requestIdleCallback==='function')requestIdleCallback(done,{timeout:1200});else setTimeout(done,700);});
 
   // Core only: these modules affect ordinary meeting controls, participant
-  // layout, and the visible share toolbar. They are intentionally kept small.
+  // layout, and the visible share toolbar. Position/orientation of #filmstrip
+  // belongs exclusively to dock-layout-v2 (loaded by meet/index.html). The
+  // preload-owned layer may enhance resizing/quality but must never install a
+  // second drag or orientation authority.
   const core=[
     load('/assets/js/meet/device-preference-locality.js?v=2-clean-core','data-ds-device-preference-locality'),
     load('/assets/js/meet/receiver-side-layout-parity.js?v=2-clean-core','data-ds-receiver-side-layout'),
     load('/assets/js/meet/host-cohost-ui-parity.js?v=2-clean-core','data-ds-host-cohost-ui-parity'),
-    load('/assets/js/meet/dock-polish-2030.js?v=3-clean-core','data-ds-dock-polish-2030'),
+    load('/assets/js/meet/dock-resize-quality.js?v=1-single-layout-authority','data-ds-dock-resize-quality'),
     load('/assets/js/meet/native-dock-quality.js?v=2-clean-core','data-ds-native-dock-quality'),
     load('/assets/js/meet/share-optimization-parity.js?v=2-clean-core','data-ds-share-optimization-parity')
   ];
@@ -74,8 +77,8 @@
 
   const ready=Promise.all([...core,shareUi,quickDevices]);
   window.DominionOperation2030Bootstrap=Object.freeze({
-    version:'3.0.0-clean-lazy-runtime',ready,idle,
-    coreModules:Object.freeze(['device-preference-locality','receiver-side-layout-parity','host-cohost-ui-parity','dock-polish-2030','native-dock-quality','share-optimization-parity','share-ui-2030','quick-device-menu-parity']),
+    version:'3.1.0-single-dock-layout-authority',ready,idle,
+    coreModules:Object.freeze(['device-preference-locality','receiver-side-layout-parity','host-cohost-ui-parity','dock-resize-quality','native-dock-quality','share-optimization-parity','share-ui-2030','quick-device-menu-parity']),
     loadMediaEnhancements,loadPresentationTools,loadRecording,loadReactions
   });
 })();

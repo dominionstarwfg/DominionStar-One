@@ -7,6 +7,9 @@
   const tabs = [...document.querySelectorAll('[data-member-tab]')];
   const params = new URLSearchParams(window.location.search);
   const isDesktop = params.get('desktop') === '1' && Boolean(window.dominionDesktop?.isDesktop);
+  // Supabase supports custom deep-link redirect URLs for native desktop apps.
+  // This exact URI must be present in Auth > URL Configuration > Additional
+  // Redirect URLs for the hosted project.
   const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';
 
   [loginForm, registerForm, resetForm].forEach(form => {
@@ -104,9 +107,6 @@
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            // Authenticate with Google in the normal browser, then return the
-            // completed session to the installed app through its registered
-            // dominionstar:// auth callback.
             redirectTo: DESKTOP_OAUTH_CALLBACK,
             skipBrowserRedirect: true,
             queryParams: { prompt: 'select_account' }
@@ -134,6 +134,8 @@
       let { data } = await supabase.auth.getSession();
       if (!data?.session) {
         const returned = new URLSearchParams(String(window.location.hash || '').replace(/^#/,''));
+        const returnedError = returned.get('error_description') || returned.get('error') || '';
+        if (returnedError) throw new Error(returnedError.replace(/\+/g,' ').slice(0,240));
         const accessToken = returned.get('access_token') || '';
         const refreshToken = returned.get('refresh_token') || '';
         if (accessToken && refreshToken) {

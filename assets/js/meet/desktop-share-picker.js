@@ -49,7 +49,10 @@
     const bridgeVersion=Number(runtime?.bridgeVersion||window.dominionDesktop.bridgeVersion||0);if(bridgeVersion<REQUIRED_BRIDGE_VERSION){if(dialog.open)dialog.close();throw new Error('DominionStar Meet desktop capture is out of date. Reopen the latest desktop build.');}
 
     const status=async()=>await withTimeout(window.dominionDesktop.getScreenPermissionStatus?.(),1200,{screen:'unknown',captureReady:false,requiresRestart:false,captureError:'permission-status-timeout'});
-    const requestSources=()=>withTimeout(window.dominionDesktop.getShareSources({includeOwnWindows:ownWindows.checked}),3200,[]);
+    const requestSources=()=>withTimeout(window.dominionDesktop.getShareSources({
+      includeOwnWindows:ownWindows.checked,
+      kind:filter==='window'?'window':'screen'
+    }),3200,[]);
     const showProblem=(state,{freshProcessProbe=false}={})=>{
       const screen=String(state?.screen||'unknown').toLowerCase();const granted=screen==='granted';const restartNeeded=Boolean(state?.requiresRestart||readRestartMarker());
       permission.hidden=false;loading.hidden=true;list.hidden=true;confirm.disabled=true;
@@ -90,7 +93,15 @@
     retryButton.onclick=()=>void loadSources({allowFreshProcessProbe:true});
     restartButton.onclick=()=>{if(dialog.open)dialog.close('cancel');void window.dominionDesktop.relaunchForPermissions?.();};
     ownWindows.onchange=()=>void loadSources({allowFreshProcessProbe:true});
-    dialog.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.filter||'screen';dialog.querySelectorAll('[data-filter]').forEach(item=>item.classList.toggle('active',item===button));selected='';confirm.disabled=true;selectionLabel.textContent=filter==='screen'?'Select a screen':'Select an application window';render();});
+    dialog.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{
+      const nextFilter=button.dataset.filter||'screen';
+      if(nextFilter===filter)return;
+      filter=nextFilter;
+      dialog.querySelectorAll('[data-filter]').forEach(item=>item.classList.toggle('active',item===button));
+      selected='';confirm.disabled=true;
+      selectionLabel.textContent=filter==='screen'?'Loading screens…':'Loading application windows…';
+      void loadSources({allowFreshProcessProbe:true});
+    });
     list.onclick=event=>{const button=event.target.closest('[data-source]');if(!button)return;selected=button.dataset.source||'';list.querySelectorAll('[data-source]').forEach(item=>item.classList.toggle('selected',item===button));const source=sources.find(item=>item.id===selected);selectionLabel.textContent=source?.name||'Selected source';confirm.disabled=!selected;};
 
     const freshProcessProbe=runtime?.platform==='darwin'&&readRestartMarker();

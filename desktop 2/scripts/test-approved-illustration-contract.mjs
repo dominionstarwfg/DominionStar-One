@@ -2,10 +2,12 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const read = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
+const exists = rel => fs.existsSync(new URL(`../../${rel}`, import.meta.url));
 const meetHtml = read('meet/index.html');
 const presenter = read('desktop 2/src/presenter-toolbar.html');
 const presenterJs = read('desktop 2/src/presenter-toolbar.js');
-const dockPolish = read('assets/js/meet/dock-polish-2030.js');
+const dockLayout = read('assets/js/meet/dock-layout-v2.js');
+const dockResize = read('assets/js/meet/dock-resize-quality.js');
 const illustration = read('assets/js/meet/illustration-ui-parity.js');
 const localRecording = read('assets/js/meet/local-recording.js');
 const bootstrap = read('assets/js/meet/operation-2030-bootstrap.js');
@@ -52,11 +54,19 @@ assert(localRecording.includes('new MediaRecorder('), 'Record must use the Media
 assert(localRecording.includes('canvas.captureStream(30)'), 'Record must capture the actual rendered meeting stage.');
 assert(localRecording.includes('anchor.download=`DominionStar-Meet-${safeFileTime()}.webm`'), 'Stopping Record must save a DominionStar Meet recording file.');
 
-assert(dockPolish.includes("POSITION_KEY='ds_meet_dock_geometry_v3'"), 'Participant dock geometry must persist across meetings.');
-assert(dockPolish.includes('ds-dock-resize-handle'), 'Participant dock must expose a real resize handle.');
-assert(dockPolish.includes('.tile-mic{display:grid!important'), 'Participant tile microphone state must remain visible.');
-assert(dockPolish.includes('saveGeometry') && dockPolish.includes('restoreGeometry'), 'Participant dock must save and restore its position and size.');
+// Participant dock responsibilities are split deliberately: dock-layout-v2 owns
+// drag/position/orientation; dock-resize-quality owns only persistent size and
+// video presentation. No second geometry controller may exist.
+assert(dockLayout.includes("dock.dataset.positionOwner='dock-layout-v2'"), 'Participant dock must expose one position/orientation owner.');
+assert(dockLayout.includes('const setOrientation=orientation=>'), 'Participant dock orientation must remain under dock-layout-v2.');
+assert(dockLayout.includes("dock.addEventListener('pointermove'"), 'Participant dock must remain draggable.');
+assert(dockResize.includes("const SIZE_KEY = 'ds_meet_dock_size_v1'"), 'Participant dock size must persist without owning position.');
+assert(dockResize.includes("resizeHandle.className = 'ds-dock-resize-handle'"), 'Participant dock must expose a real resize handle.');
+assert(dockResize.includes('.remote-tile .tile-mic{'), 'Participant tile microphone state must remain visible.');
+assert(dockResize.includes('saveSize') && dockResize.includes('restoreSize'), 'Participant dock must save and restore its user-selected size.');
+assert(!dockResize.includes('POSITION_KEY')&&!dockResize.includes('--ds-dock-left')&&!dockResize.includes('--ds-dock-top'), 'Resize authority must never fight dock position.');
+assert.equal(exists('assets/js/meet/dock-polish-2030.js'), false, 'Retired conflicting dock-polish authority must stay deleted.');
 
 assert(/<key>BundleIsVersionChecked<\/key>\s*<false\/>/.test(macPkgBuilder), 'QA PKG must replace newer or equal prior DominionStar Meet builds instead of being rejected as a downgrade.');
 
-console.log('Approved DominionStar illustration contract passed: compact presenter hierarchy, one sharing indicator, secondary tools under More.');
+console.log('Approved DominionStar illustration contract passed: compact presenter hierarchy, one sharing indicator, secondary tools under More, single dock authority.');

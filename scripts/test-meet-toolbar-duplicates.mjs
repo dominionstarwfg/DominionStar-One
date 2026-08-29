@@ -107,7 +107,9 @@ assert(!shareView.includes('meeting-identity-bridge.js'), 'Retired browser ident
 assert(/if\s*\(\s*window\.DominionOperation2030Bootstrap\s*\)\s*return/.test(operationBootstrap), 'Operation 2030 must be single-install.');
 assert(/if\s*\(\s*loaded\.has\(marker\)\s*\)\s*return\s+loaded\.get\(marker\)/.test(operationBootstrap), 'Operation 2030 must reuse in-flight module loads.');
 assert(operationBootstrap.includes('document.querySelector(`script[${marker}]`)'), 'Operation 2030 must reuse already-present module scripts.');
-assert(operationBootstrap.includes("version:'3.0.0-clean-lazy-runtime'"), 'Operation 2030 must use the cleaned lazy runtime.');
+assert(operationBootstrap.includes("version:'3.1.0-single-dock-layout-authority'"), 'Operation 2030 must use the single-authority clean runtime.');
+assert(operationBootstrap.includes('/assets/js/meet/dock-resize-quality.js?v=1-single-layout-authority'), 'Operation 2030 must load the resize-only dock quality layer.');
+assert(!operationBootstrap.includes('/assets/js/meet/dock-polish-2030.js'), 'Operation 2030 must not load the retired competing dock geometry controller.');
 assert.equal((operationBootstrap.match(/const core=\[/g)||[]).length,1,'Operation 2030 must expose one bounded core startup group.');
 assert(operationBootstrap.includes('loadMediaEnhancements')&&operationBootstrap.includes('loadPresentationTools'),'Advanced media and presentation tools must remain lazy.');
 assert(!operationBootstrap.includes('meeting-identity-settings')&&!operationBootstrap.includes('meeting-identity-bridge')&&!operationBootstrap.includes('media-effect-safety'),'Retired identity/effect override modules must not return.');
