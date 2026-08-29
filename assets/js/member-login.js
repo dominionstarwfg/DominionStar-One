@@ -7,7 +7,12 @@
   const tabs = [...document.querySelectorAll('[data-member-tab]')];
   const params = new URLSearchParams(window.location.search);
   const isDesktop = params.get('desktop') === '1' && Boolean(window.dominionDesktop?.isDesktop);
-  const DESKTOP_OAUTH_CALLBACK = 'dominionstar://auth/callback';
+  // Google completes on the already-trusted DominionStar SITE_URL. The public
+  // landing page loads desktop-oauth-return.js, which immediately relays the
+  // returned Supabase fragment to dominionstar://auth/callback and re-opens the
+  // installed application. This avoids depending on a custom scheme being in
+  // Supabase's hosted redirect allow-list.
+  const DESKTOP_OAUTH_BROWSER_RETURN = `${window.location.origin}/`;
 
   [loginForm, registerForm, resetForm].forEach(form => {
     if (form) {
@@ -104,10 +109,10 @@
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            // Authenticate with Google in the normal browser, then return the
-            // completed session to the installed app through its registered
-            // dominionstar:// auth callback.
-            redirectTo: DESKTOP_OAUTH_CALLBACK,
+            // Finish in the normal browser on the trusted DominionStar site.
+            // The root-page relay then hands the returned token fragment to the
+            // installed app through its registered dominionstar:// protocol.
+            redirectTo: DESKTOP_OAUTH_BROWSER_RETURN,
             skipBrowserRedirect: true,
             queryParams: { prompt: 'select_account' }
           }
@@ -134,6 +139,8 @@
       let { data } = await supabase.auth.getSession();
       if (!data?.session) {
         const returned = new URLSearchParams(String(window.location.hash || '').replace(/^#/,''));
+        const returnedError = returned.get('error_description') || returned.get('error') || '';
+        if (returnedError) throw new Error(returnedError.replace(/\+/g,' ').slice(0,240));
         const accessToken = returned.get('access_token') || '';
         const refreshToken = returned.get('refresh_token') || '';
         if (accessToken && refreshToken) {
