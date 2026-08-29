@@ -59,6 +59,11 @@ async function openPrivacySettings(kind='screen'){
   catch{try{await shell.openPath('/System/Applications/System Settings.app');return {ok:true};}catch{return {ok:false};}}
 }
 
+function ipMainHandleChatPolicy(){
+  if(ipcMain.listenerCount('meeting:set-chat-policy'))return;
+  ipcMain.handle('meeting:set-chat-policy',(_event,{roomId,policy})=>meetingService?.setChatPolicy(roomId,policy));
+}
+
 function installLocalPermissionPolicy(desktopSession){
   const allowed=new Set(['media','camera','microphone','audioCapture','videoCapture','display-capture','notifications','fullscreen']);
   desktopSession.setPermissionRequestHandler((webContents,permission,callback,details={})=>{
@@ -130,6 +135,7 @@ ipcMain.handle('meeting:set-cohost',(_event,{participantId,enabled})=>meetingSer
 ipcMain.handle('meeting:remove-participant',(_event,{participantId})=>meetingService?.removeParticipant(participantId));
 ipcMain.handle('meeting:rename-participant',(_event,{participantId,displayName})=>meetingService?.renameParticipant(participantId,displayName));
 ipcMain.handle('meeting:set-security',(_event,{roomId,options})=>meetingService?.setSecurity(roomId,options));
+ipMainHandleChatPolicy();
 ipcMain.handle('meeting:transfer-host-and-leave',(_event,{participantId})=>meetingService?.transferHostAndLeave(participantId));
 ipcMain.handle('meeting:end',(_event,{roomId})=>meetingService?.endRoom(roomId));
 ipcMain.handle('meeting:context',()=>meetingService?.context?.()||{});
