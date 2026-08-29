@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     context:()=>invoke('meeting:context'),sendSignal:(toParticipantId,type,payload)=>invoke('meeting:signal-send',{toParticipantId,type,payload}),pullSignals:(afterId=0,limit=100)=>invoke('meeting:signal-pull',{afterId,limit}),pruneSignals:roomId=>invoke('meeting:signal-prune',{roomId}),
     iceConfig:(force=false,ttl=7200)=>invoke('meeting:ice-config',{force:Boolean(force),ttl:Number(ttl)||7200})
   }),
+  participants:Object.freeze({
+    toggle:()=>invoke('participants:toggle-window'),close:()=>invoke('participants:close-window'),updateMediaState:state=>invoke('participants:update-media-state',{state}),getMediaState:()=>invoke('participants:get-media-state'),onMediaState:callback=>listen('participants:media-state',callback)
+  }),
   share:Object.freeze({
     openPicker:()=>invoke('share:open-picker'),onSourceSelected:callback=>listen('share:source-selected',callback),
     captureStarted:state=>invoke('share:capture-started',state),captureState:state=>invoke('share:capture-state',state),captureStopped:()=>invoke('share:capture-stopped'),onPresenterCommand:callback=>listen('share:presenter-command',callback)
