@@ -34,6 +34,8 @@ assert(acceptance.includes("option.value='1080'")&&acceptance.includes("option.t
 assert(acceptance.includes("localStorage.getItem(QUALITY_KEY)")&&acceptance.includes("media.onChange(()=>{if(storedQuality()==='1080')"),'Full HD selection must persist and reapply after camera changes.');
 assert(acceptanceCss.includes('.settings-modal .av-detail-head p{color:#c0ccda')&&acceptanceCss.includes('.settings-modal .av-zoom-group-head small{color:#b9c5d3'),'Dark Settings text must use readable high-contrast colors.');
 assert(acceptanceCss.includes('.meeting-reaction-bubble{left:24px!important;right:auto!important')&&acceptanceCss.includes('@keyframes dsReactionFloatLeft')&&acceptanceCss.includes('translate3d(0,-68vh,0)'),'Meeting reactions must originate on the left and travel upward like the approved Zoom reference.');
+assert(acceptanceCss.includes('background:transparent!important;box-shadow:none!important')&&acceptanceCss.includes('.meeting-reaction-bubble span{display:none!important}'),'Floating reactions must be bare emoji without a dark pill or name label.');
+assert(acceptanceCss.includes('#roomRecord,#roomRecordStop{display:none!important}'),'Record controls must stay out of the primary toolbar and remain owned by More.');
 
 assert(shareService.includes("ipcMain.handle('share:open-picker',()=>openPicker())"),'Share must open the source chooser before consulting stale macOS screen status.');
 assert(!shareIntegration.includes('requestScreen?.()'),'Renderer Share flow must not gate the picker with stale systemPreferences screen status.');
@@ -45,7 +47,8 @@ assert(picker.includes('const first=screens[0]||windows[0]||null'),'Share choose
 assert(pickerHtml.includes('Share sound')&&pickerHtml.includes('Optimize for video sharing'),'Share chooser must expose functional sound and optimization options.');
 assert(!pickerHtml.includes('Presenter layout'),'Do not ship decorative presenter-layout controls without implemented presenter-layout behavior.');
 assert(shareController.includes('getDisplayMediaBounded')&&shareController.includes("error.code='screen_capture_restart_required'")&&shareController.includes('timeoutMs=8000'),'Screen capture must have a bounded physical-Mac watchdog instead of spinning forever after a TCC change.');
-assert(main.includes("ipcMain.handle('app:restart'")&&main.includes('app.relaunch()')&&preload.includes("app:Object.freeze({restart:()=>invoke('app:restart')})"),'Renderer must have a narrow one-click app restart path for macOS TCC activation.');
+assert(main.includes("ipcMain.handle('app:restart'")&&main.includes('app.relaunch({execPath,args})')&&main.includes('const execPath=process.execPath')&&preload.includes("app:Object.freeze({restart:()=>invoke('app:restart')})"),'macOS TCC recovery must relaunch the exact running executable, never an older installed copy.');
+assert(main.includes("status:'native-source-authority'")&&main.includes("diagnosticStatus:permissionStatus('screen')"),'Cached macOS screen status must be diagnostic only; native source discovery owns permission truth.');
 assert(shareIntegration.includes('showRestartRequired')&&shareIntegration.includes("banner.id='shareRestartBanner'")&&shareIntegration.includes('share-restart-now')&&shareIntegration.includes('desktop.app?.restart?.()'),'Failed post-permission capture must offer a one-click nonblocking DominionStar restart banner instead of a dead loading state.');
 assert(!shareIntegration.includes('showModal'),'Screen-permission recovery must not block or freeze the meeting behind a modal.');
 assert(acceptanceCss.includes('.share-restart-banner{position:fixed')&&acceptanceCss.includes('.share-restart-now'),'Restart recovery must render as a visible floating action surface.');
