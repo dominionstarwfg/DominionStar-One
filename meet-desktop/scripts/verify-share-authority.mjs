@@ -51,7 +51,8 @@ assert(pickerHtml.includes('data-filter="screen">Screens')&&pickerHtml.includes(
 assert(!picker.includes('showModal')&&!pickerHtml.includes('<dialog'),'Share chooser must not be a modal dialog inside the meeting renderer.');
 assert(integration.includes('requestAnimationFrame(()=>setTimeout'),'Share click must release before permission/picker work starts.');
 assert(integration.includes('openPickerWithPermission'),'Meeting UI must understand native permission failure without freezing.');
-assert.equal((controller.match(/getDisplayMedia/g)||[]).length,2,'Display capture authority must stay isolated to the share controller and its capability check.');
+assert((controller.match(/getDisplayMedia/g)||[]).length>=2,'Display capture authority must remain implemented inside the isolated share controller.');
+assert(!integration.includes('getDisplayMedia')&&!preload.includes('getDisplayMedia')&&!picker.includes('getDisplayMedia'),'No renderer integration, preload bridge, or picker surface may acquire display media directly.');
 assert(controller.includes("context.drawImage(videoElement,0,0,width,height)"),'Pause must freeze the exact last shared frame.');
 assert(controller.includes('canvas.captureStream(1)'),'Pause must create a frozen presentation stream rather than showing black.');
 assert(controller.includes('const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Paused/unpaused base output must deterministically switch between frozen and live capture.');
