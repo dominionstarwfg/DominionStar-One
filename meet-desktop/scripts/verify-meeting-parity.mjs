@@ -19,7 +19,7 @@ assert(html.includes('<script src="./meeting-parity.js"></script>'),'Desktop Hom
 assert(html.includes('<script src="./zoom-behavior.js"></script>'),'Desktop Home must load the Zoom-standard behavior guard.');
 assert(html.includes('<script src="./participant-controls.js"></script>'),'Desktop Home must load the verified participant-control layer.');
 assert(html.indexOf('./meeting-features.js')<html.indexOf('./zoom-behavior.js'),'Zoom behavior guard must load after base meeting features so it can upgrade them.');
-assert(parity.includes("version:'2.3.0-zoom-adaptive-views'"),'Zoom-style adaptive dock engine version is missing.');
+assert(parity.includes("version:'2.4.0-zoom-share-layouts'"),'Zoom-style adaptive dock engine version is missing.');
 assert(parity.includes("GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1'"),'Participant video dock geometry must persist independently.');
 assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Participant management panel geometry must remain separate from video dock geometry.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Participant management panel must be closed by default so solo video owns the stage.');
@@ -65,6 +65,13 @@ assert(parity.includes("return stage.width<900||stage.height<560?'top':'right'")
 assert(parity.includes("if(!dock.classList.contains('user-positioned'))dock.dataset.anchor=automaticDockAnchor()"),'Automatic dock reflow must never override a user-positioned dock.');
 assert(parity.includes("dock.classList.toggle('gallery-stage'")&&parity.includes("dock.classList.toggle('multi-speaker-stage'"),'Gallery and Multi-speaker modes must use stage layouts rather than a fixed thumbnail dock.');
 assert(parity.includes("window.addEventListener('dominion:active-speakers'"),'Meeting layout must react to ranked active-speaker updates.');
+assert(parity.includes("sharing()?'Side-by-side: Speaker':'Speaker'")&&parity.includes("sharing()?'Side-by-side: Gallery':'Gallery'")&&parity.includes("sharing()?'Side-by-side: Multi-speaker':'Multi-speaker'"),'View menu must switch to Zoom-style side-by-side labels while shared content is active.');
+assert(parity.includes("splitter.setAttribute('role','separator')")&&parity.includes("saveShareSplit(ratio)"),'Shared content and participant video must expose a persistent draggable side-by-side divider.');
+assert(parity.includes("overlay.classList.toggle('share-side-by-side',active&&showPanel)")&&parity.includes("overlay.classList.toggle('share-panel-hidden',active&&!showPanel)"),'Share layout must support side-by-side and Hide/Show Video Panel behavior.');
+assert(parity.includes("panel.textContent=visible?'Hide Video Panel':'Show Video Panel'"),'View menu must expose Zoom-style Hide/Show Video Panel during sharing.');
+assert(parity.includes("featured?.classList.add('share-featured')"),'Side-by-side Speaker must select a single spotlight/current speaker rather than displaying the full gallery.');
+assert(css.includes('.share-layout-splitter')&&css.includes('.meeting-overlay.share-side-by-side[data-share-view="speaker"]')&&css.includes('.meeting-overlay.share-side-by-side[data-share-view="gallery"]')&&css.includes('.meeting-overlay.share-side-by-side[data-share-view="multi"]'),'Side-by-side Speaker, Gallery, and Multi-speaker layouts must ship with dedicated meeting styling.');
+assert(css.includes('width:calc(var(--share-content-ratio)*100%)')&&css.includes('left:calc(var(--share-content-ratio)*100% + 8px)'),'Shared content and participant panel sizing must be driven by the same adjustable divider ratio.');
 assert(zoomBehavior.includes("select.id='meetingChatRecipient'")&&zoomBehavior.includes('<option value="everyone">Everyone</option>'),'Meeting chat must expose Everyone and participant recipient selection.');
 assert(zoomBehavior.includes("meeting.sendSignal(target,'chat',payload)"),'Private chat must send only to the selected participant.');
 assert(zoomBehavior.includes("interceptIncomingChat")&&zoomBehavior.includes("event.stopImmediatePropagation()"),'Upgraded chat must prevent duplicate rendering by the legacy broadcast handler.');
@@ -82,4 +89,4 @@ assert(participantControls.includes("filter(p=>String(p.role||'').toLowerCase()!
 assert(webrtc.includes("String(signal.type||'').startsWith('host:')"),'WebRTC signaling must dispatch host media-control messages to the verified participant-control layer.');
 assert(participantCss.includes('.participant-control-menu')&&participantCss.includes('.participant-bulk-actions')&&participantCss.includes('.participant-control-prompt'),'Participant media controls must ship with dedicated desktop UI styling.');
 
-console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat participant-media-controls mute-all ask-unmute stop-video ask-start-video bounded-sync adaptive-views gallery multi-speaker responsive-dock');
+console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat participant-media-controls mute-all ask-unmute stop-video ask-start-video bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share draggable-divider hide-video-panel');
