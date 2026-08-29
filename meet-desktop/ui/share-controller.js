@@ -25,19 +25,45 @@
     const stream=canvas.captureStream(30);for(const track of baseOutputStream()?.getAudioTracks?.()||[]){try{stream.addTrack(track.clone());}catch{}}state.compositeStream=stream;compositeFrame();emit();
   }
 
+  async function acquireDisplay(options={}){
+    const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio);
+    const stream=await navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
+    const track=stream.getVideoTracks()[0];
+    if(!track){stopTracks(stream);throw new Error('No screen capture track was returned.');}
+    return {stream,track};
+  }
+
   async function start({name='',options={}}={}){
     if(state.busy||state.liveStream)return snapshot();
     if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
     state.busy=true;emit();
     try{
-      const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio);
-      const stream=await navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
-      const track=stream.getVideoTracks()[0];
-      if(!track)throw new Error('No screen capture track was returned.');
+      const {stream,track}=await acquireDisplay(options);
       state.liveStream=stream;state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       await bridge?.captureStarted?.({sourceName:state.sourceName,paused:false});
       return snapshot();
+    }finally{state.busy=false;emit();}
+  }
+
+  async function replaceSource({name='',options={}}={}){
+    if(state.busy||!state.liveStream)return snapshot();
+    if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
+    state.busy=true;emit();
+    const previousLive=state.liveStream,previousFrozen=state.frozenStream;
+    try{
+      const {stream,track}=await acquireDisplay(options);
+      stopComposite();
+      state.annotationCanvas=null;
+      state.liveStream=stream;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
+      state.sourceName=String(name||track.label||'Shared content');state.options={...options};
+      track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
+      stopTracks(previousFrozen);stopTracks(previousLive);
+      await bridge?.captureState?.({sourceName:state.sourceName,paused:false});
+      return snapshot();
+    }catch(error){
+      state.liveStream=previousLive;state.frozenStream=previousFrozen;
+      throw error;
     }finally{state.busy=false;emit();}
   }
 
@@ -57,6 +83,6 @@
   function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
   function setAnnotationCanvas(canvas){state.annotationCanvas=canvas||null;if(state.annotationCanvas)startComposite();else{stopComposite();emit();}return snapshot();}
   async function stop(){const hadShare=Boolean(state.liveStream||state.frozenStream);state.annotationCanvas=null;stopComposite();stopTracks(state.frozenStream);stopTracks(state.liveStream);state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};emit();if(hadShare)await bridge?.captureStopped?.();return snapshot();}
-  const api=Object.freeze({start,pause,resume,togglePause,stop,outputStream,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
+  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,stop,outputStream,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
   window.DominionShareController=api;
 })();
