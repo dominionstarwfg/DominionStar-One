@@ -1,0 +1,132 @@
+name: DominionStar Meet Mac Production Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/rebuild-mac-production.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac-production:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'false'
+    steps:
+      - name: Checkout exact production source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clean generated state
+        run: |
+          rm -rf meet-desktop/node_modules meet-desktop/dist production-artifact
+          find . -maxdepth 2 \( -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' \) -print0 | xargs -0 -I{} rm -f '{}' || true
+
+      - name: Install rebuild dependencies
+        working-directory: meet-desktop
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm ls --depth=0
+
+      - name: Verify production visual polish
+        working-directory: meet-desktop
+        run: npm run verify:visual
+
+      - name: Run complete production certification
+        working-directory: meet-desktop
+        run: |
+          node scripts/verify-foundation.mjs
+          node scripts/verify-auth.mjs
+          node scripts/verify-meeting-lifecycle.mjs
+          node scripts/verify-meeting-identity-runtime.mjs
+          node scripts/verify-media-authority.mjs
+          node scripts/verify-av-settings.mjs
+          node scripts/verify-meeting-parity.mjs
+          node scripts/verify-share-authority.mjs
+          node scripts/verify-webrtc-transport.mjs
+          node scripts/verify-turn-relay.mjs
+          node scripts/verify-diagnostics.mjs
+
+      - name: Build universal production app
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          du -sh "$APP_PATH"
+
+      - name: Verify package identity privacy and signature
+        shell: bash
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          PLIST="$APP/Contents/Info.plist"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$PLIST" | grep -Fx 'DominionStar Meet'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" | grep -Fx '2.0.0'
+          /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' "$PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSAudioCaptureUsageDescription' "$PLIST" >/dev/null
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.device.camera'
+          codesign -d --entitlements :- "$APP" 2>&1 | grep -F 'com.apple.security.device.audio-input'
+
+      - name: Audit packaged production app
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-app.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Launch packaged app
+        shell: bash
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          LOG="$RUNNER_TEMP/dominionstar-production-launch.log"
+          ELECTRON_ENABLE_LOGGING=1 "$APP/Contents/MacOS/DominionStar Meet" >"$LOG" 2>&1 &
+          PID=$!
+          sleep 8
+          kill -0 "$PID"
+          kill "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || true
+          if grep -E 'Library not loaded|DYLD.*Library missing|different Team IDs' "$LOG"; then
+            cat "$LOG"
+            exit 92
+          fi
+          echo DOMINIONSTAR_PRODUCTION_MAC_LAUNCH_OK
+
+      - name: Exercise packaged desktop controls
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Create production archive and checksum
+        shell: bash
+        run: |
+          mkdir -p production-artifact
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" production-artifact/DominionStar-Meet-2.0.0-Mac-universal.zip
+          shasum -a 256 production-artifact/DominionStar-Meet-2.0.0-Mac-universal.zip | tee production-artifact/SHA256.txt
+          printf 'commit=%s\nversion=2.0.0\nsource=main\n' "$GITHUB_SHA" > production-artifact/BUILD-PROVENANCE.txt
+
+      - name: Upload production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.0-mac-production
+          path: production-artifact/*
+          if-no-files-found: error
+          retention-days: 30
