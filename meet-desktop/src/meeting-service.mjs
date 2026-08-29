@@ -133,6 +133,9 @@ export function createMeetingService({auth,allowDirectQa=false}){
   const renameParticipant=(participantId,displayName)=>auth.rpc('meet_v2_rename_participant',{p_participant_id:participantId,p_display_name:normalizeName(displayName)});
   const setSecurity=(roomId,{locked=false,muteOnEntry=false}={})=>auth.rpc('meet_v2_set_security',{p_room_id:roomId,p_locked:Boolean(locked),p_mute_on_entry:Boolean(muteOnEntry)});
   const setChatPolicy=(roomId,policy='everyone')=>auth.rpc('meet_v2_set_chat_policy',{p_room_id:roomId,p_policy:String(policy||'everyone')});
+  const setCaptionState=(roomId,{mode='off',captionerParticipantId=null,transcriptEnabled=false}={})=>auth.rpc('meet_v2_set_caption_state',{p_room_id:roomId,p_mode:String(mode||'off'),p_captioner_participant_id:captionerParticipantId||null,p_transcript_enabled:Boolean(transcriptEnabled)});
+  const publishCaption=(participantId,text,speakerName)=>auth.rpc('meet_v2_publish_caption',{p_participant_id:participantId,p_text:String(text||'').trim(),p_speaker_name:normalizeName(speakerName)||'Captioner'});
+  const transcript=roomId=>auth.rpc('meet_v2_get_transcript',{p_room_id:roomId});
   const transferHostAndLeave=async participantId=>{const result=await auth.rpc('meet_v2_transfer_host_and_leave',{p_target_participant_id:participantId});clear();return result;};
   const endRoom=async roomId=>{const result=await auth.rpc('meet_v2_end_room',{p_room_id:roomId});clear();return result;};
   const context=()=>Object.freeze({...current});
@@ -223,6 +226,9 @@ export function createMeetingService({auth,allowDirectQa=false}){
     renameParticipant,
     setSecurity,
     setChatPolicy,
+    setCaptionState,
+    publishCaption,
+    transcript,
     transferHostAndLeave,
     endRoom,
     context,
