@@ -99,6 +99,14 @@
     overlay.classList.toggle('share-panel-hidden',active&&!showPanel);
     overlay.dataset.shareView=active?mode:'';
     splitter.hidden=!(active&&showPanel);
+    qa('#participantVideoDock .remote-peer-tile').forEach(tile=>tile.classList.remove('share-featured'));
+    if(active&&showPanel&&mode==='speaker'){
+      const featured=(spotlightParticipantId?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`):null)
+        ||q('#participantVideoDock .remote-peer-tile.active-speaker')
+        ||qa('#participantVideoDock .remote-peer-tile').find(tile=>!tile.hidden&&!tile.classList.contains('local-video-dock-tile'))
+        ||q('#localVideoDockTile');
+      featured?.classList.add('share-featured');
+    }
     if(active&&!showPanel)dock.hidden=true;
     if(active&&showPanel){
       stage.style.setProperty('--share-content-ratio',String(readShareSplit()));
