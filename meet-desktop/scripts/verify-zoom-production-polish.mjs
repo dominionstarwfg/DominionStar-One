@@ -14,7 +14,8 @@ assert(css.includes('.av-device-caret.attached-device-caret[data-kind="audio"]{o
 assert(css.includes('#roomShare .ds-control-icon')&&css.includes('#35c66a'),'Share Screen must carry Zoom-like green primary-action emphasis.');
 assert(css.includes('color:#f3f5f7!important'),'Primary meeting toolbar text must retain readable light-on-dark contrast.');
 assert(js.includes("button.id='roomHostTools'")&&js.includes("Host Tools"),'Host Tools must be a first-class host/co-host toolbar control.');
-assert(js.includes("if(event.target.closest?.('#roomMore'))cleanMoreMenu()")&&js.includes('/^host\\s+tools$/i'),'More must synchronously remove its legacy Host Tools duplicate before paint.');
+assert(js.includes('function ensureMoreAuthority()')&&js.includes("more.onclick=event=>{const result=legacy.call(more,event);cleanMoreMenu();return result;}"),'More must wrap the legacy menu constructor and remove its Host Tools duplicate synchronously at the source event.');
+assert(js.includes("if(event.target.closest?.('#roomMore'))cleanMoreMenu()")&&js.includes('/^host\\s+tools$/i'),'More must retain a secondary synchronous Host Tools de-duplication guard.');
 assert(js.includes('placeholder="Search participants"'),'Participants must expose direct search for large meetings.');
 assert(js.includes("data-zoom-mute-all")&&js.includes("zoom-participant-more"),'Participants footer must use Zoom-style Mute All plus More instead of a row of tiny bulk buttons.');
 assert(css.includes('--ds-panel-w:390px')&&css.includes('.room-side .person-copy strong{font-size:13px'),'Participants must use a readable Zoom-scale roster instead of the undersized admin-card layout.');
@@ -32,6 +33,6 @@ assert(css.includes('.meeting-reaction-bubble{left:24px!important')&&css.include
 assert(js.includes('re-check the actual capture permission automatically'),'Permission recovery copy must tell the user that Share performs a real re-check.');
 assert(js.includes("observer.observe(document.body,{childList:true,subtree:true})")&&!js.includes("attributeFilter:['hidden','class']"),'Production polish must not observe its own visibility/class mutations and starve the renderer.');
 assert(js.includes('setHidden=(node,value)'),'Repeated polish reconciliation must update visibility idempotently.');
-assert(js.includes("version:'1.4.1'"),'Production polish module version must be explicit.');
+assert(js.includes("version:'1.4.2'"),'Production polish module version must be explicit.');
 
-console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools host-tools-single participant-search participants-right runtime-right-authority prepaint-right zoom-roster zoom-chat chat-runtime-geometry chat-typography-authority chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
+console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools host-tools-authoritative-single participant-search participants-right runtime-right-authority prepaint-right zoom-roster zoom-chat chat-runtime-geometry chat-typography-authority chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
