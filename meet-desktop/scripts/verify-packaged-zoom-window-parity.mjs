@@ -39,7 +39,16 @@ try{
   assert.equal(popout.mode,'popout','Pop Out must switch Participants to floating mode.');
   assert.ok(popout.centerDelta<=40,'Popped-out Participants should initially float near the center of the meeting stage.');
 
-  const dragged=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),head=panel.querySelector('.room-side-head'),before=panel.getBoundingClientRect();const x=before.left+80,y=before.top+24;head.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,pointerId:71,clientX:x,clientY:y}));head.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:71,clientX:x+74,clientY:y+42}));head.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:71,clientX:x+74,clientY:y+42}));const after=panel.getBoundingClientRect();return {dx:Math.round(after.left-before.left),dy:Math.round(after.top-before.top),cursor:getComputedStyle(head).cursor};})()`);
+  // Use Chromium's real input pipeline instead of synthetic DOM PointerEvents.
+  // This creates a genuine active pointer so pointer capture behaves exactly as it
+  // does for a physical mouse and avoids certifying a test-only drag path.
+  const dragStart=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),head=panel.querySelector('.room-side-head'),r=panel.getBoundingClientRect(),h=head.getBoundingClientRect();return {left:r.left,top:r.top,x:h.left+Math.min(90,h.width*.35),y:h.top+h.height/2};})()`);
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x,y:dragStart.y});
+  await cdp('Input.dispatchMouseEvent',{type:'mousePressed',x:dragStart.x,y:dragStart.y,button:'left',buttons:1,clickCount:1});
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x+74,y:dragStart.y+42,button:'left',buttons:1});
+  await cdp('Input.dispatchMouseEvent',{type:'mouseReleased',x:dragStart.x+74,y:dragStart.y+42,button:'left',buttons:0,clickCount:1});
+  await sleep(80);
+  const dragged=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),head=panel.querySelector('.room-side-head'),after=panel.getBoundingClientRect();return {dx:Math.round(after.left-${dragStart.left}),dy:Math.round(after.top-${dragStart.top}),cursor:getComputedStyle(head).cursor};})()`);
   assert.ok(Math.abs(dragged.dx)>=30||Math.abs(dragged.dy)>=20,'Popped-out Participants panel must be movable from its title bar.');
   assert.equal(dragged.cursor,'default','Dragging Participants must keep the normal arrow cursor.');
 
@@ -55,6 +64,6 @@ try{
   assert.equal(video.grip,'none','Legacy gripping-hand affordance must not be visible.');
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Zoom window gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_ZOOM_WINDOW_PARITY_OK participants-right-default pop-out draggable-arrow merge-to-meeting video-under3-hidden video-3plus-visible share-video-visible no-grip');
+  console.log('DOMINIONSTAR_PACKAGED_ZOOM_WINDOW_PARITY_OK participants-right-default pop-out real-input-drag-arrow merge-to-meeting video-under3-hidden video-3plus-visible share-video-visible no-grip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('Zoom window gate shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
