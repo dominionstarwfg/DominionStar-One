@@ -84,7 +84,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop'
           /usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$PLIST" | grep -Fx 'DominionStar Meet'
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" | grep -Fx '2.0.14'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" | grep -Fx '2.0.15'
           /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$PLIST" >/dev/null
           /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$PLIST" >/dev/null
           /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' "$PLIST" >/dev/null
@@ -138,7 +138,7 @@ jobs:
           mkdir -p production-artifact "$RUNNER_TEMP/dominionstar-dmg"
           ditto "${{ steps.app.outputs.path }}" "$RUNNER_TEMP/dominionstar-dmg/DominionStar Meet.app"
           ln -s /Applications "$RUNNER_TEMP/dominionstar-dmg/Applications"
-          DMG="production-artifact/DominionStar-Meet-2.0.14-Mac-Installer.dmg"
+          DMG="production-artifact/DominionStar-Meet-2.0.15-Mac-Installer.dmg"
           created=0
           for attempt in 1 2 3; do
             rm -f "$DMG"
@@ -151,14 +151,14 @@ jobs:
           done
           test "$created" = "1"
           test -s "$DMG"
-          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" production-artifact/DominionStar-Meet-2.0.14-Mac-universal.zip
-          shasum -a 256 "$DMG" production-artifact/DominionStar-Meet-2.0.14-Mac-universal.zip | tee production-artifact/SHA256.txt
-          printf 'commit=%s\nversion=2.0.14\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\n' "$GITHUB_SHA" > production-artifact/BUILD-PROVENANCE.txt
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" production-artifact/DominionStar-Meet-2.0.15-Mac-universal.zip
+          shasum -a 256 "$DMG" production-artifact/DominionStar-Meet-2.0.15-Mac-universal.zip | tee production-artifact/SHA256.txt
+          printf 'commit=%s\nversion=2.0.15\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\n' "$GITHUB_SHA" > production-artifact/BUILD-PROVENANCE.txt
 
       - name: Verify installer layout and installed app identity
         shell: bash
         run: |
-          DMG="production-artifact/DominionStar-Meet-2.0.14-Mac-Installer.dmg"
+          DMG="production-artifact/DominionStar-Meet-2.0.15-Mac-Installer.dmg"
           MOUNT="$RUNNER_TEMP/dominionstar-installer-mount"
           rm -rf "$MOUNT"
           mkdir -p "$MOUNT"
@@ -168,7 +168,7 @@ jobs:
           test -L "$MOUNT/Applications"
           test "$(readlink "$MOUNT/Applications")" = "/Applications"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$MOUNT/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$MOUNT/DominionStar Meet.app/Contents/Info.plist" | grep -Fx '2.0.14'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$MOUNT/DominionStar Meet.app/Contents/Info.plist" | grep -Fx '2.0.15'
           codesign --verify --deep --strict --verbose=2 "$MOUNT/DominionStar Meet.app"
           hdiutil detach "$MOUNT"
           trap - EXIT
@@ -176,7 +176,7 @@ jobs:
       - name: Upload production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-2.0.14-mac-production
+          name: dominionstar-meet-2.0.15-mac-production
           path: production-artifact/*
           if-no-files-found: error
           retention-days: 30
