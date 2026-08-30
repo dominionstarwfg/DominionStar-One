@@ -179,6 +179,11 @@
     const suppress=thresholdApplies&&participantCount<=2;
     dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available';
     if(suppress){if(!dock.hidden)dock.hidden=true;return;}
+    if(shared){
+      const allowed=window.DominionPreferences?.read?.('shareVideoDock')!==false;
+      if(allowed&&visibleTiles>0&&dock.hidden)dock.hidden=false;
+      return;
+    }
     if(thresholdApplies&&participantCount>2&&visibleTiles>0&&dock.hidden)dock.hidden=false;
   }
 
