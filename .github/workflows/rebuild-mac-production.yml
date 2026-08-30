@@ -71,6 +71,7 @@ jobs:
           node scripts/verify-mac-install-authority.mjs
           node scripts/verify-zoom-production-polish.mjs
           node scripts/verify-physical-acceptance.mjs
+          node scripts/verify-reaction-parity.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop
@@ -139,6 +140,12 @@ jobs:
         env:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-physical-acceptance.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged reaction duration parity
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-reaction-parity.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Create installable DMG, archive, and checksums
         shell: bash
