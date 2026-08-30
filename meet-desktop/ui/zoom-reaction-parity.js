@@ -4,16 +4,25 @@
   const DURATION_MS=10000;
   let observer=null;
   const timers=new WeakMap();
+  const esc=value=>String(value||'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
 
-  function enforce(node){
-    if(!(node instanceof HTMLElement)||!node.classList.contains('ds-reaction-float'))return;
-    if(node.dataset.dsReactionParity==='10s')return;
+  function canonicalize(node){
+    if(!(node instanceof HTMLElement))return;
+    if(node.classList.contains('ds-reaction-float')&&node.dataset.dsReactionParity==='10s')return;
+    if(!node.classList.contains('meeting-reaction-bubble')&&!node.classList.contains('ds-reaction-float'))return;
 
-    // The legacy physical-acceptance layer still owns reaction construction.
-    // Replace its node immediately so its old 6.3-second removal timer targets
-    // a detached element, while this canonical node follows Zoom's 10-second
-    // meeting-reaction lifetime.
-    const canonical=node.cloneNode(true);
+    let canonical;
+    if(node.classList.contains('meeting-reaction-bubble')){
+      const emoji=String(node.querySelector('b')?.textContent||'');
+      const name=String(node.querySelector('span')?.textContent||'Participant');
+      if(!emoji)return;
+      canonical=document.createElement('div');
+      canonical.className='ds-reaction-float';
+      canonical.innerHTML=`<b>${esc(emoji)}</b><span>${esc(name)}</span>`;
+    }else{
+      canonical=node.cloneNode(true);
+    }
+
     canonical.dataset.dsReactionParity='10s';
     canonical.style.setProperty('animation-duration','10s','important');
     node.replaceWith(canonical);
@@ -26,8 +35,8 @@
   }
 
   function scan(root=document){
-    if(root instanceof HTMLElement&&root.classList.contains('ds-reaction-float'))enforce(root);
-    root?.querySelectorAll?.('.ds-reaction-float').forEach(enforce);
+    if(root instanceof HTMLElement&&(root.classList.contains('meeting-reaction-bubble')||root.classList.contains('ds-reaction-float')))canonicalize(root);
+    root?.querySelectorAll?.('.meeting-reaction-bubble,.ds-reaction-float').forEach(canonicalize);
   }
 
   observer=new MutationObserver(records=>{
@@ -39,9 +48,10 @@
   scan();
 
   window.DominionZoomReactionParity=Object.freeze({
-    version:'2.0.17',
+    version:'2.0.18',
     durationMs:DURATION_MS,
     scan,
+    canonicalize,
     dispose(){
       observer?.disconnect();
       observer=null;
