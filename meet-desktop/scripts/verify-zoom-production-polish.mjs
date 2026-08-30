@@ -19,6 +19,8 @@ assert(js.includes('zoom-chat-more')&&css.includes('.meeting-chat-policy{display
 assert(css.includes('.meeting-chat-message p{font-size:13px'),'Meeting chat messages must be readable at normal desktop scale.');
 assert(css.includes('.meeting-reaction-bubble{left:24px!important')&&css.includes('@keyframes dsZoomReactionRise'),'Meeting reactions must rise from the left side of the stage.');
 assert(js.includes('re-check the actual capture permission automatically'),'Permission recovery copy must tell the user that Share performs a real re-check.');
-assert(js.includes("version:'1.2.0'"),'Production polish module version must be explicit.');
+assert(js.includes("observer.observe(document.body,{childList:true,subtree:true})")&&!js.includes("attributeFilter:['hidden','class']"),'Production polish must not observe its own visibility/class mutations and starve the renderer.');
+assert(js.includes('setHidden=(node,value)'),'Repeated polish reconciliation must update visibility idempotently.');
+assert(js.includes("version:'1.2.1'"),'Production polish module version must be explicit.');
 
-console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK readable-toolbar left-audio right-end green-share host-tools participant-search zoom-roster zoom-chat left-rising-reactions permission-recheck');
+console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK readable-toolbar left-audio right-end green-share host-tools participant-search zoom-roster zoom-chat left-rising-reactions permission-recheck stable-reconciliation');
