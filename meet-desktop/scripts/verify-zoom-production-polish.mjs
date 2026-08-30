@@ -23,13 +23,14 @@ assert(js.includes("requestAnimationFrame(normalizeParticipantPanel)"),'Particip
 assert(css.includes('.zoom-participant-search input')&&css.includes('font-size:13px'),'Participant search must remain readable.');
 assert(js.includes('function normalizeChatPanel()')&&js.includes("panel.style.setProperty('width','var(--ds-panel-w)','important')")&&js.includes("panel.style.setProperty('right','10px','important')"),'Chat must have a runtime geometry authority that late legacy CSS cannot shrink or reposition.');
 assert(js.includes("requestAnimationFrame(normalizeChatPanel)"),'Chat click reconciliation must re-assert production geometry before paint.');
+assert(css.includes('#meetingChatPanel header strong{font-size:15px!important')&&css.includes('#meetingChatInput{font-size:13px!important'),'Chat heading and composer typography must have ID-level authority over later legacy class rules.');
+assert(css.includes('#meetingChatPanel .meeting-chat-message p{font-size:13px!important')&&css.includes('color:#f5f5f5!important'),'Chat body copy must retain readable production size and contrast.');
 assert(js.includes('zoom-chat-more')&&css.includes('.meeting-chat-policy{display:none!important}'),'Chat policy must live behind a More control instead of a permanent policy dropdown.');
 assert(js.includes("if(!q('#meetingChatPolicy'))return"),'Chat chrome must wait for the behavior controller to create and wire its policy control before moving the close-button anchor.');
-assert(css.includes('.meeting-chat-message p{font-size:13px')&&css.includes('color:#f4f4f4!important'),'Meeting chat messages must be readable with appropriate light text contrast.');
 assert(css.includes('.meeting-reaction-bubble{left:24px!important')&&css.includes('@keyframes dsZoomReactionRise'),'Meeting reactions must rise from the left side of the stage.');
 assert(js.includes('re-check the actual capture permission automatically'),'Permission recovery copy must tell the user that Share performs a real re-check.');
 assert(js.includes("observer.observe(document.body,{childList:true,subtree:true})")&&!js.includes("attributeFilter:['hidden','class']"),'Production polish must not observe its own visibility/class mutations and starve the renderer.');
 assert(js.includes('setHidden=(node,value)'),'Repeated polish reconciliation must update visibility idempotently.');
 assert(js.includes("version:'1.4.0'"),'Production polish module version must be explicit.');
 
-console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools participant-search participants-right runtime-right-authority prepaint-right zoom-roster zoom-chat chat-runtime-geometry chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
+console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools participant-search participants-right runtime-right-authority prepaint-right zoom-roster zoom-chat chat-runtime-geometry chat-typography-authority chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
