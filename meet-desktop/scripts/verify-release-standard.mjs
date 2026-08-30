@@ -15,6 +15,7 @@ const requiredSteps=[
   'Launch packaged app',
   'Exercise packaged desktop controls',
   'Measure packaged Zoom-scale interface',
+  'Exercise packaged physical acceptance',
   'Create installable DMG, archive, and checksums',
   'Verify installer layout and installed app identity',
   'Upload production artifact'
@@ -28,14 +29,17 @@ for(const name of requiredSteps){
   previous=index;
 }
 
+assert.ok(workflow.includes('node scripts/verify-physical-acceptance.mjs'),'Physical acceptance source audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-interactions.mjs'),'Packaged interaction audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-zoom-visual.mjs'),'Rendered Zoom-parity audit is mandatory.');
-assert.ok(workflow.indexOf('Measure packaged Zoom-scale interface')<workflow.indexOf('Create installable DMG, archive, and checksums'),'Installer creation must remain behind the rendered Zoom-parity gate.');
+assert.ok(workflow.includes('node scripts/verify-packaged-physical-acceptance.mjs'),'Packaged physical acceptance audit is mandatory.');
+assert.ok(workflow.indexOf('Exercise packaged physical acceptance')<workflow.indexOf('Create installable DMG, archive, and checksums'),'Installer creation must remain behind the physical acceptance gate.');
 assert.ok(workflow.indexOf('Verify installer layout and installed app identity')<workflow.indexOf('Upload production artifact'),'Artifact upload must remain behind installer verification.');
 assert.ok(workflow.includes(`CFBundleShortVersionString' "$PLIST" | grep -Fx '${pkg.version}'`),'Workflow bundle-version assertion must match package.json.');
 assert.ok(workflow.includes(`DominionStar-Meet-${pkg.version}-Mac-Installer.dmg`),'Workflow DMG version must match package.json.');
 assert.ok(workflow.includes(`dominionstar-meet-${pkg.version}-mac-production`),'Workflow artifact version must match package.json.');
 assert.ok(/Zoom desktop behavior is the primary UX reference/i.test(standard),'Release standard must preserve Zoom as the primary meeting UX reference.');
+assert.ok(/Physical-Mac acceptance feedback is a first-class release input/i.test(standard),'Release standard must preserve physical Mac failures as first-class release evidence.');
 assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(standard),'Release standard must prohibit publishing failed candidates.');
 
-console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} clean-source source-cert packaged-audit packaged-launch packaged-controls zoom-render-gate installer-verify upload-last`);
+console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} clean-source source-cert packaged-audit packaged-launch packaged-controls zoom-render-gate physical-acceptance installer-verify upload-last`);
