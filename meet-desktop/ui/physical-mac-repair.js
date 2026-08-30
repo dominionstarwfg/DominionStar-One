@@ -59,8 +59,6 @@
         const result=await desktop.app?.resetScreenPermission?.();
         recoveryDialog.hidden=true;
         if(result?.ok===false)throw new Error(result.error||'Unable to reset Screen Recording permission.');
-        // Trigger the native macOS request for this exact running binary. Do not
-        // stack a DominionStar modal over the operating-system prompt.
         await sourceProbe('screen');
       }catch(error){
         recoveryDialog.hidden=false;
@@ -96,9 +94,6 @@
         return;
       }
 
-      // A not-determined status means macOS owns the interaction. desktopCapturer
-      // may have just opened the native Screen Recording prompt. Never display a
-      // second DominionStar modal while that native prompt is unresolved.
       if(initialStatus==='not-determined'){
         const decided=await waitForNativeDecision();
         if(decided==='not-determined')return;
@@ -111,9 +106,6 @@
         return;
       }
 
-      // If TCC claims granted but no readable source exists, this is precisely the
-      // stale/replaced-binary case seen in physical QA. Recovery must reauthorize
-      // the exact installed binary rather than blindly reopening Settings.
       await showRecovery(initialStatus);
     }finally{shareBusy=false;}
   }
@@ -165,7 +157,10 @@
   }
 
   function syncParticipantCount(){
-    const roster=q('#participantRoster'),heading=q('#participantPanel .room-side-head strong, .room-side .room-side-head strong');if(!roster||!heading)return;
+    const roster=q('#participantRoster');if(!roster)return;
+    const panel=roster.closest('.room-side')||q('#participantPanel');
+    const heading=panel?.querySelector('.room-side-head strong')||panel?.querySelector('section h3');
+    if(!heading)return;
     const count=roster.querySelectorAll('[data-participant-id]').length;
     const next=`Participants (${count})`;
     if(heading.textContent!==next)heading.textContent=next;
