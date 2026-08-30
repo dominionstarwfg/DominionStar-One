@@ -12,6 +12,8 @@
   let recoveryDialog=null;
   let expectedPersonalCode='';
   let rosterObserver=null;
+  let dockObserver=null;
+  let observedDock=null;
 
   function hideLegacyShareRecovery(){
     for(const node of qa('.ds-share-permission')){
@@ -166,13 +168,35 @@
     if(heading.textContent!==next)heading.textContent=next;
   }
 
+  function syncVideoDockPolicy(){
+    const dock=q('#participantVideoDock'),overlay=q('#meetingOverlay');if(!dock||!overlay||overlay.hidden)return;
+    const shared=overlay.classList.contains('share-active')||document.body.classList.contains('remote-share-active');
+    const view=String(overlay.dataset.viewMode||'speaker');
+    const visibleTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')).length;
+    const rosterCount=q('#participantRoster')?.querySelectorAll('[data-participant-id]').length||0;
+    const participantCount=Math.max(rosterCount,visibleTiles+(q('#localVideoDockTile')?1:0));
+    const thresholdApplies=!shared&&view==='speaker';
+    const suppress=thresholdApplies&&participantCount<=2;
+    dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available';
+    if(suppress){if(!dock.hidden)dock.hidden=true;return;}
+    if(thresholdApplies&&participantCount>2&&visibleTiles>0&&dock.hidden)dock.hidden=false;
+  }
+
   function installRosterObserver(){
     const roster=q('#participantRoster');if(!roster||rosterObserver)return;
-    rosterObserver=new MutationObserver(()=>syncParticipantCount());
+    rosterObserver=new MutationObserver(()=>{syncParticipantCount();syncVideoDockPolicy();});
     rosterObserver.observe(roster,{childList:true,subtree:true});syncParticipantCount();
   }
 
-  function sync(){syncPersonalChoice();installRosterObserver();syncParticipantCount();}
+  function installDockObserver(){
+    const dock=q('#participantVideoDock');if(!dock||dock===observedDock)return;
+    dockObserver?.disconnect();observedDock=dock;
+    dockObserver=new MutationObserver(()=>syncVideoDockPolicy());
+    dockObserver.observe(dock,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
+    syncVideoDockPolicy();
+  }
+
+  function sync(){syncPersonalChoice();installRosterObserver();syncParticipantCount();installDockObserver();syncVideoDockPolicy();}
 
   document.addEventListener('submit',event=>void startSelectedPersonalMeeting(event),true);
   document.addEventListener('click',event=>{
@@ -184,9 +208,9 @@
     if(event.target?.closest?.('#newMeetingUsePersonal'))requestAnimationFrame(syncPersonalChoice);
   },true);
   window.addEventListener('dominion:meeting-ui-ready',()=>{sync();void verifyLivePersonalIdentity();});
-  window.addEventListener('dominion:meeting-snapshot',()=>{syncParticipantCount();void verifyLivePersonalIdentity();});
+  window.addEventListener('dominion:meeting-snapshot',()=>{syncParticipantCount();syncVideoDockPolicy();void verifyLivePersonalIdentity();});
   new MutationObserver(()=>sync()).observe(document.body,{childList:true,subtree:true});
   setInterval(sync,900);sync();
 
-  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.19',openVerifiedShare,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount});
+  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.20',openVerifiedShare,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy});
 })();
