@@ -1,4 +1,4 @@
-/* 2.0.19 physical-Mac authority. Loaded last. */
+/* 2.0.20 physical-Mac and Zoom window authority. Loaded last. */
 
 /* Personal Meeting ID must not expose an unrelated instant-meeting passcode field. */
 #newMeetingForm #newMeetingUsePersonal:checked{accent-color:#e0b23d}
@@ -37,14 +37,49 @@
   white-space:nowrap!important;
   word-break:normal!important;
   overflow:hidden!important;
-  font:650 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-size:13px!important;
+  font-weight:650!important;
+  line-height:1!important;
   letter-spacing:0!important;
   color:#f1d275!important;
 }
 .ds-reaction-divider{flex:0 0 1px!important}
 
-/* Participants: current Zoom desktop convention includes the live count in heading. */
+/* Participants: current Zoom desktop behavior is docked right by default, with
+   an explicit Pop Out / Merge to Meeting option for a movable floating panel. */
 .room-side-head strong{font-size:16px!important;line-height:1.2!important}
+.zoom-participant-layout-button{
+  flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;
+  margin:0 7px 0 -5px!important;padding:0!important;border:0!important;border-radius:6px!important;
+  display:grid!important;place-items:center!important;background:transparent!important;color:#e9e9e9!important;
+  font-size:17px!important;line-height:1!important;cursor:pointer!important;
+}
+.zoom-participant-layout-button:hover{background:#343434!important}
+.zoom-participant-layout-menu{
+  position:fixed!important;z-index:1200!important;width:190px!important;padding:6px!important;
+  border:1px solid #464646!important;border-radius:8px!important;background:#242424!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.55)!important;
+}
+.zoom-participant-layout-menu button{
+  width:100%!important;height:38px!important;padding:0 10px!important;border:0!important;border-radius:6px!important;
+  background:transparent!important;color:#f1f1f1!important;text-align:left!important;font-size:12.5px!important;
+  font-weight:550!important;cursor:pointer!important;
+}
+.zoom-participant-layout-menu button:hover{background:#343434!important}
+.room-side[data-zoom-panel-mode="popout"]{resize:both!important;max-height:calc(100% - 24px)!important}
+
+/* Zoom movable-window behavior uses a normal pointer over the draggable chrome.
+   Never show grab/grabbing hands on the participant panel or video panel. */
+.meeting-overlay .room-side,
+.meeting-overlay .room-side.dragging,
+.meeting-overlay .room-side-head,
+.meeting-overlay .participant-video-dock,
+.meeting-overlay .participant-video-dock.dragging,
+.meeting-overlay .participant-video-dock-head{cursor:default!important}
+.meeting-overlay .room-side-head button,
+.meeting-overlay .participant-video-dock-head button{cursor:pointer!important}
+.meeting-overlay .dock-grip{display:none!important}
 
 /* Settings: convert the old centered utility controls into readable desktop rows. */
 .settings-modal.av-video-settings-open{
