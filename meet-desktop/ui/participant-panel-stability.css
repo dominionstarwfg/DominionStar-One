@@ -1,0 +1,8 @@
+/* Keep the Participants window centered on its very first visible frame.
+   meeting-parity.js replaces this default with persisted/user geometry once it
+   has an inline left coordinate, so dragging and saved placement still work. */
+.room-side:not([style*="left:"]){
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%);
+}
