@@ -97,7 +97,6 @@
   }
   function cleanMoreMenu(){
     if(!manager()||!q('#roomHostTools')||q('#roomHostTools').hidden)return;
-    for(const menu of qa('.meeting-more-menu:not(.security-menu)'))for(const button of qa.call?[]:[])void button;
     for(const menu of qa('.meeting-more-menu:not(.security-menu)')){
       const hostButton=[...menu.querySelectorAll('button')].find(button=>String(button.textContent||'').trim()==='Host tools');hostButton?.remove();
     }
