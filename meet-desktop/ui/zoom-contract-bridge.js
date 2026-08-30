@@ -12,7 +12,7 @@
 
   const style=document.createElement('style');
   style.dataset.dsZoomContractBridge='1';
-  style.textContent='.ds-reaction-tray.meeting-reaction-menu{display:flex!important}.ds-command-menu.meeting-more-menu{display:block!important}';
+  style.textContent='.ds-reaction-tray.meeting-reaction-menu{display:flex!important;z-index:3800!important;pointer-events:auto!important}.ds-command-menu.meeting-more-menu{display:block!important;z-index:3600!important;pointer-events:auto!important}';
   document.head.append(style);
 
   // Legacy audit/feature layers sometimes inspect a newly created menu before a
@@ -31,7 +31,7 @@
   for(const node of document.querySelectorAll('.ds-command-menu,.ds-reaction-tray'))apply(node);
 
   window.DominionZoomContractBridge=Object.freeze({
-    version:'1.1.0',
+    version:'1.2.0',
     dispose:()=>{
       observer.disconnect();
       Element.prototype.append=nativeAppend;
