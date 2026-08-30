@@ -14,7 +14,9 @@
   let rosterObserver=null;
 
   function hideLegacyShareRecovery(){
-    for(const node of qa('.ds-share-permission'))node.hidden=true;
+    for(const node of qa('.ds-share-permission')){
+      if(!node.hidden)node.hidden=true;
+    }
   }
 
   async function screenStatus(){
@@ -165,7 +167,8 @@
   function syncParticipantCount(){
     const roster=q('#participantRoster'),heading=q('#participantPanel .room-side-head strong, .room-side .room-side-head strong');if(!roster||!heading)return;
     const count=roster.querySelectorAll('[data-participant-id]').length;
-    heading.textContent=`Participants (${count})`;
+    const next=`Participants (${count})`;
+    if(heading.textContent!==next)heading.textContent=next;
   }
 
   function installRosterObserver(){
@@ -174,7 +177,7 @@
     rosterObserver.observe(roster,{childList:true,subtree:true});syncParticipantCount();
   }
 
-  function sync(){syncPersonalChoice();installRosterObserver();syncParticipantCount();hideLegacyShareRecovery();}
+  function sync(){syncPersonalChoice();installRosterObserver();syncParticipantCount();}
 
   document.addEventListener('submit',event=>void startSelectedPersonalMeeting(event),true);
   document.addEventListener('click',event=>{
@@ -187,7 +190,7 @@
   },true);
   window.addEventListener('dominion:meeting-ui-ready',()=>{sync();void verifyLivePersonalIdentity();});
   window.addEventListener('dominion:meeting-snapshot',()=>{syncParticipantCount();void verifyLivePersonalIdentity();});
-  new MutationObserver(()=>sync()).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  new MutationObserver(()=>sync()).observe(document.body,{childList:true,subtree:true});
   setInterval(sync,900);sync();
 
   window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.19',openVerifiedShare,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount});
