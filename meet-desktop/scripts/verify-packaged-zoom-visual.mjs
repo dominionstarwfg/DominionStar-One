@@ -8,6 +8,7 @@ const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=9650+Math.floor(Math.random()*200);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let stderr='';
+const runtimeErrors=[];
 const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
 
@@ -33,7 +34,13 @@ async function waitFor(expression,label,timeout=10000){const deadline=Date.now()
 let failure=null;
 try{
   const page=await target();socket=await connect(page.webSocketDebuggerUrl);
-  socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
+  socket.addEventListener('message',event=>{
+    const message=JSON.parse(String(event.data));
+    if(message.method==='Runtime.exceptionThrown'){
+      const details=message.params?.exceptionDetails;runtimeErrors.push(details?.exception?.description||details?.text||'Uncaught renderer exception');return;
+    }
+    if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);
+  });
   await cdp('Runtime.enable');
   await waitFor("document.readyState==='complete'&&window.DominionMeetingParity&&window.DominionZoomProductionPolish&&document.querySelector('#meetingOverlay')",'meeting visual controllers');
   await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;window.DominionMeetingParity.install();window.DominionMeetingParity.decorateControls();const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionZoomProductionPolish.sync();return true;})()`);
@@ -49,7 +56,8 @@ try{
   assert.match(toolbar.share.color,/rgb\((53, 198, 106|46, 204, 113|35, 198, 106)\)/,'Share Screen must use green primary-action emphasis.');
   assert.ok(toolbar.host&&toolbar.host.label>=11.5,'Host Tools must be a readable first-class host control.');
 
-  const participants=await evaluate(`(()=>{document.querySelector('#roomParticipants').click();window.DominionZoomProductionPolish.sync();const panel=document.querySelector('.room-side'),pr=panel.getBoundingClientRect(),br=document.querySelector('.meeting-body').getBoundingClientRect(),search=panel.querySelector('.zoom-participant-search input'),head=panel.querySelector('.room-side-head strong'),footer=panel.querySelector('.zoom-participant-footer');return {rightGap:Math.round(br.right-pr.right),topGap:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height),position:getComputedStyle(panel).position,searchFont:search?parseFloat(getComputedStyle(search).fontSize):0,searchHeight:search?search.getBoundingClientRect().height:0,headFont:head?parseFloat(getComputedStyle(head).fontSize):0,footerVisible:Boolean(footer&&!footer.hidden),legacyVisible:Boolean(document.querySelector('#participantBulkActions')&&!document.querySelector('#participantBulkActions').hidden)};})()`);
+  await evaluate(`document.querySelector('#roomParticipants').click()`);await sleep(60);
+  const participants=await evaluate(`(()=>{window.DominionZoomProductionPolish.sync();const panel=document.querySelector('.room-side'),pr=panel.getBoundingClientRect(),br=document.querySelector('.meeting-body').getBoundingClientRect(),search=panel.querySelector('.zoom-participant-search input'),head=panel.querySelector('.room-side-head strong'),footer=panel.querySelector('.zoom-participant-footer');return {rightGap:Math.round(br.right-pr.right),topGap:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height),position:getComputedStyle(panel).position,searchFont:search?parseFloat(getComputedStyle(search).fontSize):0,searchHeight:search?search.getBoundingClientRect().height:0,headFont:head?parseFloat(getComputedStyle(head).fontSize):0,footerVisible:Boolean(footer&&!footer.hidden),legacyVisible:Boolean(document.querySelector('#participantBulkActions')&&!document.querySelector('#participantBulkActions').hidden)};})()`);
   assert.ok(Math.abs(participants.rightGap)<=20,'Participants must open at the right edge like Zoom, not centered.');
   assert.ok(participants.topGap<=20,'Participants must align near the top of the meeting stage.');
   assert.ok(participants.width>=380,'Participants roster is too narrow for readable production use.');
@@ -60,7 +68,8 @@ try{
   assert.equal(participants.legacyVisible,false,'Legacy bulk-control strip must not be visible.');
   await evaluate(`document.querySelector('#roomParticipants').click()`);
 
-  const chat=await evaluate(`(()=>{document.querySelector('#roomChat').click();window.DominionZoomProductionPolish.sync();const panel=document.querySelector('#meetingChatPanel'),r=panel.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),head=panel.querySelector('header strong'),input=document.querySelector('#meetingChatInput'),policy=document.querySelector('#meetingChatPolicy'),more=panel.querySelector('.zoom-chat-more');return {rightGap:Math.round(body.right-r.right),width:Math.round(r.width),headFont:head?parseFloat(getComputedStyle(head).fontSize):0,inputFont:input?parseFloat(getComputedStyle(input).fontSize):0,policyVisible:Boolean(policy&&getComputedStyle(policy).display!=='none'),moreVisible:Boolean(more&&getComputedStyle(more).display!=='none')};})()`);
+  await evaluate(`document.querySelector('#roomChat').click()`);await sleep(60);
+  const chat=await evaluate(`(()=>{window.DominionZoomProductionPolish.sync();const panel=document.querySelector('#meetingChatPanel'),r=panel.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),head=panel.querySelector('header strong'),input=document.querySelector('#meetingChatInput'),policy=document.querySelector('#meetingChatPolicy'),more=panel.querySelector('.zoom-chat-more');return {rightGap:Math.round(body.right-r.right),width:Math.round(r.width),headFont:head?parseFloat(getComputedStyle(head).fontSize):0,inputFont:input?parseFloat(getComputedStyle(input).fontSize):0,policyVisible:Boolean(policy&&getComputedStyle(policy).display!=='none'),moreVisible:Boolean(more&&getComputedStyle(more).display!=='none')};})()`);
   assert.ok(Math.abs(chat.rightGap)<=20&&chat.width>=380,'Chat must use the same readable right-side panel family.');
   assert.ok(chat.headFont>=14.5&&chat.inputFont>=12.5,'Chat typography is undersized.');
   assert.equal(chat.policyVisible,false,'Chat policy must not permanently occupy the panel header.');
@@ -76,7 +85,10 @@ try{
   assert.ok(more.font>=11.5,'More menu text is too small.');
   assert.equal(more.hasSettings,true,'Meeting settings must remain in More.');
   assert.equal(more.hasHostDuplicate,false,'Host Tools must not be duplicated in More when it has a primary toolbar control.');
+  await sleep(120);
+  assert.deepEqual(runtimeErrors,[],'Packaged meeting emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
+  assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
 
-  console.log('DOMINIONSTAR_PACKAGED_ZOOM_VISUAL_OK toolbar-84 icons-28 labels-12 audio-left video-left actions-spaced end-right share-green host-tools participants-right participant-search chat-right readable-text reactions-left more-readable');
+  console.log('DOMINIONSTAR_PACKAGED_ZOOM_VISUAL_OK toolbar-84 icons-28 labels-12 audio-left video-left actions-spaced end-right share-green host-tools participants-right participant-search chat-right readable-text reactions-left more-readable no-uncaught-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('visual gate shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
