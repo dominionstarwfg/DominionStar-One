@@ -131,21 +131,25 @@
       }
     }
   }
+  function ensureMoreAuthority(){
+    const more=q('#roomMore');if(!more||more.dataset.productionMoreAuthority==='1'||typeof more.onclick!=='function')return;
+    const legacy=more.onclick;
+    more.dataset.productionMoreAuthority='1';
+    more.onclick=event=>{const result=legacy.call(more,event);cleanMoreMenu();return result;};
+  }
 
   function sync(){
     if(!meetingOpen()){closeParticipantMenu();closeChatPolicyMenu();return;}
-    normalizeCarets();ensureHostTools();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
+    normalizeCarets();ensureHostTools();ensureMoreAuthority();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
   }
   document.addEventListener('pointerdown',event=>{if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();},true);
   document.addEventListener('click',event=>{
     if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(normalizeParticipantPanel);
     if(event.target.closest?.('#roomChat'))requestAnimationFrame(normalizeChatPanel);
-    // More is built synchronously by the legacy controller. Remove its Host Tools
-    // duplicate in the same event dispatch so users never see a one-frame duplicate.
     if(event.target.closest?.('#roomMore'))cleanMoreMenu();
   });
   window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
   const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true});
   const timer=setInterval(sync,900);sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.4.1',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
+  window.DominionZoomProductionPolish=Object.freeze({version:'1.4.2',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
 })();
