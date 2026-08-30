@@ -73,6 +73,7 @@ jobs:
           node scripts/verify-physical-acceptance.mjs
           node scripts/verify-reaction-parity.mjs
           node scripts/verify-physical-mac-2.0.19.mjs
+          node scripts/verify-zoom-window-parity.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop
@@ -151,6 +152,12 @@ jobs:
       - name: Verify packaged 2.0.19 physical Mac repairs
         working-directory: meet-desktop
         run: node scripts/verify-packaged-physical-mac-2.0.19.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged Zoom Participants and video-panel behavior
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-zoom-window-parity.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Create installable DMG, archive, and checksums
         shell: bash
