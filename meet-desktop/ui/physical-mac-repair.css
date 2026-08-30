@@ -37,7 +37,10 @@
   white-space:nowrap!important;
   word-break:normal!important;
   overflow:hidden!important;
-  font:650 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-size:13px!important;
+  font-weight:650!important;
+  line-height:1!important;
   letter-spacing:0!important;
   color:#f1d275!important;
 }
