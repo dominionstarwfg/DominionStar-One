@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "verify": "node scripts/verify-foundation.mjs && node scripts/verify-auth.mjs && node scripts/verify-share-authority.mjs && node scripts/verify-mac-install-authority.mjs && node scripts/verify-zoom-production-polish.mjs",
+    "verify": "node scripts/verify-release-standard.mjs && node scripts/verify-foundation.mjs && node scripts/verify-auth.mjs && node scripts/verify-share-authority.mjs && node scripts/verify-mac-install-authority.mjs && node scripts/verify-zoom-production-polish.mjs",
     "pack": "electron-builder --dir",
     "dist:mac": "electron-builder --mac dmg zip --universal --publish never",
     "verify:visual": "node scripts/verify-production-visual-polish.mjs"
