@@ -1,8 +1,9 @@
-/* Keep the Participants window centered on its very first visible frame.
-   meeting-parity.js replaces this default with persisted/user geometry once it
-   has an inline left coordinate, so dragging and saved placement still work. */
+/* Keep the Participants roster on the Zoom-style right edge from its first visible frame.
+   Runtime polish uses the same geometry so there is no centered flash or legacy-position jump. */
 .room-side:not([style*="left:"]){
-  left:50%!important;
-  right:auto!important;
-  transform:translateX(-50%);
+  left:auto!important;
+  right:10px!important;
+  top:10px!important;
+  bottom:10px!important;
+  transform:none!important;
 }
