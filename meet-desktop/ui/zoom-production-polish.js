@@ -125,13 +125,14 @@
     normalizeCarets();ensureHostTools();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
   }
   document.addEventListener('pointerdown',event=>{if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();},true);
-  // meeting-parity positions Participants in a requestAnimationFrame after the
-  // click. Re-assert the production right-side geometry in the following frame.
-  document.addEventListener('click',event=>{if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(()=>requestAnimationFrame(normalizeParticipantPanel));});
+  // meeting-parity schedules its legacy placement during the target click.
+  // This listener is reached afterwards, so our rAF runs later in the same
+  // frame and restores the production right-side geometry before paint.
+  document.addEventListener('click',event=>{if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(normalizeParticipantPanel);});
   window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
   // Observe structure only. Attribute observation caused the polish layer to
   // react to its own visibility/class changes and could starve the renderer.
   const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true});
   const timer=setInterval(sync,900);sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.3.0',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
+  window.DominionZoomProductionPolish=Object.freeze({version:'1.3.1',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
 })();
