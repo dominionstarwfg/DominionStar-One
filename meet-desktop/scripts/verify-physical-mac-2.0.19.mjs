@@ -10,7 +10,7 @@ const bootstrap=read('src/bootstrap.mjs');
 const relaunch=read('src/relaunch-service.mjs');
 const pkg=JSON.parse(read('package.json'));
 
-assert.equal(pkg.version,'2.0.19','Physical Mac repair gate must run on 2.0.19.');
+assert.equal(pkg.version,'2.0.20','Physical Mac repair gate must remain active on 2.0.20.');
 assert.match(auth,/physical-mac-repair\.css/,'Physical Mac repair CSS must be loaded.');
 assert.match(auth,/physical-mac-repair\.js/,'Physical Mac repair JS must be loaded.');
 assert.match(auth,/const loadPhysicalRepair=\(\)=>\{[\s\S]*physical-mac-repair\.js[\s\S]*\};/,'Physical Mac repair must use an explicit loader.');
@@ -29,7 +29,7 @@ assert.match(repair,/passLabel\?\.style\.setProperty\('display','none','importan
 // Screen Share: never stack custom recovery on the unresolved native macOS prompt.
 assert.match(repair,/initialStatus==='not-determined'/,'not-determined must be treated as native macOS prompt ownership.');
 assert.match(repair,/waitForNativeDecision/,'Share must wait for the native permission decision.');
-const notDeterminedBlock=repair.slice(repair.indexOf("if(initialStatus==='not-determined')"),repair.indexOf('// If TCC claims granted'));
+const notDeterminedBlock=repair.slice(repair.indexOf("if(initialStatus==='not-determined')"));
 assert.ok(notDeterminedBlock.indexOf('showRecovery')>notDeterminedBlock.indexOf("if(decided==='not-determined')return"),'Custom recovery must not appear while native prompt remains unresolved.');
 assert.match(repair,/resetScreenPermission/,'Prototype recovery must explicitly reset stale ScreenCapture TCC only on user action.');
 assert.match(repair,/app\?\.relaunch/,'Newly granted Screen Recording permission must have a full-process relaunch path.');
@@ -41,10 +41,10 @@ assert.match(bootstrap,/relaunch-service\.mjs/,'Relaunch/TCC authority must load
 
 // Reactions and Settings: screenshot-derived rendered constraints.
 assert.match(css,/\.ds-reaction-tray[\s\S]*\.ds-raise-hand[\s\S]*white-space:nowrap!important/,'Raise Hand must not wrap.');
-assert.match(css,/font:650 13px\/1 -apple-system[\s\S]*!important/,'Raise Hand must have final packaged typography authority.');
+assert.match(css,/font-size:13px!important[\s\S]*font-weight:650!important[\s\S]*line-height:1!important/,'Raise Hand must have explicit final packaged typography authority.');
 assert.match(css,/\.ds-reaction-tray[\s\S]*overflow:hidden!important/,'Reaction tray must contain its controls.');
 assert.match(css,/\.av-toggle-row>span[\s\S]*font-size:13\.5px!important/,'Video setting row labels must be readable.');
 assert.match(css,/\.av-range-row[\s\S]*minmax\(220px,420px\)/,'Video setting sliders must be bounded instead of spanning the dialog.');
 assert.match(repair,/Participants \(\$\{count\}\)/,'Participants heading must expose the live count.');
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_2_0_19_OK personal-id-equality single-native-permission-flow explicit-tcc-recovery real-relaunch adhoc-not-certified reaction-contained reaction-font-authority settings-readable participant-count stylesheet-before-controller');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_REPAIR_OK personal-id-equality single-native-permission-flow explicit-tcc-recovery real-relaunch adhoc-not-certified reaction-contained reaction-font-authority settings-readable participant-count stylesheet-before-controller');

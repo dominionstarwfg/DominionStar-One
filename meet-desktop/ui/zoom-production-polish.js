@@ -1,7 +1,7 @@
 (()=>{
   if(window.DominionZoomProductionPolish)return;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  let participantMenu=null,chatPolicyMenu=null;
+  let participantMenu=null,participantLayoutMenu=null,chatPolicyMenu=null;
   const LEGACY_PANEL_KEY='ds_zoom_participant_panel_geometry_v1';
   try{localStorage.removeItem(LEGACY_PANEL_KEY);}catch{}
   const localRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');
@@ -12,6 +12,11 @@
     if(!menu||!anchor)return;const r=anchor.getBoundingClientRect();
     const left=Math.max(10,Math.min(innerWidth-width-10,r.left+r.width/2-width/2));
     const top=Math.max(10,r.top-menu.offsetHeight-9);menu.style.left=`${left}px`;menu.style.top=`${top}px`;
+  };
+  const positionBelow=(menu,anchor,width=190)=>{
+    if(!menu||!anchor)return;const r=anchor.getBoundingClientRect();
+    const left=Math.max(10,Math.min(innerWidth-width-10,r.left));
+    const top=Math.min(innerHeight-menu.offsetHeight-10,r.bottom+7);menu.style.left=`${left}px`;menu.style.top=`${Math.max(10,top)}px`;
   };
 
   function normalizeCarets(){
@@ -38,8 +43,9 @@
     setHidden(button,!manager());
   }
 
-  function normalizeParticipantPanel(){
-    const side=q('.room-side');if(!side)return;
+  function participantPanelMode(side=q('.room-side')){return side?.dataset.zoomPanelMode==='popout'?'popout':'docked';}
+  function dockParticipantPanel(side=q('.room-side')){
+    if(!side)return;side.dataset.zoomPanelMode='docked';
     side.style.setProperty('position','absolute','important');
     side.style.setProperty('left','auto','important');
     side.style.setProperty('right','10px','important');
@@ -48,6 +54,55 @@
     side.style.setProperty('transform','none','important');
     side.style.setProperty('width','var(--ds-panel-w)','important');
     side.style.setProperty('height','auto','important');
+  }
+  function popOutParticipantPanel(side=q('.room-side')){
+    const body=q('.meeting-body');if(!side||!body)return;side.dataset.zoomPanelMode='popout';
+    const bounds=body.getBoundingClientRect();
+    const width=Math.max(350,Math.min(410,bounds.width-40));
+    const height=Math.max(380,Math.min(590,bounds.height-40));
+    const left=Math.max(12,(bounds.width-width)/2),top=Math.max(12,(bounds.height-height)/2);
+    side.style.setProperty('position','absolute','important');
+    side.style.setProperty('left',`${left}px`,'important');
+    side.style.setProperty('right','auto','important');
+    side.style.setProperty('top',`${top}px`,'important');
+    side.style.setProperty('bottom','auto','important');
+    side.style.setProperty('transform','none','important');
+    side.style.setProperty('width',`${width}px`,'important');
+    side.style.setProperty('height',`${height}px`,'important');
+  }
+  function normalizeParticipantPanel(){
+    const side=q('.room-side');if(!side)return;
+    if(participantPanelMode(side)==='popout'){
+      side.style.setProperty('position','absolute','important');
+      side.style.setProperty('right','auto','important');
+      side.style.setProperty('bottom','auto','important');
+      side.style.setProperty('transform','none','important');
+      if(!side.style.left||side.style.left==='auto')popOutParticipantPanel(side);
+      return;
+    }
+    dockParticipantPanel(side);
+  }
+  function closeParticipantLayoutMenu(){participantLayoutMenu?.remove();participantLayoutMenu=null;}
+  function openParticipantLayoutMenu(anchor){
+    closeParticipantLayoutMenu();const side=q('.room-side');if(!side)return;
+    participantLayoutMenu=document.createElement('div');participantLayoutMenu.className='zoom-participant-layout-menu';participantLayoutMenu.setAttribute('role','menu');
+    const action=document.createElement('button');action.type='button';action.setAttribute('role','menuitem');
+    const popout=participantPanelMode(side)==='popout';action.textContent=popout?'Merge to Meeting':'Pop Out';
+    action.onclick=()=>{popout?dockParticipantPanel(side):popOutParticipantPanel(side);closeParticipantLayoutMenu();};
+    participantLayoutMenu.append(action);document.body.append(participantLayoutMenu);positionBelow(participantLayoutMenu,anchor,190);
+  }
+  function ensureParticipantLayoutControl(){
+    const side=q('.room-side'),head=side?.querySelector('.room-side-head');if(!side||!head)return;
+    if(!side.dataset.zoomPanelMode)side.dataset.zoomPanelMode='docked';
+    let button=head.querySelector('.zoom-participant-layout-button');
+    if(!button){
+      button=document.createElement('button');button.type='button';button.className='zoom-participant-layout-button';button.setAttribute('aria-label','Participant panel options');button.setAttribute('aria-haspopup','menu');button.innerHTML='<span aria-hidden="true">▾</span>';
+      head.prepend(button);button.onclick=event=>{event.stopPropagation();openParticipantLayoutMenu(button);};
+    }
+    if(head.dataset.zoomDragAuthority!=='1'){
+      head.dataset.zoomDragAuthority='1';
+      head.addEventListener('pointerdown',event=>{if(participantPanelMode(side)==='docked'&&!event.target.closest('button'))event.stopImmediatePropagation();},true);
+    }
   }
 
   function ensureParticipantSearch(){
@@ -139,17 +194,21 @@
   }
 
   function sync(){
-    if(!meetingOpen()){closeParticipantMenu();closeChatPolicyMenu();return;}
-    normalizeCarets();ensureHostTools();ensureMoreAuthority();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
+    if(!meetingOpen()){closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();return;}
+    normalizeCarets();ensureHostTools();ensureMoreAuthority();ensureParticipantLayoutControl();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
   }
-  document.addEventListener('pointerdown',event=>{if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();},true);
+  document.addEventListener('pointerdown',event=>{
+    if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();
+    if(participantLayoutMenu&&!participantLayoutMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-layout-button'))closeParticipantLayoutMenu();
+    if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();
+  },true);
   document.addEventListener('click',event=>{
-    if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(normalizeParticipantPanel);
+    if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(()=>{ensureParticipantLayoutControl();normalizeParticipantPanel();});
     if(event.target.closest?.('#roomChat'))requestAnimationFrame(normalizeChatPanel);
     if(event.target.closest?.('#roomMore'))cleanMoreMenu();
   });
   window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
   const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true});
   const timer=setInterval(sync,900);sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.4.2',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
+  window.DominionZoomProductionPolish=Object.freeze({version:'1.5.0',sync,dockParticipantPanel,popOutParticipantPanel,participantPanelMode,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}});
 })();

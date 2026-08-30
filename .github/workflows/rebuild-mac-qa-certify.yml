@@ -50,6 +50,7 @@ jobs:
           node --check ui/meeting-captions.js
           node --check ui/video-effects.js
           node --check ui/zoom-behavior.js
+          node --check ui/zoom-production-polish.js
           node --check ui/participant-controls.js
           node --check ui/meeting-notifications.js
           node --check ui/share-annotation.js
@@ -57,6 +58,7 @@ jobs:
           node --check scripts/verify-meeting-identity-runtime.mjs
           node --check scripts/verify-packaged-interactions.mjs
           node --check scripts/verify-packaged-physical-mac-2.0.19.mjs
+          node --check scripts/verify-packaged-zoom-window-parity.mjs
           node scripts/verify-foundation.mjs
           node scripts/verify-auth.mjs
           node scripts/verify-meeting-lifecycle.mjs
@@ -69,6 +71,8 @@ jobs:
           node scripts/verify-turn-relay.mjs
           node scripts/verify-diagnostics.mjs
           node scripts/verify-physical-mac-2.0.19.mjs
+          node scripts/verify-zoom-production-polish.mjs
+          node scripts/verify-zoom-window-parity.mjs
 
       - name: Build and sign universal QA app once
         working-directory: meet-desktop
@@ -173,9 +177,15 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-reaction-parity.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Verify packaged 2.0.19 physical Mac repairs
+      - name: Verify packaged physical Mac repairs
         working-directory: meet-desktop
         run: node scripts/verify-packaged-physical-mac-2.0.19.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged Zoom Participants and video-panel behavior
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-zoom-window-parity.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Create clean QA archive
         shell: bash
