@@ -19,6 +19,7 @@ async function launch(){
   await app.whenReady();
   const install=await canonicalizeMacInstall();
   if(install.moved)return;
+  await import('./relaunch-service.mjs');
   await import('./main.mjs');
 }
 
