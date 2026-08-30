@@ -29,7 +29,11 @@ try{
   const identity=await evaluate(`window.dominionDesktop.app.privacyIdentity()`);
   assert.equal(identity.signingMode,'adhoc');assert.equal(identity.stableAcrossRebuilds,false);assert.equal(identity.screenPermissionPersistence,'not-certified');
 
-  const personal=await evaluate(`(()=>{const host=document.createElement('div');host.id='ds219-personal-fixture';host.innerHTML='<form id="newMeetingForm"><label><input id="newMeetingUsePersonal" type="checkbox" checked></label><label id="instantPass"><span>Passcode</span><input id="newMeetingPasscode"></label></form>';document.body.append(host);window.DominionPhysicalMacRepair.syncPersonalChoice();const pass=document.querySelector('#instantPass');const out={display:getComputedStyle(pass).display,authority:document.querySelector('#newMeetingUsePersonal').dataset.ds219Authority};host.remove();return out;})()`);
+  // Measure the actual packaged New Meeting controls. Do not create duplicate IDs:
+  // that would test the fixture rather than the application users actually see.
+  await waitFor("document.querySelector('#newMeetingForm')&&document.querySelector('#newMeetingUsePersonal')&&document.querySelector('#newMeetingPasscode')",'packaged Personal Meeting ID controls');
+  const personal=await evaluate(`(()=>{const toggle=document.querySelector('#newMeetingUsePersonal'),pass=document.querySelector('#newMeetingPasscode')?.closest('label');const original=toggle.checked;toggle.checked=true;window.DominionPhysicalMacRepair.syncPersonalChoice();const out={display:getComputedStyle(pass).display,authority:toggle.dataset.ds219Authority,passExists:Boolean(pass)};toggle.checked=original;window.DominionPhysicalMacRepair.syncPersonalChoice();return out;})()`);
+  assert.equal(personal.passExists,true,'Packaged New Meeting passcode row is missing.');
   assert.equal(personal.display,'none','Personal Meeting ID selection must hide the unrelated instant passcode field.');assert.equal(personal.authority,'1');
 
   const reaction=await evaluate(`(()=>{const tray=document.createElement('div');tray.className='ds-reaction-tray';for(const e of ['👏','👍','❤️','😂','😮','🎉']){const b=document.createElement('button');b.textContent=e;tray.append(b);}const d=document.createElement('span');d.className='ds-reaction-divider';tray.append(d);const hand=document.createElement('button');hand.className='ds-raise-hand';hand.textContent='✋ Raise Hand';tray.append(hand);document.body.append(tray);const tr=tray.getBoundingClientRect(),hr=hand.getBoundingClientRect(),hs=getComputedStyle(hand);const out={trayWidth:tr.width,handWidth:hr.width,handHeight:hr.height,whiteSpace:hs.whiteSpace,font:parseFloat(hs.fontSize),scroll:hand.scrollWidth,client:hand.clientWidth,overflow:getComputedStyle(tray).overflow};tray.remove();return out;})()`);
@@ -42,6 +46,6 @@ try{
   assert.equal(participant,'Participants (2)','Participants must expose live count in the heading.');
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'2.0.19 packaged renderer emitted an uncaught JavaScript error.');
-  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_MAC_2_0_19_OK repair-loaded explicit-tcc-recovery adhoc-not-certified personal-ui-authority reaction-contained settings-aligned participant-count');
+  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_MAC_2_0_19_OK repair-loaded explicit-tcc-recovery adhoc-not-certified actual-personal-ui-authority reaction-contained settings-aligned participant-count');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('2.0.19 gate shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
