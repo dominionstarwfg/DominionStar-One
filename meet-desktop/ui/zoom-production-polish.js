@@ -126,7 +126,9 @@
   function cleanMoreMenu(){
     if(!manager()||!q('#roomHostTools')||q('#roomHostTools').hidden)return;
     for(const menu of qa('.meeting-more-menu:not(.security-menu)')){
-      const hostButton=[...menu.querySelectorAll('button')].find(button=>String(button.textContent||'').trim()==='Host tools');hostButton?.remove();
+      for(const button of [...menu.querySelectorAll('button')]){
+        if(/^host\s+tools$/i.test(String(button.textContent||'').trim()))button.remove();
+      }
     }
   }
 
@@ -138,9 +140,12 @@
   document.addEventListener('click',event=>{
     if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(normalizeParticipantPanel);
     if(event.target.closest?.('#roomChat'))requestAnimationFrame(normalizeChatPanel);
+    // More is built synchronously by the legacy controller. Remove its Host Tools
+    // duplicate in the same event dispatch so users never see a one-frame duplicate.
+    if(event.target.closest?.('#roomMore'))cleanMoreMenu();
   });
   window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
   const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true});
   const timer=setInterval(sync,900);sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.4.0',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
+  window.DominionZoomProductionPolish=Object.freeze({version:'1.4.1',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
 })();
