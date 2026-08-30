@@ -120,12 +120,25 @@ jobs:
       - name: Create installable DMG, archive, and checksums
         shell: bash
         run: |
+          rm -rf production-artifact "$RUNNER_TEMP/dominionstar-dmg"
           mkdir -p production-artifact "$RUNNER_TEMP/dominionstar-dmg"
           ditto "${{ steps.app.outputs.path }}" "$RUNNER_TEMP/dominionstar-dmg/DominionStar Meet.app"
           ln -s /Applications "$RUNNER_TEMP/dominionstar-dmg/Applications"
-          hdiutil create -volname "DominionStar Meet Installer" -srcfolder "$RUNNER_TEMP/dominionstar-dmg" -ov -format UDZO production-artifact/DominionStar-Meet-2.0.2-Mac-Installer.dmg
+          DMG="production-artifact/DominionStar-Meet-2.0.2-Mac-Installer.dmg"
+          created=0
+          for attempt in 1 2 3; do
+            rm -f "$DMG"
+            if hdiutil create -volname "DominionStar Meet Installer" -srcfolder "$RUNNER_TEMP/dominionstar-dmg" -ov -format UDZO "$DMG"; then
+              created=1
+              break
+            fi
+            echo "DMG creation attempt $attempt failed; waiting for macOS disk-image services to release resources."
+            sleep $((attempt * 4))
+          done
+          test "$created" = "1"
+          test -s "$DMG"
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" production-artifact/DominionStar-Meet-2.0.2-Mac-universal.zip
-          shasum -a 256 production-artifact/DominionStar-Meet-2.0.2-Mac-Installer.dmg production-artifact/DominionStar-Meet-2.0.2-Mac-universal.zip | tee production-artifact/SHA256.txt
+          shasum -a 256 "$DMG" production-artifact/DominionStar-Meet-2.0.2-Mac-universal.zip | tee production-artifact/SHA256.txt
           printf 'commit=%s\nversion=2.0.2\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\n' "$GITHUB_SHA" > production-artifact/BUILD-PROVENANCE.txt
 
       - name: Verify installer layout and installed app identity
@@ -133,14 +146,17 @@ jobs:
         run: |
           DMG="production-artifact/DominionStar-Meet-2.0.2-Mac-Installer.dmg"
           MOUNT="$RUNNER_TEMP/dominionstar-installer-mount"
+          rm -rf "$MOUNT"
           mkdir -p "$MOUNT"
           hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT"
+          trap 'hdiutil detach "$MOUNT" >/dev/null 2>&1 || true' EXIT
           test -d "$MOUNT/DominionStar Meet.app"
           test -L "$MOUNT/Applications"
           test "$(readlink "$MOUNT/Applications")" = "/Applications"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$MOUNT/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
           codesign --verify --deep --strict --verbose=2 "$MOUNT/DominionStar Meet.app"
           hdiutil detach "$MOUNT"
+          trap - EXIT
 
       - name: Upload production artifact
         uses: actions/upload-artifact@v4
