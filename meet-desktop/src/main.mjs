@@ -14,6 +14,7 @@ let mainWindow=null;
 let desktopAuth=null;
 let meetingService=null;
 let shareService=null;
+let screenPermissionProbeInFlight=null;
 let qaPersonalRoom={roomId:'qa-personal-room',roomCode:'2468013579',passcode:'360',title:'Personal Meeting Room',useForInstant:true,waitingRoomEnabled:true,externalGuestsAllowed:true,status:'ready'};
 let qaSchedules=[];
 
@@ -41,14 +42,29 @@ async function requestNativeMediaPermissions(kinds=[]){
   return {...status,ok:[...requested].every(kind=>!['denied','restricted'].includes(String(status[kind]||'')))};
 }
 
+function activeScreenCaptureProbe(){
+  if(!screenPermissionProbeInFlight){
+    screenPermissionProbeInFlight=desktopCapturer.getSources({types:['screen'],thumbnailSize:{width:2,height:2},fetchWindowIcons:false})
+      .then(sources=>({ok:Array.isArray(sources)&&sources.some(source=>source?.thumbnail&&!source.thumbnail.isEmpty?.()),sourceCount:Array.isArray(sources)?sources.length:0,status:'capture-probe-complete'}))
+      .catch(error=>({ok:false,sourceCount:0,status:'capture-probe-error',error:String(error?.message||error||'screen_probe_failed')}))
+      .finally(()=>{screenPermissionProbeInFlight=null;});
+  }
+  return Promise.race([
+    screenPermissionProbeInFlight,
+    new Promise(resolve=>setTimeout(()=>resolve({ok:false,sourceCount:0,status:'capture-probe-timeout'}),2200))
+  ]);
+}
+
 async function requestScreenPermission(){
-  if(process.platform!=='darwin')return {ok:true,status:'granted',restartRequired:false};
-  const status=permissionStatus('screen');
-  if(status==='granted')return {ok:true,status:'granted',restartRequired:false,passive:true};
-  // macOS can require a full app restart before a newly-enabled Screen
-  // Recording TCC grant is visible to Electron. Report that truthfully so the
-  // UI never keeps presenting the same permission card after the user toggles it.
-  return {ok:false,status,restartRequired:true,passive:true};
+  if(process.platform!=='darwin')return {ok:true,status:'granted',restartRequired:false,detectedBy:'platform'};
+  const reportedStatus=permissionStatus('screen');
+  if(reportedStatus==='granted')return {ok:true,status:'granted',reportedStatus,restartRequired:false,detectedBy:'tcc-status'};
+  // TCC status can lag behind System Settings for a newly installed/replaced app.
+  // Prove whether capture is actually readable before sending the user back to
+  // Privacy & Security. This is bounded and single-flight so Share stays responsive.
+  const probe=await activeScreenCaptureProbe();
+  if(probe.ok)return {ok:true,status:'granted',reportedStatus,restartRequired:false,detectedBy:'capture-probe',sourceCount:probe.sourceCount};
+  return {ok:false,status:reportedStatus,restartRequired:reportedStatus!=='not-determined',detectedBy:'tcc-status+capture-probe',probeStatus:probe.status};
 }
 
 async function openPrivacySettings(kind='screen'){
