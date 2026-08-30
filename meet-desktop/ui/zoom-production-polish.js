@@ -5,6 +5,7 @@
   const localRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');
   const manager=()=>['host','cohost'].includes(localRole());
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
+  const setHidden=(node,value)=>{const next=Boolean(value);if(node&&node.hidden!==next)node.hidden=next;};
   const positionAbove=(menu,anchor,width=245)=>{
     if(!menu||!anchor)return;const r=anchor.getBoundingClientRect();
     const left=Math.max(10,Math.min(innerWidth-width-10,r.left+r.width/2-width/2));
@@ -32,7 +33,7 @@
         security.click();requestAnimationFrame(()=>{const menu=q('.security-menu');if(menu)positionAbove(menu,button,250);});
       };
     }
-    button.hidden=!manager();
+    setHidden(button,!manager());
   }
 
   function ensureParticipantSearch(){
@@ -45,7 +46,7 @@
       input.addEventListener('input',()=>{
         const needle=String(input.value||'').trim().toLowerCase();
         for(const row of qa('#participantRoster [data-participant-id],#participantRoster .person-row')){
-          const name=String(row.dataset.participantName||row.textContent||'').toLowerCase();row.hidden=Boolean(needle&&!name.includes(needle));
+          const name=String(row.dataset.participantName||row.textContent||'').toLowerCase();setHidden(row,Boolean(needle&&!name.includes(needle)));
         }
       });
     }
@@ -63,14 +64,14 @@
     try{await navigator.clipboard.writeText(text);window.DominionMeetingNotifications?.toast?.('Meeting invitation copied');}catch{}
   }
   function ensureParticipantFooter(){
-    const side=q('.room-side');if(!side)return;const legacy=q('#participantBulkActions');if(legacy)legacy.hidden=true;
+    const side=q('.room-side');if(!side)return;const legacy=q('#participantBulkActions');setHidden(legacy,true);
     let footer=side.querySelector('.zoom-participant-footer');
     if(!footer){
       footer=document.createElement('div');footer.className='zoom-participant-footer';
       footer.innerHTML='<button type="button" data-zoom-invite>Invite</button><button type="button" data-zoom-mute-all>Mute All</button><button type="button" class="zoom-participant-more" aria-label="More participant controls">•••</button>';
       side.append(footer);footer.querySelector('[data-zoom-invite]').onclick=()=>void copyInvite();footer.querySelector('[data-zoom-mute-all]').onclick=()=>void window.DominionParticipantControls?.sendAll?.('host:mute');footer.querySelector('.zoom-participant-more').onclick=event=>{event.stopPropagation();openParticipantBulkMenu(event.currentTarget);};
     }
-    footer.hidden=!manager();
+    setHidden(footer,!manager());
   }
 
   function closeChatPolicyMenu(){chatPolicyMenu?.remove();chatPolicyMenu=null;}
@@ -87,13 +88,14 @@
     const panel=q('#meetingChatPanel'),header=panel?.querySelector('header'),close=header?.querySelector('[data-chat-close]');if(!panel||!header||!close)return;
     let actions=header.querySelector('.zoom-chat-header-actions');
     if(!actions){actions=document.createElement('div');actions.className='zoom-chat-header-actions';const more=document.createElement('button');more.type='button';more.className='zoom-chat-more';more.textContent='•••';more.setAttribute('aria-label','Chat options');more.onclick=event=>{event.stopPropagation();openChatPolicyMenu(more);};actions.append(more);header.insertBefore(actions,close);actions.append(close);}
-    const more=actions.querySelector('.zoom-chat-more');if(more)more.hidden=!manager();
+    const more=actions.querySelector('.zoom-chat-more');setHidden(more,!manager());
   }
 
   function normalizeReactionMenu(){const menu=q('.meeting-reaction-menu');if(!menu)return;menu.style.left='18px';menu.style.right='auto';menu.style.top='auto';menu.style.bottom='94px';}
   function normalizePermissionDialog(){
     const dialog=q('#screenPermissionDialog'),copy=dialog?.querySelector('[data-permission-copy]');if(!dialog||!copy||dialog.hidden)return;
-    copy.textContent='Screen sharing permission is not active for this running copy yet. Open System Settings and enable DominionStar Meet. When you return, click Share Screen again — DominionStar Meet will re-check the actual capture permission automatically.';
+    const next='Screen sharing permission is not active for this running copy yet. Open System Settings and enable DominionStar Meet. When you return, click Share Screen again — DominionStar Meet will re-check the actual capture permission automatically.';
+    if(copy.textContent!==next)copy.textContent=next;
   }
   function cleanMoreMenu(){
     if(!manager()||!q('#roomHostTools')||q('#roomHostTools').hidden)return;
@@ -108,7 +110,9 @@
   }
   document.addEventListener('pointerdown',event=>{if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();},true);
   window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
-  const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
+  // Observe structure only. Attribute observation caused the polish layer to
+  // react to its own visibility/class changes and could starve the renderer.
+  const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true});
   const timer=setInterval(sync,900);sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.2.0',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
+  window.DominionZoomProductionPolish=Object.freeze({version:'1.2.1',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
 })();
