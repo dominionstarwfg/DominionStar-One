@@ -21,7 +21,10 @@
     '.ds-reaction-tray.meeting-reaction-menu{display:flex!important;z-index:3800!important;pointer-events:auto!important}',
     '.ds-command-menu.meeting-more-menu{display:block!important;z-index:3600!important;pointer-events:auto!important}',
     '.ds-command-menu.ds-view-command-menu{top:64px!important;bottom:auto!important}',
-    '.ds-command-menu.ds-bottom-command-menu{top:auto!important;bottom:88px!important}'
+    '.ds-command-menu.ds-bottom-command-menu{top:auto!important;bottom:88px!important}',
+    '#meetingChatPanel{width:400px!important;min-width:390px!important;max-width:400px!important}',
+    '#meetingChatPanel header strong{font-size:16px!important}',
+    '#meetingChatInput{font-size:14px!important;line-height:1.4!important;min-height:58px!important}'
   ].join('');
   document.head.append(style);
 
@@ -41,7 +44,7 @@
   for(const node of document.querySelectorAll('.ds-command-menu,.ds-reaction-tray'))apply(node);
 
   window.DominionZoomContractBridge=Object.freeze({
-    version:'1.3.0',
+    version:'1.4.0',
     dispose:()=>{
       observer.disconnect();
       Element.prototype.append=nativeAppend;
