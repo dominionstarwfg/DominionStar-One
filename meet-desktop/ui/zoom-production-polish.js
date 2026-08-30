@@ -2,6 +2,8 @@
   if(window.DominionZoomProductionPolish)return;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   let participantMenu=null,chatPolicyMenu=null;
+  const LEGACY_PANEL_KEY='ds_zoom_participant_panel_geometry_v1';
+  try{localStorage.removeItem(LEGACY_PANEL_KEY);}catch{}
   const localRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');
   const manager=()=>['host','cohost'].includes(localRole());
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
@@ -34,6 +36,17 @@
       };
     }
     setHidden(button,!manager());
+  }
+
+  function normalizeParticipantPanel(){
+    const side=q('.room-side');if(!side)return;
+    side.style.setProperty('left','auto','important');
+    side.style.setProperty('right','10px','important');
+    side.style.setProperty('top','10px','important');
+    side.style.setProperty('bottom','10px','important');
+    side.style.setProperty('transform','none','important');
+    side.style.setProperty('width','var(--ds-panel-w)','important');
+    side.style.setProperty('height','auto','important');
   }
 
   function ensureParticipantSearch(){
@@ -86,6 +99,9 @@
   }
   function ensureChatChrome(){
     const panel=q('#meetingChatPanel'),header=panel?.querySelector('header'),close=header?.querySelector('[data-chat-close]');if(!panel||!header||!close)return;
+    // zoom-behavior owns creation and wiring of #meetingChatPolicy. Do not move
+    // its close-button insertion anchor until that controller has completed.
+    if(!q('#meetingChatPolicy'))return;
     let actions=header.querySelector('.zoom-chat-header-actions');
     if(!actions){actions=document.createElement('div');actions.className='zoom-chat-header-actions';const more=document.createElement('button');more.type='button';more.className='zoom-chat-more';more.textContent='•••';more.setAttribute('aria-label','Chat options');more.onclick=event=>{event.stopPropagation();openChatPolicyMenu(more);};actions.append(more);header.insertBefore(actions,close);actions.append(close);}
     const more=actions.querySelector('.zoom-chat-more');setHidden(more,!manager());
@@ -106,13 +122,16 @@
 
   function sync(){
     if(!meetingOpen()){closeParticipantMenu();closeChatPolicyMenu();return;}
-    normalizeCarets();ensureHostTools();ensureParticipantSearch();ensureParticipantFooter();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
+    normalizeCarets();ensureHostTools();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
   }
   document.addEventListener('pointerdown',event=>{if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();},true);
+  // meeting-parity positions Participants in a requestAnimationFrame after the
+  // click. Re-assert the production right-side geometry in the following frame.
+  document.addEventListener('click',event=>{if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(()=>requestAnimationFrame(normalizeParticipantPanel));});
   window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
   // Observe structure only. Attribute observation caused the polish layer to
   // react to its own visibility/class changes and could starve the renderer.
   const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true});
   const timer=setInterval(sync,900);sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.2.1',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
+  window.DominionZoomProductionPolish=Object.freeze({version:'1.3.0',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
 })();
