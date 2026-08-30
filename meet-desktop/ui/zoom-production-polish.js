@@ -29,7 +29,7 @@
       footer.insertBefore(button,more);
       button.onclick=()=>{
         const security=q('#roomSecurity');if(!security)return;
-        security.click();requestAnimationFrame(()=>{const menu=q('.security-menu');if(menu)positionAbove(menu,button,245);});
+        security.click();requestAnimationFrame(()=>{const menu=q('.security-menu');if(menu)positionAbove(menu,button,250);});
       };
     }
     button.hidden=!manager();
@@ -56,7 +56,7 @@
     closeParticipantMenu();participantMenu=document.createElement('div');participantMenu.className='zoom-participant-bulk-menu';
     const add=(label,type)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{closeParticipantMenu();void window.DominionParticipantControls?.sendAll?.(type);};participantMenu.append(b);};
     add('Ask All to Unmute','host:ask-unmute');add('Stop Video for All','host:stop-video');add('Ask All to Start Video','host:ask-start-video');add('Lower All Hands','host:lower-hand');
-    document.body.append(participantMenu);positionAbove(participantMenu,anchor,220);
+    document.body.append(participantMenu);positionAbove(participantMenu,anchor,230);
   }
   async function copyInvite(){
     const title=String(q('#roomTitle')?.textContent||'DominionStar Meeting').trim(),meta=String(q('#roomCodeLabel')?.textContent||'').trim();const text=`${title}\n${meta}`.trim();
@@ -81,7 +81,7 @@
       const b=document.createElement('button');b.type='button';b.textContent=String(option.textContent||option.value).replace(/^Participants (can|cannot) chat:\s*/i,'');b.classList.toggle('selected',option.value===select.value);
       b.onclick=()=>{select.value=option.value;select.dispatchEvent(new Event('change',{bubbles:true}));closeChatPolicyMenu();};chatPolicyMenu.append(b);
     }
-    document.body.append(chatPolicyMenu);positionAbove(chatPolicyMenu,anchor,255);
+    document.body.append(chatPolicyMenu);positionAbove(chatPolicyMenu,anchor,265);
   }
   function ensureChatChrome(){
     const panel=q('#meetingChatPanel'),header=panel?.querySelector('header'),close=header?.querySelector('[data-chat-close]');if(!panel||!header||!close)return;
@@ -90,19 +90,26 @@
     const more=actions.querySelector('.zoom-chat-more');if(more)more.hidden=!manager();
   }
 
-  function normalizeReactionMenu(){const menu=q('.meeting-reaction-menu');if(!menu)return;menu.style.left='18px';menu.style.right='auto';menu.style.top='auto';menu.style.bottom='92px';}
+  function normalizeReactionMenu(){const menu=q('.meeting-reaction-menu');if(!menu)return;menu.style.left='18px';menu.style.right='auto';menu.style.top='auto';menu.style.bottom='94px';}
   function normalizePermissionDialog(){
     const dialog=q('#screenPermissionDialog'),copy=dialog?.querySelector('[data-permission-copy]');if(!dialog||!copy||dialog.hidden)return;
     copy.textContent='Screen sharing permission is not active for this running copy yet. Open System Settings and enable DominionStar Meet. When you return, click Share Screen again — DominionStar Meet will re-check the actual capture permission automatically.';
   }
+  function cleanMoreMenu(){
+    if(!manager()||!q('#roomHostTools')||q('#roomHostTools').hidden)return;
+    for(const menu of qa('.meeting-more-menu:not(.security-menu)'))for(const button of qa.call?[]:[])void button;
+    for(const menu of qa('.meeting-more-menu:not(.security-menu)')){
+      const hostButton=[...menu.querySelectorAll('button')].find(button=>String(button.textContent||'').trim()==='Host tools');hostButton?.remove();
+    }
+  }
 
   function sync(){
     if(!meetingOpen()){closeParticipantMenu();closeChatPolicyMenu();return;}
-    normalizeCarets();ensureHostTools();ensureParticipantSearch();ensureParticipantFooter();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();
+    normalizeCarets();ensureHostTools();ensureParticipantSearch();ensureParticipantFooter();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
   }
   document.addEventListener('pointerdown',event=>{if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();},true);
   window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
   const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
   const timer=setInterval(sync,900);sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.1.0',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
+  window.DominionZoomProductionPolish=Object.freeze({version:'1.2.0',sync,dispose:()=>{clearInterval(timer);observer.disconnect();closeParticipantMenu();closeChatPolicyMenu();}});
 })();
