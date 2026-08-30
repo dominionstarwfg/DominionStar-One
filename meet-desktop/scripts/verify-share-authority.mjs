@@ -32,10 +32,14 @@ assert.equal(enumerateCount,2,'A later source refresh may start only after the o
 assert.equal(recovered.ok,true);
 assert.equal(authority.get('screen:second')?.id,'screen:second');
 
-assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS screen capture must have a native permission authority.');
+assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS screen capture must have a native TCC permission authority.');
 assert(main.includes("permissionStatus('screen')"),'Screen Recording permission must be checked independently from camera/microphone.');
-assert(!main.includes("desktopCapturer.getSources({types:['screen'],thumbnailSize:{width:1,height:1},fetchWindowIcons:false})"),'Share click must never probe desktopCapturer merely to discover macOS permission state.');
-assert(main.includes("passive:true"),'macOS Screen Recording preflight must remain passive so Share cannot freeze the main process.');
+assert(main.includes("function activeScreenCaptureProbe()"),'macOS screen permission recovery must include a functional capture probe when TCC status is stale.');
+assert(main.includes("desktopCapturer.getSources({types:['screen'],thumbnailSize:{width:2,height:2},fetchWindowIcons:false})"),'Screen permission recovery must prove that a real screen thumbnail is readable.');
+assert(main.includes("screenPermissionProbeInFlight"),'Screen permission probes must be single-flight so repeated Share clicks cannot stack native capture checks.');
+assert(main.includes("capture-probe-timeout")&&main.includes('2200'),'Functional permission probing must be bounded so Share cannot hang the meeting process.');
+assert(main.includes("source?.thumbnail&&!source.thumbnail.isEmpty?.()"),'A source name alone must not be treated as permission; the capture thumbnail must be readable.');
+assert(main.includes("detectedBy:'capture-probe'"),'A stale TCC status must be allowed to recover when the functional capture probe succeeds.');
 assert(main.includes("media:request-screen"),'Renderer must have a narrow screen-permission command.');
 assert.equal((service.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Exactly one Electron display-media handler may own capture.');
 assert(service.includes('{useSystemPicker:false}'),'A second native picker must not appear over the approved DominionStar chooser.');
@@ -90,4 +94,4 @@ assert(service.includes('shareAudio:false,optimizeVideo:false'),'Presenter toolb
 for(const command of ['audio','video','pause','participants','show-meeting','stop'])assert(toolbar.includes(`data-command="${command}"`),`Presenter toolbar is missing ${command}.`);
 assert(media.includes("script.src='./share-integration.js'"),'Desktop and Netlify must load the same isolated share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-permission-preflight single-flight bounded nonmodal picker transactional-new-share system-audio optimize-video presenter-state pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop single-floating-toolbar');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK mac-screen-functional-permission-probe single-flight bounded nonmodal picker transactional-new-share system-audio optimize-video presenter-state pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop single-floating-toolbar');
