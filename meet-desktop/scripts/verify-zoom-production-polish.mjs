@@ -19,9 +19,10 @@ assert(js.includes("if(event.target.closest?.('#roomMore'))cleanMoreMenu()")&&js
 assert(js.includes('placeholder="Search participants"'),'Participants must expose direct search for large meetings.');
 assert(js.includes("data-zoom-mute-all")&&js.includes("zoom-participant-more"),'Participants footer must use Zoom-style Mute All plus More instead of a row of tiny bulk buttons.');
 assert(css.includes('--ds-panel-w:390px')&&css.includes('.room-side .person-copy strong{font-size:13px'),'Participants must use a readable Zoom-scale roster instead of the undersized admin-card layout.');
-assert(css.includes('.room-side{position:absolute!important;z-index:62!important;left:auto!important;right:10px!important;top:10px!important;bottom:10px!important;transform:none!important'),'Participants must be pinned to the right-side Zoom panel geometry and must never regress to the rejected centered layout.');
-assert(js.includes("localStorage.removeItem(LEGACY_PANEL_KEY)")&&js.includes("side.style.setProperty('right','10px','important')"),'Runtime must clear stale centered panel geometry and enforce the right-side production authority.');
-assert(js.includes("requestAnimationFrame(normalizeParticipantPanel)"),'Participants click reconciliation must run after legacy placement in the same frame before paint.');
+assert(css.includes('.room-side{position:absolute!important;z-index:62!important;left:auto!important;right:10px!important;top:10px!important;bottom:10px!important;transform:none!important'),'Participants must retain Zoom current default right-side docked geometry.');
+assert(js.includes("side.dataset.zoomPanelMode='docked'")&&js.includes("side.style.setProperty('right','10px','important')"),'Runtime must make right docking the default Participants mode.');
+assert(js.includes("action.textContent=popout?'Merge to Meeting':'Pop Out'")&&js.includes('function popOutParticipantPanel'),'Participants must expose Zoom-style Pop Out and Merge to Meeting behavior.');
+assert(js.includes("requestAnimationFrame(()=>{ensureParticipantLayoutControl();normalizeParticipantPanel();})"),'Participants click reconciliation must apply the Zoom panel mode after legacy placement in the same frame.');
 assert(css.includes('.zoom-participant-search input')&&css.includes('font-size:13px'),'Participant search must remain readable.');
 assert(js.includes('function normalizeChatPanel()')&&js.includes("panel.style.setProperty('width','var(--ds-panel-w)','important')")&&js.includes("panel.style.setProperty('right','10px','important')"),'Chat must have a runtime geometry authority that late legacy CSS cannot shrink or reposition.');
 assert(js.includes("requestAnimationFrame(normalizeChatPanel)"),'Chat click reconciliation must re-assert production geometry before paint.');
@@ -33,6 +34,6 @@ assert(css.includes('.meeting-reaction-bubble{left:24px!important')&&css.include
 assert(js.includes('re-check the actual capture permission automatically'),'Permission recovery copy must tell the user that Share performs a real re-check.');
 assert(js.includes("observer.observe(document.body,{childList:true,subtree:true})")&&!js.includes("attributeFilter:['hidden','class']"),'Production polish must not observe its own visibility/class mutations and starve the renderer.');
 assert(js.includes('setHidden=(node,value)'),'Repeated polish reconciliation must update visibility idempotently.');
-assert(js.includes("version:'1.4.2'"),'Production polish module version must be explicit.');
+assert(js.includes("version:'1.5.0'"),'Production polish module version must be explicit.');
 
-console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools host-tools-authoritative-single participant-search participants-right runtime-right-authority prepaint-right zoom-roster zoom-chat chat-runtime-geometry chat-typography-authority chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
+console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools host-tools-authoritative-single participant-search participants-right-default participant-popout merge-to-meeting zoom-roster zoom-chat chat-runtime-geometry chat-typography-authority chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
