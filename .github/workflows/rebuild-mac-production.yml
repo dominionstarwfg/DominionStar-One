@@ -72,6 +72,7 @@ jobs:
           node scripts/verify-zoom-production-polish.mjs
           node scripts/verify-physical-acceptance.mjs
           node scripts/verify-reaction-parity.mjs
+          node scripts/verify-physical-mac-2.0.19.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop
@@ -147,6 +148,10 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-reaction-parity.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Verify packaged 2.0.19 physical Mac repairs
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-physical-mac-2.0.19.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Create installable DMG, archive, and checksums
         shell: bash
         run: |
@@ -170,7 +175,7 @@ jobs:
           test -s "$DMG"
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" "$ZIP"
           shasum -a 256 "$DMG" "$ZIP" | tee production-artifact/SHA256.txt
-          printf 'commit=%s\nversion=%s\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\n' "$GITHUB_SHA" "${{ steps.meta.outputs.version }}" > production-artifact/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=%s\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\ntcc_persistence=not-certified-adhoc\n' "$GITHUB_SHA" "${{ steps.meta.outputs.version }}" > production-artifact/BUILD-PROVENANCE.txt
 
       - name: Verify installer layout and installed app identity
         shell: bash

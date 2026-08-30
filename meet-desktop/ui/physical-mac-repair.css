@@ -1,0 +1,157 @@
+/* 2.0.19 physical-Mac authority. Loaded last. */
+
+/* Personal Meeting ID must not expose an unrelated instant-meeting passcode field. */
+#newMeetingForm #newMeetingUsePersonal:checked{accent-color:#e0b23d}
+
+/* Reactions: keep the whole tray above the toolbar and keep Raise Hand compact. */
+.ds-reaction-tray{
+  max-width:min(620px,calc(100vw - 32px))!important;
+  min-height:64px!important;
+  box-sizing:border-box!important;
+  flex-wrap:nowrap!important;
+  overflow:hidden!important;
+  padding:8px 9px!important;
+  gap:6px!important;
+}
+.ds-reaction-tray>button:not(.ds-raise-hand){
+  flex:0 0 46px!important;
+  width:46px!important;
+  min-width:46px!important;
+  height:46px!important;
+  font-size:25px!important;
+  line-height:1!important;
+}
+.ds-reaction-tray>button.ds-raise-hand,
+.ds-reaction-tray .ds-raise-hand{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:118px!important;
+  max-width:148px!important;
+  height:46px!important;
+  min-height:46px!important;
+  padding:0 13px!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  white-space:nowrap!important;
+  word-break:normal!important;
+  overflow:hidden!important;
+  font:650 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  letter-spacing:0!important;
+  color:#f1d275!important;
+}
+.ds-reaction-divider{flex:0 0 1px!important}
+
+/* Participants: current Zoom desktop convention includes the live count in heading. */
+.room-side-head strong{font-size:16px!important;line-height:1.2!important}
+
+/* Settings: convert the old centered utility controls into readable desktop rows. */
+.settings-modal.av-video-settings-open{
+  width:min(820px,calc(100vw - 48px))!important;
+  max-height:min(820px,calc(100vh - 42px))!important;
+}
+.settings-modal.av-video-settings-open>form{padding-right:16px!important}
+.settings-modal.av-video-settings-open #avSettingsDetail{
+  padding:0 14px 20px 0!important;
+  scrollbar-gutter:auto!important;
+}
+.settings-modal.av-video-settings-open .av-detail-head{padding:4px 2px 16px!important}
+.settings-modal.av-video-settings-open .av-detail-head h3{font-size:19px!important}
+.settings-modal.av-video-settings-open .av-detail-head p{font-size:13px!important;color:#aebdcd!important;line-height:1.5!important}
+.settings-modal.av-video-settings-open .av-zoom-group{
+  gap:10px!important;
+  padding:15px 0!important;
+}
+.settings-modal.av-video-settings-open .av-zoom-group-head{
+  align-items:center!important;
+  min-height:32px!important;
+}
+.settings-modal.av-video-settings-open .av-zoom-group-head strong{font-size:15px!important}
+.settings-modal.av-video-settings-open .av-zoom-group-head small{
+  max-width:390px!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+  color:#a7b6c6!important;
+}
+.settings-modal.av-video-settings-open .av-zoom-group .av-toggle-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 28px!important;
+  align-items:center!important;
+  justify-content:stretch!important;
+  gap:16px!important;
+  min-height:48px!important;
+  padding:8px 6px!important;
+  text-align:left!important;
+  font-size:13.5px!important;
+  line-height:1.35!important;
+}
+.settings-modal.av-video-settings-open .av-toggle-row>span{
+  justify-self:start!important;
+  text-align:left!important;
+  font-size:13.5px!important;
+  color:#e7edf4!important;
+}
+.settings-modal.av-video-settings-open .av-toggle-row>input[type=checkbox]{
+  justify-self:end!important;
+  width:18px!important;
+  height:18px!important;
+  margin:0!important;
+}
+.settings-modal.av-video-settings-open .av-range-row{
+  display:grid!important;
+  grid-template-columns:190px minmax(220px,420px)!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  gap:18px!important;
+  min-height:48px!important;
+  padding:8px 6px!important;
+  font-size:13px!important;
+}
+.settings-modal.av-video-settings-open .av-range-row>span{
+  font-size:13px!important;
+  color:#dce5ee!important;
+}
+.settings-modal.av-video-settings-open .av-range-row input[type=range]{
+  width:min(100%,420px)!important;
+  justify-self:end!important;
+}
+.settings-modal.av-video-settings-open .av-field{padding:4px 6px!important}
+.settings-modal.av-video-settings-open .av-field>span{font-size:13px!important;color:#d8e1ea!important}
+.settings-modal.av-video-settings-open .av-field select{font-size:13.5px!important}
+.settings-modal.av-video-settings-open .av-effects-note,
+.settings-modal.av-video-settings-open .av-background-status,
+.settings-modal.av-video-settings-open .av-info-card{font-size:12.5px!important;line-height:1.5!important;color:#aab8c7!important}
+.settings-modal.av-video-settings-open .av-advanced-panel summary{font-size:13px!important}
+
+/* Do not allow generic label rules to recenter video controls. */
+.settings-modal.av-video-settings-open label.av-toggle-row{flex-direction:row!important}
+
+/* Single DominionStar recovery surface. It only appears after the native macOS
+   prompt is no longer unresolved, avoiding the double-modal screenshot defect. */
+.ds-219-share-recovery{
+  position:fixed;inset:0;z-index:3600;display:grid;place-items:center;
+  background:rgba(0,0,0,.58);backdrop-filter:blur(7px);
+}
+.ds-219-share-recovery[hidden]{display:none!important}
+.ds-219-share-card{
+  width:min(610px,calc(100vw - 44px));display:grid;
+  grid-template-columns:56px minmax(0,1fr);gap:16px;padding:23px;
+  border:1px solid #42556c;border-radius:15px;background:#142130;
+  color:#f5f8fb;box-shadow:0 30px 100px rgba(0,0,0,.72);
+}
+.ds-219-share-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:12px;background:#1d3756;color:#78b7ff;font-size:31px}
+.ds-219-share-copy p{margin:0 0 4px;color:#7db6f1;font-size:10px;font-weight:800;letter-spacing:.12em}
+.ds-219-share-copy h3{margin:0 0 9px;font-size:18px}
+.ds-219-share-copy span{display:block;color:#c1ceda;font-size:13px;line-height:1.55}
+.ds-219-share-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:5px}
+.ds-219-share-actions button{height:40px;padding:0 14px;border:1px solid #455669;border-radius:8px;background:#1c2d40;color:#eef4fa;font-size:12.5px;font-weight:650;cursor:pointer}
+.ds-219-share-actions button.primary{background:#2d8cff;border-color:#2d8cff;color:#fff}
+.ds-219-share-actions button:disabled{opacity:.5;cursor:wait}
+
+@media(max-width:720px){
+  .settings-modal.av-video-settings-open{width:calc(100vw - 22px)!important}
+  .settings-modal.av-video-settings-open .av-range-row{grid-template-columns:1fr!important}
+  .settings-modal.av-video-settings-open .av-range-row input[type=range]{justify-self:stretch!important;width:100%!important}
+  .ds-reaction-tray{max-width:calc(100vw - 20px)!important;overflow-x:auto!important}
+}

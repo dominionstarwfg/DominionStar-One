@@ -19,8 +19,17 @@ Physical-Mac acceptance feedback is a first-class release input. A build that pa
 7. Exercise the packaged desktop controls through the real renderer.
 8. Measure the rendered Zoom-parity interface. This is a release-blocking gate and must cover toolbar geometry, icon and label scale, Audio/Video grouping, Share emphasis, End placement, Host Tools, Participants, Chat, Reactions, More, readable text/contrast, and uncaught renderer errors.
 9. Run the packaged physical-acceptance gate. It must prove that View, Host Tools, More, participant media/status controls, per-participant ellipsis, Chat, Reactions, readable settings typography, and the real-source Share authority are mounted and interactive in the packaged renderer.
-10. Do not create or upload the installer if any prior gate fails.
-11. Create the DMG only after all packaged audits pass, mount the DMG, verify the application inside it, then produce checksums and provenance.
+10. Run every screenshot-derived regression gate added after a physical-Mac rejection. A generic visual pass cannot substitute for the exact regression check.
+11. Do not create or upload the installer if any prior gate fails.
+12. Create the DMG only after all packaged audits pass, mount the DMG, verify the application inside it, then produce checksums and provenance.
+
+## macOS privacy identity rule
+
+CI can verify screen-source code paths and the packaged renderer, but it cannot prove that macOS TCC will preserve Screen Recording authorization across application rebuilds. macOS tracks privacy-protected access using code identity/designated requirements. Therefore:
+
+- An ad-hoc-signed build must be recorded as `tcc_persistence=not-certified-adhoc` in release provenance.
+- An ad-hoc build may be used for prototype testing with explicit reauthorization of the exact installed binary, but it must not be described as Screen Recording permission-persistence certified.
+- Production-grade cross-version Screen Recording persistence requires a stable Apple code-signing identity and must be physically verified after that signing path is introduced.
 
 ## Release rule
 
