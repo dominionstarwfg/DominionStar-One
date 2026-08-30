@@ -13,7 +13,9 @@ const pkg=JSON.parse(read('package.json'));
 assert.equal(pkg.version,'2.0.19','Physical Mac repair gate must run on 2.0.19.');
 assert.match(auth,/physical-mac-repair\.css/,'Physical Mac repair CSS must be loaded.');
 assert.match(auth,/physical-mac-repair\.js/,'Physical Mac repair JS must be loaded.');
-assert.ok(auth.indexOf('physical-mac-repair.js')>auth.indexOf('zoom-contract-bridge.js'),'Physical Mac repair authority must load after legacy meeting layers.');
+assert.match(auth,/const loadPhysicalRepair=\(\)=>\{[\s\S]*physical-mac-repair\.js[\s\S]*\};/,'Physical Mac repair must use an explicit loader.');
+assert.ok(auth.indexOf("if(physicalStyle.sheet)loadPhysicalRepair()")>auth.indexOf("zoom-contract-bridge.js"),'Physical Mac repair execution must occur after legacy meeting-layer registration.');
+assert.match(auth,/physicalStyle\.addEventListener\('load',loadPhysicalRepair/,'Physical Mac repair controller must wait for its final-authority stylesheet.');
 
 // Personal Meeting ID: checkbox selection must own submit before the legacy instant-room path.
 assert.match(repair,/document\.addEventListener\('submit'.*true\)/s,'Personal Meeting ID needs capture-phase submit authority.');
@@ -38,10 +40,11 @@ assert.match(preload,/relaunch/,'Renderer must have process relaunch IPC.');
 assert.match(bootstrap,/relaunch-service\.mjs/,'Relaunch/TCC authority must load before main desktop services.');
 
 // Reactions and Settings: screenshot-derived rendered constraints.
-assert.match(css,/\.ds-reaction-tray \.ds-raise-hand[\s\S]*white-space:nowrap!important/,'Raise Hand must not wrap.');
+assert.match(css,/\.ds-reaction-tray[\s\S]*\.ds-raise-hand[\s\S]*white-space:nowrap!important/,'Raise Hand must not wrap.');
+assert.match(css,/font:650 13px\/1 -apple-system[\s\S]*!important/,'Raise Hand must have final packaged typography authority.');
 assert.match(css,/\.ds-reaction-tray[\s\S]*overflow:hidden!important/,'Reaction tray must contain its controls.');
 assert.match(css,/\.av-toggle-row>span[\s\S]*font-size:13\.5px!important/,'Video setting row labels must be readable.');
 assert.match(css,/\.av-range-row[\s\S]*minmax\(220px,420px\)/,'Video setting sliders must be bounded instead of spanning the dialog.');
 assert.match(repair,/Participants \(\$\{count\}\)/,'Participants heading must expose the live count.');
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_2_0_19_OK personal-id-equality single-native-permission-flow explicit-tcc-recovery real-relaunch adhoc-not-certified reaction-contained settings-readable participant-count');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_2_0_19_OK personal-id-equality single-native-permission-flow explicit-tcc-recovery real-relaunch adhoc-not-certified reaction-contained reaction-font-authority settings-readable participant-count stylesheet-before-controller');
