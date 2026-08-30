@@ -13,6 +13,8 @@
 .meeting-control.danger{min-width:88px!important;height:44px!important;padding:0 18px!important;font-size:12px!important}
 .meeting-footer .meeting-control.has-device-caret{min-width:76px!important;padding-right:10px!important}
 .meeting-footer .av-device-caret.attached-device-caret{position:relative!important;order:initial;align-self:center!important;flex:0 0 24px!important;min-width:24px!important;width:24px!important;height:46px!important;margin:0 8px 0 -15px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:#edf3f8!important;font-size:14px!important;z-index:4!important;display:grid!important;place-items:center!important}
+/* The generic attached-caret margin above must not erase the flexible spacer after Video. */
+.meeting-footer .av-device-caret.attached-device-caret[data-kind="video"]{margin-right:auto!important}
 .meeting-footer .av-device-caret.attached-device-caret:hover{background:rgba(255,255,255,.09)!important}
 .zoom-host-tools-control{border:0;background:transparent;color:#eef4fa;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative}.zoom-host-tools-control:hover{background:rgba(255,255,255,.07)}.zoom-host-tools-control .ds-control-icon{display:grid;place-items:center}.zoom-host-tools-control .ds-control-icon svg{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.zoom-host-tools-control[hidden]{display:none!important}
 
