@@ -2,17 +2,27 @@
   if(window.DominionZoomContractBridge)return;
   const apply=node=>{
     if(!(node instanceof HTMLElement))return;
-    if(node.classList.contains('ds-command-menu'))node.classList.add('meeting-more-menu');
-    if(node.classList.contains('ds-reaction-tray'))node.classList.add('meeting-reaction-menu');
-    for(const child of node.querySelectorAll?.('.ds-command-menu,.ds-reaction-tray')||[]){
-      if(child.classList.contains('ds-command-menu'))child.classList.add('meeting-more-menu');
-      if(child.classList.contains('ds-reaction-tray'))child.classList.add('meeting-reaction-menu');
-    }
+    const decorate=element=>{
+      if(element.classList.contains('ds-command-menu')){
+        element.classList.add('meeting-more-menu');
+        const heading=String(element.querySelector('.ds-command-menu-heading')?.textContent||'').trim();
+        if(heading==='View')element.classList.add('ds-view-command-menu');
+        if(heading==='Host Tools'||heading==='More')element.classList.add('ds-bottom-command-menu');
+      }
+      if(element.classList.contains('ds-reaction-tray'))element.classList.add('meeting-reaction-menu');
+    };
+    decorate(node);
+    for(const child of node.querySelectorAll?.('.ds-command-menu,.ds-reaction-tray')||[])decorate(child);
   };
 
   const style=document.createElement('style');
   style.dataset.dsZoomContractBridge='1';
-  style.textContent='.ds-reaction-tray.meeting-reaction-menu{display:flex!important;z-index:3800!important;pointer-events:auto!important}.ds-command-menu.meeting-more-menu{display:block!important;z-index:3600!important;pointer-events:auto!important}';
+  style.textContent=[
+    '.ds-reaction-tray.meeting-reaction-menu{display:flex!important;z-index:3800!important;pointer-events:auto!important}',
+    '.ds-command-menu.meeting-more-menu{display:block!important;z-index:3600!important;pointer-events:auto!important}',
+    '.ds-command-menu.ds-view-command-menu{top:64px!important;bottom:auto!important}',
+    '.ds-command-menu.ds-bottom-command-menu{top:auto!important;bottom:88px!important}'
+  ].join('');
   document.head.append(style);
 
   // Legacy audit/feature layers sometimes inspect a newly created menu before a
@@ -22,16 +32,16 @@
   const nativeAppend=Element.prototype.append;
   const nativeAppendChild=Node.prototype.appendChild;
   const nativeInsertBefore=Node.prototype.insertBefore;
-  Element.prototype.append=function(...nodes){for(const node of nodes)apply(node);return nativeAppend.apply(this,nodes);};
-  Node.prototype.appendChild=function(node){apply(node);return nativeAppendChild.call(this,node);};
-  Node.prototype.insertBefore=function(node,reference){apply(node);return nativeInsertBefore.call(this,node,reference);};
+  Element.prototype.append=function(...nodes){for(const node of nodes)apply(node);const result=nativeAppend.apply(this,nodes);for(const node of nodes)apply(node);return result;};
+  Node.prototype.appendChild=function(node){apply(node);const result=nativeAppendChild.call(this,node);apply(node);return result;};
+  Node.prototype.insertBefore=function(node,reference){apply(node);const result=nativeInsertBefore.call(this,node,reference);apply(node);return result;};
 
   const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)apply(node);});
   observer.observe(document.body,{childList:true,subtree:true});
   for(const node of document.querySelectorAll('.ds-command-menu,.ds-reaction-tray'))apply(node);
 
   window.DominionZoomContractBridge=Object.freeze({
-    version:'1.2.0',
+    version:'1.3.0',
     dispose:()=>{
       observer.disconnect();
       Element.prototype.append=nativeAppend;
