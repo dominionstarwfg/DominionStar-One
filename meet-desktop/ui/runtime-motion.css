@@ -1,0 +1,14 @@
+/* Low-cost motion authority. Transform/opacity only where possible so live media stays responsive. */
+#meetingOverlay .stage{transition:right .14s cubic-bezier(.2,.75,.25,1)!important}
+#meetingOverlay .room-side:not([hidden]),#meetingOverlay #meetingChatPanel:not([hidden]){animation:dsRuntimePanelIn .14s cubic-bezier(.2,.75,.25,1) both}
+@keyframes dsRuntimePanelIn{from{opacity:.72;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+#meetingOverlay .meeting-control{transition:background-color .1s ease,border-color .1s ease,transform .08s ease,opacity .1s ease}
+#meetingOverlay .meeting-control:active{transform:scale(.97)}
+#roomShare.ds-share-checking{cursor:progress;opacity:.84}
+#roomShare.ds-share-checking .ds-control-icon{animation:dsShareCheckPulse .72s ease-in-out infinite}
+@keyframes dsShareCheckPulse{0%,100%{opacity:.45;transform:scale(.94)}50%{opacity:1;transform:scale(1.04)}}
+#meetingReactionLayer[data-ds-zoom-reaction-lane="left"]{contain:layout paint;isolation:isolate;overflow:hidden!important;pointer-events:none!important}
+#meetingReactionLayer .ds-zoom-floating-reaction{right:auto!important;pointer-events:none!important;backface-visibility:hidden;transform:translateZ(0)}
+#meetingReactionLayer .ds-reaction-satellite{right:auto!important;min-width:0!important;filter:drop-shadow(0 5px 9px rgba(0,0,0,.25));pointer-events:none!important}
+#meetingReactionLayer .ds-reaction-satellite span{display:none!important}
+@media(prefers-reduced-motion:reduce){#meetingOverlay .stage{transition:none!important}#meetingOverlay .room-side:not([hidden]),#meetingOverlay #meetingChatPanel:not([hidden]){animation:none!important}#meetingOverlay .meeting-control{transition:none!important}}
