@@ -5,15 +5,18 @@ import { promisify } from 'node:util';
 const execFileAsync=promisify(execFile);
 
 // Screen Recording grants can require a full process restart before the same
-// installed application can enumerate readable screen sources. Keep this
-// restart path in the main process so the renderer never has to fake a reload.
+// installed application can enumerate readable screen sources. Relaunch the
+// exact executable that is currently running so DominionStar never delegates
+// this recovery path to a different registered copy of the app.
 if(!ipcMain.listenerCount('app:relaunch')){
   ipcMain.handle('app:relaunch',()=>{
+    const execPath=process.execPath;
+    const args=process.argv.slice(1);
     setImmediate(()=>{
-      app.relaunch();
+      app.relaunch({execPath,args});
       app.exit(0);
     });
-    return {ok:true};
+    return {ok:true,execPath};
   });
 }
 
