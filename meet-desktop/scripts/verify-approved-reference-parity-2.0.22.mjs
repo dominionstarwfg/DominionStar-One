@@ -7,6 +7,7 @@ const auth=read('../ui/auth-password.js');
 const js=read('../ui/approved-reference-parity.js');
 const css=read('../ui/approved-reference-parity.css');
 const adaptive=read('../ui/zoom-adaptive-parity.js');
+const features=read('../ui/meeting-features.js');
 const share=read('../src/share-service.mjs');
 const physical=read('../ui/physical-mac-repair.js');
 const production=read('../../.github/workflows/rebuild-mac-production.yml');
@@ -31,6 +32,10 @@ assert.ok(js.includes("function syncReactionLabel()"),'Final authority must stab
 assert.ok(js.includes("setText(label,'React')"),'Reaction label must be the real text React, not decorative pseudo-content.');
 assert.ok(css.includes('#meetingOverlay #roomReactions .ds-control-label{\n  font-size:12px !important;'),'Real React label must retain readable production typography.');
 assert.ok(css.includes("content:none !important"),'Legacy pseudo-label workaround must stay disabled.');
+assert.ok(features.includes("const button=q('#roomReactions'),dedicatedHand=q('#roomRaiseHand')"),'Meeting features must detect the dedicated Raise hand authority before decorating Reactions.');
+assert.ok(features.includes("if(dedicatedHand){")&&features.includes("button.classList.remove('hand-raised')"),'Legacy hand-state decoration must stand down when the dedicated Raise hand control exists.');
+const dedicatedBranch=features.slice(features.indexOf("if(dedicatedHand){"),features.indexOf("}else{",features.indexOf("if(dedicatedHand){")));
+assert.ok(!dedicatedBranch.includes("label.textContent"),'Dedicated Raise hand mode must not let legacy meeting features rewrite the React label.');
 assert.ok(js.includes("button.id='roomRaiseHand'"),'Dedicated Raise hand control is missing.');
 assert.ok(js.includes('DominionMeetingFeatures?.toggleRaiseHand?.()'),'Dedicated Raise hand control is not wired to the real hand-state authority.');
 assert.ok(js.includes("menu.querySelector('.reaction-hand-button')"),'Reaction tray duplicate Raise hand cleanup is missing.');
@@ -78,4 +83,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order real-react-label dedicated-raise-hand observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order single-owner-react-label dedicated-raise-hand observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
