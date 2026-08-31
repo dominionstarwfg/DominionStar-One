@@ -52,6 +52,7 @@ jobs:
           node --check ui/zoom-behavior.js
           node --check ui/zoom-production-polish.js
           node --check ui/zoom-adaptive-parity.js
+          node --check ui/approved-reference-parity.js
           node --check ui/participant-controls.js
           node --check ui/meeting-notifications.js
           node --check ui/share-annotation.js
@@ -61,7 +62,9 @@ jobs:
           node --check scripts/verify-packaged-interactions.mjs
           node --check scripts/verify-packaged-physical-mac-2.0.21.mjs
           node --check scripts/verify-packaged-zoom-window-parity.mjs
+          node --check scripts/verify-packaged-approved-reference-2.0.22.mjs
           node --check scripts/verify-physical-parity-2.0.21.mjs
+          node --check scripts/verify-approved-reference-parity-2.0.22.mjs
           node scripts/verify-release-standard.mjs
           node scripts/verify-foundation.mjs
           node scripts/verify-auth.mjs
@@ -78,6 +81,7 @@ jobs:
           node scripts/verify-zoom-production-polish.mjs
           node scripts/verify-zoom-window-parity.mjs
           node scripts/verify-physical-parity-2.0.21.mjs
+          node scripts/verify-approved-reference-parity-2.0.22.mjs
 
       - name: Build and sign universal QA app once
         working-directory: meet-desktop
@@ -191,6 +195,12 @@ jobs:
         env:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-zoom-window-parity.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged approved 3D reference parity
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Create clean QA archive
         shell: bash
