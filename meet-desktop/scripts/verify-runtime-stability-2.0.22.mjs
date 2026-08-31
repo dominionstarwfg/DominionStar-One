@@ -5,6 +5,8 @@ const read=relative=>fs.readFileSync(new URL(`../${relative}`,import.meta.url),'
 const auth=read('ui/auth-password.js');
 const runtime=read('ui/runtime-stability.js');
 const css=read('ui/runtime-stability.css');
+const layoutFix=read('ui/runtime-layout-fix.css');
+const meetingCss=read('ui/meeting.css');
 const physical=read('ui/zoom-physical-acceptance.js');
 const physicalMac=read('ui/physical-mac-repair.js');
 const reaction=read('ui/zoom-reaction-parity.js');
@@ -14,8 +16,10 @@ const pkg=JSON.parse(read('package.json'));
 
 assert.equal(pkg.version,'2.0.22');
 assert.ok(auth.includes('./runtime-stability.css'),'Runtime-stability stylesheet must be loaded.');
+assert.ok(auth.includes('./runtime-layout-fix.css'),'Final runtime layout correction must be loaded.');
 assert.ok(auth.includes('./runtime-stability.js'),'Runtime-stability controller must be loaded.');
-assert.ok(auth.indexOf('approved-reference-parity.css')<auth.indexOf('runtime-stability.css'),'Runtime stability must be the final visual authority.');
+assert.ok(auth.indexOf('approved-reference-parity.css')<auth.indexOf('runtime-stability.css'),'Runtime stability must load after approved reference parity.');
+assert.ok(auth.indexOf('runtime-stability.css')<auth.indexOf('runtime-layout-fix.css'),'Legacy-grid removal must load after the main runtime stylesheet.');
 assert.ok(auth.includes('script.onload=loadRuntimeStability'),'Runtime stability must load after approved-reference parity.');
 
 assert.ok(runtime.includes("event.stopImmediatePropagation();\n      setParticipants"),'Participants click must have a single capture-phase authority.');
@@ -52,6 +56,14 @@ assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Constraine
 assert.ok(runtime.includes("stage.style.setProperty('right',`${reserve}px`,'important')"),'Stage must resize around a docked side panel instead of leaving unused black space.');
 assert.ok(css.includes('flex:1 1 auto!important')&&css.includes('#meetingOverlay #participantRoster'),'Participant roster must consume the available panel height.');
 
+// The original meeting stylesheet is intentionally still recognized here so a
+// future refactor cannot silently reintroduce its permanent sidebar reservation.
+assert.ok(meetingCss.includes('display:grid')&&meetingCss.includes('grid-template-columns:1fr 330px'),'Legacy meeting grid signature changed; review the final runtime layout authority.');
+assert.ok(layoutFix.includes('#meetingOverlay .meeting-body'),'Final layout correction must explicitly own the meeting body.');
+assert.ok(layoutFix.includes('display:block!important'),'Final meeting body must leave the legacy two-column grid formatting context.');
+assert.ok(layoutFix.includes('grid-template-columns:none!important'),'Permanent 330px participant grid column must be removed.');
+assert.ok(layoutFix.includes('grid-column:auto!important')&&layoutFix.includes('grid-row:auto!important'),'Stage must not remain pinned to a legacy grid cell.');
+
 // Record the exact legacy physical-acceptance failure mechanism so it cannot be
 // forgotten. The final runtime isolates this controller after its one-time
 // handlers are installed.
@@ -86,4 +98,4 @@ assert.ok(!bridge.includes("observer.observe(document.body,{childList:true,subtr
 // blocked at the roster/queue boundary and cannot become a periodic redraw.
 assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
-console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority synchronous-click-geometry full-window responsive-stage physical-loop-isolated permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
+console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority synchronous-click-geometry full-window legacy-grid-removed responsive-stage physical-loop-isolated permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
