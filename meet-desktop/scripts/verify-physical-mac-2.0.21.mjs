@@ -5,8 +5,10 @@ const read=file=>fs.readFileSync(new URL(`../${file}`,import.meta.url),'utf8');
 const auth=read('ui/auth-password.js');
 const repair=read('ui/physical-mac-repair.js');
 const adaptive=read('ui/zoom-adaptive-parity.js');
+const runtime=read('ui/runtime-stability.js');
 const css=read('ui/physical-mac-repair.css');
 const adaptiveCss=read('ui/zoom-adaptive-parity.css');
+const runtimeCss=read('ui/runtime-stability.css');
 const shareService=read('src/share-service.mjs');
 const shareIntegration=read('ui/share-integration.js');
 const preload=read('src/preload.cjs');
@@ -20,7 +22,10 @@ assert.match(auth,/physical-mac-repair\.css/,'Physical Mac repair CSS must be lo
 assert.match(auth,/physical-mac-repair\.js/,'Physical Mac repair JS must be loaded.');
 assert.match(auth,/zoom-adaptive-parity\.css/,'Adaptive Zoom authority CSS must be loaded.');
 assert.match(auth,/zoom-adaptive-parity\.js/,'Adaptive Zoom authority JS must be loaded.');
+assert.match(auth,/runtime-stability\.css/,'Final runtime stability CSS must be loaded.');
+assert.match(auth,/runtime-stability\.js/,'Final runtime stability controller must be loaded.');
 assert.ok(auth.indexOf('script.onload=loadAdaptiveParity')>=0,'Adaptive authority must load after physical-Mac repair.');
+assert.ok(auth.indexOf('approved-reference-parity.css')<auth.indexOf('runtime-stability.css'),'Runtime stability must be the final physical visual authority.');
 
 // Personal Meeting ID: capture-phase selection still owns the instant-meeting submit.
 assert.match(repair,/document\.addEventListener\('submit'.*true\)/s,'Personal Meeting ID needs capture-phase submit authority.');
@@ -59,13 +64,18 @@ assert.match(css,/\.av-toggle-row>span[\s\S]*font-size:13\.5px!important/,'Video
 assert.match(css,/\.av-range-row[\s\S]*minmax\(220px,420px\)/,'Video setting sliders must be bounded instead of spanning the dialog.');
 assert.match(repair,/Participants \(\$\{count\}\)/,'Participants heading must expose the live count.');
 
-// New physical-reference constraints.
-assert.match(adaptive,/search\.hidden=count<=1/,'One-person participant panel must hide search.');
-assert.match(adaptive,/waiting\.hidden=!hasWaitingPeople\(\)/,'Empty waiting-room section must be hidden.');
-assert.match(adaptive,/if\(count<=6\)centerParticipantPanel\(side,count\)/,'Small participant rosters must default to compact floating geometry.');
-assert.match(adaptive,/const wide=body\.clientWidth>=1120/,'Chat must adapt by actual meeting width.');
-assert.match(adaptive,/panel\.dataset\.dsAdaptiveMode=wide\?'docked':'floating'/,'Chat must support docked and floating modes.');
-assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must be compact.');
-assert.match(adaptiveCss,/max-width:340px !important/,'One-participant panel must be compact.');
+// Physical Mac 2.0.22 correction: normal desktop windows dock the participant
+// management surface to the right and resize the stage. Floating remains only
+// for constrained windows. The prior "small roster always floats" assertion is
+// intentionally removed because the real full-screen test rejected it.
+assert.match(runtime,/const wide=bodyWidth>=940/,'Final panel behavior must adapt to actual meeting width.');
+assert.match(runtime,/panel\.dataset\.dsRuntimeMode='docked'/,'Desktop-width participant/chat panels must dock on the right.');
+assert.match(runtime,/panel\.dataset\.dsRuntimeMode='floating'/,'Constrained-window panel fallback must remain available.');
+assert.match(runtime,/stage\.style\.setProperty\('right',`\$\{reserve\}px`,'important'\)/,'Stage must resize around the active docked panel.');
+assert.match(runtime,/search=side\.querySelector\('\.zoom-participant-search'\);if\(search\)search\.hidden=count<7/,'Participant search must be shown only when useful.');
+assert.match(runtime,/waiting=q\('#waitingQueueSection'\);if\(waiting\)waiting\.hidden=!hasWaitingPeople\(\)/,'Empty waiting-room section must be hidden.');
+assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/,'Meeting must fill the Electron viewport width.');
+assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/,'Meeting must fill the Electron viewport height.');
+assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compact.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id native-system-picker no-preflight post-failure-recovery adhoc-not-certified reaction-contained settings-readable participant-count adaptive-participants adaptive-chat compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id native-system-picker no-preflight post-failure-recovery adhoc-not-certified reaction-contained settings-readable participant-count desktop-right-dock constrained-float full-window compact-prejoin`);
