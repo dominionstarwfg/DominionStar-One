@@ -26,6 +26,11 @@ assert.ok(runtime.includes("meetingObserver.observe(overlay,{attributes:true,att
 assert.ok(!runtime.includes('setInterval('),'Final runtime must be event-driven and contain no periodic reconciliation timer.');
 assert.ok(!runtime.includes("observer.observe(document.body"),'Final runtime must never observe the whole document.');
 
+assert.ok(runtime.includes("Object.defineProperty(node,'innerHTML'"),'Snapshot DOM guard must intercept repeated roster/queue replacement.');
+assert.ok(runtime.includes('if(next===lastRaw)return'),'Identical snapshot markup must be ignored rather than rebuilt.');
+assert.ok(runtime.includes("guardSnapshotHtml(q('#participantRoster'))"),'Participant roster must be protected from unchanged snapshot rebuilds.');
+assert.ok(runtime.includes("guardSnapshotHtml(q('#waitingQueue'))"),'Waiting queue must be protected from unchanged snapshot rebuilds.');
+
 assert.ok(css.includes('width:var(--ds-runtime-vw,100vw)!important'),'Meeting overlay must fill the real Electron viewport width.');
 assert.ok(css.includes('height:var(--ds-runtime-vh,100vh)!important'),'Meeting overlay must fill the real Electron viewport height.');
 assert.ok(css.includes('#meetingOverlay .stage{'),'Final runtime must own stage geometry.');
@@ -44,9 +49,8 @@ assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,
 assert.ok(physical.includes('wrap.innerHTML='),'Expected legacy media-status mutation changed; review the stability isolation contract.');
 assert.ok(runtime.includes('DominionZoomPhysicalAcceptance'),'Final runtime must explicitly isolate the physical acceptance loop.');
 
-// Snapshot polling may remain as network-state transport, but rebuilding the
-// roster is the next optimization target and must not be treated as geometry
-// authority by the final runtime.
-assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport is present and isolated from layout reconciliation.');
+// Network snapshots may remain periodic, but unchanged snapshot markup is now
+// blocked at the roster/queue boundary and cannot become a periodic redraw.
+assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
-console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority full-window responsive-stage physical-loop-isolated no-runtime-polling');
+console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority full-window responsive-stage physical-loop-isolated unchanged-snapshot-suppressed no-runtime-polling');
