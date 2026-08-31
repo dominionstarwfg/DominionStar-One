@@ -54,9 +54,10 @@ assert.ok(runtime.includes("const dirty=roster.dataset.dsRuntimeSnapshotDirty===
 // Meeting Features previously refreshed reactions, raised hands, recording and
 // toolbar state every 600 ms. That loop is forbidden: feature rendering follows
 // the concrete events that changed state and coalesces repeated decoration into
-// one animation frame.
+// one animation frame. The public feature API version remains stable while the
+// runtime implementation has its own revision marker.
 assert.ok(!meetingFeatures.includes('setInterval('),'Meeting Features must not run a permanent UI polling timer.');
-assert.ok(meetingFeatures.includes("version:'2.0.22-event-driven'"),'Meeting Features must expose the event-driven 2.0.22 authority.');
+assert.ok(meetingFeatures.includes("version:'1.4.0-zoom-chat-shell'")&&meetingFeatures.includes("runtimeVersion:'2.0.22-event-driven'"),'Meeting Features must preserve API compatibility while exposing the event-driven runtime revision.');
 assert.ok(meetingFeatures.includes("window.addEventListener('dominion:meeting-signal',handleSignal)"),'Meeting Features must respond to meeting signals.');
 assert.ok(meetingFeatures.includes("window.addEventListener('dominion:meeting-snapshot'"),'Meeting Features must respond to network state changes.');
 assert.ok(meetingFeatures.includes("window.addEventListener('dominion:participant-presence',scheduleFeatureDecorations)"),'Participant feature badges must refresh from presence changes.');
