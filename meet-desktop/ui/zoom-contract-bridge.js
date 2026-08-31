@@ -28,28 +28,18 @@
   ].join('');
   document.head.append(style);
 
-  // Legacy audit/feature layers sometimes inspect a newly created menu before a
-  // MutationObserver microtask can run. Decorate authoritative menus at the
-  // exact DOM insertion boundary so both old contracts and the new UI see the
-  // same element synchronously in the click call stack.
-  const nativeAppend=Element.prototype.append;
-  const nativeAppendChild=Node.prototype.appendChild;
-  const nativeInsertBefore=Node.prototype.insertBefore;
-  Element.prototype.append=function(...nodes){for(const node of nodes)apply(node);const result=nativeAppend.apply(this,nodes);for(const node of nodes)apply(node);return result;};
-  Node.prototype.appendChild=function(node){apply(node);const result=nativeAppendChild.call(this,node);apply(node);return result;};
-  Node.prototype.insertBefore=function(node,reference){apply(node);const result=nativeInsertBefore.call(this,node,reference);apply(node);return result;};
-
-  const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)apply(node);});
-  observer.observe(document.body,{childList:true,subtree:true});
+  // Menus are top-level transient surfaces. Observe only direct body children;
+  // never patch DOM prototypes and never observe the entire subtree. This keeps
+  // compatibility decoration off the hot video/participant rendering path.
+  const observer=new MutationObserver(records=>{
+    for(const record of records)for(const node of record.addedNodes)apply(node);
+  });
+  if(document.body)observer.observe(document.body,{childList:true});
   for(const node of document.querySelectorAll('.ds-command-menu,.ds-reaction-tray'))apply(node);
 
   window.DominionZoomContractBridge=Object.freeze({
-    version:'1.4.0',
-    dispose:()=>{
-      observer.disconnect();
-      Element.prototype.append=nativeAppend;
-      Node.prototype.appendChild=nativeAppendChild;
-      Node.prototype.insertBefore=nativeInsertBefore;
-    }
+    version:'2.0.22',
+    apply,
+    dispose:()=>observer.disconnect()
   });
 })();
