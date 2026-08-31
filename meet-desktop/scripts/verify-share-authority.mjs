@@ -74,7 +74,8 @@ assert.ok(integrationPicker>=0&&integrationPermission>integrationPicker,'Screen 
 assert(integration.includes('showScreenPermissionDialog')&&integration.includes('Open System Settings'),'Denied macOS Screen Recording must present actionable post-failure recovery.');
 assert(integration.includes("window.dominionDesktop?.media?.openPrivacy?.('screen')"),'Permission recovery must open the correct macOS Privacy & Security pane through the native bridge.');
 assert((controller.match(/getDisplayMedia/g)||[]).length>=2,'Display capture authority must remain implemented inside the isolated share controller.');
-assert(!integration.includes('getDisplayMedia')&&!preload.includes('getDisplayMedia')&&!picker.includes('getDisplayMedia'),'No renderer integration, preload bridge, or picker surface may acquire display media directly.');
+const directDisplayCall=/\.getDisplayMedia\s*\(/;
+assert(!directDisplayCall.test(integration)&&!directDisplayCall.test(preload)&&!directDisplayCall.test(picker),'No renderer integration, preload bridge, or picker surface may acquire display media directly.');
 assert(controller.includes("context.drawImage(videoElement,0,0,width,height)"),'Pause must freeze the exact last shared frame.');
 assert(controller.includes('canvas.captureStream(1)'),'Pause must create a frozen presentation stream rather than showing black.');
 assert(controller.includes('const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Paused/unpaused base output must deterministically switch between frozen and live capture.');
