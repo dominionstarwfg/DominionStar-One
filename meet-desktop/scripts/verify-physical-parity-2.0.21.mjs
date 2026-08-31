@@ -16,7 +16,8 @@ const rejection=read('PHYSICAL_2_0_20_REJECTION.md');
 const requireText=(source,needle,message)=>{if(!source.includes(needle))throw new Error(message);};
 const rejectText=(source,needle,message)=>{if(source.includes(needle))throw new Error(message);};
 
-if(pkg.version!=='2.0.21')throw new Error(`Expected candidate version 2.0.21, found ${pkg.version}`);
+const [major,minor,patch]=String(pkg.version||'').split('.').map(Number);
+if(!(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21))throw new Error(`Carried-forward physical-reference gate requires DominionStar Meet 2.0.21 or later in the 2.0.x line; found ${pkg.version}`);
 
 // Screen share: macOS 15+ must receive the original getDisplayMedia gesture.
 requireText(shareService,"const nativeSystemPicker=platform==='darwin'&&macMajor>=15",'Native system picker is not gated to supported macOS.');
@@ -99,4 +100,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded');
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded`);
