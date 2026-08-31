@@ -5,6 +5,7 @@
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const disposed=new Set();
+  const htmlDescriptor=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
   let frame=0;
   let meetingObserver=null;
   let observedMeeting=null;
@@ -14,6 +15,30 @@
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
+
+  function guardSnapshotHtml(node){
+    if(!node||node.dataset.dsRuntimeHtmlGuard==='1'||!htmlDescriptor?.get||!htmlDescriptor?.set)return;
+    let lastRaw=null;
+    Object.defineProperty(node,'innerHTML',{
+      configurable:true,
+      get(){return htmlDescriptor.get.call(this);},
+      set(value){
+        const next=String(value??'');
+        if(next===lastRaw)return;
+        lastRaw=next;
+        this.dataset.dsRuntimeSnapshotDirty='1';
+        htmlDescriptor.set.call(this,next);
+      }
+    });
+    node.dataset.dsRuntimeHtmlGuard='1';
+  }
+
+  function installSnapshotDomGuards(){
+    // app.js may poll network state, but identical participant/waiting snapshots
+    // must not destroy and rebuild the same DOM every cycle.
+    guardSnapshotHtml(q('#participantRoster'));
+    guardSnapshotHtml(q('#waitingQueue'));
+  }
 
   function disposeLoop(name){
     if(disposed.has(name))return;
@@ -91,9 +116,8 @@
     const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<7;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
     sortParticipants();
-    // Functional methods remain usable after the background observer/timer is
-    // disposed. Decorate once per real snapshot/frame, never recursively.
     window.DominionZoomPhysicalAcceptance?.decorateParticipantRows?.();
+    roster.dataset.dsRuntimeSnapshotDirty='0';
   }
 
   function setParticipants(show){
@@ -201,11 +225,9 @@
   }
 
   function syncNow(){
-    frame=0;retireBackgroundReconcilers();ensureViewport();
+    frame=0;installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();
     if(!meetingOpen())return;
     primePhysicalControls();
-    // These methods are idempotent structural passes with their own background
-    // loops already retired. They run only on concrete meeting events.
     window.DominionZoomProductionPolish?.sync?.();
     window.DominionApprovedReferenceParity?.sync?.();
     syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();
@@ -241,13 +263,13 @@
   },true);
 
   window.addEventListener('resize',schedule,{passive:true});
-  window.addEventListener('dominion:meeting-ui-ready',()=>{observeMeetingVisibility();schedule();setTimeout(schedule,80);});
+  window.addEventListener('dominion:meeting-ui-ready',()=>{observeMeetingVisibility();installSnapshotDomGuards();schedule();setTimeout(schedule,80);});
   window.addEventListener('dominion:meeting-snapshot',schedule);
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
   window.addEventListener('dominion:meeting-ended',()=>{physicalPrimed=false;schedule();});
 
-  observeMeetingVisibility();schedule();setTimeout(()=>{observeMeetingVisibility();schedule();},120);setTimeout(schedule,700);
+  observeMeetingVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,layoutSideSurface,syncParticipantsSurface,retireBackgroundReconcilers});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,layoutSideSurface,syncParticipantsSurface,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
