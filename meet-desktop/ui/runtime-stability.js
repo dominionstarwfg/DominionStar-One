@@ -187,9 +187,12 @@
     const integration=window.DominionShareIntegration;
     if(!integration?.open){window.DominionMeetingNotifications?.toast?.('Screen sharing is still initializing. Try again.','info');return false;}
     shareOpening=true;button?.classList.add('ds-share-checking');
-    requestAnimationFrame(()=>{
-      Promise.resolve(integration.open()).catch(error=>window.DominionMeetingNotifications?.toast?.(String(error?.message||error||'Screen sharing could not start.'),'error')).finally(()=>{shareOpening=false;button?.classList.remove('ds-share-checking');});
-    });
+    // Functional commands must never depend on a paint frame. Electron may
+    // throttle requestAnimationFrame when a window is obscured/backgrounded;
+    // that previously left Share visibly "checking" without ever starting the
+    // native permission/picker path. Start the integration immediately and
+    // reserve animation frames for visuals only.
+    Promise.resolve().then(()=>integration.open()).catch(error=>window.DominionMeetingNotifications?.toast?.(String(error?.message||error||'Screen sharing could not start.'),'error')).finally(()=>{shareOpening=false;button?.classList.remove('ds-share-checking');});
     return true;
   }
 
