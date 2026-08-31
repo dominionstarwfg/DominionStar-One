@@ -38,6 +38,20 @@
 #meetingOverlay .meeting-footer{
   align-items:center !important;
 }
+/* CSS order is final visual authority so older reconciliation loops cannot make
+   the toolbar visibly jump back to a stale ordering between sync cycles. */
+#meetingOverlay #roomMic{order:10 !important;}
+#meetingOverlay .av-device-caret[data-kind="audio"]{order:11 !important;}
+#meetingOverlay #roomCamera{order:20 !important;}
+#meetingOverlay .av-device-caret[data-kind="video"]{order:21 !important;}
+#meetingOverlay #roomParticipants{order:30 !important;}
+#meetingOverlay #roomChat{order:40 !important;}
+#meetingOverlay #roomReactions{order:50 !important;}
+#meetingOverlay #roomRaiseHand{order:60 !important;}
+#meetingOverlay #roomShare{order:70 !important;}
+#meetingOverlay #roomHostTools{order:80 !important;}
+#meetingOverlay #roomMore{order:90 !important;}
+#meetingOverlay #roomExitButton{order:100 !important;}
 #meetingOverlay #roomRaiseHand{
   display:flex !important;
   flex-direction:column !important;
