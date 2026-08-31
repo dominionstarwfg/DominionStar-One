@@ -1,0 +1,13 @@
+/* Final 2.0.22 meeting geometry authority.
+   The original meeting shell reserved a permanent 330px grid column for
+   Participants. Runtime side panels are absolute/dynamic, so retaining that
+   grid column leaves dead space and prevents the video stage from filling the
+   real Electron window. */
+#meetingOverlay .meeting-body{
+  display:block!important;
+  grid-template-columns:none!important;
+}
+#meetingOverlay .stage{
+  grid-column:auto!important;
+  grid-row:auto!important;
+}
