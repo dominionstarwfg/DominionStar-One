@@ -19,24 +19,18 @@
   }
 
   async function screenStatus(){
-    try{return String((await desktop.media?.permissions?.())?.screen||'unknown');}
+    try{return String((await desktop.media?.permissions?.())?.screen||'unknown').toLowerCase();}
     catch{return 'unknown';}
   }
 
   async function detectScreenPermission(){
-    // Fast path: when macOS already reports Screen Recording as granted, do not
-    // ask again and do not enumerate share sources. Go directly to selection.
+    // This helper is diagnostic only. It never enumerates desktop sources.
+    // Explicit denial is actionable; granted proceeds; not-determined/unknown
+    // must be decided by the real native getDisplayMedia request.
     const reported=await screenStatus();
     if(reported==='granted')return {ok:true,status:'granted',restartRequired:false,detectedBy:'tcc-status'};
-
-    // Recovery path: the Electron main process performs one bounded real-source
-    // probe because macOS can briefly report a stale status after the user turns
-    // permission on. This detects a usable grant without forcing another prompt.
-    try{
-      const result=await desktop.media?.requestScreen?.();
-      if(result)return result;
-    }catch{}
-    return {ok:false,status:reported,restartRequired:reported!=='not-determined',detectedBy:'renderer-fallback'};
+    if(reported==='denied'||reported==='restricted')return {ok:false,status:reported,restartRequired:false,detectedBy:'tcc-status'};
+    return {ok:true,status:reported,nativeDecisionRequired:true,restartRequired:false,detectedBy:'native-decision'};
   }
 
   function ensureRecoveryDialog(){
@@ -53,11 +47,8 @@
     recoveryDialog.querySelector('[data-ds-219-restart]').onclick=()=>void desktop.app?.relaunch?.();
     recoveryDialog.querySelector('[data-ds-219-recheck]').onclick=async event=>{
       const button=event.currentTarget;button.disabled=true;
-      try{
-        const permission=await detectScreenPermission();
-        if(permission?.ok){recoveryDialog.hidden=true;await openVerifiedShare({permission});return;}
-        await showRecovery(String(permission?.status||'unknown'),Boolean(permission?.restartRequired));
-      }finally{button.disabled=false;}
+      try{recoveryDialog.hidden=true;await openVerifiedShare();}
+      finally{button.disabled=false;}
     };
     recoveryDialog.querySelector('[data-ds-219-reset]').onclick=async event=>{
       const button=event.currentTarget;button.disabled=true;
@@ -95,32 +86,20 @@
     dialog.hidden=false;
   }
 
-  async function openVerifiedShare({permission=null}={}){
+  async function openVerifiedShare(){
     if(shareBusy||!inMeeting())return false;
     shareBusy=true;hideLegacyShareRecovery();
-    const button=q('#roomShare');
-    button?.classList.add('ds-share-checking');
     try{
-      const verified=permission?.ok?permission:await detectScreenPermission();
-      if(!verified?.ok){
-        await showRecovery(String(verified?.status||'unknown'),Boolean(verified?.restartRequired));
-        return false;
-      }
-
-      // Permission is already usable. Selection now proceeds directly; there is
-      // no permission dialog in the renderer. On macOS 15+ the native system
-      // content picker is only choosing WHAT to share, not asking for access.
+      const permission=await detectScreenPermission();
+      if(!permission.ok){await showRecovery(permission.status,false);return false;}
       const integration=window.DominionShareIntegration;
       if(!integration?.open)throw new Error('Screen-share integration is not ready.');
       return await integration.open();
     }catch(error){
       const status=await screenStatus();
-      await showRecovery(status||String(error?.name||'unknown'),false);
+      await showRecovery(status||String(error?.name||'unknown'),status==='granted');
       return false;
-    }finally{
-      shareBusy=false;
-      button?.classList.remove('ds-share-checking');
-    }
+    }finally{shareBusy=false;}
   }
 
   function syncPersonalChoice(){
@@ -203,16 +182,12 @@
     shareStateUnsub=window.DominionShareController.onChange(()=>requestAnimationFrame(syncVideoDockPolicy));
   }
 
-  function sync(){
-    syncPersonalChoice();syncParticipantCount();syncVideoDockPolicy();bindShareState();
-  }
+  function sync(){syncPersonalChoice();syncParticipantCount();syncVideoDockPolicy();bindShareState();}
 
   function onDocumentClick(event){
-    const share=event.target?.closest?.('#roomShare');
-    if(share&&inMeeting()){
-      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-      void openVerifiedShare();return;
-    }
+    // Share Screen is intentionally NOT intercepted here. The isolated Share
+    // integration owns that click so permission status, native picker and real
+    // getDisplayMedia failure all stay in one transaction.
     if(event.target?.closest?.('#newMeetingUsePersonal'))requestAnimationFrame(syncPersonalChoice);
   }
 
