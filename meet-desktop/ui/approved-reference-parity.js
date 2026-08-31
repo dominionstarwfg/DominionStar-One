@@ -51,19 +51,12 @@
     }
   }
 
-  function moveWithCaret(footer,id){
-    const control=q('#'+id);if(!control||control.parentElement!==footer)return;
-    const caret=(id==='roomMic'||id==='roomCamera')&&control.nextElementSibling?.classList?.contains('av-device-caret')?control.nextElementSibling:null;
-    footer.append(control);if(caret)footer.append(caret);
-  }
-
   function arrangeToolbar(){
     const footer=q('.meeting-footer');if(!footer)return;
     ensureRaiseHandControl();
-    const present=TOOLBAR_ORDER.filter(id=>q('#'+id)?.parentElement===footer);
-    const current=[...footer.children].map(node=>node.id).filter(id=>present.includes(id));
-    const alreadyOrdered=present.length===current.length&&present.every((id,index)=>id===current[index]);
-    if(!alreadyOrdered){for(const id of present)moveWithCaret(footer,id);}
+    // Do not move existing toolbar DOM nodes. Older meeting authorities own the
+    // stable DOM structure; approved-reference-parity.css is the sole visual
+    // ordering authority. Competing append/insert loops caused visible dancing.
     footer.dataset.approvedToolbarOrder=TOOLBAR_ORDER.join('|');
   }
 
@@ -108,8 +101,11 @@
   }
 
   function sync(){
+    // Mount the dedicated toolbar control before meeting entry so showing the
+    // meeting does not introduce a late geometry shift.
+    ensureRaiseHandControl();arrangeToolbar();
     if(!meetingOpen()){closeChatTargetMenu();return;}
-    ensureTransportSecurityIndicator();ensureRaiseHandControl();arrangeToolbar();removeDuplicateReactionHand();syncRaiseHandState();syncChatNavigation();syncVideoPanel();
+    ensureTransportSecurityIndicator();removeDuplicateReactionHand();syncRaiseHandState();syncChatNavigation();syncVideoPanel();
   }
 
   document.addEventListener('click',event=>{
