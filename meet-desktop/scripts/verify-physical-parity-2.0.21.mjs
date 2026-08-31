@@ -71,10 +71,13 @@ requireText(adaptiveCss,'grid-template-columns:minmax(0,1fr) minmax(0,1fr) !impo
 requireText(adaptive,"label.hidden=title==='speaker'",'Prejoin still exposes the third speaker selector that clipped in the physical screenshot.');
 requireText(adaptive,'Always show this preview when joining','Zoom-style persistent preview preference is missing.');
 
-// Floating participant video tiles: entire panel is draggable with an ordinary
-// cursor; no decorative grip/hand is allowed in the approved reference.
+// Floating participant video tiles: the entire non-control surface is draggable
+// with an ordinary cursor; no decorative grip/hand is allowed in the approved reference.
 requireText(adaptiveCss,'#participantVideoDock,\n#participantVideoDock .participant-video-dock-head{\n  cursor:default !important;','Floating video panel does not retain the normal arrow cursor.');
 requireText(adaptiveCss,'#participantVideoDock .dock-grip{display:none !important;}','Legacy video-panel grip affordance is still visible.');
+requireText(adaptive,"dock.dataset.dsAdaptiveWholePanelDrag='1'",'Floating video panel does not declare whole-panel drag authority.');
+requireText(adaptive,"dock.addEventListener('pointerdown',startVideoDockDrag,true)",'Floating video panel is not draggable from the whole non-control surface.');
+requireText(adaptive,"event.target.closest?.('button,.participant-video-resize,a,input,select,textarea')",'Whole-panel video drag does not protect interactive controls.');
 requireText(physicalRepair,"dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available'",'Video panel is not participant-count aware.');
 
 // Final authority must load after the physical-repair layer.
@@ -82,4 +85,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants zoom-sort adaptive-chat floating-video-no-grip physical-rejection-recorded');
+console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants zoom-sort adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded');
