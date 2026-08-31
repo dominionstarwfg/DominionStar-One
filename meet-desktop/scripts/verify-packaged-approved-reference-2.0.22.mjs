@@ -38,22 +38,31 @@ try{
   assert.doesNotMatch(header.security,/end-to-end/i,'UI must not falsely claim E2EE.');
   assert.match(header.securityTitle,/DTLS-SRTP/i,'Encrypted indicator must explain the actual transport security.');
 
+  await evaluate(`document.querySelector('#meetingViewButton').click()`);await waitFor("document.querySelector('.view-menu')",'View menu');
+  const viewModes=await evaluate(`(()=>[...document.querySelectorAll('.view-menu button')].map(button=>String(button.textContent||'').replace(/^✓\s*/,'')))()`);
+  assert.ok(viewModes.some(label=>/^Speaker$/i.test(label)),'View menu must expose Speaker.');
+  assert.ok(viewModes.some(label=>/^Gallery$/i.test(label)),'View menu must expose Gallery.');
+  assert.ok(viewModes.some(label=>/^Multi-speaker$/i.test(label)),'View menu must expose Multi-speaker.');
+  await evaluate(`document.body.click()`);await sleep(30);
+
   // ---------- Toolbar order / dedicated Raise hand ----------
-  const toolbar=await evaluate(`(()=>{window.DominionZoomProductionPolish.sync();window.DominionApprovedReferenceParity.sync();const expected=window.DominionApprovedReferenceParity.toolbarOrder;const footer=document.querySelector('.meeting-footer');const ids=[...footer.children].map(n=>n.id).filter(id=>expected.includes(id));const raise=document.querySelector('#roomRaiseHand');return {ids,expected,raiseVisible:Boolean(raise&&!raise.hidden&&getComputedStyle(raise).display!=='none'),raiseLabel:raise?.querySelector('.ds-control-label')?.textContent||'',marker:raise?.dataset.approvedDedicatedRaiseHand||''};})()`);
-  assert.deepEqual(toolbar.ids,toolbar.expected,'Toolbar must follow Audio → Video → Participants → Chat → React → Raise hand → Share → Host tools → More → End.');
+  const toolbar=await evaluate(`(()=>{window.DominionZoomProductionPolish.sync();window.DominionApprovedReferenceParity.sync();const expected=window.DominionApprovedReferenceParity.toolbarOrder;const footer=document.querySelector('.meeting-footer');const entries=expected.map(id=>{const node=document.querySelector('#'+id);return {id,order:Number.parseInt(getComputedStyle(node).order,10)||0,visible:Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none')};});const visual=[...entries].sort((a,b)=>a.order-b.order).map(entry=>entry.id);const raise=document.querySelector('#roomRaiseHand'),reactLabel=document.querySelector('#roomReactions .ds-control-label');return {visual,expected,orders:entries,marker:footer.dataset.approvedToolbarOrder||'',raiseVisible:Boolean(raise&&!raise.hidden&&getComputedStyle(raise).display!=='none'),raiseLabel:raise?.querySelector('.ds-control-label')?.textContent||'',raiseMarker:raise?.dataset.approvedDedicatedRaiseHand||'',reactVisual:String(getComputedStyle(reactLabel,'::after').content||'').replace(/[\"']/g,'')};})()`);
+  assert.deepEqual(toolbar.visual,toolbar.expected,'Visual toolbar order must be Audio → Video → Participants → Chat → React → Raise hand → Share → Host tools → More → End.');
+  assert.equal(toolbar.marker,toolbar.expected.join('|'),'Final toolbar authority marker is missing or stale.');
   assert.equal(toolbar.raiseVisible,true,'Dedicated Raise hand control must be visible.');
   assert.equal(toolbar.raiseLabel,'Raise hand');
-  assert.equal(toolbar.marker,'1');
+  assert.equal(toolbar.raiseMarker,'1');
+  assert.equal(toolbar.reactVisual,'React','Reaction control must remain visually labeled React even when hand state changes.');
 
   await evaluate(`document.querySelector('#roomRaiseHand').click()`);await sleep(100);
-  const raised=await evaluate(`(()=>{window.DominionApprovedReferenceParity.sync();return {state:window.DominionMeetingFeatures.snapshot().handRaised,label:document.querySelector('#roomRaiseHand .ds-control-label')?.textContent||'',pressed:document.querySelector('#roomRaiseHand')?.getAttribute('aria-pressed')};})()`);
+  const raised=await evaluate(`(()=>{window.DominionApprovedReferenceParity.sync();const react=document.querySelector('#roomReactions .ds-control-label');return {state:window.DominionMeetingFeatures.snapshot().handRaised,label:document.querySelector('#roomRaiseHand .ds-control-label')?.textContent||'',pressed:document.querySelector('#roomRaiseHand')?.getAttribute('aria-pressed'),react:String(getComputedStyle(react,'::after').content||'').replace(/[\"']/g,'')};})()`);
   assert.equal(raised.state,true,'Dedicated Raise hand button must change the real hand state.');
-  assert.equal(raised.label,'Lower hand');assert.equal(raised.pressed,'true');
+  assert.equal(raised.label,'Lower hand');assert.equal(raised.pressed,'true');assert.equal(raised.react,'React','Raising a hand must not rename the React control.');
   await evaluate(`document.querySelector('#roomRaiseHand').click()`);await sleep(80);
 
   await evaluate(`document.querySelector('#roomReactions').click()`);await waitFor("document.querySelector('.meeting-reaction-menu')",'reaction tray');await sleep(50);
-  const reactions=await evaluate(`(()=>{window.DominionApprovedReferenceParity.sync();const menu=document.querySelector('.meeting-reaction-menu');return {buttons:[...menu.querySelectorAll('button')].map(b=>b.textContent.trim()),hand:Boolean(menu.querySelector('.reaction-hand-button')),marker:menu.dataset.approvedReactionOnly||''};})()`);
-  assert.equal(reactions.hand,false,'Reaction tray must not duplicate the dedicated Raise hand control.');
+  const reactions=await evaluate(`(()=>{window.DominionApprovedReferenceParity.sync();const menu=document.querySelector('.meeting-reaction-menu');return {buttons:[...menu.querySelectorAll('button')].filter(b=>getComputedStyle(b).display!=='none').map(b=>b.textContent.trim()),handVisible:Boolean(menu.querySelector('.reaction-hand-button')&&getComputedStyle(menu.querySelector('.reaction-hand-button')).display!=='none'),marker:menu.dataset.approvedReactionOnly||''};})()`);
+  assert.equal(reactions.handVisible,false,'Reaction tray must not duplicate the dedicated Raise hand control.');
   assert.equal(reactions.buttons.length,6,'Reaction tray should contain the six standard reactions only.');
   assert.equal(reactions.marker,'1');
 
@@ -75,10 +84,11 @@ try{
   assert.equal(video.marker,'1');assert.equal(video.wholeDrag,'1','Video panel must remain draggable from the whole non-control surface.');
   assert.equal(video.cursor,'default');assert.equal(video.tileCursor,'default');assert.equal(video.headDisplay,'none','Video filmstrip must not expose a dedicated grip/title bar.');assert.equal(video.gripDisplay,'none');
   assert.ok(video.radius>=8,'Video tiles must retain the approved rounded filmstrip geometry.');
+  assert.match(video.activeBorder,/66\D+212\D+108/,'Active speaker must retain the approved green filmstrip emphasis.');
 
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view truthful-encryption toolbar-order dedicated-raise-hand reactions-only clean-chat direct-messages no-formatting floating-filmstrip whole-panel-drag no-grip no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption visual-toolbar-order dedicated-raise-hand react-stable reactions-only clean-chat direct-messages no-formatting floating-filmstrip active-speaker whole-panel-drag no-grip no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
