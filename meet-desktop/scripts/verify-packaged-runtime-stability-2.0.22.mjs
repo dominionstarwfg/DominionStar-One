@@ -35,15 +35,22 @@ try{
   assert.ok(Math.abs(viewport.shell.w-viewport.innerWidth)<=1,'Meeting shell must expand with the window.');
 
   // Participants must respond to the click that was actually made, not to a
-  // later Chat click after the renderer catches up.
-  await evaluate(`document.querySelector('#roomParticipants').click()`);await sleep(60);
-  const participants=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,rightGap:Math.round(br.right-sr.right),stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||''};})()`);
-  assert.equal(participants.participantsOpen,true,'Participants must open immediately on Participants click.');
-  assert.equal(participants.chatClosed,true,'Opening Participants must keep Chat closed.');
-  assert.equal(participants.mode,'docked','Desktop-width Participants must use the approved right-side dock.');
-  assert.ok(Math.abs(participants.rightGap)<=2,'Docked Participants must sit on the right edge.');
-  assert.ok(participants.stageRightGap>=participants.panelWidth,'Stage must resize around the participant panel.');
-  assert.equal(participants.count,'Participants (1)');
+  // later Chat click after the renderer catches up. Visibility is immediate;
+  // stage geometry then settles through the intentional 140 ms motion window.
+  await evaluate(`document.querySelector('#roomParticipants').click()`);await sleep(45);
+  const participantsImmediate=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,rightGap:Math.round(br.right-sr.right),stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||'',animation:getComputedStyle(side).animationName,stageTransition:getComputedStyle(stage).transitionDuration};})()`);
+  assert.equal(participantsImmediate.participantsOpen,true,'Participants must open immediately on Participants click.');
+  assert.equal(participantsImmediate.chatClosed,true,'Opening Participants must keep Chat closed.');
+  assert.equal(participantsImmediate.mode,'docked','Desktop-width Participants must use the approved right-side dock.');
+  assert.ok(Math.abs(participantsImmediate.rightGap)<=2,'Docked Participants must sit on the right edge immediately.');
+  assert.equal(participantsImmediate.count,'Participants (1)');
+  assert.match(participantsImmediate.animation,/dsRuntimePanelIn/,'Participants must use the short runtime entrance motion.');
+  assert.ok(parseFloat(participantsImmediate.stageTransition)>0&&parseFloat(participantsImmediate.stageTransition)<=0.2,'Stage resize transition must remain short.');
+
+  await sleep(170);
+  const participantsSettled=await evaluate(`(()=>{const side=document.querySelector('.room-side'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {panelWidth:Math.round(sr.width),stageRightGap:Math.round(br.right-st.right),stageWidth:Math.round(st.width),bodyWidth:Math.round(br.width)};})()`);
+  assert.ok(participantsSettled.stageRightGap>=participantsSettled.panelWidth-2,`Stage must settle around the participant panel after the short transition. ${JSON.stringify(participantsSettled)}`);
+  assert.ok(participantsSettled.stageWidth<=participantsSettled.bodyWidth-participantsSettled.panelWidth+2,'Docked Participants must reduce usable stage width rather than overlaying a full-width stage.');
 
   await evaluate(`document.querySelector('#roomChat').click()`);await sleep(60);
   const chat=await evaluate(`(()=>({participantsClosed:document.querySelector('.room-side').hidden,chatOpen:!document.querySelector('#meetingChatPanel').hidden,mode:document.querySelector('#meetingChatPanel').dataset.dsRuntimeMode}))()`);
@@ -70,6 +77,6 @@ try{
   assert.ok(responsiveness<500,`Renderer event loop is still starved; 80 ms timer took ${responsiveness} ms.`);
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants immediate-chat last-click-wins no-delayed-panel-flip responsive-event-loop right-docked-stage-resize');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip responsive-event-loop right-docked-stage-resize');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
