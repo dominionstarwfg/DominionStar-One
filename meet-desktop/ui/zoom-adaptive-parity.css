@@ -119,8 +119,6 @@
   min-width:74px !important;
   height:34px !important;
 }
-/* Keep any injected credential summary compact instead of allowing it to become
-   a second oversized panel above the preview. */
 #prejoinOverlay .prejoin-window > :is(.prejoin-meeting-meta,.prejoin-credentials,.meeting-credentials,.ds-prejoin-meta){
   margin:0 12px 8px !important;
   padding:7px 10px !important;
@@ -170,9 +168,9 @@
   min-height:0 !important;
 }
 #meetingOverlay .ds-modern-participant-row{
-  min-height:48px !important;
-  padding:7px 9px !important;
-  gap:8px !important;
+  min-height:56px !important;
+  padding:9px 10px !important;
+  gap:9px !important;
 }
 #meetingOverlay .ds-modern-participant-row .person-copy{
   min-width:0 !important;
@@ -187,6 +185,8 @@
   overflow:hidden !important;
   text-overflow:ellipsis !important;
   white-space:nowrap !important;
+  font-size:13.5px !important;
+  line-height:1.25 !important;
 }
 #meetingOverlay .ds-modern-participant-row .person-copy small,
 #meetingOverlay .ds-modern-participant-row .ds-role-chip{
@@ -196,7 +196,7 @@
   display:inline !important;
   flex:none !important;
   color:rgba(236,241,247,.72) !important;
-  font-size:10px !important;
+  font-size:10.5px !important;
   font-weight:500 !important;
   white-space:nowrap !important;
 }
@@ -234,6 +234,10 @@
 #meetingChatPanel > header{
   min-height:50px !important;
   padding:8px 10px !important;
+}
+#meetingChatPanel > header strong{
+  font-size:16px !important;
+  line-height:1.2 !important;
 }
 #meetingChatPanel .ds-adaptive-chat-nav{
   display:flex !important;
@@ -286,6 +290,8 @@
   max-height:110px !important;
   resize:none !important;
   box-sizing:border-box !important;
+  font-size:13.5px !important;
+  line-height:1.35 !important;
 }
 #meetingChatPanel .meeting-chat-form button[type="submit"]{
   width:36px !important;
