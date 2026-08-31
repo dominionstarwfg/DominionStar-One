@@ -15,6 +15,7 @@
   let dockDrag=null;
   let physicalPrimed=false;
   let legacyPrimed=false;
+  let shareOpening=false;
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
@@ -63,9 +64,6 @@
   function primeLegacyStructure(){
     if(legacyPrimed||!meetingOpen())return;
     legacyPrimed=true;
-    // These compatibility passes install structural controls once. Their own
-    // background observers/timers were already retired; do not rerun them on
-    // every 1.2-second network snapshot.
     window.DominionZoomProductionPolish?.sync?.();
     window.DominionApprovedReferenceParity?.sync?.();
   }
@@ -160,6 +158,17 @@
     if(show){panel.dataset.dsRuntimePanel='chat';void window.DominionZoomBehavior?.refreshChatRecipients?.();requestAnimationFrame(()=>q('#meetingChatInput')?.focus());}
     layoutSideSurface();
     return show;
+  }
+
+  function openShareFromRuntime(button=q('#roomShare')){
+    if(shareOpening||!meetingOpen())return false;
+    const integration=window.DominionShareIntegration;
+    if(!integration?.open){window.DominionMeetingNotifications?.toast?.('Screen sharing is still initializing. Try again.','info');return false;}
+    shareOpening=true;button?.classList.add('ds-share-checking');
+    requestAnimationFrame(()=>{
+      Promise.resolve(integration.open()).catch(error=>window.DominionMeetingNotifications?.toast?.(String(error?.message||error||'Screen sharing could not start.'),'error')).finally(()=>{shareOpening=false;button?.classList.remove('ds-share-checking');});
+    });
+    return true;
   }
 
   function layoutSideSurface(){
@@ -258,6 +267,10 @@
   }
 
   document.addEventListener('click',event=>{
+    const share=event.target.closest?.('#roomShare');
+    if(share&&meetingOpen()){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();share.blur();openShareFromRuntime(share);return;
+    }
     const participants=event.target.closest?.('#roomParticipants');
     if(participants&&meetingOpen()){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
@@ -282,9 +295,9 @@
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
   window.addEventListener('dominion:meeting-signal',schedule);
-  window.addEventListener('dominion:meeting-ended',()=>{physicalPrimed=false;legacyPrimed=false;schedule();});
+  window.addEventListener('dominion:meeting-ended',()=>{physicalPrimed=false;legacyPrimed=false;shareOpening=false;schedule();});
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,layoutSideSurface,syncParticipantsSurface,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncParticipantsSurface,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
