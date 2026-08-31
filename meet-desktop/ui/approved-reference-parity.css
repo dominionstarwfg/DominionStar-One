@@ -1,0 +1,198 @@
+/* DominionStar Meet 2.0.22 — final approved 3D-reference parity layer.
+   This file is intentionally loaded after all prior Zoom/adaptive authorities. */
+
+/* ---------- Header security state: truthful transport-encryption indicator ---------- */
+#meetingOverlay .meeting-head .ds-approved-encryption{
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:6px !important;
+  height:28px !important;
+  padding:0 9px !important;
+  margin-left:auto !important;
+  margin-right:8px !important;
+  border:1px solid rgba(64,201,122,.22) !important;
+  border-radius:8px !important;
+  background:rgba(38,122,75,.10) !important;
+  color:#9de6b8 !important;
+  font-size:10.5px !important;
+  font-weight:650 !important;
+  white-space:nowrap !important;
+}
+#meetingOverlay .ds-approved-encryption-icon{
+  width:15px !important;
+  height:15px !important;
+  display:grid !important;
+  place-items:center !important;
+}
+#meetingOverlay .ds-approved-encryption-icon svg{
+  width:15px !important;
+  height:15px !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:1.8 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+
+/* ---------- Toolbar: approved Zoom-reference order and dedicated Raise hand ---------- */
+#meetingOverlay .meeting-footer{
+  align-items:center !important;
+}
+#meetingOverlay #roomRaiseHand{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:3px !important;
+  min-width:64px !important;
+  cursor:pointer !important;
+}
+#meetingOverlay #roomRaiseHand .ds-control-icon svg{
+  width:25px !important;
+  height:25px !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:1.65 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+#meetingOverlay #roomRaiseHand.hand-raised .ds-control-icon,
+#meetingOverlay #roomRaiseHand.hand-raised .ds-control-label{
+  color:#e8bd4f !important;
+}
+#meetingOverlay #roomRaiseHand .ds-control-label{
+  white-space:nowrap !important;
+}
+
+/* The dedicated toolbar control is the only hand-control surface in 2.0.22. */
+.meeting-reaction-menu .reaction-hand-button,
+.meeting-reaction-menu .reaction-divider{
+  display:none !important;
+}
+
+/* ---------- Chat: no duplicated To:/format chrome; Zoom-like destination navigation ---------- */
+#meetingOverlay #meetingChatPanel .meeting-chat-recipient,
+#meetingOverlay #meetingChatPanel .meeting-chat-recipient[data-approved-hidden="1"]{
+  display:none !important;
+}
+#meetingOverlay #meetingChatPanel .ds-adaptive-chat-nav{
+  min-height:48px !important;
+  padding:7px 10px !important;
+  gap:8px !important;
+}
+#meetingOverlay #meetingChatPanel .ds-adaptive-chat-nav button{
+  height:33px !important;
+  min-width:76px !important;
+  padding:0 10px !important;
+  border-radius:8px !important;
+  font-size:11px !important;
+  font-weight:620 !important;
+}
+#meetingOverlay #meetingChatPanel .meeting-chat-message,
+#meetingOverlay #meetingChatPanel .meeting-chat-message.own{
+  max-width:100% !important;
+  padding:7px 4px !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  border-bottom:1px solid rgba(255,255,255,.055) !important;
+}
+#meetingOverlay #meetingChatPanel .meeting-chat-message strong{
+  display:inline !important;
+  margin-right:6px !important;
+  font-size:12px !important;
+}
+#meetingOverlay #meetingChatPanel .meeting-chat-message p{
+  margin-top:4px !important;
+  font-size:13.5px !important;
+  line-height:1.4 !important;
+}
+#meetingOverlay #meetingChatPanel .meeting-chat-message time{
+  font-size:9.5px !important;
+}
+.ds-approved-chat-target-menu{
+  position:fixed !important;
+  z-index:340 !important;
+  display:grid !important;
+  gap:3px !important;
+  padding:6px !important;
+  border:1px solid rgba(255,255,255,.13) !important;
+  border-radius:10px !important;
+  background:rgba(28,30,34,.98) !important;
+  box-shadow:0 18px 48px rgba(0,0,0,.46) !important;
+}
+.ds-approved-chat-target-menu button{
+  width:100% !important;
+  min-height:34px !important;
+  border:0 !important;
+  border-radius:7px !important;
+  padding:0 10px !important;
+  text-align:left !important;
+  background:transparent !important;
+  color:#eef2f6 !important;
+  font-size:11.5px !important;
+  cursor:pointer !important;
+}
+.ds-approved-chat-target-menu button:hover{
+  background:rgba(255,255,255,.08) !important;
+}
+.ds-approved-chat-target-empty{
+  padding:10px 12px !important;
+  color:rgba(239,243,247,.58) !important;
+  font-size:11px !important;
+}
+
+/* ---------- Participant video panel: clean floating filmstrip, no title grip ---------- */
+#participantVideoDock[data-approved-filmstrip="1"]{
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  border-radius:10px !important;
+  cursor:default !important;
+  overflow:visible !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head{
+  display:none !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-body{
+  gap:8px !important;
+  padding:0 !important;
+  background:transparent !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile{
+  position:relative !important;
+  min-width:150px !important;
+  min-height:88px !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  border-radius:9px !important;
+  overflow:hidden !important;
+  background:#16191d !important;
+  box-shadow:0 10px 28px rgba(0,0,0,.34) !important;
+  cursor:default !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile.active-speaker{
+  border-color:#42d46c !important;
+  box-shadow:0 0 0 1px rgba(66,212,108,.65),0 10px 28px rgba(0,0,0,.34) !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile video{
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] :is(.remote-peer-name,.remote-peer-label,.participant-video-name){
+  font-size:10.5px !important;
+  font-weight:600 !important;
+  text-shadow:0 1px 4px rgba(0,0,0,.9) !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .dock-grip{
+  display:none !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] button,
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-resize{
+  cursor:pointer !important;
+}
+
+@media(max-width:900px){
+  #meetingOverlay .meeting-head .ds-approved-encryption span:last-child{display:none !important;}
+  #meetingOverlay .meeting-head .ds-approved-encryption{width:28px !important;padding:0 !important;justify-content:center !important;}
+}
