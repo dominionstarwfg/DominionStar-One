@@ -40,12 +40,16 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
 #meetingOverlay .stage{
   position:absolute!important;
   left:0!important;
+  right:0;
   top:0!important;
   bottom:0!important;
+  width:auto!important;
+  height:auto!important;
   min-width:0!important;
   min-height:0!important;
   max-width:none!important;
   max-height:none!important;
+  box-sizing:border-box!important;
   transition:right .16s ease!important;
 }
 #meetingOverlay .stage>#localMeetingVideo,
