@@ -8,6 +8,7 @@ const css=read('ui/runtime-stability.css');
 const layoutFix=read('ui/runtime-layout-fix.css');
 const motion=read('ui/runtime-motion.css');
 const meetingCss=read('ui/meeting.css');
+const meetingFeatures=read('ui/meeting-features.js');
 const physical=read('ui/zoom-physical-acceptance.js');
 const physicalMac=read('ui/physical-mac-repair.js');
 const reaction=read('ui/zoom-reaction-parity.js');
@@ -49,6 +50,18 @@ assert.ok(runtime.includes('if(next===lastRaw)return'),'Identical snapshot marku
 assert.ok(runtime.includes("guardSnapshotHtml(q('#participantRoster'))"),'Participant roster must be protected from unchanged snapshot rebuilds.');
 assert.ok(runtime.includes("guardSnapshotHtml(q('#waitingQueue'))"),'Waiting queue must be protected from unchanged snapshot rebuilds.');
 assert.ok(runtime.includes("const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1'"),'Participant media decoration must run only when roster markup changed.');
+
+// Meeting Features previously refreshed reactions, raised hands, recording and
+// toolbar state every 600 ms. That loop is forbidden: feature rendering follows
+// the concrete events that changed state and coalesces repeated decoration into
+// one animation frame.
+assert.ok(!meetingFeatures.includes('setInterval('),'Meeting Features must not run a permanent UI polling timer.');
+assert.ok(meetingFeatures.includes("version:'2.0.22-event-driven'"),'Meeting Features must expose the event-driven 2.0.22 authority.');
+assert.ok(meetingFeatures.includes("window.addEventListener('dominion:meeting-signal',handleSignal)"),'Meeting Features must respond to meeting signals.');
+assert.ok(meetingFeatures.includes("window.addEventListener('dominion:meeting-snapshot'"),'Meeting Features must respond to network state changes.');
+assert.ok(meetingFeatures.includes("window.addEventListener('dominion:participant-presence',scheduleFeatureDecorations)"),'Participant feature badges must refresh from presence changes.');
+assert.ok(meetingFeatures.includes("window.addEventListener('dominion:meeting-ended',resetMeetingFeatureState)"),'Meeting feature state must be explicitly cleared on meeting end.');
+assert.ok(meetingFeatures.includes('if(featureFrame)return;featureFrame=requestAnimationFrame(decorateFeatureState)'),'Feature rendering events must coalesce to a single frame.');
 
 assert.ok(css.includes('width:var(--ds-runtime-vw,100vw)!important'),'Meeting overlay must fill the real Electron viewport width.');
 assert.ok(css.includes('height:var(--ds-runtime-vh,100vh)!important'),'Meeting overlay must fill the real Electron viewport height.');
@@ -111,4 +124,4 @@ assert.ok(!bridge.includes("observer.observe(document.body,{childList:true,subtr
 // blocked at the roster/queue boundary and cannot become a periodic redraw.
 assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
-console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
+console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
