@@ -43,7 +43,7 @@
     if(!button){
       button=document.createElement('button');button.id='roomRaiseHand';button.type='button';button.className='meeting-control ds-approved-raise-hand';button.dataset.approvedDedicatedRaiseHand='1';button.setAttribute('aria-label','Raise hand');
       button.innerHTML=`<span class="ds-control-icon">${HAND_ICON}</span><span class="ds-control-label">Raise hand</span>`;
-      button.onclick=async()=>{button.disabled=true;try{await window.DominionMeetingFeatures?.toggleRaiseHand?.();syncRaiseHandState();}finally{button.disabled=false;}};
+      button.onclick=async()=>{button.disabled=true;try{await window.DominionMeetingFeatures?.toggleRaiseHand?.();syncRaiseHandState();syncReactionLabel();}finally{button.disabled=false;}};
       footer.insertBefore(button,exit);
     }
     syncRaiseHandState();return button;
@@ -56,6 +56,10 @@
     setAttr(button,'aria-pressed',raised);
     setAttr(button,'aria-label',raised?'Lower hand':'Raise hand');
     setText(button.querySelector('.ds-control-label'),raised?'Lower hand':'Raise hand');
+  }
+
+  function syncReactionLabel(){
+    const label=q('#roomReactions .ds-control-label');if(label)setText(label,'React');
   }
 
   function removeDuplicateReactionHand(){
@@ -120,7 +124,7 @@
     // meeting does not introduce a late geometry shift.
     ensureRaiseHandControl();arrangeToolbar();
     if(!meetingOpen()){closeChatTargetMenu();return;}
-    ensureTransportSecurityIndicator();removeDuplicateReactionHand();syncRaiseHandState();syncChatNavigation();syncVideoPanel();
+    ensureTransportSecurityIndicator();removeDuplicateReactionHand();syncRaiseHandState();syncReactionLabel();syncChatNavigation();syncVideoPanel();
   }
 
   document.addEventListener('click',event=>{
@@ -129,7 +133,7 @@
     const everyone=event.target.closest?.('#meetingChatPanel [data-chat-everyone]');
     if(everyone){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();selectEveryone();return;}
     if(chatTargetMenu&&!chatTargetMenu.contains(event.target))closeChatTargetMenu();
-    if(event.target.closest?.('#roomReactions'))requestAnimationFrame(removeDuplicateReactionHand);
+    if(event.target.closest?.('#roomReactions'))requestAnimationFrame(()=>{syncReactionLabel();removeDuplicateReactionHand();});
     if(event.target.closest?.('#roomChat'))requestAnimationFrame(()=>{window.DominionZoomAdaptiveParity?.syncChat?.();syncChatNavigation();});
   },true);
   window.addEventListener('dominion:meeting-ui-ready',requestSync);
@@ -142,5 +146,5 @@
   observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   timer=setInterval(requestSync,1200);sync();
 
-  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncChatNavigation,syncVideoPanel,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();}});
+  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncChatNavigation,syncVideoPanel,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();}});
 })();
