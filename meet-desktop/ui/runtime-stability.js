@@ -68,6 +68,28 @@
     window.DominionApprovedReferenceParity?.sync?.();
   }
 
+  function ensureToolbarZones(){
+    const footer=q('.meeting-footer');if(!footer)return false;
+    let left=footer.querySelector(':scope > .ds-runtime-toolbar-left');
+    let center=footer.querySelector(':scope > .ds-runtime-toolbar-center');
+    let right=footer.querySelector(':scope > .ds-runtime-toolbar-right');
+    if(!left||!center||!right){
+      left=document.createElement('div');left.className='ds-runtime-toolbar-zone ds-runtime-toolbar-left';left.setAttribute('role','presentation');
+      center=document.createElement('div');center.className='ds-runtime-toolbar-zone ds-runtime-toolbar-center';center.setAttribute('role','presentation');
+      right=document.createElement('div');right.className='ds-runtime-toolbar-zone ds-runtime-toolbar-right';right.setAttribute('role','presentation');
+      footer.append(left,center,right);
+    }
+    const carets=qa('.meeting-footer .av-device-caret');
+    const audioCaret=carets.find(node=>node.dataset.kind==='audio'||/audio/i.test(node.getAttribute('aria-label')||''));
+    const videoCaret=carets.find(node=>node.dataset.kind==='video'||/video/i.test(node.getAttribute('aria-label')||''));
+    const move=(zone,node)=>{if(node&&node.parentNode!==zone)zone.append(node);};
+    for(const node of [q('#roomMic'),audioCaret,q('#roomCamera'),videoCaret])move(left,node);
+    for(const id of ['roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore'])move(center,q(`#${id}`));
+    move(right,q('#roomExitButton'));
+    footer.dataset.dsRuntimeToolbarZones='1';
+    return true;
+  }
+
   function ensureViewport(){
     const overlay=q('#meetingOverlay'),shell=overlay?.querySelector('.meeting-shell'),body=overlay?.querySelector('.meeting-body');
     if(!overlay||!shell||!body)return;
@@ -243,7 +265,7 @@
   function syncNow(){
     frame=0;installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();
     if(!meetingOpen())return;
-    primePhysicalControls();primeLegacyStructure();
+    primePhysicalControls();primeLegacyStructure();ensureToolbarZones();
     syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();
     q('#meetingOverlay')?.setAttribute('data-ds-runtime-stable','1');
   }
@@ -253,7 +275,7 @@
   function observeMeetingVisibility(){
     const overlay=q('#meetingOverlay');if(!overlay||overlay===observedMeeting)return;
     meetingObserver?.disconnect();observedMeeting=overlay;
-    meetingObserver=new MutationObserver(()=>schedule());
+    meetingObserver=new MutationObserver(()=>syncNow());
     meetingObserver.observe(overlay,{attributes:true,attributeFilter:['hidden']});
   }
 
@@ -290,7 +312,7 @@
   },true);
 
   window.addEventListener('resize',schedule,{passive:true});
-  window.addEventListener('dominion:meeting-ui-ready',()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(schedule,80);});
+  window.addEventListener('dominion:meeting-ui-ready',()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();syncNow();setTimeout(schedule,80);});
   window.addEventListener('dominion:meeting-snapshot',schedule);
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
@@ -299,5 +321,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncParticipantsSurface,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncParticipantsSurface,ensureToolbarZones,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
