@@ -338,6 +338,10 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
 }
 #meetingOverlay #meetingChatPanel .meeting-chat-form textarea{resize:none!important}
 
+/* React is reactions only. Raise Hand has its own permanent toolbar control. */
+.ds-reaction-tray>.ds-reaction-divider,
+.ds-reaction-tray>.ds-raise-hand{display:none!important}
+
 /* The participant video strip remains a movable meeting surface. */
 #participantVideoDock[data-ds-runtime-whole-panel-drag="1"]{cursor:default!important}
 #participantVideoDock[data-ds-runtime-whole-panel-drag="1"].dragging{cursor:grabbing!important}
