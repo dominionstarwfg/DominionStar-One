@@ -62,6 +62,68 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
   max-height:none!important;
 }
 
+/* Stable Zoom-style toolbar zones. Audio/Video, meeting actions, and End/Leave
+   own independent grid regions, so a late device-options caret cannot shove the
+   center controls left/right after the meeting is already visible. */
+#meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;
+  align-items:center!important;
+  justify-content:stretch!important;
+  column-gap:8px!important;
+  padding:5px 10px!important;
+}
+#meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]>.ds-runtime-toolbar-zone{
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+}
+#meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]>.ds-runtime-toolbar-left{
+  grid-column:1!important;
+  justify-self:start!important;
+  justify-content:flex-start!important;
+}
+#meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]>.ds-runtime-toolbar-center{
+  grid-column:2!important;
+  justify-self:center!important;
+  justify-content:center!important;
+  gap:2px!important;
+}
+#meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]>.ds-runtime-toolbar-right{
+  grid-column:3!important;
+  justify-self:end!important;
+  justify-content:flex-end!important;
+}
+#meetingOverlay .ds-runtime-toolbar-left #roomMic,
+#meetingOverlay .ds-runtime-toolbar-left #roomCamera,
+#meetingOverlay .ds-runtime-toolbar-center .meeting-control,
+#meetingOverlay .ds-runtime-toolbar-center .zoom-host-tools-control,
+#meetingOverlay .ds-runtime-toolbar-right #roomExitButton{
+  margin-left:0!important;
+  margin-right:0!important;
+}
+#meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret{
+  margin-right:8px!important;
+}
+#meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret[data-kind="video"]{
+  margin-right:0!important;
+}
+@media(max-width:940px){
+  #meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]{
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    column-gap:4px!important;
+    overflow-x:hidden!important;
+  }
+  #meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]>.ds-runtime-toolbar-center{
+    max-width:100%!important;
+    overflow-x:auto!important;
+    justify-content:flex-start!important;
+    scrollbar-width:none!important;
+  }
+  #meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]>.ds-runtime-toolbar-center::-webkit-scrollbar{display:none!important}
+}
+
 /* One right-side application surface at a time on normal desktop widths. */
 #meetingOverlay .room-side,
 #meetingOverlay #meetingChatPanel{
