@@ -14,6 +14,7 @@
   let dockBound=null;
   let dockDrag=null;
   let physicalPrimed=false;
+  let legacyPrimed=false;
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
@@ -57,6 +58,16 @@
     physicalPrimed=true;
     try{controller.sync?.();}catch(error){console.warn('[DominionStar Meet] Physical control priming failed.',error);}
     try{controller.dispose?.();}catch(error){console.warn('[DominionStar Meet] Physical background retirement failed.',error);}
+  }
+
+  function primeLegacyStructure(){
+    if(legacyPrimed||!meetingOpen())return;
+    legacyPrimed=true;
+    // These compatibility passes install structural controls once. Their own
+    // background observers/timers were already retired; do not rerun them on
+    // every 1.2-second network snapshot.
+    window.DominionZoomProductionPolish?.sync?.();
+    window.DominionApprovedReferenceParity?.sync?.();
   }
 
   function ensureViewport(){
@@ -108,8 +119,12 @@
     const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<7;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
     sortParticipants();
-    window.DominionZoomPhysicalAcceptance?.decorateParticipantRows?.();
-    roster.dataset.dsRuntimeSnapshotDirty='0';
+    const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1';
+    if(dirty){
+      window.DominionZoomPhysicalAcceptance?.decorateParticipantRows?.();
+      roster.dataset.dsRuntimeDecorated='1';
+      roster.dataset.dsRuntimeSnapshotDirty='0';
+    }
   }
 
   function setParticipants(show){
@@ -124,9 +139,6 @@
       side.dataset.dsRuntimePanel='participants';
       syncParticipantsSurface();
     }
-    // User actions must be transactional: visibility and geometry are committed
-    // before this click returns. Do not defer the visible result to RAF; macOS
-    // can throttle RAF and make later clicks appear to trigger earlier actions.
     layoutSideSurface();
     return show;
   }
@@ -205,7 +217,7 @@
     dock.addEventListener('pointerdown',event=>{
       if(event.button!==0||event.target.closest?.('button,input,select,textarea,.participant-video-resize'))return;
       const stage=q('.stage');if(!stage||dock.hidden)return;
-      const dr=dock.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+      const dr=dock.getBoundingClientRect();
       dockDrag={id:event.pointerId,dx:event.clientX-dr.left,dy:event.clientY-dr.top};
       dock.setPointerCapture?.(event.pointerId);dock.classList.add('user-positioned','dragging');dock.style.right='auto';dock.style.bottom='auto';event.preventDefault();
     },true);
@@ -222,9 +234,7 @@
   function syncNow(){
     frame=0;installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();
     if(!meetingOpen())return;
-    primePhysicalControls();
-    window.DominionZoomProductionPolish?.sync?.();
-    window.DominionApprovedReferenceParity?.sync?.();
+    primePhysicalControls();primeLegacyStructure();
     syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();
     q('#meetingOverlay')?.setAttribute('data-ds-runtime-stable','1');
   }
@@ -271,7 +281,8 @@
   window.addEventListener('dominion:meeting-snapshot',schedule);
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
-  window.addEventListener('dominion:meeting-ended',()=>{physicalPrimed=false;schedule();});
+  window.addEventListener('dominion:meeting-signal',schedule);
+  window.addEventListener('dominion:meeting-ended',()=>{physicalPrimed=false;legacyPrimed=false;schedule();});
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
