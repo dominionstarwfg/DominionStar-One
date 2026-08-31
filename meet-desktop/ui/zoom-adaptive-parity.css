@@ -216,15 +216,19 @@
 #meetingOverlay #meetingChatPanel{
   z-index:142 !important;
   box-sizing:border-box !important;
+  min-width:290px !important;
+  max-width:360px !important;
   border-radius:11px !important;
   overflow:hidden !important;
   box-shadow:0 15px 42px rgba(0,0,0,.30) !important;
 }
 #meetingOverlay.ds-chat-docked #meetingChatPanel{
+  width:340px !important;
   border-radius:8px !important;
   box-shadow:0 8px 24px rgba(0,0,0,.22) !important;
 }
 #meetingOverlay.ds-chat-floating #meetingChatPanel{
+  width:min(360px,calc(100% - 24px)) !important;
   box-shadow:0 18px 46px rgba(0,0,0,.42) !important;
 }
 #meetingChatPanel > header{
