@@ -66,6 +66,8 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
 #meetingOverlay .room-side,
 #meetingOverlay #meetingChatPanel{
   box-sizing:border-box!important;
+  min-width:0!important;
+  max-width:none!important;
   z-index:150!important;
   resize:none!important;
   overflow:hidden!important;
