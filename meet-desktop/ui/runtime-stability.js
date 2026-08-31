@@ -10,6 +10,7 @@
   let observedMeeting=null;
   let dockBound=null;
   let dockDrag=null;
+  let physicalPrimed=false;
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
@@ -28,6 +29,17 @@
     // observer used to rewrite the same subtree it observed, creating a
     // self-triggering render loop on a real Mac.
     for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])disposeLoop(name);
+  }
+
+  function primePhysicalControls(){
+    if(physicalPrimed||!meetingOpen())return;
+    const controller=window.DominionZoomPhysicalAcceptance;if(!controller)return;
+    physicalPrimed=true;
+    // Install its one-time control handlers now that the meeting exists, then
+    // immediately disconnect the observer/timer/subscriptions it creates. The
+    // installed click handlers remain; ongoing rendering is event-driven here.
+    try{controller.sync?.();}catch(error){console.warn('[DominionStar Meet] Physical control priming failed.',error);}
+    try{controller.dispose?.();}catch(error){console.warn('[DominionStar Meet] Physical background retirement failed.',error);}
   }
 
   function ensureViewport(){
@@ -191,11 +203,11 @@
   function syncNow(){
     frame=0;retireBackgroundReconcilers();ensureViewport();
     if(!meetingOpen())return;
-    // Structural installers remain callable after their background loops are
-    // retired. Run them only when a concrete meeting event asks for a sync.
+    primePhysicalControls();
+    // These methods are idempotent structural passes with their own background
+    // loops already retired. They run only on concrete meeting events.
     window.DominionZoomProductionPolish?.sync?.();
     window.DominionApprovedReferenceParity?.sync?.();
-    window.DominionZoomPhysicalAcceptance?.sync?.();
     syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();
     q('#meetingOverlay')?.setAttribute('data-ds-runtime-stable','1');
   }
@@ -233,7 +245,7 @@
   window.addEventListener('dominion:meeting-snapshot',schedule);
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
-  window.addEventListener('dominion:meeting-ended',schedule);
+  window.addEventListener('dominion:meeting-ended',()=>{physicalPrimed=false;schedule();});
 
   observeMeetingVisibility();schedule();setTimeout(()=>{observeMeetingVisibility();schedule();},120);setTimeout(schedule,700);
 
