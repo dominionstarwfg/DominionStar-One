@@ -37,7 +37,7 @@
   }
   async function resolveShareEntry(){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
-    // macOS 15+ must reach navigator.getDisplayMedia without source enumeration.
+    // macOS 15+ must reach navigator.getDisplayMedia without renderer-side source enumeration.
     // Electron then hands selection/first-time consent to Apple's native picker.
     const result=await bridge.openPicker();
     if(result?.permissionRequired){showScreenPermissionDialog(String(result.status||'unknown'),Boolean(result.restartRequired));return {mode:'blocked'};}
@@ -81,7 +81,7 @@
         // Cheap intelligence only: an explicit denial is actionable immediately.
         // Granted goes straight through. not-determined/unknown must still reach
         // the real native getDisplayMedia request so macOS can make the decision;
-        // DominionStar never probes desktopCapturer sources before that request.
+        // DominionStar never probes native source lists before that request.
         if(!replace&&!share.snapshot().active){
           const permission=await screenPermissionStatus();
           if(permission==='denied'||permission==='restricted'){
@@ -92,7 +92,7 @@
 
         const entry=await resolveShareEntry();
         if(entry.mode==='blocked')return false;
-        if(entry.mode==='custom')return true; // source-selected event completes fallback flow.
+        if(entry.mode==='custom')return true;
         try{
           const options={shareAudio:true,optimizeVideo:false};
           if(replace){await share.replaceSource({name:'Shared content',options});window.DominionShareAnnotation?.deactivate?.();}
@@ -114,8 +114,6 @@
       }
     }
 
-    // New Share acquires replacement first; the current presentation remains
-    // active while the system picker is open.
     async function openPickerWithPermission(){return beginShare({replace:share.snapshot().active});}
 
     button.addEventListener('click',event=>{
