@@ -1,0 +1,313 @@
+/* DominionStar Meet 2.0.21 — final adaptive desktop authority.
+   Physical Mac screenshots take precedence over older fixed-panel geometry. */
+
+/* ---------- Prejoin: compact, preview-dominant, no horizontal clipping ---------- */
+#prejoinOverlay.ds-adaptive-prejoin{
+  padding:20px !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+#prejoinOverlay .prejoin-window.ds-adaptive-prejoin-window{
+  width:min(560px,calc(100vw - 40px)) !important;
+  max-width:560px !important;
+  max-height:min(650px,calc(100vh - 40px)) !important;
+  overflow:auto !important;
+  border-radius:14px !important;
+  box-sizing:border-box !important;
+}
+#prejoinOverlay .prejoin-window > header{
+  min-height:54px !important;
+  padding:14px 16px 10px !important;
+}
+#prejoinOverlay .prejoin-window > header .eyebrow{
+  margin:0 0 2px !important;
+  font-size:9px !important;
+  letter-spacing:.16em !important;
+}
+#prejoinOverlay .prejoin-window > header h2{
+  margin:0 !important;
+  font-size:17px !important;
+  line-height:1.2 !important;
+}
+#prejoinOverlay .preview-frame{
+  position:relative !important;
+  width:calc(100% - 24px) !important;
+  height:auto !important;
+  aspect-ratio:16/9 !important;
+  min-height:240px !important;
+  max-height:330px !important;
+  margin:0 12px !important;
+  border-radius:8px !important;
+  overflow:hidden !important;
+}
+#prejoinOverlay .preview-frame video{
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+}
+#prejoinOverlay .preview-avatar{
+  width:84px !important;
+  height:84px !important;
+  font-size:25px !important;
+}
+#prejoinOverlay .preview-controls{
+  position:absolute !important;
+  left:50% !important;
+  bottom:10px !important;
+  transform:translateX(-50%) !important;
+  display:flex !important;
+  gap:6px !important;
+  width:auto !important;
+  z-index:4 !important;
+}
+#prejoinOverlay .preview-controls button{
+  min-width:92px !important;
+  height:38px !important;
+  padding:0 12px !important;
+  border-radius:8px !important;
+  white-space:nowrap !important;
+}
+#prejoinOverlay .ds-prejoin-backgrounds{
+  position:absolute !important;
+  right:9px !important;
+  bottom:10px !important;
+  z-index:4 !important;
+  height:32px !important;
+  padding:0 10px !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  border-radius:7px !important;
+  background:rgba(14,17,21,.86) !important;
+  color:#f5f7fa !important;
+  font-size:11px !important;
+  cursor:pointer !important;
+}
+#prejoinOverlay .device-grid{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  gap:8px !important;
+  padding:10px 12px 0 !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+}
+#prejoinOverlay .device-grid label{
+  min-width:0 !important;
+}
+#prejoinOverlay .device-grid select{
+  width:100% !important;
+  min-width:0 !important;
+  height:36px !important;
+  font-size:11px !important;
+  text-overflow:ellipsis !important;
+}
+#prejoinOverlay .device-grid label[hidden],
+#prejoinOverlay .mirror-option[hidden]{display:none !important;}
+#prejoinOverlay .ds-prejoin-always{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  margin:8px 14px 0 !important;
+  font-size:11px !important;
+  color:rgba(238,244,251,.78) !important;
+}
+#prejoinOverlay .prejoin-window > footer{
+  display:flex !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  padding:10px 14px 14px !important;
+}
+#prejoinOverlay .prejoin-window > footer button{
+  min-width:74px !important;
+  height:34px !important;
+}
+#prejoinOverlay .prejoin-window > :is(.prejoin-meeting-meta,.prejoin-credentials,.meeting-credentials,.ds-prejoin-meta){
+  margin:0 12px 8px !important;
+  padding:7px 10px !important;
+  min-height:0 !important;
+  font-size:10px !important;
+}
+
+/* ---------- Participants: density and behavior follow participant count ---------- */
+#meetingOverlay .room-side{
+  box-sizing:border-box !important;
+  border-radius:12px !important;
+  overflow:hidden !important;
+  box-shadow:0 16px 42px rgba(0,0,0,.34) !important;
+}
+#meetingOverlay .room-side[data-ds-adaptive-mode="floating"]{
+  z-index:145 !important;
+}
+#meetingOverlay .room-side[data-ds-adaptive-count="0"],
+#meetingOverlay .room-side[data-ds-adaptive-count="1"]{
+  min-width:280px !important;
+  max-width:340px !important;
+}
+#meetingOverlay .room-side[data-ds-adaptive-count="1"] .zoom-participant-search{
+  display:none !important;
+}
+#meetingOverlay .room-side .zoom-participant-search[hidden]{display:none !important;}
+#meetingOverlay #waitingQueueSection[hidden]{display:none !important;}
+#meetingOverlay .room-side-head{
+  min-height:48px !important;
+  padding:8px 10px !important;
+  cursor:default !important;
+}
+#meetingOverlay .room-side-head strong{
+  font-size:15px !important;
+  line-height:1.2 !important;
+}
+#meetingOverlay .room-side-head small{
+  font-size:10px !important;
+  line-height:1.2 !important;
+}
+#meetingOverlay .zoom-participant-layout-button,
+#meetingOverlay .room-side-head button{
+  cursor:pointer !important;
+}
+#meetingOverlay #participantRoster{
+  overflow:auto !important;
+  min-height:0 !important;
+}
+#meetingOverlay .ds-modern-participant-row{
+  min-height:56px !important;
+  padding:9px 10px !important;
+  gap:9px !important;
+}
+#meetingOverlay .ds-modern-participant-row .person-copy{
+  min-width:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:5px !important;
+  flex-wrap:nowrap !important;
+}
+#meetingOverlay .ds-modern-participant-row .person-copy strong{
+  min-width:0 !important;
+  max-width:100% !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  font-size:13.5px !important;
+  line-height:1.25 !important;
+}
+#meetingOverlay .ds-modern-participant-row .person-copy small,
+#meetingOverlay .ds-modern-participant-row .ds-role-chip{
+  display:none !important;
+}
+#meetingOverlay .ds-adaptive-role{
+  display:inline !important;
+  flex:none !important;
+  color:rgba(236,241,247,.72) !important;
+  font-size:10.5px !important;
+  font-weight:500 !important;
+  white-space:nowrap !important;
+}
+#meetingOverlay .ds-adaptive-role[hidden]{display:none !important;}
+#meetingOverlay .zoom-participant-footer{
+  min-height:56px !important;
+  padding:8px 10px !important;
+  gap:8px !important;
+}
+#meetingOverlay .zoom-participant-footer button{
+  height:34px !important;
+  min-width:0 !important;
+  border-radius:9px !important;
+}
+
+/* ---------- Chat: dock only when the meeting has room; float when compact ---------- */
+#meetingOverlay #meetingChatPanel{
+  z-index:142 !important;
+  box-sizing:border-box !important;
+  min-width:290px !important;
+  max-width:360px !important;
+  border-radius:11px !important;
+  overflow:hidden !important;
+  box-shadow:0 15px 42px rgba(0,0,0,.30) !important;
+}
+#meetingOverlay.ds-chat-docked #meetingChatPanel{
+  width:340px !important;
+  border-radius:8px !important;
+  box-shadow:0 8px 24px rgba(0,0,0,.22) !important;
+}
+#meetingOverlay.ds-chat-floating #meetingChatPanel{
+  width:min(360px,calc(100% - 24px)) !important;
+  box-shadow:0 18px 46px rgba(0,0,0,.42) !important;
+}
+#meetingChatPanel > header{
+  min-height:50px !important;
+  padding:8px 10px !important;
+}
+#meetingChatPanel > header strong{
+  font-size:16px !important;
+  line-height:1.2 !important;
+}
+#meetingChatPanel .ds-adaptive-chat-nav{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  min-height:50px !important;
+  padding:8px 10px !important;
+  border-bottom:1px solid rgba(255,255,255,.10) !important;
+}
+#meetingChatPanel .ds-adaptive-chat-nav button{
+  min-width:70px !important;
+  height:34px !important;
+  padding:0 10px !important;
+  border-radius:8px !important;
+  background:transparent !important;
+  color:#edf2f7 !important;
+  border:1px solid transparent !important;
+  cursor:pointer !important;
+}
+#meetingChatPanel .ds-adaptive-chat-nav button.active{
+  border-color:#2d8cff !important;
+  background:rgba(45,140,255,.12) !important;
+}
+#meetingChatPanel .meeting-chat-recipient{
+  padding:7px 10px !important;
+}
+#meetingChatPanel .meeting-chat-messages{
+  min-height:0 !important;
+}
+#meetingChatPanel .ds-chat-privacy{
+  min-height:28px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  font-size:10px !important;
+  color:rgba(233,239,246,.66) !important;
+  border-top:1px solid rgba(255,255,255,.08) !important;
+}
+#meetingChatPanel .meeting-chat-form{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 36px !important;
+  gap:7px !important;
+  padding:8px 10px 10px !important;
+  align-items:end !important;
+}
+#meetingChatPanel .meeting-chat-form textarea{
+  width:100% !important;
+  min-width:0 !important;
+  min-height:44px !important;
+  max-height:110px !important;
+  resize:none !important;
+  box-sizing:border-box !important;
+  font-size:13.5px !important;
+  line-height:1.35 !important;
+}
+#meetingChatPanel .meeting-chat-form button[type="submit"]{
+  width:36px !important;
+  min-width:36px !important;
+  height:36px !important;
+  padding:0 !important;
+  border-radius:9px !important;
+  font-size:15px !important;
+  cursor:pointer !important;
+}
+
+/* ---------- Floating video panel: normal pointer, no grip-hand semantics ---------- */
+#participantVideoDock,
+#participantVideoDock .participant-video-dock-head{
+  cursor:default !important;
+}
+#participantVideoDock .dock-grip{display:none !important;}
+#participantVideoDock button,
+#participantVideoDock .participant-video-resize{cursor:pointer !important;}

@@ -66,10 +66,10 @@ try{
   assert.ok(participantRow.moreWidth>=30,'Participant ellipsis target is too small.');
   await evaluate(`document.querySelector('#roomParticipants').click()`);
 
-  // Chat must be readable and its More action must be clickable.
+  // Chat must stay compact like the supplied Zoom reference while retaining readable typography and a clickable More action.
   await evaluate(`document.querySelector('#roomChat').click()`);await waitFor("!document.querySelector('#meetingChatPanel').hidden",'Chat panel');
-  const chat=await evaluate(`(()=>{window.DominionZoomProductionPolish.sync();const p=document.querySelector('#meetingChatPanel'),more=p.querySelector('.zoom-chat-more'),input=document.querySelector('#meetingChatInput');return {width:p.getBoundingClientRect().width,head:parseFloat(getComputedStyle(p.querySelector('header strong')).fontSize),input:parseFloat(getComputedStyle(input).fontSize),more:Boolean(more&&getComputedStyle(more).display!=='none')};})()`);
-  assert.ok(chat.width>=390&&chat.head>=15.5&&chat.input>=13.5,'Chat is not at the approved readable panel scale.');
+  const chat=await evaluate(`(()=>{window.DominionZoomProductionPolish.sync();window.DominionZoomAdaptiveParity?.syncChat?.();const p=document.querySelector('#meetingChatPanel'),more=p.querySelector('.zoom-chat-more'),input=document.querySelector('#meetingChatInput');return {width:p.getBoundingClientRect().width,head:parseFloat(getComputedStyle(p.querySelector('header strong')).fontSize),input:parseFloat(getComputedStyle(input).fontSize),more:Boolean(more&&getComputedStyle(more).display!=='none')};})()`);
+  assert.ok(chat.width>=290&&chat.width<=360&&chat.head>=15.5&&chat.input>=13.5,'Chat is not at the approved compact readable panel scale.');
   assert.equal(chat.more,true,'Chat options ellipsis is missing.');
   await evaluate(`document.querySelector('#roomChat').click()`);
 
@@ -89,11 +89,11 @@ try{
   const settingsType=await evaluate(`(()=>{const host=document.createElement('div');host.style.position='fixed';host.style.left='-9999px';host.innerHTML='<div class="settings-modal"><form><div class="av-detail-head"><div><h3>Video</h3><p>Camera description</p></div></div><label class="av-toggle-row">Mirror my video</label><div class="av-quick-menu"><button>Audio & Video Settings</button></div></form></div>';document.body.append(host);const out={copy:parseFloat(getComputedStyle(host.querySelector('.av-detail-head p')).fontSize),toggle:parseFloat(getComputedStyle(host.querySelector('.av-toggle-row')).fontSize),quick:parseFloat(getComputedStyle(host.querySelector('.av-quick-menu button')).fontSize)};host.remove();return out;})()`);
   assert.ok(settingsType.copy>=12&&settingsType.toggle>=12.5&&settingsType.quick>=12.5,'A/V settings typography is still below readable production scale.');
 
-  // Screen Share button must be owned by the real-source authority, not the old permission-only bubble path.
+  // Screen Share button must remain wired to the physical authority; 2.0.21 delegates that authority to native-first share integration.
   const shareAuthority=await evaluate(`(()=>{const b=document.querySelector('#roomShare');return {bound:b?.dataset.dsPhysicalShareAuthority||'',api:Boolean(window.DominionZoomPhysicalAcceptance?.openSmartSharePicker),presenter:Boolean(String(document.documentElement.innerHTML).length)};})()`);
-  assert.equal(shareAuthority.bound,'1','Share Screen button is not owned by the physical real-source authority.');assert.equal(shareAuthority.api,true,'Real-source share picker API is missing.');
+  assert.equal(shareAuthority.bound,'1','Share Screen button is not owned by the physical share authority.');assert.equal(shareAuthority.api,true,'Physical share API is missing.');
 
   await sleep(100);assert.deepEqual(runtimeErrors,[],'Physical acceptance emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_ACCEPTANCE_OK view-click host-tools-click more-click participant-media participant-ellipsis modern-chat reactions-clickable reaction-six-seconds settings-readable share-real-source-authority no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_ACCEPTANCE_OK view-click host-tools-click more-click participant-media participant-ellipsis compact-readable-chat reactions-clickable reaction-six-seconds settings-readable share-native-first-authority no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('physical acceptance shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);

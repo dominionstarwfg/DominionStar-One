@@ -5,9 +5,18 @@
 
   let physicalStyle=document.querySelector('link[data-ds-physical-mac-repair]');
   if(!physicalStyle){physicalStyle=document.createElement('link');physicalStyle.rel='stylesheet';physicalStyle.href='./physical-mac-repair.css';physicalStyle.dataset.dsPhysicalMacRepair='1';document.head.append(physicalStyle);}
+  let adaptiveStyle=document.querySelector('link[data-ds-zoom-adaptive-parity]');
+  if(!adaptiveStyle){adaptiveStyle=document.createElement('link');adaptiveStyle.rel='stylesheet';adaptiveStyle.href='./zoom-adaptive-parity.css';adaptiveStyle.dataset.dsZoomAdaptiveParity='1';document.head.append(adaptiveStyle);}
+
+  const loadAdaptiveParity=()=>{
+    if(document.querySelector('script[data-ds-zoom-adaptive-parity]'))return;
+    const script=document.createElement('script');script.src='./zoom-adaptive-parity.js';script.dataset.dsZoomAdaptiveParity='1';document.head.append(script);
+  };
   const loadPhysicalRepair=()=>{
-    if(document.querySelector('script[data-ds-physical-mac-repair]'))return;
-    const script=document.createElement('script');script.src='./physical-mac-repair.js';script.dataset.dsPhysicalMacRepair='1';document.head.append(script);
+    if(!document.querySelector('script[data-ds-physical-mac-repair]')){
+      const script=document.createElement('script');script.src='./physical-mac-repair.js';script.dataset.dsPhysicalMacRepair='1';script.onload=loadAdaptiveParity;document.head.append(script);return;
+    }
+    loadAdaptiveParity();
   };
 
   if(!document.querySelector('script[data-ds-video-effects]')){const script=document.createElement('script');script.src='./video-effects.js';script.dataset.dsVideoEffects='1';document.head.append(script);}
@@ -17,9 +26,9 @@
   if(!document.querySelector('script[data-ds-zoom-reaction-parity]')){const script=document.createElement('script');script.src='./zoom-reaction-parity.js';script.dataset.dsZoomReactionParity='1';document.head.append(script);}
   if(!document.querySelector('script[data-ds-zoom-contract-bridge]')){const script=document.createElement('script');script.src='./zoom-contract-bridge.js';script.dataset.dsZoomContractBridge='1';document.head.append(script);}
 
-  // The physical-Mac controller must never become ready before its last-authority
-  // stylesheet is active. This removes first-frame races where legacy reaction or
-  // settings rules can win briefly in the packaged renderer.
+  // Physical-Mac repair remains ahead of the adaptive 2.0.21 authority. The
+  // final adaptive stylesheet is already present, and its controller loads only
+  // after the physical repair controller has initialized.
   if(physicalStyle.sheet)loadPhysicalRepair();
   else{
     physicalStyle.addEventListener('load',loadPhysicalRepair,{once:true});

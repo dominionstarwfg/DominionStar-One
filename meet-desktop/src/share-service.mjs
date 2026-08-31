@@ -9,14 +9,15 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let mainMinimizeHandler=null;
   let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
 
+  const macVersion=platform==='darwin'&&typeof process.getSystemVersion==='function'?String(process.getSystemVersion()||''):'';
+  const macMajor=Number.parseInt(macVersion.split('.')[0]||'0',10)||0;
+  const nativeSystemPicker=platform==='darwin'&&macMajor>=15;
+
   const authority=createShareSourceAuthority({
     timeoutMs:4500,
     enumerateSources:async options=>{
       const includeDominionStar=Boolean(options?.includeDominionStar);
       const kind=String(options?.kind||'screen')==='window'?'window':'screen';
-      // Physical-Mac rule: enumerate one source class at a time. Asking
-      // ScreenCaptureKit for every screen + every application window + icons
-      // on the first click is unnecessarily expensive and can stall Electron.
       const sources=await desktopCapturer.getSources({
         types:[kind],
         thumbnailSize:{width:256,height:144},
@@ -146,7 +147,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   }
 
   function openPicker(){
-    if(pickerWindow&&!pickerWindow.isDestroyed()){pickerWindow.show();pickerWindow.focus();return {opened:true,reused:true};}
+    if(pickerWindow&&!pickerWindow.isDestroyed()){pickerWindow.show();pickerWindow.focus();return {opened:true,reused:true,nativeSystemPicker:false};}
     pickerWindow=new BrowserWindow({width:940,height:650,minWidth:760,minHeight:520,show:false,backgroundColor:'#101214',title:'Choose what to share',resizable:true,fullscreenable:false,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
     positionNearMain(pickerWindow,940,650);
     pickerWindow.removeMenu?.();
@@ -154,7 +155,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     pickerWindow.once('ready-to-show',()=>{pickerWindow?.show();pickerWindow?.focus();});
     void pickerWindow.loadFile(path.join(uiDir,'share-picker.html'));
     pickerWindow.on('closed',()=>{pickerWindow=null;});
-    return {opened:true,reused:false};
+    return {opened:true,reused:false,nativeSystemPicker:false};
   }
 
   function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed())pickerWindow.close();pickerWindow=null;}
@@ -178,6 +179,10 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function closeToolbar(){if(toolbarWindow&&!toolbarWindow.isDestroyed())toolbarWindow.close();toolbarWindow=null;}
   const sendMain=(channel,payload)=>{const main=getMainWindow?.();if(main&&!main.isDestroyed())main.webContents.send(channel,payload);};
 
+  // On macOS 15+ let Chromium/Electron hand getDisplayMedia directly to
+  // Apple's system content-sharing picker. Electron does not invoke this
+  // callback when the native picker is available. On older systems this
+  // handler remains the audited custom-picker fallback.
   desktopSession.setDisplayMediaRequestHandler((_request,callback)=>{
     const selection=pendingSelection;
     pendingSelection=null;
@@ -185,17 +190,19 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const response={video:selection.source};
     if(selection.options?.shareAudio&&(platform==='win32'||platform==='darwin'))response.audio='loopback';
     callback(response);
-  },{useSystemPicker:false});
+  },{useSystemPicker:nativeSystemPicker});
 
   ipcMain.handle('share:open-picker',async()=>{
+    // Native macOS selection must be initiated by navigator.getDisplayMedia().
+    // Do not pre-enumerate sources or gate it on stale TCC state; either action
+    // can prevent the system picker from owning the permission/selection flow.
+    if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'};
     if(platform==='darwin'&&typeof ensureScreenPermission==='function'){
       const permission=await ensureScreenPermission();
       if(!permission?.ok){
-        // Do not open System Settings automatically and do not run native source
-        // discovery here. Return immediately so the meeting process never
-        // appears frozen. The UI can offer the explicit permission action.
         return {
           opened:false,
+          nativeSystemPicker:false,
           permissionRequired:true,
           status:String(permission?.status||'unknown'),
           restartRequired:Boolean(permission?.restartRequired),
@@ -254,5 +261,5 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     return {ok:true};
   });
 
-  return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority});
+  return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority,nativeSystemPicker});
 }
