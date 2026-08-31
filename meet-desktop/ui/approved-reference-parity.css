@@ -77,6 +77,21 @@
 #meetingOverlay #roomRaiseHand .ds-control-label{
   white-space:nowrap !important;
 }
+/* Legacy hand-state code may try to rename Reactions to Lower Hand. Keep the
+   approved dedicated separation visually deterministic. */
+#meetingOverlay #roomReactions .ds-control-label{
+  font-size:0 !important;
+}
+#meetingOverlay #roomReactions .ds-control-label::after{
+  content:'React' !important;
+  font-size:12px !important;
+  line-height:1.1 !important;
+  color:inherit !important;
+}
+#meetingOverlay #roomReactions.hand-raised .ds-control-icon,
+#meetingOverlay #roomReactions.hand-raised .ds-control-label{
+  color:inherit !important;
+}
 
 /* The dedicated toolbar control is the only hand-control surface in 2.0.22. */
 .meeting-reaction-menu .reaction-hand-button,
