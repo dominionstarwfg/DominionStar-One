@@ -8,7 +8,9 @@
   const htmlDescriptor=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
   let frame=0;
   let meetingObserver=null;
+  let sideObserver=null;
   let observedMeeting=null;
+  let observedSideKey='';
   let dockBound=null;
   let dockDrag=null;
   let physicalPrimed=false;
@@ -34,8 +36,6 @@
   }
 
   function installSnapshotDomGuards(){
-    // app.js may poll network state, but identical participant/waiting snapshots
-    // must not destroy and rebuild the same DOM every cycle.
     guardSnapshotHtml(q('#participantRoster'));
     guardSnapshotHtml(q('#waitingQueue'));
   }
@@ -48,11 +48,6 @@
   }
 
   function retireBackgroundReconcilers(){
-    // Controllers remain callable after dispose. Their broad observers/timers
-    // are retired and this runtime invokes structural sync only from concrete
-    // meeting events. PhysicalAcceptance is included because its roster subtree
-    // observer used to rewrite the same subtree it observed, creating a
-    // self-triggering render loop on a real Mac.
     for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])disposeLoop(name);
   }
 
@@ -60,9 +55,6 @@
     if(physicalPrimed||!meetingOpen())return;
     const controller=window.DominionZoomPhysicalAcceptance;if(!controller)return;
     physicalPrimed=true;
-    // Install its one-time control handlers now that the meeting exists, then
-    // immediately disconnect the observer/timer/subscriptions it creates. The
-    // installed click handlers remain; ongoing rendering is event-driven here.
     try{controller.sync?.();}catch(error){console.warn('[DominionStar Meet] Physical control priming failed.',error);}
     try{controller.dispose?.();}catch(error){console.warn('[DominionStar Meet] Physical background retirement failed.',error);}
   }
@@ -211,7 +203,7 @@
       if(event.button!==0||event.target.closest?.('button,input,select,textarea,.participant-video-resize'))return;
       const stage=q('.stage');if(!stage||dock.hidden)return;
       const dr=dock.getBoundingClientRect(),sr=stage.getBoundingClientRect();
-      dockDrag={id:event.pointerId,dx:event.clientX-dr.left,dy:event.clientY-dr.top,stageLeft:sr.left,stageTop:sr.top};
+      dockDrag={id:event.pointerId,dx:event.clientX-dr.left,dy:event.clientY-dr.top};
       dock.setPointerCapture?.(event.pointerId);dock.classList.add('user-positioned','dragging');dock.style.right='auto';dock.style.bottom='auto';event.preventDefault();
     },true);
     dock.addEventListener('pointermove',event=>{
@@ -225,7 +217,7 @@
   }
 
   function syncNow(){
-    frame=0;installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();
+    frame=0;installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();
     if(!meetingOpen())return;
     primePhysicalControls();
     window.DominionZoomProductionPolish?.sync?.();
@@ -241,6 +233,15 @@
     meetingObserver?.disconnect();observedMeeting=overlay;
     meetingObserver=new MutationObserver(()=>schedule());
     meetingObserver.observe(overlay,{attributes:true,attributeFilter:['hidden']});
+  }
+
+  function observeSideVisibility(){
+    const side=q('.room-side'),chat=q('#meetingChatPanel');
+    const key=`${side?'p':'-'}${chat?'c':'-'}`;if(key===observedSideKey)return;
+    sideObserver?.disconnect();observedSideKey=key;if(!side&&!chat)return;
+    sideObserver=new MutationObserver(()=>schedule());
+    if(side)sideObserver.observe(side,{attributes:true,attributeFilter:['hidden']});
+    if(chat)sideObserver.observe(chat,{attributes:true,attributeFilter:['hidden']});
   }
 
   document.addEventListener('click',event=>{
@@ -263,13 +264,13 @@
   },true);
 
   window.addEventListener('resize',schedule,{passive:true});
-  window.addEventListener('dominion:meeting-ui-ready',()=>{observeMeetingVisibility();installSnapshotDomGuards();schedule();setTimeout(schedule,80);});
+  window.addEventListener('dominion:meeting-ui-ready',()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(schedule,80);});
   window.addEventListener('dominion:meeting-snapshot',schedule);
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
   window.addEventListener('dominion:meeting-ended',()=>{physicalPrimed=false;schedule();});
 
-  observeMeetingVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
+  observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
   window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,layoutSideSurface,syncParticipantsSurface,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
