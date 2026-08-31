@@ -87,8 +87,19 @@
       if(raised&&!badge){badge=document.createElement('span');badge.className='remote-raised-hand';badge.textContent='✋';badge.title='Hand raised';tile.append(badge);}
       if(!raised)badge?.remove();
     }
-    const button=q('#roomReactions');button?.classList.toggle('hand-raised',state.localHandRaised);
-    if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent=state.localHandRaised?'Lower Hand':'Reactions';}
+    const button=q('#roomReactions'),dedicatedHand=q('#roomRaiseHand');
+    if(button){
+      if(dedicatedHand){
+        // 2.0.22 has a separate real Raise hand control. Once that authority is
+        // mounted, Reactions owns reactions only and must never be renamed or
+        // repurposed by this legacy hand-state decorator. This removes the
+        // 600ms/1200ms label fight that physically shifted the toolbar.
+        button.classList.remove('hand-raised');
+      }else{
+        button.classList.toggle('hand-raised',state.localHandRaised);
+        const label=button.querySelector('.ds-control-label');if(label)label.textContent=state.localHandRaised?'Lower Hand':'Reactions';
+      }
+    }
   }
   async function setLocalHand(raised,{broadcastChange=true}={}){
     state.localHandRaised=Boolean(raised);const me=await localParticipant();
@@ -237,7 +248,7 @@
 
   function setVideoLayout(mode){const dock=q('#participantVideoDock');if(!dock)return;dock.classList.remove('layout-speaker');if(mode==='hide'){dock.hidden=true;return;}dock.hidden=false;if(mode==='speaker')dock.classList.add('layout-speaker');window.DominionMeetingParity?.syncVideoDock?.();}
 
-  function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='recording-state'){handleRecordingState(detail);return;}if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false,private:Boolean(payload.private),toName:payload.private?'You':''});}else if(detail.type==='reaction'){if(payload.kind==='hand'){const id=String(detail.fromParticipantId||payload.participantId||''),raised=Boolean(payload.raised);if(id){if(raised)state.raisedHands.set(id,{name:String(payload.name||detail.fromDisplayName||'Participant'),at:Date.now()});else state.raisedHands.delete(id);decorateRaisedHands();}return;}const emoji=String(payload.emoji||'');if(reactions.includes(emoji)){const id=String(detail.fromParticipantId||payload.participantId||'');const name=String(payload.name||detail.fromDisplayName||'Participant');if(id)setParticipantReaction(id,emoji,name);showReaction(emoji,name);}}}
+  function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='recording-state'){handleRecordingState(detail);return;}if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false,private:Boolean(payload.private),toName:payload.private?'You':''});}else if(detail.type==='reaction'){if(payload.kind==='hand'){const id=String(detail.fromParticipantId||payload.participantId||''),raised=Boolean(payload.raised);if(id){if(raised)state.raisedHands.set(id,{name:String(payload.name||detail.fromDisplayName||'Participant'),at:Date.now()});else state.raisedHands.delete(id);decorateRaisedHands();}return;}const emoji=String(payload.emoji||'');if(reactions.includes(emoji)){const id=String(detail.fromParticipantId||payload.participantId||''),name=String(payload.name||detail.fromDisplayName||'Participant');if(id)setParticipantReaction(id,emoji,name);showReaction(emoji,name);}}}
   window.addEventListener('dominion:meeting-signal',handleSignal);
   window.addEventListener('dominion:meeting-snapshot',event=>{
     state.meetingSnapshot=event.detail||null;void window.DominionZoomBehavior?.refreshChatRecipients?.();
