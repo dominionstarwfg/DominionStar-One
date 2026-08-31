@@ -22,11 +22,12 @@
   }
 
   function retireBackgroundReconcilers(){
-    // These controllers remain callable. Only their broad MutationObservers and
-    // periodic timers are retired; the runtime below calls them from concrete
-    // meeting events instead. This prevents clicks from waiting behind a queue
-    // of layout reconciliation work.
-    for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior'])disposeLoop(name);
+    // Controllers remain callable after dispose. Their broad observers/timers
+    // are retired and this runtime invokes structural sync only from concrete
+    // meeting events. PhysicalAcceptance is included because its roster subtree
+    // observer used to rewrite the same subtree it observed, creating a
+    // self-triggering render loop on a real Mac.
+    for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])disposeLoop(name);
   }
 
   function ensureViewport(){
@@ -78,6 +79,8 @@
     const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<7;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
     sortParticipants();
+    // Functional methods remain usable after the background observer/timer is
+    // disposed. Decorate once per real snapshot/frame, never recursively.
     window.DominionZoomPhysicalAcceptance?.decorateParticipantRows?.();
   }
 
