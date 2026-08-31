@@ -4,8 +4,11 @@
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const raisedAt=new Map();
+  const VIDEO_DOCK_GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1';
   let syncing=false;
   let timer=0;
+  let videoDockDrag=null;
+  let videoDockBound=null;
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -134,6 +137,46 @@
     if(wide)stage.style.setProperty('margin-right','356px','important');else stage.style.removeProperty('margin-right');
   }
 
+  function saveVideoDockGeometry(dock,stage){
+    try{
+      const dr=dock.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+      localStorage.setItem(VIDEO_DOCK_GEOMETRY_KEY,JSON.stringify({left:dr.left-sr.left,top:dr.top-sr.top,width:dr.width,height:dr.height,anchor:dock.dataset.anchor||'right',resized:dock.classList.contains('user-resized')}));
+    }catch{}
+  }
+  function nearestVideoDockAnchor(dock,stage){
+    const dr=dock.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+    const distances={left:dr.left-sr.left,right:sr.right-dr.right,top:dr.top-sr.top,bottom:sr.bottom-dr.bottom};
+    return Object.entries(distances).sort((a,b)=>a[1]-b[1])[0]?.[0]||'right';
+  }
+  function startVideoDockDrag(event){
+    if(event.button!==0||event.target.closest?.('button,.participant-video-resize,a,input,select,textarea'))return;
+    const dock=event.currentTarget,stage=q('.stage');if(!dock||!stage)return;
+    const dr=dock.getBoundingClientRect();
+    videoDockDrag={id:event.pointerId,dx:event.clientX-dr.left,dy:event.clientY-dr.top};
+    event.stopImmediatePropagation();event.preventDefault();
+    dock.setPointerCapture?.(event.pointerId);dock.classList.add('user-positioned','dragging');dock.style.right='auto';dock.style.bottom='auto';
+  }
+  function moveVideoDockDrag(event){
+    if(!videoDockDrag||event.pointerId!==videoDockDrag.id)return;
+    const dock=event.currentTarget,stage=q('.stage');if(!dock||!stage)return;
+    const sr=stage.getBoundingClientRect();
+    dock.style.left=`${clamp(event.clientX-sr.left-videoDockDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8))}px`;
+    dock.style.top=`${clamp(event.clientY-sr.top-videoDockDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8))}px`;
+    event.stopImmediatePropagation();
+  }
+  function endVideoDockDrag(event){
+    if(!videoDockDrag||(event?.pointerId!=null&&event.pointerId!==videoDockDrag.id))return;
+    const dock=event.currentTarget,stage=q('.stage');videoDockDrag=null;
+    if(dock&&stage){dock.classList.remove('dragging');dock.dataset.anchor=nearestVideoDockAnchor(dock,stage);saveVideoDockGeometry(dock,stage);window.DominionMeetingParity?.syncVideoDock?.();}
+    event?.stopImmediatePropagation?.();
+  }
+  function installVideoDockDrag(){
+    const dock=q('#participantVideoDock');if(!dock||dock===videoDockBound)return;
+    if(videoDockBound){videoDockBound.removeEventListener('pointerdown',startVideoDockDrag,true);videoDockBound.removeEventListener('pointermove',moveVideoDockDrag,true);videoDockBound.removeEventListener('pointerup',endVideoDockDrag,true);videoDockBound.removeEventListener('pointercancel',endVideoDockDrag,true);}
+    videoDockBound=dock;dock.dataset.dsAdaptiveWholePanelDrag='1';
+    dock.addEventListener('pointerdown',startVideoDockDrag,true);dock.addEventListener('pointermove',moveVideoDockDrag,true);dock.addEventListener('pointerup',endVideoDockDrag,true);dock.addEventListener('pointercancel',endVideoDockDrag,true);
+  }
+
   function ensurePrejoinChrome(win){
     const preview=win?.querySelector('.preview-frame');if(!win||!preview)return;
     if(!preview.querySelector('[data-ds-prejoin-backgrounds]')){
@@ -156,7 +199,7 @@
 
   function sync(){
     if(syncing)return;syncing=true;
-    try{syncPrejoin();if(meetingOpen()){syncParticipants();syncChat();}}
+    try{syncPrejoin();if(meetingOpen()){syncParticipants();syncChat();installVideoDockDrag();}}
     finally{syncing=false;}
   }
 
@@ -171,5 +214,5 @@
   const observer=new MutationObserver(()=>requestAnimationFrame(sync));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','data-raised-hand']});
   timer=setInterval(sync,650);sync();
 
-  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncParticipants,syncChat,syncPrejoin,dispose:()=>{clearInterval(timer);observer.disconnect();}});
+  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncParticipants,syncChat,syncPrejoin,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(videoDockBound){videoDockBound.removeEventListener('pointerdown',startVideoDockDrag,true);videoDockBound.removeEventListener('pointermove',moveVideoDockDrag,true);videoDockBound.removeEventListener('pointerup',endVideoDockDrag,true);videoDockBound.removeEventListener('pointercancel',endVideoDockDrag,true);}}});
 })();
