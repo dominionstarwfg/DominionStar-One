@@ -40,9 +40,9 @@ try{
 
   await evaluate(`document.querySelector('#meetingViewButton').click()`);await waitFor("document.querySelector('.view-menu')",'View menu');
   const viewModes=await evaluate(`(()=>[...document.querySelectorAll('.view-menu button')].map(button=>String(button.textContent||'').replace(/^✓\s*/,'')))()`);
-  assert.ok(viewModes.some(label=>/^Speaker$/i.test(label)),'View menu must expose Speaker.');
-  assert.ok(viewModes.some(label=>/^Gallery$/i.test(label)),'View menu must expose Gallery.');
-  assert.ok(viewModes.some(label=>/^Multi-speaker$/i.test(label)),'View menu must expose Multi-speaker.');
+  assert.ok(viewModes.some(label=>/(?:^|:\s*)Speaker$/i.test(label)),`View menu must expose Speaker or Side-by-side: Speaker. Found ${JSON.stringify(viewModes)}`);
+  assert.ok(viewModes.some(label=>/(?:^|:\s*)Gallery$/i.test(label)),`View menu must expose Gallery or Side-by-side: Gallery. Found ${JSON.stringify(viewModes)}`);
+  assert.ok(viewModes.some(label=>/(?:^|:\s*)Multi-speaker$/i.test(label)),`View menu must expose Multi-speaker or Side-by-side: Multi-speaker. Found ${JSON.stringify(viewModes)}`);
   await evaluate(`document.body.click()`);await sleep(30);
 
   // ---------- Host toolbar order / dedicated Raise hand ----------
@@ -91,6 +91,6 @@ try{
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption host-toolbar-order host-tools dedicated-raise-hand real-react-label reactions-only clean-chat direct-messages no-formatting floating-filmstrip active-speaker whole-panel-drag no-grip no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes-share-aware truthful-encryption host-toolbar-order host-tools dedicated-raise-hand real-react-label reactions-only clean-chat direct-messages no-formatting floating-filmstrip active-speaker whole-panel-drag no-grip no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
