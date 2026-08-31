@@ -1,7 +1,8 @@
-/* Low-cost motion authority. Transform/opacity only where possible so live media stays responsive. */
+/* Low-cost motion authority. Keep visual motion independent from the geometry
+   transform reset used to neutralize legacy floating-panel positioning. */
 #meetingOverlay .stage{transition:right .14s cubic-bezier(.2,.75,.25,1)!important}
 #meetingOverlay .room-side:not([hidden]),#meetingOverlay #meetingChatPanel:not([hidden]){animation:dsRuntimePanelIn .14s cubic-bezier(.2,.75,.25,1) both}
-@keyframes dsRuntimePanelIn{from{opacity:.72;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes dsRuntimePanelIn{from{opacity:.72;translate:10px 0}to{opacity:1;translate:0 0}}
 #meetingOverlay .meeting-control{transition:background-color .1s ease,border-color .1s ease,transform .08s ease,opacity .1s ease}
 #meetingOverlay .meeting-control:active{transform:scale(.97)}
 #roomShare.ds-share-checking{cursor:progress;opacity:.84}
