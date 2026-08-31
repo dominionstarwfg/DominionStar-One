@@ -67,11 +67,13 @@ assert.ok(layoutFix.includes('display:block!important'),'Final meeting body must
 assert.ok(layoutFix.includes('grid-template-columns:none!important'),'Permanent 330px participant grid column must be removed.');
 assert.ok(layoutFix.includes('grid-column:auto!important')&&layoutFix.includes('grid-row:auto!important'),'Stage must not remain pinned to a legacy grid cell.');
 
-// Motion must remain short and compositor-friendly. Do not trade responsiveness
-// for decorative animation on a live media renderer.
+// Motion must remain short and compositor-friendly. Panel movement uses the
+// individual `translate` property so it cannot fight the runtime's intentional
+// transform:none geometry reset.
 assert.ok(motion.includes('transition:right .14s'),'Stage resize must use a short transition rather than snap.');
 assert.ok(motion.includes('@keyframes dsRuntimePanelIn'),'Participants/Chat must use a short entrance transition.');
-assert.ok(motion.includes('transform:translateX')&&motion.includes('opacity:'),'Panel entrance should use transform/opacity rather than expensive layout animation.');
+assert.ok(motion.includes('translate:10px 0')&&motion.includes('translate:0 0')&&motion.includes('opacity:'),'Panel entrance should use independent translate/opacity rather than the geometry transform property.');
+assert.ok(!motion.includes('dsRuntimePanelIn{from{opacity:.72;transform:'),'Panel motion must not compete with the final transform geometry authority.');
 assert.ok(motion.includes('.meeting-control:active{transform:scale(.97)}'),'Controls must provide immediate tactile click feedback.');
 assert.ok(motion.includes('@media(prefers-reduced-motion:reduce)'),'Motion must respect reduced-motion preferences.');
 
@@ -109,4 +111,4 @@ assert.ok(!bridge.includes("observer.observe(document.body,{childList:true,subtr
 // blocked at the roster/queue boundary and cannot become a periodic redraw.
 assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
-console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority synchronous-click-geometry full-window legacy-grid-removed smooth-low-cost-motion responsive-stage physical-loop-isolated permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
+console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
