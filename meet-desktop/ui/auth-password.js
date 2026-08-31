@@ -11,7 +11,8 @@
   if(!approvedStyle){approvedStyle=document.createElement('link');approvedStyle.rel='stylesheet';approvedStyle.href='./approved-reference-parity.css';approvedStyle.dataset.dsApprovedReferenceParity='1';document.head.append(approvedStyle);}
   let runtimeStyle=document.querySelector('link[data-ds-runtime-stability]');
   if(!runtimeStyle){runtimeStyle=document.createElement('link');runtimeStyle.rel='stylesheet';runtimeStyle.href='./runtime-stability.css';runtimeStyle.dataset.dsRuntimeStability='1';document.head.append(runtimeStyle);}
-  if(!document.querySelector('link[data-ds-runtime-motion]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./runtime-motion.css';link.dataset.dsRuntimeMotion='1';document.head.append(link);}
+  let runtimeLayoutStyle=document.querySelector('link[data-ds-runtime-layout-fix]');
+  if(!runtimeLayoutStyle){runtimeLayoutStyle=document.createElement('link');runtimeLayoutStyle.rel='stylesheet';runtimeLayoutStyle.href='./runtime-layout-fix.css';runtimeLayoutStyle.dataset.dsRuntimeLayoutFix='1';document.head.append(runtimeLayoutStyle);}
 
   const loadRuntimeStability=()=>{
     if(document.querySelector('script[data-ds-runtime-stability]'))return;
@@ -42,8 +43,8 @@
   if(!document.querySelector('script[data-ds-zoom-contract-bridge]')){const script=document.createElement('script');script.src='./zoom-contract-bridge.js';script.dataset.dsZoomContractBridge='1';document.head.append(script);}
 
   // Physical-Mac repair remains ahead of adaptive parity. Approved-reference
-  // parity loads after adaptive parity, runtime stability owns live behavior,
-  // and runtime-motion.css is the final lightweight visual/motion authority.
+  // parity loads after adaptive parity, and runtime stability loads last so the
+  // live meeting has one event-driven geometry/click authority.
   if(physicalStyle.sheet)loadPhysicalRepair();
   else{
     physicalStyle.addEventListener('load',loadPhysicalRepair,{once:true});
