@@ -5,7 +5,6 @@
   const desktop=window.dominionDesktop||{};
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const digits=v=>String(v||'').replace(/\D/g,'');
-  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const inMeeting=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   let shareBusy=false;
   let personalBusy=false;
@@ -16,7 +15,7 @@
   let observedDock=null;
 
   function hideLegacyShareRecovery(){
-    for(const node of qa('.ds-share-permission')){
+    for(const node of qa('.ds-share-permission,.ds-219-share-recovery')){
       if(!node.hidden)node.hidden=true;
     }
   }
@@ -26,24 +25,6 @@
     catch{return 'unknown';}
   }
 
-  async function sourceProbe(kind='screen'){
-    try{
-      const result=await desktop.sharePicker?.listSources?.({kind,includeDominionStar:false});
-      const sources=Array.isArray(result?.sources)?result.sources:[];
-      return {ok:Boolean(result?.ok&&sources.length),sources,result};
-    }catch(error){return {ok:false,sources:[],result:{ok:false,error:String(error?.message||error||'source_probe_failed')}};}
-  }
-
-  async function waitForNativeDecision(maxMs=45000){
-    const started=Date.now();
-    while(Date.now()-started<maxMs){
-      const status=await screenStatus();
-      if(status!=='not-determined')return status;
-      await sleep(500);
-    }
-    return 'not-determined';
-  }
-
   function ensureRecoveryDialog(){
     if(recoveryDialog?.isConnected)return recoveryDialog;
     recoveryDialog=document.createElement('section');
@@ -51,7 +32,7 @@
     recoveryDialog.hidden=true;
     recoveryDialog.setAttribute('role','dialog');
     recoveryDialog.setAttribute('aria-modal','true');
-    recoveryDialog.innerHTML=`<div class="ds-219-share-card"><div class="ds-219-share-icon">↥</div><div class="ds-219-share-copy"><p>SCREEN SHARING</p><h3>Reauthorize this installed build</h3><span data-ds-219-share-message></span></div><div class="ds-219-share-actions"><button type="button" data-ds-219-cancel>Not now</button><button type="button" data-ds-219-reset>Reset & Reauthorize</button><button type="button" class="primary" data-ds-219-restart>Restart DominionStar Meet</button></div></div>`;
+    recoveryDialog.innerHTML=`<div class="ds-219-share-card"><div class="ds-219-share-icon">↥</div><div class="ds-219-share-copy"><p>SCREEN SHARING</p><h3>Screen sharing was blocked by macOS</h3><span data-ds-219-share-message></span></div><div class="ds-219-share-actions"><button type="button" data-ds-219-cancel>Not now</button><button type="button" data-ds-219-reset>Reset & Reauthorize</button><button type="button" class="primary" data-ds-219-restart>Restart DominionStar Meet</button></div></div>`;
     document.body.append(recoveryDialog);
     recoveryDialog.querySelector('[data-ds-219-cancel]').onclick=()=>{recoveryDialog.hidden=true;};
     recoveryDialog.querySelector('[data-ds-219-restart]').onclick=()=>void desktop.app?.relaunch?.();
@@ -61,7 +42,7 @@
         const result=await desktop.app?.resetScreenPermission?.();
         recoveryDialog.hidden=true;
         if(result?.ok===false)throw new Error(result.error||'Unable to reset Screen Recording permission.');
-        await sourceProbe('screen');
+        await desktop.media?.openPrivacy?.('screen').catch?.(()=>{});
       }catch(error){
         recoveryDialog.hidden=false;
         const message=recoveryDialog.querySelector('[data-ds-219-share-message]');
@@ -79,36 +60,25 @@
     const unstable=identity?.stableAcrossRebuilds===false;
     if(message){
       message.textContent=unstable
-        ? `macOS did not return a readable screen source for this running build (status: ${status}). This prototype is ad-hoc signed, so an ON switch left by an older DominionStar build can belong to a different privacy identity. Reset & Reauthorize clears the stale Screen Recording record for this build. After granting access, restart DominionStar Meet once.`
-        : `macOS did not return a readable screen source (status: ${status}). Reauthorize Screen Recording, then restart DominionStar Meet once so the running process can use the new grant.`;
+        ? `The native macOS screen-capture request failed for this installed build (status: ${status}). This prototype is ad-hoc signed, so a grant left by an older build may not apply to this binary. Reset & Reauthorize only after the native picker fails, then restart DominionStar Meet once.`
+        : `The native macOS screen-capture request failed (status: ${status}). Reauthorize Screen Recording, then restart DominionStar Meet once.`;
     }
     dialog.hidden=false;
   }
 
   async function openVerifiedShare(){
-    if(shareBusy||!inMeeting())return;
+    if(shareBusy||!inMeeting())return false;
     shareBusy=true;hideLegacyShareRecovery();
     try{
-      const initialStatus=await screenStatus();
-      const first=await sourceProbe('screen');
-      if(first.ok){
-        await window.DominionZoomPhysicalAcceptance?.openSmartSharePicker?.();
-        return;
-      }
-
-      if(initialStatus==='not-determined'){
-        const decided=await waitForNativeDecision();
-        if(decided==='not-determined')return;
-        if(decided==='granted'){
-          await sleep(350);
-          const retry=await sourceProbe('screen');
-          if(retry.ok){await window.DominionZoomPhysicalAcceptance?.openSmartSharePicker?.();return;}
-        }
-        await showRecovery(decided);
-        return;
-      }
-
-      await showRecovery(initialStatus);
+      // 2.0.21 rule: never enumerate screen sources as a permission probe before
+      // getDisplayMedia. The native macOS picker must receive the user gesture.
+      const integration=window.DominionShareIntegration;
+      if(!integration?.open)throw new Error('Screen-share integration is not ready.');
+      return await integration.open();
+    }catch(error){
+      const status=await screenStatus();
+      await showRecovery(status||String(error?.name||'unknown'));
+      return false;
     }finally{shareBusy=false;}
   }
 
@@ -217,5 +187,5 @@
   new MutationObserver(()=>sync()).observe(document.body,{childList:true,subtree:true});
   setInterval(sync,900);sync();
 
-  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.20',openVerifiedShare,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy});
+  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy});
 })();
