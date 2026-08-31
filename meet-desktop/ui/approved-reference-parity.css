@@ -77,16 +77,15 @@
 #meetingOverlay #roomRaiseHand .ds-control-label{
   white-space:nowrap !important;
 }
-/* Legacy hand-state code may try to rename Reactions to Lower Hand. Keep the
-   approved dedicated separation visually deterministic. */
+/* Reactions and Raise hand are separate real controls. Keep the actual React
+   label at production typography rather than painting a pseudo-label. */
 #meetingOverlay #roomReactions .ds-control-label{
-  font-size:0 !important;
-}
-#meetingOverlay #roomReactions .ds-control-label::after{
-  content:'React' !important;
   font-size:12px !important;
   line-height:1.1 !important;
-  color:inherit !important;
+  white-space:nowrap !important;
+}
+#meetingOverlay #roomReactions .ds-control-label::after{
+  content:none !important;
 }
 #meetingOverlay #roomReactions.hand-raised .ds-control-icon,
 #meetingOverlay #roomReactions.hand-raised .ds-control-label{
