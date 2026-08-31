@@ -35,9 +35,6 @@ try{
   assert.equal(viewport.overlay.x,0);assert.equal(viewport.overlay.y,0);
   assert.ok(Math.abs(viewport.shell.w-viewport.innerWidth)<=1,'Meeting shell must expand with the window.');
 
-  // Participants must respond to the click that was actually made, not to a
-  // later Chat click after the renderer catches up. Visibility is immediate;
-  // stage geometry then settles through the intentional 140 ms motion window.
   await evaluate(`document.querySelector('#roomParticipants').click()`);await sleep(45);
   const participantsImmediate=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,rightGap:Math.round(br.right-sr.right),stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||'',animation:getComputedStyle(side).animationName,stageTransition:getComputedStyle(stage).transitionDuration,reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,motionSheetLoaded:Array.from(document.styleSheets).some(sheet=>String(sheet.href||'').endsWith('/runtime-motion.css'))};})()`);
   assert.equal(participantsImmediate.participantsOpen,true,'Participants must open immediately on Participants click.');
@@ -68,9 +65,6 @@ try{
   await evaluate(`document.querySelector('#roomChat').click()`);await sleep(60);
   assert.equal(await evaluate(`document.querySelector('#meetingChatPanel').hidden===true&&document.querySelector('.room-side').hidden===true`),true,'Chat must close immediately and leave no stale side panel open.');
 
-  // Reproduce the physical click pattern that failed: repeated participants,
-  // then Chat. The last explicit action must win and must not flip later when
-  // legacy 600/650/700/900/1200 ms reconciliation intervals would have fired.
   await evaluate(`(()=>{const p=document.querySelector('#roomParticipants'),c=document.querySelector('#roomChat');p.click();p.click();p.click();c.click();return true;})()`);await sleep(90);
   let settled=await evaluate(`(()=>({p:!document.querySelector('.room-side').hidden,c:!document.querySelector('#meetingChatPanel').hidden}))()`);
   assert.deepEqual(settled,{p:false,c:true},'Rapid Participants → Chat sequence must settle to Chat immediately.');
@@ -78,12 +72,24 @@ try{
   settled=await evaluate(`(()=>({p:!document.querySelector('.room-side').hidden,c:!document.querySelector('#meetingChatPanel').hidden}))()`);
   assert.deepEqual(settled,{p:false,c:true},'Side panels changed after the interaction settled; delayed reconciliation is still active.');
 
-  // Event-loop responsiveness probe. A self-triggering MutationObserver/RAF
-  // storm prevents this short timer from completing in a reasonable window.
+  // Share routing regression: the final document-capture runtime authority must
+  // win before the legacy button-capture smart picker. Stub only the final
+  // integration endpoint; one click must produce one call and no legacy UI.
+  await waitFor("window.DominionShareIntegration&&document.querySelector('#roomShare')",'final Share integration');
+  await evaluate(`(()=>{window.__qaOriginalShareIntegration=window.DominionShareIntegration;window.__qaShareOpenCount=0;Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:Object.freeze({open:()=>{window.__qaShareOpenCount+=1;return Promise.resolve(true);}})});document.querySelector('#dsSmartSharePicker')?.remove();document.querySelector('.ds-share-permission')?.remove();document.querySelector('.ds-219-share-recovery')?.remove();return true;})()`);
+  await evaluate(`document.querySelector('#roomShare').click()`);await sleep(220);
+  const shareRoute=await evaluate(`(()=>({calls:window.__qaShareOpenCount,legacyPickerOpen:Boolean(document.querySelector('#dsSmartSharePicker')&&!document.querySelector('#dsSmartSharePicker').hidden),legacyPermissionOpen:Boolean(document.querySelector('.ds-share-permission')&&!document.querySelector('.ds-share-permission').hidden),legacyRecoveryOpen:Boolean(document.querySelector('.ds-219-share-recovery')&&!document.querySelector('.ds-219-share-recovery').hidden),checking:Boolean(document.querySelector('#roomShare')?.classList.contains('ds-share-checking'))}))()`);
+  assert.equal(shareRoute.calls,1,`Share Screen must route exactly once through the final intelligent integration. ${JSON.stringify(shareRoute)}`);
+  assert.equal(shareRoute.legacyPickerOpen,false,'Legacy smart Share picker must not open from the packaged Share button.');
+  assert.equal(shareRoute.legacyPermissionOpen,false,'Legacy physical permission surface must not open from the packaged Share button.');
+  assert.equal(shareRoute.legacyRecoveryOpen,false,'Physical compatibility recovery must not steal the normal Share click.');
+  assert.equal(shareRoute.checking,false,'Share progress state must release after the final integration settles.');
+  await evaluate(`(()=>{Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:window.__qaOriginalShareIntegration});delete window.__qaOriginalShareIntegration;delete window.__qaShareOpenCount;return true;})()`);
+
   const responsiveness=await evaluate(`new Promise(resolve=>{const started=performance.now();setTimeout(()=>resolve(Math.round(performance.now()-started)),80);})`);
   assert.ok(responsiveness<500,`Renderer event loop is still starved; 80 ms timer took ${responsiveness} ms.`);
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip responsive-event-loop right-docked-stage-resize');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip single-owner-share responsive-event-loop right-docked-stage-resize');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
