@@ -39,7 +39,7 @@ try{
   assert.match(header.securityTitle,/DTLS-SRTP/i,'Encrypted indicator must explain the actual transport security.');
 
   await evaluate(`document.querySelector('#meetingViewButton').click()`);await waitFor("document.querySelector('.view-menu')",'View menu');
-  const viewModes=await evaluate(`(()=>[...document.querySelectorAll('.view-menu button')].map(button=>String(button.textContent||'').replace(/^✓\s*/,'')))()`);
+  const viewModes=await evaluate(`(()=>[...document.querySelectorAll('.view-menu button')].map(button=>String(button.textContent||'').replace(/^✓\\s*/,'').trim()))()`);
   assert.ok(viewModes.some(label=>/(?:^|:\s*)Speaker$/i.test(label)),`View menu must expose Speaker or Side-by-side: Speaker. Found ${JSON.stringify(viewModes)}`);
   assert.ok(viewModes.some(label=>/(?:^|:\s*)Gallery$/i.test(label)),`View menu must expose Gallery or Side-by-side: Gallery. Found ${JSON.stringify(viewModes)}`);
   assert.ok(viewModes.some(label=>/(?:^|:\s*)Multi-speaker$/i.test(label)),`View menu must expose Multi-speaker or Side-by-side: Multi-speaker. Found ${JSON.stringify(viewModes)}`);
