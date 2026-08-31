@@ -177,7 +177,20 @@
     if(window.DominionMeetingFeatures?.toggleChat)window.DominionMeetingFeatures.toggleChat(Boolean(show));
     else panel.hidden=!show;
     panel.hidden=!show;button?.setAttribute('aria-pressed',String(show));
-    if(show){panel.dataset.dsRuntimePanel='chat';void window.DominionZoomBehavior?.refreshChatRecipients?.();requestAnimationFrame(()=>q('#meetingChatInput')?.focus());}
+    if(show){
+      panel.dataset.dsRuntimePanel='chat';
+      const refresh=window.DominionZoomBehavior?.refreshChatRecipients?.();
+      Promise.resolve(refresh).catch(()=>{}).finally(()=>{
+        if(!meetingOpen()||panel.hidden)return;
+        // The old production-polish timer/observer stays retired. Chat policy
+        // state is created asynchronously by refreshChatRecipients(), so run
+        // exactly one structural pass after that state exists to mount the
+        // host Chat options control, then immediately reassert final geometry.
+        try{window.DominionZoomProductionPolish?.sync?.();}catch(error){console.warn('[DominionStar Meet] Chat structural polish failed.',error);}
+        layoutSideSurface();
+      });
+      requestAnimationFrame(()=>q('#meetingChatInput')?.focus());
+    }
     layoutSideSurface();
     return show;
   }
