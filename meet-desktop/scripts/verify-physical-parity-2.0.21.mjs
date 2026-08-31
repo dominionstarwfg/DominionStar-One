@@ -48,7 +48,8 @@ requireText(parity,"['speaker',sharing()?'Side-by-side: Speaker':'Speaker']",'Vi
 requireText(parity,"['gallery',sharing()?'Side-by-side: Gallery':'Gallery']",'View menu is missing Gallery view.');
 requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']",'View menu is missing Multi-speaker view.');
 
-// Participants: small-roster density, adaptive search, and documented Zoom ordering.
+// Participants: small-roster density, adaptive search, documented Zoom ordering,
+// and the approved readable title hierarchy.
 requireText(adaptive,"search.hidden=count<=1",'One-person participant panel still exposes unnecessary search.');
 requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
 requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep the local user first.');
@@ -58,12 +59,16 @@ requireText(adaptive,"else if(raised)bucket=3",'Participant ordering does not pr
 requireText(adaptive,"else if(micOn)bucket=4",'Participant ordering does not prioritize unmuted participants above muted participants.');
 requireText(adaptive,"if(count<=6)centerParticipantPanel(side,count)",'Small participant rosters do not default to the compact floating physical-reference layout.');
 requireText(adaptiveCss,'max-width:340px !important','One-person participant panel is not bounded to compact Zoom-scale geometry.');
+requireText(adaptiveCss,'#meetingOverlay .room-side-head strong{\n  font-size:15px !important;','Participants heading is below the approved Zoom-scale readability.');
 
-// Chat: right dock on wide windows, floating overlay on constrained windows.
+// Chat: right dock on wide windows, floating overlay on constrained windows,
+// and never the oversized form-panel geometry rejected on the physical Mac.
 requireText(adaptive,'const wide=body.clientWidth>=1120','Chat does not have a deterministic adaptive-width breakpoint.');
 requireText(adaptive,"panel.dataset.dsAdaptiveMode=wide?'docked':'floating'",'Chat does not switch between docked and floating modes.');
 requireText(adaptive,"stage.style.setProperty('margin-right','356px','important')",'Wide docked chat does not reserve stage space.');
 requireText(adaptive,'ds-chat-privacy','Chat privacy affordance is missing.');
+requireText(adaptiveCss,'min-width:290px !important;\n  max-width:360px !important;','Chat is not hard-bounded to the approved compact width.');
+requireText(adaptiveCss,'#meetingOverlay.ds-chat-docked #meetingChatPanel{\n  width:340px !important;','Wide Chat does not use the approved compact dock width.');
 
 // Prejoin: compact preview-dominant geometry and no clipped third device column.
 requireText(adaptiveCss,'max-width:560px !important','Prejoin is not bounded to compact desktop width.');
@@ -85,4 +90,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants zoom-sort adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded');
+console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded');
