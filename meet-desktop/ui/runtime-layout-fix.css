@@ -11,3 +11,11 @@
   grid-column:auto!important;
   grid-row:auto!important;
 }
+
+/* Older physical-acceptance styling forced Participants to at least 380px.
+   Runtime stability owns responsive panel width now; remove that stale floor so
+   the stage reserve and the rendered side surface always agree. */
+#meetingOverlay .room-side,
+#meetingOverlay #meetingChatPanel{
+  min-width:0!important;
+}
