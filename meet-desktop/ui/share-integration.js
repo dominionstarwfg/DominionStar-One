@@ -88,6 +88,12 @@
       }
     }
 
+    // Compatibility entry point retained because New Share has always meant
+    // "select/acquire replacement first, then release the old presentation".
+    // It delegates to the same native-first path; it does not restore the old
+    // permission preflight or custom-picker-first behavior.
+    async function openPickerWithPermission(){return beginShare({replace:share.snapshot().active});}
+
     button.addEventListener('click',event=>{
       event.currentTarget.blur();
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return;}
@@ -122,7 +128,7 @@
         if(command==='participants'){window.DominionMeetingParity?.toggleParticipants?.();return;}
         if(command==='chat'){window.DominionMeetingFeatures?.toggleChat?.();return;}
         if(command==='annotate'){window.DominionShareAnnotation?.toggle?.();applyLayout();return;}
-        if(command==='new-share'){await beginShare({replace:share.snapshot().active});return;}
+        if(command==='new-share'){await openPickerWithPermission();return;}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return;}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return;}
         if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return;}
