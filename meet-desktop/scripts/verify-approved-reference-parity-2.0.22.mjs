@@ -22,6 +22,10 @@ assert.ok(auth.includes('script.onload=loadApprovedReference'),'Approved referen
 
 const expectedOrder="['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore','roomExitButton']";
 assert.ok(js.includes(expectedOrder),'Toolbar does not encode the approved Audio → Video → Participants → Chat → React → Raise hand → Share → Host tools → More → End order.');
+for(const [id,order] of [['roomMic',10],['roomCamera',20],['roomParticipants',30],['roomChat',40],['roomReactions',50],['roomRaiseHand',60],['roomShare',70],['roomHostTools',80],['roomMore',90],['roomExitButton',100]]){
+  assert.ok(css.includes(`#meetingOverlay #${id}{order:${order} !important;}`),`Final CSS visual order is missing for ${id}.`);
+}
+assert.ok(css.includes("content:'React' !important"),'Reaction label must remain visually fixed to React.');
 assert.ok(js.includes("button.id='roomRaiseHand'"),'Dedicated Raise hand control is missing.');
 assert.ok(js.includes('DominionMeetingFeatures?.toggleRaiseHand?.()'),'Dedicated Raise hand control is not wired to the real hand-state authority.');
 assert.ok(js.includes("menu.querySelector('.reaction-hand-button')"),'Reaction tray duplicate Raise hand cleanup is missing.');
@@ -32,6 +36,7 @@ assert.ok(css.includes('#meetingOverlay #meetingChatPanel .meeting-chat-recipien
 assert.ok(js.includes('ds-approved-chat-target-menu'),'Direct-message target selection must remain functional without the duplicated To: row.');
 assert.ok(js.includes("newChat.textContent='＋ New chat'"),'Approved Chat navigation must expose New chat.');
 assert.ok(js.includes("everyone.textContent='Everyone'"),'Approved Chat navigation must expose Everyone.');
+assert.ok(js.includes("stopImmediatePropagation();openChatTargetMenu(newChat)"),'New chat must be owned by the final capture-phase authority so adaptive handlers cannot overwrite it.');
 
 assert.ok(adaptive.includes("dock.dataset.dsAdaptiveWholePanelDrag='1'"),'Video panel must retain whole-surface drag authority.');
 assert.ok(js.includes("dock.dataset.approvedFilmstrip='1'"),'Approved floating video filmstrip authority is missing.');
@@ -56,4 +61,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption view-existing toolbar-order dedicated-raise-hand clean-chat direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption view-existing visual-toolbar-order react-stable dedicated-raise-hand clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
