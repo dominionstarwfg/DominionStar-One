@@ -10,9 +10,7 @@
   let personalBusy=false;
   let recoveryDialog=null;
   let expectedPersonalCode='';
-  let rosterObserver=null;
-  let dockObserver=null;
-  let observedDock=null;
+  let shareStateUnsub=null;
 
   function hideLegacyShareRecovery(){
     for(const node of qa('.ds-share-permission,.ds-219-share-recovery')){
@@ -25,6 +23,22 @@
     catch{return 'unknown';}
   }
 
+  async function detectScreenPermission(){
+    // Fast path: when macOS already reports Screen Recording as granted, do not
+    // ask again and do not enumerate share sources. Go directly to selection.
+    const reported=await screenStatus();
+    if(reported==='granted')return {ok:true,status:'granted',restartRequired:false,detectedBy:'tcc-status'};
+
+    // Recovery path: the Electron main process performs one bounded real-source
+    // probe because macOS can briefly report a stale status after the user turns
+    // permission on. This detects a usable grant without forcing another prompt.
+    try{
+      const result=await desktop.media?.requestScreen?.();
+      if(result)return result;
+    }catch{}
+    return {ok:false,status:reported,restartRequired:reported!=='not-determined',detectedBy:'renderer-fallback'};
+  }
+
   function ensureRecoveryDialog(){
     if(recoveryDialog?.isConnected)return recoveryDialog;
     recoveryDialog=document.createElement('section');
@@ -32,19 +46,28 @@
     recoveryDialog.hidden=true;
     recoveryDialog.setAttribute('role','dialog');
     recoveryDialog.setAttribute('aria-modal','true');
-    recoveryDialog.innerHTML=`<div class="ds-219-share-card"><div class="ds-219-share-icon">↥</div><div class="ds-219-share-copy"><p>SCREEN SHARING</p><h3>Screen sharing was blocked by macOS</h3><span data-ds-219-share-message></span></div><div class="ds-219-share-actions"><button type="button" data-ds-219-cancel>Not now</button><button type="button" data-ds-219-reset>Reset & Reauthorize</button><button type="button" class="primary" data-ds-219-restart>Restart DominionStar Meet</button></div></div>`;
+    recoveryDialog.innerHTML=`<div class="ds-219-share-card"><div class="ds-219-share-icon">↥</div><div class="ds-219-share-copy"><p>SCREEN SHARING</p><h3>DominionStar Meet needs Screen Recording access</h3><span data-ds-219-share-message></span></div><div class="ds-219-share-actions"><button type="button" data-ds-219-cancel>Not now</button><button type="button" data-ds-219-reset>Reset permission</button><button type="button" data-ds-219-open>Open System Settings</button><button type="button" class="primary" data-ds-219-recheck>Recheck & Share</button><button type="button" class="primary" data-ds-219-restart hidden>Restart DominionStar Meet</button></div></div>`;
     document.body.append(recoveryDialog);
     recoveryDialog.querySelector('[data-ds-219-cancel]').onclick=()=>{recoveryDialog.hidden=true;};
+    recoveryDialog.querySelector('[data-ds-219-open]').onclick=async()=>{await desktop.media?.openPrivacy?.('screen').catch?.(()=>{});};
     recoveryDialog.querySelector('[data-ds-219-restart]').onclick=()=>void desktop.app?.relaunch?.();
+    recoveryDialog.querySelector('[data-ds-219-recheck]').onclick=async event=>{
+      const button=event.currentTarget;button.disabled=true;
+      try{
+        const permission=await detectScreenPermission();
+        if(permission?.ok){recoveryDialog.hidden=true;await openVerifiedShare({permission});return;}
+        await showRecovery(String(permission?.status||'unknown'),Boolean(permission?.restartRequired));
+      }finally{button.disabled=false;}
+    };
     recoveryDialog.querySelector('[data-ds-219-reset]').onclick=async event=>{
       const button=event.currentTarget;button.disabled=true;
       try{
         const result=await desktop.app?.resetScreenPermission?.();
-        recoveryDialog.hidden=true;
         if(result?.ok===false)throw new Error(result.error||'Unable to reset Screen Recording permission.');
         await desktop.media?.openPrivacy?.('screen').catch?.(()=>{});
+        const message=recoveryDialog.querySelector('[data-ds-219-share-message]');
+        if(message)message.textContent='The Screen Recording entry was reset. Enable DominionStar Meet in System Settings, then return here and choose Recheck & Share.';
       }catch(error){
-        recoveryDialog.hidden=false;
         const message=recoveryDialog.querySelector('[data-ds-219-share-message]');
         if(message)message.textContent=String(error?.message||error||'Unable to reset Screen Recording permission.');
       }finally{button.disabled=false;}
@@ -52,34 +75,52 @@
     return recoveryDialog;
   }
 
-  async function showRecovery(status='unknown'){
+  async function showRecovery(status='unknown',restartRequired=false){
     hideLegacyShareRecovery();
     const dialog=ensureRecoveryDialog();
     let identity={};try{identity=await desktop.app?.privacyIdentity?.()||{};}catch{}
     const message=dialog.querySelector('[data-ds-219-share-message]');
+    const restart=dialog.querySelector('[data-ds-219-restart]');
     const unstable=identity?.stableAcrossRebuilds===false;
     if(message){
-      message.textContent=unstable
-        ? `The native macOS screen-capture request failed for this installed build (status: ${status}). This prototype is ad-hoc signed, so a grant left by an older build may not apply to this binary. Reset & Reauthorize only after the native picker fails, then restart DominionStar Meet once.`
-        : `The native macOS screen-capture request failed (status: ${status}). Reauthorize Screen Recording, then restart DominionStar Meet once.`;
+      if(restartRequired){
+        message.textContent='macOS sees a Screen Recording permission record, but this running process still cannot capture. Restart DominionStar Meet once, then Share Screen should proceed without asking again.';
+      }else if(unstable){
+        message.textContent=`Screen Recording is not available to this installed prototype yet (status: ${status}). Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording, then return and choose Recheck & Share. Reset permission is only for a stale macOS entry.`;
+      }else{
+        message.textContent=`Screen Recording is not enabled (status: ${status}). Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording, then return and choose Recheck & Share.`;
+      }
     }
+    if(restart)restart.hidden=!restartRequired;
     dialog.hidden=false;
   }
 
-  async function openVerifiedShare(){
+  async function openVerifiedShare({permission=null}={}){
     if(shareBusy||!inMeeting())return false;
     shareBusy=true;hideLegacyShareRecovery();
+    const button=q('#roomShare');
+    button?.classList.add('ds-share-checking');
     try{
-      // 2.0.21 rule: never enumerate screen sources as a permission probe before
-      // getDisplayMedia. The native macOS picker must receive the user gesture.
+      const verified=permission?.ok?permission:await detectScreenPermission();
+      if(!verified?.ok){
+        await showRecovery(String(verified?.status||'unknown'),Boolean(verified?.restartRequired));
+        return false;
+      }
+
+      // Permission is already usable. Selection now proceeds directly; there is
+      // no permission dialog in the renderer. On macOS 15+ the native system
+      // content picker is only choosing WHAT to share, not asking for access.
       const integration=window.DominionShareIntegration;
       if(!integration?.open)throw new Error('Screen-share integration is not ready.');
       return await integration.open();
     }catch(error){
       const status=await screenStatus();
-      await showRecovery(status||String(error?.name||'unknown'));
+      await showRecovery(status||String(error?.name||'unknown'),false);
       return false;
-    }finally{shareBusy=false;}
+    }finally{
+      shareBusy=false;
+      button?.classList.remove('ds-share-checking');
+    }
   }
 
   function syncPersonalChoice(){
@@ -157,35 +198,32 @@
     if(thresholdApplies&&participantCount>2&&visibleTiles>0&&dock.hidden)dock.hidden=false;
   }
 
-  function installRosterObserver(){
-    const roster=q('#participantRoster');if(!roster||rosterObserver)return;
-    rosterObserver=new MutationObserver(()=>{syncParticipantCount();syncVideoDockPolicy();});
-    rosterObserver.observe(roster,{childList:true,subtree:true});syncParticipantCount();
+  function bindShareState(){
+    if(shareStateUnsub||!window.DominionShareController?.onChange)return;
+    shareStateUnsub=window.DominionShareController.onChange(()=>requestAnimationFrame(syncVideoDockPolicy));
   }
 
-  function installDockObserver(){
-    const dock=q('#participantVideoDock');if(!dock||dock===observedDock)return;
-    dockObserver?.disconnect();observedDock=dock;
-    dockObserver=new MutationObserver(()=>syncVideoDockPolicy());
-    dockObserver.observe(dock,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
-    syncVideoDockPolicy();
+  function sync(){
+    syncPersonalChoice();syncParticipantCount();syncVideoDockPolicy();bindShareState();
   }
 
-  function sync(){syncPersonalChoice();installRosterObserver();syncParticipantCount();installDockObserver();syncVideoDockPolicy();}
-
-  document.addEventListener('submit',event=>void startSelectedPersonalMeeting(event),true);
-  document.addEventListener('click',event=>{
+  function onDocumentClick(event){
     const share=event.target?.closest?.('#roomShare');
     if(share&&inMeeting()){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       void openVerifiedShare();return;
     }
     if(event.target?.closest?.('#newMeetingUsePersonal'))requestAnimationFrame(syncPersonalChoice);
-  },true);
+  }
+
+  document.addEventListener('submit',event=>void startSelectedPersonalMeeting(event),true);
+  document.addEventListener('click',onDocumentClick,true);
   window.addEventListener('dominion:meeting-ui-ready',()=>{sync();void verifyLivePersonalIdentity();});
   window.addEventListener('dominion:meeting-snapshot',()=>{syncParticipantCount();syncVideoDockPolicy();void verifyLivePersonalIdentity();});
-  new MutationObserver(()=>sync()).observe(document.body,{childList:true,subtree:true});
-  setInterval(sync,900);sync();
+  window.addEventListener('dominion:participant-presence',()=>{syncParticipantCount();syncVideoDockPolicy();});
+  window.addEventListener('resize',()=>requestAnimationFrame(syncVideoDockPolicy),{passive:true});
+  window.addEventListener('dominion:meeting-ended',()=>{expectedPersonalCode='';document.body.dataset.dsExpectedPersonalRoomCode='';});
+  sync();
 
-  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy});
+  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,sync});
 })();
