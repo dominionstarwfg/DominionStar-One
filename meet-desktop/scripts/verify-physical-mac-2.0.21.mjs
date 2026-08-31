@@ -14,7 +14,8 @@ const bootstrap=read('src/bootstrap.mjs');
 const relaunch=read('src/relaunch-service.mjs');
 const pkg=JSON.parse(read('package.json'));
 
-assert.equal(pkg.version,'2.0.21','Physical Mac repair gate must target 2.0.21.');
+const [major,minor,patch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21,`Carried-forward physical Mac repair gate requires DominionStar Meet 2.0.21 or later in the 2.0.x line; found ${pkg.version}.`);
 assert.match(auth,/physical-mac-repair\.css/,'Physical Mac repair CSS must be loaded.');
 assert.match(auth,/physical-mac-repair\.js/,'Physical Mac repair JS must be loaded.');
 assert.match(auth,/zoom-adaptive-parity\.css/,'Adaptive Zoom authority CSS must be loaded.');
@@ -67,4 +68,4 @@ assert.match(adaptive,/panel\.dataset\.dsAdaptiveMode=wide\?'docked':'floating'/
 assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must be compact.');
 assert.match(adaptiveCss,/max-width:340px !important/,'One-participant panel must be compact.');
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK personal-id native-system-picker no-preflight post-failure-recovery adhoc-not-certified reaction-contained settings-readable participant-count adaptive-participants adaptive-chat compact-prejoin');
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id native-system-picker no-preflight post-failure-recovery adhoc-not-certified reaction-contained settings-readable participant-count adaptive-participants adaptive-chat compact-prejoin`);
