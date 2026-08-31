@@ -11,6 +11,7 @@ const meetingCss=read('ui/meeting.css');
 const meetingFeatures=read('ui/meeting-features.js');
 const physical=read('ui/zoom-physical-acceptance.js');
 const physicalMac=read('ui/physical-mac-repair.js');
+const shareIntegration=read('ui/share-integration.js');
 const reaction=read('ui/zoom-reaction-parity.js');
 const bridge=read('ui/zoom-contract-bridge.js');
 const app=read('ui/app.js');
@@ -51,11 +52,6 @@ assert.ok(runtime.includes("guardSnapshotHtml(q('#participantRoster'))"),'Partic
 assert.ok(runtime.includes("guardSnapshotHtml(q('#waitingQueue'))"),'Waiting queue must be protected from unchanged snapshot rebuilds.');
 assert.ok(runtime.includes("const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1'"),'Participant media decoration must run only when roster markup changed.');
 
-// Meeting Features previously refreshed reactions, raised hands, recording and
-// toolbar state every 600 ms. That loop is forbidden: feature rendering follows
-// the concrete events that changed state and coalesces repeated decoration into
-// one animation frame. The public feature API version remains stable while the
-// runtime implementation has its own revision marker.
 assert.ok(!meetingFeatures.includes('setInterval('),'Meeting Features must not run a permanent UI polling timer.');
 assert.ok(meetingFeatures.includes("version:'1.4.0-zoom-chat-shell'")&&meetingFeatures.includes("runtimeVersion:'2.0.22-event-driven'"),'Meeting Features must preserve API compatibility while exposing the event-driven runtime revision.');
 assert.ok(meetingFeatures.includes("window.addEventListener('dominion:meeting-signal',handleSignal)"),'Meeting Features must respond to meeting signals.');
@@ -73,17 +69,12 @@ assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Constraine
 assert.ok(runtime.includes("stage.style.setProperty('right',`${reserve}px`,'important')"),'Stage must resize around a docked side panel instead of leaving unused black space.');
 assert.ok(css.includes('flex:1 1 auto!important')&&css.includes('#meetingOverlay #participantRoster'),'Participant roster must consume the available panel height.');
 
-// The original meeting stylesheet is intentionally still recognized here so a
-// future refactor cannot silently reintroduce its permanent sidebar reservation.
 assert.ok(meetingCss.includes('display:grid')&&meetingCss.includes('grid-template-columns:1fr 330px'),'Legacy meeting grid signature changed; review the final runtime layout authority.');
 assert.ok(layoutFix.includes('#meetingOverlay .meeting-body'),'Final layout correction must explicitly own the meeting body.');
 assert.ok(layoutFix.includes('display:block!important'),'Final meeting body must leave the legacy two-column grid formatting context.');
 assert.ok(layoutFix.includes('grid-template-columns:none!important'),'Permanent 330px participant grid column must be removed.');
 assert.ok(layoutFix.includes('grid-column:auto!important')&&layoutFix.includes('grid-row:auto!important'),'Stage must not remain pinned to a legacy grid cell.');
 
-// Motion must remain short and compositor-friendly. Panel movement uses the
-// individual `translate` property so it cannot fight the runtime's intentional
-// transform:none geometry reset.
 assert.ok(motion.includes('transition:right .14s'),'Stage resize must use a short transition rather than snap.');
 assert.ok(motion.includes('@keyframes dsRuntimePanelIn'),'Participants/Chat must use a short entrance transition.');
 assert.ok(motion.includes('translate:10px 0')&&motion.includes('translate:0 0')&&motion.includes('opacity:'),'Panel entrance should use independent translate/opacity rather than the geometry transform property.');
@@ -91,38 +82,38 @@ assert.ok(!motion.includes('dsRuntimePanelIn{from{opacity:.72;transform:'),'Pane
 assert.ok(motion.includes('.meeting-control:active{transform:scale(.97)}'),'Controls must provide immediate tactile click feedback.');
 assert.ok(motion.includes('@media(prefers-reduced-motion:reduce)'),'Motion must respect reduced-motion preferences.');
 
-// Record the exact legacy physical-acceptance failure mechanism so it cannot be
-// forgotten. The final runtime isolates this controller after its one-time
-// handlers are installed.
 assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,subtree:true})"),'Expected legacy physical observer signature changed; review the stability isolation contract.');
 assert.ok(physical.includes('wrap.innerHTML='),'Expected legacy media-status mutation changed; review the stability isolation contract.');
 assert.ok(runtime.includes('DominionZoomPhysicalAcceptance'),'Final runtime must explicitly isolate the physical acceptance loop.');
 
-// Physical Mac repair itself must no longer add another background storm.
+// Share Screen has one click owner. The physical compatibility layer may expose
+// a callable recovery helper, but it must not capture/cancel #roomShare. Cheap
+// TCC status is allowed; source enumeration is not allowed before native capture.
 assert.ok(!physicalMac.includes('setInterval('),'Physical-Mac repair must not run a periodic sync timer.');
 assert.ok(!physicalMac.includes("observe(document.body,{childList:true,subtree:true})"),'Physical-Mac repair must not observe the whole document.');
-assert.ok(physicalMac.includes('async function detectScreenPermission()'),'Screen sharing must have a dedicated permission detector.');
+assert.ok(physicalMac.includes('async function detectScreenPermission()'),'Physical diagnostics must retain a non-enumerating Screen Recording status helper.');
 assert.ok(physicalMac.includes("if(reported==='granted')return {ok:true"),'Already-granted Screen Recording must use the fast path.');
-assert.ok(physicalMac.includes('desktop.media?.requestScreen?.()'),'Stale macOS permission state must use the bounded real-capture probe.');
-assert.ok(physicalMac.includes('Recheck & Share'),'Permission recovery must let the user recheck without rebuilding/restarting unnecessarily.');
+assert.ok(physicalMac.includes("if(reported==='denied'||reported==='restricted')return {ok:false"),'Explicit macOS Screen Recording denial must be actionable without attempting capture.');
+assert.ok(physicalMac.includes('nativeDecisionRequired:true'),'not-determined/unknown status must defer to the real native capture request.');
+assert.ok(!physicalMac.includes('desktop.media?.requestScreen?.()'),'Physical Share compatibility code must never probe desktop sources before the native picker.');
+const shareClickBlock=physicalMac.slice(physicalMac.indexOf('function onDocumentClick'),physicalMac.indexOf("document.addEventListener('submit'"));
+assert.ok(!shareClickBlock.includes('#roomShare'),'Physical-Mac repair must not intercept the Share Screen button.');
+assert.ok(shareIntegration.includes('async function screenPermissionStatus()'),'The isolated Share integration must own the cheap permission-state decision.');
+assert.ok(shareIntegration.includes("if(permission==='denied'||permission==='restricted')"),'Share integration must block only explicit denied/restricted status before capture.');
+assert.ok(shareIntegration.includes('const entry=await resolveShareEntry()'),'Granted/not-determined/unknown states must continue to the real picker/capture flow.');
+assert.ok(shareIntegration.includes('const diagnostic=await desktop?.media?.requestScreen?.()'),'Deep Screen Recording diagnostics must run only in the real capture-failure recovery path.');
 
-// Reaction animation is high-volume UI. It may observe only the dedicated
-// reaction layer, never the entire renderer, and it must preserve the user's
-// physical Zoom reference: left-side lanes with occasional blossoms.
 assert.ok(reaction.includes("observer.observe(layer,{childList:true})"),'Reaction observer must be scoped to direct reaction children.');
 assert.ok(!reaction.includes('observer.observe(document.documentElement'),'Reaction parity must not observe the whole document.');
 assert.ok(reaction.includes("layer.dataset.dsZoomReactionLane='left'"),'Reactions must use the left-side physical-reference lane.');
 assert.ok(reaction.includes("if(!['❤️','👏','👍'].includes(emoji))return"),'Heart/clap/thumb reactions must support selective blossoms.');
 assert.ok(reaction.includes('const MAX_ACTIVE=72'),'High-volume reaction rendering must have a bounded active-node budget.');
 
-// Menu compatibility must not monkey-patch global DOM insertion methods.
 assert.ok(!bridge.includes('Element.prototype.append=function'),'Contract bridge must not patch Element.prototype.append.');
 assert.ok(!bridge.includes('Node.prototype.appendChild=function'),'Contract bridge must not patch Node.prototype.appendChild.');
 assert.ok(bridge.includes("observer.observe(document.body,{childList:true})"),'Contract bridge may watch only direct transient body children.');
 assert.ok(!bridge.includes("observer.observe(document.body,{childList:true,subtree:true})"),'Contract bridge must not observe the body subtree.');
 
-// Network snapshots may remain periodic, but unchanged snapshot markup is now
-// blocked at the roster/queue boundary and cannot become a periodic redraw.
 assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
-console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
+console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-native-share permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
