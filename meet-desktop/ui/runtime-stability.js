@@ -124,15 +124,18 @@
       side.dataset.dsRuntimePanel='participants';
       syncParticipantsSurface();
     }
-    schedule();
+    // User actions must be transactional: visibility and geometry are committed
+    // before this click returns. Do not defer the visible result to RAF; macOS
+    // can throttle RAF and make later clicks appear to trigger earlier actions.
+    layoutSideSurface();
     return show;
   }
 
-  function closeChat(scheduleAfter=true){
+  function closeChat(layoutAfter=true){
     const panel=q('#meetingChatPanel'),button=q('#roomChat');if(!panel)return false;
     panel.hidden=true;button?.setAttribute('aria-pressed','false');
     q('#meetingOverlay')?.classList.remove('ds-chat-docked','ds-chat-floating');
-    if(scheduleAfter)schedule();
+    if(layoutAfter)layoutSideSurface();
     return false;
   }
 
@@ -143,7 +146,7 @@
     else panel.hidden=!show;
     panel.hidden=!show;button?.setAttribute('aria-pressed',String(show));
     if(show){panel.dataset.dsRuntimePanel='chat';void window.DominionZoomBehavior?.refreshChatRecipients?.();requestAnimationFrame(()=>q('#meetingChatInput')?.focus());}
-    schedule();
+    layoutSideSurface();
     return show;
   }
 
