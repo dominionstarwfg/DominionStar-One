@@ -70,6 +70,15 @@
     }
   }
 
+  function syncToolbarRoleState(){
+    const footer=q('.meeting-footer'),roleNode=q('#roomRole');if(!footer)return 'pending';
+    const role=String(roleNode?.textContent||'').trim().toLowerCase().replace(/[-\s]/g,'');
+    const state=['host','cohost'].includes(role)?'manager':role&&role!=='host'&&role!=='cohost'?'participant':'pending';
+    setData(footer,'approvedRoleState',state);
+    setAttr(footer,'aria-busy',state==='pending'?'true':'false');
+    return state;
+  }
+
   function arrangeToolbar(){
     const footer=q('.meeting-footer');if(!footer)return;
     ensureRaiseHandControl();
@@ -77,6 +86,7 @@
     // authority; this prevents competing reconciliation loops from making
     // controls dance left/right while idle.
     setData(footer,'approvedToolbarOrder',HOST_TOOLBAR_ORDER.join('|'));
+    syncToolbarRoleState();
   }
 
   function closeChatTargetMenu(){if(chatTargetMenu){chatTargetMenu.remove();chatTargetMenu=null;}}
@@ -124,7 +134,7 @@
     // meeting does not introduce a late geometry shift.
     ensureRaiseHandControl();arrangeToolbar();
     if(!meetingOpen()){closeChatTargetMenu();return;}
-    ensureTransportSecurityIndicator();removeDuplicateReactionHand();syncRaiseHandState();syncReactionLabel();syncChatNavigation();syncVideoPanel();
+    ensureTransportSecurityIndicator();removeDuplicateReactionHand();syncRaiseHandState();syncReactionLabel();syncChatNavigation();syncVideoPanel();syncToolbarRoleState();
   }
 
   document.addEventListener('click',event=>{
@@ -146,5 +156,5 @@
   observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   timer=setInterval(requestSync,1200);sync();
 
-  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncChatNavigation,syncVideoPanel,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();}});
+  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();}});
 })();
