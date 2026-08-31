@@ -6,6 +6,8 @@ const pkg=JSON.parse(read('../package.json'));
 const auth=read('../ui/auth-password.js');
 const js=read('../ui/approved-reference-parity.js');
 const css=read('../ui/approved-reference-parity.css');
+const runtime=read('../ui/runtime-stability.js');
+const runtimeCss=read('../ui/runtime-stability.css');
 const adaptive=read('../ui/zoom-adaptive-parity.js');
 const features=read('../ui/meeting-features.js');
 const share=read('../src/share-service.mjs');
@@ -28,6 +30,10 @@ assert.ok(js.includes(`const HOST_TOOLBAR_ORDER=${hostOrder}`),'Host toolbar doe
 for(const [id,order] of [['roomMic',10],['roomCamera',20],['roomParticipants',30],['roomChat',40],['roomReactions',50],['roomRaiseHand',60],['roomShare',70],['roomHostTools',80],['roomMore',90],['roomExitButton',100]]){
   assert.ok(css.includes(`#meetingOverlay #${id}{order:${order} !important;}`),`Final CSS visual order is missing for ${id}.`);
 }
+assert.ok(runtime.includes('function ensureToolbarZones()'),'Final runtime must own stable toolbar zoning.');
+assert.ok(runtime.includes("footer.dataset.dsRuntimeToolbarZones='1'"),'Stable toolbar zoning must be explicitly committed before the meeting is considered settled.');
+assert.ok(runtimeCss.includes('grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important'),'Toolbar must keep independent Audio/Video, meeting-action, and End/Leave regions.');
+assert.ok(runtimeCss.includes('>.ds-runtime-toolbar-left')&&runtimeCss.includes('>.ds-runtime-toolbar-center')&&runtimeCss.includes('>.ds-runtime-toolbar-right'),'All three stable toolbar regions must have final CSS authority.');
 assert.ok(js.includes("function syncReactionLabel()"),'Final authority must stabilize the real React label.');
 assert.ok(js.includes("setText(label,'React')"),'Reaction label must be the real text React, not decorative pseudo-content.');
 assert.ok(css.includes('#meetingOverlay #roomReactions .ds-control-label{\n  font-size:12px !important;'),'Real React label must retain readable production typography.');
@@ -38,8 +44,10 @@ const dedicatedBranch=features.slice(features.indexOf("if(dedicatedHand){"),feat
 assert.ok(!dedicatedBranch.includes("label.textContent"),'Dedicated Raise hand mode must not let legacy meeting features rewrite the React label.');
 assert.ok(js.includes("button.id='roomRaiseHand'"),'Dedicated Raise hand control is missing.');
 assert.ok(js.includes('DominionMeetingFeatures?.toggleRaiseHand?.()'),'Dedicated Raise hand control is not wired to the real hand-state authority.');
-assert.ok(js.includes("menu.querySelector('.reaction-hand-button')"),'Reaction tray duplicate Raise hand cleanup is missing.');
-assert.ok(css.includes('.meeting-reaction-menu .reaction-hand-button'),'CSS must suppress the legacy duplicate hand action.');
+assert.ok(js.includes("menu.querySelector('.reaction-hand-button')"),'Legacy meeting-reaction menu duplicate Raise hand cleanup is missing.');
+assert.ok(css.includes('.meeting-reaction-menu .reaction-hand-button'),'CSS must suppress the legacy meeting-reaction duplicate hand action.');
+assert.ok(runtimeCss.includes('.ds-reaction-tray>.ds-raise-hand{display:none!important}'),'Physical reaction tray must not reintroduce Raise Hand beside the dedicated toolbar control.');
+assert.ok(runtimeCss.includes('.ds-reaction-tray>.ds-reaction-divider'),'Legacy reaction-tray divider must be suppressed with the duplicate hand section.');
 
 // Reconciliation must be observer-safe. This gate exists because observing the
 // same class/ARIA attributes that sync() writes starved the packaged renderer.
@@ -83,4 +91,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order single-owner-react-label dedicated-raise-hand observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
