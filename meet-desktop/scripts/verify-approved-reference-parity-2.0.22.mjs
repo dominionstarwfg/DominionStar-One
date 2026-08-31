@@ -20,8 +20,10 @@ assert.ok(auth.includes('./approved-reference-parity.js'),'Approved-reference co
 assert.ok(auth.indexOf('zoom-adaptive-parity.css')<auth.indexOf('approved-reference-parity.css'),'Approved-reference stylesheet must load after adaptive parity.');
 assert.ok(auth.includes('script.onload=loadApprovedReference'),'Approved reference must load only after adaptive parity has initialized.');
 
-const expectedOrder="['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore','roomExitButton']";
-assert.ok(js.includes(expectedOrder),'Toolbar does not encode the approved Audio → Video → Participants → Chat → React → Raise hand → Share → Host tools → More → End order.');
+const participantOrder="['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomMore','roomExitButton']";
+const hostOrder="['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore','roomExitButton']";
+assert.ok(js.includes(`const TOOLBAR_ORDER=${participantOrder}`),'Participant toolbar must exclude Host Tools while preserving approved order.');
+assert.ok(js.includes(`const HOST_TOOLBAR_ORDER=${hostOrder}`),'Host toolbar does not encode Audio → Video → Participants → Chat → React → Raise hand → Share → Host tools → More → End.');
 for(const [id,order] of [['roomMic',10],['roomCamera',20],['roomParticipants',30],['roomChat',40],['roomReactions',50],['roomRaiseHand',60],['roomShare',70],['roomHostTools',80],['roomMore',90],['roomExitButton',100]]){
   assert.ok(css.includes(`#meetingOverlay #${id}{order:${order} !important;}`),`Final CSS visual order is missing for ${id}.`);
 }
@@ -31,15 +33,27 @@ assert.ok(js.includes('DominionMeetingFeatures?.toggleRaiseHand?.()'),'Dedicated
 assert.ok(js.includes("menu.querySelector('.reaction-hand-button')"),'Reaction tray duplicate Raise hand cleanup is missing.');
 assert.ok(css.includes('.meeting-reaction-menu .reaction-hand-button'),'CSS must suppress the legacy duplicate hand action.');
 
-assert.ok(js.includes("recipientRow.setAttribute('aria-hidden','true')"),'Legacy To: row is not removed from visible Chat chrome.');
+// Reconciliation must be observer-safe. This gate exists because observing the
+// same class/ARIA attributes that sync() writes starved the packaged renderer.
+assert.ok(js.includes('let syncQueued=false'),'Approved reference controller must coalesce repeated sync requests.');
+assert.ok(js.includes('function requestSync()'),'Approved reference controller is missing its coalesced scheduler.');
+assert.ok(js.includes('if(syncQueued)return;'),'Approved reference scheduler must reject duplicate queued frames.');
+assert.ok(js.includes("attributeFilter:['hidden']"),'Observer must be limited to meeting visibility rather than self-written class/ARIA state.');
+assert.ok(!js.includes("attributeFilter:['hidden','class','aria-pressed']"),'Self-triggering class/aria observer must never return.');
+assert.ok(js.includes('timer=setInterval(requestSync,1200)'),'Fallback reconciliation must be bounded and coalesced.');
+assert.ok(js.includes("setClass(button,'hand-raised',raised)"),'Raise-hand state updates must be idempotent.');
+assert.ok(js.includes("setAttr(button,'aria-pressed',raised)"),'Raise-hand ARIA updates must be idempotent.');
+assert.ok(!js.includes('footer.append(control)'),'Approved toolbar authority must not reorder DOM nodes.');
+
+assert.ok(js.includes("setAttr(recipientRow,'aria-hidden','true')"),'Legacy To: row is not removed from visible Chat chrome.');
 assert.ok(css.includes('#meetingOverlay #meetingChatPanel .meeting-chat-recipient'),'Legacy To: row is not hidden by final CSS authority.');
 assert.ok(js.includes('ds-approved-chat-target-menu'),'Direct-message target selection must remain functional without the duplicated To: row.');
-assert.ok(js.includes("newChat.textContent='＋ New chat'"),'Approved Chat navigation must expose New chat.');
-assert.ok(js.includes("everyone.textContent='Everyone'"),'Approved Chat navigation must expose Everyone.');
-assert.ok(js.includes("stopImmediatePropagation();openChatTargetMenu(newChat)"),'New chat must be owned by the final capture-phase authority so adaptive handlers cannot overwrite it.');
+assert.ok(js.includes("setText(newChat,'＋ New chat')"),'Approved Chat navigation must expose New chat.');
+assert.ok(js.includes("setText(everyone,'Everyone')"),'Approved Chat navigation must expose Everyone.');
+assert.ok(js.includes('stopImmediatePropagation();openChatTargetMenu(newChat)'),'New chat must be owned by the final capture-phase authority so adaptive handlers cannot overwrite it.');
 
 assert.ok(adaptive.includes("dock.dataset.dsAdaptiveWholePanelDrag='1'"),'Video panel must retain whole-surface drag authority.');
-assert.ok(js.includes("dock.dataset.approvedFilmstrip='1'"),'Approved floating video filmstrip authority is missing.');
+assert.ok(js.includes("setData(dock,'approvedFilmstrip','1')"),'Approved floating video filmstrip authority is missing.');
 assert.ok(css.includes('.participant-video-dock-head{\n  display:none !important;'),'Video filmstrip must not expose a grip/title-bar drag affordance.');
 assert.ok(css.includes('.remote-peer-tile.active-speaker'),'Video filmstrip must visually mark the active speaker.');
 assert.ok(css.includes('.dock-grip{\n  display:none !important;'),'Grip affordance must stay removed.');
@@ -61,4 +75,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption view-existing visual-toolbar-order react-stable dedicated-raise-hand clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order react-stable dedicated-raise-hand observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
