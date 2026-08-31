@@ -9,10 +9,17 @@
   if(!adaptiveStyle){adaptiveStyle=document.createElement('link');adaptiveStyle.rel='stylesheet';adaptiveStyle.href='./zoom-adaptive-parity.css';adaptiveStyle.dataset.dsZoomAdaptiveParity='1';document.head.append(adaptiveStyle);}
   let approvedStyle=document.querySelector('link[data-ds-approved-reference-parity]');
   if(!approvedStyle){approvedStyle=document.createElement('link');approvedStyle.rel='stylesheet';approvedStyle.href='./approved-reference-parity.css';approvedStyle.dataset.dsApprovedReferenceParity='1';document.head.append(approvedStyle);}
+  let runtimeStyle=document.querySelector('link[data-ds-runtime-stability]');
+  if(!runtimeStyle){runtimeStyle=document.createElement('link');runtimeStyle.rel='stylesheet';runtimeStyle.href='./runtime-stability.css';runtimeStyle.dataset.dsRuntimeStability='1';document.head.append(runtimeStyle);}
 
+  const loadRuntimeStability=()=>{
+    if(document.querySelector('script[data-ds-runtime-stability]'))return;
+    const script=document.createElement('script');script.src='./runtime-stability.js';script.dataset.dsRuntimeStability='1';document.head.append(script);
+  };
   const loadApprovedReference=()=>{
-    if(document.querySelector('script[data-ds-approved-reference-parity]'))return;
-    const script=document.createElement('script');script.src='./approved-reference-parity.js';script.dataset.dsApprovedReferenceParity='1';document.head.append(script);
+    const existing=document.querySelector('script[data-ds-approved-reference-parity]');
+    if(existing){if(window.DominionApprovedReferenceParity)loadRuntimeStability();else existing.addEventListener('load',loadRuntimeStability,{once:true});return;}
+    const script=document.createElement('script');script.src='./approved-reference-parity.js';script.dataset.dsApprovedReferenceParity='1';script.onload=loadRuntimeStability;document.head.append(script);
   };
   const loadAdaptiveParity=()=>{
     const existing=document.querySelector('script[data-ds-zoom-adaptive-parity]');
@@ -33,8 +40,9 @@
   if(!document.querySelector('script[data-ds-zoom-reaction-parity]')){const script=document.createElement('script');script.src='./zoom-reaction-parity.js';script.dataset.dsZoomReactionParity='1';document.head.append(script);}
   if(!document.querySelector('script[data-ds-zoom-contract-bridge]')){const script=document.createElement('script');script.src='./zoom-contract-bridge.js';script.dataset.dsZoomContractBridge='1';document.head.append(script);}
 
-  // Physical-Mac repair remains ahead of adaptive parity, while the approved
-  // 2.0.22 reference authority loads last so older geometry cannot override it.
+  // Physical-Mac repair remains ahead of adaptive parity. Approved-reference
+  // parity loads after adaptive parity, and runtime stability loads last so the
+  // live meeting has one event-driven geometry/click authority.
   if(physicalStyle.sheet)loadPhysicalRepair();
   else{
     physicalStyle.addEventListener('load',loadPhysicalRepair,{once:true});
