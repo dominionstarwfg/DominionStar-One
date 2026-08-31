@@ -45,7 +45,25 @@ try{
   assert.equal(participant.headingFound,true,'Packaged Participants panel heading is missing.');
   assert.equal(participant.text,'Participants (2)','Participants must expose live count in the actual roster panel.');
 
+  // Approved-reference video dock: prove that a real mouse drag can begin on a
+  // video tile/body area, not only on a special header/grip.
+  const videoReady=await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;overlay.dataset.viewMode='speaker';window.DominionMeetingParity?.install?.();window.DominionMeetingParity?.syncVideoDock?.();const roster=document.querySelector('#participantRoster');roster.innerHTML='<div data-participant-id="self"></div><div data-participant-id="p2"></div><div data-participant-id="p3"></div>';const dock=document.querySelector('#participantVideoDock');const body=dock?.querySelector('.participant-video-dock-body');if(!dock||!body)return false;body.querySelectorAll('.remote-peer-tile:not(#localVideoDockTile)').forEach(n=>n.remove());for(const id of ['tile-a','tile-b']){const tile=document.createElement('article');tile.id=id;tile.className='remote-peer-tile';tile.style.minHeight='76px';tile.innerHTML='<div class="remote-peer-fallback"><span>'+id+'</span></div>';body.append(tile);}window.DominionPhysicalMacRepair.syncVideoDockPolicy();window.DominionZoomAdaptiveParity.installVideoDockDrag();return !dock.hidden&&dock.dataset.dsAdaptiveWholePanelDrag==='1';})()`);
+  assert.equal(videoReady,true,'Floating participant video dock did not become available for real-drag verification.');
+  await sleep(80);
+  const dragStart=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),tile=dock.querySelector('#tile-a'),dr=dock.getBoundingClientRect(),tr=tile.getBoundingClientRect();return {left:dr.left,top:dr.top,x:tr.left+Math.max(8,Math.min(tr.width-8,tr.width*.5)),y:tr.top+Math.max(8,Math.min(tr.height-8,tr.height*.5)),cursor:getComputedStyle(tile).cursor,grip:getComputedStyle(dock.querySelector('.dock-grip')).display};})()`);
+  assert.equal(dragStart.grip,'none','Video dock grip must remain hidden.');
+  assert.ok(['default','auto'].includes(dragStart.cursor),'Video tile surface must show a normal arrow cursor, not a grabbing hand.');
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x,y:dragStart.y});
+  await cdp('Input.dispatchMouseEvent',{type:'mousePressed',x:dragStart.x,y:dragStart.y,button:'left',buttons:1,clickCount:1});
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x-64,y:dragStart.y+34,button:'left',buttons:1});
+  await cdp('Input.dispatchMouseEvent',{type:'mouseReleased',x:dragStart.x-64,y:dragStart.y+34,button:'left',buttons:0,clickCount:1});
+  await sleep(80);
+  const videoDragged=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),r=dock.getBoundingClientRect();return {dx:Math.round(r.left-${dragStart.left}),dy:Math.round(r.top-${dragStart.top}),cursor:getComputedStyle(dock).cursor,whole:dock.dataset.dsAdaptiveWholePanelDrag};})()`);
+  assert.ok(Math.abs(videoDragged.dx)>=24||Math.abs(videoDragged.dy)>=18,'Floating participant video panel must move from a real mouse drag started on a video tile.');
+  assert.equal(videoDragged.cursor,'default','Floating video panel must keep the normal arrow cursor while movable.');
+  assert.equal(videoDragged.whole,'1','Whole-panel video drag authority was lost at runtime.');
+
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer emitted an uncaught JavaScript error.');
-  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_MAC_2_0_21_OK repair-loaded adaptive-loaded native-share-entry recovery-not-preemptive adhoc-not-certified actual-personal-ui-authority reaction-contained settings-aligned actual-participant-count');
+  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_MAC_2_0_21_OK repair-loaded adaptive-loaded native-share-entry recovery-not-preemptive adhoc-not-certified actual-personal-ui-authority reaction-contained settings-aligned actual-participant-count video-tile-real-mouse-drag normal-arrow-no-grip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('2.0.21 physical Mac gate shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
