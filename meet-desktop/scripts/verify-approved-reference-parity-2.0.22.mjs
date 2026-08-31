@@ -27,7 +27,10 @@ assert.ok(js.includes(`const HOST_TOOLBAR_ORDER=${hostOrder}`),'Host toolbar doe
 for(const [id,order] of [['roomMic',10],['roomCamera',20],['roomParticipants',30],['roomChat',40],['roomReactions',50],['roomRaiseHand',60],['roomShare',70],['roomHostTools',80],['roomMore',90],['roomExitButton',100]]){
   assert.ok(css.includes(`#meetingOverlay #${id}{order:${order} !important;}`),`Final CSS visual order is missing for ${id}.`);
 }
-assert.ok(css.includes("content:'React' !important"),'Reaction label must remain visually fixed to React.');
+assert.ok(js.includes("function syncReactionLabel()"),'Final authority must stabilize the real React label.');
+assert.ok(js.includes("setText(label,'React')"),'Reaction label must be the real text React, not decorative pseudo-content.');
+assert.ok(css.includes('#meetingOverlay #roomReactions .ds-control-label{\n  font-size:12px !important;'),'Real React label must retain readable production typography.');
+assert.ok(css.includes("content:none !important"),'Legacy pseudo-label workaround must stay disabled.');
 assert.ok(js.includes("button.id='roomRaiseHand'"),'Dedicated Raise hand control is missing.');
 assert.ok(js.includes('DominionMeetingFeatures?.toggleRaiseHand?.()'),'Dedicated Raise hand control is not wired to the real hand-state authority.');
 assert.ok(js.includes("menu.querySelector('.reaction-hand-button')"),'Reaction tray duplicate Raise hand cleanup is missing.');
@@ -75,4 +78,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order react-stable dedicated-raise-hand observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order real-react-label dedicated-raise-hand observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
