@@ -24,6 +24,7 @@ try{
   socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
   await cdp('Runtime.enable');
   await waitFor("document.readyState==='complete'&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&document.querySelector('#meetingOverlay')",'stable runtime controllers');
+  await waitFor("Array.from(document.styleSheets).some(sheet=>String(sheet.href||'').endsWith('/runtime-motion.css'))",'runtime motion stylesheet');
 
   await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;overlay.dataset.viewMode='speaker';const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);const roster=document.querySelector('#participantRoster');roster.innerHTML='<div class="person-row" data-participant-id="self" data-participant-role="host" data-participant-name="QA Host"><span class="person-badge">QH</span><span class="person-copy"><strong>QA Host</strong><small>You</small></span></div>';window.DominionRuntimeStability.sync();return true;})()`);
   await waitFor("document.querySelector('#meetingOverlay').dataset.dsRuntimeStable==='1'&&document.querySelector('#roomParticipants')&&document.querySelector('#roomChat')",'runtime-stable meeting');
@@ -38,14 +39,20 @@ try{
   // later Chat click after the renderer catches up. Visibility is immediate;
   // stage geometry then settles through the intentional 140 ms motion window.
   await evaluate(`document.querySelector('#roomParticipants').click()`);await sleep(45);
-  const participantsImmediate=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,rightGap:Math.round(br.right-sr.right),stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||'',animation:getComputedStyle(side).animationName,stageTransition:getComputedStyle(stage).transitionDuration};})()`);
+  const participantsImmediate=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,rightGap:Math.round(br.right-sr.right),stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||'',animation:getComputedStyle(side).animationName,stageTransition:getComputedStyle(stage).transitionDuration,reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,motionSheetLoaded:Array.from(document.styleSheets).some(sheet=>String(sheet.href||'').endsWith('/runtime-motion.css'))};})()`);
   assert.equal(participantsImmediate.participantsOpen,true,'Participants must open immediately on Participants click.');
   assert.equal(participantsImmediate.chatClosed,true,'Opening Participants must keep Chat closed.');
   assert.equal(participantsImmediate.mode,'docked','Desktop-width Participants must use the approved right-side dock.');
   assert.ok(Math.abs(participantsImmediate.rightGap)<=2,'Docked Participants must sit on the right edge immediately.');
   assert.equal(participantsImmediate.count,'Participants (1)');
-  assert.match(participantsImmediate.animation,/dsRuntimePanelIn/,'Participants must use the short runtime entrance motion.');
-  assert.ok(parseFloat(participantsImmediate.stageTransition)>0&&parseFloat(participantsImmediate.stageTransition)<=0.2,'Stage resize transition must remain short.');
+  assert.equal(participantsImmediate.motionSheetLoaded,true,'Runtime motion stylesheet must be active in the packaged renderer.');
+  if(participantsImmediate.reduceMotion){
+    assert.equal(participantsImmediate.animation,'none','Reduce Motion must suppress the Participants entrance animation.');
+    assert.ok(parseFloat(participantsImmediate.stageTransition)===0,'Reduce Motion must suppress the stage resize transition.');
+  }else{
+    assert.match(participantsImmediate.animation,/dsRuntimePanelIn/,'Participants must use the short runtime entrance motion.');
+    assert.ok(parseFloat(participantsImmediate.stageTransition)>0&&parseFloat(participantsImmediate.stageTransition)<=0.2,'Stage resize transition must remain short.');
+  }
 
   await sleep(170);
   const participantsSettled=await evaluate(`(()=>{const side=document.querySelector('.room-side'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {panelWidth:Math.round(sr.width),stageRightGap:Math.round(br.right-st.right),stageWidth:Math.round(st.width),bodyWidth:Math.round(br.width)};})()`);
@@ -77,6 +84,6 @@ try{
   assert.ok(responsiveness<500,`Renderer event loop is still starved; 80 ms timer took ${responsiveness} ms.`);
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip responsive-event-loop right-docked-stage-resize');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip responsive-event-loop right-docked-stage-resize');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
