@@ -75,6 +75,7 @@ jobs:
           node scripts/verify-physical-mac-2.0.21.mjs
           node scripts/verify-zoom-window-parity.mjs
           node scripts/verify-physical-parity-2.0.21.mjs
+          node scripts/verify-approved-reference-parity-2.0.22.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop
@@ -160,6 +161,12 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-zoom-window-parity.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Verify packaged approved 3D reference parity
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Create installable DMG, archive, and checksums
         shell: bash
         run: |
@@ -183,7 +190,7 @@ jobs:
           test -s "$DMG"
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" "$ZIP"
           shasum -a 256 "$DMG" "$ZIP" | tee production-artifact/SHA256.txt
-          printf 'commit=%s\nversion=%s\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\ntcc_persistence=not-certified-adhoc\nphysical_reference=zoom-current-macos\nnative_share_picker=macos-15-plus\n' "$GITHUB_SHA" "${{ steps.meta.outputs.version }}" > production-artifact/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=%s\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\ntcc_persistence=not-certified-adhoc\nphysical_reference=approved-3d-plus-zoom-current-macos\nnative_share_picker=macos-15-plus\nreference_gate=approved-2.0.22\n' "$GITHUB_SHA" "${{ steps.meta.outputs.version }}" > production-artifact/BUILD-PROVENANCE.txt
 
       - name: Verify installer layout and installed app identity
         shell: bash
