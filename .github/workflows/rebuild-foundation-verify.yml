@@ -45,6 +45,7 @@ jobs:
           node --check 'meet-desktop/ui/zoom-behavior.js'
           node --check 'meet-desktop/ui/zoom-adaptive-parity.js'
           node --check 'meet-desktop/ui/approved-reference-parity.js'
+          node --check 'meet-desktop/ui/runtime-stability.js'
           node --check 'meet-desktop/ui/participant-controls.js'
           node --check 'meet-desktop/ui/meeting-notifications.js'
           node --check 'meet-desktop/ui/preferences.js'
@@ -61,7 +62,9 @@ jobs:
           node --check 'meet-desktop/ui/app.js'
           node --check 'meet-desktop/scripts/verify-meeting-identity-runtime.mjs'
           node --check 'meet-desktop/scripts/verify-approved-reference-parity-2.0.22.mjs'
+          node --check 'meet-desktop/scripts/verify-runtime-stability-2.0.22.mjs'
           node --check 'meet-desktop/scripts/verify-packaged-approved-reference-2.0.22.mjs'
+          node --check 'meet-desktop/scripts/verify-packaged-runtime-stability-2.0.22.mjs'
       - name: Verify clean Home contract
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
       - name: Verify desktop authentication contract
@@ -86,6 +89,8 @@ jobs:
         run: node 'meet-desktop/scripts/verify-diagnostics.mjs'
       - name: Verify approved 3D reference source parity
         run: node 'meet-desktop/scripts/verify-approved-reference-parity-2.0.22.mjs'
+      - name: Verify physical runtime stability
+        run: node 'meet-desktop/scripts/verify-runtime-stability-2.0.22.mjs'
       - name: Verify Netlify publishes the same UI
         run: bash scripts/build-rebuild-netlify.sh
       - name: Assert legacy runtime is absent
