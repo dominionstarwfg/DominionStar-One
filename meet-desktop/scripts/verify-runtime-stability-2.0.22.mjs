@@ -19,6 +19,12 @@ assert.ok(runtime.includes("event.stopImmediatePropagation();\n      setParticip
 assert.ok(runtime.includes("event.stopImmediatePropagation();\n      setChat"),'Chat click must have a single capture-phase authority.');
 assert.ok(runtime.includes("if(show)closeChat(false)"),'Opening Participants must close Chat synchronously.');
 assert.ok(runtime.includes("if(show)setParticipants(false)"),'Opening Chat must close Participants synchronously.');
+const participantSetter=runtime.slice(runtime.indexOf('function setParticipants'),runtime.indexOf('function closeChat'));
+const chatSetter=runtime.slice(runtime.indexOf('function setChat'),runtime.indexOf('function layoutSideSurface'));
+assert.ok(participantSetter.includes('layoutSideSurface();'),'Participants visibility and responsive geometry must commit in the same click transaction.');
+assert.ok(chatSetter.includes('layoutSideSurface();'),'Chat visibility and responsive geometry must commit in the same click transaction.');
+assert.ok(!participantSetter.includes('schedule();'),'Participants click must not wait for requestAnimationFrame to acquire final geometry.');
+assert.ok(!chatSetter.includes('schedule();'),'Chat click must not wait for requestAnimationFrame to acquire final geometry.');
 assert.ok(runtime.includes("for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])"),'All known periodic layout authorities must be retired by the final runtime.');
 assert.ok(runtime.includes('primePhysicalControls()'),'Physical controls must be primed once without restoring their background loop.');
 assert.ok(runtime.includes("controller.dispose?.()"),'Physical acceptance observer/timer must be disconnected after priming.');
@@ -53,4 +59,4 @@ assert.ok(runtime.includes('DominionZoomPhysicalAcceptance'),'Final runtime must
 // blocked at the roster/queue boundary and cannot become a periodic redraw.
 assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
-console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority full-window responsive-stage physical-loop-isolated unchanged-snapshot-suppressed no-runtime-polling');
+console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority synchronous-click-geometry full-window responsive-stage physical-loop-isolated unchanged-snapshot-suppressed no-runtime-polling');
