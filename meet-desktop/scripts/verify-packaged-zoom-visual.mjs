@@ -44,8 +44,9 @@ try{
   await cdp('Runtime.enable');
   await waitFor("document.readyState==='complete'&&window.DominionMeetingParity&&window.DominionZoomProductionPolish&&window.DominionZoomAdaptiveParity&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&window.DominionShareIntegration&&document.querySelector('#meetingOverlay')",'final meeting visual controllers');
   await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;window.DominionMeetingParity.install();window.DominionMeetingParity.decorateControls();const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionZoomProductionPolish.sync();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();return true;})()`);
-  await waitFor("document.querySelector('.meeting-footer')?.dataset.dsRuntimeToolbarZones==='1'&&['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions','roomMore','roomExitButton'].every(id=>document.querySelector('#'+id))",'complete stable packaged meeting toolbar');
-  await evaluate(`window.DominionMeetingParity.decorateControls();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();true`);
+  await waitFor("['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions','roomMore','roomExitButton'].every(id=>document.querySelector('#'+id))",'complete packaged meeting controls');
+  assert.equal(await evaluate(`(()=>{window.DominionRuntimeStability.ensureToolbarZones();const footer=document.querySelector('.meeting-footer');return footer?.dataset.dsRuntimeToolbarZones||'';})()`),'1','Final runtime did not commit the stable three-zone toolbar before visual measurement.');
+  await evaluate(`window.DominionMeetingParity.decorateControls();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();true`);
   await waitFor("document.querySelector('#roomHostTools')&&!document.querySelector('#roomHostTools').hidden",'host tools control');
   await sleep(120);
 
@@ -86,12 +87,12 @@ try{
   assert.equal(chat.moreVisible,true,'Host chat options must be behind the More control.');
   await evaluate(`document.querySelector('#roomChat').click()`);
 
-  const reaction=await evaluate(`(()=>{document.querySelector('#roomReactions').click();const menu=document.querySelector('.meeting-reaction-menu'),r=menu.getBoundingClientRect(),button=menu.querySelector('button:not(.reaction-hand-button)');return {left:Math.round(r.left),bottom:Math.round(innerHeight-r.bottom),buttonWidth:button?button.getBoundingClientRect().width:0,font:button?parseFloat(getComputedStyle(button).fontSize):0};})()`);
+  const reaction=await evaluate(`(()=>{document.querySelector('#roomReactions').click();const menu=document.querySelector('.ds-reaction-tray,.meeting-reaction-menu'),r=menu.getBoundingClientRect(),button=menu.querySelector('button:not(.reaction-hand-button):not(.ds-raise-hand)');return {left:Math.round(r.left),bottom:Math.round(innerHeight-r.bottom),buttonWidth:button?button.getBoundingClientRect().width:0,font:button?parseFloat(getComputedStyle(button).fontSize):0};})()`);
   assert.ok(reaction.left<=30,'Reactions tray must anchor on the left side.');
   assert.ok(reaction.buttonWidth>=46&&reaction.font>=24,'Reaction controls are undersized.');
-  await evaluate(`document.querySelector('.meeting-reaction-menu')?.remove()`);
+  await evaluate(`document.querySelector('.ds-reaction-tray,.meeting-reaction-menu')?.remove()`);
 
-  const more=await evaluate(`(()=>{document.querySelector('#roomMore').click();const menu=document.querySelector('.meeting-more-menu'),buttons=[...menu.querySelectorAll('button')];return {font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>/Meeting settings/i.test(b.textContent||'')),hasHostDuplicate:buttons.some(b=>String(b.textContent||'').trim()==='Host tools')};})()`);
+  const more=await evaluate(`(()=>{document.querySelector('#roomMore').click();const menu=document.querySelector('.meeting-more-menu,.ds-command-menu'),buttons=[...menu.querySelectorAll('button')];return {font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>/Meeting settings/i.test(b.textContent||'')),hasHostDuplicate:buttons.some(b=>String(b.textContent||'').trim()==='Host tools')};})()`);
   assert.ok(more.font>=11.5,'More menu text is too small.');
   assert.equal(more.hasSettings,true,'Meeting settings must remain in More.');
   assert.equal(more.hasHostDuplicate,false,'Host Tools must not be duplicated in More when it has a primary toolbar control.');
