@@ -4,7 +4,10 @@ const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 const pkg=JSON.parse(read('package.json'));
 const shareService=read('src/share-service.mjs');
 const shareIntegration=read('ui/share-integration.js');
+const sharePicker=read('ui/share-picker.js');
+const sharePickerHtml=read('ui/share-picker.html');
 const physicalRepair=read('ui/physical-mac-repair.js');
+const parity=read('ui/meeting-parity.js');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const adaptiveCss=read('ui/zoom-adaptive-parity.css');
 const auth=read('ui/auth-password.js');
@@ -29,6 +32,22 @@ const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker()
 const statusIndex=shareIntegration.indexOf('media?.requestScreen?.()');
 if(openIndex<0||statusIndex<0||statusIndex<openIndex)throw new Error('Screen permission status is queried before the native picker attempt.');
 
+// The fallback chooser must display the real sources macOS/Windows reports, not
+// a hard-coded illustration of desktops/windows that may not exist.
+requireText(sharePicker,"allSources=result.sources||[]",'Fallback Share chooser is not populated from actual discovered sources.');
+requireText(sharePicker,'source.thumbnail','Fallback Share chooser does not render live source previews.');
+requireText(sharePicker,"kind:filter==='window'?'window':'screen'",'Fallback Share chooser cannot switch between real screens and application windows.');
+requireText(sharePickerHtml,'data-filter="screen">Screens','Fallback Share chooser is missing the Screens source family.');
+requireText(sharePickerHtml,'data-filter="window">Applications','Fallback Share chooser is missing the Applications source family.');
+
+// Approved visual reference: real brand and Zoom-style View control are release requirements.
+requireText(parity,"const logo=String(desktop.brand?.logoUrl||'')",'Meeting header is not driven by the real packaged DominionStar logo resource.');
+requireText(parity,"wrap.innerHTML=`<img src=\"${logo}\" alt=\"DominionStar\"><strong>DominionStar Meet</strong>`",'DominionStar meeting brand is not mounted in the meeting header.');
+requireText(parity,'function ensureViewButton()','Meeting header is missing the Zoom-style View control.');
+requireText(parity,"['speaker',sharing()?'Side-by-side: Speaker':'Speaker']",'View menu is missing Speaker view.');
+requireText(parity,"['gallery',sharing()?'Side-by-side: Gallery':'Gallery']",'View menu is missing Gallery view.');
+requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']",'View menu is missing Multi-speaker view.');
+
 // Participants: small-roster density, adaptive search, and documented Zoom ordering.
 requireText(adaptive,"search.hidden=count<=1",'One-person participant panel still exposes unnecessary search.');
 requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
@@ -52,9 +71,15 @@ requireText(adaptiveCss,'grid-template-columns:minmax(0,1fr) minmax(0,1fr) !impo
 requireText(adaptive,"label.hidden=title==='speaker'",'Prejoin still exposes the third speaker selector that clipped in the physical screenshot.');
 requireText(adaptive,'Always show this preview when joining','Zoom-style persistent preview preference is missing.');
 
+// Floating participant video tiles: entire panel is draggable with an ordinary
+// cursor; no decorative grip/hand is allowed in the approved reference.
+requireText(adaptiveCss,'#participantVideoDock,\n#participantVideoDock .participant-video-dock-head{\n  cursor:default !important;','Floating video panel does not retain the normal arrow cursor.');
+requireText(adaptiveCss,'#participantVideoDock .dock-grip{display:none !important;}','Legacy video-panel grip affordance is still visible.');
+requireText(physicalRepair,"dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available'",'Video panel is not participant-count aware.');
+
 // Final authority must load after the physical-repair layer.
 requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller is not sequenced after physical Mac repair.');
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker no-preflight compact-prejoin adaptive-participants zoom-sort adaptive-chat physical-rejection-recorded');
+console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants zoom-sort adaptive-chat floating-video-no-grip physical-rejection-recorded');
