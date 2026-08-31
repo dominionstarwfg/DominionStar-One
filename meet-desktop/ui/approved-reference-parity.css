@@ -38,6 +38,17 @@
 #meetingOverlay .meeting-footer{
   align-items:center !important;
 }
+/* Do not expose a toolbar while its role-dependent control set is unresolved.
+   The pending Host Tools slot is reserved invisibly, so a late Host/Co-host role
+   cannot push the primary controls left/right after the footer becomes visible. */
+#meetingOverlay .meeting-footer[data-approved-role-state="pending"]{
+  visibility:hidden !important;
+}
+#meetingOverlay .meeting-footer[data-approved-role-state="pending"] #roomHostTools[hidden]{
+  display:flex !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+}
 /* CSS order is final visual authority so older reconciliation loops cannot make
    the toolbar visibly jump back to a stale ordering between sync cycles. */
 #meetingOverlay #roomMic{order:10 !important;}
