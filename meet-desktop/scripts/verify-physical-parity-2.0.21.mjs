@@ -49,7 +49,8 @@ requireText(parity,"['gallery',sharing()?'Side-by-side: Gallery':'Gallery']",'Vi
 requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']",'View menu is missing Multi-speaker view.');
 
 // Participants: small-roster density, adaptive search, documented Zoom ordering,
-// readable title hierarchy, and a final-authority real mouse drag on the floating header.
+// readable title hierarchy, and a final-authority real mouse drag that keeps
+// tracking after the pointer leaves the 48px title bar.
 requireText(adaptive,"search.hidden=count<=1",'One-person participant panel still exposes unnecessary search.');
 requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
 requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep the local user first.');
@@ -60,6 +61,8 @@ requireText(adaptive,"else if(micOn)bucket=4",'Participant ordering does not pri
 requireText(adaptive,"if(count<=6)centerParticipantPanel(side,count)",'Small participant rosters do not default to the compact floating physical-reference layout.');
 requireText(adaptive,"head.dataset.dsAdaptiveParticipantDrag='1'",'Floating Participants does not declare final adaptive drag authority.');
 requireText(adaptive,"head.addEventListener('pointerdown',startParticipantPanelDrag,true)",'Floating Participants does not capture real pointer drag in the final adaptive layer.');
+requireText(adaptive,"document.addEventListener('pointermove',moveParticipantPanelDrag,true)",'Floating Participants stops tracking when the pointer leaves the title bar.');
+requireText(adaptive,"document.addEventListener('pointerup',endParticipantPanelDrag,true)",'Floating Participants does not end document-level drag cleanly.');
 requireText(adaptive,"side.style.setProperty('left',`${left}px`,'important')",'Floating Participants drag does not override competing legacy geometry.');
 requireText(adaptive,"side.style.setProperty('top',`${top}px`,'important')",'Floating Participants drag does not override competing legacy vertical geometry.');
 requireText(adaptiveCss,'max-width:340px !important','One-person participant panel is not bounded to compact Zoom-scale geometry.');
@@ -94,4 +97,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-real-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded');
+console.log('DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-document-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded');
