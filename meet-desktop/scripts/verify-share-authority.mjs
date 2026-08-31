@@ -72,7 +72,8 @@ const integrationPicker=integration.indexOf('const result=await bridge.openPicke
 const integrationPermission=integration.indexOf('media?.requestScreen?.()');
 assert.ok(integrationPicker>=0&&integrationPermission>integrationPicker,'Screen permission status must be queried only after the real capture path can fail.');
 assert(integration.includes('showScreenPermissionDialog')&&integration.includes('Open System Settings'),'Denied macOS Screen Recording must present actionable post-failure recovery.');
-assert(integration.includes("window.dominionDesktop?.media?.openPrivacy?.('screen')"),'Permission recovery must open the correct macOS Privacy & Security pane through the native bridge.');
+const opensScreenPrivacy=integration.includes("desktop?.media?.openPrivacy?.('screen')")||integration.includes("window.dominionDesktop?.media?.openPrivacy?.('screen')");
+assert(opensScreenPrivacy&&preload.includes("openPrivacy:kind=>invoke('media:open-privacy',{kind})"),'Permission recovery must open the correct macOS Privacy & Security pane through the narrow native bridge.');
 assert((controller.match(/getDisplayMedia/g)||[]).length>=2,'Display capture authority must remain implemented inside the isolated share controller.');
 const directDisplayCall=/\.getDisplayMedia\s*\(/;
 assert(!directDisplayCall.test(integration)&&!directDisplayCall.test(preload)&&!directDisplayCall.test(picker),'No renderer integration, preload bridge, or picker surface may acquire display media directly.');
