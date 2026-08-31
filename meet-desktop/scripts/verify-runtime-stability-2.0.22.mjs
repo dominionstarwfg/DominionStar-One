@@ -6,6 +6,9 @@ const auth=read('ui/auth-password.js');
 const runtime=read('ui/runtime-stability.js');
 const css=read('ui/runtime-stability.css');
 const physical=read('ui/zoom-physical-acceptance.js');
+const physicalMac=read('ui/physical-mac-repair.js');
+const reaction=read('ui/zoom-reaction-parity.js');
+const bridge=read('ui/zoom-contract-bridge.js');
 const app=read('ui/app.js');
 const pkg=JSON.parse(read('package.json'));
 
@@ -27,6 +30,8 @@ assert.ok(!participantSetter.includes('schedule();'),'Participants click must no
 assert.ok(!chatSetter.includes('schedule();'),'Chat click must not wait for requestAnimationFrame to acquire final geometry.');
 assert.ok(runtime.includes("for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])"),'All known periodic layout authorities must be retired by the final runtime.');
 assert.ok(runtime.includes('primePhysicalControls()'),'Physical controls must be primed once without restoring their background loop.');
+assert.ok(runtime.includes('primeLegacyStructure()'),'Legacy structural polish must be primed once rather than on every snapshot.');
+assert.ok(runtime.includes('if(legacyPrimed||!meetingOpen())return'),'Legacy structural passes must be one-shot per meeting.');
 assert.ok(runtime.includes("controller.dispose?.()"),'Physical acceptance observer/timer must be disconnected after priming.');
 assert.ok(runtime.includes("meetingObserver.observe(overlay,{attributes:true,attributeFilter:['hidden']})"),'Final runtime observer must be narrowly scoped to meeting visibility.');
 assert.ok(!runtime.includes('setInterval('),'Final runtime must be event-driven and contain no periodic reconciliation timer.');
@@ -36,6 +41,7 @@ assert.ok(runtime.includes("Object.defineProperty(node,'innerHTML'"),'Snapshot D
 assert.ok(runtime.includes('if(next===lastRaw)return'),'Identical snapshot markup must be ignored rather than rebuilt.');
 assert.ok(runtime.includes("guardSnapshotHtml(q('#participantRoster'))"),'Participant roster must be protected from unchanged snapshot rebuilds.');
 assert.ok(runtime.includes("guardSnapshotHtml(q('#waitingQueue'))"),'Waiting queue must be protected from unchanged snapshot rebuilds.');
+assert.ok(runtime.includes("const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1'"),'Participant media decoration must run only when roster markup changed.');
 
 assert.ok(css.includes('width:var(--ds-runtime-vw,100vw)!important'),'Meeting overlay must fill the real Electron viewport width.');
 assert.ok(css.includes('height:var(--ds-runtime-vh,100vh)!important'),'Meeting overlay must fill the real Electron viewport height.');
@@ -46,17 +52,38 @@ assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Constraine
 assert.ok(runtime.includes("stage.style.setProperty('right',`${reserve}px`,'important')"),'Stage must resize around a docked side panel instead of leaving unused black space.');
 assert.ok(css.includes('flex:1 1 auto!important')&&css.includes('#meetingOverlay #participantRoster'),'Participant roster must consume the available panel height.');
 
-// Record the exact physical failure mechanism so it cannot be forgotten: the
-// old physical acceptance observer watches the roster subtree and its media
-// decorator rewrites markup inside that subtree. The final runtime must retire
-// that controller before live interaction. This gate intentionally recognizes
-// the legacy implementation while requiring its isolation.
+// Record the exact legacy physical-acceptance failure mechanism so it cannot be
+// forgotten. The final runtime isolates this controller after its one-time
+// handlers are installed.
 assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,subtree:true})"),'Expected legacy physical observer signature changed; review the stability isolation contract.');
 assert.ok(physical.includes('wrap.innerHTML='),'Expected legacy media-status mutation changed; review the stability isolation contract.');
 assert.ok(runtime.includes('DominionZoomPhysicalAcceptance'),'Final runtime must explicitly isolate the physical acceptance loop.');
+
+// Physical Mac repair itself must no longer add another background storm.
+assert.ok(!physicalMac.includes('setInterval('),'Physical-Mac repair must not run a periodic sync timer.');
+assert.ok(!physicalMac.includes("observe(document.body,{childList:true,subtree:true})"),'Physical-Mac repair must not observe the whole document.');
+assert.ok(physicalMac.includes('async function detectScreenPermission()'),'Screen sharing must have a dedicated permission detector.');
+assert.ok(physicalMac.includes("if(reported==='granted')return {ok:true"),'Already-granted Screen Recording must use the fast path.');
+assert.ok(physicalMac.includes('desktop.media?.requestScreen?.()'),'Stale macOS permission state must use the bounded real-capture probe.');
+assert.ok(physicalMac.includes('Recheck & Share'),'Permission recovery must let the user recheck without rebuilding/restarting unnecessarily.');
+
+// Reaction animation is high-volume UI. It may observe only the dedicated
+// reaction layer, never the entire renderer, and it must preserve the user's
+// physical Zoom reference: left-side lanes with occasional blossoms.
+assert.ok(reaction.includes("observer.observe(layer,{childList:true})"),'Reaction observer must be scoped to direct reaction children.');
+assert.ok(!reaction.includes('observer.observe(document.documentElement'),'Reaction parity must not observe the whole document.');
+assert.ok(reaction.includes("layer.dataset.dsZoomReactionLane='left'"),'Reactions must use the left-side physical-reference lane.');
+assert.ok(reaction.includes("if(!['❤️','👏','👍'].includes(emoji))return"),'Heart/clap/thumb reactions must support selective blossoms.');
+assert.ok(reaction.includes('const MAX_ACTIVE=72'),'High-volume reaction rendering must have a bounded active-node budget.');
+
+// Menu compatibility must not monkey-patch global DOM insertion methods.
+assert.ok(!bridge.includes('Element.prototype.append=function'),'Contract bridge must not patch Element.prototype.append.');
+assert.ok(!bridge.includes('Node.prototype.appendChild=function'),'Contract bridge must not patch Node.prototype.appendChild.');
+assert.ok(bridge.includes("observer.observe(document.body,{childList:true})"),'Contract bridge may watch only direct transient body children.');
+assert.ok(!bridge.includes("observer.observe(document.body,{childList:true,subtree:true})"),'Contract bridge must not observe the body subtree.');
 
 // Network snapshots may remain periodic, but unchanged snapshot markup is now
 // blocked at the roster/queue boundary and cannot become a periodic redraw.
 assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
-console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority synchronous-click-geometry full-window responsive-stage physical-loop-isolated unchanged-snapshot-suppressed no-runtime-polling');
+console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven single-panel-authority synchronous-click-geometry full-window responsive-stage physical-loop-isolated permission-aware-share left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
