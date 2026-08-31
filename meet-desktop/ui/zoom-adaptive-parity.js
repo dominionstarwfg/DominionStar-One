@@ -7,6 +7,7 @@
   const VIDEO_DOCK_GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1';
   let syncing=false;
   let timer=0;
+  let meetingLifecycleOpen=false;
   let participantPanelDrag=null;
   let participantHeadBound=null;
   let participantDocumentDragBound=false;
@@ -15,6 +16,19 @@
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+
+  function clearStaleEntryDialogs(){
+    for(const dialog of qa('dialog[open]')){
+      if(dialog.closest?.('#meetingOverlay'))continue;
+      try{dialog.close();}catch{dialog.removeAttribute('open');}
+    }
+  }
+  function syncMeetingEntry(){
+    const open=meetingOpen();
+    if(open&&!meetingLifecycleOpen){meetingLifecycleOpen=true;clearStaleEntryDialogs();}
+    else if(!open)meetingLifecycleOpen=false;
+    return open;
+  }
 
   function participantRows(){return qa('#participantRoster [data-participant-id]');}
   function rowName(row){return String(row.dataset.participantName||row.querySelector('.person-copy strong')?.childNodes?.[0]?.textContent||row.textContent||'').trim();}
@@ -195,7 +209,7 @@
   }
   function syncPrejoin(){const overlay=q('#prejoinOverlay'),win=overlay?.querySelector('.prejoin-window');if(!overlay||overlay.hidden||!win)return;overlay.classList.add('ds-adaptive-prejoin');win.classList.add('ds-adaptive-prejoin-window');ensurePrejoinChrome(win);const deviceLabels=qa('#prejoinOverlay .device-grid label');for(const label of deviceLabels){const title=String(label.querySelector('span')?.textContent||'').trim().toLowerCase();label.hidden=title==='speaker';}const mirror=q('#prejoinOverlay .mirror-option');if(mirror)mirror.hidden=true;}
 
-  function sync(){if(syncing)return;syncing=true;try{syncPrejoin();if(meetingOpen()){syncParticipants();syncChat();installVideoDockDrag();}}finally{syncing=false;}}
+  function sync(){if(syncing)return;syncing=true;try{const open=syncMeetingEntry();syncPrejoin();if(open){syncParticipants();syncChat();installVideoDockDrag();}}finally{syncing=false;}}
 
   document.addEventListener('click',event=>{
     if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(()=>{const side=q('.room-side');if(side&&!side.hidden){side.dataset.dsAdaptiveInitialized='';delete side.dataset.dsAdaptiveUserPositioned;syncParticipants();}});
@@ -206,5 +220,5 @@
   const observer=new MutationObserver(()=>requestAnimationFrame(sync));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','data-raised-hand']});
   timer=setInterval(sync,650);sync();
 
-  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncParticipants,syncChat,syncPrejoin,installParticipantPanelDrag,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(participantHeadBound){participantHeadBound.removeEventListener('pointerdown',blockLegacyParticipantPointerDown,true);participantHeadBound.removeEventListener('mousedown',startParticipantPanelDrag,true);}if(participantDocumentDragBound){document.removeEventListener('mousemove',moveParticipantPanelDrag,true);document.removeEventListener('mouseup',endParticipantPanelDrag,true);participantDocumentDragBound=false;}if(videoDockBound){videoDockBound.removeEventListener('pointerdown',startVideoDockDrag,true);videoDockBound.removeEventListener('pointermove',moveVideoDockDrag,true);videoDockBound.removeEventListener('pointerup',endVideoDockDrag,true);videoDockBound.removeEventListener('pointercancel',endVideoDockDrag,true);}}});
+  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncMeetingEntry,syncParticipants,syncChat,syncPrejoin,installParticipantPanelDrag,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(participantHeadBound){participantHeadBound.removeEventListener('pointerdown',blockLegacyParticipantPointerDown,true);participantHeadBound.removeEventListener('mousedown',startParticipantPanelDrag,true);}if(participantDocumentDragBound){document.removeEventListener('mousemove',moveParticipantPanelDrag,true);document.removeEventListener('mouseup',endParticipantPanelDrag,true);participantDocumentDragBound=false;}if(videoDockBound){videoDockBound.removeEventListener('pointerdown',startVideoDockDrag,true);videoDockBound.removeEventListener('pointermove',moveVideoDockDrag,true);videoDockBound.removeEventListener('pointerup',endVideoDockDrag,true);videoDockBound.removeEventListener('pointercancel',endVideoDockDrag,true);}}});
 })();
