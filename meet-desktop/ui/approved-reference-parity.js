@@ -3,7 +3,8 @@
   if(window.DominionApprovedReferenceParity)return;
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  const TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore','roomExitButton'];
+  const TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomMore','roomExitButton'];
+  const HOST_TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore','roomExitButton'];
   let chatTargetMenu=null;
   let observer=null;
   let timer=0;
@@ -57,7 +58,7 @@
     // Do not move existing toolbar DOM nodes. Older meeting authorities own the
     // stable DOM structure; approved-reference-parity.css is the sole visual
     // ordering authority. Competing append/insert loops caused visible dancing.
-    footer.dataset.approvedToolbarOrder=TOOLBAR_ORDER.join('|');
+    footer.dataset.approvedToolbarOrder=HOST_TOOLBAR_ORDER.join('|');
   }
 
   function closeChatTargetMenu(){chatTargetMenu?.remove();chatTargetMenu=null;}
@@ -122,5 +123,5 @@
   observer=new MutationObserver(()=>requestAnimationFrame(sync));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','aria-pressed']});
   timer=setInterval(sync,700);sync();
 
-  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22',toolbarOrder:[...TOOLBAR_ORDER],sync,arrangeToolbar,ensureRaiseHandControl,syncChatNavigation,syncVideoPanel,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();}});
+  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,arrangeToolbar,ensureRaiseHandControl,syncChatNavigation,syncVideoPanel,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();}});
 })();
