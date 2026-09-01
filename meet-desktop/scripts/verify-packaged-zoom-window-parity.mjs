@@ -43,12 +43,13 @@ try{
   // Normal desktop width: even one participant uses the right dock. This is the
   // physical-Mac behavior approved after the old centered-card implementation failed.
   await evaluate(`document.querySelector('#roomParticipants').click()`);await sleep(190);
-  const desktopParticipants=await evaluate(`(()=>{window.DominionRuntimeStability.syncParticipantsSurface();window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect(),search=panel.querySelector('.zoom-participant-search'),waiting=document.querySelector('#waitingQueueSection');return {innerWidth,mode:panel.dataset.dsRuntimeMode,width:Math.round(pr.width),rightGap:Math.round(br.right-pr.right),stageRightGap:Math.round(br.right-sr.right),searchHidden:Boolean(search?.hidden||getComputedStyle(search).display==='none'),waitingHidden:Boolean(waiting?.hidden||getComputedStyle(waiting).display==='none'),heading:panel.querySelector('.room-side-head strong')?.textContent||''};})()`);
-  assert.ok(desktopParticipants.innerWidth>=940,'Desktop viewport fixture did not reach docked breakpoint.');
-  assert.equal(desktopParticipants.mode,'docked','Desktop Participants must dock right regardless of small roster size.');
-  assert.ok(desktopParticipants.width>=320&&desktopParticipants.width<=400,'Desktop Participants width is outside the readable bounded range.');
-  assert.ok(Math.abs(desktopParticipants.rightGap)<=2,'Desktop Participants must sit flush to the right edge.');
-  assert.ok(desktopParticipants.stageRightGap>=desktopParticipants.width-2,'Desktop Participants must resize the stage instead of covering it.');
+  const desktopParticipants=await evaluate(`(()=>{window.DominionRuntimeStability.syncParticipantsSurface();window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect(),search=panel.querySelector('.zoom-participant-search'),waiting=document.querySelector('#waitingQueueSection');return {innerWidth,mode:panel.dataset.dsRuntimeMode,width:Math.round(pr.width),centerDelta:Math.round(Math.abs((pr.left+pr.width/2)-(br.left+br.width/2))),inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-sr.right),searchHidden:Boolean(search?.hidden||getComputedStyle(search).display==='none'),waitingHidden:Boolean(waiting?.hidden||getComputedStyle(waiting).display==='none'),heading:panel.querySelector('.room-side-head strong')?.textContent||''};})()`);
+  assert.ok(desktopParticipants.innerWidth>=940,'Desktop viewport fixture did not reach normal desktop width.');
+  assert.equal(desktopParticipants.mode,'floating','Desktop Participants must remain a floating Zoom-style window regardless of roster size.');
+  assert.ok(desktopParticipants.width>=300&&desktopParticipants.width<=420,'Desktop Participants width is outside the readable bounded range.');
+  assert.equal(desktopParticipants.inside,true,'Desktop Participants must remain inside the meeting body.');
+  assert.ok(desktopParticipants.centerDelta<=48,'Desktop Participants must open near the center before the user moves it.');
+  assert.ok(Math.abs(desktopParticipants.stageRightGap)<=2,'Desktop Participants must float over a full-width stage instead of shrinking it.');
   assert.equal(desktopParticipants.searchHidden,true,'Search must remain hidden for a one-person roster.');
   assert.equal(desktopParticipants.waitingHidden,true,'Empty Waiting Room must not consume space.');
   assert.equal(desktopParticipants.heading,'Participants (1)');
@@ -56,9 +57,9 @@ try{
   // Constrained window: panel floats and the stage immediately reclaims full width.
   await setViewport(880,700);
   const constrainedParticipants=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {innerWidth,mode:panel.dataset.dsRuntimeMode,width:Math.round(pr.width),height:Math.round(pr.height),inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-sr.right)};})()`);
-  assert.ok(constrainedParticipants.innerWidth<940,'Constrained viewport fixture did not cross the floating breakpoint.');
-  assert.equal(constrainedParticipants.mode,'floating','Constrained Participants must float instead of crushing the stage.');
-  assert.ok(constrainedParticipants.width<=360,'Floating Participants must remain compact.');
+  assert.ok(constrainedParticipants.innerWidth<940,'Constrained viewport fixture did not apply.');
+  assert.equal(constrainedParticipants.mode,'floating','Constrained Participants must keep the same floating model.');
+  assert.ok(constrainedParticipants.width<=410,'Floating Participants must remain compact.');
   assert.equal(constrainedParticipants.inside,true,'Floating Participants must remain inside the meeting body.');
   assert.ok(Math.abs(constrainedParticipants.stageRightGap)<=2,'Floating Participants must release reserved stage width.');
 
@@ -71,11 +72,11 @@ try{
   await evaluate(`window.DominionRuntimeStability.setParticipants(false)`);
 
   // Chat follows the same desktop-dock / constrained-float contract.
-  const desktopChat=await evaluate(`(()=>{window.DominionRuntimeStability.setChat(true);window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('#meetingChatPanel'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {mode:panel.dataset.dsRuntimeMode,width:Math.round(pr.width),rightGap:Math.round(br.right-pr.right),stageRightGap:Math.round(br.right-sr.right),nav:Boolean(panel.querySelector('.ds-adaptive-chat-nav')),privacy:Boolean(panel.querySelector('.ds-chat-privacy'))};})()`);
-  assert.equal(desktopChat.mode,'docked','Desktop Chat must dock right.');
-  assert.ok(desktopChat.width>=320&&desktopChat.width<=400,'Desktop Chat width must remain compact and readable.');
-  assert.ok(Math.abs(desktopChat.rightGap)<=2,'Desktop Chat must sit flush to the right edge.');
-  assert.ok(desktopChat.stageRightGap>=desktopChat.width-2,'Desktop Chat must reserve stage width.');
+  const desktopChat=await evaluate(`(()=>{window.DominionRuntimeStability.setChat(true);window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('#meetingChatPanel'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {mode:panel.dataset.dsRuntimeMode,width:Math.round(pr.width),inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-sr.right),nav:Boolean(panel.querySelector('.ds-adaptive-chat-nav')),privacy:Boolean(panel.querySelector('.ds-chat-privacy'))};})()`);
+  assert.equal(desktopChat.mode,'floating','Desktop Chat must use the floating window model.');
+  assert.ok(desktopChat.width>=300&&desktopChat.width<=420,'Desktop Chat width must remain compact and readable.');
+  assert.equal(desktopChat.inside,true,'Desktop Chat must remain inside the meeting body.');
+  assert.ok(Math.abs(desktopChat.stageRightGap)<=2,'Desktop Chat must float over a full-width stage.');
   assert.equal(desktopChat.nav,true,'Chat Everyone / New chat navigation is missing.');
   assert.equal(desktopChat.privacy,true,'Chat privacy affordance is missing.');
 
@@ -98,6 +99,6 @@ try{
   assert.equal(video.grip,'none','Legacy gripping-hand affordance must not be visible.');
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Responsive Zoom gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_ZOOM_WINDOW_PARITY_OK compact-prejoin desktop-right-dock constrained-float stage-reserve participant-priority search-threshold adaptive-chat speaker-authority video-under3-hidden video-3plus-visible share-video-visible no-grip');
+  console.log('DOMINIONSTAR_PACKAGED_ZOOM_WINDOW_PARITY_OK compact-prejoin floating-participants-chat full-stage participant-priority search-threshold adaptive-chat speaker-authority video-under3-hidden video-3plus-visible share-video-visible no-grip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('Responsive Zoom gate shutdown'));}pending.clear();try{await cdp('Emulation.clearDeviceMetricsOverride');}catch{}try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
