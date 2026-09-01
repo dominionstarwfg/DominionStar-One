@@ -5,10 +5,12 @@
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomMore','roomExitButton'];
   const HOST_TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore','roomExitButton'];
+  const remoteAvatars=new Map(),profileSentTo=new Set();
   let chatTargetMenu=null;
   let observer=null;
   let timer=0;
   let syncQueued=false;
+  let lastOwnAvatar='';
 
   const HAND_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.8 11.2V6.4a1.35 1.35 0 0 1 2.7 0v3.8-5.1a1.35 1.35 0 1 1 2.7 0v5.1-4.3a1.35 1.35 0 1 1 2.7 0v5.2-2.9a1.35 1.35 0 1 1 2.7 0v5.1c0 4.7-2.8 7.7-7.1 7.7-3 0-5.2-1.3-6.8-3.8l-2-3.1a1.45 1.45 0 0 1 2.3-1.75l2.8 2.85z"/></svg>';
   const SHIELD_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5.2 6v5.1c0 4.4 2.6 7.8 6.8 9.9 4.2-2.1 6.8-5.5 6.8-9.9V6z"/><path d="m8.7 12 2.1 2.1 4.6-5"/></svg>';
@@ -19,11 +21,66 @@
   const setData=(node,key,value)=>{const next=String(value);if(node&&node.dataset[key]!==next)node.dataset[key]=next;};
   const setClass=(node,name,on)=>{if(node&&node.classList.contains(name)!==Boolean(on))node.classList.toggle(name,Boolean(on));};
   const setText=(node,value)=>{const next=String(value);if(node&&node.textContent!==next)node.textContent=next;};
+  const initials=name=>String(name||'DominionStar Member').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'DS';
+  const safeAvatar=value=>{const url=String(value||'').trim();return /^https:\/\//i.test(url)||/^data:image\/(?:png|jpeg|webp);base64,/i.test(url)?url:'';};
 
   function requestSync(){
     if(syncQueued)return;
     syncQueued=true;
     requestAnimationFrame(()=>{syncQueued=false;sync();});
+  }
+
+  function ownProfile(){
+    const name=String(q('#profileName')?.textContent||q('#profileDialogName')?.textContent||q('#stageName')?.textContent||'DominionStar Member').trim();
+    const url=safeAvatar(q('#profileAvatar img')?.src||q('#profileDialogAvatar img')?.src||'');
+    if(url!==lastOwnAvatar){lastOwnAvatar=url;profileSentTo.clear();}
+    return {name,url};
+  }
+
+  function paintAvatar(node,url,fallback='DS'){
+    if(!node)return;
+    const usable=safeAvatar(url);
+    let img=node.querySelector(':scope > img.ds-meeting-avatar-photo');
+    if(usable){
+      if(!img){img=document.createElement('img');img.className='ds-meeting-avatar-photo';img.alt='';img.referrerPolicy='no-referrer';node.textContent='';node.append(img);}
+      if(img.src!==usable)img.src=usable;
+      node.classList.add('has-photo');
+      return;
+    }
+    img?.remove();node.classList.remove('has-photo');
+    if(String(node.textContent||'').trim()!==fallback)node.textContent=fallback;
+  }
+
+  function syncProfilePictures(){
+    const own=ownProfile();
+    paintAvatar(q('#prejoinAvatar'),own.url,initials(own.name));
+    paintAvatar(q('#stageAvatar'),own.url,initials(own.name));
+    const localFallback=q('#localVideoDockTile .remote-peer-fallback');
+    if(localFallback)paintAvatar(localFallback,own.url,'YOU');
+    for(const row of qa('#participantRoster [data-participant-id]')){
+      const id=String(row.dataset.participantId||''),name=String(row.dataset.participantName||row.querySelector('.person-copy strong')?.textContent||'Participant').trim();
+      const url=safeAvatar(row.dataset.avatarUrl||remoteAvatars.get(id)||(name===own.name?own.url:''));
+      const badge=row.querySelector('.person-badge');paintAvatar(badge,url,initials(name));
+      const isSelf=Boolean(own.url||name===own.name)&&name===own.name;
+      if(badge){badge.classList.toggle('ds-profile-photo-edit',isSelf);badge.title=isSelf?'Change profile picture':'';badge.onclick=isSelf?()=>q('#profileAvatarInput')?.click():null;}
+    }
+    for(const tile of qa('#participantVideoDock .remote-peer-tile[data-peer-id]')){
+      const id=String(tile.dataset.peerId||''),name=String(tile.querySelector('.remote-peer-name')?.textContent||'Participant').trim();
+      const fallback=tile.querySelector('.remote-peer-fallback');
+      if(fallback)paintAvatar(fallback,safeAvatar(tile.dataset.avatarUrl||remoteAvatars.get(id)),initials(name));
+    }
+  }
+
+  async function broadcastOwnProfile(snapshot){
+    const bridge=window.dominionDesktop?.meeting,own=ownProfile();
+    if(!bridge?.context||!bridge?.sendSignal||!own.url||own.url.length>4096)return;
+    let ctx=null;try{ctx=await bridge.context();}catch{return;}
+    const selfId=String(ctx?.participantId||'');
+    for(const participant of snapshot?.participants||[]){
+      const id=String(participant?.participantId||'');if(!id||id===selfId||profileSentTo.has(id))continue;
+      profileSentTo.add(id);
+      bridge.sendSignal(id,'profile',{avatarUrl:own.url,displayName:own.name}).catch(()=>profileSentTo.delete(id));
+    }
   }
 
   function ensureTransportSecurityIndicator(){
@@ -82,9 +139,6 @@
   function arrangeToolbar(){
     const footer=q('.meeting-footer');if(!footer)return;
     ensureRaiseHandControl();
-    // Never move existing toolbar DOM nodes. CSS order is the final visual
-    // authority; this prevents competing reconciliation loops from making
-    // controls dance left/right while idle.
     setData(footer,'approvedToolbarOrder',HOST_TOOLBAR_ORDER.join('|'));
     syncToolbarRoleState();
   }
@@ -130,11 +184,9 @@
   }
 
   function sync(){
-    // Mount the dedicated toolbar control before meeting entry so showing the
-    // meeting does not introduce a late geometry shift.
-    ensureRaiseHandControl();arrangeToolbar();
+    ensureRaiseHandControl();arrangeToolbar();syncProfilePictures();
     if(!meetingOpen()){closeChatTargetMenu();return;}
-    ensureTransportSecurityIndicator();removeDuplicateReactionHand();syncRaiseHandState();syncReactionLabel();syncChatNavigation();syncVideoPanel();syncToolbarRoleState();
+    ensureTransportSecurityIndicator();removeDuplicateReactionHand();syncRaiseHandState();syncReactionLabel();syncChatNavigation();syncVideoPanel();syncToolbarRoleState();syncProfilePictures();
   }
 
   document.addEventListener('click',event=>{
@@ -147,14 +199,14 @@
     if(event.target.closest?.('#roomChat'))requestAnimationFrame(()=>{window.DominionZoomAdaptiveParity?.syncChat?.();syncChatNavigation();});
   },true);
   window.addEventListener('dominion:meeting-ui-ready',requestSync);
+  window.addEventListener('dominion:meeting-snapshot',event=>{for(const participant of event.detail?.participants||[]){const id=String(participant?.participantId||''),url=safeAvatar(participant?.avatarUrl||'');if(id&&url)remoteAvatars.set(id,url);}void broadcastOwnProfile(event.detail);requestSync();});
+  window.addEventListener('dominion:meeting-signal',event=>{const detail=event.detail||{};if(detail.type!=='profile')return;const id=String(detail.fromParticipantId||''),url=safeAvatar(detail.payload?.avatarUrl||'');if(id){if(url)remoteAvatars.set(id,url);else remoteAvatars.delete(id);requestSync();}});
+  window.addEventListener('dominion:meeting-ended',()=>{remoteAvatars.clear();profileSentTo.clear();lastOwnAvatar='';requestSync();});
   window.addEventListener('dominion:meeting-snapshot',requestSync);
   window.addEventListener('resize',requestSync);
-  // Observe structural changes and meeting visibility only. Never observe class
-  // or aria-pressed because this authority updates those states itself; doing
-  // so creates a self-triggering mutation loop that can starve the renderer.
   observer=new MutationObserver(requestSync);
   observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   timer=setInterval(requestSync,1200);sync();
 
-  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();}});
+  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22-profile-first',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,syncProfilePictures,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();remoteAvatars.clear();profileSentTo.clear();}});
 })();
