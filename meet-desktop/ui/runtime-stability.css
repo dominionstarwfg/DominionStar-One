@@ -420,3 +420,22 @@ body>.ds-reaction-tray{
 #prejoinOverlay .prejoin-backgrounds-button>span:last-child{display:grid;gap:2px}
 #prejoinOverlay .prejoin-backgrounds-button strong{font-size:11px}
 #prejoinOverlay .prejoin-backgrounds-button small{font-size:9px;color:#aabbd0;font-weight:500}
+
+
+/* Physical Mac reaction sizing: Zoom-scale hit targets and emoji weight.
+   React remains reaction-only; dedicated Raise Hand is separate. */
+#meetingOverlay .meeting-reaction-menu>button:not(.reaction-hand-button):not(.ds-raise-hand),
+body>.meeting-reaction-menu>button:not(.reaction-hand-button):not(.ds-raise-hand),
+#meetingOverlay .ds-reaction-tray>button:not(.reaction-hand-button):not(.ds-raise-hand),
+body>.ds-reaction-tray>button:not(.reaction-hand-button):not(.ds-raise-hand){
+  width:48px!important;
+  min-width:48px!important;
+  height:48px!important;
+  min-height:48px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border-radius:12px!important;
+  font-size:25px!important;
+  line-height:1!important;
+}
