@@ -32,5 +32,5 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     captureStarted:state=>invoke('share:capture-started',state),captureState:state=>invoke('share:capture-state',state),captureStopped:()=>invoke('share:capture-stopped'),onPresenterCommand:callback=>listen('share:presenter-command',callback)
   }),
   sharePicker:Object.freeze({listSources:options=>invoke('share:list-sources',options),choose:(sourceId,options)=>invoke('share:select-source',{sourceId,options}),cancel:()=>invoke('share:cancel-picker')}),
-  presenter:Object.freeze({command:command=>invoke('share:presenter-command',command),onState:callback=>listen('share:toolbar-state',callback)})
+  presenter:Object.freeze({command:command=>invoke('share:presenter-command',command),setMenuOpen:open=>invoke('share:presenter-menu-state',{open:Boolean(open)}),onState:callback=>listen('share:toolbar-state',callback)})
 }));
