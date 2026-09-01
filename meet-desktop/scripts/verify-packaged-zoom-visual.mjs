@@ -97,7 +97,12 @@ try{
   assert.ok(reaction.buttonWidth>=46&&reaction.font>=24,`Reaction controls are undersized. ${JSON.stringify(reaction)}`);
   await evaluate(`document.querySelector('.ds-reaction-tray,.meeting-reaction-menu')?.remove()`);
 
-  const more=await evaluate(`(()=>{document.querySelector('#roomMore').click();const menu=document.querySelector('.meeting-more-menu,.ds-command-menu'),buttons=[...menu.querySelectorAll('button')];return {font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>/Meeting settings/i.test(b.textContent||'')),hasHostDuplicate:buttons.some(b=>String(b.textContent||'').trim()==='Host tools')};})()`);
+  await evaluate(`document.querySelector('#roomMore').click();true`);
+  // The final transient-menu bridge uses a MutationObserver. Mutation delivery
+  // happens at the microtask checkpoint before paint, so inspect the paint-ready
+  // menu state rather than the same synchronous click stack.
+  await sleep(0);
+  const more=await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu,.ds-command-menu'),buttons=[...menu.querySelectorAll('button')];return {font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>/Meeting settings/i.test(b.textContent||'')),hasHostDuplicate:buttons.some(b=>String(b.textContent||'').trim()==='Host tools')};})()`);
   assert.ok(more.font>=11.5,'More menu text is too small.');
   assert.equal(more.hasSettings,true,'Meeting settings must remain in More.');
   assert.equal(more.hasHostDuplicate,false,'Host Tools must not be duplicated in More when it has a primary toolbar control.');
