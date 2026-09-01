@@ -12,18 +12,25 @@
     let dialog=document.querySelector('#screenPermissionDialog');
     if(!dialog){
       dialog=document.createElement('section');dialog.id='screenPermissionDialog';dialog.className='share-permission-dialog';dialog.hidden=true;dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','false');
-      dialog.innerHTML='<div class="share-permission-card"><div class="share-permission-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="m8 11 4-4 4 4M12 7v8M8 21h8"/></svg></div><div><p>SCREEN SHARING PERMISSION</p><h3>DominionStar Meet needs Screen Recording access</h3><span data-permission-copy>Screen Recording is not available to this running app.</span></div><div class="share-permission-actions"><button type="button" data-permission-cancel>Not now</button><button type="button" data-permission-reset>Reset & Reauthorize</button><button type="button" data-permission-open>Open System Settings</button><button type="button" data-permission-retry>Recheck & Share</button></div></div>';
+      dialog.innerHTML='<div class="share-permission-card"><div class="share-permission-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="m8 11 4-4 4 4M12 7v8M8 21h8"/></svg></div><div class="share-permission-copy"><p>SCREEN SHARING</p><h3>Allow Screen Recording</h3><span data-permission-copy>Enable DominionStar Meet in macOS Privacy & Security, then return here.</span></div><div class="share-permission-actions"><button type="button" data-permission-cancel>Cancel</button><button type="button" data-permission-open>Open Settings</button><button type="button" data-permission-retry>I’ve Enabled It</button><button type="button" data-permission-restart hidden>Restart App</button></div></div>';
       document.body.append(dialog);
       dialog.querySelector('[data-permission-cancel]').onclick=()=>{dialog.hidden=true;};
       dialog.querySelector('[data-permission-open]').onclick=async()=>{await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});};
-      dialog.querySelector('[data-permission-reset]').onclick=async event=>{const reset=event.currentTarget;reset.disabled=true;try{await desktop?.app?.resetScreenPermission?.();await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});const copy=dialog.querySelector('[data-permission-copy]');if(copy)copy.textContent='The stale Screen Recording entry was reset. Enable DominionStar Meet in System Settings, return here, then choose Recheck & Share.';}finally{reset.disabled=false;}};
       dialog.querySelector('[data-permission-retry]').onclick=async event=>{const retry=event.currentTarget;retry.disabled=true;try{dialog.hidden=true;await window.DominionShareIntegration?.open?.();}finally{retry.disabled=false;}};
+      dialog.querySelector('[data-permission-restart]').onclick=async event=>{event.currentTarget.disabled=true;try{await desktop?.app?.relaunch?.();}catch{event.currentTarget.disabled=false;}};
     }
     const copy=dialog.querySelector('[data-permission-copy]');
-    if(copy){
-      if(restartRequired)copy.textContent='macOS now reports Screen Recording access, but this running process could not capture. Restart DominionStar Meet once, then Share Screen should proceed without asking again.';
-      else if(status==='denied'||status==='restricted')copy.textContent='Screen Recording is disabled for DominionStar Meet. Enable it in Privacy & Security → Screen & System Audio Recording, then return and choose Recheck & Share.';
-      else copy.textContent=`The native macOS capture request could not use Screen Recording (${status}). Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording, then retry.`;
+    const retry=dialog.querySelector('[data-permission-retry]');
+    const restart=dialog.querySelector('[data-permission-restart]');
+    if(restartRequired){
+      if(copy)copy.textContent='macOS reports access, but this running process still cannot capture. Restart DominionStar Meet once to refresh the permission identity.';
+      if(retry)retry.hidden=true;if(restart)restart.hidden=false;
+    }else{
+      if(copy){
+        if(status==='denied'||status==='restricted')copy.textContent='In Privacy & Security → Screen & System Audio Recording, enable DominionStar Meet. Return here when it is enabled.';
+        else copy.textContent='Allow DominionStar Meet in Privacy & Security → Screen & System Audio Recording, then return here.';
+      }
+      if(retry)retry.hidden=false;if(restart)restart.hidden=true;
     }
     dialog.hidden=false;
   }
@@ -35,11 +42,12 @@
     try{return String((await desktop?.media?.permissions?.())?.screen||'unknown').toLowerCase();}
     catch{return 'unknown';}
   }
-  async function resolveShareEntry(){
+  async function resolveShareEntry(permission='unknown'){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
-    // macOS 15+ must reach navigator.getDisplayMedia without renderer-side source enumeration.
-    // Electron then hands selection/first-time consent to Apple's native picker.
-    const result=await bridge.openPicker();
+    // macOS permission state determines only which chooser owns selection.
+    // Granted -> DominionStar/Zoom-style chooser. Not-yet-granted -> Apple's
+    // native authorization picker so renderer code never pre-enumerates TCC.
+    const result=await bridge.openPicker(permission);
     if(result?.permissionRequired){showScreenPermissionDialog(String(result.status||'unknown'),Boolean(result.restartRequired));return {mode:'blocked'};}
     if(result?.nativeSystemPicker)return {mode:'native'};
     return {mode:result?.opened===false?'blocked':'custom'};
@@ -78,19 +86,16 @@
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return false;}
       button.classList.add('ds-share-checking');
       try{
-        // Cheap intelligence only: an explicit denial is actionable immediately.
-        // Granted goes straight through. not-determined/unknown must still reach
-        // the real native getDisplayMedia request so macOS can make the decision;
-        // DominionStar never probes native source lists before that request.
+        let permission=replace||share.snapshot().active?'granted':'unknown';
         if(!replace&&!share.snapshot().active){
-          const permission=await screenPermissionStatus();
+          permission=await screenPermissionStatus();
           if(permission==='denied'||permission==='restricted'){
             showScreenPermissionDialog(permission,false);
             return false;
           }
         }
 
-        const entry=await resolveShareEntry();
+        const entry=await resolveShareEntry(permission);
         if(entry.mode==='blocked')return false;
         if(entry.mode==='custom')return true;
         try{
@@ -119,8 +124,8 @@
     button.addEventListener('click',event=>{
       event.currentTarget.blur();
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return;}
-      if(share.snapshot().active){toast('A share is already active. Use the floating toolbar to pause, annotate, start a new share, or stop.');return;}
-      requestAnimationFrame(()=>setTimeout(()=>{void beginShare().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));},0));
+      if(share.snapshot().active){toast('A share is already active. Use the floating presenter toolbar to pause, start a new share, or stop.');return;}
+      queueMicrotask(()=>{void beginShare().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));});
     });
 
     bridge?.onSourceSelected?.(async selection=>{
