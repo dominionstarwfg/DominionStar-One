@@ -71,8 +71,10 @@ try{
   assert.equal(ordering.heading,'Participants (7)');
   await evaluate(`window.DominionRuntimeStability.setParticipants(false)`);
 
-  // Chat follows the same desktop-dock / constrained-float contract.
-  const desktopChat=await evaluate(`(()=>{window.DominionRuntimeStability.setChat(true);window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('#meetingChatPanel'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {mode:panel.dataset.dsRuntimeMode,width:Math.round(pr.width),inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-sr.right),nav:Boolean(panel.querySelector('.ds-adaptive-chat-nav')),privacy:Boolean(panel.querySelector('.ds-chat-privacy'))};})()`);
+  // Chat follows the same floating application-surface contract at every width.
+  await evaluate(`window.DominionRuntimeStability.setChat(true);true`);
+  await waitFor("!document.querySelector('#meetingChatPanel').hidden&&document.querySelector('#meetingChatPanel .ds-adaptive-chat-nav')&&document.querySelector('#meetingChatPanel .ds-chat-privacy')",'deterministic Chat navigation and privacy chrome');
+  const desktopChat=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('#meetingChatPanel'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {mode:panel.dataset.dsRuntimeMode,width:Math.round(pr.width),inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-sr.right),nav:Boolean(panel.querySelector('.ds-adaptive-chat-nav')),privacy:Boolean(panel.querySelector('.ds-chat-privacy'))};})()`);
   assert.equal(desktopChat.mode,'floating','Desktop Chat must use the floating window model.');
   assert.ok(desktopChat.width>=300&&desktopChat.width<=420,'Desktop Chat width must remain compact and readable.');
   assert.equal(desktopChat.inside,true,'Desktop Chat must remain inside the meeting body.');
