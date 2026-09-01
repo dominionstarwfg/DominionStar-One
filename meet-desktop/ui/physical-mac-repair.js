@@ -12,14 +12,6 @@
   let expectedPersonalCode='';
   let shareStateUnsub=null;
 
-  function installReactionTrayGuard(){
-    if(document.querySelector('style[data-ds-legacy-reaction-hand-guard]'))return;
-    const style=document.createElement('style');
-    style.dataset.dsLegacyReactionHandGuard='1';
-    style.textContent='.ds-reaction-tray>.ds-reaction-divider,.ds-reaction-tray>.ds-raise-hand{display:none!important}';
-    document.head.append(style);
-  }
-
   function hideLegacyShareRecovery(){
     for(const node of qa('.ds-share-permission,.ds-219-share-recovery')){
       if(!node.hidden)node.hidden=true;
@@ -199,7 +191,6 @@
     if(event.target?.closest?.('#newMeetingUsePersonal'))requestAnimationFrame(syncPersonalChoice);
   }
 
-  installReactionTrayGuard();
   document.addEventListener('submit',event=>void startSelectedPersonalMeeting(event),true);
   document.addEventListener('click',onDocumentClick,true);
   window.addEventListener('dominion:meeting-ui-ready',()=>{sync();void verifyLivePersonalIdentity();});
