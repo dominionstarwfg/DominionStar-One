@@ -9,16 +9,19 @@
         if(heading==='View')element.classList.add('ds-view-command-menu');
         if(heading==='Host Tools'||heading==='More')element.classList.add('ds-bottom-command-menu');
       }
-      if(element.classList.contains('ds-reaction-tray'))element.classList.add('meeting-reaction-menu');
+      // The legacy ds-reaction-tray is retired. Do not decorate it into the
+      // canonical menu class; the only supported chooser is
+      // DominionMeetingFeatures.openReactions() -> .meeting-reaction-menu.
     };
     decorate(node);
-    for(const child of node.querySelectorAll?.('.ds-command-menu,.ds-reaction-tray')||[])decorate(child);
+    for(const child of node.querySelectorAll?.('.ds-command-menu')||[])decorate(child);
   };
 
   const style=document.createElement('style');
   style.dataset.dsZoomContractBridge='1';
   style.textContent=[
-    '.ds-reaction-tray.meeting-reaction-menu{display:flex!important;z-index:3800!important;pointer-events:auto!important}',
+    '.meeting-reaction-menu{display:flex!important;z-index:3800!important;pointer-events:auto!important}',
+    '.ds-reaction-tray{display:none!important}',
     '.ds-command-menu.meeting-more-menu{display:block!important;z-index:3600!important;pointer-events:auto!important}',
     '.ds-command-menu.ds-view-command-menu{top:64px!important;bottom:auto!important}',
     '.ds-command-menu.ds-bottom-command-menu{top:auto!important;bottom:88px!important}',
@@ -35,10 +38,10 @@
     for(const record of records)for(const node of record.addedNodes)apply(node);
   });
   if(document.body)observer.observe(document.body,{childList:true});
-  for(const node of document.querySelectorAll('.ds-command-menu,.ds-reaction-tray'))apply(node);
+  for(const node of document.querySelectorAll('.ds-command-menu'))apply(node);
 
   window.DominionZoomContractBridge=Object.freeze({
-    version:'2.0.22',
+    version:'2.0.22-canonical-react',
     apply,
     dispose:()=>observer.disconnect()
   });
