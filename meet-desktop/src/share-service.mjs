@@ -73,6 +73,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const main=rememberMainWindow();
     if(!main||main.isDestroyed())return false;
     protectMeetingChrome(main,true);
+    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
     try{main.setAlwaysOnTop(false);}catch{}
     try{main.hide();}catch{}
     lastToolbarState={...lastToolbarState,meetingVisible:false};
@@ -84,6 +85,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const main=getMainWindow?.();
     if(!main||main.isDestroyed())return false;
     const saved=savedMainWindowState;
+    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
@@ -117,6 +119,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       try{main.setAlwaysOnTop(false);}catch{}
     }
     protectMeetingChrome(main,false);
+    try{main.webContents?.setBackgroundThrottling?.(true);}catch{}
     main.show();
     savedMainWindowState=null;
   }
