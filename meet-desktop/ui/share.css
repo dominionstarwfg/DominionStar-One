@@ -11,6 +11,27 @@
 .share-toast{position:fixed;left:50%;bottom:24px;z-index:100;transform:translateX(-50%);padding:10px 14px;border:1px solid #48525d;border-radius:10px;background:#171d24;color:#eef4f8;font-size:10px;box-shadow:0 14px 30px rgba(0,0,0,.35)}
 .share-toast.error{border-color:#7b3440;background:#28151a}
 
+/* While sharing, Chat and Participants are compact companion windows instead
+   of reopening the full meeting. Annotation uses only the shared-content stage. */
+body[data-ds-share-companion] #meetingOverlay{background:#15191f!important}
+body[data-ds-share-companion] #meetingOverlay .meeting-shell{height:100%!important;display:block!important;background:#15191f!important}
+body[data-ds-share-companion] #meetingOverlay .meeting-head,
+body[data-ds-share-companion] #meetingOverlay .meeting-footer{display:none!important}
+body[data-ds-share-companion] #meetingOverlay .meeting-body{height:100%!important;min-height:100%!important;display:block!important;position:relative!important;background:#15191f!important}
+body[data-ds-share-companion="chat"] #meetingOverlay .stage,
+body[data-ds-share-companion="chat"] #meetingOverlay .room-side{display:none!important}
+body[data-ds-share-companion="chat"] #meetingChatPanel{display:flex!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;transform:none!important;border-radius:0!important;box-shadow:none!important}
+body[data-ds-share-companion="participants"] #meetingOverlay .stage,
+body[data-ds-share-companion="participants"] #meetingChatPanel{display:none!important}
+body[data-ds-share-companion="participants"] #meetingOverlay .room-side{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;transform:none!important;border-radius:0!important;box-shadow:none!important;border:0!important}
+body[data-ds-share-companion="annotate"] #meetingOverlay .meeting-body{display:grid!important;grid-template-columns:1fr!important}
+body[data-ds-share-companion="annotate"] #meetingOverlay .stage{display:grid!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important}
+body[data-ds-share-companion="annotate"] #meetingOverlay .room-side,
+body[data-ds-share-companion="annotate"] #meetingChatPanel,
+body[data-ds-share-companion="annotate"] #participantVideoDock,
+body[data-ds-share-companion="annotate"] .presenter-camera-tile{display:none!important}
+body[data-ds-share-companion="annotate"] .share-stage-label{top:10px!important;left:10px!important}
+
 @media(max-width:900px){
   .presenter-camera-tile{width:140px}
   .share-stage-label{left:10px;top:10px}
