@@ -20,7 +20,7 @@ const [major,minor,patch]=String(pkg.version||'').split('.').map(Number);
 if(!(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21))throw new Error(`Carried-forward physical-reference gate requires DominionStar Meet 2.0.21 or later in the 2.0.x line; found ${pkg.version}`);
 
 // Screen share: first-time permission remains native-safe; granted sessions use
-// the app-owned source chooser and the normal meeting hides during presentation.
+// the app-owned Zoom-style chooser and the normal meeting hides during presentation.
 requireText(shareService,"const nativeSystemPicker=platform==='darwin'&&macMajor>=15",'Native picker capability is not gated to supported macOS.');
 requireText(shareService,'function configureDisplayMediaHandler(useSystemPicker)','Dynamic native/custom display-media authority is missing.');
 requireText(shareService,'configureDisplayMediaHandler(nativeSystemPicker)','Display-media authority does not initialize native-safe.');
@@ -33,6 +33,7 @@ requireText(shareService,'function hideMeetingWindowForShare()','Presenter state
 requireText(shareService,'main.hide()','Meeting window remains visible by default during sharing.');
 requireText(shareService,'openToolbar();\n    hideMeetingWindowForShare();','Presenter toolbar and meeting-hide transition are not atomic at capture start.');
 requireText(shareService,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true",'Presenter toolbar is not protected across macOS Spaces/full-screen apps.');
+requireText(shareService,"main.webContents?.setBackgroundThrottling?.(false)",'Hidden meeting renderer can still throttle the live share.');
 requireText(shareService,"if(normalized==='stop'&&shareActive)",'Stop Share does not retain main-process retry protection.');
 requireText(physicalRepair,'return await integration.open();','Physical Mac layer still owns capture instead of delegating to Share integration.');
 rejectText(physicalRepair,'sharePicker?.listSources','Physical Mac Share click still enumerates desktop sources before share authority chooses a path.');
@@ -41,14 +42,21 @@ const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker(p
 const diagnosticIndex=shareIntegration.indexOf('media?.requestScreen?.()');
 if(openIndex<0||diagnosticIndex<0||diagnosticIndex<openIndex)throw new Error('Deep Screen Recording diagnostics run before real picker/capture failure.');
 
-// The granted-permission chooser must display real sources and keep DominionStar
-// windows excluded from ordinary presentation flow.
-requireText(sharePicker,"allSources=result.sources||[]",'Share chooser is not populated from actual discovered sources.');
+// The granted-permission chooser must match Zoom's physical share flow: Basic,
+// Advanced and Files tabs, with actual desktops and application windows together
+// in Basic, plus the familiar bottom share options.
+requireText(sharePicker,'basicSources=[...(screenResult?.sources||[]),...(windowResult?.sources||[])]','Basic does not merge real screens and application windows.');
 requireText(sharePicker,'source.thumbnail','Share chooser does not render live source previews.');
-requireText(sharePicker,"kind:filter==='window'?'window':'screen'",'Share chooser cannot switch between real screens and application windows.');
+requireText(sharePicker,"kind:'screen'",'Share chooser does not enumerate real desktop sources.');
+requireText(sharePicker,"kind:'window'",'Share chooser does not enumerate real application windows.');
 requireText(sharePicker,'includeDominionStar:false','Share chooser does not keep DominionStar windows excluded by default.');
-requireText(sharePickerHtml,'data-filter="screen">Screen','Share chooser is missing the Screen source family.');
-requireText(sharePickerHtml,'data-filter="window">Window','Share chooser is missing the Window source family.');
+requireText(sharePicker,'const firstScreen=basicSources.find','Share chooser does not prefer a desktop as Zoom does.');
+requireText(sharePickerHtml,'data-tab="basic">Basic','Share chooser is missing Basic.');
+requireText(sharePickerHtml,'data-tab="advanced">Advanced','Share chooser is missing Advanced.');
+requireText(sharePickerHtml,'data-tab="files">Files','Share chooser is missing Files.');
+requireText(sharePickerHtml,'Share sound','Share chooser is missing Share sound.');
+requireText(sharePickerHtml,'Optimize for video clip','Share chooser is missing Optimize for video clip.');
+requireText(sharePickerHtml,'Optimize for sharing video','Share chooser is missing Optimize for sharing video.');
 rejectText(sharePickerHtml,'Show DominionStar windows','Normal share chooser still exposes a recursive meeting-window option.');
 
 // Approved visual reference: real brand and Zoom-style View control are release requirements.
@@ -105,4 +113,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback granted-zoom-chooser hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded`);
