@@ -8,10 +8,14 @@ const main=read('src/main.mjs');
 const preload=read('src/preload.cjs');
 const picker=read('ui/share-picker.js');
 const pickerHtml=read('ui/share-picker.html');
+const pickerCss=read('ui/share-picker.css');
 const mediaController=read('ui/media-controller.js');
 const controller=read('ui/share-controller.js');
 const integration=read('ui/share-integration.js');
 const toolbar=read('ui/presenter-toolbar.html');
+const toolbarJs=read('ui/presenter-toolbar.js');
+const toolbarCss=read('ui/presenter-toolbar.css');
+const shareCss=read('ui/share.css');
 const annotation=read('ui/share-annotation.js');
 const media=read('ui/media-controller.js');
 
@@ -20,87 +24,93 @@ let releaseFirst;
 const firstEnumeration=new Promise(resolve=>{releaseFirst=resolve;});
 const authority=createShareSourceAuthority({timeoutMs:20,enumerateSources:async()=>{enumerateCount+=1;if(enumerateCount===1)return firstEnumeration;return [{id:'screen:second'}];}});
 const [first,second]=await Promise.all([authority.list(),authority.list()]);
-assert.equal(enumerateCount,1,'Overlapping fallback source requests must share one native enumeration.');
-assert.equal(first.timedOut,true,'A stalled fallback source request must time out to the picker.');
-assert.equal(second.timedOut,true,'Every fallback waiter must be released when native source enumeration stalls.');
-assert.equal(authority.busy(),true,'Timed out fallback discovery must not spawn another native request while the first is still pending.');
-releaseFirst([{id:'screen:first'}]);
-await firstEnumeration;await new Promise(resolve=>setTimeout(resolve,0));
-assert.equal(authority.busy(),false,'Fallback source authority must recover after the pending request completes.');
-const recovered=await authority.list();
-assert.equal(enumerateCount,2,'A later fallback source refresh may start only after the original native request settles.');
-assert.equal(recovered.ok,true);
-assert.equal(authority.get('screen:second')?.id,'screen:second');
+assert.equal(enumerateCount,1,'Overlapping source requests must share one native enumeration.');
+assert.equal(first.timedOut,true);assert.equal(second.timedOut,true);
+assert.equal(authority.busy(),true,'Timed-out discovery must not spawn another native request while the first is pending.');
+releaseFirst([{id:'screen:first'}]);await firstEnumeration;await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(authority.busy(),false);
+const recovered=await authority.list();assert.equal(enumerateCount,2);assert.equal(recovered.ok,true);assert.equal(authority.get('screen:second')?.id,'screen:second');
 
-// Main-process TCC diagnostics remain useful for explicit recovery, but they may
-// not preempt the macOS 15+ native content-sharing picker.
-assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS screen capture must retain a native TCC diagnostic authority.');
-assert(main.includes("permissionStatus('screen')"),'Screen Recording status must remain independently inspectable for post-failure recovery.');
-assert(main.includes("function activeScreenCaptureProbe()"),'Recovery diagnostics must retain a functional capture probe for stale TCC states.');
-assert(main.includes("screenPermissionProbeInFlight"),'Explicit recovery probes must remain single-flight.');
-assert(main.includes("capture-probe-timeout")&&main.includes('2200'),'Explicit recovery probing must be bounded.');
-assert(main.includes("media:request-screen"),'Renderer must retain a narrow post-failure screen-permission command.');
+// macOS TCC remains native authority, but a grant no longer forces the large
+// Apple chooser on every share. Native selection is reserved for permission
+// establishment/fallback; granted sessions use DominionStar's Zoom-style chooser.
+assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS TCC status authority is missing.');
+assert(main.includes("permissionStatus('screen')"),'Screen Recording status must remain independently inspectable.');
+assert(main.includes('function activeScreenCaptureProbe()')&&main.includes('screenPermissionProbeInFlight'),'Explicit recovery probe must remain single-flight.');
+assert(main.includes('capture-probe-timeout')&&main.includes('2200'),'Explicit recovery probing must remain bounded.');
+assert(main.includes("media:request-screen"),'Renderer must retain narrow post-failure diagnostics.');
 
-assert.equal((service.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Exactly one Electron display-media handler may own capture.');
-assert(service.includes("const nativeSystemPicker=platform==='darwin'&&macMajor>=15"),'macOS 15+ native system picker detection is mandatory.');
-assert(service.includes('{useSystemPicker:nativeSystemPicker}'),'Supported macOS must use Electron native system content selection.');
-assert(service.includes("if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'}"),'Native system-picker path must return before fallback permission/source enumeration.');
-const nativeReturn=service.indexOf("if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'}");
-const fallbackPreflight=service.indexOf("if(platform==='darwin'&&typeof ensureScreenPermission==='function')");
-assert.ok(nativeReturn>=0&&fallbackPreflight>nativeReturn,'Fallback macOS permission preflight must never run ahead of the native system picker.');
-assert(service.includes('permissionRequired:true'),'Older-macOS fallback must return denied/unconfigured Screen Recording explicitly.');
-assert(!service.includes("openPrivacySettings('screen').catch"),'Share permission failure must not automatically steal focus into System Settings from the meeting.');
-assert(service.includes("types:[kind]"),'Fallback source authority must enumerate only the active source class.');
-assert(service.includes("thumbnailSize:{width:256,height:144}"),'Fallback source thumbnails must stay lightweight.');
-assert(service.includes("fetchWindowIcons:false"),'Fallback source discovery must not request application icons on the first share path.');
-assert(picker.includes("kind:filter==='window'?'window':'screen'"),'Fallback picker must request only the selected Screens or Applications source class.');
-assert(picker.includes("void refresh();"),'Switching fallback source tabs must explicitly refresh that source class.');
-assert(service.includes('timeoutMs:4500'),'Fallback source enumeration must be bounded.');
-assert(service.includes('if(pickerWindow&&!pickerWindow.isDestroyed())'),'Fallback Share picker must be single-instance.');
-assert(main.includes('createShareService({BrowserWindow,desktopCapturer'),'Electron main process must own fallback source enumeration.');
-assert(!preload.includes('desktopCapturer')&&!picker.includes('desktopCapturer')&&!integration.includes('desktopCapturer'),'Renderer surfaces must never enumerate native sources directly.');
-assert(preload.includes('sharePicker:Object.freeze')&&preload.includes('presenter:Object.freeze'),'Picker and presenter controls must use narrow IPC bridges.');
-assert(pickerHtml.includes('data-filter="screen">Screens')&&pickerHtml.includes('data-filter="window">Applications'),'Fallback picker must expose Screens and Applications.');
-assert(!picker.includes('showModal')&&!pickerHtml.includes('<dialog'),'Fallback Share chooser must not be a modal dialog inside the meeting renderer.');
-assert.equal((mediaController.match(/script\.src='\.\/share-integration\.js'/g)||[]).length,1,'Media controller must own exactly one Share integration bootstrap path.');
-assert(mediaController.includes("script.dataset.dsShareIntegration='1'"),'Share integration bootstrap must be explicitly marked/idempotent.');
-assert(integration.includes("let button=overlay.querySelector('#roomShare')")&&integration.includes("button.id='roomShare'"),'Loaded share integration must create the in-meeting Share Screen control.');
-assert(integration.includes('requestAnimationFrame(()=>setTimeout'),'Share click must release before permission/picker work starts.');
-assert(integration.includes('async function resolveShareEntry()')&&integration.includes('const result=await bridge.openPicker();'),'Meeting UI must resolve native-vs-fallback picker authority before capture.');
-assert(integration.includes("if(result?.nativeSystemPicker)return {mode:'native'}"),'Meeting UI must explicitly recognize macOS native system-picker mode.');
-const integrationPicker=integration.indexOf('const result=await bridge.openPicker();');
-const integrationPermission=integration.indexOf('media?.requestScreen?.()');
-assert.ok(integrationPicker>=0&&integrationPermission>integrationPicker,'Screen permission status must be queried only after the real capture path can fail.');
-assert(integration.includes('showScreenPermissionDialog')&&integration.includes('Open System Settings'),'Denied macOS Screen Recording must present actionable post-failure recovery.');
-const opensScreenPrivacy=integration.includes("desktop?.media?.openPrivacy?.('screen')")||integration.includes("window.dominionDesktop?.media?.openPrivacy?.('screen')");
-assert(opensScreenPrivacy&&preload.includes("openPrivacy:kind=>invoke('media:open-privacy',{kind})"),'Permission recovery must open the correct macOS Privacy & Security pane through the narrow native bridge.');
-assert((controller.match(/getDisplayMedia/g)||[]).length>=2,'Display capture authority must remain implemented inside the isolated share controller.');
+assert.equal((service.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Exactly one Electron display-media handler call site may own capture.');
+assert(service.includes("const nativeSystemPicker=platform==='darwin'&&macMajor>=15"),'macOS native-picker capability detection is mandatory.');
+assert(service.includes('function configureDisplayMediaHandler(useSystemPicker)'),'Share service must explicitly switch native-vs-DominionStar selection authority.');
+assert(service.includes("configureDisplayMediaHandler(nativeSystemPicker)"),'macOS must begin native-safe before permission state is known.');
+assert(service.includes("if(nativeSystemPicker&&status!=='granted')"),'Un-granted macOS sessions must retain native authorization/selection.');
+assert(service.includes("configureDisplayMediaHandler(true)")&&service.includes("nativeSystemPicker:true,status:'system-picker'"),'Native fallback path is missing.');
+assert(service.includes("configureDisplayMediaHandler(false)"),'Granted sessions must switch to DominionStar source selection.');
+assert(preload.includes("openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')})"),'Cheap permission state must cross the narrow preload bridge.');
+assert(!service.includes("if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'}"),'macOS 15+ must not force the Apple picker after Screen Recording is already granted.');
+
+// Custom chooser is a real source chooser, not an illustration, and excludes
+// DominionStar windows by default so the meeting cannot recurse into the share.
+assert(service.includes("types:[kind]"),'Source authority must enumerate only the selected source class.');
+assert(service.includes("thumbnailSize:{width:320,height:180}"),'Source previews must remain bounded.');
+assert(service.includes("fetchWindowIcons:false"),'Source discovery must not request unnecessary application icons.');
+assert(service.includes("!/DominionStar Meet/i.test"),'DominionStar windows must be filtered from normal source selection.');
+assert(picker.includes("includeDominionStar:false"),'User-facing chooser must keep DominionStar windows excluded.');
+assert(picker.includes("kind:filter==='window'?'window':'screen'"),'Chooser must switch between real screens and windows.');
+assert(picker.includes('allSources=result.sources||[]')&&picker.includes('source.thumbnail'),'Chooser must render discovered live source previews.');
+assert(pickerHtml.includes('data-filter="screen">Screen')&&pickerHtml.includes('data-filter="window">Window'),'Chooser must expose Screen and Window families.');
+assert(pickerHtml.includes('Share sound')&&pickerHtml.includes('Optimize for video clip'),'Chooser must expose Zoom-class share options.');
+assert(!pickerHtml.includes('Show DominionStar windows'),'Normal presenter flow must not expose an easy recursion toggle.');
+assert(pickerCss.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'Desktop chooser must use a compact source grid.');
+assert(!picker.includes('showModal')&&!pickerHtml.includes('<dialog'),'Share chooser must remain a separate desktop window, not an in-meeting blocking modal.');
+
+// Renderer must use cheap TCC state only to choose selection UX. Deep permission
+// diagnostics remain after a real capture failure.
+assert(mediaController.includes("script.src='./share-integration.js'"),'Media controller must own one Share integration bootstrap path.');
+assert(integration.includes('async function screenPermissionStatus()'),'Share integration must own cheap TCC state intelligence.');
+assert(integration.includes('const result=await bridge.openPicker(permission);'),'Share entry must pass cheap permission state into native selection authority.');
+assert(integration.includes("if(result?.nativeSystemPicker)return {mode:'native'}"),'Renderer must retain first-time/native fallback mode.');
+assert(integration.includes("if(permission==='denied'||permission==='restricted')"),'Explicit denial must produce actionable recovery without capture churn.');
+assert(integration.includes('queueMicrotask(()=>{void beginShare()'),'Share command must not depend on requestAnimationFrame.');
+assert(!integration.includes('requestAnimationFrame(()=>setTimeout'),'Functional Share start must not be paint-frame gated.');
+const pickerCall=integration.indexOf('const result=await bridge.openPicker(permission);');
+const deepDiagnostic=integration.indexOf('desktop?.media?.requestScreen?.()');
+assert.ok(pickerCall>=0&&deepDiagnostic>pickerCall,'Deep TCC diagnostics must occur only after real picker/capture failure.');
+assert(integration.includes('showScreenPermissionDialog')&&integration.includes('Open Settings'),'Denied Screen Recording must provide compact System Settings recovery.');
+assert(!integration.includes('data-permission-reset'),'Primary Share recovery must not offer destructive TCC reset as a normal action.');
+assert(shareCss.includes('top:68px')&&shareCss.includes('width:min(430px'),'Permission recovery must remain compact instead of covering the meeting.');
+
+// Capture/paused/annotation behavior remains single-owner and transactional.
+assert((controller.match(/getDisplayMedia/g)||[]).length>=2,'Display capture authority must remain isolated in ShareController.');
 const directDisplayCall=/\.getDisplayMedia\s*\(/;
-assert(!directDisplayCall.test(integration)&&!directDisplayCall.test(preload)&&!directDisplayCall.test(picker),'No renderer integration, preload bridge, or picker surface may acquire display media directly.');
+assert(!directDisplayCall.test(integration)&&!directDisplayCall.test(preload)&&!directDisplayCall.test(picker),'Integration/preload/picker must never acquire display media directly.');
 assert(controller.includes("context.drawImage(videoElement,0,0,width,height)"),'Pause must freeze the exact last shared frame.');
-assert(controller.includes('canvas.captureStream(1)'),'Pause must create a frozen presentation stream rather than showing black.');
-assert(controller.includes('const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Paused/unpaused base output must deterministically switch between frozen and live capture.');
-assert(controller.includes("for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone())"),'Pause must freeze video while preserving shared computer audio on the presentation stream.');
-assert(controller.includes("track.contentHint=optimize?'motion':'detail'")&&controller.includes("audioTrack.contentHint='music'"),'Share capture must signal motion/detail intent and music-quality system audio to the media pipeline.');
-assert(controller.includes('state.paused=false;if(state.annotationCanvas)startComposite()'),'Resume must restore the live base and rebuild annotation composition when annotations are active.');
-assert(controller.includes('function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}'),'Presentation output must use live/frozen base directly unless annotation composition is active.');
-assert(controller.includes('if(state.compositeVideo.srcObject!==base)')&&controller.includes('const base=baseOutputStream()'),'Annotation composition must continuously follow the current live/frozen base stream.');
-assert(annotation.includes('setAnnotationCanvas'),'Annotation UI must attach its canvas through the share controller rather than a separate capture authority.');
-assert(annotation.includes("data-annotation-mode=\"laser\"")&&annotation.includes('drawLaser')&&annotation.includes('clearLaser(650)'),'Annotation must provide a transient Zoom-style laser pointer rather than permanently drawing the laser onto the share.');
-assert(annotation.includes('data-annotation-undo')&&annotation.includes('state.history.pop()')&&annotation.includes('getImageData'),'Annotation must provide bounded Undo history.');
-for(const color of ['#ff3b30','#2d8cff','#28c76f','#ffffff'])assert(annotation.includes(`data-annotation-color="${color}"`),`Annotation color palette missing ${color}.`);
-assert(controller.includes('state.paused=true;if(state.annotationCanvas)startComposite()'),'Pause must keep annotation composition attached to the frozen last frame.');
-assert(controller.includes('const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Annotations must share the same deterministic frozen/live presentation base.');
-assert(controller.includes('stopTracks(state.liveStream)'),'Stop Share must release the live screen-capture track.');
-assert(controller.includes('async function replaceSource')&&controller.includes('const previousLive=state.liveStream'),'New Share must have an explicit transactional source-replacement path.');
-assert(controller.indexOf('const {stream,track}=await acquireDisplay(options);',controller.indexOf('async function replaceSource'))<controller.indexOf('stopTracks(previousFrozen);stopTracks(previousLive);',controller.indexOf('async function replaceSource')),'New Share must acquire the replacement source before releasing the current presentation.');
-assert(integration.includes("if(replacing){await share.replaceSource")&&integration.includes("async function openPickerWithPermission(){return beginShare({replace:share.snapshot().active});}")&&integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must keep the current share active while native/fallback selection is in progress.');
-assert(!integration.includes("if(command==='new-share'){window.DominionShareAnnotation?.deactivate?.();await share.stop()"),'New Share must never stop the current presentation before replacement succeeds.');
-assert(service.includes('if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive();publishToolbarState();return;}'),'Presenter toolbar must remain single-instance across share-source changes.');
-assert(toolbar.includes('shareSourceLabel')&&toolbar.includes('shareAudioFlag')&&toolbar.includes('shareOptimizeFlag'),'Presenter toolbar must expose current source, Computer Sound, and Optimize-for-Video state.');
-assert(integration.includes('shareAudio:Boolean(state.options?.shareAudio)')&&integration.includes('optimizeVideo:Boolean(state.options?.optimizeVideo)'),'Presenter toolbar state must be driven from the real active share options.');
-assert(service.includes('shareAudio:false,optimizeVideo:false'),'Presenter toolbar shell must reset share-option state when sharing stops.');
-for(const command of ['audio','video','pause','participants','show-meeting','stop'])assert(toolbar.includes(`data-command="${command}"`),`Presenter toolbar is missing ${command}.`);
-assert(media.includes("script.src='./share-integration.js'"),'Desktop and Netlify must load the same isolated share integration.');
+assert(controller.includes('canvas.captureStream(1)'),'Pause must create a frozen stream, not black video.');
+assert(controller.includes('const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream'),'Paused/live output switching must remain deterministic.');
+assert(controller.includes("audioTrack.contentHint='music'"),'Shared computer audio must retain presentation quality intent.');
+assert(annotation.includes('setAnnotationCanvas')&&annotation.includes('drawLaser')&&annotation.includes('clearLaser(650)'),'Annotation/laser must remain attached to the single share controller.');
+assert(controller.includes('stopTracks(state.liveStream)'),'Stop Share must release the live capture track.');
+assert(controller.includes('async function replaceSource')&&controller.includes('const previousLive=state.liveStream'),'New Share must remain transactional.');
+assert(integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must route through the same permission-aware chooser.');
+
+// Zoom presenter-state contract: normal meeting disappears, a separate toolbar
+// remains above full-screen apps, and Stop Share cannot be lost with the meeting.
+assert(service.includes('function hideMeetingWindowForShare()'),'Share service must have a dedicated hide-meeting presenter state.');
+assert(service.includes('main.hide()'),'The normal meeting window must be hidden by default during presentation.');
+assert(service.includes("lastToolbarState={...lastToolbarState,...state,meetingVisible:false}"),'Presenter state must start with the meeting hidden.');
+const captureStarted=service.slice(service.indexOf("ipcMain.handle('share:capture-started'"),service.indexOf("ipcMain.handle('share:capture-state'"));
+assert(captureStarted.includes('openToolbar();')&&captureStarted.includes('hideMeetingWindowForShare();'),'Capture start must open presenter controls and hide the meeting in one transaction.');
+assert(service.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter toolbar must remain available across macOS Spaces/full-screen apps.');
+assert(service.includes("setAlwaysOnTop(true,'floating')"),'Presenter toolbar must stay above shared applications.');
+assert(service.includes('backgroundThrottling:false'),'Presenter toolbar must remain responsive while the meeting window is hidden.');
+assert(service.includes("if(normalized==='stop'&&shareActive)")&&service.includes("sendMain('share:presenter-command','stop')"),'Stop Share must have a bounded one-shot retry if renderer acknowledgement is delayed.');
+assert(toolbar.includes('data-command="stop"')&&toolbar.includes('Stop Share'),'Floating presenter toolbar must expose Stop Share directly.');
+assert(toolbarCss.includes('min-width:104px')&&toolbarCss.includes('background:#d83d4c'),'Stop Share must be visually dominant and large enough to click reliably.');
+assert(toolbarJs.includes("if(command==='stop')")&&toolbarJs.includes("label.textContent='Stopping…'"),'Stop Share click must immediately enter a visible stopping state.');
+assert(!toolbarJs.includes("command='smart-new-share'"),'Presenter New Share must not be rewritten to an unhandled command.');
+assert(service.includes("if(lastToolbarState.meetingVisible)hideMeetingWindowForShare()"),'Show/Hide meeting must be explicit presenter control, not default visibility.');
+
+assert(media.includes("script.src='./share-integration.js'"),'Desktop/web bundle must retain the same isolated Share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK native-macos-picker fallback-single-flight bounded-fallback nonmodal transactional-new-share post-failure-permission-recovery system-audio optimize-video presenter-state pause-freeze live-resume annotation-composite laser undo colors paused-annotation stop single-floating-toolbar');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-native-fallback granted-zoom-chooser dominionstar-window-exclusion nonblocking-share-start hidden-meeting-default persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
