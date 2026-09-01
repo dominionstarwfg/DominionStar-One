@@ -43,7 +43,20 @@
       const {stream,track}=await acquireDisplay(options);
       state.liveStream=stream;state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
-      await bridge?.captureStarted?.({sourceName:state.sourceName,paused:false});
+      let presenter=null;
+      try{presenter=await bridge?.captureStarted?.({sourceName:state.sourceName,paused:false});}
+      catch(error){
+        state.liveStream=null;state.sourceName='';state.options={};state.paused=false;
+        stopTracks(stream);
+        try{await bridge?.captureStopped?.();}catch{}
+        throw error;
+      }
+      if(presenter?.toolbarReady===false){
+        state.liveStream=null;state.sourceName='';state.options={};state.paused=false;
+        stopTracks(stream);
+        try{await bridge?.captureStopped?.();}catch{}
+        throw new Error('Presenter controls could not start. Screen sharing was cancelled safely.');
+      }
       return snapshot();
     }finally{state.busy=false;emit();}
   }
