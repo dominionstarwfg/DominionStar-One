@@ -155,28 +155,35 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed())pickerWindow.close();pickerWindow=null;}
 
-  function openToolbar(){
+  async function openToolbar(){
     if(toolbarWindow&&!toolbarWindow.isDestroyed()){
       toolbarWindow.show();
       toolbarWindow.moveTop?.();
       publishToolbarState();
-      return;
+      return true;
     }
-    toolbarWindow=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:82,show:false,frame:false,transparent:false,backgroundColor:'#15181c',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,type:platform==='darwin'?'panel':undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
-    positionNearMain(toolbarWindow,930,82);
-    try{toolbarWindow.setAlwaysOnTop(true,'floating');}catch{}
+    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:82,show:false,frame:false,transparent:false,backgroundColor:'#15181c',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,type:platform==='darwin'?'panel':undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
+    toolbarWindow=created;
+    positionNearMain(created,930,82);
+    try{created.setAlwaysOnTop(true,'floating');}catch{}
     if(platform==='darwin'){
-      try{toolbarWindow.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+      try{created.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     }
-    protectMeetingChrome(toolbarWindow,true);
-    toolbarWindow.webContents.once('did-finish-load',()=>publishToolbarState());
-    toolbarWindow.once('ready-to-show',()=>{
-      if(!toolbarWindow||toolbarWindow.isDestroyed())return;
-      toolbarWindow.show();
-      toolbarWindow.moveTop?.();
-    });
-    void toolbarWindow.loadFile(path.join(uiDir,'presenter-toolbar.html'));
-    toolbarWindow.on('closed',()=>{toolbarWindow=null;});
+    protectMeetingChrome(created,true);
+    created.on('closed',()=>{if(toolbarWindow===created)toolbarWindow=null;});
+    try{
+      await created.loadFile(path.join(uiDir,'presenter-toolbar.html'));
+      if(created.isDestroyed()||toolbarWindow!==created)return false;
+      created.show();
+      created.moveTop?.();
+      publishToolbarState();
+      return true;
+    }catch(error){
+      try{created.setClosable?.(true);created.close();}catch{}
+      if(toolbarWindow===created)toolbarWindow=null;
+      console.error('[DominionStar Meet] Presenter toolbar failed to load.',error);
+      return false;
+    }
   }
 
   function closeToolbar(){if(toolbarWindow&&!toolbarWindow.isDestroyed()){try{toolbarWindow.setClosable?.(true);}catch{}toolbarWindow.close();}toolbarWindow=null;}
@@ -242,14 +249,15 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     return {ok:true};
   });
   ipcMain.handle('share:cancel-picker',()=>{closePicker();return {ok:true};});
-  ipcMain.handle('share:capture-started',(_event,state={})=>{
+  ipcMain.handle('share:capture-started',async(_event,state={})=>{
     shareActive=true;
     rememberMainWindow();
     attachShareWindowLifecycle();
-    lastToolbarState={...lastToolbarState,...state,meetingVisible:false};
-    openToolbar();
-    hideMeetingWindowForShare();
-    return {ok:true};
+    lastToolbarState={...lastToolbarState,...state,meetingVisible:true};
+    const toolbarReady=await openToolbar();
+    if(toolbarReady)hideMeetingWindowForShare();
+    else publishToolbarState();
+    return {ok:true,toolbarReady,meetingHidden:Boolean(toolbarReady)};
   });
   ipcMain.handle('share:capture-state',(_event,state={})=>{lastToolbarState={...lastToolbarState,...state};publishToolbarState();return {ok:true};});
   ipcMain.handle('share:capture-stopped',()=>{
@@ -266,9 +274,9 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(normalized==='show-meeting'&&shareActive){
       if(lastToolbarState.meetingVisible)hideMeetingWindowForShare();
       else showMeetingWindow({focus:true});
-    }else if(['participants','chat'].includes(normalized)&&shareActive){
+    }else if(['participants','chat','annotate'].includes(normalized)&&shareActive){
       showMeetingWindow({focus:true});
-    }else if(['show-meeting','participants','chat'].includes(normalized)){
+    }else if(['show-meeting','participants','chat','annotate'].includes(normalized)){
       const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}
     }
     sendMain('share:presenter-command',normalized);
