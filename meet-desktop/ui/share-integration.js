@@ -89,9 +89,17 @@
         let permission=replace||share.snapshot().active?'granted':'unknown';
         if(!replace&&!share.snapshot().active){
           permission=await screenPermissionStatus();
-          if(permission==='denied'||permission==='restricted'){
-            showScreenPermissionDialog(permission,false);
-            return false;
+          // TCC status can be stale for ad-hoc prototype rebuilds. Prove the
+          // actual capability before blocking the user. If a readable screen
+          // thumbnail can be enumerated, treat capture as granted and proceed
+          // directly to the Zoom-style DominionStar chooser.
+          if(permission!=='granted'){
+            const probe=await bridge?.probeAccess?.().catch(()=>null);
+            if(probe?.ok)permission='granted';
+            else if(permission==='denied'||permission==='restricted'){
+              showScreenPermissionDialog(permission,false);
+              return false;
+            }
           }
         }
 
