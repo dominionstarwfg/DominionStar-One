@@ -335,6 +335,11 @@
   }
 
   document.addEventListener('click',event=>{
+    const settingsClose=event.target.closest?.('#settingsDialog .modal-close,#settingsDialog button[value="cancel"]');
+    if(settingsClose){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      const dialog=q('#settingsDialog');if(dialog?.open)dialog.close('cancel');return;
+    }
     const share=event.target.closest?.('#roomShare');
     if(share&&meetingOpen()){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();share.blur();openShareFromRuntime(share);return;
