@@ -366,3 +366,57 @@ body>.ds-reaction-tray{
     border:1px solid rgba(255,255,255,.15)!important;
   }
 }
+
+
+/* Physical Mac acceptance: Participants and Chat are Zoom-like floating
+   windows. The right edge belongs to the participant video panel, not sidebars. */
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"],
+#meetingOverlay #meetingChatPanel[data-ds-runtime-mode="floating"]{
+  border:1px solid rgba(255,255,255,.16)!important;
+  border-radius:12px!important;
+  background:#202020!important;
+  box-shadow:0 22px 64px rgba(0,0,0,.58)!important;
+}
+#meetingOverlay .room-side-head,
+#meetingOverlay #meetingChatPanel>header{
+  user-select:none!important;
+  -webkit-user-select:none!important;
+}
+#meetingOverlay .room-side.dragging,
+#meetingOverlay #meetingChatPanel.dragging{
+  box-shadow:0 28px 80px rgba(0,0,0,.68)!important;
+}
+#meetingOverlay[data-ds-runtime-side="floating"] .stage{
+  right:0!important;
+}
+
+/* Prejoin keeps camera preparation useful instead of exposing low-value
+   checkboxes. Mirror remains in Video Settings; Backgrounds & Effects is the
+   prejoin appearance action. */
+#prejoinOverlay .prejoin-effects-row{
+  display:flex;
+  width:100%;
+  margin-top:8px;
+}
+#prejoinOverlay .prejoin-backgrounds-button{
+  width:100%;
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:8px 12px;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:10px;
+  background:#17283b;
+  color:#eef6ff;
+  text-align:left;
+  cursor:pointer;
+}
+#prejoinOverlay .prejoin-backgrounds-button:hover{background:#1d344d;border-color:rgba(95,168,255,.45)}
+#prejoinOverlay .prejoin-backgrounds-icon{
+  width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:#2d8cff;color:white;font-size:15px;flex:0 0 auto;
+}
+#prejoinOverlay .prejoin-backgrounds-button>span:last-child{display:grid;gap:2px}
+#prejoinOverlay .prejoin-backgrounds-button strong{font-size:11px}
+#prejoinOverlay .prejoin-backgrounds-button small{font-size:9px;color:#aabbd0;font-weight:500}
