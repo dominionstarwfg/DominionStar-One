@@ -38,15 +38,12 @@
     const name=String(error?.name||'').toLowerCase(),message=String(error?.message||error||'').toLowerCase();
     return name==='notallowederror'||name==='securityerror'||message.includes('permission')||message.includes('denied')||message.includes('not allowed');
   }
-  async function screenPermissionStatus(){
-    try{return String((await desktop?.media?.permissions?.())?.screen||'unknown').toLowerCase();}
-    catch{return 'unknown';}
-  }
   async function resolveShareEntry(permission='unknown'){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
-    // macOS permission state determines only which chooser owns selection.
-    // Granted -> DominionStar/Zoom-style chooser. Not-yet-granted -> Apple's
-    // native authorization picker so renderer code never pre-enumerates TCC.
+    // First Share in a renderer process is always native-first on supported
+    // macOS. Do not inspect TCC state or enumerate desktop sources before the
+    // real getDisplayMedia request. A known-active share may use the compact
+    // DominionStar chooser for transactional New Share replacement.
     const result=await bridge.openPicker(permission);
     if(result?.permissionRequired){showScreenPermissionDialog(String(result.status||'unknown'),Boolean(result.restartRequired));return {mode:'blocked'};}
     if(result?.nativeSystemPicker)return {mode:'native'};
@@ -86,23 +83,11 @@
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return false;}
       button.classList.add('ds-share-checking');
       try{
-        let permission=replace||share.snapshot().active?'granted':'unknown';
-        if(!replace&&!share.snapshot().active){
-          permission=await screenPermissionStatus();
-          // TCC status can be stale for ad-hoc prototype rebuilds. Prove the
-          // actual capability before blocking the user. If a readable screen
-          // thumbnail can be enumerated, treat capture as granted and proceed
-          // directly to the Zoom-style DominionStar chooser.
-          if(permission!=='granted'){
-            const probe=await bridge?.probeAccess?.().catch(()=>null);
-            if(probe?.ok)permission='granted';
-            else if(permission==='denied'||permission==='restricted'){
-              showScreenPermissionDialog(permission,false);
-              return false;
-            }
-          }
-        }
-
+        // Unknown on initial Share is deliberate. It forces native-first macOS
+        // authorization without TCC polling/source probing. New Share while an
+        // active capture already exists is process-proven and may use the
+        // compact DominionStar source chooser.
+        const permission=replace||share.snapshot().active?'granted':'unknown';
         const entry=await resolveShareEntry(permission);
         if(entry.mode==='blocked')return false;
         if(entry.mode==='custom')return true;
@@ -178,7 +163,7 @@
       }catch(error){toast(error?.message||'Share control failed.','error');}
     });
 
-    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenPermissionStatus});
+    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot()});
   }
   void boot();
 })();
