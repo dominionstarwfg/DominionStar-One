@@ -212,14 +212,15 @@ try{
 
   assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();return side.hidden===false&&!document.querySelector('#meetingOverlay').classList.contains('participants-hidden');})()`),true,'Participants control did not open the management panel on demand.');
   await sleep(190);
-  const participantPanelGeometry=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),side=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {width:Math.round(side.width),position:getComputedStyle(panel).position,runtime:panel.dataset.dsRuntimeMode,rightGap:Math.round(br.right-side.right),stageRightGap:Math.round(br.right-sr.right),stageWidth:Math.round(sr.width),bodyWidth:Math.round(br.width)};})()`);
-  assert.equal(participantPanelGeometry.position,'absolute','Participant management panel must remain an application side surface.');
-  assert.equal(participantPanelGeometry.runtime,'docked','Desktop-width Participants must use the approved right-side dock.');
-  assert.ok(participantPanelGeometry.width>=320&&participantPanelGeometry.width<=400,`Desktop Participants width must remain bounded; received ${participantPanelGeometry.width}px.`);
-  assert.ok(Math.abs(participantPanelGeometry.rightGap)<=2,'Docked Participants must sit on the right edge of the meeting body.');
-  assert.ok(participantPanelGeometry.stageRightGap>=participantPanelGeometry.width-2,'The live stage must surrender the Participants width instead of being covered by it.');
-  assert.ok(participantPanelGeometry.stageWidth<=participantPanelGeometry.bodyWidth-participantPanelGeometry.width+2,'Participants must resize the usable stage rather than leave a full-width stage underneath.');
-  assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();return side.hidden===true;})()`),true,'Participants control did not close the management panel.');mark('participants-right-docked');
+  const participantPanelGeometry=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),side=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {width:Math.round(side.width),position:getComputedStyle(panel).position,runtime:panel.dataset.dsRuntimeMode,inside:side.left>=br.left+10&&side.right<=br.right-10&&side.top>=br.top+10&&side.bottom<=br.bottom-10,centerDelta:Math.round(Math.abs((side.left+side.width/2)-(br.left+br.width/2))),stageRightGap:Math.round(br.right-sr.right),stageWidth:Math.round(sr.width),bodyWidth:Math.round(br.width)};})()`);
+  assert.equal(participantPanelGeometry.position,'absolute','Participant management panel must remain a floating application surface.');
+  assert.equal(participantPanelGeometry.runtime,'floating','Desktop-width Participants must open as a floating Zoom-style window.');
+  assert.ok(participantPanelGeometry.width>=300&&participantPanelGeometry.width<=420,`Desktop Participants width must remain bounded; received ${participantPanelGeometry.width}px.`);
+  assert.equal(participantPanelGeometry.inside,true,'Floating Participants must remain inside the current meeting body.');
+  assert.ok(participantPanelGeometry.centerDelta<=48,'Participants must open near the center before the user moves the panel.');
+  assert.ok(Math.abs(participantPanelGeometry.stageRightGap)<=2,'Floating Participants must not reserve the right edge or shrink the live stage.');
+  assert.ok(Math.abs(participantPanelGeometry.stageWidth-participantPanelGeometry.bodyWidth)<=2,'The live stage must remain full width underneath floating Participants.');
+  assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();return side.hidden===true;})()`),true,'Participants control did not close the management panel.');mark('participants-floating');
 
   assert.equal(await evaluate(`(()=>{document.querySelector('#roomChat').click();return document.querySelector('#meetingChatPanel').hidden===false;})()`),true,'Chat control did not open chat.');
   assert.equal(await evaluate(`Boolean(document.querySelector('#meetingChatRecipient')&&document.querySelector('#meetingChatInput')&&document.querySelector('#meetingChatForm'))`),true,'Chat must retain recipient targeting, message entry, and send controls under the approved clean chrome.');
