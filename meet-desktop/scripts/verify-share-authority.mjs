@@ -50,19 +50,23 @@ assert(service.includes("configureDisplayMediaHandler(false)"),'Granted sessions
 assert(preload.includes("openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')})"),'Cheap permission state must cross the narrow preload bridge.');
 assert(!service.includes("if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'}"),'macOS 15+ must not force the Apple picker after Screen Recording is already granted.');
 
-// Custom chooser is a real source chooser, not an illustration, and excludes
-// DominionStar windows by default so the meeting cannot recurse into the share.
+// Zoom-style chooser: Basic presents screens + application windows in one grid,
+// desktop is selected by default, and Advanced / Files remain first-class tabs.
 assert(service.includes("types:[kind]"),'Source authority must enumerate only the selected source class.');
 assert(service.includes("thumbnailSize:{width:320,height:180}"),'Source previews must remain bounded.');
 assert(service.includes("fetchWindowIcons:false"),'Source discovery must not request unnecessary application icons.');
 assert(service.includes("!/DominionStar Meet/i.test"),'DominionStar windows must be filtered from normal source selection.');
 assert(picker.includes("includeDominionStar:false"),'User-facing chooser must keep DominionStar windows excluded.');
-assert(picker.includes("kind:filter==='window'?'window':'screen'"),'Chooser must switch between real screens and windows.');
-assert(picker.includes('allSources=result.sources||[]')&&picker.includes('source.thumbnail'),'Chooser must render discovered live source previews.');
-assert(pickerHtml.includes('data-filter="screen">Screen')&&pickerHtml.includes('data-filter="window">Window'),'Chooser must expose Screen and Window families.');
-assert(pickerHtml.includes('Share sound')&&pickerHtml.includes('Optimize for video clip'),'Chooser must expose Zoom-class share options.');
+assert(picker.includes("kind:'screen'")&&picker.includes("kind:'window'")&&picker.includes('Promise.all(['),'Basic must fetch real desktops and real application windows together.');
+assert(picker.includes('basicSources=[...(screenResult?.sources||[]),...(windowResult?.sources||[])]'),'Basic must merge the discovered desktop and window sources.');
+assert(picker.includes("const firstScreen=basicSources.find(source=>source.kind==='screen')")&&picker.includes("selectedId=String(firstScreen?.id"),'Zoom-style Basic must preselect the first desktop when available.');
+assert(picker.includes('source.thumbnail'),'Chooser must render live source previews.');
+assert(pickerHtml.includes('data-tab="basic">Basic')&&pickerHtml.includes('data-tab="advanced">Advanced')&&pickerHtml.includes('data-tab="files">Files'),'Chooser must expose Basic, Advanced, and Files tabs.');
+assert(pickerHtml.includes('Share sound')&&pickerHtml.includes('Optimize for video clip')&&pickerHtml.includes('Optimize for sharing video'),'Chooser must expose the screenshot-approved bottom share options.');
 assert(!pickerHtml.includes('Show DominionStar windows'),'Normal presenter flow must not expose an easy recursion toggle.');
-assert(pickerCss.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'Desktop chooser must use a compact source grid.');
+assert(pickerCss.includes('grid-template-columns:repeat(4,minmax(0,1fr))'),'Desktop chooser must use the approved Zoom-density four-column source grid.');
+assert(pickerCss.includes('.tab.active{border-bottom-color:var(--blue)'),'Active share tab must use a Zoom-style blue underline.');
+assert(pickerCss.includes('.primary{min-width:80px;background:var(--blue)'),'Share action must remain a clear blue bottom-right primary button.');
 assert(!picker.includes('showModal')&&!pickerHtml.includes('<dialog'),'Share chooser must remain a separate desktop window, not an in-meeting blocking modal.');
 
 // Renderer must use cheap TCC state only to choose selection UX. Deep permission
@@ -113,4 +117,4 @@ assert(service.includes("if(lastToolbarState.meetingVisible)hideMeetingWindowFor
 
 assert(media.includes("script.src='./share-integration.js'"),'Desktop/web bundle must retain the same isolated Share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-native-fallback granted-zoom-chooser dominionstar-window-exclusion nonblocking-share-start hidden-meeting-default persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-native-fallback zoom-basic-advanced-files real-desktop-and-window-grid default-desktop-selection dominionstar-window-exclusion nonblocking-share-start hidden-meeting-default persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
