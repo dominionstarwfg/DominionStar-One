@@ -1,18 +1,69 @@
 [build]
-  command = "bash scripts/build-rebuild-netlify.sh"
-  publish = "rebuild-dist"
+  command = "bash scripts/build-public-netlify.sh"
+  publish = "public-dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "22"
 
+# Production-domain boundary:
+# dominionstarld.com serves the public DominionStar website at `/`.
+# Desktop Meet source is excluded by scripts/build-public-netlify.sh and must
+# never be used as the production homepage.
+
+[[redirects]]
+  from = "/api/founder-data"
+  to = "/.netlify/functions/founder-data"
+  status = 200
+
 [[headers]]
-  for = "/*"
+  for = "/founder-dashboard/*"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
     Cache-Control = "no-store"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "no-referrer"
     X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
 
-# Rebuild branch rule: Netlify publishes only rebuild-preview -> rebuild-dist.
-# No legacy website tree and no legacy Netlify functions are part of this deploy.
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/meet/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/meet-home/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/meet-login/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
