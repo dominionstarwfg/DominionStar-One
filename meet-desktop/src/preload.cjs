@@ -28,7 +28,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     iceConfig:(force=false,ttl=7200)=>invoke('meeting:ice-config',{force:Boolean(force),ttl:Number(ttl)||7200})
   }),
   share:Object.freeze({
-    openPicker:()=>invoke('share:open-picker'),onSourceSelected:callback=>listen('share:source-selected',callback),
+    openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')}),onSourceSelected:callback=>listen('share:source-selected',callback),
     captureStarted:state=>invoke('share:capture-started',state),captureState:state=>invoke('share:capture-state',state),captureStopped:()=>invoke('share:capture-stopped'),onPresenterCommand:callback=>listen('share:presenter-command',callback)
   }),
   sharePicker:Object.freeze({listSources:options=>invoke('share:list-sources',options),choose:(sourceId,options)=>invoke('share:select-source',{sourceId,options}),cancel:()=>invoke('share:cancel-picker')}),
