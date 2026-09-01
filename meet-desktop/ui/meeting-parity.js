@@ -281,5 +281,5 @@
   window.addEventListener('dominion:meeting-ui-ready',()=>install());
   setInterval(()=>{syncGreeting();const overlay=q('#meetingOverlay');if(overlay&&!overlay.dataset.dsParityInstalled)install();if(meetingOpen()){void syncMeetingMeta();decorateControls();arrangeToolbar();syncShareLayout();syncVideoDock();}},700);
   install();
-  window.DominionMeetingParity=Object.freeze({version:'2.7.0-chat-share-dock-parity',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout});
+  window.DominionMeetingParity=Object.freeze({version:'2.7.0-chat-share-dock-parity',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout,openMore,openSecurity});
 })();
