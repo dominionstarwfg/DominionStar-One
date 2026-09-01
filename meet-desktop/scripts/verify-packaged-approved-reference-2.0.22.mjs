@@ -74,9 +74,10 @@ try{
   assert.equal(reactions.buttons.length,6,'Reaction tray must contain six standard reactions only.');
   await evaluate(`document.querySelectorAll('.ds-reaction-tray,.meeting-reaction-menu').forEach(n=>n.remove())`);
 
-  // Final Chat authority: right-side runtime geometry + approved Everyone/New chat
-  // navigation with real direct-message target selection and no legacy To row.
-  await evaluate(`(async()=>{window.DominionRuntimeStability.setChat(true);await new Promise(resolve=>setTimeout(resolve,250));await window.DominionZoomBehavior?.refreshChatRecipients?.();window.DominionApprovedReferenceParity.syncChatNavigation();window.DominionRuntimeStability.layoutSideSurface();return true;})()`);
+  // Final Chat authority: exercise the real toolbar click so the same one-shot
+  // adaptive structure used by the user path mounts Everyone / New chat before
+  // approved-reference wiring takes ownership of labels and direct messages.
+  await evaluate(`(async()=>{document.querySelector('#roomChat').click();await new Promise(resolve=>setTimeout(resolve,250));await window.DominionZoomBehavior?.refreshChatRecipients?.();window.DominionZoomAdaptiveParity?.syncChat?.();window.DominionApprovedReferenceParity.syncChatNavigation();window.DominionRuntimeStability.layoutSideSurface();return true;})()`);
   await waitFor("!document.querySelector('#meetingChatPanel').hidden&&document.querySelector('#meetingChatPanel .ds-adaptive-chat-nav')",'approved Chat');
   await evaluate(`(()=>{const select=document.querySelector('#meetingChatRecipient');const prior=[...select.options].find(o=>o.value==='peer-1');if(prior)prior.remove();const option=document.createElement('option');option.value='peer-1';option.textContent='Jordan Lee · Direct Message';select.append(option);select.value='everyone';window.DominionApprovedReferenceParity.syncChatNavigation();return true;})()`);
   await waitFor("[...document.querySelector('#meetingChatRecipient').options].some(option=>option.value==='peer-1'&&/Jordan Lee/.test(option.textContent||''))",'stable direct-message fixture');
