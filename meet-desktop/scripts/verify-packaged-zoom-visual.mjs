@@ -89,9 +89,10 @@ try{
   assert.equal(chat.moreVisible,true,'Host chat options must be behind the More control.');
   await evaluate(`document.querySelector('#roomChat').click()`);
 
-  const reaction=await evaluate(`(()=>{document.querySelector('#roomReactions').click();const menu=document.querySelector('.ds-reaction-tray,.meeting-reaction-menu'),r=menu.getBoundingClientRect(),button=menu.querySelector('button:not(.reaction-hand-button):not(.ds-raise-hand)');return {left:Math.round(r.left),bottom:Math.round(innerHeight-r.bottom),buttonWidth:button?button.getBoundingClientRect().width:0,font:button?parseFloat(getComputedStyle(button).fontSize):0};})()`);
+  const reaction=await evaluate(`(()=>{document.querySelector('#roomReactions').click();const menus=[...document.querySelectorAll('.ds-reaction-tray,.meeting-reaction-menu')],menu=menus[0],r=menu?.getBoundingClientRect?.()||{left:0,bottom:innerHeight},button=menu?.querySelector('button:not(.reaction-hand-button):not(.ds-raise-hand)'),br=button?.getBoundingClientRect?.(),cs=button?getComputedStyle(button):null;return {menuCount:menus.length,menuClass:menu?.className||'',buttonClass:button?.className||'',left:Math.round(r.left),bottom:Math.round(innerHeight-r.bottom),buttonWidth:br?.width||0,buttonHeight:br?.height||0,font:cs?parseFloat(cs.fontSize):0,computedWidth:cs?.width||'',computedMinWidth:cs?.minWidth||'',computedTransform:cs?.transform||'',inlineStyle:button?.getAttribute('style')||''};})()`);
+  console.log('REACTION_VISUAL_DIAGNOSTIC',JSON.stringify(reaction));
   assert.ok(reaction.left<=30,'Reactions tray must anchor on the left side.');
-  assert.ok(reaction.buttonWidth>=46&&reaction.font>=24,'Reaction controls are undersized.');
+  assert.ok(reaction.buttonWidth>=46&&reaction.font>=24,`Reaction controls are undersized. ${JSON.stringify(reaction)}`);
   await evaluate(`document.querySelector('.ds-reaction-tray,.meeting-reaction-menu')?.remove()`);
 
   const more=await evaluate(`(()=>{document.querySelector('#roomMore').click();const menu=document.querySelector('.meeting-more-menu,.ds-command-menu'),buttons=[...menu.querySelectorAll('button')];return {font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>/Meeting settings/i.test(b.textContent||'')),hasHostDuplicate:buttons.some(b=>String(b.textContent||'').trim()==='Host tools')};})()`);
