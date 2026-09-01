@@ -103,6 +103,9 @@ assert(controller.includes('const baseOutputStream=()=>state.paused&&state.froze
 assert(controller.includes("audioTrack.contentHint='music'"),'Shared computer audio must retain presentation quality intent.');
 assert(annotation.includes('setAnnotationCanvas')&&annotation.includes('drawLaser')&&annotation.includes('clearLaser(650)'),'Annotation/laser must remain attached to the single share controller.');
 assert(controller.includes('stopTracks(state.liveStream)'),'Stop Share must release the live capture track.');
+assert(controller.includes("presenter?.toolbarReady===false"),'A successful capture must fail closed if presenter controls are unavailable.');
+assert(controller.includes("Presenter controls could not start. Screen sharing was cancelled safely."),'Toolbar-start failure must surface a clear safe-cancel error.');
+assert(controller.includes("try{await bridge?.captureStopped?.();}catch{}"),'Toolbar-start failure must unwind native presenter state before returning control to the meeting.');
 assert(controller.includes('async function replaceSource')&&controller.includes('const previousLive=state.liveStream'),'New Share must remain transactional.');
 assert(integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must route through the same permission-aware chooser.');
 
