@@ -13,6 +13,7 @@
   let observedSideKey='';
   let dockBound=null;
   let dockDrag=null;
+  let surfaceDrag=null;
   let physicalPrimed=false;
   let legacyPrimed=false;
   let shareOpening=false;
@@ -160,8 +161,8 @@
     overlay.classList.toggle('participants-hidden',!show);
     button?.setAttribute('aria-pressed',String(show));
     if(show){
-      side.dataset.zoomPanelMode='docked';
-      side.dataset.dsAdaptiveMode='docked';
+      side.dataset.zoomPanelMode='popout';
+      side.dataset.dsAdaptiveMode='floating';
       side.dataset.dsRuntimePanel='participants';
       syncParticipantsSurface();
     }
@@ -215,6 +216,38 @@
     return true;
   }
 
+  function installFloatingSurfaceDrag(panel){
+    if(!panel||panel.dataset.dsRuntimeDragBound==='1')return;
+    const handle=panel.matches('.room-side')?panel.querySelector('.room-side-head'):panel.querySelector('header');
+    if(!handle)return;
+    panel.dataset.dsRuntimeDragBound='1';
+    handle.style.cursor='default';
+    handle.addEventListener('pointerdown',event=>{
+      if(event.button!==0||event.target.closest?.('button,input,select,textarea,a'))return;
+      const body=q('.meeting-body');if(!body)return;
+      const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
+      surfaceDrag={panel,id:event.pointerId,dx:event.clientX-pr.left,dy:event.clientY-pr.top,body:br};
+      panel.dataset.dsRuntimeUserPositioned='1';
+      panel.classList.add('dragging');
+      handle.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    },true);
+    handle.addEventListener('pointermove',event=>{
+      if(!surfaceDrag||surfaceDrag.panel!==panel||surfaceDrag.id!==event.pointerId)return;
+      const body=q('.meeting-body');if(!body)return;const br=body.getBoundingClientRect();
+      const left=clamp(event.clientX-br.left-surfaceDrag.dx,10,Math.max(10,br.width-panel.offsetWidth-10));
+      const top=clamp(event.clientY-br.top-surfaceDrag.dy,10,Math.max(10,br.height-panel.offsetHeight-10));
+      panel.style.setProperty('left',`${left}px`,'important');
+      panel.style.setProperty('top',`${top}px`,'important');
+      event.preventDefault();
+    },true);
+    const end=event=>{
+      if(!surfaceDrag||surfaceDrag.panel!==panel||(event?.pointerId!=null&&event.pointerId!==surfaceDrag.id))return;
+      surfaceDrag=null;panel.classList.remove('dragging');
+    };
+    handle.addEventListener('pointerup',end,true);handle.addEventListener('pointercancel',end,true);
+  }
+
   function layoutSideSurface(){
     const overlay=q('#meetingOverlay'),body=q('.meeting-body'),stage=q('.stage'),participants=q('.room-side'),chat=q('#meetingChatPanel');
     if(!overlay||!body||!stage)return;
@@ -222,45 +255,36 @@
     const bodyWidth=Math.max(1,body.clientWidth),bodyHeight=Math.max(1,body.clientHeight);
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
-    let reserve=0;
     if(panel){
-      const wide=bodyWidth>=940;
-      if(wide){
-        const width=clamp(Math.round(bodyWidth*.25),330,390);
-        reserve=width+10;
-        panel.dataset.dsRuntimeMode='docked';
-        panel.style.setProperty('position','absolute','important');
-        panel.style.setProperty('left','auto','important');
-        panel.style.setProperty('right','0px','important');
-        panel.style.setProperty('top','0px','important');
-        panel.style.setProperty('bottom','0px','important');
-        panel.style.setProperty('width',`${width}px`,'important');
-        panel.style.setProperty('height','100%','important');
-        panel.style.setProperty('max-width','none','important');
-        panel.style.setProperty('max-height','none','important');
-        panel.style.setProperty('transform','none','important');
-        overlay.dataset.dsRuntimeSide='docked';
-      }else{
-        const width=Math.min(360,Math.max(286,bodyWidth-24));
-        const height=Math.min(560,Math.max(320,bodyHeight-24));
-        panel.dataset.dsRuntimeMode='floating';
-        panel.style.setProperty('position','absolute','important');
-        panel.style.setProperty('left',`${Math.max(12,(bodyWidth-width)/2)}px`,'important');
-        panel.style.setProperty('right','auto','important');
-        panel.style.setProperty('top',`${Math.max(12,(bodyHeight-height)/2)}px`,'important');
-        panel.style.setProperty('bottom','auto','important');
-        panel.style.setProperty('width',`${width}px`,'important');
-        panel.style.setProperty('height',`${height}px`,'important');
-        panel.style.setProperty('max-width','calc(100% - 24px)','important');
-        panel.style.setProperty('max-height','calc(100% - 24px)','important');
-        panel.style.setProperty('transform','none','important');
-        overlay.dataset.dsRuntimeSide='floating';
+      const width=Math.min(410,Math.max(300,Math.round(bodyWidth*.31)));
+      const height=Math.min(590,Math.max(340,Math.round(bodyHeight*.72)));
+      panel.dataset.dsRuntimeMode='floating';
+      panel.dataset.zoomPanelMode='popout';
+      panel.style.setProperty('position','absolute','important');
+      panel.style.setProperty('right','auto','important');
+      panel.style.setProperty('bottom','auto','important');
+      panel.style.setProperty('width',`${Math.min(width,bodyWidth-24)}px`,'important');
+      panel.style.setProperty('height',`${Math.min(height,bodyHeight-24)}px`,'important');
+      panel.style.setProperty('max-width','calc(100% - 24px)','important');
+      panel.style.setProperty('max-height','calc(100% - 24px)','important');
+      panel.style.setProperty('transform','none','important');
+      panel.style.setProperty('z-index','210','important');
+      const pw=Math.min(width,bodyWidth-24),ph=Math.min(height,bodyHeight-24);
+      let left=Math.max(12,(bodyWidth-pw)/2),top=Math.max(12,(bodyHeight-ph)/2);
+      if(panel.dataset.dsRuntimeUserPositioned==='1'){
+        const currentLeft=parseFloat(panel.style.left),currentTop=parseFloat(panel.style.top);
+        if(Number.isFinite(currentLeft))left=clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10));
+        if(Number.isFinite(currentTop))top=clamp(currentTop,10,Math.max(10,bodyHeight-ph-10));
       }
+      panel.style.setProperty('left',`${left}px`,'important');
+      panel.style.setProperty('top',`${top}px`,'important');
+      overlay.dataset.dsRuntimeSide='floating';
+      installFloatingSurfaceDrag(panel);
     }else overlay.dataset.dsRuntimeSide='none';
     stage.style.setProperty('left','0px','important');
     stage.style.setProperty('top','0px','important');
     stage.style.setProperty('bottom','0px','important');
-    stage.style.setProperty('right',`${reserve}px`,'important');
+    stage.style.setProperty('right','0px','important');
     stage.style.removeProperty('margin-right');
   }
 
