@@ -9,7 +9,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let mainMinimizeHandler=null;
   let displayPickerMode='';
   let stopRetryTimer=null;
-  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
+  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};
 
   const macVersion=platform==='darwin'&&typeof process.getSystemVersion==='function'?String(process.getSystemVersion()||''):'';
   const macMajor=Number.parseInt(macVersion.split('.')[0]||'0',10)||0;
@@ -76,7 +76,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
     try{main.setAlwaysOnTop(false);}catch{}
     try{main.hide();}catch{}
-    lastToolbarState={...lastToolbarState,meetingVisible:false};
+    lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};
     publishToolbarState();
     return true;
   }
@@ -97,7 +97,30 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     protectMeetingChrome(main,shareActive);
     main.show();
     if(focus)main.focus();
-    lastToolbarState={...lastToolbarState,meetingVisible:true};
+    lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};
+    publishToolbarState();
+    return true;
+  }
+
+  function showCompanionWindow(kind='chat'){
+    if(!shareActive)return false;
+    const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
+    const base=savedMainWindowState?.bounds||main.getBounds();
+    const annotation=kind==='annotate';
+    const width=annotation?Math.min(960,Math.max(720,base.width-120)):410;
+    const height=annotation?Math.min(660,Math.max(500,base.height-120)):Math.min(620,Math.max(500,base.height-100));
+    const x=annotation?Math.round(base.x+(base.width-width)/2):Math.round(base.x+base.width-width-18);
+    const y=annotation?Math.round(base.y+(base.height-height)/2):Math.round(base.y+70);
+    try{if(main.isMinimized?.())main.restore();}catch{}
+    try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
+    try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    try{main.setMinimumSize(annotation?640:330,annotation?460:420);}catch{}
+    try{main.setBounds({x,y,width,height},false);}catch{}
+    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
+    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
+    protectMeetingChrome(main,true);
+    main.show();main.focus();
+    lastToolbarState={...lastToolbarState,meetingVisible:true,companion:String(kind||'')};
     publishToolbarState();
     return true;
   }
@@ -187,7 +210,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   }
 
   function closeToolbar(){if(toolbarWindow&&!toolbarWindow.isDestroyed()){try{toolbarWindow.setClosable?.(true);}catch{}toolbarWindow.close();}toolbarWindow=null;}
-  const sendMain=(channel,payload)=>{const main=getMainWindow?.();if(main&&!main.isDestroyed())main.webContents.send(channel,payload);};
+  const sendMain=(channel,payload)=>{const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.webContents.send(channel,payload);return true;}return false;};
 
   const displayMediaHandler=(_request,callback)=>{
     const selection=pendingSelection;
@@ -205,9 +228,6 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     displayPickerMode=mode;
   }
 
-  // First-time macOS permission stays native-first. Once TCC reports granted,
-  // DominionStar owns source selection so the presenter gets the same compact
-  // chooser every time instead of Apple's full-screen system preview.
   configureDisplayMediaHandler(nativeSystemPicker);
 
   ipcMain.handle('share:open-picker',async(_event,{permission='unknown'}={})=>{
@@ -261,19 +281,25 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     shareActive=true;
     rememberMainWindow();
     attachShareWindowLifecycle();
-    lastToolbarState={...lastToolbarState,...state,meetingVisible:true};
+    lastToolbarState={...lastToolbarState,...state,meetingVisible:true,companion:''};
     const toolbarReady=await openToolbar();
     if(toolbarReady)hideMeetingWindowForShare();
     else publishToolbarState();
     return {ok:true,toolbarReady,meetingHidden:Boolean(toolbarReady)};
   });
-  ipcMain.handle('share:capture-state',(_event,state={})=>{lastToolbarState={...lastToolbarState,...state};publishToolbarState();return {ok:true};});
+  ipcMain.handle('share:capture-state',(_event,state={})=>{
+    const priorCompanion=String(lastToolbarState.companion||'');
+    lastToolbarState={...lastToolbarState,...state};
+    if(shareActive&&priorCompanion&&state.companionOpen===false)hideMeetingWindowForShare();
+    else publishToolbarState();
+    return {ok:true};
+  });
   ipcMain.handle('share:capture-stopped',()=>{
     shareActive=false;
     if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}
     detachShareWindowLifecycle();
     restoreMainWindowAfterShare();
-    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
+    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};
     closeToolbar();
     return {ok:true};
   });
@@ -288,21 +314,23 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   });
 
   ipcMain.handle('share:presenter-command',(_event,command)=>{
-    const normalized=String(command||'');
+    const normalized=String(command?.command||command||'');
+    let sent=false;
     if(normalized==='show-meeting'&&shareActive){
       if(lastToolbarState.meetingVisible)hideMeetingWindowForShare();
       else showMeetingWindow({focus:true});
     }else if(['participants','chat','annotate'].includes(normalized)&&shareActive){
-      showMeetingWindow({focus:true});
+      sent=sendMain('share:presenter-command',normalized);
+      setTimeout(()=>{if(shareActive)showCompanionWindow(normalized);},45);
     }else if(['show-meeting','participants','chat','annotate'].includes(normalized)){
       const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}
     }
-    sendMain('share:presenter-command',normalized);
+    if(!sent)sendMain('share:presenter-command',normalized);
     if(normalized==='stop'&&shareActive){
       if(stopRetryTimer)clearTimeout(stopRetryTimer);
       stopRetryTimer=setTimeout(()=>{
         stopRetryTimer=null;
-        if(shareActive)sendMain('share:presenter-command','stop');
+        if(shareActive){showMeetingWindow({focus:false});sendMain('share:presenter-command','stop');}
       },700);
     }
     return {ok:true};
