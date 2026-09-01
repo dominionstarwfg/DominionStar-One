@@ -80,10 +80,10 @@ try{
 
   // React contains six reactions only. Raise Hand is a separate toolbar control.
   await evaluate(`document.querySelector('#roomReactions').click()`);await waitFor("document.querySelector('.ds-reaction-tray')",'reaction tray');
-  const reactionTray=await evaluate(`(()=>{const tray=document.querySelector('.ds-reaction-tray'),buttons=[...tray.querySelectorAll('button')],hand=tray.querySelector('.ds-raise-hand'),dedicated=document.querySelector('#roomRaiseHand');return {z:parseInt(getComputedStyle(tray).zIndex)||0,reactions:buttons.filter(b=>!b.classList.contains('ds-raise-hand')&&getComputedStyle(b).display!=='none').length,legacyHandHidden:Boolean(hand&&getComputedStyle(hand).display==='none'),dedicatedHand:Boolean(dedicated&&!dedicated.hidden&&getComputedStyle(dedicated).display!=='none'),pointer:getComputedStyle(tray).pointerEvents};})()`);
+  const reactionTray=await evaluate(`(()=>{const tray=document.querySelector('.ds-reaction-tray'),buttons=[...tray.querySelectorAll('button')],hand=tray.querySelector('.ds-raise-hand'),dedicated=document.querySelector('#roomRaiseHand');return {z:parseInt(getComputedStyle(tray).zIndex)||0,reactions:buttons.filter(b=>!b.classList.contains('ds-raise-hand')&&getComputedStyle(b).display!=='none').length,legacyHandSuppressed:Boolean(!hand||getComputedStyle(hand).display==='none'),dedicatedHand:Boolean(dedicated&&!dedicated.hidden&&getComputedStyle(dedicated).display!=='none'),pointer:getComputedStyle(tray).pointerEvents};})()`);
   assert.ok(reactionTray.z>=2700&&reactionTray.pointer!=='none','Reaction tray is behind another layer or cannot receive clicks.');
   assert.equal(reactionTray.reactions,6,'Reaction tray must expose six standard reaction buttons.');
-  assert.equal(reactionTray.legacyHandHidden,true,'Raise Hand must not be duplicated inside React.');
+  assert.equal(reactionTray.legacyHandSuppressed,true,'Raise Hand must not be duplicated inside React.');
   assert.equal(reactionTray.dedicatedHand,true,'Dedicated Raise Hand toolbar control is missing.');
   await evaluate(`document.querySelector('.ds-reaction-tray')?.remove()`);
 
