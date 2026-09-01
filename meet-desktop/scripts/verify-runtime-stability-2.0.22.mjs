@@ -15,9 +15,25 @@ const shareIntegration=read('ui/share-integration.js');
 const reaction=read('ui/zoom-reaction-parity.js');
 const bridge=read('ui/zoom-contract-bridge.js');
 const app=read('ui/app.js');
+const avSettings=read('ui/av-settings.js');
+const avCss=read('ui/av-settings.css');
+const preload=read('src/preload.cjs');
+const shareService=read('src/share-service.mjs');
 const pkg=JSON.parse(read('package.json'));
 
 assert.equal(pkg.version,'2.0.22');
+assert.ok(app.includes('id="prejoinBackgrounds"')&&app.includes('Backgrounds & Effects'),'Prejoin must expose Backgrounds & Effects like Zoom.');
+assert.ok(!app.includes('id="mirrorPreview"')&&!app.includes('Mirror my video</span></label>'),'Prejoin must not expose the rejected Mirror checkbox.');
+assert.ok(avSettings.includes("input.setAttribute('role','switch')")&&avSettings.includes("slider.className='av-switch'"),'Video Settings boolean preferences must render as slider switches rather than visible checkboxes.');
+assert.ok(avCss.includes('.av-toggle-row input:checked + .av-switch')&&avCss.includes('background:#2d8cff'),'Video Settings switches must use a visible active state.');
+assert.ok(runtime.includes("#settingsDialog .modal-close,#settingsDialog button[value=\"cancel\"]"),'Settings close must have a single-click final runtime authority.');
+assert.ok(preload.includes("probeAccess:()=>invoke('share:probe-access')"),'Preload must expose the narrow real screen-capture capability probe.');
+assert.ok(shareService.includes("ipcMain.handle('share:probe-access'")&&shareService.includes("!source.thumbnail?.isEmpty?.()"),'Share authority must prove readable capture capability before trusting a stale permission label.');
+assert.ok(shareIntegration.includes("const probe=await bridge?.probeAccess?.()")&&shareIntegration.includes("if(probe?.ok)permission='granted'"),'Renderer must proceed to the Zoom-style chooser when real capture access is available.');
+assert.ok(runtime.includes("DominionMeetingFeatures?.openReactions?.(reactions)"),'React must open through the final single-click authority.');
+assert.ok(runtime.includes("DominionMeetingParity?.openSecurity?.(hostTools)"),'Host Tools must open through the final single-click authority.');
+assert.ok(runtime.includes("DominionMeetingParity?.openMore?.(more)"),'More must open through the final single-click authority.');
+
 assert.ok(auth.includes('./runtime-stability.css'),'Runtime-stability stylesheet must be loaded.');
 assert.ok(auth.includes('./runtime-layout-fix.css'),'Final runtime layout correction must be loaded.');
 assert.ok(auth.includes('./runtime-motion.css'),'Low-cost runtime motion authority must be loaded.');
