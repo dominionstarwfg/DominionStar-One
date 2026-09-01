@@ -89,8 +89,8 @@ try{
   assert.match(chat.newChat,/New chat/);
   assert.equal(chat.send,'➤');
   assert.equal(chat.formatting,false,'Approved Chat must not introduce an unnecessary formatting toolbar.');
-  assert.equal(chat.mode,'docked','Approved desktop Chat must use final right-side runtime geometry.');
-  assert.ok(Math.abs(chat.rightGap)<=2,'Approved Chat must sit flush to the meeting right edge.');
+  assert.equal(chat.mode,'floating','Approved desktop Chat must use the final floating application-surface geometry.');
+  assert.ok(chat.rightGap>=10,'Approved floating Chat must remain detached from the meeting right edge rather than reverting to the retired docked model.');
 
   await evaluate(`document.querySelector('#meetingChatPanel [data-chat-new]').click()`);
   await waitFor("document.querySelector('.ds-approved-chat-target-menu button')&&/Jordan Lee/.test(document.querySelector('.ds-approved-chat-target-menu button').textContent||'')",'direct-message target menu');
