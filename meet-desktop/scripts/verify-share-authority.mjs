@@ -39,11 +39,11 @@ assert.equal(familyCall,2,'Basic must enumerate one screen family and one window
 assert.equal(familyAuthority.get('screen:one')?.id,'screen:one','Screen source must remain selectable after window enumeration finishes.');
 assert.equal(familyAuthority.get('window:one')?.id,'window:one','Window source must remain selectable alongside screen sources.');
 
-// macOS TCC remains native authority, but a grant no longer forces the large
-// Apple chooser on every share. Native selection is reserved for permission
-// establishment/fallback; granted sessions use DominionStar's Zoom-style chooser.
-assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS TCC status authority is missing.');
-assert(main.includes("permissionStatus('screen')"),'Screen Recording status must remain independently inspectable.');
+// macOS status/probe APIs may exist for post-failure diagnostics, but they must
+// never gate the initial Share transaction. The real native getDisplayMedia
+// request is the first authority on macOS 15+.
+assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS TCC diagnostic status authority is missing.');
+assert(main.includes("permissionStatus('screen')"),'Screen Recording diagnostic status must remain independently inspectable.');
 assert(main.includes('function activeScreenCaptureProbe()')&&main.includes('screenPermissionProbeInFlight'),'Explicit recovery probe must remain single-flight.');
 assert(main.includes('capture-probe-timeout')&&main.includes('2200'),'Explicit recovery probing must remain bounded.');
 assert(main.includes("media:request-screen"),'Renderer must retain narrow post-failure diagnostics.');
@@ -52,11 +52,11 @@ assert.equal((service.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Exa
 assert(service.includes("const nativeSystemPicker=platform==='darwin'&&macMajor>=15"),'macOS native-picker capability detection is mandatory.');
 assert(service.includes('function configureDisplayMediaHandler(useSystemPicker)'),'Share service must explicitly switch native-vs-DominionStar selection authority.');
 assert(service.includes("configureDisplayMediaHandler(nativeSystemPicker)"),'macOS must begin native-safe before permission state is known.');
-assert(service.includes("if(nativeSystemPicker&&status!=='granted')"),'Un-granted macOS sessions must retain native authorization/selection.');
+assert(service.includes("if(nativeSystemPicker&&status!=='granted')"),'Unknown/un-granted macOS sessions must retain native authorization/selection.');
 assert(service.includes("configureDisplayMediaHandler(true)")&&service.includes("nativeSystemPicker:true,status:'system-picker'"),'Native fallback path is missing.');
-assert(service.includes("configureDisplayMediaHandler(false)"),'Granted sessions must switch to DominionStar source selection.');
-assert(preload.includes("openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')})"),'Cheap permission state must cross the narrow preload bridge.');
-assert(!service.includes("if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'}"),'macOS 15+ must not force the Apple picker after Screen Recording is already granted.');
+assert(service.includes("configureDisplayMediaHandler(false)"),'Process-proven replacement sessions must be able to switch to DominionStar source selection.');
+assert(preload.includes("openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')})"),'Narrow picker-mode state must cross the preload bridge.');
+assert(!service.includes("if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'}"),'macOS 15+ must still allow the compact chooser for a process-proven New Share replacement.');
 
 // Zoom-style chooser: Basic presents screens + application windows in one grid,
 // desktop is selected by default, and Advanced / Files remain first-class tabs.
@@ -77,13 +77,15 @@ assert(pickerCss.includes('.tab.active{border-bottom-color:var(--blue)'),'Active
 assert(pickerCss.includes('.primary{min-width:80px;background:var(--blue)'),'Share action must remain a clear blue bottom-right primary button.');
 assert(!picker.includes('showModal')&&!pickerHtml.includes('<dialog'),'Share chooser must remain a separate desktop window, not an in-meeting blocking modal.');
 
-// Renderer must use cheap TCC state only to choose selection UX. Deep permission
-// diagnostics remain after a real capture failure.
+// Initial Share must be native-first and non-preflighted. Only an already-active
+// capture may mark the replacement chooser as process-proven/granted. Deep TCC
+// diagnostics are allowed only after the native picker/capture fails.
 assert(mediaController.includes("script.src='./share-integration.js'"),'Media controller must own one Share integration bootstrap path.');
-assert(integration.includes('async function screenPermissionStatus()'),'Share integration must own cheap TCC state intelligence.');
-assert(integration.includes('const result=await bridge.openPicker(permission);'),'Share entry must pass cheap permission state into native selection authority.');
-assert(integration.includes("if(result?.nativeSystemPicker)return {mode:'native'}"),'Renderer must retain first-time/native fallback mode.');
-assert(integration.includes("if(permission==='denied'||permission==='restricted')"),'Explicit denial must produce actionable recovery without capture churn.');
+assert(!integration.includes('async function screenPermissionStatus()'),'Initial Share must not poll TCC status before native capture.');
+assert(!integration.includes('bridge?.probeAccess?.()'),'Initial Share must not enumerate desktop sources as a permission probe.');
+assert(integration.includes("const permission=replace||share.snapshot().active?'granted':'unknown';"),'Only an already-active capture may select the compact replacement chooser.');
+assert(integration.includes('const result=await bridge.openPicker(permission);'),'Share entry must pass only process-known picker mode into native selection authority.');
+assert(integration.includes("if(result?.nativeSystemPicker)return {mode:'native'}"),'Renderer must retain native first-share authorization mode.');
 assert(integration.includes('queueMicrotask(()=>{void beginShare()'),'Share command must not depend on requestAnimationFrame.');
 assert(!integration.includes('requestAnimationFrame(()=>setTimeout'),'Functional Share start must not be paint-frame gated.');
 const pickerCall=integration.indexOf('const result=await bridge.openPicker(permission);');
@@ -139,4 +141,4 @@ assert(service.includes("if(lastToolbarState.meetingVisible)hideMeetingWindowFor
 
 assert(media.includes("script.src='./share-integration.js'"),'Desktop/web bundle must retain the same isolated Share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-native-fallback zoom-basic-advanced-files real-desktop-and-window-grid multi-family-source-cache default-desktop-selection dominionstar-window-exclusion nonblocking-share-start toolbar-before-hide hidden-meeting-default persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK native-first-initial-share no-tcc-preflight no-source-probe process-proven-new-share zoom-basic-advanced-files real-desktop-and-window-grid multi-family-source-cache default-desktop-selection dominionstar-window-exclusion nonblocking-share-start toolbar-before-hide hidden-meeting-default persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
