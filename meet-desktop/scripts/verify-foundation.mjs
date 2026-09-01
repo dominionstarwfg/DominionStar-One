@@ -132,7 +132,7 @@ assert(!preferences.includes('setCaptionState(')&&!preferences.includes('publish
 assert(shareService.includes('function hideMeetingWindowForShare()'),'Desktop sharing must own a hide-meeting presenter state.');
 assert(shareService.includes('main.hide()'),'Active sharing must hide the normal meeting window by default.');
 assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the hidden presenter state.');
-assert(shareService.includes("toolbarWindow.setAlwaysOnTop(true,'floating')"),'Presenter controls must stay above shared content.');
+assert(shareService.includes("alwaysOnTop:true")&&shareService.includes("setAlwaysOnTop(true,'floating')"),'Presenter controls must stay above shared content.');
 assert(shareService.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter controls must remain available across macOS Spaces and full-screen apps.');
 assert(shareService.includes('backgroundThrottling:false'),'Presenter controls must remain responsive while the meeting is hidden.');
 assert(shareService.includes('restoreMainWindowAfterShare'),'Stopping a share must restore the original meeting window geometry.');
