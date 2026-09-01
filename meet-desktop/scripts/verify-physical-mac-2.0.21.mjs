@@ -46,7 +46,11 @@ assert.match(shareService,/configureDisplayMediaHandler\(nativeSystemPicker\)/,'
 assert.match(shareService,/if\(nativeSystemPicker&&status!=='granted'\)/,'Un-granted Mac does not retain native authorization.');
 assert.match(shareService,/configureDisplayMediaHandler\(false\)/,'Granted Mac does not switch to the DominionStar chooser.');
 assert.match(shareService,/hideMeetingWindowForShare\(\)/,'Presenter mode must be able to hide the normal meeting window.');
-assert.match(shareService,/openToolbar\(\);\n    hideMeetingWindowForShare\(\);/,'Capture start must expose presenter controls before hiding the meeting.');
+assert.match(shareService,/async function openToolbar\(\)/,'Presenter toolbar readiness must be awaitable.');
+assert.match(shareService,/await created\.loadFile\(path\.join\(uiDir,'presenter-toolbar\.html'\)\)/,'Presenter toolbar must finish loading before the meeting can hide.');
+assert.match(shareService,/const toolbarReady=await openToolbar\(\);/,'Capture start must await presenter-toolbar readiness.');
+assert.match(shareService,/if\(toolbarReady\)hideMeetingWindowForShare\(\);/,'Capture start can hide the meeting before presenter controls are available.');
+assert.match(shareService,/main\.webContents\?\.setBackgroundThrottling\?\.\(false\)/,'Hidden meeting renderer must stay responsive while sharing.');
 assert.match(shareService,/setVisibleOnAllWorkspaces\(true,\{visibleOnFullScreen:true/,'Presenter controls must remain visible across full-screen apps/Spaces.');
 assert.match(shareService,/if\(normalized==='stop'&&shareActive\)/,'Stop Share must have main-process retry protection.');
 assert.match(presenter,/data-command="stop"[^>]*>[\s\S]*Stop Share/,'Presenter toolbar must expose a direct Stop Share control.');
@@ -93,4 +97,4 @@ assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/,'Meeting 
 assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/,'Meeting must fill the Electron viewport height.');
 assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compact.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-native-fallback granted-zoom-chooser hidden-meeting-presenter-state direct-stop-share single-share-owner adhoc-not-certified reaction-contained settings-readable participant-count desktop-right-dock constrained-float full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-native-fallback granted-zoom-chooser toolbar-before-hide hidden-meeting-presenter-state direct-stop-share single-share-owner adhoc-not-certified reaction-contained settings-readable participant-count desktop-right-dock constrained-float full-window compact-prejoin`);
