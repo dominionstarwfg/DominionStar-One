@@ -63,10 +63,11 @@ assert.ok(meetingFeatures.includes('if(featureFrame)return;featureFrame=requestA
 assert.ok(css.includes('width:var(--ds-runtime-vw,100vw)!important'),'Meeting overlay must fill the real Electron viewport width.');
 assert.ok(css.includes('height:var(--ds-runtime-vh,100vh)!important'),'Meeting overlay must fill the real Electron viewport height.');
 assert.ok(css.includes('#meetingOverlay .stage{'),'Final runtime must own stage geometry.');
-assert.ok(runtime.includes("const wide=bodyWidth>=940"),'Side panels must respond to actual meeting width.');
-assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='docked'"),'Desktop-width side surfaces must support docked mode.');
-assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Constrained windows must retain a compact floating fallback.');
-assert.ok(runtime.includes("stage.style.setProperty('right',`${reserve}px`,'important')"),'Stage must resize around a docked side panel instead of leaving unused black space.');
+assert.ok(!runtime.includes("const wide=bodyWidth>=940"),'Participants/Chat must not switch to a forced desktop dock at an arbitrary breakpoint.');
+assert.ok(!runtime.includes("panel.dataset.dsRuntimeMode='docked'"),'Participants/Chat must not reserve the right edge used by the participant video dock.');
+assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participants/Chat must use one floating panel model at every meeting width.');
+assert.ok(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating Participants/Chat must be draggable from their title surface.');
+assert.ok(runtime.includes("stage.style.setProperty('right','0px','important')"),'Floating panels must leave the meeting stage at full width.');
 assert.ok(css.includes('flex:1 1 auto!important')&&css.includes('#meetingOverlay #participantRoster'),'Participant roster must consume the available panel height.');
 
 assert.ok(meetingCss.includes('display:grid')&&meetingCss.includes('grid-template-columns:1fr 330px'),'Legacy meeting grid signature changed; review the final runtime layout authority.');
