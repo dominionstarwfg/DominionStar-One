@@ -341,7 +341,21 @@
     }
     const reactions=event.target.closest?.('#roomReactions');
     if(reactions&&meetingOpen()){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      window.DominionMeetingFeatures?.openReactions?.(reactions);
       queueMicrotask(suppressLegacyReactionHand);
+      return;
+    }
+    const hostTools=event.target.closest?.('#roomHostTools');
+    if(hostTools&&meetingOpen()){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      void window.DominionMeetingParity?.openSecurity?.(hostTools);
+      return;
+    }
+    const more=event.target.closest?.('#roomMore');
+    if(more&&meetingOpen()){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      window.DominionMeetingParity?.openMore?.(more);
       return;
     }
     const participants=event.target.closest?.('#roomParticipants');
