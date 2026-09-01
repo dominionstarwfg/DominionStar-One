@@ -31,7 +31,6 @@ releaseFirst([{id:'screen:first'}]);await firstEnumeration;await new Promise(res
 assert.equal(authority.busy(),false);
 const recovered=await authority.list();assert.equal(enumerateCount,2);assert.equal(recovered.ok,true);assert.equal(authority.get('screen:second')?.id,'screen:second');
 
-// Prove source families remain independently addressable after Basic loads both.
 let familyCall=0;
 const familyAuthority=createShareSourceAuthority({timeoutMs:100,enumerateSources:async options=>{familyCall+=1;return String(options?.kind||'screen')==='window'?[{id:'window:one'}]:[{id:'screen:one'}];}});
 await Promise.all([familyAuthority.list({kind:'screen'}),familyAuthority.list({kind:'window'})]);
@@ -39,12 +38,14 @@ assert.equal(familyCall,2,'Basic must enumerate one screen family and one window
 assert.equal(familyAuthority.get('screen:one')?.id,'screen:one','Screen source must remain selectable after window enumeration finishes.');
 assert.equal(familyAuthority.get('window:one')?.id,'window:one','Window source must remain selectable alongside screen sources.');
 
-// macOS status/probe APIs may exist for post-failure diagnostics, but they must
-// never gate the initial Share transaction. The real native getDisplayMedia
-// request is the first authority on macOS 15+.
-assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS TCC diagnostic status authority is missing.');
-assert(main.includes("permissionStatus('screen')"),'Screen Recording diagnostic status must remain independently inspectable.');
-assert(main.includes('function activeScreenCaptureProbe()')&&main.includes('screenPermissionProbeInFlight'),'Explicit recovery probe must remain single-flight.');
+// macOS may read the lightweight TCC status to recognize an already-granted
+// installation. It must not enumerate desktop sources merely to decide which
+// chooser to show. Unknown/ungranted sessions still let native getDisplayMedia
+// own first authorization; an explicitly granted/proven Mac gets DominionStar's
+// Zoom-style chooser immediately.
+assert(main.includes("systemPreferences.getMediaAccessStatus(kind)"),'macOS TCC status authority is missing.');
+assert(main.includes("permissionStatus('screen')"),'Screen Recording status must remain independently inspectable.');
+assert(main.includes('function activeScreenCaptureProbe()')&&main.includes('screenPermissionProbeInFlight'),'Explicit post-failure recovery probe must remain single-flight.');
 assert(main.includes('capture-probe-timeout')&&main.includes('2200'),'Explicit recovery probing must remain bounded.');
 assert(main.includes("media:request-screen"),'Renderer must retain narrow post-failure diagnostics.');
 
@@ -52,11 +53,10 @@ assert.equal((service.match(/setDisplayMediaRequestHandler/g)||[]).length,1,'Exa
 assert(service.includes("const nativeSystemPicker=platform==='darwin'&&macMajor>=15"),'macOS native-picker capability detection is mandatory.');
 assert(service.includes('function configureDisplayMediaHandler(useSystemPicker)'),'Share service must explicitly switch native-vs-DominionStar selection authority.');
 assert(service.includes("configureDisplayMediaHandler(nativeSystemPicker)"),'macOS must begin native-safe before permission state is known.');
-assert(service.includes("if(nativeSystemPicker&&status!=='granted')"),'Unknown/un-granted macOS sessions must retain native authorization/selection.');
+assert(service.includes("if(nativeSystemPicker&&status!=='granted')"),'Unknown/ungranted macOS sessions must retain native authorization/selection.');
 assert(service.includes("configureDisplayMediaHandler(true)")&&service.includes("nativeSystemPicker:true,status:'system-picker'"),'Native fallback path is missing.');
-assert(service.includes("configureDisplayMediaHandler(false)"),'Process-proven replacement sessions must be able to switch to DominionStar source selection.');
+assert(service.includes("configureDisplayMediaHandler(false)"),'Granted/proven sessions must be able to switch to DominionStar source selection.');
 assert(preload.includes("openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')})"),'Narrow picker-mode state must cross the preload bridge.');
-assert(!service.includes("if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'}"),'macOS 15+ must still allow the compact chooser for a process-proven New Share replacement.');
 
 // Zoom-style chooser: Basic presents screens + application windows in one grid,
 // desktop is selected by default, and Advanced / Files remain first-class tabs.
@@ -77,15 +77,20 @@ assert(pickerCss.includes('.tab.active{border-bottom-color:var(--blue)'),'Active
 assert(pickerCss.includes('.primary{min-width:80px;background:var(--blue)'),'Share action must remain a clear blue bottom-right primary button.');
 assert(!picker.includes('showModal')&&!pickerHtml.includes('<dialog'),'Share chooser must remain a separate desktop window, not an in-meeting blocking modal.');
 
-// Initial Share must be native-first and non-preflighted. Only an already-active
-// capture may mark the replacement chooser as process-proven/granted. Deep TCC
-// diagnostics are allowed only after the native picker/capture fails.
+// Initial Share is permission-aware, never source-probe-driven. Explicitly
+// granted/proven installs skip Apple's full-screen chooser; unknown permission
+// stays native-first so macOS can authorize safely.
 assert(mediaController.includes("script.src='./share-integration.js'"),'Media controller must own one Share integration bootstrap path.');
-assert(!integration.includes('async function screenPermissionStatus()'),'Initial Share must not poll TCC status before native capture.');
-assert(!integration.includes('bridge?.probeAccess?.()'),'Initial Share must not enumerate desktop sources as a permission probe.');
-assert(integration.includes("const permission=replace||share.snapshot().active?'granted':'unknown';"),'Only an already-active capture may select the compact replacement chooser.');
-assert(integration.includes('const result=await bridge.openPicker(permission);'),'Share entry must pass only process-known picker mode into native selection authority.');
-assert(integration.includes("if(result?.nativeSystemPicker)return {mode:'native'}"),'Renderer must retain native first-share authorization mode.');
+assert(!integration.includes('bridge?.probeAccess?.()'),'Share entry must not enumerate desktop sources as a permission probe.');
+assert(integration.includes("const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2'"),'Successful screen-capture proof must persist across renderer relaunches.');
+assert(integration.includes('async function grantedScreenPermission()'),'Granted-screen authority helper is missing.');
+assert(integration.includes("desktop?.media?.permissions?.()"),'Share entry must be able to read lightweight macOS permission status.');
+assert(integration.includes("String(permissions?.screen||'').toLowerCase()==='granted'"),'Only explicit granted Screen Recording status may bypass native authorization.');
+assert(integration.includes('const proven=replace||share.snapshot().active||await grantedScreenPermission();'),'Share entry must combine active/proven capture with explicit granted macOS status.');
+assert(integration.includes("const permission=proven?'granted':'unknown';"),'Unproven permission must stay unknown and granted/proven permission must select DominionStar chooser.');
+assert(integration.includes('const result=await bridge.openPicker(permission);'),'Share entry must pass only the resolved permission mode into selection authority.');
+assert(integration.includes("if(result?.nativeSystemPicker)return {mode:'native'}"),'Renderer must retain native authorization fallback.');
+assert(integration.includes('markCaptureProven();applyLayout();'),'Successful capture must persist proof before continuing.');
 assert(integration.includes('queueMicrotask(()=>{void beginShare()'),'Share command must not depend on requestAnimationFrame.');
 assert(!integration.includes('requestAnimationFrame(()=>setTimeout'),'Functional Share start must not be paint-frame gated.');
 const pickerCall=integration.indexOf('const result=await bridge.openPicker(permission);');
@@ -109,13 +114,18 @@ assert(controller.includes("presenter?.toolbarReady===false"),'A successful capt
 assert(controller.includes("Presenter controls could not start. Screen sharing was cancelled safely."),'Toolbar-start failure must surface a clear safe-cancel error.');
 assert(controller.includes("try{await bridge?.captureStopped?.();}catch{}"),'Toolbar-start failure must unwind native presenter state before returning control to the meeting.');
 assert(controller.includes('async function replaceSource')&&controller.includes('const previousLive=state.liveStream'),'New Share must remain transactional.');
-assert(integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must route through the same permission-aware chooser.');
+assert(integration.includes("if(command==='new-share'){clearCompanion();await openPickerWithPermission();return;}"),'Presenter New Share must route through the same permission-aware chooser.');
 
-// Zoom presenter-state contract: normal meeting disappears only after a separate
-// presenter toolbar is fully loaded. If toolbar loading fails, the meeting stays
-// visible instead of leaving the presenter with an unstoppable share.
+// Zoom presenter-state contract: normal presentation hides the full meeting, but
+// Chat/Participants/Annotate open purpose-built companion surfaces rather than
+// resurrecting the entire meeting chrome. Stop Share retains a recovery retry.
 assert(service.includes('function hideMeetingWindowForShare()'),'Share service must have a dedicated hide-meeting presenter state.');
 assert(service.includes('main.hide()'),'The normal meeting window must be hidden during normal presentation state.');
+assert(service.includes('function showCompanionWindow(kind=\'chat\')'),'Sharing must have dedicated companion-window authority.');
+assert(service.includes("['participants','chat','annotate'].includes(normalized)&&shareActive"),'Presenter companion commands must be handled explicitly during an active share.');
+assert(service.includes('showCompanionWindow(normalized)'),'Chat/Participants/Annotation must open companion geometry instead of the full meeting.');
+assert(shareCss.includes('data-ds-share-companion="chat"')&&shareCss.includes('data-ds-share-companion="participants"')&&shareCss.includes('data-ds-share-companion="annotate"'),'Share companion CSS modes are incomplete.');
+assert(integration.includes("setCompanion('participants')")&&integration.includes("setCompanion('chat')")&&integration.includes("setCompanion(active?'annotate':'')"),'Renderer must identify each active share companion.');
 assert(service.includes('async function openToolbar()'),'Presenter toolbar creation must be awaitable.');
 assert(service.includes("await created.loadFile(path.join(uiDir,'presenter-toolbar.html'))"),'Presenter toolbar must finish loading before it can own the presentation.');
 const captureStarted=service.slice(service.indexOf("ipcMain.handle('share:capture-started'"),service.indexOf("ipcMain.handle('share:capture-state'"));
@@ -126,7 +136,7 @@ assert(service.includes("main.webContents?.setBackgroundThrottling?.(false)"),'H
 assert(service.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter toolbar must remain available across macOS Spaces/full-screen apps.');
 assert(service.includes("setAlwaysOnTop(true,'floating')"),'Presenter toolbar must stay above shared applications.');
 assert(service.includes('backgroundThrottling:false'),'Presenter toolbar must remain responsive while the meeting window is hidden.');
-assert(service.includes("if(normalized==='stop'&&shareActive)")&&service.includes("sendMain('share:presenter-command','stop')"),'Stop Share must have a bounded one-shot retry if renderer acknowledgement is delayed.');
+assert(service.includes("if(normalized==='stop'&&shareActive)")&&service.includes("showMeetingWindow({focus:false});sendMain('share:presenter-command','stop')"),'Stop Share must have a wake-and-retry fallback if the hidden renderer delays acknowledgement.');
 assert(toolbar.includes('data-command="stop"')&&toolbar.includes('Stop Share'),'Floating presenter toolbar must expose Stop Share directly.');
 assert(toolbarCss.includes('min-width:104px')&&toolbarCss.includes('background:#d83d4c'),'Stop Share must be visually dominant and large enough to click reliably.');
 assert(toolbarJs.includes("if(command==='stop')")&&toolbarJs.includes("label.textContent='Stopping…'"),'Stop Share click must immediately enter a visible stopping state.');
@@ -137,8 +147,8 @@ assert(toolbarJs.includes("setMenuExpanded(!more.hidden)")&&toolbarJs.includes("
 assert(toolbarCss.includes(".more-menu{position:absolute;right:0;top:66px;bottom:auto;"),'Presenter More menu must render below the toolbar inside expanded window bounds.');
 assert(toolbarCss.includes(".presenter-reaction-menu{position:absolute;right:190px;top:0;bottom:auto;"),'Presenter reaction menu must remain inside the expanded presenter window.');
 assert(!toolbarJs.includes("command='smart-new-share'"),'Presenter New Share must not be rewritten to an unhandled command.');
-assert(service.includes("if(lastToolbarState.meetingVisible)hideMeetingWindowForShare()"),'Show/Hide meeting must be explicit presenter control, not default visibility.');
+assert(service.includes("if(lastToolbarState.meetingVisible)hideMeetingWindowForShare()"),'Show/Hide meeting must remain explicit presenter control, not default visibility.');
 
 assert(media.includes("script.src='./share-integration.js'"),'Desktop/web bundle must retain the same isolated Share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK native-first-initial-share no-tcc-preflight no-source-probe process-proven-new-share zoom-basic-advanced-files real-desktop-and-window-grid multi-family-source-cache default-desktop-selection dominionstar-window-exclusion nonblocking-share-start toolbar-before-hide hidden-meeting-default persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid multi-family-source-cache default-desktop-selection dominionstar-window-exclusion nonblocking-share-start toolbar-before-hide hidden-meeting-default share-companions persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
