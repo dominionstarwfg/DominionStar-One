@@ -1,1 +1,59 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Choose what to share</title><link rel="stylesheet" href="./share-picker.css"></head><body><main class="picker-shell"><header class="picker-head"><div><p class="eyebrow">DOMINIONSTAR MEET</p><h1>Choose what to share</h1></div><button id="cancelTop" class="icon-button" type="button" aria-label="Cancel">×</button></header><nav class="source-tabs" aria-label="Share source type"><button class="tab active" type="button" data-filter="screen">Screens</button><button class="tab" type="button" data-filter="window">Applications</button></nav><div class="picker-body"><section class="source-area"><div id="loadingState" class="loading-state"><div class="spinner"></div><strong>Finding screens…</strong><span>Your meeting stays responsive while sources load.</span></div><div id="errorState" class="error-state" hidden><strong>Sources could not be loaded</strong><span id="errorCopy">Check macOS Screen Recording permission and try again.</span><button id="retrySources" type="button">Try again</button></div><div id="sourceGrid" class="source-grid" hidden></div></section><aside class="share-options"><h2>Share options</h2><label class="option-row"><span><strong>Optimize for video sharing</strong><small>Prefer smoother motion while presenting video.</small></span><input id="optimizeVideo" type="checkbox"></label><label class="option-row"><span><strong>Show DominionStar windows</strong><small>Off by default to reduce mirror recursion.</small></span><input id="showDominionStar" type="checkbox"></label><label id="shareAudioRow" class="option-row"><span><strong>Share sound</strong><small id="audioSupportCopy">Include audio from the shared desktop when supported.</small></span><input id="shareAudio" type="checkbox"></label><div class="selection-summary"><span>Selected</span><strong id="selectedName">Choose a source</strong></div></aside></div><footer class="picker-footer"><button id="cancelBottom" class="secondary" type="button">Cancel</button><button id="shareButton" class="primary" type="button" disabled>Share</button></footer></main><script src="./share-picker.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Share Screen</title>
+  <link rel="stylesheet" href="./share-picker.css">
+</head>
+<body>
+  <main class="picker-shell">
+    <header class="picker-head">
+      <div>
+        <p class="eyebrow">DOMINIONSTAR MEET</p>
+        <h1>Share Screen</h1>
+        <span>Choose what participants will see.</span>
+      </div>
+      <button id="cancelTop" class="icon-button" type="button" aria-label="Close share chooser">×</button>
+    </header>
+
+    <nav class="source-tabs" aria-label="Share source type">
+      <button class="tab active" type="button" data-filter="screen">Screen</button>
+      <button class="tab" type="button" data-filter="window">Window</button>
+    </nav>
+
+    <section class="source-area">
+      <div id="loadingState" class="loading-state">
+        <div class="spinner"></div>
+        <strong>Finding available screens…</strong>
+        <span>Your meeting stays active while sources load.</span>
+      </div>
+      <div id="errorState" class="error-state" hidden>
+        <strong>Share sources are unavailable</strong>
+        <span id="errorCopy">Check Screen Recording permission and try again.</span>
+        <button id="retrySources" type="button">Try Again</button>
+      </div>
+      <div id="sourceGrid" class="source-grid" hidden></div>
+    </section>
+
+    <footer class="picker-footer">
+      <div class="share-options">
+        <label id="shareAudioRow" class="option-row">
+          <input id="shareAudio" type="checkbox">
+          <span><strong>Share sound</strong><small id="audioSupportCopy">Include computer audio.</small></span>
+        </label>
+        <label class="option-row">
+          <input id="optimizeVideo" type="checkbox">
+          <span><strong>Optimize for video clip</strong><small>Smoother motion for video playback.</small></span>
+        </label>
+      </div>
+      <div class="selection-summary"><span>Selected:</span><strong id="selectedName">Choose a source</strong></div>
+      <div class="footer-actions">
+        <button id="cancelBottom" class="secondary" type="button">Cancel</button>
+        <button id="shareButton" class="primary" type="button" disabled>Share</button>
+      </div>
+    </footer>
+  </main>
+  <script src="./share-picker.js"></script>
+</body>
+</html>
