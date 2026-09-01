@@ -39,43 +39,56 @@ try{
   await evaluate(`[...document.querySelectorAll('.ds-command-menu button')].find(b=>/Gallery/.test(b.textContent||''))?.click()`);
   await waitFor("document.querySelector('#meetingOverlay').dataset.viewMode==='gallery'",'working Gallery action');
 
-  // Host Tools and More remain primary/secondary desktop command surfaces.
+  // Host Tools is a dedicated first-class toolbar control. The final runtime
+  // opens the canonical Security menu directly; it must not depend on the
+  // retired generic ds-command-menu compatibility shell.
   await evaluate(`document.querySelector('#roomHostTools').click()`);
-  await waitFor("document.querySelector('.ds-command-menu')&&/Host Tools/.test(document.querySelector('.ds-command-menu').textContent)",'Host Tools menu');
-  const hostMenu=await evaluate(`(()=>{const m=document.querySelector('.ds-command-menu'),f=document.querySelector('.meeting-footer').getBoundingClientRect(),r=m.getBoundingClientRect();return {z:parseInt(getComputedStyle(m).zIndex)||0,bottom:r.bottom,footerTop:f.top,items:[...m.querySelectorAll('button')].map(b=>b.textContent.trim())};})()`);
+  await waitFor("document.querySelector('.security-menu')&&!document.querySelector('.security-menu').hidden",'Host Tools security menu');
+  const hostMenu=await evaluate(`(()=>{const m=document.querySelector('.security-menu'),f=document.querySelector('.meeting-footer').getBoundingClientRect(),r=m.getBoundingClientRect(),heading=m.querySelector('.menu-heading strong')?.textContent||'';return {z:parseInt(getComputedStyle(m).zIndex)||0,bottom:r.bottom,footerTop:f.top,heading,items:[...m.querySelectorAll('button')].map(b=>b.textContent.trim())};})()`);
   assert.ok(hostMenu.z>=2500&&hostMenu.bottom<=hostMenu.footerTop+2,'Host Tools must stay clickable above the toolbar.');
+  assert.match(hostMenu.heading,/Security/i,'Host Tools must open the canonical Security surface.');
   assert.ok(hostMenu.items.some(v=>/Open Participants/i.test(v))&&hostMenu.items.some(v=>/Lock Meeting/i.test(v)),'Host Tools is missing live host actions.');
-  await evaluate(`document.querySelector('.ds-command-menu')?.remove()`);
+  await evaluate(`document.querySelector('.security-menu')?.remove()`);
 
-  await evaluate(`document.querySelector('#roomMore').click()`);
-  await waitFor("document.querySelector('.ds-command-menu')&&/More/.test(document.querySelector('.ds-command-menu').textContent)",'More menu');
-  const more=await evaluate(`[...document.querySelectorAll('.ds-command-menu button')].map(b=>b.textContent.trim())`);
+  // More is the canonical meeting-more-menu. Host Tools must not be duplicated
+  // there when the dedicated Host Tools toolbar button is visible.
+  await evaluate(`document.querySelector('#roomMore').click()`);await sleep(0);
+  await waitFor("document.querySelector('.meeting-more-menu:not(.security-menu)')",'More menu');
+  const more=await evaluate(`(()=>{const m=document.querySelector('.meeting-more-menu:not(.security-menu)');return [...m.querySelectorAll('button')].map(b=>b.textContent.trim());})()`);
   assert.ok(more.some(v=>/Meeting settings/i.test(v)),'More must expose Meeting settings.');
   assert.ok(!more.some(v=>/^Host Tools$/i.test(v)),'Host Tools must not be duplicated inside More.');
-  await evaluate(`document.querySelector('.ds-command-menu')?.remove()`);
+  await evaluate(`document.querySelector('.meeting-more-menu:not(.security-menu)')?.remove()`);
 
-  // Participants: final desktop authority is a right-side application panel with
-  // modern mic/video state and row ellipsis. It must resize the stage, not cover it.
+  // Participants: 2.0.22 final authority is one floating, draggable desktop
+  // application surface at every width. It must stay inside the meeting body,
+  // preserve a full-width stage, and retain modern media/ellipsis controls.
   await evaluate(`(()=>{document.querySelector('#roomParticipants').click();const roster=document.querySelector('#participantRoster');roster.innerHTML='<div class="person-row" data-participant-id="qa-guest" data-participant-role="participant" data-participant-name="Taylor Participant" data-recording-allowed="0" data-record-eligible="1"><span class="person-badge">TP</span><span class="person-copy"><strong>Taylor Participant</strong><small>Participant</small></span></div>';window.DominionZoomPhysicalAcceptance.decorateParticipantRows();window.DominionRuntimeStability.syncParticipantsSurface();window.DominionRuntimeStability.layoutSideSurface();return true;})()`);
   await waitFor("document.querySelector('#participantRoster .ds-modern-participant-row .ds-participant-media')",'participant media indicators');
   await waitFor("document.querySelector('#participantRoster [data-participant-more]')",'participant ellipsis');
-  const participantRow=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const row=document.querySelector('#participantRoster .ds-modern-participant-row'),states=[...row.querySelectorAll('.ds-media-state')],more=row.querySelector('[data-participant-more]'),panel=document.querySelector('.room-side'),pr=panel.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect();return {height:row.getBoundingClientRect().height,stateCount:states.length,moreText:more?.textContent||'',nameFont:parseFloat(getComputedStyle(row.querySelector('.person-copy strong')).fontSize),moreWidth:more?.getBoundingClientRect().width||0,mode:panel.dataset.dsRuntimeMode||'',rightGap:Math.round(body.right-pr.right),panelWidth:Math.round(pr.width),stageRightGap:Math.round(body.right-stage.right)};})()`);
+  const participantRow=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const row=document.querySelector('#participantRoster .ds-modern-participant-row'),states=[...row.querySelectorAll('.ds-media-state')],more=row.querySelector('[data-participant-more]'),panel=document.querySelector('.room-side'),pr=panel.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect();return {height:row.getBoundingClientRect().height,stateCount:states.length,moreText:more?.textContent||'',nameFont:parseFloat(getComputedStyle(row.querySelector('.person-copy strong')).fontSize),moreWidth:more?.getBoundingClientRect().width||0,mode:panel.dataset.dsRuntimeMode||'',inside:pr.left>=body.left+10&&pr.right<=body.right-10&&pr.top>=body.top+10&&pr.bottom<=body.bottom-10,centerDelta:Math.round(Math.abs((pr.left+pr.width/2)-(body.left+body.width/2))),panelWidth:Math.round(pr.width),stageRightGap:Math.round(body.right-stage.right),draggable:panel.dataset.dsRuntimeDragBound==='1'};})()`);
   assert.ok(participantRow.height>=50&&participantRow.nameFont>=12.5,'Participant row is below the final readable runtime scale.');
   assert.equal(participantRow.stateCount,2,'Participant row must show microphone and video status.');
   assert.equal(participantRow.moreText,'•••','Participant management must use a three-dot control.');
   assert.ok(participantRow.moreWidth>=27,'Participant ellipsis target is too small.');
-  assert.equal(participantRow.mode,'docked','Desktop Participants must use the right-side dock.');
-  assert.ok(Math.abs(participantRow.rightGap)<=2,'Participants must sit flush on the right edge.');
-  assert.ok(participantRow.stageRightGap>=participantRow.panelWidth-2,'Participants must resize the stage rather than overlap it.');
+  assert.equal(participantRow.mode,'floating','Participants must use the final floating desktop panel model.');
+  assert.equal(participantRow.inside,true,'Participants must remain contained inside the meeting surface.');
+  assert.ok(participantRow.centerDelta<=48,'Participants must open near the meeting center before user positioning.');
+  assert.ok(participantRow.panelWidth>=300&&participantRow.panelWidth<=420,'Participants width must remain readable and bounded.');
+  assert.ok(Math.abs(participantRow.stageRightGap)<=2,'Floating Participants must not shrink the live stage.');
+  assert.equal(participantRow.draggable,true,'Participants floating surface must have a drag authority.');
   await evaluate(`document.querySelector('#roomParticipants').click()`);
 
-  // Chat uses the same final runtime dock and must remain readable and contained.
+  // Chat uses the same final floating application-surface model, remains compact,
+  // and must leave the meeting stage full width.
   await evaluate(`document.querySelector('#roomChat').click()`);await waitFor("!document.querySelector('#meetingChatPanel').hidden",'Chat panel');
-  const chat=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const p=document.querySelector('#meetingChatPanel'),r=p.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),more=p.querySelector('.zoom-chat-more'),input=document.querySelector('#meetingChatInput');return {width:Math.round(r.width),mode:p.dataset.dsRuntimeMode||'',rightGap:Math.round(body.right-r.right),head:parseFloat(getComputedStyle(p.querySelector('header strong')).fontSize),input:parseFloat(getComputedStyle(input).fontSize),more:Boolean(more&&getComputedStyle(more).display!=='none')};})()`);
-  assert.ok(chat.width>=320&&chat.width<=400&&chat.head>=14.5&&chat.input>=12.5,'Chat is not at the approved compact readable runtime scale.');
-  assert.equal(chat.mode,'docked','Desktop Chat must use the same right-side dock.');
-  assert.ok(Math.abs(chat.rightGap)<=2,'Chat must sit flush on the right edge.');
+  const chat=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const p=document.querySelector('#meetingChatPanel'),r=p.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect(),more=p.querySelector('.zoom-chat-more'),input=document.querySelector('#meetingChatInput');return {width:Math.round(r.width),mode:p.dataset.dsRuntimeMode||'',inside:r.left>=body.left+10&&r.right<=body.right-10&&r.top>=body.top+10&&r.bottom<=body.bottom-10,centerDelta:Math.round(Math.abs((r.left+r.width/2)-(body.left+body.width/2))),stageRightGap:Math.round(body.right-stage.right),head:parseFloat(getComputedStyle(p.querySelector('header strong')).fontSize),input:parseFloat(getComputedStyle(input).fontSize),more:Boolean(more&&getComputedStyle(more).display!=='none'),draggable:p.dataset.dsRuntimeDragBound==='1'};})()`);
+  assert.ok(chat.width>=300&&chat.width<=420&&chat.head>=14.5&&chat.input>=12.5,'Chat is not at the approved compact readable runtime scale.');
+  assert.equal(chat.mode,'floating','Chat must use the same final floating application-surface model.');
+  assert.equal(chat.inside,true,'Chat must remain contained inside the meeting surface.');
+  assert.ok(chat.centerDelta<=48,'Chat must open near the meeting center before user positioning.');
+  assert.ok(Math.abs(chat.stageRightGap)<=2,'Floating Chat must not shrink the live stage.');
   assert.equal(chat.more,true,'Chat options ellipsis is missing.');
+  assert.equal(chat.draggable,true,'Chat floating surface must have a drag authority.');
   await evaluate(`document.querySelector('#roomChat').click()`);
 
   // React contains six reactions only. Raise Hand is a separate toolbar control.
@@ -111,6 +124,6 @@ try{
   assert.equal(toolbarZones.zones,3,'Physical acceptance must retain three independent toolbar zones.');
 
   await sleep(100);assert.deepEqual(runtimeErrors,[],'Physical acceptance emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_ACCEPTANCE_OK view-click host-tools-click more-click participant-media right-docked-participants compact-right-chat reaction-six-only dedicated-raise-hand ten-second-left-reactions settings-readable runtime-owned-native-share stable-toolbar no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_ACCEPTANCE_OK view-click canonical-host-tools-security more-click participant-media floating-draggable-participants compact-floating-chat full-width-stage reaction-six-only dedicated-raise-hand ten-second-left-reactions settings-readable runtime-owned-native-share stable-toolbar no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('physical acceptance shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
