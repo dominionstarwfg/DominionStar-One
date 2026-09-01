@@ -78,11 +78,13 @@ assert.ok(js.includes("aria-label','Encrypted media transport'"),'Header must ex
 assert.ok(js.includes("<span>Encrypted</span>"),'Header encrypted status is missing.');
 assert.ok(!js.includes('End-to-end encrypted</span>'),'UI must not falsely claim end-to-end encryption before E2EE exists.');
 
-assert.ok(share.includes("const nativeSystemPicker=platform==='darwin'&&macMajor>=15"),'Native macOS picker authority must remain enabled on macOS 15+.');
-assert.ok(share.includes('{useSystemPicker:nativeSystemPicker}'),'Display-media handler must retain the native macOS picker.');
+assert.ok(share.includes("const nativeSystemPicker=platform==='darwin'&&macMajor>=15"),'Native macOS picker capability must remain available for first-time/ungranted Screen Recording.');
+assert.ok(share.includes('function configureDisplayMediaHandler(useSystemPicker)'),'Display-media authority must switch safely between native permission establishment and the Zoom-style app chooser.');
+assert.ok(share.includes("if(nativeSystemPicker&&status!=='granted')"),'Un-granted macOS sessions must retain the native picker path.');
+assert.ok(share.includes('configureDisplayMediaHandler(false)'),'Granted macOS sessions must use the DominionStar source chooser instead of forcing the large Apple picker.');
 const openVerifiedShare=physical.slice(physical.indexOf('async function openVerifiedShare'),physical.indexOf('function syncPersonalChoice'));
-assert.ok(openVerifiedShare.includes('DominionShareIntegration'),'Physical Share must delegate to the real native-first integration.');
-assert.ok(!openVerifiedShare.includes('listSources'),'Physical Share must not pre-enumerate sources before the native picker.');
+assert.ok(openVerifiedShare.includes('DominionShareIntegration'),'Physical Share must delegate to the real permission-aware integration.');
+assert.ok(!openVerifiedShare.includes('listSources'),'Physical compatibility code must not pre-enumerate sources before the Share integration chooses native or app-owned selection.');
 
 for(const workflow of [production,qa]){
   assert.ok(workflow.includes('verify-approved-reference-parity-2.0.22.mjs'),'Workflow is missing the approved-reference source gate.');
@@ -91,4 +93,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip native-share-preserved release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip permission-aware-share-preserved release-gated');
