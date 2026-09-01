@@ -90,6 +90,12 @@
     return true;
   }
 
+  function suppressLegacyReactionHand(){
+    const tray=q('.ds-reaction-tray');if(!tray)return false;
+    for(const node of tray.querySelectorAll(':scope > .ds-raise-hand,:scope > .ds-reaction-divider'))node.remove();
+    return true;
+  }
+
   function ensureViewport(){
     const overlay=q('#meetingOverlay'),shell=overlay?.querySelector('.meeting-shell'),body=overlay?.querySelector('.meeting-body');
     if(!overlay||!shell||!body)return;
@@ -309,6 +315,11 @@
     if(share&&meetingOpen()){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();share.blur();openShareFromRuntime(share);return;
     }
+    const reactions=event.target.closest?.('#roomReactions');
+    if(reactions&&meetingOpen()){
+      queueMicrotask(suppressLegacyReactionHand);
+      return;
+    }
     const participants=event.target.closest?.('#roomParticipants');
     if(participants&&meetingOpen()){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
@@ -337,5 +348,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncParticipantsSurface,ensureToolbarZones,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.22-physical-runtime-fix',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
