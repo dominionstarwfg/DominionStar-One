@@ -342,6 +342,20 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
 .ds-reaction-tray>.ds-reaction-divider,
 .ds-reaction-tray>.ds-raise-hand{display:none!important}
 
+/* Reaction chooser is a deterministic left-side meeting surface. The legacy
+   production-polish timer used to keep rewriting this position; final CSS now
+   owns it with zero reconciliation cost. Floating reaction animations use their
+   separate bounded left-lane layer and are unaffected by this chooser rule. */
+#meetingOverlay .meeting-reaction-menu,
+body>.meeting-reaction-menu,
+#meetingOverlay .ds-reaction-tray,
+body>.ds-reaction-tray{
+  left:18px!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:94px!important;
+}
+
 /* The participant video strip remains a movable meeting surface. */
 #participantVideoDock[data-ds-runtime-whole-panel-drag="1"]{cursor:default!important}
 #participantVideoDock[data-ds-runtime-whole-panel-drag="1"].dragging{cursor:grabbing!important}
