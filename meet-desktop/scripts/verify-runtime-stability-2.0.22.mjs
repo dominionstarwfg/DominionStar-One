@@ -31,6 +31,8 @@ assert.ok(preload.includes("probeAccess:()=>invoke('share:probe-access')"),'Prel
 assert.ok(shareService.includes("ipcMain.handle('share:probe-access'")&&shareService.includes("!source.thumbnail?.isEmpty?.()"),'Share authority must prove readable capture capability before trusting a stale permission label.');
 assert.ok(shareIntegration.includes("const probe=await bridge?.probeAccess?.()")&&shareIntegration.includes("if(probe?.ok)permission='granted'"),'Renderer must proceed to the Zoom-style chooser when real capture access is available.');
 assert.ok(runtime.includes("DominionMeetingFeatures?.openReactions?.(reactions)"),'React must open through the final single-click authority.');
+assert.ok(!physical.includes("reactionMenu.className='ds-reaction-tray'")&&!physical.includes('openReactionTray('),'Retired physical compatibility must not create a second reaction chooser.');
+assert.ok(!physical.includes("button.onclick=event=>{event.preventDefault();event.stopPropagation();openReactionTray(button);"),'Retired physical compatibility must not overwrite the final React click authority.');
 assert.ok(runtime.includes("DominionMeetingParity?.openSecurity?.(hostTools)"),'Host Tools must open through the final single-click authority.');
 assert.ok(runtime.includes("DominionMeetingParity?.openMore?.(more)"),'More must open through the final single-click authority.');
 
