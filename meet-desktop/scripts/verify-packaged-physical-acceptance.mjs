@@ -79,13 +79,13 @@ try{
   await evaluate(`document.querySelector('#roomChat').click()`);
 
   // React contains six reactions only. Raise Hand is a separate toolbar control.
-  await evaluate(`document.querySelector('#roomReactions').click()`);await waitFor("document.querySelector('.ds-reaction-tray')",'reaction tray');
-  const reactionTray=await evaluate(`(()=>{const tray=document.querySelector('.ds-reaction-tray'),buttons=[...tray.querySelectorAll('button')],hand=tray.querySelector('.ds-raise-hand'),dedicated=document.querySelector('#roomRaiseHand');return {z:parseInt(getComputedStyle(tray).zIndex)||0,reactions:buttons.filter(b=>!b.classList.contains('ds-raise-hand')&&getComputedStyle(b).display!=='none').length,legacyHandSuppressed:Boolean(!hand||getComputedStyle(hand).display==='none'),dedicatedHand:Boolean(dedicated&&!dedicated.hidden&&getComputedStyle(dedicated).display!=='none'),pointer:getComputedStyle(tray).pointerEvents};})()`);
+  await evaluate(`document.querySelector('#roomReactions').click()`);await waitFor("document.querySelector('.meeting-reaction-menu')",'canonical reaction menu');
+  const reactionTray=await evaluate(`(()=>{const tray=document.querySelector('.meeting-reaction-menu'),buttons=[...tray.querySelectorAll('.reaction-emoji-button')],dedicated=document.querySelector('#roomRaiseHand');return {z:parseInt(getComputedStyle(tray).zIndex)||0,reactions:buttons.filter(b=>getComputedStyle(b).display!=='none').length,legacyTrayAbsent:!document.querySelector('.ds-reaction-tray'),legacyHandSuppressed:!tray.querySelector('.reaction-hand-button')||getComputedStyle(tray.querySelector('.reaction-hand-button')).display==='none',dedicatedHand:Boolean(dedicated&&!dedicated.hidden&&getComputedStyle(dedicated).display!=='none'),pointer:getComputedStyle(tray).pointerEvents,minWidth:buttons.length?Math.min(...buttons.map(b=>b.getBoundingClientRect().width)):0,minFont:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||0)):0};})()`);
   assert.ok(reactionTray.z>=2700&&reactionTray.pointer!=='none','Reaction tray is behind another layer or cannot receive clicks.');
   assert.equal(reactionTray.reactions,6,'Reaction tray must expose six standard reaction buttons.');
   assert.equal(reactionTray.legacyHandSuppressed,true,'Raise Hand must not be duplicated inside React.');
   assert.equal(reactionTray.dedicatedHand,true,'Dedicated Raise Hand toolbar control is missing.');
-  await evaluate(`document.querySelector('.ds-reaction-tray')?.remove()`);
+  await evaluate(`document.querySelector('.meeting-reaction-menu')?.remove()`);
 
   // Final reaction animator: ten-second left-side rise with name support and bounded blossoms.
   await evaluate(`(()=>{window.DominionZoomReactionParity.mount();const layer=document.querySelector('#meetingReactionLayer');const bubble=document.createElement('div');bubble.className='meeting-reaction-bubble';bubble.innerHTML='<b>❤️</b><span>Taylor Participant</span>';layer.append(bubble);return true;})()`);
