@@ -36,31 +36,34 @@ try{
   assert.ok(Math.abs(viewport.shell.w-viewport.innerWidth)<=1,'Meeting shell must expand with the window.');
 
   await evaluate(`document.querySelector('#roomParticipants').click()`);await sleep(45);
-  const participantsImmediate=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,rightGap:Math.round(br.right-sr.right),stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||'',animation:getComputedStyle(side).animationName,stageTransition:getComputedStyle(stage).transitionDuration,reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,motionSheetLoaded:Array.from(document.styleSheets).some(sheet=>String(sheet.href||'').endsWith('/runtime-motion.css'))};})()`);
+  const participantsImmediate=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,centerDelta:Math.round(Math.abs((sr.left+sr.width/2)-(br.left+br.width/2))),inside:sr.left>=br.left+10&&sr.right<=br.right-10&&sr.top>=br.top+10&&sr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||'',animation:getComputedStyle(side).animationName,reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,motionSheetLoaded:Array.from(document.styleSheets).some(sheet=>String(sheet.href||'').endsWith('/runtime-motion.css'))};})()`);
   assert.equal(participantsImmediate.participantsOpen,true,'Participants must open immediately on Participants click.');
   assert.equal(participantsImmediate.chatClosed,true,'Opening Participants must keep Chat closed.');
-  assert.equal(participantsImmediate.mode,'docked','Desktop-width Participants must use the approved right-side dock.');
-  assert.ok(Math.abs(participantsImmediate.rightGap)<=2,'Docked Participants must sit on the right edge immediately.');
+  assert.equal(participantsImmediate.mode,'floating','Participants must open as a floating Zoom-style window at desktop width.');
+  assert.equal(participantsImmediate.inside,true,'Floating Participants must remain inside the meeting body.');
+  assert.ok(participantsImmediate.centerDelta<=48,'Participants must open near the meeting center before the user moves it.');
+  assert.ok(Math.abs(participantsImmediate.stageRightGap)<=2,'Floating Participants must not reserve the right edge or shrink the stage.');
   assert.equal(participantsImmediate.count,'Participants (1)');
   assert.equal(participantsImmediate.motionSheetLoaded,true,'Runtime motion stylesheet must be active in the packaged renderer.');
-  if(participantsImmediate.reduceMotion){
-    assert.equal(participantsImmediate.animation,'none','Reduce Motion must suppress the Participants entrance animation.');
-    assert.ok(parseFloat(participantsImmediate.stageTransition)===0,'Reduce Motion must suppress the stage resize transition.');
-  }else{
-    assert.match(participantsImmediate.animation,/dsRuntimePanelIn/,'Participants must use the short runtime entrance motion.');
-    assert.ok(parseFloat(participantsImmediate.stageTransition)>0&&parseFloat(participantsImmediate.stageTransition)<=0.2,'Stage resize transition must remain short.');
-  }
+  if(participantsImmediate.reduceMotion)assert.equal(participantsImmediate.animation,'none','Reduce Motion must suppress the Participants entrance animation.');
+  else assert.match(participantsImmediate.animation,/dsRuntimePanelIn/,'Participants must use the short runtime entrance motion.');
 
-  await sleep(170);
-  const participantsSettled=await evaluate(`(()=>{const side=document.querySelector('.room-side'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {panelWidth:Math.round(sr.width),stageRightGap:Math.round(br.right-st.right),stageWidth:Math.round(st.width),bodyWidth:Math.round(br.width)};})()`);
-  assert.ok(participantsSettled.stageRightGap>=participantsSettled.panelWidth-2,`Stage must settle around the participant panel after the short transition. ${JSON.stringify(participantsSettled)}`);
-  assert.ok(participantsSettled.stageWidth<=participantsSettled.bodyWidth-participantsSettled.panelWidth+2,'Docked Participants must reduce usable stage width rather than overlaying a full-width stage.');
+  const dragStart=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),head=panel.querySelector('.room-side-head'),r=panel.getBoundingClientRect(),h=head.getBoundingClientRect();return {left:r.left,top:r.top,x:h.left+Math.min(110,h.width*.45),y:h.top+h.height/2};})()`);
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x,y:dragStart.y});
+  await cdp('Input.dispatchMouseEvent',{type:'mousePressed',x:dragStart.x,y:dragStart.y,button:'left',buttons:1,clickCount:1});
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x+64,y:dragStart.y+34,button:'left',buttons:1});
+  await cdp('Input.dispatchMouseEvent',{type:'mouseReleased',x:dragStart.x+64,y:dragStart.y+34,button:'left',buttons:0,clickCount:1});
+  await sleep(50);
+  const dragged=await evaluate(`(()=>{const r=document.querySelector('.room-side').getBoundingClientRect();return {dx:Math.round(r.left-${dragStart.left}),dy:Math.round(r.top-${dragStart.top})};})()`);
+  assert.ok(Math.abs(dragged.dx)>=24||Math.abs(dragged.dy)>=18,`Participants must be movable with real pointer input. ${JSON.stringify(dragged)}`);
 
   await evaluate(`document.querySelector('#roomChat').click()`);await sleep(60);
-  const chat=await evaluate(`(()=>({participantsClosed:document.querySelector('.room-side').hidden,chatOpen:!document.querySelector('#meetingChatPanel').hidden,mode:document.querySelector('#meetingChatPanel').dataset.dsRuntimeMode}))()`);
+  const chat=await evaluate(`(()=>{const panel=document.querySelector('#meetingChatPanel'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {participantsClosed:document.querySelector('.room-side').hidden,chatOpen:!panel.hidden,mode:panel.dataset.dsRuntimeMode,inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-sr.right)};})()`);
   assert.equal(chat.participantsClosed,true,'Chat click must close Participants immediately.');
   assert.equal(chat.chatOpen,true,'Chat must open on the Chat click itself.');
-  assert.equal(chat.mode,'docked','Desktop-width Chat must use the same right-side application surface.');
+  assert.equal(chat.mode,'floating','Chat must use the same floating window model.');
+  assert.equal(chat.inside,true,'Floating Chat must remain inside the meeting body.');
+  assert.ok(Math.abs(chat.stageRightGap)<=2,'Floating Chat must leave the full meeting stage available.');
 
   await evaluate(`document.querySelector('#roomChat').click()`);await sleep(60);
   assert.equal(await evaluate(`document.querySelector('#meetingChatPanel').hidden===true&&document.querySelector('.room-side').hidden===true`),true,'Chat must close immediately and leave no stale side panel open.');
@@ -71,7 +74,6 @@ try{
   await sleep(1800);
   settled=await evaluate(`(()=>({p:!document.querySelector('.room-side').hidden,c:!document.querySelector('#meetingChatPanel').hidden}))()`);
   assert.deepEqual(settled,{p:false,c:true},'Side panels changed after the interaction settled; delayed reconciliation is still active.');
-
   // Share routing regression: the final document-capture runtime authority must
   // win before the legacy button-capture smart picker. Stub only the final
   // integration endpoint; one click must produce one call and no legacy UI.
@@ -90,6 +92,6 @@ try{
   assert.ok(responsiveness<500,`Renderer event loop is still starved; 80 ms timer took ${responsiveness} ms.`);
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip single-owner-share responsive-event-loop right-docked-stage-resize');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip single-owner-share responsive-event-loop floating-panels-draggable-full-stage');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
