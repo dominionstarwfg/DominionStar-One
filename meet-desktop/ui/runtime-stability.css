@@ -439,3 +439,10 @@ body>.ds-reaction-tray>button:not(.reaction-hand-button):not(.ds-raise-hand){
   font-size:25px!important;
   line-height:1!important;
 }
+
+
+/* Canonical React menu containment */
+body>.meeting-reaction-menu,
+#meetingOverlay .meeting-reaction-menu{
+  overflow:hidden!important;
+}
