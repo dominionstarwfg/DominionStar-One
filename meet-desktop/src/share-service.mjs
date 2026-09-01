@@ -232,6 +232,14 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     }
     return openPicker();
   });
+  ipcMain.handle('share:probe-access',async()=>{
+    try{
+      const result=await authority.list({kind:'screen'});
+      if(result.timedOut)return {ok:false,status:'timeout'};
+      const readable=result.sources.some(source=>!source.thumbnail?.isEmpty?.());
+      return {ok:readable,status:readable?'granted':'unavailable',sourceCount:result.sources.length};
+    }catch(error){return {ok:false,status:'error',error:String(error?.message||error)};}
+  });
   ipcMain.handle('share:list-sources',async(_event,options={})=>{
     try{
       const result=await authority.list(options);
