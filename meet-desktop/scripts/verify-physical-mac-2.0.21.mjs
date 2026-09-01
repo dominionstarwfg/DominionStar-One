@@ -84,17 +84,18 @@ assert.match(css,/\.av-toggle-row>span[\s\S]*font-size:13\.5px!important/,'Video
 assert.match(css,/\.av-range-row[\s\S]*minmax\(220px,420px\)/,'Video setting sliders must be bounded instead of spanning the dialog.');
 assert.match(repair,/Participants \(\$\{count\}\)/,'Participants heading must expose the live count.');
 
-// Physical Mac 2.0.22 correction: normal desktop windows dock the participant/chat
-// management surface to the right and resize the stage. Floating remains only
-// for constrained windows.
-assert.match(runtime,/const wide=bodyWidth>=940/,'Final panel behavior must adapt to actual meeting width.');
-assert.match(runtime,/panel\.dataset\.dsRuntimeMode='docked'/,'Desktop-width participant/chat panels must dock on the right.');
-assert.match(runtime,/panel\.dataset\.dsRuntimeMode='floating'/,'Constrained-window panel fallback must remain available.');
-assert.match(runtime,/stage\.style\.setProperty\('right',`\$\{reserve\}px`,'important'\)/,'Stage must resize around the active docked panel.');
+// Physical Mac 2.0.22 correction: Participants and Chat are true floating,
+// draggable surfaces at every meeting width. The right edge is reserved for the
+// participant video dock, and the meeting stage remains full width.
+assert.doesNotMatch(runtime,/const wide=bodyWidth>=940/,'Participants/Chat must not switch to a forced dock at a desktop breakpoint.');
+assert.doesNotMatch(runtime,/panel\.dataset\.dsRuntimeMode='docked'/,'Participants/Chat must not occupy the participant-video dock edge.');
+assert.match(runtime,/panel\.dataset\.dsRuntimeMode='floating'/,'Participants/Chat must use the floating panel model.');
+assert.match(runtime,/installFloatingSurfaceDrag\(panel\)/,'Floating participant/chat surfaces must be draggable.');
+assert.match(runtime,/stage\.style\.setProperty\('right','0px','important'\)/,'Floating panels must leave the meeting stage full width.');
 assert.match(runtime,/search=side\.querySelector\('\.zoom-participant-search'\);if\(search\)search\.hidden=count<7/,'Participant search must be shown only when useful.');
 assert.match(runtime,/waiting=q\('#waitingQueueSection'\);if\(waiting\)waiting\.hidden=!hasWaitingPeople\(\)/,'Empty waiting-room section must be hidden.');
 assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/,'Meeting must fill the Electron viewport width.');
 assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/,'Meeting must fill the Electron viewport height.');
 assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compact.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-native-fallback granted-zoom-chooser toolbar-before-hide hidden-meeting-presenter-state direct-stop-share single-share-owner adhoc-not-certified reaction-contained settings-readable participant-count desktop-right-dock constrained-float full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-native-fallback granted-zoom-chooser toolbar-before-hide hidden-meeting-presenter-state direct-stop-share single-share-owner adhoc-not-certified reaction-contained settings-readable participant-count floating-participants-chat draggable-panels right-edge-video-dock full-window compact-prejoin`);
