@@ -5,8 +5,6 @@ on:
     branches: [main]
     paths:
       - 'meet-desktop/**'
-      - 'scripts/build-rebuild-netlify.sh'
-      - 'netlify.toml'
       - '.github/workflows/rebuild-foundation-verify.yml'
   workflow_dispatch:
 
@@ -91,8 +89,14 @@ jobs:
         run: node 'meet-desktop/scripts/verify-approved-reference-parity-2.0.22.mjs'
       - name: Verify physical runtime stability
         run: node 'meet-desktop/scripts/verify-runtime-stability-2.0.22.mjs'
-      - name: Verify Netlify publishes the same UI
-        run: bash scripts/build-rebuild-netlify.sh
+      - name: Verify public root and Meet bundle remain separate
+        run: |
+          test -s index.html
+          test -s meet-desktop/ui/index.html
+          grep -Fq 'Financial Education & Career Development' index.html
+          grep -Fq 'DominionStar Meet' meet-desktop/ui/index.html
+          ! cmp -s index.html meet-desktop/ui/index.html
+          echo DOMINIONSTAR_PUBLIC_AND_MEET_BOUNDARY_OK
       - name: Assert legacy runtime is absent
         run: |
           test ! -e desktop
