@@ -162,7 +162,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       publishToolbarState();
       return true;
     }
-    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:82,show:false,frame:false,transparent:false,backgroundColor:'#15181c',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,type:platform==='darwin'?'panel':undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
+    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:310,show:false,frame:false,transparent:false,backgroundColor:'#15181c',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,type:platform==='darwin'?'panel':undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
     toolbarWindow=created;
     positionNearMain(created,930,82);
     try{created.setAlwaysOnTop(true,'floating');}catch{}
@@ -269,6 +269,16 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     closeToolbar();
     return {ok:true};
   });
+  ipcMain.handle('share:presenter-menu-state',(_event,{open=false}={})=>{
+    if(!toolbarWindow||toolbarWindow.isDestroyed())return {ok:false};
+    const bounds=toolbarWindow.getBounds();
+    const nextHeight=open?300:82;
+    if(bounds.height!==nextHeight){
+      try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}
+    }
+    return {ok:true,height:nextHeight};
+  });
+
   ipcMain.handle('share:presenter-command',(_event,command)=>{
     const normalized=String(command||'');
     if(normalized==='show-meeting'&&shareActive){
