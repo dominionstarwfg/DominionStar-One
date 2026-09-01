@@ -19,27 +19,37 @@ const rejectText=(source,needle,message)=>{if(source.includes(needle))throw new 
 const [major,minor,patch]=String(pkg.version||'').split('.').map(Number);
 if(!(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21))throw new Error(`Carried-forward physical-reference gate requires DominionStar Meet 2.0.21 or later in the 2.0.x line; found ${pkg.version}`);
 
-// Screen share: macOS 15+ must receive the original getDisplayMedia gesture.
-requireText(shareService,"const nativeSystemPicker=platform==='darwin'&&macMajor>=15",'Native system picker is not gated to supported macOS.');
-requireText(shareService,'{useSystemPicker:nativeSystemPicker}', 'Electron display-media handler does not enable the native macOS picker.');
-requireText(shareService,"if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'}",'Share entry does not route supported macOS directly to the native picker.');
-requireText(shareIntegration,'const result=await bridge.openPicker();','Renderer does not resolve picker authority before capture.');
-requireText(shareIntegration,"if(result?.nativeSystemPicker)return {mode:'native'}",'Renderer does not recognize native system-picker mode.');
-requireText(shareIntegration,"await share.start({name:'Shared content',options})",'Native share path does not call getDisplayMedia through the share controller.');
-requireText(physicalRepair,'return await integration.open();','Physical Mac layer still owns capture instead of delegating to native share integration.');
-rejectText(physicalRepair,'sharePicker?.listSources','Physical Mac Share click still enumerates desktop sources before native capture.');
+// Screen share: first-time permission remains native-safe; granted sessions use
+// the app-owned source chooser and the normal meeting hides during presentation.
+requireText(shareService,"const nativeSystemPicker=platform==='darwin'&&macMajor>=15",'Native picker capability is not gated to supported macOS.');
+requireText(shareService,'function configureDisplayMediaHandler(useSystemPicker)','Dynamic native/custom display-media authority is missing.');
+requireText(shareService,'configureDisplayMediaHandler(nativeSystemPicker)','Display-media authority does not initialize native-safe.');
+requireText(shareService,"if(nativeSystemPicker&&status!=='granted')",'Un-granted macOS does not retain native authorization.');
+requireText(shareService,'configureDisplayMediaHandler(false)','Granted macOS does not switch to the Zoom-style DominionStar chooser.');
+requireText(shareIntegration,'const result=await bridge.openPicker(permission);','Renderer does not pass permission state into picker authority.');
+requireText(shareIntegration,"if(result?.nativeSystemPicker)return {mode:'native'}",'Renderer does not recognize native first-time picker mode.');
+requireText(shareIntegration,"await share.start({name:'Shared content',options})",'Native share path does not call getDisplayMedia through ShareController.');
+requireText(shareService,'function hideMeetingWindowForShare()','Presenter state cannot hide the normal meeting window.');
+requireText(shareService,'main.hide()','Meeting window remains visible by default during sharing.');
+requireText(shareService,'openToolbar();\n    hideMeetingWindowForShare();','Presenter toolbar and meeting-hide transition are not atomic at capture start.');
+requireText(shareService,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true",'Presenter toolbar is not protected across macOS Spaces/full-screen apps.');
+requireText(shareService,"if(normalized==='stop'&&shareActive)",'Stop Share does not retain main-process retry protection.');
+requireText(physicalRepair,'return await integration.open();','Physical Mac layer still owns capture instead of delegating to Share integration.');
+rejectText(physicalRepair,'sharePicker?.listSources','Physical Mac Share click still enumerates desktop sources before share authority chooses a path.');
 rejectText(physicalRepair,'sourceProbe(','Physical Mac Share click still contains a source-probe permission gate.');
-const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker();');
-const statusIndex=shareIntegration.indexOf('media?.requestScreen?.()');
-if(openIndex<0||statusIndex<0||statusIndex<openIndex)throw new Error('Screen permission status is queried before the native picker attempt.');
+const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker(permission);');
+const diagnosticIndex=shareIntegration.indexOf('media?.requestScreen?.()');
+if(openIndex<0||diagnosticIndex<0||diagnosticIndex<openIndex)throw new Error('Deep Screen Recording diagnostics run before real picker/capture failure.');
 
-// The fallback chooser must display the real sources macOS/Windows reports, not
-// a hard-coded illustration of desktops/windows that may not exist.
-requireText(sharePicker,"allSources=result.sources||[]",'Fallback Share chooser is not populated from actual discovered sources.');
-requireText(sharePicker,'source.thumbnail','Fallback Share chooser does not render live source previews.');
-requireText(sharePicker,"kind:filter==='window'?'window':'screen'",'Fallback Share chooser cannot switch between real screens and application windows.');
-requireText(sharePickerHtml,'data-filter="screen">Screens','Fallback Share chooser is missing the Screens source family.');
-requireText(sharePickerHtml,'data-filter="window">Applications','Fallback Share chooser is missing the Applications source family.');
+// The granted-permission chooser must display real sources and keep DominionStar
+// windows excluded from ordinary presentation flow.
+requireText(sharePicker,"allSources=result.sources||[]",'Share chooser is not populated from actual discovered sources.');
+requireText(sharePicker,'source.thumbnail','Share chooser does not render live source previews.');
+requireText(sharePicker,"kind:filter==='window'?'window':'screen'",'Share chooser cannot switch between real screens and application windows.');
+requireText(sharePicker,'includeDominionStar:false','Share chooser does not keep DominionStar windows excluded by default.');
+requireText(sharePickerHtml,'data-filter="screen">Screen','Share chooser is missing the Screen source family.');
+requireText(sharePickerHtml,'data-filter="window">Window','Share chooser is missing the Window source family.');
+rejectText(sharePickerHtml,'Show DominionStar windows','Normal share chooser still exposes a recursive meeting-window option.');
 
 // Approved visual reference: real brand and Zoom-style View control are release requirements.
 requireText(parity,"const logo=String(desktop.brand?.logoUrl||'')",'Meeting header is not driven by the real packaged DominionStar logo resource.');
@@ -50,9 +60,7 @@ requireText(parity,"['gallery',sharing()?'Side-by-side: Gallery':'Gallery']",'Vi
 requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']",'View menu is missing Multi-speaker view.');
 
 // Participants: small-roster density, adaptive search, documented Zoom ordering,
-// readable title hierarchy, and a final-authority native mouse drag. The final
-// layer blocks the legacy pointerdown and tracks the actual Mac mouse sequence
-// at document level so leaving the 48px title bar cannot cancel movement.
+// readable title hierarchy, and a final-authority native mouse drag.
 requireText(adaptive,"search.hidden=count<=1",'One-person participant panel still exposes unnecessary search.');
 requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
 requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep the local user first.');
@@ -71,8 +79,7 @@ requireText(adaptive,"side.style.setProperty('top',`${top}px`,'important')",'Flo
 requireText(adaptiveCss,'max-width:340px !important','One-person participant panel is not bounded to compact Zoom-scale geometry.');
 requireText(adaptiveCss,'#meetingOverlay .room-side-head strong{\n  font-size:15px !important;','Participants heading is below the approved Zoom-scale readability.');
 
-// Chat: right dock on wide windows, floating overlay on constrained windows,
-// and never the oversized form-panel geometry rejected on the physical Mac.
+// Chat: right dock on wide windows, floating overlay on constrained windows.
 requireText(adaptive,'const wide=body.clientWidth>=1120','Chat does not have a deterministic adaptive-width breakpoint.');
 requireText(adaptive,"panel.dataset.dsAdaptiveMode=wide?'docked':'floating'",'Chat does not switch between docked and floating modes.');
 requireText(adaptive,"stage.style.setProperty('margin-right','356px','important')",'Wide docked chat does not reserve stage space.');
@@ -86,8 +93,7 @@ requireText(adaptiveCss,'grid-template-columns:minmax(0,1fr) minmax(0,1fr) !impo
 requireText(adaptive,"label.hidden=title==='speaker'",'Prejoin still exposes the third speaker selector that clipped in the physical screenshot.');
 requireText(adaptive,'Always show this preview when joining','Zoom-style persistent preview preference is missing.');
 
-// Floating participant video tiles: the entire non-control surface is draggable
-// with an ordinary cursor; no decorative grip/hand is allowed in the approved reference.
+// Floating participant video tiles remain whole-surface draggable with an ordinary cursor.
 requireText(adaptiveCss,'#participantVideoDock,\n#participantVideoDock .participant-video-dock-head{\n  cursor:default !important;','Floating video panel does not retain the normal arrow cursor.');
 requireText(adaptiveCss,'#participantVideoDock .dock-grip{display:none !important;}','Legacy video-panel grip affordance is still visible.');
 requireText(adaptive,"dock.dataset.dsAdaptiveWholePanelDrag='1'",'Floating video panel does not declare whole-panel drag authority.');
@@ -95,9 +101,8 @@ requireText(adaptive,"dock.addEventListener('pointerdown',startVideoDockDrag,tru
 requireText(adaptive,"event.target.closest?.('button,.participant-video-resize,a,input,select,textarea')",'Whole-panel video drag does not protect interactive controls.');
 requireText(physicalRepair,"dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available'",'Video panel is not participant-count aware.');
 
-// Final authority must load after the physical-repair layer.
 requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller is not sequenced after physical Mac repair.');
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} native-system-picker real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback granted-zoom-chooser hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded`);
