@@ -31,6 +31,14 @@ releaseFirst([{id:'screen:first'}]);await firstEnumeration;await new Promise(res
 assert.equal(authority.busy(),false);
 const recovered=await authority.list();assert.equal(enumerateCount,2);assert.equal(recovered.ok,true);assert.equal(authority.get('screen:second')?.id,'screen:second');
 
+// Prove source families remain independently addressable after Basic loads both.
+let familyCall=0;
+const familyAuthority=createShareSourceAuthority({timeoutMs:100,enumerateSources:async options=>{familyCall+=1;return String(options?.kind||'screen')==='window'?[{id:'window:one'}]:[{id:'screen:one'}];}});
+await Promise.all([familyAuthority.list({kind:'screen'}),familyAuthority.list({kind:'window'})]);
+assert.equal(familyCall,2,'Basic must enumerate one screen family and one window family without overlap.');
+assert.equal(familyAuthority.get('screen:one')?.id,'screen:one','Screen source must remain selectable after window enumeration finishes.');
+assert.equal(familyAuthority.get('window:one')?.id,'window:one','Window source must remain selectable alongside screen sources.');
+
 // macOS TCC remains native authority, but a grant no longer forces the large
 // Apple chooser on every share. Native selection is reserved for permission
 // establishment/fallback; granted sessions use DominionStar's Zoom-style chooser.
@@ -98,13 +106,18 @@ assert(controller.includes('stopTracks(state.liveStream)'),'Stop Share must rele
 assert(controller.includes('async function replaceSource')&&controller.includes('const previousLive=state.liveStream'),'New Share must remain transactional.');
 assert(integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must route through the same permission-aware chooser.');
 
-// Zoom presenter-state contract: normal meeting disappears, a separate toolbar
-// remains above full-screen apps, and Stop Share cannot be lost with the meeting.
+// Zoom presenter-state contract: normal meeting disappears only after a separate
+// presenter toolbar is fully loaded. If toolbar loading fails, the meeting stays
+// visible instead of leaving the presenter with an unstoppable share.
 assert(service.includes('function hideMeetingWindowForShare()'),'Share service must have a dedicated hide-meeting presenter state.');
-assert(service.includes('main.hide()'),'The normal meeting window must be hidden by default during presentation.');
-assert(service.includes("lastToolbarState={...lastToolbarState,...state,meetingVisible:false}"),'Presenter state must start with the meeting hidden.');
+assert(service.includes('main.hide()'),'The normal meeting window must be hidden during normal presentation state.');
+assert(service.includes('async function openToolbar()'),'Presenter toolbar creation must be awaitable.');
+assert(service.includes("await created.loadFile(path.join(uiDir,'presenter-toolbar.html'))"),'Presenter toolbar must finish loading before it can own the presentation.');
 const captureStarted=service.slice(service.indexOf("ipcMain.handle('share:capture-started'"),service.indexOf("ipcMain.handle('share:capture-state'"));
-assert(captureStarted.includes('openToolbar();')&&captureStarted.includes('hideMeetingWindowForShare();'),'Capture start must open presenter controls and hide the meeting in one transaction.');
+assert(captureStarted.includes('const toolbarReady=await openToolbar();'),'Capture start must await presenter-toolbar readiness.');
+assert(captureStarted.includes('if(toolbarReady)hideMeetingWindowForShare();'),'Meeting may hide only after presenter toolbar is ready.');
+assert(captureStarted.includes('else publishToolbarState();'),'Toolbar failure must leave the meeting visible instead of hiding it.');
+assert(service.includes("main.webContents?.setBackgroundThrottling?.(false)"),'Hidden meeting renderer must not throttle the active share.');
 assert(service.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter toolbar must remain available across macOS Spaces/full-screen apps.');
 assert(service.includes("setAlwaysOnTop(true,'floating')"),'Presenter toolbar must stay above shared applications.');
 assert(service.includes('backgroundThrottling:false'),'Presenter toolbar must remain responsive while the meeting window is hidden.');
@@ -117,4 +130,4 @@ assert(service.includes("if(lastToolbarState.meetingVisible)hideMeetingWindowFor
 
 assert(media.includes("script.src='./share-integration.js'"),'Desktop/web bundle must retain the same isolated Share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-native-fallback zoom-basic-advanced-files real-desktop-and-window-grid default-desktop-selection dominionstar-window-exclusion nonblocking-share-start hidden-meeting-default persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-native-fallback zoom-basic-advanced-files real-desktop-and-window-grid multi-family-source-cache default-desktop-selection dominionstar-window-exclusion nonblocking-share-start toolbar-before-hide hidden-meeting-default persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
