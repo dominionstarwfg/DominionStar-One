@@ -162,7 +162,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       publishToolbarState();
       return true;
     }
-    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:310,show:false,frame:false,transparent:false,backgroundColor:'#15181c',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,type:platform==='darwin'?'panel':undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
+    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:310,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,type:platform==='darwin'?'panel':undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
     toolbarWindow=created;
     positionNearMain(created,930,82);
     try{created.setAlwaysOnTop(true,'floating');}catch{}
