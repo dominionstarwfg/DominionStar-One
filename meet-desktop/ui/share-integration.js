@@ -3,11 +3,22 @@
   const desktop=window.dominionDesktop||null;
   const bridge=desktop?.share||null;
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2';
+  let companionKind='';
   const addStyle=href=>{if(document.querySelector(`link[href="${href}"]`))return;const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);};
   const addScript=src=>new Promise((resolve,reject)=>{if(document.querySelector(`script[src="${src}"]`))return resolve();const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=reject;document.head.append(script);});
 
   async function findMeetingSurface(){for(let i=0;i<120;i++){const overlay=document.querySelector('#meetingOverlay');if(overlay&&window.DominionMediaController)return overlay;await wait(50);}return null;}
   function toast(message,kind=''){let node=document.querySelector('#shareToast');if(!node){node=document.createElement('div');node.id='shareToast';document.body.append(node);}node.className=`share-toast ${kind}`.trim();node.textContent=String(message||'');node.hidden=false;clearTimeout(node.__timer);node.__timer=setTimeout(()=>{node.hidden=true;},6500);}
+  const markCaptureProven=()=>{try{localStorage.setItem(SCREEN_CAPTURE_PROVEN_KEY,'1');}catch{}};
+  const locallyProven=()=>{try{return localStorage.getItem(SCREEN_CAPTURE_PROVEN_KEY)==='1';}catch{return false;}};
+  async function grantedScreenPermission(){
+    if(locallyProven())return true;
+    const permissions=await desktop?.media?.permissions?.().catch(()=>null);
+    const granted=String(permissions?.screen||'').toLowerCase()==='granted';
+    if(granted)markCaptureProven();
+    return granted;
+  }
   function showScreenPermissionDialog(status='unknown',restartRequired=false){
     let dialog=document.querySelector('#screenPermissionDialog');
     if(!dialog){
@@ -40,10 +51,6 @@
   }
   async function resolveShareEntry(permission='unknown'){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
-    // First Share in a renderer process is always native-first on supported
-    // macOS. Do not inspect TCC state or enumerate desktop sources before the
-    // real getDisplayMedia request. A known-active share may use the compact
-    // DominionStar chooser for transactional New Share replacement.
     const result=await bridge.openPicker(permission);
     if(result?.permissionRequired){showScreenPermissionDialog(String(result.status||'unknown'),Boolean(result.restartRequired));return {mode:'blocked'};}
     if(result?.nativeSystemPicker)return {mode:'native'};
@@ -65,6 +72,13 @@
     let label=stage.querySelector('#shareStageLabel');if(!label){label=document.createElement('div');label.id='shareStageLabel';label.className='share-stage-label';label.hidden=true;stage.append(label);}
     let cameraTile=stage.querySelector('#presenterCameraTile');if(!cameraTile){cameraTile=document.createElement('video');cameraTile.id='presenterCameraTile';cameraTile.className='presenter-camera-tile';cameraTile.autoplay=true;cameraTile.playsInline=true;cameraTile.muted=true;cameraTile.hidden=true;stage.append(cameraTile);}
 
+    function setCompanion(kind=''){
+      companionKind=String(kind||'');
+      if(companionKind)document.body.dataset.dsShareCompanion=companionKind;else delete document.body.dataset.dsShareCompanion;
+      void bridge?.captureState?.({companion:companionKind,companionOpen:Boolean(companionKind)}).catch?.(()=>{});
+    }
+    function clearCompanion(){if(companionKind||document.body.dataset.dsShareCompanion)setCompanion('');}
+
     function applyLayout(){
       const state=share.snapshot(),mediaState=media.snapshot();
       overlay.classList.toggle('share-active',state.active);
@@ -74,20 +88,17 @@
         const output=share.outputStream();if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
         label.innerHTML=`<strong>${state.paused?'Paused':state.annotating?'Annotating':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
         const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;
-      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;window.DominionShareAnnotation?.deactivate?.();}
+      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
       window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused)});
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
     }
 
     async function beginShare({replace=false}={}){
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return false;}
       button.classList.add('ds-share-checking');
       try{
-        // Unknown on initial Share is deliberate. It forces native-first macOS
-        // authorization without TCC polling/source probing. New Share while an
-        // active capture already exists is process-proven and may use the
-        // compact DominionStar source chooser.
-        const permission=replace||share.snapshot().active?'granted':'unknown';
+        const proven=replace||share.snapshot().active||await grantedScreenPermission();
+        const permission=proven?'granted':'unknown';
         const entry=await resolveShareEntry(permission);
         if(entry.mode==='blocked')return false;
         if(entry.mode==='custom')return true;
@@ -95,7 +106,7 @@
           const options={shareAudio:true,optimizeVideo:false};
           if(replace){await share.replaceSource({name:'Shared content',options});window.DominionShareAnnotation?.deactivate?.();}
           else await share.start({name:'Shared content',options});
-          applyLayout();
+          markCaptureProven();applyLayout();
           if(replace)toast('Screen share changed.');
           return true;
         }catch(error){
@@ -126,7 +137,7 @@
       try{
         if(replacing){await share.replaceSource({name:selection?.name,options:selection?.options||{}});window.DominionShareAnnotation?.deactivate?.();}
         else await share.start({name:selection?.name,options:selection?.options||{}});
-        applyLayout();
+        markCaptureProven();applyLayout();
         if(replacing)toast(`Now sharing ${String(selection?.name||'new source')}`);
       }catch(error){
         applyLayout();
@@ -141,17 +152,26 @@
     share.onChange(()=>applyLayout());
     media.onChange(()=>{if(share.snapshot().active)applyLayout();});
 
+    const companionObserver=new MutationObserver(()=>{
+      if(!share.snapshot().active||!companionKind)return;
+      const chat=overlay.querySelector('#meetingChatPanel'),participants=overlay.querySelector('.room-side'),annotation=overlay.querySelector('.share-annotation-overlay');
+      if(companionKind==='chat'&&chat?.hidden)clearCompanion();
+      else if(companionKind==='participants'&&participants?.hidden)clearCompanion();
+      else if(companionKind==='annotate'&&annotation?.hidden)clearCompanion();
+    });
+    companionObserver.observe(overlay,{subtree:true,attributes:true,attributeFilter:['hidden']});
+
     bridge?.onPresenterCommand?.(async rawCommand=>{
-      const command=String(rawCommand||'');
+      const command=String(rawCommand?.command||rawCommand||'');
       try{
         if(command==='pause'){await share.togglePause(sharedVideo);applyLayout();return;}
-        if(command==='stop'){await share.stop();applyLayout();return;}
+        if(command==='stop'){clearCompanion();await share.stop();applyLayout();return;}
         if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return;}
         if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return;}
-        if(command==='participants'){window.DominionRuntimeStability?.setParticipants?.(true);return;}
-        if(command==='chat'){window.DominionRuntimeStability?.setChat?.(true);return;}
-        if(command==='annotate'){window.DominionShareAnnotation?.toggle?.();applyLayout();return;}
-        if(command==='new-share'){await openPickerWithPermission();return;}
+        if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return;}
+        if(command==='chat'){window.DominionRuntimeStability?.setParticipants?.(false);window.DominionRuntimeStability?.setChat?.(true);setCompanion('chat');return;}
+        if(command==='annotate'){const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');applyLayout();return;}
+        if(command==='new-share'){clearCompanion();await openPickerWithPermission();return;}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return;}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return;}
         if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return;}
@@ -159,11 +179,11 @@
         if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();applyLayout();return;}
         if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();applyLayout();return;}
         if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();applyLayout();return;}
-        if(command==='show-meeting'){window.focus();return;}
+        if(command==='show-meeting'){clearCompanion();window.focus();return;}
       }catch(error){toast(error?.message||'Share control failed.','error');}
     });
 
-    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot()});
+    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven()});
   }
   void boot();
 })();
