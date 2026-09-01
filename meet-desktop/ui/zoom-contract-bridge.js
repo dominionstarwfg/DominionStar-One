@@ -39,7 +39,8 @@
   style.textContent=[
     '.meeting-reaction-menu{display:flex!important;z-index:3800!important;pointer-events:auto!important}',
     '.ds-reaction-tray{display:none!important}',
-    '.ds-command-menu.meeting-more-menu{display:block!important;z-index:3600!important;pointer-events:auto!important}',
+    '.meeting-more-menu{z-index:3600!important;pointer-events:auto!important}',
+    '.ds-command-menu.meeting-more-menu{display:block!important}',
     '.ds-command-menu.ds-view-command-menu{top:64px!important;bottom:auto!important}',
     '.ds-command-menu.ds-bottom-command-menu{top:auto!important;bottom:88px!important}',
     '#meetingChatPanel{width:400px!important;min-width:390px!important;max-width:400px!important}',
@@ -59,7 +60,7 @@
   for(const node of document.querySelectorAll('.ds-command-menu,.meeting-more-menu'))apply(node);
 
   window.DominionZoomContractBridge=Object.freeze({
-    version:'2.0.22-canonical-react-host-tools',
+    version:'2.0.22-canonical-react-host-tools-layering',
     apply,
     dedupeHostTools,
     dispose:()=>observer.disconnect()
