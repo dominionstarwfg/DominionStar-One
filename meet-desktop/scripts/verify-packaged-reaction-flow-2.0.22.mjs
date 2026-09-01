@@ -8,6 +8,7 @@ const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=11120+Math.floor(Math.random()*100);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let stderr='';
+const runtimeErrors=[];
 const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
 
@@ -21,13 +22,13 @@ async function waitFor(expression,label,timeout=10000){const deadline=Date.now()
 let failure=null;
 try{
   const page=await target();socket=await connect(page.webSocketDebuggerUrl);
-  socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
+  socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(message.method==='Runtime.exceptionThrown'){const details=message.params?.exceptionDetails;runtimeErrors.push(details?.exception?.description||details?.text||'Uncaught renderer exception');return;}if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
   await cdp('Runtime.enable');
-  await waitFor("document.readyState==='complete'&&window.DominionZoomReactionParity&&window.DominionMeetingParity&&document.querySelector('#meetingOverlay')",'reaction-flow authorities');
-  await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;window.DominionMeetingParity.install();window.DominionZoomReactionParity.mount();window.DominionZoomReactionParity.scan();return true;})()`);
-  await waitFor("document.querySelector('#meetingReactionLayer')&&document.querySelector('#meetingReactionLayer').parentElement?.classList.contains('stage')",'reaction layer mounted in stage');
+  await waitFor("document.readyState==='complete'&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionZoomProductionPolish&&window.DominionZoomPhysicalAcceptance&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&window.DominionZoomReactionParity&&document.querySelector('#meetingOverlay')",'final reaction-flow authorities');
+  await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionMeetingParity.decorateControls();window.DominionZoomProductionPolish.sync();window.DominionZoomPhysicalAcceptance.sync();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();window.DominionZoomReactionParity.mount();return true;})()`);
+  await waitFor("document.querySelector('#meetingReactionLayer')&&window.DominionZoomReactionParity.mount()&&document.querySelector('#meetingReactionLayer').parentElement?.classList.contains('stage')",'reaction layer mounted in stage');
 
-  await evaluate(`(()=>{const layer=document.querySelector('#meetingReactionLayer');layer.querySelectorAll('.meeting-reaction-bubble,.ds-reaction-float').forEach(n=>n.remove());const emojis=['❤️','👏','👍'];for(let i=0;i<48;i++){const bubble=document.createElement('div');bubble.className='meeting-reaction-bubble';bubble.innerHTML='<b>'+emojis[i%3]+'</b><span>QA Person '+i+'</span>';layer.append(bubble);}return true;})()`);
+  await evaluate(`(()=>{const layer=document.querySelector('#meetingReactionLayer');layer.querySelectorAll('.meeting-reaction-bubble,.ds-reaction-float,.ds-zoom-floating-reaction').forEach(n=>n.remove());const emojis=['❤️','👏','👍'];for(let i=0;i<48;i++){const bubble=document.createElement('div');bubble.className='meeting-reaction-bubble';bubble.innerHTML='<b>'+emojis[i%3]+'</b><span>QA Person '+i+'</span>';layer.append(bubble);}return true;})()`);
   await waitFor("document.querySelectorAll('.ds-zoom-floating-reaction[data-ds-reaction-parity=\"10s\"]').length>=40",'high-volume primary reactions');
   await waitFor("document.querySelectorAll('.ds-reaction-satellite[data-ds-reaction-satellite=\"1\"]').length>0",'selective reaction blossom');
 
@@ -41,7 +42,8 @@ try{
 
   const responsiveness=await evaluate(`new Promise(resolve=>{const started=performance.now();setTimeout(()=>resolve(Math.round(performance.now()-started)),80);})`);
   assert.ok(responsiveness<500,`High-volume reactions starved the renderer; 80 ms timer took ${responsiveness} ms.`);
-  await evaluate(`document.querySelector('#meetingReactionLayer')?.querySelectorAll('.meeting-reaction-bubble,.ds-reaction-float').forEach(n=>n.remove())`);
+  await evaluate(`document.querySelector('#meetingReactionLayer')?.querySelectorAll('.meeting-reaction-bubble,.ds-reaction-float,.ds-zoom-floating-reaction').forEach(n=>n.remove())`);
+  assert.deepEqual(runtimeErrors,[],'Reaction-flow gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Reaction-flow gate detected an uncaught renderer error.');
   console.log('DOMINIONSTAR_PACKAGED_REACTION_FLOW_2_0_22_OK left-stage-lanes bounded-primaries selective-blossoms high-volume-responsive');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('reaction-flow shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
