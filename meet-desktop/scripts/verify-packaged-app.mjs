@@ -220,6 +220,10 @@ assert(shareService.includes('if(toolbarWindow&&!toolbarWindow.isDestroyed())')&
 assert(!shareService.slice(shareService.indexOf("ipcMain.handle('share:select-source'"),shareService.indexOf("ipcMain.handle('share:capture-stopped'")).includes('closeToolbar()'),'Packaged New Share/source selection must not close the presenter toolbar.');
 assert(presenterHtml.includes('shareSourceLabel')&&presenterHtml.includes('shareAudioFlag')&&presenterHtml.includes('shareOptimizeFlag'),'Packaged presenter toolbar must show source and active Computer Sound / Optimize states.');
 assert(presenterJs.includes('state?.shareAudio')&&presenterJs.includes('state?.optimizeVideo'),'Packaged presenter toolbar flags must follow live share state.');
+assert(shareService.includes("ipcMain.handle('share:presenter-menu-state'")&&shareService.includes("const nextHeight=open?300:82"),'Packaged presenter menus must expand and collapse within the toolbar window.');
+assert(preload.includes("setMenuOpen:open=>invoke('share:presenter-menu-state'"),'Packaged presenter menu resizing must use the narrow preload bridge.');
+assert(presenterJs.includes("setMenuExpanded(!more.hidden)")&&presenterJs.includes("window.addEventListener('blur'"),'Packaged presenter popovers must be visible while open and collapse on blur.');
+assert(presenterCss.includes(".more-menu{position:absolute;right:0;top:66px;bottom:auto;"),'Packaged presenter More menu must remain inside the expanded toolbar surface.');
 assert(read('ui','share-integration.js').includes('shareAudio:Boolean(state.options?.shareAudio)')&&read('ui','share-integration.js').includes('optimizeVideo:Boolean(state.options?.optimizeVideo)'),'Packaged presenter state must come from real share options.');
 assert(webrtc.includes('remoteShareBanner')&&webrtc.includes('is sharing')&&!webrtc.includes('Share paused'),'Packaged recipients must see who is sharing without presenter-only Pause state.');
 assert(read('ui','webrtc.css').includes('.remote-share-banner'),'Packaged remote-share identity must have viewer styling.');
