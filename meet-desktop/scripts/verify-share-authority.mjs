@@ -128,6 +128,12 @@ assert(service.includes("if(normalized==='stop'&&shareActive)")&&service.include
 assert(toolbar.includes('data-command="stop"')&&toolbar.includes('Stop Share'),'Floating presenter toolbar must expose Stop Share directly.');
 assert(toolbarCss.includes('min-width:104px')&&toolbarCss.includes('background:#d83d4c'),'Stop Share must be visually dominant and large enough to click reliably.');
 assert(toolbarJs.includes("if(command==='stop')")&&toolbarJs.includes("label.textContent='Stopping…'"),'Stop Share click must immediately enter a visible stopping state.');
+assert(service.includes("maxHeight:310")&&service.includes("transparent:true,backgroundColor:'#00000000'"),'Presenter toolbar window must have a bounded transparent expansion surface for popovers.');
+assert(service.includes("ipcMain.handle('share:presenter-menu-state'")&&service.includes("const nextHeight=open?300:82"),'Presenter popovers must expand and collapse the toolbar window explicitly.');
+assert(preload.includes("setMenuOpen:open=>invoke('share:presenter-menu-state'"),'Presenter menu sizing must cross only the narrow preload bridge.');
+assert(toolbarJs.includes("setMenuExpanded(!more.hidden)")&&toolbarJs.includes("window.addEventListener('blur'"),'Presenter More/Reactions menus must expand on open and collapse on blur.');
+assert(toolbarCss.includes(".more-menu{position:absolute;right:0;top:66px;bottom:auto;"),'Presenter More menu must render below the toolbar inside expanded window bounds.');
+assert(toolbarCss.includes(".presenter-reaction-menu{position:absolute;right:190px;top:0;bottom:auto;"),'Presenter reaction menu must remain inside the expanded presenter window.');
 assert(!toolbarJs.includes("command='smart-new-share'"),'Presenter New Share must not be rewritten to an unhandled command.');
 assert(service.includes("if(lastToolbarState.meetingVisible)hideMeetingWindowForShare()"),'Show/Hide meeting must be explicit presenter control, not default visibility.');
 
