@@ -38,13 +38,15 @@ assert.match(repair,/digits\(personal\.roomCode\)!==digits\(room\.roomCode\)/,'P
 assert.match(repair,/beginHostPrejoin\(room,'personal'\)/,'Personal Meeting ID must enter host prejoin with the same room.');
 assert.match(repair,/passLabel\?\.style\.setProperty\('display','none','important'\)/,'Instant passcode field must not remain visible when Personal Meeting ID is selected.');
 
-// Screen Share: first-time macOS authorization may use the native picker, but
-// an already-granted Mac must receive the DominionStar/Zoom-style source chooser.
+// Screen Share: first Share in every renderer process is native-first on macOS
+// 15+. No TCC status poll or desktop-source probe may run before the real native
+// getDisplayMedia request. An already-active capture may use DominionStar's
+// compact chooser for transactional New Share replacement.
 assert.match(shareService,/nativeSystemPicker=platform==='darwin'&&macMajor>=15/,'macOS native picker capability is missing.');
 assert.match(shareService,/function configureDisplayMediaHandler\(useSystemPicker\)/,'Dynamic display-media authority is missing.');
 assert.match(shareService,/configureDisplayMediaHandler\(nativeSystemPicker\)/,'Share authority must initialize native-safe.');
-assert.match(shareService,/if\(nativeSystemPicker&&status!=='granted'\)/,'Un-granted Mac does not retain native authorization.');
-assert.match(shareService,/configureDisplayMediaHandler\(false\)/,'Granted Mac does not switch to the DominionStar chooser.');
+assert.match(shareService,/if\(nativeSystemPicker&&status!=='granted'\)/,'Unknown/un-granted Mac does not retain native authorization.');
+assert.match(shareService,/configureDisplayMediaHandler\(false\)/,'Process-proven New Share cannot switch to the DominionStar chooser.');
 assert.match(shareService,/hideMeetingWindowForShare\(\)/,'Presenter mode must be able to hide the normal meeting window.');
 assert.match(shareService,/async function openToolbar\(\)/,'Presenter toolbar readiness must be awaitable.');
 assert.match(shareService,/await created\.loadFile\(path\.join\(uiDir,'presenter-toolbar\.html'\)\)/,'Presenter toolbar must finish loading before the meeting can hide.');
@@ -59,9 +61,10 @@ assert.doesNotMatch(repair,/sharePicker\?\.listSources|sourceProbe\(|desktopCapt
 assert.match(repair,/return await integration\.open\(\)/,'Compatibility Share helper must delegate to the isolated share integration.');
 const repairClick=repair.slice(repair.indexOf('function onDocumentClick'),repair.indexOf("document.addEventListener('submit'"));
 assert.ok(!repairClick.includes('#roomShare'),'Physical Mac repair must not intercept/cancel the Share Screen button.');
-assert.match(shareIntegration,/async function screenPermissionStatus\(\)/,'Share integration must own cheap Screen Recording status intelligence.');
-assert.match(shareIntegration,/if\(permission==='denied'\|\|permission==='restricted'\)/,'Explicit denial must show recovery before capture.');
-assert.match(shareIntegration,/const entry=await resolveShareEntry\(permission\)/,'Share entry must choose native-vs-Zoom-style picker from permission state.');
+assert.doesNotMatch(shareIntegration,/async function screenPermissionStatus\(\)/,'Initial Share must not poll Screen Recording status before native capture.');
+assert.ok(!shareIntegration.includes('bridge?.probeAccess?.()'),'Initial Share must not enumerate desktop sources as a permission probe.');
+assert.match(shareIntegration,/const permission=replace\|\|share\.snapshot\(\)\.active\?'granted':'unknown';/,'Only an already-active capture may mark New Share as process-proven.');
+assert.match(shareIntegration,/const entry=await resolveShareEntry\(permission\)/,'Initial Share must enter native selection with unknown permission state.');
 const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker(permission);');
 const deepDiagnostic=shareIntegration.indexOf('desktop?.media?.requestScreen?.()');
 assert.ok(openIndex>=0&&deepDiagnostic>openIndex,'Deep Screen Recording diagnostics must remain after picker/capture failure.');
@@ -98,4 +101,4 @@ assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/,'Meeting 
 assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/,'Meeting must fill the Electron viewport height.');
 assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compact.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-native-fallback granted-zoom-chooser toolbar-before-hide hidden-meeting-presenter-state direct-stop-share single-share-owner adhoc-not-certified reaction-contained settings-readable participant-count floating-participants-chat draggable-panels right-edge-video-dock full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id native-first-initial-share no-tcc-preflight no-source-probe process-proven-new-share toolbar-before-hide hidden-meeting-presenter-state direct-stop-share single-share-owner adhoc-not-certified reaction-contained settings-readable participant-count floating-participants-chat draggable-panels right-edge-video-dock full-window compact-prejoin`);
