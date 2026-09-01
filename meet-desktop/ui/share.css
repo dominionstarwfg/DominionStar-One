@@ -16,45 +16,11 @@
   .share-stage-label{left:10px;top:10px}
 }
 
-/* During an active desktop share the Electron main window is intentionally
-   resized into a Zoom-style floating participant panel. The live share track
-   continues through WebRTC; this compact surface only keeps meeting video and
-   participant identity visible to the presenter. */
-@media(max-width:560px) and (max-height:360px){
-  .meeting-overlay.share-active .meeting-shell{grid-template-rows:minmax(0,1fr)!important}
-  .meeting-overlay.share-active .meeting-head,
-  .meeting-overlay.share-active .meeting-footer,
-  .meeting-overlay.share-active .shared-content-video,
-  .meeting-overlay.share-active #remoteShareVideo,
-  .meeting-overlay.share-active #remoteActiveSpeakerStage,
-  .meeting-overlay.share-active #localMeetingVideo,
-  .meeting-overlay.share-active #stageFallback,
-  .meeting-overlay.share-active .stage-card,
-  .meeting-overlay.share-active .share-stage-label,
-  .meeting-overlay.share-active .presenter-camera-tile,
-  .meeting-overlay.share-active .room-side{display:none!important}
-  .meeting-overlay.share-active .meeting-body,
-  .meeting-overlay.share-active .stage{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;background:#03070c!important}
-  .meeting-overlay.share-active .participant-video-dock,
-  .meeting-overlay.share-active .participant-video-dock[hidden],
-  .meeting-overlay.share-active .participant-video-dock.dock-empty{display:block!important;position:absolute!important;inset:8px!important;width:auto!important;height:auto!important;max-width:none!important;max-height:none!important;border-radius:11px!important;background:rgba(4,8,13,.98)!important}
-  .meeting-overlay.share-active .participant-video-dock-head{height:27px!important}
-  .meeting-overlay.share-active .participant-video-dock-body{height:calc(100% - 27px)!important;max-height:none!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-auto-rows:minmax(0,1fr)!important;gap:4px!important;padding:4px!important;overflow:hidden!important}
-  .meeting-overlay.share-active .participant-video-dock.count-1 .participant-video-dock-body{grid-template-columns:minmax(0,1fr)!important}
-  .meeting-overlay.share-active .participant-video-dock .remote-tile-strip{display:contents!important}
-  .meeting-overlay.share-active .participant-video-dock .remote-peer-tile{width:100%!important;height:100%!important;min-height:0!important;aspect-ratio:auto!important;border-radius:7px!important}
-  .meeting-overlay.share-active .participant-video-dock .remote-peer-tile:nth-of-type(n+5){display:none!important}
-  .meeting-overlay.share-active .participant-video-resize{display:none!important}
-  .meeting-overlay.share-active .participant-video-dock.minimized{inset:8px 8px auto 8px!important;width:auto!important;height:30px!important}
-  .meeting-overlay.share-active .participant-video-dock.minimized .participant-video-dock-body{display:none!important}
-}
-
-.share-permission-dialog{position:fixed;z-index:1200;left:50%;top:50%;transform:translate(-50%,-50%);border:0;padding:0;background:transparent;color:#f5f7fb}.share-permission-dialog[hidden]{display:none!important}
-.share-permission-card{width:min(470px,calc(100vw - 36px));display:grid;grid-template-columns:auto 1fr;gap:14px;padding:20px;border:1px solid rgba(255,255,255,.13);border-radius:16px;background:#0d1825;box-shadow:0 24px 70px rgba(0,0,0,.58)}
-.share-permission-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(47,128,237,.14);color:#78b3ff}
-.share-permission-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.share-permission-card p{grid-column:2;margin:0 0 4px;color:#83bfff;font-size:9px;font-weight:800;letter-spacing:.1em}
-.share-permission-card h3{margin:0 0 6px;font-size:17px}.share-permission-card span{color:#9caec1;font-size:11px;line-height:1.5}
-.share-permission-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
-.share-permission-actions button{height:38px;padding:0 13px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:#182537;color:#eef4fa;font-weight:750;cursor:pointer}
-.share-permission-actions [data-permission-open]{border-color:#2f80ed;background:#2f80ed;color:#fff}
+/* Screen Recording recovery is intentionally a compact non-blocking sheet.
+   It never owns the whole meeting surface and never auto-resets TCC. */
+.share-permission-dialog{position:fixed;z-index:3200;left:50%;top:68px;transform:translateX(-50%);border:0;padding:0;background:transparent;color:#f5f7fb;pointer-events:auto}.share-permission-dialog[hidden]{display:none!important}
+.share-permission-card{width:min(430px,calc(100vw - 28px));display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px 12px;padding:14px 14px 12px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(20,24,29,.985);box-shadow:0 16px 42px rgba(0,0,0,.5);backdrop-filter:blur(18px)}
+.share-permission-icon{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;background:rgba(45,140,255,.14);color:#79b6ff}
+.share-permission-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.share-permission-copy{min-width:0}.share-permission-copy p{margin:0 0 2px;color:#83bfff;font-size:8px;font-weight:800;letter-spacing:.11em}.share-permission-copy h3{margin:0 0 4px;font-size:14px;line-height:1.2}.share-permission-copy span{display:block;color:#a8b2bc;font-size:10px;line-height:1.4}
+.share-permission-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:7px;padding-top:2px}.share-permission-actions button{height:32px;padding:0 11px;border-radius:7px;border:1px solid rgba(255,255,255,.13);background:#282d33;color:#eef4fa;font-size:10px;font-weight:700;cursor:pointer}.share-permission-actions button:hover{background:#343a42}.share-permission-actions [data-permission-open],.share-permission-actions [data-permission-restart]{border-color:#2d8cff;background:#2d8cff;color:#fff}.share-permission-actions [data-permission-open]:hover,.share-permission-actions [data-permission-restart]:hover{background:#1978de}.share-permission-actions button[hidden]{display:none!important}
