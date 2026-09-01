@@ -31,7 +31,10 @@ requireText(shareIntegration,"if(result?.nativeSystemPicker)return {mode:'native
 requireText(shareIntegration,"await share.start({name:'Shared content',options})",'Native share path does not call getDisplayMedia through ShareController.');
 requireText(shareService,'function hideMeetingWindowForShare()','Presenter state cannot hide the normal meeting window.');
 requireText(shareService,'main.hide()','Meeting window remains visible by default during sharing.');
-requireText(shareService,'openToolbar();\n    hideMeetingWindowForShare();','Presenter toolbar and meeting-hide transition are not atomic at capture start.');
+requireText(shareService,'async function openToolbar()','Presenter toolbar load must be awaitable.');
+requireText(shareService,"await created.loadFile(path.join(uiDir,'presenter-toolbar.html'))",'Presenter toolbar must load before the meeting can hide.');
+requireText(shareService,'const toolbarReady=await openToolbar();','Capture start does not wait for presenter-toolbar readiness.');
+requireText(shareService,'if(toolbarReady)hideMeetingWindowForShare();','Meeting can hide before presenter controls are actually usable.');
 requireText(shareService,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true",'Presenter toolbar is not protected across macOS Spaces/full-screen apps.');
 requireText(shareService,"main.webContents?.setBackgroundThrottling?.(false)",'Hidden meeting renderer can still throttle the live share.');
 requireText(shareService,"if(normalized==='stop'&&shareActive)",'Stop Share does not retain main-process retry protection.');
@@ -113,4 +116,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid toolbar-before-hide hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded`);
