@@ -100,7 +100,7 @@ const shareClickBlock=physicalMac.slice(physicalMac.indexOf('function onDocument
 assert.ok(!shareClickBlock.includes('#roomShare'),'Physical-Mac repair must not intercept the Share Screen button.');
 assert.ok(shareIntegration.includes('async function screenPermissionStatus()'),'The isolated Share integration must own the cheap permission-state decision.');
 assert.ok(shareIntegration.includes("if(permission==='denied'||permission==='restricted')"),'Share integration must block only explicit denied/restricted status before capture.');
-assert.ok(shareIntegration.includes('const entry=await resolveShareEntry()'),'Granted/not-determined/unknown states must continue to the real picker/capture flow.');
+assert.ok(shareIntegration.includes('const entry=await resolveShareEntry(permission)'),'Granted/not-determined/unknown states must continue through the permission-aware real picker/capture flow.');
 assert.ok(shareIntegration.includes('const diagnostic=await desktop?.media?.requestScreen?.()'),'Deep Screen Recording diagnostics must run only in the real capture-failure recovery path.');
 
 assert.ok(reaction.includes("observer.observe(layer,{childList:true})"),'Reaction observer must be scoped to direct reaction children.');
