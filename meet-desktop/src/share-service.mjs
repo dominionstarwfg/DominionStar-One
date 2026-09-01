@@ -7,6 +7,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let shareActive=false;
   let savedMainWindowState=null;
   let mainMinimizeHandler=null;
+  let displayPickerMode='';
+  let stopRetryTimer=null;
   let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
 
   const macVersion=platform==='darwin'&&typeof process.getSystemVersion==='function'?String(process.getSystemVersion()||''):'';
@@ -20,7 +22,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       const kind=String(options?.kind||'screen')==='window'?'window':'screen';
       const sources=await desktopCapturer.getSources({
         types:[kind],
-        thumbnailSize:{width:256,height:144},
+        thumbnailSize:{width:320,height:180},
         fetchWindowIcons:false
       });
       return sources.filter(source=>includeDominionStar||!/DominionStar Meet/i.test(String(source.name||'')));
@@ -42,8 +44,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function positionNearMain(win,width,height){
     const main=getMainWindow?.();
     if(!main||main.isDestroyed())return;
-    const bounds=main.getBounds();
-    win.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:Math.round(bounds.y+(bounds.height-height)/2),width,height});
+    const bounds=savedMainWindowState?.bounds||main.getBounds();
+    win.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:Math.max(24,bounds.y+18),width,height});
   }
 
   function protectMeetingChrome(win,enabled=true){
@@ -66,24 +68,13 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     return main;
   }
 
-  function compactMainWindow({focus=false}={}){
+  function hideMeetingWindowForShare(){
     if(!shareActive)return false;
     const main=rememberMainWindow();
     if(!main||main.isDestroyed())return false;
-    const reference=savedMainWindowState?.bounds||main.getBounds();
-    const width=Math.min(420,Math.max(330,Math.round(reference.width*.3)));
-    const height=Math.min(300,Math.max(218,Math.round(width*.62)));
-    const x=Math.round(reference.x+Math.max(12,reference.width-width-18));
-    const y=Math.round(reference.y+Math.max(54,Math.min(86,reference.height-height-18)));
-    try{if(main.isMinimized?.())main.restore();}catch{}
-    try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
-    try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    try{main.setMinimumSize(300,190);}catch{}
-    try{main.setBounds({x,y,width,height},true);}catch{}
-    try{main.setAlwaysOnTop(true,'floating');}catch{}
     protectMeetingChrome(main,true);
-    main.showInactive?.();
-    if(focus){main.show();main.focus();}
+    try{main.setAlwaysOnTop(false);}catch{}
+    try{main.hide();}catch{}
     lastToolbarState={...lastToolbarState,meetingVisible:false};
     publishToolbarState();
     return true;
@@ -126,6 +117,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       try{main.setAlwaysOnTop(false);}catch{}
     }
     protectMeetingChrome(main,false);
+    main.show();
     savedMainWindowState=null;
   }
 
@@ -135,7 +127,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     mainMinimizeHandler=event=>{
       if(!shareActive)return;
       event?.preventDefault?.();
-      compactMainWindow({focus:false});
+      hideMeetingWindowForShare();
     };
     main.on('minimize',mainMinimizeHandler);
   }
@@ -148,8 +140,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   function openPicker(){
     if(pickerWindow&&!pickerWindow.isDestroyed()){pickerWindow.show();pickerWindow.focus();return {opened:true,reused:true,nativeSystemPicker:false};}
-    pickerWindow=new BrowserWindow({width:940,height:650,minWidth:760,minHeight:520,show:false,backgroundColor:'#101214',title:'Choose what to share',resizable:true,fullscreenable:false,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
-    positionNearMain(pickerWindow,940,650);
+    pickerWindow=new BrowserWindow({width:900,height:620,minWidth:760,minHeight:520,show:false,backgroundColor:'#16181b',title:'Share Screen',resizable:true,fullscreenable:false,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
+    positionNearMain(pickerWindow,900,620);
     pickerWindow.removeMenu?.();
     protectMeetingChrome(pickerWindow,true);
     pickerWindow.once('ready-to-show',()=>{pickerWindow?.show();pickerWindow?.focus();});
@@ -161,51 +153,69 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed())pickerWindow.close();pickerWindow=null;}
 
   function openToolbar(){
-    if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive();publishToolbarState();return;}
-    toolbarWindow=new BrowserWindow({width:820,height:74,minWidth:620,minHeight:74,maxHeight:74,show:false,frame:false,transparent:false,backgroundColor:'#16191d',resizable:true,fullscreenable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
-    const main=getMainWindow?.();
-    if(main&&!main.isDestroyed()){
-      const bounds=savedMainWindowState?.bounds||main.getBounds();
-      toolbarWindow.setBounds({x:Math.round(bounds.x+(bounds.width-820)/2),y:Math.max(24,bounds.y+18),width:820,height:74});
+    if(toolbarWindow&&!toolbarWindow.isDestroyed()){
+      toolbarWindow.show();
+      toolbarWindow.moveTop?.();
+      publishToolbarState();
+      return;
     }
-    toolbarWindow.setAlwaysOnTop(true,'floating');
+    toolbarWindow=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:82,show:false,frame:false,transparent:false,backgroundColor:'#15181c',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,type:platform==='darwin'?'panel':undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
+    positionNearMain(toolbarWindow,930,82);
+    try{toolbarWindow.setAlwaysOnTop(true,'floating');}catch{}
+    if(platform==='darwin'){
+      try{toolbarWindow.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+    }
     protectMeetingChrome(toolbarWindow,true);
     toolbarWindow.webContents.once('did-finish-load',()=>publishToolbarState());
-    toolbarWindow.once('ready-to-show',()=>toolbarWindow?.showInactive());
+    toolbarWindow.once('ready-to-show',()=>{
+      if(!toolbarWindow||toolbarWindow.isDestroyed())return;
+      toolbarWindow.show();
+      toolbarWindow.moveTop?.();
+    });
     void toolbarWindow.loadFile(path.join(uiDir,'presenter-toolbar.html'));
     toolbarWindow.on('closed',()=>{toolbarWindow=null;});
   }
 
-  function closeToolbar(){if(toolbarWindow&&!toolbarWindow.isDestroyed())toolbarWindow.close();toolbarWindow=null;}
+  function closeToolbar(){if(toolbarWindow&&!toolbarWindow.isDestroyed()){try{toolbarWindow.setClosable?.(true);}catch{}toolbarWindow.close();}toolbarWindow=null;}
   const sendMain=(channel,payload)=>{const main=getMainWindow?.();if(main&&!main.isDestroyed())main.webContents.send(channel,payload);};
 
-  // On macOS 15+ let Chromium/Electron hand getDisplayMedia directly to
-  // Apple's system content-sharing picker. Electron does not invoke this
-  // callback when the native picker is available. On older systems this
-  // handler remains the audited custom-picker fallback.
-  desktopSession.setDisplayMediaRequestHandler((_request,callback)=>{
+  const displayMediaHandler=(_request,callback)=>{
     const selection=pendingSelection;
     pendingSelection=null;
     if(!selection?.source){callback({});return;}
     const response={video:selection.source};
     if(selection.options?.shareAudio&&(platform==='win32'||platform==='darwin'))response.audio='loopback';
     callback(response);
-  },{useSystemPicker:nativeSystemPicker});
+  };
 
-  ipcMain.handle('share:open-picker',async()=>{
-    // Native macOS selection must be initiated by navigator.getDisplayMedia().
-    // Do not pre-enumerate sources or gate it on stale TCC state; either action
-    // can prevent the system picker from owning the permission/selection flow.
-    if(nativeSystemPicker)return {opened:false,nativeSystemPicker:true,status:'system-picker'};
-    if(platform==='darwin'&&typeof ensureScreenPermission==='function'){
-      const permission=await ensureScreenPermission();
-      if(!permission?.ok){
+  function configureDisplayMediaHandler(useSystemPicker){
+    const mode=useSystemPicker?'native':'dominionstar';
+    if(displayPickerMode===mode)return;
+    desktopSession.setDisplayMediaRequestHandler(displayMediaHandler,{useSystemPicker:Boolean(useSystemPicker)});
+    displayPickerMode=mode;
+  }
+
+  // First-time macOS permission stays native-first. Once TCC reports granted,
+  // DominionStar owns source selection so the presenter gets the same compact
+  // chooser every time instead of Apple's full-screen system preview.
+  configureDisplayMediaHandler(nativeSystemPicker);
+
+  ipcMain.handle('share:open-picker',async(_event,{permission='unknown'}={})=>{
+    const status=String(permission||'unknown').toLowerCase();
+    if(nativeSystemPicker&&status!=='granted'){
+      configureDisplayMediaHandler(true);
+      return {opened:false,nativeSystemPicker:true,status:'system-picker'};
+    }
+    configureDisplayMediaHandler(false);
+    if(platform==='darwin'&&!nativeSystemPicker&&typeof ensureScreenPermission==='function'){
+      const permissionResult=await ensureScreenPermission();
+      if(!permissionResult?.ok){
         return {
           opened:false,
           nativeSystemPicker:false,
           permissionRequired:true,
-          status:String(permission?.status||'unknown'),
-          restartRequired:Boolean(permission?.restartRequired),
+          status:String(permissionResult?.status||'unknown'),
+          restartRequired:Boolean(permissionResult?.restartRequired),
           passive:true
         };
       }
@@ -235,12 +245,13 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     attachShareWindowLifecycle();
     lastToolbarState={...lastToolbarState,...state,meetingVisible:false};
     openToolbar();
-    compactMainWindow({focus:false});
+    hideMeetingWindowForShare();
     return {ok:true};
   });
   ipcMain.handle('share:capture-state',(_event,state={})=>{lastToolbarState={...lastToolbarState,...state};publishToolbarState();return {ok:true};});
   ipcMain.handle('share:capture-stopped',()=>{
     shareActive=false;
+    if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}
     detachShareWindowLifecycle();
     restoreMainWindowAfterShare();
     lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
@@ -250,14 +261,21 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:presenter-command',(_event,command)=>{
     const normalized=String(command||'');
     if(normalized==='show-meeting'&&shareActive){
-      if(lastToolbarState.meetingVisible)compactMainWindow({focus:false});
+      if(lastToolbarState.meetingVisible)hideMeetingWindowForShare();
       else showMeetingWindow({focus:true});
-    }else if(['participants','chat','annotate'].includes(normalized)&&shareActive){
+    }else if(['participants','chat'].includes(normalized)&&shareActive){
       showMeetingWindow({focus:true});
-    }else if(['show-meeting','participants','chat','annotate'].includes(normalized)){
+    }else if(['show-meeting','participants','chat'].includes(normalized)){
       const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}
     }
     sendMain('share:presenter-command',normalized);
+    if(normalized==='stop'&&shareActive){
+      if(stopRetryTimer)clearTimeout(stopRetryTimer);
+      stopRetryTimer=setTimeout(()=>{
+        stopRetryTimer=null;
+        if(shareActive)sendMain('share:presenter-command','stop');
+      },700);
+    }
     return {ok:true};
   });
 
