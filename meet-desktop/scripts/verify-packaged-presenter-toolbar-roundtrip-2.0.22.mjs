@@ -52,11 +52,12 @@ try{
   stageBegin('main-target');
   const mainTarget=await waitTarget(item=>item.type==='page'&&String(item.url||'').startsWith('file://')&&!String(item.url||'').includes('presenter-toolbar.html'),'main meeting renderer');
   main=new CdpClient(mainTarget.webSocketDebuggerUrl,mainErrors);await main.connect();stage('main-connected');
-  await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionShareAnnotation&&window.dominionDesktop?.share?.captureStarted",'share controllers',15000);stage('controllers-loaded');
+  await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionShareAnnotation&&window.dominionDesktop?.share?.captureStarted&&window.dominionDesktop?.share?.presenterCommitted",'share controllers',15000);stage('controllers-loaded');
 
-  // Prepare the meeting and a synthetic Chromium MediaStream first. Start the
-  // share in a detached promise so hiding the main BrowserWindow cannot strand a
-  // long-lived CDP Runtime.evaluate request while the presenter window boots.
+  // Prepare the meeting and a synthetic Chromium MediaStream. Capture start must
+  // complete BEFORE presenter mode is committed/hides the meeting. This directly
+  // guards the physical bug where the toolbar appeared while its owning renderer
+  // was stranded in an unfinished ShareController.start transaction.
   stageBegin('synthetic-prepare');
   const prepared=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -81,11 +82,19 @@ try{
   stageBegin('share-start-dispatch');
   await main.eval(`(()=>{window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}}).then(state=>{window.__qaShareStartResult={active:state.active,sourceName:state.sourceName};}).catch(error=>{window.__qaShareStartError=String(error?.stack||error?.message||error);});return true;})()`);stage('share-start-dispatched');
   await main.wait("Boolean(window.__qaShareStartResult||window.__qaShareStartError)",'synthetic ShareController.start completion',20000);
-  const startOutcome=await main.eval(`({result:window.__qaShareStartResult,error:window.__qaShareStartError,state:window.DominionShareController.snapshot()})`);
+  const startOutcome=await main.eval(`({result:window.__qaShareStartResult,error:window.__qaShareStartError,state:window.DominionShareController.snapshot(),visibility:document.visibilityState})`);
   assert.equal(startOutcome.error,'',`Synthetic ShareController.start failed: ${startOutcome.error}`);
   assert.equal(startOutcome.result?.active,true,'Synthetic packaged share did not become active.');
-  assert.equal(startOutcome.result?.sourceName,'QA Synthetic Share');stage('share-start-complete');
-  await main.wait("document.querySelector('#meetingOverlay').classList.contains('share-active')&&document.querySelector('#sharedContentVideo')&&!document.querySelector('#sharedContentVideo').hidden",'active shared-content stage',12000);stage('shared-stage-active');
+  assert.equal(startOutcome.result?.sourceName,'QA Synthetic Share');stage('share-start-complete-before-hide');
+  await main.wait("document.querySelector('#meetingOverlay').classList.contains('share-active')&&document.querySelector('#sharedContentVideo')&&!document.querySelector('#sharedContentVideo').hidden",'active shared-content stage',12000);stage('shared-stage-active-before-hide');
+
+  // Mirror the real Share Integration path: once capture and the stage are fully
+  // committed, send a one-way presenter-ready signal. No promise is allowed to
+  // depend on the meeting remaining visible after this point.
+  stageBegin('presenter-commit');
+  await main.eval(`(()=>{window.dominionDesktop.share.presenterCommitted({sourceName:'QA Synthetic Share',paused:false});return true;})()`);stage('presenter-commit-sent');
+  await sleep(250);
+  await main.wait("window.DominionShareController.snapshot().active===true",'hidden meeting renderer remains live after presenter commit',12000);stage('hidden-renderer-responsive');
 
   stageBegin('toolbar-target');
   const toolbarTarget=await waitTarget(item=>item.type==='page'&&String(item.url||'').includes('presenter-toolbar.html'),'floating presenter toolbar',18000);
@@ -144,7 +153,7 @@ try{
   assert.deepEqual(mainErrors,[],'Main meeting renderer emitted exceptions:\n'+mainErrors.join('\n'));
   assert.deepEqual(toolbarErrors,[],'Presenter toolbar renderer emitted exceptions:\n'+toolbarErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged presenter round-trip wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK synthetic-live-share toolbar-ipc pause-resume compact-chat compact-participants annotation-companion audio-video-command-path stop-share-ends-track restores-meeting no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK capture-completes-before-hide integration-style-one-way-commit hidden-renderer-responsive toolbar-ipc pause-resume compact-chat compact-participants annotation-companion audio-video-command-path stop-share-ends-track restores-meeting no-renderer-errors');
 }catch(error){
   failure=error;console.error('PRESENTER_STAGE_FAILURE',error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());
 }finally{
