@@ -17,6 +17,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   const macVersion=platform==='darwin'&&typeof process.getSystemVersion==='function'?String(process.getSystemVersion()||''):'';
   const macMajor=Number.parseInt(macVersion.split('.')[0]||'0',10)||0;
   const nativeSystemPicker=platform==='darwin'&&macMajor>=15;
+  const presenterParkPoint={x:-32000,y:-32000};
 
   const authority=createShareSourceAuthority({
     timeoutMs:4500,
@@ -43,12 +44,22 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function keepMeetingRendererLive(){const main=getMainWindow?.();if(!main||main.isDestroyed())return false;try{main.webContents?.setBackgroundThrottling?.(false);}catch{}return true;}
   function hideMeetingWindowForShare(){
     if(!shareActive)return false;const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
-    protectMeetingChrome(main,true);keepMeetingRendererLive();try{main.setAlwaysOnTop(false);}catch{}try{main.hide();}catch{}
+    // Do not BrowserWindow.hide() the renderer that owns capture. On physical macOS
+    // a hidden Electron window can stop servicing the presenter-command path even
+    // with backgroundThrottling disabled. Park it off-screen instead: it remains a
+    // live renderer, cannot receive accidental pointer input, and is content-protected
+    // so it cannot recurse into the shared desktop.
+    protectMeetingChrome(main,true);keepMeetingRendererLive();
+    try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true);}catch{}
+    const saved=savedMainWindowState?.bounds||main.getBounds();
+    try{main.setBounds({x:presenterParkPoint.x,y:presenterParkPoint.y,width:Math.max(320,saved.width),height:Math.max(240,saved.height)},false);}catch{}
+    try{main.showInactive?.();}catch{try{main.show();}catch{}}
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();return true;
   }
   function showMeetingWindow({focus=true}={}){
     const main=getMainWindow?.();if(!main||main.isDestroyed())return false;const saved=savedMainWindowState;keepMeetingRendererLive();
-    try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    try{main.setIgnoreMouseEvents(false);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     if(saved){try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}}
     try{main.setAlwaysOnTop(false);}catch{}protectMeetingChrome(main,shareActive);main.show();if(focus)main.focus();lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};publishToolbarState();return true;
   }
@@ -56,14 +67,14 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(!shareActive)return false;const main=rememberMainWindow();if(!main||main.isDestroyed())return false;const base=savedMainWindowState?.bounds||main.getBounds();const annotation=kind==='annotate';
     const width=annotation?Math.min(960,Math.max(720,base.width-120)):410,height=annotation?Math.min(660,Math.max(500,base.height-120)):Math.min(620,Math.max(500,base.height-100));
     const x=annotation?Math.round(base.x+(base.width-width)/2):Math.round(base.x+base.width-width-18),y=annotation?Math.round(base.y+(base.height-height)/2):Math.round(base.y+70);
-    try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    try{main.setIgnoreMouseEvents(false);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setMinimumSize(annotation?640:330,annotation?460:420);}catch{}try{main.setBounds({x,y,width,height},false);}catch{}keepMeetingRendererLive();
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}protectMeetingChrome(main,true);main.show();main.focus();
     lastToolbarState={...lastToolbarState,meetingVisible:true,companion:String(kind||'')};publishToolbarState();return true;
   }
   function restoreMainWindowAfterShare(){
     const main=getMainWindow?.(),saved=savedMainWindowState;if(!main||main.isDestroyed()){savedMainWindowState=null;return;}
-    try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    try{main.setIgnoreMouseEvents(false);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     if(saved){try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}try{main.setAlwaysOnTop(Boolean(saved.alwaysOnTop));}catch{}try{if(saved.maximized)main.maximize();else if(saved.fullScreen)main.setFullScreen(true);}catch{}}
     else{try{main.setMinimumSize(960,640);}catch{}try{main.setAlwaysOnTop(false);}catch{}}
     protectMeetingChrome(main,false);try{main.webContents?.setBackgroundThrottling?.(true);}catch{}main.show();savedMainWindowState=null;
