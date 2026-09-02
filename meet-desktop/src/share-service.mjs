@@ -62,15 +62,16 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function hideMeetingWindowForShare(){
     if(!shareActive)return false;const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     const qaSyntheticShare=qaPresenterTrace&&String(lastToolbarState.sourceName||'')==='QA Synthetic Share';
-    if(!qaSyntheticShare)protectMeetingChrome(main,true);keepMeetingRendererLive();
-    try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    const base=savedMainWindowState?.bounds||main.getBounds(),width=300,height=188;
-    const compact={x:Math.round(base.x+Math.max(12,base.width-width-18)),y:Math.round(base.y+72),width,height};
-    try{main.setOpacity?.(1);}catch{}try{main.setIgnoreMouseEvents(false);}catch{}try{main.setMinimumSize(240,150);}catch{}
-    try{main.setBounds(compact,false);}catch{}try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
-    if(platform==='darwin'){try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}}
-    try{main.showInactive?.();}catch{try{main.show();}catch{}}
-    lastToolbarState={...lastToolbarState,meetingVisible:false,companion:'video'};publishToolbarState();return true;
+    if(!qaSyntheticShare)protectMeetingChrome(main,true);
+    keepMeetingRendererLive();
+    // Do not mutate the main BrowserWindow at presenter commit. On macOS,
+    // hide/minimize/resize/opacity/Space mutations can stall the capture-owning
+    // renderer while getDisplayMedia is active. The independent presenter
+    // toolbar remains the control surface; window isolation is handled only
+    // after the capture engine is moved out of this renderer.
+    lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};
+    publishToolbarState();
+    return true;
   }
   function showMeetingWindow({focus=true}={}){
     const main=getMainWindow?.();if(!main||main.isDestroyed())return false;const saved=savedMainWindowState;keepMeetingRendererLive();
