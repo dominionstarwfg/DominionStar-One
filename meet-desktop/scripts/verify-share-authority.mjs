@@ -102,7 +102,10 @@ requireText(pickerCss,'.tab.active{border-bottom-color:var(--blue)','Active shar
 assert.ok((controller.match(/getDisplayMedia/g)||[]).length>=2,'ShareController must remain the only display-capture owner.');
 const directDisplay=/\.getDisplayMedia\s*\(/;
 assert.ok(!directDisplay.test(integration)&&!directDisplay.test(preload)&&!directDisplay.test(picker),'Integration/preload/picker must not acquire display media directly.');
-requireText(controller,'context.drawImage(videoElement,0,0,width,height)','Pause must freeze the last visible shared frame.');
+requireText(controller,'async function captureFreezeFrame(videoElement)','Pause must own direct capture-frame freezing.');
+requireText(controller,"typeof ImageCapture==='function'",'Pause must prefer direct ImageCapture frame acquisition when no preview is attached.');
+requireText(controller,"typeof MediaStreamTrackProcessor==='function'",'Pause must retain a direct track-processor fallback.');
+requireText(controller,'context.drawImage(captured.source,0,0,captured.width,captured.height)','Pause must draw the captured display frame into the frozen stream.');
 requireText(controller,'canvas.captureStream(1)','Pause must transmit a frozen frame rather than black video.');
 requireText(controller,'stopTracks(state.liveStream)','Stop Share must release capture tracks.');
 requireText(controller,'async function replaceSource','New Share must remain transactional.');
