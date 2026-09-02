@@ -250,13 +250,18 @@ try{
     const strip=document.querySelector('#remoteTileStrip')||(()=>{const n=document.createElement('div');n.id='remoteTileStrip';document.querySelector('.stage').append(n);return n;})();
     strip.replaceChildren();
     for(let i=0;i<4;i+=1){const tile=document.createElement('article');tile.className='remote-peer-tile';tile.dataset.participantId='qa-'+i;tile.innerHTML='<video></video><footer><strong>QA</strong></footer>';strip.append(tile);}
+    window.DominionMeetingParity.resetVideoDock();
     window.DominionMeetingParity.syncVideoDock();window.DominionZoomAdaptiveParity.sync();window.DominionApprovedReferenceParity.syncVideoPanel();
-    const node=document.querySelector('#participantVideoDock');
-    return {hidden:node.hidden,className:node.className,orientation:node.dataset.orientation,grid:getComputedStyle(node.querySelector('.participant-video-dock-body')).gridTemplateColumns};
+    const node=document.querySelector('#participantVideoDock'),stage=document.querySelector('.stage');
+    const nr=node.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+    return {hidden:node.hidden,className:node.className,orientation:node.dataset.orientation,grid:getComputedStyle(node.querySelector('.participant-video-dock-body')).gridTemplateColumns,rightGap:Math.round(sr.right-nr.right),topGap:Math.round(nr.top-sr.top)};
   })()`);
-  assert.equal(dock.hidden,false,'Four participant tiles must show the floating video dock.');
-  assert.match(dock.className,/count-4/,'Four participant tiles must select the four-tile adaptive dock state.');
-  assert.ok(String(dock.grid).split(' ').filter(Boolean).length>=2,'Four participant tiles must render as an internal multi-column grid.');
+  assert.equal(dock.hidden,false,'Four participant tiles must show the Zoom-style video filmstrip.');
+  assert.match(dock.className,/count-4/,'Four participant tiles must retain the four-tile adaptive dock state.');
+  assert.equal(dock.orientation,'vertical','Normal Speaker view must keep the participant filmstrip vertical on the right.');
+  assert.ok(dock.rightGap>=8&&dock.rightGap<=24,`Default participant video filmstrip must sit against the right edge; received ${dock.rightGap}px.`);
+  assert.ok(dock.topGap>=8&&dock.topGap<=24,`Default participant video filmstrip must start near the upper-right corner; received ${dock.topGap}px.`);
+  assert.equal(String(dock.grid).split(' ').filter(Boolean).length,1,'Normal Speaker view must remain a single-column right filmstrip rather than inventing a grid.');
   const shareDock=await evaluate(`(()=>{
     const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');
     overlay.classList.add('share-active');window.DominionPreferences?.write?.('shareVideoDock',true);window.DominionPreferences?.write?.('shareSideBySide',false);
@@ -268,7 +273,7 @@ try{
   assert.equal(shareDock.sideBySide,false,'Side-by-side video must not replace the default floating share dock unless explicitly selected.');
   assert.equal(shareDock.orientation,'vertical','Default share-time video panel must start as a vertical right-side dock.');mark('adaptive-dock');
 
-  console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence approved-toolbar-stable participants-right-docked clean-chat reactions more adaptive-full-stage-dock');
+  console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence approved-toolbar-stable participants-right-docked clean-chat reactions more zoom-right-filmstrip adaptive-full-stage-dock');
 }catch(error){
   failure=error;
   console.error(error?.stack||String(error));
