@@ -64,20 +64,21 @@ assert.match(repair,/return await integration\.open\(\)/,'Physical compatibility
 const repairClick=repair.slice(repair.indexOf('function onDocumentClick'),repair.indexOf("document.addEventListener('submit'"));
 assert.ok(!repairClick.includes('#roomShare'),'Physical Mac repair must not intercept the Share Screen button.');
 
-// Critical presenter repair: captureStarted returns immediately, with no presenter
-// BrowserWindow scheduling. Only a renderer commit sent after ShareController.start
-// and shared-stage mounting may unlock presenter chrome.
+// Critical presenter repair: capture start itself is fire-and-forget. The renderer
+// must never wait for a main-process response before ShareController publishes active.
+assert.match(preload,/captureStarted:state=>\{ipcRenderer\.send\('share:capture-started',state\|\|\{\}\);return true;\}/,'Capture start must use one-way preload IPC.');
+assert.doesNotMatch(preload,/captureStarted:state=>invoke\('share:capture-started'/,'Capture start must not use request/response IPC.');
 const captureStarted=shareService.slice(
-  shareService.indexOf("ipcMain.handle('share:capture-started'"),
+  shareService.indexOf("ipcMain.on('share:capture-started'"),
   shareService.indexOf("ipcMain.handle('share:capture-state'")
 );
-assert.match(captureStarted,/toolbarPending:true/,'Capture start must report toolbar pending.');
-assert.match(captureStarted,/meetingHidden:false/,'Capture start must keep the meeting visible.');
-assert.match(captureStarted,/awaitingPresenterCommit:true/,'Capture start must wait for later presenter commit.');
+assert.match(captureStarted,/ipcMain\.on\('share:capture-started'/,'Main process must receive capture start as one-way IPC.');
+assert.match(captureStarted,/event\.sender!==main\.webContents/,'Capture start must accept only the main meeting renderer.');
 assert.match(captureStarted,/keepMeetingRendererLive\(\)/,'Capture start must keep the renderer unthrottled.');
-assert.doesNotMatch(captureStarted,/scheduleToolbarForShare\(\);/,'Capture start must not schedule presenter BrowserWindow work before its IPC reply is delivered.');
-assert.doesNotMatch(captureStarted,/openToolbar\(/,'Presenter BrowserWindow creation must not occur inside captureStarted.');
-assert.doesNotMatch(captureStarted,/hideMeetingWindowForShare\(\)/,'Meeting hide must not occur inside captureStarted.');
+assert.doesNotMatch(captureStarted,/scheduleToolbarForShare\(\);/,'Capture start must not schedule presenter BrowserWindow work.');
+assert.doesNotMatch(captureStarted,/openToolbar\(/,'Presenter BrowserWindow creation must not occur inside capture start.');
+assert.doesNotMatch(captureStarted,/hideMeetingWindowForShare\(\)/,'Meeting hide must not occur inside capture start.');
+assert.doesNotMatch(captureStarted,/return \{ok:/,'Capture start must have no response contract.');
 
 assert.match(shareService,/function scheduleToolbarForShare\(\)/,'Deferred presenter toolbar scheduler is missing.');
 const scheduler=shareService.slice(shareService.indexOf('function scheduleToolbarForShare()'),shareService.indexOf('const displayMediaHandler'));
@@ -157,4 +158,4 @@ assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compa
 assert.match(css,/\.ds-reaction-tray[\s\S]*overflow:hidden!important/,'Reaction tray must remain contained.');
 assert.match(repair,/Participants \(\$\{count\}\)/,'Participants heading must expose live count.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share native-unproven-fallback granted-custom-chooser capture-start-returns-before-toolbar toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed first-click-presenter-controls share-companions direct-stop-share profile-first-identity adhoc-not-certified two-person-right-video-filmstrip floating-participants-chat full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share native-unproven-fallback granted-custom-chooser one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed first-click-presenter-controls share-companions direct-stop-share profile-first-identity adhoc-not-certified two-person-right-video-filmstrip floating-participants-chat full-window compact-prejoin`);
