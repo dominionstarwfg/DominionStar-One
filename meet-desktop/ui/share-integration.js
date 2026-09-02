@@ -198,6 +198,7 @@
       const command=String(rawCommand?.command||rawCommand||'');
       const qaCommandId=Number(rawCommand?.qaCommandId||0)||0;
       if(qaCommandId>0)console.error(`QA_PRESENTER_RENDERER_DISPATCH id=${qaCommandId} command=${command}`);
+      window.dispatchEvent(new CustomEvent('dominion:presenter-command-dispatch',{detail:{command,qaCommandId}}));
       try{
         if(command==='pause'){await share.togglePause(sharedVideo);applyLayout();return {handled:true,command};}
         if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}
