@@ -65,6 +65,12 @@
         try{await bridge?.captureStopped?.();}catch{}
         throw new Error('Presenter controls could not start. Screen sharing was cancelled safely.');
       }
+      // QA classification only: prove that the renderer can still service its own
+      // timer after capture is active but before the integration layer commits
+      // presenter mode. Real shares never use this synthetic source name.
+      if(state.sourceName==='QA Synthetic Share'){
+        await new Promise(resolve=>setTimeout(()=>{console.log('QA_SHARE_POST_START_HEARTBEAT');resolve();},350));
+      }
       // ShareController owns capture only. It deliberately does not hide the
       // meeting or commit presenter mode. The integration layer must first mount
       // the shared stage and finish its caller continuation, then signal the main
