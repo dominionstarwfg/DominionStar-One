@@ -5,6 +5,7 @@ const pkg=JSON.parse(read('package.json'));
 const shareService=read('src/share-service.mjs');
 const shareController=read('ui/share-controller.js');
 const shareIntegration=read('ui/share-integration.js');
+const preload=read('src/preload.cjs');
 const sharePicker=read('ui/share-picker.js');
 const sharePickerHtml=read('ui/share-picker.html');
 const physicalRepair=read('ui/physical-mac-repair.js');
@@ -22,7 +23,8 @@ const [major,minor,patch]=String(pkg.version||'').split('.').map(Number);
 if(!(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21))throw new Error(`Carried-forward physical-reference gate requires DominionStar Meet 2.0.21 or later in the 2.0.x line; found ${pkg.version}`);
 
 // Screen share: first-time permission remains native-safe; granted sessions use
-// the app-owned Zoom-style chooser and the normal meeting hides during presentation.
+// the app-owned Zoom-style chooser. Presenter hiding is integration-owned only
+// after the capture promise and real shared-stage layout have completed.
 requireText(shareService,"const nativeSystemPicker=platform==='darwin'&&macMajor>=15",'Native picker capability is not gated to supported macOS.');
 requireText(shareService,'function configureDisplayMediaHandler(useSystemPicker)','Dynamic native/custom display-media authority is missing.');
 requireText(shareService,'configureDisplayMediaHandler(nativeSystemPicker)','Display-media authority does not initialize native-safe.');
@@ -32,16 +34,21 @@ requireText(shareIntegration,'const result=await bridge.openPicker(permission);'
 requireText(shareIntegration,"if(result?.nativeSystemPicker)return {mode:'native'}",'Renderer does not recognize native first-time picker mode.');
 requireText(shareIntegration,"await share.start({name:'Shared content',options})",'Native share path does not call getDisplayMedia through ShareController.');
 requireText(shareService,'function hideMeetingWindowForShare()','Presenter state cannot hide the normal meeting window.');
-requireText(shareService,'main.hide()','Meeting window remains visible by default during sharing.');
+requireText(shareService,'main.hide()','Meeting window cannot enter hidden presenter state.');
 requireText(shareService,'async function openToolbar()','Presenter toolbar load must be awaitable.');
 requireText(shareService,"await created.loadFile(path.join(uiDir,'presenter-toolbar.html'))",'Presenter toolbar must load before the meeting can hide.');
 requireText(shareService,'const toolbarReady=await openToolbar();','Capture start does not wait for presenter-toolbar readiness.');
-requireText(shareService,'meetingHidden:false,awaitingRendererCommit:Boolean(toolbarReady)','Capture start must return before hiding the meeting.');
-requireText(shareController,'rendererCommitted:true','Renderer does not explicitly commit the live share before meeting hide.');
-requireText(shareService,'rendererCommitted=state?.rendererCommitted===true','Main process does not recognize the renderer-commit phase.');
-requireText(shareService,'if(shareActive&&rendererCommitted)','Meeting hide is not gated on renderer commit.');
+requireText(shareService,'awaitingPresenterCommit:Boolean(toolbarReady)','Capture start must return before integration commits presenter mode.');
+rejectText(shareController,'rendererCommitted:true','Capture controller still owns presenter visibility commit.');
+requireText(shareIntegration,'function commitPresenterMode()','Share integration does not own safe presenter commit.');
+requireText(shareIntegration,'bridge?.presenterCommitted?.(','Share integration cannot send presenter-ready state.');
+requireText(preload,"ipcRenderer.send('share:presenter-committed'",'Presenter commit is not a one-way IPC signal.');
+requireText(shareService,"ipcMain.on('share:presenter-committed'",'Main process does not receive the one-way presenter commit.');
+requireText(shareService,'toolbarReadyForShare','Presenter commit is not gated on toolbar readiness.');
+requireText(shareService,'setImmediate(()=>','Presenter meeting hide is not deferred beyond the commit signal.');
+requireText(shareService,'keepMeetingRendererLive();','Meeting renderer is not kept live during presenter focus/occlusion.');
 requireText(shareService,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true",'Presenter toolbar is not protected across macOS Spaces/full-screen apps.');
-requireText(shareService,"main.webContents?.setBackgroundThrottling?.(false)",'Hidden meeting renderer can still throttle the live share.');
+requireText(shareService,'setBackgroundThrottling?.(false)','Hidden/background meeting renderer can still throttle the live share.');
 requireText(shareService,'acceptFirstMouse:true','Presenter toolbar cannot accept the first macOS click reliably.');
 rejectText(shareService,"type:platform==='darwin'?'panel':undefined",'Presenter toolbar still uses the unsupported macOS nonactivating panel type.');
 requireText(shareService,"if(normalized==='stop'&&shareActive)",'Stop Share does not retain main-process retry protection.');
@@ -67,7 +74,7 @@ requireText(sharePickerHtml,'data-tab="files">Files','Share chooser is missing F
 requireText(sharePickerHtml,'Share sound','Share chooser is missing Share sound.');
 requireText(sharePickerHtml,'Optimize for video clip','Share chooser is missing Optimize for video clip.');
 requireText(sharePickerHtml,'Optimize for sharing video','Share chooser is missing Optimize for sharing video.');
-rejectText(sharePickerHtml,'Show DominionStar windows','Normal share chooser still exposes a recursive meeting-window option.');
+rejectText(sharePickerHtml,'Show DominionStar windows','Normal presenter flow still exposes a recursive meeting-window option.');
 
 // Approved visual reference: real brand and Zoom-style View control are release requirements.
 requireText(parity,"const logo=String(desktop.brand?.logoUrl||'')",'Meeting header is not driven by the real packaged DominionStar logo resource.');
@@ -128,4 +135,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid toolbar-before-hide two-phase-renderer-commit hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip two-person-right-filmstrip physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid toolbar-before-hide integration-owned-one-way-presenter-commit renderer-live-before-toolbar hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip two-person-right-filmstrip physical-rejection-recorded`);
