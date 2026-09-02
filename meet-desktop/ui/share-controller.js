@@ -65,16 +65,11 @@
         try{await bridge?.captureStopped?.();}catch{}
         throw new Error('Presenter controls could not start. Screen sharing was cancelled safely.');
       }
-      // QA classification only: prove that the renderer can still service its own
-      // timer after capture is active but before the integration layer commits
-      // presenter mode. Real shares never use this synthetic source name.
+      // QA observability must never become part of the capture transaction.
+      // A throttled renderer may delay this timer; share start itself must return.
       if(state.sourceName==='QA Synthetic Share'){
-        await new Promise(resolve=>setTimeout(()=>{console.log('QA_SHARE_POST_START_HEARTBEAT');resolve();},350));
+        setTimeout(()=>console.log('QA_SHARE_POST_START_HEARTBEAT'),350);
       }
-      // ShareController owns capture only. It deliberately does not hide the
-      // meeting or commit presenter mode. The integration layer must first mount
-      // the shared stage and finish its caller continuation, then signal the main
-      // process through the one-way presenterCommitted bridge.
       return snapshot();
     }finally{state.busy=false;emit();}
   }
@@ -114,9 +109,6 @@
   function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
   function setAnnotationCanvas(canvas){
     const next=canvas||null;
-    // Idempotence is critical: Share Integration may ask Annotation to deactivate
-    // while capture is merely busy/not-yet-active. Re-emitting an unchanged null
-    // canvas would synchronously recurse emit -> applyLayout -> deactivate -> emit.
     if(state.annotationCanvas===next){
       if(next&&state.liveStream&&!state.compositeStream)startComposite();
       return snapshot();
