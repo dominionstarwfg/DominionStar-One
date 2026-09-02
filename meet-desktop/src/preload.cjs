@@ -1,30 +1,32 @@
 const {contextBridge,ipcRenderer}=require('electron');
 const invoke=(channel,payload)=>ipcRenderer.invoke(channel,payload);
 const listen=(channel,callback)=>{if(typeof callback!=='function')return()=>{};const handler=(_event,payload)=>callback(payload);ipcRenderer.on(channel,handler);return()=>ipcRenderer.removeListener(channel,handler);};
+let presenterCommandCallback=null;
+let presenterListenerGeneration=0;
 ipcRenderer.on('share:presenter-command',(_event,payload)=>{
   const command=String(payload?.command||payload||'');
   const qaCommandId=Number(payload?.qaCommandId||0)||0;
-  if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-tap',{qaCommandId,command});
+  if(qaCommandId>0){
+    console.error(`QA_PRESENTER_PRELOAD_RECEIVED id=${qaCommandId} command=${command} generation=${presenterListenerGeneration}`);
+    ipcRenderer.send('share:presenter-preload-tap',{qaCommandId,command,generation:presenterListenerGeneration});
+  }
+  const callback=presenterCommandCallback;
+  if(typeof callback==='function'){
+    try{callback(payload);}catch(error){console.error('[DominionStar Meet] Presenter command callback failed.',error);}
+    if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command,generation:presenterListenerGeneration});
+  }
 });
 const listenPresenterCommand=callback=>{
   if(typeof callback!=='function')return()=>{};
-  const handler=(_event,payload)=>{
-    const command=String(payload?.command||payload||'');
-    const qaCommandId=Number(payload?.qaCommandId||0)||0;
-    if(qaCommandId>0){
-      console.error(`QA_PRESENTER_PRELOAD_RECEIVED id=${qaCommandId} command=${command}`);
-      ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command});
-    }
-    callback(payload);
-  };
-  ipcRenderer.on('share:presenter-command',handler);
-  ipcRenderer.send('share:presenter-listener-ready',{href:String(location?.href||'')});
-  return()=>ipcRenderer.removeListener('share:presenter-command',handler);
+  presenterCommandCallback=callback;
+  const generation=++presenterListenerGeneration;
+  ipcRenderer.send('share:presenter-listener-ready',{href:String(location?.href||''),generation});
+  return()=>{if(presenterCommandCallback===callback)presenterCommandCallback=null;};
 };
 const packaged=String(location?.href||'').includes('/app.asar/');
 const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../assets/logo.jpeg',location.href).href;
 if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'&&!String(location?.href||'').includes('presenter-toolbar.html')){
-  [1000,2000,3000,5000,7000].forEach((delay,index)=>setTimeout(()=>console.error(`QA_MAIN_PRELOAD_PULSE index=${index+1} delay=${delay}`),delay));
+  [1000,2000,3000,5000,7000].forEach((delay,index)=>setTimeout(()=>console.error(`QA_MAIN_PRELOAD_PULSE index=${index+1} delay=${delay} generation=${presenterListenerGeneration}`),delay));
 }
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
