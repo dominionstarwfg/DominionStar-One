@@ -73,11 +73,16 @@ try{
   assert.ok(['default','auto'].includes(dragStart.cursor),'Video tile surface must show a normal arrow cursor, not a grabbing hand.');
   await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x,y:dragStart.y});
   await cdp('Input.dispatchMouseEvent',{type:'mousePressed',x:dragStart.x,y:dragStart.y,button:'left',buttons:1,clickCount:1});
-  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x-64,y:dragStart.y+34,button:'left',buttons:1});
+  for(const [dx,dy] of [[-16,8],[-32,17],[-48,26],[-64,34]]){
+    await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x+dx,y:dragStart.y+dy,button:'left',buttons:1});
+    await sleep(20);
+  }
   await cdp('Input.dispatchMouseEvent',{type:'mouseReleased',x:dragStart.x-64,y:dragStart.y+34,button:'left',buttons:0,clickCount:1});
-  await sleep(80);
-  const videoDragged=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),r=dock.getBoundingClientRect();return {dx:Math.round(r.left-${dragStart.left}),dy:Math.round(r.top-${dragStart.top}),cursor:getComputedStyle(dock).cursor,whole:dock.dataset.dsAdaptiveWholePanelDrag};})()`);
-  assert.ok(Math.abs(videoDragged.dx)>=24||Math.abs(videoDragged.dy)>=18,'Floating participant video panel must move from a real mouse drag started on a video tile.');
+  await sleep(120);
+  const videoDragged=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),r=dock.getBoundingClientRect();return {dx:Math.round(r.left-${dragStart.left}),dy:Math.round(r.top-${dragStart.top}),cursor:getComputedStyle(dock).cursor,whole:dock.dataset.dsAdaptiveWholePanelDrag,userPositioned:dock.classList.contains('user-positioned'),left:dock.style.left,top:dock.style.top,right:dock.style.right};})()`);
+  console.log('VIDEO_DOCK_DRAG_DIAGNOSTIC '+JSON.stringify(videoDragged));
+  assert.equal(videoDragged.userPositioned,true,'Floating participant video panel must enter user-positioned state from a real mouse drag started on a video tile.');
+  assert.ok(Math.abs(videoDragged.dx)>=24||Math.abs(videoDragged.dy)>=18,'Floating participant video panel must move from a real multi-event mouse drag started on a video tile.');
   assert.equal(videoDragged.cursor,'default','Floating video panel must keep the normal arrow cursor while movable.');
   assert.equal(videoDragged.whole,'1','Whole-panel video drag authority was lost at runtime.');
 
