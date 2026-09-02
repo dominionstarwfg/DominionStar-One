@@ -1,5 +1,6 @@
 (()=>{
-  if(window.DominionShareIntegration)return;
+  if(window.DominionShareIntegration||window.__DominionShareIntegrationBooting)return;
+  window.__DominionShareIntegrationBooting=true;
   const desktop=window.dominionDesktop||null;
   const bridge=desktop?.share||null;
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -98,8 +99,6 @@
       const state=share.snapshot();
       if(!state.active||presenterCommitted)return false;
       presenterCommitted=true;
-      // One-way IPC is intentional: once the main process receives this signal it
-      // may hide the meeting immediately without stranding a renderer promise.
       bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
       return true;
     }
@@ -198,5 +197,5 @@
 
     window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode});
   }
-  void boot();
+  void boot().catch(error=>console.error('[DominionStar Meet] Share Integration boot failed.',error)).finally(()=>{window.__DominionShareIntegrationBooting=false;});
 })();
