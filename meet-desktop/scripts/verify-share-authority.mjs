@@ -110,6 +110,16 @@ requireText(annotation,'setAnnotationCanvas','Annotation must remain connected t
 requireText(annotation,'drawLaser','Laser pointer support is missing.');
 rejectText(controller,'rendererCommitted:true','ShareController must not own meeting visibility or presenter commit.');
 
+// Re-entrancy guard: the initial busy-state emit occurs before capture is active.
+// Integration legitimately asks Annotation to be inactive in that state. Clearing
+// an already-null annotation canvas must therefore be a true no-op, otherwise the
+// synchronous listener chain becomes emit -> applyLayout -> deactivate -> emit.
+requireText(controller,'if(state.annotationCanvas===next)','ShareController must suppress unchanged annotation-canvas emissions.');
+requireText(controller,'if(next&&state.liveStream&&!state.compositeStream)startComposite();','Idempotent annotation guard must still recover a missing active composite stream.');
+requireText(annotation,'const controllerAnnotating=Boolean(controller?.snapshot?.().annotating);','Annotation teardown must inspect real controller annotation state.');
+requireText(annotation,'if(controllerAnnotating)controller?.setAnnotationCanvas?.(null);','Annotation teardown must clear the controller only when annotation is actually attached.');
+rejectText(annotation,'share()?.setAnnotationCanvas?.(null)','Annotation deactivate must not unconditionally feed an unchanged null canvas back into ShareController.');
+
 // Critical physical-Mac repair: capture-start notification itself is one-way.
 // ShareController must never await a main-process reply before publishing active.
 requireText(preload,"captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;}",'Capture start must cross the preload bridge as one-way IPC.');
@@ -180,4 +190,4 @@ requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
 
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state no-emit-recursion one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
