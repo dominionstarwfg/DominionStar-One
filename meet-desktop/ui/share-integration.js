@@ -74,6 +74,17 @@
     let label=stage.querySelector('#shareStageLabel');if(!label){label=document.createElement('div');label.id='shareStageLabel';label.className='share-stage-label';label.hidden=true;stage.append(label);}
     let cameraTile=stage.querySelector('#presenterCameraTile');if(!cameraTile){cameraTile=document.createElement('video');cameraTile.id='presenterCameraTile';cameraTile.className='presenter-camera-tile';cameraTile.autoplay=true;cameraTile.playsInline=true;cameraTile.muted=true;cameraTile.hidden=true;stage.append(cameraTile);}
 
+    let inlinePresenter=overlay.querySelector('#inlinePresenterToolbar');
+    if(!inlinePresenter){
+      inlinePresenter=document.createElement('div');
+      inlinePresenter.id='inlinePresenterToolbar';
+      inlinePresenter.className='inline-presenter-toolbar';
+      inlinePresenter.hidden=true;
+      inlinePresenter.innerHTML=`<div class="inline-presenter-status"><strong id="inlineShareState">You are sharing</strong><span id="inlineShareSource">Shared content</span></div><div class="inline-presenter-actions"><button type="button" data-inline-command="audio">Mute</button><button type="button" data-inline-command="video">Stop Video</button><button type="button" data-inline-command="participants">Participants</button><button type="button" data-inline-command="chat">Chat</button><button type="button" data-inline-command="annotate">Annotate</button><button type="button" data-inline-command="pause">Pause</button><button type="button" data-inline-command="new-share">New Share</button><button type="button" class="stop" data-inline-command="stop">Stop Share</button></div>`;
+      overlay.append(inlinePresenter);
+      inlinePresenter.querySelectorAll('[data-inline-command]').forEach(control=>control.addEventListener('click',()=>void dispatchPresenterCommand(control.dataset.inlineCommand||'')));
+    }
+
     function setCompanion(kind=''){
       companionKind=String(kind||'');
       if(companionKind)document.body.dataset.dsShareCompanion=companionKind;else delete document.body.dataset.dsShareCompanion;
@@ -86,6 +97,16 @@
       overlay.classList.toggle('share-active',state.active);
       sharedVideo.hidden=!state.active;
       label.hidden=!state.active;
+      inlinePresenter.hidden=!state.active;
+      if(state.active){
+        const shareState=inlinePresenter.querySelector('#inlineShareState'),shareSource=inlinePresenter.querySelector('#inlineShareSource');
+        if(shareState)shareState.textContent=state.paused?'Share paused':'You are sharing';
+        if(shareSource)shareSource.textContent=String(state.sourceName||'Shared content');
+        const commandLabel=(name,text)=>{const node=inlinePresenter.querySelector(`[data-inline-command="${name}"]`);if(node)node.textContent=text;};
+        commandLabel('pause',state.paused?'Resume':'Pause');
+        commandLabel('audio',mediaState.micOn?'Mute':'Unmute');
+        commandLabel('video',mediaState.cameraOn?'Stop Video':'Start Video');
+      }
       if(state.active){
         const output=share.outputStream();if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
         label.innerHTML=`<strong>${state.paused?'Paused':state.annotating?'Annotating':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
