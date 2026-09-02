@@ -71,18 +71,24 @@ assert.match(repair,/return await integration\.open\(\)/,'Compatibility Share he
 const repairClick=repair.slice(repair.indexOf('function onDocumentClick'),repair.indexOf("document.addEventListener('submit'"));
 assert.ok(!repairClick.includes('#roomShare'),'Physical Mac repair must not intercept/cancel the Share Screen button.');
 
-// Presenter mode: controls remain available while normal meeting chrome is hidden.
+// Presenter mode: capture finishes first, the integration mounts the shared stage,
+// then one-way presenter commit allows the main process to hide the meeting.
 assert.match(shareService,/hideMeetingWindowForShare\(\)/,'Presenter mode must be able to hide the normal meeting window.');
 assert.match(shareService,/async function openToolbar\(\)/,'Presenter toolbar readiness must be awaitable.');
 assert.match(shareService,/await created\.loadFile\(path\.join\(uiDir,'presenter-toolbar\.html'\)\)/,'Presenter toolbar must finish loading before the meeting can hide.');
 assert.match(shareService,/const toolbarReady=await openToolbar\(\);/,'Capture start must await presenter-toolbar readiness.');
 const captureStarted=shareService.slice(shareService.indexOf("ipcMain.handle('share:capture-started'"),shareService.indexOf("ipcMain.handle('share:capture-state'"));
-assert.doesNotMatch(captureStarted,/hideMeetingWindowForShare\(\)/,'Capture start must not hide the meeting before the renderer commits its active-share state.');
-assert.match(captureStarted,/meetingHidden:false,awaitingRendererCommit:Boolean\(toolbarReady\)/,'Capture start must explicitly wait for renderer commit before hiding.');
-assert.match(shareController,/rendererCommitted:true/,'ShareController must explicitly commit active-share state after start resolves.');
-assert.match(shareService,/rendererCommitted=state\?\.rendererCommitted===true/,'Main process must recognize the renderer-commit phase.');
-assert.match(shareService,/if\(shareActive&&rendererCommitted\)/,'Meeting hide must be gated on renderer commit.');
-assert.match(shareService,/main\.webContents\?\.setBackgroundThrottling\?\.\(false\)/,'Hidden meeting renderer must stay responsive while sharing.');
+assert.doesNotMatch(captureStarted,/hideMeetingWindowForShare\(\)/,'Capture start must not hide the meeting before integration commits presenter mode.');
+assert.match(captureStarted,/awaitingPresenterCommit:Boolean\(toolbarReady\)/,'Capture start must explicitly wait for integration presenter commit.');
+assert.match(captureStarted,/setBackgroundThrottling\?\.\(false\)/,'Main renderer must be unthrottled before the presenter toolbar can take focus.');
+assert.doesNotMatch(shareController,/rendererCommitted:true/,'ShareController must not own meeting visibility commit.');
+assert.match(shareIntegration,/function commitPresenterMode\(\)/,'Share integration must own the safe presenter commit.');
+assert.match(shareIntegration,/bridge\?\.presenterCommitted\?\.\(/,'Share integration cannot send presenter-ready state.');
+assert.match(preload,/ipcRenderer\.send\('share:presenter-committed'/,'Presenter commit must be one-way IPC.');
+assert.match(shareService,/ipcMain\.on\('share:presenter-committed'/,'Main process must receive the one-way presenter commit.');
+assert.match(shareService,/toolbarReadyForShare/,'Presenter commit must be gated on toolbar readiness.');
+assert.match(shareService,/setImmediate\(\(\)=>/,'Meeting hide must occur on a later main-process turn.');
+assert.match(shareService,/keepMeetingRendererLive\(\)/,'Hidden/background meeting renderer must stay responsive while sharing.');
 assert.match(shareService,/setVisibleOnAllWorkspaces\(true,\{visibleOnFullScreen:true/,'Presenter controls must remain visible across full-screen apps/Spaces.');
 assert.match(shareService,/acceptFirstMouse:true/,'Presenter toolbar must accept the first macOS click.');
 assert.doesNotMatch(shareService,/type:platform==='darwin'\?'panel':undefined/,'Presenter toolbar must not use the unsupported nonactivating panel window type.');
@@ -135,4 +141,4 @@ assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/,'Meeting 
 assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/,'Meeting must fill the Electron viewport height.');
 assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compact.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof toolbar-before-hide two-phase-renderer-commit hidden-meeting-presenter-state share-companions direct-stop-share single-share-owner profile-first-identity adhoc-not-certified reaction-contained settings-readable participant-count floating-participants-chat draggable-panels right-edge-video-dock full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof toolbar-before-hide integration-owned-one-way-presenter-commit renderer-live-before-toolbar hidden-meeting-presenter-state share-companions direct-stop-share single-share-owner profile-first-identity adhoc-not-certified reaction-contained settings-readable participant-count floating-participants-chat draggable-panels right-edge-video-dock full-window compact-prejoin`);
