@@ -166,15 +166,17 @@
     const rosterCount=q('#participantRoster')?.querySelectorAll('[data-participant-id]').length||0;
     const participantCount=Math.max(rosterCount,visibleTiles+(q('#localVideoDockTile')?1:0));
     const thresholdApplies=!shared&&view==='speaker';
-    const suppress=thresholdApplies&&participantCount<=2;
-    dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available';
+    // A two-person Zoom-style call must retain the right filmstrip. Suppression is
+    // only valid for a truly empty solo dock where there is no tile to present.
+    const suppress=thresholdApplies&&participantCount<=1&&visibleTiles===0;
+    dock.dataset.zoomThreshold=suppress?'empty-solo':'available';
     if(suppress){if(!dock.hidden)dock.hidden=true;return;}
     if(shared){
       const allowed=window.DominionPreferences?.read?.('shareVideoDock')!==false;
       if(allowed&&visibleTiles>0&&dock.hidden)dock.hidden=false;
       return;
     }
-    if(thresholdApplies&&participantCount>2&&visibleTiles>0&&dock.hidden)dock.hidden=false;
+    if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false;
   }
 
   function bindShareState(){
@@ -200,5 +202,5 @@
   window.addEventListener('dominion:meeting-ended',()=>{expectedPersonalCode='';document.body.dataset.dsExpectedPersonalRoomCode='';});
   sync();
 
-  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,sync});
+  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.22-right-filmstrip',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,sync});
 })();
