@@ -11,6 +11,7 @@ const adaptiveCss=read('ui/zoom-adaptive-parity.css');
 const runtimeCss=read('ui/runtime-stability.css');
 const shareCss=read('ui/share.css');
 const shareService=read('src/share-service.mjs');
+const shareController=read('ui/share-controller.js');
 const shareIntegration=read('ui/share-integration.js');
 const preload=read('src/preload.cjs');
 const bootstrap=read('src/bootstrap.mjs');
@@ -75,9 +76,16 @@ assert.match(shareService,/hideMeetingWindowForShare\(\)/,'Presenter mode must b
 assert.match(shareService,/async function openToolbar\(\)/,'Presenter toolbar readiness must be awaitable.');
 assert.match(shareService,/await created\.loadFile\(path\.join\(uiDir,'presenter-toolbar\.html'\)\)/,'Presenter toolbar must finish loading before the meeting can hide.');
 assert.match(shareService,/const toolbarReady=await openToolbar\(\);/,'Capture start must await presenter-toolbar readiness.');
-assert.match(shareService,/if\(toolbarReady\)hideMeetingWindowForShare\(\);/,'Capture start can hide the meeting before presenter controls are available.');
+const captureStarted=shareService.slice(shareService.indexOf("ipcMain.handle('share:capture-started'"),shareService.indexOf("ipcMain.handle('share:capture-state'"));
+assert.doesNotMatch(captureStarted,/hideMeetingWindowForShare\(\)/,'Capture start must not hide the meeting before the renderer commits its active-share state.');
+assert.match(captureStarted,/meetingHidden:false,awaitingRendererCommit:Boolean\(toolbarReady\)/,'Capture start must explicitly wait for renderer commit before hiding.');
+assert.match(shareController,/rendererCommitted:true/,'ShareController must explicitly commit active-share state after start resolves.');
+assert.match(shareService,/rendererCommitted=state\?\.rendererCommitted===true/,'Main process must recognize the renderer-commit phase.');
+assert.match(shareService,/if\(shareActive&&rendererCommitted\)/,'Meeting hide must be gated on renderer commit.');
 assert.match(shareService,/main\.webContents\?\.setBackgroundThrottling\?\.\(false\)/,'Hidden meeting renderer must stay responsive while sharing.');
 assert.match(shareService,/setVisibleOnAllWorkspaces\(true,\{visibleOnFullScreen:true/,'Presenter controls must remain visible across full-screen apps/Spaces.');
+assert.match(shareService,/acceptFirstMouse:true/,'Presenter toolbar must accept the first macOS click.');
+assert.doesNotMatch(shareService,/type:platform==='darwin'\?'panel':undefined/,'Presenter toolbar must not use the unsupported nonactivating panel window type.');
 assert.match(shareService,/function showCompanionWindow\(kind='chat'\)/,'Presenter Chat/Participants/Annotate companion authority is missing.');
 assert.match(shareService,/showCompanionWindow\(normalized\)/,'Presenter Chat/Participants/Annotate must not reopen the full meeting by default.');
 assert.match(shareCss,/data-ds-share-companion="chat"/,'Share Chat companion CSS is missing.');
@@ -127,4 +135,4 @@ assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/,'Meeting 
 assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/,'Meeting must fill the Electron viewport height.');
 assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compact.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof toolbar-before-hide hidden-meeting-presenter-state share-companions direct-stop-share single-share-owner profile-first-identity adhoc-not-certified reaction-contained settings-readable participant-count floating-participants-chat draggable-panels right-edge-video-dock full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof toolbar-before-hide two-phase-renderer-commit hidden-meeting-presenter-state share-companions direct-stop-share single-share-owner profile-first-identity adhoc-not-certified reaction-contained settings-readable participant-count floating-participants-chat draggable-panels right-edge-video-dock full-window compact-prejoin`);
