@@ -136,7 +136,13 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();restoreMainWindowAfterShare();
     lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();return {ok:true};
   });
-  ipcMain.handle('share:presenter-menu-state',(_event,{open=false}={})=>{if(!toolbarWindow||toolbarWindow.isDestroyed())return {ok:false};const bounds=toolbarWindow.getBounds(),nextHeight=open?300:82;if(bounds.height!==nextHeight){try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}}return {ok:true,height:nextHeight};});
+  ipcMain.handle('share:presenter-menu-state',(_event,{open=false}={})=>{
+    if(!toolbarWindow||toolbarWindow.isDestroyed())return {ok:false};
+    const bounds=toolbarWindow.getBounds();
+    const nextHeight=open?300:82;
+    if(bounds.height!==nextHeight){try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}}
+    return {ok:true,height:nextHeight};
+  });
   ipcMain.handle('share:presenter-command',(_event,command)=>{
     const normalized=String(command?.command||command||'');let sent=false;
     if(normalized==='show-meeting'&&shareActive){if(lastToolbarState.meetingVisible)hideMeetingWindowForShare();else showMeetingWindow({focus:true});}
