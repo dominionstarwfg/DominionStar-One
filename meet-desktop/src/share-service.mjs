@@ -121,15 +121,16 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:capture-started',(_event,state={})=>{
     shareActive=true;toolbarReadyForShare=false;presenterCommitPending=false;rememberMainWindow();keepMeetingRendererLive();attachShareWindowLifecycle();
     lastToolbarState={...lastToolbarState,...state,meetingVisible:true,companion:''};
-    // Never create/show another BrowserWindow inside this renderer-owned invoke.
-    // Return first; then build presenter chrome on a later main-process turn.
-    scheduleToolbarForShare();
+    // The renderer must receive this IPC reply and fully commit the active share
+    // before any presenter BrowserWindow is created or shown.
     return {ok:true,toolbarPending:true,meetingHidden:false,awaitingPresenterCommit:true};
   });
   ipcMain.handle('share:capture-state',(_event,state={})=>{const priorCompanion=String(lastToolbarState.companion||'');lastToolbarState={...lastToolbarState,...state};if(shareActive&&priorCompanion&&state.companionOpen===false)hideMeetingWindowForShare();else publishToolbarState();return {ok:true};});
   ipcMain.on('share:presenter-committed',(event,state={})=>{
     if(!shareActive)return;const main=getMainWindow?.();if(!main||main.isDestroyed()||event.sender!==main.webContents)return;lastToolbarState={...lastToolbarState,...state};
-    if(!toolbarReadyForShare){presenterCommitPending=true;return;}
+    presenterCommitPending=true;
+    if(!toolbarReadyForShare){scheduleToolbarForShare();return;}
+    presenterCommitPending=false;
     setImmediate(()=>{if(shareActive&&toolbarReadyForShare)hideMeetingWindowForShare();});
   });
   ipcMain.handle('share:capture-stopped',()=>{
