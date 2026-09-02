@@ -114,7 +114,7 @@ assert(controller.includes("presenter?.toolbarReady===false"),'A successful capt
 assert(controller.includes("Presenter controls could not start. Screen sharing was cancelled safely."),'Toolbar-start failure must surface a clear safe-cancel error.');
 assert(controller.includes("try{await bridge?.captureStopped?.();}catch{}"),'Toolbar-start failure must unwind native presenter state before returning control to the meeting.');
 assert(controller.includes('async function replaceSource')&&controller.includes('const previousLive=state.liveStream'),'New Share must remain transactional.');
-assert(integration.includes("if(command==='new-share'){clearCompanion();await openPickerWithPermission();return;}"),'Presenter New Share must route through the same permission-aware chooser.');
+assert(integration.includes("async function openPickerWithPermission(){clearCompanion();return beginShare({replace:share.snapshot().active});}")&&integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must clear companion UI and route through the same permission-aware transactional chooser.');
 
 // Zoom presenter-state contract: normal presentation hides the full meeting, but
 // Chat/Participants/Annotate open purpose-built companion surfaces rather than
