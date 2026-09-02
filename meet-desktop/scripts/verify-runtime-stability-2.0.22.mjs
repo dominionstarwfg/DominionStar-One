@@ -29,9 +29,12 @@ assert.ok(avCss.includes('.av-toggle-row input:checked + .av-switch')&&avCss.inc
 assert.ok(runtime.includes("#settingsDialog .modal-close,#settingsDialog button[value=\"cancel\"]"),'Settings close must have a single-click final runtime authority.');
 assert.ok(preload.includes("probeAccess:()=>invoke('share:probe-access')"),'Preload may retain the narrow post-failure screen-capture diagnostic probe.');
 assert.ok(shareService.includes("ipcMain.handle('share:probe-access'")&&shareService.includes("!source.thumbnail?.isEmpty?.()"),'Share authority must retain bounded capability diagnostics for explicit recovery.');
-assert.ok(!shareIntegration.includes('bridge?.probeAccess?.()'),'Initial Share must never run the screen-source diagnostic probe before native capture.');
-assert.ok(!shareIntegration.includes('async function screenPermissionStatus()'),'Initial Share must never poll TCC status before native capture.');
-assert.ok(shareIntegration.includes("const permission=replace||share.snapshot().active?'granted':'unknown';"),'Only an already-active capture may select the compact replacement chooser.');
+assert.ok(!shareIntegration.includes('bridge?.probeAccess?.()'),'Share entry must never enumerate screen sources merely to choose native vs DominionStar UI.');
+assert.ok(shareIntegration.includes("const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2'"),'Successful screen-capture proof must persist across renderer relaunch.');
+assert.ok(shareIntegration.includes('async function grantedScreenPermission()'),'Granted Screen Recording decision helper is missing.');
+assert.ok(shareIntegration.includes("String(permissions?.screen||'').toLowerCase()==='granted'"),'Only explicit granted Screen Recording status may skip native authorization.');
+assert.ok(shareIntegration.includes('const proven=replace||share.snapshot().active||await grantedScreenPermission();'),'Share routing must recognize active, persisted, or explicitly granted capture authority.');
+assert.ok(shareIntegration.includes("const permission=proven?'granted':'unknown';"),'Permission-aware native-vs-DominionStar chooser routing is missing.');
 assert.ok(runtime.includes("DominionMeetingFeatures?.openReactions?.(reactions)"),'React must open through the final single-click authority.');
 assert.ok(!physical.includes("reactionMenu.className='ds-reaction-tray'")&&!physical.includes('openReactionTray('),'Retired physical compatibility must not create a second reaction chooser.');
 assert.ok(!physical.includes("button.onclick=event=>{event.preventDefault();event.stopPropagation();openReactionTray(button);"),'Retired physical compatibility must not overwrite the final React click authority.');
@@ -107,21 +110,26 @@ assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,
 assert.ok(physical.includes('wrap.innerHTML='),'Expected legacy media-status mutation changed; review the stability isolation contract.');
 assert.ok(runtime.includes('DominionZoomPhysicalAcceptance'),'Final runtime must explicitly isolate the physical acceptance loop.');
 
-// Share Screen has one click owner. The physical compatibility layer may expose
-// a callable recovery helper, but it must not capture/cancel #roomShare. Initial
-// Share is always native-first; diagnostics are post-failure only.
+// Share Screen has one click owner. Physical compatibility may expose explicit
+// recovery helpers but must not capture/cancel #roomShare or enumerate sources.
+// The isolated integration may read lightweight TCC status solely to recognize
+// an already-granted Mac; unknown permission remains native-authorized.
 assert.ok(!physicalMac.includes('setInterval('),'Physical-Mac repair must not run a periodic sync timer.');
 assert.ok(!physicalMac.includes("observe(document.body,{childList:true,subtree:true})"),'Physical-Mac repair must not observe the whole document.');
 assert.ok(physicalMac.includes('async function detectScreenPermission()'),'Physical diagnostics must retain a non-enumerating Screen Recording helper for explicit recovery.');
 assert.ok(physicalMac.includes('nativeDecisionRequired:true'),'not-determined/unknown status must defer to the real native capture request.');
-assert.ok(!physicalMac.includes('desktop.media?.requestScreen?.()'),'Physical Share compatibility code must never probe desktop sources before the native picker.');
+assert.ok(!physicalMac.includes('desktop.media?.requestScreen?.()'),'Physical Share compatibility code must never probe desktop sources before native authorization.');
 const shareClickBlock=physicalMac.slice(physicalMac.indexOf('function onDocumentClick'),physicalMac.indexOf("document.addEventListener('submit'"));
 assert.ok(!shareClickBlock.includes('#roomShare'),'Physical-Mac repair must not intercept the Share Screen button.');
-assert.ok(!shareIntegration.includes('async function screenPermissionStatus()'),'The isolated Share integration must not poll TCC before initial capture.');
-assert.ok(!shareIntegration.includes('bridge?.probeAccess?.()'),'The isolated Share integration must not enumerate sources before initial capture.');
-assert.ok(shareIntegration.includes("const permission=replace||share.snapshot().active?'granted':'unknown';"),'Initial Share must enter with unknown state and process-proven New Share may use granted mode.');
-assert.ok(shareIntegration.includes('const entry=await resolveShareEntry(permission)'),'Initial Share must continue directly through the real picker/capture flow.');
+assert.ok(!shareIntegration.includes('bridge?.probeAccess?.()'),'The isolated Share integration must not enumerate sources before deciding chooser authority.');
+assert.ok(shareIntegration.includes('async function grantedScreenPermission()'),'Permission-aware first-share decision is missing.');
+assert.ok(shareIntegration.includes("String(permissions?.screen||'').toLowerCase()==='granted'"),'Only explicit granted TCC status may bypass native authorization.');
+assert.ok(shareIntegration.includes('const proven=replace||share.snapshot().active||await grantedScreenPermission();'),'Initial Share must combine persistent/active/granted proof.');
+assert.ok(shareIntegration.includes("const permission=proven?'granted':'unknown';"),'Granted Macs must enter DominionStar selection and unknown Macs native authorization.');
+assert.ok(shareIntegration.includes('const entry=await resolveShareEntry(permission)'),'Share must continue directly through the real picker/capture flow.');
 assert.ok(shareIntegration.includes('const diagnostic=await desktop?.media?.requestScreen?.()'),'Deep Screen Recording diagnostics must run only in the real capture-failure recovery path.');
+assert.ok(shareService.includes('function showCompanionWindow'),'Presenter Chat/Participants/Annotation must use a dedicated companion window instead of reopening full meeting chrome.');
+assert.ok(shareService.includes("showMeetingWindow({focus:false});sendMain('share:presenter-command','stop')"),'Stop Share must wake/retry the hidden renderer when necessary.');
 
 assert.ok(reaction.includes("observer.observe(layer,{childList:true})"),'Reaction observer must be scoped to direct reaction children.');
 assert.ok(!reaction.includes('observer.observe(document.documentElement'),'Reaction parity must not observe the whole document.');
@@ -136,4 +144,4 @@ assert.ok(!bridge.includes("observer.observe(document.body,{childList:true,subtr
 
 assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
-console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-native-share native-first-no-preflight left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
+console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
