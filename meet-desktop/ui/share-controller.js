@@ -65,6 +65,16 @@
         try{await bridge?.captureStopped?.();}catch{}
         throw new Error('Presenter controls could not start. Screen sharing was cancelled safely.');
       }
+      // Two-phase presenter startup: resolve ShareController.start and publish the
+      // active-share state before asking Electron to hide the main meeting window.
+      // Hiding inside the captureStarted IPC handler can suspend this renderer
+      // before its promise continuation and command listeners are fully committed.
+      setTimeout(()=>{
+        if(state.liveStream!==stream)return;
+        void Promise.resolve(bridge?.captureState?.({sourceName:state.sourceName,paused:false,rendererCommitted:true})).catch(error=>{
+          console.error('[DominionStar Meet] Presenter renderer commit failed; keeping meeting visible.',error);
+        });
+      },0);
       return snapshot();
     }finally{state.busy=false;emit();}
   }
