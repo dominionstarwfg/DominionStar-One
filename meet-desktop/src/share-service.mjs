@@ -176,7 +176,13 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   ipcMain.on('share:capture-started',(event,state={})=>{
     const main=getMainWindow?.();if(!main||main.isDestroyed()||event.sender!==main.webContents)return;
-    shareActive=true;toolbarReadyForShare=false;presenterCommitPending=false;rememberMainWindow();keepMeetingRendererLive();attachShareWindowLifecycle();
+    shareActive=true;toolbarReadyForShare=platform==='darwin';presenterCommitPending=false;
+    // macOS presenter controls live in the capture-owning renderer. Do not
+    // inspect, resize, throttle, minimize-hook, or otherwise mutate the
+    // BrowserWindow when capture begins; those cross-boundary window calls can
+    // stall Chromium's active capture renderer. The main window was created
+    // with backgroundThrottling:false, so no runtime liveness mutation is needed.
+    if(platform!=='darwin'){rememberMainWindow();keepMeetingRendererLive();attachShareWindowLifecycle();}
     lastToolbarState={...lastToolbarState,...state,meetingVisible:true,companion:''};
     const meta=presenterRendererMeta();qaPresenterLog('CAPTURE_STARTED',{sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid,url:encodeURIComponent(meta.url)});
   });
