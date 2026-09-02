@@ -44,8 +44,16 @@
       state.liveStream=stream;state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       let presenter=null;
-      try{presenter=await bridge?.captureStarted?.({sourceName:state.sourceName,paused:false});}
-      catch(error){
+      try{
+        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false}));
+        presenter=await Promise.race([acknowledgement,new Promise(resolve=>setTimeout(()=>resolve({ok:true,toolbarReady:true,pending:true}),900))]);
+        void acknowledgement.then(result=>{
+          if(result?.toolbarReady===false&&state.liveStream===stream)void stop();
+        }).catch(error=>{
+          console.error('[DominionStar Meet] Presenter toolbar acknowledgement failed.',error);
+          if(state.liveStream===stream)void stop();
+        });
+      }catch(error){
         state.liveStream=null;state.sourceName='';state.options={};state.paused=false;
         stopTracks(stream);
         try{await bridge?.captureStopped?.();}catch{}
