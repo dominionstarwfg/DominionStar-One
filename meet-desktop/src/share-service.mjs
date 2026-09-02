@@ -18,7 +18,6 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   const macVersion=platform==='darwin'&&typeof process.getSystemVersion==='function'?String(process.getSystemVersion()||''):'';
   const macMajor=Number.parseInt(macVersion.split('.')[0]||'0',10)||0;
   const nativeSystemPicker=platform==='darwin'&&macMajor>=15;
-  const presenterParkPoint={x:-32000,y:-32000};
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
 
   const authority=createShareSourceAuthority({
@@ -65,9 +64,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(!qaSyntheticShare)protectMeetingChrome(main,true);keepMeetingRendererLive();
     try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true);}catch{}
-    const saved=savedMainWindowState?.bounds||main.getBounds();
-    try{main.setBounds({x:presenterParkPoint.x,y:presenterParkPoint.y,width:Math.max(320,saved.width),height:Math.max(240,saved.height)},false);}catch{}
-    try{main.showInactive?.();}catch{try{main.show();}catch{}}
+    try{main.hide();}catch{}
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();return true;
   }
   function showMeetingWindow({focus=true}={}){
