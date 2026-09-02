@@ -14,6 +14,7 @@ const personalCss=read('ui/personal-room.css');
 const schedule=read('ui/schedule-controller.js');
 const scheduleCss=read('ui/schedule.css');
 const shareService=read('src/share-service.mjs');
+const shareIntegration=read('ui/share-integration.js');
 const shareCss=read('ui/share.css');
 const presenterHtml=read('ui/presenter-toolbar.html');
 const presenterCss=read('ui/presenter-toolbar.css');
@@ -146,6 +147,9 @@ assert(shareService.includes('backgroundThrottling:false'),'Presenter controls m
 assert(shareService.includes('restoreMainWindowAfterShare'),'Stopping a share must restore the original meeting window geometry.');
 assert(shareService.includes('setIgnoreMouseEvents(false)'),'Showing a companion or stopping Share must restore meeting-window pointer input.');
 assert(shareService.includes('setContentProtection'),'DominionStar meeting chrome must request capture exclusion through Electron.');
+assert(shareIntegration.includes('window.__DominionPresenterDispatch=dispatchPresenterCommand'),'Renderer must expose one direct presenter-command dispatcher.');
+assert(shareService.includes('webContents.executeJavaScript')&&shareService.includes('window.__DominionPresenterDispatch'),'Presenter toolbar must use the direct renderer dispatch path before IPC fallback.');
+assert(shareService.includes("sendMain('share:presenter-command',outbound)"),'Legacy presenter IPC must remain only as a compatibility fallback.');
 assert(shareService.includes("meetingVisible:false")&&shareService.includes("meetingVisible:true"),'Presenter controls must track hidden versus explicitly shown meeting state.');
 assert(presenterHtml.includes('<svg viewBox="0 0 24 24"'),'Presenter toolbar must use vector controls.');
 for(const legacyGlyph of ['◉','▣','♙','▢','Ⅱ','✎','▤'])assert(!presenterHtml.includes(legacyGlyph),`Presenter toolbar must not regress to legacy glyph ${legacyGlyph}.`);
