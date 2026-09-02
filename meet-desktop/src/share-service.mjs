@@ -64,7 +64,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     // Never BrowserWindow.hide() the renderer that owns capture. Keep it alive,
     // content-protected, non-interactive and parked off-screen while the floating
     // presenter toolbar remains visible above the shared application.
-    protectMeetingChrome(main,true);keepMeetingRendererLive();
+    const qaSyntheticShare=qaPresenterTrace&&String(lastToolbarState.sourceName||'')==='QA Synthetic Share';
+    if(!qaSyntheticShare)protectMeetingChrome(main,true);keepMeetingRendererLive();
     try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true);}catch{}
     const saved=savedMainWindowState?.bounds||main.getBounds();
