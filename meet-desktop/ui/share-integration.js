@@ -97,7 +97,12 @@
     function applyLayout(){
       const state=share.snapshot(),mediaState=media.snapshot();
       overlay.classList.toggle('share-active',state.active);
-      sharedVideo.hidden=!state.active;
+      // On macOS the share-owning renderer must not visibly mirror the
+      // captured screen back into itself. That recursive compositor path can
+      // stall the renderer during active display capture. Keep the video
+      // element attached to the stream for Pause-frame capture, but do not
+      // paint it on the presenter surface.
+      sharedVideo.hidden=!state.active||sameRendererPresenter;
       label.hidden=!state.active;
       inlinePresenter.hidden=!state.active;
       if(state.active){
