@@ -1,6 +1,11 @@
 const {contextBridge,ipcRenderer}=require('electron');
 const invoke=(channel,payload)=>ipcRenderer.invoke(channel,payload);
 const listen=(channel,callback)=>{if(typeof callback!=='function')return()=>{};const handler=(_event,payload)=>callback(payload);ipcRenderer.on(channel,handler);return()=>ipcRenderer.removeListener(channel,handler);};
+ipcRenderer.on('share:presenter-command',(_event,payload)=>{
+  const command=String(payload?.command||payload||'');
+  const qaCommandId=Number(payload?.qaCommandId||0)||0;
+  if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-tap',{qaCommandId,command});
+});
 const listenPresenterCommand=callback=>{
   if(typeof callback!=='function')return()=>{};
   const handler=(_event,payload)=>{
@@ -13,6 +18,7 @@ const listenPresenterCommand=callback=>{
     callback(payload);
   };
   ipcRenderer.on('share:presenter-command',handler);
+  ipcRenderer.send('share:presenter-listener-ready',{href:String(location?.href||'')});
   return()=>ipcRenderer.removeListener('share:presenter-command',handler);
 };
 const packaged=String(location?.href||'').includes('/app.asar/');
