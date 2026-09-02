@@ -5,6 +5,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let toolbarWindow=null;
   let pendingSelection=null;
   let shareActive=false;
+  let toolbarReadyForShare=false;
   let savedMainWindowState=null;
   let mainMinimizeHandler=null;
   let displayPickerMode='';
@@ -68,12 +69,19 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     return main;
   }
 
+  function keepMeetingRendererLive(){
+    const main=getMainWindow?.();
+    if(!main||main.isDestroyed())return false;
+    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
+    return true;
+  }
+
   function hideMeetingWindowForShare(){
     if(!shareActive)return false;
     const main=rememberMainWindow();
     if(!main||main.isDestroyed())return false;
     protectMeetingChrome(main,true);
-    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
+    keepMeetingRendererLive();
     try{main.setAlwaysOnTop(false);}catch{}
     try{main.hide();}catch{}
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};
@@ -85,7 +93,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const main=getMainWindow?.();
     if(!main||main.isDestroyed())return false;
     const saved=savedMainWindowState;
-    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
+    keepMeetingRendererLive();
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
@@ -116,7 +124,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setMinimumSize(annotation?640:330,annotation?460:420);}catch{}
     try{main.setBounds({x,y,width,height},false);}catch{}
-    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
+    keepMeetingRendererLive();
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     protectMeetingChrome(main,true);
     main.show();main.focus();
@@ -279,31 +287,41 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:cancel-picker',()=>{closePicker();return {ok:true};});
   ipcMain.handle('share:capture-started',async(_event,state={})=>{
     shareActive=true;
-    rememberMainWindow();
+    toolbarReadyForShare=false;
+    const main=rememberMainWindow();
+    // Keep the renderer fully live before the floating toolbar can take focus or
+    // occlude the main window. Otherwise Chromium may throttle the timer that
+    // resolves ShareController.start before presenter mode is even committed.
+    try{main?.webContents?.setBackgroundThrottling?.(false);}catch{}
     attachShareWindowLifecycle();
     lastToolbarState={...lastToolbarState,...state,meetingVisible:true,companion:''};
     const toolbarReady=await openToolbar();
-    // Phase one only creates and confirms the presenter controls. The meeting
-    // stays visible until the renderer confirms its active-share transaction has
-    // fully committed; otherwise hiding here can strand the renderer mid-start.
+    toolbarReadyForShare=Boolean(toolbarReady);
     publishToolbarState();
-    return {ok:true,toolbarReady,meetingHidden:false,awaitingRendererCommit:Boolean(toolbarReady)};
+    return {ok:true,toolbarReady,meetingHidden:false,awaitingPresenterCommit:Boolean(toolbarReady)};
   });
   ipcMain.handle('share:capture-state',(_event,state={})=>{
-    const rendererCommitted=state?.rendererCommitted===true;
-    const nextState={...state};delete nextState.rendererCommitted;
     const priorCompanion=String(lastToolbarState.companion||'');
-    lastToolbarState={...lastToolbarState,...nextState};
-    if(shareActive&&rendererCommitted){
-      const meetingHidden=hideMeetingWindowForShare();
-      return {ok:true,rendererCommitted:true,meetingHidden};
-    }
-    if(shareActive&&priorCompanion&&nextState.companionOpen===false)hideMeetingWindowForShare();
+    lastToolbarState={...lastToolbarState,...state};
+    if(shareActive&&priorCompanion&&state.companionOpen===false)hideMeetingWindowForShare();
     else publishToolbarState();
     return {ok:true};
   });
+  ipcMain.on('share:presenter-committed',(event,state={})=>{
+    if(!shareActive||!toolbarReadyForShare)return;
+    const main=getMainWindow?.();
+    if(!main||main.isDestroyed()||event.sender!==main.webContents)return;
+    lastToolbarState={...lastToolbarState,...state};
+    // This is deliberately one-way IPC. Defer the hide to the next main-process
+    // turn so no renderer promise or IPC response can be stranded by visibility.
+    setImmediate(()=>{
+      if(!shareActive||!toolbarReadyForShare)return;
+      hideMeetingWindowForShare();
+    });
+  });
   ipcMain.handle('share:capture-stopped',()=>{
     shareActive=false;
+    toolbarReadyForShare=false;
     if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}
     detachShareWindowLifecycle();
     restoreMainWindowAfterShare();
