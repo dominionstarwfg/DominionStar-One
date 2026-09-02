@@ -55,9 +55,8 @@ try{
   await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionShareAnnotation&&window.dominionDesktop?.share?.captureStarted&&window.dominionDesktop?.share?.presenterCommitted",'share controllers',15000);stage('controllers-loaded');
 
   // Prepare the meeting and a synthetic Chromium MediaStream. Capture start must
-  // complete BEFORE presenter mode is committed/hides the meeting. This directly
-  // guards the physical bug where the toolbar appeared while its owning renderer
-  // was stranded in an unfinished ShareController.start transaction.
+  // complete BEFORE presenter mode is committed/hides the meeting. Milestones are
+  // also emitted to stderr so a renderer/CDP stall can be located precisely.
   stageBegin('synthetic-prepare');
   const prepared=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -69,21 +68,27 @@ try{
     const role=document.querySelector('#roomRole');if(role)role.textContent='Host';
     window.DominionMeetingParity.install();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();
     window.__qaPresenterCommands=[];
+    window.__qaPresenterMilestones=[];
+    window.__qaPresenterMark=label=>{window.__qaPresenterMilestones.push(String(label));console.log('QA_PRESENTER_MILESTONE '+String(label));};
     window.__qaPresenterOff=window.dominionDesktop.share.onPresenterCommand(command=>window.__qaPresenterCommands.push(String(command?.command||command||'')));
     const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;canvas.style.display='none';document.body.append(canvas);window.__qaShareCanvas=canvas;
     const ctx=canvas.getContext('2d');ctx.fillStyle='#17304b';ctx.fillRect(0,0,640,360);ctx.fillStyle='#fff';ctx.font='28px sans-serif';ctx.fillText('DominionStar presenter QA',120,180);
     const stream=canvas.captureStream(12);window.__qaShareStream=stream;
-    Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>stream});
-    window.__qaShareStartResult=null;window.__qaShareStartError='';
+    Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>{window.__qaPresenterMark('getDisplayMedia-enter');await Promise.resolve();window.__qaPresenterMark('getDisplayMedia-return');return stream;}});
+    window.__qaShareStartResult=null;window.__qaShareStartError='';window.__qaPresenterMark('prepared');
     return {tracks:stream.getTracks().length,meetingVisible:!overlay.hidden};
   })()`);
   assert.equal(prepared.meetingVisible,true);assert.ok(prepared.tracks>=1,'Synthetic share stream has no capture track.');stage('synthetic-prepared');
 
+  // Dispatch on the renderer's next task instead of entering ShareController.start
+  // inside the Runtime.evaluate call. This prevents the diagnostic transport from
+  // being coupled to media startup while preserving the exact packaged runtime path.
   stageBegin('share-start-dispatch');
-  await main.eval(`(()=>{window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}}).then(state=>{window.__qaShareStartResult={active:state.active,sourceName:state.sourceName};}).catch(error=>{window.__qaShareStartError=String(error?.stack||error?.message||error);});return true;})()`);stage('share-start-dispatched');
+  await main.eval(`(()=>{setTimeout(()=>{window.__qaPresenterMark('start-task');window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}}).then(state=>{window.__qaPresenterMark('start-resolved');window.__qaShareStartResult={active:state.active,sourceName:state.sourceName};}).catch(error=>{window.__qaPresenterMark('start-rejected');window.__qaShareStartError=String(error?.stack||error?.message||error);});},0);return true;})()`);stage('share-start-dispatched');
+  await main.wait("window.__qaPresenterMilestones.includes('start-task')",'scheduled ShareController.start task',5000);
   await main.wait("Boolean(window.__qaShareStartResult||window.__qaShareStartError)",'synthetic ShareController.start completion',20000);
-  const startOutcome=await main.eval(`({result:window.__qaShareStartResult,error:window.__qaShareStartError,state:window.DominionShareController.snapshot(),visibility:document.visibilityState})`);
-  assert.equal(startOutcome.error,'',`Synthetic ShareController.start failed: ${startOutcome.error}`);
+  const startOutcome=await main.eval(`({result:window.__qaShareStartResult,error:window.__qaShareStartError,state:window.DominionShareController.snapshot(),visibility:document.visibilityState,milestones:[...window.__qaPresenterMilestones]})`);
+  assert.equal(startOutcome.error,'',`Synthetic ShareController.start failed: ${startOutcome.error}; milestones=${startOutcome.milestones.join('>')}`);
   assert.equal(startOutcome.result?.active,true,'Synthetic packaged share did not become active.');
   assert.equal(startOutcome.result?.sourceName,'QA Synthetic Share');stage('share-start-complete-before-hide');
   await main.wait("document.querySelector('#meetingOverlay').classList.contains('share-active')&&document.querySelector('#sharedContentVideo')&&!document.querySelector('#sharedContentVideo').hidden",'active shared-content stage',12000);stage('shared-stage-active-before-hide');
