@@ -110,20 +110,21 @@ requireText(annotation,'setAnnotationCanvas','Annotation must remain connected t
 requireText(annotation,'drawLaser','Laser pointer support is missing.');
 rejectText(controller,'rendererCommitted:true','ShareController must not own meeting visibility or presenter commit.');
 
-// Critical physical-Mac repair: captureStarted MUST return before any presenter
-// BrowserWindow work is scheduled or created. The renderer must first resolve
-// ShareController.start and mount the real shared stage.
+// Critical physical-Mac repair: capture-start notification itself is one-way.
+// ShareController must never await a main-process reply before publishing active.
+requireText(preload,"captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;}",'Capture start must cross the preload bridge as one-way IPC.');
+rejectText(preload,"captureStarted:state=>invoke('share:capture-started'",'Capture start must not use request/response IPC.');
 const captureStarted=service.slice(
-  service.indexOf("ipcMain.handle('share:capture-started'"),
+  service.indexOf("ipcMain.on('share:capture-started'"),
   service.indexOf("ipcMain.handle('share:capture-state'")
 );
-requireText(captureStarted,'toolbarPending:true','captureStarted must report that presenter chrome is still pending.');
-requireText(captureStarted,'meetingHidden:false','captureStarted must leave the meeting visible.');
-requireText(captureStarted,'awaitingPresenterCommit:true','captureStarted must await the renderer-owned presenter commit.');
-requireText(captureStarted,'keepMeetingRendererLive();','captureStarted must disable renderer throttling before presenter work begins.');
-rejectText(captureStarted,'scheduleToolbarForShare();','captureStarted must not schedule presenter BrowserWindow creation before the renderer receives its IPC reply.');
-rejectText(captureStarted,'openToolbar(','captureStarted must never create/load presenter BrowserWindow synchronously.');
-rejectText(captureStarted,'hideMeetingWindowForShare()','captureStarted must never hide the meeting.');
+requireText(captureStarted,"ipcMain.on('share:capture-started'",'Main process must receive capture start as one-way IPC.');
+requireText(captureStarted,'event.sender!==main.webContents','Capture start must accept only the main meeting renderer.');
+requireText(captureStarted,'keepMeetingRendererLive();','Capture start must disable renderer throttling before presenter work begins.');
+rejectText(captureStarted,'scheduleToolbarForShare();','Capture start must not schedule presenter BrowserWindow creation.');
+rejectText(captureStarted,'openToolbar(','Capture start must never create/load presenter BrowserWindow.');
+rejectText(captureStarted,'hideMeetingWindowForShare()','Capture start must never hide the meeting.');
+rejectText(captureStarted,'return {ok:','Capture start must not expose a response contract.');
 
 requireText(service,'function scheduleToolbarForShare()','Deferred presenter-toolbar scheduler is missing.');
 const scheduler=service.slice(
@@ -179,4 +180,4 @@ requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
 
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share capture-start-returns-before-toolbar toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
