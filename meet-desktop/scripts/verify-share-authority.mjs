@@ -136,21 +136,27 @@ rejectText(captureStarted,'openToolbar(','Capture start must never create/load p
 rejectText(captureStarted,'hideMeetingWindowForShare()','Capture start must never hide the meeting.');
 rejectText(captureStarted,'return {ok:','Capture start must not expose a response contract.');
 
-requireText(service,'function scheduleToolbarForShare()','Deferred presenter-toolbar scheduler is missing.');
+requireText(service,'function scheduleToolbarForShare()','Presenter-control scheduler is missing.');
 const scheduler=service.slice(
   service.indexOf('function scheduleToolbarForShare()'),
   service.indexOf('const displayMediaHandler')
 );
-requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Presenter toolbar must be created on a later main-process turn.');
-requireText(scheduler,'const ready=await openToolbar();','Deferred scheduler must load the real presenter toolbar.');
-requireText(scheduler,'},75);','Presenter toolbar deferral must remain explicit and bounded after renderer commit.');
-requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Toolbar readiness must be recorded independently from capture start.');
-requireText(scheduler,'if(presenterCommitPending)','Committed presenter state must wait for toolbar readiness before hiding the meeting.');
-requireText(scheduler,"sendMain('share:presenter-command','stop')",'Toolbar failure must fail the share closed.');
+requireText(scheduler,"if(platform==='darwin')",'macOS presenter scheduling must have a dedicated same-renderer path.');
+requireText(scheduler,'toolbarReadyForShare=true','macOS same-renderer presenter controls must be marked ready without a second BrowserWindow.');
+requireText(scheduler,'presenterCommitPending=false','macOS presenter commit must not wait on another renderer.');
+requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Non-macOS presenter toolbar must remain deferred to a later main-process turn.');
+requireText(scheduler,'const ready=await openToolbar();','Non-macOS scheduler must retain the existing presenter toolbar path.');
+requireText(scheduler,'},75);','Non-macOS presenter toolbar deferral must remain explicit and bounded.');
+requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Non-macOS toolbar readiness must still be recorded independently from capture start.');
+requireText(scheduler,"void sendPresenterCommand('stop',0)",'Non-macOS toolbar failure must fail the share closed through presenter command authority.');
+requireText(integration,"id='inlinePresenterToolbar'","macOS presenter controls must exist inside the share-owning renderer.");
+requireText(integration,"data-inline-command=\"pause\"","Inline presenter controls must expose Pause/Resume.");
+requireText(integration,"data-inline-command=\"stop\"","Inline presenter controls must expose Stop Share.");
+requireText(integration,"window.dispatchEvent(new CustomEvent('dominion:presenter-command-dispatch'","Inline presenter actions must publish one observable command transaction.");
 
 // Integration commits presenter mode only after the share promise returned and
-// the actual shared stage has been mounted. Only that one-way commit may trigger
-// presenter BrowserWindow creation.
+// the actual shared stage has been mounted. On macOS this activates same-renderer
+// controls; other platforms may still use the deferred presenter BrowserWindow.
 requireText(integration,'function commitPresenterMode()','Share Integration must own safe presenter commit.');
 requireText(integration,'markCaptureProven();applyLayout();','Shared-stage layout must mount before presenter commit.');
 requireText(integration,'commitPresenterMode();','Initial share must explicitly enter presenter mode after layout.');
