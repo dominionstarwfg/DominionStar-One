@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   }),
   share:Object.freeze({
     openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')}),probeAccess:()=>invoke('share:probe-access'),onSourceSelected:callback=>listen('share:source-selected',callback),
-    captureStarted:state=>invoke('share:capture-started',state),captureState:state=>invoke('share:capture-state',state),presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;},captureStopped:()=>invoke('share:capture-stopped'),onPresenterCommand:callback=>listen('share:presenter-command',callback)
+    captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;},captureState:state=>invoke('share:capture-state',state),presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;},captureStopped:()=>invoke('share:capture-stopped'),onPresenterCommand:callback=>listen('share:presenter-command',callback)
   }),
   sharePicker:Object.freeze({listSources:options=>invoke('share:list-sources',options),choose:(sourceId,options)=>invoke('share:select-source',{sourceId,options}),cancel:()=>invoke('share:cancel-picker')}),
   presenter:Object.freeze({command:command=>invoke('share:presenter-command',command),setMenuOpen:open=>invoke('share:presenter-menu-state',{open:Boolean(open)}),onState:callback=>listen('share:toolbar-state',callback)})
