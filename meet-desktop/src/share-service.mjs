@@ -116,15 +116,26 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   }
   function closeToolbar(){if(toolbarWindow&&!toolbarWindow.isDestroyed()){try{toolbarWindow.setClosable?.(true);}catch{}toolbarWindow.close();}toolbarWindow=null;}
   const sendMain=(channel,payload)=>{const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.webContents.send(channel,payload);return true;}return false;};
-  const sendPresenterCommand=(command,toolbarSenderId=0)=>{
+  const sendPresenterCommand=async(command,toolbarSenderId=0)=>{
     const normalized=String(command?.command||command||'');
     const qaCommandId=qaPresenterTrace?++qaPresenterCommandSeq:0;
     const outbound=qaCommandId?{command:normalized,qaCommandId}:normalized;
-    const meta=presenterRendererMeta();
+    const main=getMainWindow?.(),webContents=main?.webContents,meta=presenterRendererMeta();
     qaPresenterLog('MAIN_ACCEPT',{id:qaCommandId,command:normalized,toolbar:toolbarSenderId,target:meta.webContentsId,pid:meta.osPid,destroyed:meta.webContentsDestroyed?1:0,crashed:meta.crashed?1:0,visible:meta.visible?1:0,url:encodeURIComponent(meta.url)});
+    if(main&&!main.isDestroyed()&&webContents&&!webContents.isDestroyed()){
+      try{
+        const payload=JSON.stringify(outbound).replace(/</g,'\\u003c');
+        const direct=await webContents.executeJavaScript(`(async()=>{const fn=window.__DominionPresenterDispatch;if(typeof fn!=='function')return {handled:false,reason:'dispatcher-missing'};return await fn(${payload});})()`,true);
+        const handled=Boolean(direct?.handled);
+        qaPresenterLog('DIRECT',{id:qaCommandId,command:normalized,handled:handled?1:0,reason:String(direct?.reason||direct?.error||'')});
+        if(handled)return {sent:true,qaCommandId,direct:true};
+      }catch(error){
+        qaPresenterLog('DIRECT_ERROR',{id:qaCommandId,command:normalized,error:String(error?.message||error||'execute_failed')});
+      }
+    }
     const sent=sendMain('share:presenter-command',outbound);
     qaPresenterLog('MAIN_SENT',{id:qaCommandId,command:normalized,sent:sent?1:0,target:meta.webContentsId,pid:meta.osPid});
-    return {sent,qaCommandId};
+    return {sent,qaCommandId,direct:false};
   };
 
   function cancelToolbarOpen(){if(toolbarOpenTimer){clearTimeout(toolbarOpenTimer);toolbarOpenTimer=null;}}
@@ -192,14 +203,14 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(bounds.height!==nextHeight){try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}}
     return {ok:true,height:nextHeight};
   });
-  ipcMain.handle('share:presenter-command',(_event,command)=>{
+  ipcMain.handle('share:presenter-command',async(_event,command)=>{
     const normalized=String(command?.command||command||'');let sent=false,delivery=null;const toolbarSenderId=Number(_event?.sender?.id||0)||0;
     if(normalized==='show-meeting'&&shareActive){if(lastToolbarState.meetingVisible)hideMeetingWindowForShare();else showMeetingWindow({focus:true});}
-    else if(['participants','chat','annotate'].includes(normalized)&&shareActive){delivery=sendPresenterCommand(normalized,toolbarSenderId);sent=delivery.sent;setTimeout(()=>{if(shareActive)showCompanionWindow(normalized);},45);}
+    else if(['participants','chat','annotate'].includes(normalized)&&shareActive){delivery=await sendPresenterCommand(normalized,toolbarSenderId);sent=delivery.sent;setTimeout(()=>{if(shareActive)showCompanionWindow(normalized);},45);}
     else if(['show-meeting','participants','chat','annotate'].includes(normalized)){const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}}
-    if(!sent){delivery=sendPresenterCommand(normalized,toolbarSenderId);sent=delivery.sent;}
-    if(normalized==='stop'&&shareActive){if(stopRetryTimer)clearTimeout(stopRetryTimer);stopRetryTimer=setTimeout(()=>{stopRetryTimer=null;if(shareActive){showMeetingWindow({focus:false});sendMain('share:presenter-command','stop');}},700);}
-    return qaPresenterTrace?{ok:true,qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent)}:{ok:true};
+    if(!sent){delivery=await sendPresenterCommand(normalized,toolbarSenderId);sent=delivery.sent;}
+    if(normalized==='stop'&&shareActive){if(stopRetryTimer)clearTimeout(stopRetryTimer);stopRetryTimer=setTimeout(()=>{stopRetryTimer=null;if(shareActive){showMeetingWindow({focus:false});void sendPresenterCommand('stop',0);}},700);}
+    return qaPresenterTrace?{ok:true,qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct)}:{ok:true};
   });
 
   return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority,nativeSystemPicker});
