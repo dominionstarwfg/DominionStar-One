@@ -6,7 +6,10 @@ const listenPresenterCommand=callback=>{
   const handler=(_event,payload)=>{
     const command=String(payload?.command||payload||'');
     const qaCommandId=Number(payload?.qaCommandId||0)||0;
-    if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command});
+    if(qaCommandId>0){
+      console.error(`QA_PRESENTER_PRELOAD_RECEIVED id=${qaCommandId} command=${command}`);
+      ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command});
+    }
     callback(payload);
   };
   ipcRenderer.on('share:presenter-command',handler);
