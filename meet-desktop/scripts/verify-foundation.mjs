@@ -126,24 +126,23 @@ assert(meetingCaptions.includes("overlay.classList.toggle('caption-popout'")&&me
 assert(meetingCaptions.includes("pref('alwaysShowCaptions',false)")&&preferences.includes('Always show captions when available'),'Always-show captions must remain a local user preference.');
 assert(!preferences.includes('setCaptionState(')&&!preferences.includes('publishCaption('),'Personal Accessibility settings must never modify host caption/transcript authority.');
 
-// Zoom presenter-state contract: the full meeting must disappear from the
-// presenter's desktop without BrowserWindow.hide() suspending the renderer that
-// owns live capture. Park the meeting off-screen, content-protected and
-// non-interactive; the floating toolbar remains accessible above shared apps.
-assert(shareService.includes('function hideMeetingWindowForShare()'),'Desktop sharing must own a presenter parking state.');
-assert(shareService.includes('presenterParkPoint={x:-32000,y:-32000}'),'Presenter state must park the meeting far outside normal display geometry.');
-assert(shareService.includes("main.setBounds({x:presenterParkPoint.x,y:presenterParkPoint.y"),'Presenter state must move the meeting off-screen rather than hide its BrowserWindow.');
-assert(!shareService.includes('main.hide()'),'Active sharing must never BrowserWindow.hide() the renderer that owns capture and presenter-command delivery.');
-assert(shareService.includes('main.setIgnoreMouseEvents(true)')&&shareService.includes('main.showInactive?.()'),'Parked meeting must remain live but non-interactive.');
-assert(shareService.includes('keepMeetingRendererLive()'),'Presenter parking must explicitly keep the meeting renderer unthrottled.');
-assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the renderer-live parked presenter state.');
+// Presenter-state contract: the full meeting disappears from the presenter's
+// desktop while its renderer remains explicitly unthrottled so capture and
+// presenter-command delivery continue. The floating toolbar stays independent.
+assert(shareService.includes('function hideMeetingWindowForShare()'),'Desktop sharing must own a dedicated presenter-hidden state.');
+assert(shareService.includes('main.hide()'),'Presenter state must hide the meeting window instead of parking it at invalid display coordinates.');
+assert(!shareService.includes('presenterParkPoint={x:-32000,y:-32000}'),'Presenter state must not park the meeting at extreme off-screen coordinates.');
+assert(shareService.includes('main.setIgnoreMouseEvents(true)'),'Hidden presenter state must make the meeting window non-interactive before hiding it.');
+assert(shareService.includes('keepMeetingRendererLive()'),'Presenter state must explicitly keep the meeting renderer unthrottled.');
+assert(main.includes('backgroundThrottling:false'),'The main meeting renderer must be created with background throttling disabled.');
+assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the same renderer-live hidden presenter state.');
 assert(shareService.includes("alwaysOnTop:true")&&shareService.includes("setAlwaysOnTop(true,'floating')"),'Presenter controls must stay above shared content.');
 assert(shareService.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter controls must remain available across macOS Spaces and full-screen apps.');
-assert(shareService.includes('backgroundThrottling:false'),'Presenter controls must remain responsive while the meeting is parked off-screen.');
+assert(shareService.includes('backgroundThrottling:false'),'Presenter controls must remain responsive while the meeting is hidden.');
 assert(shareService.includes('restoreMainWindowAfterShare'),'Stopping a share must restore the original meeting window geometry.');
 assert(shareService.includes('setIgnoreMouseEvents(false)'),'Showing a companion or stopping Share must restore meeting-window pointer input.');
 assert(shareService.includes('setContentProtection'),'DominionStar meeting chrome must request capture exclusion through Electron.');
-assert(shareService.includes("meetingVisible:false")&&shareService.includes("meetingVisible:true"),'Presenter controls must track parked versus explicitly shown meeting state.');
+assert(shareService.includes("meetingVisible:false")&&shareService.includes("meetingVisible:true"),'Presenter controls must track hidden versus explicitly shown meeting state.');
 assert(presenterHtml.includes('<svg viewBox="0 0 24 24"'),'Presenter toolbar must use vector controls.');
 for(const legacyGlyph of ['◉','▣','♙','▢','Ⅱ','✎','▤'])assert(!presenterHtml.includes(legacyGlyph),`Presenter toolbar must not regress to legacy glyph ${legacyGlyph}.`);
 assert(presenterHtml.includes('data-command="stop"')&&presenterHtml.includes('Stop Share'),'Presenter toolbar must expose Stop Share directly.');
