@@ -82,12 +82,15 @@ assert.doesNotMatch(captureStarted,/return \{ok:/,'Capture start must have no re
 
 assert.match(shareService,/function scheduleToolbarForShare\(\)/,'Deferred presenter toolbar scheduler is missing.');
 const scheduler=shareService.slice(shareService.indexOf('function scheduleToolbarForShare()'),shareService.indexOf('const displayMediaHandler'));
-assert.match(scheduler,/toolbarOpenTimer=setTimeout\(async\(\)=>/,'Presenter toolbar must start on a later main-process turn after renderer commit.');
-assert.match(scheduler,/const ready=await openToolbar\(\);/,'Deferred scheduler must create the real presenter toolbar.');
-assert.match(scheduler,/\},75\);/,'Presenter toolbar scheduling must remain explicitly deferred after renderer commit.');
-assert.match(scheduler,/toolbarReadyForShare=Boolean\(ready\)/,'Toolbar readiness must be tracked independently.');
-assert.match(scheduler,/if\(presenterCommitPending\)/,'Committed presenter state must wait for toolbar readiness.');
-assert.match(scheduler,/sendMain\('share:presenter-command','stop'\)/,'Toolbar creation failure must fail Share closed.');
+assert.match(scheduler,/if\(platform==='darwin'\)/,'macOS must use the same-renderer presenter-control path.');
+assert.match(scheduler,/toolbarReadyForShare=true/,'macOS same-renderer presenter controls must be ready without a second BrowserWindow.');
+assert.match(scheduler,/presenterCommitPending=false/,'macOS presenter commit must not wait on a second renderer.');
+assert.match(scheduler,/toolbarOpenTimer=setTimeout\(async\(\)=>/,'Non-macOS presenter toolbar must start on a later main-process turn after renderer commit.');
+assert.match(scheduler,/const ready=await openToolbar\(\);/,'Non-macOS deferred scheduler must create the real presenter toolbar.');
+assert.match(scheduler,/\},75\);/,'Non-macOS presenter toolbar scheduling must remain explicitly deferred after renderer commit.');
+assert.match(scheduler,/toolbarReadyForShare=Boolean\(ready\)/,'Non-macOS toolbar readiness must be tracked independently.');
+assert.match(scheduler,/void sendPresenterCommand\('stop',0\)/,'Non-macOS toolbar creation failure must fail Share closed through presenter command authority.');
+assert.match(shareIntegration,/id='inlinePresenterToolbar'/,'macOS presenter controls must exist in the share-owning renderer.');
 
 // ShareController owns capture only. Integration owns safe presenter commit and
 // that commit is the sole authority that may initiate toolbar creation.
@@ -119,7 +122,7 @@ assert.match(shareCss,/data-ds-share-companion="chat"/,'Share Chat companion CSS
 assert.match(shareCss,/data-ds-share-companion="participants"/,'Share Participants companion CSS is missing.');
 assert.match(shareCss,/data-ds-share-companion="annotate"/,'Share Annotation companion CSS is missing.');
 assert.match(shareService,/if\(normalized==='stop'&&shareActive\)/,'Stop Share must retain main-process retry protection.');
-assert.match(shareService,/showMeetingWindow\(\{focus:false\}\);sendMain\('share:presenter-command','stop'\)/,'Stop Share retry must wake the hidden renderer.');
+assert.match(shareService,/showMeetingWindow\(\{focus:false\}\);void sendPresenterCommand\('stop',0\)/,'Stop Share retry must wake the renderer through presenter command authority.');
 assert.match(presenter,/data-command="stop"[^>]*>[\s\S]*Stop Share/,'Presenter toolbar must expose Stop Share.');
 assert.match(presenterJs,/if\(command==='stop'\)/,'Presenter Stop Share must have direct click authority.');
 
