@@ -107,12 +107,12 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed())pickerWindow.close();pickerWindow=null;}
 
   async function openToolbar(){
-    if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.show();toolbarWindow.moveTop?.();publishToolbarState();return true;}
-    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:310,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,acceptFirstMouse:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
+    if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishToolbarState();return true;}
+    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:310,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:false,acceptFirstMouse:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
     toolbarWindow=created;positionNearMain(created,930,82);try{created.setAlwaysOnTop(true,'floating');}catch{}
     if(platform==='darwin'){try{created.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}}
     protectMeetingChrome(created,true);created.on('closed',()=>{if(toolbarWindow===created)toolbarWindow=null;});
-    try{await created.loadFile(path.join(uiDir,'presenter-toolbar.html'));if(created.isDestroyed()||toolbarWindow!==created)return false;created.show();created.moveTop?.();publishToolbarState();return true;}
+    try{await created.loadFile(path.join(uiDir,'presenter-toolbar.html'));if(created.isDestroyed()||toolbarWindow!==created)return false;created.showInactive?.();created.moveTop?.();publishToolbarState();return true;}
     catch(error){try{created.setClosable?.(true);created.close();}catch{}if(toolbarWindow===created)toolbarWindow=null;console.error('[DominionStar Meet] Presenter toolbar failed to load.',error);return false;}
   }
   function closeToolbar(){if(toolbarWindow&&!toolbarWindow.isDestroyed()){try{toolbarWindow.setClosable?.(true);}catch{}toolbarWindow.close();}toolbarWindow=null;}
