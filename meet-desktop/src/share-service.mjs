@@ -193,6 +193,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const main=getMainWindow?.(),meta=presenterRendererMeta(),accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);
     qaPresenterLog('LISTENER_READY',{accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid,href:encodeURIComponent(String(payload?.href||''))});
   });
+  ipcMain.on('share:qa-renderer-pulse',(event,payload={})=>{
+    if(!qaPresenterTrace)return;
+    const main=getMainWindow?.(),accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);
+    qaPresenterLog('RENDERER_PULSE',{accepted:accepted?1:0,index:Number(payload?.index||0),delay:Number(payload?.delay||0),generation:Number(payload?.generation||0)});
+  });
   ipcMain.on('share:presenter-preload-tap',(event,payload={})=>{
     const main=getMainWindow?.(),meta=presenterRendererMeta(),accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);
     qaPresenterLog('PRELOAD_TAP',{id:Number(payload?.qaCommandId||0)||0,command:String(payload?.command||''),accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid});
