@@ -65,8 +65,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(!qaSyntheticShare)protectMeetingChrome(main,true);keepMeetingRendererLive();
     try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     const base=savedMainWindowState?.bounds||main.getBounds();
-    try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true);}catch{}try{main.setMinimumSize(1,1);}catch{}
-    try{main.setOpacity?.(.01);}catch{}try{main.setBounds({x:base.x,y:base.y,width:1,height:1},false);}catch{}
+    try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true,{forward:true});}catch{try{main.setIgnoreMouseEvents(true);}catch{}}
+    try{main.setOpacity?.(.01);}catch{}try{main.setBounds(base,false);}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();return true;
   }
