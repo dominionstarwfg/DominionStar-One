@@ -18,6 +18,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   const macMajor=Number.parseInt(macVersion.split('.')[0]||'0',10)||0;
   const nativeSystemPicker=platform==='darwin'&&macMajor>=15;
   const presenterParkPoint={x:-32000,y:-32000};
+  const qaPresenterNoPark=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
 
   const authority=createShareSourceAuthority({
     timeoutMs:4500,
@@ -44,17 +45,19 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function keepMeetingRendererLive(){const main=getMainWindow?.();if(!main||main.isDestroyed())return false;try{main.webContents?.setBackgroundThrottling?.(false);}catch{}return true;}
   function hideMeetingWindowForShare(){
     if(!shareActive)return false;const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
-    // Do not BrowserWindow.hide() the renderer that owns capture. On physical macOS
-    // a hidden Electron window can stop servicing the presenter-command path even
-    // with backgroundThrottling disabled. Park it off-screen instead: it remains a
-    // live renderer, cannot receive accidental pointer input, and is content-protected
-    // so it cannot recurse into the shared desktop.
     protectMeetingChrome(main,true);keepMeetingRendererLive();
-    try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true);}catch{}
-    const saved=savedMainWindowState?.bounds||main.getBounds();
-    try{main.setBounds({x:presenterParkPoint.x,y:presenterParkPoint.y,width:Math.max(320,saved.width),height:Math.max(240,saved.height)},false);}catch{}
-    try{main.showInactive?.();}catch{try{main.show();}catch{}}
+    // Step-20 isolation only: when the packaged interaction fixture is active,
+    // keep the meeting BrowserWindow in its original geometry. This determines
+    // whether the macOS setBounds/off-screen transition itself strands the
+    // renderer that owns the active capture stream. Production behavior remains
+    // the renderer-live off-screen presenter state until the diagnostic resolves.
+    if(!qaPresenterNoPark){
+      try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
+      try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true);}catch{}
+      const saved=savedMainWindowState?.bounds||main.getBounds();
+      try{main.setBounds({x:presenterParkPoint.x,y:presenterParkPoint.y,width:Math.max(320,saved.width),height:Math.max(240,saved.height)},false);}catch{}
+      try{main.showInactive?.();}catch{try{main.show();}catch{}}
+    }
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();return true;
   }
   function showMeetingWindow({focus=true}={}){
