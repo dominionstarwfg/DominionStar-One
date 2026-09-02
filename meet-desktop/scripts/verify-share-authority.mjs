@@ -110,18 +110,18 @@ requireText(annotation,'setAnnotationCanvas','Annotation must remain connected t
 requireText(annotation,'drawLaser','Laser pointer support is missing.');
 rejectText(controller,'rendererCommitted:true','ShareController must not own meeting visibility or presenter commit.');
 
-// Critical physical-Mac repair: the renderer-owned captureStarted invoke MUST
-// return before any presenter BrowserWindow is created or loaded. Creating the
-// toolbar inside that invoke froze the meeting renderer on a real packaged Mac.
+// Critical physical-Mac repair: captureStarted MUST return before any presenter
+// BrowserWindow work is scheduled or created. The renderer must first resolve
+// ShareController.start and mount the real shared stage.
 const captureStarted=service.slice(
   service.indexOf("ipcMain.handle('share:capture-started'"),
   service.indexOf("ipcMain.handle('share:capture-state'")
 );
-requireText(captureStarted,'scheduleToolbarForShare();','captureStarted must schedule presenter chrome after returning.');
-requireText(captureStarted,'toolbarPending:true','captureStarted must report deferred toolbar creation.');
+requireText(captureStarted,'toolbarPending:true','captureStarted must report that presenter chrome is still pending.');
 requireText(captureStarted,'meetingHidden:false','captureStarted must leave the meeting visible.');
-requireText(captureStarted,'awaitingPresenterCommit:true','captureStarted must await the later presenter commit.');
+requireText(captureStarted,'awaitingPresenterCommit:true','captureStarted must await the renderer-owned presenter commit.');
 requireText(captureStarted,'keepMeetingRendererLive();','captureStarted must disable renderer throttling before presenter work begins.');
+rejectText(captureStarted,'scheduleToolbarForShare();','captureStarted must not schedule presenter BrowserWindow creation before the renderer receives its IPC reply.');
 rejectText(captureStarted,'openToolbar(','captureStarted must never create/load presenter BrowserWindow synchronously.');
 rejectText(captureStarted,'hideMeetingWindowForShare()','captureStarted must never hide the meeting.');
 
@@ -132,23 +132,26 @@ const scheduler=service.slice(
 );
 requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Presenter toolbar must be created on a later main-process turn.');
 requireText(scheduler,'const ready=await openToolbar();','Deferred scheduler must load the real presenter toolbar.');
-requireText(scheduler,'},75);','Presenter toolbar deferral must remain explicit and bounded.');
+requireText(scheduler,'},75);','Presenter toolbar deferral must remain explicit and bounded after renderer commit.');
 requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Toolbar readiness must be recorded independently from capture start.');
-requireText(scheduler,'if(presenterCommitPending)','Early presenter commit must wait for toolbar readiness.');
+requireText(scheduler,'if(presenterCommitPending)','Committed presenter state must wait for toolbar readiness before hiding the meeting.');
 requireText(scheduler,"sendMain('share:presenter-command','stop')",'Toolbar failure must fail the share closed.');
 
 // Integration commits presenter mode only after the share promise returned and
-// the actual shared stage has been mounted. One-way IPC prevents hide from
-// stranding any renderer promise.
+// the actual shared stage has been mounted. Only that one-way commit may trigger
+// presenter BrowserWindow creation.
 requireText(integration,'function commitPresenterMode()','Share Integration must own safe presenter commit.');
 requireText(integration,'markCaptureProven();applyLayout();','Shared-stage layout must mount before presenter commit.');
 requireText(integration,'commitPresenterMode();','Initial share must explicitly enter presenter mode after layout.');
 requireText(preload,"presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;}",'Presenter commit must use one-way IPC.');
-requireText(service,"ipcMain.on('share:presenter-committed'",'Main process must receive the one-way presenter commit.');
-requireText(service,'presenterCommitPending=true','Presenter commit must survive arriving before toolbar readiness.');
-requireText(service,'if(!toolbarReadyForShare)','Presenter commit must be gated on toolbar readiness.');
-requireText(service,'setImmediate(()=>','Meeting hide must happen on a later main-process turn.');
-requireText(service,'hideMeetingWindowForShare();','Presenter state must eventually hide the normal meeting.');
+const presenterCommitted=service.slice(
+  service.indexOf("ipcMain.on('share:presenter-committed'"),
+  service.indexOf("ipcMain.handle('share:capture-stopped'")
+);
+requireText(presenterCommitted,'presenterCommitPending=true','Presenter commit must become the authority that unlocks presenter chrome.');
+requireText(presenterCommitted,'if(!toolbarReadyForShare){scheduleToolbarForShare();return;}','Presenter toolbar creation must begin only after the renderer presenter commit arrives.');
+requireText(presenterCommitted,'setImmediate(()=>','Meeting hide must happen on a later main-process turn once toolbar readiness is proven.');
+requireText(presenterCommitted,'hideMeetingWindowForShare();','Committed presenter state must eventually hide the normal meeting.');
 requireText(service,'function cancelToolbarOpen()','Deferred toolbar work must be cancellable on Stop Share.');
 requireText(service,'cancelToolbarOpen();','Stop Share must cancel pending toolbar creation.');
 
@@ -176,4 +179,4 @@ requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
 
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share capture-start-returns-before-toolbar deferred-presenter-window integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share capture-start-returns-before-toolbar toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
