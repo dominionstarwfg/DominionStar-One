@@ -161,6 +161,28 @@
     onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}
   });
   window.DominionMediaController=api;
+
+  // Zoom-style local voice activity: measure real microphone energy and expose
+  // it to the meeting/presenter controls without changing mute authority.
+  let voiceContext=null,voiceSource=null,voiceAnalyser=null,voiceTimer=0,voiceTrackId='';
+  const stopVoiceMeter=()=>{if(voiceTimer){clearInterval(voiceTimer);voiceTimer=0;}try{voiceSource?.disconnect?.();}catch{}try{voiceContext?.close?.();}catch{}voiceContext=null;voiceSource=null;voiceAnalyser=null;voiceTrackId='';document.documentElement.style.setProperty('--ds-local-voice-level','0');document.body.classList.remove('ds-local-speaking');};
+  const startVoiceMeter=()=>{
+    const track=live('audio')[0];
+    if(!state.micOn||!track||track.enabled===false){stopVoiceMeter();return;}
+    if(voiceAnalyser&&voiceTrackId===String(track.id||''))return;
+    stopVoiceMeter();
+    try{
+      voiceContext=new AudioContext();voiceSource=voiceContext.createMediaStreamSource(new MediaStream([track]));voiceAnalyser=voiceContext.createAnalyser();voiceAnalyser.fftSize=256;voiceAnalyser.smoothingTimeConstant=.72;voiceSource.connect(voiceAnalyser);voiceTrackId=String(track.id||'');
+      const data=new Uint8Array(voiceAnalyser.fftSize);
+      voiceTimer=setInterval(()=>{
+        if(!state.micOn||track.readyState!=='live'||track.enabled===false){document.documentElement.style.setProperty('--ds-local-voice-level','0');document.body.classList.remove('ds-local-speaking');return;}
+        voiceAnalyser.getByteTimeDomainData(data);let sum=0;for(const value of data){const n=(value-128)/128;sum+=n*n;}const raw=Math.sqrt(sum/data.length);const level=Math.max(0,Math.min(1,(raw-.008)/.09));const speaking=level>.08;
+        document.documentElement.style.setProperty('--ds-local-voice-level',level.toFixed(3));document.body.classList.toggle('ds-local-speaking',speaking);
+        window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level,speaking}}));
+      },80);
+    }catch{stopVoiceMeter();}
+  };
+  api.onChange(()=>startVoiceMeter());startVoiceMeter();
   navigator.mediaDevices?.addEventListener?.('devicechange',()=>emit());
   if(!document.querySelector('script[data-ds-share-integration]')){const script=document.createElement('script');script.src='./share-integration.js';script.dataset.dsShareIntegration='1';document.head.append(script);}
   if(!document.querySelector('link[data-ds-webrtc-style]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./webrtc.css';link.dataset.dsWebrtcStyle='1';document.head.append(link);}
