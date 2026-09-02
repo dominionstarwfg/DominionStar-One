@@ -120,7 +120,10 @@ requireText(adaptiveCss,'max-width:340px !important','Compact Participants geome
 
 // Camera-off video filmstrip defaults to the right, including two-person calls.
 requireText(adaptive,"dock.dataset.dsAdaptiveWholePanelDrag='1'",'Video filmstrip whole-surface drag authority is missing.');
-requireText(adaptive,"dock.addEventListener('pointerdown',startVideoDockDrag,true)",'Video filmstrip is not draggable.');
+requireText(adaptive,"dock.dataset.dsAdaptiveVideoDrag='mouse-document'",'Video filmstrip does not declare native mouse/document drag authority.');
+requireText(adaptive,"dock.addEventListener('mousedown',startVideoDockDrag,true)",'Video filmstrip is not draggable from a real mouse press.');
+requireText(adaptive,"document.addEventListener('mousemove',moveVideoDockDrag,true)",'Video filmstrip drag stops when the mouse leaves the video tile.');
+requireText(adaptive,"document.addEventListener('mouseup',endVideoDockDrag,true)",'Video filmstrip drag does not complete through document mouseup.');
 requireText(physicalRepair,"participantCount<=1&&visibleTiles===0",'Physical Mac layer still suppresses a two-person Speaker-view filmstrip.');
 requireText(physicalRepair,"dock.dataset.zoomThreshold=suppress?'empty-solo':'available'",'Corrected video-filmstrip threshold is missing.');
 requireText(physicalRepair,"if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false",'Two-person Speaker view cannot reveal the video filmstrip.');
@@ -136,4 +139,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive controller is not 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection record is missing.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip video-filmstrip-native-mouse-drag narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
