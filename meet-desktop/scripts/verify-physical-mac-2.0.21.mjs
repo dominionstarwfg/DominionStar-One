@@ -97,8 +97,9 @@ assert.match(shareIntegration,/id='inlinePresenterToolbar'/,'macOS presenter con
 assert.doesNotMatch(shareController,/rendererCommitted:true/,'ShareController must not own meeting visibility commit.');
 assert.match(shareIntegration,/function commitPresenterMode\(\)/,'Share Integration must own presenter commit.');
 assert.match(shareIntegration,/markCaptureProven\(\);applyLayout\(\);/,'Shared stage must mount before presenter commit.');
-assert.match(shareIntegration,/bridge\?\.presenterCommitted\?\.\(/,'Share Integration cannot send presenter-ready state.');
-assert.match(preload,/ipcRenderer\.send\('share:presenter-committed'/,'Presenter commit must use one-way IPC.');
+assert.match(shareIntegration,/const sameRendererPresenter=String\(environment\?\.platform\|\|'\'\)==='darwin'/,'macOS same-renderer presenter detection is missing.');
+assert.match(shareIntegration,/if\(!sameRendererPresenter\)bridge\?\.presenterCommitted\?\.\(/,'macOS presenter commit must not cross into the main process.');
+assert.match(preload,/ipcRenderer\.send\('share:presenter-committed'/,'Non-macOS presenter commit bridge must remain one-way IPC.');
 const presenterCommitted=shareService.slice(
   shareService.indexOf("ipcMain.on('share:presenter-committed'"),
   shareService.indexOf("ipcMain.handle('share:capture-stopped'")
