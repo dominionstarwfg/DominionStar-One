@@ -10,6 +10,7 @@ const physicalRepair=read('ui/physical-mac-repair.js');
 const parity=read('ui/meeting-parity.js');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const adaptiveCss=read('ui/zoom-adaptive-parity.css');
+const approvedCss=read('ui/approved-reference-parity.css');
 const auth=read('ui/auth-password.js');
 const rejection=read('PHYSICAL_2_0_20_REJECTION.md');
 
@@ -110,10 +111,15 @@ requireText(adaptiveCss,'#participantVideoDock .dock-grip{display:none !importan
 requireText(adaptive,"dock.dataset.dsAdaptiveWholePanelDrag='1'",'Floating video panel does not declare whole-panel drag authority.');
 requireText(adaptive,"dock.addEventListener('pointerdown',startVideoDockDrag,true)",'Floating video panel is not draggable from the whole non-control surface.');
 requireText(adaptive,"event.target.closest?.('button,.participant-video-resize,a,input,select,textarea')",'Whole-panel video drag does not protect interactive controls.');
-requireText(physicalRepair,"dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available'",'Video panel is not participant-count aware.');
+requireText(physicalRepair,"participantCount<=1&&visibleTiles===0",'Physical Mac layer still suppresses a two-person Speaker-view video filmstrip.');
+requireText(physicalRepair,"dock.dataset.zoomThreshold=suppress?'empty-solo':'available'",'Video panel no longer exposes the corrected empty-solo/available policy.');
+requireText(physicalRepair,"if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false",'Two-person Speaker view cannot reveal an available video filmstrip.');
+requireText(approvedCss,'right:14px !important;','Approved video filmstrip does not retain the right-side desktop default.');
+requireText(approvedCss,'grid-template-columns:176px !important;','Approved right-side filmstrip is not vertical.');
+requireText(approvedCss,'@media(max-width:680px)','Video filmstrip moves to compact top geometry too early.');
 
 requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller is not sequenced after physical Mac repair.');
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid toolbar-before-hide hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid toolbar-before-hide hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip two-person-right-filmstrip physical-rejection-recorded`);
