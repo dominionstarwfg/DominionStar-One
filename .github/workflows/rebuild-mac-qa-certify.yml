@@ -64,6 +64,7 @@ jobs:
           node --check scripts/verify-meeting-identity-runtime.mjs
           node --check scripts/verify-packaged-interactions.mjs
           node --check scripts/verify-packaged-physical-mac-2.0.21.mjs
+          node --check scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs
           node --check scripts/verify-packaged-zoom-window-parity.mjs
           node --check scripts/verify-packaged-approved-reference-2.0.22.mjs
           node --check scripts/verify-packaged-runtime-stability-2.0.22.mjs
@@ -209,6 +210,12 @@ jobs:
       - name: Verify packaged 2.0.21 physical Mac repairs
         working-directory: meet-desktop
         run: node scripts/verify-packaged-physical-mac-2.0.21.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Exercise packaged presenter toolbar round trip
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Verify packaged adaptive Zoom meeting behavior
         working-directory: meet-desktop
