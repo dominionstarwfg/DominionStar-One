@@ -37,20 +37,21 @@ const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker(p
 const diagnosticIndex=shareIntegration.indexOf('media?.requestScreen?.()');
 if(openIndex<0||diagnosticIndex<0||diagnosticIndex<openIndex)throw new Error('Deep Screen Recording diagnostics run before real picker/capture failure.');
 
-// Physical regression: captureStarted must return to the renderer before any
-// presenter BrowserWindow scheduling or creation. Presenter chrome begins only
-// after Share Integration commits the fully mounted active-share state.
+// Physical regression: capture start is fire-and-forget. ShareController must not
+// wait for a main-process reply before publishing its active state.
+requireText(preload,"captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;}",'Capture start must be one-way across the preload bridge.');
+rejectText(preload,"captureStarted:state=>invoke('share:capture-started'",'Capture start must not use request/response IPC.');
 const captureStarted=shareService.slice(
-  shareService.indexOf("ipcMain.handle('share:capture-started'"),
+  shareService.indexOf("ipcMain.on('share:capture-started'"),
   shareService.indexOf("ipcMain.handle('share:capture-state'")
 );
-requireText(captureStarted,'toolbarPending:true','Capture start does not expose pending presenter state.');
-requireText(captureStarted,'meetingHidden:false','Capture start can hide the meeting too early.');
-requireText(captureStarted,'awaitingPresenterCommit:true','Capture start does not await presenter commit.');
+requireText(captureStarted,"ipcMain.on('share:capture-started'",'Main process does not receive one-way capture start.');
+requireText(captureStarted,'event.sender!==main.webContents','Capture start must be limited to the main meeting renderer.');
 requireText(captureStarted,'keepMeetingRendererLive();','Capture start does not protect the renderer from throttling.');
-rejectText(captureStarted,'scheduleToolbarForShare();','Capture start still schedules presenter BrowserWindow work before its IPC reply can settle.');
-rejectText(captureStarted,'openToolbar(','Presenter BrowserWindow creation returned to the captureStarted IPC transaction.');
-rejectText(captureStarted,'hideMeetingWindowForShare()','Meeting hide returned to the captureStarted IPC transaction.');
+rejectText(captureStarted,'scheduleToolbarForShare();','Capture start still schedules presenter BrowserWindow work.');
+rejectText(captureStarted,'openToolbar(','Presenter BrowserWindow creation returned to capture start.');
+rejectText(captureStarted,'hideMeetingWindowForShare()','Meeting hide returned to capture start.');
+rejectText(captureStarted,'return {ok:','Capture start must have no response contract.');
 
 requireText(shareService,'function scheduleToolbarForShare()','Deferred presenter toolbar scheduler is missing.');
 const scheduler=shareService.slice(shareService.indexOf('function scheduleToolbarForShare()'),shareService.indexOf('const displayMediaHandler'));
@@ -130,4 +131,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive controller is not 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection record is missing.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files capture-start-returns-before-toolbar toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
