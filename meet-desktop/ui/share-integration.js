@@ -115,7 +115,9 @@
         commandLabel('video',mediaState.cameraOn?'Stop Video':'Start Video');
       }
       if(state.active){
-        const output=share.outputStream();if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
+        const output=share.outputStream();
+        if(sameRendererPresenter){if(sharedVideo.srcObject)sharedVideo.srcObject=null;}
+        else if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
         label.innerHTML=`<strong>${state.paused?'Paused':state.annotating?'Annotating':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
         const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;
       }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
