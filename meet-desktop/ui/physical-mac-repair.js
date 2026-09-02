@@ -202,5 +202,5 @@
   window.addEventListener('dominion:meeting-ended',()=>{expectedPersonalCode='';document.body.dataset.dsExpectedPersonalRoomCode='';});
   sync();
 
-  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.22-right-filmstrip',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,sync});
+  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,sync});
 })();
