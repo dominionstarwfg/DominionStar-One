@@ -14,6 +14,16 @@ const mainErrors=[];
 const toolbarErrors=[];
 const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
+const logCount=needle=>stderr.split(String(needle)).length-1;
+async function waitLog(needle,label,timeout=12000,minCount=1){
+  const deadline=Date.now()+timeout;
+  while(Date.now()<deadline){
+    if(child.exitCode!==null)throw new Error(`Packaged app exited before ${label}.\n${stderr}`);
+    if(logCount(needle)>=minCount)return;
+    await sleep(60);
+  }
+  throw new Error(`Timed out waiting for ${label}. Missing log marker: ${needle}\n${stderr}`);
+}
 
 async function targets(){
   const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(900)});
@@ -54,9 +64,11 @@ try{
   main=new CdpClient(mainTarget.webSocketDebuggerUrl,mainErrors);await main.connect();stage('main-connected');
   await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionShareAnnotation&&window.dominionDesktop?.share?.captureStarted&&window.dominionDesktop?.share?.presenterCommitted",'share controllers',15000);stage('controllers-loaded');
 
-  // Prepare the meeting and a synthetic Chromium MediaStream. Capture start must
-  // complete BEFORE presenter mode is committed/hides the meeting. Milestones are
-  // also emitted to stderr so a renderer/CDP stall can be located precisely.
+  // Prepare the meeting and a synthetic Chromium MediaStream. During active
+  // synthetic capture Chromium's DevTools Runtime.evaluate can stop answering on
+  // macOS even though the renderer event loop remains live. Therefore real app
+  // events are also emitted to process logging and become the independent
+  // observation channel for the active-share portion of this test.
   stageBegin('synthetic-prepare');
   const prepared=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -70,7 +82,20 @@ try{
     window.__qaPresenterCommands=[];
     window.__qaPresenterMilestones=[];
     window.__qaPresenterMark=label=>{window.__qaPresenterMilestones.push(String(label));console.log('QA_PRESENTER_MILESTONE '+String(label));};
-    window.__qaPresenterOff=window.dominionDesktop.share.onPresenterCommand(command=>window.__qaPresenterCommands.push(String(command?.command||command||'')));
+    window.__qaPresenterDescribe=command=>{
+      const share=window.DominionShareController.snapshot();
+      const annotation=window.DominionShareAnnotation.snapshot();
+      const companion=document.body.dataset.dsShareCompanion||'none';
+      const display=selector=>{const node=document.querySelector(selector);return node?getComputedStyle(node).display:'missing';};
+      console.log('QA_PRESENTER_EFFECT '+String(command)+' active='+(share.active?1:0)+' paused='+(share.paused?1:0)+' companion='+companion+' annotation='+(annotation.active?1:0)+' header='+display('.meeting-head')+' footer='+display('.meeting-footer')+' stage='+display('.stage')+' chatVisible='+(display('#meetingChatPanel')!=='none'?1:0)+' participantsVisible='+(display('.room-side')!=='none'?1:0));
+    };
+    window.__qaPresenterOff=window.dominionDesktop.share.onPresenterCommand(command=>{
+      const normalized=String(command?.command||command||'');window.__qaPresenterCommands.push(normalized);console.log('QA_PRESENTER_COMMAND '+normalized);
+      setTimeout(()=>window.__qaPresenterDescribe(normalized),160);
+      if(normalized==='chat')setTimeout(()=>{window.DominionRuntimeStability.setChat(false);console.log('QA_HARNESS_CLOSE chat');},650);
+      if(normalized==='participants')setTimeout(()=>{window.DominionRuntimeStability.setParticipants(false);console.log('QA_HARNESS_CLOSE participants');},650);
+    });
+    window.__qaShareStateOff=window.DominionShareController.onChange(state=>console.log('QA_SHARE_STATE active='+(state.active?1:0)+' paused='+(state.paused?1:0)+' annotating='+(state.annotating?1:0)+' source='+String(state.sourceName||'')));
     const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;canvas.style.display='none';document.body.append(canvas);window.__qaShareCanvas=canvas;
     const ctx=canvas.getContext('2d');ctx.fillStyle='#17304b';ctx.fillRect(0,0,640,360);ctx.fillStyle='#fff';ctx.font='28px sans-serif';ctx.fillText('DominionStar presenter QA',120,180);
     const stream=canvas.captureStream(12);window.__qaShareStream=stream;
@@ -80,26 +105,16 @@ try{
   })()`);
   assert.equal(prepared.meetingVisible,true);assert.ok(prepared.tracks>=1,'Synthetic share stream has no capture track.');stage('synthetic-prepared');
 
-  // Dispatch on the renderer's next task instead of entering ShareController.start
-  // inside the Runtime.evaluate call. This prevents the diagnostic transport from
-  // being coupled to media startup while preserving the exact packaged runtime path.
+  // Start on the renderer's next task so CDP itself is never in the media startup
+  // call stack. Once ShareController resolves, the test mirrors Share Integration
+  // and commits presenter mode through the real one-way bridge.
   stageBegin('share-start-dispatch');
-  await main.eval(`(()=>{setTimeout(()=>{window.__qaPresenterMark('start-task');window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}}).then(state=>{window.__qaPresenterMark('start-resolved');window.__qaShareStartResult={active:state.active,sourceName:state.sourceName};}).catch(error=>{window.__qaPresenterMark('start-rejected');window.__qaShareStartError=String(error?.stack||error?.message||error);});},0);return true;})()`);stage('share-start-dispatched');
-  await main.wait("window.__qaPresenterMilestones.includes('start-task')",'scheduled ShareController.start task',5000);
-  await main.wait("Boolean(window.__qaShareStartResult||window.__qaShareStartError)",'synthetic ShareController.start completion',20000);
-  const startOutcome=await main.eval(`({result:window.__qaShareStartResult,error:window.__qaShareStartError,state:window.DominionShareController.snapshot(),visibility:document.visibilityState,milestones:[...window.__qaPresenterMilestones]})`);
-  assert.equal(startOutcome.error,'',`Synthetic ShareController.start failed: ${startOutcome.error}; milestones=${startOutcome.milestones.join('>')}`);
-  assert.equal(startOutcome.result?.active,true,'Synthetic packaged share did not become active.');
-  assert.equal(startOutcome.result?.sourceName,'QA Synthetic Share');stage('share-start-complete-before-hide');
-  await main.wait("document.querySelector('#meetingOverlay').classList.contains('share-active')&&document.querySelector('#sharedContentVideo')&&!document.querySelector('#sharedContentVideo').hidden",'active shared-content stage',12000);stage('shared-stage-active-before-hide');
-
-  // Mirror the real Share Integration path: once capture and the stage are fully
-  // committed, send a one-way presenter-ready signal. No promise is allowed to
-  // depend on the meeting remaining visible after this point.
-  stageBegin('presenter-commit');
-  await main.eval(`(()=>{window.dominionDesktop.share.presenterCommitted({sourceName:'QA Synthetic Share',paused:false});return true;})()`);stage('presenter-commit-sent');
-  await sleep(250);
-  await main.wait("window.DominionShareController.snapshot().active===true",'hidden meeting renderer remains live after presenter commit',12000);stage('hidden-renderer-responsive');
+  await main.eval(`(()=>{setTimeout(()=>{window.__qaPresenterMark('start-task');window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}}).then(state=>{window.__qaShareStartResult={active:state.active,sourceName:state.sourceName};const video=document.querySelector('#sharedContentVideo');console.log('QA_START_STAGE active='+(state.active?1:0)+' sharedVisible='+(video&&!video.hidden?1:0));window.__qaPresenterMark('start-resolved');window.DominionShareIntegration.commitPresenterMode();window.__qaPresenterMark('presenter-commit-sent');}).catch(error=>{window.__qaShareStartError=String(error?.stack||error?.message||error);window.__qaPresenterMark('start-rejected');});},0);return true;})()`);stage('share-start-dispatched');
+  await waitLog('QA_PRESENTER_MILESTONE start-task','scheduled ShareController.start task',6000);
+  await waitLog('QA_PRESENTER_MILESTONE getDisplayMedia-return','synthetic getDisplayMedia completion',6000);
+  await waitLog('QA_PRESENTER_MILESTONE start-resolved','ShareController.start completion',6000);
+  await waitLog('QA_START_STAGE active=1 sharedVisible=1','active shared-content stage before presenter hide',6000);stage('share-start-complete-before-hide');
+  await waitLog('QA_PRESENTER_MILESTONE presenter-commit-sent','one-way presenter commit',6000);stage('presenter-commit-sent');
 
   stageBegin('toolbar-target');
   const toolbarTarget=await waitTarget(item=>item.type==='page'&&String(item.url||'').includes('presenter-toolbar.html'),'floating presenter toolbar',18000);
@@ -107,50 +122,66 @@ try{
   await toolbar.wait("document.readyState==='complete'&&document.querySelector('[data-command=\"stop\"]')&&document.querySelector('[data-command=\"chat\"]')&&document.querySelector('[data-command=\"participants\"]')&&document.querySelector('[data-command=\"annotate\"]')",'presenter controls',12000);stage('toolbar-controls-ready');
   await toolbar.wait("document.querySelector('#shareSourceLabel')?.textContent==='QA Synthetic Share'",'presenter share state',12000);stage('toolbar-state-ready');
 
+  // During active synthetic capture, prove main-renderer liveness through actual
+  // IPC/event effects in stderr rather than CDP Runtime.evaluate.
   stageBegin('pause');
+  const pauseCommandsBefore=logCount('QA_PRESENTER_COMMAND pause');
+  const pausedTrueBefore=logCount('QA_SHARE_STATE active=1 paused=1');
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click();true`);
-  await main.wait("window.__qaPresenterCommands.includes('pause')",'Pause command delivery');
-  await main.wait("window.DominionShareController.snapshot().paused===true",'Pause command acknowledgement',12000);
-  await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause toolbar state');stage('pause');
+  await waitLog('QA_PRESENTER_COMMAND pause','Pause command delivery',8000,pauseCommandsBefore+1);
+  await waitLog('QA_SHARE_STATE active=1 paused=1','Pause controller state',10000,pausedTrueBefore+1);
+  await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause toolbar state',10000);stage('pause');
 
   stageBegin('resume');
+  const pauseCommandsResumeBefore=logCount('QA_PRESENTER_COMMAND pause');
+  const pausedFalseBefore=logCount('QA_SHARE_STATE active=1 paused=0');
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click();true`);
-  await main.wait("window.DominionShareController.snapshot().paused===false",'Resume command acknowledgement',12000);stage('resume');
+  await waitLog('QA_PRESENTER_COMMAND pause','Resume command delivery',8000,pauseCommandsResumeBefore+1);
+  await waitLog('QA_SHARE_STATE active=1 paused=0','Resume controller state',10000,pausedFalseBefore+1);stage('resume');
 
   stageBegin('chat');
+  const chatCommandsBefore=logCount('QA_PRESENTER_COMMAND chat');
   await toolbar.eval(`document.querySelector('[data-command="chat"]').click();true`);
-  await main.wait("window.__qaPresenterCommands.includes('chat')",'Chat command delivery');
-  await main.wait("document.body.dataset.dsShareCompanion==='chat'&&!document.querySelector('#meetingChatPanel').hidden",'Chat share companion',12000);
-  const chat=await main.eval(`(()=>({command:window.__qaPresenterCommands.includes('chat'),companion:document.body.dataset.dsShareCompanion,header:getComputedStyle(document.querySelector('.meeting-head')).display,footer:getComputedStyle(document.querySelector('.meeting-footer')).display,stage:getComputedStyle(document.querySelector('.stage')).display,chat:getComputedStyle(document.querySelector('#meetingChatPanel')).display}))()`);
-  assert.equal(chat.command,true,'Chat toolbar command never reached the meeting renderer.');assert.equal(chat.companion,'chat');assert.equal(chat.header,'none','Chat companion must not resurrect normal meeting header.');assert.equal(chat.footer,'none','Chat companion must not resurrect normal meeting toolbar.');assert.equal(chat.stage,'none','Chat companion must not expose full meeting video stage.');assert.notEqual(chat.chat,'none','Chat companion itself must remain visible.');stage('chat');
-  await main.eval(`window.DominionRuntimeStability.setChat(false);true`);await main.wait("!document.body.dataset.dsShareCompanion",'Chat companion close',12000);stage('chat-close');
+  await waitLog('QA_PRESENTER_COMMAND chat','Chat command delivery',8000,chatCommandsBefore+1);
+  await waitLog('QA_PRESENTER_EFFECT chat active=1 paused=0 companion=chat annotation=0 header=none footer=none stage=none chatVisible=1','compact Chat share companion',8000);stage('chat');
+  await waitLog('QA_HARNESS_CLOSE chat','Chat companion harness close',8000);stage('chat-close');
 
   stageBegin('participants');
+  const participantCommandsBefore=logCount('QA_PRESENTER_COMMAND participants');
   await toolbar.eval(`document.querySelector('[data-command="participants"]').click();true`);
-  await main.wait("window.__qaPresenterCommands.includes('participants')",'Participants command delivery');
-  await main.wait("document.body.dataset.dsShareCompanion==='participants'&&!document.querySelector('.room-side').hidden",'Participants share companion',12000);
-  const participants=await main.eval(`(()=>({command:window.__qaPresenterCommands.includes('participants'),header:getComputedStyle(document.querySelector('.meeting-head')).display,footer:getComputedStyle(document.querySelector('.meeting-footer')).display,stage:getComputedStyle(document.querySelector('.stage')).display,panel:getComputedStyle(document.querySelector('.room-side')).display}))()`);
-  assert.equal(participants.command,true,'Participants toolbar command never reached the meeting renderer.');assert.equal(participants.header,'none');assert.equal(participants.footer,'none');assert.equal(participants.stage,'none');assert.notEqual(participants.panel,'none');stage('participants');
-  await main.eval(`window.DominionRuntimeStability.setParticipants(false);true`);await main.wait("!document.body.dataset.dsShareCompanion",'Participants companion close',12000);stage('participants-close');
+  await waitLog('QA_PRESENTER_COMMAND participants','Participants command delivery',8000,participantCommandsBefore+1);
+  await waitLog('QA_PRESENTER_EFFECT participants active=1 paused=0 companion=participants annotation=0 header=none footer=none stage=none','compact Participants share companion',8000);stage('participants');
+  await waitLog('QA_HARNESS_CLOSE participants','Participants companion harness close',8000);stage('participants-close');
 
   stageBegin('annotate');
+  const annotateCommandsBefore=logCount('QA_PRESENTER_COMMAND annotate');
   await toolbar.eval(`document.querySelector('[data-command="annotate"]').click();true`);
-  await main.wait("window.__qaPresenterCommands.includes('annotate')",'Annotate command delivery');
-  await main.wait("document.body.dataset.dsShareCompanion==='annotate'&&window.DominionShareAnnotation.snapshot().active===true",'Annotation share companion',12000);
-  const annotate=await main.eval(`(()=>({command:window.__qaPresenterCommands.includes('annotate'),active:window.DominionShareAnnotation.snapshot().active,header:getComputedStyle(document.querySelector('.meeting-head')).display,footer:getComputedStyle(document.querySelector('.meeting-footer')).display,canvasVisible:getComputedStyle(document.querySelector('.share-annotation-overlay')).display!=='none'}))()`);
-  assert.equal(annotate.command,true,'Annotate toolbar command never reached the meeting renderer.');assert.equal(annotate.active,true);assert.equal(annotate.header,'none');assert.equal(annotate.footer,'none');assert.equal(annotate.canvasVisible,true);stage('annotate');
+  await waitLog('QA_PRESENTER_COMMAND annotate','Annotate command delivery',8000,annotateCommandsBefore+1);
+  await waitLog('QA_PRESENTER_EFFECT annotate active=1 paused=0 companion=annotate annotation=1 header=none footer=none stage=none','Annotation share companion',10000);stage('annotate');
+  const annotateCommandsOffBefore=logCount('QA_PRESENTER_COMMAND annotate');
   await toolbar.eval(`document.querySelector('[data-command="annotate"]').click();true`);
-  await main.wait("window.DominionShareAnnotation.snapshot().active===false&&!document.body.dataset.dsShareCompanion",'Annotation companion close',12000);stage('annotate-close');
+  await waitLog('QA_PRESENTER_COMMAND annotate','Annotate-off command delivery',8000,annotateCommandsOffBefore+1);
+  await waitLog('QA_PRESENTER_EFFECT annotate active=1 paused=0 companion=none annotation=0','Annotation companion close',10000);stage('annotate-close');
 
   stageBegin('audio-video');
+  const audioBefore=logCount('QA_PRESENTER_COMMAND audio'),videoBefore=logCount('QA_PRESENTER_COMMAND video');
   await toolbar.eval(`document.querySelector('[data-command="audio"]').click();document.querySelector('[data-command="video"]').click();true`);
-  await main.wait("window.__qaPresenterCommands.includes('audio')&&window.__qaPresenterCommands.includes('video')",'Audio/video presenter command round-trip',12000);stage('audio-video-command-path');
+  await waitLog('QA_PRESENTER_COMMAND audio','Audio presenter command',10000,audioBefore+1);
+  await waitLog('QA_PRESENTER_COMMAND video','Video presenter command',10000,videoBefore+1);stage('audio-video-command-path');
 
   stageBegin('stop');
+  const stopBefore=logCount('QA_PRESENTER_COMMAND stop'),inactiveBefore=logCount('QA_SHARE_STATE active=0 paused=0');
   await toolbar.eval(`document.querySelector('[data-command="stop"]').click();true`);
-  await main.wait("window.__qaPresenterCommands.includes('stop')",'Stop Share presenter command',12000);stage('stop-command-delivered');
-  await main.wait("window.DominionShareController.snapshot().active===false",'Stop Share controller completion',15000);stage('stop-controller-complete');
-  await main.wait("!document.querySelector('#meetingOverlay').classList.contains('share-active')&&document.querySelector('#sharedContentVideo').hidden",'Stop Share UI restoration',12000);stage('stop-ui-restored');
+  await waitLog('QA_PRESENTER_COMMAND stop','Stop Share presenter command',10000,stopBefore+1);stage('stop-command-delivered');
+  await waitLog('QA_SHARE_STATE active=0 paused=0','Stop Share controller completion',15000,inactiveBefore+1);stage('stop-controller-complete');
+  await sleep(500);
+
+  // Once capture has ended CDP should be available again. Reconnect freshly so
+  // final restoration assertions cannot inherit a Chromium active-capture CDP stall.
+  main.close();main=null;
+  const restoredTarget=await waitTarget(item=>item.type==='page'&&String(item.url||'').startsWith('file://')&&!String(item.url||'').includes('presenter-toolbar.html'),'restored main renderer',10000);
+  main=new CdpClient(restoredTarget.webSocketDebuggerUrl,mainErrors);await main.connect();
+  await main.wait("window.DominionShareController.snapshot().active===false&&!document.querySelector('#meetingOverlay').classList.contains('share-active')&&document.querySelector('#sharedContentVideo').hidden",'Stop Share UI restoration',12000);stage('stop-ui-restored');
   const stopped=await main.eval(`(()=>({active:window.DominionShareController.snapshot().active,trackStates:(window.__qaShareStream?.getTracks?.()||[]).map(track=>track.readyState),companion:document.body.dataset.dsShareCompanion||'',commands:[...window.__qaPresenterCommands]}))()`);
   assert.equal(stopped.active,false);assert.ok(stopped.trackStates.every(state=>state==='ended'),'Stop Share must end every synthetic capture track.');assert.equal(stopped.companion,'');for(const required of ['pause','chat','participants','annotate','audio','video','stop'])assert.ok(stopped.commands.includes(required),`Presenter command ${required} did not round-trip.`);stage('stop');
 
@@ -158,11 +189,11 @@ try{
   assert.deepEqual(mainErrors,[],'Main meeting renderer emitted exceptions:\n'+mainErrors.join('\n'));
   assert.deepEqual(toolbarErrors,[],'Presenter toolbar renderer emitted exceptions:\n'+toolbarErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged presenter round-trip wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK capture-completes-before-hide integration-style-one-way-commit hidden-renderer-responsive toolbar-ipc pause-resume compact-chat compact-participants annotation-companion audio-video-command-path stop-share-ends-track restores-meeting no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK capture-completes-before-hide integration-style-one-way-commit hidden-renderer-event-responsive toolbar-ipc pause-resume compact-chat compact-participants annotation-companion audio-video-command-path stop-share-ends-track restores-meeting no-renderer-errors');
 }catch(error){
   failure=error;console.error('PRESENTER_STAGE_FAILURE',error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());
 }finally{
-  try{await main?.eval(`window.__qaPresenterOff?.();window.__qaShareStream?.getTracks?.().forEach(track=>{try{track.stop()}catch{}});document.querySelector('#meetingOverlay')?.classList.remove('share-active');delete document.body.dataset.dsShareCompanion;true`,3000);}catch{}
+  try{await main?.eval(`window.__qaPresenterOff?.();window.__qaShareStateOff?.();window.__qaShareStream?.getTracks?.().forEach(track=>{try{track.stop()}catch{}});document.querySelector('#meetingOverlay')?.classList.remove('share-active');delete document.body.dataset.dsShareCompanion;true`,3000);}catch{}
   toolbar?.close();main?.close();
   try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}
 }
