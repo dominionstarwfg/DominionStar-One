@@ -17,6 +17,9 @@ const listenPresenterCommand=callback=>{
 };
 const packaged=String(location?.href||'').includes('/app.asar/');
 const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../assets/logo.jpeg',location.href).href;
+if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'&&!String(location?.href||'').includes('presenter-toolbar.html')){
+  [1000,2000,3000,5000,7000].forEach((delay,index)=>setTimeout(()=>console.log(`QA_MAIN_PRELOAD_PULSE index=${index+1} delay=${delay}`),delay));
+}
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
   environment:()=>invoke('app:get-environment'),
