@@ -6,6 +6,7 @@ const polish=read('ui/zoom-production-polish.js');
 const repair=read('ui/physical-mac-repair.js');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const css=read('ui/zoom-adaptive-parity.css');
+const approved=read('ui/approved-reference-parity.css');
 const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
 
@@ -25,8 +26,11 @@ assert(runtime.includes('participantPriority(row)')&&runtime.includes("return se
 assert(runtimeCss.includes("panel.style")===false||runtimeCss.includes('#meetingOverlay .room-side'),'Final runtime stylesheet must own the participant surface.');
 assert(css.includes('#participantVideoDock .dock-grip{display:none !important;}'),'Legacy video-dock grip affordance must be removed.');
 assert(css.includes('#participantVideoDock .participant-video-dock-head')&&css.includes('cursor:default !important'),'Movable participant-video surface must use the normal arrow cursor.');
-assert(repair.includes("participantCount<=2")&&repair.includes("dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available'"),'Speaker-mode video panel must stay out of the way for one- and two-person meetings.');
-assert(repair.includes("view==='speaker'")&&repair.includes("!shared"),'Video-panel threshold must apply only when not sharing in Speaker view.');
+assert(repair.includes("participantCount<=1&&visibleTiles===0")&&repair.includes("dock.dataset.zoomThreshold=suppress?'empty-solo':'available'"),'Speaker-mode video panel may suppress only a truly empty solo dock.');
+assert(repair.includes("if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false"),'Two-person Speaker view must be allowed to reveal a real video filmstrip.');
+assert(approved.includes('#meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage)'),'Approved reference layer must own the normal unpositioned video-filmstrip geometry.');
+assert(approved.includes('right:14px !important;')&&approved.includes('grid-template-columns:176px !important;'),'Normal desktop video filmstrip must default to a right-side vertical column.');
+assert(approved.includes('@media(max-width:680px)'),'Top-style compact reflow must be reserved for genuinely narrow windows.');
 assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.21'"),'Carried-forward adaptive authorities must remain identifiable.');
 
-console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip video-panel-threshold');
+console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
