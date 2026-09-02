@@ -142,11 +142,19 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function cancelToolbarOpen(){if(toolbarOpenTimer){clearTimeout(toolbarOpenTimer);toolbarOpenTimer=null;}}
   function scheduleToolbarForShare(){
     cancelToolbarOpen();
+    if(platform==='darwin'){
+      // The share-owning renderer now hosts the macOS presenter controls.
+      // Creating a second sandboxed BrowserWindow during active capture can
+      // destabilize Electron's renderer preload state on macOS.
+      toolbarReadyForShare=true;
+      presenterCommitPending=false;
+      return;
+    }
     toolbarOpenTimer=setTimeout(async()=>{
       toolbarOpenTimer=null;if(!shareActive)return;
       const ready=await openToolbar();if(!shareActive)return;
       toolbarReadyForShare=Boolean(ready);publishToolbarState();
-      if(!ready){presenterCommitPending=false;showMeetingWindow({focus:false});sendMain('share:presenter-command','stop');return;}
+      if(!ready){presenterCommitPending=false;showMeetingWindow({focus:false});void sendPresenterCommand('stop',0);return;}
       if(presenterCommitPending){presenterCommitPending=false;hideMeetingWindowForShare();}
     },75);
   }
