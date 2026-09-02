@@ -55,7 +55,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const maximized=main.isMaximized?.()||false,fullScreen=main.isFullScreen?.()||false;let bounds=main.getBounds();
     if((maximized||fullScreen)&&typeof main.getNormalBounds==='function'){try{const normal=main.getNormalBounds();if(normal?.width&&normal?.height)bounds=normal;}catch{}}
     let minimumSize=[960,640];try{minimumSize=main.getMinimumSize();}catch{}
-    savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false};return main;
+    let opacity=1;try{opacity=Number(main.getOpacity?.()??1)||1;}catch{}\n    savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false,opacity};return main;
   }
   function keepMeetingRendererLive(){const main=getMainWindow?.();if(!main||main.isDestroyed())return false;try{main.webContents?.setBackgroundThrottling?.(false);}catch{}return true;}
   function hideMeetingWindowForShare(){
@@ -63,8 +63,10 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const qaSyntheticShare=qaPresenterTrace&&String(lastToolbarState.sourceName||'')==='QA Synthetic Share';
     if(!qaSyntheticShare)protectMeetingChrome(main,true);keepMeetingRendererLive();
     try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true);}catch{}
-    try{main.hide();}catch{}
+    const base=savedMainWindowState?.bounds||main.getBounds();
+    try{main.setAlwaysOnTop(false);}catch{}try{main.setIgnoreMouseEvents(true);}catch{}try{main.setMinimumSize(1,1);}catch{}
+    try{main.setOpacity?.(.01);}catch{}try{main.setBounds({x:base.x,y:base.y,width:1,height:1},false);}catch{}
+    try{main.showInactive?.();}catch{try{main.show();}catch{}}
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();return true;
   }
   function showMeetingWindow({focus=true}={}){
@@ -85,7 +87,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function restoreMainWindowAfterShare(){
     const main=getMainWindow?.(),saved=savedMainWindowState;if(!main||main.isDestroyed()){savedMainWindowState=null;return;}
     try{main.setIgnoreMouseEvents(false);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    if(saved){try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}try{main.setAlwaysOnTop(Boolean(saved.alwaysOnTop));}catch{}try{if(saved.maximized)main.maximize();else if(saved.fullScreen)main.setFullScreen(true);}catch{}}
+    if(saved){try{main.setOpacity?.(saved.opacity??1);}catch{}try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}try{main.setAlwaysOnTop(Boolean(saved.alwaysOnTop));}catch{}try{if(saved.maximized)main.maximize();else if(saved.fullScreen)main.setFullScreen(true);}catch{}}
     else{try{main.setMinimumSize(960,640);}catch{}try{main.setAlwaysOnTop(false);}catch{}}
     protectMeetingChrome(main,false);try{main.webContents?.setBackgroundThrottling?.(true);}catch{}main.show();savedMainWindowState=null;
   }
