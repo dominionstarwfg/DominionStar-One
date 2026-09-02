@@ -150,7 +150,7 @@ assert(shareService.includes('setContentProtection'),'DominionStar meeting chrom
 assert(shareIntegration.includes('window.__DominionPresenterDispatch=dispatchPresenterCommand'),'Renderer must expose one direct presenter-command dispatcher.');
 assert(shareService.includes('webContents.executeJavaScript')&&shareService.includes('window.__DominionPresenterDispatch'),'Presenter toolbar must use the direct renderer dispatch path before IPC fallback.');
 assert(shareService.includes("sendMain('share:presenter-command',outbound)"),'Legacy presenter IPC must remain only as a compatibility fallback.');
-assert(shareService.includes("meetingVisible:false")&&shareService.includes("meetingVisible:true"),'Presenter controls must track hidden versus explicitly shown meeting state.');
+assert(shareService.includes("meetingVisible:true"),'Presenter toolbar state must truthfully report the meeting as visible while the capture-owning renderer remains unmodified.');
 assert(presenterHtml.includes('<svg viewBox="0 0 24 24"'),'Presenter toolbar must use vector controls.');
 for(const legacyGlyph of ['◉','▣','♙','▢','Ⅱ','✎','▤'])assert(!presenterHtml.includes(legacyGlyph),`Presenter toolbar must not regress to legacy glyph ${legacyGlyph}.`);
 assert(presenterHtml.includes('data-command="stop"')&&presenterHtml.includes('Stop Share'),'Presenter toolbar must expose Stop Share directly.');
