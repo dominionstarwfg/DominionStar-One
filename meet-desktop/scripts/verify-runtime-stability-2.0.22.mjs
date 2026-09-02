@@ -129,7 +129,7 @@ assert.ok(shareIntegration.includes("const permission=proven?'granted':'unknown'
 assert.ok(shareIntegration.includes('const entry=await resolveShareEntry(permission)'),'Share must continue directly through the real picker/capture flow.');
 assert.ok(shareIntegration.includes('const diagnostic=await desktop?.media?.requestScreen?.()'),'Deep Screen Recording diagnostics must run only in the real capture-failure recovery path.');
 assert.ok(shareService.includes('function showCompanionWindow'),'Presenter Chat/Participants/Annotation must use a dedicated companion window instead of reopening full meeting chrome.');
-assert.ok(shareService.includes("showMeetingWindow({focus:false});sendMain('share:presenter-command','stop')"),'Stop Share must wake/retry the hidden renderer when necessary.');
+assert.ok(shareService.includes("showMeetingWindow({focus:false});void sendPresenterCommand('stop',0)"),'Stop Share must wake/retry the renderer through presenter command authority when necessary.');
 
 assert.ok(reaction.includes("observer.observe(layer,{childList:true})"),'Reaction observer must be scoped to direct reaction children.');
 assert.ok(!reaction.includes('observer.observe(document.documentElement'),'Reaction parity must not observe the whole document.');
