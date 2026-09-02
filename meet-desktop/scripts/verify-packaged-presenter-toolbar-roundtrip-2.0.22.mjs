@@ -129,7 +129,18 @@ try{
     await sleep(1200);
     if(logCount('QA_PRESENTER_COMMAND pause')<pauseCommandsBefore+1){
       if(directError)throw new Error(`Pause click reaches presenter toolbar, but presenter bridge/main IPC does not complete. Direct bridge error: ${directError}`);
-      throw new Error(`Pause click and direct presenter bridge both execute, but the meeting renderer never receives share:presenter-command. Direct bridge result: ${JSON.stringify(directResult)}. Hidden meeting delivery is the failing boundary.`);
+      const rescuePauseBefore=logCount('QA_PRESENTER_COMMAND pause');
+      let showResult=null,rescuePauseResult=null,rescueError='';
+      try{
+        showResult=await toolbar.eval(`window.dominionDesktop.presenter.command('show-meeting')`,5000);
+        await sleep(700);
+        rescuePauseResult=await toolbar.eval(`window.dominionDesktop.presenter.command('pause')`,5000);
+      }catch(error){rescueError=String(error?.message||error);}
+      await sleep(1400);
+      const rescued=logCount('QA_PRESENTER_COMMAND pause')>=rescuePauseBefore+1;
+      console.log('PRESENTER_OCCLUSION_DIAGNOSTIC show-result='+JSON.stringify(showResult)+' rescue-pause-result='+JSON.stringify(rescuePauseResult)+' rescue-error='+JSON.stringify(rescueError)+' on-screen-rescue='+(rescued?1:0));
+      if(rescued)throw new Error('Presenter command delivery resumes after Show meeting restores the meeting BrowserWindow on-screen. Full off-screen parking is therefore macOS-occluded and cannot be used as the presenter keepalive state.');
+      throw new Error(`Presenter bridge/main IPC completes, but meeting renderer delivery still fails even after Show meeting restoration. This is not only window occlusion. Show result: ${JSON.stringify(showResult)}; rescue pause result: ${JSON.stringify(rescuePauseResult)}; rescue error: ${rescueError}`);
     }
   }
   await waitLog('QA_PRESENTER_COMMAND pause','Pause command delivery',4000,pauseCommandsBefore+1);
