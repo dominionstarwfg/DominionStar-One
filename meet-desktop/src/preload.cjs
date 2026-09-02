@@ -1,6 +1,17 @@
 const {contextBridge,ipcRenderer}=require('electron');
 const invoke=(channel,payload)=>ipcRenderer.invoke(channel,payload);
 const listen=(channel,callback)=>{if(typeof callback!=='function')return()=>{};const handler=(_event,payload)=>callback(payload);ipcRenderer.on(channel,handler);return()=>ipcRenderer.removeListener(channel,handler);};
+const listenPresenterCommand=callback=>{
+  if(typeof callback!=='function')return()=>{};
+  const handler=(_event,payload)=>{
+    const command=String(payload?.command||payload||'');
+    const qaCommandId=Number(payload?.qaCommandId||0)||0;
+    if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command});
+    callback(payload);
+  };
+  ipcRenderer.on('share:presenter-command',handler);
+  return()=>ipcRenderer.removeListener('share:presenter-command',handler);
+};
 const packaged=String(location?.href||'').includes('/app.asar/');
 const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../assets/logo.jpeg',location.href).href;
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
@@ -29,7 +40,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   }),
   share:Object.freeze({
     openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')}),probeAccess:()=>invoke('share:probe-access'),onSourceSelected:callback=>listen('share:source-selected',callback),
-    captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;},captureState:state=>invoke('share:capture-state',state),presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;},captureStopped:()=>invoke('share:capture-stopped'),onPresenterCommand:callback=>listen('share:presenter-command',callback)
+    captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;},captureState:state=>invoke('share:capture-state',state),presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;},captureStopped:()=>invoke('share:capture-stopped'),onPresenterCommand:callback=>listenPresenterCommand(callback)
   }),
   sharePicker:Object.freeze({listSources:options=>invoke('share:list-sources',options),choose:(sourceId,options)=>invoke('share:select-source',{sourceId,options}),cancel:()=>invoke('share:cancel-picker')}),
   presenter:Object.freeze({command:command=>invoke('share:presenter-command',command),setMenuOpen:open=>invoke('share:presenter-menu-state',{open:Boolean(open)}),onState:callback=>listen('share:toolbar-state',callback)})
