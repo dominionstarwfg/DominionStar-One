@@ -45,3 +45,45 @@ body[data-ds-share-companion="annotate"] .share-stage-label{top:10px!important;l
 .share-permission-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .share-permission-copy{min-width:0}.share-permission-copy p{margin:0 0 2px;color:#83bfff;font-size:8px;font-weight:800;letter-spacing:.11em}.share-permission-copy h3{margin:0 0 4px;font-size:14px;line-height:1.2}.share-permission-copy span{display:block;color:#a8b2bc;font-size:10px;line-height:1.4}
 .share-permission-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:7px;padding-top:2px}.share-permission-actions button{height:32px;padding:0 11px;border-radius:7px;border:1px solid rgba(255,255,255,.13);background:#282d33;color:#eef4fa;font-size:10px;font-weight:700;cursor:pointer}.share-permission-actions button:hover{background:#343a42}.share-permission-actions [data-permission-open],.share-permission-actions [data-permission-restart]{border-color:#2d8cff;background:#2d8cff;color:#fff}.share-permission-actions [data-permission-open]:hover,.share-permission-actions [data-permission-restart]:hover{background:#1978de}.share-permission-actions button[hidden]{display:none!important}
+
+.inline-presenter-toolbar{
+  position:absolute;
+  left:50%;
+  top:14px;
+  z-index:120;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:max-content;
+  max-width:calc(100% - 28px);
+  min-height:58px;
+  padding:7px 9px 7px 12px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:13px;
+  background:rgba(20,23,28,.96);
+  box-shadow:0 14px 38px rgba(0,0,0,.42);
+  backdrop-filter:blur(18px);
+}
+.inline-presenter-toolbar[hidden]{display:none!important}
+.inline-presenter-status{display:flex;flex-direction:column;gap:2px;min-width:116px;padding-right:5px}
+.inline-presenter-status strong{font-size:11px;color:#59df83;font-weight:700}
+.inline-presenter-status span{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9.5px;color:rgba(241,245,249,.64)}
+.inline-presenter-actions{display:flex;align-items:center;gap:3px}
+.inline-presenter-actions button{
+  min-height:42px;
+  padding:0 9px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#f4f6f8;
+  font:600 10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  cursor:pointer;
+}
+.inline-presenter-actions button:hover{background:rgba(255,255,255,.09)}
+.inline-presenter-actions button.stop{background:#d93025;color:#fff;padding-inline:13px}
+.inline-presenter-actions button.stop:hover{background:#e23b30}
+@media(max-width:900px){
+  .inline-presenter-status{display:none}
+  .inline-presenter-actions button{padding-inline:7px;font-size:9px}
+}
