@@ -65,6 +65,8 @@
     const overlay=await findMeetingSurface();
     if(!overlay)return;
     const media=window.DominionMediaController,share=window.DominionShareController;
+    const environment=await desktop?.environment?.().catch(()=>null);
+    const sameRendererPresenter=String(environment?.platform||'')==='darwin';
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
@@ -120,7 +122,9 @@
       const state=share.snapshot();
       if(!state.active||presenterCommitted)return false;
       presenterCommitted=true;
-      bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
+      // macOS presenter controls live in this renderer. Crossing into the main
+      // process here caused the active capture renderer to stall on physical Mac.
+      if(!sameRendererPresenter)bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
       return true;
     }
 
