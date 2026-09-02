@@ -133,10 +133,10 @@ assert(!preferences.includes('setCaptionState(')&&!preferences.includes('publish
 assert(shareService.includes('function hideMeetingWindowForShare()'),'Desktop sharing must own a dedicated presenter-hidden state.');
 assert(!shareService.includes('presenterParkPoint={x:-32000,y:-32000}'),'Presenter state must not park the meeting at extreme off-screen coordinates.');
 assert(!shareService.includes('main.hide()'),'Presenter state must not hide the main renderer because macOS can suspend hidden presenter IPC.');
-assert(shareService.includes('main.setMinimumSize(1,1)')&&shareService.includes('width:1,height:1'),'Presenter state must collapse the meeting to a compositor-visible 1×1 surface.');
+assert(shareService.includes('main.setBounds(base,false)'),'Presenter state must retain normal saved window geometry so Chromium keeps a full compositor surface.');
 assert(shareService.includes('main.setOpacity?.(.01)'),'Presenter state must make the compositor-visible meeting effectively invisible.');
 assert(shareService.includes('main.showInactive?.()'),'Presenter state must remain visible without stealing focus.');
-assert(shareService.includes('main.setIgnoreMouseEvents(true)'),'Presenter state must make the collapsed meeting window non-interactive.');
+assert(shareService.includes('main.setIgnoreMouseEvents(true,{forward:true})'),'Presenter state must make the transparent meeting surface click-through without collapsing its compositor geometry.');
 assert(shareService.includes('keepMeetingRendererLive()'),'Presenter state must explicitly keep the meeting renderer unthrottled.');
 assert(main.includes('backgroundThrottling:false'),'The main meeting renderer must be created with background throttling disabled.');
 assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the same renderer-live collapsed presenter state.');
