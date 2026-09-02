@@ -118,12 +118,12 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)};pendingSelection={source,options:normalizedOptions};closePicker();queueMicrotask(()=>sendMain('share:source-selected',{sourceId:String(source.id),name:String(source.name||'Shared content'),options:normalizedOptions}));return {ok:true};});
   ipcMain.handle('share:cancel-picker',()=>{closePicker();return {ok:true};});
 
-  ipcMain.handle('share:capture-started',(_event,state={})=>{
+  ipcMain.on('share:capture-started',(event,state={})=>{
+    const main=getMainWindow?.();if(!main||main.isDestroyed()||event.sender!==main.webContents)return;
     shareActive=true;toolbarReadyForShare=false;presenterCommitPending=false;rememberMainWindow();keepMeetingRendererLive();attachShareWindowLifecycle();
     lastToolbarState={...lastToolbarState,...state,meetingVisible:true,companion:''};
-    // The renderer must receive this IPC reply and fully commit the active share
-    // before any presenter BrowserWindow is created or shown.
-    return {ok:true,toolbarPending:true,meetingHidden:false,awaitingPresenterCommit:true};
+    // Fire-and-forget only: capture start must never depend on a main-process
+    // response before ShareController can publish its active state.
   });
   ipcMain.handle('share:capture-state',(_event,state={})=>{const priorCompanion=String(lastToolbarState.companion||'');lastToolbarState={...lastToolbarState,...state};if(shareActive&&priorCompanion&&state.companionOpen===false)hideMeetingWindowForShare();else publishToolbarState();return {ok:true};});
   ipcMain.on('share:presenter-committed',(event,state={})=>{
