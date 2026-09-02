@@ -186,7 +186,7 @@ requireText(shareCss,'data-ds-share-companion="chat"','Chat share companion CSS 
 requireText(shareCss,'data-ds-share-companion="participants"','Participants share companion CSS is missing.');
 requireText(shareCss,'data-ds-share-companion="annotate"','Annotation share companion CSS is missing.');
 requireText(service,"if(normalized==='stop'&&shareActive)",'Stop Share retry protection is missing.');
-requireText(service,"showMeetingWindow({focus:false});sendMain('share:presenter-command','stop')",'Stop Share retry must wake the meeting renderer.');
+requireText(service,"showMeetingWindow({focus:false});void sendPresenterCommand('stop',0)",'Stop Share retry must wake the meeting renderer through the same presenter-command authority.');
 requireText(toolbar,'data-command="stop"','Presenter toolbar is missing Stop Share.');
 requireText(toolbar,'Stop Share','Presenter toolbar Stop Share label is missing.');
 requireText(toolbarCss,'min-width:104px','Stop Share target is too small.');
