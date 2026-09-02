@@ -214,8 +214,11 @@
     const dock=q('#participantVideoDock');if(!dock)return;
     if(dock!==videoDockBound){
       if(videoDockBound)videoDockBound.removeEventListener('mousedown',startVideoDockDrag,true);
-      videoDockBound=dock;dock.dataset.dsAdaptiveWholePanelDrag='1';dock.dataset.dsAdaptiveVideoDrag='mouse-document';dock.addEventListener('mousedown',startVideoDockDrag,true);
+      videoDockBound=dock;
     }
+    dock.dataset.dsAdaptiveWholePanelDrag='1';dock.dataset.dsAdaptiveVideoDrag='mouse-document';
+    dock.removeEventListener('mousedown',startVideoDockDrag,true);
+    dock.addEventListener('mousedown',startVideoDockDrag,true);
     if(!videoDockDocumentDragBound){
       videoDockDocumentDragBound=true;
       document.addEventListener('mousemove',moveVideoDockDrag,true);
