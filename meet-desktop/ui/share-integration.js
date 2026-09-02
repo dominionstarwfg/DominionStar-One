@@ -126,7 +126,11 @@
         if(sameRendererPresenter){if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;}
         else{const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;}
       }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
-      window.DominionMeetingParity?.syncVideoDock?.();
+      // On macOS, do not rebuild/rebind the Zoom-style video dock inside the
+      // same transaction that flips Share to active. The existing dock remains
+      // visually present, but media rebinding is deferred to normal meeting
+      // updates so presenter controls stay responsive.
+      if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
       const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
     }
 
