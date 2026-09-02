@@ -124,15 +124,22 @@
     return canvas;
   }
 
+  function publishPauseState(paused){
+    try{
+      const pending=bridge?.captureState?.({sourceName:state.sourceName,paused:Boolean(paused)});
+      void Promise.resolve(pending).catch(error=>console.warn('[DominionStar Meet] Presenter state publish failed.',error));
+    }catch(error){console.warn('[DominionStar Meet] Presenter state publish failed.',error);}
+  }
+
   async function pause(videoElement){
     if(!state.liveStream||state.paused)return snapshot();
     const canvas=await captureFreezeFrame(videoElement);
     const frozen=canvas.captureStream(1);
     for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone());}catch{}}
-    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();await bridge?.captureState?.({sourceName:state.sourceName,paused:true});return snapshot();
+    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();publishPauseState(true);return snapshot();
   }
 
-  async function resume(){if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();await bridge?.captureState?.({sourceName:state.sourceName,paused:false});return snapshot();}
+  async function resume(){if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot();}
   async function togglePause(videoElement){return state.paused?resume():pause(videoElement);}
   function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
   function setAnnotationCanvas(canvas){
