@@ -173,29 +173,34 @@
     });
     companionObserver.observe(overlay,{subtree:true,attributes:true,attributeFilter:['hidden']});
 
-    bridge?.onPresenterCommand?.(async rawCommand=>{
+    async function dispatchPresenterCommand(rawCommand){
       const command=String(rawCommand?.command||rawCommand||'');
+      const qaCommandId=Number(rawCommand?.qaCommandId||0)||0;
+      if(qaCommandId>0)console.error(`QA_PRESENTER_RENDERER_DISPATCH id=${qaCommandId} command=${command}`);
       try{
-        if(command==='pause'){await share.togglePause(sharedVideo);applyLayout();return;}
-        if(command==='stop'){clearCompanion();await share.stop();applyLayout();return;}
-        if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return;}
-        if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return;}
-        if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return;}
-        if(command==='chat'){window.DominionRuntimeStability?.setParticipants?.(false);window.DominionRuntimeStability?.setChat?.(true);setCompanion('chat');return;}
-        if(command==='annotate'){const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');applyLayout();return;}
-        if(command==='new-share'){await openPickerWithPermission();return;}
-        if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return;}
-        if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return;}
-        if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return;}
-        if(command.startsWith('reaction:')){await window.DominionMeetingFeatures?.sendReaction?.(command.slice('reaction:'.length));applyLayout();return;}
-        if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();applyLayout();return;}
-        if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();applyLayout();return;}
-        if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();applyLayout();return;}
-        if(command==='show-meeting'){clearCompanion();window.focus();return;}
-      }catch(error){toast(error?.message||'Share control failed.','error');}
-    });
+        if(command==='pause'){await share.togglePause(sharedVideo);applyLayout();return {handled:true,command};}
+        if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}
+        if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return {handled:true,command};}
+        if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return {handled:true,command};}
+        if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return {handled:true,command};}
+        if(command==='chat'){window.DominionRuntimeStability?.setParticipants?.(false);window.DominionRuntimeStability?.setChat?.(true);setCompanion('chat');return {handled:true,command};}
+        if(command==='annotate'){const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');applyLayout();return {handled:true,command};}
+        if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
+        if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
+        if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
+        if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return {handled:true,command};}
+        if(command.startsWith('reaction:')){await window.DominionMeetingFeatures?.sendReaction?.(command.slice('reaction:'.length));applyLayout();return {handled:true,command};}
+        if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();applyLayout();return {handled:true,command};}
+        if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();applyLayout();return {handled:true,command};}
+        if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();applyLayout();return {handled:true,command};}
+        if(command==='show-meeting'){clearCompanion();window.focus();return {handled:true,command};}
+        return {handled:false,command};
+      }catch(error){toast(error?.message||'Share control failed.','error');return {handled:false,command,error:String(error?.message||error||'share_control_failed')};}
+    }
+    window.__DominionPresenterDispatch=dispatchPresenterCommand;
+    bridge?.onPresenterCommand?.(rawCommand=>void dispatchPresenterCommand(rawCommand));
 
-    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode});
+    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand});
   }
   void boot().catch(error=>console.error('[DominionStar Meet] Share Integration boot failed.',error)).finally(()=>{window.__DominionShareIntegrationBooting=false;});
 })();
