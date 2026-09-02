@@ -37,27 +37,28 @@ const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker(p
 const diagnosticIndex=shareIntegration.indexOf('media?.requestScreen?.()');
 if(openIndex<0||diagnosticIndex<0||diagnosticIndex<openIndex)throw new Error('Deep Screen Recording diagnostics run before real picker/capture failure.');
 
-// Physical regression: captureStarted must return before presenter BrowserWindow
-// creation. The toolbar is scheduled after the renderer-owned IPC transaction.
+// Physical regression: captureStarted must return to the renderer before any
+// presenter BrowserWindow scheduling or creation. Presenter chrome begins only
+// after Share Integration commits the fully mounted active-share state.
 const captureStarted=shareService.slice(
   shareService.indexOf("ipcMain.handle('share:capture-started'"),
   shareService.indexOf("ipcMain.handle('share:capture-state'")
 );
-requireText(captureStarted,'scheduleToolbarForShare();','Capture start does not defer presenter toolbar creation.');
-requireText(captureStarted,'toolbarPending:true','Capture start does not expose deferred toolbar state.');
+requireText(captureStarted,'toolbarPending:true','Capture start does not expose pending presenter state.');
 requireText(captureStarted,'meetingHidden:false','Capture start can hide the meeting too early.');
 requireText(captureStarted,'awaitingPresenterCommit:true','Capture start does not await presenter commit.');
 requireText(captureStarted,'keepMeetingRendererLive();','Capture start does not protect the renderer from throttling.');
+rejectText(captureStarted,'scheduleToolbarForShare();','Capture start still schedules presenter BrowserWindow work before its IPC reply can settle.');
 rejectText(captureStarted,'openToolbar(','Presenter BrowserWindow creation returned to the captureStarted IPC transaction.');
 rejectText(captureStarted,'hideMeetingWindowForShare()','Meeting hide returned to the captureStarted IPC transaction.');
 
 requireText(shareService,'function scheduleToolbarForShare()','Deferred presenter toolbar scheduler is missing.');
 const scheduler=shareService.slice(shareService.indexOf('function scheduleToolbarForShare()'),shareService.indexOf('const displayMediaHandler'));
-requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Presenter toolbar must start on a later main-process turn.');
+requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Presenter toolbar must start on a later main-process turn after renderer commit.');
 requireText(scheduler,'const ready=await openToolbar();','Deferred scheduler does not create the real presenter toolbar.');
-requireText(scheduler,'},75);','Presenter toolbar scheduling must remain explicitly deferred.');
+requireText(scheduler,'},75);','Presenter toolbar scheduling must remain explicitly deferred after commit.');
 requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Toolbar readiness is not tracked independently.');
-requireText(scheduler,'if(presenterCommitPending)','Early presenter commit is not held until toolbar readiness.');
+requireText(scheduler,'if(presenterCommitPending)','Committed presenter state is not held until toolbar readiness.');
 requireText(scheduler,"sendMain('share:presenter-command','stop')",'Presenter toolbar failure must fail Share closed.');
 
 rejectText(shareController,'rendererCommitted:true','ShareController must not own presenter visibility.');
@@ -65,10 +66,13 @@ requireText(shareIntegration,'function commitPresenterMode()','Share integration
 requireText(shareIntegration,'markCaptureProven();applyLayout();','Share stage must mount before presenter commit.');
 requireText(shareIntegration,'commitPresenterMode();','Initial Share does not explicitly commit presenter mode.');
 requireText(preload,"ipcRenderer.send('share:presenter-committed'",'Presenter commit must be one-way IPC.');
-requireText(shareService,"ipcMain.on('share:presenter-committed'",'Main process does not receive presenter commit.');
-requireText(shareService,'presenterCommitPending=true','Presenter commit cannot arrive before toolbar readiness.');
-requireText(shareService,'if(!toolbarReadyForShare)','Presenter commit is not gated on toolbar readiness.');
-requireText(shareService,'setImmediate(()=>','Meeting hide is not deferred after presenter commit.');
+const presenterCommitted=shareService.slice(
+  shareService.indexOf("ipcMain.on('share:presenter-committed'"),
+  shareService.indexOf("ipcMain.handle('share:capture-stopped'")
+);
+requireText(presenterCommitted,'presenterCommitPending=true','Presenter commit must unlock presenter chrome only after renderer completion.');
+requireText(presenterCommitted,'if(!toolbarReadyForShare){scheduleToolbarForShare();return;}','Presenter toolbar creation must originate from renderer presenter commit.');
+requireText(presenterCommitted,'setImmediate(()=>','Meeting hide is not deferred after toolbar readiness.');
 requireText(shareService,'keepMeetingRendererLive()','Hidden/background renderer protection is missing.');
 requireText(shareService,'acceptFirstMouse:true','Presenter toolbar cannot accept the first macOS click.');
 requireText(shareService,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true",'Presenter toolbar is not protected across Spaces/full-screen apps.');
@@ -126,4 +130,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive controller is not 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection record is missing.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files capture-start-returns-before-toolbar deferred-presenter-window integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files capture-start-returns-before-toolbar toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
