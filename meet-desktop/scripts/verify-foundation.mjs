@@ -142,6 +142,8 @@ assert(shareService.includes('keepMeetingRendererLive()'),'Presenter state must 
 assert(main.includes('backgroundThrottling:false'),'The main meeting renderer must be created with background throttling disabled.');
 assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the same renderer-live collapsed presenter state.');
 assert(shareService.includes("alwaysOnTop:true")&&shareService.includes("setAlwaysOnTop(true,'floating')"),'Presenter controls must stay above shared content.');
+assert(shareService.includes('focusable:false')&&shareService.includes('acceptFirstMouse:true'),'macOS presenter toolbar must accept mouse input without becoming the focused capture window.');
+assert(shareService.includes('toolbarWindow.showInactive?.()')&&shareService.includes('created.showInactive?.()'),'Presenter toolbar must appear without stealing focus from the capture-owning renderer.');
 assert(shareService.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter controls must remain available across macOS Spaces and full-screen apps.');
 assert(shareService.includes('backgroundThrottling:false'),'Presenter controls must remain responsive while the meeting is hidden.');
 assert(shareService.includes('restoreMainWindowAfterShare'),'Stopping a share must restore the original meeting window geometry.');
