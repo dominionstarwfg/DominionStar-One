@@ -64,11 +64,6 @@ try{
   main=new CdpClient(mainTarget.webSocketDebuggerUrl,mainErrors);await main.connect();stage('main-connected');
   await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionShareAnnotation&&window.dominionDesktop?.share?.captureStarted&&window.dominionDesktop?.share?.presenterCommitted",'share controllers',15000);stage('controllers-loaded');
 
-  // Prepare the meeting and a synthetic Chromium MediaStream. During active
-  // synthetic capture Chromium's DevTools Runtime.evaluate can stop answering on
-  // macOS even though the renderer event loop remains live. Therefore real app
-  // events are also emitted to process logging and become the independent
-  // observation channel for the active-share portion of this test.
   stageBegin('synthetic-prepare');
   const prepared=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -105,9 +100,6 @@ try{
   })()`);
   assert.equal(prepared.meetingVisible,true);assert.ok(prepared.tracks>=1,'Synthetic share stream has no capture track.');stage('synthetic-prepared');
 
-  // Start on the renderer's next task so CDP itself is never in the media startup
-  // call stack. Once ShareController resolves, the test mirrors Share Integration
-  // and commits presenter mode through the real one-way bridge.
   stageBegin('share-start-dispatch');
   await main.eval(`(()=>{setTimeout(()=>{window.__qaPresenterMark('start-task');window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}}).then(state=>{window.__qaShareStartResult={active:state.active,sourceName:state.sourceName};const video=document.querySelector('#sharedContentVideo');console.log('QA_START_STAGE active='+(state.active?1:0)+' sharedVisible='+(video&&!video.hidden?1:0));window.__qaPresenterMark('start-resolved');window.DominionShareIntegration.commitPresenterMode();window.__qaPresenterMark('presenter-commit-sent');}).catch(error=>{window.__qaShareStartError=String(error?.stack||error?.message||error);window.__qaPresenterMark('start-rejected');});},0);return true;})()`);stage('share-start-dispatched');
   await waitLog('QA_PRESENTER_MILESTONE start-task','scheduled ShareController.start task',6000);
@@ -121,14 +113,26 @@ try{
   toolbar=new CdpClient(toolbarTarget.webSocketDebuggerUrl,toolbarErrors);await toolbar.connect();stage('toolbar-connected');
   await toolbar.wait("document.readyState==='complete'&&document.querySelector('[data-command=\"stop\"]')&&document.querySelector('[data-command=\"chat\"]')&&document.querySelector('[data-command=\"participants\"]')&&document.querySelector('[data-command=\"annotate\"]')",'presenter controls',12000);stage('toolbar-controls-ready');
   await toolbar.wait("document.querySelector('#shareSourceLabel')?.textContent==='QA Synthetic Share'",'presenter share state',12000);stage('toolbar-state-ready');
+  await toolbar.eval(`(()=>{document.addEventListener('click',event=>{const button=event.target.closest?.('[data-command]');if(button)console.log('QA_TOOLBAR_CLICK command='+String(button.dataset.command||'')+' disabled='+(button.disabled?1:0));},true);return {bridge:Boolean(window.dominionDesktop?.presenter?.command),pauseDisabled:Boolean(document.querySelector('[data-command="pause"]')?.disabled)};})()`);
 
-  // During active synthetic capture, prove main-renderer liveness through actual
-  // IPC/event effects in stderr rather than CDP Runtime.evaluate.
   stageBegin('pause');
+  const pauseClicksBefore=logCount('QA_TOOLBAR_CLICK command=pause');
   const pauseCommandsBefore=logCount('QA_PRESENTER_COMMAND pause');
   const pausedTrueBefore=logCount('QA_SHARE_STATE active=1 paused=1');
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click();true`);
-  await waitLog('QA_PRESENTER_COMMAND pause','Pause command delivery',8000,pauseCommandsBefore+1);
+  await waitLog('QA_TOOLBAR_CLICK command=pause','Pause DOM click handler entry',3000,pauseClicksBefore+1);
+  await sleep(1200);
+  if(logCount('QA_PRESENTER_COMMAND pause')<pauseCommandsBefore+1){
+    let directResult=null,directError='';
+    try{directResult=await toolbar.eval(`window.dominionDesktop.presenter.command('pause')`,5000);}catch(error){directError=String(error?.message||error);}
+    console.log('PRESENTER_DIAGNOSTIC pause-click-reached=1 command-delivered=0 direct-result='+JSON.stringify(directResult)+' direct-error='+JSON.stringify(directError));
+    await sleep(1200);
+    if(logCount('QA_PRESENTER_COMMAND pause')<pauseCommandsBefore+1){
+      if(directError)throw new Error(`Pause click reaches presenter toolbar, but presenter bridge/main IPC does not complete. Direct bridge error: ${directError}`);
+      throw new Error(`Pause click and direct presenter bridge both execute, but the meeting renderer never receives share:presenter-command. Direct bridge result: ${JSON.stringify(directResult)}. Hidden meeting delivery is the failing boundary.`);
+    }
+  }
+  await waitLog('QA_PRESENTER_COMMAND pause','Pause command delivery',4000,pauseCommandsBefore+1);
   await waitLog('QA_SHARE_STATE active=1 paused=1','Pause controller state',10000,pausedTrueBefore+1);
   await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause toolbar state',10000);stage('pause');
 
@@ -176,8 +180,6 @@ try{
   await waitLog('QA_SHARE_STATE active=0 paused=0','Stop Share controller completion',15000,inactiveBefore+1);stage('stop-controller-complete');
   await sleep(500);
 
-  // Once capture has ended CDP should be available again. Reconnect freshly so
-  // final restoration assertions cannot inherit a Chromium active-capture CDP stall.
   main.close();main=null;
   const restoredTarget=await waitTarget(item=>item.type==='page'&&String(item.url||'').startsWith('file://')&&!String(item.url||'').includes('presenter-toolbar.html'),'restored main renderer',10000);
   main=new CdpClient(restoredTarget.webSocketDebuggerUrl,mainErrors);await main.connect();
@@ -189,7 +191,7 @@ try{
   assert.deepEqual(mainErrors,[],'Main meeting renderer emitted exceptions:\n'+mainErrors.join('\n'));
   assert.deepEqual(toolbarErrors,[],'Presenter toolbar renderer emitted exceptions:\n'+toolbarErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged presenter round-trip wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK capture-completes-before-hide integration-style-one-way-commit hidden-renderer-event-responsive toolbar-ipc pause-resume compact-chat compact-participants annotation-companion audio-video-command-path stop-share-ends-track restores-meeting no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK capture-completes-before-hide integration-style-one-way-commit hidden-renderer-event-responsive toolbar-click bridge-main-delivery pause-resume compact-chat compact-participants annotation-companion audio-video-command-path stop-share-ends-track restores-meeting no-renderer-errors');
 }catch(error){
   failure=error;console.error('PRESENTER_STAGE_FAILURE',error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());
 }finally{
