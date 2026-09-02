@@ -160,7 +160,9 @@ requireText(integration,"window.dispatchEvent(new CustomEvent('dominion:presente
 requireText(integration,'function commitPresenterMode()','Share Integration must own safe presenter commit.');
 requireText(integration,'markCaptureProven();applyLayout();','Shared-stage layout must mount before presenter commit.');
 requireText(integration,'commitPresenterMode();','Initial share must explicitly enter presenter mode after layout.');
-requireText(preload,"presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;}",'Presenter commit must use one-way IPC.');
+requireText(integration,"const sameRendererPresenter=String(environment?.platform||'')==='darwin'",'macOS same-renderer presenter detection is missing.');
+requireText(integration,"if(!sameRendererPresenter)bridge?.presenterCommitted?.(",'macOS presenter commit must stay inside the share-owning renderer while non-macOS keeps one-way main-process commit.');
+requireText(preload,"presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;}",'Non-macOS presenter commit bridge must remain one-way IPC.');
 const presenterCommitted=service.slice(
   service.indexOf("ipcMain.on('share:presenter-committed'"),
   service.indexOf("ipcMain.handle('share:capture-stopped'")
