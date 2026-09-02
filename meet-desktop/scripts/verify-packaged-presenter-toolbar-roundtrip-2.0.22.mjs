@@ -12,7 +12,7 @@ let stderr='';
 const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*','--use-fake-ui-for-media-stream'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
 const count=needle=>stderr.split(String(needle)).length-1;
-async function waitLog(needle,label,timeout=9000,minCount=1){const deadline=Date.now()+timeout;while(Date.now()<deadline){if(child.exitCode!==null)throw new Error(`Packaged app exited before ${label}.\n${stderr}`);if(count(needle)>=minCount)return;await sleep(60);}throw new Error(`Timed out waiting for ${label}: ${needle}\n${stderr}`);}
+async function waitLog(needle,label,timeout=9000,minCount=1){const deadline=Date.now()+timeout;while(Date.now()<deadline){if(child.exitCode!==null)throw new Error(`Packaged app exited before ${label}.\n${stderr}`);if(stderr.includes('QA_PRESENTER_SELF_FAILURE'))throw new Error(`Renderer presenter sequence failed before ${label}.\n${stderr}`);if(count(needle)>=minCount)return;await sleep(60);}throw new Error(`Timed out waiting for ${label}: ${needle}\n${stderr}`);}
 async function waitTarget(timeout=15000){const deadline=Date.now()+timeout;while(Date.now()<deadline){try{const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(900)});const targets=await response.json();const target=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://')&&!String(item.url||'').includes('presenter-toolbar.html'));if(target?.webSocketDebuggerUrl)return target;}catch{}await sleep(120);}throw new Error('Timed out waiting for main renderer.');}
 class Cdp{
   constructor(url){this.url=url;this.socket=null;this.nextId=0;this.pending=new Map();}
@@ -40,27 +40,79 @@ try{
     window.__qaOriginalCaptureStream=HTMLCanvasElement.prototype.captureStream;HTMLCanvasElement.prototype.captureStream=function(){return makeStream('video');};
     Object.defineProperty(window,'ImageCapture',{configurable:true,value:class{async grabFrame(){return createImageBitmap(window.__qaFrameCanvas);}}});
     window.__qaAudioContext=new AudioContext();const destination=window.__qaAudioContext.createMediaStreamDestination();Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>constraints?.audio?destination.stream:new MediaStream()});
-    return {meetingVisible:!overlay.hidden,tracks:window.__qaLogicalShare.getTracks().length};
+
+    const qaSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const qaWait=async(predicate,label,timeout=7000)=>{const deadline=Date.now()+timeout;let last='';while(Date.now()<deadline){try{if(predicate())return true;}catch(error){last=String(error?.message||error);}await qaSleep(40);}throw new Error('Timed out waiting for '+label+(last?': '+last:''));};
+    const qaButton=command=>document.querySelector('[data-inline-command="'+command+'"]');
+    const qaClick=command=>{const button=qaButton(command);if(!button||button.hidden)throw new Error('Presenter control unavailable: '+command);button.click();};
+    const qaMark=name=>console.log('QA_PRESENTER_SELF_OK '+name);
+
+    window.__qaPresenterSelfRun=async()=>{
+      try{
+        console.log('QA_PRESENTER_SELF_BEGIN');
+        const state=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
+        window.DominionShareIntegration.commitPresenterMode();
+        await qaWait(()=>state.active===true&&window.DominionShareController.snapshot().active===true&&Boolean(document.querySelector('#inlinePresenterToolbar:not([hidden])')),'active inline presenter toolbar');
+        if(state.sourceName!=='QA Synthetic Share')throw new Error('Unexpected share source: '+state.sourceName);
+        qaMark('share-active');
+
+        qaClick('pause');
+        await qaWait(()=>window.DominionShareController.snapshot().paused===true&&qaButton('pause')?.textContent==='Resume','Pause state');
+        qaMark('pause');
+        qaClick('pause');
+        await qaWait(()=>window.DominionShareController.snapshot().paused===false&&qaButton('pause')?.textContent==='Pause','Resume state');
+        qaMark('resume');
+
+        qaClick('chat');
+        await qaWait(()=>document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false,'Chat companion');
+        qaMark('chat');window.DominionRuntimeStability.setChat(false);
+        qaClick('participants');
+        await qaWait(()=>document.body.dataset.dsShareCompanion==='participants'&&document.querySelector('.room-side')?.hidden===false,'Participants companion');
+        qaMark('participants');window.DominionRuntimeStability.setParticipants(false);
+
+        qaClick('annotate');
+        await qaWait(()=>window.DominionShareAnnotation.snapshot().active===true,'Annotation active');
+        qaMark('annotate');qaClick('annotate');
+        await qaWait(()=>window.DominionShareAnnotation.snapshot().active===false,'Annotation closed');
+        qaMark('annotate-close');
+
+        qaClick('audio');
+        await qaWait(()=>window.DominionMediaController.snapshot().micOn===true&&qaButton('audio')?.textContent==='Mute','Presenter audio state');
+        qaMark('audio');
+        qaClick('video');
+        await qaWait(()=>window.DominionMediaController.snapshot().cameraOn===false&&qaButton('video')?.textContent==='Start Video','Presenter video state');
+        qaMark('video');
+
+        qaClick('stop');
+        await qaWait(()=>window.DominionShareController.snapshot().active===false&&document.querySelector('#inlinePresenterToolbar')?.hidden===true,'Stop Share completion',10000);
+        qaMark('stop-share');
+        console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
+      }catch(error){console.error('QA_PRESENTER_SELF_FAILURE '+String(error?.stack||error));}
+    };
+    return {meetingVisible:!overlay.hidden,tracks:window.__qaLogicalShare.getTracks().length,selfRunner:typeof window.__qaPresenterSelfRun==='function'};
   })()`,12000);
-  assert.equal(prepared.meetingVisible,true);assert.equal(prepared.tracks,1);stage('logical-media-prepared');
+  assert.equal(prepared.meetingVisible,true);assert.equal(prepared.tracks,1);assert.equal(prepared.selfRunner,true);stage('logical-media-prepared');
 
-  const started=await main.eval(`(async()=>{const state=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});window.DominionShareIntegration.commitPresenterMode();const inline=document.querySelector('#inlinePresenterToolbar');return {active:state.active,inlineVisible:Boolean(inline&&!inline.hidden),source:state.sourceName};})()`,12000);
-  assert.equal(started.active,true);assert.equal(started.inlineVisible,true);assert.equal(started.source,'QA Synthetic Share');stage('share-active');
+  // Schedule the real presenter transaction inside the renderer and return from
+  // CDP before Share becomes active. On physical Mac Chromium, Runtime.evaluate
+  // can stop servicing debugger calls after the active-share transition even
+  // while the renderer's own UI/event handlers remain live. The certification
+  // below therefore observes renderer console milestones only after this point.
+  const scheduled=await main.eval(`(()=>{setTimeout(()=>{void window.__qaPresenterSelfRun();},30);return true;})()`,2500);
+  assert.equal(scheduled,true);stage('self-run-scheduled');main.close();main=null;
 
-  const pauseBefore=count('QA_PRESENTER_COMMAND pause');await main.eval(`document.querySelector('[data-inline-command="pause"]').click();true`);await waitLog('QA_PRESENTER_COMMAND pause','Pause command',5000,pauseBefore+1);await main.wait("window.DominionShareController.snapshot().paused===true&&document.querySelector('[data-inline-command=\"pause\"]')?.textContent==='Resume'",'Pause state');stage('pause');
-  const resumeBefore=count('QA_PRESENTER_COMMAND pause');await main.eval(`document.querySelector('[data-inline-command="pause"]').click();true`);await waitLog('QA_PRESENTER_COMMAND pause','Resume command',5000,resumeBefore+1);await main.wait("window.DominionShareController.snapshot().paused===false&&document.querySelector('[data-inline-command=\"pause\"]')?.textContent==='Pause'",'Resume state');stage('resume');
-
-  const chatBefore=count('QA_PRESENTER_COMMAND chat');await main.eval(`document.querySelector('[data-inline-command="chat"]').click();true`);await waitLog('QA_PRESENTER_COMMAND chat','Chat command',5000,chatBefore+1);await main.wait("document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false",'Chat companion');stage('chat');await main.eval(`window.DominionRuntimeStability.setChat(false);true`);
-  const participantsBefore=count('QA_PRESENTER_COMMAND participants');await main.eval(`document.querySelector('[data-inline-command="participants"]').click();true`);await waitLog('QA_PRESENTER_COMMAND participants','Participants command',5000,participantsBefore+1);await main.wait("document.body.dataset.dsShareCompanion==='participants'&&document.querySelector('.room-side')?.hidden===false",'Participants companion');stage('participants');await main.eval(`window.DominionRuntimeStability.setParticipants(false);true`);
-
-  const annotateBefore=count('QA_PRESENTER_COMMAND annotate');await main.eval(`document.querySelector('[data-inline-command="annotate"]').click();true`);await waitLog('QA_PRESENTER_COMMAND annotate','Annotate command',5000,annotateBefore+1);await main.wait("window.DominionShareAnnotation.snapshot().active===true",'Annotation active');stage('annotate');await main.eval(`document.querySelector('[data-inline-command="annotate"]').click();true`);await main.wait("window.DominionShareAnnotation.snapshot().active===false",'Annotation closed');stage('annotate-close');
-
-  const audioBefore=count('QA_PRESENTER_COMMAND audio');await main.eval(`document.querySelector('[data-inline-command="audio"]').click();true`);await waitLog('QA_PRESENTER_COMMAND audio','Audio command',5000,audioBefore+1);await main.wait("window.DominionMediaController.snapshot().micOn===true&&document.querySelector('[data-inline-command=\"audio\"]')?.textContent==='Mute'",'Presenter audio state');stage('audio');
-  const videoBefore=count('QA_PRESENTER_COMMAND video');await main.eval(`document.querySelector('[data-inline-command="video"]').click();true`);await waitLog('QA_PRESENTER_COMMAND video','Video command',5000,videoBefore+1);await main.wait("window.DominionMediaController.snapshot().cameraOn===false&&document.querySelector('[data-inline-command=\"video\"]')?.textContent==='Start Video'",'Presenter video state');stage('video');
-
-  const stopBefore=count('QA_PRESENTER_COMMAND stop');await main.eval(`document.querySelector('[data-inline-command="stop"]').click();true`);await waitLog('QA_PRESENTER_COMMAND stop','Stop Share command',5000,stopBefore+1);await main.wait("window.DominionShareController.snapshot().active===false&&document.querySelector('#inlinePresenterToolbar')?.hidden===true",'Stop Share completion',10000);stage('stop-share');
+  await waitLog('QA_PRESENTER_SELF_OK share-active','self-driven Share activation',12000);stage('share-active');
+  await waitLog('QA_PRESENTER_COMMAND pause','Pause command',6000,1);await waitLog('QA_PRESENTER_SELF_OK pause','Pause state',6000);stage('pause');
+  await waitLog('QA_PRESENTER_COMMAND pause','Resume command',6000,2);await waitLog('QA_PRESENTER_SELF_OK resume','Resume state',6000);stage('resume');
+  await waitLog('QA_PRESENTER_COMMAND chat','Chat command',6000);await waitLog('QA_PRESENTER_SELF_OK chat','Chat companion',6000);stage('chat');
+  await waitLog('QA_PRESENTER_COMMAND participants','Participants command',6000);await waitLog('QA_PRESENTER_SELF_OK participants','Participants companion',6000);stage('participants');
+  await waitLog('QA_PRESENTER_COMMAND annotate','Annotate command',6000,1);await waitLog('QA_PRESENTER_SELF_OK annotate','Annotation active',6000);stage('annotate');
+  await waitLog('QA_PRESENTER_COMMAND annotate','Annotate close command',6000,2);await waitLog('QA_PRESENTER_SELF_OK annotate-close','Annotation closed',6000);stage('annotate-close');
+  await waitLog('QA_PRESENTER_COMMAND audio','Audio command',6000);await waitLog('QA_PRESENTER_SELF_OK audio','Presenter audio state',6000);stage('audio');
+  await waitLog('QA_PRESENTER_COMMAND video','Video command',6000);await waitLog('QA_PRESENTER_SELF_OK video','Presenter video state',6000);stage('video');
+  await waitLog('QA_PRESENTER_COMMAND stop','Stop Share command',6000);await waitLog('QA_PRESENTER_SELF_OK stop-share','Stop Share completion',10000);stage('stop-share');
+  await waitLog('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK','presenter toolbar certification',3000);
 
   assert.equal(child.exitCode,null,'Packaged app exited during presenter round trip.');
-  console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
 }catch(error){console.error('PRESENTER_STAGE_FAILURE',error);console.error(stderr);process.exitCode=1;
-}finally{try{if(main)await main.eval(`(()=>{try{HTMLCanvasElement.prototype.captureStream=window.__qaOriginalCaptureStream||HTMLCanvasElement.prototype.captureStream;}catch{}try{window.__qaAudioContext?.close?.();}catch{}return true;})()`,1500);}catch{}main?.close();if(child.exitCode===null)child.kill('SIGTERM');await sleep(2000);if(child.exitCode===null)child.kill('SIGKILL');}
+}finally{main?.close();if(child.exitCode===null)child.kill('SIGTERM');await sleep(2000);if(child.exitCode===null)child.kill('SIGKILL');}
