@@ -64,39 +64,44 @@ assert.match(repair,/return await integration\.open\(\)/,'Physical compatibility
 const repairClick=repair.slice(repair.indexOf('function onDocumentClick'),repair.indexOf("document.addEventListener('submit'"));
 assert.ok(!repairClick.includes('#roomShare'),'Physical Mac repair must not intercept the Share Screen button.');
 
-// Critical presenter repair: captureStarted returns immediately, without creating
-// or showing a presenter BrowserWindow. Presenter chrome is created later.
+// Critical presenter repair: captureStarted returns immediately, with no presenter
+// BrowserWindow scheduling. Only a renderer commit sent after ShareController.start
+// and shared-stage mounting may unlock presenter chrome.
 const captureStarted=shareService.slice(
   shareService.indexOf("ipcMain.handle('share:capture-started'"),
   shareService.indexOf("ipcMain.handle('share:capture-state'")
 );
-assert.match(captureStarted,/scheduleToolbarForShare\(\);/,'Capture start must schedule presenter chrome after returning.');
 assert.match(captureStarted,/toolbarPending:true/,'Capture start must report toolbar pending.');
 assert.match(captureStarted,/meetingHidden:false/,'Capture start must keep the meeting visible.');
 assert.match(captureStarted,/awaitingPresenterCommit:true/,'Capture start must wait for later presenter commit.');
 assert.match(captureStarted,/keepMeetingRendererLive\(\)/,'Capture start must keep the renderer unthrottled.');
+assert.doesNotMatch(captureStarted,/scheduleToolbarForShare\(\);/,'Capture start must not schedule presenter BrowserWindow work before its IPC reply is delivered.');
 assert.doesNotMatch(captureStarted,/openToolbar\(/,'Presenter BrowserWindow creation must not occur inside captureStarted.');
 assert.doesNotMatch(captureStarted,/hideMeetingWindowForShare\(\)/,'Meeting hide must not occur inside captureStarted.');
 
 assert.match(shareService,/function scheduleToolbarForShare\(\)/,'Deferred presenter toolbar scheduler is missing.');
 const scheduler=shareService.slice(shareService.indexOf('function scheduleToolbarForShare()'),shareService.indexOf('const displayMediaHandler'));
-assert.match(scheduler,/toolbarOpenTimer=setTimeout\(async\(\)=>/,'Presenter toolbar must start on a later main-process turn.');
+assert.match(scheduler,/toolbarOpenTimer=setTimeout\(async\(\)=>/,'Presenter toolbar must start on a later main-process turn after renderer commit.');
 assert.match(scheduler,/const ready=await openToolbar\(\);/,'Deferred scheduler must create the real presenter toolbar.');
-assert.match(scheduler,/\},75\);/,'Presenter toolbar scheduling must remain explicitly deferred.');
+assert.match(scheduler,/\},75\);/,'Presenter toolbar scheduling must remain explicitly deferred after renderer commit.');
 assert.match(scheduler,/toolbarReadyForShare=Boolean\(ready\)/,'Toolbar readiness must be tracked independently.');
-assert.match(scheduler,/if\(presenterCommitPending\)/,'Presenter commit arriving early must wait for toolbar readiness.');
+assert.match(scheduler,/if\(presenterCommitPending\)/,'Committed presenter state must wait for toolbar readiness.');
 assert.match(scheduler,/sendMain\('share:presenter-command','stop'\)/,'Toolbar creation failure must fail Share closed.');
 
-// ShareController owns capture only. Integration owns safe presenter commit.
+// ShareController owns capture only. Integration owns safe presenter commit and
+// that commit is the sole authority that may initiate toolbar creation.
 assert.doesNotMatch(shareController,/rendererCommitted:true/,'ShareController must not own meeting visibility commit.');
 assert.match(shareIntegration,/function commitPresenterMode\(\)/,'Share Integration must own presenter commit.');
 assert.match(shareIntegration,/markCaptureProven\(\);applyLayout\(\);/,'Shared stage must mount before presenter commit.');
 assert.match(shareIntegration,/bridge\?\.presenterCommitted\?\.\(/,'Share Integration cannot send presenter-ready state.');
 assert.match(preload,/ipcRenderer\.send\('share:presenter-committed'/,'Presenter commit must use one-way IPC.');
-assert.match(shareService,/ipcMain\.on\('share:presenter-committed'/,'Main process must receive one-way presenter commit.');
-assert.match(shareService,/presenterCommitPending=true/,'Presenter commit cannot arrive before toolbar readiness.');
-assert.match(shareService,/if\(!toolbarReadyForShare\)/,'Presenter commit must be gated on toolbar readiness.');
-assert.match(shareService,/setImmediate\(\(\)=>/,'Meeting hide must happen on a later main-process turn.');
+const presenterCommitted=shareService.slice(
+  shareService.indexOf("ipcMain.on('share:presenter-committed'"),
+  shareService.indexOf("ipcMain.handle('share:capture-stopped'")
+);
+assert.match(presenterCommitted,/presenterCommitPending=true/,'Presenter commit must unlock presenter chrome only after renderer completion.');
+assert.match(presenterCommitted,/if\(!toolbarReadyForShare\)\{scheduleToolbarForShare\(\);return;\}/,'Presenter toolbar creation must originate from renderer presenter commit.');
+assert.match(presenterCommitted,/setImmediate\(\(\)=>/,'Meeting hide must happen on a later main-process turn after toolbar readiness.');
 assert.match(shareService,/function cancelToolbarOpen\(\)/,'Pending presenter toolbar creation must be cancellable.');
 assert.match(shareService,/cancelToolbarOpen\(\);/,'Stop Share must cancel deferred toolbar creation.');
 
@@ -152,4 +157,4 @@ assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compa
 assert.match(css,/\.ds-reaction-tray[\s\S]*overflow:hidden!important/,'Reaction tray must remain contained.');
 assert.match(repair,/Participants \(\$\{count\}\)/,'Participants heading must expose live count.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share native-unproven-fallback granted-custom-chooser capture-start-returns-before-toolbar deferred-presenter-window integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed first-click-presenter-controls share-companions direct-stop-share profile-first-identity adhoc-not-certified two-person-right-video-filmstrip floating-participants-chat full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share native-unproven-fallback granted-custom-chooser capture-start-returns-before-toolbar toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed first-click-presenter-controls share-companions direct-stop-share profile-first-identity adhoc-not-certified two-person-right-video-filmstrip floating-participants-chat full-window compact-prejoin`);
