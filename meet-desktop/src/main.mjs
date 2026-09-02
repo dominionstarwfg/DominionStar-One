@@ -98,7 +98,7 @@ function installLocalPermissionPolicy(desktopSession){
 }
 
 function createMainWindow(){
-  mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});
+  mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged,backgroundThrottling:false}});
   mainWindow.webContents.setWindowOpenHandler(({url})=>{if(/^https:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
   mainWindow.webContents.on('will-navigate',(event,url)=>{if(url.startsWith('file://'))return;event.preventDefault();if(/^https:\/\//i.test(url))void shell.openExternal(url);});
   mainWindow.once('ready-to-show',()=>mainWindow?.show());
