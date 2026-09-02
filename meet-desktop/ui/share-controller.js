@@ -4,7 +4,15 @@
   const state={liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
   const listeners=new Set();
   const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
-  const emit=()=>{const value=snapshot();for(const listener of listeners){try{listener(value);}catch{}}};
+  const emit=()=>{
+    const value=snapshot(),qa=state.sourceName==='QA Synthetic Share';let index=0;
+    for(const listener of [...listeners]){
+      index+=1;
+      if(qa)console.log(`QA_SHARE_LISTENER_BEGIN index=${index} active=${value.active?1:0} paused=${value.paused?1:0} busy=${value.busy?1:0}`);
+      try{listener(value);}catch(error){if(qa)console.error(`QA_SHARE_LISTENER_ERROR index=${index}`,error);}
+      if(qa)console.log(`QA_SHARE_LISTENER_END index=${index}`);
+    }
+  };
   const stopTracks=stream=>{for(const track of stream?.getTracks?.()||[]){if(track.readyState!=='ended'){try{track.stop();}catch{}}}};
   const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream;
 
@@ -65,11 +73,7 @@
         try{await bridge?.captureStopped?.();}catch{}
         throw new Error('Presenter controls could not start. Screen sharing was cancelled safely.');
       }
-      // QA observability must never become part of the capture transaction.
-      // A throttled renderer may delay this timer; share start itself must return.
-      if(state.sourceName==='QA Synthetic Share'){
-        setTimeout(()=>console.log('QA_SHARE_POST_START_HEARTBEAT'),350);
-      }
+      if(state.sourceName==='QA Synthetic Share')setTimeout(()=>console.log('QA_SHARE_POST_START_HEARTBEAT'),350);
       return snapshot();
     }finally{state.busy=false;emit();}
   }
