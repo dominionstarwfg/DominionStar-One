@@ -46,7 +46,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   const qaPresenterLog=(marker,fields={})=>{
     if(!qaPresenterTrace)return;
     const pairs=Object.entries(fields).map(([key,value])=>`${key}=${String(value??'').replace(/\s+/g,'_')}`);
-    console.log(`QA_PRESENTER_${marker}${pairs.length?` ${pairs.join(' ')}`:''}`);
+    console.error(`QA_PRESENTER_${marker}${pairs.length?` ${pairs.join(' ')}`:''}`);
   };
 
   function positionNearMain(win,width,height){const main=getMainWindow?.();if(!main||main.isDestroyed())return;const bounds=savedMainWindowState?.bounds||main.getBounds();win.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:Math.max(24,bounds.y+18),width,height});}
