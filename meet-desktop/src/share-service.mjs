@@ -55,7 +55,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const maximized=main.isMaximized?.()||false,fullScreen=main.isFullScreen?.()||false;let bounds=main.getBounds();
     if((maximized||fullScreen)&&typeof main.getNormalBounds==='function'){try{const normal=main.getNormalBounds();if(normal?.width&&normal?.height)bounds=normal;}catch{}}
     let minimumSize=[960,640];try{minimumSize=main.getMinimumSize();}catch{}
-    let opacity=1;try{opacity=Number(main.getOpacity?.()??1)||1;}catch{}\n    savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false,opacity};return main;
+    let opacity=1;try{opacity=Number(main.getOpacity?.()??1)||1;}catch{}
+    savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false,opacity};return main;
   }
   function keepMeetingRendererLive(){const main=getMainWindow?.();if(!main||main.isDestroyed())return false;try{main.webContents?.setBackgroundThrottling?.(false);}catch{}return true;}
   function hideMeetingWindowForShare(){
