@@ -127,15 +127,19 @@ assert(meetingCaptions.includes("pref('alwaysShowCaptions',false)")&&preferences
 assert(!preferences.includes('setCaptionState(')&&!preferences.includes('publishCaption('),'Personal Accessibility settings must never modify host caption/transcript authority.');
 
 // Presenter-state contract: the full meeting disappears from the presenter's
-// desktop while its renderer remains explicitly unthrottled so capture and
-// presenter-command delivery continue. The floating toolbar stays independent.
+// usable desktop while its renderer remains compositor-visible and explicitly
+// unthrottled so macOS continues presenter-command delivery. The floating
+// toolbar stays independent.
 assert(shareService.includes('function hideMeetingWindowForShare()'),'Desktop sharing must own a dedicated presenter-hidden state.');
-assert(shareService.includes('main.hide()'),'Presenter state must hide the meeting window instead of parking it at invalid display coordinates.');
 assert(!shareService.includes('presenterParkPoint={x:-32000,y:-32000}'),'Presenter state must not park the meeting at extreme off-screen coordinates.');
-assert(shareService.includes('main.setIgnoreMouseEvents(true)'),'Hidden presenter state must make the meeting window non-interactive before hiding it.');
+assert(!shareService.includes('main.hide()'),'Presenter state must not hide the main renderer because macOS can suspend hidden presenter IPC.');
+assert(shareService.includes('main.setMinimumSize(1,1)')&&shareService.includes('width:1,height:1'),'Presenter state must collapse the meeting to a compositor-visible 1×1 surface.');
+assert(shareService.includes('main.setOpacity?.(.01)'),'Presenter state must make the compositor-visible meeting effectively invisible.');
+assert(shareService.includes('main.showInactive?.()'),'Presenter state must remain visible without stealing focus.');
+assert(shareService.includes('main.setIgnoreMouseEvents(true)'),'Presenter state must make the collapsed meeting window non-interactive.');
 assert(shareService.includes('keepMeetingRendererLive()'),'Presenter state must explicitly keep the meeting renderer unthrottled.');
 assert(main.includes('backgroundThrottling:false'),'The main meeting renderer must be created with background throttling disabled.');
-assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the same renderer-live hidden presenter state.');
+assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the same renderer-live collapsed presenter state.');
 assert(shareService.includes("alwaysOnTop:true")&&shareService.includes("setAlwaysOnTop(true,'floating')"),'Presenter controls must stay above shared content.');
 assert(shareService.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter controls must remain available across macOS Spaces and full-screen apps.');
 assert(shareService.includes('backgroundThrottling:false'),'Presenter controls must remain responsive while the meeting is hidden.');
