@@ -66,6 +66,7 @@
     const media=window.DominionMediaController,share=window.DominionShareController;
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
+    let presenterCommitted=false;
 
     let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share Screen';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
     let sharedVideo=stage.querySelector('#sharedContentVideo');if(!sharedVideo){sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);}
@@ -88,9 +89,19 @@
         const output=share.outputStream();if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
         label.innerHTML=`<strong>${state.paused?'Paused':state.annotating?'Annotating':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
         const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;
-      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
+      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
       window.DominionMeetingParity?.syncVideoDock?.();
       const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+    }
+
+    function commitPresenterMode(){
+      const state=share.snapshot();
+      if(!state.active||presenterCommitted)return false;
+      presenterCommitted=true;
+      // One-way IPC is intentional: once the main process receives this signal it
+      // may hide the meeting immediately without stranding a renderer promise.
+      bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
+      return true;
     }
 
     async function beginShare({replace=false}={}){
@@ -107,6 +118,7 @@
           if(replace){await share.replaceSource({name:'Shared content',options});window.DominionShareAnnotation?.deactivate?.();}
           else await share.start({name:'Shared content',options});
           markCaptureProven();applyLayout();
+          if(!replace)commitPresenterMode();
           if(replace)toast('Screen share changed.');
           return true;
         }catch(error){
@@ -138,6 +150,7 @@
         if(replacing){await share.replaceSource({name:selection?.name,options:selection?.options||{}});window.DominionShareAnnotation?.deactivate?.();}
         else await share.start({name:selection?.name,options:selection?.options||{}});
         markCaptureProven();applyLayout();
+        if(!replacing)commitPresenterMode();
         if(replacing)toast(`Now sharing ${String(selection?.name||'new source')}`);
       }catch(error){
         applyLayout();
@@ -183,7 +196,7 @@
       }catch(error){toast(error?.message||'Share control failed.','error');}
     });
 
-    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven()});
+    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode});
   }
   void boot();
 })();
