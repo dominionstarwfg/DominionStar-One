@@ -185,7 +185,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       publishToolbarState();
       return true;
     }
-    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:310,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,type:platform==='darwin'?'panel':undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
+    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:310,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:true,acceptFirstMouse:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
     toolbarWindow=created;
     positionNearMain(created,930,82);
     try{created.setAlwaysOnTop(true,'floating');}catch{}
@@ -283,14 +283,22 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     attachShareWindowLifecycle();
     lastToolbarState={...lastToolbarState,...state,meetingVisible:true,companion:''};
     const toolbarReady=await openToolbar();
-    if(toolbarReady)hideMeetingWindowForShare();
-    else publishToolbarState();
-    return {ok:true,toolbarReady,meetingHidden:Boolean(toolbarReady)};
+    // Phase one only creates and confirms the presenter controls. The meeting
+    // stays visible until the renderer confirms its active-share transaction has
+    // fully committed; otherwise hiding here can strand the renderer mid-start.
+    publishToolbarState();
+    return {ok:true,toolbarReady,meetingHidden:false,awaitingRendererCommit:Boolean(toolbarReady)};
   });
   ipcMain.handle('share:capture-state',(_event,state={})=>{
+    const rendererCommitted=state?.rendererCommitted===true;
+    const nextState={...state};delete nextState.rendererCommitted;
     const priorCompanion=String(lastToolbarState.companion||'');
-    lastToolbarState={...lastToolbarState,...state};
-    if(shareActive&&priorCompanion&&state.companionOpen===false)hideMeetingWindowForShare();
+    lastToolbarState={...lastToolbarState,...nextState};
+    if(shareActive&&rendererCommitted){
+      const meetingHidden=hideMeetingWindowForShare();
+      return {ok:true,rendererCommitted:true,meetingHidden};
+    }
+    if(shareActive&&priorCompanion&&nextState.companionOpen===false)hideMeetingWindowForShare();
     else publishToolbarState();
     return {ok:true};
   });
