@@ -113,6 +113,7 @@ assert(controller.includes('stopTracks(state.liveStream)'),'Stop Share must rele
 assert(controller.includes("presenter?.toolbarReady===false"),'A successful capture must fail closed if presenter controls are unavailable.');
 assert(controller.includes("Presenter controls could not start. Screen sharing was cancelled safely."),'Toolbar-start failure must surface a clear safe-cancel error.');
 assert(controller.includes("try{await bridge?.captureStopped?.();}catch{}"),'Toolbar-start failure must unwind native presenter state before returning control to the meeting.');
+assert(controller.includes('rendererCommitted:true')&&controller.includes('setTimeout(()=>'),'Share start must defer meeting-hide authority until after the renderer promise can commit.');
 assert(controller.includes('async function replaceSource')&&controller.includes('const previousLive=state.liveStream'),'New Share must remain transactional.');
 assert(integration.includes("async function openPickerWithPermission(){clearCompanion();return beginShare({replace:share.snapshot().active});}")&&integration.includes("if(command==='new-share'){await openPickerWithPermission();return;}"),'Presenter New Share must clear companion UI and route through the same permission-aware transactional chooser.');
 
@@ -130,12 +131,17 @@ assert(service.includes('async function openToolbar()'),'Presenter toolbar creat
 assert(service.includes("await created.loadFile(path.join(uiDir,'presenter-toolbar.html'))"),'Presenter toolbar must finish loading before it can own the presentation.');
 const captureStarted=service.slice(service.indexOf("ipcMain.handle('share:capture-started'"),service.indexOf("ipcMain.handle('share:capture-state'"));
 assert(captureStarted.includes('const toolbarReady=await openToolbar();'),'Capture start must await presenter-toolbar readiness.');
-assert(captureStarted.includes('if(toolbarReady)hideMeetingWindowForShare();'),'Meeting may hide only after presenter toolbar is ready.');
-assert(captureStarted.includes('else publishToolbarState();'),'Toolbar failure must leave the meeting visible instead of hiding it.');
+assert(!captureStarted.includes('hideMeetingWindowForShare()'),'Capture start must return to the renderer before the meeting is hidden.');
+assert(captureStarted.includes('meetingHidden:false')&&captureStarted.includes('awaitingRendererCommit:Boolean(toolbarReady)'),'Capture start must explicitly remain visible while awaiting renderer commit.');
+const captureState=service.slice(service.indexOf("ipcMain.handle('share:capture-state'"),service.indexOf("ipcMain.handle('share:capture-stopped'"));
+assert(captureState.includes('rendererCommitted=state?.rendererCommitted===true'),'Capture state must recognize the renderer-commit phase.');
+assert(captureState.includes('if(shareActive&&rendererCommitted)')&&captureState.includes('hideMeetingWindowForShare()'),'Meeting hide must occur only after the renderer commits the active share.');
 assert(service.includes("main.webContents?.setBackgroundThrottling?.(false)"),'Hidden meeting renderer must not throttle the active share.');
 assert(service.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter toolbar must remain available across macOS Spaces/full-screen apps.');
 assert(service.includes("setAlwaysOnTop(true,'floating')"),'Presenter toolbar must stay above shared applications.');
 assert(service.includes('backgroundThrottling:false'),'Presenter toolbar must remain responsive while the meeting window is hidden.');
+assert(service.includes('acceptFirstMouse:true'),'Presenter toolbar must accept its first macOS click without requiring a focus-only click.');
+assert(!service.includes("type:platform==='darwin'?'panel':undefined"),'Presenter toolbar must not use the unsupported macOS nonactivating panel window type.');
 assert(service.includes("if(normalized==='stop'&&shareActive)")&&service.includes("showMeetingWindow({focus:false});sendMain('share:presenter-command','stop')"),'Stop Share must have a wake-and-retry fallback if the hidden renderer delays acknowledgement.');
 assert(toolbar.includes('data-command="stop"')&&toolbar.includes('Stop Share'),'Floating presenter toolbar must expose Stop Share directly.');
 assert(toolbarCss.includes('min-width:104px')&&toolbarCss.includes('background:#d83d4c'),'Stop Share must be visually dominant and large enough to click reliably.');
@@ -151,4 +157,4 @@ assert(service.includes("if(lastToolbarState.meetingVisible)hideMeetingWindowFor
 
 assert(media.includes("script.src='./share-integration.js'"),'Desktop/web bundle must retain the same isolated Share integration.');
 assert(!integration.includes('showModal'),'Meeting share integration must never create a blocking modal.');
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid multi-family-source-cache default-desktop-selection dominionstar-window-exclusion nonblocking-share-start toolbar-before-hide hidden-meeting-default share-companions persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid multi-family-source-cache default-desktop-selection dominionstar-window-exclusion nonblocking-share-start toolbar-before-hide two-phase-renderer-commit hidden-meeting-default share-companions persistent-presenter-toolbar direct-stop-share transactional-new-share pause-freeze annotation-single-owner');
