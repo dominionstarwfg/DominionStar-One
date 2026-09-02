@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 const pkg=JSON.parse(read('package.json'));
 const shareService=read('src/share-service.mjs');
+const shareController=read('ui/share-controller.js');
 const shareIntegration=read('ui/share-integration.js');
 const sharePicker=read('ui/share-picker.js');
 const sharePickerHtml=read('ui/share-picker.html');
@@ -35,9 +36,14 @@ requireText(shareService,'main.hide()','Meeting window remains visible by defaul
 requireText(shareService,'async function openToolbar()','Presenter toolbar load must be awaitable.');
 requireText(shareService,"await created.loadFile(path.join(uiDir,'presenter-toolbar.html'))",'Presenter toolbar must load before the meeting can hide.');
 requireText(shareService,'const toolbarReady=await openToolbar();','Capture start does not wait for presenter-toolbar readiness.');
-requireText(shareService,'if(toolbarReady)hideMeetingWindowForShare();','Meeting can hide before presenter controls are actually usable.');
+requireText(shareService,'meetingHidden:false,awaitingRendererCommit:Boolean(toolbarReady)','Capture start must return before hiding the meeting.');
+requireText(shareController,'rendererCommitted:true','Renderer does not explicitly commit the live share before meeting hide.');
+requireText(shareService,'rendererCommitted=state?.rendererCommitted===true','Main process does not recognize the renderer-commit phase.');
+requireText(shareService,'if(shareActive&&rendererCommitted)','Meeting hide is not gated on renderer commit.');
 requireText(shareService,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true",'Presenter toolbar is not protected across macOS Spaces/full-screen apps.');
 requireText(shareService,"main.webContents?.setBackgroundThrottling?.(false)",'Hidden meeting renderer can still throttle the live share.');
+requireText(shareService,'acceptFirstMouse:true','Presenter toolbar cannot accept the first macOS click reliably.');
+rejectText(shareService,"type:platform==='darwin'?'panel':undefined",'Presenter toolbar still uses the unsupported macOS nonactivating panel type.');
 requireText(shareService,"if(normalized==='stop'&&shareActive)",'Stop Share does not retain main-process retry protection.');
 requireText(physicalRepair,'return await integration.open();','Physical Mac layer still owns capture instead of delegating to Share integration.');
 rejectText(physicalRepair,'sharePicker?.listSources','Physical Mac Share click still enumerates desktop sources before share authority chooses a path.');
@@ -122,4 +128,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive 2.0.21 controller 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive 2.0.21 stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection is not recorded.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid toolbar-before-hide hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip two-person-right-filmstrip physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files real-screen-window-grid toolbar-before-hide two-phase-renderer-commit hidden-meeting-presenter-state direct-stop-share real-source-chooser no-preflight real-brand view-modes compact-prejoin adaptive-participants participant-native-mouse-drag readable-participants zoom-sort compact-chat adaptive-chat whole-video-panel-drag floating-video-no-grip two-person-right-filmstrip physical-rejection-recorded`);
