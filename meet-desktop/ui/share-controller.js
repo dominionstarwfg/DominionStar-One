@@ -106,7 +106,20 @@
   async function resume(){if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();await bridge?.captureState?.({sourceName:state.sourceName,paused:false});return snapshot();}
   async function togglePause(videoElement){return state.paused?resume():pause(videoElement);}
   function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
-  function setAnnotationCanvas(canvas){state.annotationCanvas=canvas||null;if(state.annotationCanvas)startComposite();else{stopComposite();emit();}return snapshot();}
+  function setAnnotationCanvas(canvas){
+    const next=canvas||null;
+    // Idempotence is critical: Share Integration may ask Annotation to deactivate
+    // while capture is merely busy/not-yet-active. Re-emitting an unchanged null
+    // canvas would synchronously recurse emit -> applyLayout -> deactivate -> emit.
+    if(state.annotationCanvas===next){
+      if(next&&state.liveStream&&!state.compositeStream)startComposite();
+      return snapshot();
+    }
+    state.annotationCanvas=next;
+    if(next)startComposite();
+    else{stopComposite();emit();}
+    return snapshot();
+  }
   async function stop(){const hadShare=Boolean(state.liveStream||state.frozenStream);state.annotationCanvas=null;stopComposite();stopTracks(state.frozenStream);stopTracks(state.liveStream);state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};emit();if(hadShare)await bridge?.captureStopped?.();return snapshot();}
   const api=Object.freeze({start,replaceSource,pause,resume,togglePause,stop,outputStream,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
   window.DominionShareController=api;
