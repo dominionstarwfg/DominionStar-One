@@ -55,12 +55,15 @@ rejectText(captureStarted,'return {ok:','Capture start must have no response con
 
 requireText(shareService,'function scheduleToolbarForShare()','Deferred presenter toolbar scheduler is missing.');
 const scheduler=shareService.slice(shareService.indexOf('function scheduleToolbarForShare()'),shareService.indexOf('const displayMediaHandler'));
-requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Presenter toolbar must start on a later main-process turn after renderer commit.');
-requireText(scheduler,'const ready=await openToolbar();','Deferred scheduler does not create the real presenter toolbar.');
-requireText(scheduler,'},75);','Presenter toolbar scheduling must remain explicitly deferred after commit.');
-requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Toolbar readiness is not tracked independently.');
-requireText(scheduler,'if(presenterCommitPending)','Committed presenter state is not held until toolbar readiness.');
-requireText(scheduler,"sendMain('share:presenter-command','stop')",'Presenter toolbar failure must fail Share closed.');
+requireText(scheduler,"if(platform==='darwin')",'macOS must use same-renderer presenter controls.');
+requireText(scheduler,'toolbarReadyForShare=true','macOS same-renderer presenter controls must be marked ready without a second BrowserWindow.');
+requireText(scheduler,'presenterCommitPending=false','macOS presenter commit must not wait on a second renderer.');
+requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Non-macOS presenter toolbar must start on a later main-process turn after renderer commit.');
+requireText(scheduler,'const ready=await openToolbar();','Non-macOS deferred scheduler does not create the real presenter toolbar.');
+requireText(scheduler,'},75);','Non-macOS presenter toolbar scheduling must remain explicitly deferred after commit.');
+requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Non-macOS toolbar readiness is not tracked independently.');
+requireText(scheduler,"void sendPresenterCommand('stop',0)",'Non-macOS presenter toolbar failure must fail Share closed through presenter command authority.');
+requireText(shareIntegration,"id='inlinePresenterToolbar'",'macOS presenter controls must exist in the share-owning renderer.');
 
 rejectText(shareController,'rendererCommitted:true','ShareController must not own presenter visibility.');
 requireText(shareIntegration,'function commitPresenterMode()','Share integration does not own safe presenter commit.');
