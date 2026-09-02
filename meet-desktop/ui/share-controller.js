@@ -92,13 +92,37 @@
     }finally{state.busy=false;emit();}
   }
 
+  async function captureFreezeFrame(videoElement){
+    const track=state.liveStream?.getVideoTracks?.()[0];
+    if(!track)throw new Error('Unable to freeze the shared frame.');
+    const drawSource=async()=>{
+      if(Number(videoElement?.videoWidth)>1&&Number(videoElement?.videoHeight)>1)return {source:videoElement,width:Number(videoElement.videoWidth),height:Number(videoElement.videoHeight),close:null};
+      if(typeof ImageCapture==='function'){
+        try{
+          const bitmap=await new ImageCapture(track).grabFrame();
+          return {source:bitmap,width:Math.max(2,Number(bitmap.width)||1280),height:Math.max(2,Number(bitmap.height)||720),close:()=>bitmap.close?.()};
+        }catch{}
+      }
+      if(typeof MediaStreamTrackProcessor==='function'){
+        const processor=new MediaStreamTrackProcessor({track}),reader=processor.readable.getReader();
+        try{
+          const {value:frame,done}=await reader.read();
+          if(!done&&frame)return {source:frame,width:Math.max(2,Number(frame.displayWidth||frame.codedWidth)||1280),height:Math.max(2,Number(frame.displayHeight||frame.codedHeight)||720),close:()=>frame.close?.()};
+        }finally{try{await reader.cancel();}catch{}try{reader.releaseLock();}catch{}}
+      }
+      throw new Error('Unable to capture the current shared frame.');
+    };
+    const captured=await drawSource();
+    const canvas=document.createElement('canvas');canvas.width=captured.width;canvas.height=captured.height;
+    const context=canvas.getContext('2d',{alpha:false});
+    if(!context){captured.close?.();throw new Error('Unable to freeze the shared frame.');}
+    try{context.drawImage(captured.source,0,0,captured.width,captured.height);}finally{captured.close?.();}
+    return canvas;
+  }
+
   async function pause(videoElement){
     if(!state.liveStream||state.paused)return snapshot();
-    const width=Math.max(2,Number(videoElement?.videoWidth)||1280),height=Math.max(2,Number(videoElement?.videoHeight)||720);
-    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-    const context=canvas.getContext('2d',{alpha:false});
-    if(!context)throw new Error('Unable to freeze the shared frame.');
-    context.drawImage(videoElement,0,0,width,height);
+    const canvas=await captureFreezeFrame(videoElement);
     const frozen=canvas.captureStream(1);
     for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone());}catch{}}
     state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();await bridge?.captureState?.({sourceName:state.sourceName,paused:true});return snapshot();
