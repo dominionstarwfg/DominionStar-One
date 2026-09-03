@@ -31,6 +31,8 @@ has(sql,"'participantId',p.id",'Avatar metadata must key by participant identity
 has(sql,"'avatarPath',coalesce(mp.avatar_path,'')",'Only the private avatar path should leave SQL.');
 has(sql,'left join public.member_profiles mp on mp.id=p.member_id','Avatar metadata must come from the existing member profile.');
 has(sql,"p.state in ('waiting_host','waiting','admitted','joined')",'Active and waiting member surfaces must be covered.');
+has(sql,'revoke all on function public.meet_v2_room_avatar_paths(uuid) from public','Default PUBLIC execution must be revoked.');
+has(sql,'revoke all on function public.meet_v2_room_avatar_paths(uuid) from anon','Supabase anonymous execution must be explicitly revoked.');
 has(sql,'grant execute on function public.meet_v2_room_avatar_paths(uuid) to authenticated','Avatar RPC must be authenticated-only.');
 lacks(sql,'signedUrl','Database RPC must not attempt to manufacture storage URLs.');
 
@@ -62,4 +64,4 @@ has(ui,"return /^https:\\/\\//i.test(url)?url:''",'Renderer must accept only HTT
 // Avatar work must remain isolated from the fragile presenter/capture architecture.
 lacks(share,'meet_v2_room_avatar_paths','Share service must remain independent from profile-photo metadata.');
 
-console.log('DOMINIONSTAR_PROFILE_PHOTO_2_0_24_OK private-signed-avatars same-room-metadata additive-rpc cached-enrichment fail-open-snapshot existing-events local-and-remote-photo-first initials-fallback no-extra-poll share-stack-untouched');
+console.log('DOMINIONSTAR_PROFILE_PHOTO_2_0_24_OK private-signed-avatars same-room-metadata authenticated-only-rpc additive-rpc cached-enrichment fail-open-snapshot existing-events local-and-remote-photo-first initials-fallback no-extra-poll share-stack-untouched');
