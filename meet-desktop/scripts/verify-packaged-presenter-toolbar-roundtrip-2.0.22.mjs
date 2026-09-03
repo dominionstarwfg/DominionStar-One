@@ -134,6 +134,23 @@ try{
     };
     window.__qaMakeLogicalStream=makeStream;
     window.__qaLogicalShare=makeStream('video');
+
+    // Annotation composition uses a hidden video element. The QA share is a
+    // deliberate plain-JS stream contract (not Chromium MediaStream) so the
+    // Mac runner cannot re-enter its unstable native capture substrate. Keep
+    // the real compositor behavior while allowing that logical stream to be
+    // attached to the hidden QA video element.
+    const nativeSrcObject=Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype,'srcObject');
+    Object.defineProperty(HTMLMediaElement.prototype,'srcObject',{
+      configurable:true,
+      get(){return Object.prototype.hasOwnProperty.call(this,'__qaLogicalSrcObject')?this.__qaLogicalSrcObject:nativeSrcObject?.get?.call(this)||null;},
+      set(value){
+        if(value&&!(value instanceof MediaStream)){this.__qaLogicalSrcObject=value;return;}
+        delete this.__qaLogicalSrcObject;
+        if(nativeSrcObject?.set)nativeSrcObject.set.call(this,value);
+      }
+    });
+
     Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>window.__qaLogicalShare});
     window.__qaOriginalCaptureStream=HTMLCanvasElement.prototype.captureStream;
     HTMLCanvasElement.prototype.captureStream=function(){return makeStream('video');};
@@ -232,7 +249,7 @@ try{
         qaClick('stop');
         await qaWaitShare(()=>window.DominionShareController.snapshot().active===false&&document.querySelector('#inlinePresenterToolbar')?.hidden===true,'Stop Share completion');
         qaMark('stop-share');
-        console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share production-meeting-features self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
+        console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share production-meeting-features annotation-compositor self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
       }catch(error){
         console.error('QA_PRESENTER_SELF_FAILURE '+String(error?.stack||error));
       }
