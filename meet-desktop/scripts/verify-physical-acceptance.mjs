@@ -6,6 +6,9 @@ const js=read('ui/zoom-physical-acceptance.js');
 const css=read('ui/zoom-physical-acceptance.css');
 const bootstrap=read('ui/auth-password.js');
 const presenter=read('ui/presenter-toolbar.js');
+const features=read('ui/meeting-features.js');
+const reactionParity=read('ui/zoom-reaction-parity.js');
+const runtimeMotion=read('ui/runtime-motion.css');
 
 // Parse the last-loaded production authority before any packaged build starts.
 new Function(js);
@@ -24,11 +27,12 @@ assert(js.includes("button.textContent='•••'")&&js.includes('data-particip
 assert(js.includes("payload={kind:'media-state'")&&js.includes("meeting.sendSignal(p.participantId,'reaction',payload)"),'Media state must propagate to host/co-host roster surfaces using the already-routed meeting signal transport.');
 assert(css.includes('.ds-modern-participant-row')&&css.includes('.ds-media-state.off')&&css.includes('.ds-role-chip'),'Participant roster must have modern role and media-state presentation.');
 assert(css.includes('#meetingChatPanel')&&css.includes('.meeting-chat-message.own p')&&css.includes('font-size:14px!important'),'Chat must use readable modern message typography and distinguish own messages.');
-assert(js.includes("const REACTIONS=['👏','👍','❤️','😂','😮','🎉']"),'Standard reaction set must match the six common Zoom meeting reactions.');
-assert(js.includes('openReactionTray')&&js.includes("features()?.sendReaction?.(emoji)"),'Every reaction button must invoke the real reaction sender.');
-assert(js.includes('upgradeReactionBubble')&&js.includes('setTimeout(()=>replacement.remove(),6300)'),'Reaction animation must persist for roughly six seconds rather than disappearing after the legacy three-second timer.');
-assert(css.includes('animation:dsPhysicalReactionRise 6.2s')&&css.includes('flex-direction:column')&&css.includes('calc(-88vh + 120px)'),'Reaction must rise substantially up the left side with the participant name beneath the emoji.');
-assert(css.includes('.ds-reaction-tray{position:fixed;z-index:2800'),'Reaction tray must remain clickable above meeting layers.');
+assert(features.includes("const reactions=['👏','👍','❤️','😂','😮','🎉']"),'Standard reaction set must match the six common Zoom meeting reactions.');
+assert(features.includes("b.onclick=()=>{closeReactionMenu();void sendReaction(emoji);}"),'Every reaction button must invoke the real meeting reaction sender.');
+assert(reactionParity.includes('const DURATION_MS=10000'),'Final reaction authority must preserve the 10-second Zoom-style reaction lifetime.');
+assert(reactionParity.includes("canonical.dataset.dsReactionParity='10s'")&&reactionParity.includes("canonical.style.setProperty('animation-duration','10s','important')"),'Final reaction nodes must be canonicalized to the 10-second runtime authority.');
+assert(runtimeMotion.includes('#meetingReactionLayer[data-ds-zoom-reaction-lane="left"]')&&runtimeMotion.includes('.ds-reaction-satellite'),'Final reaction motion must use the bounded left-side lane and satellite styling.');
+assert(!js.includes('openReactionTray('),'Retired physical compatibility must not own a second reaction chooser.');
 assert(js.includes('openSmartSharePicker')&&js.includes('sharePicker?.listSources?.({kind,includeDominionStar:false})'),'Share permission authority must test actual desktop sources instead of relying only on stale TCC status.');
 assert(js.includes('desktop.sharePicker.choose(selectedShareId,options)'),'Share picker must feed the selected real source into the existing capture pipeline.');
 assert(js.includes("sessionStorage.setItem('ds_screen_settings_opened','1')")&&js.includes('Recheck'),'Permission recovery must remember that Settings was opened and provide an active recheck path instead of looping blindly.');
@@ -37,4 +41,4 @@ assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-gr
 assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
 assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance module version must be explicit.');
 
-console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat clickable-reactions six-second-float real-source-share-recheck readable-settings');
+console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions ten-second-left-lane real-source-share-recheck readable-settings');
