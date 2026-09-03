@@ -1,0 +1,227 @@
+name: DominionStar Meet Mac Installer RC 2.0.39
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/mac-installer-rc-2.0.39.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  installer-rc:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+      DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+    steps:
+      - name: Checkout exact installer candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clean generated state
+        run: |
+          rm -rf meet-desktop/node_modules meet-desktop/dist installer-artifact "$RUNNER_TEMP/dominionstar-installer"
+          find . -maxdepth 2 \( -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' \) -print0 | xargs -0 -I{} rm -f '{}' || true
+
+      - name: Resolve version
+        id: meta
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./meet-desktop/package.json').version")"
+          test "$VERSION" = "2.0.39"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "DOMINIONSTAR_INSTALLER_RC_VERSION=$VERSION"
+
+      - name: Install dependencies
+        working-directory: meet-desktop
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm ls --depth=0
+
+      - name: Run installer release certification
+        working-directory: meet-desktop
+        run: |
+          node scripts/verify-release-standard.mjs
+          node scripts/verify-foundation.mjs
+          node scripts/verify-auth.mjs
+          node scripts/verify-meeting-lifecycle.mjs
+          node scripts/verify-meeting-identity-runtime.mjs
+          node scripts/verify-media-authority.mjs
+          node scripts/verify-av-settings.mjs
+          node scripts/verify-meeting-parity.mjs
+          node scripts/verify-share-authority.mjs
+          node scripts/verify-webrtc-transport.mjs
+          node scripts/verify-turn-relay.mjs
+          node scripts/verify-diagnostics.mjs
+          node scripts/verify-mac-install-authority.mjs
+          node scripts/verify-zoom-production-polish.mjs
+          node scripts/verify-physical-acceptance.mjs
+          node scripts/verify-reaction-parity.mjs
+          node scripts/verify-zoom-window-parity.mjs
+          node scripts/verify-physical-parity-2.0.21.mjs
+          node scripts/verify-approved-reference-parity-2.0.22.mjs
+          node scripts/verify-runtime-stability-2.0.22.mjs
+          node scripts/verify-multi-spotlight-2.0.39.mjs
+
+      - name: Build universal app
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          du -sh "$APP_PATH"
+
+      - name: Verify packaged app identity
+        shell: bash
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          PLIST="$APP/Contents/Info.plist"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$PLIST" | grep -Fx 'DominionStar Meet'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" | grep -Fx '2.0.39'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$PLIST" | grep -Fx 'dominionstar-meet'
+
+      - name: Audit packaged app contents
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-app.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Launch packaged app smoke test
+        shell: bash
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          LOG="$RUNNER_TEMP/dominionstar-installer-launch.log"
+          ELECTRON_ENABLE_LOGGING=1 "$APP/Contents/MacOS/DominionStar Meet" >"$LOG" 2>&1 &
+          PID=$!
+          sleep 8
+          kill -0 "$PID"
+          kill "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || true
+          if grep -E 'Library not loaded|DYLD.*Library missing|different Team IDs' "$LOG"; then
+            cat "$LOG"
+            exit 92
+          fi
+          echo DOMINIONSTAR_INSTALLER_RC_LAUNCH_OK
+
+      - name: Verify packaged single-instance authority
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-single-instance-2.0.28.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged runtime stability
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-runtime-stability-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Exercise packaged desktop controls
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged physical acceptance
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-physical-acceptance.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged presenter toolbar
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged adaptive Zoom behavior
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-zoom-window-parity.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged approved reference
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Create installer DMG ZIP and checksums
+        shell: bash
+        run: |
+          rm -rf installer-artifact "$RUNNER_TEMP/dominionstar-installer"
+          mkdir -p installer-artifact "$RUNNER_TEMP/dominionstar-installer"
+          ditto "${{ steps.app.outputs.path }}" "$RUNNER_TEMP/dominionstar-installer/DominionStar Meet.app"
+          ln -s /Applications "$RUNNER_TEMP/dominionstar-installer/Applications"
+
+          DMG="installer-artifact/DominionStar-Meet-2.0.39-Mac-Installer-RC.dmg"
+          ZIP="installer-artifact/DominionStar-Meet-2.0.39-Mac-universal-RC.zip"
+
+          created=0
+          for attempt in 1 2 3; do
+            rm -f "$DMG"
+            if hdiutil create -volname "DominionStar Meet Installer" -srcfolder "$RUNNER_TEMP/dominionstar-installer" -ov -format UDZO "$DMG"; then
+              created=1
+              break
+            fi
+            sleep $((attempt * 4))
+          done
+          test "$created" = "1"
+          test -s "$DMG"
+
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" "$ZIP"
+          shasum -a 256 "$DMG" "$ZIP" | tee installer-artifact/SHA256.txt
+          printf 'commit=%s\nversion=2.0.39\nsource=certified-rc\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nprotocol=dominionstar-meet\nsigning=adhoc\nnotarization=not-available-without-Apple-Developer-ID\n' "$GITHUB_SHA" > installer-artifact/BUILD-PROVENANCE.txt
+
+      - name: Mount and verify installer
+        shell: bash
+        run: |
+          DMG="installer-artifact/DominionStar-Meet-2.0.39-Mac-Installer-RC.dmg"
+          MOUNT="$RUNNER_TEMP/dominionstar-installer-mount"
+          rm -rf "$MOUNT"
+          mkdir -p "$MOUNT"
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT"
+          trap 'hdiutil detach "$MOUNT" >/dev/null 2>&1 || true' EXIT
+
+          test -d "$MOUNT/DominionStar Meet.app"
+          test -L "$MOUNT/Applications"
+          test "$(readlink "$MOUNT/Applications")" = "/Applications"
+
+          PLIST="$MOUNT/DominionStar Meet.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" | grep -Fx '2.0.39'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$PLIST" | grep -Fx 'dominionstar-meet'
+          codesign --verify --deep --strict --verbose=2 "$MOUNT/DominionStar Meet.app"
+
+          hdiutil detach "$MOUNT"
+          trap - EXIT
+          echo DOMINIONSTAR_INSTALLER_MOUNT_VERIFY_OK
+
+      - name: Simulate clean replacement of an older installed copy
+        shell: bash
+        run: |
+          TESTROOT="$RUNNER_TEMP/fake-applications"
+          rm -rf "$TESTROOT"
+          mkdir -p "$TESTROOT"
+
+          ditto "${{ steps.app.outputs.path }}" "$TESTROOT/DominionStar Meet.app"
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleShortVersionString 2.0.22' "$TESTROOT/DominionStar Meet.app/Contents/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$TESTROOT/DominionStar Meet.app/Contents/Info.plist")" = "2.0.22"
+
+          rm -rf "$TESTROOT/DominionStar Meet.app"
+          ditto "${{ steps.app.outputs.path }}" "$TESTROOT/DominionStar Meet.app"
+
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$TESTROOT/DominionStar Meet.app/Contents/Info.plist")" = "2.0.39"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$TESTROOT/DominionStar Meet.app/Contents/Info.plist")" = "com.dominionstar.desktop"
+          test "$(find "$TESTROOT" -maxdepth 1 -type d -name 'DominionStar Meet.app' | wc -l | tr -d ' ')" = "1"
+          echo DOMINIONSTAR_INSTALLER_REPLACEMENT_OK
+
+      - name: Upload installer candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.39-mac-installer-rc
+          path: installer-artifact/*
+          if-no-files-found: error
+          retention-days: 30
