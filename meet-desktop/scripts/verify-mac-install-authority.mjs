@@ -9,7 +9,9 @@ const html=read('ui/index.html');
 const participantPanelStability=read('ui/participant-panel-stability.css');
 
 assert.equal(pkg.main,'src/bootstrap.mjs','Packaged desktop must start through the canonical macOS install bootstrap.');
-assert.equal(pkg.version,'2.0.28','Canonical relaunch candidate must carry its real package version so macOS cannot present an obsolete build identity.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=28))),'Canonical relaunch package identity introduced in 2.0.28 must remain enforced for every later candidate.');
 assert(bootstrap.includes('app.requestSingleInstanceLock()'),'Bootstrap must acquire Electron single-instance authority before starting the meeting runtime.');
 assert(bootstrap.includes("app.on('second-instance'")&&bootstrap.includes('focusRunningInstance'),'A second launch must focus the already-running DominionStar Meet instead of creating competing presenter windows.');
 assert(bootstrap.includes('rejectDuplicateLaunch'),'A duplicate process must fail closed with explicit operator guidance.');

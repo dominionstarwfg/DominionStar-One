@@ -6,7 +6,9 @@ const pkg=JSON.parse(read('package.json'));
 const bootstrap=read('src/bootstrap.mjs');
 const relaunch=read('src/relaunch-service.mjs');
 
-assert.equal(pkg.version,'2.0.28','2.0.28 must carry a real package version.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=28))),'Canonical relaunch authority introduced in 2.0.28 must remain enforced for every later candidate.');
 assert.equal(pkg.build?.appId,'com.dominionstar.desktop','Bundle identity must remain stable for macOS privacy authority.');
 assert.ok(bootstrap.includes('app.requestSingleInstanceLock()'),'Single-instance lock is required.');
 assert.ok(bootstrap.includes("app.on('second-instance'"),'Second-instance handling is required.');
@@ -21,4 +23,4 @@ assert.ok(relaunch.includes('const execPath=process.execPath'),'Permission relau
 assert.ok(relaunch.includes('app.relaunch({execPath,args})'),'Permission relaunch must restart the exact running executable.');
 assert.ok(relaunch.includes("stableAcrossRebuilds:false"),'Ad-hoc prototype privacy instability must remain explicit until Developer ID signing exists.');
 
-console.log('DOMINIONSTAR_CANONICAL_RELAUNCH_2_0_28_OK version-2.0.28 single-instance exact-binary-relaunch applications-authority duplicate-process-blocked');
+console.log('DOMINIONSTAR_CANONICAL_RELAUNCH_2_0_28_OK version-2.0.28-plus single-instance exact-binary-relaunch applications-authority duplicate-process-blocked');

@@ -1,6 +1,6 @@
 {
   "name": "dominionstar-meet-rebuild",
-  "version": "2.0.28",
+  "version": "2.0.29",
   "description": "Clean DominionStar Meet desktop rebuild",
   "author": "DominionStar Leadership and Development",
   "main": "src/bootstrap.mjs",
