@@ -1,7 +1,41 @@
-import { app, dialog } from 'electron';
+import { app, BrowserWindow, dialog } from 'electron';
 
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
 const packagedMac=()=>process.platform==='darwin'&&app.isPackaged&&!isCi;
+const singleInstanceLock=app.requestSingleInstanceLock();
+
+function focusRunningInstance(){
+  const win=BrowserWindow.getAllWindows().find(candidate=>candidate&&!candidate.isDestroyed());
+  if(!win)return false;
+  try{if(win.isMinimized())win.restore();}catch{}
+  try{win.show();}catch{}
+  try{win.focus();}catch{}
+  return true;
+}
+
+if(singleInstanceLock){
+  app.on('second-instance',()=>{
+    if(app.isReady())focusRunningInstance();
+    else app.once('ready',focusRunningInstance);
+  });
+}
+
+async function rejectDuplicateLaunch(){
+  await app.whenReady();
+  const version=app.getVersion();
+  try{
+    dialog.showMessageBoxSync({
+      type:'warning',
+      title:'DominionStar Meet is already open',
+      message:'Use the DominionStar Meet that is already running',
+      detail:`Only one DominionStar Meet process may run at a time. Close the older copy completely before installing build ${version}. This prevents macOS Screen Recording “Quit & Reopen” from returning to a different build and prevents duplicate presenter toolbars from competing for the same meeting window.`,
+      buttons:['OK'],
+      defaultId:0,
+      noLink:true
+    });
+  }catch{}
+  app.quit();
+}
 
 async function canonicalizeMacInstall(){
   if(!packagedMac()||app.isInApplicationsFolder())return {moved:false,skipped:true,conflictType:''};
@@ -25,12 +59,13 @@ async function canonicalizeMacInstall(){
 
 function rejectNonCanonicalLaunch(install={}){
   const running=String(install.conflictType||'')==='existsAndRunning';
+  const version=app.getVersion();
   const message=running
     ? 'Quit the older DominionStar Meet first'
     : 'DominionStar Meet must run from Applications';
   const detail=running
-    ? 'Another DominionStar Meet is already running from Applications. Quit that copy completely, then open this 2.0.22 build again so it can replace the installed app. This copy will not run from the DMG or Downloads because macOS Screen Recording “Quit & Reopen” could otherwise reopen the wrong build.'
-    : `This packaged copy could not complete installation into Applications${install.error?` (${install.error})`:''}. It will close instead of starting from the DMG or Downloads. Install DominionStar Meet into Applications, then reopen it before granting Camera, Microphone, or Screen & System Audio Recording access.`;
+    ? `Another DominionStar Meet is already running from Applications. Quit that copy completely, then open build ${version} again so it can replace the installed app. This copy will not run from the DMG or Downloads because macOS Screen Recording “Quit & Reopen” could otherwise reopen the wrong build.`
+    : `This build (${version}) could not complete installation into Applications${install.error?` (${install.error})`:''}. It will close instead of starting from the DMG or Downloads. Install DominionStar Meet into Applications, then reopen it before granting Camera, Microphone, or Screen & System Audio Recording access.`;
   try{
     dialog.showMessageBoxSync({
       type:'warning',
@@ -58,4 +93,5 @@ async function launch(){
   await import('./main.mjs');
 }
 
-void launch();
+if(singleInstanceLock)void launch();
+else void rejectDuplicateLaunch();
