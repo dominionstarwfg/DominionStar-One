@@ -220,7 +220,10 @@
       if(qaCommandId>0)console.error(`QA_PRESENTER_RENDERER_DISPATCH id=${qaCommandId} command=${command}`);
       window.dispatchEvent(new CustomEvent('dominion:presenter-command-dispatch',{detail:{command,qaCommandId}}));
       try{
-        if(command==='pause'){await share.togglePause(sharedVideo);applyLayout();return {handled:true,command};}
+        // Pause/Resume already emits the authoritative share state, and that
+        // listener updates the inline presenter toolbar synchronously. Do not
+        // run a second DOM/layout transaction in the promise continuation.
+        if(command==='pause'){await share.togglePause(sharedVideo);return {handled:true,command};}
         if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}
         if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return {handled:true,command};}
         if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return {handled:true,command};}
