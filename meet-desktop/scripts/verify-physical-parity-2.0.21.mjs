@@ -94,12 +94,12 @@ requireText(sharePicker,"const includeDominionStar=$('#includeMeetWindows').chec
 requireText(sharePicker,'const firstScreen=sources.find','Share chooser does not prefer a desktop like Zoom.');
 requireText(sharePicker,"document.visibilityState!=='visible'",'Live source refresh does not suspend while the chooser is hidden.');
 requireText(sharePicker,'sharing=true;stopRefreshTimer();shareButton.disabled=true','Preview enumeration does not stop before capture starts.');
-requireText(sharePickerHtml,'data-tab="screens">Screens','Share chooser is missing Screens.');
+requireText(sharePickerHtml,'data-tab="screens">Basic','Share chooser is missing the Zoom-familiar Basic source tab.');
 requireText(sharePickerHtml,'data-tab="advanced">Advanced','Share chooser is missing Advanced.');
 rejectText(sharePickerHtml,'data-tab="files"','Share chooser exposes unsupported Files/cloud controls.');
 requireText(sharePickerHtml,'Share sound','Share chooser is missing Share sound.');
 requireText(sharePickerHtml,'Optimize for video sharing','Share chooser is missing video optimization.');
-requireText(sharePickerHtml,'Include DominionStar Meet windows','Advanced meeting-window visibility control is missing.');
+requireText(sharePickerHtml,'Show DominionStar Meet windows','Advanced meeting-window visibility control is missing.');
 
 // Meeting header and View behavior remain Zoom-familiar with DominionStar branding.
 requireText(parity,"const logo=String(desktop.brand?.logoUrl||'')",'Meeting header is not driven by the packaged DominionStar logo.');
