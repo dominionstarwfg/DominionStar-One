@@ -1,7 +1,6 @@
 (()=>{
   if(window.DominionProfilePhotoFallback)return;
   const desktop=window.dominionDesktop||{};
-  if(!desktop.isDesktop)return;
 
   const state={user:null,participants:new Map(),waiting:new Map(),authRefreshAt:0};
   const initials=value=>String(value||'DominionStar Member').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'DS';
