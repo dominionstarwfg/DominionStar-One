@@ -1,0 +1,64 @@
+name: DominionStar Meet Visual Proof 2.0.40
+
+on:
+  pull_request:
+    branches: [fix/rejected-installer-participants-share-2.0.40]
+    paths:
+      - 'meet-desktop/scripts/capture-rejection-visual-proof-2.0.40.mjs'
+      - '.github/workflows/visual-proof-rejected-repair-2.0.40.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-proof:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+    steps:
+      - name: Checkout visual-proof carrier
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prove product code is 2.0.40
+        working-directory: meet-desktop
+        run: |
+          test "$(node -p "require('./package.json').version")" = '2.0.40'
+          node --check scripts/capture-rejection-visual-proof-2.0.40.mjs
+          node scripts/verify-rejected-installer-repair-2.0.40.mjs
+      - name: Install build dependencies
+        working-directory: meet-desktop
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Build universal QA app for visual proof
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+      - name: Capture participant and preshare evidence
+        working-directory: meet-desktop
+        run: node scripts/capture-rejection-visual-proof-2.0.40.mjs "../${{ steps.app.outputs.path }}" ../visual-proof
+      - name: Verify visual proof files
+        run: |
+          test -s visual-proof/01-participants-single-media-set.png
+          test -s visual-proof/02-approved-app-owned-preshare.png
+          test -s visual-proof/visual-proof.json
+          cat visual-proof/visual-proof.json
+      - name: Upload visual proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.40-visual-proof
+          path: visual-proof/*
+          if-no-files-found: error
+          retention-days: 14
