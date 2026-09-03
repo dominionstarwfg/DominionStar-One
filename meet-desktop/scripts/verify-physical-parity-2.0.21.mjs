@@ -85,19 +85,21 @@ requireText(shareService,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:tr
 rejectText(shareService,"type:platform==='darwin'?'panel':undefined",'Unsupported macOS nonactivating panel type returned.');
 requireText(shareService,"if(normalized==='stop'&&shareActive)",'Stop Share retry protection is missing.');
 
-// Zoom-style share chooser.
-requireText(sharePicker,'basicSources=[...(screenResult?.sources||[]),...(windowResult?.sources||[])]','Basic does not merge real screens and application windows.');
+// Zoom-familiar working-only share chooser.
+requireText(sharePicker,'const next=[...(screenResult?.sources||[]),...(windowResult?.sources||[])]','Screens view does not merge real screens and application windows.');
 requireText(sharePicker,'source.thumbnail','Share chooser does not render live previews.');
 requireText(sharePicker,"kind:'screen'",'Share chooser does not enumerate screens.');
 requireText(sharePicker,"kind:'window'",'Share chooser does not enumerate application windows.');
-requireText(sharePicker,'includeDominionStar:false','Share chooser does not exclude DominionStar windows by default.');
-requireText(sharePicker,'const firstScreen=basicSources.find','Share chooser does not prefer a desktop like Zoom.');
-requireText(sharePickerHtml,'data-tab="basic">Basic','Share chooser is missing Basic.');
+requireText(sharePicker,"const includeDominionStar=$('#includeMeetWindows').checked",'Meeting-window visibility is not controlled explicitly by the chooser.');
+requireText(sharePicker,'const firstScreen=sources.find','Share chooser does not prefer a desktop like Zoom.');
+requireText(sharePicker,"document.visibilityState!=='visible'",'Live source refresh does not suspend while the chooser is hidden.');
+requireText(sharePicker,'sharing=true;stopRefreshTimer();shareButton.disabled=true','Preview enumeration does not stop before capture starts.');
+requireText(sharePickerHtml,'data-tab="screens">Screens','Share chooser is missing Screens.');
 requireText(sharePickerHtml,'data-tab="advanced">Advanced','Share chooser is missing Advanced.');
-requireText(sharePickerHtml,'data-tab="files">Files','Share chooser is missing Files.');
+rejectText(sharePickerHtml,'data-tab="files"','Share chooser exposes unsupported Files/cloud controls.');
 requireText(sharePickerHtml,'Share sound','Share chooser is missing Share sound.');
-requireText(sharePickerHtml,'Optimize for sharing video','Share chooser is missing video optimization.');
-rejectText(sharePickerHtml,'Show DominionStar windows','Normal Share exposes recursive DominionStar windows.');
+requireText(sharePickerHtml,'Optimize for video sharing','Share chooser is missing video optimization.');
+requireText(sharePickerHtml,'Include DominionStar Meet windows','Advanced meeting-window visibility control is missing.');
 
 // Meeting header and View behavior remain Zoom-familiar with DominionStar branding.
 requireText(parity,"const logo=String(desktop.brand?.logoUrl||'')",'Meeting header is not driven by the packaged DominionStar logo.');
@@ -139,4 +141,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive controller is not 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection record is missing.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-basic-advanced-files one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip video-filmstrip-native-mouse-drag narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-screens-advanced-working-only one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip video-filmstrip-native-mouse-drag narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
