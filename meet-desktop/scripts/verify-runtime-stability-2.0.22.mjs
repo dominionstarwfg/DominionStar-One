@@ -21,7 +21,9 @@ const preload=read('src/preload.cjs');
 const shareService=read('src/share-service.mjs');
 const pkg=JSON.parse(read('package.json'));
 
-assert.equal(pkg.version,'2.0.22');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=22))),'2.0.22 runtime-stability standard must remain enforced for every later DominionStar Meet candidate.');
 assert.ok(app.includes('id="prejoinBackgrounds"')&&app.includes('Backgrounds & Effects'),'Prejoin must expose Backgrounds & Effects like Zoom.');
 assert.ok(!app.includes('id="mirrorPreview"')&&!app.includes('Mirror my video</span></label>'),'Prejoin must not expose the rejected Mirror checkbox.');
 assert.ok(avSettings.includes("input.setAttribute('role','switch')")&&avSettings.includes("slider.className='av-switch'"),'Video Settings boolean preferences must render as slider switches rather than visible checkboxes.');
