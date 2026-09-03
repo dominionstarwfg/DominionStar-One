@@ -108,8 +108,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   async function openToolbar(){
     if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishToolbarState();return true;}
-    const created=new BrowserWindow({width:930,height:82,minWidth:760,minHeight:82,maxHeight:310,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:false,acceptFirstMouse:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
-    toolbarWindow=created;positionNearMain(created,930,82);try{created.setAlwaysOnTop(true,'floating');}catch{}
+    const created=new BrowserWindow({width:900,height:72,minWidth:720,minHeight:72,maxHeight:292,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:false,acceptFirstMouse:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
+    toolbarWindow=created;positionNearMain(created,900,72);try{created.setAlwaysOnTop(true,'floating');}catch{}
     if(platform==='darwin'){try{created.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}}
     protectMeetingChrome(created,true);created.on('closed',()=>{if(toolbarWindow===created)toolbarWindow=null;});
     try{await created.loadFile(path.join(uiDir,'presenter-toolbar.html'));if(created.isDestroyed()||toolbarWindow!==created)return false;created.showInactive?.();created.moveTop?.();publishToolbarState();return true;}
@@ -219,7 +219,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:presenter-menu-state',(_event,{open=false}={})=>{
     if(!toolbarWindow||toolbarWindow.isDestroyed())return {ok:false};
     const bounds=toolbarWindow.getBounds();
-    const nextHeight=open?300:82;
+    const nextHeight=open?286:72;
     if(bounds.height!==nextHeight){try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}}
     return {ok:true,height:nextHeight};
   });
