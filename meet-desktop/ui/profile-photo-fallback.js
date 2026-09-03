@@ -83,7 +83,17 @@
   window.addEventListener('dominion:waiting-room-update',event=>acceptWaiting(event.detail?.items||[]));
   window.addEventListener('dominion:meeting-ended',resetMeeting);
 
-  const observer=new MutationObserver(()=>queueMicrotask(paintAll));
+  // Dynamic meeting surfaces (remote tiles, roster rows, waiting-room rows and
+  // the local floating dock) are created after this module loads. Repaint them
+  // on a bounded timer instead of a microtask. A MutationObserver that queues a
+  // DOM-mutating paintAll() microtask can feed itself indefinitely and starve
+  // Electron's renderer/CDP event loop.
+  let repaintTimer=0;
+  function schedulePaint(){
+    if(repaintTimer)return;
+    repaintTimer=window.setTimeout(()=>{repaintTimer=0;paintAll();},32);
+  }
+  const observer=new MutationObserver(schedulePaint);
   observer.observe(document.body,{subtree:true,childList:true});
 
   const api=Object.freeze({
