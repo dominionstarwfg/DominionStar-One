@@ -45,6 +45,16 @@ has(ui,'localVisibilityObserver=new MutationObserver(()=>schedulePaint())','Visi
 has(ui,'repaintTimer=window.setTimeout(()=>{repaintTimer=0;paintAll();},32)','Identity correction must continue yielding through a bounded task.');
 lacks(ui,'queueMicrotask(paintAll)','Camera-off identity must not reintroduce renderer-starving microtask repaint loops.');
 
+// Media authority loads through app.js. Because the profile module is a later
+// parser script while app.js awaits a dynamically inserted media script, bind
+// lazily on every bounded paint until the real controller is available.
+has(ui,'let boundMediaController=null,unbindMediaChange=null','Late media-controller binding state is missing.');
+has(ui,'function bindMediaChanges()','Late media-controller binding helper is missing.');
+has(ui,"if(!controller||controller===boundMediaController||typeof controller.onChange!=='function')return;",'Media binding must be single-instance and tolerate late controller load.');
+has(ui,'unbindMediaChange=controller.onChange(schedulePaint);','Camera state changes must schedule bounded identity reconciliation.');
+has(ui,'function paintAll(){ensureStyles();bindMediaChanges();paintLocal();paintParticipants();}','Every dynamic repaint must retry late media binding before painting identity.');
+lacks(ui,'window.DominionMediaController?.onChange?.(schedulePaint);','One-shot media binding must not remain as the only camera-change authority.');
+
 // Profile-photo painting remains photo-first with initials fallback on all
 // already-certified participant surfaces.
 has(ui,"q('#prejoinAvatar')",'Prejoin profile-photo fallback regressed.');
@@ -61,4 +71,4 @@ has(parity,'if(share){syncShareLayout();return;}','Meeting parity must retain th
 lacks(share,'syncLocalGalleryIdentity','Share service must remain independent from camera-off profile identity.');
 lacks(share,'member-avatars','Share service must remain independent from avatar storage.');
 
-console.log('DOMINIONSTAR_PROFILE_PHOTO_CAMERA_OFF_2_0_26_OK private-signed-avatars existing-room-enrichment gallery-multi-local-tile camera-off-photo-first initials-fallback camera-on-recovery hide-self-authoritative narrow-visibility-observer bounded-repaint share-stack-untouched');
+console.log('DOMINIONSTAR_PROFILE_PHOTO_CAMERA_OFF_2_0_26_OK private-signed-avatars existing-room-enrichment gallery-multi-local-tile camera-off-photo-first initials-fallback camera-on-recovery late-media-binding hide-self-authoritative narrow-visibility-observer bounded-repaint share-stack-untouched');
