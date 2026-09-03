@@ -1,0 +1,73 @@
+name: DominionStar Meet Zoom Screenshot Visual Proof 2.0.41
+
+on:
+  pull_request:
+    branches: [fix/rejected-installer-participants-share-2.0.40]
+    paths:
+      - 'meet-desktop/ui/zoom-screenshot-reference-2.0.41.css'
+      - 'meet-desktop/ui/zoom-screenshot-reference-2.0.41.js'
+      - 'meet-desktop/ui/share-picker.html'
+      - 'meet-desktop/ui/share-picker.css'
+      - 'meet-desktop/ui/share-picker.js'
+      - 'meet-desktop/ui/auth-password.js'
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/scripts/capture-zoom-screenshot-reference-2.0.41.mjs'
+      - 'meet-desktop/scripts/verify-zoom-screenshot-reference-2.0.41.mjs'
+      - '.github/workflows/zoom-screenshot-reference-visual-proof-2.0.41.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packaged-visual-proof:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify narrow screenshot reference before building
+        working-directory: meet-desktop
+        run: |
+          test "$(node -p "require('./package.json').version")" = '2.0.41'
+          node --check scripts/capture-zoom-screenshot-reference-2.0.41.mjs
+          node scripts/verify-zoom-screenshot-reference-2.0.41.mjs
+      - name: Install build dependencies
+        working-directory: meet-desktop
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Build universal packaged app for visual proof
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+      - name: Capture all Zoom reference surfaces
+        working-directory: meet-desktop
+        run: node scripts/capture-zoom-screenshot-reference-2.0.41.mjs "../${{ steps.app.outputs.path }}" ../zoom-reference-proof-2.0.41
+      - name: Verify screenshot evidence exists
+        run: |
+          for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-active-share-toolbar 10-active-share-idle; do
+            test -s "zoom-reference-proof-2.0.41/${n}.png"
+          done
+          test -s zoom-reference-proof-2.0.41/visual-proof.json
+          cat zoom-reference-proof-2.0.41/visual-proof.json
+      - name: Upload visual evidence only
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.41-zoom-reference-visual-proof
+          path: zoom-reference-proof-2.0.41/*
+          if-no-files-found: error
+          retention-days: 14
