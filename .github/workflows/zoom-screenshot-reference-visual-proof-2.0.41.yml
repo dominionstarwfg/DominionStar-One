@@ -54,10 +54,18 @@ jobs:
           APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
           test -n "$APP_PATH"
           echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
-      - name: Capture all Zoom reference surfaces
+      - name: Install packaged app into Applications for truthful visual proof
+        shell: bash
+        run: |
+          sudo rm -rf "/Applications/DominionStar Meet.app"
+          sudo ditto "${{ steps.app.outputs.path }}" "/Applications/DominionStar Meet.app"
+          test -d "/Applications/DominionStar Meet.app"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx '2.0.41'
+      - name: Capture all Zoom reference surfaces from installed app
         working-directory: meet-desktop
-        run: node scripts/capture-zoom-screenshot-reference-2.0.41.mjs "../${{ steps.app.outputs.path }}" ../zoom-reference-proof-2.0.41
-      - name: Verify screenshot evidence exists
+        run: node scripts/capture-zoom-screenshot-reference-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.41
+      - name: Verify screenshot evidence exists and is unobstructed
         run: |
           for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-active-share-toolbar 10-active-share-idle; do
             test -s "zoom-reference-proof-2.0.41/${n}.png"
@@ -71,3 +79,6 @@ jobs:
           path: zoom-reference-proof-2.0.41/*
           if-no-files-found: error
           retention-days: 14
+      - name: Remove QA installation
+        if: always()
+        run: sudo rm -rf "/Applications/DominionStar Meet.app"
