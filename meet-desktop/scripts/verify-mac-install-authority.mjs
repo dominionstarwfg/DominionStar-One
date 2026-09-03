@@ -7,9 +7,11 @@ const bootstrap=read('src/bootstrap.mjs');
 const relaunch=read('src/relaunch-service.mjs');
 const html=read('ui/index.html');
 const participantPanelStability=read('ui/participant-panel-stability.css');
+const versionParts=String(pkg.version||'0.0.0').split('.').map(value=>Number.parseInt(value,10)||0);
+const versionAtLeast2028=versionParts[0]>2||(versionParts[0]===2&&(versionParts[1]>0||(versionParts[1]===0&&versionParts[2]>=28)));
 
 assert.equal(pkg.main,'src/bootstrap.mjs','Packaged desktop must start through the canonical macOS install bootstrap.');
-assert.equal(pkg.version,'2.0.28','Canonical relaunch candidate must carry its real package version so macOS cannot present an obsolete build identity.');
+assert.ok(versionAtLeast2028,'Canonical macOS install/relaunch authority applies to DominionStar Meet 2.0.28 and every later candidate.');
 assert(bootstrap.includes('app.requestSingleInstanceLock()'),'Bootstrap must acquire Electron single-instance authority before starting the meeting runtime.');
 assert(bootstrap.includes("app.on('second-instance'")&&bootstrap.includes('focusRunningInstance'),'A second launch must focus the already-running DominionStar Meet instead of creating competing presenter windows.');
 assert(bootstrap.includes('rejectDuplicateLaunch'),'A duplicate process must fail closed with explicit operator guidance.');
@@ -28,4 +30,4 @@ assert(html.includes('href="./participant-panel-stability.css"'),'Meeting shell 
 assert(participantPanelStability.includes('left:auto!important')&&participantPanelStability.includes('right:10px!important')&&participantPanelStability.includes('transform:none!important'),'Participants panel must begin on the Zoom-style right edge before runtime reconciliation.');
 assert(!participantPanelStability.includes('left:50%!important')&&!participantPanelStability.includes('translateX(-50%)'),'Rejected centered Participants geometry must never return on the first frame.');
 
-console.log('DOMINIONSTAR_MAC_INSTALL_AUTHORITY_OK canonical-install single-instance dynamic-version fail-closed-existsAndRunning exact-binary-relaunch first-frame-participant-right');
+console.log(`DOMINIONSTAR_MAC_INSTALL_AUTHORITY_OK version-${pkg.version} canonical-install single-instance dynamic-version fail-closed-existsAndRunning exact-binary-relaunch first-frame-participant-right`);
