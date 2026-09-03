@@ -9,10 +9,7 @@ const shareService=read('src/share-service.mjs');
 const shareController=read('ui/share-controller.js');
 const shareIntegration=read('ui/share-integration.js');
 
-assert.match(toolbar,/\['chat','participants','annotate','stop'\]/,'Presenter toolbar must explicitly isolate the commands that previously reopened/resized the meeting window.');
-for(const command of ['chat','participants','annotate','stop']){
-  assert.ok(toolbar.includes(`toolbar:\${command}`)||toolbar.includes('`toolbar:${command}`')||toolbar.includes('`toolbar:${command}`'.replace('${command}',command))||toolbar.includes('`toolbar:${command}`'),`Toolbar routing must cover ${command}.`);
-}
+assert.ok(toolbar.includes("const routedCommand=command=>['chat','participants','annotate','stop'].includes(String(command||''))?`toolbar:${command}`:String(command||'');"),'Presenter toolbar must alias the exact commands that previously reopened/resized the meeting window.');
 assert.ok(toolbar.includes("routedCommand('stop')"),'Stop Share must use the safe routed command.');
 assert.ok(toolbar.includes('routedCommand(command)'),'Presenter buttons must use one routed command authority.');
 
