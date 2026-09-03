@@ -15,6 +15,7 @@ const adaptiveCss=read('ui/zoom-adaptive-parity.css');
 const approvedCss=read('ui/approved-reference-parity.css');
 const auth=read('ui/auth-password.js');
 const rejection=read('PHYSICAL_2_0_20_REJECTION.md');
+const rejectionCss=read('ui/rejected-build-repair-2.0.40.css');
 
 const requireText=(source,needle,message)=>{if(!source.includes(needle))throw new Error(message);};
 const rejectText=(source,needle,message)=>{if(source.includes(needle))throw new Error(message);};
@@ -22,20 +23,26 @@ const rejectText=(source,needle,message)=>{if(source.includes(needle))throw new 
 const [major,minor,patch]=String(pkg.version||'').split('.').map(Number);
 if(!(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21))throw new Error(`Carried-forward physical-reference gate requires DominionStar Meet 2.0.21 or later in the 2.0.x line; found ${pkg.version}`);
 
-// Native-first permission authority and Zoom-style chooser after capture is proven.
-requireText(shareService,"const nativeSystemPicker=platform==='darwin'&&macMajor>=15",'Native picker capability is not gated to supported macOS.');
-requireText(shareService,'function configureDisplayMediaHandler(useSystemPicker)','Dynamic native/custom display-media authority is missing.');
-requireText(shareService,"if(nativeSystemPicker&&status!=='granted')",'Unknown/ungranted macOS must retain native authorization.');
-requireText(shareService,'configureDisplayMediaHandler(false)','Granted/proven macOS cannot switch to the DominionStar chooser.');
+// 2.0.40 physical rejection repair: detect macOS capability, but never let the
+// Apple system overlay replace the approved DominionStar/Zoom-like chooser.
+requireText(shareService,"const systemPickerAvailable=platform==='darwin'&&macMajor>=15",'macOS picker capability diagnostics are missing.');
+requireText(shareService,'const nativeSystemPicker=false','Rejected Apple system picker must remain disabled.');
+requireText(shareService,'function configureDisplayMediaHandler(useSystemPicker)','Display-media authority is missing.');
+requireText(shareService,'configureDisplayMediaHandler(false);','Custom DominionStar capture handler must initialize before Share.');
+rejectText(shareService,"if(nativeSystemPicker&&status!=='granted')",'Unknown permission may not reopen the rejected Apple share overlay.');
+requireText(shareService,"share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null",'Approved chooser must clear stale selection and force custom capture.');
+requireText(shareService,"share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false)",'Selected source must force custom capture before getDisplayMedia.');
 requireText(shareIntegration,'const result=await bridge.openPicker(permission);','Renderer does not pass permission mode into picker authority.');
-requireText(shareIntegration,"if(result?.nativeSystemPicker)return {mode:'native'}",'Native first-authorization path is missing.');
-requireText(shareIntegration,"await share.start({name:'Shared content',options})",'Native Share path does not reach ShareController.');
 rejectText(physicalRepair,'sharePicker?.listSources','Physical compatibility code still enumerates sources before real Share.');
 rejectText(physicalRepair,'sourceProbe(','Physical compatibility code still probes sources before capture.');
 requireText(physicalRepair,'return await integration.open();','Physical compatibility layer must delegate Share to the isolated integration.');
 const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker(permission);');
 const diagnosticIndex=shareIntegration.indexOf('media?.requestScreen?.()');
 if(openIndex<0||diagnosticIndex<0||diagnosticIndex<openIndex)throw new Error('Deep Screen Recording diagnostics run before real picker/capture failure.');
+requireText(shareController,"error.code='share_start_timeout'",'Share start must fail visibly instead of loading forever.');
+requireText(shareController,'},5000);','Share-start timeout must remain bounded to five seconds.');
+requireText(shareController,'capturePromise.then(lateStream=>stopTracks(lateStream))','Late capture completion must be stopped and discarded.');
+requireText(rejectionCss,'#participantRoster .ds-participant-media{display:none!important}','Duplicate participant media renderer must remain hidden.');
 
 // Physical regression: capture start is fire-and-forget. ShareController must not
 // wait for a main-process reply before publishing its active state.
@@ -141,4 +148,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive controller is not 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection record is missing.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} permission-aware-native-fallback zoom-screens-advanced-working-only one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed direct-stop-share real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip video-filmstrip-native-mouse-drag narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} custom-only-preshare no-apple-overlay bounded-share-start zoom-screens-advanced-working-only one-way-capture-start toolbar-after-renderer-commit real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip video-filmstrip-native-mouse-drag narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
