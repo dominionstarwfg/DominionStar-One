@@ -4,6 +4,7 @@
 
   const desktop=window.dominionDesktop||{};
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const digits=v=>String(v||'').replace(/\D/g,'');
   const inMeeting=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   let shareBusy=false;
@@ -11,6 +12,8 @@
   let recoveryDialog=null;
   let expectedPersonalCode='';
   let shareStateUnsub=null;
+  let dockMouseBound=null;
+  let dockMouseDrag=null;
 
   function hideLegacyShareRecovery(){
     for(const node of qa('.ds-share-permission,.ds-219-share-recovery')){
@@ -158,8 +161,39 @@
     if(heading.textContent!==next)heading.textContent=next;
   }
 
+  function bindVideoDockMouseDrag(){
+    const dock=q('#participantVideoDock');if(!dock||dock===dockMouseBound)return;
+    dockMouseBound=dock;dock.dataset.dsMacMouseDragBound='1';
+    dock.addEventListener('mousedown',event=>{
+      if(event.button!==0||event.target.closest?.('button,input,select,textarea,a,.participant-video-resize'))return;
+      const stage=q('.stage');if(!stage||dock.hidden)return;
+      const dr=dock.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+      dockMouseDrag={dock,dx:event.clientX-dr.left,dy:event.clientY-dr.top};
+      dock.classList.add('user-positioned','dragging');
+      dock.style.setProperty('right','auto','important');
+      dock.style.setProperty('bottom','auto','important');
+      dock.style.setProperty('left',`${Math.max(8,dr.left-sr.left)}px`,'important');
+      dock.style.setProperty('top',`${Math.max(8,dr.top-sr.top)}px`,'important');
+      event.preventDefault();
+    },true);
+    document.addEventListener('mousemove',event=>{
+      if(!dockMouseDrag||dockMouseDrag.dock!==dock||!dock.isConnected)return;
+      const stage=q('.stage');if(!stage)return;const sr=stage.getBoundingClientRect();
+      const left=clamp(event.clientX-sr.left-dockMouseDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8));
+      const top=clamp(event.clientY-sr.top-dockMouseDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8));
+      dock.style.setProperty('left',`${left}px`,'important');
+      dock.style.setProperty('top',`${top}px`,'important');
+      event.preventDefault();
+    },true);
+    document.addEventListener('mouseup',()=>{
+      if(!dockMouseDrag||dockMouseDrag.dock!==dock)return;
+      dockMouseDrag=null;dock.classList.remove('dragging');
+    },true);
+  }
+
   function syncVideoDockPolicy(){
     const dock=q('#participantVideoDock'),overlay=q('#meetingOverlay');if(!dock||!overlay||overlay.hidden)return;
+    bindVideoDockMouseDrag();
     const shared=overlay.classList.contains('share-active')||document.body.classList.contains('remote-share-active');
     const view=String(overlay.dataset.viewMode||'speaker');
     const visibleTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')).length;
@@ -184,7 +218,7 @@
     shareStateUnsub=window.DominionShareController.onChange(()=>requestAnimationFrame(syncVideoDockPolicy));
   }
 
-  function sync(){syncPersonalChoice();syncParticipantCount();syncVideoDockPolicy();bindShareState();}
+  function sync(){syncPersonalChoice();syncParticipantCount();syncVideoDockPolicy();bindVideoDockMouseDrag();bindShareState();}
 
   function onDocumentClick(event){
     // Share Screen is intentionally NOT intercepted here. The isolated Share
@@ -199,8 +233,8 @@
   window.addEventListener('dominion:meeting-snapshot',()=>{syncParticipantCount();syncVideoDockPolicy();void verifyLivePersonalIdentity();});
   window.addEventListener('dominion:participant-presence',()=>{syncParticipantCount();syncVideoDockPolicy();});
   window.addEventListener('resize',()=>requestAnimationFrame(syncVideoDockPolicy),{passive:true});
-  window.addEventListener('dominion:meeting-ended',()=>{expectedPersonalCode='';document.body.dataset.dsExpectedPersonalRoomCode='';});
+  window.addEventListener('dominion:meeting-ended',()=>{expectedPersonalCode='';document.body.dataset.dsExpectedPersonalRoomCode='';dockMouseDrag=null;});
   sync();
 
-  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,sync});
+  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,bindVideoDockMouseDrag,sync});
 })();
