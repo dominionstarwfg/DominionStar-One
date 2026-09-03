@@ -8,7 +8,9 @@ const main=read('src/main.mjs');
 const share=read('ui/share-integration.js');
 const bootstrap=read('src/bootstrap.mjs');
 
-assert.equal(pkg.version,'2.0.30','Consolidated desktop baseline must report 2.0.30.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=30))),'Consolidated desktop authorities introduced in 2.0.30 must remain enforced for every later candidate.');
 
 // OAuth return authority from certified 2.0.29 OAuth branch.
 assert.ok(auth.includes("flowType:'pkce'"),'PKCE must remain authoritative.');
