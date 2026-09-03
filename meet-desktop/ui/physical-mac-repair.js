@@ -12,7 +12,7 @@
   let recoveryDialog=null;
   let expectedPersonalCode='';
   let shareStateUnsub=null;
-  let dockMouseBound=null;
+  let dockMouseListenersBound=false;
   let dockMouseDrag=null;
 
   function hideLegacyShareRecovery(){
@@ -162,11 +162,16 @@
   }
 
   function bindVideoDockMouseDrag(){
-    const dock=q('#participantVideoDock');if(!dock||dock===dockMouseBound)return;
-    dockMouseBound=dock;dock.dataset.dsMacMouseDragBound='1';
-    dock.addEventListener('mousedown',event=>{
-      if(event.button!==0||event.target.closest?.('button,input,select,textarea,a,.participant-video-resize'))return;
+    if(dockMouseListenersBound)return;
+    dockMouseListenersBound=true;
+    // Bind at the document boundary instead of to one dock instance. The
+    // participant filmstrip is rebuilt as presence/layout changes; resolving
+    // the current dock on mousedown makes whole-surface drag survive replacement.
+    document.addEventListener('mousedown',event=>{
+      const dock=event.target?.closest?.('#participantVideoDock');
+      if(!dock||event.button!==0||event.target.closest?.('button,input,select,textarea,a,.participant-video-resize'))return;
       const stage=q('.stage');if(!stage||dock.hidden)return;
+      dock.dataset.dsMacMouseDragBound='1';
       const dr=dock.getBoundingClientRect(),sr=stage.getBoundingClientRect();
       dockMouseDrag={dock,dx:event.clientX-dr.left,dy:event.clientY-dr.top};
       dock.classList.add('user-positioned','dragging');
@@ -177,7 +182,9 @@
       event.preventDefault();
     },true);
     document.addEventListener('mousemove',event=>{
-      if(!dockMouseDrag||dockMouseDrag.dock!==dock||!dock.isConnected)return;
+      const dock=dockMouseDrag?.dock;
+      if(!dock)return;
+      if(!dock.isConnected){dockMouseDrag=null;return;}
       const stage=q('.stage');if(!stage)return;const sr=stage.getBoundingClientRect();
       const left=clamp(event.clientX-sr.left-dockMouseDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8));
       const top=clamp(event.clientY-sr.top-dockMouseDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8));
@@ -186,8 +193,8 @@
       event.preventDefault();
     },true);
     document.addEventListener('mouseup',()=>{
-      if(!dockMouseDrag||dockMouseDrag.dock!==dock)return;
-      dockMouseDrag=null;dock.classList.remove('dragging');
+      const dock=dockMouseDrag?.dock;if(!dock)return;
+      dockMouseDrag=null;if(dock.isConnected)dock.classList.remove('dragging');
     },true);
   }
 
@@ -234,6 +241,7 @@
   window.addEventListener('dominion:participant-presence',()=>{syncParticipantCount();syncVideoDockPolicy();});
   window.addEventListener('resize',()=>requestAnimationFrame(syncVideoDockPolicy),{passive:true});
   window.addEventListener('dominion:meeting-ended',()=>{expectedPersonalCode='';document.body.dataset.dsExpectedPersonalRoomCode='';dockMouseDrag=null;});
+  bindVideoDockMouseDrag();
   sync();
 
   window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,bindVideoDockMouseDrag,sync});
