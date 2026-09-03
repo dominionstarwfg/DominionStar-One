@@ -8,7 +8,9 @@ const controls=read('ui/participant-controls.js');
 const webrtc=read('ui/webrtc-controller.js');
 const css=read('ui/zoom-production-polish.css');
 
-assert.equal(pkg.version,'2.0.34','Participant roster candidate must report 2.0.34.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=34))),'Participant-roster authority introduced in 2.0.34 must remain enforced for every later candidate.');
 assert.ok(app.includes('const roleRank=role=>role===\'host\'?0:role===\'cohost\'?1:2'),'Host and co-host ordering authority is missing.');
 assert.ok(app.includes('participant-media-state'),'Roster must reserve a stable media-state zone.');
 assert.ok(app.includes('participant-actions'),'Roster must reserve a stable actions zone.');
