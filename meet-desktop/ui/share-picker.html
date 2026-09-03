@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>DominionStar Meet – Share Screen</title>
+  <title>DominionStar Meet – Share screen</title>
   <link rel="stylesheet" href="./share-picker.css">
 </head>
 <body>
@@ -14,52 +14,113 @@
         <span>DominionStar Meet</span>
       </div>
       <div class="picker-title">
-        <h1>Share Screen</h1>
-        <p>Choose a screen or window to share with everyone in the meeting.</p>
+        <h1>Share screen</h1>
+        <p>Choose one screen or application window to present.</p>
       </div>
       <button id="cancelTop" class="icon-button" type="button" aria-label="Close share chooser">×</button>
     </header>
 
     <nav class="source-tabs" aria-label="Share source category">
-      <button class="tab active" type="button" data-tab="basic">Basic</button>
+      <button class="tab active" type="button" data-tab="screens">Screens</button>
       <button class="tab" type="button" data-tab="advanced">Advanced</button>
-      <button class="tab" type="button" data-tab="files">Files</button>
     </nav>
 
-    <section class="source-area">
-      <div id="loadingState" class="loading-state">
-        <div class="spinner"></div>
-        <strong>Finding screens and application windows…</strong>
-        <span>Your meeting stays active while DominionStar loads previews.</span>
-      </div>
+    <section class="picker-main">
+      <section class="browser-pane" aria-label="Share sources">
+        <div id="screenControls" class="screen-controls">
+          <div class="filter-group" role="group" aria-label="Filter share sources">
+            <button class="filter active" type="button" data-filter="all">All</button>
+            <button class="filter" type="button" data-filter="screen">Desktops</button>
+            <button class="filter" type="button" data-filter="window">Windows</button>
+          </div>
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input id="sourceSearch" type="search" autocomplete="off" placeholder="Search windows">
+          </label>
+          <button id="refreshSources" class="refresh-button" type="button" title="Refresh previews" aria-label="Refresh share previews">↻</button>
+        </div>
 
-      <div id="errorState" class="error-state" hidden>
-        <span class="state-icon">!</span>
-        <strong>Share sources are unavailable</strong>
-        <span id="errorCopy">Check Screen Recording permission and try again.</span>
-        <button id="retrySources" type="button">Try Again</button>
-      </div>
+        <div id="sourceStatus" class="source-status" role="status" aria-live="polite"></div>
 
-      <div id="sourceGrid" class="basic-source-view" hidden>
-        <section id="screensSection" class="source-section">
-          <header class="section-head">
-            <h2>Screens</h2>
-            <span id="screenCount" class="section-count"></span>
-          </header>
-          <div id="screenGrid" class="source-grid" role="listbox" aria-label="Screens"></div>
-        </section>
+        <div id="loadingState" class="loading-state">
+          <div class="spinner"></div>
+          <strong>Loading share previews…</strong>
+          <span>Your meeting remains active while the chooser loads.</span>
+        </div>
 
-        <section id="windowsSection" class="source-section">
-          <header class="section-head">
-            <h2>Windows</h2>
-            <span id="windowCount" class="section-count"></span>
-          </header>
-          <div id="windowGrid" class="source-grid" role="listbox" aria-label="Application windows"></div>
-        </section>
-      </div>
+        <div id="errorState" class="error-state" hidden>
+          <span class="state-icon">!</span>
+          <strong>Share sources are unavailable</strong>
+          <span id="errorCopy">Check Screen Recording permission and try again.</span>
+          <button id="retrySources" type="button">Try again</button>
+        </div>
 
-      <div id="advancedGrid" class="source-grid mode-grid" hidden></div>
-      <div id="filesGrid" class="source-grid mode-grid" hidden></div>
+        <div id="sourceGrid" class="screen-source-view" hidden>
+          <div class="source-list-head">
+            <strong id="sourceHeading">Available screens and windows</strong>
+            <span id="sourceCount"></span>
+          </div>
+          <div id="combinedGrid" class="source-grid" role="listbox" aria-label="Screens and application windows"></div>
+        </div>
+
+        <div id="advancedGrid" class="advanced-panel" hidden>
+          <article class="advanced-card">
+            <div>
+              <strong>Meeting-window visibility</strong>
+              <p>DominionStar Meet windows are hidden from the chooser by default so you do not accidentally present the meeting itself.</p>
+            </div>
+            <label class="advanced-toggle">
+              <input id="includeMeetWindows" type="checkbox">
+              <span>Include DominionStar Meet windows</span>
+            </label>
+          </article>
+          <article class="advanced-card">
+            <div>
+              <strong>Live preview refresh</strong>
+              <p>Keep screen and application thumbnails current while this chooser is open.</p>
+            </div>
+            <label class="advanced-toggle">
+              <input id="autoRefresh" type="checkbox" checked>
+              <span>Refresh previews automatically</span>
+            </label>
+          </article>
+          <div class="advanced-note">
+            <span class="advanced-note-mark" aria-hidden="true">✓</span>
+            <div><strong>Only working share modes are shown.</strong><p>Additional source types will appear here only after their capture path is fully supported and certified.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="preview-pane" aria-label="Selected source preview">
+        <div class="preview-heading">
+          <span>Preview</span>
+          <span id="previewKind" class="preview-kind">No source selected</span>
+        </div>
+        <div id="selectionPreviewFrame" class="selection-preview-frame empty">
+          <img id="selectionPreview" alt="" hidden>
+          <div id="previewPlaceholder" class="preview-placeholder">
+            <span class="preview-placeholder-icon" aria-hidden="true">▣</span>
+            <span>Select a source to preview it here</span>
+          </div>
+        </div>
+        <div class="preview-copy">
+          <strong id="previewName">Choose a screen or window</strong>
+          <span id="previewMeta">Nothing is shared until you click Share.</span>
+        </div>
+
+        <div class="share-options">
+          <div class="options-title">Share options</div>
+          <label id="shareAudioRow" class="option-row">
+            <input id="shareAudio" type="checkbox">
+            <span><strong>Share sound</strong><small>Include computer audio when supported.</small></span>
+          </label>
+          <label class="option-row">
+            <input id="optimizeVideo" type="checkbox">
+            <span><strong>Optimize for video sharing</strong><small>Prioritize motion for video playback.</small></span>
+          </label>
+          <input id="optimizeSharingVideo" type="checkbox" hidden tabindex="-1" aria-hidden="true">
+        </div>
+      </aside>
     </section>
 
     <footer class="picker-footer">
@@ -68,17 +129,7 @@
           <span class="selection-dot" aria-hidden="true"></span>
           <span id="selectionLabel">Choose a screen or window</span>
         </div>
-        <div class="share-options">
-          <label id="shareAudioRow" class="option-row">
-            <input id="shareAudio" type="checkbox">
-            <span>Share sound</span>
-          </label>
-          <label class="option-row">
-            <input id="optimizeVideo" type="checkbox">
-            <span>Optimize for sharing video</span>
-          </label>
-          <input id="optimizeSharingVideo" type="checkbox" hidden tabindex="-1" aria-hidden="true">
-        </div>
+        <span class="privacy-copy">Participants only see the source you select.</span>
       </div>
       <div class="footer-actions">
         <button id="cancelBottom" class="secondary" type="button">Cancel</button>

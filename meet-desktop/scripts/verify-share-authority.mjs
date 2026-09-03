@@ -56,7 +56,7 @@ const familyAuthority=createShareSourceAuthority({
   }
 });
 await Promise.all([familyAuthority.list({kind:'screen'}),familyAuthority.list({kind:'window'})]);
-assert.equal(familyCalls,2,'Basic must enumerate screen and application-window families independently.');
+assert.equal(familyCalls,2,'Chooser must enumerate screen and application-window families independently.');
 assert.equal(familyAuthority.get('screen:one')?.id,'screen:one');
 assert.equal(familyAuthority.get('window:one')?.id,'window:one');
 
@@ -80,23 +80,25 @@ const pickerCall=integration.indexOf('const result=await bridge.openPicker(permi
 const diagnosticCall=integration.indexOf('desktop?.media?.requestScreen?.()');
 assert.ok(pickerCall>=0&&diagnosticCall>pickerCall,'Deep Screen Recording diagnostics must run only after picker/capture failure.');
 
-// Zoom-style pre-share chooser for already-proven/granted capture sessions.
+// Zoom-familiar working-only pre-share chooser for already-proven/granted sessions.
 requireText(service,"types:[kind]",'Source authority must enumerate the selected source class only.');
 requireText(service,"thumbnailSize:{width:320,height:180}",'Source previews must remain bounded.');
 requireText(service,"!/DominionStar Meet/i.test",'DominionStar windows must remain excluded from normal sharing.');
-requireText(picker,"kind:'screen'",'Basic is missing real desktop sources.');
-requireText(picker,"kind:'window'",'Basic is missing real application windows.');
-requireText(picker,'basicSources=[...(screenResult?.sources||[]),...(windowResult?.sources||[])]','Basic must merge screens and application windows.');
-requireText(picker,"const firstScreen=basicSources.find",'Basic must prefer a desktop selection by default.');
+requireText(picker,"kind:'screen'",'Screens view is missing real desktop sources.');
+requireText(picker,"kind:'window'",'Screens view is missing real application windows.');
+requireText(picker,'const next=[...(screenResult?.sources||[]),...(windowResult?.sources||[])]','Screens view must merge screens and application windows.');
+requireText(picker,"const firstScreen=sources.find",'Screens view must prefer a desktop selection by default.');
 requireText(picker,'source.thumbnail','Share chooser must render real source previews.');
-requireText(pickerHtml,'data-tab="basic">Basic','Share chooser is missing Basic.');
+requireText(picker,'selectedId=String(remembered?.id||firstScreen?.id||sources[0]?.id||\'\')','Preview refresh must preserve the selected source when possible.');
+requireText(pickerHtml,'data-tab="screens">Screens','Share chooser is missing Screens.');
 requireText(pickerHtml,'data-tab="advanced">Advanced','Share chooser is missing Advanced.');
-requireText(pickerHtml,'data-tab="files">Files','Share chooser is missing Files.');
+rejectText(pickerHtml,'data-tab="files"','Share chooser must not expose dead Files/cloud controls.');
 requireText(pickerHtml,'Share sound','Share chooser is missing Share sound.');
-requireText(pickerHtml,'Optimize for sharing video','Share chooser is missing video optimization.');
-rejectText(pickerHtml,'Show DominionStar windows','Normal Share must not expose a recursion toggle.');
-requireText(pickerCss,'grid-template-columns:repeat(4,minmax(0,1fr))','Basic must retain Zoom-density source tiles.');
-requireText(pickerCss,'.tab.active{border-bottom-color:var(--blue)','Active share tab must retain the Zoom-style underline.');
+requireText(pickerHtml,'Optimize for video sharing','Share chooser is missing video optimization.');
+requireText(pickerHtml,'Include DominionStar Meet windows','Advanced must expose the intentional meeting-window visibility setting.');
+requireText(pickerHtml,'Refresh previews automatically','Advanced must expose bounded live preview refresh.');
+requireText(pickerCss,'grid-template-columns:repeat(auto-fill,minmax(170px,1fr))','Screens view must retain dense responsive source tiles.');
+requireText(pickerCss,'.tab.active{color:#fff;border-bottom-color:var(--blue)','Active share tab must retain the Zoom-style underline.');
 
 // Capture stays single-owner and preserves Pause/Resume semantics.
 assert.ok((controller.match(/getDisplayMedia/g)||[]).length>=2,'ShareController must remain the only display-capture owner.');
@@ -201,4 +203,4 @@ requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
 
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-basic-advanced-files real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state no-emit-recursion one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-screens-advanced-working-only real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state no-emit-recursion one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
