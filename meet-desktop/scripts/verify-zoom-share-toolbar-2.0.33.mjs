@@ -8,7 +8,9 @@ const js=read('ui/presenter-toolbar.js');
 const service=read('src/share-service.mjs');
 const toolbarHtml=read('ui/presenter-toolbar.html');
 
-assert.equal(pkg.version,'2.0.33','Zoom share-toolbar candidate must report 2.0.33.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=33))),'Zoom share-toolbar authority introduced in 2.0.33 must remain enforced for every later candidate.');
 
 assert.ok(service.includes("new BrowserWindow({width:900,height:72,minWidth:720,minHeight:72,maxHeight:292"),'Presenter BrowserWindow must use compact Zoom-scale geometry.');
 assert.ok(service.includes('positionNearMain(created,900,72)'),'Presenter toolbar must remain top-centered relative to the active meeting.');
