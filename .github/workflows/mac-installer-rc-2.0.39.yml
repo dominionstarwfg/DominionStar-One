@@ -183,7 +183,8 @@ jobs:
 
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" "$ZIP"
           shasum -a 256 "$DMG" "$ZIP" | tee installer-artifact/SHA256.txt
-          printf 'commit=%s\nversion=2.0.39\nsource=certified-rc\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nprotocol=dominionstar-meet\nsigning=adhoc\nnotarization=not-available-without-Apple-Developer-ID\n' "$GITHUB_SHA" > installer-artifact/BUILD-PROVENANCE.txt
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          printf 'commit=%s\ncertified_product_sha=512a77178a7ff4367654dbae9b6fbd07f50ccbc9\nversion=2.0.39\nsource=certified-rc\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nprotocol=dominionstar-meet\nsigning=adhoc\nnotarization=not-available-without-Apple-Developer-ID\n' "$SOURCE_SHA" > installer-artifact/BUILD-PROVENANCE.txt
 
       - name: Mount and verify installer
         shell: bash
