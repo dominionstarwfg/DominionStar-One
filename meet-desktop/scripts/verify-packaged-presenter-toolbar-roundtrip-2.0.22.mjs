@@ -161,6 +161,19 @@ try{
       unsubscribe=subscribe(()=>queueMicrotask(finish));
       finish();
     });
+    const qaWaitDom=(predicate,label)=>new Promise((resolve,reject)=>{
+      let settled=false;
+      const observer=new MutationObserver(()=>queueMicrotask(finish));
+      const finish=()=>{
+        if(settled)return;
+        try{
+          if(!predicate())return;
+          settled=true;observer.disconnect();resolve(true);
+        }catch(error){settled=true;observer.disconnect();reject(new Error(label+': '+String(error?.message||error)));}
+      };
+      observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:['hidden','class','data-ds-share-companion']});
+      queueMicrotask(finish);
+    });
     const qaWaitShare=(predicate,label)=>qaWaitController(fn=>window.DominionShareController.onChange(fn),predicate,label);
     const qaWaitMedia=(predicate,label)=>qaWaitController(fn=>window.DominionMediaController.onChange(fn),predicate,label);
     const qaMark=name=>console.log('QA_PRESENTER_SELF_OK '+name);
@@ -182,21 +195,25 @@ try{
         await qaWaitShare(()=>window.DominionShareController.snapshot().paused===false&&qaButton('pause')?.textContent==='Pause','Resume state');
         qaMark('resume');
 
+        const chatReady=qaWaitDom(()=>document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false,'Chat companion');
         qaClick('chat');
-        qaAssert(()=>document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false,'Chat companion');
+        await chatReady;
         qaMark('chat');
         window.DominionRuntimeStability.setChat(false);
 
+        const participantsReady=qaWaitDom(()=>document.body.dataset.dsShareCompanion==='participants'&&document.querySelector('.room-side')?.hidden===false,'Participants companion');
         qaClick('participants');
-        qaAssert(()=>document.body.dataset.dsShareCompanion==='participants'&&document.querySelector('.room-side')?.hidden===false,'Participants companion');
+        await participantsReady;
         qaMark('participants');
         window.DominionRuntimeStability.setParticipants(false);
 
+        const annotationReady=qaWaitDom(()=>window.DominionShareAnnotation.snapshot().active===true,'Annotation active');
         qaClick('annotate');
-        qaAssert(()=>window.DominionShareAnnotation.snapshot().active===true,'Annotation active');
+        await annotationReady;
         qaMark('annotate');
+        const annotationClosed=qaWaitDom(()=>window.DominionShareAnnotation.snapshot().active===false,'Annotation closed');
         qaClick('annotate');
-        qaAssert(()=>window.DominionShareAnnotation.snapshot().active===false,'Annotation closed');
+        await annotationClosed;
         qaMark('annotate-close');
 
         qaClick('audio');
