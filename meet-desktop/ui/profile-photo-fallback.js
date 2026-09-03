@@ -42,11 +42,58 @@
     img.onerror=()=>{img.hidden=true;fallback.classList.remove('has-photo');fallback.dataset.dsAvatarUrl='';span.hidden=false;if(refreshLocal)void refreshAuth(true);};
   }
 
+  function localGalleryIdentityWanted(){
+    const overlay=q('#meetingOverlay');if(!overlay||overlay.hidden)return false;
+    const sharing=overlay.classList.contains('share-active')||document.body.classList.contains('remote-share-active');if(sharing)return false;
+    const mode=String(overlay.dataset.viewMode||'');if(!['gallery','multi'].includes(mode))return false;
+    return !Boolean(window.DominionPreferences?.read?.('hideSelfView'));
+  }
+
+  function syncDockCount(dock){
+    if(!dock)return;
+    const tiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')),count=tiles.length;
+    dock.dataset.count=String(Math.min(count,9));dock.classList.toggle('dock-empty',count===0);dock.hidden=count===0;
+    for(let i=1;i<=9;i++)dock.classList.toggle(`count-${i}`,Math.min(count,9)===i);
+    if(count>0)dock.dataset.orientation='grid';
+  }
+
+  let localVisibilityObserver=null,observedTile=null,observedDock=null;
+  function observeLocalVisibility(tile,dock){
+    if(!tile||!dock||(observedTile===tile&&observedDock===dock))return;
+    localVisibilityObserver?.disconnect();observedTile=tile;observedDock=dock;
+    localVisibilityObserver=new MutationObserver(()=>schedulePaint());
+    localVisibilityObserver.observe(tile,{attributes:true,attributeFilter:['hidden']});
+    localVisibilityObserver.observe(dock,{attributes:true,attributeFilter:['hidden']});
+  }
+
+  function syncLocalGalleryIdentity(){
+    const tile=q('#localVideoDockTile'),dock=q('#participantVideoDock');if(!tile||!dock)return;
+    observeLocalVisibility(tile,dock);
+    const overlay=q('#meetingOverlay'),mode=String(overlay?.dataset.viewMode||''),sharing=Boolean(overlay?.classList.contains('share-active')||document.body.classList.contains('remote-share-active'));
+    if(sharing||!['gallery','multi'].includes(mode))return;
+    const hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView'));
+    if(hideSelf){if(!tile.hidden)tile.hidden=true;syncDockCount(dock);return;}
+
+    const snapshot=window.DominionMediaController?.snapshot?.()||{},stream=window.DominionMediaController?.stream?.()||null;
+    const live=Boolean(snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'));
+    const video=tile.querySelector('video'),fallback=tile.querySelector('.remote-peer-fallback');
+    if(tile.hidden)tile.hidden=false;
+    if(live){
+      if(video){if(video.srcObject!==stream)video.srcObject=stream;video.hidden=false;void video.play().catch(()=>{});}
+      if(fallback)fallback.hidden=true;
+    }else{
+      if(video){if(video.srcObject)video.srcObject=null;video.hidden=true;}
+      if(fallback)fallback.hidden=false;
+    }
+    syncDockCount(dock);
+  }
+
   function paintLocal(){
     const user=state.user||{},name=String(user.name||'DominionStar Member'),avatarUrl=safePhotoUrl(user.avatarUrl),label=initials(name);
     setBoxPhoto(q('#prejoinAvatar'),avatarUrl,label,{refreshLocal:true});
     setBoxPhoto(q('#stageAvatar'),avatarUrl,label,{refreshLocal:true});
     const localDock=q('#localVideoDockTile .remote-peer-fallback');if(localDock)setTilePhoto(localDock,avatarUrl,label,{refreshLocal:true});
+    syncLocalGalleryIdentity();
   }
 
   function paintParticipants(){
@@ -73,15 +120,17 @@
   }
 
   function acceptSnapshot(snapshot={}){
-    state.participants=new Map((snapshot.participants||[]).filter(item=>item?.participantId).map(item=>[String(item.participantId),item]));paintParticipants();
+    state.participants=new Map((snapshot.participants||[]).filter(item=>item?.participantId).map(item=>[String(item.participantId),item]));paintParticipants();schedulePaint();
   }
   function acceptWaiting(items=[]){state.waiting=new Map((items||[]).filter(item=>item?.participantId).map(item=>[String(item.participantId),item]));paintParticipants();}
-  function resetMeeting(){state.participants.clear();state.waiting.clear();paintParticipants();}
+  function resetMeeting(){state.participants.clear();state.waiting.clear();localVisibilityObserver?.disconnect();localVisibilityObserver=null;observedTile=null;observedDock=null;paintParticipants();}
 
   desktop.auth?.onChanged?.(authState=>{state.user=authState?.signedIn?authState.user:null;state.authRefreshAt=Date.now();paintLocal();});
   window.addEventListener('dominion:meeting-snapshot',event=>acceptSnapshot(event.detail||{}));
   window.addEventListener('dominion:waiting-room-update',event=>acceptWaiting(event.detail?.items||[]));
   window.addEventListener('dominion:meeting-ended',resetMeeting);
+  window.addEventListener('dominion:preference-change',()=>schedulePaint());
+  window.addEventListener('dominion:host-view-layout',()=>schedulePaint());
 
   // Dynamic meeting surfaces (remote tiles, roster rows, waiting-room rows and
   // the local floating dock) are created after this module loads. Repaint them
@@ -95,11 +144,13 @@
   }
   const observer=new MutationObserver(schedulePaint);
   observer.observe(document.body,{subtree:true,childList:true});
+  window.DominionMediaController?.onChange?.(schedulePaint);
 
   const api=Object.freeze({
     refresh:()=>refreshAuth(true),
     state:()=>({user:state.user,participants:[...state.participants.values()],waiting:[...state.waiting.values()]}),
-    applyForTesting:({user=null,participants=[],waiting=[]}={})=>{state.user=user;acceptSnapshot({participants});acceptWaiting(waiting);paintAll();return true;}
+    applyForTesting:({user=null,participants=[],waiting=[]}={})=>{state.user=user;acceptSnapshot({participants});acceptWaiting(waiting);paintAll();return true;},
+    syncLocalGalleryIdentity
   });
   window.DominionProfilePhotoFallback=api;
   ensureStyles();void refreshAuth(true);paintAll();
