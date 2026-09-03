@@ -1,10 +1,25 @@
+import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 
 const appPath=process.argv[2];
 if(!appPath)throw new Error('Usage: node verify-packaged-profile-photo-fallback-2.0.24.mjs <DominionStar Meet.app>');
-const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
+const absoluteApp=path.resolve(appPath);
+const executable=path.join(absoluteApp,'Contents','MacOS','DominionStar Meet');
+const asarPath=path.join(absoluteApp,'Contents','Resources','app.asar');
+const asarBin=path.resolve('node_modules/@electron/asar/bin/asar.js');
+assert.ok(fs.existsSync(asarPath),'Packaged profile-photo verifier requires app.asar.');
+const listing=execFileSync(process.execPath,[asarBin,'list',asarPath],{encoding:'utf8'});
+assert.ok(listing.includes('/ui/profile-photo-fallback.js'),'Packaged ASAR is missing /ui/profile-photo-fallback.js.');
+const auditDir=path.resolve('.profile-photo-package-audit');
+fs.rmSync(auditDir,{recursive:true,force:true});
+execFileSync(process.execPath,[asarBin,'extract',asarPath,auditDir]);
+const packedHtml=fs.readFileSync(path.join(auditDir,'ui','index.html'),'utf8');
+const packedModule=fs.readFileSync(path.join(auditDir,'ui','profile-photo-fallback.js'),'utf8');
+assert.ok(packedHtml.includes('<script src="./profile-photo-fallback.js"></script>'),'Packaged index.html does not reference profile-photo-fallback.js.');
+assert.ok(packedModule.includes('window.DominionProfilePhotoFallback=api'),'Packaged profile-photo module does not expose its API.');
+
 const port=11080+Math.floor(Math.random()*100);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let stderr='';
@@ -26,7 +41,17 @@ let main=null;
 try{
   const target=await waitTarget(item=>item.type==='page'&&String(item.url||'').includes('/ui/index.html'),'main renderer');
   main=new Cdp(target.webSocketDebuggerUrl);await main.connect();
-  await main.wait("document.readyState==='complete'&&window.DominionProfilePhotoFallback?.applyForTesting",'profile-photo fallback module');
+  await main.wait("document.readyState==='complete'",'main document');
+  const startup=await main.eval(`(()=>({
+    api:Boolean(window.DominionProfilePhotoFallback?.applyForTesting),
+    desktop:Boolean(window.dominionDesktop?.isDesktop),
+    script:[...document.scripts].map(node=>node.getAttribute('src')||'').find(src=>src.includes('profile-photo-fallback.js'))||'',
+    resource:performance.getEntriesByType('resource').map(entry=>entry.name).find(name=>name.includes('profile-photo-fallback.js'))||''
+  }))()`);
+  if(!startup.api){
+    const manual=await main.eval(`(()=>{try{(0,eval)(${JSON.stringify(packedModule)});return {api:Boolean(window.DominionProfilePhotoFallback?.applyForTesting),error:''};}catch(error){return {api:false,error:String(error?.stack||error?.message||error)}}})()`);
+    throw new Error(`Profile-photo module did not initialize from packaged index. startup=${JSON.stringify(startup)} manual=${JSON.stringify(manual)}`);
+  }
 
   const photoUrl='https://10.255.255.1/dominionstar-avatar.png';
   const photoState=await main.eval(`(()=>{
@@ -58,7 +83,7 @@ try{
       remoteSrc:remote?.querySelector('img.ds-profile-fallback-photo')?.src||''
     };
   })()`);
-  assert.deepEqual({...photoState,remoteSrc:undefined},{prejoin:true,stage:true,localDock:true,remote:true,roster:true,waiting:true,remoteSrc:undefined});
+  for(const key of ['prejoin','stage','localDock','remote','roster','waiting'])assert.equal(photoState[key],true,`${key} must render a camera-off profile photo.`);
   assert.equal(photoState.remoteSrc,photoUrl,'Remote fallback must use the signed HTTPS photo URL verbatim.');
 
   const initialsState=await main.eval(`(()=>{
@@ -91,5 +116,5 @@ try{
   assert.deepEqual(brokenState,{hasPhoto:false,imageHidden:true,initials:'RP',initialsHidden:false});
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:TypeError|ReferenceError|SyntaxError)/i,'Packaged profile-photo fallback produced an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_PROFILE_PHOTO_2_0_24_OK local-prejoin local-stage local-dock remote-tile roster waiting-room photo-first no-photo-initials broken-photo-initials no-renderer-errors');
-}catch(error){console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());process.exitCode=1;}finally{main?.close();if(child.exitCode===null)child.kill('SIGTERM');await sleep(500);if(child.exitCode===null)child.kill('SIGKILL');}
+  console.log('DOMINIONSTAR_PACKAGED_PROFILE_PHOTO_2_0_24_OK asar-module packaged-index executed-module local-prejoin local-stage local-dock remote-tile roster waiting-room photo-first no-photo-initials broken-photo-initials no-renderer-errors');
+}catch(error){console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());process.exitCode=1;}finally{main?.close();if(child.exitCode===null)child.kill('SIGTERM');await sleep(500);if(child.exitCode===null)child.kill('SIGKILL');fs.rmSync(auditDir,{recursive:true,force:true});}
