@@ -64,6 +64,7 @@ jobs:
           node --check scripts/verify-meeting-identity-runtime.mjs
           node --check scripts/verify-packaged-interactions.mjs
           node --check scripts/verify-packaged-physical-mac-2.0.21.mjs
+          node --check scripts/verify-packaged-single-instance-2.0.28.mjs
           node --check scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs
           node --check scripts/verify-packaged-zoom-window-parity.mjs
           node --check scripts/verify-packaged-approved-reference-2.0.22.mjs
@@ -170,6 +171,10 @@ jobs:
             exit 92
           fi
           echo DOMINIONSTAR_MAC_PACKAGED_LAUNCH_OK
+
+      - name: Verify packaged single-instance authority
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-single-instance-2.0.28.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Verify packaged physical runtime stability
         working-directory: meet-desktop
