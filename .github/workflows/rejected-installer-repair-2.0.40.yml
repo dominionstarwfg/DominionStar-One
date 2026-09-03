@@ -1,0 +1,41 @@
+name: DominionStar Meet Rejected Installer Repair 2.0.40
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/src/share-service.mjs'
+      - 'meet-desktop/ui/share-controller.js'
+      - 'meet-desktop/ui/auth-password.js'
+      - 'meet-desktop/ui/rejected-build-repair-2.0.40.css'
+      - 'meet-desktop/scripts/verify-share-authority.mjs'
+      - 'meet-desktop/scripts/verify-rejected-installer-repair-2.0.40.mjs'
+      - '.github/workflows/rejected-installer-repair-2.0.40.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rejected-installer-repair:
+    runs-on: macos-14
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify screenshot rejection repairs
+        working-directory: meet-desktop
+        run: |
+          node --check src/share-service.mjs
+          node --check ui/share-controller.js
+          node --check ui/auth-password.js
+          node --check scripts/verify-rejected-installer-repair-2.0.40.mjs
+          node scripts/verify-rejected-installer-repair-2.0.40.mjs
+          node scripts/verify-share-authority.mjs
+          node scripts/verify-multi-spotlight-2.0.39.mjs

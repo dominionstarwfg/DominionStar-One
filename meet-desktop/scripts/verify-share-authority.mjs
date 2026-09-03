@@ -60,27 +60,31 @@ assert.equal(familyCalls,2,'Chooser must enumerate screen and application-window
 assert.equal(familyAuthority.get('screen:one')?.id,'screen:one');
 assert.equal(familyAuthority.get('window:one')?.id,'window:one');
 
-// Permission authority: no desktop-source probe before the real capture request.
+// 2.0.40 permission + picker authority: the DominionStar thumbnail chooser is
+// the only active source-selection surface. macOS system-picker capability may
+// be detected for diagnostics, but it must not own getDisplayMedia.
 requireText(main,"systemPreferences.getMediaAccessStatus(kind)",'macOS TCC status authority is missing.');
 requireText(main,"permissionStatus('screen')",'Screen Recording status must remain independently inspectable.');
 requireText(main,'function activeScreenCaptureProbe()','Post-failure screen diagnostics are missing.');
 requireText(main,'screenPermissionProbeInFlight','Post-failure screen diagnostics must remain single-flight.');
 requireText(main,'capture-probe-timeout','Post-failure screen diagnostics must remain bounded.');
-requireText(service,"const nativeSystemPicker=platform==='darwin'&&macMajor>=15",'Native macOS picker capability detection is missing.');
-requireText(service,'function configureDisplayMediaHandler(useSystemPicker)','Dynamic native/custom display-media authority is missing.');
-requireText(service,"if(nativeSystemPicker&&status!=='granted')",'Unknown/ungranted macOS sessions must retain native authorization.');
-requireText(service,'configureDisplayMediaHandler(false)','Granted/proven sessions must switch to the DominionStar chooser.');
-requireText(integration,"const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2'",'Successful screen-capture proof must persist across renderer relaunches.');
+requireText(service,"const systemPickerAvailable=platform==='darwin'&&macMajor>=15",'macOS picker capability diagnostics are missing.');
+requireText(service,'const nativeSystemPicker=false','The rejected Apple system picker must be disabled in the active share path.');
+requireText(service,'function configureDisplayMediaHandler(useSystemPicker)','Display-media handler authority is missing.');
+requireText(service,'configureDisplayMediaHandler(false);','DominionStar chooser must initialize the custom display-media handler.');
+requireText(service,"ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;",'Opening the approved chooser must reset stale selection and force custom capture mode.');
+requireText(service,"ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);",'Committing a source must force custom capture mode before getDisplayMedia.');
+requireText(service,"return {ok:true,nativeSystemPicker:false}",'Selected sources must explicitly remain on the DominionStar picker path.');
+requireText(integration,"const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2'",'Successful screen-capture proof must remain session-scoped.');
 requireText(integration,'async function grantedScreenPermission()','Granted Screen Recording helper is missing.');
 rejectText(integration,'bridge?.probeAccess?.()','Initial Share must not enumerate desktop sources as a permission probe.');
 requireText(integration,"const permission=proven?'granted':'unknown';",'Initial Share must distinguish proven/granted from unknown permission.');
 requireText(integration,'const result=await bridge.openPicker(permission);','Permission mode must be passed to the picker authority.');
-requireText(integration,"if(result?.nativeSystemPicker)return {mode:'native'}",'Native first-authorization fallback is missing.');
 const pickerCall=integration.indexOf('const result=await bridge.openPicker(permission);');
 const diagnosticCall=integration.indexOf('desktop?.media?.requestScreen?.()');
 assert.ok(pickerCall>=0&&diagnosticCall>pickerCall,'Deep Screen Recording diagnostics must run only after picker/capture failure.');
 
-// Zoom-familiar working-only pre-share chooser for already-proven/granted sessions.
+// Zoom-familiar working-only pre-share chooser.
 requireText(service,"types:[kind]",'Source authority must enumerate the selected source class only.');
 requireText(service,"thumbnailSize:{width:320,height:180}",'Source previews must remain bounded.');
 requireText(service,"!/DominionStar Meet/i.test",'DominionStar windows must remain excluded from normal sharing.');
@@ -100,10 +104,15 @@ requireText(pickerHtml,'Refresh automatically','Advanced must expose bounded liv
 requireText(pickerCss,'grid-template-columns:repeat(auto-fill,minmax(170px,1fr))','Screens view must retain dense responsive source tiles.');
 requireText(pickerCss,'.tab.active{color:#fff;border-bottom-color:var(--blue)','Active share tab must retain the Zoom-style underline.');
 
-// Capture stays single-owner and preserves Pause/Resume semantics.
+// Capture stays single-owner, cannot hang forever, and preserves Pause/Resume.
 assert.ok((controller.match(/getDisplayMedia/g)||[]).length>=2,'ShareController must remain the only display-capture owner.');
 const directDisplay=/\.getDisplayMedia\s*\(/;
 assert.ok(!directDisplay.test(integration)&&!directDisplay.test(preload)&&!directDisplay.test(picker),'Integration/preload/picker must not acquire display media directly.');
+requireText(controller,'let displayRequestGeneration=0','Display capture must own a cancellable generation authority.');
+requireText(controller,"error.code='share_start_timeout'",'Share acquisition must fail visibly instead of loading forever.');
+requireText(controller,'},5000);','Share-start timeout must be bounded to five seconds.');
+requireText(controller,'void capturePromise.then(lateStream=>stopTracks(lateStream)).catch(()=>{})','Late capture completion after a timeout must be physically stopped.');
+requireText(controller,'displayRequestGeneration+=1;const hadShare','Stop Share must cancel any in-flight display request generation.');
 requireText(controller,'async function captureFreezeFrame(videoElement)','Pause must own direct capture-frame freezing.');
 requireText(controller,"typeof ImageCapture==='function'",'Pause must prefer direct ImageCapture frame acquisition when no preview is attached.');
 requireText(controller,"typeof MediaStreamTrackProcessor==='function'",'Pause must retain a direct track-processor fallback.');
@@ -115,10 +124,7 @@ requireText(annotation,'setAnnotationCanvas','Annotation must remain connected t
 requireText(annotation,'drawLaser','Laser pointer support is missing.');
 rejectText(controller,'rendererCommitted:true','ShareController must not own meeting visibility or presenter commit.');
 
-// Re-entrancy guard: the initial busy-state emit occurs before capture is active.
-// Integration legitimately asks Annotation to be inactive in that state. Clearing
-// an already-null annotation canvas must therefore be a true no-op, otherwise the
-// synchronous listener chain becomes emit -> applyLayout -> deactivate -> emit.
+// Re-entrancy guard.
 requireText(controller,'if(state.annotationCanvas===next)','ShareController must suppress unchanged annotation-canvas emissions.');
 requireText(controller,'if(next&&state.liveStream&&!state.compositeStream)startComposite();','Idempotent annotation guard must still recover a missing active composite stream.');
 requireText(annotation,'const controllerAnnotating=Boolean(controller?.snapshot?.().annotating);','Annotation teardown must inspect real controller annotation state.');
@@ -126,7 +132,6 @@ requireText(annotation,'if(controllerAnnotating)controller?.setAnnotationCanvas?
 rejectText(annotation,'share()?.setAnnotationCanvas?.(null)','Annotation deactivate must not unconditionally feed an unchanged null canvas back into ShareController.');
 
 // Critical physical-Mac repair: capture-start notification itself is one-way.
-// ShareController must never await a main-process reply before publishing active.
 requireText(preload,"captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;}",'Capture start must cross the preload bridge as one-way IPC.');
 rejectText(preload,"captureStarted:state=>invoke('share:capture-started'",'Capture start must not use request/response IPC.');
 const captureStarted=service.slice(
@@ -160,8 +165,7 @@ requireText(integration,"data-inline-command=\"stop\"","Inline presenter control
 requireText(integration,"window.dispatchEvent(new CustomEvent('dominion:presenter-command-dispatch'","Inline presenter actions must publish one observable command transaction.");
 
 // Integration commits presenter mode only after the share promise returned and
-// the actual shared stage has been mounted. On macOS this activates same-renderer
-// controls; other platforms may still use the deferred presenter BrowserWindow.
+// the actual shared stage has been mounted.
 requireText(integration,'function commitPresenterMode()','Share Integration must own safe presenter commit.');
 requireText(integration,'markCaptureProven();applyLayout();','Shared-stage layout must mount before presenter commit.');
 requireText(integration,'commitPresenterMode();','Initial share must explicitly enter presenter mode after layout.');
@@ -203,4 +207,4 @@ requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
 
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK permission-aware-initial-share granted-custom-chooser native-unproven-fallback no-source-probe persistent-capture-proof zoom-screens-advanced-working-only real-desktop-and-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state no-emit-recursion one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed share-companions first-click-presenter-controls direct-stop-share');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK custom-only-preshare no-system-picker bounded-share-start zoom-screens-advanced real-desktop-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state one-way-capture-start share-companions first-click-presenter-controls direct-stop-share');

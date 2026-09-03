@@ -3,6 +3,7 @@
   const bridge=window.dominionDesktop?.share;
   const state={liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
   const listeners=new Set();
+  let displayRequestGeneration=0;
   const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
   const emit=()=>{
     const value=snapshot(),qa=state.sourceName==='QA Synthetic Share';let index=0;
@@ -34,8 +35,17 @@
   }
 
   async function acquireDisplay(options={}){
-    const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio);
-    const stream=await navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
+    const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio),generation=++displayRequestGeneration;
+    const capturePromise=navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
+    let timeoutId=0,stream=null,timedOut=false;
+    const timeoutPromise=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{timedOut=true;const error=new Error('Screen sharing did not start within 5 seconds. Please choose the source again.');error.code='share_start_timeout';reject(error);},5000);});
+    try{
+      stream=await Promise.race([capturePromise,timeoutPromise]);
+    }catch(error){
+      if(timedOut){displayRequestGeneration+=1;void capturePromise.then(lateStream=>stopTracks(lateStream)).catch(()=>{});}
+      throw error;
+    }finally{if(timeoutId)clearTimeout(timeoutId);}
+    if(generation!==displayRequestGeneration){stopTracks(stream);throw new DOMException('Screen share request was replaced.','AbortError');}
     const track=stream.getVideoTracks()[0];
     if(!track){stopTracks(stream);throw new Error('No screen capture track was returned.');}
     try{track.contentHint=optimize?'motion':'detail';}catch{}
@@ -163,7 +173,7 @@
     else{stopComposite();emit();}
     return snapshot();
   }
-  async function stop(){const hadShare=Boolean(state.liveStream||state.frozenStream);state.annotationCanvas=null;stopComposite();stopTracks(state.frozenStream);stopTracks(state.liveStream);state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};emit();if(hadShare)await bridge?.captureStopped?.();return snapshot();}
+  async function stop(){displayRequestGeneration+=1;const hadShare=Boolean(state.liveStream||state.frozenStream);state.annotationCanvas=null;stopComposite();stopTracks(state.frozenStream);stopTracks(state.liveStream);state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};emit();if(hadShare)await bridge?.captureStopped?.();return snapshot();}
   const api=Object.freeze({start,replaceSource,pause,resume,togglePause,stop,outputStream,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
   window.DominionShareController=api;
 })();

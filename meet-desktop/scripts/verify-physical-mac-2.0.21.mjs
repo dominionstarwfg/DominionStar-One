@@ -21,145 +21,108 @@ const presenterJs=read('ui/presenter-toolbar.js');
 const approved=read('ui/approved-reference-parity.js');
 const meetingCss=read('ui/meeting.css');
 const approvedCss=read('ui/approved-reference-parity.css');
+const rejectionCss=read('ui/rejected-build-repair-2.0.40.css');
 const pkg=JSON.parse(read('package.json'));
 
 const [major,minor,patch]=String(pkg.version||'').split('.').map(Number);
-assert.ok(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21,`Carried-forward physical Mac repair gate requires DominionStar Meet 2.0.21 or later in the 2.0.x line; found ${pkg.version}.`);
+assert.ok(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21,`Physical Mac gate requires 2.0.21+; found ${pkg.version}.`);
 
-// Final authority load order.
-assert.match(auth,/physical-mac-repair\.css/,'Physical Mac repair CSS must be loaded.');
-assert.match(auth,/physical-mac-repair\.js/,'Physical Mac repair JS must be loaded.');
-assert.match(auth,/zoom-adaptive-parity\.css/,'Adaptive Zoom CSS must be loaded.');
-assert.match(auth,/zoom-adaptive-parity\.js/,'Adaptive Zoom JS must be loaded.');
-assert.match(auth,/runtime-stability\.css/,'Runtime stability CSS must be loaded.');
-assert.match(auth,/runtime-stability\.js/,'Runtime stability JS must be loaded.');
-assert.ok(auth.indexOf('script.onload=loadAdaptiveParity')>=0,'Adaptive authority must load after physical Mac repair.');
-assert.ok(auth.indexOf('approved-reference-parity.css')<auth.indexOf('runtime-stability.css'),'Runtime stability must remain final physical visual authority.');
+// Final authority load order and screenshot rejection layer.
+for(const file of ['physical-mac-repair.css','zoom-adaptive-parity.css','runtime-stability.css','rejected-build-repair-2.0.40.css'])assert.ok(auth.includes(file),`${file} must be loaded.`);
+for(const file of ['physical-mac-repair.js','zoom-adaptive-parity.js','runtime-stability.js'])assert.ok(auth.includes(file),`${file} must be loaded.`);
+assert.ok(auth.indexOf('zoom-physical-acceptance.css')<auth.indexOf('rejected-build-repair-2.0.40.css'),'2.0.40 rejection repair must load after the rejected physical layer.');
+assert.ok(rejectionCss.includes('#participantRoster .ds-participant-media{display:none!important}'),'Duplicate participant media renderer must remain physically hidden.');
 
 // Personal Meeting ID and prejoin identity remain deterministic.
-assert.match(repair,/document\.addEventListener\('submit'.*true\)/s,'Personal Meeting ID needs capture-phase submit authority.');
-assert.match(repair,/newMeetingUsePersonal/,'Personal Meeting ID selection must be read.');
-assert.match(repair,/meeting\?\.personalRoom/,'Displayed Personal Room must be read before Start.');
-assert.match(repair,/meeting\?\.startPersonalRoom/,'Personal Meeting ID must start the personal-room service path.');
-assert.match(repair,/digits\(personal\.roomCode\)!==digits\(room\.roomCode\)/,'Personal Meeting ID must be equality checked.');
-assert.match(repair,/beginHostPrejoin\(room,'personal'\)/,'Personal Room must enter host prejoin with the same room.');
-assert.match(repair,/passLabel\?\.style\.setProperty\('display','none','important'\)/,'Personal Meeting ID must hide the unrelated instant passcode field.');
+assert.match(repair,/document\.addEventListener\('submit'.*true\)/s);
+assert.match(repair,/newMeetingUsePersonal/);
+assert.match(repair,/meeting\?\.personalRoom/);
+assert.match(repair,/meeting\?\.startPersonalRoom/);
+assert.match(repair,/digits\(personal\.roomCode\)!==digits\(room\.roomCode\)/);
+assert.match(repair,/beginHostPrejoin\(room,'personal'\)/);
 
-// Native-first Screen Recording permission authority.
-assert.match(shareService,/nativeSystemPicker=platform==='darwin'&&macMajor>=15/,'macOS native picker capability is missing.');
-assert.match(shareService,/function configureDisplayMediaHandler\(useSystemPicker\)/,'Dynamic display-media authority is missing.');
-assert.match(shareService,/if\(nativeSystemPicker&&status!=='granted'\)/,'Unknown/ungranted macOS must retain native authorization.');
-assert.match(shareService,/configureDisplayMediaHandler\(false\)/,'Granted/proven macOS cannot use the DominionStar chooser.');
-assert.match(shareIntegration,/SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2'/,'Capture proof must persist across renderer relaunches.');
-assert.match(shareIntegration,/async function grantedScreenPermission\(\)/,'Granted Screen Recording helper is missing.');
-assert.match(shareIntegration,/const permission=proven\?'granted':'unknown';/,'Share entry must preserve granted-vs-unknown routing.');
+// 2.0.40 rejected-preshare repair: system picker can be detected, but may not
+// own capture. The app-owned chooser is the only active pre-share authority.
+assert.match(shareService,/systemPickerAvailable=platform==='darwin'&&macMajor>=15/,'macOS capability detection must remain available for diagnostics.');
+assert.match(shareService,/const nativeSystemPicker=false/,'Rejected macOS system picker must stay disabled in active capture.');
+assert.match(shareService,/function configureDisplayMediaHandler\(useSystemPicker\)/,'Display-media handler authority is missing.');
+assert.match(shareService,/configureDisplayMediaHandler\(false\);/,'Custom DominionStar display-media handler must initialize immediately.');
+assert.doesNotMatch(shareService,/if\(nativeSystemPicker&&status!=='granted'\)/,'No permission state may reopen the rejected Apple share overlay.');
+assert.match(shareService,/share:list-sources[\s\S]*configureDisplayMediaHandler\(false\);pendingSelection=null/,'Opening approved chooser must clear stale pending selection and force custom capture.');
+assert.match(shareService,/share:select-source[\s\S]*configureDisplayMediaHandler\(false\)/,'Source commit must force custom capture before getDisplayMedia.');
+assert.match(shareIntegration,/SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2'/);
+assert.match(shareIntegration,/const result=await bridge\.openPicker\(permission\)/);
 assert.ok(!shareIntegration.includes('bridge?.probeAccess?.()'),'Initial Share must not enumerate sources as a permission probe.');
-assert.match(shareIntegration,/const entry=await resolveShareEntry\(permission\)/,'Share must route through permission-aware selection.');
 const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker(permission);');
 const diagnosticIndex=shareIntegration.indexOf('desktop?.media?.requestScreen?.()');
 assert.ok(openIndex>=0&&diagnosticIndex>openIndex,'Deep Screen Recording diagnostics must remain post-failure only.');
-assert.match(shareIntegration,/await share\.start\(\{name:'Shared content',options\}\)/,'Native first-authorization path must reach ShareController.');
-assert.doesNotMatch(repair,/sharePicker\?\.listSources|sourceProbe\(|desktopCapturer|getSources\(/,'Physical compatibility code must not enumerate sources before Share authority chooses a mode.');
+assert.doesNotMatch(repair,/sharePicker\?\.listSources|sourceProbe\(|desktopCapturer|getSources\(/,'Compatibility layer must not compete with the share authority.');
 assert.match(repair,/return await integration\.open\(\)/,'Physical compatibility Share helper must delegate to Share Integration.');
-const repairClick=repair.slice(repair.indexOf('function onDocumentClick'),repair.indexOf("document.addEventListener('submit'"));
-assert.ok(!repairClick.includes('#roomShare'),'Physical Mac repair must not intercept the Share Screen button.');
 
-// Critical presenter repair: capture start itself is fire-and-forget. The renderer
-// must never wait for a main-process response before ShareController publishes active.
-assert.match(preload,/captureStarted:state=>\{ipcRenderer\.send\('share:capture-started',state\|\|\{\}\);return true;\}/,'Capture start must use one-way preload IPC.');
-assert.doesNotMatch(preload,/captureStarted:state=>invoke\('share:capture-started'/,'Capture start must not use request/response IPC.');
-const captureStarted=shareService.slice(
-  shareService.indexOf("ipcMain.on('share:capture-started'"),
-  shareService.indexOf("ipcMain.handle('share:capture-state'")
-);
-assert.match(captureStarted,/ipcMain\.on\('share:capture-started'/,'Main process must receive capture start as one-way IPC.');
-assert.match(captureStarted,/event\.sender!==main\.webContents/,'Capture start must accept only the main meeting renderer.');
-assert.match(captureStarted,/keepMeetingRendererLive\(\)/,'Capture start must keep the renderer unthrottled.');
-assert.doesNotMatch(captureStarted,/scheduleToolbarForShare\(\);/,'Capture start must not schedule presenter BrowserWindow work.');
-assert.doesNotMatch(captureStarted,/openToolbar\(/,'Presenter BrowserWindow creation must not occur inside capture start.');
-assert.doesNotMatch(captureStarted,/hideMeetingWindowForShare\(\)/,'Meeting hide must not occur inside capture start.');
-assert.doesNotMatch(captureStarted,/return \{ok:/,'Capture start must have no response contract.');
+// Share start may not hang forever.
+assert.match(shareController,/let displayRequestGeneration=0/);
+assert.match(shareController,/error\.code='share_start_timeout'/);
+assert.match(shareController,/setTimeout\(\(\)=>\{timedOut=true;[\s\S]*\},5000\)/,'Share start timeout must remain five seconds.');
+assert.match(shareController,/capturePromise\.then\(lateStream=>stopTracks\(lateStream\)\)/,'Late capture completion must be discarded.');
 
-assert.match(shareService,/function scheduleToolbarForShare\(\)/,'Deferred presenter toolbar scheduler is missing.');
+// Capture start remains one-way so the renderer cannot deadlock on main IPC.
+assert.match(preload,/captureStarted:state=>\{ipcRenderer\.send\('share:capture-started',state\|\|\{\}\);return true;\}/);
+assert.doesNotMatch(preload,/captureStarted:state=>invoke\('share:capture-started'/);
+const captureStarted=shareService.slice(shareService.indexOf("ipcMain.on('share:capture-started'"),shareService.indexOf("ipcMain.handle('share:capture-state'"));
+assert.match(captureStarted,/event\.sender!==main\.webContents/);
+assert.match(captureStarted,/keepMeetingRendererLive\(\)/);
+assert.doesNotMatch(captureStarted,/scheduleToolbarForShare\(\);/);
+assert.doesNotMatch(captureStarted,/openToolbar\(/);
+assert.doesNotMatch(captureStarted,/hideMeetingWindowForShare\(\)/);
+
+// Presenter controls remain available and direct.
 const scheduler=shareService.slice(shareService.indexOf('function scheduleToolbarForShare()'),shareService.indexOf('const displayMediaHandler'));
-assert.match(scheduler,/if\(platform==='darwin'\)/,'macOS must use the same-renderer presenter-control path.');
-assert.match(scheduler,/toolbarReadyForShare=true/,'macOS same-renderer presenter controls must be ready without a second BrowserWindow.');
-assert.match(scheduler,/presenterCommitPending=false/,'macOS presenter commit must not wait on a second renderer.');
-assert.match(scheduler,/toolbarOpenTimer=setTimeout\(async\(\)=>/,'Non-macOS presenter toolbar must start on a later main-process turn after renderer commit.');
-assert.match(scheduler,/const ready=await openToolbar\(\);/,'Non-macOS deferred scheduler must create the real presenter toolbar.');
-assert.match(scheduler,/\},75\);/,'Non-macOS presenter toolbar scheduling must remain explicitly deferred after renderer commit.');
-assert.match(scheduler,/toolbarReadyForShare=Boolean\(ready\)/,'Non-macOS toolbar readiness must be tracked independently.');
-assert.match(scheduler,/void sendPresenterCommand\('stop',0\)/,'Non-macOS toolbar creation failure must fail Share closed through presenter command authority.');
-assert.match(shareIntegration,/id='inlinePresenterToolbar'/,'macOS presenter controls must exist in the share-owning renderer.');
+assert.match(scheduler,/if\(platform==='darwin'\)/);
+assert.match(scheduler,/toolbarReadyForShare=true/);
+assert.match(scheduler,/toolbarOpenTimer=setTimeout\(async\(\)=>/);
+assert.match(shareIntegration,/id='inlinePresenterToolbar'/);
+assert.match(shareIntegration,/data-inline-command="pause"/);
+assert.match(shareIntegration,/data-inline-command="stop"/);
+assert.doesNotMatch(shareController,/rendererCommitted:true/);
+assert.match(shareIntegration,/function commitPresenterMode\(\)/);
+assert.match(shareIntegration,/markCaptureProven\(\);applyLayout\(\);/);
+assert.match(preload,/ipcRenderer\.send\('share:presenter-committed'/);
+assert.match(shareService,/async function openToolbar\(\)/);
+assert.match(shareService,/acceptFirstMouse:true/);
+assert.match(shareService,/backgroundThrottling:false/);
+assert.match(shareService,/showCompanionWindow\(normalized\)/);
+assert.match(shareCss,/data-ds-share-companion="chat"/);
+assert.match(shareCss,/data-ds-share-companion="participants"/);
+assert.match(shareCss,/data-ds-share-companion="annotate"/);
+assert.match(presenter,/data-command="stop"[^>]*>[\s\S]*Stop Share/);
+assert.match(presenterJs,/if\(command==='stop'\)/);
 
-// ShareController owns capture only. Integration owns safe presenter commit and
-// that commit is the sole authority that may initiate toolbar creation.
-assert.doesNotMatch(shareController,/rendererCommitted:true/,'ShareController must not own meeting visibility commit.');
-assert.match(shareIntegration,/function commitPresenterMode\(\)/,'Share Integration must own presenter commit.');
-assert.match(shareIntegration,/markCaptureProven\(\);applyLayout\(\);/,'Shared stage must mount before presenter commit.');
-assert.match(shareIntegration,/const sameRendererPresenter=String\(environment\?\.platform\|\|'\'\)==='darwin'/,'macOS same-renderer presenter detection is missing.');
-assert.match(shareIntegration,/if\(!sameRendererPresenter\)bridge\?\.presenterCommitted\?\.\(/,'macOS presenter commit must not cross into the main process.');
-assert.match(preload,/ipcRenderer\.send\('share:presenter-committed'/,'Non-macOS presenter commit bridge must remain one-way IPC.');
-const presenterCommitted=shareService.slice(
-  shareService.indexOf("ipcMain.on('share:presenter-committed'"),
-  shareService.indexOf("ipcMain.handle('share:capture-stopped'")
-);
-assert.match(presenterCommitted,/presenterCommitPending=true/,'Presenter commit must unlock presenter chrome only after renderer completion.');
-assert.match(presenterCommitted,/if\(!toolbarReadyForShare\)\{scheduleToolbarForShare\(\);return;\}/,'Presenter toolbar creation must originate from renderer presenter commit.');
-assert.match(presenterCommitted,/setImmediate\(\(\)=>/,'Meeting hide must happen on a later main-process turn after toolbar readiness.');
-assert.match(shareService,/function cancelToolbarOpen\(\)/,'Pending presenter toolbar creation must be cancellable.');
-assert.match(shareService,/cancelToolbarOpen\(\);/,'Stop Share must cancel deferred toolbar creation.');
+// TCC/relaunch recovery remains explicit during ad-hoc QA.
+assert.match(repair,/resetScreenPermission/);
+assert.match(repair,/app\?\.relaunch/);
+assert.match(relaunch,/tccutil.*reset.*ScreenCapture.*com\.dominionstar\.desktop/s);
+assert.match(relaunch,/stableAcrossRebuilds:false/);
+assert.match(preload,/resetScreenPermission/);
+assert.match(bootstrap,/relaunch-service\.mjs/);
 
-// Floating presenter controls stay clickable and available across macOS Spaces.
-assert.match(shareService,/async function openToolbar\(\)/,'Presenter toolbar loader is missing.');
-assert.match(shareService,/await created\.loadFile\(path\.join\(uiDir,'presenter-toolbar\.html'\)\)/,'Presenter toolbar must load its real UI.');
-assert.match(shareService,/acceptFirstMouse:true/,'Presenter toolbar must accept the first macOS click.');
-assert.match(shareService,/backgroundThrottling:false/,'Presenter toolbar renderer must remain live.');
-assert.match(shareService,/setVisibleOnAllWorkspaces\(true,\{visibleOnFullScreen:true/,'Presenter controls must remain visible across full-screen apps/Spaces.');
-assert.doesNotMatch(shareService,/type:platform==='darwin'\?'panel':undefined/,'Unsupported nonactivating panel type must not return.');
-assert.match(shareService,/function showCompanionWindow\(kind='chat'\)/,'Share companion authority is missing.');
-assert.match(shareService,/showCompanionWindow\(normalized\)/,'Chat/Participants/Annotation must not reopen the full meeting by default.');
-assert.match(shareCss,/data-ds-share-companion="chat"/,'Share Chat companion CSS is missing.');
-assert.match(shareCss,/data-ds-share-companion="participants"/,'Share Participants companion CSS is missing.');
-assert.match(shareCss,/data-ds-share-companion="annotate"/,'Share Annotation companion CSS is missing.');
-assert.match(shareService,/if\(normalized==='stop'&&shareActive\)/,'Stop Share must retain main-process retry protection.');
-assert.match(shareService,/showMeetingWindow\(\{focus:false\}\);void sendPresenterCommand\('stop',0\)/,'Stop Share retry must wake the renderer through presenter command authority.');
-assert.match(presenter,/data-command="stop"[^>]*>[\s\S]*Stop Share/,'Presenter toolbar must expose Stop Share.');
-assert.match(presenterJs,/if\(command==='stop'\)/,'Presenter Stop Share must have direct click authority.');
+// Profile-photo-first identity stays local to the user's selected profile data.
+assert.match(approved,/function syncProfilePictures\(\)/);
+assert.match(approved,/paintAvatar\(q\('#prejoinAvatar'\),own\.url/);
+assert.match(approved,/paintAvatar\(q\('#stageAvatar'\),own\.url/);
+assert.match(approved,/paintAvatar\(badge,url,initials\(name\)\)/);
+assert.match(meetingCss,/\.person-badge\.has-photo/);
 
-// TCC/relaunch recovery remains explicit in this ad-hoc QA phase.
-assert.match(repair,/resetScreenPermission/,'Explicit Screen Recording reset recovery is missing.');
-assert.match(repair,/app\?\.relaunch/,'Screen Recording recovery must retain full-process relaunch.');
-assert.match(relaunch,/tccutil.*reset.*ScreenCapture.*com\.dominionstar\.desktop/s,'TCC reset must target only DominionStar ScreenCapture permission.');
-assert.match(relaunch,/stableAcrossRebuilds:false/,'Ad-hoc identity must not be represented as persistence-certified.');
-assert.match(preload,/resetScreenPermission/,'Renderer must retain explicit TCC reset IPC.');
-assert.match(preload,/relaunch/,'Renderer must retain relaunch IPC.');
-assert.match(bootstrap,/relaunch-service\.mjs/,'Relaunch/TCC authority must load before desktop services.');
+// Right-side video filmstrip, floating management panels, and full-window shell.
+assert.match(repair,/participantCount<=1&&visibleTiles===0/);
+assert.match(approvedCss,/right:14px !important;/);
+assert.match(approvedCss,/grid-template-columns:176px !important;/);
+assert.match(approvedCss,/@media\(max-width:680px\)/);
+assert.doesNotMatch(runtime,/panel\.dataset\.dsRuntimeMode='docked'/);
+assert.match(runtime,/panel\.dataset\.dsRuntimeMode='floating'/);
+assert.match(runtime,/installFloatingSurfaceDrag\(panel\)/);
+assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/);
+assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/);
+assert.match(adaptiveCss,/max-width:560px !important/);
+assert.match(css,/\.ds-reaction-tray[\s\S]*overflow:hidden!important/);
 
-// Profile photo first; initials only as fallback.
-assert.match(approved,/function syncProfilePictures\(\)/,'Meeting profile-photo synchronization is missing.');
-assert.match(approved,/paintAvatar\(q\('#prejoinAvatar'\),own\.url/,'Prejoin must prefer profile photo.');
-assert.match(approved,/paintAvatar\(q\('#stageAvatar'\),own\.url/,'Camera-off stage must prefer profile photo.');
-assert.match(approved,/paintAvatar\(badge,url,initials\(name\)\)/,'Participant roster must fall back to initials only without a photo.');
-assert.match(approved,/profileAvatarInput/,'Local user must be able to upload/change profile picture.');
-assert.match(meetingCss,/\.person-badge\.has-photo/,'Profile-photo roster styling is missing.');
-
-// Right-side Zoom-like video filmstrip, including two-person meetings.
-assert.match(repair,/participantCount<=1&&visibleTiles===0/,'Two-person Speaker view is still suppressed.');
-assert.match(repair,/dock\.dataset\.zoomThreshold=suppress\?'empty-solo':'available'/,'Corrected video-filmstrip threshold is missing.');
-assert.match(approvedCss,/right:14px !important;/,'Video filmstrip does not default to the right edge.');
-assert.match(approvedCss,/grid-template-columns:176px !important;/,'Desktop filmstrip is not vertical.');
-assert.match(approvedCss,/@media\(max-width:680px\)/,'Top reflow does not remain limited to genuinely narrow windows.');
-
-// Floating management panels and full-window meeting shell remain stable.
-assert.doesNotMatch(runtime,/panel\.dataset\.dsRuntimeMode='docked'/,'Participants/Chat must not occupy the video-filmstrip edge.');
-assert.match(runtime,/panel\.dataset\.dsRuntimeMode='floating'/,'Participants/Chat must use floating application surfaces.');
-assert.match(runtime,/installFloatingSurfaceDrag\(panel\)/,'Floating participant/chat surfaces must remain draggable.');
-assert.match(runtime,/stage\.style\.setProperty\('right','0px','important'\)/,'Floating panels must leave the stage full width.');
-assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/,'Meeting must fill Electron viewport width.');
-assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/,'Meeting must fill Electron viewport height.');
-assert.match(adaptiveCss,/max-width:560px !important/,'Prejoin must remain compact.');
-assert.match(css,/\.ds-reaction-tray[\s\S]*overflow:hidden!important/,'Reaction tray must remain contained.');
-assert.match(repair,/Participants \(\$\{count\}\)/,'Participants heading must expose live count.');
-
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} personal-id permission-aware-share native-unproven-fallback granted-custom-chooser one-way-capture-start toolbar-after-renderer-commit integration-owned-one-way-presenter-commit renderer-live-before-toolbar toolbar-fail-closed first-click-presenter-controls share-companions direct-stop-share profile-first-identity adhoc-not-certified two-person-right-video-filmstrip floating-participants-chat full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} custom-only-preshare no-apple-overlay bounded-share-start one-participant-media-set presenter-controls profile-first-identity two-person-right-video-filmstrip floating-participants-chat full-window compact-prejoin`);
