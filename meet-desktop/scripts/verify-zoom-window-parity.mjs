@@ -20,6 +20,13 @@ assert(!runtime.includes("panel.dataset.dsRuntimeMode='docked'"),'Participants m
 assert(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participants and Chat must use the floating surface model at every meeting width.');
 assert(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating participant/chat surfaces must remain draggable.');
 assert(runtime.includes("clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10))"),'Floating panel geometry must clamp intelligently when the meeting window changes size.');
+assert(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must own participant-video dock geometry.');
+assert(runtime.includes('const compact=width<760'),'Participant video dock must have one explicit compact reflow threshold.');
+assert(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock runtime mode must resolve deterministically to user/top/right.');
+assert(runtime.includes("dock.style.setProperty('right','14px','important')"),'Wide meeting windows must return the default video dock to the right edge.');
+assert(runtime.includes("dock.style.setProperty('left','14px','important')")&&runtime.includes("dock.style.setProperty('right','14px','important')"),'Compact windows must reflow the video dock across the top.');
+assert(runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must become a horizontal filmstrip.');
+assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Wide dock must return to a vertical filmstrip.');
 assert(runtime.includes("const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<7"),'Participant search should appear only when useful.');
 assert(runtime.includes("const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople()"),'Empty Waiting Room chrome must stay hidden.');
 assert(runtime.includes('participantPriority(row)')&&runtime.includes("return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5"),'Final participant roster does not encode You → Host → Co-host → raised → unmuted → others priority.');
