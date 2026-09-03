@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   app:Object.freeze({relaunch:()=>invoke('app:relaunch'),privacyIdentity:()=>invoke('app:privacy-identity'),resetScreenPermission:()=>invoke('app:reset-screen-permission')}),
   brand:Object.freeze({logoUrl}),
   power:Object.freeze({onChanged:callback=>listen('app:power-event',callback)}),
+  joinLinks:Object.freeze({consume:()=>invoke('app:consume-join-url'),onOpen:callback=>listen('app:join-url',callback)}),
   auth:Object.freeze({
     getState:()=>invoke('auth:get-state'),startGoogle:()=>invoke('auth:start-google'),signInPassword:(email,password)=>invoke('auth:sign-in-password',{email,password}),updateAvatar:dataUrl=>invoke('auth:update-avatar',{dataUrl}),signOut:()=>invoke('auth:sign-out'),
     onChanged:callback=>listen('auth:changed',callback),onError:callback=>listen('auth:error',callback)
