@@ -45,4 +45,5 @@ end
 $$;
 
 revoke all on function public.meet_v2_room_avatar_paths(uuid) from public;
+revoke all on function public.meet_v2_room_avatar_paths(uuid) from anon;
 grant execute on function public.meet_v2_room_avatar_paths(uuid) to authenticated;
