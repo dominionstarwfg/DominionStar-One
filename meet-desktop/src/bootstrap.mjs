@@ -20,20 +20,11 @@ if(singleInstanceLock){
   });
 }
 
-async function rejectDuplicateLaunch(){
-  await app.whenReady();
-  const version=app.getVersion();
-  try{
-    dialog.showMessageBoxSync({
-      type:'warning',
-      title:'DominionStar Meet is already open',
-      message:'Use the DominionStar Meet that is already running',
-      detail:`Only one DominionStar Meet process may run at a time. Close the older copy completely before installing build ${version}. This prevents macOS Screen Recording “Quit & Reopen” from returning to a different build and prevents duplicate presenter toolbars from competing for the same meeting window.`,
-      buttons:['OK'],
-      defaultId:0,
-      noLink:true
-    });
-  }catch{}
+function rejectDuplicateLaunch(){
+  // Electron sends the launch attempt to the lock owner through
+  // second-instance. The owner restores/focuses its existing window; the
+  // duplicate must exit immediately so no second toolbar, dock, or capture
+  // renderer can ever initialize.
   app.quit();
 }
 
