@@ -1,0 +1,39 @@
+name: DominionStar Meet Zoom Participants 2.0.34
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/ui/app.js'
+      - 'meet-desktop/ui/participant-controls.js'
+      - 'meet-desktop/ui/webrtc-controller.js'
+      - 'meet-desktop/ui/zoom-production-polish.css'
+      - 'meet-desktop/scripts/verify-zoom-participants-2.0.34.mjs'
+      - '.github/workflows/zoom-participants-2.0.34.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zoom-participants:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Zoom-familiar participant roster
+        working-directory: meet-desktop
+        run: |
+          node --check ui/app.js
+          node --check ui/participant-controls.js
+          node --check ui/webrtc-controller.js
+          node --check scripts/verify-zoom-participants-2.0.34.mjs
+          node scripts/verify-zoom-participants-2.0.34.mjs
+          node scripts/verify-meeting-parity.mjs
