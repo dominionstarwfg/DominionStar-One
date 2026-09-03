@@ -1,0 +1,185 @@
+name: DominionStar Meet Certified Mac Installer 2.0.39
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/certified-mac-installer-2.0.39.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certified-installer:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+      CERTIFIED_SHA: '512a77178a7ff4367654dbae9b6fbd07f50ccbc9'
+      CERTIFIED_VERSION: '2.0.39'
+    steps:
+      - name: Checkout exact certified 2.0.39 source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CERTIFIED_SHA }}
+          clean: true
+          fetch-depth: 1
+
+      - name: Prove exact certified source
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$CERTIFIED_SHA"
+          VERSION="$(node -p "require('./meet-desktop/package.json').version")"
+          test "$VERSION" = "$CERTIFIED_VERSION"
+          echo "DOMINIONSTAR_CERTIFIED_INSTALLER_SOURCE_OK sha=$CERTIFIED_SHA version=$VERSION"
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clean generated state
+        run: |
+          rm -rf meet-desktop/node_modules meet-desktop/dist installer-artifact "$RUNNER_TEMP/dominionstar-installer"
+          find . -maxdepth 2 \( -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' \) -print0 | xargs -0 -I{} rm -f '{}' || true
+
+      - name: Install rebuild dependencies
+        working-directory: meet-desktop
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm ls --depth=0
+
+      - name: Recheck certified release invariants
+        working-directory: meet-desktop
+        run: |
+          node scripts/verify-release-standard.mjs
+          node scripts/verify-foundation.mjs
+          node scripts/verify-auth.mjs
+          node scripts/verify-meeting-lifecycle.mjs
+          node scripts/verify-media-authority.mjs
+          node scripts/verify-meeting-parity.mjs
+          node scripts/verify-share-authority.mjs
+          node scripts/verify-mac-install-authority.mjs
+          node scripts/verify-physical-acceptance.mjs
+          node scripts/verify-zoom-window-parity.mjs
+          node scripts/verify-approved-reference-parity-2.0.22.mjs
+          node scripts/verify-runtime-stability-2.0.22.mjs
+          node scripts/verify-multi-spotlight-2.0.39.mjs
+
+      - name: Build universal installer app
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Locate and verify packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          PLIST="$APP_PATH/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$PLIST" | grep -Fx 'DominionStar Meet'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" | grep -Fx "$CERTIFIED_VERSION"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$PLIST" | grep -Fx 'dominionstar-meet'
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          test -x "$APP_PATH/Contents/MacOS/DominionStar Meet"
+          du -sh "$APP_PATH"
+
+      - name: Audit packaged app contents
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-app.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Launch packaged app smoke test
+        shell: bash
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          LOG="$RUNNER_TEMP/dominionstar-installer-launch.log"
+          ELECTRON_ENABLE_LOGGING=1 "$APP/Contents/MacOS/DominionStar Meet" >"$LOG" 2>&1 &
+          PID=$!
+          sleep 8
+          kill -0 "$PID"
+          kill "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || true
+          if grep -E 'Library not loaded|DYLD.*Library missing|different Team IDs' "$LOG"; then
+            cat "$LOG"
+            exit 92
+          fi
+          echo DOMINIONSTAR_CERTIFIED_INSTALLER_LAUNCH_OK
+
+      - name: Verify packaged single-instance authority
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-single-instance-2.0.28.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Create DMG ZIP provenance and checksums
+        shell: bash
+        run: |
+          rm -rf installer-artifact "$RUNNER_TEMP/dominionstar-installer"
+          mkdir -p installer-artifact "$RUNNER_TEMP/dominionstar-installer"
+          ditto "${{ steps.app.outputs.path }}" "$RUNNER_TEMP/dominionstar-installer/DominionStar Meet.app"
+          ln -s /Applications "$RUNNER_TEMP/dominionstar-installer/Applications"
+
+          DMG="installer-artifact/DominionStar-Meet-2.0.39-Mac-Installer.dmg"
+          ZIP="installer-artifact/DominionStar-Meet-2.0.39-Mac-universal.zip"
+
+          created=0
+          for attempt in 1 2 3; do
+            rm -f "$DMG"
+            if hdiutil create -volname "DominionStar Meet Installer" -srcfolder "$RUNNER_TEMP/dominionstar-installer" -ov -format UDZO "$DMG"; then
+              created=1
+              break
+            fi
+            sleep $((attempt * 4))
+          done
+          test "$created" = "1"
+          test -s "$DMG"
+
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" "$ZIP"
+          shasum -a 256 "$DMG" "$ZIP" | tee installer-artifact/SHA256.txt
+
+          cat > installer-artifact/BUILD-PROVENANCE.txt <<EOF
+          product=DominionStar Meet
+          version=2.0.39
+          certified_sha=$CERTIFIED_SHA
+          bundle_id=com.dominionstar.desktop
+          architecture=universal
+          installer=dmg-drag-to-Applications
+          app_protocol=dominionstar-meet
+          signing=adhoc-prototype
+          notarization=not-configured
+          tcc_persistence=not-certified-without-Developer-ID
+          source_certification=Mac-QA-952
+          certified_source_artifact_sha256=605529c857b3e4c78a53b32397b6dc85cb3a4089c2a0d32d1527fff9f36d9fc8
+          EOF
+
+          ls -lh installer-artifact
+
+      - name: Mount DMG and verify install layout
+        shell: bash
+        run: |
+          DMG="installer-artifact/DominionStar-Meet-2.0.39-Mac-Installer.dmg"
+          MOUNT="$RUNNER_TEMP/dominionstar-installer-mount"
+          rm -rf "$MOUNT"
+          mkdir -p "$MOUNT"
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT"
+          trap 'hdiutil detach "$MOUNT" >/dev/null 2>&1 || true' EXIT
+          test -d "$MOUNT/DominionStar Meet.app"
+          test -L "$MOUNT/Applications"
+          test "$(readlink "$MOUNT/Applications")" = "/Applications"
+          PLIST="$MOUNT/DominionStar Meet.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" | grep -Fx '2.0.39'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$PLIST" | grep -Fx 'dominionstar-meet'
+          codesign --verify --deep --strict --verbose=2 "$MOUNT/DominionStar Meet.app"
+          hdiutil detach "$MOUNT"
+          trap - EXIT
+          echo DOMINIONSTAR_CERTIFIED_DMG_LAYOUT_OK
+
+      - name: Upload certified installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.39-certified-mac-installer
+          path: installer-artifact/*
+          if-no-files-found: error
+          retention-days: 30
