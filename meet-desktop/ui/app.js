@@ -7,7 +7,7 @@
   const desktop=window.dominionDesktop||null,auth=desktop?.auth||null,meeting=desktop?.meeting||null,media=window.DominionMediaController;
   const sections={home:$('#homeSection'),meetings:$('#meetingsSection'),contacts:$('#contactsSection')};
   const dialogs={join:$('#joinDialog'),schedule:$('#scheduleDialog'),settings:$('#settingsDialog'),profile:$('#profileDialog')};
-  let authState={ready:!auth,signedIn:!auth,user:null};let activeRoom=null;let pendingJoin=null;let pendingMediaPreferences=null;let timers={waiting:0,queue:0,snapshot:0};let lastWaitingMap=new Map(),waitingEventsInitialized=false,lastParticipantMap=new Map(),participantEventsInitialized=false;
+  let authState={ready:!auth,signedIn:!auth,user:null};let activeRoom=null;let pendingJoin=null;let pendingDesktopJoinUrl='';let pendingMediaPreferences=null;let timers={waiting:0,queue:0,snapshot:0};let lastWaitingMap=new Map(),waitingEventsInitialized=false,lastParticipantMap=new Map(),participantEventsInitialized=false;
 
   const initials=name=>String(name||'DominionStar Member').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'DS';
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -24,12 +24,32 @@
     else{node.textContent=short;node.classList.remove('has-photo');}
   }
   function identity(user){const name=String(user?.name||'DominionStar Member'),email=String(user?.email||''),short=initials(name);$('#profileName').textContent=name;setAvatar($('#profileAvatar'),user,short);$('#profileDialogName').textContent=name;$('#profileDialogEmail').textContent=email||'DominionStar account';setAvatar($('#profileDialogAvatar'),user,short);const rank=String(user?.rank||'').trim();const profileStatus=document.querySelector('.profile-copy small');if(profileStatus)profileStatus.textContent=rank||'Available';const first=name.split(/\s+/)[0],hour=new Date().getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';if(first)$('#welcomeHeading').textContent=`${greeting}, ${first}`;}
-  function showHome(state=authState){authState=state;$('#bootScreen').hidden=true;$('#authGate').hidden=true;$('#appShell').hidden=false;$('#meetingOverlay').hidden=true;$('#waitingOverlay').hidden=true;$('#prejoinOverlay').hidden=true;identity(state.user);showSection('home');}
+  function parseJoinValue(value){
+    const raw=String(value||'').trim();
+    if(!raw)return {roomCode:'',passcode:''};
+    if(/^dominionstar-meet:\/\/join/i.test(raw)){
+      try{
+        const url=new URL(raw),roomCode=String(url.searchParams.get('meetingId')||url.searchParams.get('mid')||'').replace(/\D/g,''),passcode=String(url.searchParams.get('passcode')||url.searchParams.get('pwd')||'').replace(/\D/g,'');
+        return {roomCode,passcode};
+      }catch{return {roomCode:'',passcode:''};}
+    }
+    return {roomCode:raw.replace(/\D/g,''),passcode:''};
+  }
+  function applyJoinUrl(value){
+    const parsed=parseJoinValue(value);
+    if(!/^\d{10,11}$/.test(parsed.roomCode)||!/^\d{3,7}$/.test(parsed.passcode))return false;
+    if(!authState?.signedIn){pendingDesktopJoinUrl=String(value||'');return true;}
+    $('#joinRoomCode').value=roomCode(parsed.roomCode);$('#joinPasscode').value=parsed.passcode;
+    const name=$('#joinDisplayName');if(name&&!name.value)name.value=authState.user?.name||'';
+    if(!dialogs.join.open)dialogs.join.showModal();
+    pendingDesktopJoinUrl='';return true;
+  }
+  function showHome(state=authState){authState=state;$('#bootScreen').hidden=true;$('#authGate').hidden=true;$('#appShell').hidden=false;$('#meetingOverlay').hidden=true;$('#waitingOverlay').hidden=true;$('#prejoinOverlay').hidden=true;identity(state.user);showSection('home');if(pendingDesktopJoinUrl)queueMicrotask(()=>applyJoinUrl(pendingDesktopJoinUrl));}
   function showAuth(message='',kind=''){stopPolling();media.stop();$('#bootScreen').hidden=true;$('#appShell').hidden=true;$('#meetingOverlay').hidden=true;$('#waitingOverlay').hidden=true;$('#prejoinOverlay').hidden=true;$('#authGate').hidden=false;const status=$('#authStatus');if(message)status.textContent=message;status.classList.toggle('error',kind==='error');status.classList.toggle('success',kind==='success');$('#googleSignIn').disabled=false;}
 
   function installMeetingUi(){
     const newMeeting=document.createElement('dialog');newMeeting.id='newMeetingDialog';newMeeting.className='modal meeting-dialog';newMeeting.innerHTML=`<form id="newMeetingForm"><header><div><p class="eyebrow">START A MEETING</p><h2>New Meeting</h2></div><button class="modal-close" type="button" data-close-new>×</button></header><label><span>Topic</span><input id="newMeetingTitle" value="DominionStar Meeting" maxlength="120"></label><label><span>Passcode</span><input id="newMeetingPasscode" inputmode="numeric" value="${randomPasscode()}" maxlength="10"></label><div class="toggle-row"><span>Waiting Room</span><input id="newMeetingWaiting" type="checkbox" checked></div><div class="toggle-row"><span>Allow external guests</span><input id="newMeetingGuests" type="checkbox" checked></div><p id="newMeetingError" class="auth-status error" hidden></p><div class="modal-actions"><button type="button" class="secondary-button" data-close-new>Cancel</button><button id="startMeetingButton" class="primary-button">Continue</button></div></form>`;document.body.append(newMeeting);dialogs.newMeeting=newMeeting;
-    dialogs.join.innerHTML=`<form id="joinMeetingForm"><header><div><p class="eyebrow">JOIN A MEETING</p><h2>Enter meeting details</h2></div><button class="modal-close" type="button" data-close-join>×</button></header><label><span>Meeting ID</span><input id="joinRoomCode" inputmode="numeric" placeholder="000 000 0000" maxlength="13"></label><label><span>Passcode</span><input id="joinPasscode" inputmode="numeric" placeholder="Passcode" maxlength="10"></label><label><span>Your name</span><input id="joinDisplayName" autocomplete="name" placeholder="Your display name"></label><p id="joinError" class="auth-status error" hidden></p><div class="modal-actions"><button type="button" class="secondary-button" data-close-join>Cancel</button><button id="joinMeetingButton" class="primary-button">Continue</button></div></form>`;
+    dialogs.join.innerHTML=`<form id="joinMeetingForm"><header><div><p class="eyebrow">JOIN A MEETING</p><h2>Enter meeting details</h2></div><button class="modal-close" type="button" data-close-join>×</button></header><label><span>Meeting ID or DominionStar invite link</span><input id="joinRoomCode" inputmode="text" autocomplete="off" placeholder="000 000 0000 or dominionstar-meet://join…" maxlength="512"></label><label><span>Passcode</span><input id="joinPasscode" inputmode="numeric" placeholder="Passcode" maxlength="10"></label><label><span>Your name</span><input id="joinDisplayName" autocomplete="name" placeholder="Your display name"></label><p id="joinError" class="auth-status error" hidden></p><div class="modal-actions"><button type="button" class="secondary-button" data-close-join>Cancel</button><button id="joinMeetingButton" class="primary-button">Continue</button></div></form>`;
 
     const prejoin=document.createElement('section');prejoin.id='prejoinOverlay';prejoin.className='prejoin-overlay';prejoin.hidden=true;prejoin.innerHTML=`<div class="prejoin-window"><header><div><p class="eyebrow">READY TO JOIN?</p><h2 id="prejoinTitle">DominionStar Meeting</h2></div><button id="closePrejoin" class="modal-close" type="button">×</button></header><div class="preview-frame"><video id="prejoinVideo" autoplay playsinline muted></video><div id="prejoinAvatar" class="preview-avatar">DS</div><div class="preview-controls"><button id="prejoinMic" type="button">Unmute</button><button id="prejoinCamera" type="button">Stop Video</button></div></div><div class="device-grid"><label><span>Microphone</span><select id="microphoneSelect"></select></label><label><span>Camera</span><select id="cameraSelect"></select></label><label><span>Speaker</span><select id="speakerSelect"></select></label></div><div class="prejoin-effects-row"><button id="prejoinBackgrounds" class="prejoin-backgrounds-button" type="button"><span class="prejoin-backgrounds-icon" aria-hidden="true">✦</span><span><strong>Backgrounds & Effects</strong><small>Preview your background before joining</small></span></button></div><p id="prejoinError" class="auth-status error" hidden></p><footer><button id="prejoinCancel" class="secondary-button" type="button">Cancel</button><button id="prejoinContinue" class="primary-button" type="button">Start</button></footer></div>`;document.body.append(prejoin);
 
@@ -87,7 +107,15 @@
     if(window.DominionPreferences?.read?.('showJoinPreview')===false){await joinUsingSavedDefaults(mode);return;}
     $('#appShell').hidden=true;$('#prejoinOverlay').hidden=false;$('#prejoinTitle').textContent=mode==='host'?(activeRoom?.title||'DominionStar Meeting'):'Join DominionStar Meeting';$('#prejoinContinue').textContent=mode==='host'?'Start':'Join';$('#prejoinOverlay').dataset.mode=mode;$('#prejoinAvatar').textContent=initials(authState.user?.name||pendingJoin?.displayName);const error=$('#prejoinError');error.hidden=true;try{await media.startPreview({cameraOn:true,micOn:false});await fillDevices();attachPreview();}catch(e){error.textContent=errorText(e);error.hidden=false;media.stop();attachPreview();}}
   async function prepareNewMeeting(event){event.preventDefault();if(!meeting)return notice('Desktop meeting engine required','Start meetings from the installed desktop rebuild.');const button=$('#startMeetingButton'),error=$('#newMeetingError');button.disabled=true;error.hidden=true;try{activeRoom=await meeting.create({title:$('#newMeetingTitle').value,passcode:$('#newMeetingPasscode').value,waitingRoomEnabled:$('#newMeetingWaiting').checked,externalGuestsAllowed:$('#newMeetingGuests').checked});activeRoom.role='host';dialogs.newMeeting.close();$('#newMeetingPasscode').value=randomPasscode();await openPrejoin('host');}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
-  async function prepareJoinMeeting(event){event.preventDefault();pendingJoin={roomCode:$('#joinRoomCode').value,passcode:$('#joinPasscode').value,displayName:$('#joinDisplayName').value||authState.user?.name};dialogs.join.close();await openPrejoin('participant');}
+  async function prepareJoinMeeting(event){
+    event.preventDefault();
+    const parsed=parseJoinValue($('#joinRoomCode').value),passcode=parsed.passcode||String($('#joinPasscode').value||'').replace(/\D/g,'');
+    const error=$('#joinError');error.hidden=true;
+    if(!/^\d{10,11}$/.test(parsed.roomCode)){error.textContent='Meeting ID must contain 10 or 11 digits.';error.hidden=false;return;}
+    if(!/^\d{3,7}$/.test(passcode)){error.textContent='Passcode must contain 3 to 7 digits.';error.hidden=false;return;}
+    pendingJoin={roomCode:parsed.roomCode,passcode,displayName:$('#joinDisplayName').value||authState.user?.name};
+    dialogs.join.close();await openPrejoin('participant');
+  }
   function cancelPrejoin(){media.stop();$('#prejoinOverlay').hidden=true;$('#appShell').hidden=false;if($('#prejoinOverlay').dataset.mode==='host'&&activeRoom?.roomId)void meeting.end(activeRoom.roomId).catch(()=>{});activeRoom=null;pendingJoin=null;pendingMediaPreferences=null;document.body.dataset.shareAfterJoin='';}
   async function continueFromPrejoin(){const button=$('#prejoinContinue'),error=$('#prejoinError');button.disabled=true;error.hidden=true;try{if($('#prejoinOverlay').dataset.mode==='host'){enterRoom();return;}pendingMediaPreferences=media.snapshot();const response=await meeting.requestJoin(pendingJoin);activeRoom=response;pendingJoin=null;$('#prejoinOverlay').hidden=true;if(['waiting_host','waiting'].includes(response.state))showWaiting(response);else{if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);activeRoom.state='joined';if(response.muteOnEntry)await media.setMicrophone(false).catch(()=>{});enterRoom();}}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
 
@@ -179,6 +207,12 @@
   auth?.onChanged?.(state=>state?.signedIn?showHome(state):showAuth('You are signed out. Sign in to continue.'));auth?.onError?.(e=>showAuth(errorText(e),'error'));
   $('#signOutButton').onclick=async()=>{try{await auth?.signOut?.();$('#profileDialog').close();}catch(e){notice('Sign out could not complete',errorText(e));}};
 
-  installMeetingUi();window.addEventListener('dominion:preference-change',()=>attachPreview());document.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>showSection(b.dataset.section));$$('[data-open]').forEach(b=>b.onclick=()=>openDialog(b.dataset.open));$$('[data-action]').forEach(b=>b.onclick=()=>{if(b.dataset.action==='new-meeting')openDialog('newMeeting');if(b.dataset.action==='share-screen'){document.body.dataset.shareAfterJoin='1';openDialog('join');}});
+  installMeetingUi();
+  $('#joinRoomCode').addEventListener('input',event=>{
+    const parsed=parseJoinValue(event.currentTarget.value);if(parsed.passcode){event.currentTarget.value=roomCode(parsed.roomCode);$('#joinPasscode').value=parsed.passcode;}
+  });
+  desktop?.joinLinks?.onOpen?.(url=>{pendingDesktopJoinUrl=String(url||'');applyJoinUrl(pendingDesktopJoinUrl);});
+  desktop?.joinLinks?.consume?.().then(url=>{if(url){pendingDesktopJoinUrl=String(url);applyJoinUrl(pendingDesktopJoinUrl);}}).catch(()=>{});
+  window.addEventListener('dominion:preference-change',()=>attachPreview());document.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>showSection(b.dataset.section));$$('[data-open]').forEach(b=>b.onclick=()=>openDialog(b.dataset.open));$$('[data-action]').forEach(b=>b.onclick=()=>{if(b.dataset.action==='new-meeting')openDialog('newMeeting');if(b.dataset.action==='share-screen'){document.body.dataset.shareAfterJoin='1';openDialog('join');}});
   function clock(){const now=new Date();$('#clockTime').textContent=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(now);$('#clockDate').textContent=new Intl.DateTimeFormat(undefined,{weekday:'short',month:'short',day:'numeric'}).format(now);identity(authState.user);}clock();setInterval(clock,30000);desktop?.environment?.().then(info=>{$('.status-pill').textContent=info?.surface==='local-desktop-home'?'Local desktop':'Visual preview';if(info?.platform==='darwin'&&info?.packaged&&info?.installedInApplications===false){notice('Install DominionStar Meet first','For reliable macOS Camera, Microphone, and Screen & System Audio Recording permissions, quit this copy and install DominionStar Meet into Applications from the installer DMG before using meetings.');}}).catch(()=>{});void bootAuth();
 })();

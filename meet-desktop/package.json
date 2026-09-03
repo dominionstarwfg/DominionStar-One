@@ -1,6 +1,6 @@
 {
   "name": "dominionstar-meet-rebuild",
-  "version": "2.0.35",
+  "version": "2.0.36",
   "description": "Clean DominionStar Meet desktop rebuild",
   "author": "DominionStar Leadership and Development",
   "main": "src/bootstrap.mjs",
@@ -36,6 +36,12 @@
       }
     ],
     "artifactName": "DominionStar-Meet-${version}-${os}-${arch}.${ext}",
+    "protocols": [
+      {
+        "name": "DominionStar Meet Join",
+        "schemes": ["dominionstar-meet"]
+      }
+    ],
     "win": {
       "icon": "build/icon.svg"
     },

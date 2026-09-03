@@ -2,6 +2,17 @@ import { app, BrowserWindow, dialog } from 'electron';
 
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
 const packagedMac=()=>process.platform==='darwin'&&app.isPackaged&&!isCi;
+const JOIN_SCHEME='dominionstar-meet://join';
+const pendingJoinUrls=globalThis.__dominionPendingJoinUrls=globalThis.__dominionPendingJoinUrls||[];
+const isJoinUrl=value=>String(value||'').toLowerCase().startsWith(JOIN_SCHEME);
+const queueJoinUrl=value=>{
+  const url=String(value||'').trim();if(!isJoinUrl(url))return false;
+  if(!pendingJoinUrls.includes(url))pendingJoinUrls.push(url);
+  try{app.emit('dominion:join-url',url);}catch{}
+  return true;
+};
+for(const arg of process.argv)queueJoinUrl(arg);
+app.on('open-url',(event,url)=>{event.preventDefault();queueJoinUrl(url);});
 const singleInstanceLock=app.requestSingleInstanceLock();
 
 function focusRunningInstance(){
@@ -14,7 +25,8 @@ function focusRunningInstance(){
 }
 
 if(singleInstanceLock){
-  app.on('second-instance',()=>{
+  app.on('second-instance',(_event,commandLine=[])=>{
+    for(const arg of commandLine)queueJoinUrl(arg);
     if(app.isReady())focusRunningInstance();
     else app.once('ready',focusRunningInstance);
   });
