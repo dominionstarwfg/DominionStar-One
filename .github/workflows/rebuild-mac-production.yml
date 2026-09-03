@@ -133,6 +133,10 @@ jobs:
           fi
           echo DOMINIONSTAR_PRODUCTION_MAC_LAUNCH_OK
 
+      - name: Verify packaged single-instance authority
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-single-instance-2.0.28.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Verify packaged physical runtime stability
         working-directory: meet-desktop
         env:

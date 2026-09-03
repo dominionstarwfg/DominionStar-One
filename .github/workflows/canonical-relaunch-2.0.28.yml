@@ -1,0 +1,40 @@
+name: DominionStar Meet Canonical Relaunch 2.0.28
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/src/bootstrap.mjs'
+      - 'meet-desktop/src/relaunch-service.mjs'
+      - 'meet-desktop/scripts/verify-mac-install-authority.mjs'
+      - 'meet-desktop/scripts/verify-canonical-relaunch-2.0.28.mjs'
+      - '.github/workflows/canonical-relaunch-2.0.28.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-relaunch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify 2.0.28 canonical relaunch authority
+        working-directory: meet-desktop
+        run: |
+          node --check src/bootstrap.mjs
+          node --check src/relaunch-service.mjs
+          node --check scripts/verify-mac-install-authority.mjs
+          node --check scripts/verify-canonical-relaunch-2.0.28.mjs
+          node scripts/verify-canonical-relaunch-2.0.28.mjs
+          node scripts/verify-mac-install-authority.mjs
