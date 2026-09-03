@@ -24,7 +24,7 @@ assert(html.includes('<script src="./zoom-behavior.js"></script>'),'Desktop Home
 assert(html.includes('<script src="./participant-controls.js"></script>'),'Desktop Home must load the verified participant-control layer.');
 assert(html.includes('<script src="./meeting-captions.js"></script>'),'Desktop Home must load the live captions/transcript layer.');
 assert(html.indexOf('./meeting-features.js')<html.indexOf('./zoom-behavior.js'),'Zoom behavior guard must load after base meeting features so it can upgrade them.');
-assert(parity.includes("version:'2.8.0-event-driven-share-safe'"),'Live meeting shell must use the event-driven share-safe Zoom parity engine.');
+assert(parity.includes("version:'2.0.39-multi-spotlight'")&&parity.includes("window.addEventListener('dominion:active-speakers'")&&parity.includes("window.addEventListener('dominion:spotlight-change'"),'Live meeting shell must use the event-driven share-safe Zoom parity engine with multi-spotlight authority.');
 assert(parity.includes("GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1'"),'Participant video dock geometry must persist independently.');
 assert(parity.includes("PANEL_KEY='ds_zoom_participant_panel_geometry_v1'"),'Participant management panel geometry must remain separate from video dock geometry.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Participant management panel must be closed by default so solo video owns the stage.');
