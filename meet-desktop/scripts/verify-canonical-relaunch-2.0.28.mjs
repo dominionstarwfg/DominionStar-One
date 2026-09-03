@@ -5,8 +5,10 @@ const read=path=>fs.readFileSync(path,'utf8');
 const pkg=JSON.parse(read('package.json'));
 const bootstrap=read('src/bootstrap.mjs');
 const relaunch=read('src/relaunch-service.mjs');
+const versionParts=String(pkg.version||'0.0.0').split('.').map(value=>Number.parseInt(value,10)||0);
+const versionAtLeast2028=versionParts[0]>2||(versionParts[0]===2&&(versionParts[1]>0||(versionParts[1]===0&&versionParts[2]>=28)));
 
-assert.equal(pkg.version,'2.0.28','2.0.28 must carry a real package version.');
+assert.ok(versionAtLeast2028,'Canonical relaunch authority applies to DominionStar Meet 2.0.28 and every later candidate.');
 assert.equal(pkg.build?.appId,'com.dominionstar.desktop','Bundle identity must remain stable for macOS privacy authority.');
 assert.ok(bootstrap.includes('app.requestSingleInstanceLock()'),'Single-instance lock is required.');
 assert.ok(bootstrap.includes("app.on('second-instance'"),'Second-instance handling is required.');
@@ -21,4 +23,4 @@ assert.ok(relaunch.includes('const execPath=process.execPath'),'Permission relau
 assert.ok(relaunch.includes('app.relaunch({execPath,args})'),'Permission relaunch must restart the exact running executable.');
 assert.ok(relaunch.includes("stableAcrossRebuilds:false"),'Ad-hoc prototype privacy instability must remain explicit until Developer ID signing exists.');
 
-console.log('DOMINIONSTAR_CANONICAL_RELAUNCH_2_0_28_OK version-2.0.28 single-instance exact-binary-relaunch applications-authority duplicate-process-blocked');
+console.log(`DOMINIONSTAR_CANONICAL_RELAUNCH_2_0_28_PLUS_OK version-${pkg.version} single-instance exact-binary-relaunch applications-authority duplicate-process-blocked`);
