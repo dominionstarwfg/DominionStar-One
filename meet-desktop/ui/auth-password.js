@@ -43,6 +43,7 @@
   if(!document.querySelector('script[data-ds-zoom-physical-acceptance]')){const script=document.createElement('script');script.src='./zoom-physical-acceptance.js';script.dataset.dsZoomPhysicalAcceptance='1';document.head.append(script);}
   if(!document.querySelector('script[data-ds-zoom-reaction-parity]')){const script=document.createElement('script');script.src='./zoom-reaction-parity.js';script.dataset.dsZoomReactionParity='1';document.head.append(script);}
   if(!document.querySelector('script[data-ds-zoom-contract-bridge]')){const script=document.createElement('script');script.src='./zoom-contract-bridge.js';script.dataset.dsZoomContractBridge='1';document.head.append(script);}
+  if(!document.querySelector('script[data-ds-presenter-command-parity-227]')){const script=document.createElement('script');script.src='./presenter-command-parity-2.0.27.js';script.dataset.dsPresenterCommandParity227='1';document.head.append(script);}
 
   // Physical-Mac repair remains ahead of adaptive parity. Approved-reference
   // parity loads after adaptive parity, and runtime stability loads last so the
