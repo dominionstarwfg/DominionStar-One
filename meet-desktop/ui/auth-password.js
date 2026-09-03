@@ -2,6 +2,7 @@
   if(!document.querySelector('link[data-ds-av-settings]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./av-settings.css';link.dataset.dsAvSettings='1';document.head.append(link);}
   if(!document.querySelector('link[data-ds-zoom-production-polish]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./zoom-production-polish.css';link.dataset.dsZoomProductionPolish='1';document.head.append(link);}
   if(!document.querySelector('link[data-ds-zoom-physical-acceptance]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./zoom-physical-acceptance.css';link.dataset.dsZoomPhysicalAcceptance='1';document.head.append(link);}
+  if(!document.querySelector('link[data-ds-rejected-build-repair-2040]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./rejected-build-repair-2.0.40.css';link.dataset.dsRejectedBuildRepair2040='1';document.head.append(link);}
 
   let physicalStyle=document.querySelector('link[data-ds-physical-mac-repair]');
   if(!physicalStyle){physicalStyle=document.createElement('link');physicalStyle.rel='stylesheet';physicalStyle.href='./physical-mac-repair.css';physicalStyle.dataset.dsPhysicalMacRepair='1';document.head.append(physicalStyle);}
