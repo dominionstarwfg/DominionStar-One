@@ -1,0 +1,52 @@
+name: DominionStar Meet Screen Permission Recovery 2.0.29
+
+on:
+  pull_request:
+    branches: [ci/stacked-2.0.29-base]
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/src/main.mjs'
+      - 'meet-desktop/src/relaunch-service.mjs'
+      - 'meet-desktop/src/share-service.mjs'
+      - 'meet-desktop/ui/share-integration.js'
+      - 'meet-desktop/scripts/verify-screen-permission-recovery-2.0.29.mjs'
+      - 'meet-desktop/scripts/verify-canonical-relaunch-2.0.28.mjs'
+      - '.github/workflows/screen-permission-recovery-2.0.29.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screen-permission-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify permission recovery syntax
+        working-directory: meet-desktop
+        run: |
+          node --check src/main.mjs
+          node --check ui/share-integration.js
+          node --check scripts/verify-screen-permission-recovery-2.0.29.mjs
+          node --check scripts/verify-canonical-relaunch-2.0.28.mjs
+
+      - name: Verify 2.0.29 Screen Recording recovery contract
+        working-directory: meet-desktop
+        run: node scripts/verify-screen-permission-recovery-2.0.29.mjs
+
+      - name: Re-run inherited canonical relaunch and share authority gates
+        working-directory: meet-desktop
+        run: |
+          node scripts/verify-canonical-relaunch-2.0.28.mjs
+          node scripts/verify-mac-install-authority.mjs
+          node scripts/verify-share-authority.mjs

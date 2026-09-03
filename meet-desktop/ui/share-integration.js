@@ -5,14 +5,18 @@
   const bridge=desktop?.share||null;
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2';
+  // The prototype is ad-hoc signed, so a rebuild can receive a new macOS TCC
+  // identity while Chromium localStorage survives. Never carry an old capture
+  // proof across app launches/builds; only trust proof from this renderer session.
+  try{localStorage.removeItem(SCREEN_CAPTURE_PROVEN_KEY);}catch{}
   let companionKind='';
   const addStyle=href=>{if(document.querySelector(`link[href="${href}"]`))return;const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);};
   const addScript=src=>new Promise((resolve,reject)=>{if(document.querySelector(`script[src="${src}"]`))return resolve();const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=reject;document.head.append(script);});
 
   async function findMeetingSurface(){for(let i=0;i<120;i++){const overlay=document.querySelector('#meetingOverlay');if(overlay&&window.DominionMediaController)return overlay;await wait(50);}return null;}
   function toast(message,kind=''){let node=document.querySelector('#shareToast');if(!node){node=document.createElement('div');node.id='shareToast';document.body.append(node);}node.className=`share-toast ${kind}`.trim();node.textContent=String(message||'');node.hidden=false;clearTimeout(node.__timer);node.__timer=setTimeout(()=>{node.hidden=true;},6500);}
-  const markCaptureProven=()=>{try{localStorage.setItem(SCREEN_CAPTURE_PROVEN_KEY,'1');}catch{}};
-  const locallyProven=()=>{try{return localStorage.getItem(SCREEN_CAPTURE_PROVEN_KEY)==='1';}catch{return false;}};
+  const markCaptureProven=()=>{try{sessionStorage.setItem(SCREEN_CAPTURE_PROVEN_KEY,'1');}catch{}};
+  const locallyProven=()=>{try{return sessionStorage.getItem(SCREEN_CAPTURE_PROVEN_KEY)==='1';}catch{return false;}};
   async function grantedScreenPermission(){
     if(locallyProven())return true;
     const permissions=await desktop?.media?.permissions?.().catch(()=>null);

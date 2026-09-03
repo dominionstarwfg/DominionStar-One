@@ -64,7 +64,10 @@ async function requestScreenPermission(){
   // Privacy & Security. This is bounded and single-flight so Share stays responsive.
   const probe=await activeScreenCaptureProbe();
   if(probe.ok)return {ok:true,status:'granted',reportedStatus,restartRequired:false,detectedBy:'capture-probe',sourceCount:probe.sourceCount};
-  return {ok:false,status:reportedStatus,restartRequired:reportedStatus!=='not-determined',detectedBy:'tcc-status+capture-probe',probeStatus:probe.status};
+  // A denied/restricted/not-determined TCC state still needs user authorization.
+  // Restart is reserved for the later case where macOS reports granted but the
+  // current process still cannot capture after the user has enabled access.
+  return {ok:false,status:reportedStatus,restartRequired:false,detectedBy:'tcc-status+capture-probe',probeStatus:probe.status};
 }
 
 async function openPrivacySettings(kind='screen'){
