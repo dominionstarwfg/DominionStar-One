@@ -22,8 +22,18 @@ jobs:
       - name: Checkout exact installer candidate
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           clean: true
           fetch-depth: 1
+
+      - name: Assert exact installer source
+        shell: bash
+        run: |
+          EXPECTED="${{ github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL="$(git rev-parse HEAD)"
+          test "$ACTUAL" = "$EXPECTED"
+          test "$(node -p "require('./meet-desktop/package.json').version")" = "2.0.39"
+          echo "DOMINIONSTAR_INSTALLER_EXACT_SOURCE_OK $ACTUAL"
 
       - name: Use Node 22
         uses: actions/setup-node@v4
