@@ -1,0 +1,41 @@
+name: DominionStar Meet Share Picker 2.0.23
+
+on:
+  pull_request:
+    branches: [ci/stacked-2.0.23-base]
+    paths:
+      - 'meet-desktop/ui/share-picker.html'
+      - 'meet-desktop/ui/share-picker.css'
+      - 'meet-desktop/ui/share-picker.js'
+      - 'meet-desktop/scripts/verify-share-picker-2.0.23.mjs'
+      - 'meet-desktop/scripts/verify-share-authority.mjs'
+      - '.github/workflows/share-picker-2.0.23-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  picker-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout picker candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify picker source syntax
+        working-directory: meet-desktop
+        run: |
+          node --check ui/share-picker.js
+          node --check scripts/verify-share-picker-2.0.23.mjs
+      - name: Verify Zoom-style picker contract
+        working-directory: meet-desktop
+        run: node scripts/verify-share-picker-2.0.23.mjs
+      - name: Re-run inherited share authority
+        working-directory: meet-desktop
+        run: node scripts/verify-share-authority.mjs
