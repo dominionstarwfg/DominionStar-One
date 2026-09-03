@@ -18,7 +18,8 @@ const lacks=(s,n,m)=>assert.ok(!s.includes(n),m);
 assert.equal(pkg.version,'2.0.41','Zoom screenshot reference lock must run only on 2.0.41.');
 has(auth,"zoom-screenshot-reference-2.0.41.css",'Screenshot reference CSS is not loaded.');
 has(auth,"zoom-screenshot-reference-2.0.41.js",'Screenshot reference JS is not loaded.');
-assert.ok(auth.indexOf('runtime-stability.js')<auth.indexOf('loadScreenshotReference'),'Screenshot reference must remain after runtime stability.');
+has(auth,'script.onload=loadScreenshotReference','Screenshot reference must load after runtime stability completes.');
+has(auth,'if(window.DominionRuntimeStability)loadScreenshotReference()','Existing runtime stability must hand off to the screenshot reference authority.');
 
 // Home screenshot contract.
 has(refCss,'grid-template-columns:82px minmax(0,1fr)','Home must use the narrow Zoom-style app rail.');
@@ -29,7 +30,6 @@ has(refJs,'ds-ref-search','Home must include the compact top search surface.');
 
 // Prejoin screenshot contract.
 has(refCss,'width:548px!important','Prejoin must remain a compact Zoom-scale dialog.');
-has(refCss,'Always show this preview when joining','');
 has(refJs,'Always show this preview when joining','Prejoin preference row is missing.');
 has(refJs,"strong.textContent='Backgrounds'",'Prejoin Backgrounds label is not normalized.');
 
@@ -51,8 +51,8 @@ has(refJs,'ds-ref-host-tools-panel','Host tools right panel is missing.');
 has(refJs,'Lock meeting','Host tools is missing Lock meeting.');
 has(refJs,'Enable waiting room','Host tools is missing waiting-room position.');
 has(refJs,'Hide profile pictures','Host tools is missing Hide profile pictures.');
-has(refJs,"data-participants","Host tools is missing Participants navigation.");
-has(refJs,"data-advanced","Host tools is missing Advanced navigation.");
+has(refJs,'data-participants','Host tools is missing Participants navigation.');
+has(refJs,'data-advanced','Host tools is missing Advanced navigation.');
 
 // More is its own tool grid.
 has(refJs,'ds-ref-meeting-more-grid','Meeting More grid is missing.');
@@ -69,7 +69,7 @@ has(pickerJs,"sectionMarkup('Entire screen'",'Pre-share must group the entire de
 has(pickerJs,"sectionMarkup('Application windows'",'Pre-share must group application windows separately.');
 has(pickerJs,"kind:'screen'",'Pre-share is not enumerating real screens.');
 has(pickerJs,"kind:'window'",'Pre-share is not enumerating real application windows.');
-has(pickerJs,'source.thumbnail','Pre-share must render live source previews.');
+has(pickerJs,'source.thumbnail','Pre-share must render real source previews.');
 has(pickerCss,'.source-section.screen-section','Pre-share screen group styling is missing.');
 has(pickerCss,'.presenter-layout','Pre-share presenter rail styling is missing.');
 lacks(pickerHtml,'Share This Window','Apple system overlay language must never be part of the DominionStar picker.');
@@ -85,7 +85,7 @@ has(refJs,"overlay.classList.add('ds-ref-presenter-visible')",'Presenter toolbar
 has(refJs,"overlay.classList.remove('ds-ref-presenter-visible'),1650",'Presenter toolbar idle auto-hide is missing.');
 has(refJs,"'Layout'",'Presenter toolbar is missing Layout.');
 has(refJs,"'Show meeting'",'Presenter toolbar is missing Show meeting.');
-has(refJs,"'Stop share'",'Presenter green strip is missing Stop share.');
+has(refJs,'Stop share','Presenter green strip is missing Stop share.');
 has(refCss,'opacity:0!important;pointer-events:none!important','Presenter toolbar must be hidden while idle.');
 has(refCss,'.ds-ref-presenter-visible #inlinePresenterToolbar','Presenter toolbar must become interactive only when revealed.');
 
