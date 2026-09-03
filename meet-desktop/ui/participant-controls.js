@@ -124,7 +124,7 @@
     }
     if(localRole()==='host'&&role!=='cohost')add('Make Co-host',async()=>{await meeting.setCohost(id,true);});
     if(localRole()==='host'&&role==='cohost')add('Remove Co-host',async()=>{await meeting.setCohost(id,false);});
-    add('Remove',async()=>{await meeting.removeParticipant(id);},true);
+    if(localRole()==='host'||role!=='cohost')add('Remove',async()=>{await meeting.removeParticipant(id);},true);
     document.body.append(menu);const r=button.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-230,r.right-210))}px`;menu.style.top=`${Math.max(10,Math.min(innerHeight-menu.offsetHeight-10,r.bottom+6))}px`;
     menu.setAttribute('aria-label',`Controls for ${name}`);
   }

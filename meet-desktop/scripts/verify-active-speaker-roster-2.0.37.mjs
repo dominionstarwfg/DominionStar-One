@@ -7,7 +7,9 @@ const app=read('ui/app.js');
 const webrtc=read('ui/webrtc-controller.js');
 const css=read('ui/zoom-production-polish.css');
 
-assert.equal(pkg.version,'2.0.37','Active-speaker roster candidate must report 2.0.37.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=37))),'Active-speaker roster authority introduced in 2.0.37 must remain enforced for every later candidate.');
 
 assert.ok(webrtc.includes("window.dispatchEvent(new CustomEvent('dominion:active-speakers'"),'Real WebRTC speaker meter must remain the speaker-order source.');
 assert.ok(webrtc.includes("ranked.sort((a,b)=>b.level-a.level)"),'Speaker order must be based on measured audio energy.');
