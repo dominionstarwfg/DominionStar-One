@@ -101,7 +101,7 @@ assert(av.includes("avGroup(detail,'Camera'")&&av.includes("avGroup(detail,'Appe
 assert(av.includes('Test Microphone')&&av.includes('Test Speaker')&&av.includes('Test Speaker & Microphone…'),'Packaged Audio settings must expose microphone/speaker tests from settings and the quick menu.');
 assert(av.includes('Echo cancellation')&&av.includes('Noise suppression')&&av.includes('Automatically adjust microphone volume')&&av.includes('Original sound for musicians'),'Packaged Audio settings must expose real microphone processing controls.');
 assert(media.includes("replaceKind('audio',state.microphoneId,true)"),'Packaged audio-processing changes must reacquire the live microphone with updated constraints.');
-assert(parity.includes("version:'2.8.0-event-driven-share-safe'"),'Packaged meeting must include the event-driven share-safe Zoom-style meeting engine.');
+assert(parity.includes("version:'2.0.39-multi-spotlight'")&&parity.includes("window.addEventListener('dominion:active-speakers'")&&parity.includes("window.addEventListener('dominion:spotlight-change'"),'Packaged meeting must include the event-driven share-safe Zoom-style meeting engine with multi-spotlight authority.');
 assert(parity.includes("side.hidden=true;overlay.classList.add('participants-hidden')"),'Packaged participant management panel must be closed by default.');
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Packaged video dock must adapt orientation to position.');
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Packaged meeting must support active-speaker stage promotion.');
