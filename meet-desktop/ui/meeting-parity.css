@@ -153,3 +153,14 @@ body.ds-local-speaking .meeting-overlay.share-active .stage{
   outline:2px solid rgba(57,208,120,.88);
   outline-offset:-2px;
 }
+
+.participant-video-dock .remote-peer-tile.spotlighted{border-color:#d6b25e!important;box-shadow:0 0 0 1px rgba(214,178,94,.28)!important}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-1,
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-2,
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3,
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{grid-column:span 2;grid-row:span 2;z-index:3}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-1{order:-40}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-2{order:-39}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3{order:-38}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{order:-37}
+@media(max-width:720px){.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-1,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-2,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{grid-column:span 1;grid-row:span 1}}

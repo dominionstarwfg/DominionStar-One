@@ -30,7 +30,7 @@ assert.ok(controls.includes("window.addEventListener('dominion:remote-media-stat
 assert.ok(controls.includes("media()?.snapshot?.()"),'Local roster media state must come from the real media controller.');
 assert.ok(controls.includes("media()?.onChange?.(()=>syncAllMedia())"),'Local mic/camera changes must refresh roster state immediately.');
 assert.ok(controls.includes("button.setAttribute('aria-label',`More controls for"),'Per-participant More action must be accessible.');
-assert.ok(controls.includes("version:'2.0.34'"),'Participant controls must expose the 2.0.34 authority version.');
+assert.ok(controls.includes("version:'2.0.39'")&&controls.includes("window.addEventListener('dominion:remote-media-state'")&&controls.includes("button.setAttribute('aria-label',`More controls for"),'Participant controls must preserve the 2.0.34+ roster/media/action authority in the current build.');
 
 assert.ok(css.includes('grid-template-columns:34px minmax(0,1fr) auto auto'),'Roster row must use stable avatar/name/media/actions geometry.');
 assert.ok(css.includes('border-radius:50%'),'Participant avatars must be circular.');

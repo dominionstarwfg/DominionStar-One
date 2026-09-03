@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const media=()=>window.DominionMediaController||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  let menu=null,prompt=null,renameDialog=null,busy=false,spotlightParticipantId='',localMediaUnsub=null;const remoteMedia=new Map();
+  let menu=null,prompt=null,renameDialog=null,busy=false,spotlightParticipantIds=[],localMediaUnsub=null;const remoteMedia=new Map();
   const esc=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const localRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');
   const canManage=()=>['host','cohost'].includes(localRole());
@@ -64,8 +64,9 @@
       return;
     }
     if(type==='host:spotlight'){
-      spotlightParticipantId=String(detail.payload?.participantId||'');
-      window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:spotlightParticipantId}}));
+      const incoming=Array.isArray(detail.payload?.participantIds)?detail.payload.participantIds:[detail.payload?.participantId];
+      spotlightParticipantIds=[...new Set(incoming.map(value=>String(value||'')).filter(Boolean))].slice(0,4);
+      window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantIds:[...spotlightParticipantIds],participantId:spotlightParticipantIds[0]||''}}));
       return;
     }
     if(type==='host:view-layout'){
@@ -112,11 +113,19 @@
     add('Ask to Unmute',()=>send(id,'host:ask-unmute'));
     add('Stop Video',()=>send(id,'host:stop-video'));
     add('Ask to Start Video',()=>send(id,'host:ask-start-video'));
-    add(spotlightParticipantId===id?'Remove Spotlight':'Spotlight for Everyone',async()=>{
-      const next=spotlightParticipantId===id?'':id;spotlightParticipantId=next;
-      window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:next}}));
-      const list=await peers();await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'host:spotlight',{participantId:next,at:new Date().toISOString()})));
-    });
+    {
+      const alreadySpotlighted=spotlightParticipantIds.includes(id);
+      const spotlightLabel=alreadySpotlighted?'Remove Spotlight':spotlightParticipantIds.length?'Add Spotlight':'Spotlight for Everyone';
+      add(spotlightLabel,async()=>{
+        let next=alreadySpotlighted?spotlightParticipantIds.filter(value=>value!==id):[...spotlightParticipantIds,id];
+        next=[...new Set(next)].slice(0,4);
+        spotlightParticipantIds=next;
+        window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantIds:[...next],participantId:next[0]||''}}));
+        const list=await peers();
+        await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'host:spotlight',{participantIds:[...next],participantId:next[0]||'',at:new Date().toISOString()})));
+        toast(next.length>1?`${next.length} participants spotlighted`:next.length===1?'Participant spotlighted':'Spotlight removed');
+      });
+    }
     if(row.dataset.raisedHand==='1')add('Lower Hand',()=>send(id,'host:lower-hand'));
     add('Rename',()=>renameParticipant(id,name));
     if(localRole()==='host'&&row.dataset.recordEligible==='1'&&role!=='cohost'){
@@ -181,5 +190,5 @@
   window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
   const timer=setInterval(sync,800);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.34',sync,sendAll,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'2.0.39',sync,sendAll,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
