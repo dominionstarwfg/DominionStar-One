@@ -1,37 +1,58 @@
 (()=>{
-  if(window.DominionShareIntegration)return;
+  if(window.DominionShareIntegration||window.__DominionShareIntegrationBooting)return;
+  window.__DominionShareIntegrationBooting=true;
   const desktop=window.dominionDesktop||null;
   const bridge=desktop?.share||null;
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2';
+  let companionKind='';
   const addStyle=href=>{if(document.querySelector(`link[href="${href}"]`))return;const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);};
   const addScript=src=>new Promise((resolve,reject)=>{if(document.querySelector(`script[src="${src}"]`))return resolve();const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=reject;document.head.append(script);});
 
   async function findMeetingSurface(){for(let i=0;i<120;i++){const overlay=document.querySelector('#meetingOverlay');if(overlay&&window.DominionMediaController)return overlay;await wait(50);}return null;}
   function toast(message,kind=''){let node=document.querySelector('#shareToast');if(!node){node=document.createElement('div');node.id='shareToast';document.body.append(node);}node.className=`share-toast ${kind}`.trim();node.textContent=String(message||'');node.hidden=false;clearTimeout(node.__timer);node.__timer=setTimeout(()=>{node.hidden=true;},6500);}
+  const markCaptureProven=()=>{try{localStorage.setItem(SCREEN_CAPTURE_PROVEN_KEY,'1');}catch{}};
+  const locallyProven=()=>{try{return localStorage.getItem(SCREEN_CAPTURE_PROVEN_KEY)==='1';}catch{return false;}};
+  async function grantedScreenPermission(){
+    if(locallyProven())return true;
+    const permissions=await desktop?.media?.permissions?.().catch(()=>null);
+    const granted=String(permissions?.screen||'').toLowerCase()==='granted';
+    if(granted)markCaptureProven();
+    return granted;
+  }
   function showScreenPermissionDialog(status='unknown',restartRequired=false){
     let dialog=document.querySelector('#screenPermissionDialog');
     if(!dialog){
       dialog=document.createElement('section');dialog.id='screenPermissionDialog';dialog.className='share-permission-dialog';dialog.hidden=true;dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','false');
-      dialog.innerHTML='<div class="share-permission-card"><div class="share-permission-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="m8 11 4-4 4 4M12 7v8M8 21h8"/></svg></div><div><p>SCREEN SHARING PERMISSION</p><h3>Screen sharing was blocked by macOS</h3><span data-permission-copy>DominionStar Meet could not start a native screen capture.</span></div><div class="share-permission-actions"><button type="button" data-permission-cancel>Not now</button><button type="button" data-permission-reset>Reset & Reauthorize</button><button type="button" data-permission-open>Open System Settings</button></div></div>';
+      dialog.innerHTML='<div class="share-permission-card"><div class="share-permission-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="m8 11 4-4 4 4M12 7v8M8 21h8"/></svg></div><div class="share-permission-copy"><p>SCREEN SHARING</p><h3>Allow Screen Recording</h3><span data-permission-copy>Enable DominionStar Meet in macOS Privacy & Security, then return here.</span></div><div class="share-permission-actions"><button type="button" data-permission-cancel>Cancel</button><button type="button" data-permission-open>Open Settings</button><button type="button" data-permission-retry>I’ve Enabled It</button><button type="button" data-permission-restart hidden>Restart App</button></div></div>';
       document.body.append(dialog);
       dialog.querySelector('[data-permission-cancel]').onclick=()=>{dialog.hidden=true;};
-      dialog.querySelector('[data-permission-open]').onclick=async()=>{await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});dialog.hidden=true;};
-      dialog.querySelector('[data-permission-reset]').onclick=async event=>{const button=event.currentTarget;button.disabled=true;try{await window.dominionDesktop?.app?.resetScreenPermission?.();dialog.hidden=true;await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});}finally{button.disabled=false;}};
+      dialog.querySelector('[data-permission-open]').onclick=async()=>{await window.dominionDesktop?.media?.openPrivacy?.('screen').catch?.(()=>{});};
+      dialog.querySelector('[data-permission-retry]').onclick=async event=>{const retry=event.currentTarget;retry.disabled=true;try{dialog.hidden=true;await window.DominionShareIntegration?.open?.();}finally{retry.disabled=false;}};
+      dialog.querySelector('[data-permission-restart]').onclick=async event=>{event.currentTarget.disabled=true;try{await desktop?.app?.relaunch?.();}catch{event.currentTarget.disabled=false;}};
     }
     const copy=dialog.querySelector('[data-permission-copy]');
-    if(copy)copy.textContent=restartRequired?'macOS reports the grant, but this running process cannot use it yet. Fully restart DominionStar Meet after granting access.':`The native macOS capture request returned ${status}. Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording, then retry.`;
+    const retry=dialog.querySelector('[data-permission-retry]');
+    const restart=dialog.querySelector('[data-permission-restart]');
+    if(restartRequired){
+      if(copy)copy.textContent='macOS reports access, but this running process still cannot capture. Restart DominionStar Meet once to refresh the permission identity.';
+      if(retry)retry.hidden=true;if(restart)restart.hidden=false;
+    }else{
+      if(copy){
+        if(status==='denied'||status==='restricted')copy.textContent='In Privacy & Security → Screen & System Audio Recording, enable DominionStar Meet. Return here when it is enabled.';
+        else copy.textContent='Allow DominionStar Meet in Privacy & Security → Screen & System Audio Recording, then return here.';
+      }
+      if(retry)retry.hidden=false;if(restart)restart.hidden=true;
+    }
     dialog.hidden=false;
   }
   function isPermissionFailure(error){
     const name=String(error?.name||'').toLowerCase(),message=String(error?.message||error||'').toLowerCase();
     return name==='notallowederror'||name==='securityerror'||message.includes('permission')||message.includes('denied')||message.includes('not allowed');
   }
-  async function resolveShareEntry(){
+  async function resolveShareEntry(permission='unknown'){
     if(!bridge)throw new Error('Screen sharing runs in the installed DominionStar Meet app.');
-    // Do not preflight Screen Recording with getMediaAccessStatus/getSources.
-    // On macOS 15+ Electron hands getDisplayMedia directly to Apple's system
-    // content-sharing picker. Older systems receive the custom picker fallback.
-    const result=await bridge.openPicker();
+    const result=await bridge.openPicker(permission);
     if(result?.permissionRequired){showScreenPermissionDialog(String(result.status||'unknown'),Boolean(result.restartRequired));return {mode:'blocked'};}
     if(result?.nativeSystemPicker)return {mode:'native'};
     return {mode:result?.opened===false?'blocked':'custom'};
@@ -44,61 +65,123 @@
     const overlay=await findMeetingSurface();
     if(!overlay)return;
     const media=window.DominionMediaController,share=window.DominionShareController;
+    const environment=await desktop?.environment?.().catch(()=>null);
+    const sameRendererPresenter=String(environment?.platform||'')==='darwin';
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
+    let presenterCommitted=false;
 
     let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share Screen';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
     let sharedVideo=stage.querySelector('#sharedContentVideo');if(!sharedVideo){sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);}
     let label=stage.querySelector('#shareStageLabel');if(!label){label=document.createElement('div');label.id='shareStageLabel';label.className='share-stage-label';label.hidden=true;stage.append(label);}
     let cameraTile=stage.querySelector('#presenterCameraTile');if(!cameraTile){cameraTile=document.createElement('video');cameraTile.id='presenterCameraTile';cameraTile.className='presenter-camera-tile';cameraTile.autoplay=true;cameraTile.playsInline=true;cameraTile.muted=true;cameraTile.hidden=true;stage.append(cameraTile);}
 
+    let inlinePresenter=overlay.querySelector('#inlinePresenterToolbar');
+    if(!inlinePresenter){
+      inlinePresenter=document.createElement('div');
+      inlinePresenter.id='inlinePresenterToolbar';
+      inlinePresenter.className='inline-presenter-toolbar';
+      inlinePresenter.hidden=true;
+      inlinePresenter.innerHTML=`<div class="inline-presenter-status"><strong id="inlineShareState">You are sharing</strong><span id="inlineShareSource">Shared content</span></div><div class="inline-presenter-actions"><button type="button" data-inline-command="audio">Mute</button><button type="button" data-inline-command="video">Stop Video</button><button type="button" data-inline-command="participants">Participants</button><button type="button" data-inline-command="chat">Chat</button><button type="button" data-inline-command="annotate">Annotate</button><button type="button" data-inline-command="pause">Pause</button><button type="button" data-inline-command="new-share">New Share</button><button type="button" class="stop" data-inline-command="stop">Stop Share</button></div>`;
+      overlay.append(inlinePresenter);
+      inlinePresenter.querySelectorAll('[data-inline-command]').forEach(control=>control.addEventListener('click',()=>void dispatchPresenterCommand(control.dataset.inlineCommand||'')));
+    }
+
+    function setCompanion(kind=''){
+      companionKind=String(kind||'');
+      if(companionKind)document.body.dataset.dsShareCompanion=companionKind;else delete document.body.dataset.dsShareCompanion;
+      void bridge?.captureState?.({companion:companionKind,companionOpen:Boolean(companionKind)}).catch?.(()=>{});
+    }
+    function clearCompanion(){if(companionKind||document.body.dataset.dsShareCompanion)setCompanion('');}
+
     function applyLayout(){
       const state=share.snapshot(),mediaState=media.snapshot();
       overlay.classList.toggle('share-active',state.active);
-      sharedVideo.hidden=!state.active;
+      // On macOS the share-owning renderer must not visibly mirror the
+      // captured screen back into itself. That recursive compositor path can
+      // stall the renderer during active display capture. Keep the video
+      // element attached to the stream for Pause-frame capture, but do not
+      // paint it on the presenter surface.
+      sharedVideo.hidden=!state.active||sameRendererPresenter;
       label.hidden=!state.active;
+      inlinePresenter.hidden=!state.active;
       if(state.active){
-        const output=share.outputStream();if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
+        const shareState=inlinePresenter.querySelector('#inlineShareState'),shareSource=inlinePresenter.querySelector('#inlineShareSource');
+        if(shareState)shareState.textContent=state.paused?'Share paused':'You are sharing';
+        if(shareSource)shareSource.textContent=String(state.sourceName||'Shared content');
+        const commandLabel=(name,text)=>{const node=inlinePresenter.querySelector(`[data-inline-command="${name}"]`);if(node)node.textContent=text;};
+        commandLabel('pause',state.paused?'Resume':'Pause');
+        commandLabel('audio',mediaState.micOn?'Mute':'Unmute');
+        commandLabel('video',mediaState.cameraOn?'Stop Video':'Start Video');
+      }
+      if(state.active){
+        const output=share.outputStream();
+        if(sameRendererPresenter){if(sharedVideo.srcObject)sharedVideo.srcObject=null;}
+        else if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
         label.innerHTML=`<strong>${state.paused?'Paused':state.annotating?'Annotating':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
-        const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;
-      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;window.DominionShareAnnotation?.deactivate?.();}
-      window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused)});
+        // Zoom-style macOS presenter mode already keeps the participant/video
+        // dock available. Do not duplicate the local camera into a second
+        // presenter video element; duplicating the camera pipeline while share
+        // is active can stall Chromium's renderer on physical Mac.
+        if(sameRendererPresenter){if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;}
+        else{const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;}
+      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
+      // On macOS, do not rebuild/rebind the Zoom-style video dock inside the
+      // same transaction that flips Share to active. The existing dock remains
+      // visually present, but media rebinding is deferred to normal meeting
+      // updates so presenter controls stay responsive.
+      if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+    }
+
+    function commitPresenterMode(){
+      const state=share.snapshot();
+      if(!state.active||presenterCommitted)return false;
+      presenterCommitted=true;
+      // macOS presenter controls live in this renderer. Crossing into the main
+      // process here caused the active capture renderer to stall on physical Mac.
+      if(!sameRendererPresenter)bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
+      return true;
     }
 
     async function beginShare({replace=false}={}){
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return false;}
-      const entry=await resolveShareEntry();
-      if(entry.mode==='blocked')return false;
-      if(entry.mode==='custom')return true; // source-selected event completes fallback flow.
+      button.classList.add('ds-share-checking');
       try{
-        const options={shareAudio:true,optimizeVideo:false};
-        if(replace){await share.replaceSource({name:'Shared content',options});window.DominionShareAnnotation?.deactivate?.();}
-        else await share.start({name:'Shared content',options});
-        applyLayout();
-        if(replace)toast('Screen share changed.');
-        return true;
-      }catch(error){
-        applyLayout();
-        if(isPermissionFailure(error)){
-          const status=await window.dominionDesktop?.media?.requestScreen?.().catch(()=>null);
-          showScreenPermissionDialog(String(status?.status||error?.name||'denied'),Boolean(status?.restartRequired));
-        }else if(String(error?.name||'')!=='AbortError')toast(error?.message||'Screen sharing could not start.','error');
-        return false;
+        const proven=replace||share.snapshot().active||await grantedScreenPermission();
+        const permission=proven?'granted':'unknown';
+        const entry=await resolveShareEntry(permission);
+        if(entry.mode==='blocked')return false;
+        if(entry.mode==='custom')return true;
+        try{
+          const options={shareAudio:true,optimizeVideo:false};
+          if(replace){await share.replaceSource({name:'Shared content',options});window.DominionShareAnnotation?.deactivate?.();}
+          else await share.start({name:'Shared content',options});
+          markCaptureProven();applyLayout();
+          if(!replace)commitPresenterMode();
+          if(replace)toast('Screen share changed.');
+          return true;
+        }catch(error){
+          applyLayout();
+          if(isPermissionFailure(error)){
+            const diagnostic=await desktop?.media?.requestScreen?.().catch(()=>null);
+            const status=String(diagnostic?.status||error?.name||'denied').toLowerCase();
+            showScreenPermissionDialog(status,status==='granted'||Boolean(diagnostic?.restartRequired));
+          }else if(String(error?.name||'')!=='AbortError')toast(error?.message||'Screen sharing could not start.','error');
+          return false;
+        }
+      }finally{
+        button.classList.remove('ds-share-checking');
       }
     }
 
-    // Compatibility entry point retained because New Share has always meant
-    // "select/acquire replacement first, then release the old presentation".
-    // It delegates to the same native-first path; it does not restore the old
-    // permission preflight or custom-picker-first behavior.
-    async function openPickerWithPermission(){return beginShare({replace:share.snapshot().active});}
+    async function openPickerWithPermission(){clearCompanion();return beginShare({replace:share.snapshot().active});}
 
     button.addEventListener('click',event=>{
       event.currentTarget.blur();
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return;}
-      if(share.snapshot().active){toast('A share is already active. Use the floating toolbar to pause, annotate, start a new share, or stop.');return;}
-      requestAnimationFrame(()=>setTimeout(()=>{void beginShare().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));},0));
+      if(share.snapshot().active){toast('A share is already active. Use the floating presenter toolbar to pause, start a new share, or stop.');return;}
+      queueMicrotask(()=>{void beginShare().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));});
     });
 
     bridge?.onSourceSelected?.(async selection=>{
@@ -106,41 +189,63 @@
       try{
         if(replacing){await share.replaceSource({name:selection?.name,options:selection?.options||{}});window.DominionShareAnnotation?.deactivate?.();}
         else await share.start({name:selection?.name,options:selection?.options||{}});
-        applyLayout();
+        markCaptureProven();applyLayout();
+        if(!replacing)commitPresenterMode();
         if(replacing)toast(`Now sharing ${String(selection?.name||'new source')}`);
-      } catch(error){
+      }catch(error){
         applyLayout();
-        if(isPermissionFailure(error))showScreenPermissionDialog(String(error?.name||'denied'),false);
-        else toast(replacing?(error?.message||'The new source could not start. Your current share is still active.'):(error?.message||'Screen sharing could not start.'),'error');
+        if(isPermissionFailure(error)){
+          const diagnostic=await desktop?.media?.requestScreen?.().catch(()=>null);
+          const status=String(diagnostic?.status||error?.name||'denied').toLowerCase();
+          showScreenPermissionDialog(status,status==='granted'||Boolean(diagnostic?.restartRequired));
+        }else toast(replacing?(error?.message||'The new source could not start. Your current share is still active.'):(error?.message||'Screen sharing could not start.'),'error');
       }
     });
 
     share.onChange(()=>applyLayout());
     media.onChange(()=>{if(share.snapshot().active)applyLayout();});
 
-    bridge?.onPresenterCommand?.(async rawCommand=>{
-      const command=String(rawCommand||'');
-      try{
-        if(command==='pause'){await share.togglePause(sharedVideo);applyLayout();return;}
-        if(command==='stop'){await share.stop();applyLayout();return;}
-        if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return;}
-        if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return;}
-        if(command==='participants'){window.DominionMeetingParity?.toggleParticipants?.();return;}
-        if(command==='chat'){window.DominionMeetingFeatures?.toggleChat?.();return;}
-        if(command==='annotate'){window.DominionShareAnnotation?.toggle?.();applyLayout();return;}
-        if(command==='new-share'){await openPickerWithPermission();return;}
-        if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return;}
-        if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return;}
-        if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return;}
-        if(command.startsWith('reaction:')){await window.DominionMeetingFeatures?.sendReaction?.(command.slice('reaction:'.length));applyLayout();return;}
-        if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();applyLayout();return;}
-        if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();applyLayout();return;}
-        if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();applyLayout();return;}
-        if(command==='show-meeting'){window.focus();return;}
-      }catch(error){toast(error?.message||'Share control failed.','error');}
+    const companionObserver=new MutationObserver(()=>{
+      if(!share.snapshot().active||!companionKind)return;
+      const chat=overlay.querySelector('#meetingChatPanel'),participants=overlay.querySelector('.room-side'),annotation=overlay.querySelector('.share-annotation-overlay');
+      if(companionKind==='chat'&&chat?.hidden)clearCompanion();
+      else if(companionKind==='participants'&&participants?.hidden)clearCompanion();
+      else if(companionKind==='annotate'&&annotation?.hidden)clearCompanion();
     });
+    companionObserver.observe(overlay,{subtree:true,attributes:true,attributeFilter:['hidden']});
 
-    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot()});
+    async function dispatchPresenterCommand(rawCommand){
+      const command=String(rawCommand?.command||rawCommand||'');
+      const qaCommandId=Number(rawCommand?.qaCommandId||0)||0;
+      if(qaCommandId>0)console.error(`QA_PRESENTER_RENDERER_DISPATCH id=${qaCommandId} command=${command}`);
+      window.dispatchEvent(new CustomEvent('dominion:presenter-command-dispatch',{detail:{command,qaCommandId}}));
+      try{
+        // Pause/Resume already emits the authoritative share state, and that
+        // listener updates the inline presenter toolbar synchronously. Do not
+        // run a second DOM/layout transaction in the promise continuation.
+        if(command==='pause'){await share.togglePause(sharedVideo);return {handled:true,command};}
+        if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}
+        if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return {handled:true,command};}
+        if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return {handled:true,command};}
+        if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return {handled:true,command};}
+        if(command==='chat'){window.DominionRuntimeStability?.setParticipants?.(false);window.DominionRuntimeStability?.setChat?.(true);setCompanion('chat');return {handled:true,command};}
+        if(command==='annotate'){const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');applyLayout();return {handled:true,command};}
+        if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
+        if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
+        if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
+        if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return {handled:true,command};}
+        if(command.startsWith('reaction:')){await window.DominionMeetingFeatures?.sendReaction?.(command.slice('reaction:'.length));applyLayout();return {handled:true,command};}
+        if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();applyLayout();return {handled:true,command};}
+        if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();applyLayout();return {handled:true,command};}
+        if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();applyLayout();return {handled:true,command};}
+        if(command==='show-meeting'){clearCompanion();window.focus();return {handled:true,command};}
+        return {handled:false,command};
+      }catch(error){toast(error?.message||'Share control failed.','error');return {handled:false,command,error:String(error?.message||error||'share_control_failed')};}
+    }
+    window.__DominionPresenterDispatch=dispatchPresenterCommand;
+    bridge?.onPresenterCommand?.(rawCommand=>void dispatchPresenterCommand(rawCommand));
+
+    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand});
   }
-  void boot();
+  void boot().catch(error=>console.error('[DominionStar Meet] Share Integration boot failed.',error)).finally(()=>{window.__DominionShareIntegrationBooting=false;});
 })();

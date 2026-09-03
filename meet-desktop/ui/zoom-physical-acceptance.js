@@ -193,14 +193,12 @@
     const icon=q('#roomReactions .ds-control-icon');if(!icon||icon.dataset.dsReactionIcon==='1')return;icon.dataset.dsReactionIcon='1';icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="12" r="7.5"/><path d="M7.8 10h.01M13.2 10h.01M7.6 14c.9 1.2 1.8 1.7 2.9 1.7 1.2 0 2.2-.5 3.1-1.7"/><path d="M18.2 3.8v3.4M16.5 5.5h3.4M18 15.7c1.9.2 3 1.1 3 2.4 0 1.6-1.8 2.6-4.7 2.7"/></svg>';
   }
   function installReactionAuthority(){
-    const button=q('#roomReactions');if(!button)return;setReactionIcon();if(button.dataset.dsPhysicalAuthority==='1')return;button.dataset.dsPhysicalAuthority='1';button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');
-    button.onclick=event=>{event.preventDefault();event.stopPropagation();openReactionTray(button);};
+    const button=q('#roomReactions');if(!button)return;setReactionIcon();
+    // Final React ownership belongs to DominionMeetingFeatures + RuntimeStability.
+    // This compatibility layer may observe reaction animations, but it must not
+    // install a second button handler or create a second chooser.
+    button.setAttribute('aria-haspopup','menu');
     const layer=q('#meetingReactionLayer');if(layer&&!reactionObserver){reactionObserver=new MutationObserver(records=>{for(const record of records){for(const node of record.addedNodes){if(!(node instanceof HTMLElement)||!node.classList.contains('meeting-reaction-bubble')||node.dataset.dsUpgraded==='1')continue;upgradeReactionBubble(node);}}});reactionObserver.observe(layer,{childList:true});}
-  }
-  function openReactionTray(anchor){
-    closeTransientMenus();reactionMenu=document.createElement('div');reactionMenu.className='ds-reaction-tray';reactionMenu.setAttribute('role','menu');
-    for(const emoji of REACTIONS){const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label',`React ${emoji}`);button.onclick=event=>{event.stopPropagation();closeReactionMenu();void features()?.sendReaction?.(emoji);};reactionMenu.append(button);}
-    const divider=document.createElement('span');divider.className='ds-reaction-divider';reactionMenu.append(divider);const hand=document.createElement('button');hand.type='button';hand.className='ds-raise-hand';const raised=Boolean(features()?.snapshot?.().handRaised);hand.textContent=raised?'✋ Lower Hand':'✋ Raise Hand';hand.onclick=event=>{event.stopPropagation();closeReactionMenu();void features()?.toggleRaiseHand?.();};reactionMenu.append(hand);document.body.append(reactionMenu);anchor.setAttribute('aria-expanded','true');positionMenu(reactionMenu,anchor,{width:430});
   }
   function upgradeReactionBubble(node){
     node.dataset.dsUpgraded='1';const emoji=String(node.querySelector('b')?.textContent||''),name=String(node.querySelector('span')?.textContent||'Participant');if(!emoji)return;

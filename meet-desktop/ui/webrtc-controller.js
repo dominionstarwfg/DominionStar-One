@@ -245,11 +245,13 @@
     }
     ranked.sort((a,b)=>b.level-a.level);const top=ranked.slice(0,4),loudest=top[0]?.id||'';
     document.querySelectorAll('.remote-peer-tile').forEach(tile=>{
-      const id=String(tile.dataset.peerId||''),rank=top.findIndex(item=>item.id===id);
-      tile.classList.toggle('active-speaker',id===loudest);
+      const id=String(tile.dataset.peerId||''),rank=top.findIndex(item=>item.id===id),level=top[rank]?.level||0;
+      tile.classList.toggle('active-speaker',id===loudest);tile.style.setProperty('--speaker-level',String(Math.max(0,Math.min(1,level/.12))));
       for(let i=1;i<=4;i++)tile.classList.toggle(`active-speaker-rank-${i}`,rank===i-1);
     });
-    window.dispatchEvent(new CustomEvent('dominion:active-speakers',{detail:{participantIds:top.map(item=>item.id)}}));
+    const sharingPeer=String(document.querySelector('#remoteShareVideo')?.dataset.peerId||'');
+    document.body.classList.toggle('ds-remote-share-speaker-active',Boolean(loudest&&sharingPeer&&loudest===sharingPeer));
+    window.dispatchEvent(new CustomEvent('dominion:active-speakers',{detail:{participantIds:top.map(item=>item.id),loudestId:loudest}}));
   }
   async function sampleTransport(record){
     try{

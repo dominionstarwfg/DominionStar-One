@@ -13,6 +13,7 @@
   let participantDocumentDragBound=false;
   let videoDockDrag=null;
   let videoDockBound=null;
+  let videoDockDocumentDragBound=false;
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -195,12 +196,35 @@
   function startVideoDockDrag(event){
     if(event.button!==0||event.target.closest?.('button,.participant-video-resize,a,input,select,textarea'))return;
     const dock=event.currentTarget,stage=q('.stage');if(!dock||!stage)return;
-    const dr=dock.getBoundingClientRect();videoDockDrag={id:event.pointerId,dx:event.clientX-dr.left,dy:event.clientY-dr.top};
-    event.stopImmediatePropagation();event.preventDefault();dock.setPointerCapture?.(event.pointerId);dock.classList.add('user-positioned','dragging');dock.style.right='auto';dock.style.bottom='auto';
+    const dr=dock.getBoundingClientRect();videoDockDrag={dx:event.clientX-dr.left,dy:event.clientY-dr.top,dock};
+    event.stopImmediatePropagation();event.preventDefault();dock.classList.add('user-positioned','dragging');dock.style.right='auto';dock.style.bottom='auto';
   }
-  function moveVideoDockDrag(event){if(!videoDockDrag||event.pointerId!==videoDockDrag.id)return;const dock=event.currentTarget,stage=q('.stage');if(!dock||!stage)return;const sr=stage.getBoundingClientRect();dock.style.left=`${clamp(event.clientX-sr.left-videoDockDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8))}px`;dock.style.top=`${clamp(event.clientY-sr.top-videoDockDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8))}px`;event.stopImmediatePropagation();}
-  function endVideoDockDrag(event){if(!videoDockDrag||(event?.pointerId!=null&&event.pointerId!==videoDockDrag.id))return;const dock=event.currentTarget,stage=q('.stage');videoDockDrag=null;if(dock&&stage){dock.classList.remove('dragging');dock.dataset.anchor=nearestVideoDockAnchor(dock,stage);saveVideoDockGeometry(dock,stage);window.DominionMeetingParity?.syncVideoDock?.();}event?.stopImmediatePropagation?.();}
-  function installVideoDockDrag(){const dock=q('#participantVideoDock');if(!dock||dock===videoDockBound)return;if(videoDockBound){videoDockBound.removeEventListener('pointerdown',startVideoDockDrag,true);videoDockBound.removeEventListener('pointermove',moveVideoDockDrag,true);videoDockBound.removeEventListener('pointerup',endVideoDockDrag,true);videoDockBound.removeEventListener('pointercancel',endVideoDockDrag,true);}videoDockBound=dock;dock.dataset.dsAdaptiveWholePanelDrag='1';dock.addEventListener('pointerdown',startVideoDockDrag,true);dock.addEventListener('pointermove',moveVideoDockDrag,true);dock.addEventListener('pointerup',endVideoDockDrag,true);dock.addEventListener('pointercancel',endVideoDockDrag,true);}
+  function moveVideoDockDrag(event){
+    if(!videoDockDrag)return;
+    const dock=videoDockDrag.dock,stage=q('.stage');if(!dock||!stage)return;
+    const sr=stage.getBoundingClientRect();dock.style.left=`${clamp(event.clientX-sr.left-videoDockDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8))}px`;dock.style.top=`${clamp(event.clientY-sr.top-videoDockDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8))}px`;event.stopImmediatePropagation();event.preventDefault();
+  }
+  function endVideoDockDrag(event){
+    if(!videoDockDrag)return;
+    const dock=videoDockDrag.dock,stage=q('.stage');videoDockDrag=null;
+    if(dock&&stage){dock.classList.remove('dragging');dock.dataset.anchor=nearestVideoDockAnchor(dock,stage);saveVideoDockGeometry(dock,stage);window.DominionMeetingParity?.syncVideoDock?.();}
+    event?.stopImmediatePropagation?.();event?.preventDefault?.();
+  }
+  function installVideoDockDrag(){
+    const dock=q('#participantVideoDock');if(!dock)return;
+    if(dock!==videoDockBound){
+      if(videoDockBound)videoDockBound.removeEventListener('mousedown',startVideoDockDrag,true);
+      videoDockBound=dock;
+    }
+    dock.dataset.dsAdaptiveWholePanelDrag='1';dock.dataset.dsAdaptiveVideoDrag='mouse-document';
+    dock.removeEventListener('mousedown',startVideoDockDrag,true);
+    dock.addEventListener('mousedown',startVideoDockDrag,true);
+    if(!videoDockDocumentDragBound){
+      videoDockDocumentDragBound=true;
+      document.addEventListener('mousemove',moveVideoDockDrag,true);
+      document.addEventListener('mouseup',endVideoDockDrag,true);
+    }
+  }
 
   function ensurePrejoinChrome(win){
     const preview=win?.querySelector('.preview-frame');if(!win||!preview)return;
@@ -220,5 +244,5 @@
   const observer=new MutationObserver(()=>requestAnimationFrame(sync));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','data-raised-hand']});
   timer=setInterval(sync,650);sync();
 
-  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncMeetingEntry,syncParticipants,syncChat,syncPrejoin,installParticipantPanelDrag,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(participantHeadBound){participantHeadBound.removeEventListener('pointerdown',blockLegacyParticipantPointerDown,true);participantHeadBound.removeEventListener('mousedown',startParticipantPanelDrag,true);}if(participantDocumentDragBound){document.removeEventListener('mousemove',moveParticipantPanelDrag,true);document.removeEventListener('mouseup',endParticipantPanelDrag,true);participantDocumentDragBound=false;}if(videoDockBound){videoDockBound.removeEventListener('pointerdown',startVideoDockDrag,true);videoDockBound.removeEventListener('pointermove',moveVideoDockDrag,true);videoDockBound.removeEventListener('pointerup',endVideoDockDrag,true);videoDockBound.removeEventListener('pointercancel',endVideoDockDrag,true);}}});
+  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncMeetingEntry,syncParticipants,syncChat,syncPrejoin,installParticipantPanelDrag,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(participantHeadBound){participantHeadBound.removeEventListener('pointerdown',blockLegacyParticipantPointerDown,true);participantHeadBound.removeEventListener('mousedown',startParticipantPanelDrag,true);}if(participantDocumentDragBound){document.removeEventListener('mousemove',moveParticipantPanelDrag,true);document.removeEventListener('mouseup',endParticipantPanelDrag,true);participantDocumentDragBound=false;}if(videoDockBound)videoDockBound.removeEventListener('mousedown',startVideoDockDrag,true);if(videoDockDocumentDragBound){document.removeEventListener('mousemove',moveVideoDockDrag,true);document.removeEventListener('mouseup',endVideoDockDrag,true);videoDockDocumentDragBound=false;}}});
 })();

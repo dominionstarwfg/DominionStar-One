@@ -20,7 +20,7 @@
     more:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>',
     exit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h9a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8M12 8l-4 4 4 4M8 12h9"/></svg>'
   });
-  let moreMenu=null,securityMenu=null,viewMenu=null,panelDrag=null,dockDrag=null,dockResize=null,shareSplitDrag=null,lastMeta='',spotlightParticipantId='',activeSpeakerIds=[],toolbarOrderKey=''; const VIEW_KEY='ds_meet_view_mode',SHARE_SPLIT_KEY='ds_meet_share_split_ratio';
+  let moreMenu=null,securityMenu=null,viewMenu=null,panelDrag=null,dockDrag=null,dockResize=null,shareSplitDrag=null,lastMeta='',spotlightParticipantId='',activeSpeakerIds=[],toolbarOrderKey='',parityFrame=0; const VIEW_KEY='ds_meet_view_mode',SHARE_SPLIT_KEY='ds_meet_share_split_ratio';
   if(!document.querySelector('link[data-ds-meeting-parity]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-parity.css';link.dataset.dsMeetingParity='1';document.head.append(link);}
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
   const formatCode=value=>String(value||'').replace(/\D/g,'').replace(/(\d{3})(?=\d)/g,'$1 ').trim();
@@ -207,10 +207,14 @@
   function ensureActiveSpeakerStage(){const stage=q('.stage');if(!stage)return null;let video=q('#remoteActiveSpeakerStage');if(!video){video=document.createElement('video');video.id='remoteActiveSpeakerStage';video.className='remote-active-speaker-stage';video.autoplay=true;video.playsInline=true;video.hidden=true;stage.append(video);}return video;}
   function syncActiveSpeakerStage(){const activeStage=ensureActiveSpeakerStage();if(!activeStage)return false;qa('.remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'));if(sharing()){activeStage.hidden=true;activeStage.srcObject=null;q('#meetingOverlay')?.classList.remove('remote-speaker-stage');return false;}const spotlightTile=spotlightParticipantId?q(`#remoteTileStrip .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`):null;const tile=spotlightTile||q('#remoteTileStrip .remote-peer-tile.active-speaker'),source=tile?.querySelector('video');if(!source?.srcObject||source.hidden){activeStage.hidden=true;activeStage.srcObject=null;q('#meetingOverlay')?.classList.remove('remote-speaker-stage');return false;}activeStage.srcObject=source.srcObject;activeStage.hidden=false;tile.classList.add('stage-promoted');q('#meetingOverlay')?.classList.add('remote-speaker-stage');void activeStage.play().catch(()=>{});return true;}
   function setSpotlight(participantId=''){spotlightParticipantId=String(participantId||'');syncVideoDock();return spotlightParticipantId;}
-  function syncLocalDockTile(remotePromoted=false){const dock=ensureVideoDock(),tile=q('#localVideoDockTile');if(!dock||!tile)return;const snapshot=media()?.snapshot?.()||{},stream=media()?.stream?.()||null,hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView')),should=Boolean(snapshot.videoLive&&!hideSelf&&(sharing()||remotePromoted));tile.hidden=!should;const video=tile.querySelector('video');if(should){if(video.srcObject!==stream)video.srcObject=stream;tile.querySelector('.remote-peer-fallback').hidden=true;void video.play().catch(()=>{});}else{video.srcObject=null;tile.querySelector('.remote-peer-fallback').hidden=false;}}
+  function syncLocalDockTile(remotePromoted=false){const dock=ensureVideoDock(),tile=q('#localVideoDockTile');if(!dock||!tile)return;const snapshot=media()?.snapshot?.()||{},stream=media()?.stream?.()||null,hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView')),should=Boolean(!hideSelf&&(sharing()||remotePromoted));tile.hidden=!should;const video=tile.querySelector('video'),fallback=tile.querySelector('.remote-peer-fallback');if(should&&snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live')){if(video.srcObject!==stream)video.srcObject=stream;if(fallback)fallback.hidden=true;void video.play().catch(()=>{});}else{video.srcObject=null;if(fallback)fallback.hidden=!should;}}
   function syncVideoDock(){
     const dock=ensureVideoDock();if(!dock)return;const mode=readView(),share=sharing();
     dock.classList.toggle('gallery-stage',mode==='gallery'&&!share);dock.classList.toggle('multi-speaker-stage',mode==='multi'&&!share);
+    // While sharing, the Zoom-style dock keeps its existing media surfaces.
+    // Rebuilding/rebinding them in the presenter transaction can starve the
+    // macOS renderer. Share layout is safe to update without touching streams.
+    if(share){syncShareLayout();return;}
     const promoted=mode==='speaker'?syncActiveSpeakerStage():(()=>{const s=ensureActiveSpeakerStage();if(s){s.hidden=true;s.srcObject=null;}q('#meetingOverlay')?.classList.remove('remote-speaker-stage');qa('.remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'));return false;})();
     const localShouldAlways=mode!=='speaker'&&!share;
     const localTile=q('#localVideoDockTile'),snapshot=media()?.snapshot?.()||{},stream=media()?.stream?.()||null,hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView'));
@@ -219,7 +223,6 @@
     const tiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')),count=tiles.length;
     dock.dataset.count=String(Math.min(count,9));dock.classList.toggle('dock-empty',count===0);dock.hidden=count===0;
     for(let i=1;i<=9;i++)dock.classList.toggle(`count-${i}`,Math.min(count,9)===i);
-    if(share){syncShareLayout();return;}
     if((mode==='gallery'||mode==='multi')&&!share){dock.dataset.orientation='grid';dock.style.left='';dock.style.top='';dock.style.right='';dock.style.bottom='';return;}
     if(!dock.classList.contains('user-positioned'))dock.dataset.anchor=automaticDockAnchor();
     const anchor=dock.dataset.anchor||'right';dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical';
@@ -270,16 +273,28 @@
     }else{decorateControls();arrangeToolbar();}
     applyViewMode(readView());syncShareLayout();syncVideoDock();void syncMeetingMeta();
   }
+  function refreshParity(){
+    parityFrame=0;syncGreeting();const overlay=q('#meetingOverlay');
+    if(overlay&&!overlay.dataset.dsParityInstalled)install();
+    if(!meetingOpen())return;
+    void syncMeetingMeta();decorateControls();arrangeToolbar();syncShareLayout();
+    if(!sharing())syncVideoDock();
+  }
+  function scheduleParityRefresh(){if(parityFrame)return;parityFrame=requestAnimationFrame(refreshParity);}
   document.addEventListener('pointerdown',event=>{if((moreMenu&&!moreMenu.contains(event.target)&&event.target!==q('#roomMore'))||(securityMenu&&!securityMenu.contains(event.target)&&event.target!==q('#roomSecurity')))closeMenus();},true);
-  window.addEventListener('resize',()=>{closeMenus();restorePanelGeometry();restoreVideoDock();syncShareLayout();syncVideoDock();},{passive:true});
+  window.addEventListener('resize',()=>{closeMenus();restorePanelGeometry();restoreVideoDock();syncShareLayout();if(!sharing())syncVideoDock();},{passive:true});
   window.addEventListener('dominion:spotlight-change',event=>setSpotlight(event.detail?.participantId||''));
   window.addEventListener('dominion:host-view-layout',event=>{
     const mode=String(event.detail?.mode||'');if(!['speaker','gallery','multi'].includes(mode))return;
     applyViewMode(mode);
   });
   window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.slice(0,4):[];syncVideoDock();});
-  window.addEventListener('dominion:meeting-ui-ready',()=>install());
-  setInterval(()=>{syncGreeting();const overlay=q('#meetingOverlay');if(overlay&&!overlay.dataset.dsParityInstalled)install();if(meetingOpen()){void syncMeetingMeta();decorateControls();arrangeToolbar();syncShareLayout();syncVideoDock();}},700);
+  window.addEventListener('dominion:meeting-ui-ready',()=>{install();scheduleParityRefresh();});
+  window.addEventListener('dominion:meeting-snapshot',scheduleParityRefresh);
+  window.addEventListener('dominion:participant-presence',scheduleParityRefresh);
+  window.addEventListener('dominion:preference-change',scheduleParityRefresh);
+  window.addEventListener('dominion:meeting-signal',scheduleParityRefresh);
+  window.addEventListener('dominion:meeting-ended',()=>{if(parityFrame){cancelAnimationFrame(parityFrame);parityFrame=0;}closeMenus();});
   install();
-  window.DominionMeetingParity=Object.freeze({version:'2.7.0-chat-share-dock-parity',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout});
+  window.DominionMeetingParity=Object.freeze({version:'2.8.0-event-driven-share-safe',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout,openMore,openSecurity});
 })();
