@@ -9,7 +9,7 @@
   $('#optimizeSharingVideo').checked=$('#optimizeVideo').checked;
   $('#shareAudio').checked=pref('ds_pref_share_audio');
 
-  const escapeHtml=value=>String(value||'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[char]));
+  const escapeHtml=value=>String(value||'').replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
   const sourceKindLabel=source=>source.kind==='screen'?'Entire screen':'Application window';
   const screenLabel=(source,index)=>{
     const raw=String(source.name||'').trim();
