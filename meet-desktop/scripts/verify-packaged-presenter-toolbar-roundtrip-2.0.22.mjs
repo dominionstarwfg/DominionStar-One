@@ -43,6 +43,9 @@ try{
 
     const qaSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     const qaWait=async(predicate,label,timeout=7000)=>{const deadline=Date.now()+timeout;let last='';while(Date.now()<deadline){try{if(predicate())return true;}catch(error){last=String(error?.message||error);}await qaSleep(40);}throw new Error('Timed out waiting for '+label+(last?': '+last:''));};
+    const qaWaitController=(subscribe,predicate,label)=>new Promise((resolve,reject)=>{let settled=false;let unsubscribe=()=>{};const finish=()=>{if(settled)return;try{if(!predicate())return;settled=true;unsubscribe();resolve(true);}catch(error){settled=true;unsubscribe();reject(new Error(label+': '+String(error?.message||error)));}};unsubscribe=subscribe(()=>queueMicrotask(finish));finish();});
+    const qaWaitShare=(predicate,label)=>qaWaitController(fn=>window.DominionShareController.onChange(fn),predicate,label);
+    const qaWaitMedia=(predicate,label)=>qaWaitController(fn=>window.DominionMediaController.onChange(fn),predicate,label);
     const qaButton=command=>document.querySelector('[data-inline-command="'+command+'"]');
     const qaClick=command=>{const button=qaButton(command);if(!button||button.hidden)throw new Error('Presenter control unavailable: '+command);button.click();};
     const qaMark=name=>console.log('QA_PRESENTER_SELF_OK '+name);
@@ -57,10 +60,10 @@ try{
         qaMark('share-active');
 
         qaClick('pause');
-        await qaWait(()=>window.DominionShareController.snapshot().paused===true&&qaButton('pause')?.textContent==='Resume','Pause state');
+        await qaWaitShare(()=>window.DominionShareController.snapshot().paused===true&&qaButton('pause')?.textContent==='Resume','Pause state');
         qaMark('pause');
         qaClick('pause');
-        await qaWait(()=>window.DominionShareController.snapshot().paused===false&&qaButton('pause')?.textContent==='Pause','Resume state');
+        await qaWaitShare(()=>window.DominionShareController.snapshot().paused===false&&qaButton('pause')?.textContent==='Pause','Resume state');
         qaMark('resume');
 
         qaClick('chat');
@@ -77,14 +80,14 @@ try{
         qaMark('annotate-close');
 
         qaClick('audio');
-        await qaWait(()=>window.DominionMediaController.snapshot().micOn===true&&qaButton('audio')?.textContent==='Mute','Presenter audio state');
+        await qaWaitMedia(()=>window.DominionMediaController.snapshot().micOn===true&&qaButton('audio')?.textContent==='Mute','Presenter audio state');
         qaMark('audio');
         qaClick('video');
-        await qaWait(()=>window.DominionMediaController.snapshot().cameraOn===false&&qaButton('video')?.textContent==='Start Video','Presenter video state');
+        await qaWaitMedia(()=>window.DominionMediaController.snapshot().cameraOn===false&&qaButton('video')?.textContent==='Start Video','Presenter video state');
         qaMark('video');
 
         qaClick('stop');
-        await qaWait(()=>window.DominionShareController.snapshot().active===false&&document.querySelector('#inlinePresenterToolbar')?.hidden===true,'Stop Share completion',10000);
+        await qaWaitShare(()=>window.DominionShareController.snapshot().active===false&&document.querySelector('#inlinePresenterToolbar')?.hidden===true,'Stop Share completion');
         qaMark('stop-share');
         console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
       }catch(error){console.error('QA_PRESENTER_SELF_FAILURE '+String(error?.stack||error));}
