@@ -136,7 +136,17 @@
     const canvas=await captureFreezeFrame(videoElement);
     const frozen=canvas.captureStream(1);
     for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone());}catch{}}
-    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();publishPauseState(true);return snapshot();
+    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();
+    const qa=state.sourceName==='QA Synthetic Share';
+    if(qa)console.log('QA_PAUSE_AFTER_EMIT');
+    if(qa)queueMicrotask(()=>console.log('QA_PAUSE_MICROTASK'));
+    if(qa)setTimeout(()=>console.log('QA_PAUSE_TIMER'),0);
+    if(qa)console.log('QA_PAUSE_BEFORE_PUBLISH');
+    publishPauseState(true);
+    if(qa)console.log('QA_PAUSE_AFTER_PUBLISH');
+    const result=snapshot();
+    if(qa)console.log('QA_PAUSE_BEFORE_RETURN');
+    return result;
   }
 
   async function resume(){if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot();}
