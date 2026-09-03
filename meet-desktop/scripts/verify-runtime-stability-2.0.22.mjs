@@ -92,6 +92,11 @@ assert.ok(!runtime.includes("const wide=bodyWidth>=940"),'Participants/Chat must
 assert.ok(!runtime.includes("panel.dataset.dsRuntimeMode='docked'"),'Participants/Chat must not reserve the right edge used by the participant video dock.');
 assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participants/Chat must use one floating panel model at every meeting width.');
 assert.ok(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating Participants/Chat must be draggable from their title surface.');
+assert.ok(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must centralize participant-video dock geometry.');
+assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();'),'Video dock geometry must commit in the same event-driven runtime pass as side surfaces.');
+assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock mode must be deterministic and inspectable.');
+assert.ok(runtime.includes("if(userPositioned){"),'User-positioned video docks must have an explicit preservation path.');
+assert.ok(runtime.includes("const left=clamp(Number.isFinite(currentLeft)?currentLeft"),'User-positioned video dock must clamp after window resize.');
 assert.ok(runtime.includes("stage.style.setProperty('right','0px','important')"),'Floating panels must leave the meeting stage at full width.');
 assert.ok(css.includes('flex:1 1 auto!important')&&css.includes('#meetingOverlay #participantRoster'),'Participant roster must consume the available panel height.');
 
