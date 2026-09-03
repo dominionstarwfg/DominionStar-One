@@ -1,0 +1,42 @@
+name: DominionStar Meet Zoom Screenshot Reference 2.0.41
+
+on:
+  pull_request:
+    branches: [fix/rejected-installer-participants-share-2.0.40]
+    paths:
+      - 'meet-desktop/ui/zoom-screenshot-reference-2.0.41.css'
+      - 'meet-desktop/ui/zoom-screenshot-reference-2.0.41.js'
+      - 'meet-desktop/ui/share-picker.html'
+      - 'meet-desktop/ui/share-picker.css'
+      - 'meet-desktop/ui/share-picker.js'
+      - 'meet-desktop/ui/auth-password.js'
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/scripts/verify-zoom-screenshot-reference-2.0.41.mjs'
+      - '.github/workflows/zoom-screenshot-reference-2.0.41.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot-reference-source:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact 2.0.41 source authority
+        working-directory: meet-desktop
+        run: |
+          test "$(node -p "require('./package.json').version")" = '2.0.41'
+          node --check ui/zoom-screenshot-reference-2.0.41.js
+          node --check ui/share-picker.js
+          node --check ui/auth-password.js
+          node --check scripts/verify-zoom-screenshot-reference-2.0.41.mjs
+          node scripts/verify-zoom-screenshot-reference-2.0.41.mjs
