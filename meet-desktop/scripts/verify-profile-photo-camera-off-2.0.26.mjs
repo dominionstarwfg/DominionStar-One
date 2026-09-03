@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
+// 2.0.26 exact-head gate: synchronize PR checks after stacked CI base registration.
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const ui=read('ui/profile-photo-fallback.js');
 const parity=read('ui/meeting-parity.js');
