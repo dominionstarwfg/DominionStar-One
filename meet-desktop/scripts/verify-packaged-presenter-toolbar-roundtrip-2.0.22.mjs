@@ -84,7 +84,7 @@ try{
   main=new Cdp(target.webSocketDebuggerUrl);
   await main.connect();
   stage('main-connected');
-  await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionShareAnnotation&&window.DominionMediaController",'share controllers',15000);
+  await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareAnnotation&&window.DominionMediaController",'share controllers and meeting features',15000);
   stage('controllers-loaded');
 
   const prepared=await main.eval(`(async()=>{
@@ -96,20 +96,14 @@ try{
     const overlay=document.querySelector('#meetingOverlay');
     overlay.hidden=false;overlay.dataset.viewMode='speaker';
     const role=document.querySelector('#roomRole');if(role)role.textContent='Host';
+
+    // A production meeting entry initializes MeetingFeatures before presenter
+    // controls can be used. Step 20 must exercise that reachable state rather
+    // than a synthetic overlay with no Chat panel mounted.
     window.DominionMeetingParity.install();
+    window.DominionMeetingFeatures.toggleChat(false);
     window.DominionRuntimeStability.sync();
     window.DominionRuntimeStability.ensureToolbarZones();
-
-    const qaChatState=()=>({panel:Boolean(document.querySelector('#meetingChatPanel')),chatHidden:document.querySelector('#meetingChatPanel')?.hidden,participantsHidden:document.querySelector('.room-side')?.hidden,companion:String(document.body.dataset.dsShareCompanion||'')});
-    const logChat=(name)=>console.log('QA_CHAT_STACK '+name+' '+JSON.stringify(qaChatState()));
-    const parityOriginal=window.DominionMeetingParity;
-    if(parityOriginal?.decorateControls){window.DominionMeetingParity=Object.freeze({...parityOriginal,decorateControls(...args){logChat('decorate-enter');const out=parityOriginal.decorateControls(...args);logChat('decorate-return');return out;}});}
-    const zoomOriginal=window.DominionZoomBehavior;
-    if(zoomOriginal?.refreshChatRecipients){window.DominionZoomBehavior=Object.freeze({...zoomOriginal,refreshChatRecipients(...args){logChat('refresh-enter');const out=zoomOriginal.refreshChatRecipients(...args);logChat('refresh-return');Promise.resolve(out).then(()=>logChat('refresh-resolved'),error=>console.log('QA_CHAT_STACK refresh-rejected '+String(error?.message||error)));return out;}});}
-    const featuresOriginal=window.DominionMeetingFeatures;
-    if(featuresOriginal?.toggleChat){window.DominionMeetingFeatures=Object.freeze({...featuresOriginal,toggleChat(...args){logChat('feature-toggle-enter');const out=featuresOriginal.toggleChat(...args);logChat('feature-toggle-return');return out;}});}
-    const runtimeOriginal=window.DominionRuntimeStability;
-    window.DominionRuntimeStability=Object.freeze({...runtimeOriginal,setParticipants(...args){logChat('runtime-participants-enter');const out=runtimeOriginal.setParticipants(...args);logChat('runtime-participants-return');return out;},setChat(...args){logChat('runtime-chat-enter');const out=runtimeOriginal.setChat(...args);logChat('runtime-chat-return');queueMicrotask(()=>logChat('runtime-chat-microtask'));return out;}});
 
     window.__qaCommands=[];
     window.addEventListener('dominion:presenter-command-dispatch',event=>{
@@ -207,9 +201,7 @@ try{
         qaMark('resume');
 
         const chatReady=qaWaitDom(()=>document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false,'Chat companion');
-        logChat('before-chat-click');
         qaClick('chat');
-        logChat('after-chat-click');
         await chatReady;
         qaMark('chat');
         window.DominionRuntimeStability.setChat(false);
@@ -240,7 +232,7 @@ try{
         qaClick('stop');
         await qaWaitShare(()=>window.DominionShareController.snapshot().active===false&&document.querySelector('#inlinePresenterToolbar')?.hidden===true,'Stop Share completion');
         qaMark('stop-share');
-        console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
+        console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share production-meeting-features self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
       }catch(error){
         console.error('QA_PRESENTER_SELF_FAILURE '+String(error?.stack||error));
       }
@@ -248,12 +240,14 @@ try{
 
     return {
       meetingVisible:!overlay.hidden,
+      chatPanelReady:Boolean(document.querySelector('#meetingChatPanel')),
       tracks:window.__qaLogicalShare.getTracks().length,
       selfRunner:typeof window.__qaPresenterSelfRun==='function'
     };
   })()`,12000);
 
   assert.equal(prepared.meetingVisible,true);
+  assert.equal(prepared.chatPanelReady,true,'Presenter QA must begin from a production-reachable meeting state with Chat UI initialized.');
   assert.equal(prepared.tracks,1);
   assert.equal(prepared.selfRunner,true);
   stage('logical-media-prepared');
