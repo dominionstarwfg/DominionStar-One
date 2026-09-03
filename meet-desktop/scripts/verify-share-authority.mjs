@@ -90,13 +90,13 @@ requireText(picker,'const next=[...(screenResult?.sources||[]),...(windowResult?
 requireText(picker,"const firstScreen=sources.find",'Screens view must prefer a desktop selection by default.');
 requireText(picker,'source.thumbnail','Share chooser must render real source previews.');
 requireText(picker,'selectedId=String(remembered?.id||firstScreen?.id||sources[0]?.id||\'\')','Preview refresh must preserve the selected source when possible.');
-requireText(pickerHtml,'data-tab="screens">Screens','Share chooser is missing Screens.');
+requireText(pickerHtml,'data-tab="screens">Basic','Share chooser is missing the Zoom-familiar Basic source tab.');
 requireText(pickerHtml,'data-tab="advanced">Advanced','Share chooser is missing Advanced.');
 rejectText(pickerHtml,'data-tab="files"','Share chooser must not expose dead Files/cloud controls.');
 requireText(pickerHtml,'Share sound','Share chooser is missing Share sound.');
 requireText(pickerHtml,'Optimize for video sharing','Share chooser is missing video optimization.');
-requireText(pickerHtml,'Include DominionStar Meet windows','Advanced must expose the intentional meeting-window visibility setting.');
-requireText(pickerHtml,'Refresh previews automatically','Advanced must expose bounded live preview refresh.');
+requireText(pickerHtml,'Show DominionStar Meet windows','Advanced must expose the intentional meeting-window visibility setting.');
+requireText(pickerHtml,'Refresh automatically','Advanced must expose bounded live preview refresh.');
 requireText(pickerCss,'grid-template-columns:repeat(auto-fill,minmax(170px,1fr))','Screens view must retain dense responsive source tiles.');
 requireText(pickerCss,'.tab.active{color:#fff;border-bottom-color:var(--blue)','Active share tab must retain the Zoom-style underline.');
 
