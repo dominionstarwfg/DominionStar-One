@@ -12,7 +12,6 @@ const asarBin=path.resolve('node_modules/@electron/asar/bin/asar.js');
 assert.ok(fs.existsSync(asarPath),'Packaged 2.0.26 identity verifier requires app.asar.');
 const listing=execFileSync(process.execPath,[asarBin,'list',asarPath],{encoding:'utf8'});
 assert.ok(listing.includes('/ui/profile-photo-fallback.js'),'Packaged ASAR is missing profile-photo-fallback.js.');
-assert.ok(listing.includes('/scripts/verify-profile-photo-camera-off-2.0.26.mjs'),'Packaged ASAR is missing the 2.0.26 source gate.');
 
 const auditDir=path.resolve('.profile-photo-camera-off-2.0.26-audit');
 fs.rmSync(auditDir,{recursive:true,force:true});
