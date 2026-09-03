@@ -11,7 +11,9 @@ const runtimeCss=read('../ui/runtime-stability.css');
 const adaptive=read('../ui/zoom-adaptive-parity.js');
 const features=read('../ui/meeting-features.js');
 const share=read('../src/share-service.mjs');
+const controller=read('../ui/share-controller.js');
 const physical=read('../ui/physical-mac-repair.js');
+const rejectionCss=read('../ui/rejected-build-repair-2.0.40.css');
 const production=read('../../.github/workflows/rebuild-mac-production.yml');
 const qa=read('../../.github/workflows/rebuild-mac-qa-certify.yml');
 
@@ -51,8 +53,7 @@ assert.ok(css.includes('.meeting-reaction-menu .reaction-hand-button'),'CSS must
 assert.ok(runtimeCss.includes('.ds-reaction-tray>.ds-raise-hand{display:none!important}'),'Physical reaction tray must not reintroduce Raise Hand beside the dedicated toolbar control.');
 assert.ok(runtimeCss.includes('.ds-reaction-tray>.ds-reaction-divider'),'Legacy reaction-tray divider must be suppressed with the duplicate hand section.');
 
-// Reconciliation must be observer-safe. This gate exists because observing the
-// same class/ARIA attributes that sync() writes starved the packaged renderer.
+// Reconciliation must remain observer-safe.
 assert.ok(js.includes('let syncQueued=false'),'Approved reference controller must coalesce repeated sync requests.');
 assert.ok(js.includes('function requestSync()'),'Approved reference controller is missing its coalesced scheduler.');
 assert.ok(js.includes('if(syncQueued)return;'),'Approved reference scheduler must reject duplicate queued frames.');
@@ -80,13 +81,22 @@ assert.ok(js.includes("aria-label','Encrypted media transport'"),'Header must ex
 assert.ok(js.includes("<span>Encrypted</span>"),'Header encrypted status is missing.');
 assert.ok(!js.includes('End-to-end encrypted</span>'),'UI must not falsely claim end-to-end encryption before E2EE exists.');
 
-assert.ok(share.includes("const nativeSystemPicker=platform==='darwin'&&macMajor>=15"),'Native macOS picker capability must remain available for first-time/ungranted Screen Recording.');
-assert.ok(share.includes('function configureDisplayMediaHandler(useSystemPicker)'),'Display-media authority must switch safely between native permission establishment and the Zoom-style app chooser.');
-assert.ok(share.includes("if(nativeSystemPicker&&status!=='granted')"),'Un-granted macOS sessions must retain the native picker path.');
-assert.ok(share.includes('configureDisplayMediaHandler(false)'),'Granted macOS sessions must use the DominionStar source chooser instead of forcing the large Apple picker.');
+// 2.0.40 approved-share authority: the user's rejected screenshot establishes
+// that the Apple system overlay is not an acceptable pre-share surface. Keep
+// capability/TCC diagnostics, but route every active share through the approved
+// app-owned chooser and bound capture start.
+assert.ok(share.includes("const systemPickerAvailable=platform==='darwin'&&macMajor>=15"),'macOS system-picker capability must remain detectable for diagnostics.');
+assert.ok(share.includes('const nativeSystemPicker=false'),'Approved reference requires Apple system picker to remain disabled in the active share path.');
+assert.ok(share.includes('function configureDisplayMediaHandler(useSystemPicker)'),'Display-media handler authority is missing.');
+assert.ok(share.includes('configureDisplayMediaHandler(false);'),'Approved app-owned source chooser must initialize the custom display-media handler.');
+assert.ok(!share.includes("if(nativeSystemPicker&&status!=='granted')"),'No screen-permission state may replace the approved chooser with the rejected Apple overlay.');
+assert.ok(share.includes("share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null"),'Approved chooser must clear stale source selection before enumeration.');
+assert.ok(share.includes("share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false)"),'Approved source selection must force custom capture before getDisplayMedia.');
+assert.ok(controller.includes("error.code='share_start_timeout'")&&controller.includes('},5000);'),'Approved share transaction must fail visibly within five seconds instead of loading forever.');
+assert.ok(rejectionCss.includes('#participantRoster .ds-participant-media{display:none!important}'),'Approved participant panel must suppress the duplicate legacy media renderer proven by the rejected screenshot.');
 const openVerifiedShare=physical.slice(physical.indexOf('async function openVerifiedShare'),physical.indexOf('function syncPersonalChoice'));
 assert.ok(openVerifiedShare.includes('DominionShareIntegration'),'Physical Share must delegate to the real permission-aware integration.');
-assert.ok(!openVerifiedShare.includes('listSources'),'Physical compatibility code must not pre-enumerate sources before the Share integration chooses native or app-owned selection.');
+assert.ok(!openVerifiedShare.includes('listSources'),'Physical compatibility code must not pre-enumerate sources before the Share integration owns selection.');
 
 for(const workflow of [production,qa]){
   assert.ok(workflow.includes('verify-approved-reference-parity-2.0.22.mjs'),'Workflow is missing the approved-reference source gate.');
@@ -95,4 +105,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip permission-aware-share-preserved release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip custom-only-preshare no-apple-overlay bounded-share-start duplicate-participant-media-suppressed release-gated');
