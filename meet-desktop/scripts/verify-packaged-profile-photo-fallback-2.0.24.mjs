@@ -1,1 +1,1 @@
-import './verify-packaged-profile-photo-fallback-2.0.24-v2.mjs';
+import './diagnose-packaged-profile-photo-load-2.0.24.mjs';
