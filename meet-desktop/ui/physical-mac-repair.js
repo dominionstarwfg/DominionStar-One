@@ -164,43 +164,86 @@
   function bindVideoDockMouseDrag(){
     if(dockMouseListenersBound)return;
     dockMouseListenersBound=true;
-    // Bind at the document boundary instead of to one dock instance. The
-    // participant filmstrip is rebuilt as presence/layout changes; resolving
-    // the current dock on mousedown makes whole-surface drag survive replacement.
-    document.addEventListener('mousedown',event=>{
-      const dock=event.target?.closest?.('#participantVideoDock');
-      if(!dock||event.button!==0||event.target.closest?.('button,input,select,textarea,a,.participant-video-resize'))return;
-      const stage=q('.stage');if(!stage||dock.hidden)return;
-      dock.dataset.dsMacMouseDragBound='1';
+
+    const interactiveTarget=target=>Boolean(target?.closest?.('button,input,select,textarea,a,.participant-video-resize'));
+    const dockAtPoint=event=>{
+      const direct=event.target?.closest?.('#participantVideoDock');
+      if(direct)return direct;
+      if(Number.isFinite(event.clientX)&&Number.isFinite(event.clientY)&&document.elementsFromPoint){
+        for(const node of document.elementsFromPoint(event.clientX,event.clientY)){
+          const candidate=node?.closest?.('#participantVideoDock');
+          if(candidate)return candidate;
+        }
+      }
+      const current=q('#participantVideoDock');
+      if(!current||current.hidden||!Number.isFinite(event.clientX)||!Number.isFinite(event.clientY))return null;
+      const r=current.getBoundingClientRect();
+      return event.clientX>=r.left-2&&event.clientX<=r.right+2&&event.clientY>=r.top-2&&event.clientY<=r.bottom+2?current:null;
+    };
+    const primeDock=(dock,event,source)=>{
+      if(!dock||dock.hidden||interactiveTarget(event.target))return false;
+      if(dockMouseDrag)return dockMouseDrag.dock===dock;
+      const stage=q('.stage');if(!stage)return false;
       const dr=dock.getBoundingClientRect(),sr=stage.getBoundingClientRect();
-      dockMouseDrag={dock,dx:event.clientX-dr.left,dy:event.clientY-dr.top};
+      dock.dataset.dsMacMouseDragBound='1';
+      dockMouseDrag={dock,dx:event.clientX-dr.left,dy:event.clientY-dr.top,source,pointerId:event.pointerId??null};
       dock.classList.add('user-positioned','dragging');
       dock.style.setProperty('right','auto','important');
       dock.style.setProperty('bottom','auto','important');
       dock.style.setProperty('left',`${Math.max(8,dr.left-sr.left)}px`,'important');
       dock.style.setProperty('top',`${Math.max(8,dr.top-sr.top)}px`,'important');
       event.preventDefault();
-    },true);
-    document.addEventListener('mousemove',event=>{
-      const dock=dockMouseDrag?.dock;
-      if(!dock)return;
-      if(!dock.isConnected){dockMouseDrag=null;return;}
+      return true;
+    };
+    const begin=event=>{
+      if(event.button!==0)return;
+      const dock=dockAtPoint(event);if(!dock)return;
+      primeDock(dock,event,event.type.startsWith('pointer')?'pointer':'mouse');
+    };
+    const liveDock=()=>{
+      let dock=dockMouseDrag?.dock;
+      if(dock?.isConnected)return dock;
+      const replacement=q('#participantVideoDock');
+      if(!dockMouseDrag||!replacement||replacement.hidden){dockMouseDrag=null;return null;}
+      dockMouseDrag.dock=replacement;
+      replacement.dataset.dsMacMouseDragBound='1';
+      replacement.classList.add('user-positioned','dragging');
+      replacement.style.setProperty('right','auto','important');
+      replacement.style.setProperty('bottom','auto','important');
+      dock=replacement;
+      return dock;
+    };
+    const move=event=>{
+      if(!dockMouseDrag)return;
+      if(event.type.startsWith('pointer')&&dockMouseDrag.pointerId!=null&&event.pointerId!==dockMouseDrag.pointerId)return;
+      const dock=liveDock();if(!dock)return;
       const stage=q('.stage');if(!stage)return;const sr=stage.getBoundingClientRect();
       const left=clamp(event.clientX-sr.left-dockMouseDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8));
       const top=clamp(event.clientY-sr.top-dockMouseDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8));
       dock.style.setProperty('left',`${left}px`,'important');
       dock.style.setProperty('top',`${top}px`,'important');
       event.preventDefault();
-    },true);
-    document.addEventListener('mouseup',()=>{
-      const dock=dockMouseDrag?.dock;if(!dock)return;
-      dockMouseDrag=null;if(dock.isConnected)dock.classList.remove('dragging');
-    },true);
+    };
+    const end=event=>{
+      if(!dockMouseDrag)return;
+      if(event?.type?.startsWith('pointer')&&dockMouseDrag.pointerId!=null&&event.pointerId!==dockMouseDrag.pointerId)return;
+      const dock=liveDock();dockMouseDrag=null;if(dock?.isConnected)dock.classList.remove('dragging');
+    };
+
+    // Pointer events are the primary modern path; mouse events remain as a
+    // compatibility fallback for Chromium/CDP and native Mac mouse synthesis.
+    document.addEventListener('pointerdown',begin,true);
+    document.addEventListener('mousedown',begin,true);
+    document.addEventListener('pointermove',move,true);
+    document.addEventListener('mousemove',move,true);
+    document.addEventListener('pointerup',end,true);
+    document.addEventListener('pointercancel',end,true);
+    document.addEventListener('mouseup',end,true);
   }
 
   function syncVideoDockPolicy(){
     const dock=q('#participantVideoDock'),overlay=q('#meetingOverlay');if(!dock||!overlay||overlay.hidden)return;
-    bindVideoDockMouseDrag();
+    bindVideoDockMouseDrag();dock.dataset.dsMacMouseDragBound='1';
     const shared=overlay.classList.contains('share-active')||document.body.classList.contains('remote-share-active');
     const view=String(overlay.dataset.viewMode||'speaker');
     const visibleTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')).length;
