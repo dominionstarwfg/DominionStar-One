@@ -8,7 +8,9 @@ const app=read('ui/app.js');
 const service=read('src/meeting-service.mjs');
 const sql=read('sql/20260828_zoom_meeting_identity.sql');
 
-assert.equal(pkg.version,'2.0.38','Co-host authority candidate must report 2.0.38.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=38))),'Co-host authority introduced in 2.0.38 must remain enforced for every later candidate.');
 
 assert.ok(controls.includes("const canManage=()=>['host','cohost'].includes(localRole())"),'Host/co-host participant management authority must remain available.');
 for(const action of ["add('Mute'","add('Ask to Unmute'","add('Stop Video'","add('Ask to Start Video'","add('Rename'"]){
