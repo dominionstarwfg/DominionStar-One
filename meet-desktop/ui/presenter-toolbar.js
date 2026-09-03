@@ -2,6 +2,7 @@
   const bridge=window.dominionDesktop?.presenter;
   const $=selector=>document.querySelector(selector),toolbar=$('#toolbar'),more=$('#moreMenu');let reactions=null,handRaised=false;
   const setMenuExpanded=open=>{void bridge?.setMenuOpen?.(Boolean(open));};
+  const routedCommand=command=>['chat','participants','annotate','stop'].includes(String(command||''))?`toolbar:${command}`:String(command||'');
   function closeReactions(){reactions?.remove();reactions=null;}
   function openReactions(anchor){
     closeReactions();reactions=document.createElement('div');reactions.className='presenter-reaction-menu';
@@ -16,12 +17,12 @@
     if(command==='stop'){
       if(button.dataset.stopping==='1')return;
       button.dataset.stopping='1';button.disabled=true;const label=button.querySelector('span:last-child');if(label)label.textContent='Stopping…';
-      try{await bridge?.command?.('stop');}
+      try{await bridge?.command?.(routedCommand('stop'));}
       catch{button.disabled=false;button.dataset.stopping='0';if(label)label.textContent='Stop Share';}
       setTimeout(()=>{if(!button.isConnected)return;button.disabled=false;button.dataset.stopping='0';if(label)label.textContent='Stop Share';},1600);
       return;
     }
-    await bridge?.command?.(command);
+    await bridge?.command?.(routedCommand(command));
   }));
   $('#moreButton').addEventListener('click',()=>{closeReactions();more.hidden=!more.hidden;setMenuExpanded(!more.hidden);});
   document.addEventListener('pointerdown',event=>{if(!event.target.closest('.more-wrap')){more.hidden=true;closeReactions();setMenuExpanded(false);}},true);
