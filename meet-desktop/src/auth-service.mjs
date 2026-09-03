@@ -41,6 +41,8 @@ function createEncryptedStorage(app){
 
 export function createDesktopAuth({app,shell,getMainWindow}){
   let client=null;let callbackServer=null;let subscription=null;
+  const avatarUrlCache=new Map();
+  const normalizeAvatarPath=value=>{const next=String(value||'').trim().replace(/^\/+/, '');return /^[0-9a-f-]{36}\/avatar\.(?:png|jpe?g|webp)$/i.test(next)?next:'';};
   const foregroundApp=()=>{const win=getMainWindow?.();if(!win||win.isDestroyed())return;if(win.isMinimized())win.restore();win.show();win.focus();};
   const emitState=async()=>{const state=await getState();const win=getMainWindow?.();if(win&&!win.isDestroyed())win.webContents.send('auth:changed',state);return state;};
 
@@ -48,7 +50,20 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     if(client)return;
     client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storage:createEncryptedStorage(app)}});
     const {data}=client.auth.onAuthStateChange(()=>setTimeout(()=>void emitState(),0));subscription=data?.subscription||null;
-    app.once('before-quit',()=>{subscription?.unsubscribe?.();callbackServer?.close?.();});
+    app.once('before-quit',()=>{subscription?.unsubscribe?.();callbackServer?.close?.();avatarUrlCache.clear();});
+  }
+  async function signedAvatarUrl(value,{force=false}={}){
+    if(!client)await initialize();
+    const avatarPath=normalizeAvatarPath(value);if(!avatarPath)return '';
+    const cached=avatarUrlCache.get(avatarPath),now=Date.now();
+    if(!force&&cached?.url&&cached.expiresAt-now>10*60*1000)return cached.url;
+    try{
+      const signed=await client.storage.from('member-avatars').createSignedUrl(avatarPath,3600);
+      const url=String(signed.data?.signedUrl||'');
+      if(signed.error||!url){avatarUrlCache.delete(avatarPath);return '';}
+      avatarUrlCache.set(avatarPath,{url,expiresAt:now+50*60*1000});
+      return url;
+    }catch{avatarUrlCache.delete(avatarPath);return '';}
   }
   async function getState(){
     if(!client)return {ready:false,signedIn:false,user:null};
@@ -59,10 +74,7 @@ export function createDesktopAuth({app,shell,getMainWindow}){
       const result=await client.from('member_profiles').select('full_name,preferred_name,email,rank,agent_code,is_founder,avatar_path').eq('id',data.session.user.id).maybeSingle();
       if(!result.error){
         profile=result.data||null;
-        if(profile?.avatar_path){
-          const signed=await client.storage.from('member-avatars').createSignedUrl(String(profile.avatar_path),3600);
-          if(!signed.error&&signed.data?.signedUrl)profile={...profile,avatar_url:signed.data.signedUrl};
-        }
+        if(profile?.avatar_path){const avatarUrl=await signedAvatarUrl(profile.avatar_path);if(avatarUrl)profile={...profile,avatar_url:avatarUrl};}
       }
     }catch{}
     return {ready:true,signedIn:true,user:userSummary(data.session.user,profile)};
@@ -95,16 +107,17 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     const match=String(dataUrl||'').match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/i);if(!match)throw new Error('invalid_profile_image');
     const mime=match[1].toLowerCase()==='jpeg'?'image/jpeg':`image/${match[1].toLowerCase()}`;
     const bytes=Buffer.from(match[2],'base64');if(!bytes.length||bytes.length>5*1024*1024)throw new Error('profile_image_too_large');
-    const ext=mime==='image/jpeg'?'jpg':mime.split('/')[1];const userId=String(data.session.user.id);const path=`${userId}/avatar.${ext}`;
-    const upload=await client.storage.from('member-avatars').upload(path,bytes,{contentType:mime,upsert:true,cacheControl:'3600'});if(upload.error)throw new Error(upload.error.message||'avatar_upload_failed');
+    const ext=mime==='image/jpeg'?'jpg':mime.split('/')[1];const userId=String(data.session.user.id);const avatarPath=`${userId}/avatar.${ext}`;
+    const upload=await client.storage.from('member-avatars').upload(avatarPath,bytes,{contentType:mime,upsert:true,cacheControl:'3600'});if(upload.error)throw new Error(upload.error.message||'avatar_upload_failed');
     const current=await client.from('member_profiles').select('full_name,phone,address_line1,address_line2,city,state,postal_code,country').eq('id',userId).maybeSingle();if(current.error||!current.data)throw new Error(current.error?.message||'profile_not_found');
     const profile=current.data;
     const saved=await client.rpc('update_own_contact_profile',{
-      new_full_name:profile.full_name||'',new_phone:profile.phone||'',new_address_line1:profile.address_line1||'',new_address_line2:profile.address_line2||'',new_city:profile.city||'',new_state:profile.state||'',new_postal_code:profile.postal_code||'',new_country:profile.country||'',new_avatar_path:path
+      new_full_name:profile.full_name||'',new_phone:profile.phone||'',new_address_line1:profile.address_line1||'',new_address_line2:profile.address_line2||'',new_city:profile.city||'',new_state:profile.state||'',new_postal_code:profile.postal_code||'',new_country:profile.country||'',new_avatar_path:avatarPath
     });if(saved.error)throw new Error(saved.error.message||'avatar_profile_update_failed');
+    avatarUrlCache.delete(avatarPath);
     return emitState();
   }
-  async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;await emitState();return {ok:true};}
+  async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;avatarUrlCache.clear();await emitState();return {ok:true};}
   async function rpc(name,args={}){if(!client)await initialize();const {data,error}=await client.rpc(name,args);if(error)throw new Error(error.message||`Meeting service failed: ${name}`);return data;}
   async function invokeServerFunction(name,body={}){
     if(!client)await initialize();
@@ -114,5 +127,5 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     return data;
   }
 
-  return Object.freeze({initialize,getState,startGoogle,signInPassword,updateAvatar,signOut,rpc,invokeServerFunction,callbackUrl:CALLBACK_URL});
+  return Object.freeze({initialize,getState,startGoogle,signInPassword,updateAvatar,signOut,rpc,invokeServerFunction,signedAvatarUrl,callbackUrl:CALLBACK_URL});
 }

@@ -11,6 +11,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
   if(!auth?.rpc||!auth?.invokeServerFunction)throw new Error('Meeting service requires authenticated RPC and server-function transport.');
   let current={roomId:'',roomCode:'',passcode:'',title:'',participantId:'',joinToken:'',role:'',state:'',meetingKind:'',reusable:false,scheduleId:''};
   let turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false};
+  let avatarMetaCache={roomId:'',records:new Map(),expiresAtMs:0};
   const cloneIce=value=>Object.freeze({...value,iceServers:value.iceServers.map(server=>({...server,urls:Array.isArray(server.urls)?[...server.urls]:server.urls}))});
   const remember=value=>{
     if(value?.roomId)current={
@@ -31,8 +32,39 @@ export function createMeetingService({auth,allowDirectQa=false}){
   const clear=()=>{
     current={roomId:'',roomCode:'',passcode:'',title:'',participantId:'',joinToken:'',role:'',state:'',meetingKind:'',reusable:false,scheduleId:''};
     turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false};
+    avatarMetaCache={roomId:'',records:new Map(),expiresAtMs:0};
   };
   const assertPasscode=passcode=>{if(!validPasscode(passcode))throw new Error('Passcode must contain 3 to 7 digits.');};
+
+  async function loadAvatarMetadata(roomId,participants=[]){
+    if(!roomId||typeof auth.signedAvatarUrl!=='function')return new Map();
+    const now=Date.now(),sameRoom=avatarMetaCache.roomId===String(roomId);
+    const known=sameRoom?avatarMetaCache.records:new Map();
+    const hasNewMember=(participants||[]).some(item=>item?.memberId&&item?.participantId&&!known.has(String(item.participantId)));
+    if(sameRoom&&!hasNewMember&&avatarMetaCache.expiresAtMs>now)return known;
+    try{
+      const payload=await auth.rpc('meet_v2_room_avatar_paths',{p_room_id:roomId});
+      const rows=Array.isArray(payload?.avatars)?payload.avatars:[];
+      const records=new Map();
+      await Promise.all(rows.map(async row=>{
+        const participantId=String(row?.participantId||'');if(!participantId)return;
+        const avatarPath=String(row?.avatarPath||'');
+        const avatarUrl=avatarPath?await auth.signedAvatarUrl(avatarPath):'';
+        records.set(participantId,{avatarPath,avatarUrl});
+      }));
+      avatarMetaCache={roomId:String(roomId),records,expiresAtMs:now+15*1000};
+      return records;
+    }catch{
+      avatarMetaCache={roomId:String(roomId),records:known,expiresAtMs:now+15*1000};
+      return known;
+    }
+  }
+
+  async function enrichParticipantList(roomId,payload,key){
+    const list=Array.isArray(payload?.[key])?payload[key]:null;if(!list)return payload;
+    const records=await loadAvatarMetadata(roomId,list);
+    return {...payload,[key]:list.map(item=>{const record=records.get(String(item?.participantId||''));return record?{...item,avatarPath:record.avatarPath,avatarUrl:record.avatarUrl}:{...item,avatarPath:'',avatarUrl:''};})};
+  }
 
   async function createRoom(input={}){
     const passcode=normalizePasscode(input.passcode);
@@ -124,9 +156,9 @@ export function createMeetingService({auth,allowDirectQa=false}){
   const joinStatus=async(participantId,joinToken)=>remember(await auth.rpc('meet_v2_join_status',{p_participant_id:participantId,p_join_token:joinToken}));
   const markJoined=async(participantId,joinToken)=>remember(await auth.rpc('meet_v2_mark_joined',{p_participant_id:participantId,p_join_token:joinToken}));
   const leaveRoom=async(participantId,joinToken)=>{const result=await auth.rpc('meet_v2_leave_room',{p_participant_id:participantId,p_join_token:joinToken});clear();return result;};
-  const hostQueue=roomId=>auth.rpc('meet_v2_host_queue',{p_room_id:roomId});
+  async function hostQueue(roomId){return enrichParticipantList(roomId,await auth.rpc('meet_v2_host_queue',{p_room_id:roomId}),'waiting');}
   const decide=(participantId,decision)=>auth.rpc('meet_v2_decide_participant',{p_participant_id:participantId,p_decision:decision});
-  const snapshot=roomId=>auth.rpc('meet_v2_room_snapshot',{p_room_id:roomId});
+  async function snapshot(roomId){return enrichParticipantList(roomId,await auth.rpc('meet_v2_room_snapshot',{p_room_id:roomId}),'participants');}
   const touchPresence=(participantId,joinToken)=>auth.rpc('meet_v2_touch_presence',{p_participant_id:participantId,p_join_token:joinToken});
   const setCohost=(participantId,enabled)=>auth.rpc('meet_v2_set_cohost',{p_participant_id:participantId,p_enabled:Boolean(enabled)});
   const removeParticipant=participantId=>auth.rpc('meet_v2_remove_participant',{p_participant_id:participantId});
