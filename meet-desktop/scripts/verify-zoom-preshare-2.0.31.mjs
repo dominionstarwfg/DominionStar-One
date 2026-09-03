@@ -9,7 +9,9 @@ const js=read('ui/share-picker.js');
 const shareIntegration=read('ui/share-integration.js');
 const shareController=read('ui/share-controller.js');
 
-assert.equal(pkg.version,'2.0.31','Zoom pre-share candidate must report 2.0.31.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=31))),'Zoom pre-share authority introduced in 2.0.31 must remain enforced for every later candidate.');
 assert.ok(html.includes('data-tab="screens">Basic</button>'),'Primary Zoom-familiar share tab must be labeled Basic.');
 assert.ok(html.includes('data-tab="advanced">Advanced</button>'),'Advanced tab must remain available.');
 assert.ok(html.indexOf('data-tab="screens">Basic</button>')<html.indexOf('data-tab="advanced">Advanced</button>'),'Basic must precede Advanced.');
