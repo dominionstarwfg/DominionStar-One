@@ -159,6 +159,17 @@ try{
     const destination=window.__qaAudioContext.createMediaStreamDestination();
     Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>constraints?.audio?destination.stream:new MediaStream()});
 
+    // Step 20 certifies presenter control behavior, not macOS TCC prompts.
+    // Create MediaController's real internal stream through the permission-free
+    // camera-off path, restore normal meeting defaults, then seed a real live
+    // synthetic audio track. Presenter Unmute therefore exercises the actual
+    // setMicrophone/track/voice-meter state path without opening headless TCC.
+    await window.DominionMediaController.setCamera(false);
+    window.DominionMediaController.resetPreferences();
+    const qaMicTrack=destination.stream.getAudioTracks()[0];
+    if(!qaMicTrack)throw new Error('Synthetic presenter microphone track unavailable.');
+    window.DominionMediaController.stream().addTrack(qaMicTrack);
+
     const qaButton=command=>document.querySelector('[data-inline-command="'+command+'"]');
     const qaClick=command=>{
       const button=qaButton(command);
@@ -249,7 +260,7 @@ try{
         qaClick('stop');
         await qaWaitShare(()=>window.DominionShareController.snapshot().active===false&&document.querySelector('#inlinePresenterToolbar')?.hidden===true,'Stop Share completion');
         qaMark('stop-share');
-        console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share production-meeting-features annotation-compositor self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
+        console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share production-meeting-features annotation-compositor synthetic-live-microphone self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
       }catch(error){
         console.error('QA_PRESENTER_SELF_FAILURE '+String(error?.stack||error));
       }
