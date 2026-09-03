@@ -9,7 +9,14 @@
 <body>
   <main class="picker-shell">
     <header class="picker-head">
-      <h1>Select a window or an application that you want to share</h1>
+      <div class="picker-brand" aria-hidden="true">
+        <img id="pickerLogo" alt="">
+        <span>DominionStar Meet</span>
+      </div>
+      <div class="picker-title">
+        <h1>Share Screen</h1>
+        <p>Choose a screen or window to share with everyone in the meeting.</p>
+      </div>
       <button id="cancelTop" class="icon-button" type="button" aria-label="Close share chooser">×</button>
     </header>
 
@@ -22,32 +29,56 @@
     <section class="source-area">
       <div id="loadingState" class="loading-state">
         <div class="spinner"></div>
-        <strong>Finding screens and applications…</strong>
+        <strong>Finding screens and application windows…</strong>
+        <span>Your meeting stays active while DominionStar loads previews.</span>
       </div>
+
       <div id="errorState" class="error-state" hidden>
+        <span class="state-icon">!</span>
         <strong>Share sources are unavailable</strong>
         <span id="errorCopy">Check Screen Recording permission and try again.</span>
         <button id="retrySources" type="button">Try Again</button>
       </div>
-      <div id="sourceGrid" class="source-grid" hidden></div>
+
+      <div id="sourceGrid" class="basic-source-view" hidden>
+        <section id="screensSection" class="source-section">
+          <header class="section-head">
+            <h2>Screens</h2>
+            <span id="screenCount" class="section-count"></span>
+          </header>
+          <div id="screenGrid" class="source-grid" role="listbox" aria-label="Screens"></div>
+        </section>
+
+        <section id="windowsSection" class="source-section">
+          <header class="section-head">
+            <h2>Windows</h2>
+            <span id="windowCount" class="section-count"></span>
+          </header>
+          <div id="windowGrid" class="source-grid" role="listbox" aria-label="Application windows"></div>
+        </section>
+      </div>
+
       <div id="advancedGrid" class="source-grid mode-grid" hidden></div>
       <div id="filesGrid" class="source-grid mode-grid" hidden></div>
     </section>
 
     <footer class="picker-footer">
-      <div class="share-options">
-        <label id="shareAudioRow" class="option-row">
-          <input id="shareAudio" type="checkbox">
-          <span>Share sound</span>
-        </label>
-        <label class="option-row">
-          <input id="optimizeVideo" type="checkbox">
-          <span>Optimize for video clip</span>
-        </label>
-        <label class="option-row">
-          <input id="optimizeSharingVideo" type="checkbox">
-          <span>Optimize for sharing video</span>
-        </label>
+      <div class="footer-copy">
+        <div id="selectionSummary" class="selection-summary">
+          <span class="selection-dot" aria-hidden="true"></span>
+          <span id="selectionLabel">Choose a screen or window</span>
+        </div>
+        <div class="share-options">
+          <label id="shareAudioRow" class="option-row">
+            <input id="shareAudio" type="checkbox">
+            <span>Share sound</span>
+          </label>
+          <label class="option-row">
+            <input id="optimizeVideo" type="checkbox">
+            <span>Optimize for sharing video</span>
+          </label>
+          <input id="optimizeSharingVideo" type="checkbox" hidden tabindex="-1" aria-hidden="true">
+        </div>
       </div>
       <div class="footer-actions">
         <button id="cancelBottom" class="secondary" type="button">Cancel</button>
