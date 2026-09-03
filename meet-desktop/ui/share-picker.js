@@ -42,10 +42,18 @@
     shareButton.disabled=sharing||!ready;
   }
 
+  function paintSelection(){
+    basicGrid.querySelectorAll('[data-source-id]').forEach(card=>{
+      const selected=String(card.dataset.sourceId||'')===selectedId;
+      card.classList.toggle('selected',selected);
+      card.setAttribute('aria-selected',selected?'true':'false');
+    });
+    updateSelectionSummary();
+  }
+
   function selectSource(id,{focus=false}={}){
     selectedId=String(id||'');
-    renderBasic();
-    updateSelectionSummary();
+    paintSelection();
     if(focus)basicGrid.querySelector(`[data-source-id="${CSS.escape(selectedId)}"]`)?.focus();
   }
 
@@ -84,7 +92,7 @@
     $('#screenCount').textContent=`${screens.length} ${screens.length===1?'screen':'screens'}`;
     $('#windowCount').textContent=`${windows.length} ${windows.length===1?'window':'windows'}`;
     basicGrid.hidden=false;advancedGrid.hidden=true;filesGrid.hidden=true;loading.hidden=true;error.hidden=true;
-    updateSelectionSummary();
+    paintSelection();
   }
 
   function renderAdvanced(){
