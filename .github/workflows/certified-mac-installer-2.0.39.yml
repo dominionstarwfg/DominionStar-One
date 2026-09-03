@@ -16,7 +16,7 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       CSC_FOR_PULL_REQUEST: 'true'
-      CERTIFIED_SHA: '512a77178a7ff4367654dbae9b6fbd07f50ccbc9'
+      CERTIFIED_SHA: '1e975205819760d09cb13615d45e9fd926800458'
       CERTIFIED_VERSION: '2.0.39'
     steps:
       - name: Checkout exact certified 2.0.39 source
@@ -149,7 +149,7 @@ jobs:
           signing=adhoc-prototype
           notarization=not-configured
           tcc_persistence=not-certified-without-Developer-ID
-          source_certification=Mac-QA-952
+          source_certification=Mac-QA-952-merge-ref
           certified_source_artifact_sha256=605529c857b3e4c78a53b32397b6dc85cb3a4089c2a0d32d1527fff9f36d9fc8
           EOF
 
