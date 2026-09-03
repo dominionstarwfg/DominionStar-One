@@ -6,7 +6,9 @@ const pkg=JSON.parse(read('package.json'));
 const runtime=read('ui/runtime-stability.js');
 const approved=read('ui/approved-reference-parity.css');
 
-assert.equal(pkg.version,'2.0.32','Adaptive dock candidate must report 2.0.32.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=32))),'Adaptive video-dock authority introduced in 2.0.32 must remain enforced for every later candidate.');
 assert.ok(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must own dock geometry.');
 assert.ok(runtime.includes('const compact=width<760'),'Compact threshold must be explicit and singular.');
 assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock must resolve to user/top/right.');

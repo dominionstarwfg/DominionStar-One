@@ -1,0 +1,37 @@
+name: DominionStar Meet Zoom Share Toolbar 2.0.33
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/ui/presenter-toolbar.html'
+      - 'meet-desktop/ui/presenter-toolbar.css'
+      - 'meet-desktop/ui/presenter-toolbar.js'
+      - 'meet-desktop/src/share-service.mjs'
+      - 'meet-desktop/scripts/verify-zoom-share-toolbar-2.0.33.mjs'
+      - '.github/workflows/zoom-share-toolbar-2.0.33.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zoom-share-toolbar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Zoom-familiar floating share toolbar
+        working-directory: meet-desktop
+        run: |
+          node --check ui/presenter-toolbar.js
+          node --check scripts/verify-zoom-share-toolbar-2.0.33.mjs
+          node scripts/verify-zoom-share-toolbar-2.0.33.mjs
+          node scripts/verify-presenter-command-parity-2.0.27.mjs
