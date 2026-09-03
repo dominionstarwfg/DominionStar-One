@@ -100,6 +100,17 @@ try{
     window.DominionRuntimeStability.sync();
     window.DominionRuntimeStability.ensureToolbarZones();
 
+    const qaChatState=()=>({panel:Boolean(document.querySelector('#meetingChatPanel')),chatHidden:document.querySelector('#meetingChatPanel')?.hidden,participantsHidden:document.querySelector('.room-side')?.hidden,companion:String(document.body.dataset.dsShareCompanion||'')});
+    const logChat=(name)=>console.log('QA_CHAT_STACK '+name+' '+JSON.stringify(qaChatState()));
+    const parityOriginal=window.DominionMeetingParity;
+    if(parityOriginal?.decorateControls){window.DominionMeetingParity=Object.freeze({...parityOriginal,decorateControls(...args){logChat('decorate-enter');const out=parityOriginal.decorateControls(...args);logChat('decorate-return');return out;}});}
+    const zoomOriginal=window.DominionZoomBehavior;
+    if(zoomOriginal?.refreshChatRecipients){window.DominionZoomBehavior=Object.freeze({...zoomOriginal,refreshChatRecipients(...args){logChat('refresh-enter');const out=zoomOriginal.refreshChatRecipients(...args);logChat('refresh-return');Promise.resolve(out).then(()=>logChat('refresh-resolved'),error=>console.log('QA_CHAT_STACK refresh-rejected '+String(error?.message||error)));return out;}});}
+    const featuresOriginal=window.DominionMeetingFeatures;
+    if(featuresOriginal?.toggleChat){window.DominionMeetingFeatures=Object.freeze({...featuresOriginal,toggleChat(...args){logChat('feature-toggle-enter');const out=featuresOriginal.toggleChat(...args);logChat('feature-toggle-return');return out;}});}
+    const runtimeOriginal=window.DominionRuntimeStability;
+    window.DominionRuntimeStability=Object.freeze({...runtimeOriginal,setParticipants(...args){logChat('runtime-participants-enter');const out=runtimeOriginal.setParticipants(...args);logChat('runtime-participants-return');return out;},setChat(...args){logChat('runtime-chat-enter');const out=runtimeOriginal.setChat(...args);logChat('runtime-chat-return');queueMicrotask(()=>logChat('runtime-chat-microtask'));return out;}});
+
     window.__qaCommands=[];
     window.addEventListener('dominion:presenter-command-dispatch',event=>{
       const command=String(event.detail?.command||'');
@@ -196,7 +207,9 @@ try{
         qaMark('resume');
 
         const chatReady=qaWaitDom(()=>document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false,'Chat companion');
+        logChat('before-chat-click');
         qaClick('chat');
+        logChat('after-chat-click');
         await chatReady;
         qaMark('chat');
         window.DominionRuntimeStability.setChat(false);
