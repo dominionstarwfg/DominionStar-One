@@ -1,0 +1,48 @@
+name: DominionStar Meet Profile Photo 2.0.24
+
+on:
+  pull_request:
+    branches: [ci/stacked-2.0.24-base]
+    paths:
+      - 'meet-desktop/src/auth-service.mjs'
+      - 'meet-desktop/src/meeting-service.mjs'
+      - 'meet-desktop/sql/20260903_meet_profile_avatar_fallback.sql'
+      - 'meet-desktop/ui/profile-photo-fallback.js'
+      - 'meet-desktop/ui/index.html'
+      - 'meet-desktop/scripts/verify-profile-photo-fallback-2.0.24.mjs'
+      - '.github/workflows/profile-photo-2.0.24-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profile-photo-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact profile-photo candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify modified source syntax
+        working-directory: meet-desktop
+        run: |
+          node --check src/auth-service.mjs
+          node --check src/meeting-service.mjs
+          node --check ui/profile-photo-fallback.js
+          node --check scripts/verify-profile-photo-fallback-2.0.24.mjs
+      - name: Verify profile-photo privacy and fallback contract
+        working-directory: meet-desktop
+        run: node scripts/verify-profile-photo-fallback-2.0.24.mjs
+      - name: Re-run inherited auth and meeting gates
+        working-directory: meet-desktop
+        run: |
+          node scripts/verify-auth.mjs
+          node scripts/verify-meeting-lifecycle.mjs
+          node scripts/verify-webrtc-transport.mjs
+          node scripts/verify-share-authority.mjs
