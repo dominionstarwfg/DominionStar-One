@@ -42,13 +42,6 @@
     img.onerror=()=>{img.hidden=true;fallback.classList.remove('has-photo');fallback.dataset.dsAvatarUrl='';span.hidden=false;if(refreshLocal)void refreshAuth(true);};
   }
 
-  function localGalleryIdentityWanted(){
-    const overlay=q('#meetingOverlay');if(!overlay||overlay.hidden)return false;
-    const sharing=overlay.classList.contains('share-active')||document.body.classList.contains('remote-share-active');if(sharing)return false;
-    const mode=String(overlay.dataset.viewMode||'');if(!['gallery','multi'].includes(mode))return false;
-    return !Boolean(window.DominionPreferences?.read?.('hideSelfView'));
-  }
-
   function syncDockCount(dock){
     if(!dock)return;
     const tiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')),count=tiles.length;
@@ -88,6 +81,15 @@
     syncDockCount(dock);
   }
 
+  let boundMediaController=null,unbindMediaChange=null;
+  function bindMediaChanges(){
+    const controller=window.DominionMediaController||null;
+    if(!controller||controller===boundMediaController||typeof controller.onChange!=='function')return;
+    try{unbindMediaChange?.();}catch{}
+    boundMediaController=controller;
+    unbindMediaChange=controller.onChange(schedulePaint);
+  }
+
   function paintLocal(){
     const user=state.user||{},name=String(user.name||'DominionStar Member'),avatarUrl=safePhotoUrl(user.avatarUrl),label=initials(name);
     setBoxPhoto(q('#prejoinAvatar'),avatarUrl,label,{refreshLocal:true});
@@ -111,7 +113,7 @@
     }
   }
 
-  function paintAll(){ensureStyles();paintLocal();paintParticipants();}
+  function paintAll(){ensureStyles();bindMediaChanges();paintLocal();paintParticipants();}
 
   async function refreshAuth(force=false){
     const now=Date.now();if(!force&&now-state.authRefreshAt<5000)return state.user;
@@ -144,7 +146,6 @@
   }
   const observer=new MutationObserver(schedulePaint);
   observer.observe(document.body,{subtree:true,childList:true});
-  window.DominionMediaController?.onChange?.(schedulePaint);
 
   const api=Object.freeze({
     refresh:()=>refreshAuth(true),
