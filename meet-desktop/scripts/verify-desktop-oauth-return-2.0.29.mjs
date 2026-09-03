@@ -6,7 +6,9 @@ const pkg=JSON.parse(read('package.json'));
 const auth=read('src/auth-service.mjs');
 const app=read('ui/app.js');
 
-assert.equal(pkg.version,'2.0.29','OAuth foreground-return candidate must report 2.0.29.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=29))),'OAuth foreground-return authority introduced in 2.0.29 must remain enforced for every later candidate.');
 assert.ok(auth.includes("flowType:'pkce'"),'PKCE must remain authoritative.');
 assert.ok(auth.includes('redirectTo:CALLBACK_URL'),'OAuth must still return to the local desktop loopback callback.');
 assert.ok(auth.includes('exchangeCodeForSession(code)'),'PKCE code exchange must remain in the main process.');
