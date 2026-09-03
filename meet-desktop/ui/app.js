@@ -62,7 +62,18 @@
   function setControlLabel(id,text){const button=$(id);if(!button)return;const label=button.querySelector('.ds-control-label');if(label)label.textContent=text;else button.textContent=text;button.setAttribute('aria-label',text);}
   function syncMediaLabels(){const s=media.snapshot();for(const id of ['#prejoinMic','#roomMic']){const node=$(id);setControlLabel(id,s.micOn?'Mute':'Unmute');node?.classList.toggle('is-off',!s.micOn);node?.setAttribute('aria-pressed',String(!s.micOn));}for(const id of ['#prejoinCamera','#roomCamera']){const node=$(id);setControlLabel(id,s.cameraOn?'Stop Video':'Start Video');node?.classList.toggle('is-off',!s.cameraOn);node?.setAttribute('aria-pressed',String(!s.cameraOn));}window.DominionMeetingParity?.decorateControls?.();}
   async function toggleMic(button){button.disabled=true;const wasOn=media.snapshot().micOn;try{await media.setMicrophone(!wasOn);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().micOn?'mic-on':'mic-off');}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}}
-  async function toggleCamera(button){button.disabled=true;const wasOn=media.snapshot().cameraOn;try{await media.setCamera(!wasOn);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().cameraOn?'video-on':'video-off');}catch(e){notice('Camera unavailable',errorText(e));}finally{button.disabled=false;}}
+  async function toggleCamera(button){
+    const before=media.snapshot(),target=!before.cameraOn;
+    button?.classList.add('media-intent-active');
+    const operation=media.setCamera(target);
+    attachPreview();
+    try{
+      await operation;attachPreview();
+      const after=media.snapshot();
+      if(after.cameraOn===target&&!after.cameraPending)window.DominionMeetingNotifications?.play?.(target?'video-on':'video-off');
+    }catch(e){attachPreview();notice('Camera unavailable',errorText(e));}
+    finally{button?.classList.remove('media-intent-active');}
+  }
 
   async function joinUsingSavedDefaults(mode){
     const prefs=window.DominionPreferences;const cameraOn=!Boolean(prefs?.read?.('joinVideoOff')),micOn=!Boolean(prefs?.read?.('joinMuted'));
