@@ -135,7 +135,6 @@
     node.classList.toggle('on',known&&on);
     node.classList.toggle('off',known&&!on);
     node.classList.toggle('unknown',!known);
-    node.textContent=kind==='mic'?(known&&on?'●':'●'):(known&&on?'■':'■');
     node.setAttribute('aria-label',kind==='mic'?(known?(on?'Microphone on':'Microphone muted'):'Microphone status unknown'):(known?(on?'Video on':'Video off'):'Video status unknown'));
     node.title=node.getAttribute('aria-label');
   }
