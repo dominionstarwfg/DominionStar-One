@@ -61,7 +61,15 @@ has(ui,"box.textContent=fallback",'Local image failure must restore initials.');
 has(ui,'applyForTesting:','Packaged physical verifier hook is missing.');
 has(ui,"return /^https:\\/\\//i.test(url)?url:''",'Renderer must accept only HTTPS photo URLs.');
 
+// Dynamic camera-off surfaces may arrive after the module loads, but repaint
+// scheduling must yield back to Electron. A MutationObserver -> queueMicrotask
+// -> DOM mutation cycle previously starved the renderer and CDP event loop.
+has(ui,'let repaintTimer=0','Profile-photo DOM repaint work must be coalesced.');
+has(ui,'repaintTimer=window.setTimeout(()=>{repaintTimer=0;paintAll();},32)','Profile-photo repaint scheduling must yield through a bounded task.');
+has(ui,'const observer=new MutationObserver(schedulePaint)','Dynamic surface observation must use the bounded scheduler.');
+lacks(ui,'queueMicrotask(paintAll)','Profile-photo DOM observation must never recursively queue paintAll as a microtask.');
+
 // Avatar work must remain isolated from the fragile presenter/capture architecture.
 lacks(share,'meet_v2_room_avatar_paths','Share service must remain independent from profile-photo metadata.');
 
-console.log('DOMINIONSTAR_PROFILE_PHOTO_2_0_24_OK private-signed-avatars same-room-metadata authenticated-only-rpc additive-rpc cached-enrichment fail-open-snapshot existing-events local-and-remote-photo-first initials-fallback no-extra-poll share-stack-untouched');
+console.log('DOMINIONSTAR_PROFILE_PHOTO_2_0_24_OK private-signed-avatars same-room-metadata authenticated-only-rpc additive-rpc cached-enrichment fail-open-snapshot existing-events local-and-remote-photo-first initials-fallback bounded-repaint no-extra-poll share-stack-untouched');
