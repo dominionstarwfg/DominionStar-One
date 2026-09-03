@@ -30,7 +30,7 @@ const appUi=read('ui','app.js'),media=read('ui','media-controller.js'),videoEffe
 assert(participantControls.includes("type==='host:view-layout'")&&participantControls.includes('authorizedSender(detail.fromParticipantId)'),'Packaged meeting-wide View changes must verify host/co-host sender authority.');
 assert(parity.includes("applyAll.dataset.applyViewEveryone='1'")&&parity.includes("desktop.meeting.sendSignal(p.participantId,'host:view-layout',payload)"),'Packaged host/co-host View menu must broadcast Apply View to Everyone through meeting signaling.');
 assert(parity.includes("window.addEventListener('dominion:host-view-layout'")&&parity.includes('applyViewMode(mode)'),'Packaged clients must apply authorized host View broadcasts through the local View engine.');
-assert(parity.includes('spotlightParticipantId?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantId)}"]`)')&&parity.includes("featured?.classList.add('share-featured')"),'Packaged Side-by-side Speaker must feature Spotlight for Everyone before automatic active speaker.');
+assert(parity.includes('spotlightParticipantIds[0]?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantIds[0])}"]`)')&&parity.includes("featured?.classList.add('share-featured')"),'Packaged Side-by-side Speaker must feature the primary Spotlight before automatic active speaker.');
 assert(parityCss.includes('button[data-apply-view-everyone]'),'Packaged host Apply View action must include dedicated styling.');
 
 assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged desktop must launch the local Home file.');
@@ -169,7 +169,7 @@ assert(preload.includes('setCaptionState:')&&preload.includes('publishCaption:')
 assert(meeting.includes('meet_v2_set_caption_state')&&meeting.includes('meet_v2_publish_caption')&&meeting.includes('meet_v2_get_transcript'),'Packaged meeting service must own caption/transcript RPC access.');
 assert(participantControls.includes("type==='host:lower-hand'")&&participantControls.includes("row.dataset.raisedHand==='1'")&&participantControls.includes('Lower All Hands'),'Packaged host/co-host controls must support Lower Hand and Lower All Hands through verified authority.');
 assert(presenterJs.includes("'toggle-hand'")&&read('ui','share-integration.js').includes("command==='toggle-hand'"),'Packaged presenter toolbar must let a presenter raise/lower their hand without reopening the full meeting window.');
-assert(participantControls.includes('Spotlight for Everyone')&&parity.includes('spotlightParticipantId'),'Packaged Spotlight must drive the meeting stage authority.');
+assert(participantControls.includes('Spotlight for Everyone')&&participantControls.includes('Add Spotlight')&&parity.includes('spotlightParticipantIds'),'Packaged Spotlight must drive the ordered multi-spotlight meeting stage authority.');
 assert(!read('ui','app.js').includes('data-cohost='),'Packaged roster must not retain duplicate inline participant authority buttons.');
 assert(parity.includes('Lock Meeting')&&parity.includes('Mute Participants on Entry')&&preload.includes('setSecurity:')&&main.includes("'meeting:set-security'")&&meeting.includes('meet_v2_set_security'),'Packaged Security menu must use server-backed Lock Meeting and Mute-on-Entry authority.');
 assert(parity.includes("button.id='meetingViewButton'")&&parity.includes("['speaker','gallery','multi']"),'Packaged meeting must expose Speaker, Gallery, and Multi-speaker views.');
