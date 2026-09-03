@@ -7,7 +7,7 @@
   const desktop=window.dominionDesktop||null,auth=desktop?.auth||null,meeting=desktop?.meeting||null,media=window.DominionMediaController;
   const sections={home:$('#homeSection'),meetings:$('#meetingsSection'),contacts:$('#contactsSection')};
   const dialogs={join:$('#joinDialog'),schedule:$('#scheduleDialog'),settings:$('#settingsDialog'),profile:$('#profileDialog')};
-  let authState={ready:!auth,signedIn:!auth,user:null};let activeRoom=null;let pendingJoin=null;let pendingDesktopJoinUrl='';let pendingMediaPreferences=null;let timers={waiting:0,queue:0,snapshot:0};let lastWaitingMap=new Map(),waitingEventsInitialized=false,lastParticipantMap=new Map(),participantEventsInitialized=false;
+  let authState={ready:!auth,signedIn:!auth,user:null};let activeRoom=null;let pendingJoin=null;let pendingDesktopJoinUrl='';let pendingMediaPreferences=null;let timers={waiting:0,queue:0,snapshot:0};let lastWaitingMap=new Map(),waitingEventsInitialized=false,lastParticipantMap=new Map(),participantEventsInitialized=false,activeSpeakerIds=[];
 
   const initials=name=>String(name||'DominionStar Member').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'DS';
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -189,6 +189,27 @@
     }catch{}
   }
   function renderQueue(items){$('#waitingCount').textContent=items.length?`(${items.length})`:'';$('#waitingQueue').innerHTML=items.map(p=>`<div class="queue-card" data-wait="${p.participantId}"><span class="person-badge">${initials(p.displayName)}</span><span class="person-copy"><strong>${esc(p.displayName)}</strong><small>Ready to join</small></span><span class="queue-actions"><button class="mini-btn admit" data-decision="admit">Admit</button><button class="mini-btn decline" data-decision="decline">Decline</button></span></div>`).join('')||'<p class="auth-status">No one is waiting.</p>';$$('[data-wait] [data-decision]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await meeting.decide(b.closest('[data-wait]').dataset.wait,b.dataset.decision);await refreshQueue();await refreshSnapshot();}catch(e){notice('Waiting-room action failed',errorText(e));}finally{b.disabled=false;}});}
+  function speakerRank(id){const index=activeSpeakerIds.indexOf(String(id||''));return index<0?999:index;}
+  function reorderRosterBySpeaker(){
+    const roster=$('#participantRoster');if(!roster)return;
+    const rows=[...roster.querySelectorAll('[data-participant-id]')];
+    rows.sort((a,b)=>{
+      const ar=a.dataset.participantRole||'participant',br=b.dataset.participantRole||'participant';
+      const roleRank=role=>role==='host'?0:role==='cohost'?1:2,rr=roleRank(ar)-roleRank(br);if(rr)return rr;
+      if(ar==='participant'&&br==='participant'){
+        const sr=speakerRank(a.dataset.participantId)-speakerRank(b.dataset.participantId);if(sr)return sr;
+      }
+      return String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''));
+    });
+    for(const row of rows){
+      const speaking=speakerRank(row.dataset.participantId)<999;
+      row.classList.toggle('participant-speaking',speaking);
+      let badge=row.querySelector('.participant-speaking-badge');
+      if(speaking&&!badge){badge=document.createElement('span');badge.className='participant-speaking-badge';badge.textContent='Speaking';row.querySelector('.person-copy')?.append(badge);}
+      if(!speaking&&badge)badge.remove();
+      roster.append(row);
+    }
+  }
   function renderRoster(people){
     const roleRank=role=>role==='host'?0:role==='cohost'?1:2;
     const sorted=[...(people||[])].sort((a,b)=>roleRank(String(a.role||'participant'))-roleRank(String(b.role||'participant'))||String(a.displayName||'').localeCompare(String(b.displayName||'')));
@@ -196,11 +217,12 @@
       const role=String(p.role||'participant'),name=String(p.displayName||'Participant'),self=Boolean(p.memberId&&p.memberId===authState.user?.id);
       return `<div class="person-row" data-participant-id="${esc(p.participantId)}" data-participant-role="${esc(role)}" data-participant-name="${esc(name)}" data-recording-allowed="${p.recordingAllowed?'1':'0'}" data-record-eligible="${p.memberId?'1':'0'}" data-participant-self="${self?'1':'0'}"><span class="person-badge">${initials(name)}</span><span class="person-copy"><strong>${esc(name)}${self?' <em class="participant-you">(You)</em>':''}</strong><small>${role==='host'?'Host':role==='cohost'?'Co-host':'Participant'}</small></span><span class="participant-media-state" aria-label="Participant media status"><span class="participant-media-icon participant-mic unknown" data-participant-mic title="Microphone status"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg></span><span class="participant-media-icon participant-video unknown" data-participant-video title="Video status"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg></span></span><span class="participant-actions"></span></div>`;
     }).join('')||'<p class="auth-status">No participants yet.</p>';
+    reorderRosterBySpeaker();
     window.DominionParticipantControls?.sync?.();
     window.DominionZoomBehavior?.sync?.();
   }
   async function exitRoom(){if(!activeRoom)return;const button=$('#roomExitButton');button.disabled=true;try{if(activeRoom.role==='host')await meeting.end(activeRoom.roomId);else await meeting.leave(activeRoom.participantId,activeRoom.joinToken);returnHome();}catch(e){notice('Meeting could not close',errorText(e));}finally{button.disabled=false;}}
-  function returnHome(){stopPolling();window.dispatchEvent(new CustomEvent('dominion:meeting-ended'));lastWaitingMap=new Map();waitingEventsInitialized=false;lastParticipantMap=new Map();participantEventsInitialized=false;media.stop();pendingMediaPreferences=null;$('#meetingOverlay').hidden=true;activeRoom=null;document.body.dataset.shareAfterJoin='';showHome(authState);}
+  function returnHome(){stopPolling();window.dispatchEvent(new CustomEvent('dominion:meeting-ended'));lastWaitingMap=new Map();waitingEventsInitialized=false;lastParticipantMap=new Map();participantEventsInitialized=false;activeSpeakerIds=[];media.stop();pendingMediaPreferences=null;$('#meetingOverlay').hidden=true;activeRoom=null;document.body.dataset.shareAfterJoin='';showHome(authState);}
 
   async function bootAuth(){if(!auth){showHome({ready:true,signedIn:true,user:{id:'preview',name:'DominionStar Preview',email:'preview@local'}});$('.status-pill').textContent='Visual preview';return;}try{const state=await auth.getState();state?.signedIn?showHome(state):showAuth();}catch(e){showAuth(errorText(e),'error');}}
   $('#googleSignIn').onclick=async()=>{const b=$('#googleSignIn'),s=$('#authStatus');b.disabled=true;s.classList.remove('error');s.textContent='Opening Google in your browser. DominionStar Meet is waiting for the secure return.';try{await auth.startGoogle();s.textContent='Complete Google verification in your browser. This app will unlock automatically.';}catch(e){b.disabled=false;s.classList.add('error');s.textContent=errorText(e);}};
@@ -208,6 +230,7 @@
   $('#signOutButton').onclick=async()=>{try{await auth?.signOut?.();$('#profileDialog').close();}catch(e){notice('Sign out could not complete',errorText(e));}};
 
   installMeetingUi();
+  window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];reorderRosterBySpeaker();});
   $('#joinRoomCode').addEventListener('input',event=>{
     const parsed=parseJoinValue(event.currentTarget.value);if(parsed.passcode){event.currentTarget.value=roomCode(parsed.roomCode);$('#joinPasscode').value=parsed.passcode;}
   });

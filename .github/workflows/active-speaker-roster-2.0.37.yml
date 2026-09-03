@@ -1,0 +1,36 @@
+name: DominionStar Meet Active Speaker Roster 2.0.37
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/ui/app.js'
+      - 'meet-desktop/ui/webrtc-controller.js'
+      - 'meet-desktop/ui/zoom-production-polish.css'
+      - 'meet-desktop/scripts/verify-active-speaker-roster-2.0.37.mjs'
+      - '.github/workflows/active-speaker-roster-2.0.37.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  active-speaker-roster:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify active-speaker roster behavior
+        working-directory: meet-desktop
+        run: |
+          node --check ui/app.js
+          node --check scripts/verify-active-speaker-roster-2.0.37.mjs
+          node scripts/verify-active-speaker-roster-2.0.37.mjs
+          node scripts/verify-zoom-participants-2.0.34.mjs

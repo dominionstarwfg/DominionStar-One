@@ -161,3 +161,25 @@
   padding:8px 10px!important;
   font-size:11.5px!important;
 }
+
+
+/* 2.0.37 active-speaker participant roster ordering. */
+.room-side .person-row.participant-speaking{
+  background:rgba(45,140,255,.08)!important;
+}
+.room-side .person-row.participant-speaking .person-badge{
+  box-shadow:0 0 0 2px rgba(56,168,83,.9),0 0 0 4px rgba(56,168,83,.18)!important;
+}
+.participant-speaking-badge{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  margin-top:2px;
+  padding:1px 5px;
+  border-radius:999px;
+  font-size:8.5px;
+  font-weight:650;
+  line-height:1.4;
+  color:#9be7aa;
+  background:rgba(56,168,83,.12);
+}

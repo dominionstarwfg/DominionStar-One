@@ -11,7 +11,9 @@ const service=read('src/meeting-service.mjs');
 const personal=read('ui/personal-room.js');
 const schedule=read('ui/schedule-controller.js');
 
-assert.equal(pkg.version,'2.0.36','Canonical join-entry candidate must report 2.0.36.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=36))),'Canonical join-entry authority introduced in 2.0.36 must remain enforced for every later candidate.');
 assert.ok(pkg.build?.protocols?.some(item=>Array.isArray(item?.schemes)&&item.schemes.includes('dominionstar-meet')),'Packaged app must register dominionstar-meet protocol.');
 
 assert.ok(bootstrap.includes("const JOIN_SCHEME='dominionstar-meet://join'"),'Bootstrap must recognize the canonical join scheme before app startup.');
