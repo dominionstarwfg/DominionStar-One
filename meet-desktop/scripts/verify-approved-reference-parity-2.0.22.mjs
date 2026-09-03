@@ -15,7 +15,9 @@ const physical=read('../ui/physical-mac-repair.js');
 const production=read('../../.github/workflows/rebuild-mac-production.yml');
 const qa=read('../../.github/workflows/rebuild-mac-qa-certify.yml');
 
-assert.equal(pkg.version,'2.0.22','Approved illustration parity candidate must be version 2.0.22.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=22))),'Approved illustration parity applies to 2.0.22 and every later DominionStar Meet candidate.');
 assert.ok(pkg.scripts.verify.includes('verify-approved-reference-parity-2.0.22.mjs'),'Package verification must include the approved-reference source gate.');
 
 assert.ok(auth.includes('./approved-reference-parity.css'),'Approved-reference stylesheet is not loaded.');
