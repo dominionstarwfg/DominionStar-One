@@ -46,7 +46,7 @@ has(js,"if(event.key==='Enter'||event.key===' ')",'Keyboard source activation is
 has(js,"event.key==='ArrowRight'",'Arrow-key source navigation is missing.');
 has(js,"event.key==='Escape'",'Escape-to-cancel is missing.');
 has(js,"shareButton.textContent='Sharing…'",'Share must provide immediate click feedback.');
-has(js,'bridge?.choose?.(selectedId',{required:true}?.required===true?'Picker must use the preload source-selection authority.':'');
+has(js,'bridge?.choose?.(selectedId','Picker must use the preload source-selection authority.');
 lacks(js,'.getDisplayMedia(','Picker must never acquire display media directly.');
 
 console.log('DOMINIONSTAR_SHARE_PICKER_2_0_23_OK branded-header basic-advanced-files separated-screens-windows real-previews stable-selection double-click keyboard-share share-sound single-video-optimization no-basic-placeholders single-owner-capture');
