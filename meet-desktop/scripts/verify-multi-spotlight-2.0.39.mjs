@@ -7,7 +7,9 @@ const controls=read('ui/participant-controls.js');
 const parity=read('ui/meeting-parity.js');
 const css=read('ui/meeting-parity.css');
 
-assert.equal(pkg.version,'2.0.39','Multi-spotlight candidate must report 2.0.39.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=39))),'Multi-spotlight authority introduced in 2.0.39 must remain enforced for every later candidate.');
 
 assert.ok(controls.includes('spotlightParticipantIds=[]'),'Participant controls must hold an ordered spotlight set.');
 assert.ok(controls.includes("slice(0,4)"),'Spotlight set must be bounded to four promoted participants.');
