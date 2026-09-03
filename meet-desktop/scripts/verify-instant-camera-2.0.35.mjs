@@ -8,7 +8,9 @@ const app=read('ui/app.js');
 const webrtc=read('ui/webrtc-controller.js');
 const approved=read('ui/approved-reference-parity.js');
 
-assert.equal(pkg.version,'2.0.35','Camera responsiveness candidate must report 2.0.35.');
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
+assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=35))),'Instant-camera authority introduced in 2.0.35 must remain enforced for every later candidate.');
 
 assert.ok(media.includes('cameraPending:false'),'Media state must explicitly model camera acquisition.');
 assert.ok(media.includes('let cameraIntent=0,warmVideoTrack=null,warmVideoTimer=0'),'Camera intent and short warm-track authority must exist.');
