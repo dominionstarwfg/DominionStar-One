@@ -91,16 +91,16 @@ try{
   await evaluate(`window.DominionRuntimeStability.setChat(false)`);
   await setViewport(1280,760);
 
-  // Participant video panel still follows the approved Speaker/share threshold.
+  // Participant video panel follows the approved empty-solo/two-person/share policy.
   const video=await evaluate(`(()=>{window.DominionMeetingParity.applyViewMode('speaker');const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock'),body=dock.querySelector('.participant-video-dock-body'),roster=document.querySelector('#participantRoster');roster.innerHTML='<div data-participant-id="a"></div><div data-participant-id="b"></div>';body.querySelectorAll('.remote-peer-tile').forEach(n=>n.remove());const one=document.createElement('div');one.className='remote-peer-tile';body.append(one);overlay.classList.remove('share-active');document.body.classList.remove('remote-share-active');window.DominionPhysicalMacRepair.syncVideoDockPolicy();const under3=dock.hidden;roster.insertAdjacentHTML('beforeend','<div data-participant-id="c"></div>');const two=document.createElement('div');two.className='remote-peer-tile';body.append(two);window.DominionPhysicalMacRepair.syncVideoDockPolicy();const over2=!dock.hidden;const cursor=getComputedStyle(dock.querySelector('.participant-video-dock-head')).cursor;overlay.classList.add('share-active');dock.hidden=true;window.DominionPhysicalMacRepair.syncVideoDockPolicy();const onShare=!dock.hidden;overlay.classList.remove('share-active');return {view:overlay.dataset.viewMode||'',under3,over2,onShare,cursor,grip:getComputedStyle(dock.querySelector('.dock-grip')).display};})()`);
   assert.equal(video.view,'speaker','Participant video threshold gate must run in Speaker view.');
-  assert.equal(video.under3,true,'One- and two-person Speaker meetings must not force a floating video strip.');
+  assert.equal(video.under3,false,'Two-person Speaker meetings must reveal the approved right-side participant video filmstrip.');
   assert.equal(video.over2,true,'Three-or-more-person Speaker meetings must allow the participant video panel.');
   assert.equal(video.onShare,true,'Screen sharing must show the participant video panel when video tiles are available.');
   assert.equal(video.cursor,'default','Video panel title bar must use the normal arrow cursor.');
   assert.equal(video.grip,'none','Legacy gripping-hand affordance must not be visible.');
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Responsive Zoom gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_ZOOM_WINDOW_PARITY_OK compact-prejoin floating-participants-chat full-stage participant-priority search-threshold adaptive-chat speaker-authority video-under3-hidden video-3plus-visible share-video-visible no-grip');
+  console.log('DOMINIONSTAR_PACKAGED_ZOOM_WINDOW_PARITY_OK compact-prejoin floating-participants-chat full-stage participant-priority search-threshold adaptive-chat speaker-authority two-person-filmstrip video-3plus-visible share-video-visible no-grip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('Responsive Zoom gate shutdown'));}pending.clear();try{await cdp('Emulation.clearDeviceMetricsOverride');}catch{}try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
