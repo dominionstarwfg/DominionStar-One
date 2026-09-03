@@ -1,0 +1,43 @@
+name: DominionStar Meet Canonical Join Entry 2.0.36
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/src/bootstrap.mjs'
+      - 'meet-desktop/src/main.mjs'
+      - 'meet-desktop/src/preload.cjs'
+      - 'meet-desktop/ui/app.js'
+      - 'meet-desktop/ui/personal-room.js'
+      - 'meet-desktop/ui/schedule-controller.js'
+      - 'meet-desktop/scripts/verify-canonical-join-entry-2.0.36.mjs'
+      - '.github/workflows/canonical-join-entry-2.0.36.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-join-entry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify canonical join entry
+        working-directory: meet-desktop
+        run: |
+          node --check src/bootstrap.mjs
+          node --check src/main.mjs
+          node --check ui/app.js
+          node --check ui/personal-room.js
+          node --check ui/schedule-controller.js
+          node --check scripts/verify-canonical-join-entry-2.0.36.mjs
+          node scripts/verify-canonical-join-entry-2.0.36.mjs
+          node scripts/verify-meeting-lifecycle.mjs

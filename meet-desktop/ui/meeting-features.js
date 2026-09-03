@@ -38,12 +38,12 @@
   }
 
   function toggleChat(force){ensureUi();const panel=q('#meetingChatPanel'),button=q('#roomChat');if(!panel)return;const show=typeof force==='boolean'?force:panel.hidden;panel.hidden=!show;button?.setAttribute('aria-pressed',String(show));if(show){void window.DominionZoomBehavior?.refreshChatRecipients?.();requestAnimationFrame(()=>q('#meetingChatInput')?.focus());}return show;}
-    function renderMessages(){const box=q('#meetingChatMessages');if(!box)return;if(!state.messages.length){box.innerHTML='<div class="meeting-chat-empty">Send a message to everyone or choose a participant for a direct message.</div>';return;}box.innerHTML=state.messages.slice(-200).map(m=>`<article class="meeting-chat-message${m.own?' own':''}${m.private?' private':''}"><div class="meeting-chat-meta"><strong>${esc(m.own?'You':m.name)}</strong>${m.private?`<span>Direct Message${m.toName?` · ${esc(m.toName)}`:''}</span>`:''}</div><p>${esc(m.text)}</p><time>${esc(nowLabel(m.at))}</time></article>`).join('');box.scrollTop=box.scrollHeight;}
+  function renderMessages(){const box=q('#meetingChatMessages');if(!box)return;if(!state.messages.length){box.innerHTML='<div class="meeting-chat-empty">Send a message to everyone or choose a participant for a direct message.</div>';return;}box.innerHTML=state.messages.slice(-200).map(m=>`<article class="meeting-chat-message${m.own?' own':''}${m.private?' private':''}"><div class="meeting-chat-meta"><strong>${esc(m.own?'You':m.name)}</strong>${m.private?`<span>Direct Message${m.toName?` · ${esc(m.toName)}`:''}</span>`:''}</div><p>${esc(m.text)}</p><time>${esc(nowLabel(m.at))}</time></article>`).join('');box.scrollTop=box.scrollHeight;}
   function appendMessage(message){state.messages.push(message);renderMessages();if(!message.own&&q('#meetingChatPanel')?.hidden)window.DominionMeetingNotifications?.chat?.(message.name||'Participant');}
   async function sendChat(event){event?.preventDefault?.();const input=q('#meetingChatInput'),recipient=q('#meetingChatRecipient'),text=String(input?.value||'').trim();if(!text)return;input.value='';const target=String(recipient?.value||'everyone'),selected=recipient?.selectedOptions?.[0],privateMessage=target!=='everyone',toName=privateMessage?String(selected?.textContent||'').replace(/\s*·\s*Direct Message\s*$/,''):'';const payload={text:text.slice(0,2000),name:localName(),at:new Date().toISOString(),private:privateMessage,toParticipantId:privateMessage?target:'',toName};appendMessage({...payload,own:true});if(privateMessage&&meeting?.sendSignal)await meeting.sendSignal(target,'chat',payload);else await broadcast('chat',payload);}
 
   function closeReactionMenu(){state.reactionMenu?.remove();state.reactionMenu=null;}
-  function openReactions(anchor=q('#roomReactions')){ensureUi();closeReactionMenu();if(!anchor)return;const menu=document.createElement('div');menu.className='meeting-reaction-menu';for(const emoji of reactions){const b=document.createElement('button');b.type='button';b.textContent=emoji;b.setAttribute('aria-label',`React ${emoji}`);b.onclick=()=>{closeReactionMenu();void sendReaction(emoji);};menu.append(b);}const divider=document.createElement('span');divider.className='reaction-divider';menu.append(divider);const hand=document.createElement('button');hand.type='button';hand.className='reaction-hand-button';hand.textContent=state.localHandRaised?'✋ Lower Hand':'✋ Raise Hand';hand.setAttribute('aria-pressed',String(state.localHandRaised));hand.onclick=()=>{closeReactionMenu();void toggleRaiseHand();};menu.append(hand);document.body.append(menu);state.reactionMenu=menu;const r=anchor.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-menu.offsetWidth-10,r.left))}px`;menu.style.bottom=`${Math.max(76,innerHeight-r.top+8)}px`;}
+  function openReactions(anchor=q('#roomReactions')){ensureUi();closeReactionMenu();if(!anchor)return;const menu=document.createElement('div');menu.className='meeting-reaction-menu';for(const emoji of reactions){const b=document.createElement('button');b.type='button';b.className='reaction-emoji-button';b.textContent=emoji;b.setAttribute('aria-label',`React ${emoji}`);b.style.setProperty('width','48px','important');b.style.setProperty('min-width','48px','important');b.style.setProperty('height','48px','important');b.style.setProperty('min-height','48px','important');b.style.setProperty('font-size','25px','important');b.style.setProperty('line-height','1','important');b.style.setProperty('padding','0','important');b.onclick=()=>{closeReactionMenu();void sendReaction(emoji);};menu.append(b);}const divider=document.createElement('span');divider.className='reaction-divider';menu.append(divider);const hand=document.createElement('button');hand.type='button';hand.className='reaction-hand-button';hand.textContent=state.localHandRaised?'✋ Lower Hand':'✋ Raise Hand';hand.setAttribute('aria-pressed',String(state.localHandRaised));hand.onclick=()=>{closeReactionMenu();void toggleRaiseHand();};menu.append(hand);document.body.append(menu);state.reactionMenu=menu;const r=anchor.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-menu.offsetWidth-10,r.left))}px`;menu.style.bottom=`${Math.max(76,innerHeight-r.top+8)}px`;}
   function showReaction(emoji,name){ensureUi();const layer=q('#meetingReactionLayer');if(!layer)return;const bubble=document.createElement('div');bubble.className='meeting-reaction-bubble';bubble.innerHTML=`<b>${esc(emoji)}</b><span>${esc(name)}</span>`;layer.append(bubble);setTimeout(()=>bubble.remove(),3300);}
   function decorateReactions(){
     for(const row of qa('#participantRoster [data-participant-id]')){
@@ -87,8 +87,15 @@
       if(raised&&!badge){badge=document.createElement('span');badge.className='remote-raised-hand';badge.textContent='✋';badge.title='Hand raised';tile.append(badge);}
       if(!raised)badge?.remove();
     }
-    const button=q('#roomReactions');button?.classList.toggle('hand-raised',state.localHandRaised);
-    if(button){const label=button.querySelector('.ds-control-label');if(label)label.textContent=state.localHandRaised?'Lower Hand':'Reactions';}
+    const button=q('#roomReactions'),dedicatedHand=q('#roomRaiseHand');
+    if(button){
+      if(dedicatedHand){
+        button.classList.remove('hand-raised');
+      }else{
+        button.classList.toggle('hand-raised',state.localHandRaised);
+        const label=button.querySelector('.ds-control-label');if(label)label.textContent=state.localHandRaised?'Lower Hand':'Reactions';
+      }
+    }
   }
   async function setLocalHand(raised,{broadcastChange=true}={}){
     state.localHandRaised=Boolean(raised);const me=await localParticipant();
@@ -237,17 +244,40 @@
 
   function setVideoLayout(mode){const dock=q('#participantVideoDock');if(!dock)return;dock.classList.remove('layout-speaker');if(mode==='hide'){dock.hidden=true;return;}dock.hidden=false;if(mode==='speaker')dock.classList.add('layout-speaker');window.DominionMeetingParity?.syncVideoDock?.();}
 
-  function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='recording-state'){handleRecordingState(detail);return;}if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false,private:Boolean(payload.private),toName:payload.private?'You':''});}else if(detail.type==='reaction'){if(payload.kind==='hand'){const id=String(detail.fromParticipantId||payload.participantId||''),raised=Boolean(payload.raised);if(id){if(raised)state.raisedHands.set(id,{name:String(payload.name||detail.fromDisplayName||'Participant'),at:Date.now()});else state.raisedHands.delete(id);decorateRaisedHands();}return;}const emoji=String(payload.emoji||'');if(reactions.includes(emoji)){const id=String(detail.fromParticipantId||payload.participantId||'');const name=String(payload.name||detail.fromDisplayName||'Participant');if(id)setParticipantReaction(id,emoji,name);showReaction(emoji,name);}}}
+  function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='recording-state'){handleRecordingState(detail);return;}if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false,private:Boolean(payload.private),toName:payload.private?'You':''});}else if(detail.type==='reaction'){if(payload.kind==='hand'){const id=String(detail.fromParticipantId||payload.participantId||''),raised=Boolean(payload.raised);if(id){if(raised)state.raisedHands.set(id,{name:String(payload.name||detail.fromDisplayName||'Participant'),at:Date.now()});else state.raisedHands.delete(id);decorateRaisedHands();}return;}const emoji=String(payload.emoji||'');if(reactions.includes(emoji)){const id=String(detail.fromParticipantId||payload.participantId||''),name=String(payload.name||detail.fromDisplayName||'Participant');if(id)setParticipantReaction(id,emoji,name);showReaction(emoji,name);}}}
+
+  let featureFrame=0;
+  function decorateFeatureState(){
+    featureFrame=0;if(!inMeeting())return;
+    ensureUi();decorateRaisedHands();decorateReactions();updateRecordingIndicator();
+  }
+  function scheduleFeatureDecorations(){if(featureFrame)return;featureFrame=requestAnimationFrame(decorateFeatureState);}
+  function resetMeetingFeatureState(){
+    cancelAnimationFrame(featureFrame);featureFrame=0;closeReactionMenu();
+    for(const timer of state.reactionTimers.values())clearTimeout(timer);
+    state.reactionTimers.clear();state.reactions.clear();state.remoteRecorders.clear();state.recordingNoticeSeen.clear();state.raisedHands.clear();state.localHandRaised=false;state.meetingSnapshot=null;state.lastRecordingAllowed=null;
+    if(state.recording)void stopRecording();
+    else{updateRecordingIndicator();stopRecordResources();}
+  }
+  function syncFeatureUi(){
+    if(!inMeeting()){resetMeetingFeatureState();return;}
+    ensureUi();decorateRaisedHands();decorateReactions();syncRecordingUi();updateRecordingIndicator();
+  }
+
   window.addEventListener('dominion:meeting-signal',handleSignal);
   window.addEventListener('dominion:meeting-snapshot',event=>{
     state.meetingSnapshot=event.detail||null;void window.DominionZoomBehavior?.refreshChatRecipients?.();
-    Promise.resolve(meeting?.context?.()).then(ctx=>{if(state.meetingSnapshot)state.meetingSnapshot._localParticipantId=String(ctx?.participantId||'');syncRemoteRecordingFromSnapshot();syncRecordingUi();updateRecordingIndicator();}).catch(()=>{syncRecordingUi();updateRecordingIndicator();});
+    Promise.resolve(meeting?.context?.()).then(ctx=>{if(state.meetingSnapshot)state.meetingSnapshot._localParticipantId=String(ctx?.participantId||'');syncRemoteRecordingFromSnapshot();syncRecordingUi();updateRecordingIndicator();scheduleFeatureDecorations();}).catch(()=>{syncRecordingUi();updateRecordingIndicator();scheduleFeatureDecorations();});
   });
+  window.addEventListener('dominion:participant-presence',scheduleFeatureDecorations);
+  window.addEventListener('dominion:waiting-room-update',scheduleFeatureDecorations);
+  window.addEventListener('dominion:meeting-ui-ready',()=>requestAnimationFrame(syncFeatureUi));
+  window.addEventListener('dominion:meeting-ended',resetMeetingFeatureState);
+  window.addEventListener('dominion:preference-change',scheduleFeatureDecorations);
   document.addEventListener('pointerdown',event=>{if(state.reactionMenu&&!state.reactionMenu.contains(event.target)&&event.target!==q('#roomReactions'))closeReactionMenu();},true);
   const overlay=q('#meetingOverlay');
-  const observer=new MutationObserver(()=>{if(inMeeting())ensureUi();});
+  const observer=new MutationObserver(()=>requestAnimationFrame(syncFeatureUi));
   if(overlay)observer.observe(overlay,{attributes:true,attributeFilter:['hidden']});
-  setInterval(()=>{if(inMeeting()){ensureUi();decorateRaisedHands();decorateReactions();syncRecordingUi();updateRecordingIndicator();}else{for(const timer of state.reactionTimers.values())clearTimeout(timer);state.reactionTimers.clear();state.reactions.clear();state.remoteRecorders.clear();state.recordingNoticeSeen.clear();state.raisedHands.clear();state.localHandRaised=false;state.meetingSnapshot=null;state.lastRecordingAllowed=null;if(state.recording)void stopRecording();}},600);
   ensureUi();
-  window.DominionMeetingFeatures=Object.freeze({version:'1.4.0-zoom-chat-shell',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,stopRecording,setVideoLayout,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,recordingPaused:state.recordingPaused,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))})});
+  window.DominionMeetingFeatures=Object.freeze({version:'1.4.0-zoom-chat-shell',runtimeVersion:'2.0.22-event-driven',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,stopRecording,setVideoLayout,sync:syncFeatureUi,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,recordingPaused:state.recordingPaused,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))}),dispose:()=>{observer.disconnect();cancelAnimationFrame(featureFrame);featureFrame=0;resetMeetingFeatureState();}});
 })();

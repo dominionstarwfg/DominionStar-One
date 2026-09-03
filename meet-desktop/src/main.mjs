@@ -17,6 +17,25 @@ let shareService=null;
 let screenPermissionProbeInFlight=null;
 let qaPersonalRoom={roomId:'qa-personal-room',roomCode:'2468013579',passcode:'360',title:'Personal Meeting Room',useForInstant:true,waitingRoomEnabled:true,externalGuestsAllowed:true,status:'ready'};
 let qaSchedules=[];
+const pendingJoinUrls=globalThis.__dominionPendingJoinUrls=globalThis.__dominionPendingJoinUrls||[];
+const validJoinUrl=value=>{
+  try{
+    const url=new URL(String(value||''));
+    if(url.protocol!=='dominionstar-meet:'||url.hostname!=='join')return '';
+    const meetingId=String(url.searchParams.get('meetingId')||url.searchParams.get('mid')||'').replace(/\D/g,'');
+    const passcode=String(url.searchParams.get('passcode')||url.searchParams.get('pwd')||'').replace(/\D/g,'');
+    if(!/^\d{10,11}$/.test(meetingId)||!/^\d{3,7}$/.test(passcode))return '';
+    return `dominionstar-meet://join?meetingId=${encodeURIComponent(meetingId)}&passcode=${encodeURIComponent(passcode)}`;
+  }catch{return '';}
+};
+const pushJoinUrl=value=>{
+  const url=validJoinUrl(value);if(!url)return false;
+  if(!pendingJoinUrls.includes(url))pendingJoinUrls.push(url);
+  if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('app:join-url',url);
+  return true;
+};
+app.on('dominion:join-url',url=>pushJoinUrl(url));
+
 
 function qaSchedule(input={}){
   const scheduleId=`qa-schedule-${qaSchedules.length+1}`;
@@ -64,7 +83,7 @@ async function requestScreenPermission(){
   // Privacy & Security. This is bounded and single-flight so Share stays responsive.
   const probe=await activeScreenCaptureProbe();
   if(probe.ok)return {ok:true,status:'granted',reportedStatus,restartRequired:false,detectedBy:'capture-probe',sourceCount:probe.sourceCount};
-  return {ok:false,status:reportedStatus,restartRequired:reportedStatus!=='not-determined',detectedBy:'tcc-status+capture-probe',probeStatus:probe.status};
+  // Authorization is still missing for denied, restricted, not-determined, or unknown states.\n  // Do not tell the user to restart yet. Restart is reserved for the later case\n  // where macOS reports granted but the current process still cannot capture.\n  return {ok:false,status:reportedStatus,restartRequired:false,detectedBy:'tcc-status+capture-probe',probeStatus:probe.status};
 }
 
 async function openPrivacySettings(kind='screen'){
@@ -98,16 +117,23 @@ function installLocalPermissionPolicy(desktopSession){
 }
 
 function createMainWindow(){
-  mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});
+  mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged,backgroundThrottling:false}});
   mainWindow.webContents.setWindowOpenHandler(({url})=>{if(/^https:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
   mainWindow.webContents.on('will-navigate',(event,url)=>{if(url.startsWith('file://'))return;event.preventDefault();if(/^https:\/\//i.test(url))void shell.openExternal(url);});
   mainWindow.once('ready-to-show',()=>mainWindow?.show());
+  mainWindow.webContents.once('did-finish-load',()=>{
+    const pending=pendingJoinUrls[0]||'';if(pending)mainWindow?.webContents.send('app:join-url',pending);
+  });
   mainWindow.on('focus',()=>{try{mainWindow?.flashFrame(false);}catch{}});
   void mainWindow.loadFile(path.join(uiDir,'index.html'));
   mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:consume-join-url',()=>{
+  while(pendingJoinUrls.length){const value=validJoinUrl(pendingJoinUrls.shift());if(value)return value;}
+  return '';
+});
 ipcMain.handle('auth:get-state',()=>desktopAuth?.getState?.()||{ready:false,signedIn:false,user:null});
 ipcMain.handle('auth:start-google',()=>desktopAuth?.startGoogle?.());
 ipcMain.handle('auth:sign-in-password',(_event,{email,password}={})=>desktopAuth?.signInPassword?.(email,password));

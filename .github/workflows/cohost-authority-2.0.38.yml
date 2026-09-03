@@ -1,0 +1,35 @@
+name: DominionStar Meet Co-host Authority 2.0.38
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/ui/participant-controls.js'
+      - 'meet-desktop/sql/20260828_zoom_meeting_identity.sql'
+      - 'meet-desktop/scripts/verify-cohost-authority-2.0.38.mjs'
+      - '.github/workflows/cohost-authority-2.0.38.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cohost-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify co-host authority boundaries
+        working-directory: meet-desktop
+        run: |
+          node --check ui/participant-controls.js
+          node --check scripts/verify-cohost-authority-2.0.38.mjs
+          node scripts/verify-cohost-authority-2.0.38.mjs
+          node scripts/verify-meeting-lifecycle.mjs

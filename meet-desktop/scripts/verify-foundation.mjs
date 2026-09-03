@@ -14,6 +14,7 @@ const personalCss=read('ui/personal-room.css');
 const schedule=read('ui/schedule-controller.js');
 const scheduleCss=read('ui/schedule.css');
 const shareService=read('src/share-service.mjs');
+const shareIntegration=read('ui/share-integration.js');
 const shareCss=read('ui/share.css');
 const presenterHtml=read('ui/presenter-toolbar.html');
 const presenterCss=read('ui/presenter-toolbar.css');
@@ -45,7 +46,7 @@ assert(css.includes('.action-card:active{transform:translateY(0) scale(.99)}'),'
 assert(js.includes("document.body.dataset.shareAfterJoin='1';openDialog('join')"),'Home Share must enter the real meeting/share flow.');
 assert(!js.includes("notice('Share remains isolated'"),'Home Share must not return to the old placeholder notice.');
 assert(!js.includes('getDisplayMedia'),'Home/room controller must not own screen capture.');
-assert(!/(?<!\\$)\\$\\([^\\n;]{0,180}\\)\\.forEach/.test(js),'Home bootstrap must never call forEach on the single-element $ selector; multi-element bindings must use $.');
+assert(!/(?<!\$)\$\([^\n;]{0,180}\)\.forEach/.test(js),'Home bootstrap must never call forEach on the single-element $ selector; multi-element bindings must use $.');
 assert(js.includes("greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'"),'Home greeting must be time-aware.');
 assert(js.includes("new CustomEvent('dominion:meeting-ui-ready')"),'Base meeting UI must announce when the live DOM exists so parity modules cannot race startup.');
 assert(js.includes("room.className='meeting-overlay participants-hidden'")&&js.includes('<aside class="room-side" hidden>'),'Base meeting shell must never flash the Participants/Waiting Room panel open.');
@@ -126,18 +127,38 @@ assert(meetingCaptions.includes("overlay.classList.toggle('caption-popout'")&&me
 assert(meetingCaptions.includes("pref('alwaysShowCaptions',false)")&&preferences.includes('Always show captions when available'),'Always-show captions must remain a local user preference.');
 assert(!preferences.includes('setCaptionState(')&&!preferences.includes('publishCaption('),'Personal Accessibility settings must never modify host caption/transcript authority.');
 
-assert(shareService.includes('compactMainWindow'),'Desktop sharing must own a native compact meeting-window mode.');
-assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during a share must compact the meeting window instead of losing participant video.');
-assert(shareService.includes("main.setAlwaysOnTop(true,'floating')"),'Compact participant video must remain above the presented content.');
-assert(shareService.includes('main.setMinimumSize(300,190)'),'Share mode must temporarily release the normal full meeting minimum size.');
+// Presenter-state contract: the full meeting disappears from the presenter's
+// usable desktop while its renderer remains compositor-visible and explicitly
+// unthrottled so macOS continues presenter-command delivery. The floating
+// toolbar stays independent.
+assert(shareService.includes('function hideMeetingWindowForShare()'),'Desktop sharing must own a dedicated presenter-hidden state.');
+assert(!shareService.includes('presenterParkPoint={x:-32000,y:-32000}'),'Presenter state must not park the meeting at extreme off-screen coordinates.');
+assert(!shareService.includes('main.hide()'),'Presenter state must not hide the main renderer because macOS can suspend hidden presenter IPC.');
+assert(shareService.includes('Do not mutate the main BrowserWindow at presenter commit.'),'Presenter state must document the macOS capture-renderer mutation constraint.');
+assert(!shareService.slice(shareService.indexOf('function hideMeetingWindowForShare()'),shareService.indexOf('function showMeetingWindow')).includes('setBounds('),'Presenter commit must not resize or relocate the capture-owning main window.');
+assert(!shareService.slice(shareService.indexOf('function hideMeetingWindowForShare()'),shareService.indexOf('function showMeetingWindow')).includes('setOpacity'),'Presenter commit must not change capture-renderer opacity.');
+assert(!shareService.slice(shareService.indexOf('function hideMeetingWindowForShare()'),shareService.indexOf('function showMeetingWindow')).includes('setVisibleOnAllWorkspaces'),'Presenter commit must not reassign the capture renderer across macOS Spaces.');
+assert(shareService.includes('keepMeetingRendererLive()'),'Presenter state must explicitly keep the meeting renderer unthrottled.');
+assert(main.includes('backgroundThrottling:false'),'The main meeting renderer must be created with background throttling disabled.');
+assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the same renderer-live collapsed presenter state.');
+assert(shareService.includes("alwaysOnTop:true")&&shareService.includes("setAlwaysOnTop(true,'floating')"),'Presenter controls must stay above shared content.');
+assert(shareService.includes('focusable:false')&&shareService.includes('acceptFirstMouse:true'),'macOS presenter toolbar must accept mouse input without becoming the focused capture window.');
+assert(shareService.includes('toolbarWindow.showInactive?.()')&&shareService.includes('created.showInactive?.()'),'Presenter toolbar must appear without stealing focus from the capture-owning renderer.');
+assert(shareService.includes("setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true"),'Presenter controls must remain available across macOS Spaces and full-screen apps.');
+assert(shareService.includes('backgroundThrottling:false'),'Presenter controls must remain responsive while the meeting is hidden.');
 assert(shareService.includes('restoreMainWindowAfterShare'),'Stopping a share must restore the original meeting window geometry.');
-assert(shareService.includes('setContentProtection'),'Presenter meeting chrome must request capture exclusion through Electron.');
-assert(shareService.includes("meetingVisible:false")&&shareService.includes("meetingVisible:true"),'Presenter controls must track compact versus full meeting visibility.');
-assert(shareCss.includes('@media(max-width:560px) and (max-height:360px)'),'Share UI must have a dedicated compact participant-panel layout.');
-assert(shareCss.includes('.participant-video-dock.count-1'),'Compact video panel must adapt to the participant count.');
+assert(shareService.includes('setIgnoreMouseEvents(false)'),'Showing a companion or stopping Share must restore meeting-window pointer input.');
+assert(shareService.includes('setContentProtection'),'DominionStar meeting chrome must request capture exclusion through Electron.');
+assert(shareIntegration.includes('window.__DominionPresenterDispatch=dispatchPresenterCommand'),'Renderer must expose one direct presenter-command dispatcher.');
+assert(shareService.includes('webContents.executeJavaScript')&&shareService.includes('window.__DominionPresenterDispatch'),'Presenter toolbar must use the direct renderer dispatch path before IPC fallback.');
+assert(shareService.includes("sendMain('share:presenter-command',outbound)"),'Legacy presenter IPC must remain only as a compatibility fallback.');
+assert(shareService.includes("meetingVisible:true"),'Presenter toolbar state must truthfully report the meeting as visible while the capture-owning renderer remains unmodified.');
 assert(presenterHtml.includes('<svg viewBox="0 0 24 24"'),'Presenter toolbar must use vector controls.');
 for(const legacyGlyph of ['◉','▣','♙','▢','Ⅱ','✎','▤'])assert(!presenterHtml.includes(legacyGlyph),`Presenter toolbar must not regress to legacy glyph ${legacyGlyph}.`);
+assert(presenterHtml.includes('data-command="stop"')&&presenterHtml.includes('Stop Share'),'Presenter toolbar must expose Stop Share directly.');
 assert(presenterCss.includes('.icon svg'),'Presenter toolbar must explicitly style its vector icon system.');
+assert(presenterCss.includes('.toolbar .stop'),'Stop Share must have dedicated presenter-toolbar styling.');
+assert(presenterJs.includes("if(command==='stop')"),'Presenter toolbar must own a direct Stop Share click transaction.');
 assert(presenterJs.includes("state?.meetingVisible?'Hide meeting':'Show meeting'"),'Presenter toolbar must expose the real meeting-window visibility state.');
 
 assert(packageJson.build?.appId==='com.dominionstar.desktop','Desktop rebuild must preserve the DominionStar macOS/Windows application identity.');
@@ -147,4 +168,4 @@ assert(packageJson.build?.win?.icon==='build/icon.svg','Windows package must use
 assert(appIcon.includes('<title id="title">DominionStar Meet</title>'),'Branded desktop icon must identify DominionStar Meet.');
 assert(appIcon.includes('geometric D monogram')&&appIcon.includes('url(#gold)')&&appIcon.includes('url(#orbit)'),'Desktop icon must retain the approved DominionStar D/star/orbit artwork.');
 
-console.log('DOMINIONSTAR_DESKTOP_FOUNDATION_OK local-home four-primary-actions personal-room stable-identity passcode-3-7 recurring-schedules live-preferences no-dead-home-chrome responsive-controls real-share-entry isolated-share-module native-compact-share-window vector-presenter-controls branded-app-identity');
+console.log('DOMINIONSTAR_DESKTOP_FOUNDATION_OK local-home four-primary-actions personal-room stable-identity passcode-3-7 recurring-schedules live-preferences no-dead-home-chrome responsive-controls real-share-entry isolated-share-module zoom-share-chooser renderer-live-presenter-state persistent-stop-share vector-presenter-controls branded-app-identity');

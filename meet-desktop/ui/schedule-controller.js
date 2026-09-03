@@ -15,7 +15,7 @@
 
   function formatWhen(item){try{return new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(item.scheduledStart));}catch{return 'No fixed time';}}
   function recurrenceLabel(item){const r=item.recurrence||{},repeat=String(r.repeat||'never');if(repeat==='never')return 'One-time';if(repeat==='weekday')return 'Every weekday';if(repeat==='custom')return `Every ${Number(r.interval)||1} ${String(r.unit||'week')}${Number(r.interval)===1?'':'s'}`;return `Every ${repeat.replace(/ly$/,'')}`;}
-  function inviteText(item){return `${item.title}\nMeeting ID: ${formatId(item.roomCode)}\nPasscode: ${item.passcode}\n${recurrenceLabel(item)} · ${formatWhen(item)}`;}
+  function inviteText(item){const link=`dominionstar-meet://join?meetingId=${encodeURIComponent(String(item.roomCode||''))}&passcode=${encodeURIComponent(String(item.passcode||''))}`;return `${item.title}\nJoin: ${link}\nMeeting ID: ${formatId(item.roomCode)}\nPasscode: ${item.passcode}\n${recurrenceLabel(item)} · ${formatWhen(item)}`;}
   async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{return false;}}
 
   function ensureScheduleOptions(){

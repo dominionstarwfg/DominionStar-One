@@ -4,15 +4,16 @@
 
   const desktop=window.dominionDesktop||{};
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const digits=v=>String(v||'').replace(/\D/g,'');
   const inMeeting=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   let shareBusy=false;
   let personalBusy=false;
   let recoveryDialog=null;
   let expectedPersonalCode='';
-  let rosterObserver=null;
-  let dockObserver=null;
-  let observedDock=null;
+  let shareStateUnsub=null;
+  let dockMouseListenersBound=false;
+  let dockMouseDrag=null;
 
   function hideLegacyShareRecovery(){
     for(const node of qa('.ds-share-permission,.ds-219-share-recovery')){
@@ -21,8 +22,18 @@
   }
 
   async function screenStatus(){
-    try{return String((await desktop.media?.permissions?.())?.screen||'unknown');}
+    try{return String((await desktop.media?.permissions?.())?.screen||'unknown').toLowerCase();}
     catch{return 'unknown';}
+  }
+
+  async function detectScreenPermission(){
+    // This helper is diagnostic only. It never enumerates desktop sources.
+    // Explicit denial is actionable; granted proceeds; not-determined/unknown
+    // must be decided by the real native getDisplayMedia request.
+    const reported=await screenStatus();
+    if(reported==='granted')return {ok:true,status:'granted',restartRequired:false,detectedBy:'tcc-status'};
+    if(reported==='denied'||reported==='restricted')return {ok:false,status:reported,restartRequired:false,detectedBy:'tcc-status'};
+    return {ok:true,status:reported,nativeDecisionRequired:true,restartRequired:false,detectedBy:'native-decision'};
   }
 
   function ensureRecoveryDialog(){
@@ -32,19 +43,25 @@
     recoveryDialog.hidden=true;
     recoveryDialog.setAttribute('role','dialog');
     recoveryDialog.setAttribute('aria-modal','true');
-    recoveryDialog.innerHTML=`<div class="ds-219-share-card"><div class="ds-219-share-icon">↥</div><div class="ds-219-share-copy"><p>SCREEN SHARING</p><h3>Screen sharing was blocked by macOS</h3><span data-ds-219-share-message></span></div><div class="ds-219-share-actions"><button type="button" data-ds-219-cancel>Not now</button><button type="button" data-ds-219-reset>Reset & Reauthorize</button><button type="button" class="primary" data-ds-219-restart>Restart DominionStar Meet</button></div></div>`;
+    recoveryDialog.innerHTML=`<div class="ds-219-share-card"><div class="ds-219-share-icon">↥</div><div class="ds-219-share-copy"><p>SCREEN SHARING</p><h3>DominionStar Meet needs Screen Recording access</h3><span data-ds-219-share-message></span></div><div class="ds-219-share-actions"><button type="button" data-ds-219-cancel>Not now</button><button type="button" data-ds-219-reset>Reset permission</button><button type="button" data-ds-219-open>Open System Settings</button><button type="button" class="primary" data-ds-219-recheck>Recheck & Share</button><button type="button" class="primary" data-ds-219-restart hidden>Restart DominionStar Meet</button></div></div>`;
     document.body.append(recoveryDialog);
     recoveryDialog.querySelector('[data-ds-219-cancel]').onclick=()=>{recoveryDialog.hidden=true;};
+    recoveryDialog.querySelector('[data-ds-219-open]').onclick=async()=>{await desktop.media?.openPrivacy?.('screen').catch?.(()=>{});};
     recoveryDialog.querySelector('[data-ds-219-restart]').onclick=()=>void desktop.app?.relaunch?.();
+    recoveryDialog.querySelector('[data-ds-219-recheck]').onclick=async event=>{
+      const button=event.currentTarget;button.disabled=true;
+      try{recoveryDialog.hidden=true;await openVerifiedShare();}
+      finally{button.disabled=false;}
+    };
     recoveryDialog.querySelector('[data-ds-219-reset]').onclick=async event=>{
       const button=event.currentTarget;button.disabled=true;
       try{
         const result=await desktop.app?.resetScreenPermission?.();
-        recoveryDialog.hidden=true;
         if(result?.ok===false)throw new Error(result.error||'Unable to reset Screen Recording permission.');
         await desktop.media?.openPrivacy?.('screen').catch?.(()=>{});
+        const message=recoveryDialog.querySelector('[data-ds-219-share-message]');
+        if(message)message.textContent='The Screen Recording entry was reset. Enable DominionStar Meet in System Settings, then return here and choose Recheck & Share.';
       }catch(error){
-        recoveryDialog.hidden=false;
         const message=recoveryDialog.querySelector('[data-ds-219-share-message]');
         if(message)message.textContent=String(error?.message||error||'Unable to reset Screen Recording permission.');
       }finally{button.disabled=false;}
@@ -52,17 +69,23 @@
     return recoveryDialog;
   }
 
-  async function showRecovery(status='unknown'){
+  async function showRecovery(status='unknown',restartRequired=false){
     hideLegacyShareRecovery();
     const dialog=ensureRecoveryDialog();
     let identity={};try{identity=await desktop.app?.privacyIdentity?.()||{};}catch{}
     const message=dialog.querySelector('[data-ds-219-share-message]');
+    const restart=dialog.querySelector('[data-ds-219-restart]');
     const unstable=identity?.stableAcrossRebuilds===false;
     if(message){
-      message.textContent=unstable
-        ? `The native macOS screen-capture request failed for this installed build (status: ${status}). This prototype is ad-hoc signed, so a grant left by an older build may not apply to this binary. Reset & Reauthorize only after the native picker fails, then restart DominionStar Meet once.`
-        : `The native macOS screen-capture request failed (status: ${status}). Reauthorize Screen Recording, then restart DominionStar Meet once.`;
+      if(restartRequired){
+        message.textContent='macOS sees a Screen Recording permission record, but this running process still cannot capture. Restart DominionStar Meet once, then Share Screen should proceed without asking again.';
+      }else if(unstable){
+        message.textContent=`Screen Recording is not available to this installed prototype yet (status: ${status}). Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording, then return and choose Recheck & Share. Reset permission is only for a stale macOS entry.`;
+      }else{
+        message.textContent=`Screen Recording is not enabled (status: ${status}). Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording, then return and choose Recheck & Share.`;
+      }
     }
+    if(restart)restart.hidden=!restartRequired;
     dialog.hidden=false;
   }
 
@@ -70,14 +93,14 @@
     if(shareBusy||!inMeeting())return false;
     shareBusy=true;hideLegacyShareRecovery();
     try{
-      // 2.0.21 rule: never enumerate screen sources as a permission probe before
-      // getDisplayMedia. The native macOS picker must receive the user gesture.
+      const permission=await detectScreenPermission();
+      if(!permission.ok){await showRecovery(permission.status,false);return false;}
       const integration=window.DominionShareIntegration;
       if(!integration?.open)throw new Error('Screen-share integration is not ready.');
       return await integration.open();
     }catch(error){
       const status=await screenStatus();
-      await showRecovery(status||String(error?.name||'unknown'));
+      await showRecovery(status||String(error?.name||'unknown'),status==='granted');
       return false;
     }finally{shareBusy=false;}
   }
@@ -138,54 +161,131 @@
     if(heading.textContent!==next)heading.textContent=next;
   }
 
+  function bindVideoDockMouseDrag(){
+    if(dockMouseListenersBound)return;
+    dockMouseListenersBound=true;
+
+    const interactiveTarget=target=>Boolean(target?.closest?.('button,input,select,textarea,a,.participant-video-resize'));
+    const dockAtPoint=event=>{
+      const direct=event.target?.closest?.('#participantVideoDock');
+      if(direct)return direct;
+      if(Number.isFinite(event.clientX)&&Number.isFinite(event.clientY)&&document.elementsFromPoint){
+        for(const node of document.elementsFromPoint(event.clientX,event.clientY)){
+          const candidate=node?.closest?.('#participantVideoDock');
+          if(candidate)return candidate;
+        }
+      }
+      const current=q('#participantVideoDock');
+      if(!current||current.hidden||!Number.isFinite(event.clientX)||!Number.isFinite(event.clientY))return null;
+      const r=current.getBoundingClientRect();
+      return event.clientX>=r.left-2&&event.clientX<=r.right+2&&event.clientY>=r.top-2&&event.clientY<=r.bottom+2?current:null;
+    };
+    const primeDock=(dock,event,source)=>{
+      if(!dock||dock.hidden||interactiveTarget(event.target))return false;
+      if(dockMouseDrag)return dockMouseDrag.dock===dock;
+      const stage=q('.stage');if(!stage)return false;
+      const dr=dock.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+      dock.dataset.dsMacMouseDragBound='1';
+      dockMouseDrag={dock,dx:event.clientX-dr.left,dy:event.clientY-dr.top,source,pointerId:event.pointerId??null};
+      dock.classList.add('user-positioned','dragging');
+      dock.style.setProperty('right','auto','important');
+      dock.style.setProperty('bottom','auto','important');
+      dock.style.setProperty('left',`${Math.max(8,dr.left-sr.left)}px`,'important');
+      dock.style.setProperty('top',`${Math.max(8,dr.top-sr.top)}px`,'important');
+      event.preventDefault();
+      return true;
+    };
+    const begin=event=>{
+      if(event.button!==0)return;
+      const dock=dockAtPoint(event);if(!dock)return;
+      primeDock(dock,event,event.type.startsWith('pointer')?'pointer':'mouse');
+    };
+    const liveDock=()=>{
+      let dock=dockMouseDrag?.dock;
+      if(dock?.isConnected)return dock;
+      const replacement=q('#participantVideoDock');
+      if(!dockMouseDrag||!replacement||replacement.hidden){dockMouseDrag=null;return null;}
+      dockMouseDrag.dock=replacement;
+      replacement.dataset.dsMacMouseDragBound='1';
+      replacement.classList.add('user-positioned','dragging');
+      replacement.style.setProperty('right','auto','important');
+      replacement.style.setProperty('bottom','auto','important');
+      dock=replacement;
+      return dock;
+    };
+    const move=event=>{
+      if(!dockMouseDrag)return;
+      if(event.type.startsWith('pointer')&&dockMouseDrag.pointerId!=null&&event.pointerId!==dockMouseDrag.pointerId)return;
+      const dock=liveDock();if(!dock)return;
+      const stage=q('.stage');if(!stage)return;const sr=stage.getBoundingClientRect();
+      const left=clamp(event.clientX-sr.left-dockMouseDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8));
+      const top=clamp(event.clientY-sr.top-dockMouseDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8));
+      dock.style.setProperty('left',`${left}px`,'important');
+      dock.style.setProperty('top',`${top}px`,'important');
+      event.preventDefault();
+    };
+    const end=event=>{
+      if(!dockMouseDrag)return;
+      if(event?.type?.startsWith('pointer')&&dockMouseDrag.pointerId!=null&&event.pointerId!==dockMouseDrag.pointerId)return;
+      const dock=liveDock();dockMouseDrag=null;if(dock?.isConnected)dock.classList.remove('dragging');
+    };
+
+    // Pointer events are the primary modern path; mouse events remain as a
+    // compatibility fallback for Chromium/CDP and native Mac mouse synthesis.
+    document.addEventListener('pointerdown',begin,true);
+    document.addEventListener('mousedown',begin,true);
+    document.addEventListener('pointermove',move,true);
+    document.addEventListener('mousemove',move,true);
+    document.addEventListener('pointerup',end,true);
+    document.addEventListener('pointercancel',end,true);
+    document.addEventListener('mouseup',end,true);
+  }
+
   function syncVideoDockPolicy(){
     const dock=q('#participantVideoDock'),overlay=q('#meetingOverlay');if(!dock||!overlay||overlay.hidden)return;
+    bindVideoDockMouseDrag();dock.dataset.dsMacMouseDragBound='1';
     const shared=overlay.classList.contains('share-active')||document.body.classList.contains('remote-share-active');
     const view=String(overlay.dataset.viewMode||'speaker');
     const visibleTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')).length;
     const rosterCount=q('#participantRoster')?.querySelectorAll('[data-participant-id]').length||0;
     const participantCount=Math.max(rosterCount,visibleTiles+(q('#localVideoDockTile')?1:0));
     const thresholdApplies=!shared&&view==='speaker';
-    const suppress=thresholdApplies&&participantCount<=2;
-    dock.dataset.zoomThreshold=suppress?'suppressed-under-3':'available';
+    // A two-person Zoom-style call must retain the right filmstrip. Suppression is
+    // only valid for a truly empty solo dock where there is no tile to present.
+    const suppress=thresholdApplies&&participantCount<=1&&visibleTiles===0;
+    dock.dataset.zoomThreshold=suppress?'empty-solo':'available';
     if(suppress){if(!dock.hidden)dock.hidden=true;return;}
     if(shared){
       const allowed=window.DominionPreferences?.read?.('shareVideoDock')!==false;
       if(allowed&&visibleTiles>0&&dock.hidden)dock.hidden=false;
       return;
     }
-    if(thresholdApplies&&participantCount>2&&visibleTiles>0&&dock.hidden)dock.hidden=false;
+    if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false;
   }
 
-  function installRosterObserver(){
-    const roster=q('#participantRoster');if(!roster||rosterObserver)return;
-    rosterObserver=new MutationObserver(()=>{syncParticipantCount();syncVideoDockPolicy();});
-    rosterObserver.observe(roster,{childList:true,subtree:true});syncParticipantCount();
+  function bindShareState(){
+    if(shareStateUnsub||!window.DominionShareController?.onChange)return;
+    shareStateUnsub=window.DominionShareController.onChange(()=>requestAnimationFrame(syncVideoDockPolicy));
   }
 
-  function installDockObserver(){
-    const dock=q('#participantVideoDock');if(!dock||dock===observedDock)return;
-    dockObserver?.disconnect();observedDock=dock;
-    dockObserver=new MutationObserver(()=>syncVideoDockPolicy());
-    dockObserver.observe(dock,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
-    syncVideoDockPolicy();
-  }
+  function sync(){syncPersonalChoice();syncParticipantCount();syncVideoDockPolicy();bindVideoDockMouseDrag();bindShareState();}
 
-  function sync(){syncPersonalChoice();installRosterObserver();syncParticipantCount();installDockObserver();syncVideoDockPolicy();}
+  function onDocumentClick(event){
+    // Share Screen is intentionally NOT intercepted here. The isolated Share
+    // integration owns that click so permission status, native picker and real
+    // getDisplayMedia failure all stay in one transaction.
+    if(event.target?.closest?.('#newMeetingUsePersonal'))requestAnimationFrame(syncPersonalChoice);
+  }
 
   document.addEventListener('submit',event=>void startSelectedPersonalMeeting(event),true);
-  document.addEventListener('click',event=>{
-    const share=event.target?.closest?.('#roomShare');
-    if(share&&inMeeting()){
-      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-      void openVerifiedShare();return;
-    }
-    if(event.target?.closest?.('#newMeetingUsePersonal'))requestAnimationFrame(syncPersonalChoice);
-  },true);
+  document.addEventListener('click',onDocumentClick,true);
   window.addEventListener('dominion:meeting-ui-ready',()=>{sync();void verifyLivePersonalIdentity();});
   window.addEventListener('dominion:meeting-snapshot',()=>{syncParticipantCount();syncVideoDockPolicy();void verifyLivePersonalIdentity();});
-  new MutationObserver(()=>sync()).observe(document.body,{childList:true,subtree:true});
-  setInterval(sync,900);sync();
+  window.addEventListener('dominion:participant-presence',()=>{syncParticipantCount();syncVideoDockPolicy();});
+  window.addEventListener('resize',()=>requestAnimationFrame(syncVideoDockPolicy),{passive:true});
+  window.addEventListener('dominion:meeting-ended',()=>{expectedPersonalCode='';document.body.dataset.dsExpectedPersonalRoomCode='';dockMouseDrag=null;});
+  bindVideoDockMouseDrag();
+  sync();
 
-  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy});
+  window.DominionPhysicalMacRepair=Object.freeze({version:'2.0.21',openVerifiedShare,showRecovery,detectScreenPermission,syncPersonalChoice,verifyLivePersonalIdentity,syncParticipantCount,syncVideoDockPolicy,bindVideoDockMouseDrag,sync});
 })();

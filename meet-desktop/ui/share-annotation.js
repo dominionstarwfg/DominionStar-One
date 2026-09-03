@@ -22,8 +22,19 @@
     const overlay=document.createElement('div');overlay.className='share-annotation-overlay';overlay.hidden=true;overlay.innerHTML='<canvas class="share-annotation-canvas"></canvas><div class="share-annotation-tools"><button type="button" data-annotation-mode="pen">Pen</button><button type="button" data-annotation-mode="highlight">Highlight</button><button type="button" data-annotation-mode="laser">Laser</button><button type="button" data-annotation-mode="erase">Erase</button><span class="annotation-colors" aria-label="Annotation color"><button type="button" data-annotation-color="#ff3b30" class="active" aria-label="Red"></button><button type="button" data-annotation-color="#2d8cff" aria-label="Blue"></button><button type="button" data-annotation-color="#28c76f" aria-label="Green"></button><button type="button" data-annotation-color="#ffffff" aria-label="White"></button></span><button type="button" data-annotation-undo disabled>Undo</button><button type="button" data-annotation-clear>Clear</button><button type="button" data-annotation-close>Done</button></div>';stage.append(overlay);state.overlay=overlay;state.canvas=overlay.querySelector('canvas');state.ctx=state.canvas.getContext('2d');state.canvas.addEventListener('pointerdown',down);state.canvas.addEventListener('pointermove',move);state.canvas.addEventListener('pointerup',up);state.canvas.addEventListener('pointercancel',up);overlay.querySelectorAll('[data-annotation-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.annotationMode));overlay.querySelectorAll('[data-annotation-color]').forEach(b=>b.onclick=()=>{state.color=b.dataset.annotationColor||'#ff3b30';overlay.querySelectorAll('[data-annotation-color]').forEach(x=>x.classList.toggle('active',x===b));});overlay.querySelector('[data-annotation-undo]').onclick=undo;overlay.querySelector('[data-annotation-clear]').onclick=clear;overlay.querySelector('[data-annotation-close]').onclick=()=>deactivate();state.resizeObserver=new ResizeObserver(resize);state.resizeObserver.observe(stage);resize();setMode('pen');syncUndo();return overlay;
   }
   function activate(){const controller=share();if(!controller?.snapshot?.().active)return false;const overlay=ensure();if(!overlay)return false;state.active=true;overlay.hidden=false;overlay.classList.add('active');resize();controller.setAnnotationCanvas(state.canvas);return true;}
-  function deactivate(){state.active=false;state.drawing=false;clearLaser();if(state.overlay){state.overlay.classList.remove('active');state.overlay.hidden=true;}share()?.setAnnotationCanvas?.(null);return false;}
+  function deactivate(){
+    const controller=share();
+    const controllerAnnotating=Boolean(controller?.snapshot?.().annotating);
+    const changed=state.active||state.drawing||controllerAnnotating;
+    state.active=false;state.drawing=false;clearLaser();
+    if(state.overlay){state.overlay.classList.remove('active');state.overlay.hidden=true;}
+    // Do not feed a no-op null canvas back into ShareController. Before capture
+    // becomes active, layout synchronization legitimately asks annotation to be
+    // inactive; that must remain an idempotent state, not an emit recursion.
+    if(controllerAnnotating)controller?.setAnnotationCanvas?.(null);
+    return changed?false:false;
+  }
   function toggle(){return state.active?deactivate():activate();}
   setInterval(()=>{if(state.active&&!share()?.snapshot?.().active)deactivate();},400);
-  window.DominionShareAnnotation=Object.freeze({version:'1.1.0',activate,deactivate,toggle,clear,undo,setMode,snapshot:()=>({active:state.active,mode:state.mode,color:state.color,undoDepth:state.history.length})});
+  window.DominionShareAnnotation=Object.freeze({version:'1.1.1',activate,deactivate,toggle,clear,undo,setMode,snapshot:()=>({active:state.active,mode:state.mode,color:state.color,undoDepth:state.history.length})});
 })();

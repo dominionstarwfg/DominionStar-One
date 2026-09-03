@@ -56,6 +56,11 @@ jobs:
       - name: Run complete production certification
         working-directory: meet-desktop
         run: |
+          node --check ui/zoom-reaction-parity.js
+          node --check ui/zoom-contract-bridge.js
+          node --check ui/physical-mac-repair.js
+          node --check ui/runtime-stability.js
+          node --check scripts/verify-packaged-reaction-flow-2.0.22.mjs
           node scripts/verify-release-standard.mjs
           node scripts/verify-foundation.mjs
           node scripts/verify-auth.mjs
@@ -75,6 +80,8 @@ jobs:
           node scripts/verify-physical-mac-2.0.21.mjs
           node scripts/verify-zoom-window-parity.mjs
           node scripts/verify-physical-parity-2.0.21.mjs
+          node scripts/verify-approved-reference-parity-2.0.22.mjs
+          node scripts/verify-runtime-stability-2.0.22.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop
@@ -126,6 +133,16 @@ jobs:
           fi
           echo DOMINIONSTAR_PRODUCTION_MAC_LAUNCH_OK
 
+      - name: Verify packaged single-instance authority
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-single-instance-2.0.28.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged physical runtime stability
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-runtime-stability-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Exercise packaged desktop controls
         working-directory: meet-desktop
         env:
@@ -150,6 +167,12 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-reaction-parity.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Verify packaged high-volume reaction flow
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-reaction-flow-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Verify packaged 2.0.21 physical Mac repairs
         working-directory: meet-desktop
         run: node scripts/verify-packaged-physical-mac-2.0.21.mjs "../${{ steps.app.outputs.path }}"
@@ -159,6 +182,12 @@ jobs:
         env:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-zoom-window-parity.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged approved 3D reference parity
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Create installable DMG, archive, and checksums
         shell: bash
@@ -183,7 +212,7 @@ jobs:
           test -s "$DMG"
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" "$ZIP"
           shasum -a 256 "$DMG" "$ZIP" | tee production-artifact/SHA256.txt
-          printf 'commit=%s\nversion=%s\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\ntcc_persistence=not-certified-adhoc\nphysical_reference=zoom-current-macos\nnative_share_picker=macos-15-plus\n' "$GITHUB_SHA" "${{ steps.meta.outputs.version }}" > production-artifact/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=%s\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\ntcc_persistence=not-certified-adhoc\nphysical_reference=approved-3d-plus-zoom-current-macos\nnative_share_picker=macos-15-plus\nreference_gate=approved-2.0.22\nruntime_stability_gate=physical-freeze-full-window-panels\nreaction_flow_gate=left-lanes-blossoms-bounded\n' "$GITHUB_SHA" "${{ steps.meta.outputs.version }}" > production-artifact/BUILD-PROVENANCE.txt
 
       - name: Verify installer layout and installed app identity
         shell: bash

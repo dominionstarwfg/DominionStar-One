@@ -39,30 +39,32 @@ try{
   const page=await target();socket=await connect(page.webSocketDebuggerUrl);
   socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(message.method==='Runtime.exceptionThrown'){const details=message.params?.exceptionDetails;runtimeErrors.push(details?.exception?.description||details?.text||'Uncaught renderer exception');return;}if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
   await cdp('Runtime.enable');
-  await waitFor("document.readyState==='complete'&&window.DominionMeetingParity&&window.DominionZoomPhysicalAcceptance&&window.DominionZoomReactionParity",'reaction parity authorities');
-  await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionZoomPhysicalAcceptance.sync();window.DominionZoomReactionParity.scan();return true;})()`);
-  await waitFor("document.querySelector('#meetingReactionLayer')",'meeting reaction layer');
+  await waitFor("document.readyState==='complete'&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionZoomProductionPolish&&window.DominionZoomPhysicalAcceptance&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&window.DominionZoomReactionParity",'final reaction parity authorities');
+  await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionMeetingParity.decorateControls();window.DominionZoomProductionPolish.sync();window.DominionZoomPhysicalAcceptance.sync();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();window.DominionZoomReactionParity.mount();return true;})()`);
+  await waitFor("document.querySelector('#meetingReactionLayer')&&window.DominionZoomReactionParity.mount()",'meeting reaction layer');
 
   const started=Date.now();
-  await evaluate(`(()=>{const layer=document.querySelector('#meetingReactionLayer');layer.querySelectorAll('.meeting-reaction-bubble,.ds-reaction-float').forEach(n=>n.remove());const bubble=document.createElement('div');bubble.className='meeting-reaction-bubble';bubble.innerHTML='<b>❤️</b><span>Reaction QA</span>';layer.append(bubble);return true;})()`);
-  await waitFor("document.querySelector('.ds-reaction-float[data-ds-reaction-parity=\"10s\"]')",'canonical 10-second reaction');
-  const initial=await evaluate(`(()=>{const n=document.querySelector('.ds-reaction-float[data-ds-reaction-parity="10s"]'),s=getComputedStyle(n);return {duration:parseFloat(s.animationDuration),name:n.querySelector('span')?.textContent||'',direction:s.flexDirection};})()`);
+  await evaluate(`(()=>{window.DominionZoomReactionParity.mount();const layer=document.querySelector('#meetingReactionLayer');layer.querySelectorAll('.meeting-reaction-bubble,.ds-reaction-float,.ds-zoom-floating-reaction').forEach(n=>n.remove());const bubble=document.createElement('div');bubble.className='meeting-reaction-bubble';bubble.innerHTML='<b>❤️</b><span>Reaction QA</span>';layer.append(bubble);return true;})()`);
+  await waitFor("document.querySelector('.ds-zoom-floating-reaction[data-ds-reaction-parity=\"10s\"]')",'canonical 10-second reaction');
+  const initial=await evaluate(`(()=>{const n=document.querySelector('.ds-zoom-floating-reaction[data-ds-reaction-parity="10s"]'),s=getComputedStyle(n);return {duration:parseFloat(s.animationDuration),name:n.querySelector('span')?.textContent||'',direction:s.flexDirection,lane:n.dataset.dsReactionLane||''};})()`);
   assert.ok(initial.duration>=9.9&&initial.duration<=10.2,`Reaction animation must be 10 seconds, received ${initial.duration}s.`);
   assert.equal(initial.name,'Reaction QA','Reaction identity must remain attached to the emitted reaction.');
   assert.equal(initial.direction,'column','Reaction identity must remain beneath the emoji.');
+  assert.ok(Number.isFinite(Number(initial.lane)),'Reaction must be assigned to a bounded left-side lane.');
 
-  // This is the regression boundary that 2.0.16 failed: it removed the reaction at 6.3 seconds.
+  // Regression boundary: the old physical implementation removed reactions at
+  // roughly 6.3 seconds. The final canonical reaction must still exist here.
   await sleep(6700);
-  const aliveAtBoundary=await evaluate(`Boolean(document.querySelector('.ds-reaction-float[data-ds-reaction-parity="10s"]'))`);
-  assert.equal(aliveAtBoundary,true,'Reaction disappeared at or before the old 6.3-second regression boundary.');
+  const aliveAtBoundary=await evaluate(`Boolean(document.querySelector('.ds-zoom-floating-reaction[data-ds-reaction-parity="10s"]'))`);
+  assert.equal(aliveAtBoundary,true,'Reaction disappeared at or before the old early-removal boundary.');
 
   const elapsed=Date.now()-started;
   if(elapsed<10150)await sleep(10150-elapsed);
-  await waitFor("!document.querySelector('.ds-reaction-float[data-ds-reaction-parity=\"10s\"]')",'reaction removal after 10 seconds',1800);
+  await waitFor("!document.querySelector('.ds-zoom-floating-reaction[data-ds-reaction-parity=\"10s\"]')",'reaction removal after 10 seconds',1800);
 
   assert.deepEqual(runtimeErrors,[],'Reaction parity gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error during reaction parity.');
-  console.log('DOMINIONSTAR_PACKAGED_REACTION_PARITY_OK duration=10s alive-after-6.7s removed-after-10s no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_REACTION_PARITY_OK duration=10s survives-old-boundary removed-after-window no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{
   for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('reaction parity shutdown'));}pending.clear();
   try{socket?.close();}catch{}
