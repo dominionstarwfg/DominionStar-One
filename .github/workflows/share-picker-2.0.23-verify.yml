@@ -2,12 +2,13 @@ name: DominionStar Meet Share Picker 2.0.23
 
 on:
   pull_request:
-    branches: [fix/approved-illustration-parity-2.0.22]
+    branches: [ci/stacked-2.0.23-base]
     paths:
       - 'meet-desktop/ui/share-picker.html'
       - 'meet-desktop/ui/share-picker.css'
       - 'meet-desktop/ui/share-picker.js'
       - 'meet-desktop/scripts/verify-share-picker-2.0.23.mjs'
+      - 'meet-desktop/scripts/verify-packaged-share-picker-2.0.23.mjs'
       - 'meet-desktop/scripts/verify-share-authority.mjs'
       - '.github/workflows/share-picker-2.0.23-verify.yml'
   workflow_dispatch:
@@ -33,9 +34,47 @@ jobs:
         run: |
           node --check ui/share-picker.js
           node --check scripts/verify-share-picker-2.0.23.mjs
+          node --check scripts/verify-packaged-share-picker-2.0.23.mjs
       - name: Verify Zoom-style picker contract
         working-directory: meet-desktop
         run: node scripts/verify-share-picker-2.0.23.mjs
       - name: Re-run inherited share authority
         working-directory: meet-desktop
         run: node scripts/verify-share-authority.mjs
+
+  picker-mac-package:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+      DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+    steps:
+      - name: Checkout picker candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install rebuild dependencies
+        working-directory: meet-desktop
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify packaged picker test syntax
+        working-directory: meet-desktop
+        run: node --check scripts/verify-packaged-share-picker-2.0.23.mjs
+      - name: Build signed arm64 QA app
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --arm64 --publish never
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          du -sh "$APP_PATH"
+      - name: Exercise packaged Zoom-style share picker
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-share-picker-2.0.23.mjs "../${{ steps.app.outputs.path }}"
