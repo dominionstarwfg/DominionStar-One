@@ -10,7 +10,7 @@
   };
   const scheduleAutoHide=()=>{
     if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}
-    if(menusOpen()||document.activeElement?.closest?.('button'))return;
+    if(menusOpen())return;
     hideTimer=setTimeout(()=>{
       hideTimer=0;
       if(menusOpen())return;
@@ -26,7 +26,7 @@
   const routedCommand=command=>['chat','participants','annotate','stop'].includes(String(command||''))?`toolbar:${command}`:String(command||'');
   function closeReactions(){reactions?.remove();reactions=null;toolbar.classList.remove('menu-open');}
   function openReactions(anchor){
-    closeReactions();reactions=document.createElement('div');reactions.className='presenter-reaction-menu';
+    closeReactions();toolbar.classList.add('menu-open');reactions=document.createElement('div');reactions.className='presenter-reaction-menu';
     for(const emoji of ['👏','👍','❤️','😂','😮','🎉']){const button=document.createElement('button');button.type='button';button.textContent=emoji;button.onclick=()=>{closeReactions();more.hidden=true;setMenuExpanded(false);void bridge?.command?.(`reaction:${emoji}`);};reactions.append(button);}
     const hand=document.createElement('button');hand.type='button';hand.className='presenter-hand-action';hand.textContent=handRaised?'✋ Lower Hand':'✋ Raise Hand';hand.onclick=()=>{closeReactions();more.hidden=true;setMenuExpanded(false);void bridge?.command?.('toggle-hand');};reactions.append(hand);
     anchor.parentElement.append(reactions);
