@@ -7,10 +7,12 @@ const css=read('ui/zoom-physical-acceptance.css');
 const bootstrap=read('ui/auth-password.js');
 const presenter=read('ui/presenter-toolbar.js');
 const features=read('ui/meeting-features.js');
+const integration=read('ui/share-integration.js');
 
 new Function(js);
 new Function(presenter);
 new Function(features);
+new Function(integration);
 
 assert(bootstrap.includes('zoom-physical-acceptance.css')&&bootstrap.includes('zoom-physical-acceptance.js'),'Physical acceptance authority must load after the production polish layer.');
 assert(js.includes("button.dataset.dsPhysicalAuthority='1'")&&js.includes('installViewAuthority')&&js.includes('installHostToolsAuthority')&&js.includes('installMoreAuthority'),'View, Host Tools and More must have explicit visible-control authority.');
@@ -37,12 +39,14 @@ assert(js.includes('upgradeReactionBubble')&&js.includes('setTimeout(()=>replace
 assert(css.includes('animation:dsPhysicalReactionRise 6.2s')&&css.includes('flex-direction:column')&&css.includes('calc(-88vh + 120px)'),'Reaction must rise substantially up the left side with the participant name beneath the emoji.');
 assert(css.includes('.ds-reaction-tray{position:fixed;z-index:2800')||css.includes('.meeting-reaction-menu'),'Reaction chooser must remain clickable above meeting layers.');
 
-assert(js.includes('openSmartSharePicker')&&js.includes('sharePicker?.listSources?.({kind,includeDominionStar:false})'),'Share permission authority must test actual desktop sources instead of relying only on stale TCC status.');
-assert(js.includes('desktop.sharePicker.choose(selectedShareId,options)'),'Share picker must feed the selected real source into the existing capture pipeline.');
+assert(js.includes('openSmartSharePicker')&&js.includes('sharePicker?.listSources?.({kind,includeDominionStar:false})'),'Share permission compatibility authority must still test actual desktop sources instead of relying only on stale TCC status.');
+assert(js.includes('desktop.sharePicker.choose(selectedShareId,options)'),'Compatibility share picker must feed the selected real source into the existing capture pipeline.');
 assert(js.includes("sessionStorage.setItem('ds_screen_settings_opened','1')")&&js.includes('Recheck'),'Permission recovery must remember that Settings was opened and provide an active recheck path instead of looping blindly.');
-assert(presenter.includes("if(command==='new-share')command='smart-new-share'"),'Floating share toolbar New Share must use the same real-source authority.');
-assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-grid'),'Screen sharing must expose a production source picker instead of another permission-only dialog.');
+assert(presenter.includes('await bridge?.command?.(routedCommand(command));'),'Floating presenter controls must route commands through the presenter bridge.');
+assert(integration.includes("if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}"),'Presenter New Share must be handled by the canonical Share Integration.');
+assert(integration.includes("async function openPickerWithPermission(){clearCompanion();return beginShare({replace:share.snapshot().active});}"),'Presenter New Share must reopen the same permission-aware approved share entry.');
+assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-grid'),'Compatibility screen sharing must retain a real-source picker rather than a permission-only dialog.');
 assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
 assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance module version must be explicit.');
 
-console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_2_0_41_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions six-second-float real-source-share-recheck readable-settings');
+console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_2_0_41_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions six-second-float canonical-presenter-new-share real-source-recheck readable-settings');
