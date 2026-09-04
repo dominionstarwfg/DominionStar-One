@@ -58,6 +58,7 @@ has(js,"writePref('ds_pref_share_audio',shareAudio)",'Share sound preference mus
 has(js,"writePref('ds_pref_share_optimize',optimizeVideo)",'Video optimization preference must persist.');
 has(css,'.source-card.selected','Selected source needs a strong desktop-style visual state.');
 has(css,'.selection-preview-frame','Large selected-source preview styling is missing.');
+has(css,'.loading-state[hidden],.error-state[hidden]{display:none!important}','Hidden loading/error overlays must be physically non-rendering once a valid share source is available.');
 
 lacks(js,'getDisplayMedia','Share picker must not capture media directly.');
 lacks(js,'desktopCapturer','Share picker renderer must not own Electron capture authority.');
@@ -65,4 +66,4 @@ has(shareService,'setDisplayMediaRequestHandler','Native capture authority must 
 has(shareController,'navigator.mediaDevices.getDisplayMedia','Certified renderer capture start remains in share-controller.');
 has(shareIntegration,'window.DominionShareController','Certified meeting/share integration remains the activation path.');
 
-console.log('DOMINIONSTAR_SHARE_PICKER_2_0_25_OK carried-forward-on='+pkg.version+' zoom-current-screens advanced-more real-previews source-search filters manual-refresh bounded-auto-refresh selection-preserved explicit-share-options keyboard-doubleclick no-dead-cards capture-authority-untouched');
+console.log('DOMINIONSTAR_SHARE_PICKER_2_0_25_OK carried-forward-on='+pkg.version+' zoom-current-screens advanced-more real-previews source-search filters manual-refresh bounded-auto-refresh selection-preserved explicit-share-options hidden-state-authority keyboard-doubleclick no-dead-cards capture-authority-untouched');
