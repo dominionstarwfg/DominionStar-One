@@ -1,4 +1,5 @@
 name: DominionStar Meet 2.0.41 Functional QA Certification
+# Exact-head certification includes canonical ui/index.html command-routing proof.
 
 on:
   pull_request:
