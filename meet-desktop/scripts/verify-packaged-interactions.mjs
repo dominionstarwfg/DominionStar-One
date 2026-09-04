@@ -205,7 +205,7 @@ try{
   // the same JavaScript call stack as the button click.
   await evaluate(`document.querySelector('#roomMore').click();true`);
   await waitFor("document.querySelector('.meeting-more-menu')",'production More menu',2500);
-  assert.equal(await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu');const text=menu?.textContent||'';menu?.remove();return !text.includes('Diagnostics')&&text.includes('Meeting settings');})()`),true,'Production More menu must contain working secondary controls without Diagnostics.');
+  assert.equal(await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu');const text=menu?.textContent||'';menu?.remove();return !text.includes('Diagnostics')&&text.includes('Settings');})()`),true,'Production More menu must contain the approved Settings control without Diagnostics.');
   mark('share-integration-wired');
   await sleep(200);
   await waitFor("document.querySelector('#roomParticipants')&&document.querySelector('#roomMore')&&document.querySelector('#roomSettings')&&document.querySelector('#roomChat')&&document.querySelector('#roomReactions')&&document.querySelector('#roomRaiseHand')","meeting controls",7000);mark('meeting-controls');
@@ -237,7 +237,6 @@ try{
   await waitFor("document.querySelector('.meeting-more-menu')",'More menu',2500);
   assert.equal(await evaluate(`Boolean(document.querySelector('.meeting-more-menu'))`),true,'More control did not open its menu.');
   await evaluate(`document.querySelector('.meeting-more-menu')?.remove()`);mark('more');
-
   assert.equal(await evaluate(`(()=>{document.querySelector('#roomSettings').click();return document.querySelector('#settingsDialog').open;})()`),true,'Meeting Settings control did not open Settings.');
   await evaluate(`document.querySelector('#settingsDialog').close()`);mark('meeting-settings');
 
