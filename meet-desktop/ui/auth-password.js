@@ -16,10 +16,17 @@
   if(!runtimeLayoutStyle){runtimeLayoutStyle=document.createElement('link');runtimeLayoutStyle.rel='stylesheet';runtimeLayoutStyle.href='./runtime-layout-fix.css';runtimeLayoutStyle.dataset.dsRuntimeLayoutFix='1';document.head.append(runtimeLayoutStyle);}
   let runtimeMotionStyle=document.querySelector('link[data-ds-runtime-motion]');
   if(!runtimeMotionStyle){runtimeMotionStyle=document.createElement('link');runtimeMotionStyle.rel='stylesheet';runtimeMotionStyle.href='./runtime-motion.css';runtimeMotionStyle.dataset.dsRuntimeMotion='1';document.head.append(runtimeMotionStyle);}
+  let screenshotReferenceStyle=document.querySelector('link[data-ds-zoom-screenshot-reference-2041]');
+  if(!screenshotReferenceStyle){screenshotReferenceStyle=document.createElement('link');screenshotReferenceStyle.rel='stylesheet';screenshotReferenceStyle.href='./zoom-screenshot-reference-2.0.41.css';screenshotReferenceStyle.dataset.dsZoomScreenshotReference2041='1';document.head.append(screenshotReferenceStyle);}
 
+  const loadScreenshotReference=()=>{
+    if(document.querySelector('script[data-ds-zoom-screenshot-reference-2041]'))return;
+    const script=document.createElement('script');script.src='./zoom-screenshot-reference-2.0.41.js';script.dataset.dsZoomScreenshotReference2041='1';document.head.append(script);
+  };
   const loadRuntimeStability=()=>{
-    if(document.querySelector('script[data-ds-runtime-stability]'))return;
-    const script=document.createElement('script');script.src='./runtime-stability.js';script.dataset.dsRuntimeStability='1';document.head.append(script);
+    const existing=document.querySelector('script[data-ds-runtime-stability]');
+    if(existing){if(window.DominionRuntimeStability)loadScreenshotReference();else existing.addEventListener('load',loadScreenshotReference,{once:true});return;}
+    const script=document.createElement('script');script.src='./runtime-stability.js';script.dataset.dsRuntimeStability='1';script.onload=loadScreenshotReference;document.head.append(script);
   };
   const loadApprovedReference=()=>{
     const existing=document.querySelector('script[data-ds-approved-reference-parity]');
@@ -46,9 +53,9 @@
   if(!document.querySelector('script[data-ds-zoom-contract-bridge]')){const script=document.createElement('script');script.src='./zoom-contract-bridge.js';script.dataset.dsZoomContractBridge='1';document.head.append(script);}
   if(!document.querySelector('script[data-ds-presenter-command-parity-227]')){const script=document.createElement('script');script.src='./presenter-command-parity-2.0.27.js';script.dataset.dsPresenterCommandParity227='1';document.head.append(script);}
 
-  // Physical-Mac repair remains ahead of adaptive parity. Approved-reference
-  // parity loads after adaptive parity, and runtime stability loads last so the
-  // live meeting has one event-driven geometry/click authority.
+  // One sequencing rule: physical repair -> adaptive -> approved -> runtime ->
+  // screenshot reference. The screenshot authority is intentionally last and
+  // owns only the visible reference surfaces, not media or meeting transport.
   if(physicalStyle.sheet)loadPhysicalRepair();
   else{
     physicalStyle.addEventListener('load',loadPhysicalRepair,{once:true});

@@ -26,6 +26,7 @@ assert(peer.includes('data-share-audio-peer')&&peer.includes('routeAudioElement'
 assert(peer.includes("degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced'")&&peer.includes('4500000:2500000'),'Optimize for Video must change outgoing screen-share transport behavior, not just picker copy.');
 assert(peer.includes('shareAudioSender')&&peer.includes('maxBitrate=128000'),'Shared system audio must have explicit outgoing audio transport parameters.');
 assert(peer.includes("meeting.sendSignal(record.id,'offer'")&&peer.includes("meeting.sendSignal(remoteId,'answer'")&&peer.includes("meeting.sendSignal(remoteId,'ice'"),'Offer/answer/ICE exchange is incomplete.');
+assert(peer.includes("if(lane?.direction==='recvonly')lane.direction='sendrecv'"),'Answerer-created transceivers must become bidirectional before local camera/mic tracks are attached.');
 assert(peer.includes('pendingIce.push(payload.candidate)')&&peer.includes('flushIce(record)'),'Early ICE must be queued until the remote description exists.');
 assert(peer.includes('scheduleReconnect(record,RECONNECT_MS)'),'Peer reconnect handling is missing.');
 assert(peer.includes("window.addEventListener('offline',handleOffline)")&&peer.includes("window.addEventListener('online',handleOnline)"),'WebRTC must react explicitly to desktop network loss and recovery.');
@@ -68,4 +69,4 @@ assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.tran
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 assert.equal(ids[0].localeCompare(ids[1])<0,true,'Deterministic initiator policy sanity check failed.');
 assert.equal(ids[1].localeCompare(ids[0])<0,false,'Both peers must never initiate the same pair.');
-console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK four-lanes system-audio optimize-video remote-share-identity presenter-state-isolation deterministic-offer four-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling');
+console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK four-lanes system-audio optimize-video remote-share-identity presenter-state-isolation deterministic-offer answerer-sendrecv four-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling');

@@ -1,0 +1,185 @@
+name: DominionStar Meet 2.0.41 Functional QA Certification
+# Exact-head certification includes canonical ui/index.html command-routing proof.
+
+on:
+  pull_request:
+    branches:
+      - fix/rejected-installer-participants-share-2.0.40
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/zoom-screenshot-reference-qa-2.0.41.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packaged-functional-qa:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+      DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+    steps:
+      - name: Checkout exact 2.0.41 candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clean generated state
+        run: |
+          rm -rf meet-desktop/node_modules meet-desktop/dist qa-2.0.41-artifact zoom-reference-proof-2.0.41
+          sudo rm -rf "/Applications/DominionStar Meet.app"
+
+      - name: Verify exact 2.0.41 source authority
+        working-directory: meet-desktop
+        run: |
+          test "$(node -p "require('./package.json').version")" = '2.0.41'
+          node --check ui/zoom-screenshot-reference-2.0.41.js
+          node --check ui/meeting-notifications.js
+          node --check ui/share-picker.js
+          node --check scripts/capture-zoom-screenshot-reference-2.0.41.mjs
+          node --check scripts/verify-packaged-reference-command-routing-2.0.41.mjs
+          node --check scripts/verify-share-authority-2.0.41.mjs
+          node --check scripts/verify-physical-acceptance-2.0.41.mjs
+          node --check scripts/verify-physical-parity-2.0.41.mjs
+          node scripts/verify-zoom-screenshot-reference-2.0.41.mjs
+
+      - name: Install clean dependencies
+        working-directory: meet-desktop
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Run lower-layer source certification
+        working-directory: meet-desktop
+        run: |
+          node scripts/verify-release-standard.mjs
+          node scripts/verify-foundation.mjs
+          node scripts/verify-auth.mjs
+          node scripts/verify-meeting-lifecycle.mjs
+          node scripts/verify-meeting-identity-runtime.mjs
+          node scripts/verify-media-authority.mjs
+          node scripts/verify-av-settings.mjs
+          node scripts/verify-meeting-parity.mjs
+          node scripts/verify-share-authority-2.0.41.mjs
+          node scripts/verify-webrtc-transport.mjs
+          node scripts/verify-turn-relay.mjs
+          node scripts/verify-diagnostics.mjs
+          node scripts/verify-mac-install-authority.mjs
+          node scripts/verify-zoom-production-polish.mjs
+          node scripts/verify-physical-acceptance-2.0.41.mjs
+          node scripts/verify-reaction-parity.mjs
+          node scripts/verify-physical-mac-2.0.21.mjs
+          node scripts/verify-zoom-window-parity.mjs
+          node scripts/verify-physical-parity-2.0.41.mjs
+          node scripts/verify-approved-reference-parity-2.0.22.mjs
+          node scripts/verify-runtime-stability-2.0.22.mjs
+
+      - name: Build universal packaged QA app
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          du -sh "$APP_PATH"
+
+      - name: Install exact QA package into Applications
+        shell: bash
+        run: |
+          sudo rm -rf "/Applications/DominionStar Meet.app"
+          sudo ditto "${{ steps.app.outputs.path }}" "/Applications/DominionStar Meet.app"
+          test -d "/Applications/DominionStar Meet.app"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx '2.0.41'
+          codesign --verify --deep --strict --verbose=2 "/Applications/DominionStar Meet.app"
+
+      - name: Audit installed packaged app
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-app.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged single-instance authority
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-single-instance-2.0.28.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged runtime stability
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-runtime-stability-2.0.22.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Exercise packaged desktop controls
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-interactions.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Measure packaged Zoom-scale interface
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-zoom-visual.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged reaction duration parity
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-reaction-parity.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged high-volume reaction flow
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-reaction-flow-2.0.22.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged physical Mac repairs
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-physical-mac-2.0.21.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Exercise packaged presenter toolbar round trip
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged adaptive Zoom meeting behavior
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-zoom-window-parity.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged approved reference parity
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify real More and Host Tools toolbar routing
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-reference-command-routing-2.0.41.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Re-capture all 2.0.41 reference surfaces from certified app
+        working-directory: meet-desktop
+        run: node scripts/capture-zoom-screenshot-reference-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.41
+
+      - name: Verify reference evidence exists
+        run: |
+          for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-active-share-toolbar 10-active-share-idle; do
+            test -s "zoom-reference-proof-2.0.41/${n}.png"
+          done
+          test -s zoom-reference-proof-2.0.41/visual-proof.json
+
+      - name: Create certified QA archive and checksums
+        shell: bash
+        run: |
+          mkdir -p qa-2.0.41-artifact
+          ZIP="qa-2.0.41-artifact/DominionStar-Meet-2.0.41-FUNCTIONAL-QA-Mac-universal.zip"
+          ditto -c -k --sequesterRsrc --keepParent "/Applications/DominionStar Meet.app" "$ZIP"
+          shasum -a 256 "$ZIP" | tee qa-2.0.41-artifact/SHA256.txt
+          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\nshare_authority=screens-files-more-deep-certified\nreaction_authority=single-owner-meeting-features\nphysical_parity=screens-files-more-plus-layout-drag-filmstrip-prejoin\npackaged_physical_legacy_menu_test=superseded-by-reference-routing-and-specialized-gates\ninstaller=not-produced\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
+          cp zoom-reference-proof-2.0.41/visual-proof.json qa-2.0.41-artifact/
+
+      - name: Upload certified functional QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.41-functional-qa
+          path: qa-2.0.41-artifact/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove QA installation
+        if: always()
+        run: sudo rm -rf "/Applications/DominionStar Meet.app"
