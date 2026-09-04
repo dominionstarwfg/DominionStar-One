@@ -24,9 +24,6 @@ async function target(){
       if(response.ok){
         const targets=await response.json();
         lastTargets=targets.filter(item=>item.type==='page').map(item=>String(item.url||''));
-        // This gate runs late in a long packaged QA sequence. Secondary Electron
-        // surfaces (share picker, presenter/companion windows) may exist first in
-        // DevTools target order, so attach only to the canonical meeting renderer.
         const page=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://')&&String(item.url||'').includes('/ui/index.html'));
         if(page?.webSocketDebuggerUrl)return page;
       }
@@ -68,7 +65,10 @@ try{
     message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);
   });
   await cdp('Runtime.enable');
-  await waitFor("document.readyState==='complete'&&window.DominionZoomScreenshotReference&&document.querySelector('#meetingOverlay')&&document.querySelector('#roomMore')&&document.querySelector('#roomHostTools')",'2.0.41 meeting command authority');
+
+  // Host Tools is dynamically decorated. Prove the stable meeting controllers
+  // first, then mount/decorate the toolbar before asserting the real commands.
+  await waitFor("document.readyState==='complete'&&window.DominionZoomScreenshotReference&&window.DominionMeetingParity&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&document.querySelector('#meetingOverlay')&&document.querySelector('#roomMore')",'2.0.41 meeting controllers');
 
   await evaluate(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -78,12 +78,14 @@ try{
     document.querySelector('#waitingOverlay').hidden=true;
     const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;
     document.querySelector('#roomRole').textContent='Host';
-    window.DominionMeetingParity?.install?.();
-    window.DominionApprovedReferenceParity?.sync?.();
-    window.DominionRuntimeStability?.sync?.();
+    window.DominionMeetingParity.install();
+    window.DominionMeetingParity.decorateControls?.();
+    window.DominionApprovedReferenceParity.sync();
+    window.DominionRuntimeStability.sync();
     window.DominionZoomScreenshotReference.sync();
     return true;
   })()`);
+  await waitFor("document.querySelector('#roomHostTools')&&!document.querySelector('#roomHostTools').hidden",'decorated Host Tools control');
 
   await evaluate(`document.querySelector('#roomMore').click()`);
   await waitFor("document.querySelector('.ds-ref-meeting-more-grid')",'2.0.41 More grid from real toolbar click');
