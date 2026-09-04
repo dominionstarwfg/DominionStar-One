@@ -1,0 +1,44 @@
+name: DominionStar Meet Two-Client WebRTC 2.0.41
+
+on:
+  pull_request:
+    branches:
+      - fix/rejected-installer-participants-share-2.0.40
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/two-client-webrtc-2.0.41.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  two-client-webrtc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact 2.0.41 candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify exact candidate and QA script syntax
+        run: |
+          test "$(node -p "require('./meet-desktop/package.json').version")" = '2.0.41'
+          node --check meet-desktop/scripts/test-two-client-webrtc-2.0.41.mjs
+          node --check meet-desktop/ui/webrtc-controller.js
+
+      - name: Install pinned Playwright runtime
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
+
+      - name: Install Chromium for runtime proof
+        run: npx playwright install --with-deps chromium
+
+      - name: Run real two-client WebRTC controller acceptance
+        run: node meet-desktop/scripts/test-two-client-webrtc-2.0.41.mjs
