@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
+const pkg=JSON.parse(read('package.json'));
 const html=read('ui/share-picker.html');
 const css=read('ui/share-picker.css');
 const js=read('ui/share-picker.js');
@@ -11,10 +12,17 @@ const shareService=read('src/share-service.mjs');
 
 const has=(source,needle,message)=>assert.ok(source.includes(needle),message);
 const lacks=(source,needle,message)=>assert.ok(!source.includes(needle),message);
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+const atLeast=(major,minor,patch)=>versionMajor>major||(versionMajor===major&&(versionMinor>minor||(versionMinor===minor&&versionPatch>=patch)));
 
 has(html,'data-tab="screens"','Share picker must expose a Screens tab.');
-has(html,'data-tab="advanced"','Share picker must expose a functional Advanced tab.');
-lacks(html,'data-tab="files"','Dead Files tab must not remain in the 2.0.25 picker.');
+has(html,'data-tab="advanced"','Share picker must expose a functional Advanced/More tab.');
+if(atLeast(2,0,41)){
+  has(html,'data-tab="files"','2.0.41+ screenshot-reference picker must retain the Files position.');
+  has(html,'aria-disabled="true"','Uncertified Files capability must remain visibly disabled rather than pretending to work.');
+}else{
+  lacks(html,'data-tab="files"','Dead Files tab must not remain before the 2.0.41 screenshot-reference supersession.');
+}
 lacks(js,"specialCard({id:'advanced:portion'",'Disabled mock Advanced share modes must be removed.');
 lacks(js,"specialCard({id:'files:drive'",'Disabled cloud-source mock cards must be removed.');
 
@@ -57,4 +65,4 @@ has(shareService,'setDisplayMediaRequestHandler','Native capture authority must 
 has(shareController,'navigator.mediaDevices.getDisplayMedia','Certified renderer capture start remains in share-controller.');
 has(shareIntegration,'window.DominionShareController','Certified meeting/share integration remains the activation path.');
 
-console.log('DOMINIONSTAR_SHARE_PICKER_2_0_25_OK zoom-current-screens advanced-working-only real-previews source-search filters manual-refresh bounded-auto-refresh selection-preserved explicit-share-options keyboard-doubleclick no-dead-cards capture-authority-untouched');
+console.log('DOMINIONSTAR_SHARE_PICKER_2_0_25_OK carried-forward-on='+pkg.version+' zoom-current-screens advanced-more real-previews source-search filters manual-refresh bounded-auto-refresh selection-preserved explicit-share-options keyboard-doubleclick no-dead-cards capture-authority-untouched');
