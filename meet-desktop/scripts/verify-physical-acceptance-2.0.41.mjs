@@ -28,7 +28,7 @@ assert(css.includes('#meetingChatPanel')&&css.includes('.meeting-chat-message.ow
 // 2.0.41 has one React owner. MeetingFeatures creates the six buttons and sends
 // the real reaction; PhysicalAcceptance only upgrades presentation/animation.
 assert(features.includes("const reactions=['👏','👍','❤️','😂','😮','🎉']"),'Standard reaction set must match the six common Zoom meeting reactions.');
-assert(features.includes("ensureButton('roomReactions','Reactions'")&&features.includes('()=>openReactions(event.currentTarget)'),'The visible React control must route to the canonical reaction chooser.');
+assert(features.includes("ensureButton('roomReactions','Reactions'")&&features.includes('event=>openReactions(event.currentTarget)'),'The visible React control must route to the canonical reaction chooser.');
 assert(features.includes('for(const emoji of reactions)')&&features.includes('b.onclick=()=>{closeReactionMenu();void sendReaction(emoji);};'),'Every canonical reaction button must invoke the real reaction sender.');
 assert(features.includes('async function sendReaction(emoji)')&&features.includes("await broadcast('reaction',payload)"),'The canonical reaction sender must broadcast through meeting signaling.');
 assert(js.includes('function installReactionAuthority()')&&js.includes('Final React ownership belongs to DominionMeetingFeatures + RuntimeStability.'),'Physical acceptance must explicitly defer React ownership to the canonical feature/runtime layer.');
