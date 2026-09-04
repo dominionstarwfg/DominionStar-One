@@ -74,7 +74,7 @@ async function configurePage(page,id){
       power:{onChanged:()=>()=>{}},
       meeting:{
         context:async()=>({roomId,participantId:id,joinToken:`token-${id}`,state:'joined',role:id.endsWith('101')?'host':'participant'}),
-        sendSignal:(to,type,payload)=>window.__qaSendSignal(to,type,payload),
+        sendSignal:(to,type,payload)=>window.__qaSendSignal(to,type,JSON.parse(JSON.stringify(payload||{}))),
         pullSignals:(afterId=0,limit=100)=>window.__qaPullSignals(afterId,limit),
         snapshot:()=>window.__qaSnapshot(),
         touchPresence:async()=>({ok:true}),
@@ -90,7 +90,16 @@ async function configurePage(page,id){
 
 async function waitConnected(page,label){
   await page.waitForFunction(()=>window.DominionWebRTCController?.snapshot?.().peerCount===1,null,{timeout:15000});
-  await page.waitForFunction(()=>[...document.querySelectorAll('.remote-peer-tile small')].some(node=>node.textContent==='Connected'),null,{timeout:20000});
+  try{
+    await page.waitForFunction(()=>[...document.querySelectorAll('.remote-peer-tile small')].some(node=>node.textContent==='Connected'),null,{timeout:20000});
+  }catch(error){
+    const diagnostics=await page.evaluate(()=>({
+      snapshot:window.DominionWebRTCController?.snapshot?.()||{},
+      tiles:[...document.querySelectorAll('.remote-peer-tile')].map(tile=>({id:tile.dataset.peerId||'',state:tile.querySelector('small')?.textContent||''})),
+      transport:document.querySelector('#transportStatus')?.textContent||''
+    }));
+    throw new Error(`${label} peer did not reach Connected: ${JSON.stringify(diagnostics)}`,{cause:error});
+  }
   await page.waitForFunction(()=>{
     const video=document.querySelector('.remote-peer-tile video');
     return Boolean(video?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'));
@@ -105,7 +114,7 @@ async function waitConnected(page,label){
   assert.equal(snapshot.iceReady,true,`${label} lost its ICE configuration`);
 }
 
-const browser=await chromium.launch({headless:true,args:['--autoplay-policy=no-user-gesture-required','--use-fake-ui-for-media-stream']});
+const browser=await chromium.launch({headless:true,args:['--autoplay-policy=no-user-gesture-required','--use-fake-ui-for-media-stream','--disable-features=WebRtcHideLocalIpsWithMdns']});
 const context=await browser.newContext({viewport:{width:1280,height:800}});
 const host=await context.newPage(),guest=await context.newPage();
 let hostState,guestState;
