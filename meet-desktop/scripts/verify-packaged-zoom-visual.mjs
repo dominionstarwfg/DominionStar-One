@@ -98,11 +98,12 @@ try{
   await evaluate(`document.querySelector('.ds-reaction-tray,.meeting-reaction-menu')?.remove()`);
 
   await evaluate(`document.querySelector('#roomMore').click();true`);
-  // The final transient-menu bridge uses a MutationObserver. Mutation delivery
-  // happens at the microtask checkpoint before paint, so inspect the paint-ready
-  // menu state rather than the same synchronous click stack.
+  // 2.0.41 supersedes the legacy list menu with the screenshot-reference tool
+  // grid. Inspect the visible authoritative menu rather than whichever legacy
+  // menu happens to occur first in document order.
   await sleep(0);
-  const more=await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu,.ds-command-menu'),buttons=[...menu.querySelectorAll('button')];return {font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>String(b.textContent||'').trim()==='Settings'),hasHostDuplicate:buttons.some(b=>String(b.textContent||'').trim()==='Host tools')};})()`);
+  const more=await evaluate(`(()=>{const menus=[...document.querySelectorAll('.ds-ref-meeting-more-grid,.meeting-more-menu,.ds-command-menu')],isVisible=node=>Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden'),menu=menus.find(node=>node.classList.contains('ds-ref-meeting-more-grid')&&isVisible(node))||menus.find(isVisible)||null,buttons=menu?[...menu.querySelectorAll('button')]:[],text=button=>String(button.textContent||'').replace(/\\s+/g,' ').trim();return {menuClass:menu?.className||'',font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>{const value=text(b);return value==='Settings'||value.endsWith(' Settings');}),hasHostDuplicate:buttons.some(b=>{const value=text(b).toLowerCase();return value==='host tools'||value.endsWith(' host tools');})};})()`);
+  assert.ok(more.menuClass,'More must open a visible menu surface.');
   assert.ok(more.font>=8.5,'More menu text is below the approved 2.0.41 compact reference size.');
   assert.equal(more.hasSettings,true,'Settings must remain in More.');
   assert.equal(more.hasHostDuplicate,false,'Host Tools must not be duplicated in More when it has a primary toolbar control.');
