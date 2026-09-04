@@ -10,7 +10,11 @@ const physical=read('ui/zoom-physical-acceptance.js');
 const repair=read('ui/rejected-build-repair-2.0.40.css');
 const auth=read('ui/auth-password.js');
 
-assert.equal(pkg.version,'2.0.40','Rejected installer repair candidate must report 2.0.40.');
+const version=String(pkg.version||'').split('.').map(Number);
+const [versionMajor,versionMinor,versionPatch]=version;
+const atLeast=(major,minor,patch)=>versionMajor>major||(versionMajor===major&&(versionMinor>minor||(versionMinor===minor&&versionPatch>=patch)));
+assert.ok(version.length===3&&version.every(Number.isInteger),'Desktop package version must be semantic x.y.z.');
+assert.ok(atLeast(2,0,40),'Rejected installer repair authority introduced in 2.0.40 must remain enforced for every later candidate.');
 
 // Screenshot #1: duplicated mic/video controls are a release blocker.
 assert.ok(app.includes('participant-media-state')&&app.includes('data-participant-mic')&&app.includes('data-participant-video'),'Canonical participant media state must remain present.');
@@ -38,4 +42,4 @@ assert.ok(repair.includes("content:'Share Screen'"),'Approved chooser must have 
 assert.ok(repair.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'Approved chooser must present large visual source thumbnails.');
 assert.ok(repair.includes('.ds-share-picker-card>footer>button.primary'),'Approved chooser must keep one primary Share action.');
 
-console.log('DOMINIONSTAR_REJECTED_INSTALLER_REPAIR_2_0_40_OK one-participant-media-set custom-only-preshare no-apple-overlay bounded-five-second-share-start zoom-like-source-grid');
+console.log('DOMINIONSTAR_REJECTED_INSTALLER_REPAIR_2_0_40_OK carried-forward-on='+pkg.version+' one-participant-media-set custom-only-preshare no-apple-overlay bounded-five-second-share-start zoom-like-source-grid');
