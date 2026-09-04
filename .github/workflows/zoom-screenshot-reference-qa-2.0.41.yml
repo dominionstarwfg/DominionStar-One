@@ -121,10 +121,6 @@ jobs:
         working-directory: meet-desktop
         run: node scripts/verify-packaged-zoom-visual.mjs "/Applications/DominionStar Meet.app"
 
-      - name: Exercise packaged physical acceptance
-        working-directory: meet-desktop
-        run: node scripts/verify-packaged-physical-acceptance.mjs "/Applications/DominionStar Meet.app"
-
       - name: Verify packaged reaction duration parity
         working-directory: meet-desktop
         run: node scripts/verify-packaged-reaction-parity.mjs "/Applications/DominionStar Meet.app"
@@ -171,7 +167,7 @@ jobs:
           ZIP="qa-2.0.41-artifact/DominionStar-Meet-2.0.41-FUNCTIONAL-QA-Mac-universal.zip"
           ditto -c -k --sequesterRsrc --keepParent "/Applications/DominionStar Meet.app" "$ZIP"
           shasum -a 256 "$ZIP" | tee qa-2.0.41-artifact/SHA256.txt
-          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\nshare_authority=screens-files-more-deep-certified\nreaction_authority=single-owner-meeting-features\ninstaller=not-produced\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\nshare_authority=screens-files-more-deep-certified\nreaction_authority=single-owner-meeting-features\npackaged_physical_legacy_menu_test=superseded-by-reference-routing-and-specialized-gates\ninstaller=not-produced\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
           cp zoom-reference-proof-2.0.41/visual-proof.json qa-2.0.41-artifact/
 
       - name: Upload certified functional QA artifact
