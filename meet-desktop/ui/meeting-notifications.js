@@ -91,5 +91,21 @@
   window.addEventListener('dominion:waiting-room-update',onWaiting);
   window.addEventListener('dominion:participant-presence',onPresence);
   window.addEventListener('dominion:meeting-ended',reset);
+
+  // 2.0.41 owns the visible Zoom-reference More and Host Tools surfaces.
+  // Route these commands at window-capture level so the older document-capture
+  // runtime handler cannot swallow them first.
+  function routeReferenceCommand(event){
+    const target=event.target,overlay=q('#meetingOverlay'),authority=window.DominionZoomScreenshotReference;
+    if(!target?.closest||!overlay||overlay.hidden||!authority)return;
+    const more=target.closest('#roomMore');
+    const host=target.closest('#roomHostTools');
+    if(!more&&!host)return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    if(more)authority.openMeetingMore?.(more);
+    else void authority.openHostToolsPanel?.();
+  }
+  window.addEventListener('click',routeReferenceCommand,true);
+
   window.DominionMeetingNotifications=Object.freeze({version:'1.1.0',play,toast,chat,participantBadge,reset});
 })();
