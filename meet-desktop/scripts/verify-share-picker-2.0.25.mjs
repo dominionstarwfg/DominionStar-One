@@ -44,7 +44,7 @@ has(js,"bridge?.listSources?.({includeDominionStar,kind:'screen'})",'Screen sour
 has(js,"bridge?.listSources?.({includeDominionStar,kind:'window'})",'Window source discovery is not wired.');
 has(js,"$('#includeMeetWindows').addEventListener('change'",'Meeting-window visibility toggle is not wired.');
 has(js,"$('#autoRefresh').addEventListener('change'",'Auto-refresh toggle is not wired.');
-has(js,"$('#sourceSearch').addEventListener('input',renderSources)",'Source search is not live.');
+has(js,"$('#sourceSearch')?.addEventListener('input',renderSources)",'Source search is not live.');
 has(js,"$$('.filter').forEach(button=>button.addEventListener('click'",'Source filters are not wired.');
 has(js,"card.addEventListener('dblclick'",'Double-click quick share is missing.');
 has(js,"event.key==='ArrowRight'",'Keyboard source navigation is missing.');
