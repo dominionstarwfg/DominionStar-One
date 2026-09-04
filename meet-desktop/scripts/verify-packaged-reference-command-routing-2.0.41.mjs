@@ -16,19 +16,24 @@ child.stderr.on('data',chunk=>{stderr+=String(chunk);});
 
 async function target(){
   const deadline=Date.now()+18000;
+  let lastTargets=[];
   while(Date.now()<deadline){
     if(child.exitCode!==null)throw new Error(`Packaged app exited before command-routing proof.\n${stderr}`);
     try{
       const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(800)});
       if(response.ok){
         const targets=await response.json();
-        const page=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://'));
+        lastTargets=targets.filter(item=>item.type==='page').map(item=>String(item.url||''));
+        // This gate runs late in a long packaged QA sequence. Secondary Electron
+        // surfaces (share picker, presenter/companion windows) may exist first in
+        // DevTools target order, so attach only to the canonical meeting renderer.
+        const page=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://')&&String(item.url||'').includes('/ui/index.html'));
         if(page?.webSocketDebuggerUrl)return page;
       }
     }catch{}
     await sleep(150);
   }
-  throw new Error('Unable to attach to packaged renderer for 2.0.41 command-routing proof.');
+  throw new Error(`Unable to attach to packaged main meeting renderer for 2.0.41 command-routing proof. Targets=${JSON.stringify(lastTargets)}\n${stderr}`);
 }
 
 function connect(url){return new Promise((resolve,reject)=>{
