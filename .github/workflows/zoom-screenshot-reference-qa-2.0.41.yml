@@ -45,6 +45,7 @@ jobs:
           node --check ui/share-picker.js
           node --check scripts/capture-zoom-screenshot-reference-2.0.41.mjs
           node --check scripts/verify-packaged-reference-command-routing-2.0.41.mjs
+          node --check scripts/verify-share-authority-2.0.41.mjs
           node scripts/verify-zoom-screenshot-reference-2.0.41.mjs
 
       - name: Install clean dependencies
@@ -62,7 +63,7 @@ jobs:
           node scripts/verify-media-authority.mjs
           node scripts/verify-av-settings.mjs
           node scripts/verify-meeting-parity.mjs
-          node scripts/verify-share-authority.mjs
+          node scripts/verify-share-authority-2.0.41.mjs
           node scripts/verify-webrtc-transport.mjs
           node scripts/verify-turn-relay.mjs
           node scripts/verify-diagnostics.mjs
@@ -169,7 +170,7 @@ jobs:
           ZIP="qa-2.0.41-artifact/DominionStar-Meet-2.0.41-FUNCTIONAL-QA-Mac-universal.zip"
           ditto -c -k --sequesterRsrc --keepParent "/Applications/DominionStar Meet.app" "$ZIP"
           shasum -a 256 "$ZIP" | tee qa-2.0.41-artifact/SHA256.txt
-          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\ninstaller=not-produced\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\nshare_authority=screens-files-more-deep-certified\ninstaller=not-produced\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
           cp zoom-reference-proof-2.0.41/visual-proof.json qa-2.0.41-artifact/
 
       - name: Upload certified functional QA artifact
