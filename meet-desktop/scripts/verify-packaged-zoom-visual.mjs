@@ -99,10 +99,11 @@ try{
 
   await evaluate(`document.querySelector('#roomMore').click();true`);
   // 2.0.41 supersedes the legacy list menu with the screenshot-reference tool
-  // grid. Inspect the visible authoritative menu rather than whichever legacy
-  // menu happens to occur first in document order.
+  // grid. Read the actual label span so decorative icon glyphs do not corrupt
+  // semantic command assertions (e.g. adjacent spans flatten to "⚙Settings").
   await sleep(0);
-  const more=await evaluate(`(()=>{const menus=[...document.querySelectorAll('.ds-ref-meeting-more-grid,.meeting-more-menu,.ds-command-menu')],isVisible=node=>Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden'),menu=menus.find(node=>node.classList.contains('ds-ref-meeting-more-grid')&&isVisible(node))||menus.find(isVisible)||null,buttons=menu?[...menu.querySelectorAll('button')]:[],text=button=>String(button.textContent||'').replace(/\\s+/g,' ').trim();return {menuClass:menu?.className||'',font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>{const value=text(b);return value==='Settings'||value.endsWith(' Settings');}),hasHostDuplicate:buttons.some(b=>{const value=text(b).toLowerCase();return value==='host tools'||value.endsWith(' host tools');})};})()`);
+  const more=await evaluate(`(()=>{const menus=[...document.querySelectorAll('.ds-ref-meeting-more-grid,.meeting-more-menu,.ds-command-menu')],isVisible=node=>Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden'),menu=menus.find(node=>node.classList.contains('ds-ref-meeting-more-grid')&&isVisible(node))||menus.find(isVisible)||null,buttons=menu?[...menu.querySelectorAll('button')]:[],label=button=>String(button.querySelector('span:last-child')?.textContent||button.textContent||'').replace(/\\s+/g,' ').trim();return {menuClass:menu?.className||'',font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,labels:buttons.map(label),hasSettings:buttons.some(b=>label(b)==='Settings'),hasHostDuplicate:buttons.some(b=>label(b).toLowerCase()==='host tools')};})()`);
+  console.log('MORE_VISUAL_DIAGNOSTIC',JSON.stringify(more));
   assert.ok(more.menuClass,'More must open a visible menu surface.');
   assert.ok(more.font>=8.5,'More menu text is below the approved 2.0.41 compact reference size.');
   assert.equal(more.hasSettings,true,'Settings must remain in More.');
