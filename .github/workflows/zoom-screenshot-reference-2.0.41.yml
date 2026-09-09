@@ -9,9 +9,12 @@ on:
       - 'meet-desktop/ui/share-picker.html'
       - 'meet-desktop/ui/share-picker.css'
       - 'meet-desktop/ui/share-picker.js'
+      - 'meet-desktop/ui/share-runtime-authority-2.0.41.js'
+      - 'meet-desktop/ui/index.html'
       - 'meet-desktop/ui/auth-password.js'
       - 'meet-desktop/package.json'
       - 'meet-desktop/scripts/verify-zoom-screenshot-reference-2.0.41.mjs'
+      - 'meet-desktop/scripts/verify-runtime-share-authority-2.0.41.mjs'
       - '.github/workflows/zoom-screenshot-reference-2.0.41.yml'
   workflow_dispatch:
 
@@ -37,6 +40,9 @@ jobs:
           test "$(node -p "require('./package.json').version")" = '2.0.41'
           node --check ui/zoom-screenshot-reference-2.0.41.js
           node --check ui/share-picker.js
+          node --check ui/share-runtime-authority-2.0.41.js
           node --check ui/auth-password.js
           node --check scripts/verify-zoom-screenshot-reference-2.0.41.mjs
+          node --check scripts/verify-runtime-share-authority-2.0.41.mjs
           node scripts/verify-zoom-screenshot-reference-2.0.41.mjs
+          node scripts/verify-runtime-share-authority-2.0.41.mjs
