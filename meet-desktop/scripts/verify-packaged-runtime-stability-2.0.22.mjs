@@ -74,24 +74,26 @@ try{
   await sleep(1800);
   settled=await evaluate(`(()=>({p:!document.querySelector('.room-side').hidden,c:!document.querySelector('#meetingChatPanel').hidden}))()`);
   assert.deepEqual(settled,{p:false,c:true},'Side panels changed after the interaction settled; delayed reconciliation is still active.');
-  // Share routing regression: the final document-capture runtime authority must
-  // win before the legacy button-capture smart picker. Stub only the final
-  // integration endpoint; one click must produce one call and no legacy UI.
-  await waitFor("window.DominionShareIntegration&&document.querySelector('#roomShare')",'final Share integration');
-  await evaluate(`(()=>{window.__qaOriginalShareIntegration=window.DominionShareIntegration;window.__qaShareOpenCount=0;Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:Object.freeze({open:()=>{window.__qaShareOpenCount+=1;return Promise.resolve(true);}})});document.querySelector('#dsSmartSharePicker')?.remove();document.querySelector('.ds-share-permission')?.remove();document.querySelector('.ds-219-share-recovery')?.remove();return true;})()`);
+
+  // Share routing regression: 2.0.41 deliberately moved the approved physical
+  // chooser in front of the older element-capture smart picker. The packaged
+  // click must surface the new Screens/Files/More authority (or its truthful
+  // macOS recovery if the runner cannot enumerate a display) and no legacy UI.
+  await waitFor("window.DominionShareRuntimeAuthority2041&&document.querySelector('#roomShare')",'approved runtime Share authority');
+  await evaluate(`(()=>{document.querySelector('#dsSmartSharePicker')?.remove();document.querySelector('.ds-share-permission')?.remove();document.querySelector('.ds-219-share-recovery')?.remove();document.querySelector('#screenPermissionDialog')?.remove();return true;})()`);
   await evaluate(`document.querySelector('#roomShare').click()`);await sleep(220);
-  const shareRoute=await evaluate(`(()=>({calls:window.__qaShareOpenCount,legacyPickerOpen:Boolean(document.querySelector('#dsSmartSharePicker')&&!document.querySelector('#dsSmartSharePicker').hidden),legacyPermissionOpen:Boolean(document.querySelector('.ds-share-permission')&&!document.querySelector('.ds-share-permission').hidden),legacyRecoveryOpen:Boolean(document.querySelector('.ds-219-share-recovery')&&!document.querySelector('.ds-219-share-recovery').hidden),checking:Boolean(document.querySelector('#roomShare')?.classList.contains('ds-share-checking'))}))()`);
-  assert.equal(shareRoute.calls,1,`Share Screen must route exactly once through the final intelligent integration. ${JSON.stringify(shareRoute)}`);
+  const shareRoute=await evaluate(`(()=>({approvedAuthority:Boolean(window.DominionShareRuntimeAuthority2041),approvedPickerOpen:Boolean(document.querySelector('.ds2041-share-root')&&!document.querySelector('.ds2041-share-root').hidden),approvedRecoveryOpen:Boolean(document.querySelector('.ds2041-recovery')&&!document.querySelector('.ds2041-recovery').hidden),legacyPickerOpen:Boolean(document.querySelector('#dsSmartSharePicker')&&!document.querySelector('#dsSmartSharePicker').hidden),legacyPermissionOpen:Boolean(document.querySelector('.ds-share-permission')&&!document.querySelector('.ds-share-permission').hidden),legacyRecoveryOpen:Boolean(document.querySelector('.ds-219-share-recovery')&&!document.querySelector('.ds-219-share-recovery').hidden),checking:Boolean(document.querySelector('#roomShare')?.classList.contains('ds-share-checking'))}))()`);
+  assert.equal(shareRoute.approvedAuthority,true,`Approved runtime Share authority must be loaded in the packaged app. ${JSON.stringify(shareRoute)}`);
+  assert.equal(shareRoute.approvedPickerOpen||shareRoute.approvedRecoveryOpen,true,`Share Screen must route into the approved 2.0.41 chooser or its truthful macOS recovery. ${JSON.stringify(shareRoute)}`);
   assert.equal(shareRoute.legacyPickerOpen,false,'Legacy smart Share picker must not open from the packaged Share button.');
   assert.equal(shareRoute.legacyPermissionOpen,false,'Legacy physical permission surface must not open from the packaged Share button.');
   assert.equal(shareRoute.legacyRecoveryOpen,false,'Physical compatibility recovery must not steal the normal Share click.');
-  assert.equal(shareRoute.checking,false,'Share progress state must release after the final integration settles.');
-  await evaluate(`(()=>{Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:window.__qaOriginalShareIntegration});delete window.__qaOriginalShareIntegration;delete window.__qaShareOpenCount;return true;})()`);
+  assert.equal(shareRoute.checking,false,'Share progress state must not leave the old integration checking state stuck.');
 
   const responsiveness=await evaluate(`new Promise(resolve=>{const started=performance.now();setTimeout(()=>resolve(Math.round(performance.now()-started)),80);})`);
   assert.ok(responsiveness<500,`Renderer event loop is still starved; 80 ms timer took ${responsiveness} ms.`);
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip single-owner-share responsive-event-loop floating-panels-draggable-full-stage');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip approved-runtime-share responsive-event-loop floating-panels-draggable-full-stage');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
