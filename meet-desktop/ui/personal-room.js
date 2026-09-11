@@ -84,13 +84,23 @@
     const newMeetingAction=q('[data-action="new-meeting"]');
     if(newMeetingAction&&!newMeetingAction.dataset.dsPersonalOpenBound){
       newMeetingAction.dataset.dsPersonalOpenBound='1';
-      newMeetingAction.addEventListener('click',async event=>{
+      newMeetingAction.addEventListener('click',event=>{
         event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-        await load();
-        toggle.checked=Boolean(state.room&&state.room.useForInstant!==false);
+        const dialog=q('#newMeetingDialog'),button=q('#startMeetingButton'),summary=q('#newMeetingPersonalSummary'),error=q('#newMeetingError');
+        toggle.checked=state.room?Boolean(state.room.useForInstant!==false):true;
         if(!toggle.checked&&passInput)passInput.value=randomPasscode();
         sync();
-        const dialog=q('#newMeetingDialog');if(dialog&&!dialog.open)dialog.showModal();
+        if(!state.room&&summary)summary.textContent='Loading your Personal Meeting ID…';
+        if(error)error.hidden=true;
+        if(dialog&&!dialog.open)dialog.showModal();
+        if(state.room)return;
+        if(button)button.disabled=true;
+        void load().then(room=>{
+          toggle.checked=Boolean(room&&room.useForInstant!==false);
+          if(!toggle.checked&&passInput)passInput.value=randomPasscode();
+          sync();
+          if(!room&&error){error.textContent=state.error||'Personal Meeting Room is unavailable.';error.hidden=false;}
+        }).finally(()=>{if(button)button.disabled=false;});
       },true);
     }
     sync();
