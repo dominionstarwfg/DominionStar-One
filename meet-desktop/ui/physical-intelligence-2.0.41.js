@@ -145,9 +145,14 @@
     }
 
     async function recheckAfterSettings(){
-      if(!settingsOpened||!recovery||recovery.hidden)return;
+      if(!settingsOpened)return;
+      const box=ensureRecovery();
       const state=await refreshRecovery();
-      if(state.ready){recovery.hidden=true;settingsOpened=false;await open();}
+      if(state.ready){box.hidden=true;settingsOpened=false;await open();return;}
+      // The native macOS TCC prompt deliberately hides DominionStar's recovery
+      // surface. Returning from System Settings must still surface the one-time
+      // restart path when the current process has not refreshed the new grant.
+      box.hidden=false;
     }
 
     const onFocus=()=>{
