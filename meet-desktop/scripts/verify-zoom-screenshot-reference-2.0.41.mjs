@@ -1,7 +1,11 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 
-const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
+const url=rel=>new URL(`../${rel}`,import.meta.url);
+const read=rel=>fs.readFileSync(url(rel),'utf8');
+const syntax=rel=>execFileSync(process.execPath,['--check',fileURLToPath(url(rel))],{stdio:'pipe'});
 const pkg=JSON.parse(read('package.json'));
 const auth=read('ui/auth-password.js');
 const refJs=read('ui/zoom-screenshot-reference-2.0.41.js');
@@ -11,6 +15,13 @@ const pickerCss=read('ui/share-picker.css');
 const pickerJs=read('ui/share-picker.js');
 const shareService=read('src/share-service.mjs');
 const shareController=read('ui/share-controller.js');
+const bootstrap=read('src/bootstrap.mjs');
+const preload=read('src/preload.cjs');
+const macOverlay=read('src/mac-share-presenter-overlay.mjs');
+const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
+const macToolbarCss=read('ui/mac-presenter-toolbar.css');
+const macToolbarJs=read('ui/mac-presenter-toolbar.js');
+const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 
 const has=(s,n,m)=>assert.ok(s.includes(n),m);
 const lacks=(s,n,m)=>assert.ok(!s.includes(n),m);
@@ -20,6 +31,8 @@ has(auth,"zoom-screenshot-reference-2.0.41.css",'Screenshot reference CSS is not
 has(auth,"zoom-screenshot-reference-2.0.41.js",'Screenshot reference JS is not loaded.');
 has(auth,'script.onload=loadScreenshotReference','Screenshot reference must load after runtime stability completes.');
 has(auth,'if(window.DominionRuntimeStability)loadScreenshotReference()','Existing runtime stability must hand off to the screenshot reference authority.');
+has(auth,'active-share-home-parity-2.0.41.js','Active-share Home awareness must load after the screenshot authority.');
+has(auth,'script.onload=loadActiveShareHome','Active-share Home awareness must wait for the screenshot authority.');
 
 // Home screenshot contract.
 has(refCss,'grid-template-columns:82px minmax(0,1fr)','Home must use the narrow Zoom-style app rail.');
@@ -27,6 +40,10 @@ has(refCss,'grid-template-columns:minmax(520px,1fr) 330px','Home must use action
 has(refCss,'#homeSection .action-icon','Home must use icon-first meeting actions rather than dashboard cards.');
 has(refJs,'My Notes','Home must include a working local My Notes action.');
 has(refJs,'ds-ref-search','Home must include the compact top search surface.');
+has(activeShareHome,'Back to meeting','An active shared meeting must replace New Meeting with Back to meeting on Home.');
+has(activeShareHome,"data-action=\"back-to-meeting\"",'Back to meeting must be a real command surface.');
+has(activeShareHome,'desktop.macShare?.onShowMeeting','The native presenter Show meeting command must restore the existing meeting.');
+has(activeShareHome,"node.disabled=true",'Join and Share Screen must not start competing flows while the active shared meeting is on Home.');
 
 // Prejoin screenshot contract.
 has(refCss,'width:548px!important','Prejoin must remain a compact Zoom-scale dialog.');
@@ -47,9 +64,7 @@ has(refJs,'Host tools for participants','Participants More popover is missing Ho
 has(refJs,'data-clear disabled','Unimplemented participant feedback clearing must remain physically disabled.');
 has(refCss,'#participantRoster .ds-participant-media{display:none!important','Rejected duplicate participant media renderer must stay hidden.');
 
-// Host tools is its own right-side sheet. Dynamic waiting-room switching is not
-// in the deployed meet_v2_set_security RPC, so the reference position must stay
-// physically disabled rather than pretending to change live room authority.
+// Host tools is its own right-side sheet.
 has(refJs,'ds-ref-host-tools-panel','Host tools right panel is missing.');
 has(refJs,'Lock meeting','Host tools is missing Lock meeting.');
 has(refJs,'Enable waiting room','Host tools is missing waiting-room position.');
@@ -59,22 +74,17 @@ has(refJs,'Hide profile pictures','Host tools is missing Hide profile pictures.'
 has(refJs,'data-participants','Host tools is missing Participants navigation.');
 has(refJs,'data-advanced','Host tools is missing Advanced navigation.');
 
-// More is its own tool grid. Visual-only capabilities must remain true disabled
-// buttons; only implemented actions may be interactive.
+// More is its own tool grid.
 has(refJs,'ds-ref-meeting-more-grid','Meeting More grid is missing.');
 for(const label of ['Record','Show captions','Breakout rooms','Polls/quizzes','Docs','Whiteboards','Apps','Meeting info','Transfer to room','Settings'])has(refJs,`'${label}'`,`Meeting More is missing ${label}.`);
 for(const label of ['Breakout rooms','Polls/quizzes','Docs','Whiteboards','Apps','Transfer to room']){
   const marker=`addMoreItem(grid,'${label}'`;
-  const start=refJs.indexOf(marker);
-  assert.ok(start>=0,`Meeting More is missing ${label}.`);
-  const segment=refJs.slice(start,start+420);
-  has(segment,'{disabled:true}',`${label} must remain physically disabled until its backend/product capability is certified.`);
+  const start=refJs.indexOf(marker);assert.ok(start>=0,`Meeting More is missing ${label}.`);
+  has(refJs.slice(start,start+420),'{disabled:true}',`${label} must remain physically disabled until its backend/product capability is certified.`);
 }
 has(refJs,'Drag to pin or remove from toolbar','Meeting More footer reference is missing.');
 
-// Pre-share screenshot contract. Files keeps the visual reference position but
-// must not be pointer- or keyboard-activatable before local-file presenting is
-// actually implemented.
+// Pre-share screenshot contract.
 has(pickerHtml,'data-tab="screens">Screens','Pre-share must expose Screens.');
 has(pickerHtml,'data-tab="files" aria-disabled="true" disabled tabindex="-1"','Pre-share Files reference position must be physically non-interactive.');
 has(pickerHtml,'data-tab="advanced">More','Pre-share must expose More.');
@@ -96,8 +106,7 @@ has(shareService,'const nativeSystemPicker=false','Apple system picker must rema
 has(shareController,"error.code='share_start_timeout'",'Share start must fail visibly when capture does not start.');
 has(shareController,'},5000);','Share start must remain bounded to five seconds.');
 
-// Active-share screenshot contract: toolbar is revealed by pointer motion and
-// automatically hides again when the pointer is idle.
+// Main-renderer active-share reference remains the fallback/cross-platform path.
 has(refJs,"overlay.classList.add('ds-ref-presenter-visible')",'Presenter toolbar reveal authority is missing.');
 has(refJs,"overlay.classList.remove('ds-ref-presenter-visible'),1650",'Presenter toolbar idle auto-hide is missing.');
 has(refJs,"'Layout'",'Presenter toolbar is missing Layout.');
@@ -106,11 +115,36 @@ has(refJs,'Stop share','Presenter green strip is missing Stop share.');
 has(refCss,'opacity:0!important;pointer-events:none!important','Presenter toolbar must be hidden while idle.');
 has(refCss,'.ds-ref-presenter-visible #inlinePresenterToolbar','Presenter toolbar must become interactive only when revealed.');
 
-// Privacy rule: the reference implementation must contain no user screenshot or
-// personal-photo asset reference.
-for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss]){
+// Physical macOS presenter path: chrome is prepared before capture and merely
+// shown when capture starts. This preserves the renderer-freeze repair while
+// making the share state unmistakable on top of every shared app.
+has(bootstrap,"await import('./main.mjs')",'Main window must initialize before native presenter preparation.');
+has(bootstrap,"await import('./mac-share-presenter-overlay.mjs')",'macOS presenter overlay is not initialized.');
+has(macOverlay,'show:false','Native presenter windows must be prepared hidden before a share begins.');
+has(macOverlay,'void prepare();','Native presenter chrome must be pre-created before the first capture.');
+has(macOverlay,"ipcMain.on('share:capture-started'",'Native presenter overlay must activate from the real capture-started event.');
+has(macOverlay,"ipcMain.on('mac-share:capture-stopped'",'Native presenter overlay must close from the real capture-stopped event.');
+has(macOverlay,'setContentProtection(true)','Presenter chrome must be protected from recursive screen capture.');
+has(macOverlay,'border:4px solid #2ed573','Entire-display sharing must have a local green sharing boundary.');
+has(preload,"ipcRenderer.send('mac-share:state'",'Live share/media state must reach the macOS presenter overlay.');
+has(preload,"ipcRenderer.send('mac-share:capture-stopped'",'The macOS presenter overlay must receive authoritative Stop Share state.');
+has(preload,'macShare:Object.freeze','The native presenter control bridge is missing.');
+for(const label of ['Audio','Video','Participants','Chat','Share','Pause','Layout','Annotate','Show meeting','More'])has(macToolbarHtml,`>${label}<`,`Native presenter toolbar is missing ${label}.`);
+has(macToolbarHtml,'Stop share','Native presenter toolbar is missing Stop share.');
+has(macToolbarHtml,'DominionStar','Native presenter toolbar must retain DominionStar branding.');
+has(macToolbarCss,'background:#23c968','Native presenter toolbar must include the green live-sharing strip.');
+has(macToolbarCss,'.toolbar.auto-hidden','Native presenter toolbar must auto-hide its controls without hiding sharing state.');
+has(macToolbarJs,"bridge?.command?.",'Native presenter toolbar controls must route to the real meeting renderer.');
+has(macToolbarJs,"state?.paused",'Native presenter toolbar must reflect real Pause/Resume state.');
+has(macToolbarJs,"state?.micOn",'Native presenter toolbar must reflect real microphone state.');
+has(macToolbarJs,"state?.cameraOn",'Native presenter toolbar must reflect real camera state.');
+
+for(const rel of ['src/mac-share-presenter-overlay.mjs','ui/mac-presenter-toolbar.js','ui/active-share-home-parity-2.0.41.js'])syntax(rel);
+
+// Privacy rule.
+for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,macToolbarHtml,macToolbarCss,macToolbarJs,activeShareHome]){
   lacks(source,'Screenshot 2026-09-03','User screenshots must never be embedded in app source.');
   lacks(source,'private-user-images.githubusercontent.com','User image uploads must never be linked into the product.');
 }
 
-console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter privacy');
+console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-native-presenter green-share-boundary privacy');
