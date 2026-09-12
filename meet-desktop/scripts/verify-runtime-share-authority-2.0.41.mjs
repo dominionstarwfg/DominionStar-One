@@ -39,7 +39,8 @@ assert(physical.includes("button.addEventListener('click',event=>{if(!inMeeting(
 assert(personalRoom.includes("script.src='./physical-intelligence-2.0.41.js'"),'The late physical intelligence repair must load after the primary meeting scripts.');
 assert(intelligence.includes('legacy.dispose()'),'Picker-first authority must remove the older Share click interceptor before taking ownership.');
 assert(intelligence.includes("const ok=await legacy.open();")&&intelligence.includes('showPermissionPlaceholders()'),'Share must open the approved chooser first and keep it visible when permission is unavailable.');
-assert(intelligence.indexOf('const ok=await legacy.open();')<intelligence.indexOf('desktop.media?.requestScreen?.()'),'Source-picker presentation must precede any macOS permission request, matching Zoom behavior.');
+const openBody=intelligence.slice(intelligence.indexOf('async function open(){'),intelligence.indexOf('function intercept(event)'));
+assert(openBody.includes('const ok=await legacy.open();')&&!openBody.includes('requestScreen'),'Opening Share must present the picker without running a permission request in front of it.');
 assert(intelligence.includes('ds2041-permission-placeholder')&&intelligence.includes('Desktop 1'),'A blocked picker must retain a selected Desktop placeholder rather than closing the chooser.');
 assert(intelligence.includes("Allow DominionStar Meet to share your screen")&&intelligence.includes("Open System Settings"),'Permission guidance must live inside the approved picker instead of a second full-screen recovery surface.');
 assert(intelligence.includes(".ds2041-recovery,.ds2041-smart-recovery,#screenPermissionDialog,.ds-share-permission,.ds-219-share-recovery{display:none!important}"),'Rejected stacked recovery surfaces must be suppressed while the picker-first flow owns permission UX.');
