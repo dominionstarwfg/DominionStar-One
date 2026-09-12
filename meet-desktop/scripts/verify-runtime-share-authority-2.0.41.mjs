@@ -11,6 +11,7 @@ const physical=read('ui/zoom-physical-acceptance.js');
 const integration=read('ui/share-integration.js');
 const controller=read('ui/share-controller.js');
 const preload=read('src/preload.cjs');
+const shareService=read('src/share-service.mjs');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const macToolbar=read('ui/mac-presenter-toolbar.html');
 const macToolbarJs=read('ui/mac-presenter-toolbar.js');
@@ -71,4 +72,17 @@ assert(macToolbar.includes('You are screen sharing')&&macToolbar.includes('Stop 
 assert(macVideo.includes('DominionStar Meet')&&macVideo.includes('cameraPreview'),'Presenter video dock must retain DominionStar branding and a real local-camera surface.');
 assert(macVideoJs.includes('navigator.mediaDevices.getUserMedia')&&macVideoJs.includes("bridge?.onState?.(state=>"),'Presenter video dock must use live camera state and follow meeting camera/mic changes.');
 
-console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration active-share-toolbar green-share-border top-right-video-dock no-second-display-capture-owner home-locked');
+// Physical Mac evidence exposed a gap the screenshot gates could not see: the
+// separate floating toolbar was sending commands through a fire-and-forget mac
+// overlay bridge. Commands must instead use the certified presenter bridge,
+// which directly executes the live renderer dispatcher before falling back to
+// IPC. macShare remains responsible only for overlay geometry/state.
+assert(macToolbarJs.includes('const overlayBridge=desktop.macShare||null'),'Floating Mac toolbar must retain the macShare overlay bridge for native geometry/state.');
+assert(macToolbarJs.includes('const commandBridge=desktop.presenter||overlayBridge'),'Floating Mac toolbar commands must route through the certified presenter command bridge.');
+assert(macToolbarJs.includes("await commandBridge.command(String(command||''))"),'Floating Mac toolbar controls must await the presenter command round trip.');
+assert(macToolbarJs.includes("result?.ok===false||result?.sent===false"),'Floating Mac toolbar must not silently treat a rejected command as success.');
+assert(macToolbarJs.includes('await overlayBridge?.setMenuOpen?.(menuOpen)'),'Floating Mac toolbar menu geometry must stay on the native overlay bridge.');
+assert(shareService.includes('window.__DominionPresenterDispatch')&&shareService.includes('webContents.executeJavaScript'),'Certified presenter IPC must directly invoke the live renderer dispatcher.');
+assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}"),'Stop Share must terminate the real ShareController capture, not only change toolbar chrome.');
+
+console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration active-share-toolbar green-share-border top-right-video-dock direct-presenter-command-routing truthful-toolbar-delivery no-second-display-capture-owner home-locked');
