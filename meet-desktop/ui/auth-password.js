@@ -19,9 +19,14 @@
   let screenshotReferenceStyle=document.querySelector('link[data-ds-zoom-screenshot-reference-2041]');
   if(!screenshotReferenceStyle){screenshotReferenceStyle=document.createElement('link');screenshotReferenceStyle.rel='stylesheet';screenshotReferenceStyle.href='./zoom-screenshot-reference-2.0.41.css';screenshotReferenceStyle.dataset.dsZoomScreenshotReference2041='1';document.head.append(screenshotReferenceStyle);}
 
+  const loadActiveShareHome=()=>{
+    if(document.querySelector('script[data-ds-active-share-home-2041]'))return;
+    const script=document.createElement('script');script.src='./active-share-home-parity-2.0.41.js';script.dataset.dsActiveShareHome2041='1';document.head.append(script);
+  };
   const loadScreenshotReference=()=>{
-    if(document.querySelector('script[data-ds-zoom-screenshot-reference-2041]'))return;
-    const script=document.createElement('script');script.src='./zoom-screenshot-reference-2.0.41.js';script.dataset.dsZoomScreenshotReference2041='1';document.head.append(script);
+    const existing=document.querySelector('script[data-ds-zoom-screenshot-reference-2041]');
+    if(existing){if(window.DominionZoomScreenshotReference)loadActiveShareHome();else existing.addEventListener('load',loadActiveShareHome,{once:true});return;}
+    const script=document.createElement('script');script.src='./zoom-screenshot-reference-2.0.41.js';script.dataset.dsZoomScreenshotReference2041='1';script.onload=loadActiveShareHome;document.head.append(script);
   };
   const loadRuntimeStability=()=>{
     const existing=document.querySelector('script[data-ds-runtime-stability]');
@@ -53,9 +58,6 @@
   if(!document.querySelector('script[data-ds-zoom-contract-bridge]')){const script=document.createElement('script');script.src='./zoom-contract-bridge.js';script.dataset.dsZoomContractBridge='1';document.head.append(script);}
   if(!document.querySelector('script[data-ds-presenter-command-parity-227]')){const script=document.createElement('script');script.src='./presenter-command-parity-2.0.27.js';script.dataset.dsPresenterCommandParity227='1';document.head.append(script);}
 
-  // One sequencing rule: physical repair -> adaptive -> approved -> runtime ->
-  // screenshot reference. The screenshot authority is intentionally last and
-  // owns only the visible reference surfaces, not media or meeting transport.
   if(physicalStyle.sheet)loadPhysicalRepair();
   else{
     physicalStyle.addEventListener('load',loadPhysicalRepair,{once:true});
@@ -74,14 +76,9 @@
   const setBusy=busy=>{submit.disabled=Boolean(busy);if(google)google.disabled=Boolean(busy);};
   const show=(message,kind='')=>{if(!status)return;status.textContent=String(message||'');status.classList.toggle('error',kind==='error');status.classList.toggle('success',kind==='success');};
   form.addEventListener('submit',async event=>{
-    event.preventDefault();
-    setBusy(true);show('Signing in securely…');
-    try{
-      await auth.signInPassword(email.value,password.value);
-      password.value='';show('Signed in. Opening DominionStar Meet…','success');
-    }catch(error){
-      setBusy(false);show(String(error?.message||error||'Email sign-in failed.'),'error');password.focus();
-    }
+    event.preventDefault();setBusy(true);show('Signing in securely…');
+    try{await auth.signInPassword(email.value,password.value);password.value='';show('Signed in. Opening DominionStar Meet…','success');}
+    catch(error){setBusy(false);show(String(error?.message||error||'Email sign-in failed.'),'error');password.focus();}
   });
   auth.onChanged?.(state=>{if(!state?.signedIn)setBusy(false);});
 })();
