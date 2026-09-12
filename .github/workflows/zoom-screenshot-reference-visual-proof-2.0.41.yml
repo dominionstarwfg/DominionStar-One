@@ -10,8 +10,17 @@ on:
       - 'meet-desktop/ui/share-picker.css'
       - 'meet-desktop/ui/share-picker.js'
       - 'meet-desktop/ui/auth-password.js'
+      - 'meet-desktop/ui/mac-presenter-toolbar.html'
+      - 'meet-desktop/ui/mac-presenter-toolbar.css'
+      - 'meet-desktop/ui/mac-presenter-toolbar.js'
+      - 'meet-desktop/ui/mac-share-video.html'
+      - 'meet-desktop/ui/mac-share-video.css'
+      - 'meet-desktop/ui/mac-share-video.js'
+      - 'meet-desktop/src/preload.cjs'
+      - 'meet-desktop/src/mac-share-presenter-overlay.mjs'
       - 'meet-desktop/package.json'
       - 'meet-desktop/scripts/capture-zoom-screenshot-reference-2.0.41.mjs'
+      - 'meet-desktop/scripts/verify-packaged-mac-presenter-window-2.0.41.mjs'
       - 'meet-desktop/scripts/verify-zoom-screenshot-reference-2.0.41.mjs'
       - '.github/workflows/zoom-screenshot-reference-visual-proof-2.0.41.yml'
   workflow_dispatch:
@@ -40,6 +49,10 @@ jobs:
         run: |
           test "$(node -p "require('./package.json').version")" = '2.0.41'
           node --check scripts/capture-zoom-screenshot-reference-2.0.41.mjs
+          node --check scripts/verify-packaged-mac-presenter-window-2.0.41.mjs
+          node --check ui/mac-presenter-toolbar.js
+          node --check src/preload.cjs
+          node --check src/mac-share-presenter-overlay.mjs
           node scripts/verify-zoom-screenshot-reference-2.0.41.mjs
       - name: Install build dependencies
         working-directory: meet-desktop
@@ -62,12 +75,15 @@ jobs:
           test -d "/Applications/DominionStar Meet.app"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
           /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx '2.0.41'
-      - name: Capture all Zoom reference surfaces from installed app
+      - name: Capture all main-window Zoom reference surfaces
         working-directory: meet-desktop
         run: node scripts/capture-zoom-screenshot-reference-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.41
+      - name: Prove and capture the real floating Mac presenter surface
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-mac-presenter-window-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.41/11-mac-floating-presenter-toolbar.png
       - name: Verify screenshot evidence exists and is unobstructed
         run: |
-          for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-active-share-toolbar 10-active-share-idle; do
+          for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-active-share-toolbar 10-active-share-idle 11-mac-floating-presenter-toolbar; do
             test -s "zoom-reference-proof-2.0.41/${n}.png"
           done
           test -s zoom-reference-proof-2.0.41/visual-proof.json
