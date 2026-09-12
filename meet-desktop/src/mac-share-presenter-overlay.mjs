@@ -8,6 +8,7 @@ if(process.platform==='darwin'){
   const preloadPath=path.join(here,'preload.cjs');
   let toolbarWindow=null;
   let borderWindow=null;
+  let videoWindow=null;
   let shareActive=false;
   let toolbarReady=false;
   let toolbarMenuOpen=false;
@@ -18,7 +19,7 @@ if(process.platform==='darwin'){
   const mainWindow=()=>{
     const windows=BrowserWindow.getAllWindows().filter(isAlive);
     return windows.find(win=>String(win.webContents?.getURL?.()||'').includes('/ui/index.html'))
-      ||windows.find(win=>win!==toolbarWindow&&win!==borderWindow&&!String(win.webContents?.getURL?.()||'').includes('mac-presenter-toolbar.html')&&win.isVisible?.())
+      ||windows.find(win=>win!==toolbarWindow&&win!==borderWindow&&win!==videoWindow&&!String(win.webContents?.getURL?.()||'').includes('mac-presenter-toolbar.html')&&!String(win.webContents?.getURL?.()||'').includes('mac-share-video.html')&&win.isVisible?.())
       ||null;
   };
   const displayForMain=()=>{const main=mainWindow();try{return main?screen.getDisplayMatching(main.getBounds()):screen.getPrimaryDisplay();}catch{return screen.getPrimaryDisplay();}};
@@ -38,7 +39,19 @@ if(process.platform==='darwin'){
     const display=displayForMain(),bounds=display.bounds;
     try{borderWindow.setBounds({x:bounds.x,y:bounds.y,width:bounds.width,height:bounds.height},false);}catch{}
   }
-  function publishState(){if(toolbarReady&&isAlive(toolbarWindow))toolbarWindow.webContents.send('share:toolbar-state',shareState);}
+  function positionVideo(){
+    if(!isAlive(videoWindow))return;
+    const display=displayForMain(),area=display.workArea||display.bounds;
+    let current={width:252,height:174};try{current=videoWindow.getBounds();}catch{}
+    const width=Math.max(190,Math.min(360,current.width||252));
+    const height=Math.max(132,Math.min(250,current.height||174));
+    const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+54);
+    try{videoWindow.setBounds({x,y,width,height},false);}catch{}
+  }
+  function publishState(){
+    if(toolbarReady&&isAlive(toolbarWindow))toolbarWindow.webContents.send('share:toolbar-state',shareState);
+    if(isAlive(videoWindow))videoWindow.webContents.send('share:toolbar-state',shareState);
+  }
 
   async function prepareToolbar(){
     if(isAlive(toolbarWindow))return toolbarWindow;
@@ -78,9 +91,35 @@ if(process.platform==='darwin'){
     positionBorder();return win;
   }
 
+  async function prepareVideo(){
+    if(isAlive(videoWindow))return videoWindow;
+    const win=new BrowserWindow({
+      width:252,height:174,minWidth:190,minHeight:132,maxWidth:360,maxHeight:250,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
+      webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
+    });
+    videoWindow=win;protect(win);
+    try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
+    try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+    win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});
+    positionVideo();
+    try{
+      await win.loadFile(path.join(uiDir,'mac-share-video.html'));
+      if(!isAlive(win)||videoWindow!==win)return null;
+      publishState();
+      if(shareActive){positionVideo();win.showInactive?.();win.moveTop?.();}
+      return win;
+    }catch(error){
+      console.error('[DominionStar Meet] macOS presenter video dock failed to prepare.',error);
+      try{win.setClosable?.(true);win.close();}catch{}
+      if(videoWindow===win)videoWindow=null;
+      return null;
+    }
+  }
+
   async function prepare(){
     if(preparing)return preparing;
-    preparing=Promise.allSettled([prepareToolbar(),prepareBorder()]).then(()=>({ok:Boolean(isAlive(toolbarWindow)&&isAlive(borderWindow))})).finally(()=>{preparing=null;});
+    preparing=Promise.allSettled([prepareToolbar(),prepareBorder(),prepareVideo()]).then(()=>({ok:Boolean(isAlive(toolbarWindow)&&isAlive(borderWindow)&&isAlive(videoWindow))})).finally(()=>{preparing=null;});
     return preparing;
   }
   function showMeeting(){
@@ -94,14 +133,16 @@ if(process.platform==='darwin'){
     if(!shareActive)return;
     void prepare().then(()=>{
       if(!shareActive)return;
-      positionToolbar();positionBorder();
+      positionToolbar();positionBorder();positionVideo();
       if(isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishState();}
+      if(isAlive(videoWindow)){videoWindow.showInactive?.();videoWindow.moveTop?.();}
       if(isAlive(borderWindow)){if(isDisplayShare()){borderWindow.showInactive?.();borderWindow.moveTop?.();}else borderWindow.hide();}
     });
   }
   function hideOverlays(){
     toolbarMenuOpen=false;
     if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:92},false);}catch{}toolbarWindow.hide();}
+    if(isAlive(videoWindow))videoWindow.hide();
     if(isAlive(borderWindow))borderWindow.hide();
   }
 
@@ -127,11 +168,11 @@ if(process.platform==='darwin'){
   });
   ipcMain.handle('mac-share:show-meeting',()=>({ok:showMeeting()}));
 
-  screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();}});
-  app.on('before-quit',()=>{shareActive=false;hideOverlays();for(const win of [toolbarWindow,borderWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}});
+  screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();}});
+  app.on('before-quit',()=>{shareActive=false;hideOverlays();for(const win of [toolbarWindow,borderWindow,videoWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}});
 
   // Preparation is intentionally source-enumeration-driven, before capture but
   // after the meeting renderer is already authoritative. Do not auto-create a
   // hidden file:// presenter target at app launch.
-  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,showOverlays,hideOverlays,prepare,state:()=>({shareActive,prepared:Boolean(isAlive(toolbarWindow)&&isAlive(borderWindow)),shareState:{...shareState}})});
+  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,showOverlays,hideOverlays,prepare,state:()=>({shareActive,prepared:Boolean(isAlive(toolbarWindow)&&isAlive(borderWindow)&&isAlive(videoWindow)),shareState:{...shareState}})});
 }
