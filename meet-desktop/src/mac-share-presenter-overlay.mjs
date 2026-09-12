@@ -13,6 +13,8 @@ if(process.platform==='darwin'){
   let toolbarReady=false;
   let toolbarMenuOpen=false;
   let preparing=null;
+  let presenterDeliverySeq=0;
+  const presenterDeliveries=new Map();
   let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
@@ -29,7 +31,7 @@ if(process.platform==='darwin'){
   function positionToolbar(){
     if(!isAlive(toolbarWindow))return;
     const display=displayForMain(),area=display.workArea||display.bounds;
-    const width=Math.min(920,Math.max(720,area.width-24));
+    const width=Math.min(890,Math.max(760,area.width-28));
     const height=toolbarMenuOpen?286:92;
     const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+4);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
@@ -45,7 +47,7 @@ if(process.platform==='darwin'){
     let current={width:252,height:174};try{current=videoWindow.getBounds();}catch{}
     const width=Math.max(190,Math.min(360,current.width||252));
     const height=Math.max(132,Math.min(250,current.height||174));
-    const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+54);
+    const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+78);
     try{videoWindow.setBounds({x,y,width,height},false);}catch{}
   }
   function publishState(){
@@ -57,7 +59,7 @@ if(process.platform==='darwin'){
     if(isAlive(toolbarWindow))return toolbarWindow;
     toolbarReady=false;
     const win=new BrowserWindow({
-      width:920,height:92,minWidth:720,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
       focusable:false,acceptFirstMouse:true,
       webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
@@ -146,6 +148,20 @@ if(process.platform==='darwin'){
     if(isAlive(borderWindow))borderWindow.hide();
   }
 
+  function settlePresenterDelivery(deliveryId,result){
+    const pending=presenterDeliveries.get(deliveryId);if(!pending)return false;
+    presenterDeliveries.delete(deliveryId);clearTimeout(pending.timer);pending.resolve(result);return true;
+  }
+  function deliverPresenterCommand(main,command){
+    const deliveryId=++presenterDeliverySeq;
+    return new Promise(resolve=>{
+      const timer=setTimeout(()=>{presenterDeliveries.delete(deliveryId);resolve({ok:false,sent:true,acknowledged:false,error:'presenter_command_ack_timeout',deliveryId});},1800);
+      presenterDeliveries.set(deliveryId,{resolve,timer});
+      try{main.webContents.send('share:presenter-command',{command,deliveryId});}
+      catch(error){clearTimeout(timer);presenterDeliveries.delete(deliveryId);resolve({ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'presenter_command_failed'),deliveryId});}
+    });
+  }
+
   ipcMain.handle('mac-share:prepare',()=>prepare());
   ipcMain.on('share:capture-started',(_event,state={})=>{
     shareActive=true;shareState={...shareState,...state,meetingVisible:true};showOverlays();
@@ -155,13 +171,18 @@ if(process.platform==='darwin'){
     if(isAlive(borderWindow)){if(isDisplayShare()){positionBorder();borderWindow.showInactive?.();borderWindow.moveTop?.();}else borderWindow.hide();}
   });
   ipcMain.on('mac-share:capture-stopped',()=>{shareActive=false;shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
+  ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
+    const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;
+    const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;
+    settlePresenterDelivery(deliveryId,{ok:Boolean(payload?.accepted),sent:true,acknowledged:true,deliveryId,error:payload?.accepted?'':String(payload?.error||'presenter_command_rejected')});
+  });
 
   ipcMain.handle('mac-share:presenter-command',async(_event,{command}={})=>{
     const normalized=String(command||'').replace(/^toolbar:/,'');
-    const main=mainWindow();if(!isAlive(main))return {ok:false,error:'meeting_window_unavailable'};
-    if(normalized==='show-meeting'){showMeeting();return {ok:true};}
+    const main=mainWindow();if(!isAlive(main))return {ok:false,sent:false,acknowledged:false,error:'meeting_window_unavailable'};
+    if(normalized==='show-meeting'){showMeeting();return {ok:true,sent:true,acknowledged:true};}
     if(['participants','chat','annotate'].includes(normalized))showMeeting();
-    try{main.webContents.send('share:presenter-command',normalized);return {ok:true};}catch(error){return {ok:false,error:String(error?.message||error||'presenter_command_failed')};}
+    return deliverPresenterCommand(main,normalized);
   });
   ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{
     toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?286:92};
@@ -169,7 +190,12 @@ if(process.platform==='darwin'){
   ipcMain.handle('mac-share:show-meeting',()=>({ok:showMeeting()}));
 
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();}});
-  app.on('before-quit',()=>{shareActive=false;hideOverlays();for(const win of [toolbarWindow,borderWindow,videoWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}});
+  app.on('before-quit',()=>{
+    shareActive=false;hideOverlays();
+    for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'app_quitting',deliveryId});}
+    presenterDeliveries.clear();
+    for(const win of [toolbarWindow,borderWindow,videoWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}
+  });
 
   // Preparation is intentionally source-enumeration-driven, before capture but
   // after the meeting renderer is already authoritative. Do not auto-create a
