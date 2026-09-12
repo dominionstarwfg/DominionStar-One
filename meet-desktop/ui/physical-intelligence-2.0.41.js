@@ -3,6 +3,7 @@
   if(window.DominionPhysicalIntelligence2041)return;
   const desktop=window.dominionDesktop||{};
   const q=s=>document.querySelector(s);
+  const qa=s=>[...document.querySelectorAll(s)];
 
   function installPhysicalStyles(){
     if(q('style[data-ds-physical-intelligence-2041]'))return;
@@ -10,202 +11,137 @@
     style.dataset.dsPhysicalIntelligence2041='1';
     style.textContent=`
       #prejoinOverlay .prejoin-effects-row{
-        position:absolute!important;
-        left:auto!important;
-        right:16px!important;
-        top:282px!important;
-        bottom:auto!important;
-        width:auto!important;
-        max-width:max-content!important;
-        height:auto!important;
-        min-height:0!important;
-        margin:0!important;
-        padding:0!important;
-        display:block!important;
-        background:transparent!important;
-        border:0!important;
-        z-index:8!important;
+        position:absolute!important;left:auto!important;right:16px!important;top:282px!important;bottom:auto!important;
+        width:auto!important;max-width:max-content!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;
+        display:block!important;background:transparent!important;border:0!important;z-index:8!important;
       }
       #prejoinOverlay .prejoin-backgrounds-button{
-        width:auto!important;
-        min-width:0!important;
-        max-width:max-content!important;
-        height:28px!important;
-        margin:0!important;
-        padding:0 10px!important;
-        display:inline-flex!important;
-        flex:none!important;
-        align-items:center!important;
-        justify-content:center!important;
-        gap:5px!important;
-        border:1px solid #55565a!important;
-        border-radius:6px!important;
-        background:rgba(24,25,27,.92)!important;
-        box-shadow:0 3px 12px rgba(0,0,0,.28)!important;
-        color:#fff!important;
+        width:auto!important;min-width:0!important;max-width:max-content!important;height:28px!important;margin:0!important;padding:0 10px!important;
+        display:inline-flex!important;flex:none!important;align-items:center!important;justify-content:center!important;gap:5px!important;
+        border:1px solid #55565a!important;border-radius:6px!important;background:rgba(24,25,27,.92)!important;
+        box-shadow:0 3px 12px rgba(0,0,0,.28)!important;color:#fff!important;
       }
       #prejoinOverlay .prejoin-backgrounds-button>span:last-child{display:block!important;width:auto!important;min-width:0!important;flex:none!important}
       #prejoinOverlay .prejoin-backgrounds-button strong{display:block!important;white-space:nowrap!important;font-size:10px!important;font-weight:500!important}
       #prejoinOverlay .prejoin-backgrounds-button small{display:none!important}
-      .ds2041-smart-recovery{
-        position:fixed!important;
-        inset:0!important;
-        z-index:9800!important;
-        display:grid!important;
-        place-items:center!important;
-        background:rgba(0,0,0,.58)!important;
-        color:#f2f2f3!important;
-        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-      }
-      .ds2041-smart-recovery[hidden]{display:none!important}
-      .ds2041-smart-recovery .ds2041-recovery-card{
-        width:min(470px,calc(100vw - 40px))!important;
-        padding:22px!important;
-        border:1px solid #484a4e!important;
-        border-radius:12px!important;
-        background:#242527!important;
-        box-shadow:0 24px 70px rgba(0,0,0,.62)!important;
-      }
-      .ds2041-smart-recovery .ds2041-recovery-card p{margin:0 0 5px!important;color:#77aef8!important;font-size:9px!important;font-weight:700!important;letter-spacing:.14em!important}
-      .ds2041-smart-recovery .ds2041-recovery-card h3{margin:0 0 8px!important;font-size:17px!important;color:#fff!important}
-      .ds2041-smart-recovery .ds2041-recovery-card>span{display:block!important;color:#b7b8bc!important;font-size:12px!important;line-height:1.5!important}
-      .ds2041-smart-recovery .ds2041-recovery-actions{display:flex!important;justify-content:flex-end!important;gap:8px!important;margin-top:18px!important}
-      .ds2041-smart-recovery .ds2041-recovery-actions button{height:32px!important;padding:0 13px!important;border:1px solid #505257!important;border-radius:6px!important;background:#323337!important;color:#fff!important;font-size:11px!important;cursor:pointer!important}
-      .ds2041-smart-recovery .ds2041-recovery-actions .primary{border-color:#0e72ed!important;background:#0e72ed!important}
+
+      /* Permission belongs inside the approved picker, never in front of it. */
+      .ds2041-recovery,.ds2041-smart-recovery,#screenPermissionDialog,.ds-share-permission,.ds-219-share-recovery{display:none!important}
+      .ds2041-permission-placeholder .ds2041-thumb{background:#1682ef!important;color:#fff!important}
+      .ds2041-permission-warning{width:54px;height:46px;display:grid;place-items:center;position:relative;color:#fff;font-size:30px;line-height:1}
+      .ds2041-permission-warning:before{content:'△';font-size:58px;font-weight:700;line-height:.8;color:#fff}
+      .ds2041-permission-warning:after{content:'!';position:absolute;left:0;right:0;top:7px;text-align:center;font-size:22px;font-weight:800;color:#1682ef}
+      .ds2041-permission-note{margin-top:12px;padding:10px 12px;border:1px solid #424448;border-radius:7px;background:#292a2d;color:#aaa;font-size:10px;line-height:1.45}
+      .ds2041-permission-modal{position:absolute;inset:0;z-index:4;display:grid;place-items:center;background:rgba(0,0,0,.30)}
+      .ds2041-permission-modal[hidden]{display:none!important}
+      .ds2041-permission-card{width:min(430px,calc(100% - 42px));padding:20px;border:1px solid #4b4d51;border-radius:11px;background:#252628;box-shadow:0 20px 55px rgba(0,0,0,.55)}
+      .ds2041-permission-card h3{margin:0 0 7px;color:#fff;font-size:17px}.ds2041-permission-card p{margin:0;color:#b8b9bd;font-size:11px;line-height:1.5}
+      .ds2041-permission-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.ds2041-permission-actions button{height:32px;padding:0 13px;border:1px solid #55575b;border-radius:6px;background:#333438;color:#fff;font-size:11px}.ds2041-permission-actions .primary{background:#0e72ed;border-color:#0e72ed}
     `;
     document.head.append(style);
   }
 
-  function installPermissionAwareShare(){
+  function installPickerFirstShare(){
     const legacy=window.DominionShareRuntimeAuthority2041;
-    if(!legacy?.open||!legacy?.dispose||legacy.permissionAware)return false;
+    if(!legacy?.open||!legacy?.reload||!legacy?.dispose||legacy.pickerFirstPermission)return false;
+
+    // Remove the old click listener but retain its certified picker methods.
     legacy.dispose();
-
-    let recovery=null;
-    let settingsOpened=false;
     let opening=false;
+    let blocked=false;
+    let settingsOpened=false;
     let focusTimer=0;
-    let lastStatus='unknown';
-    let lastDiagnostic='idle';
+    let refreshGeneration=0;
 
-    const timeout=(promise,ms=3600)=>Promise.race([
-      Promise.resolve(promise),
-      new Promise(resolve=>setTimeout(()=>resolve({ok:false,status:'unknown',detectedBy:'renderer-timeout'}),ms))
-    ]);
+    const pickerRoot=()=>q('.ds2041-share-root');
+    const hideRejectedRecovery=()=>qa('.ds2041-recovery,.ds2041-smart-recovery,#screenPermissionDialog,.ds-share-permission,.ds-219-share-recovery').forEach(node=>{try{node.hidden=true;}catch{}});
 
-    async function rawScreenStatus(){
-      try{return String((await timeout(desktop.media?.permissions?.(),1800))?.screen||'unknown').toLowerCase();}
-      catch{return 'unknown';}
+    function ensurePermissionModal(){
+      const root=pickerRoot();if(!root)return null;
+      let modal=root.querySelector('.ds2041-permission-modal');if(modal)return modal;
+      modal=document.createElement('div');modal.className='ds2041-permission-modal';modal.hidden=true;
+      modal.innerHTML='<div class="ds2041-permission-card"><h3>Allow DominionStar Meet to share your screen</h3><p data-copy>Open System Settings → Privacy & Security → Screen & System Audio Recording, then enable DominionStar Meet. Return here and the picker will refresh automatically.</p><div class="ds2041-permission-actions"><button type="button" data-cancel>Cancel</button><button type="button" class="primary" data-settings>Open System Settings</button></div></div>';
+      root.querySelector('.ds2041-share-window')?.append(modal);
+      modal.querySelector('[data-cancel]').onclick=()=>{modal.hidden=true;};
+      modal.querySelector('[data-settings]').onclick=async()=>{settingsOpened=true;try{await desktop.media?.openPrivacy?.('screen');}catch{}};
+      return modal;
     }
 
-    async function liveScreenAccess(){
-      let raw=await rawScreenStatus();
-      lastStatus=raw;
+    function showPermissionPlaceholders(){
+      const root=pickerRoot();if(!root)return false;
+      hideRejectedRecovery();root.hidden=false;blocked=true;
+      const content=root.querySelector('.ds2041-share-content');
+      const status=root.querySelector('.ds2041-share-status');
+      const preview=root.querySelector('.ds2041-preview');
+      const share=root.querySelector('.ds2041-share-button');
+      if(status)status.textContent='Screen Recording permission required';
+      if(content)content.innerHTML='<section class="ds2041-source-section screen"><strong>Entire screen</strong><div class="ds2041-source-grid"><button type="button" class="ds2041-source selected ds2041-permission-placeholder" data-permission-source="desktop"><span class="ds2041-thumb"><span class="ds2041-permission-warning"></span></span><span class="ds2041-source-name">Desktop 1</span></button></div></section><section class="ds2041-source-section window"><strong>Application windows</strong><div class="ds2041-permission-note">Allow Screen Recording to preview application windows. This picker will update automatically when macOS grants access.</div></section>';
+      if(preview)preview.innerHTML='<span class="ds2041-permission-warning"></span>';
+      if(share){share.disabled=false;share.textContent='Share';}
+      return true;
+    }
+
+    function showPermissionModal(copy=''){
+      showPermissionPlaceholders();const modal=ensurePermissionModal();if(!modal)return false;
+      const node=modal.querySelector('[data-copy]');if(node&&copy)node.textContent=copy;modal.hidden=false;return true;
+    }
+
+    async function refreshPicker({fromSettings=false}={}){
+      const generation=++refreshGeneration;
+      hideRejectedRecovery();
+      const root=pickerRoot();if(root)root.hidden=false;
       try{
-        if(desktop.media?.requestScreen){
-          const diagnostic=await timeout(desktop.media.requestScreen(),3600);
-          const status=String(diagnostic?.status||raw||'unknown').toLowerCase();
-          const ready=Boolean(diagnostic?.ok)||status==='granted';
-          lastStatus=ready?'granted':status;
-          lastDiagnostic=String(diagnostic?.detectedBy||diagnostic?.probeStatus||'request-screen');
-          return {ready,status:lastStatus,raw,restartRequired:Boolean(diagnostic?.restartRequired),diagnostic};
+        const ok=await legacy.reload();
+        if(generation!==refreshGeneration)return false;
+        hideRejectedRecovery();
+        const current=pickerRoot();if(current)current.hidden=false;
+        if(ok){
+          blocked=false;settingsOpened=false;
+          current?.querySelector('.ds2041-permission-modal')?.setAttribute('hidden','');
+          const status=current?.querySelector('.ds2041-share-status');if(status)status.textContent='';
+          return true;
         }
-      }catch(error){
-        lastDiagnostic=String(error?.message||error||'request-screen-error');
+      }catch{}
+      if(generation!==refreshGeneration)return false;
+      showPermissionPlaceholders();
+      if(fromSettings){
+        const modal=ensurePermissionModal();
+        const copy=modal?.querySelector('[data-copy]');
+        if(copy)copy.textContent='macOS still has not exposed the new Screen Recording grant to this running QA copy. If the switch is on, quit and reopen DominionStar Meet once. Stable signed builds will retain the permission like Zoom.';
+        if(modal)modal.hidden=false;
       }
-      raw=await rawScreenStatus();
-      lastStatus=raw;
-      return {ready:raw==='granted',status:raw,raw,restartRequired:false,diagnostic:null};
+      return false;
     }
 
-    function ensureRecovery(){
-      installPhysicalStyles();
-      if(recovery?.isConnected)return recovery;
-      recovery=document.createElement('section');
-      recovery.className='ds2041-recovery ds2041-smart-recovery';
-      recovery.hidden=true;
-      recovery.setAttribute('role','dialog');
-      recovery.setAttribute('aria-modal','true');
-      recovery.innerHTML='<div class="ds2041-recovery-card"><p>SCREEN SHARING</p><h3 data-title>Checking Screen Recording…</h3><span data-copy>DominionStar Meet is checking whether macOS already allows screen capture.</span><div class="ds2041-recovery-actions"><button type="button" data-cancel>Cancel</button><button type="button" data-settings>Open System Settings</button><button type="button" class="primary" data-restart hidden>Restart DominionStar Meet</button></div></div>';
-      document.body.append(recovery);
-      recovery.querySelector('[data-cancel]').onclick=()=>{recovery.hidden=true;settingsOpened=false;};
-      recovery.querySelector('[data-settings]').onclick=async()=>{
-        settingsOpened=true;
-        try{await desktop.media?.openPrivacy?.('screen');}catch{}
-        await refreshRecovery({probe:false});
-      };
-      recovery.querySelector('[data-restart]').onclick=()=>void desktop.app?.relaunch?.();
-      return recovery;
-    }
-
-    function renderRecovery(state={}){
-      const box=ensureRecovery(),title=box.querySelector('[data-title]'),copy=box.querySelector('[data-copy]'),restart=box.querySelector('[data-restart]'),settings=box.querySelector('[data-settings]');
-      if(state.ready){
-        title.textContent='Screen Recording is ready';
-        copy.textContent='DominionStar Meet can read your screen. Opening the approved Screens / Files / More chooser…';
-        restart.hidden=true;settings.hidden=false;
-        return box;
-      }
-      const status=String(state.status||lastStatus||'unknown');
-      if(settingsOpened||state.restartRequired){
-        title.textContent='Activate the permission change';
-        copy.textContent='macOS has not exposed the new Screen Recording grant to this running process yet. Restart DominionStar Meet once; after that, Share will use the permission without asking again.';
-        restart.hidden=false;settings.hidden=false;
-      }else if(status==='not-determined'){
-        title.textContent='Allow Screen Recording';
-        copy.textContent='macOS has not received a Screen Recording decision for DominionStar Meet yet. Use Open System Settings if the native permission prompt does not appear.';
-        restart.hidden=true;settings.hidden=false;
-      }else{
-        title.textContent='Allow Screen Recording';
-        copy.textContent='Screen Recording is not currently usable. Enable DominionStar Meet in Privacy & Security → Screen & System Audio Recording.';
-        restart.hidden=true;settings.hidden=false;
-      }
-      return box;
-    }
-
-    async function refreshRecovery({probe=true}={}){
-      const state=probe?await liveScreenAccess():{ready:false,status:await rawScreenStatus(),restartRequired:false};
-      lastStatus=String(state.status||lastStatus||'unknown');
-      renderRecovery(state);
-      return state;
-    }
-
-    async function showRecovery(state=null){
-      try{legacy.close?.();}catch{}
-      const box=ensureRecovery();
-      const resolved=state||await refreshRecovery({probe:true});
-      renderRecovery(resolved);
-      if(resolved.ready){
-        box.hidden=true;settingsOpened=false;
-        return legacy.open();
-      }
-      box.hidden=false;
+    async function requestPermissionFromPicker(){
+      const root=pickerRoot();if(!root)return false;
+      const status=root.querySelector('.ds2041-share-status');if(status)status.textContent='Waiting for Screen Recording permission…';
+      try{
+        const result=await Promise.race([
+          Promise.resolve(desktop.media?.requestScreen?.()),
+          new Promise(resolve=>setTimeout(()=>resolve({ok:false,status:'timeout'}),4200))
+        ]);
+        if(result?.ok||String(result?.status||'').toLowerCase()==='granted'){
+          return refreshPicker();
+        }
+      }catch{}
+      showPermissionModal();
       return false;
     }
 
     async function open(){
-      if(opening)return false;
-      opening=true;
-      const box=ensureRecovery();
-      box.hidden=false;
-      const title=box.querySelector('[data-title]'),copy=box.querySelector('[data-copy]');
-      title.textContent='Checking Screen Recording…';
-      copy.textContent='DominionStar Meet is checking the live macOS capture state.';
+      if(opening)return false;opening=true;
       try{
-        const state=await liveScreenAccess();
-        if(state.ready){
-          settingsOpened=false;
-          box.hidden=true;
-          return await legacy.open();
-        }
-        return await showRecovery(state);
-      }catch(error){
-        lastDiagnostic=String(error?.message||error||'share-entry-error');
-        renderRecovery({ready:false,status:lastStatus});
-        box.querySelector('[data-title]').textContent='Screen sharing could not open';
-        box.querySelector('[data-copy]').textContent='DominionStar Meet could not verify the current Screen Recording state. Open System Settings or restart the app once, then try Share again.';
-        box.hidden=false;
-        return false;
+        // Zoom parity: open the approved chooser first. Permission is a state
+        // of the chooser, never a gate in front of the chooser.
+        const ok=await legacy.open();
+        hideRejectedRecovery();
+        const root=pickerRoot();if(root)root.hidden=false;
+        if(ok){blocked=false;settingsOpened=false;return true;}
+        showPermissionPlaceholders();
+        return true;
+      }catch{
+        hideRejectedRecovery();showPermissionPlaceholders();return true;
       }finally{opening=false;}
     }
 
@@ -213,33 +149,19 @@
       const target=event.target;if(!target?.closest)return;
       const primary=target.closest('#roomShare');
       const nextShare=target.closest('[data-inline-command="new-share"]');
-      if(!primary&&!nextShare)return;
+      const placeholderShare=blocked&&target.closest('.ds2041-share-button');
+      if(!primary&&!nextShare&&!placeholderShare)return;
+      if(placeholderShare){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();queueMicrotask(()=>void requestPermissionFromPicker());return;}
       const meeting=q('#meetingOverlay');if(!meeting||meeting.hidden)return;
-      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-      target.closest('button')?.blur?.();
-      queueMicrotask(()=>void open());
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();target.closest('button')?.blur?.();queueMicrotask(()=>void open());
     }
 
     async function recheckAfterSettings(){
       if(!settingsOpened)return;
-      const box=ensureRecovery();
-      box.hidden=false;
-      box.querySelector('[data-title]').textContent='Checking Screen Recording…';
-      box.querySelector('[data-copy]').textContent='DominionStar Meet is checking the permission you just changed.';
-      const state=await liveScreenAccess();
-      renderRecovery(state);
-      if(state.ready){
-        box.hidden=true;settingsOpened=false;
-        await legacy.open();
-        return;
-      }
-      box.hidden=false;
+      const root=pickerRoot();if(root)root.hidden=false;
+      await refreshPicker({fromSettings:true});
     }
-
-    const onFocus=()=>{
-      if(!settingsOpened)return;
-      clearTimeout(focusTimer);focusTimer=setTimeout(()=>void recheckAfterSettings(),350);
-    };
+    const onFocus=()=>{if(!settingsOpened)return;clearTimeout(focusTimer);focusTimer=setTimeout(()=>void recheckAfterSettings(),300);};
     const onVisibility=()=>{if(document.visibilityState==='visible')onFocus();};
 
     window.addEventListener('click',intercept,true);
@@ -247,29 +169,18 @@
     document.addEventListener('visibilitychange',onVisibility);
 
     window.DominionShareRuntimeAuthority2041=Object.freeze({
-      version:'2.0.41-single-approved-runtime-share-live-permission',
-      permissionAware:true,
+      version:'2.0.41-picker-first-permission-parity',pickerFirstPermission:true,
       open,
-      close:()=>{try{legacy.close?.();}catch{}if(recovery)recovery.hidden=true;},
-      reload:()=>open(),
-      state:()=>({...legacy.state?.(),permissionStatus:lastStatus,permissionDiagnostic:lastDiagnostic,settingsOpened}),
-      dispose:()=>{
-        clearTimeout(focusTimer);
-        window.removeEventListener('click',intercept,true);
-        window.removeEventListener('focus',onFocus);
-        document.removeEventListener('visibilitychange',onVisibility);
-        try{legacy.dispose?.();}catch{}
-        recovery?.remove();
-      }
+      close:()=>{try{legacy.close?.();}catch{}blocked=false;settingsOpened=false;},
+      reload:()=>refreshPicker(),
+      state:()=>({...legacy.state?.(),permissionBlocked:blocked,settingsOpened}),
+      dispose:()=>{clearTimeout(focusTimer);window.removeEventListener('click',intercept,true);window.removeEventListener('focus',onFocus);document.removeEventListener('visibilitychange',onVisibility);try{legacy.dispose?.();}catch{};}
     });
     return true;
   }
 
   installPhysicalStyles();
-  const install=()=>{
-    installPhysicalStyles();
-    if(!installPermissionAwareShare())setTimeout(install,25);
-  };
+  const install=()=>{installPhysicalStyles();if(!installPickerFirstShare())setTimeout(install,25);};
   setTimeout(install,0);
-  window.DominionPhysicalIntelligence2041=Object.freeze({version:'2.0.41',installPhysicalStyles,installPermissionAwareShare});
+  window.DominionPhysicalIntelligence2041=Object.freeze({version:'2.0.41-picker-first-permission',installPhysicalStyles,installPickerFirstShare});
 })();
