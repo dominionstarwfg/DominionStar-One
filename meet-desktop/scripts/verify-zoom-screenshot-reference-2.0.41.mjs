@@ -138,9 +138,11 @@ has(preload,'macShare:Object.freeze','The native presenter control bridge is mis
 for(const label of ['Audio','Video','Participants','Chat','Share','Pause','Layout','Annotate','Show meeting','More'])has(macToolbarHtml,`>${label}<`,`Native presenter toolbar is missing ${label}.`);
 has(macToolbarHtml,'Stop share','Native presenter toolbar is missing Stop share.');
 has(macToolbarHtml,'DominionStar','Native presenter toolbar must retain DominionStar branding.');
-has(macToolbarCss,'background:#23c968','Native presenter toolbar must include the green live-sharing strip.');
+has(macToolbarCss,'.share-strip','Native presenter toolbar must retain a dedicated live-sharing strip.');
+has(macToolbarCss,'background:#26c968','Native presenter toolbar must include the green live-sharing strip.');
 has(macToolbarCss,'.toolbar.auto-hidden','Native presenter toolbar must auto-hide its controls without hiding sharing state.');
-has(macToolbarJs,"bridge?.command?.",'Native presenter toolbar controls must route to the real meeting renderer.');
+has(macToolbarJs,'const commandBridge=desktop.presenter||overlayBridge','Native presenter toolbar controls must route through the certified presenter command bridge.');
+has(macToolbarJs,'await commandBridge.command','Native presenter toolbar controls must await the real meeting renderer command round trip.');
 has(macToolbarJs,"state?.paused",'Native presenter toolbar must reflect real Pause/Resume state.');
 has(macToolbarJs,"state?.micOn",'Native presenter toolbar must reflect real microphone state.');
 has(macToolbarJs,"state?.cameraOn",'Native presenter toolbar must reflect real camera state.');
@@ -153,4 +155,4 @@ for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,macTo
   lacks(source,'private-user-images.githubusercontent.com','User image uploads must never be linked into the product.');
 }
 
-console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary privacy');
+console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary direct-presenter-command-routing privacy');
