@@ -11,10 +11,17 @@ const physical=read('ui/zoom-physical-acceptance.js');
 const integration=read('ui/share-integration.js');
 const controller=read('ui/share-controller.js');
 const preload=read('src/preload.cjs');
+const macOverlay=read('src/mac-share-presenter-overlay.mjs');
+const macToolbar=read('ui/mac-presenter-toolbar.html');
+const macToolbarJs=read('ui/mac-presenter-toolbar.js');
+const macVideo=read('ui/mac-share-video.html');
+const macVideoJs=read('ui/mac-share-video.js');
 
 assert.equal(pkg.version,'2.0.41');
 new Function(authority);
 new Function(intelligence);
+new Function(macToolbarJs);
+new Function(macVideoJs);
 
 assert(index.includes('<script src="./share-runtime-authority-2.0.41.js"></script>'),'Packaged main renderer must load the single approved physical-share authority.');
 assert(index.indexOf('share-runtime-authority-2.0.41.js')>index.indexOf('profile-photo-fallback.js'),'Runtime share authority must load after legacy static meeting decorators.');
@@ -52,4 +59,16 @@ assert(intelligence.includes('Stable signed builds will retain the permission li
 assert(intelligence.includes('left:auto!important')&&intelligence.includes('width:auto!important')&&intelligence.includes('max-width:max-content!important'),'Prejoin Backgrounds control must be explicitly compact and cannot inherit the rejected full-width overlay geometry.');
 assert(!intelligence.includes('#homeSection')&&!intelligence.includes('.home-grid')&&!intelligence.includes('.action-card'),'Physical intelligence repair must not alter the locked Home surface.');
 
-console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration no-second-capture-owner home-locked');
+// Active-share parity must be unmistakable on physical macOS: presenter toolbar,
+// green display border, and a top-right presenter video surface all live outside
+// the shared meeting renderer and are excluded from capture.
+assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-presenter-toolbar.html'))"),'macOS sharing must load the independent presenter toolbar.');
+assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-share-video.html'))"),'macOS sharing must load the independent presenter video dock.');
+assert(macOverlay.includes('border:4px solid #2ed573'),'Entire-screen sharing must retain a visible green display border.');
+assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('area.y+54'),'Presenter video dock must default to the upper-right of the active display.');
+assert(macOverlay.includes('showInactive?.();videoWindow.moveTop?.()'),'Presenter video dock must remain visible above the shared desktop without stealing focus.');
+assert(macToolbar.includes('You are screen sharing')&&macToolbar.includes('Stop share'),'Presenter toolbar must provide persistent positive sharing state and Stop share.');
+assert(macVideo.includes('DominionStar Meet')&&macVideo.includes('cameraPreview'),'Presenter video dock must retain DominionStar branding and a real local-camera surface.');
+assert(macVideoJs.includes('navigator.mediaDevices.getUserMedia')&&macVideoJs.includes("bridge?.onState?.(state=>"),'Presenter video dock must use live camera state and follow meeting camera/mic changes.');
+
+console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration active-share-toolbar green-share-border top-right-video-dock no-second-display-capture-owner home-locked');
