@@ -40,10 +40,6 @@ if(singleInstanceLock){
 }
 
 function rejectDuplicateLaunch(){
-  // Electron sends the launch attempt to the lock owner through
-  // second-instance. The owner restores/focuses its existing window; the
-  // duplicate must exit immediately so no second toolbar, dock, or capture
-  // renderer can ever initialize.
   app.quit();
 }
 
@@ -51,19 +47,12 @@ async function canonicalizeMacInstall(){
   if(!packagedMac())return {moved:false,skipped:true,canonical:true,conflictType:'',currentBundlePath:''};
   const currentBundlePath=currentMacBundlePath();
   if(currentBundlePath===CANONICAL_MAC_APP)return {moved:false,skipped:true,canonical:true,conflictType:'',currentBundlePath};
-  // Finder can silently create "DominionStar Meet 2.app" when an older copy
-  // already exists. Electron considers that copy "in Applications", but macOS
-  // privacy can then present it as a separate Screen Recording identity. Never
-  // let a renamed duplicate initialize meeting/media code.
   if(app.isInApplicationsFolder())return {moved:false,skipped:false,canonical:false,conflictType:'duplicateName',currentBundlePath};
   let conflictType='';
   try{
     const moved=app.moveToApplicationsFolder({
       conflictHandler:type=>{
         conflictType=String(type||'');
-        // A non-running stale copy may be replaced. Never continue through an
-        // existsAndRunning conflict: doing so leaves two runnable copies and
-        // macOS privacy relaunch can reopen the older /Applications binary.
         return conflictType==='exists';
       }
     });
@@ -89,15 +78,7 @@ function rejectNonCanonicalLaunch(install={}){
       ? `This copy is running as ${install.currentBundlePath||'a renamed DominionStar Meet app'}. Quit all DominionStar Meet copies, remove renamed duplicates such as “DominionStar Meet 2.app”, and install this build exactly as ${CANONICAL_MAC_APP}. The meeting runtime will not start from a duplicate app name because macOS can treat it as a separate Screen Recording privacy identity.`
       : `This build (${version}) could not complete installation into Applications${install.error?` (${install.error})`:''}. It will close instead of starting from the DMG or Downloads. Install DominionStar Meet into Applications, then reopen it before granting Camera, Microphone, or Screen & System Audio Recording access.`;
   try{
-    dialog.showMessageBoxSync({
-      type:'warning',
-      title:'Finish installing DominionStar Meet',
-      message,
-      detail,
-      buttons:['Quit this copy'],
-      defaultId:0,
-      noLink:true
-    });
+    dialog.showMessageBoxSync({type:'warning',title:'Finish installing DominionStar Meet',message,detail,buttons:['Quit this copy'],defaultId:0,noLink:true});
   }catch{}
   app.quit();
 }
@@ -107,11 +88,9 @@ async function launch(){
   const needsCanonicalInstall=packagedMac()&&!isCanonicalMacInstall();
   const install=await canonicalizeMacInstall();
   if(install.moved)return;
-  if(needsCanonicalInstall){
-    rejectNonCanonicalLaunch(install);
-    return;
-  }
+  if(needsCanonicalInstall){rejectNonCanonicalLaunch(install);return;}
   await import('./relaunch-service.mjs');
+  if(process.platform==='darwin')await import('./mac-share-presenter-overlay.mjs');
   await import('./main.mjs');
 }
 
