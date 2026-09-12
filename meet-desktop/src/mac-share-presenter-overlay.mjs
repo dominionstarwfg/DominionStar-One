@@ -11,10 +11,16 @@ if(process.platform==='darwin'){
   let shareActive=false;
   let toolbarReady=false;
   let toolbarMenuOpen=false;
+  let preparing=null;
   let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
-  const mainWindow=()=>BrowserWindow.getAllWindows().find(win=>isAlive(win)&&win!==toolbarWindow&&win!==borderWindow&&!String(win.webContents?.getURL?.()||'').includes('mac-presenter-toolbar.html'))||null;
+  const mainWindow=()=>{
+    const windows=BrowserWindow.getAllWindows().filter(isAlive);
+    return windows.find(win=>String(win.webContents?.getURL?.()||'').includes('/ui/index.html'))
+      ||windows.find(win=>win!==toolbarWindow&&win!==borderWindow&&!String(win.webContents?.getURL?.()||'').includes('mac-presenter-toolbar.html')&&win.isVisible?.())
+      ||null;
+  };
   const displayForMain=()=>{const main=mainWindow();try{return main?screen.getDisplayMatching(main.getBounds()):screen.getPrimaryDisplay();}catch{return screen.getPrimaryDisplay();}};
   const isDisplayShare=()=>/screen|desktop|display|entire/i.test(String(shareState.sourceName||''));
 
@@ -72,7 +78,11 @@ if(process.platform==='darwin'){
     positionBorder();return win;
   }
 
-  async function prepare(){await Promise.allSettled([prepareToolbar(),prepareBorder()]);}
+  async function prepare(){
+    if(preparing)return preparing;
+    preparing=Promise.allSettled([prepareToolbar(),prepareBorder()]).then(()=>({ok:Boolean(isAlive(toolbarWindow)&&isAlive(borderWindow))})).finally(()=>{preparing=null;});
+    return preparing;
+  }
   function showMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;
     try{main.webContents.send('mac-share:show-meeting');}catch{}
@@ -95,6 +105,7 @@ if(process.platform==='darwin'){
     if(isAlive(borderWindow))borderWindow.hide();
   }
 
+  ipcMain.handle('mac-share:prepare',()=>prepare());
   ipcMain.on('share:capture-started',(_event,state={})=>{
     shareActive=true;shareState={...shareState,...state,meetingVisible:true};showOverlays();
   });
@@ -119,6 +130,8 @@ if(process.platform==='darwin'){
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();}});
   app.on('before-quit',()=>{shareActive=false;hideOverlays();for(const win of [toolbarWindow,borderWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}});
 
-  void prepare();
-  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,showOverlays,hideOverlays,prepare,state:()=>({shareActive,shareState:{...shareState}})});
+  // Preparation is intentionally source-enumeration-driven, before capture but
+  // after the meeting renderer is already authoritative. Do not auto-create a
+  // hidden file:// presenter target at app launch.
+  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,showOverlays,hideOverlays,prepare,state:()=>({shareActive,prepared:Boolean(isAlive(toolbarWindow)&&isAlive(borderWindow)),shareState:{...shareState}})});
 }
