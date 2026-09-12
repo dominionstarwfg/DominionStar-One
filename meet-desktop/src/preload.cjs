@@ -6,14 +6,23 @@ let presenterListenerGeneration=0;
 ipcRenderer.on('share:presenter-command',(_event,payload)=>{
   const command=String(payload?.command||payload||'');
   const qaCommandId=Number(payload?.qaCommandId||0)||0;
+  const deliveryId=Number(payload?.deliveryId||0)||0;
   if(qaCommandId>0){
     console.error(`QA_PRESENTER_PRELOAD_RECEIVED id=${qaCommandId} command=${command} generation=${presenterListenerGeneration}`);
     ipcRenderer.send('share:presenter-preload-tap',{qaCommandId,command,generation:presenterListenerGeneration});
   }
   const callback=presenterCommandCallback;
   if(typeof callback==='function'){
-    try{callback(payload);}catch(error){console.error('[DominionStar Meet] Presenter command callback failed.',error);}
+    try{
+      callback(payload);
+      if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:true});
+    }catch(error){
+      console.error('[DominionStar Meet] Presenter command callback failed.',error);
+      if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:false,error:String(error?.message||error||'presenter_callback_failed')});
+    }
     if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command,generation:presenterListenerGeneration});
+  }else if(deliveryId>0){
+    ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:false,error:'presenter_listener_unavailable'});
   }
 });
 const listenPresenterCommand=callback=>{
