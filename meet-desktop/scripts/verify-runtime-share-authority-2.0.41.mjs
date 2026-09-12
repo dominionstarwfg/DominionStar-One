@@ -66,23 +66,24 @@ assert(!intelligence.includes('#homeSection')&&!intelligence.includes('.home-gri
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-presenter-toolbar.html'))"),'macOS sharing must load the independent presenter toolbar.');
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-share-video.html'))"),'macOS sharing must load the independent presenter video dock.');
 assert(macOverlay.includes('border:4px solid #2ed573'),'Entire-screen sharing must retain a visible green display border.');
-assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('area.y+54'),'Presenter video dock must default to the upper-right of the active display.');
+assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('area.y+78'),'Presenter video dock must default to the upper-right below the floating toolbar on the active display.');
 assert(macOverlay.includes('showInactive?.();videoWindow.moveTop?.()'),'Presenter video dock must remain visible above the shared desktop without stealing focus.');
 assert(macToolbar.includes('You are screen sharing')&&macToolbar.includes('Stop share'),'Presenter toolbar must provide persistent positive sharing state and Stop share.');
 assert(macVideo.includes('DominionStar Meet')&&macVideo.includes('cameraPreview'),'Presenter video dock must retain DominionStar branding and a real local-camera surface.');
 assert(macVideoJs.includes('navigator.mediaDevices.getUserMedia')&&macVideoJs.includes("bridge?.onState?.(state=>"),'Presenter video dock must use live camera state and follow meeting camera/mic changes.');
 
 // Physical Mac evidence exposed a gap the screenshot gates could not see: the
-// separate floating toolbar was sending commands through a fire-and-forget mac
-// overlay bridge. Commands must instead use the certified presenter bridge,
-// which directly executes the live renderer dispatcher before falling back to
-// IPC. macShare remains responsible only for overlay geometry/state.
-assert(macToolbarJs.includes('const overlayBridge=desktop.macShare||null'),'Floating Mac toolbar must retain the macShare overlay bridge for native geometry/state.');
-assert(macToolbarJs.includes('const commandBridge=desktop.presenter||overlayBridge'),'Floating Mac toolbar commands must route through the certified presenter command bridge.');
-assert(macToolbarJs.includes("await commandBridge.command(String(command||''))"),'Floating Mac toolbar controls must await the presenter command round trip.');
-assert(macToolbarJs.includes("result?.ok===false||result?.sent===false"),'Floating Mac toolbar must not silently treat a rejected command as success.');
-assert(macToolbarJs.includes('await overlayBridge?.setMenuOpen?.(menuOpen)'),'Floating Mac toolbar menu geometry must stay on the native overlay bridge.');
-assert(shareService.includes('window.__DominionPresenterDispatch')&&shareService.includes('webContents.executeJavaScript'),'Certified presenter IPC must directly invoke the live renderer dispatcher.');
+// floating toolbar could report success after only queueing an IPC message.
+// Every native Mac presenter command must now receive a positive acknowledgement
+// from the canonical meeting renderer before the toolbar treats delivery as real.
+assert(macToolbarJs.includes('const nativeBridge=desktop.macShare||null'),'Floating Mac toolbar must prefer the native macShare control bridge.');
+assert(macToolbarJs.includes('const fallbackBridge=desktop.presenter||null'),'Floating Mac toolbar must retain only a bounded generic presenter fallback.');
+assert(macToolbarJs.includes('result=await nativeBridge.command(normalized)'),'Floating Mac toolbar controls must await native Mac command acknowledgement.');
+assert(macToolbarJs.includes('result.acknowledged!==false'),'Floating Mac toolbar must reject unacknowledged command delivery.');
+assert(macToolbarJs.includes('await nativeBridge?.setMenuOpen?.(menuOpen)'),'Floating Mac toolbar menu geometry must stay on the native overlay bridge.');
+assert(macOverlay.includes('presenter_command_ack_timeout'),'Native overlay must fail closed when the meeting renderer does not acknowledge a presenter command.');
+assert(preload.includes("ipcRenderer.send('share:presenter-delivery-ack'"),'The canonical renderer preload must positively acknowledge presenter command delivery.');
+assert(shareService.includes('window.__DominionPresenterDispatch')&&shareService.includes('webContents.executeJavaScript'),'Generic presenter fallback must still directly invoke the live renderer dispatcher.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}"),'Stop Share must terminate the real ShareController capture, not only change toolbar chrome.');
 
-console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration active-share-toolbar green-share-border top-right-video-dock direct-presenter-command-routing truthful-toolbar-delivery no-second-display-capture-owner home-locked');
+console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration active-share-toolbar green-share-border top-right-video-dock acknowledged-mac-presenter-routing truthful-toolbar-delivery no-second-display-capture-owner home-locked');
