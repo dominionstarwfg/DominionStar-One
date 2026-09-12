@@ -115,17 +115,23 @@ has(refJs,'Stop share','Presenter green strip is missing Stop share.');
 has(refCss,'opacity:0!important;pointer-events:none!important','Presenter toolbar must be hidden while idle.');
 has(refCss,'.ds-ref-presenter-visible #inlinePresenterToolbar','Presenter toolbar must become interactive only when revealed.');
 
-// Physical macOS presenter path: chrome is prepared before capture and merely
-// shown when capture starts. This preserves the renderer-freeze repair while
-// making the share state unmistakable on top of every shared app.
-has(bootstrap,"await import('./main.mjs')",'Main window must initialize before native presenter preparation.');
-has(bootstrap,"await import('./mac-share-presenter-overlay.mjs')",'macOS presenter overlay is not initialized.');
-has(macOverlay,'show:false','Native presenter windows must be prepared hidden before a share begins.');
-has(macOverlay,'void prepare();','Native presenter chrome must be pre-created before the first capture.');
+// Physical macOS presenter path. The chrome is prepared when source
+// enumeration starts, which is safely before getDisplayMedia capture but after
+// the main renderer is authoritative. This avoids a hidden file:// window
+// competing with the meeting renderer at app launch.
+has(bootstrap,"await import('./main.mjs')",'Main window must initialize before native presenter preparation authority.');
+has(bootstrap,"await import('./mac-share-presenter-overlay.mjs')",'macOS presenter overlay authority is not initialized.');
+has(macOverlay,'show:false','Native presenter windows must remain hidden while being prepared.');
+has(macOverlay,"ipcMain.handle('mac-share:prepare'",'macOS presenter chrome needs an explicit pre-capture preparation gate.');
+has(preload,"const prepareMacPresenter=()=>process.platform==='darwin'?invoke('mac-share:prepare')",'The preload must expose bounded macOS presenter preparation.');
+has(preload,'listSources:async options=>{await prepareMacPresenter();','Presenter chrome must be prepared before source enumeration/capture.');
+has(preload,'openPicker:async permission=>{await prepareMacPresenter();','Legacy/custom picker entry must also prepare presenter chrome before capture.');
+lacks(macOverlay,'\n  void prepare();','Presenter chrome must not auto-create a hidden file:// target at app launch.');
 has(macOverlay,"ipcMain.on('share:capture-started'",'Native presenter overlay must activate from the real capture-started event.');
 has(macOverlay,"ipcMain.on('mac-share:capture-stopped'",'Native presenter overlay must close from the real capture-stopped event.');
 has(macOverlay,'setContentProtection(true)','Presenter chrome must be protected from recursive screen capture.');
 has(macOverlay,'border:4px solid #2ed573','Entire-display sharing must have a local green sharing boundary.');
+has(macOverlay,"includes('/ui/index.html')",'Native presenter commands must resolve the canonical meeting renderer rather than auxiliary windows.');
 has(preload,"ipcRenderer.send('mac-share:state'",'Live share/media state must reach the macOS presenter overlay.');
 has(preload,"ipcRenderer.send('mac-share:capture-stopped'",'The macOS presenter overlay must receive authoritative Stop Share state.');
 has(preload,'macShare:Object.freeze','The native presenter control bridge is missing.');
@@ -147,4 +153,4 @@ for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,macTo
   lacks(source,'private-user-images.githubusercontent.com','User image uploads must never be linked into the product.');
 }
 
-console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-native-presenter green-share-boundary privacy');
+console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary privacy');
