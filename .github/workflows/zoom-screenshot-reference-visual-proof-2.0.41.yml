@@ -21,6 +21,7 @@ on:
       - 'meet-desktop/package.json'
       - 'meet-desktop/scripts/capture-zoom-screenshot-reference-2.0.41.mjs'
       - 'meet-desktop/scripts/verify-packaged-mac-presenter-window-2.0.41.mjs'
+      - 'meet-desktop/scripts/verify-runtime-share-authority-2.0.41.mjs'
       - 'meet-desktop/scripts/verify-zoom-screenshot-reference-2.0.41.mjs'
       - '.github/workflows/zoom-screenshot-reference-visual-proof-2.0.41.yml'
   workflow_dispatch:
@@ -50,10 +51,12 @@ jobs:
           test "$(node -p "require('./package.json').version")" = '2.0.41'
           node --check scripts/capture-zoom-screenshot-reference-2.0.41.mjs
           node --check scripts/verify-packaged-mac-presenter-window-2.0.41.mjs
+          node --check scripts/verify-runtime-share-authority-2.0.41.mjs
           node --check ui/mac-presenter-toolbar.js
           node --check src/preload.cjs
           node --check src/mac-share-presenter-overlay.mjs
           node scripts/verify-zoom-screenshot-reference-2.0.41.mjs
+          node scripts/verify-runtime-share-authority-2.0.41.mjs
       - name: Install build dependencies
         working-directory: meet-desktop
         run: npm install --ignore-scripts --no-audit --no-fund
