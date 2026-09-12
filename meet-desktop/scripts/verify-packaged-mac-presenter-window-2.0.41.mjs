@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 
 const appPath=process.argv[2];
-if(!appPath)throw new Error('Usage: node verify-packaged-mac-presenter-window-2.0.41.mjs <DominionStar Meet.app>');
+const toolbarProofPath=process.argv[3]?path.resolve(process.argv[3]):'';
+if(!appPath)throw new Error('Usage: node verify-packaged-mac-presenter-window-2.0.41.mjs <DominionStar Meet.app> [toolbar-proof.png]');
 const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=12140+Math.floor(Math.random()*120);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -44,6 +46,7 @@ class Cdp{
       this.pending.delete(msg.id);clearTimeout(waiter.timer);msg.error?waiter.reject(new Error(msg.error.message||'CDP error')):waiter.resolve(msg.result);
     });
     await this.call('Runtime.enable');
+    await this.call('Page.enable');
   }
   call(method,params={},timeout=7000){return new Promise((resolve,reject)=>{
     const id=++this.next,timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(`CDP timeout ${method}`));},timeout);
@@ -51,10 +54,11 @@ class Cdp{
   });}
   async eval(expression,timeout=7000){const result=await this.call('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true},timeout);if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Renderer evaluation failed');return result.result?.value;}
   async wait(expression,label,timeout=10000){const deadline=Date.now()+timeout;let last='';while(Date.now()<deadline){try{if(await this.eval(`Boolean(${expression})`,2500))return;}catch(error){last=String(error?.message||error);}await sleep(80);}throw new Error(`Timed out waiting for ${label}${last?`: ${last}`:''}`);}
+  async screenshot(file){const result=await this.call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,fromSurface:true},7000);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,Buffer.from(result.data,'base64'));}
   close(){try{this.socket?.close();}catch{}}
 }
 
-let main=null,toolbar=null,failure=null;
+let main=null,toolbar=null,videoDock=null,failure=null;
 try{
   const mainTarget=await target(url=>url.startsWith('file://')&&url.includes('/ui/index.html'),'main meeting renderer');
   main=new Cdp(mainTarget.webSocketDebuggerUrl);await main.connect();
@@ -83,19 +87,27 @@ try{
 
   const toolbarTarget=await target(url=>url.includes('mac-presenter-toolbar.html'),'floating macOS presenter toolbar',12000);
   toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
-  await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.dominionDesktop?.presenter?.command",'floating toolbar command bridge');
+  await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='macShare-ack'",'acknowledged floating toolbar command bridge');
+
+  const videoTarget=await target(url=>url.includes('mac-share-video.html'),'floating macOS participant video dock',12000);
+  videoDock=new Cdp(videoTarget.webSocketDebuggerUrl);await videoDock.connect();
+  await videoDock.wait("document.readyState==='complete'&&document.querySelector('#dock')",'floating participant video dock');
 
   const surface=await toolbar.eval(`(()=>({
     sharing:document.querySelector('#shareStateLabel')?.textContent||'',
     stop:document.querySelector('#stopShare')?.textContent||'',
+    brand:document.querySelector('.brand span')?.textContent||'',
     commands:[...document.querySelectorAll('[data-command]')].map(node=>node.dataset.command),
     presenterBridge:Boolean(window.dominionDesktop?.presenter?.command),
-    macBridge:Boolean(window.dominionDesktop?.macShare?.setMenuOpen)
+    macBridge:Boolean(window.dominionDesktop?.macShare?.command),
+    transport:window.DominionMacPresenterToolbar?.transport||''
   }))()`);
   assert.match(surface.sharing,/screen sharing/i,'Floating toolbar does not visibly confirm active sharing.');
   assert.match(surface.stop,/Stop share/i,'Floating toolbar is missing Stop share.');
-  assert.equal(surface.presenterBridge,true,'Floating toolbar cannot access the certified presenter command bridge.');
-  assert.equal(surface.macBridge,true,'Floating toolbar lost its native macShare geometry bridge.');
+  assert.equal(surface.brand,'DominionStar','Floating toolbar brand label drifted from approved compact reference.');
+  assert.equal(surface.presenterBridge,true,'Floating toolbar cannot access the presenter fallback bridge.');
+  assert.equal(surface.macBridge,true,'Floating toolbar lost its native macShare command bridge.');
+  assert.equal(surface.transport,'macShare-ack','Floating toolbar is not using acknowledged native Mac command delivery.');
   for(const command of ['audio','video','participants','chat','new-share','pause','annotate','show-meeting','record']){
     assert.ok(surface.commands.includes(command),`Floating toolbar is missing ${command}.`);
   }
@@ -105,15 +117,24 @@ try{
   assert.match(menu.text,/Record meeting/);assert.match(menu.text,/New Share/);
   await toolbar.eval(`document.querySelector('#moreButton').click()`);
 
+  if(toolbarProofPath)await toolbar.screenshot(toolbarProofPath);
+
+  const pauseDelivery=await toolbar.eval(`window.dominionDesktop.macShare.command('pause')`,6000);
+  assert.equal(pauseDelivery?.ok,true,'Native Mac Pause command was not acknowledged by the meeting renderer.');
+  await main.wait("window.DominionShareController.snapshot().paused===true",'Pause command round trip',5000);
+  const resumeDelivery=await toolbar.eval(`window.dominionDesktop.macShare.command('pause')`,6000);
+  assert.equal(resumeDelivery?.ok,true,'Native Mac Resume command was not acknowledged by the meeting renderer.');
+  await main.wait("window.DominionShareController.snapshot().paused===false",'Resume command round trip',5000);
+
   await toolbar.eval(`document.querySelector('#stopShare').click()`);
   await main.wait("window.DominionShareController.snapshot().active===false&&!document.querySelector('#meetingOverlay').classList.contains('share-active')",'Stop Share round trip',9000);
   const stopped=await main.eval(`(()=>({active:window.DominionShareController.snapshot().active,shareClass:document.querySelector('#meetingOverlay').classList.contains('share-active')}))()`);
   assert.deepEqual(stopped,{active:false,shareClass:false},'Stop Share did not terminate the real share controller state.');
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK floating-window real-presenter-bridge more-menu stop-share-round-trip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK floating-window macShare-ack participant-dock more-menu pause-resume stop-share-round-trip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
-  toolbar?.close();main?.close();
+  videoDock?.close();toolbar?.close();main?.close();
   if(child.exitCode===null){try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 }
 if(failure)throw failure;
