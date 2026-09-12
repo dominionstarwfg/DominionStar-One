@@ -23,7 +23,7 @@ app.on('open-url',(event,url)=>{event.preventDefault();queueJoinUrl(url);});
 const singleInstanceLock=app.requestSingleInstanceLock();
 
 function focusRunningInstance(){
-  const win=BrowserWindow.getAllWindows().find(candidate=>candidate&&!candidate.isDestroyed());
+  const win=BrowserWindow.getAllWindows().find(candidate=>candidate&&!candidate.isDestroyed()&&String(candidate.webContents?.getURL?.()||'').includes('/ui/index.html'))||BrowserWindow.getAllWindows().find(candidate=>candidate&&!candidate.isDestroyed()&&candidate.isVisible?.());
   if(!win)return false;
   try{if(win.isMinimized())win.restore();}catch{}
   try{win.show();}catch{}
@@ -39,9 +39,7 @@ if(singleInstanceLock){
   });
 }
 
-function rejectDuplicateLaunch(){
-  app.quit();
-}
+function rejectDuplicateLaunch(){app.quit();}
 
 async function canonicalizeMacInstall(){
   if(!packagedMac())return {moved:false,skipped:true,canonical:true,conflictType:'',currentBundlePath:''};
@@ -50,12 +48,7 @@ async function canonicalizeMacInstall(){
   if(app.isInApplicationsFolder())return {moved:false,skipped:false,canonical:false,conflictType:'duplicateName',currentBundlePath};
   let conflictType='';
   try{
-    const moved=app.moveToApplicationsFolder({
-      conflictHandler:type=>{
-        conflictType=String(type||'');
-        return conflictType==='exists';
-      }
-    });
+    const moved=app.moveToApplicationsFolder({conflictHandler:type=>{conflictType=String(type||'');return conflictType==='exists';}});
     return {moved:Boolean(moved),skipped:false,canonical:false,conflictType,currentBundlePath};
   }catch(error){
     console.error('[DominionStar Meet] Could not move app to /Applications.',error);
@@ -67,19 +60,13 @@ function rejectNonCanonicalLaunch(install={}){
   const running=String(install.conflictType||'')==='existsAndRunning';
   const duplicateName=String(install.conflictType||'')==='duplicateName';
   const version=app.getVersion();
-  const message=running
-    ? 'Quit the older DominionStar Meet first'
-    : duplicateName
-      ? 'Use the canonical DominionStar Meet app'
-      : 'DominionStar Meet must run from Applications';
+  const message=running?'Quit the older DominionStar Meet first':duplicateName?'Use the canonical DominionStar Meet app':'DominionStar Meet must run from Applications';
   const detail=running
     ? `Another DominionStar Meet is already running from Applications. Quit that copy completely, then open build ${version} again so it can replace the installed app. This copy will not run from the DMG or Downloads because macOS Screen Recording “Quit & Reopen” could otherwise reopen the wrong build.`
     : duplicateName
       ? `This copy is running as ${install.currentBundlePath||'a renamed DominionStar Meet app'}. Quit all DominionStar Meet copies, remove renamed duplicates such as “DominionStar Meet 2.app”, and install this build exactly as ${CANONICAL_MAC_APP}. The meeting runtime will not start from a duplicate app name because macOS can treat it as a separate Screen Recording privacy identity.`
       : `This build (${version}) could not complete installation into Applications${install.error?` (${install.error})`:''}. It will close instead of starting from the DMG or Downloads. Install DominionStar Meet into Applications, then reopen it before granting Camera, Microphone, or Screen & System Audio Recording access.`;
-  try{
-    dialog.showMessageBoxSync({type:'warning',title:'Finish installing DominionStar Meet',message,detail,buttons:['Quit this copy'],defaultId:0,noLink:true});
-  }catch{}
+  try{dialog.showMessageBoxSync({type:'warning',title:'Finish installing DominionStar Meet',message,detail,buttons:['Quit this copy'],defaultId:0,noLink:true});}catch{}
   app.quit();
 }
 
@@ -90,8 +77,8 @@ async function launch(){
   if(install.moved)return;
   if(needsCanonicalInstall){rejectNonCanonicalLaunch(install);return;}
   await import('./relaunch-service.mjs');
-  if(process.platform==='darwin')await import('./mac-share-presenter-overlay.mjs');
   await import('./main.mjs');
+  if(process.platform==='darwin')await import('./mac-share-presenter-overlay.mjs');
 }
 
 if(singleInstanceLock)void launch();
