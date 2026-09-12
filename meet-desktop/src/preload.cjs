@@ -31,6 +31,7 @@ if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'&&!String(location?.hre
     ipcRenderer.send('share:qa-renderer-pulse',{index:index+1,delay,generation:presenterListenerGeneration,href:String(location?.href||'')});
   },delay));
 }
+const prepareMacPresenter=()=>process.platform==='darwin'?invoke('mac-share:prepare').catch(()=>({ok:false})):Promise.resolve({ok:true});
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
   environment:()=>invoke('app:get-environment'),
@@ -57,16 +58,20 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     iceConfig:(force=false,ttl=7200)=>invoke('meeting:ice-config',{force:Boolean(force),ttl:Number(ttl)||7200})
   }),
   share:Object.freeze({
-    openPicker:permission=>invoke('share:open-picker',{permission:String(permission||'unknown')}),probeAccess:()=>invoke('share:probe-access'),onSourceSelected:callback=>listen('share:source-selected',callback),
+    openPicker:async permission=>{await prepareMacPresenter();return invoke('share:open-picker',{permission:String(permission||'unknown')});},probeAccess:()=>invoke('share:probe-access'),onSourceSelected:callback=>listen('share:source-selected',callback),
     captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;},
     captureState:state=>{if(process.platform==='darwin'){ipcRenderer.send('mac-share:state',state||{});return true;}return invoke('share:capture-state',state);},
     presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;},
     captureStopped:()=>{if(process.platform==='darwin')ipcRenderer.send('mac-share:capture-stopped');return invoke('share:capture-stopped');},
     onPresenterCommand:callback=>listenPresenterCommand(callback)
   }),
-  sharePicker:Object.freeze({listSources:options=>invoke('share:list-sources',options),choose:(sourceId,options)=>invoke('share:select-source',{sourceId,options}),cancel:()=>invoke('share:cancel-picker')}),
+  sharePicker:Object.freeze({
+    listSources:async options=>{await prepareMacPresenter();return invoke('share:list-sources',options);},
+    choose:(sourceId,options)=>invoke('share:select-source',{sourceId,options}),cancel:()=>invoke('share:cancel-picker')
+  }),
   presenter:Object.freeze({command:command=>invoke('share:presenter-command',command),setMenuOpen:open=>invoke('share:presenter-menu-state',{open:Boolean(open)}),onState:callback=>listen('share:toolbar-state',callback)}),
   macShare:Object.freeze({
+    prepare:()=>prepareMacPresenter(),
     command:command=>invoke('mac-share:presenter-command',{command:String(command||'')}),
     setMenuOpen:open=>invoke('mac-share:menu-state',{open:Boolean(open)}),
     showMeeting:()=>invoke('mac-share:show-meeting'),
