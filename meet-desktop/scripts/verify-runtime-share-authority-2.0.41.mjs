@@ -23,7 +23,8 @@ assert(authority.includes("target.closest('#roomShare')")&&authority.includes("t
 assert(authority.includes('event.stopImmediatePropagation()'),'Approved share authority must prevent the older physical-acceptance picker from receiving the same click.');
 assert(authority.includes("pickerBridge.listSources({kind:'screen',includeDominionStar})")&&authority.includes("pickerBridge.listSources({kind:'window',includeDominionStar})"),'Approved runtime chooser must enumerate the same real screen/window bridge proven on physical Mac.');
 assert(authority.includes('pickerBridge.choose(source.id,options)'),'Approved runtime chooser must commit the real selected source into the certified source-selection IPC.');
-assert(preload.includes("sharePicker:Object.freeze({listSources:options=>invoke('share:list-sources',options),choose:(sourceId,options)=>invoke('share:select-source'"),'Runtime chooser must remain on the isolated preload source bridge.');
+assert(preload.includes("const prepareMacPresenter=()=>process.platform==='darwin'?invoke('mac-share:prepare')"),'macOS presenter preparation must stay isolated behind preload IPC.');
+assert(preload.includes('sharePicker:Object.freeze({')&&preload.includes("listSources:async options=>{await prepareMacPresenter();return invoke('share:list-sources',options);}")&&preload.includes("choose:(sourceId,options)=>invoke('share:select-source'"),'Runtime chooser must remain on the isolated preload source bridge while preparing presenter chrome before enumeration.');
 assert(!authority.includes('getDisplayMedia'),'Runtime chooser must not become a second display-capture owner.');
 assert(controller.includes('navigator.mediaDevices.getDisplayMedia'),'ShareController must remain the sole renderer display-capture owner.');
 assert(integration.includes('bridge?.onSourceSelected?.(async selection=>'),'ShareIntegration must remain the selected-source consumer that starts or replaces ShareController capture.');
@@ -51,4 +52,4 @@ assert(intelligence.includes('Stable signed builds will retain the permission li
 assert(intelligence.includes('left:auto!important')&&intelligence.includes('width:auto!important')&&intelligence.includes('max-width:max-content!important'),'Prejoin Backgrounds control must be explicitly compact and cannot inherit the rejected full-width overlay geometry.');
 assert(!intelligence.includes('#homeSection')&&!intelligence.includes('.home-grid')&&!intelligence.includes('.action-card'),'Physical intelligence repair must not alter the locked Home surface.');
 
-console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge no-second-capture-owner home-locked');
+console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration no-second-capture-owner home-locked');
