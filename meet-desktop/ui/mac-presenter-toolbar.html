@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DominionStar Meet – Presenter Controls</title>
+  <link rel="stylesheet" href="./mac-presenter-toolbar.css">
+</head>
+<body>
+  <main id="toolbar" class="toolbar" aria-label="DominionStar Meet sharing controls">
+    <section class="control-strip">
+      <div class="brand" aria-label="DominionStar Meet"><img id="brandLogo" alt=""><span>DominionStar</span></div>
+      <button type="button" data-command="audio"><span class="glyph">⌁</span><span id="audioLabel">Audio</span></button>
+      <button type="button" data-command="video"><span class="glyph">▣</span><span id="videoLabel">Video</span></button>
+      <button type="button" data-command="participants"><span class="glyph">♙</span><span>Participants</span></button>
+      <button type="button" data-command="chat"><span class="glyph">▢</span><span>Chat</span></button>
+      <button type="button" data-command="new-share"><span class="glyph share-glyph">⇧</span><span>Share</span></button>
+      <button type="button" data-command="pause"><span class="glyph">Ⅱ</span><span id="pauseLabel">Pause</span></button>
+      <div class="menu-wrap">
+        <button id="layoutButton" type="button"><span class="glyph">▣</span><span>Layout</span></button>
+        <div id="layoutMenu" class="popup-menu" hidden>
+          <button type="button" data-command="layout-speaker">Speaker video</button>
+          <button type="button" data-command="layout-gallery">Gallery video</button>
+          <button type="button" data-command="layout-hide">Hide participant video</button>
+        </div>
+      </div>
+      <button type="button" data-command="annotate"><span class="glyph">✎</span><span>Annotate</span></button>
+      <button type="button" data-command="show-meeting"><span class="glyph">▤</span><span>Show meeting</span></button>
+      <div class="menu-wrap">
+        <button id="moreButton" type="button"><span class="glyph">•••</span><span>More</span></button>
+        <div id="moreMenu" class="popup-menu more-menu" hidden>
+          <button type="button" data-command="record" id="recordCommand">Record meeting</button>
+          <button type="button" data-command="new-share">New Share</button>
+          <button type="button" data-command="layout-speaker">Speaker video</button>
+          <button type="button" data-command="layout-gallery">Gallery video</button>
+          <button type="button" data-command="layout-hide">Hide participant video</button>
+        </div>
+      </div>
+    </section>
+    <section class="share-strip" aria-live="polite">
+      <span class="share-copy"><span class="live-dot"></span><strong id="shareStateLabel">You are screen sharing</strong><small id="shareSourceLabel">Shared content</small></span>
+      <span id="shareAudioFlag" class="flag" hidden>Sound</span><span id="shareOptimizeFlag" class="flag" hidden>Optimized</span>
+      <button id="stopShare" class="stop-share" type="button">■ Stop share</button>
+    </section>
+  </main>
+  <script src="./mac-presenter-toolbar.js"></script>
+</body>
+</html>
