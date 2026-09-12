@@ -44,12 +44,16 @@ jobs:
           node --check ui/zoom-screenshot-reference-2.0.41.js
           node --check ui/meeting-notifications.js
           node --check ui/share-picker.js
+          node --check ui/mac-presenter-toolbar.js
           node --check scripts/capture-zoom-screenshot-reference-2.0.41.mjs
           node --check scripts/verify-packaged-reference-command-routing-2.0.41.mjs
+          node --check scripts/verify-packaged-mac-presenter-window-2.0.41.mjs
+          node --check scripts/verify-runtime-share-authority-2.0.41.mjs
           node --check scripts/verify-share-authority-2.0.41.mjs
           node --check scripts/verify-physical-acceptance-2.0.41.mjs
           node --check scripts/verify-physical-parity-2.0.41.mjs
           node scripts/verify-zoom-screenshot-reference-2.0.41.mjs
+          node scripts/verify-runtime-share-authority-2.0.41.mjs
 
       - name: Install clean dependencies
         working-directory: meet-desktop
@@ -139,6 +143,10 @@ jobs:
         working-directory: meet-desktop
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "/Applications/DominionStar Meet.app"
 
+      - name: Exercise real floating Mac presenter window commands
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-mac-presenter-window-2.0.41.mjs "/Applications/DominionStar Meet.app"
+
       - name: Verify packaged adaptive Zoom meeting behavior
         working-directory: meet-desktop
         run: node scripts/verify-packaged-zoom-window-parity.mjs "/Applications/DominionStar Meet.app"
@@ -169,7 +177,7 @@ jobs:
           ZIP="qa-2.0.41-artifact/DominionStar-Meet-2.0.41-FUNCTIONAL-QA-Mac-universal.zip"
           ditto -c -k --sequesterRsrc --keepParent "/Applications/DominionStar Meet.app" "$ZIP"
           shasum -a 256 "$ZIP" | tee qa-2.0.41-artifact/SHA256.txt
-          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\nshare_authority=screens-files-more-deep-certified\nreaction_authority=single-owner-meeting-features\nphysical_parity=screens-files-more-plus-layout-drag-filmstrip-prejoin\npackaged_physical_legacy_menu_test=superseded-by-reference-routing-and-specialized-gates\ninstaller=not-produced\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\nmac_presenter_window=real-floating-window-stop-share-round-trip\nshare_authority=screens-files-more-deep-certified\nreaction_authority=single-owner-meeting-features\nphysical_parity=screens-files-more-plus-layout-drag-filmstrip-prejoin\npackaged_physical_legacy_menu_test=superseded-by-reference-routing-and-specialized-gates\ninstaller=not-produced\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
           cp zoom-reference-proof-2.0.41/visual-proof.json qa-2.0.41-artifact/
 
       - name: Upload certified functional QA artifact
