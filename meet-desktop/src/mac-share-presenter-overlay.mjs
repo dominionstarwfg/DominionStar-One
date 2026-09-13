@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 if(process.platform==='darwin'){
   const here=path.dirname(fileURLToPath(import.meta.url));
   const uiDir=path.resolve(here,'../ui');
-  const preloadPath=path.join(here,'preload.cjs');
+  const presenterPreloadPath=path.join(here,'presenter-preload.cjs');
   const PREPARE_STEP_TIMEOUT_MS=2200;
   let toolbarWindow=null;
   let borderWindow=null;
@@ -74,7 +74,10 @@ if(process.platform==='darwin'){
       width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
       focusable:false,acceptFirstMouse:true,
-      webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
+      // These app-owned auxiliary windows use a tiny dedicated preload and no
+      // remote content. Keeping them out of Electron's sandbox avoids the
+      // sandbox preload startup failure that physically produced dead controls.
+      webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
     });
     toolbarWindow=win;protect(win);
     try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
@@ -117,7 +120,7 @@ if(process.platform==='darwin'){
     const win=new BrowserWindow({
       width:252,height:174,minWidth:190,minHeight:132,maxWidth:360,maxHeight:250,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
-      webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
+      webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
     });
     videoWindow=win;protect(win);
     try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
@@ -142,7 +145,7 @@ if(process.platform==='darwin'){
     if(preparing)return preparing;
     preparing=(async()=>{
       // Only one preload-backed presenter window is created at a time. This
-      // avoids Electron sandbox-startup races and keeps Share entry bounded.
+      // avoids Electron renderer startup races and keeps Share entry bounded.
       await prepareToolbar();
       await Promise.allSettled([prepareBorder(),prepareVideo()]);
       const ok=Boolean(toolbarReady&&isAlive(toolbarWindow)&&isAlive(borderWindow)&&isAlive(videoWindow));
