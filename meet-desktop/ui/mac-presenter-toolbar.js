@@ -42,12 +42,13 @@
   q('#moreButton')?.addEventListener('click',event=>{event.stopPropagation();reveal();if(layoutMenu)layoutMenu.hidden=true;if(moreMenu)moreMenu.hidden=!moreMenu.hidden;void setMenuState(menusOpen());});
   q('#stopShare')?.addEventListener('click',async event=>{
     const button=event.currentTarget;if(button.disabled)return;
-    button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='■ Stopping…';
+    const label=q('#stopShareLabel');
+    button.disabled=true;button.setAttribute('aria-busy','true');if(label)label.textContent='Stopping…';
     try{
       await send('stop');
     }catch(error){
       console.error('[DominionStar Meet] Stop share command failed.',error);
-      button.disabled=false;button.removeAttribute('aria-busy');button.textContent='■ Stop share';
+      button.disabled=false;button.removeAttribute('aria-busy');if(label)label.textContent='Stop Share';
       toolbar?.classList.add('command-error');setTimeout(()=>toolbar?.classList.remove('command-error'),1200);
     }
   });
