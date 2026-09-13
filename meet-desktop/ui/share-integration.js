@@ -247,7 +247,7 @@
       }catch(error){toast(error?.message||'Share control failed.','error');return {handled:false,command,error:String(error?.message||error||'share_control_failed')};}
     }
     window.__DominionPresenterDispatch=dispatchPresenterCommand;
-    bridge?.onPresenterCommand?.(rawCommand=>void dispatchPresenterCommand(rawCommand));
+    bridge?.onPresenterCommand?.(rawCommand=>dispatchPresenterCommand(rawCommand));
 
     window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand});
   }
