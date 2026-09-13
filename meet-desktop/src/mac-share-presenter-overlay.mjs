@@ -6,6 +6,7 @@ if(process.platform==='darwin'){
   const here=path.dirname(fileURLToPath(import.meta.url));
   const uiDir=path.resolve(here,'../ui');
   const preloadPath=path.join(here,'preload.cjs');
+  const PREPARE_STEP_TIMEOUT_MS=2200;
   let toolbarWindow=null;
   let borderWindow=null;
   let videoWindow=null;
@@ -28,6 +29,16 @@ if(process.platform==='darwin'){
   const isDisplayShare=()=>/screen|desktop|display|entire/i.test(String(shareState.sourceName||''));
 
   function protect(win){if(!isAlive(win))return;try{win.setContentProtection(true);}catch{}}
+  async function boundedLoad(label,loader){
+    let timer=0;
+    try{
+      return await Promise.race([
+        Promise.resolve().then(loader),
+        new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label}_timeout`)),PREPARE_STEP_TIMEOUT_MS);})
+      ]);
+    }finally{if(timer)clearTimeout(timer);}
+  }
+  function closeFailedWindow(win){if(!isAlive(win))return;try{win.setClosable?.(true);win.close();}catch{try{win.destroy?.();}catch{}}}
   function positionToolbar(){
     if(!isAlive(toolbarWindow))return;
     const display=displayForMain(),area=display.workArea||display.bounds;
@@ -56,8 +67,9 @@ if(process.platform==='darwin'){
   }
 
   async function prepareToolbar(){
-    if(isAlive(toolbarWindow))return toolbarWindow;
-    toolbarReady=false;
+    if(isAlive(toolbarWindow)&&toolbarReady)return toolbarWindow;
+    if(isAlive(toolbarWindow))closeFailedWindow(toolbarWindow);
+    toolbarWindow=null;toolbarReady=false;
     const win=new BrowserWindow({
       width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
@@ -70,15 +82,16 @@ if(process.platform==='darwin'){
     win.on('closed',()=>{if(toolbarWindow===win){toolbarWindow=null;toolbarReady=false;}});
     positionToolbar();
     try{
-      await win.loadFile(path.join(uiDir,'mac-presenter-toolbar.html'));
+      await boundedLoad('mac_presenter_toolbar_load',()=>win.loadFile(path.join(uiDir,'mac-presenter-toolbar.html')));
       if(!isAlive(win)||toolbarWindow!==win)return null;
       toolbarReady=true;publishState();
       if(shareActive){positionToolbar();win.showInactive?.();win.moveTop?.();}
       return win;
     }catch(error){
       console.error('[DominionStar Meet] macOS presenter toolbar failed to prepare.',error);
-      try{win.setClosable?.(true);win.close();}catch{}
+      closeFailedWindow(win);
       if(toolbarWindow===win)toolbarWindow=null;
+      toolbarReady=false;
       return null;
     }
   }
@@ -89,8 +102,14 @@ if(process.platform==='darwin'){
     borderWindow=win;protect(win);try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}try{win.setAlwaysOnTop(true,'floating');}catch{}try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(borderWindow===win)borderWindow=null;});
     const html='<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}body{border:4px solid #2ed573;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}</style>';
-    try{await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);}catch(error){console.error('[DominionStar Meet] share border failed to prepare.',error);}
-    positionBorder();return win;
+    try{
+      await boundedLoad('mac_share_border_load',()=>win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`));
+      if(!isAlive(win)||borderWindow!==win)return null;
+      positionBorder();return win;
+    }catch(error){
+      console.error('[DominionStar Meet] share border failed to prepare.',error);
+      closeFailedWindow(win);if(borderWindow===win)borderWindow=null;return null;
+    }
   }
 
   async function prepareVideo(){
@@ -106,14 +125,14 @@ if(process.platform==='darwin'){
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});
     positionVideo();
     try{
-      await win.loadFile(path.join(uiDir,'mac-share-video.html'));
+      await boundedLoad('mac_share_video_load',()=>win.loadFile(path.join(uiDir,'mac-share-video.html')));
       if(!isAlive(win)||videoWindow!==win)return null;
       publishState();
       if(shareActive){positionVideo();win.showInactive?.();win.moveTop?.();}
       return win;
     }catch(error){
       console.error('[DominionStar Meet] macOS presenter video dock failed to prepare.',error);
-      try{win.setClosable?.(true);win.close();}catch{}
+      closeFailedWindow(win);
       if(videoWindow===win)videoWindow=null;
       return null;
     }
@@ -121,7 +140,17 @@ if(process.platform==='darwin'){
 
   async function prepare(){
     if(preparing)return preparing;
-    preparing=Promise.allSettled([prepareToolbar(),prepareBorder(),prepareVideo()]).then(()=>({ok:Boolean(isAlive(toolbarWindow)&&isAlive(borderWindow)&&isAlive(videoWindow))})).finally(()=>{preparing=null;});
+    preparing=(async()=>{
+      // Only one preload-backed presenter window is created at a time. This
+      // avoids Electron sandbox-startup races and keeps Share entry bounded.
+      await prepareToolbar();
+      await Promise.allSettled([prepareBorder(),prepareVideo()]);
+      const ok=Boolean(toolbarReady&&isAlive(toolbarWindow)&&isAlive(borderWindow)&&isAlive(videoWindow));
+      return {ok,toolbarReady,prepared:ok};
+    })().catch(error=>{
+      console.error('[DominionStar Meet] macOS presenter preparation failed.',error);
+      return {ok:false,toolbarReady:false,prepared:false,error:String(error?.message||error||'presenter_prepare_failed')};
+    }).finally(()=>{preparing=null;});
     return preparing;
   }
   function showMeeting(){
@@ -136,7 +165,7 @@ if(process.platform==='darwin'){
     void prepare().then(()=>{
       if(!shareActive)return;
       positionToolbar();positionBorder();positionVideo();
-      if(isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishState();}
+      if(toolbarReady&&isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishState();}
       if(isAlive(videoWindow)){videoWindow.showInactive?.();videoWindow.moveTop?.();}
       if(isAlive(borderWindow)){if(isDisplayShare()){borderWindow.showInactive?.();borderWindow.moveTop?.();}else borderWindow.hide();}
     });
@@ -200,5 +229,5 @@ if(process.platform==='darwin'){
   // Preparation is intentionally source-enumeration-driven, before capture but
   // after the meeting renderer is already authoritative. Do not auto-create a
   // hidden file:// presenter target at app launch.
-  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,showOverlays,hideOverlays,prepare,state:()=>({shareActive,prepared:Boolean(isAlive(toolbarWindow)&&isAlive(borderWindow)&&isAlive(videoWindow)),shareState:{...shareState}})});
+  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,showOverlays,hideOverlays,prepare,state:()=>({shareActive,prepared:Boolean(toolbarReady&&isAlive(toolbarWindow)&&isAlive(borderWindow)&&isAlive(videoWindow)),shareState:{...shareState}})});
 }
