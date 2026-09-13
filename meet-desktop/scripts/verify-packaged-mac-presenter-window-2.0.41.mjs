@@ -119,19 +119,24 @@ try{
 
   if(toolbarProofPath)await toolbar.screenshot(toolbarProofPath);
 
-  const pauseDelivery=await toolbar.eval(`window.dominionDesktop.macShare.command('pause')`,6000);
-  assert.equal(pauseDelivery?.ok,true,'Native Mac Pause command was not acknowledged by the meeting renderer.');
-  await main.wait("window.DominionShareController.snapshot().paused===true",'Pause command round trip',5000);
-  const resumeDelivery=await toolbar.eval(`window.dominionDesktop.macShare.command('pause')`,6000);
-  assert.equal(resumeDelivery?.ok,true,'Native Mac Resume command was not acknowledged by the meeting renderer.');
-  await main.wait("window.DominionShareController.snapshot().paused===false",'Resume command round trip',5000);
+  await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);
+  await main.wait("window.DominionShareController.snapshot().paused===true",'real Pause button round trip',5000);
+  await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause label state feedback',5000);
+  await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);
+  await main.wait("window.DominionShareController.snapshot().paused===false",'real Resume button round trip',5000);
+  await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Pause'",'Resume label state feedback',5000);
+
+  await toolbar.eval(`document.querySelector('[data-command="participants"]').click()`);
+  await main.wait("document.body.dataset.dsShareCompanion==='participants'&&!document.querySelector('#meetingOverlay .room-side')?.hidden",'Participants button round trip',5000);
+  await toolbar.eval(`document.querySelector('[data-command="chat"]').click()`);
+  await main.wait("document.body.dataset.dsShareCompanion==='chat'&&!document.querySelector('#meetingChatPanel')?.hidden",'Chat button round trip',5000);
 
   await toolbar.eval(`document.querySelector('#stopShare').click()`);
   await main.wait("window.DominionShareController.snapshot().active===false&&!document.querySelector('#meetingOverlay').classList.contains('share-active')",'Stop Share round trip',9000);
   const stopped=await main.eval(`(()=>({active:window.DominionShareController.snapshot().active,shareClass:document.querySelector('#meetingOverlay').classList.contains('share-active')}))()`);
   assert.deepEqual(stopped,{active:false,shareClass:false},'Stop Share did not terminate the real share controller state.');
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK floating-window macShare-ack participant-dock more-menu pause-resume stop-share-round-trip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
