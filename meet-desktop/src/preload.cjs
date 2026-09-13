@@ -3,7 +3,7 @@ const invoke=(channel,payload)=>ipcRenderer.invoke(channel,payload);
 const listen=(channel,callback)=>{if(typeof callback!=='function')return()=>{};const handler=(_event,payload)=>callback(payload);ipcRenderer.on(channel,handler);return()=>ipcRenderer.removeListener(channel,handler);};
 let presenterCommandCallback=null;
 let presenterListenerGeneration=0;
-ipcRenderer.on('share:presenter-command',(_event,payload)=>{
+ipcRenderer.on('share:presenter-command',async(_event,payload)=>{
   const command=String(payload?.command||payload||'');
   const qaCommandId=Number(payload?.qaCommandId||0)||0;
   const deliveryId=Number(payload?.deliveryId||0)||0;
@@ -14,8 +14,9 @@ ipcRenderer.on('share:presenter-command',(_event,payload)=>{
   const callback=presenterCommandCallback;
   if(typeof callback==='function'){
     try{
-      callback(payload);
-      if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:true});
+      const result=await Promise.resolve(callback(payload));
+      const accepted=result?.handled!==false;
+      if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted,error:accepted?'':String(result?.error||'presenter_command_rejected')});
     }catch(error){
       console.error('[DominionStar Meet] Presenter command callback failed.',error);
       if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:false,error:String(error?.message||error||'presenter_callback_failed')});
