@@ -62,7 +62,16 @@ let main=null,toolbar=null,videoDock=null,failure=null;
 try{
   const mainTarget=await target(url=>url.startsWith('file://')&&url.includes('/ui/index.html'),'main meeting renderer');
   main=new Cdp(mainTarget.webSocketDebuggerUrl);await main.connect();
-  await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.__DominionPresenterDispatch&&window.dominionDesktop?.share",'share controllers');
+  await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.__DominionPresenterDispatch&&window.dominionDesktop?.share&&window.dominionDesktop?.macShare?.prepare",'share controllers');
+
+  // Production prepares the native macOS presenter windows before source
+  // enumeration/capture. Reproduce that exact lifecycle here. Creating those
+  // BrowserWindows after capture has already started can stall Chromium on a
+  // hosted Mac and is not the shipping path.
+  const prepared=await main.eval(`window.dominionDesktop.macShare.prepare()`,12000);
+  assert.equal(prepared?.ok,true,'macOS presenter surfaces were not prepared before capture.');
+  await target(url=>url.includes('mac-presenter-toolbar.html'),'pre-capture floating macOS presenter toolbar',12000);
+  await target(url=>url.includes('mac-share-video.html'),'pre-capture floating macOS participant video dock',12000);
 
   const started=await main.eval(`(async()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -136,7 +145,7 @@ try{
   const stopped=await main.eval(`(()=>({active:window.DominionShareController.snapshot().active,shareClass:document.querySelector('#meetingOverlay').classList.contains('share-active')}))()`);
   assert.deepEqual(stopped,{active:false,shareClass:false},'Stop Share did not terminate the real share controller state.');
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK pre-capture-prepared floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
