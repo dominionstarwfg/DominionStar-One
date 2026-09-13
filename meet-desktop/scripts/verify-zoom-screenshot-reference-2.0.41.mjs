@@ -17,6 +17,7 @@ const shareService=read('src/share-service.mjs');
 const shareController=read('ui/share-controller.js');
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
+const presenterPreload=read('src/presenter-preload.cjs');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 const macToolbarCss=read('ui/mac-presenter-toolbar.css');
@@ -133,29 +134,41 @@ has(macOverlay,'setContentProtection(true)','Presenter chrome must be protected 
 has(macOverlay,'border:4px solid #2ed573','Entire-display sharing must have a local green sharing boundary.');
 has(macOverlay,"includes('/ui/index.html')",'Native presenter commands must resolve the canonical meeting renderer rather than auxiliary windows.');
 has(macOverlay,'presenter_command_ack_timeout','Native presenter commands must fail if the meeting renderer does not acknowledge delivery.');
+has(macOverlay,"const presenterPreloadPath=path.join(here,'presenter-preload.cjs')",'Floating presenter surfaces must use the isolated presenter preload.');
+has(macOverlay,'preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false','App-owned presenter renderers must use the isolated non-sandboxed preload path that avoids the Electron sandbox startup race.');
+has(presenterPreload,"const {contextBridge,ipcRenderer}=require('electron')",'Isolated presenter preload is missing its Electron bridge.');
+has(presenterPreload,'macShare:Object.freeze','Isolated presenter preload must expose the acknowledged native command bridge.');
+lacks(presenterPreload,'meeting:Object.freeze','Auxiliary presenter preload must not expose the full meeting API.');
 has(preload,"ipcRenderer.send('mac-share:state'",'Live share/media state must reach the macOS presenter overlay.');
 has(preload,"ipcRenderer.send('mac-share:capture-stopped'",'The macOS presenter overlay must receive authoritative Stop Share state.');
 has(preload,"ipcRenderer.send('share:presenter-delivery-ack'",'The meeting renderer preload must acknowledge native presenter command delivery.');
 has(preload,'macShare:Object.freeze','The native presenter control bridge is missing.');
 for(const label of ['Audio','Video','Participants','Chat','Share','Pause','Layout','Annotate','Show meeting','More'])has(macToolbarHtml,`>${label}<`,`Native presenter toolbar is missing ${label}.`);
-has(macToolbarHtml,'Stop share','Native presenter toolbar is missing Stop share.');
+has(macToolbarHtml,'id="stopShare"','Native presenter toolbar is missing the Stop Share control.');
+has(macToolbarHtml,'id="stopShareLabel">Stop Share<','Native presenter toolbar is missing the Stop Share label.');
+has(macToolbarHtml,'class="stop-share-icon"','Native Stop Share must use a real vector icon rather than a text symbol.');
+has(macToolbarHtml,'<svg viewBox="0 0 16 16">','Native Stop Share vector icon is missing.');
+lacks(macToolbarHtml,'■ Stop','Native presenter toolbar must not use a text-square Stop Share icon.');
 has(macToolbarHtml,'DominionStar','Native presenter toolbar must retain DominionStar branding.');
 has(macToolbarCss,'.share-strip','Native presenter toolbar must retain a dedicated live-sharing strip.');
 has(macToolbarCss,'background:#27c96b','Native presenter toolbar must include the green live-sharing strip.');
 has(macToolbarCss,'.toolbar.auto-hidden','Native presenter toolbar must auto-hide its controls without hiding sharing state.');
+has(macToolbarCss,'.stop-share-icon svg','Native Stop Share vector icon styling is missing.');
 has(macToolbarJs,'const nativeBridge=desktop.macShare||null','Native presenter toolbar must prefer the macOS acknowledged command bridge.');
 has(macToolbarJs,'result=await nativeBridge.command(normalized)','Native presenter toolbar controls must await acknowledged Mac delivery.');
 has(macToolbarJs,"transport:nativeBridge?.command?'macShare-ack'",'Native presenter toolbar must expose acknowledged transport authority for packaged QA.');
+has(macToolbarJs,"const label=q('#stopShareLabel')",'Stop Share state feedback must preserve the vector icon.');
+lacks(macToolbarJs,"textContent='■",'Stop Share runtime state must not reintroduce a text-square icon.');
 has(macToolbarJs,"state?.paused",'Native presenter toolbar must reflect real Pause/Resume state.');
 has(macToolbarJs,"state?.micOn",'Native presenter toolbar must reflect real microphone state.');
 has(macToolbarJs,"state?.cameraOn",'Native presenter toolbar must reflect real camera state.');
 
-for(const rel of ['src/mac-share-presenter-overlay.mjs','ui/mac-presenter-toolbar.js','ui/active-share-home-parity-2.0.41.js'])syntax(rel);
+for(const rel of ['src/mac-share-presenter-overlay.mjs','src/presenter-preload.cjs','ui/mac-presenter-toolbar.js','ui/active-share-home-parity-2.0.41.js'])syntax(rel);
 
 // Privacy rule.
-for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,macToolbarHtml,macToolbarCss,macToolbarJs,activeShareHome]){
+for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,presenterPreload,macToolbarHtml,macToolbarCss,macToolbarJs,activeShareHome]){
   lacks(source,'Screenshot 2026-09-03','User screenshots must never be embedded in app source.');
   lacks(source,'private-user-images.githubusercontent.com','User image uploads must never be linked into the product.');
 }
 
-console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary acknowledged-mac-presenter-routing privacy');
+console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary acknowledged-mac-presenter-routing isolated-presenter-preload vector-stop-share privacy');
