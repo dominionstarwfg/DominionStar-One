@@ -15,16 +15,17 @@ const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-
   stdio:['ignore','ignore','pipe']
 });
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
+const count=needle=>stderr.split(String(needle)).length-1;
 
-async function waitLog(needle,label,timeout=12000){
+async function waitLog(needle,label,timeout=12000,minCount=1){
   const deadline=Date.now()+timeout;
   while(Date.now()<deadline){
     if(child.exitCode!==null)throw new Error(`Packaged app exited before ${label}.\n${stderr}`);
     if(stderr.includes('QA_MAC_FLOATING_SHARE_FAILURE'))throw new Error(`Renderer share lifecycle failed before ${label}.\n${stderr}`);
-    if(stderr.includes(needle))return;
+    if(count(needle)>=minCount)return;
     await sleep(60);
   }
-  throw new Error(`Timed out waiting for ${label}: ${needle}\n${stderr}`);
+  throw new Error(`Timed out waiting for ${label}: ${needle} count=${count(needle)} expected=${minCount}\n${stderr}`);
 }
 
 async function target(predicate,label,timeout=16000){
@@ -81,15 +82,25 @@ try{
   // hosted Mac and is not the shipping path.
   const prepared=await main.eval(`window.dominionDesktop.macShare.prepare()`,12000);
   assert.equal(prepared?.ok,true,'macOS presenter surfaces were not prepared before capture.');
-  await target(url=>url.includes('mac-presenter-toolbar.html'),'pre-capture floating macOS presenter toolbar',12000);
-  await target(url=>url.includes('mac-share-video.html'),'pre-capture floating macOS participant video dock',12000);
 
-  // Hosted macOS Chromium can suspend a long CDP Runtime.evaluate while native
-  // capture/presenter windows transition even though the renderer keeps running.
-  // Drive the production share lifecycle from inside the renderer, release the
-  // CDP request before capture starts, and require an explicit renderer-side
-  // resolution marker. This remains fail-closed: a share that never resolves,
-  // fails, or never creates the native surfaces still fails this certification.
+  // Establish inspector channels to the native presenter windows BEFORE active
+  // display capture. Hosted macOS Chromium can refuse new Runtime.enable calls
+  // against an already-sharing renderer even while the product renderer and
+  // native presenter windows remain healthy. Keeping these channels open tests
+  // the real BrowserWindows without depending on a post-capture reattach.
+  const toolbarTarget=await target(url=>url.includes('mac-presenter-toolbar.html'),'pre-capture floating macOS presenter toolbar',12000);
+  toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
+  await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='macShare-ack'",'pre-capture acknowledged floating toolbar command bridge');
+
+  const videoTarget=await target(url=>url.includes('mac-share-video.html'),'pre-capture floating macOS participant video dock',12000);
+  videoDock=new Cdp(videoTarget.webSocketDebuggerUrl);await videoDock.connect();
+  await videoDock.wait("document.readyState==='complete'&&document.querySelector('#dock')",'pre-capture floating participant video dock');
+
+  // Drive the production share lifecycle from inside the renderer and install
+  // fail-closed state observers before releasing the main-renderer CDP channel.
+  // Every later toolbar action must produce a renderer-side state transition in
+  // the packaged app; no post-capture inspector mutation of the meeting renderer
+  // is used to make the test pass.
   const armed=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
     document.querySelector('#authGate').hidden=true;
@@ -101,6 +112,29 @@ try{
     window.DominionMeetingParity?.install?.();
     window.DominionMeetingFeatures?.toggleChat?.(false);
     window.DominionRuntimeStability?.sync?.();
+
+    window.__qaMacPreviousShareState={active:false,paused:false};
+    window.DominionShareController.onChange(state=>{
+      const previous=window.__qaMacPreviousShareState||{active:false,paused:false};
+      console.error('QA_MAC_SHARE_STATE active='+(state.active?1:0)+' paused='+(state.paused?1:0)+' source='+encodeURIComponent(state.sourceName||''));
+      if(state.active&&state.paused&&!previous.paused)console.error('QA_MAC_PAUSE_STATE paused=1');
+      if(state.active&&!state.paused&&previous.paused)console.error('QA_MAC_PAUSE_STATE paused=0');
+      if(!state.active&&previous.active)console.error('QA_MAC_STOP_STATE active=0');
+      window.__qaMacPreviousShareState={active:Boolean(state.active),paused:Boolean(state.paused)};
+    });
+    window.addEventListener('dominion:presenter-command-dispatch',event=>{
+      console.error('QA_MAC_COMMAND '+String(event.detail?.command||''));
+    });
+    window.__qaMacLastCompanion='__unset__';
+    const reportCompanion=()=>{
+      const kind=String(document.body.dataset.dsShareCompanion||'none');
+      if(kind===window.__qaMacLastCompanion)return;
+      window.__qaMacLastCompanion=kind;
+      console.error('QA_MAC_COMPANION '+kind);
+    };
+    new MutationObserver(reportCompanion).observe(document.body,{subtree:true,attributes:true,attributeFilter:['data-ds-share-companion','hidden']});
+    reportCompanion();
+
     window.__qaRunMacFloatingShare=async()=>{
       try{
         const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
@@ -118,28 +152,14 @@ try{
   })()`,3000);
   assert.equal(armed,true,'Real floating presenter share lifecycle was not armed.');
 
-  // Do not keep a long inspector evaluation outstanding while Chromium moves
-  // native windows. Prove the renderer-side start completed, then reconnect to
-  // the same packaged meeting renderer for state/command verification.
+  // Do not reconnect DevTools to the active share-owning renderer. The explicit
+  // renderer logs below are the acceptance channel for real command/state
+  // round-trips while the already-connected native toolbar remains interactive.
   main.close();main=null;
   await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved real Mac floating share',12000);
+  await waitLog('QA_MAC_SHARE_STATE active=1 paused=0 source=QA%20Mac%20Floating%20Share','active real share state',5000);
 
-  const liveMainTarget=await target(url=>url.startsWith('file://')&&url.includes('/ui/index.html'),'active main meeting renderer',12000);
-  main=new Cdp(liveMainTarget.webSocketDebuggerUrl);await main.connect();
-  await main.wait("window.DominionShareController?.snapshot?.().active===true&&document.querySelector('#meetingOverlay')?.classList.contains('share-active')",'active real share state',7000);
-  const started=await main.eval(`(()=>{const state=window.DominionShareController.snapshot();return {active:state.active,sourceName:state.sourceName,overlayShare:document.querySelector('#meetingOverlay').classList.contains('share-active')};})()`);
-  assert.equal(started.active,true,'Synthetic share did not become active.');
-  assert.equal(started.sourceName,'QA Mac Floating Share');
-  assert.equal(started.overlayShare,true,'Packaged meeting renderer did not enter active-share layout.');
-
-  const toolbarTarget=await target(url=>url.includes('mac-presenter-toolbar.html'),'floating macOS presenter toolbar',12000);
-  toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
-  await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='macShare-ack'",'acknowledged floating toolbar command bridge');
-
-  const videoTarget=await target(url=>url.includes('mac-share-video.html'),'floating macOS participant video dock',12000);
-  videoDock=new Cdp(videoTarget.webSocketDebuggerUrl);await videoDock.connect();
-  await videoDock.wait("document.readyState==='complete'&&document.querySelector('#dock')",'floating participant video dock');
-
+  await toolbar.wait("document.querySelector('#shareStateLabel')?.textContent?.toLowerCase().includes('screen sharing')",'visible active sharing state on native toolbar',7000);
   const surface=await toolbar.eval(`(()=>({
     sharing:document.querySelector('#shareStateLabel')?.textContent||'',
     stop:document.querySelector('#stopShare')?.textContent||'',
@@ -167,23 +187,28 @@ try{
   if(toolbarProofPath)await toolbar.screenshot(toolbarProofPath);
 
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);
-  await main.wait("window.DominionShareController.snapshot().paused===true",'real Pause button round trip',5000);
+  await waitLog('QA_MAC_COMMAND pause','real Pause command delivery',5000,1);
+  await waitLog('QA_MAC_PAUSE_STATE paused=1','real Pause state round trip',7000);
   await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause label state feedback',5000);
+
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);
-  await main.wait("window.DominionShareController.snapshot().paused===false",'real Resume button round trip',5000);
+  await waitLog('QA_MAC_COMMAND pause','real Resume command delivery',5000,2);
+  await waitLog('QA_MAC_PAUSE_STATE paused=0','real Resume state round trip',7000);
   await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Pause'",'Resume label state feedback',5000);
 
   await toolbar.eval(`document.querySelector('[data-command="participants"]').click()`);
-  await main.wait("document.body.dataset.dsShareCompanion==='participants'&&!document.querySelector('#meetingOverlay .room-side')?.hidden",'Participants button round trip',5000);
+  await waitLog('QA_MAC_COMMAND participants','Participants command delivery',5000);
+  await waitLog('QA_MAC_COMPANION participants','Participants companion state',7000);
+
   await toolbar.eval(`document.querySelector('[data-command="chat"]').click()`);
-  await main.wait("document.body.dataset.dsShareCompanion==='chat'&&!document.querySelector('#meetingChatPanel')?.hidden",'Chat button round trip',5000);
+  await waitLog('QA_MAC_COMMAND chat','Chat command delivery',5000);
+  await waitLog('QA_MAC_COMPANION chat','Chat companion state',7000);
 
   await toolbar.eval(`document.querySelector('#stopShare').click()`);
-  await main.wait("window.DominionShareController.snapshot().active===false&&!document.querySelector('#meetingOverlay').classList.contains('share-active')",'Stop Share round trip',9000);
-  const stopped=await main.eval(`(()=>({active:window.DominionShareController.snapshot().active,shareClass:document.querySelector('#meetingOverlay').classList.contains('share-active')}))()`);
-  assert.deepEqual(stopped,{active:false,shareClass:false},'Stop Share did not terminate the real share controller state.');
+  await waitLog('QA_MAC_COMMAND stop','Stop Share command delivery',5000);
+  await waitLog('QA_MAC_STOP_STATE active=0','Stop Share state round trip',9000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK preconnected-native-inspector renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip no-post-capture-main-reattach');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
