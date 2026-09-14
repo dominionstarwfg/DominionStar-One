@@ -50,7 +50,7 @@ assert(physical.includes("button.addEventListener('click',event=>{if(!inMeeting(
 
 assert(personalRoom.includes("script.src='./physical-intelligence-2.0.41.js'"),'The late physical intelligence repair must load after the primary meeting scripts.');
 assert(intelligence.includes('legacy.dispose()'),'Picker-first authority must remove the older Share click interceptor before taking ownership.');
-assert(intelligence.includes("const ok=await legacy.open();")&&intelligence.includes('showPermissionPlaceholders()'),'Share must open the approved chooser first and keep it visible when permission is unavailable.');
+assert(intelligence.includes("const ok=await legacy.open();")&&intelligence.includes('showPermissionPlaceholders('),'Share must open the approved chooser first and keep it visible when permission is unavailable.');
 const openBody=intelligence.slice(intelligence.indexOf('async function open(){'),intelligence.indexOf('function intercept(event)'));
 assert(openBody.includes('const ok=await legacy.open();')&&!openBody.includes('requestScreen'),'Opening Share must present the picker and test real source access without running a permission request in front of it.');
 assert(intelligence.includes('ds2041-permission-placeholder')&&intelligence.includes('Desktop 1'),'A blocked picker must retain a selected Desktop placeholder rather than closing the chooser.');
