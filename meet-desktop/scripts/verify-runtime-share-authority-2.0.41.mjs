@@ -68,7 +68,7 @@ assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-share-video.html'))"),
 assert(macOverlay.includes('border:4px solid #2ed573'),'Entire-screen sharing must retain a visible green display border.');
 assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('area.y+78'),'Presenter video dock must default to the upper-right below the floating toolbar on the active display.');
 assert(macOverlay.includes('showInactive?.();videoWindow.moveTop?.()'),'Presenter video dock must remain visible above the shared desktop without stealing focus.');
-assert(macToolbar.includes('You are screen sharing')&&macToolbar.includes('Stop share'),'Presenter toolbar must provide persistent positive sharing state and Stop share.');
+assert(macToolbar.includes('You are screen sharing')&&macToolbar.includes('id="stopShare"')&&macToolbar.includes('id="stopShareLabel">Stop Share<')&&macToolbar.includes('class="stop-share-icon"'),'Presenter toolbar must provide persistent positive sharing state and the approved vector Stop Share control.');
 assert(macVideo.includes('DominionStar Meet')&&macVideo.includes('cameraPreview'),'Presenter video dock must retain DominionStar branding and a real local-camera surface.');
 assert(macVideoJs.includes('navigator.mediaDevices.getUserMedia')&&macVideoJs.includes("bridge?.onState?.(state=>"),'Presenter video dock must use live camera state and follow meeting camera/mic changes.');
 
