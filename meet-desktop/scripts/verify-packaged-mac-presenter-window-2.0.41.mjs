@@ -97,10 +97,11 @@ try{
   await videoDock.wait("document.readyState==='complete'&&document.querySelector('#dock')",'pre-capture floating participant video dock');
 
   // Drive the production share lifecycle from inside the renderer and install
-  // fail-closed state observers before releasing the main-renderer CDP channel.
-  // Every later toolbar action must produce a renderer-side state transition in
-  // the packaged app; no post-capture inspector mutation of the meeting renderer
-  // is used to make the test pass.
+  // fail-closed state observers before active capture. The main-renderer CDP
+  // channel stays connected but is deliberately idle after arming: no Runtime,
+  // Page, or DOM command is sent to the share-owning renderer while capture is
+  // active. This isolates a hosted-macOS scheduling variable without allowing
+  // the inspector to manufacture any presenter state transition.
   const armed=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
     document.querySelector('#authGate').hidden=true;
@@ -152,10 +153,10 @@ try{
   })()`,3000);
   assert.equal(armed,true,'Real floating presenter share lifecycle was not armed.');
 
-  // Do not reconnect DevTools to the active share-owning renderer. The explicit
-  // renderer logs below are the acceptance channel for real command/state
-  // round-trips while the already-connected native toolbar remains interactive.
-  main.close();main=null;
+  // Keep the already-established main inspector transport open but completely
+  // idle throughout active sharing. Closing it on hosted macOS may suspend the
+  // synthetic capture renderer; issuing new CDP work would contaminate the
+  // command-path proof. Renderer stderr remains the sole state acceptance lane.
   await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved real Mac floating share',12000);
   await waitLog('QA_MAC_SHARE_STATE active=1 paused=0 source=QA%20Mac%20Floating%20Share','active real share state',5000);
 
@@ -208,7 +209,7 @@ try{
   await waitLog('QA_MAC_COMMAND stop','Stop Share command delivery',5000);
   await waitLog('QA_MAC_STOP_STATE active=0','Stop Share state round trip',9000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK preconnected-native-inspector renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip no-post-capture-main-reattach');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK preconnected-native-inspector idle-main-inspector renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip no-post-capture-main-eval');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
