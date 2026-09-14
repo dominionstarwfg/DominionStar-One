@@ -76,18 +76,9 @@ try{
   main=new Cdp(mainTarget.webSocketDebuggerUrl);await main.connect();
   await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.__DominionPresenterDispatch&&window.dominionDesktop?.share&&window.dominionDesktop?.macShare?.prepare",'share controllers');
 
-  // Production prepares the native macOS presenter windows before source
-  // enumeration/capture. Reproduce that exact lifecycle here. Creating those
-  // BrowserWindows after capture has already started can stall Chromium on a
-  // hosted Mac and is not the shipping path.
   const prepared=await main.eval(`window.dominionDesktop.macShare.prepare()`,12000);
   assert.equal(prepared?.ok,true,'macOS presenter surfaces were not prepared before capture.');
 
-  // Establish inspector channels to the native presenter windows BEFORE active
-  // display capture. Hosted macOS Chromium can refuse new Runtime.enable calls
-  // against an already-sharing renderer even while the product renderer and
-  // native presenter windows remain healthy. Keeping these channels open tests
-  // the real BrowserWindows without depending on a post-capture reattach.
   const toolbarTarget=await target(url=>url.includes('mac-presenter-toolbar.html'),'pre-capture floating macOS presenter toolbar',12000);
   toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
   await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='macShare-ack'",'pre-capture acknowledged floating toolbar command bridge');
@@ -96,12 +87,6 @@ try{
   videoDock=new Cdp(videoTarget.webSocketDebuggerUrl);await videoDock.connect();
   await videoDock.wait("document.readyState==='complete'&&document.querySelector('#dock')",'pre-capture floating participant video dock');
 
-  // Drive the production share lifecycle from inside the renderer and install
-  // fail-closed state observers before active capture. The main-renderer CDP
-  // channel stays connected but is deliberately idle after arming: no Runtime,
-  // Page, or DOM command is sent to the share-owning renderer while capture is
-  // active. This isolates a hosted-macOS scheduling variable without allowing
-  // the inspector to manufacture any presenter state transition.
   const armed=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
     document.querySelector('#authGate').hidden=true;
@@ -123,69 +108,50 @@ try{
       if(!state.active&&previous.active)console.error('QA_MAC_STOP_STATE active=0');
       window.__qaMacPreviousShareState={active:Boolean(state.active),paused:Boolean(state.paused)};
     });
-    window.addEventListener('dominion:presenter-command-dispatch',event=>{
-      console.error('QA_MAC_COMMAND '+String(event.detail?.command||''));
-    });
+    window.addEventListener('dominion:presenter-command-dispatch',event=>console.error('QA_MAC_COMMAND '+String(event.detail?.command||'')));
     window.__qaMacLastCompanion='__unset__';
-    const reportCompanion=()=>{
-      const kind=String(document.body.dataset.dsShareCompanion||'none');
-      if(kind===window.__qaMacLastCompanion)return;
-      window.__qaMacLastCompanion=kind;
-      console.error('QA_MAC_COMPANION '+kind);
-    };
+    const reportCompanion=()=>{const kind=String(document.body.dataset.dsShareCompanion||'none');if(kind===window.__qaMacLastCompanion)return;window.__qaMacLastCompanion=kind;console.error('QA_MAC_COMPANION '+kind);};
     new MutationObserver(reportCompanion).observe(document.body,{subtree:true,attributes:true,attributeFilter:['data-ds-share-companion','hidden']});
     reportCompanion();
 
     window.__qaRunMacFloatingShare=async()=>{
       try{
-        const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
-        const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#07111f';ctx.fillRect(0,0,640,360);ctx.fillStyle='#d6b25e';ctx.fillRect(70,70,210,130);
-        const stream=canvas.captureStream(12);window.__qaMacPresenterStream=stream;
+        if(typeof MediaStreamTrackGenerator!=='function')throw new Error('MediaStreamTrackGenerator unavailable');
+        const generator=new MediaStreamTrackGenerator({kind:'video'});
+        const stream=new MediaStream([generator]);
+        window.__qaMacPresenterStream=stream;window.__qaMacGenerator=generator;
+        const frameCanvas=document.createElement('canvas');frameCanvas.width=640;frameCanvas.height=360;
+        const ctx=frameCanvas.getContext('2d',{alpha:false});ctx.fillStyle='#07111f';ctx.fillRect(0,0,640,360);ctx.fillStyle='#d6b25e';ctx.fillRect(70,70,210,130);
+        window.__qaMacFrameCanvas=frameCanvas;
+        Object.defineProperty(window,'ImageCapture',{configurable:true,value:class{async grabFrame(){return createImageBitmap(window.__qaMacFrameCanvas);}}});
         Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>stream});
+        console.error('QA_MAC_STREAM_SOURCE track-generator');
         const state=await window.DominionShareController.start({name:'QA Mac Floating Share',options:{shareAudio:false,optimizeVideo:false}});
         console.error('QA_MAC_FLOATING_SHARE_RESOLVED active='+(state.active?1:0)+' source='+encodeURIComponent(state.sourceName||'')+' overlay='+(overlay.classList.contains('share-active')?1:0));
         requestAnimationFrame(()=>console.error('QA_MAC_POST_SHARE_RAF'));
         setTimeout(()=>console.error('QA_MAC_POST_SHARE_TICK'),120);
-      }catch(error){
-        console.error('QA_MAC_FLOATING_SHARE_FAILURE '+String(error?.stack||error));
-      }
+      }catch(error){console.error('QA_MAC_FLOATING_SHARE_FAILURE '+String(error?.stack||error));}
     };
     setTimeout(()=>{void window.__qaRunMacFloatingShare();},30);
     return true;
   })()`,3000);
   assert.equal(armed,true,'Real floating presenter share lifecycle was not armed.');
 
-  // Keep the already-established main inspector transport open but completely
-  // idle throughout active sharing. Closing it on hosted macOS may suspend the
-  // synthetic capture renderer; issuing new CDP work would contaminate the
-  // command-path proof. Renderer stderr remains the sole state acceptance lane.
+  await waitLog('QA_MAC_STREAM_SOURCE track-generator','real MediaStreamTrackGenerator source',5000);
   await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved real Mac floating share',12000);
   await waitLog('QA_MAC_SHARE_STATE active=1 paused=0 source=QA%20Mac%20Floating%20Share','active real share state',5000);
   await waitLog('QA_MAC_POST_SHARE_TICK','post-share renderer timer scheduling',3000);
 
   await toolbar.wait("document.querySelector('#shareStateLabel')?.textContent?.toLowerCase().includes('screen sharing')",'visible active sharing state on native toolbar',7000);
-  const surface=await toolbar.eval(`(()=>({
-    sharing:document.querySelector('#shareStateLabel')?.textContent||'',
-    stop:document.querySelector('#stopShare')?.textContent||'',
-    brand:document.querySelector('.brand span')?.textContent||'',
-    commands:[...document.querySelectorAll('[data-command]')].map(node=>node.dataset.command),
-    presenterBridge:Boolean(window.dominionDesktop?.presenter?.command),
-    macBridge:Boolean(window.dominionDesktop?.macShare?.command),
-    transport:window.DominionMacPresenterToolbar?.transport||''
-  }))()`);
+  const surface=await toolbar.eval(`(()=>({sharing:document.querySelector('#shareStateLabel')?.textContent||'',stop:document.querySelector('#stopShare')?.textContent||'',brand:document.querySelector('.brand span')?.textContent||'',commands:[...document.querySelectorAll('[data-command]')].map(node=>node.dataset.command),presenterBridge:Boolean(window.dominionDesktop?.presenter?.command),macBridge:Boolean(window.dominionDesktop?.macShare?.command),transport:window.DominionMacPresenterToolbar?.transport||''}))()`);
   assert.match(surface.sharing,/screen sharing/i,'Floating toolbar does not visibly confirm active sharing.');
   assert.match(surface.stop,/Stop share/i,'Floating toolbar is missing Stop share.');
   assert.equal(surface.brand,'DominionStar','Floating toolbar brand label drifted from approved compact reference.');
   assert.equal(surface.presenterBridge,true,'Floating toolbar cannot access the presenter fallback bridge.');
   assert.equal(surface.macBridge,true,'Floating toolbar lost its native macShare command bridge.');
   assert.equal(surface.transport,'macShare-ack','Floating toolbar is not using acknowledged native Mac command delivery.');
-  for(const command of ['audio','video','participants','chat','new-share','pause','annotate','show-meeting','record']){
-    assert.ok(surface.commands.includes(command),`Floating toolbar is missing ${command}.`);
-  }
+  for(const command of ['audio','video','participants','chat','new-share','pause','annotate','show-meeting','record'])assert.ok(surface.commands.includes(command),`Floating toolbar is missing ${command}.`);
 
-  // Prove the acknowledged command path immediately after active share, before
-  // menu expansion, toolbar resize, or screenshot work can contaminate the
-  // renderer scheduling test.
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);
   await waitLog('QA_MAC_COMMAND pause','real Pause command delivery',5000,1);
   await waitLog('QA_MAC_PAUSE_STATE paused=1','real Pause state round trip',7000);
@@ -200,22 +166,19 @@ try{
   assert.equal(menu.open,true,'Floating More menu did not open from the real toolbar button.');
   assert.match(menu.text,/Record meeting/);assert.match(menu.text,/New Share/);
   await toolbar.eval(`document.querySelector('#moreButton').click()`);
-
   if(toolbarProofPath)await toolbar.screenshot(toolbarProofPath);
 
   await toolbar.eval(`document.querySelector('[data-command="participants"]').click()`);
   await waitLog('QA_MAC_COMMAND participants','Participants command delivery',5000);
   await waitLog('QA_MAC_COMPANION participants','Participants companion state',7000);
-
   await toolbar.eval(`document.querySelector('[data-command="chat"]').click()`);
   await waitLog('QA_MAC_COMMAND chat','Chat command delivery',5000);
   await waitLog('QA_MAC_COMPANION chat','Chat companion state',7000);
-
   await toolbar.eval(`document.querySelector('#stopShare').click()`);
   await waitLog('QA_MAC_COMMAND stop','Stop Share command delivery',5000);
   await waitLog('QA_MAC_STOP_STATE active=0','Stop Share state round trip',9000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK preconnected-native-inspector idle-main-inspector renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack post-share-renderer-tick immediate-pause-resume participant-dock more-menu participants-chat stop-share-round-trip no-post-capture-main-eval');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK track-generator-real-mediastream renderer-scheduler-alive completed-macShare-ack pause-resume participants-chat stop-share-round-trip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
