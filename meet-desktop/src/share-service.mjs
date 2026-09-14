@@ -88,6 +88,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   }
   function hideMeetingWindowForShare(){
     if(!shareActive)return false;
+    // Do not mutate the main BrowserWindow at presenter commit. macOS physical
+    // presenter mutation happens before capture in parkMacMeetingWindow().
     if(platform==='darwin')return parkMacMeetingWindow({preCapture:false});
     const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     const qaSyntheticShare=qaPresenterTrace&&String(lastToolbarState.sourceName||'')==='QA Synthetic Share';
@@ -191,8 +193,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   });
   ipcMain.handle('share:probe-access',async()=>{try{configureDisplayMediaHandler(false);const result=await authority.list({kind:'screen'});if(result.timedOut)return {ok:false,status:'timeout'};const readable=result.sources.some(source=>!source.thumbnail?.isEmpty?.());return {ok:readable,status:readable?'granted':'unavailable',sourceCount:result.sources.length};}catch(error){return {ok:false,status:'error',error:String(error?.message||error)};}});
   ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;try{const result=await authority.list(options);if(result.timedOut)return {ok:false,timedOut:true,sources:[]};return {ok:true,timedOut:false,sources:result.sources.map(serialize)};}catch(error){return {ok:false,timedOut:false,sources:[],error:String(error?.message||error)};}});
-  ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{
-    configureDisplayMediaHandler(false);const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
+  ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);
+    const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
     const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)};pendingSelection={source,options:normalizedOptions};
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
