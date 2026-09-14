@@ -191,8 +191,20 @@
       if(permissionRequestInFlight)return false;
       permissionRequestInFlight=true;
       const root=pickerRoot();if(!root){permissionRequestInFlight=false;return false;}
-      const status=root.querySelector('.ds2041-share-status');if(status)status.textContent='Checking Screen Recording permission…';
+      const status=root.querySelector('.ds2041-share-status');if(status)status.textContent='Checking Screen Recording access…';
       try{
+        // Zoom-style permission discipline: prove whether the selected build can
+        // already enumerate real sources before invoking any macOS request path.
+        // A granted user never sees another permission request.
+        if(await refreshPicker())return true;
+        const reportedBeforeRequest=await screenPermissionStatus();
+        if(reportedBeforeRequest==='granted'){
+          showPermissionPlaceholders(await blockedRecoveryState({fromSettings:settingsOpened,reportedStatus:'granted'}));
+          return false;
+        }
+
+        // Only a genuinely ungranted/unknown state is allowed to invoke the
+        // native permission request. This prevents the old request-loop behavior.
         const result=await Promise.race([
           Promise.resolve(desktop.media?.requestScreen?.()),
           new Promise(resolve=>setTimeout(()=>resolve({ok:false,status:'timeout'}),4200))
@@ -200,14 +212,14 @@
         if(result?.ok||String(result?.status||'').toLowerCase()==='granted'){
           if(await refreshPicker())return true;
         }else if(await refreshPicker())return true;
-        const reported=String(result?.status||'unknown').toLowerCase();
+        const reported=String(result?.status||await screenPermissionStatus()||'unknown').toLowerCase();
         const state=await blockedRecoveryState({fromSettings:settingsOpened,reportedStatus:reported});
         if(reported!=='granted'&&!settingsOpened){
-          state.message='Grant Screen Recording in the native macOS prompt. If the prompt is no longer visible, open System Settings below. No second DominionStar permission dialog will cover the picker.';
+          state.message='Grant Screen Recording in the native macOS prompt. If the prompt is no longer visible, open System Settings below. DominionStar will recheck access before it ever requests again.';
         }
         showPermissionPlaceholders(state);
       }catch{
-        showPermissionPlaceholders();
+        showPermissionPlaceholders(await blockedRecoveryState({fromSettings:settingsOpened}));
       }finally{permissionRequestInFlight=false;}
       return false;
     }
@@ -215,16 +227,16 @@
     async function open(){
       if(opening)return false;opening=true;
       try{
-        // Zoom parity: open the approved chooser first. Permission is a state
-        // of the chooser, never a gate in front of the chooser.
+        // Zoom parity: open the approved chooser first. Real source enumeration
+        // is the first permission test; no permission request is made here.
         const ok=await legacy.open();
         hideRejectedRecovery();
         const root=pickerRoot();if(root)root.hidden=false;
         if(ok){blocked=false;settingsOpened=false;return true;}
-        showPermissionPlaceholders();
+        showPermissionPlaceholders(await blockedRecoveryState());
         return true;
       }catch{
-        hideRejectedRecovery();showPermissionPlaceholders();return true;
+        hideRejectedRecovery();showPermissionPlaceholders(await blockedRecoveryState());return true;
       }finally{opening=false;}
     }
 
