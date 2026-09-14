@@ -26,8 +26,6 @@
       #prejoinOverlay .prejoin-backgrounds-button strong{display:block!important;white-space:nowrap!important;font-size:10px!important;font-weight:500!important}
       #prejoinOverlay .prejoin-backgrounds-button small{display:none!important}
 
-      /* Permission guidance stays inside the approved picker. Never stack a
-         DominionStar modal over the macOS Screen Recording prompt. */
       .ds2041-recovery,.ds2041-smart-recovery,#screenPermissionDialog,.ds-share-permission,.ds-219-share-recovery{display:none!important}
       .ds2041-permission-placeholder .ds2041-thumb{background:#1682ef!important;color:#fff!important}
       .ds2041-permission-warning{width:54px;height:46px;display:grid;place-items:center;position:relative;color:#fff;font-size:30px;line-height:1}
@@ -49,7 +47,6 @@
     const legacy=window.DominionShareRuntimeAuthority2041;
     if(!legacy?.open||!legacy?.reload||!legacy?.dispose||legacy.pickerFirstPermission)return false;
 
-    // Remove the old click listener but retain its certified picker methods.
     legacy.dispose();
     let opening=false;
     let blocked=false;
@@ -58,6 +55,7 @@
     let refreshGeneration=0;
     let focusRefreshGeneration=0;
     let permissionRequestInFlight=false;
+    let shareCommitInFlight=false;
     let privacyIdentityCache=null;
 
     const pickerRoot=()=>q('.ds2041-share-root');
@@ -90,28 +88,20 @@
       };
       const restart=root?.querySelector('[data-restart-screen-permission]');
       if(restart)restart.onclick=async()=>{
-        restart.disabled=true;
-        restart.textContent='Reopening…';
+        restart.disabled=true;restart.textContent='Reopening…';
         try{await desktop.app?.relaunch?.();}
         catch{restart.disabled=false;restart.textContent='Quit & Reopen DominionStar Meet';}
       };
       const reset=root?.querySelector('[data-reset-screen-permission]');
       if(reset)reset.onclick=async()=>{
-        reset.disabled=true;
-        reset.textContent='Resetting this build…';
-        const status=root.querySelector('.ds2041-share-status');
-        if(status)status.textContent='Resetting DominionStar Screen Recording authorization…';
+        reset.disabled=true;reset.textContent='Resetting this build…';
+        const status=root.querySelector('.ds2041-share-status');if(status)status.textContent='Resetting DominionStar Screen Recording authorization…';
         try{
-          const result=await desktop.app?.resetScreenPermission?.();
-          if(!result?.ok)throw new Error(result?.error||'Screen Recording reset failed.');
-          if(status)status.textContent='Authorization reset — reopening DominionStar Meet…';
-          await desktop.app?.relaunch?.();
+          const result=await desktop.app?.resetScreenPermission?.();if(!result?.ok)throw new Error(result?.error||'Screen Recording reset failed.');
+          if(status)status.textContent='Authorization reset — reopening DominionStar Meet…';await desktop.app?.relaunch?.();
         }catch(error){
-          reset.disabled=false;
-          reset.textContent='Reset & Reauthorize This Build';
-          if(status)status.textContent='Screen Recording reset failed';
-          const copy=root.querySelector('.ds2041-permission-copy');
-          if(copy)copy.textContent=String(error?.message||error||'Unable to reset Screen Recording. Open System Settings and remove/re-add DominionStar Meet manually.');
+          reset.disabled=false;reset.textContent='Reset & Reauthorize This Build';if(status)status.textContent='Screen Recording reset failed';
+          const copy=root.querySelector('.ds2041-permission-copy');if(copy)copy.textContent=String(error?.message||error||'Unable to reset Screen Recording. Open System Settings and remove/re-add DominionStar Meet manually.');
         }
       };
     }
@@ -119,143 +109,105 @@
     function showPermissionPlaceholders({message='',showRestart=false,showReset=false,statusText='Screen Recording permission required'}={}){
       const root=pickerRoot();if(!root)return false;
       hideRejectedRecovery();root.hidden=false;blocked=true;
-      const content=root.querySelector('.ds2041-share-content');
-      const status=root.querySelector('.ds2041-share-status');
-      const preview=root.querySelector('.ds2041-preview');
-      const share=root.querySelector('.ds2041-share-button');
+      const content=root.querySelector('.ds2041-share-content'),status=root.querySelector('.ds2041-share-status'),preview=root.querySelector('.ds2041-preview'),share=root.querySelector('.ds2041-share-button');
       if(status)status.textContent=statusText;
       const copy=message||'macOS controls Screen Recording access. Use the system permission prompt, or open Privacy & Security below. The picker will recheck automatically when you return.';
       if(content)content.innerHTML=`<section class="ds2041-source-section screen"><strong>Entire screen</strong><div class="ds2041-source-grid"><button type="button" class="ds2041-source selected ds2041-permission-placeholder" data-permission-source="desktop"><span class="ds2041-thumb"><span class="ds2041-permission-warning"></span></span><span class="ds2041-source-name">Desktop 1</span></button></div></section><section class="ds2041-source-section window"><strong>Application windows</strong><div class="ds2041-permission-note"><strong>Screen Recording access</strong><span class="ds2041-permission-copy"></span><div class="ds2041-permission-inline-actions"><button type="button" class="primary" data-open-screen-settings>Open System Settings</button><button type="button" data-restart-screen-permission${showRestart?'':' hidden'}>Quit & Reopen DominionStar Meet</button><button type="button" class="warning" data-reset-screen-permission${showReset?'':' hidden'}>Reset & Reauthorize This Build</button></div></div></section>`;
       const copyNode=content?.querySelector('.ds2041-permission-copy');if(copyNode)copyNode.textContent=copy;
       if(preview)preview.innerHTML='<span class="ds2041-permission-warning"></span>';
       if(share){share.disabled=false;share.textContent='Share';}
-      bindPermissionActions(root);
-      return true;
+      bindPermissionActions(root);return true;
     }
 
     async function blockedRecoveryState({fromSettings=false,reportedStatus=''}={}){
-      const permission=reportedStatus||await screenPermissionStatus();
-      const unstable=await adHocIdentityIsUnstable();
-      const staleAdHocGrant=permission==='granted'&&unstable;
-      if(staleAdHocGrant){
-        return {
-          showRestart:false,
-          showReset:true,
-          statusText:'This QA build needs fresh Screen Recording authorization',
-          message:'This DominionStar QA build is ad-hoc signed. macOS can leave the previous build’s switch enabled even though this exact rebuilt app is a different privacy identity. Reset only DominionStar Meet’s Screen Recording record, reopen, then approve the native macOS prompt for this build.'
-        };
-      }
+      const permission=reportedStatus||await screenPermissionStatus();const unstable=await adHocIdentityIsUnstable();const staleAdHocGrant=permission==='granted'&&unstable;
+      if(staleAdHocGrant)return {showRestart:false,showReset:true,statusText:'This QA build needs fresh Screen Recording authorization',message:'This DominionStar QA build is ad-hoc signed. macOS can leave the previous build’s switch enabled even though this exact rebuilt app is a different privacy identity. Reset only DominionStar Meet’s Screen Recording record, reopen, then approve the native macOS prompt for this build.'};
       const showRestart=fromSettings||permission==='granted';
-      return {
-        showRestart,
-        showReset:false,
-        statusText:permission==='granted'?'Permission granted — reopen may be required':'Screen Recording permission required',
-        message:showRestart
-          ? 'macOS reports Screen Recording access, but this running process still cannot read screen previews. Quit and reopen DominionStar Meet once.'
-          : 'Use the macOS Screen Recording prompt to grant access. If macOS does not show the prompt again, open Privacy & Security and enable DominionStar Meet.'
-      };
+      return {showRestart,showReset:false,statusText:permission==='granted'?'Permission granted — reopen may be required':'Screen Recording permission required',message:showRestart?'macOS reports Screen Recording access, but this running process still cannot read screen previews. Quit and reopen DominionStar Meet once.':'Use the macOS Screen Recording prompt to grant access. If macOS does not show the prompt again, open Privacy & Security and enable DominionStar Meet.'};
     }
 
     async function refreshPicker({fromSettings=false}={}){
-      const generation=++refreshGeneration;
-      hideRejectedRecovery();
-      const root=pickerRoot();if(root)root.hidden=false;
+      const generation=++refreshGeneration;hideRejectedRecovery();const root=pickerRoot();if(root)root.hidden=false;
       try{
-        const ok=await legacy.reload();
-        if(generation!==refreshGeneration)return false;
-        hideRejectedRecovery();
-        const current=pickerRoot();if(current)current.hidden=false;
-        if(ok){
-          blocked=false;settingsOpened=false;
-          const status=current?.querySelector('.ds2041-share-status');if(status)status.textContent='';
-          return true;
-        }
+        const ok=await legacy.reload();if(generation!==refreshGeneration)return false;hideRejectedRecovery();const current=pickerRoot();if(current)current.hidden=false;
+        if(ok){blocked=false;settingsOpened=false;const status=current?.querySelector('.ds2041-share-status');if(status)status.textContent='';return true;}
       }catch{}
-      if(generation!==refreshGeneration)return false;
-      showPermissionPlaceholders(await blockedRecoveryState({fromSettings}));
-      return false;
+      if(generation!==refreshGeneration)return false;showPermissionPlaceholders(await blockedRecoveryState({fromSettings}));return false;
     }
 
     async function refreshAfterFocus(){
-      if(!blocked)return false;
-      const generation=++focusRefreshGeneration;
-      for(const delay of [180,650,1400]){
-        await wait(delay);
-        if(generation!==focusRefreshGeneration||!blocked)return !blocked;
-        if(await refreshPicker({fromSettings:true}))return true;
-      }
+      if(!blocked)return false;const generation=++focusRefreshGeneration;
+      for(const delay of [180,650,1400]){await wait(delay);if(generation!==focusRefreshGeneration||!blocked)return !blocked;if(await refreshPicker({fromSettings:true}))return true;}
       return false;
     }
 
     async function requestPermissionFromPicker(){
-      if(permissionRequestInFlight)return false;
-      permissionRequestInFlight=true;
+      if(permissionRequestInFlight)return false;permissionRequestInFlight=true;
       const root=pickerRoot();if(!root){permissionRequestInFlight=false;return false;}
       const status=root.querySelector('.ds2041-share-status');if(status)status.textContent='Checking Screen Recording access…';
       try{
-        // Zoom-style permission discipline: prove whether the selected build can
-        // already enumerate real sources before invoking any macOS request path.
-        // A granted user never sees another permission request.
         if(await refreshPicker())return true;
         const reportedBeforeRequest=await screenPermissionStatus();
-        if(reportedBeforeRequest==='granted'){
-          showPermissionPlaceholders(await blockedRecoveryState({fromSettings:settingsOpened,reportedStatus:'granted'}));
-          return false;
-        }
-
-        // Only a genuinely ungranted/unknown state is allowed to invoke the
-        // native permission request. This prevents the old request-loop behavior.
-        const result=await Promise.race([
-          Promise.resolve(desktop.media?.requestScreen?.()),
-          new Promise(resolve=>setTimeout(()=>resolve({ok:false,status:'timeout'}),4200))
-        ]);
-        if(result?.ok||String(result?.status||'').toLowerCase()==='granted'){
-          if(await refreshPicker())return true;
-        }else if(await refreshPicker())return true;
-        const reported=String(result?.status||await screenPermissionStatus()||'unknown').toLowerCase();
-        const state=await blockedRecoveryState({fromSettings:settingsOpened,reportedStatus:reported});
-        if(reported!=='granted'&&!settingsOpened){
-          state.message='Grant Screen Recording in the native macOS prompt. If the prompt is no longer visible, open System Settings below. DominionStar will recheck access before it ever requests again.';
-        }
+        if(reportedBeforeRequest==='granted'){showPermissionPlaceholders(await blockedRecoveryState({fromSettings:settingsOpened,reportedStatus:'granted'}));return false;}
+        const result=await Promise.race([Promise.resolve(desktop.media?.requestScreen?.()),new Promise(resolve=>setTimeout(()=>resolve({ok:false,status:'timeout'}),4200))]);
+        if(result?.ok||String(result?.status||'').toLowerCase()==='granted'){if(await refreshPicker())return true;}else if(await refreshPicker())return true;
+        const reported=String(result?.status||await screenPermissionStatus()||'unknown').toLowerCase();const state=await blockedRecoveryState({fromSettings:settingsOpened,reportedStatus:reported});
+        if(reported!=='granted'&&!settingsOpened)state.message='Grant Screen Recording in the native macOS prompt. If the prompt is no longer visible, open System Settings below. DominionStar will recheck access before it ever requests again.';
         showPermissionPlaceholders(state);
-      }catch{
-        showPermissionPlaceholders(await blockedRecoveryState({fromSettings:settingsOpened}));
-      }finally{permissionRequestInFlight=false;}
+      }catch{showPermissionPlaceholders(await blockedRecoveryState({fromSettings:settingsOpened}));}
+      finally{permissionRequestInFlight=false;}
       return false;
+    }
+
+    async function commitGrantedShare(button){
+      if(shareCommitInFlight||blocked)return false;
+      const root=pickerRoot();if(!root||root.hidden)return false;
+      const selected=root.querySelector('.ds2041-source.selected[data-source-id]')||root.querySelector('.ds2041-source[data-source-id]');
+      const sourceId=String(selected?.dataset?.sourceId||'');if(!sourceId)return false;
+      const status=root.querySelector('.ds2041-share-status');
+      const options={shareAudio:Boolean(root.querySelector('[data-share-audio]')?.checked),optimizeVideo:Boolean(root.querySelector('[data-optimize]')?.checked)};
+      shareCommitInFlight=true;button.disabled=true;button.textContent='Starting share…';if(status)status.textContent='Preparing selected content…';
+      try{
+        // Match the deliberate Zoom-style handoff the physical test expects:
+        // keep the chooser stable for at least two seconds before capture begins.
+        await wait(2000);
+        const result=await desktop.sharePicker?.choose?.(sourceId,options);if(result?.ok===false)throw new Error(result?.error||'share_source_not_available');
+        if(status)status.textContent='Starting selected content…';
+        const deadline=Date.now()+5500;
+        while(Date.now()<deadline){
+          if(window.DominionShareIntegration?.state?.()?.active){blocked=false;try{legacy.close?.();}catch{}return true;}
+          await wait(80);
+        }
+        throw new Error('Screen sharing did not become active in time.');
+      }catch(error){
+        if(status)status.textContent=String(error?.message||error||'Screen sharing could not start.');return false;
+      }finally{
+        shareCommitInFlight=false;if(button?.isConnected){button.disabled=false;button.textContent='Share';}
+      }
     }
 
     async function open(){
       if(opening)return false;opening=true;
       try{
-        // Zoom parity: open the approved chooser first. Real source enumeration
-        // is the first permission test; no permission request is made here.
-        const ok=await legacy.open();
-        hideRejectedRecovery();
-        const root=pickerRoot();if(root)root.hidden=false;
+        const ok=await legacy.open();hideRejectedRecovery();const root=pickerRoot();if(root)root.hidden=false;
         if(ok){blocked=false;settingsOpened=false;return true;}
-        showPermissionPlaceholders(await blockedRecoveryState());
-        return true;
-      }catch{
-        hideRejectedRecovery();showPermissionPlaceholders(await blockedRecoveryState());return true;
-      }finally{opening=false;}
+        showPermissionPlaceholders(await blockedRecoveryState());return true;
+      }catch{hideRejectedRecovery();showPermissionPlaceholders(await blockedRecoveryState());return true;}
+      finally{opening=false;}
     }
 
     function intercept(event){
       const target=event.target;if(!target?.closest)return;
-      const primary=target.closest('#roomShare');
-      const nextShare=target.closest('[data-inline-command="new-share"]');
-      const placeholderShare=blocked&&target.closest('.ds2041-share-button');
-      if(!primary&&!nextShare&&!placeholderShare)return;
+      const primary=target.closest('#roomShare'),nextShare=target.closest('[data-inline-command="new-share"]'),pickerShare=target.closest('.ds2041-share-button');
+      const placeholderShare=blocked&&pickerShare,grantedShare=!blocked&&pickerShare;
+      if(!primary&&!nextShare&&!placeholderShare&&!grantedShare)return;
       if(placeholderShare){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();queueMicrotask(()=>void requestPermissionFromPicker());return;}
+      if(grantedShare){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();queueMicrotask(()=>void commitGrantedShare(grantedShare));return;}
       const meeting=q('#meetingOverlay');if(!meeting||meeting.hidden)return;
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();target.closest('button')?.blur?.();queueMicrotask(()=>void open());
     }
 
-    const onFocus=()=>{
-      if(!blocked)return;
-      clearTimeout(focusTimer);
-      focusTimer=setTimeout(()=>void refreshAfterFocus(),180);
-    };
+    const onFocus=()=>{if(!blocked)return;clearTimeout(focusTimer);focusTimer=setTimeout(()=>void refreshAfterFocus(),180);};
     const onVisibility=()=>{if(document.visibilityState==='visible')onFocus();};
 
     window.addEventListener('click',intercept,true);
@@ -263,11 +215,11 @@
     document.addEventListener('visibilitychange',onVisibility);
 
     window.DominionShareRuntimeAuthority2041=Object.freeze({
-      version:'2.0.41-picker-first-identity-aware-permission',pickerFirstPermission:true,
+      version:'2.0.41-picker-first-identity-aware-permission-zoom-handoff',pickerFirstPermission:true,
       open,
       close:()=>{try{legacy.close?.();}catch{}blocked=false;settingsOpened=false;focusRefreshGeneration++;},
       reload:()=>refreshPicker(),
-      state:()=>({...legacy.state?.(),permissionBlocked:blocked,settingsOpened}),
+      state:()=>({...legacy.state?.(),permissionBlocked:blocked,settingsOpened,shareCommitInFlight}),
       dispose:()=>{clearTimeout(focusTimer);focusRefreshGeneration++;window.removeEventListener('click',intercept,true);window.removeEventListener('focus',onFocus);document.removeEventListener('visibilitychange',onVisibility);try{legacy.dispose?.();}catch{};}
     });
     return true;
@@ -276,5 +228,5 @@
   installPhysicalStyles();
   const install=()=>{installPhysicalStyles();if(!installPickerFirstShare())setTimeout(install,25);};
   setTimeout(install,0);
-  window.DominionPhysicalIntelligence2041=Object.freeze({version:'2.0.41-picker-first-identity-aware-permission',installPhysicalStyles,installPickerFirstShare});
+  window.DominionPhysicalIntelligence2041=Object.freeze({version:'2.0.41-picker-first-identity-aware-permission-zoom-handoff',installPhysicalStyles,installPickerFirstShare});
 })();
