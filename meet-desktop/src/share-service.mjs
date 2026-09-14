@@ -65,15 +65,22 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   }
   function keepMeetingRendererLive(){const main=getMainWindow?.();if(!main||main.isDestroyed())return false;try{main.webContents?.setBackgroundThrottling?.(false);}catch{}return true;}
   function hideMeetingWindowForShare(){
-    if(!shareActive)return false;const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
+    if(!shareActive)return false;
+    // The macOS main window owns getDisplayMedia. Once capture is active, do
+    // not call BrowserWindow/WebContents liveness or content-protection setters
+    // on that capture-owning renderer. In physical packaged testing those
+    // post-capture mutations stop renderer timers and IPC, which makes the
+    // independent presenter toolbar appear dead. The native presenter toolbar,
+    // video dock, and green border protect their own windows independently.
+    if(platform==='darwin'){
+      lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};
+      publishToolbarState();
+      return true;
+    }
+    const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     const qaSyntheticShare=qaPresenterTrace&&String(lastToolbarState.sourceName||'')==='QA Synthetic Share';
     if(!qaSyntheticShare)protectMeetingChrome(main,true);
     keepMeetingRendererLive();
-    // Do not mutate the main BrowserWindow at presenter commit. On macOS,
-    // hide/minimize/resize/opacity/Space mutations can stall the capture-owning
-    // renderer while getDisplayMedia is active. The independent presenter
-    // toolbar remains the control surface; window isolation is handled only
-    // after the capture engine is moved out of this renderer.
     lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};
     publishToolbarState();
     return true;
