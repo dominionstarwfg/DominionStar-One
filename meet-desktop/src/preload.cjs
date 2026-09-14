@@ -1,7 +1,7 @@
 const {contextBridge,ipcRenderer}=require('electron');
 const invoke=(channel,payload)=>ipcRenderer.invoke(channel,payload);
 const listen=(channel,callback)=>{if(typeof callback!=='function')return()=>{};const handler=(_event,payload)=>callback(payload);ipcRenderer.on(channel,handler);return()=>ipcRenderer.removeListener(channel,handler);};
-let presenterCommandCallback=null;
+const presenterCommandCallbacks=new Set();
 let presenterListenerGeneration=0;
 let presenterPollTimer=null;
 let presenterPollBusy=false;
@@ -17,16 +17,20 @@ const runPresenterPayload=payload=>{
       console.error(`QA_PRESENTER_PRELOAD_RECEIVED id=${qaCommandId} command=${command} generation=${presenterListenerGeneration}`);
       ipcRenderer.send('share:presenter-preload-tap',{qaCommandId,command,generation:presenterListenerGeneration});
     }
-    const callback=presenterCommandCallback;
-    if(typeof callback!=='function')return {accepted:false,error:'presenter_listener_unavailable',command,qaCommandId,deliveryId};
-    try{
-      const result=await Promise.resolve(callback(payload));
-      const accepted=result?.handled!==false;
-      return {accepted,error:accepted?'':String(result?.error||'presenter_command_rejected'),command,qaCommandId,deliveryId};
-    }catch(error){
-      console.error('[DominionStar Meet] Presenter command callback failed.',error);
-      return {accepted:false,error:String(error?.message||error||'presenter_callback_failed'),command,qaCommandId,deliveryId};
+    if(!presenterCommandCallbacks.size)return {accepted:false,error:'presenter_listener_unavailable',command,qaCommandId,deliveryId};
+    let lastError='presenter_command_rejected';
+    for(const callback of [...presenterCommandCallbacks]){
+      try{
+        const result=await Promise.resolve(callback(payload));
+        const accepted=result?.handled!==false;
+        if(accepted)return {accepted:true,error:'',command,qaCommandId,deliveryId};
+        lastError=String(result?.error||lastError);
+      }catch(error){
+        console.error('[DominionStar Meet] Presenter command callback failed.',error);
+        lastError=String(error?.message||error||'presenter_callback_failed');
+      }
     }
+    return {accepted:false,error:lastError,command,qaCommandId,deliveryId};
   })();
   if(deliveryId>0){
     presenterDeliveryTasks.set(deliveryId,task);
@@ -39,7 +43,7 @@ const handlePresenterPayload=async(payload,source='push')=>{
   const command=String(payload?.command||payload||'');
   const qaCommandId=Number(payload?.qaCommandId||0)||0;
   const deliveryId=Number(payload?.deliveryId||0)||0;
-  if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'&&deliveryId>0)console.error(`QA_PRESENTER_PRELOAD_DELIVERY source=${source} delivery=${deliveryId} command=${command} generation=${presenterListenerGeneration}`);
+  if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'&&deliveryId>0)console.error(`QA_PRESENTER_PRELOAD_DELIVERY source=${source} delivery=${deliveryId} command=${command} generation=${presenterListenerGeneration} listeners=${presenterCommandCallbacks.size}`);
   const result=await runPresenterPayload(payload);
   if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:Boolean(result?.accepted),error:result?.accepted?'':String(result?.error||'presenter_command_rejected')});
   if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command,generation:presenterListenerGeneration});
@@ -49,7 +53,7 @@ const handlePresenterPayload=async(payload,source='push')=>{
 ipcRenderer.on('share:presenter-command',(_event,payload)=>{void handlePresenterPayload(payload,'push');});
 
 const pollPresenterCommand=async()=>{
-  if(process.platform!=='darwin'||presenterPollBusy||typeof presenterCommandCallback!=='function')return;
+  if(process.platform!=='darwin'||presenterPollBusy||presenterCommandCallbacks.size===0)return;
   presenterPollBusy=true;
   try{
     const payload=await invoke('mac-share:presenter-next-command').catch(()=>null);
@@ -64,11 +68,11 @@ const stopPresenterPoll=()=>{if(presenterPollTimer){clearInterval(presenterPollT
 
 const listenPresenterCommand=callback=>{
   if(typeof callback!=='function')return()=>{};
-  presenterCommandCallback=callback;
+  presenterCommandCallbacks.add(callback);
   const generation=++presenterListenerGeneration;
-  ipcRenderer.send('share:presenter-listener-ready',{href:String(location?.href||''),generation});
+  ipcRenderer.send('share:presenter-listener-ready',{href:String(location?.href||''),generation,listenerCount:presenterCommandCallbacks.size});
   ensurePresenterPoll();
-  return()=>{if(presenterCommandCallback===callback){presenterCommandCallback=null;stopPresenterPoll();}};
+  return()=>{presenterCommandCallbacks.delete(callback);if(!presenterCommandCallbacks.size)stopPresenterPoll();};
 };
 const packaged=String(location?.href||'').includes('/app.asar/');
 const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../assets/logo.jpeg',location.href).href;
