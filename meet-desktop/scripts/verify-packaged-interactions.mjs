@@ -185,8 +185,8 @@ try{
     return true;
   })()`,'meeting-entry transition');
   mark('meeting-entry-complete');
-  assert.equal(await evaluate(`Boolean(window.DominionShareIntegration&&document.querySelector('#roomShare'))`),true,'Packaged meeting renderer did not wire the native Share Screen integration.');
-  assert.equal(await evaluate(`document.querySelector('#roomShare')?.textContent?.trim()==='Share Screen'`),true,'Packaged meeting Share Screen control is missing or mislabeled.');
+  assert.equal(await evaluate(`Boolean(window.DominionShareIntegration&&document.querySelector('#roomShare'))`),true,'Packaged meeting renderer did not wire the native Share integration.');
+  assert.equal(await evaluate(`document.querySelector('#roomShare')?.textContent?.trim()==='Share'`),true,'Packaged meeting Share control is missing or mislabeled.');
   await evaluate(`window.DominionMeetingParity.install();window.DominionMeetingParity.decorateControls();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();true`);
   assert.equal(await evaluate(`document.querySelector('.room-side')?.hidden===true&&document.querySelector('#meetingOverlay')?.classList.contains('participants-hidden')`),true,'Packaged meeting must start with Participants/Waiting Room closed.');
   assert.equal(await evaluate(`Boolean(document.querySelector('.ds-meeting-brand img')&&document.querySelector('.ds-meeting-brand strong')?.textContent==='DominionStar Meet')`),true,'Packaged live meeting header must contain DominionStar logo and name.');
