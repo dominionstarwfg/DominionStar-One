@@ -16,6 +16,17 @@ const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-
 });
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
 
+async function waitLog(needle,label,timeout=12000){
+  const deadline=Date.now()+timeout;
+  while(Date.now()<deadline){
+    if(child.exitCode!==null)throw new Error(`Packaged app exited before ${label}.\n${stderr}`);
+    if(stderr.includes('QA_MAC_FLOATING_SHARE_FAILURE'))throw new Error(`Renderer share lifecycle failed before ${label}.\n${stderr}`);
+    if(stderr.includes(needle))return;
+    await sleep(60);
+  }
+  throw new Error(`Timed out waiting for ${label}: ${needle}\n${stderr}`);
+}
+
 async function target(predicate,label,timeout=16000){
   const deadline=Date.now()+timeout;let last=[];
   while(Date.now()<deadline){
@@ -73,7 +84,13 @@ try{
   await target(url=>url.includes('mac-presenter-toolbar.html'),'pre-capture floating macOS presenter toolbar',12000);
   await target(url=>url.includes('mac-share-video.html'),'pre-capture floating macOS participant video dock',12000);
 
-  const started=await main.eval(`(async()=>{
+  // Hosted macOS Chromium can suspend a long CDP Runtime.evaluate while native
+  // capture/presenter windows transition even though the renderer keeps running.
+  // Drive the production share lifecycle from inside the renderer, release the
+  // CDP request before capture starts, and require an explicit renderer-side
+  // resolution marker. This remains fail-closed: a share that never resolves,
+  // fails, or never creates the native surfaces still fails this certification.
+  const armed=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
     document.querySelector('#authGate').hidden=true;
     document.querySelector('#appShell').hidden=true;
@@ -84,15 +101,36 @@ try{
     window.DominionMeetingParity?.install?.();
     window.DominionMeetingFeatures?.toggleChat?.(false);
     window.DominionRuntimeStability?.sync?.();
-    const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
-    const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#07111f';ctx.fillRect(0,0,640,360);ctx.fillStyle='#d6b25e';ctx.fillRect(70,70,210,130);
-    const stream=canvas.captureStream(12);window.__qaMacPresenterStream=stream;
-    Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>stream});
-    const state=await window.DominionShareController.start({name:'QA Mac Floating Share',options:{shareAudio:false,optimizeVideo:false}});
-    return {active:state.active,sourceName:state.sourceName,overlayShare:overlay.classList.contains('share-active')};
-  })()`,12000);
+    window.__qaRunMacFloatingShare=async()=>{
+      try{
+        const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
+        const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#07111f';ctx.fillRect(0,0,640,360);ctx.fillStyle='#d6b25e';ctx.fillRect(70,70,210,130);
+        const stream=canvas.captureStream(12);window.__qaMacPresenterStream=stream;
+        Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>stream});
+        const state=await window.DominionShareController.start({name:'QA Mac Floating Share',options:{shareAudio:false,optimizeVideo:false}});
+        console.error('QA_MAC_FLOATING_SHARE_RESOLVED active='+(state.active?1:0)+' source='+encodeURIComponent(state.sourceName||'')+' overlay='+(overlay.classList.contains('share-active')?1:0));
+      }catch(error){
+        console.error('QA_MAC_FLOATING_SHARE_FAILURE '+String(error?.stack||error));
+      }
+    };
+    setTimeout(()=>{void window.__qaRunMacFloatingShare();},30);
+    return true;
+  })()`,3000);
+  assert.equal(armed,true,'Real floating presenter share lifecycle was not armed.');
+
+  // Do not keep a long inspector evaluation outstanding while Chromium moves
+  // native windows. Prove the renderer-side start completed, then reconnect to
+  // the same packaged meeting renderer for state/command verification.
+  main.close();main=null;
+  await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved real Mac floating share',12000);
+
+  const liveMainTarget=await target(url=>url.startsWith('file://')&&url.includes('/ui/index.html'),'active main meeting renderer',12000);
+  main=new Cdp(liveMainTarget.webSocketDebuggerUrl);await main.connect();
+  await main.wait("window.DominionShareController?.snapshot?.().active===true&&document.querySelector('#meetingOverlay')?.classList.contains('share-active')",'active real share state',7000);
+  const started=await main.eval(`(()=>{const state=window.DominionShareController.snapshot();return {active:state.active,sourceName:state.sourceName,overlayShare:document.querySelector('#meetingOverlay').classList.contains('share-active')};})()`);
   assert.equal(started.active,true,'Synthetic share did not become active.');
   assert.equal(started.sourceName,'QA Mac Floating Share');
+  assert.equal(started.overlayShare,true,'Packaged meeting renderer did not enter active-share layout.');
 
   const toolbarTarget=await target(url=>url.includes('mac-presenter-toolbar.html'),'floating macOS presenter toolbar',12000);
   toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
@@ -145,7 +183,7 @@ try{
   const stopped=await main.eval(`(()=>({active:window.DominionShareController.snapshot().active,shareClass:document.querySelector('#meetingOverlay').classList.contains('share-active')}))()`);
   assert.deepEqual(stopped,{active:false,shareClass:false},'Stop Share did not terminate the real share controller state.');
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK pre-capture-prepared floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
