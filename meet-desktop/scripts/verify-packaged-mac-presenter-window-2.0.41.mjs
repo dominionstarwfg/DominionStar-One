@@ -180,13 +180,9 @@ try{
     assert.ok(surface.commands.includes(command),`Floating toolbar is missing ${command}.`);
   }
 
-  const menu=await toolbar.eval(`(()=>{document.querySelector('#moreButton').click();return {open:!document.querySelector('#moreMenu').hidden,text:document.querySelector('#moreMenu').innerText};})()`);
-  assert.equal(menu.open,true,'Floating More menu did not open from the real toolbar button.');
-  assert.match(menu.text,/Record meeting/);assert.match(menu.text,/New Share/);
-  await toolbar.eval(`document.querySelector('#moreButton').click()`);
-
-  if(toolbarProofPath)await toolbar.screenshot(toolbarProofPath);
-
+  // Prove the acknowledged command path immediately after active share, before
+  // menu expansion, toolbar resize, or screenshot work can contaminate the
+  // renderer scheduling test.
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);
   await waitLog('QA_MAC_COMMAND pause','real Pause command delivery',5000,1);
   await waitLog('QA_MAC_PAUSE_STATE paused=1','real Pause state round trip',7000);
@@ -196,6 +192,13 @@ try{
   await waitLog('QA_MAC_COMMAND pause','real Resume command delivery',5000,2);
   await waitLog('QA_MAC_PAUSE_STATE paused=0','real Resume state round trip',7000);
   await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Pause'",'Resume label state feedback',5000);
+
+  const menu=await toolbar.eval(`(()=>{document.querySelector('#moreButton').click();return {open:!document.querySelector('#moreMenu').hidden,text:document.querySelector('#moreMenu').innerText};})()`);
+  assert.equal(menu.open,true,'Floating More menu did not open from the real toolbar button.');
+  assert.match(menu.text,/Record meeting/);assert.match(menu.text,/New Share/);
+  await toolbar.eval(`document.querySelector('#moreButton').click()`);
+
+  if(toolbarProofPath)await toolbar.screenshot(toolbarProofPath);
 
   await toolbar.eval(`document.querySelector('[data-command="participants"]').click()`);
   await waitLog('QA_MAC_COMMAND participants','Participants command delivery',5000);
@@ -209,7 +212,7 @@ try{
   await waitLog('QA_MAC_COMMAND stop','Stop Share command delivery',5000);
   await waitLog('QA_MAC_STOP_STATE active=0','Stop Share state round trip',9000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK preconnected-native-inspector idle-main-inspector renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack participant-dock more-menu real-pause-resume participants-chat stop-share-round-trip no-post-capture-main-eval');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK preconnected-native-inspector idle-main-inspector renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack immediate-pause-resume participant-dock more-menu participants-chat stop-share-round-trip no-post-capture-main-eval');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
