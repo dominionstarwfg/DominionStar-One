@@ -9,6 +9,7 @@ const presenter=read('ui/presenter-toolbar.js');
 const features=read('ui/meeting-features.js');
 const integration=read('ui/share-integration.js');
 const intelligence=read('ui/physical-intelligence-2.0.41.js');
+const relaunch=read('src/relaunch-service.mjs');
 
 new Function(js);
 new Function(presenter);
@@ -55,10 +56,14 @@ assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-gr
 assert(!intelligence.includes('ds2041-permission-modal')&&!intelligence.includes('ds2041-permission-card'),'Screen Recording recovery must not create a blocking DominionStar permission modal over the approved picker.');
 assert(intelligence.includes('data-open-screen-settings')&&intelligence.includes('ds2041-permission-inline-actions'),'Permission recovery must stay inline inside the approved chooser.');
 assert(intelligence.includes('async function refreshAfterFocus()')&&intelligence.includes('for(const delay of [180,650,1400])')&&intelligence.includes('legacy.reload()'),'Returning from macOS permission UI must retry real source enumeration instead of trusting a stale TCC label.');
-assert(intelligence.includes("desktop.app?.relaunch?.()")&&intelligence.includes('data-restart-screen-permission'),'If macOS grants permission but the current process is stale, recovery must offer one explicit quit-and-reopen action inline.');
-assert(intelligence.includes("version:'2.0.41-picker-first-inline-permission-parity'"),'Physical share authority version must identify the inline permission flow.');
+assert(intelligence.includes("desktop.app?.relaunch?.()")&&intelligence.includes('data-restart-screen-permission'),'Stable-signed recovery must retain one explicit quit-and-reopen action inline.');
+assert(intelligence.includes('data-reset-screen-permission')&&intelligence.includes('desktop.app?.resetScreenPermission?.()'),'Ad-hoc QA recovery must expose a targeted ScreenCapture reset for the current DominionStar bundle.');
+assert(intelligence.includes('desktop.app?.privacyIdentity?.()')&&intelligence.includes('stableAcrossRebuilds===false'),'Permission UX must detect that ad-hoc QA identity is unstable across rebuilt binaries.');
+assert(intelligence.includes('Reset & Reauthorize This Build')&&intelligence.includes('This QA build needs fresh Screen Recording authorization'),'A stale granted toggle must be explained as a rebuilt-QA identity problem rather than another relaunch loop.');
+assert(relaunch.includes("tccutil',['reset','ScreenCapture','com.dominionstar.desktop']")&&relaunch.includes("stableAcrossRebuilds:false"),'The targeted recovery IPC must reset only DominionStar ScreenCapture and declare ad-hoc identity instability truthfully.');
+assert(intelligence.includes("version:'2.0.41-picker-first-identity-aware-permission'"),'Physical share authority version must identify the identity-aware permission flow.');
 
 assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
 assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance module version must be explicit.');
 
-console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_2_0_41_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions six-second-float canonical-presenter-new-share real-source-recheck inline-macos-permission-recovery readable-settings');
+console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_2_0_41_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions six-second-float canonical-presenter-new-share real-source-recheck inline-macos-permission-recovery identity-aware-tcc-reset readable-settings');
