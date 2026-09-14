@@ -66,12 +66,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function keepMeetingRendererLive(){const main=getMainWindow?.();if(!main||main.isDestroyed())return false;try{main.webContents?.setBackgroundThrottling?.(false);}catch{}return true;}
   function hideMeetingWindowForShare(){
     if(!shareActive)return false;
-    // The macOS main window owns getDisplayMedia. Once capture is active, do
-    // not call BrowserWindow/WebContents liveness or content-protection setters
-    // on that capture-owning renderer. In physical packaged testing those
-    // post-capture mutations stop renderer timers and IPC, which makes the
-    // independent presenter toolbar appear dead. The native presenter toolbar,
-    // video dock, and green border protect their own windows independently.
+    // Do not mutate the main BrowserWindow at presenter commit. The macOS main
+    // window owns getDisplayMedia, and post-capture BrowserWindow/WebContents
+    // liveness or content-protection setters stop renderer timers and IPC in
+    // physical packaged testing. The native presenter toolbar, video dock, and
+    // green border protect their own windows independently.
     if(platform==='darwin'){
       lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};
       publishToolbarState();
