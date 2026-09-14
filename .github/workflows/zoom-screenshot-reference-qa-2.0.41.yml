@@ -1,6 +1,7 @@
 name: DominionStar Meet 2.0.41 Functional QA Certification
-# Hosted CI certifies real packaged/native UI and command routing with deterministic media.
-# Real macOS Screen Recording/TCC capture remains a separate physical-Mac release gate.
+# Hosted CI certifies active-share semantics with deterministic media and separately certifies
+# the real packaged native presenter BrowserWindows plus acknowledged macShare command transport.
+# Real visible macOS Screen Recording/TCC capture remains a separate physical-Mac release gate.
 
 on:
   pull_request:
@@ -144,7 +145,7 @@ jobs:
         working-directory: meet-desktop
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "/Applications/DominionStar Meet.app"
 
-      - name: Exercise native floating Mac presenter commands with hosted-safe media
+      - name: Exercise native floating Mac presenter command transport
         working-directory: meet-desktop
         run: node scripts/verify-packaged-mac-presenter-window-2.0.41.mjs "/Applications/DominionStar Meet.app"
 
@@ -178,7 +179,7 @@ jobs:
           ZIP="qa-2.0.41-artifact/DominionStar-Meet-2.0.41-FUNCTIONAL-QA-Mac-universal.zip"
           ditto -c -k --sequesterRsrc --keepParent "/Applications/DominionStar Meet.app" "$ZIP"
           shasum -a 256 "$ZIP" | tee qa-2.0.41-artifact/SHA256.txt
-          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\nmac_presenter_window=real-native-floating-window-logical-media-command-round-trip\nphysical_mac_tcc_capture=required-before-user-release\nshare_authority=screens-files-more-deep-certified\nreaction_authority=single-owner-meeting-features\nphysical_parity=screens-files-more-plus-layout-drag-filmstrip-prejoin\npackaged_physical_legacy_menu_test=superseded-by-reference-routing-and-specialized-gates\ninstaller=blocked-until-physical-mac-tcc-capture\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=2.0.41\nqualification=functional-qa-not-user-release\nvisual_gate=installed-app-green\ncommand_routing=more-and-host-tools-real-click\nactive_share_behavior=deterministic-media-step19\nmac_presenter_window=native-floating-window-ack-transport-step20\nphysical_mac_tcc_capture=required-before-user-release\nshare_authority=screens-files-more-deep-certified\nreaction_authority=single-owner-meeting-features\nphysical_parity=screens-files-more-plus-layout-drag-filmstrip-prejoin\npackaged_physical_legacy_menu_test=superseded-by-reference-routing-and-specialized-gates\ninstaller=blocked-until-physical-mac-tcc-capture\n' "$GITHUB_SHA" > qa-2.0.41-artifact/BUILD-PROVENANCE.txt
           cat > qa-2.0.41-artifact/PHYSICAL-MAC-RELEASE-GATE.txt <<'GATE'
           NOT CERTIFIED BY GITHUB-HOSTED MACOS CI
 
