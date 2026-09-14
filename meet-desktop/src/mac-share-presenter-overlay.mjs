@@ -20,6 +20,7 @@ if(process.platform==='darwin'){
   const presenterDeliveries=new Map();
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
+  const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
   let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
@@ -103,7 +104,7 @@ if(process.platform==='darwin'){
       await boundedLoad('mac_presenter_toolbar_load',()=>win.loadFile(path.join(uiDir,'mac-presenter-toolbar.html')));
       if(!isAlive(win)||toolbarWindow!==win)return null;
       toolbarReady=true;publishState();
-      if(shareActive){positionToolbar();win.showInactive?.();win.moveTop?.();}
+      if(shareActive&&!qaKeepPresenterHidden){positionToolbar();win.showInactive?.();win.moveTop?.();}
       return win;
     }catch(error){
       console.error('[DominionStar Meet] macOS presenter toolbar failed to prepare.',error);
@@ -164,7 +165,7 @@ if(process.platform==='darwin'){
       await boundedLoad('mac_share_video_load',()=>win.loadFile(path.join(uiDir,'mac-share-video.html')));
       if(!isAlive(win)||videoWindow!==win)return null;
       publishState();
-      if(shareActive){positionVideo();win.showInactive?.();win.moveTop?.();}
+      if(shareActive&&!qaKeepPresenterHidden){positionVideo();win.showInactive?.();win.moveTop?.();}
       return win;
     }catch(error){
       console.error('[DominionStar Meet] macOS presenter video dock failed to prepare.',error);
@@ -198,8 +199,13 @@ if(process.platform==='darwin'){
     if(!shareActive)return;
     void prepare().then(()=>{
       if(!shareActive)return;
-      positionToolbar();positionBorder();positionVideo();
-      if(toolbarReady&&isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishState();}
+      positionToolbar();positionBorder();positionVideo();publishState();
+      if(qaKeepPresenterHidden){
+        if(qaPresenterTrace)console.error('QA_MAC_PRESENTER_PREPARED_HIDDEN');
+        hideOverlays();
+        return;
+      }
+      if(toolbarReady&&isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}
       if(isAlive(videoWindow)){videoWindow.showInactive?.();videoWindow.moveTop?.();}
       if(isDisplayShare())showBorder();else hideBorder();
     });
@@ -249,6 +255,7 @@ if(process.platform==='darwin'){
   });
   ipcMain.on('mac-share:state',(_event,state={})=>{
     if(!shareActive)return;shareState={...shareState,...state};publishState();
+    if(qaKeepPresenterHidden){hideBorder();return;}
     if(isDisplayShare())showBorder();else hideBorder();
   });
   ipcMain.on('mac-share:capture-stopped',()=>{shareActive=false;shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
