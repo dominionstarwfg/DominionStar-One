@@ -5,7 +5,6 @@ let presenterCommandCallback=null;
 let presenterListenerGeneration=0;
 let presenterPollTimer=null;
 let presenterPollBusy=false;
-let presenterCaptureActive=false;
 const presenterDeliveryTasks=new Map();
 
 const runPresenterPayload=payload=>{
@@ -50,7 +49,7 @@ const handlePresenterPayload=async(payload,source='push')=>{
 ipcRenderer.on('share:presenter-command',(_event,payload)=>{void handlePresenterPayload(payload,'push');});
 
 const pollPresenterCommand=async()=>{
-  if(process.platform!=='darwin'||presenterCaptureActive||presenterPollBusy||typeof presenterCommandCallback!=='function')return;
+  if(process.platform!=='darwin'||presenterPollBusy||typeof presenterCommandCallback!=='function')return;
   presenterPollBusy=true;
   try{
     const payload=await invoke('mac-share:presenter-next-command').catch(()=>null);
@@ -58,7 +57,7 @@ const pollPresenterCommand=async()=>{
   }finally{presenterPollBusy=false;}
 };
 const ensurePresenterPoll=()=>{
-  if(process.platform!=='darwin'||presenterCaptureActive||presenterPollTimer)return;
+  if(process.platform!=='darwin'||presenterPollTimer)return;
   presenterPollTimer=setInterval(()=>{void pollPresenterCommand();},80);
 };
 const stopPresenterPoll=()=>{if(presenterPollTimer){clearInterval(presenterPollTimer);presenterPollTimer=null;}presenterPollBusy=false;};
@@ -107,10 +106,10 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   }),
   share:Object.freeze({
     openPicker:async permission=>{await prepareMacPresenter();return invoke('share:open-picker',{permission:String(permission||'unknown')});},probeAccess:()=>invoke('share:probe-access'),onSourceSelected:callback=>listen('share:source-selected',callback),
-    captureStarted:state=>{if(process.platform==='darwin'){presenterCaptureActive=true;stopPresenterPoll();}ipcRenderer.send('share:capture-started',state||{});return true;},
+    captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;},
     captureState:state=>{if(process.platform==='darwin'){ipcRenderer.send('mac-share:state',state||{});return true;}return invoke('share:capture-state',state);},
     presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;},
-    captureStopped:()=>{if(process.platform==='darwin'){ipcRenderer.send('mac-share:capture-stopped');presenterCaptureActive=false;ensurePresenterPoll();}return invoke('share:capture-stopped');},
+    captureStopped:()=>{if(process.platform==='darwin')ipcRenderer.send('mac-share:capture-stopped');return invoke('share:capture-stopped');},
     onPresenterCommand:callback=>listenPresenterCommand(callback)
   }),
   sharePicker:Object.freeze({
