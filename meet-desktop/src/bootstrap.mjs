@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
 
 // The meeting renderer remains the authoritative owner of media and presenter
@@ -10,6 +10,54 @@ if(process.platform==='darwin'){
   app.commandLine.appendSwitch('disable-renderer-backgrounding');
   app.commandLine.appendSwitch('disable-background-timer-throttling');
   app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+}
+
+// Physical-Mac capture baseline guard.
+// The 78622557 build proved that Entire Screen capture can start reliably when
+// the main meeting BrowserWindow is left in its normal, fully visible geometry
+// through source selection and getDisplayMedia startup. Later presenter work
+// began parking that same capture-owning window before capture (opacity 0.02,
+// click-through, unmaximize/full-screen changes). Keep those hide-like window
+// mutations out of the proven capture-start path while still allowing content
+// protection, renderer liveness, and explicit Participants/Chat window sizing.
+let physicalShareActive=false;
+const sharePickerVisible=()=>BrowserWindow.getAllWindows().some(win=>{
+  try{return !win.isDestroyed()&&win.isVisible?.()&&String(win.getTitle?.()||'')==='Share Screen';}
+  catch{return false;}
+});
+const isMainMeetingWindow=win=>{
+  try{return Boolean(win&&!win.isDestroyed()&&String(win.webContents?.getURL?.()||'').includes('/ui/index.html'));}
+  catch{return false;}
+};
+if(process.platform==='darwin'){
+  ipcMain.on('share:capture-started',()=>{physicalShareActive=true;});
+  ipcMain.on('mac-share:capture-stopped',()=>{physicalShareActive=false;});
+  const originalSetOpacity=BrowserWindow.prototype.setOpacity;
+  const originalSetIgnoreMouseEvents=BrowserWindow.prototype.setIgnoreMouseEvents;
+  const originalUnmaximize=BrowserWindow.prototype.unmaximize;
+  const originalSetFullScreen=BrowserWindow.prototype.setFullScreen;
+  const originalSetAlwaysOnTop=BrowserWindow.prototype.setAlwaysOnTop;
+
+  BrowserWindow.prototype.setOpacity=function(value,...rest){
+    if(isMainMeetingWindow(this)&&(physicalShareActive||sharePickerVisible())&&Number(value)<0.99)return;
+    return originalSetOpacity.call(this,value,...rest);
+  };
+  BrowserWindow.prototype.setIgnoreMouseEvents=function(ignore,...rest){
+    if(isMainMeetingWindow(this)&&(physicalShareActive||sharePickerVisible())&&Boolean(ignore))return;
+    return originalSetIgnoreMouseEvents.call(this,ignore,...rest);
+  };
+  BrowserWindow.prototype.unmaximize=function(...args){
+    if(isMainMeetingWindow(this)&&sharePickerVisible())return;
+    return originalUnmaximize.apply(this,args);
+  };
+  BrowserWindow.prototype.setFullScreen=function(flag,...rest){
+    if(isMainMeetingWindow(this)&&sharePickerVisible()&&flag===false)return;
+    return originalSetFullScreen.call(this,flag,...rest);
+  };
+  BrowserWindow.prototype.setAlwaysOnTop=function(flag,...rest){
+    if(isMainMeetingWindow(this)&&sharePickerVisible()&&Boolean(flag))return;
+    return originalSetAlwaysOnTop.call(this,flag,...rest);
+  };
 }
 
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
