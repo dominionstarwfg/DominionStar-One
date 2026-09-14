@@ -1,6 +1,17 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import path from 'node:path';
 
+// The meeting renderer remains the authoritative owner of media and presenter
+// commands while native macOS sharing surfaces float above it. Prevent Chromium
+// from backgrounding or occlusion-throttling that renderer during active share;
+// otherwise toolbar IPC can arrive in the main process while Pause/Stop/Chat
+// never reaches the meeting renderer until sharing ends.
+if(process.platform==='darwin'){
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-background-timer-throttling');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+}
+
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
 const packagedMac=()=>process.platform==='darwin'&&app.isPackaged&&!isCi;
 const CANONICAL_MAC_APP='/Applications/DominionStar Meet.app';
