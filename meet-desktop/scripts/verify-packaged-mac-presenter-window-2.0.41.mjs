@@ -72,9 +72,6 @@ try{
   main=new Cdp(mainTarget.webSocketDebuggerUrl);await main.connect();
   await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.dominionDesktop?.share",'share controllers');
 
-  // Deliberately DO NOT call dominionDesktop.macShare.prepare(). This control
-  // isolates whether the mere existence of the secondary native presenter
-  // BrowserWindows is what causes the hosted macOS renderer scheduler stall.
   const armed=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
     document.querySelector('#authGate').hidden=true;
@@ -125,16 +122,20 @@ try{
     setTimeout(()=>{void window.__qaRunNoPrepareShare();},30);
     return true;
   })()`,3000);
-  assert.equal(armed,true,'No-preprepare scheduler control was not armed.');
+  assert.equal(armed,true,'Main-CDP-disconnect scheduler control was not armed.');
+
+  // This is the critical parity with the passing step-19 harness: disconnect
+  // DevTools from the meeting renderer BEFORE the scheduled share starts.
+  main.close();main=null;
 
   await waitLog('QA_MAC_NO_PREPARE_STREAM logical-hosted-fixture','logical no-preprepare media fixture',5000);
   await waitLog('QA_MAC_CAPTURE_STARTED_ACK_ONLY','QA capture-start bypass',5000);
   await waitLog('QA_MAC_NO_PREPARE_RESOLVED active=1','resolved no-preprepare share',5000);
-  await waitLog('QA_MAC_NO_PREPARE_TICK','renderer scheduling without native presenter BrowserWindows',3000);
-  console.error('QA_MAC_NO_PREPARE_SCHEDULER_ALIVE');
+  await waitLog('QA_MAC_NO_PREPARE_TICK','renderer scheduling after main CDP disconnect',3000);
+  console.error('QA_MAC_MAIN_CDP_DISCONNECT_SCHEDULER_ALIVE');
 
-  // This is deliberately a diagnostic failure, not a certification pass.
-  throw new Error('DIAGNOSTIC_CONFIRMED_NO_PREPARE_SCHEDULER_ALIVE');
+  // Deliberately fail after proving the diagnostic so this cannot be read as certification.
+  throw new Error('DIAGNOSTIC_CONFIRMED_MAIN_CDP_CONNECTION_WAS_FREEZE_TRIGGER');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   main?.close();
