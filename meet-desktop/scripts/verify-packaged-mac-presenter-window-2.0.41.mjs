@@ -144,6 +144,8 @@ try{
         Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>stream});
         const state=await window.DominionShareController.start({name:'QA Mac Floating Share',options:{shareAudio:false,optimizeVideo:false}});
         console.error('QA_MAC_FLOATING_SHARE_RESOLVED active='+(state.active?1:0)+' source='+encodeURIComponent(state.sourceName||'')+' overlay='+(overlay.classList.contains('share-active')?1:0));
+        requestAnimationFrame(()=>console.error('QA_MAC_POST_SHARE_RAF'));
+        setTimeout(()=>console.error('QA_MAC_POST_SHARE_TICK'),120);
       }catch(error){
         console.error('QA_MAC_FLOATING_SHARE_FAILURE '+String(error?.stack||error));
       }
@@ -159,6 +161,7 @@ try{
   // command-path proof. Renderer stderr remains the sole state acceptance lane.
   await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved real Mac floating share',12000);
   await waitLog('QA_MAC_SHARE_STATE active=1 paused=0 source=QA%20Mac%20Floating%20Share','active real share state',5000);
+  await waitLog('QA_MAC_POST_SHARE_TICK','post-share renderer timer scheduling',3000);
 
   await toolbar.wait("document.querySelector('#shareStateLabel')?.textContent?.toLowerCase().includes('screen sharing')",'visible active sharing state on native toolbar',7000);
   const surface=await toolbar.eval(`(()=>({
@@ -212,7 +215,7 @@ try{
   await waitLog('QA_MAC_COMMAND stop','Stop Share command delivery',5000);
   await waitLog('QA_MAC_STOP_STATE active=0','Stop Share state round trip',9000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK preconnected-native-inspector idle-main-inspector renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack immediate-pause-resume participant-dock more-menu participants-chat stop-share-round-trip no-post-capture-main-eval');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK preconnected-native-inspector idle-main-inspector renderer-self-driven-share resolved-real-share floating-window completed-macShare-ack post-share-renderer-tick immediate-pause-resume participant-dock more-menu participants-chat stop-share-round-trip no-post-capture-main-eval');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
