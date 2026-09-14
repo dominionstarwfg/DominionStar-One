@@ -89,6 +89,7 @@ if(process.platform==='darwin'){
     if(isAlive(toolbarWindow))closeFailedWindow(toolbarWindow);
     toolbarWindow=null;toolbarReady=false;
     const win=new BrowserWindow({
+      type:'panel',
       width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
       focusable:false,acceptFirstMouse:true,
@@ -151,6 +152,7 @@ if(process.platform==='darwin'){
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
     const win=new BrowserWindow({
+      type:'panel',
       width:252,height:174,minWidth:190,minHeight:132,maxWidth:360,maxHeight:250,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
