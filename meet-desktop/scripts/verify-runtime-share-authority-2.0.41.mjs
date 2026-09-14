@@ -12,6 +12,7 @@ const integration=read('ui/share-integration.js');
 const controller=read('ui/share-controller.js');
 const preload=read('src/preload.cjs');
 const shareService=read('src/share-service.mjs');
+const relaunch=read('src/relaunch-service.mjs');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const macToolbar=read('ui/mac-presenter-toolbar.html');
 const macToolbarJs=read('ui/mac-presenter-toolbar.js');
@@ -55,8 +56,12 @@ assert(intelligence.includes(".ds2041-recovery,.ds2041-smart-recovery,#screenPer
 assert(intelligence.includes('async function requestPermissionFromPicker()')&&intelligence.includes('desktop.media?.requestScreen?.()'),'The picker Share action must trigger the real bounded macOS capture-permission path only when needed.');
 assert(intelligence.includes("window.addEventListener('focus',onFocus)")&&intelligence.includes('async function refreshAfterFocus()')&&intelligence.includes('for(const delay of [180,650,1400])'),'Returning from macOS permission UI must refresh the same open picker with bounded retries.');
 assert(intelligence.includes('const ok=await legacy.reload();')&&intelligence.includes('blocked=false;settingsOpened=false;'),'A granted permission must refresh real thumbnails in-place without reopening or replacing the picker.');
-assert(intelligence.includes('data-restart-screen-permission')&&intelligence.includes('desktop.app?.relaunch?.()'),'If macOS has granted access but the running process is stale, recovery must offer one controlled quit-and-reopen action inline.');
-assert(intelligence.includes("version:'2.0.41-picker-first-inline-permission-parity'"),'Physical intelligence must identify the corrected picker-first inline permission flow.');
+assert(intelligence.includes('data-restart-screen-permission')&&intelligence.includes('desktop.app?.relaunch?.()'),'Stable-signed stale-process recovery must retain one controlled quit-and-reopen action inline.');
+assert(intelligence.includes('data-reset-screen-permission')&&intelligence.includes('desktop.app?.resetScreenPermission?.()'),'Ad-hoc QA recovery must expose a targeted reset of DominionStar ScreenCapture authorization.');
+assert(intelligence.includes('desktop.app?.privacyIdentity?.()')&&intelligence.includes('stableAcrossRebuilds===false'),'Permission recovery must branch on the actual QA signing identity instead of assuming permission persists across rebuilt binaries.');
+assert(intelligence.includes('Reset & Reauthorize This Build')&&intelligence.includes('previous build’s switch enabled'),'A granted-but-unreadable ad-hoc build must explain and repair the stale TCC row without another useless relaunch loop.');
+assert(relaunch.includes("tccutil',['reset','ScreenCapture','com.dominionstar.desktop']")&&relaunch.includes("signingMode:'adhoc'")&&relaunch.includes('stableAcrossRebuilds:false'),'The main-process recovery authority must reset only DominionStar ScreenCapture and report ad-hoc signing truthfully.');
+assert(intelligence.includes("version:'2.0.41-picker-first-identity-aware-permission'"),'Physical intelligence must identify the identity-aware picker-first permission flow.');
 assert(intelligence.includes('left:auto!important')&&intelligence.includes('width:auto!important')&&intelligence.includes('max-width:max-content!important'),'Prejoin Backgrounds control must be explicitly compact and cannot inherit the rejected full-width overlay geometry.');
 assert(!intelligence.includes('#homeSection')&&!intelligence.includes('.home-grid')&&!intelligence.includes('.action-card'),'Physical intelligence repair must not alter the locked Home surface.');
 
@@ -79,4 +84,4 @@ assert(preload.includes("ipcRenderer.send('share:presenter-delivery-ack'"),'The 
 assert(shareService.includes('window.__DominionPresenterDispatch')&&shareService.includes('webContents.executeJavaScript'),'Generic presenter fallback must still directly invoke the live renderer dispatcher.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}"),'Stop Share must terminate the real ShareController capture, not only change toolbar chrome.');
 
-console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-inline-permission zoom-style-in-place-refresh no-stacked-recovery compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration active-share-toolbar green-share-border top-right-video-dock acknowledged-mac-presenter-routing truthful-toolbar-delivery single-camera-owner no-second-display-capture-owner home-locked');
+console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-identity-aware-permission zoom-style-in-place-refresh no-stacked-recovery targeted-tcc-reset compact-prejoin approved-screens-files-more real-source-bridge mac-presenter-prepared-before-enumeration active-share-toolbar green-share-border top-right-video-dock acknowledged-mac-presenter-routing truthful-toolbar-delivery single-camera-owner no-second-display-capture-owner home-locked');
