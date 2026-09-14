@@ -6,6 +6,7 @@
   const pickerBridge=desktop.sharePicker||null;
   const q=s=>document.querySelector(s);
   const qa=s=>[...document.querySelectorAll(s)];
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const esc=value=>String(value||'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[char]));
   const pref=(key,fallback=false)=>{try{const v=localStorage.getItem(key);return v===null?fallback:v==='1';}catch{return fallback;}};
   const save=(key,value)=>{try{localStorage.setItem(key,value?'1':'0');}catch{}};
@@ -126,12 +127,36 @@
 
   function close(){stopAutoRefresh();if(root)root.hidden=true;}
 
+  async function waitForShareCommit(sourceName,wasActive,timeoutMs=5200){
+    const desired=String(sourceName||'');
+    const deadline=Date.now()+Math.max(1000,Number(timeoutMs)||5200);
+    while(Date.now()<deadline){
+      const state=window.DominionShareIntegration?.state?.()||{};
+      if(state.active&&(!wasActive||!desired||String(state.sourceName||'')===desired))return true;
+      await wait(60);
+    }
+    const state=window.DominionShareIntegration?.state?.()||{};
+    return Boolean(state.active&&(!wasActive||!desired||String(state.sourceName||'')===desired));
+  }
+
   async function commit(){
     const source=selected();if(!source||busy||!pickerBridge?.choose)return false;
-    busy=true;syncSelected();const button=root.querySelector('.ds2041-share-button');button.textContent='Sharing…';
+    const priorState=window.DominionShareIntegration?.state?.()||{};
+    busy=true;syncSelected();stopAutoRefresh();
+    const button=root.querySelector('.ds2041-share-button'),status=root.querySelector('.ds2041-share-status');
+    button.textContent='Starting share…';if(status)status.textContent='Preparing selected content…';
     const options={shareAudio:Boolean(root.querySelector('[data-share-audio]')?.checked),optimizeVideo:Boolean(root.querySelector('[data-optimize]')?.checked)};
-    try{const result=await pickerBridge.choose(source.id,options);if(result?.ok===false)throw new Error(result.error||'share_source_not_available');save('ds_pref_share_audio',options.shareAudio);save('ds_pref_share_optimize',options.optimizeVideo);close();return true;}
-    catch(error){root.querySelector('.ds2041-share-status').textContent=String(error?.message||error||'That source is no longer available.');return false;}
+    try{
+      const result=await pickerBridge.choose(source.id,options);if(result?.ok===false)throw new Error(result.error||'share_source_not_available');
+      save('ds_pref_share_audio',options.shareAudio);save('ds_pref_share_optimize',options.optimizeVideo);
+      const committed=await waitForShareCommit(source.name,Boolean(priorState.active));
+      if(!committed)throw new Error('Screen sharing did not become active. Please choose the source again.');
+      if(status)status.textContent='';close();return true;
+    }
+    catch(error){
+      if(status)status.textContent=String(error?.message||error||'That source could not start.');
+      if(activeTab==='screens')startAutoRefresh();return false;
+    }
     finally{busy=false;button.textContent='Share';syncSelected();}
   }
 
