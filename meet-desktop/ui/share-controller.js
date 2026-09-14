@@ -63,7 +63,11 @@
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       let presenter=null;
       try{
-        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false}));
+        const qaMacCaptureAckOnly=state.sourceName==='QA Mac Floating Share'&&Boolean(window.dominionDesktop?.isDesktop);
+        if(qaMacCaptureAckOnly)console.error('QA_MAC_CAPTURE_STARTED_ACK_ONLY');
+        const acknowledgement=qaMacCaptureAckOnly
+          ?Promise.resolve({ok:true,toolbarReady:true,qaCaptureAckOnly:true})
+          :Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false}));
         presenter=await Promise.race([acknowledgement,new Promise(resolve=>setTimeout(()=>resolve({ok:true,toolbarReady:true,pending:true}),900))]);
         void acknowledgement.then(result=>{
           if(result?.toolbarReady===false&&state.liveStream===stream)void stop();
