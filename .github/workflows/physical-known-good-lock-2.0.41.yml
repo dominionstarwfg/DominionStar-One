@@ -34,3 +34,7 @@ jobs:
       - name: Enforce passive macOS screen permission policy
         working-directory: meet-desktop
         run: node scripts/verify-screen-permission-policy-2.0.41.mjs
+
+      - name: Enforce physically proven capture-start baseline
+        working-directory: meet-desktop
+        run: node scripts/verify-physical-capture-baseline-2.0.41.mjs
