@@ -76,16 +76,11 @@ try{
   main=new Cdp(mainTarget.webSocketDebuggerUrl);await main.connect();
   await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.__DominionPresenterDispatch&&window.dominionDesktop?.share&&window.dominionDesktop?.macShare?.prepare",'share controllers');
 
+  // Prepare the real native macOS presenter surfaces before capture, exactly as
+  // production does. Do not attach DevTools/CDP to their renderer processes yet:
+  // the hosted Mac runner must first prove the meeting renderer remains live.
   const prepared=await main.eval(`window.dominionDesktop.macShare.prepare()`,12000);
   assert.equal(prepared?.ok,true,'macOS presenter surfaces were not prepared before capture.');
-
-  const toolbarTarget=await target(url=>url.includes('mac-presenter-toolbar.html'),'pre-capture floating macOS presenter toolbar',12000);
-  toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
-  await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='macShare-ack'",'pre-capture acknowledged floating toolbar command bridge');
-
-  const videoTarget=await target(url=>url.includes('mac-share-video.html'),'pre-capture floating macOS participant video dock',12000);
-  videoDock=new Cdp(videoTarget.webSocketDebuggerUrl);await videoDock.connect();
-  await videoDock.wait("document.readyState==='complete'&&document.querySelector('#dock')",'pre-capture floating participant video dock');
 
   const armed=await main.eval(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -161,7 +156,17 @@ try{
   await waitLog('QA_MAC_STREAM_SOURCE logical-hosted-fixture','logical hosted media fixture',5000);
   await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved hosted Mac floating share',12000);
   await waitLog('QA_MAC_SHARE_STATE active=1 paused=0 source=QA%20Mac%20Floating%20Share','active hosted share state',5000);
-  await waitLog('QA_MAC_POST_SHARE_TICK','post-share renderer timer scheduling',3000);
+  await waitLog('QA_MAC_POST_SHARE_TICK','post-share renderer timer scheduling before secondary CDP attach',3000);
+
+  // Only after the meeting renderer has proved schedulable do we attach to the
+  // already-prepared real native toolbar/video renderers and drive their actual UI.
+  const toolbarTarget=await target(url=>url.includes('mac-presenter-toolbar.html'),'post-share floating macOS presenter toolbar',12000);
+  toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
+  await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='macShare-ack'",'post-share acknowledged floating toolbar command bridge');
+
+  const videoTarget=await target(url=>url.includes('mac-share-video.html'),'post-share floating macOS participant video dock',12000);
+  videoDock=new Cdp(videoTarget.webSocketDebuggerUrl);await videoDock.connect();
+  await videoDock.wait("document.readyState==='complete'&&document.querySelector('#dock')",'post-share floating participant video dock');
 
   await toolbar.wait("document.querySelector('#shareStateLabel')?.textContent?.toLowerCase().includes('screen sharing')",'visible active sharing state on native toolbar',7000);
   const surface=await toolbar.eval(`(()=>({sharing:document.querySelector('#shareStateLabel')?.textContent||'',stop:document.querySelector('#stopShare')?.textContent||'',brand:document.querySelector('.brand span')?.textContent||'',commands:[...document.querySelectorAll('[data-command]')].map(node=>node.dataset.command),presenterBridge:Boolean(window.dominionDesktop?.presenter?.command),macBridge:Boolean(window.dominionDesktop?.macShare?.command),transport:window.DominionMacPresenterToolbar?.transport||''}))()`);
@@ -199,7 +204,7 @@ try{
   await waitLog('QA_MAC_COMMAND stop','Stop Share command delivery',5000);
   await waitLog('QA_MAC_STOP_STATE active=0','Stop Share state round trip',9000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK real-native-floating-windows logical-hosted-media renderer-scheduler-alive completed-macShare-ack pause-resume participants-chat stop-share-round-trip physical-tcc-capture-required-before-release');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK real-native-floating-windows preprepared-no-secondary-cdp-during-share-start logical-hosted-media completed-macShare-ack pause-resume participants-chat stop-share-round-trip physical-tcc-capture-required-before-release');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
