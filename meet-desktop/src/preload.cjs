@@ -3,35 +3,72 @@ const invoke=(channel,payload)=>ipcRenderer.invoke(channel,payload);
 const listen=(channel,callback)=>{if(typeof callback!=='function')return()=>{};const handler=(_event,payload)=>callback(payload);ipcRenderer.on(channel,handler);return()=>ipcRenderer.removeListener(channel,handler);};
 let presenterCommandCallback=null;
 let presenterListenerGeneration=0;
-ipcRenderer.on('share:presenter-command',async(_event,payload)=>{
+let presenterPollTimer=null;
+let presenterPollBusy=false;
+const presenterDeliveryTasks=new Map();
+
+const runPresenterPayload=payload=>{
   const command=String(payload?.command||payload||'');
   const qaCommandId=Number(payload?.qaCommandId||0)||0;
   const deliveryId=Number(payload?.deliveryId||0)||0;
-  if(qaCommandId>0){
-    console.error(`QA_PRESENTER_PRELOAD_RECEIVED id=${qaCommandId} command=${command} generation=${presenterListenerGeneration}`);
-    ipcRenderer.send('share:presenter-preload-tap',{qaCommandId,command,generation:presenterListenerGeneration});
-  }
-  const callback=presenterCommandCallback;
-  if(typeof callback==='function'){
+  if(deliveryId>0&&presenterDeliveryTasks.has(deliveryId))return presenterDeliveryTasks.get(deliveryId);
+  const task=(async()=>{
+    if(qaCommandId>0){
+      console.error(`QA_PRESENTER_PRELOAD_RECEIVED id=${qaCommandId} command=${command} generation=${presenterListenerGeneration}`);
+      ipcRenderer.send('share:presenter-preload-tap',{qaCommandId,command,generation:presenterListenerGeneration});
+    }
+    const callback=presenterCommandCallback;
+    if(typeof callback!=='function')return {accepted:false,error:'presenter_listener_unavailable',command,qaCommandId,deliveryId};
     try{
       const result=await Promise.resolve(callback(payload));
       const accepted=result?.handled!==false;
-      if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted,error:accepted?'':String(result?.error||'presenter_command_rejected')});
+      return {accepted,error:accepted?'':String(result?.error||'presenter_command_rejected'),command,qaCommandId,deliveryId};
     }catch(error){
       console.error('[DominionStar Meet] Presenter command callback failed.',error);
-      if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:false,error:String(error?.message||error||'presenter_callback_failed')});
+      return {accepted:false,error:String(error?.message||error||'presenter_callback_failed'),command,qaCommandId,deliveryId};
     }
-    if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command,generation:presenterListenerGeneration});
-  }else if(deliveryId>0){
-    ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:false,error:'presenter_listener_unavailable'});
+  })();
+  if(deliveryId>0){
+    presenterDeliveryTasks.set(deliveryId,task);
+    void task.finally(()=>setTimeout(()=>presenterDeliveryTasks.delete(deliveryId),4000));
   }
-});
+  return task;
+};
+
+const handlePresenterPayload=async(payload,source='push')=>{
+  const command=String(payload?.command||payload||'');
+  const qaCommandId=Number(payload?.qaCommandId||0)||0;
+  const deliveryId=Number(payload?.deliveryId||0)||0;
+  if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'&&deliveryId>0)console.error(`QA_PRESENTER_PRELOAD_DELIVERY source=${source} delivery=${deliveryId} command=${command} generation=${presenterListenerGeneration}`);
+  const result=await runPresenterPayload(payload);
+  if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:Boolean(result?.accepted),error:result?.accepted?'':String(result?.error||'presenter_command_rejected')});
+  if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command,generation:presenterListenerGeneration});
+  return result;
+};
+
+ipcRenderer.on('share:presenter-command',(_event,payload)=>{void handlePresenterPayload(payload,'push');});
+
+const pollPresenterCommand=async()=>{
+  if(process.platform!=='darwin'||presenterPollBusy||typeof presenterCommandCallback!=='function')return;
+  presenterPollBusy=true;
+  try{
+    const payload=await invoke('mac-share:presenter-next-command').catch(()=>null);
+    if(payload)await handlePresenterPayload(payload,'pull');
+  }finally{presenterPollBusy=false;}
+};
+const ensurePresenterPoll=()=>{
+  if(process.platform!=='darwin'||presenterPollTimer)return;
+  presenterPollTimer=setInterval(()=>{void pollPresenterCommand();},80);
+};
+const stopPresenterPoll=()=>{if(presenterPollTimer){clearInterval(presenterPollTimer);presenterPollTimer=null;}presenterPollBusy=false;};
+
 const listenPresenterCommand=callback=>{
   if(typeof callback!=='function')return()=>{};
   presenterCommandCallback=callback;
   const generation=++presenterListenerGeneration;
   ipcRenderer.send('share:presenter-listener-ready',{href:String(location?.href||''),generation});
-  return()=>{if(presenterCommandCallback===callback)presenterCommandCallback=null;};
+  ensurePresenterPoll();
+  return()=>{if(presenterCommandCallback===callback){presenterCommandCallback=null;stopPresenterPoll();}};
 };
 const packaged=String(location?.href||'').includes('/app.asar/');
 const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../assets/logo.jpeg',location.href).href;
