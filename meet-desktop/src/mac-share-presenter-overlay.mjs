@@ -118,7 +118,7 @@ if(process.platform==='darwin'){
     if(bordersReady())return borderWindows;
     for(const win of borderWindows)closeFailedWindow(win);
     borderWindows=[];
-    const html=`<!doctype html><meta charset="utf-8"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:${BORDER_COLOR}}</style>`;
+    const html=`<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:${BORDER_COLOR}}body{border:4px solid #2ed573}</style>`;
     const url=`data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
     const created=[];
     try{
