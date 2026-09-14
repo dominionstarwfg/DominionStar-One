@@ -16,6 +16,8 @@ if(process.platform==='darwin'){
   let preparing=null;
   let presenterDeliverySeq=0;
   const presenterDeliveries=new Map();
+  const presenterCommandQueue=[];
+  const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
   let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
@@ -180,21 +182,39 @@ if(process.platform==='darwin'){
     if(isAlive(borderWindow))borderWindow.hide();
   }
 
+  function removeQueuedPresenterDelivery(deliveryId){
+    const id=Number(deliveryId||0)||0;if(!id)return false;
+    const index=presenterCommandQueue.findIndex(item=>Number(item?.deliveryId||0)===id);
+    if(index<0)return false;presenterCommandQueue.splice(index,1);return true;
+  }
   function settlePresenterDelivery(deliveryId,result){
     const pending=presenterDeliveries.get(deliveryId);if(!pending)return false;
     presenterDeliveries.delete(deliveryId);clearTimeout(pending.timer);pending.resolve(result);return true;
   }
   function deliverPresenterCommand(main,command){
     const deliveryId=++presenterDeliverySeq;
+    const payload={command,deliveryId};
+    presenterCommandQueue.push(payload);
+    if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ENQUEUE delivery=${deliveryId} command=${String(command||'')} queue=${presenterCommandQueue.length}`);
     return new Promise(resolve=>{
-      const timer=setTimeout(()=>{presenterDeliveries.delete(deliveryId);resolve({ok:false,sent:true,acknowledged:false,error:'presenter_command_ack_timeout',deliveryId});},1800);
+      const timer=setTimeout(()=>{
+        presenterDeliveries.delete(deliveryId);removeQueuedPresenterDelivery(deliveryId);
+        resolve({ok:false,sent:true,acknowledged:false,error:'presenter_command_ack_timeout',deliveryId});
+      },1800);
       presenterDeliveries.set(deliveryId,{resolve,timer});
-      try{main.webContents.send('share:presenter-command',{command,deliveryId});}
-      catch(error){clearTimeout(timer);presenterDeliveries.delete(deliveryId);resolve({ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'presenter_command_failed'),deliveryId});}
+      try{main.webContents.send('share:presenter-command',payload);}
+      catch(error){clearTimeout(timer);presenterDeliveries.delete(deliveryId);removeQueuedPresenterDelivery(deliveryId);resolve({ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'presenter_command_failed'),deliveryId});}
     });
   }
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
+  ipcMain.handle('mac-share:presenter-next-command',(event)=>{
+    const main=mainWindow();
+    if(!isAlive(main)||event.sender!==main.webContents)return null;
+    const next=presenterCommandQueue.shift()||null;
+    if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);
+    return next?{...next}:null;
+  });
   ipcMain.on('share:capture-started',(_event,state={})=>{
     shareActive=true;shareState={...shareState,...state,meetingVisible:true};showOverlays();
   });
@@ -206,6 +226,8 @@ if(process.platform==='darwin'){
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;
     const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;
+    removeQueuedPresenterDelivery(deliveryId);
+    if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=${deliveryId} command=${String(payload?.command||'')} accepted=${payload?.accepted?1:0}`);
     settlePresenterDelivery(deliveryId,{ok:Boolean(payload?.accepted),sent:true,acknowledged:true,deliveryId,error:payload?.accepted?'':String(payload?.error||'presenter_command_rejected')});
   });
 
@@ -224,6 +246,7 @@ if(process.platform==='darwin'){
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();}});
   app.on('before-quit',()=>{
     shareActive=false;hideOverlays();
+    presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'app_quitting',deliveryId});}
     presenterDeliveries.clear();
     for(const win of [toolbarWindow,borderWindow,videoWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}
