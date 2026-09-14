@@ -118,6 +118,7 @@ try{
       try{
         if(typeof MediaStreamTrackGenerator!=='function')throw new Error('MediaStreamTrackGenerator unavailable');
         const generator=new MediaStreamTrackGenerator({kind:'video'});
+        generator.enabled=false;
         const stream=new MediaStream([generator]);
         window.__qaMacPresenterStream=stream;window.__qaMacGenerator=generator;
         const frameCanvas=document.createElement('canvas');frameCanvas.width=640;frameCanvas.height=360;
@@ -125,7 +126,7 @@ try{
         window.__qaMacFrameCanvas=frameCanvas;
         Object.defineProperty(window,'ImageCapture',{configurable:true,value:class{async grabFrame(){return createImageBitmap(window.__qaMacFrameCanvas);}}});
         Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>stream});
-        console.error('QA_MAC_STREAM_SOURCE track-generator');
+        console.error('QA_MAC_STREAM_SOURCE track-generator-disabled enabled='+(generator.enabled?1:0)+' ready='+generator.readyState);
         const state=await window.DominionShareController.start({name:'QA Mac Floating Share',options:{shareAudio:false,optimizeVideo:false}});
         console.error('QA_MAC_FLOATING_SHARE_RESOLVED active='+(state.active?1:0)+' source='+encodeURIComponent(state.sourceName||'')+' overlay='+(overlay.classList.contains('share-active')?1:0));
         requestAnimationFrame(()=>console.error('QA_MAC_POST_SHARE_RAF'));
@@ -137,7 +138,7 @@ try{
   })()`,3000);
   assert.equal(armed,true,'Real floating presenter share lifecycle was not armed.');
 
-  await waitLog('QA_MAC_STREAM_SOURCE track-generator','real MediaStreamTrackGenerator source',5000);
+  await waitLog('QA_MAC_STREAM_SOURCE track-generator-disabled enabled=0 ready=live','disabled real MediaStreamTrackGenerator source',5000);
   await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved real Mac floating share',12000);
   await waitLog('QA_MAC_SHARE_STATE active=1 paused=0 source=QA%20Mac%20Floating%20Share','active real share state',5000);
   await waitLog('QA_MAC_POST_SHARE_TICK','post-share renderer timer scheduling',3000);
@@ -178,7 +179,7 @@ try{
   await waitLog('QA_MAC_COMMAND stop','Stop Share command delivery',5000);
   await waitLog('QA_MAC_STOP_STATE active=0','Stop Share state round trip',9000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK track-generator-real-mediastream renderer-scheduler-alive completed-macShare-ack pause-resume participants-chat stop-share-round-trip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK disabled-track-generator-real-mediastream renderer-scheduler-alive completed-macShare-ack pause-resume participants-chat stop-share-round-trip');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
