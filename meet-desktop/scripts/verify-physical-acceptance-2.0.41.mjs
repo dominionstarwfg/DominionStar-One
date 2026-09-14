@@ -8,11 +8,13 @@ const bootstrap=read('ui/auth-password.js');
 const presenter=read('ui/presenter-toolbar.js');
 const features=read('ui/meeting-features.js');
 const integration=read('ui/share-integration.js');
+const intelligence=read('ui/physical-intelligence-2.0.41.js');
 
 new Function(js);
 new Function(presenter);
 new Function(features);
 new Function(integration);
+new Function(intelligence);
 
 assert(bootstrap.includes('zoom-physical-acceptance.css')&&bootstrap.includes('zoom-physical-acceptance.js'),'Physical acceptance authority must load after the production polish layer.');
 assert(js.includes("button.dataset.dsPhysicalAuthority='1'")&&js.includes('installViewAuthority')&&js.includes('installHostToolsAuthority')&&js.includes('installMoreAuthority'),'View, Host Tools and More must have explicit visible-control authority.');
@@ -46,7 +48,17 @@ assert(presenter.includes('await bridge?.command?.(routedCommand(command));'),'F
 assert(integration.includes("if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}"),'Presenter New Share must be handled by the canonical Share Integration.');
 assert(integration.includes("async function openPickerWithPermission(){clearCompanion();return beginShare({replace:share.snapshot().active});}"),'Presenter New Share must reopen the same permission-aware approved share entry.');
 assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-grid'),'Compatibility screen sharing must retain a real-source picker rather than a permission-only dialog.');
+
+// The physical 2.0.41 authority must never cover the approved chooser with a
+// second DominionStar permission dialog. macOS owns the system prompt; our
+// recovery controls stay inline and source enumeration is retried on focus.
+assert(!intelligence.includes('ds2041-permission-modal')&&!intelligence.includes('ds2041-permission-card'),'Screen Recording recovery must not create a blocking DominionStar permission modal over the approved picker.');
+assert(intelligence.includes('data-open-screen-settings')&&intelligence.includes('ds2041-permission-inline-actions'),'Permission recovery must stay inline inside the approved chooser.');
+assert(intelligence.includes('async function refreshAfterFocus()')&&intelligence.includes('for(const delay of [180,650,1400])')&&intelligence.includes('legacy.reload()'),'Returning from macOS permission UI must retry real source enumeration instead of trusting a stale TCC label.');
+assert(intelligence.includes("desktop.app?.relaunch?.()")&&intelligence.includes('data-restart-screen-permission'),'If macOS grants permission but the current process is stale, recovery must offer one explicit quit-and-reopen action inline.');
+assert(intelligence.includes("version:'2.0.41-picker-first-inline-permission-parity'"),'Physical share authority version must identify the inline permission flow.');
+
 assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
 assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance module version must be explicit.');
 
-console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_2_0_41_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions six-second-float canonical-presenter-new-share real-source-recheck readable-settings');
+console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_2_0_41_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions six-second-float canonical-presenter-new-share real-source-recheck inline-macos-permission-recovery readable-settings');
