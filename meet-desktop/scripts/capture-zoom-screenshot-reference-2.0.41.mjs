@@ -163,7 +163,8 @@ try{
     window.DominionZoomScreenshotReference.sync();overlay.classList.add('ds-ref-presenter-visible');
     let dock=document.querySelector('#participantVideoDock');if(dock){dock.hidden=false;let body=dock.querySelector('.participant-video-dock-body')||dock;body.innerHTML='<div class="remote-peer-tile" data-peer-id="qa"><div class="remote-peer-fallback">QM</div><div class="remote-peer-name">QA Member</div></div>';}
     return true;
-  })()`);await settle(300);
+  })()`);
+  await waitFor("Number(getComputedStyle(document.querySelector('#inlinePresenterToolbar')).opacity)>=.95",'active share presenter visible');await settle(40);
   proof.screens.activeShare=await evaluate(`(()=>({toolbarVisible:getComputedStyle(document.querySelector('#inlinePresenterToolbar')).opacity,banner:Boolean(document.querySelector('.ds-ref-share-banner:not([hidden])')),labels:[...document.querySelectorAll('#inlinePresenterToolbar button')].map(n=>n.textContent.trim()),dock:Boolean(document.querySelector('#participantVideoDock')&&!document.querySelector('#participantVideoDock').hidden)}))()`);
   if(Number(proof.screens.activeShare.toolbarVisible)<.9||!proof.screens.activeShare.banner||!proof.screens.activeShare.labels.includes('Layout'))throw new Error(`Active share proof failed ${JSON.stringify(proof.screens.activeShare)}`);
   await screenshot('09-active-share-toolbar.png');
