@@ -114,19 +114,39 @@ try{
     new MutationObserver(reportCompanion).observe(document.body,{subtree:true,attributes:true,attributeFilter:['data-ds-share-companion','hidden']});
     reportCompanion();
 
+    const makeTrack=(kind='video')=>({kind,id:'qa-mac-'+kind+'-'+Math.random().toString(36).slice(2),label:'QA Mac Logical '+kind,readyState:'live',enabled:true,contentHint:'',addEventListener(){},removeEventListener(){},stop(){this.readyState='ended';},clone(){return makeTrack(kind);}});
+    const makeStream=(kind='video')=>{
+      const tracks=[makeTrack(kind)];
+      return {
+        getVideoTracks:()=>tracks.filter(track=>track.kind==='video'),
+        getAudioTracks:()=>tracks.filter(track=>track.kind==='audio'),
+        getTracks:()=>[...tracks],
+        addTrack(track){if(track&&!tracks.includes(track))tracks.push(track);},
+        removeTrack(track){const index=tracks.indexOf(track);if(index>=0)tracks.splice(index,1);}
+      };
+    };
+    const nativeSrcObject=Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype,'srcObject');
+    Object.defineProperty(HTMLMediaElement.prototype,'srcObject',{
+      configurable:true,
+      get(){return Object.prototype.hasOwnProperty.call(this,'__qaMacLogicalSrcObject')?this.__qaMacLogicalSrcObject:nativeSrcObject?.get?.call(this)||null;},
+      set(value){
+        if(value&&!(value instanceof MediaStream)){this.__qaMacLogicalSrcObject=value;return;}
+        delete this.__qaMacLogicalSrcObject;
+        if(nativeSrcObject?.set)nativeSrcObject.set.call(this,value);
+      }
+    });
+    HTMLCanvasElement.prototype.captureStream=function(){return makeStream('video');};
+
     window.__qaRunMacFloatingShare=async()=>{
       try{
-        if(typeof MediaStreamTrackGenerator!=='function')throw new Error('MediaStreamTrackGenerator unavailable');
-        const generator=new MediaStreamTrackGenerator({kind:'video'});
-        generator.enabled=false;
-        const stream=new MediaStream([generator]);
-        window.__qaMacPresenterStream=stream;window.__qaMacGenerator=generator;
+        const stream=makeStream('video');
+        window.__qaMacPresenterStream=stream;
         const frameCanvas=document.createElement('canvas');frameCanvas.width=640;frameCanvas.height=360;
         const ctx=frameCanvas.getContext('2d',{alpha:false});ctx.fillStyle='#07111f';ctx.fillRect(0,0,640,360);ctx.fillStyle='#d6b25e';ctx.fillRect(70,70,210,130);
         window.__qaMacFrameCanvas=frameCanvas;
         Object.defineProperty(window,'ImageCapture',{configurable:true,value:class{async grabFrame(){return createImageBitmap(window.__qaMacFrameCanvas);}}});
         Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>stream});
-        console.error('QA_MAC_STREAM_SOURCE track-generator-disabled enabled='+(generator.enabled?1:0)+' ready='+generator.readyState);
+        console.error('QA_MAC_STREAM_SOURCE logical-hosted-fixture');
         const state=await window.DominionShareController.start({name:'QA Mac Floating Share',options:{shareAudio:false,optimizeVideo:false}});
         console.error('QA_MAC_FLOATING_SHARE_RESOLVED active='+(state.active?1:0)+' source='+encodeURIComponent(state.sourceName||'')+' overlay='+(overlay.classList.contains('share-active')?1:0));
         requestAnimationFrame(()=>console.error('QA_MAC_POST_SHARE_RAF'));
@@ -136,11 +156,11 @@ try{
     setTimeout(()=>{void window.__qaRunMacFloatingShare();},30);
     return true;
   })()`,3000);
-  assert.equal(armed,true,'Real floating presenter share lifecycle was not armed.');
+  assert.equal(armed,true,'Hosted floating presenter share lifecycle was not armed.');
 
-  await waitLog('QA_MAC_STREAM_SOURCE track-generator-disabled enabled=0 ready=live','disabled real MediaStreamTrackGenerator source',5000);
-  await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved real Mac floating share',12000);
-  await waitLog('QA_MAC_SHARE_STATE active=1 paused=0 source=QA%20Mac%20Floating%20Share','active real share state',5000);
+  await waitLog('QA_MAC_STREAM_SOURCE logical-hosted-fixture','logical hosted media fixture',5000);
+  await waitLog('QA_MAC_FLOATING_SHARE_RESOLVED active=1','resolved hosted Mac floating share',12000);
+  await waitLog('QA_MAC_SHARE_STATE active=1 paused=0 source=QA%20Mac%20Floating%20Share','active hosted share state',5000);
   await waitLog('QA_MAC_POST_SHARE_TICK','post-share renderer timer scheduling',3000);
 
   await toolbar.wait("document.querySelector('#shareStateLabel')?.textContent?.toLowerCase().includes('screen sharing')",'visible active sharing state on native toolbar',7000);
@@ -154,13 +174,13 @@ try{
   for(const command of ['audio','video','participants','chat','new-share','pause','annotate','show-meeting','record'])assert.ok(surface.commands.includes(command),`Floating toolbar is missing ${command}.`);
 
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);
-  await waitLog('QA_MAC_COMMAND pause','real Pause command delivery',5000,1);
-  await waitLog('QA_MAC_PAUSE_STATE paused=1','real Pause state round trip',7000);
+  await waitLog('QA_MAC_COMMAND pause','native Pause command delivery',5000,1);
+  await waitLog('QA_MAC_PAUSE_STATE paused=1','Pause state round trip',7000);
   await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause label state feedback',5000);
 
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);
-  await waitLog('QA_MAC_COMMAND pause','real Resume command delivery',5000,2);
-  await waitLog('QA_MAC_PAUSE_STATE paused=0','real Resume state round trip',7000);
+  await waitLog('QA_MAC_COMMAND pause','native Resume command delivery',5000,2);
+  await waitLog('QA_MAC_PAUSE_STATE paused=0','Resume state round trip',7000);
   await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Pause'",'Resume label state feedback',5000);
 
   const menu=await toolbar.eval(`(()=>{document.querySelector('#moreButton').click();return {open:!document.querySelector('#moreMenu').hidden,text:document.querySelector('#moreMenu').innerText};})()`);
@@ -179,7 +199,7 @@ try{
   await waitLog('QA_MAC_COMMAND stop','Stop Share command delivery',5000);
   await waitLog('QA_MAC_STOP_STATE active=0','Stop Share state round trip',9000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK disabled-track-generator-real-mediastream renderer-scheduler-alive completed-macShare-ack pause-resume participants-chat stop-share-round-trip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK real-native-floating-windows logical-hosted-media renderer-scheduler-alive completed-macShare-ack pause-resume participants-chat stop-share-round-trip physical-tcc-capture-required-before-release');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   videoDock?.close();toolbar?.close();main?.close();
