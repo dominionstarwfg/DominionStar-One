@@ -10,7 +10,7 @@ const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=12140+Math.floor(Math.random()*120);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let stderr='';
-const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
+const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1',DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN:'1'},stdio:['ignore','ignore','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
 const count=needle=>stderr.split(String(needle)).length-1;
 async function waitLog(needle,label,timeout=9000,minCount=1){const deadline=Date.now()+timeout;while(Date.now()<deadline){if(child.exitCode!==null)throw new Error(`App exited before ${label}.\n${stderr}`);if(stderr.includes('QA_MAC_HOSTED_FAILURE'))throw new Error(`Hosted presenter fixture failed before ${label}.\n${stderr}`);if(count(needle)>=minCount)return;await sleep(60);}throw new Error(`Timed out waiting for ${label}: ${needle}\n${stderr}`);}
@@ -32,14 +32,14 @@ try{
     setTimeout(async()=>{try{const state=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});console.error('QA_MAC_HOSTED_SHARE active='+(state.active?1:0));setTimeout(()=>console.error('QA_MAC_HOSTED_TICK'),120);}catch(error){console.error('QA_MAC_HOSTED_FAILURE '+String(error?.stack||error));}},120);return true;
   })()`,4000);assert.equal(armed,true,'Hosted native presenter fixture was not armed.');
   main.close();main=null;
-  await waitLog('QA_MAC_HOSTED_SHARE active=1','logical active share');await waitLog('QA_MAC_HOSTED_TICK','responsive hosted renderer');await toolbar.wait("document.querySelector('#shareStateLabel')?.textContent?.toLowerCase().includes('screen sharing')",'native active-share state');
+  await waitLog('QA_MAC_PRESENTER_PREPARED_HIDDEN','prepared hidden native presenter surfaces');await waitLog('QA_MAC_HOSTED_SHARE active=1','logical active share');await waitLog('QA_MAC_HOSTED_TICK','responsive hosted renderer');await toolbar.wait("document.querySelector('#shareStateLabel')?.textContent?.toLowerCase().includes('screen sharing')",'native active-share state');
   const surface=await toolbar.eval(`(()=>({brand:document.querySelector('.brand span')?.textContent||'',stop:document.querySelector('#stopShare')?.textContent||'',transport:window.DominionMacPresenterToolbar?.transport||'',commands:[...document.querySelectorAll('[data-command]')].map(n=>n.dataset.command)}))()`);assert.equal(surface.brand,'DominionStar');assert.match(surface.stop,/Stop share/i);assert.equal(surface.transport,'macShare-ack');for(const command of ['participants','chat','pause','annotate','show-meeting'])assert.ok(surface.commands.includes(command),`Missing ${command} on native toolbar.`);if(proofPath)await toolbar.screenshot(proofPath);
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);await waitLog('QA_MAC_HOSTED_COMMAND pause','Pause native delivery',5000,1);await waitLog('QA_MAC_HOSTED_PAUSED','Pause round trip');await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Resume label');
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);await waitLog('QA_MAC_HOSTED_COMMAND pause','Resume native delivery',5000,2);await waitLog('QA_MAC_HOSTED_RESUMED','Resume round trip');
   await toolbar.eval(`document.querySelector('[data-command="participants"]').click()`);await waitLog('QA_MAC_HOSTED_COMMAND participants','Participants native delivery');await waitLog('QA_MAC_HOSTED_COMPANION participants','Participants companion');
   await toolbar.eval(`document.querySelector('[data-command="chat"]').click()`);await waitLog('QA_MAC_HOSTED_COMMAND chat','Chat native delivery');await waitLog('QA_MAC_HOSTED_COMPANION chat','Chat companion');
   await toolbar.eval(`document.querySelector('#stopShare').click()`);await waitLog('QA_MAC_HOSTED_COMMAND stop','Stop Share native delivery');await waitLog('QA_MAC_HOSTED_STOPPED','Stop Share round trip');
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK native-toolbar native-video-dock macShare-ack logical-hosted-media main-cdp-detached pause-resume participants-chat stop-share physical-tcc-required');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK native-toolbar native-video-dock macShare-ack hosted-hidden-surfaces logical-hosted-media main-cdp-detached pause-resume participants-chat stop-share physical-tcc-required');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{video?.close();toolbar?.close();main?.close();if(child.exitCode===null){try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}}
 if(failure)throw failure;
