@@ -46,10 +46,20 @@ const guardIndex=relaunchService.indexOf("getMediaAccessStatus('screen')");
 const originalIndex=relaunchService.indexOf('return originalGetSources(options)');
 if(guardIndex<0||originalIndex<0||guardIndex>originalIndex)failures.push('TCC status must be checked before real desktop source enumeration');
 
+// Stable-signing guard: the app must report the identity macOS actually sees,
+// rather than permanently claiming every build is ad-hoc. Physical QA can then
+// distinguish a stable Apple Development/Developer ID build from disposable CI.
+if(!relaunchService.includes("execFileAsync('/usr/bin/codesign',['-dvvv',signatureTarget()])"))failures.push('privacy identity must inspect the packaged app with codesign');
+if(!relaunchService.includes("details.match(/^TeamIdentifier=(.+)$/m)"))failures.push('privacy identity must read the codesign TeamIdentifier');
+if(!relaunchService.includes("/Signature=adhoc/i.test(details)"))failures.push('privacy identity must detect ad-hoc signatures explicitly');
+if(!relaunchService.includes("signingMode:stable?'stable-apple':'adhoc'"))failures.push('privacy identity must distinguish stable Apple signing from ad-hoc signing');
+if(!relaunchService.includes('stableAcrossRebuilds:stable'))failures.push('stable Apple signing must be reported as persistent across rebuilds');
+if(!relaunchService.includes("screenPermissionPersistence:stable?'stable-code-identity':'not-certified'"))failures.push('screen permission persistence must follow the detected signing identity');
+
 if(failures.length){
   console.error('SCREEN_PERMISSION_POLICY_2_0_41_FAILED');
   for(const failure of failures)console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log('SCREEN_PERMISSION_POLICY_2_0_41_OK passive-tcc-check no-preflight-capture-enumeration granted-bypasses-recovery hard-main-process-enumeration-guard');
+console.log('SCREEN_PERMISSION_POLICY_2_0_41_OK passive-tcc-check no-preflight-capture-enumeration granted-bypasses-recovery hard-main-process-enumeration-guard runtime-codesign-team-identity');
