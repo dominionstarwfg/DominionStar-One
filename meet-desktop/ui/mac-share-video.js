@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{};
   const bridge=desktop.macShare||null;
   const q=s=>document.querySelector(s);
-  let cameraOn=true;
+  let cameraOn=true,lastFrame='',mirrored=true;
 
   const initials=name=>String(name||'DominionStar').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'DS';
   const avatarFrom=user=>String(user?.avatarUrl||user?.avatar_url||user?.user_metadata?.avatar_url||user?.user_metadata?.picture||'');
@@ -19,19 +19,30 @@
     }catch{}
   }
 
-  function renderCameraOwnership(){
-    const video=q('#cameraPreview');
-    if(video){video.srcObject=null;video.hidden=true;}
-    const fallback=q('#cameraFallback');if(fallback)fallback.hidden=false;
-    const dock=q('#dock');if(dock){dock.dataset.cameraOn=cameraOn?'1':'0';dock.dataset.videoOwner='meeting-renderer';}
+  function render(){
+    const mirror=q('#cameraMirror'),fallback=q('#cameraFallback'),dock=q('#dock');
+    const showLive=Boolean(cameraOn&&lastFrame);
+    if(mirror){
+      if(lastFrame&&mirror.src!==lastFrame)mirror.src=lastFrame;
+      mirror.hidden=!showLive;
+      mirror.style.transform=mirrored?'scaleX(-1)':'none';
+    }
+    if(fallback)fallback.hidden=showLive;
+    if(dock){dock.dataset.cameraOn=cameraOn?'1':'0';dock.dataset.videoOwner='meeting-renderer-frame-mirror';dock.dataset.livePreview=showLive?'1':'0';}
   }
 
-  const logo=q('#brandLogo');if(logo&&desktop.brand?.logoUrl)logo.src=desktop.brand.logoUrl;
   void loadIdentity();
-  renderCameraOwnership();
+  render();
+  bridge?.onVideoFrame?.(payload=>{
+    const live=payload?.cameraLive!==false&&Boolean(payload?.frame);
+    lastFrame=live?String(payload.frame):'';
+    mirrored=payload?.mirrored!==false;
+    render();
+  });
   bridge?.onState?.(state=>{
     cameraOn=state?.cameraOn!==false;
-    const mic=q('#micState');if(mic)mic.style.color=state?.micOn===false?'#ff5668':'#9aa0a8';
-    renderCameraOwnership();
+    if(!cameraOn)lastFrame='';
+    const mic=q('#micState');if(mic){mic.style.color=state?.micOn===false?'#ff3b30':'#31d158';mic.title=state?.micOn===false?'Muted':'Microphone on';}
+    render();
   });
 })();
