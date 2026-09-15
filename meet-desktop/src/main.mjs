@@ -62,13 +62,19 @@ async function requestNativeMediaPermissions(kinds=[]){
 async function requestScreenPermission(){
   if(process.platform!=='darwin')return {ok:true,status:'granted',restartRequired:false,detectedBy:'platform'};
   const reportedStatus=permissionStatus('screen');
-  if(reportedStatus==='granted')return {ok:true,status:'granted',reportedStatus,restartRequired:false,detectedBy:'tcc-status'};
-  // This is intentionally a passive check. Do not call desktopCapturer here:
-  // enumerating a screen can itself trigger the native macOS Screen Recording
-  // prompt, which makes Share request permission even when the user is only
-  // checking state. Source enumeration is allowed only after TCC reports that
-  // this exact signed app identity already has Screen Recording access.
-  return {ok:false,status:reportedStatus,restartRequired:false,detectedBy:'tcc-status',requestRequired:true};
+  // Electron/macOS can keep reporting a stale denied Screen Recording state
+  // after the user has enabled the app in System Settings. Treat this status as
+  // advisory only. Opening Share is an explicit user action, and real desktop
+  // source enumeration is the authoritative test of whether capture is usable.
+  // If permission is genuinely absent, macOS owns the native consent prompt.
+  return {
+    ok:true,
+    status:reportedStatus,
+    reportedStatus,
+    restartRequired:false,
+    detectedBy:reportedStatus==='granted'?'tcc-status':'tcc-advisory',
+    advisory:reportedStatus!=='granted'
+  };
 }
 
 async function openPrivacySettings(kind='screen'){
