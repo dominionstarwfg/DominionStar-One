@@ -61,11 +61,15 @@ assert.equal(familyAuthority.get('screen:one')?.id,'screen:one');
 assert.equal(familyAuthority.get('window:one')?.id,'window:one');
 
 // Permission + picker authority: the DominionStar thumbnail chooser is the
-// only active source-selection surface. Permission inspection itself must be
-// passive: a state check is not allowed to enumerate screens and trigger TCC.
-requireText(main,"systemPreferences.getMediaAccessStatus(kind)",'macOS TCC status authority is missing.');
-requireText(main,"permissionStatus('screen')",'Screen Recording status must remain independently inspectable.');
-requireText(main,"return {ok:false,status:reportedStatus,restartRequired:false,detectedBy:'tcc-status',requestRequired:true};",'Missing Screen Recording access must be reported passively without forcing restart.');
+// only active source-selection surface. macOS TCC status is telemetry only:
+// an explicit Share action must be allowed to test real source enumeration.
+requireText(main,"systemPreferences.getMediaAccessStatus(kind)",'macOS TCC status telemetry is missing.');
+const screenPermissionBody=main.match(/async function requestScreenPermission\(\)\{([\s\S]*?)\n\}/)?.[1]||'';
+requireText(screenPermissionBody,"permissionStatus('screen')",'Screen Recording status must remain independently inspectable.');
+requireText(screenPermissionBody,"detectedBy:reportedStatus==='granted'?'tcc-status':'tcc-advisory'",'Non-granted Screen Recording status must remain advisory.');
+requireText(screenPermissionBody,'ok:true','Explicit Share must not be hard-blocked by a stale Screen Recording status.');
+requireText(screenPermissionBody,'source enumeration is the authoritative test','Real desktop source enumeration must remain the permission authority.');
+rejectText(screenPermissionBody,'ok:false','requestScreenPermission must not reject an explicit Share action from advisory TCC state alone.');
 rejectText(main,'function activeScreenCaptureProbe()','Permission state checks must not run an active screen-capture probe.');
 rejectText(main,'screenPermissionProbeInFlight','Permission state checks must not keep hidden screen-enumeration probe state.');
 rejectText(main,'capture-probe-timeout','Permission state checks must not enumerate screens behind the permission gate.');
@@ -214,4 +218,4 @@ requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
 
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_2_0_41_OK custom-only-preshare passive-tcc-permission-check no-system-picker bounded-share-start zoom-screens-files-more presenter-layout real-desktop-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state one-way-capture-start share-companions first-click-presenter-controls direct-stop-share');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_2_0_41_OK custom-only-preshare advisory-tcc-permission-check explicit-share-real-source-authority no-system-picker bounded-share-start zoom-screens-files-more presenter-layout real-desktop-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state one-way-capture-start share-companions first-click-presenter-controls direct-stop-share');
