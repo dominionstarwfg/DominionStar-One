@@ -16,7 +16,10 @@ const locked=new Map([
   ['ui/share-picker.html','b6658cc55c0ecdc59b72bfbc21de8f98813d475a'],
   ['ui/share-picker.css','de5fb436f814802375b70e6b0bffa25bccf393be'],
   ['ui/share-picker.js','4d4a49c44e79cf4b8ba50359aed6dab0907dd6c3'],
-  ['ui/share-controller.js','9d9685001a87c3c1c914be1776dc46de907e2f55'],
+  // Physical Mac evidence on 2026-09-15 proved Stop Share remained active and
+  // did not restore the meeting. The controller was therefore deliberately
+  // repaired to stop local capture tracks before asynchronous chrome cleanup.
+  ['ui/share-controller.js','f6ca56fd2bd6b1f8834dfadbae9d883482465d46'],
   ['ui/mac-presenter-toolbar.html','0654b7f203dd7239b1e8e375e1a664e026165566'],
   ['ui/mac-presenter-toolbar.css','60a5da68f962ae423b10e12fd1f21fecfdddd55d']
 ]);
