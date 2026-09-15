@@ -159,7 +159,25 @@
     else{stopComposite();emit();}
     return snapshot();
   }
-  async function stop(){displayRequestGeneration+=1;const hadShare=Boolean(state.liveStream||state.frozenStream);state.annotationCanvas=null;stopComposite();stopTracks(state.frozenStream);stopTracks(state.liveStream);state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};emit();if(hadShare)await bridge?.captureStopped?.();return snapshot();}
+  async function stop(){
+    displayRequestGeneration+=1;
+    const hadShare=Boolean(state.liveStream||state.frozenStream);
+    state.annotationCanvas=null;
+    stopComposite();
+    // Zoom-style Stop Share is local-first: terminate the display tracks and
+    // publish inactive state immediately. Main-process chrome restoration is
+    // a follow-up notification and must never hold capture open on a slow IPC.
+    stopTracks(state.frozenStream);stopTracks(state.liveStream);
+    state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};
+    emit();
+    if(hadShare){
+      try{
+        const pending=bridge?.captureStopped?.();
+        void Promise.resolve(pending).catch(error=>console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error));
+      }catch(error){console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error);}
+    }
+    return snapshot();
+  }
   const api=Object.freeze({start,replaceSource,pause,resume,togglePause,stop,outputStream,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
   window.DominionShareController=api;
 })();
