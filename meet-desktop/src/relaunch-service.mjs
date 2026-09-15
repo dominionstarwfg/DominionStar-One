@@ -1,28 +1,15 @@
-import { app, desktopCapturer, ipcMain, systemPreferences } from 'electron';
+import { app, ipcMain } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execFileAsync=promisify(execFile);
 
-// Hard main-process TCC boundary for macOS screen enumeration.
-// Do not let desktopCapturer.getSources() become an implicit permission request.
-// The current app identity must already report Screen Recording as granted before
-// any screen/window source enumeration is allowed to reach Electron/macOS.
-if(process.platform==='darwin'&&!globalThis.__dominionScreenCaptureTccGuardInstalled){
-  globalThis.__dominionScreenCaptureTccGuardInstalled=true;
-  const originalGetSources=desktopCapturer.getSources.bind(desktopCapturer);
-  desktopCapturer.getSources=async options=>{
-    let status='unknown';
-    try{status=String(systemPreferences.getMediaAccessStatus('screen')||'unknown').toLowerCase();}catch{}
-    if(status!=='granted'){
-      const error=new Error('screen_recording_permission_required');
-      error.code='SCREEN_RECORDING_PERMISSION_REQUIRED';
-      error.permissionStatus=status;
-      throw error;
-    }
-    return originalGetSources(options);
-  };
-}
+// Do not hard-gate desktop source enumeration with
+// systemPreferences.getMediaAccessStatus('screen'). Electron/macOS can report a
+// stale denied state after the user has enabled Screen Recording. The explicit
+// Share action is the permission boundary: real desktop source enumeration is
+// the authority. If access is already granted, thumbnails load; if it is not,
+// macOS owns the native permission flow.
 
 // Screen Recording grants can require a full process restart before the same
 // installed application can enumerate readable screen sources. Relaunch the
