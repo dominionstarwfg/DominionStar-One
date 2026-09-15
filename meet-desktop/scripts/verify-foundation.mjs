@@ -60,8 +60,10 @@ assert(js.includes("DominionMeetingNotifications?.play?.(media.snapshot().micOn?
 
 assert(personal.includes('Use Personal Meeting ID'),'New Meeting must expose the Personal Meeting ID choice.');
 assert(personal.includes('useForInstant'),'Personal Meeting ID instant-meeting preference must be respected.');
-assert(personal.includes("toggle.checked=Boolean(state.room&&state.room.useForInstant!==false)"),'New Meeting must never select Personal Meeting ID unless a Personal Room actually loaded.');
-assert(personal.includes("if(!toggle?.checked||!state.room)return"),'Unavailable Personal Room must fall through to a normal instant meeting instead of blocking New Meeting.');
+assert(personal.includes("toggle.checked=state.room?Boolean(state.room.useForInstant!==false):true"),'New Meeting must show Personal Meeting ID intent immediately while the saved Personal Room state loads.');
+assert(personal.includes("if(button)button.disabled=true")&&personal.includes('Loading your Personal Meeting ID…'),'Start must be held while the saved Personal Room state is unresolved so the UI cannot flash or start a random identity.');
+assert(personal.includes("if(!toggle?.checked)return")&&personal.includes('const personal=state.room||await load()'),'When Personal Meeting ID is selected, submit must wait for a real Personal Room instead of silently falling through to a generated instant meeting.');
+assert(personal.includes("if(!personal)throw new Error(state.error||'Personal Meeting Room is unavailable.')"),'A failed Personal Room load must surface an error rather than changing meeting identity.');
 assert(personal.includes('meeting.startPersonalRoom()'),'Personal Room Start must reopen the persistent Personal Room identity.');
 assert(personal.includes('meeting.updatePersonalRoom'),'Personal Room settings must persist through the meeting authority.');
 assert(personal.includes('pattern="[0-9]{3,7}"')&&personal.includes('maxlength="7"'),'Personal Room passcode UI must accept 3–7 digits only.');

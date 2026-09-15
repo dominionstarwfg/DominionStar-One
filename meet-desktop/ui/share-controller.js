@@ -6,12 +6,9 @@
   let displayRequestGeneration=0;
   const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
   const emit=()=>{
-    const value=snapshot(),qa=state.sourceName==='QA Synthetic Share';let index=0;
+    const value=snapshot();
     for(const listener of [...listeners]){
-      index+=1;
-      if(qa)console.log(`QA_SHARE_LISTENER_BEGIN index=${index} active=${value.active?1:0} paused=${value.paused?1:0} busy=${value.busy?1:0}`);
-      try{listener(value);}catch(error){if(qa)console.error(`QA_SHARE_LISTENER_ERROR index=${index}`,error);}
-      if(qa)console.log(`QA_SHARE_LISTENER_END index=${index}`);
+      try{listener(value);}catch(error){console.error('[DominionStar Meet] Share state listener failed.',error);}
     }
   };
   const stopTracks=stream=>{for(const track of stream?.getTracks?.()||[]){if(track.readyState!=='ended'){try{track.stop();}catch{}}}};
@@ -83,7 +80,6 @@
         try{await bridge?.captureStopped?.();}catch{}
         throw new Error('Presenter controls could not start. Screen sharing was cancelled safely.');
       }
-      if(state.sourceName==='QA Synthetic Share')setTimeout(()=>console.log('QA_SHARE_POST_START_HEARTBEAT'),350);
       return snapshot();
     }finally{state.busy=false;emit();}
   }
@@ -146,17 +142,7 @@
     const canvas=await captureFreezeFrame(videoElement);
     const frozen=canvas.captureStream(1);
     for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone());}catch{}}
-    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();
-    const qa=state.sourceName==='QA Synthetic Share';
-    if(qa)console.log('QA_PAUSE_AFTER_EMIT');
-    if(qa)queueMicrotask(()=>console.log('QA_PAUSE_MICROTASK'));
-    if(qa)setTimeout(()=>console.log('QA_PAUSE_TIMER'),0);
-    if(qa)console.log('QA_PAUSE_BEFORE_PUBLISH');
-    publishPauseState(true);
-    if(qa)console.log('QA_PAUSE_AFTER_PUBLISH');
-    const result=snapshot();
-    if(qa)console.log('QA_PAUSE_BEFORE_RETURN');
-    return result;
+    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();publishPauseState(true);return snapshot();
   }
 
   async function resume(){if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot();}

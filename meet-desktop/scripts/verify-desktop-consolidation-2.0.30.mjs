@@ -20,8 +20,11 @@ assert.ok(auth.includes('win.moveTop?.()'),'OAuth completion must raise the exis
 assert.ok(auth.includes('foregroundAfterOAuth'),'OAuth foreground retries must remain active.');
 assert.ok(auth.includes('setTimeout(()=>window.close(),220)'),'Callback tab close attempt must remain present.');
 
-// Screen Recording recovery authority from certified 2.0.29 recovery branch.
-assert.ok(main.includes("restartRequired:false,detectedBy:'tcc-status+capture-probe'"),'Missing Screen Recording authorization must not incorrectly demand a restart.');
+// Screen Recording recovery authority. Permission inspection must remain passive:
+// check TCC first, never enumerate a display merely to decide whether permission exists.
+assert.ok(main.includes("return {ok:false,status:reportedStatus,restartRequired:false,detectedBy:'tcc-status',requestRequired:true};"),'Missing Screen Recording authorization must not incorrectly demand a restart.');
+assert.ok(!main.includes('function activeScreenCaptureProbe()'),'Screen permission checks must not trigger capture enumeration.');
+assert.ok(!main.includes('screenPermissionProbeInFlight'),'Screen permission checks must not retain hidden probe state.');
 assert.ok(share.includes('localStorage.removeItem(SCREEN_CAPTURE_PROVEN_KEY)'),'Stale persisted capture proof must be cleared on boot.');
 assert.ok(share.includes("sessionStorage.setItem(SCREEN_CAPTURE_PROVEN_KEY,'1')"),'Successful capture proof must be session-scoped.');
 assert.ok(share.includes("sessionStorage.getItem(SCREEN_CAPTURE_PROVEN_KEY)==='1'"),'Permission proof lookup must be session-scoped.');
@@ -31,4 +34,4 @@ assert.ok(!share.includes("localStorage.setItem(SCREEN_CAPTURE_PROVEN_KEY,'1')")
 assert.ok(bootstrap.includes('app.requestSingleInstanceLock()'),'Single-instance authority must remain active.');
 assert.ok(bootstrap.includes('app.moveToApplicationsFolder'),'Canonical /Applications authority must remain active.');
 
-console.log('DOMINIONSTAR_DESKTOP_2_0_30_CONSOLIDATED_OK oauth-return screen-permission-recovery single-instance canonical-install');
+console.log('DOMINIONSTAR_DESKTOP_2_0_30_CONSOLIDATED_OK oauth-return passive-screen-permission-recovery single-instance canonical-install');
