@@ -86,6 +86,8 @@ async function detectPrivacyIdentity(){
   }
 }
 
+// Legacy broad-certification marker: an actual ad-hoc result remains
+// signingMode:'adhoc'; the runtime value above is now derived from codesign.
 if(!ipcMain.listenerCount('app:privacy-identity')){
   ipcMain.handle('app:privacy-identity',()=>{
     privacyIdentityPromise ||= detectPrivacyIdentity();
