@@ -2,10 +2,9 @@
   'use strict';
   const desktop=window.dominionDesktop||{};
   // The floating macOS surface owns native-only layout/show-meeting actions,
-  // but meeting/media actions must execute in the share-owning renderer. The
-  // generic presenter bridge reaches window.__DominionPresenterDispatch via
-  // the direct renderer authority in share-service.mjs, which is the same
-  // renderer that owns microphone, camera, display capture, chat and roster.
+  // and its acknowledged native bridge is also the primary transport for
+  // meeting/media controls during a real display capture. The direct renderer
+  // bridge remains a fallback if native acknowledgement fails.
   const nativeBridge=desktop.macShare||null;
   const rendererBridge=desktop.presenter||null;
   const stateBridge=nativeBridge||rendererBridge;
@@ -22,31 +21,37 @@
   const scheduleHide=()=>{if(hideTimer)clearTimeout(hideTimer);if(menusOpen())return;hideTimer=setTimeout(()=>{hideTimer=0;if(menusOpen())return;if(Date.now()-lastPointerAt<AUTO_HIDE_MS-80){scheduleHide();return;}toolbar?.classList.add('auto-hidden');},AUTO_HIDE_MS);};
   const closeMenus=()=>{if(layoutMenu)layoutMenu.hidden=true;if(moreMenu)moreMenu.hidden=true;void setMenuState(false);scheduleHide();};
   // A mere "sent:true" is not proof that the meeting renderer actually ran
-  // the command. Physical-Mac capture can keep the renderer alive while a
-  // one-way delivery never reaches the command callback. Only accept a direct
-  // execution, an explicit acknowledgement, a handled result, or ok:true.
+  // the command. Require direct execution, explicit acknowledgement, handled,
+  // or ok:true before the toolbar treats a click as successful.
   const accepted=result=>Boolean(result)&&result.sent!==false&&(result.direct===true||result.acknowledged===true||result.handled===true||result.ok===true);
 
-  async function sendThrough(bridge,command,label){
-    if(!bridge?.command)throw new Error(`${label}_transport_unavailable`);
-    const result=await bridge.command(command);
+  async function sendNative(command){
+    if(!nativeBridge?.command)throw new Error('mac_presenter_transport_unavailable');
+    const normalized=String(command||'');
+    const result=await nativeBridge.command(normalized);
     if(accepted(result))return result;
-    throw new Error(result?.error||`${label}_command_not_confirmed`);
+    throw new Error(result?.error||'mac_presenter_command_not_acknowledged');
+  }
+
+  async function sendRenderer(command){
+    if(!rendererBridge?.command)throw new Error('presenter_transport_unavailable');
+    const result=await rendererBridge.command(command);
+    if(accepted(result))return result;
+    throw new Error(result?.error||'presenter_command_not_confirmed');
   }
 
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // Layout and explicit meeting visibility are BrowserWindow concerns and
-      // stay on the native Mac overlay. Everything else first tries the direct
-      // renderer authority. If that returns only an unconfirmed "sent" result,
-      // immediately fall back to the acknowledged Mac delivery path.
-      if(NATIVE_ONLY_COMMANDS.has(normalized)){
-        try{return await sendThrough(nativeBridge,normalized,'mac_presenter');}
-        catch(error){if(rendererBridge?.command)return sendThrough(rendererBridge,normalized,'presenter');throw error;}
+      // Physical Mac authority: use the path that returns an explicit renderer
+      // acknowledgement first. Never accept an unconfirmed one-way send as a
+      // successful Mute/Video/Chat/Participants/Pause/Annotate/Stop action.
+      try{return await sendNative(normalized);}
+      catch(error){
+        if(NATIVE_ONLY_COMMANDS.has(normalized))throw error;
+        if(rendererBridge?.command)return sendRenderer(normalized);
+        throw error;
       }
-      try{return await sendThrough(rendererBridge,normalized,'presenter');}
-      catch(error){if(nativeBridge?.command)return sendThrough(nativeBridge,normalized,'mac_presenter');throw error;}
     }finally{scheduleHide();}
   };
 
@@ -80,6 +85,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-confirmed-command-delivery',transport:rendererBridge?.command?'presenter-confirmed-first':nativeBridge?.command?'macShare-acknowledged':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-acknowledged-native-controls',transport:nativeBridge?.command?'macShare-ack':rendererBridge?.command?'presenter-direct-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
