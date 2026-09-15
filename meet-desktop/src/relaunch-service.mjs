@@ -1,8 +1,28 @@
-import { app, ipcMain } from 'electron';
+import { app, desktopCapturer, ipcMain, systemPreferences } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execFileAsync=promisify(execFile);
+
+// Hard main-process TCC boundary for macOS screen enumeration.
+// Do not let desktopCapturer.getSources() become an implicit permission request.
+// The current app identity must already report Screen Recording as granted before
+// any screen/window source enumeration is allowed to reach Electron/macOS.
+if(process.platform==='darwin'&&!globalThis.__dominionScreenCaptureTccGuardInstalled){
+  globalThis.__dominionScreenCaptureTccGuardInstalled=true;
+  const originalGetSources=desktopCapturer.getSources.bind(desktopCapturer);
+  desktopCapturer.getSources=async options=>{
+    let status='unknown';
+    try{status=String(systemPreferences.getMediaAccessStatus('screen')||'unknown').toLowerCase();}catch{}
+    if(status!=='granted'){
+      const error=new Error('screen_recording_permission_required');
+      error.code='SCREEN_RECORDING_PERMISSION_REQUIRED';
+      error.permissionStatus=status;
+      throw error;
+    }
+    return originalGetSources(options);
+  };
+}
 
 // Screen Recording grants can require a full process restart before the same
 // installed application can enumerate readable screen sources. Relaunch the
