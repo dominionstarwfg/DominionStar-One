@@ -13,14 +13,16 @@ if(process.platform==='darwin'){
 }
 
 // Physical-Mac capture baseline guard.
-// The 78622557 build proved that Entire Screen capture can start reliably when
-// the main meeting BrowserWindow is left in its normal, fully visible geometry
-// through source selection and getDisplayMedia startup. Later presenter work
-// began parking that same capture-owning window before capture (opacity 0.02,
-// click-through, unmaximize/full-screen changes). Keep those hide-like window
-// mutations out of the proven capture-start path while still allowing content
-// protection, renderer liveness, and explicit Participants/Chat window sizing.
+// The known-good capture path requires the main meeting BrowserWindow to remain
+// fully visible while the user chooses a source and while getDisplayMedia starts.
+// That requirement is a startup constraint, not an all-share constraint. After
+// a short stabilization interval the renderer remains scheduled but the meeting
+// is parked at near-zero opacity so the shared desktop looks like Zoom instead
+// of recursively showing the meeting itself.
 let physicalShareActive=false;
+let physicalShareStartupUntil=0;
+let physicalShareParkTimer=null;
+const PHYSICAL_SHARE_STARTUP_MS=1900;
 const sharePickerVisible=()=>BrowserWindow.getAllWindows().some(win=>{
   try{return !win.isDestroyed()&&win.isVisible?.()&&String(win.getTitle?.()||'')==='Share Screen';}
   catch{return false;}
@@ -29,21 +31,42 @@ const isMainMeetingWindow=win=>{
   try{return Boolean(win&&!win.isDestroyed()&&String(win.webContents?.getURL?.()||'').includes('/ui/index.html'));}
   catch{return false;}
 };
+const mainMeetingWindow=()=>BrowserWindow.getAllWindows().find(isMainMeetingWindow)||null;
+const captureMutationProtected=()=>sharePickerVisible()||(physicalShareActive&&Date.now()<physicalShareStartupUntil);
 if(process.platform==='darwin'){
-  ipcMain.on('share:capture-started',()=>{physicalShareActive=true;});
-  ipcMain.on('mac-share:capture-stopped',()=>{physicalShareActive=false;});
   const originalSetOpacity=BrowserWindow.prototype.setOpacity;
   const originalSetIgnoreMouseEvents=BrowserWindow.prototype.setIgnoreMouseEvents;
   const originalUnmaximize=BrowserWindow.prototype.unmaximize;
   const originalSetFullScreen=BrowserWindow.prototype.setFullScreen;
   const originalSetAlwaysOnTop=BrowserWindow.prototype.setAlwaysOnTop;
 
+  ipcMain.on('share:capture-started',()=>{
+    physicalShareActive=true;
+    physicalShareStartupUntil=Date.now()+PHYSICAL_SHARE_STARTUP_MS;
+    if(physicalShareParkTimer)clearTimeout(physicalShareParkTimer);
+    physicalShareParkTimer=setTimeout(()=>{
+      physicalShareParkTimer=null;
+      if(!physicalShareActive)return;
+      const main=mainMeetingWindow();if(!main||main.isDestroyed())return;
+      // Bypass only our startup guard here. Do not hide or minimize the
+      // capture-owning renderer; keeping it visible at 2% opacity preserves
+      // Chromium scheduling while clearing it from the presenter's desktop.
+      try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
+      try{originalSetIgnoreMouseEvents.call(main,true);}catch{}
+      try{originalSetOpacity.call(main,0.02);}catch{}
+    },PHYSICAL_SHARE_STARTUP_MS);
+  });
+  ipcMain.on('mac-share:capture-stopped',()=>{
+    physicalShareActive=false;physicalShareStartupUntil=0;
+    if(physicalShareParkTimer){clearTimeout(physicalShareParkTimer);physicalShareParkTimer=null;}
+  });
+
   BrowserWindow.prototype.setOpacity=function(value,...rest){
-    if(isMainMeetingWindow(this)&&(physicalShareActive||sharePickerVisible())&&Number(value)<0.99)return;
+    if(isMainMeetingWindow(this)&&captureMutationProtected()&&Number(value)<0.99)return;
     return originalSetOpacity.call(this,value,...rest);
   };
   BrowserWindow.prototype.setIgnoreMouseEvents=function(ignore,...rest){
-    if(isMainMeetingWindow(this)&&(physicalShareActive||sharePickerVisible())&&Boolean(ignore))return;
+    if(isMainMeetingWindow(this)&&captureMutationProtected()&&Boolean(ignore))return;
     return originalSetIgnoreMouseEvents.call(this,ignore,...rest);
   };
   BrowserWindow.prototype.unmaximize=function(...args){
@@ -137,7 +160,10 @@ async function launch(){
   if(needsCanonicalInstall){rejectNonCanonicalLaunch(install);return;}
   await import('./relaunch-service.mjs');
   await import('./main.mjs');
-  if(process.platform==='darwin')await import('./mac-share-presenter-overlay.mjs');
+  if(process.platform==='darwin'){
+    await import('./mac-share-presenter-overlay.mjs');
+    await import('./mac-share-video-mirror.mjs');
+  }
 }
 
 if(singleInstanceLock)void launch();
