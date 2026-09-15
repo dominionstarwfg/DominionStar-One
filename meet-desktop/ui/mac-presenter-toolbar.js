@@ -21,22 +21,26 @@
   const reveal=()=>{lastPointerAt=Date.now();toolbar?.classList.remove('auto-hidden');if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}};
   const scheduleHide=()=>{if(hideTimer)clearTimeout(hideTimer);if(menusOpen())return;hideTimer=setTimeout(()=>{hideTimer=0;if(menusOpen())return;if(Date.now()-lastPointerAt<AUTO_HIDE_MS-80){scheduleHide();return;}toolbar?.classList.add('auto-hidden');},AUTO_HIDE_MS);};
   const closeMenus=()=>{if(layoutMenu)layoutMenu.hidden=true;if(moreMenu)moreMenu.hidden=true;void setMenuState(false);scheduleHide();};
-  const accepted=result=>Boolean(result)&&result.ok!==false&&result.sent!==false&&result.acknowledged!==false&&result.handled!==false;
+  // A mere "sent:true" is not proof that the meeting renderer actually ran
+  // the command. Physical-Mac capture can keep the renderer alive while a
+  // one-way delivery never reaches the command callback. Only accept a direct
+  // execution, an explicit acknowledgement, a handled result, or ok:true.
+  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.direct===true||result.acknowledged===true||result.handled===true||result.ok===true);
 
   async function sendThrough(bridge,command,label){
     if(!bridge?.command)throw new Error(`${label}_transport_unavailable`);
     const result=await bridge.command(command);
-    if(accepted(result)||result?.ok!==false)return result;
-    throw new Error(result?.error||`${label}_command_not_delivered`);
+    if(accepted(result))return result;
+    throw new Error(result?.error||`${label}_command_not_confirmed`);
   }
 
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
       // Layout and explicit meeting visibility are BrowserWindow concerns and
-      // stay on the native Mac overlay. Everything else goes first to the
-      // authoritative meeting renderer, so Stop/Mute/Video/Pause/Chat/
-      // Participants/Annotate do not depend on the auxiliary-window ack loop.
+      // stay on the native Mac overlay. Everything else first tries the direct
+      // renderer authority. If that returns only an unconfirmed "sent" result,
+      // immediately fall back to the acknowledged Mac delivery path.
       if(NATIVE_ONLY_COMMANDS.has(normalized)){
         try{return await sendThrough(nativeBridge,normalized,'mac_presenter');}
         catch(error){if(rendererBridge?.command)return sendThrough(rendererBridge,normalized,'presenter');throw error;}
@@ -76,6 +80,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-renderer-first-physical-controls',transport:rendererBridge?.command?'presenter-direct-first':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-confirmed-command-delivery',transport:rendererBridge?.command?'presenter-confirmed-first':nativeBridge?.command?'macShare-acknowledged':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
