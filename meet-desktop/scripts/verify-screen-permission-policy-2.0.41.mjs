@@ -7,6 +7,8 @@ const root=path.resolve(__dirname,'..');
 const main=fs.readFileSync(path.join(root,'src/main.mjs'),'utf8');
 const shareService=fs.readFileSync(path.join(root,'src/share-service.mjs'),'utf8');
 const relaunchService=fs.readFileSync(path.join(root,'src/relaunch-service.mjs'),'utf8');
+const executableOnly=source=>String(source||'').replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*$/gm,'');
+const relaunchExecutable=executableOnly(relaunchService);
 
 const failures=[];
 
@@ -33,13 +35,12 @@ else{
   if(!body.includes('return openPicker()'))failures.push('explicit Share must still proceed into the approved picker');
 }
 
-// Physical regression guard: never monkey-patch desktopCapturer behind a
-// potentially stale getMediaAccessStatus('screen') result. Electron has had
-// macOS cases where this status remains denied after the user enables Screen
-// Recording. The explicit Share path must be allowed to enumerate real sources.
-if(/desktopCapturer/.test(relaunchService))failures.push('relaunch service must not intercept desktopCapturer source enumeration');
-if(/systemPreferences/.test(relaunchService))failures.push('relaunch service must not hard-gate enumeration on systemPreferences TCC status');
-if(/SCREEN_RECORDING_PERMISSION_REQUIRED/.test(relaunchService))failures.push('main-process stale-TCC enumeration rejection must remain removed');
+// Physical regression guard: never monkey-patch desktop source enumeration
+// behind a potentially stale Screen Recording status result. Comments are
+// deliberately stripped so explanatory text cannot create a false positive.
+if(/\bdesktopCapturer\b/.test(relaunchExecutable))failures.push('relaunch service must not intercept desktop source enumeration');
+if(/\bsystemPreferences\b/.test(relaunchExecutable)||/getMediaAccessStatus\s*\(\s*['"]screen['"]\s*\)/.test(relaunchExecutable))failures.push('relaunch service must not hard-gate enumeration on Screen Recording status');
+if(/SCREEN_RECORDING_PERMISSION_REQUIRED/.test(relaunchExecutable))failures.push('main-process stale-TCC enumeration rejection must remain removed');
 if(!/real desktop source enumeration is\n\/\/ the authority/.test(relaunchService))failures.push('real-source authority rationale must remain explicit');
 
 // Stable-signing guard: the app must report the identity macOS actually sees,
