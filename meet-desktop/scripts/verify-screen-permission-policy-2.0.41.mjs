@@ -6,6 +6,7 @@ const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(__dirname,'..');
 const main=fs.readFileSync(path.join(root,'src/main.mjs'),'utf8');
 const shareService=fs.readFileSync(path.join(root,'src/share-service.mjs'),'utf8');
+const relaunchService=fs.readFileSync(path.join(root,'src/relaunch-service.mjs'),'utf8');
 
 const failures=[];
 
@@ -33,10 +34,22 @@ else{
   if(!/permissionRequired:true/.test(body))failures.push('non-granted screen permission must block source enumeration');
 }
 
+// Physical regression guard: source enumeration itself must never be allowed to
+// trigger the macOS Screen Recording prompt. The main-process desktopCapturer
+// boundary must reject all enumeration until this exact app identity reports a
+// granted TCC state.
+if(!/desktopCapturer/.test(relaunchService)||!/systemPreferences/.test(relaunchService))failures.push('main-process TCC enumeration guard imports are missing');
+if(!/getMediaAccessStatus\('screen'\)/.test(relaunchService))failures.push('enumeration guard must read macOS Screen Recording TCC state');
+if(!/status!==['"]granted['"]/.test(relaunchService))failures.push('enumeration guard must reject every non-granted TCC state');
+if(!/SCREEN_RECORDING_PERMISSION_REQUIRED/.test(relaunchService))failures.push('enumeration guard must expose a deterministic permission-required error');
+const guardIndex=relaunchService.indexOf("getMediaAccessStatus('screen')");
+const originalIndex=relaunchService.indexOf('return originalGetSources(options)');
+if(guardIndex<0||originalIndex<0||guardIndex>originalIndex)failures.push('TCC status must be checked before real desktop source enumeration');
+
 if(failures.length){
   console.error('SCREEN_PERMISSION_POLICY_2_0_41_FAILED');
   for(const failure of failures)console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log('SCREEN_PERMISSION_POLICY_2_0_41_OK passive-tcc-check no-preflight-capture-enumeration granted-bypasses-recovery');
+console.log('SCREEN_PERMISSION_POLICY_2_0_41_OK passive-tcc-check no-preflight-capture-enumeration granted-bypasses-recovery hard-main-process-enumeration-guard');
