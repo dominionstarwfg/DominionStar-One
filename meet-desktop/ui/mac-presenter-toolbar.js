@@ -1,16 +1,19 @@
 (()=>{
   'use strict';
   const desktop=window.dominionDesktop||{};
-  // Physical macOS controls use one authoritative acknowledged transport.
-  // The generic presenter bridge is retained only for platforms/surfaces where
-  // macShare is unavailable; it must never mask a failed native Mac command.
+  // The floating macOS surface owns native-only layout/show-meeting actions,
+  // but meeting/media actions must execute in the share-owning renderer. The
+  // generic presenter bridge reaches window.__DominionPresenterDispatch via
+  // the direct renderer authority in share-service.mjs, which is the same
+  // renderer that owns microphone, camera, display capture, chat and roster.
   const nativeBridge=desktop.macShare||null;
-  const fallbackBridge=desktop.presenter||null;
-  const stateBridge=nativeBridge||fallbackBridge;
+  const rendererBridge=desktop.presenter||null;
+  const stateBridge=nativeBridge||rendererBridge;
   const q=s=>document.querySelector(s);
   const toolbar=q('#toolbar'),layoutMenu=q('#layoutMenu'),moreMenu=q('#moreMenu');
   let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,lastState={paused:false,micOn:false,cameraOn:true};
   const AUTO_HIDE_MS=2300;
+  const NATIVE_ONLY_COMMANDS=new Set(['layout-speaker','layout-gallery','layout-hide','show-meeting']);
 
   const logo=q('#brandLogo');if(logo&&desktop.brand?.logoUrl)logo.src=desktop.brand.logoUrl;
   const menusOpen=()=>Boolean(!layoutMenu?.hidden||!moreMenu?.hidden);
@@ -20,20 +23,26 @@
   const closeMenus=()=>{if(layoutMenu)layoutMenu.hidden=true;if(moreMenu)moreMenu.hidden=true;void setMenuState(false);scheduleHide();};
   const accepted=result=>Boolean(result)&&result.ok!==false&&result.sent!==false&&result.acknowledged!==false&&result.handled!==false;
 
+  async function sendThrough(bridge,command,label){
+    if(!bridge?.command)throw new Error(`${label}_transport_unavailable`);
+    const result=await bridge.command(command);
+    if(accepted(result)||result?.ok!==false)return result;
+    throw new Error(result?.error||`${label}_command_not_delivered`);
+  }
+
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      if(nativeBridge?.command){
-        const result=await nativeBridge.command(normalized);
-        if(accepted(result))return result;
-        throw new Error(result?.error||'mac_presenter_command_not_acknowledged');
+      // Layout and explicit meeting visibility are BrowserWindow concerns and
+      // stay on the native Mac overlay. Everything else goes first to the
+      // authoritative meeting renderer, so Stop/Mute/Video/Pause/Chat/
+      // Participants/Annotate do not depend on the auxiliary-window ack loop.
+      if(NATIVE_ONLY_COMMANDS.has(normalized)){
+        try{return await sendThrough(nativeBridge,normalized,'mac_presenter');}
+        catch(error){if(rendererBridge?.command)return sendThrough(rendererBridge,normalized,'presenter');throw error;}
       }
-      if(fallbackBridge?.command){
-        const result=await fallbackBridge.command(normalized);
-        if(accepted(result)||result?.ok!==false)return result;
-        throw new Error(result?.error||'presenter_command_not_delivered');
-      }
-      throw new Error('presenter_command_transport_unavailable');
+      try{return await sendThrough(rendererBridge,normalized,'presenter');}
+      catch(error){if(nativeBridge?.command)return sendThrough(nativeBridge,normalized,'mac_presenter');throw error;}
     }finally{scheduleHide();}
   };
 
@@ -67,6 +76,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-physical-command-ack-no-mask',transport:nativeBridge?.command?'macShare-ack':fallbackBridge?.command?'presenter-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-renderer-first-physical-controls',transport:rendererBridge?.command?'presenter-direct-first':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
