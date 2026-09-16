@@ -74,6 +74,8 @@ try{
   await cdp('Runtime.enable');await cdp('Page.enable');
   await cdp('Emulation.setDeviceMetricsOverride',{width:1512,height:900,deviceScaleFactor:1,mobile:false});
   await waitFor("document.readyState==='complete'&&window.DominionZoomScreenshotReference&&document.querySelector('#appShell')&&document.querySelector('#meetingOverlay')&&document.querySelector('#prejoinOverlay')",'2.0.41 screenshot reference authority');
+  await waitFor("document.querySelector('#bootScreen').hidden&&(document.querySelector('#appShell').hidden!==document.querySelector('#authGate').hidden)",'initial auth bootstrap');
+  await settle(700);
 
   // 01 HOME — synthetic account; no personal photo fixture.
   await evaluate(`(()=>{
@@ -155,6 +157,8 @@ try{
   // certified separately; this fixture proves only packaged presenter geometry.
   const meetingUrl=await evaluate(`new URL('./index.html',location.href).href`);await cdp('Page.navigate',{url:meetingUrl});
   await waitFor("document.readyState==='complete'&&window.DominionZoomScreenshotReference&&document.querySelector('#meetingOverlay')",'meeting page after preshare proof');
+  await waitFor("document.querySelector('#bootScreen').hidden&&(document.querySelector('#appShell').hidden!==document.querySelector('#authGate').hidden)",'auth bootstrap after preshare proof');
+  await settle(700);
   await evaluate(`(()=>{
     document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;
     const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;overlay.classList.add('share-active');document.querySelector('#roomRole').textContent='Host';document.querySelector('#roomTitle').textContent='QA Member’s Personal Meeting Room';
