@@ -8,6 +8,8 @@
   const enforceReactionLabel=()=>{
     const button=document.querySelector('#roomReactions');
     if(!button)return false;
+
+    // Keep the semantic toolbar label for parity/accessibility.
     let label=button.querySelector('.ds-control-label');
     if(!label){
       label=document.createElement('span');
@@ -19,6 +21,37 @@
     label.style.setProperty('visibility','visible','important');
     label.style.setProperty('opacity','1','important');
     label.style.setProperty('white-space','nowrap','important');
+
+    // Some late toolbar decorators can visually suppress the generic label even
+    // though it still exists in the DOM. Render one dedicated 2.0.41 caption
+    // independently of that generic label so the visible toolbar cannot lose it.
+    let fixed=button.querySelector('.ds-reactions-fixed-label');
+    if(!fixed){
+      fixed=document.createElement('span');
+      fixed.className='ds-reactions-fixed-label';
+      fixed.setAttribute('aria-hidden','true');
+      button.append(fixed);
+    }
+    fixed.textContent='Reactions';
+    button.style.setProperty('position','relative','important');
+    fixed.style.setProperty('display','block','important');
+    fixed.style.setProperty('position','absolute','important');
+    fixed.style.setProperty('left','50%','important');
+    fixed.style.setProperty('bottom','3px','important');
+    fixed.style.setProperty('transform','translateX(-50%)','important');
+    fixed.style.setProperty('visibility','visible','important');
+    fixed.style.setProperty('opacity','1','important');
+    fixed.style.setProperty('color','#f3f3f4','important');
+    fixed.style.setProperty('font-size','10px','important');
+    fixed.style.setProperty('font-weight','500','important');
+    fixed.style.setProperty('line-height','1.1','important');
+    fixed.style.setProperty('white-space','nowrap','important');
+    fixed.style.setProperty('pointer-events','none','important');
+    fixed.style.setProperty('z-index','4','important');
+
+    // Avoid double text when the generic caption is visible; the dedicated
+    // caption above is the sole visual authority for this one button.
+    label.style.setProperty('visibility','hidden','important');
     button.setAttribute('aria-label','Reactions');
     return true;
   };
