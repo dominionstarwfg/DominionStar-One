@@ -4,7 +4,7 @@
 
   const state={user:null,participants:new Map(),waiting:new Map(),authRefreshAt:0};
   const initials=value=>String(value||'DominionStar Member').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'DS';
-  const safePhotoUrl=value=>{const url=String(value||'').trim();return /^https:\/\//i.test(url)?url:'';};
+  const safePhotoUrl=value=>{const url=String(value||'').trim();return /^https:\/\//i.test(url)||/^data:image\/(?:png|jpe?g|webp);base64,/i.test(url)?url:'';};
   const q=selector=>document.querySelector(selector),qa=selector=>[...document.querySelectorAll(selector)];
 
   function ensureStyles(){
