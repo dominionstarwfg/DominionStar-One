@@ -13,10 +13,9 @@
       /* One canonical meeting encryption badge only. The Executive badge is authoritative. */
       #meetingOverlay.ds-exec-lock .meeting-head .ds-approved-encryption{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-center-lock{
-        position:absolute!important;
+        position:fixed!important;
         right:auto!important;
         bottom:auto!important;
-        transform:none!important;
         z-index:3400!important;
         box-shadow:0 22px 64px rgba(0,0,0,.62)!important;
       }
@@ -53,6 +52,8 @@
 
   function side(){return q('#meetingOverlay .room-side.ds-participants-reference');}
   function rows(){return qa('#participantRoster [data-participant-id]');}
+  function meetingVisible(){const overlay=q('#meetingOverlay');return Boolean(overlay&&!overlay.hidden);}
+  function panelVisible(panel){return Boolean(panel&&meetingVisible()&&!panel.hidden&&getComputedStyle(panel).display!=='none');}
 
   function syncEncryption(){
     const head=q('#meetingOverlay .meeting-head');if(!head)return;
@@ -125,37 +126,48 @@
   }
 
   function centerPanel(panel,force=false){
-    const body=q('#meetingOverlay .meeting-body')||q('#meetingOverlay');if(!body||panel.hidden)return;
+    if(!panelVisible(panel))return;
     if(!force&&panel.dataset.dsAdaptiveUserPositioned==='1')return;
-    const width=Math.min(Math.max(panel.offsetWidth||390,320),Math.max(320,body.clientWidth-24));
-    const height=Math.min(Math.max(panel.offsetHeight||520,310),Math.max(310,body.clientHeight-24));
-    const left=Math.max(10,Math.round((body.clientWidth-width)/2));
-    const top=Math.max(10,Math.round((body.clientHeight-height)/2));
+    const width=Math.min(Math.max(panel.offsetWidth||390,320),Math.max(320,innerWidth-24));
+    const height=Math.min(Math.max(panel.offsetHeight||520,310),Math.max(310,innerHeight-24));
+    const left=Math.max(10,Math.round((innerWidth-width)/2));
+    const top=Math.max(10,Math.round((innerHeight-height)/2));
+    panel.classList.add('ds-center-lock');
+    panel.style.setProperty('position','fixed','important');
     panel.style.setProperty('width',`${width}px`,'important');panel.style.setProperty('height',`${height}px`,'important');
     panel.style.setProperty('left',`${left}px`,'important');panel.style.setProperty('right','auto','important');panel.style.setProperty('top',`${top}px`,'important');panel.style.setProperty('bottom','auto','important');panel.style.setProperty('transform','none','important');
-    panel.classList.add('ds-center-lock');panel.dataset.dsFinalCentered='1';
+    panel.dataset.dsFinalCentered='1';
+  }
+
+  function resetAndCenter(panel){
+    if(!panelVisible(panel))return;
+    try{localStorage.removeItem('ds_zoom_participants_geometry_2_0_41');}catch{}
+    delete panel.dataset.dsAdaptiveUserPositioned;
+    delete panel.dataset.dsFinalCentered;
+    centerPanel(panel,true);
   }
 
   function sync(){
     frame=0;ensureStyle();syncEncryption();
     const panel=side();
-    if(!panel||panel.hidden){wasVisible=false;return;}
-    if(!wasVisible){
-      wasVisible=true;
-      try{localStorage.removeItem('ds_zoom_participants_geometry_2_0_41');}catch{}
-      delete panel.dataset.dsAdaptiveUserPositioned;
-      delete panel.dataset.dsFinalCentered;
-    }
-    /* Default is always center. Only a real user drag/resize may move it away. */
+    if(!panelVisible(panel)){wasVisible=false;return;}
+    if(!wasVisible){wasVisible=true;resetAndCenter(panel);}
     if(panel.dataset.dsAdaptiveUserPositioned!=='1')centerPanel(panel,true);
     hideDuplicateActions(panel);for(const row of rows()){syncIdentity(row);ensureOverflow(row);}
   }
   function schedule(){if(frame)return;frame=requestAnimationFrame(sync);}
-  document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('.ds-host-row-more'))closeMenu();},true);
+
+  document.addEventListener('click',event=>{
+    if(menu&&!menu.contains(event.target)&&!event.target.closest?.('.ds-host-row-more'))closeMenu();
+    if(event.target?.closest?.('#roomParticipants'))setTimeout(()=>{const panel=side();if(panelVisible(panel))resetAndCenter(panel);},0);
+  },true);
+  document.addEventListener('pointerdown',event=>{
+    if(menu&&!menu.contains(event.target)&&!event.target.closest?.('.ds-host-row-more'))closeMenu();
+  },true);
   window.addEventListener('resize',()=>{const panel=side();if(panel&&panel.dataset.dsAdaptiveUserPositioned!=='1')centerPanel(panel,true);syncEncryption();},true);
   window.addEventListener('dominion:meeting-ui-ready',schedule,true);
   const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style','data-participant-role','data-participant-self']});
-  const timer=setInterval(schedule,350);
-  window.DominionParticipantsCenterLock2041=Object.freeze({version:'2.0.41',sync,center:()=>{const panel=side();if(panel){delete panel.dataset.dsAdaptiveUserPositioned;centerPanel(panel,true);}},dispose:()=>{clearInterval(timer);observer.disconnect();if(frame)cancelAnimationFrame(frame);closeMenu();}});
+  const timer=setInterval(schedule,220);
+  window.DominionParticipantsCenterLock2041=Object.freeze({version:'2.0.41',sync,center:()=>{const panel=side();if(panel)resetAndCenter(panel);},dispose:()=>{clearInterval(timer);observer.disconnect();if(frame)cancelAnimationFrame(frame);closeMenu();}});
   sync();
 })();
