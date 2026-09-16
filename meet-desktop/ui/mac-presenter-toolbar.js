@@ -1,10 +1,9 @@
 (()=>{
   'use strict';
   const desktop=window.dominionDesktop||{};
-  // The floating macOS surface owns native-only layout/show-meeting actions,
-  // and its acknowledged native bridge is also the primary transport for
-  // meeting/media controls during a real display capture. The direct renderer
-  // bridge remains a fallback if native acknowledgement fails.
+  // The floating macOS surface owns native-only layout/show-meeting actions.
+  // Live meeting/media controls execute directly in the capture-owning meeting
+  // renderer first; the acknowledged native queue remains a bounded fallback.
   const nativeBridge=desktop.macShare||null;
   const rendererBridge=desktop.presenter||null;
   const stateBridge=nativeBridge||rendererBridge;
@@ -43,15 +42,19 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // Physical Mac authority: use the path that returns an explicit renderer
-      // acknowledgement first. Never accept an unconfirmed one-way send as a
-      // successful Mute/Video/Chat/Participants/Pause/Annotate/Stop action.
-      try{return await sendNative(normalized);}
-      catch(error){
-        if(NATIVE_ONLY_COMMANDS.has(normalized))throw error;
-        if(rendererBridge?.command)return sendRenderer(normalized);
-        throw error;
+      // Layout and Show Meeting are native floating-window responsibilities.
+      if(NATIVE_ONLY_COMMANDS.has(normalized))return await sendNative(normalized);
+      // Physical-Mac authority: Stop/Audio/Video/Pause/Chat/Participants/
+      // Annotate and other meeting controls execute in the meeting renderer
+      // first so a successful click means the live controller actually ran.
+      if(rendererBridge?.command){
+        try{return await sendRenderer(normalized);}
+        catch(error){
+          if(nativeBridge?.command)return sendNative(normalized);
+          throw error;
+        }
       }
+      return await sendNative(normalized);
     }finally{scheduleHide();}
   };
 
@@ -85,6 +88,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-acknowledged-native-controls',transport:nativeBridge?.command?'macShare-ack':rendererBridge?.command?'presenter-direct-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-direct-renderer-first-controls',transport:rendererBridge?.command?'presenter-direct-first':nativeBridge?.command?'macShare-ack-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
