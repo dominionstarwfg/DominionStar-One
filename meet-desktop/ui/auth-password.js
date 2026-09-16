@@ -20,6 +20,8 @@
   if(!screenshotReferenceStyle){screenshotReferenceStyle=document.createElement('link');screenshotReferenceStyle.rel='stylesheet';screenshotReferenceStyle.href='./zoom-screenshot-reference-2.0.41.css';screenshotReferenceStyle.dataset.dsZoomScreenshotReference2041='1';document.head.append(screenshotReferenceStyle);}
   let executiveHomeStyle=document.querySelector('link[data-ds-executive-home-2041]');
   if(!executiveHomeStyle){executiveHomeStyle=document.createElement('link');executiveHomeStyle.rel='stylesheet';executiveHomeStyle.href='./executive-home-2.0.41.css';executiveHomeStyle.dataset.dsExecutiveHome2041='1';document.head.append(executiveHomeStyle);}
+  let executivePrejoinStyle=document.querySelector('link[data-ds-executive-prejoin-2041]');
+  if(!executivePrejoinStyle){executivePrejoinStyle=document.createElement('link');executivePrejoinStyle.rel='stylesheet';executivePrejoinStyle.href='./executive-prejoin-2.0.41.css';executivePrejoinStyle.dataset.dsExecutivePrejoin2041='1';document.head.append(executivePrejoinStyle);}
 
   const loadActiveShareHome=()=>{
     if(document.querySelector('script[data-ds-active-share-home-2041]'))return;
