@@ -159,9 +159,7 @@
     else{stopComposite();emit();}
     return snapshot();
   }
-  async function stop(){
-    displayRequestGeneration+=1;
-    const hadShare=Boolean(state.liveStream||state.frozenStream);
+  async function stop(){displayRequestGeneration+=1;const hadShare=Boolean(state.liveStream||state.frozenStream);
     state.annotationCanvas=null;
     stopComposite();
     // Zoom-style Stop Share is local-first: terminate the display tracks and
