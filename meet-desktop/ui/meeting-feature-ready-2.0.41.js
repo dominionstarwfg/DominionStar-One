@@ -8,8 +8,12 @@
   const enforceReactionLabel=()=>{
     const button=document.querySelector('#roomReactions');
     if(!button)return false;
-    const label=button.querySelector('.ds-control-label');
-    if(!label)return false;
+    let label=button.querySelector('.ds-control-label');
+    if(!label){
+      label=document.createElement('span');
+      label.className='ds-control-label';
+      button.append(label);
+    }
     if(label.textContent!=='Reactions')label.textContent='Reactions';
     label.style.setProperty('display','block','important');
     label.style.setProperty('visibility','visible','important');
