@@ -19,7 +19,9 @@ const locked=new Map([
   // Physical Mac evidence on 2026-09-15 proved Stop Share remained active and
   // did not restore the meeting. The controller was therefore deliberately
   // repaired to stop local capture tracks before asynchronous chrome cleanup.
-  ['ui/share-controller.js','f6ca56fd2bd6b1f8834dfadbae9d883482465d46'],
+  // The current blob also preserves the established in-flight generation guard
+  // syntax while keeping that non-blocking physical repair intact.
+  ['ui/share-controller.js','58007e5a6961c3dfcc4615eea98fd4fbbf1928dd'],
   ['ui/mac-presenter-toolbar.html','0654b7f203dd7239b1e8e375e1a664e026165566'],
   ['ui/mac-presenter-toolbar.css','60a5da68f962ae423b10e12fd1f21fecfdddd55d']
 ]);
