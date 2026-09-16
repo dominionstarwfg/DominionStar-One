@@ -1,0 +1,37 @@
+/* DominionStar Meet 2.0.41 — locked Host Tools proportions.
+   Final visual authority for the compact Zoom-scale Host Tools surface. */
+.ds-ref-host-tools-panel{
+  right:20px!important;
+  top:136px!important;
+  bottom:auto!important;
+  width:248px!important;
+  height:auto!important;
+  max-height:330px!important;
+  border-radius:8px!important;
+}
+.ds-ref-host-tools-panel.detached{
+  right:20px!important;
+  top:136px!important;
+  bottom:auto!important;
+  width:248px!important;
+  height:auto!important;
+  max-height:330px!important;
+  border-radius:8px!important;
+}
+.ds-ref-host-tools-panel header{
+  height:38px!important;
+}
+.ds-ref-host-tools-panel section{
+  padding:10px 12px 12px!important;
+}
+.ds-ref-host-tools-panel label,
+.ds-ref-host-nav{
+  height:34px!important;
+}
+.ds-ref-host-tools-panel header strong{
+  font-size:11px!important;
+}
+.ds-ref-host-tools-panel label,
+.ds-ref-host-nav{
+  font-size:10px!important;
+}
