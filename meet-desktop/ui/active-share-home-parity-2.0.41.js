@@ -14,11 +14,16 @@
     `;document.head.append(style);
   }
 
+  function loadParticipantsReference(){
+    if(window.DominionZoomParticipantsReference2041||document.querySelector('script[data-ds-zoom-participants-reference-2041]'))return;
+    const script=document.createElement('script');script.src='./zoom-participants-reference-2.0.41.js';script.dataset.dsZoomParticipantsReference2041='1';document.head.append(script);
+  }
+
   function shareActive(){return Boolean(q('#meetingOverlay')?.classList.contains('share-active'));}
   function restoreMeeting(){
     const overlay=q('#meetingOverlay');if(!overlay)return false;
     q('#appShell')?.setAttribute('hidden','');q('#waitingOverlay')?.setAttribute('hidden','');q('#prejoinOverlay')?.setAttribute('hidden','');overlay.hidden=false;
-    try{window.DominionMeetingParity?.install?.();window.DominionMeetingParity?.syncShareLayout?.();window.DominionMeetingParity?.syncVideoDock?.();window.DominionZoomScreenshotReference?.requestSync?.();}catch{}
+    try{window.DominionMeetingParity?.install?.();window.DominionMeetingParity?.syncShareLayout?.();window.DominionMeetingParity?.syncVideoDock?.();window.DominionZoomScreenshotReference?.requestSync?.();window.DominionZoomParticipantsReference2041?.sync?.();}catch{}
     return true;
   }
 
@@ -36,7 +41,7 @@
     }
   }
 
-  function sync(){syncFrame=0;ensureStyle();const active=shareActive();document.body.classList.toggle('ds-active-share-workspace',active);if(active!==lastActive){lastActive=active;patchHome(active);}else if(active&&q('#homeSection .action-card.new-meeting')?.dataset.action!=='back-to-meeting')patchHome(true);}
+  function sync(){syncFrame=0;ensureStyle();loadParticipantsReference();const active=shareActive();document.body.classList.toggle('ds-active-share-workspace',active);if(active!==lastActive){lastActive=active;patchHome(active);}else if(active&&q('#homeSection .action-card.new-meeting')?.dataset.action!=='back-to-meeting')patchHome(true);}
   function schedule(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
 
   document.addEventListener('click',event=>{const back=event.target?.closest?.('#homeSection .action-card[data-action="back-to-meeting"]');if(!back)return;event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();restoreMeeting();},true);
@@ -46,5 +51,6 @@
   const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','hidden'],childList:true});
   const timer=setInterval(schedule,650);
   window.DominionActiveShareHomeParity2041=Object.freeze({version:'2.0.41',sync,restoreMeeting,dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  loadParticipantsReference();
   sync();
 })();
