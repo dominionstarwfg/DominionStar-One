@@ -3,13 +3,15 @@
   if(window.DominionParticipantsCenterLock2041)return;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const meeting=window.dominionDesktop?.meeting||null;
-  let frame=0,menu=null,initialized=false;
+  let frame=0,menu=null,wasVisible=false;
 
   function ensureStyle(){
     if(q('style[data-ds-participants-center-lock-2041]'))return;
     const style=document.createElement('style');
     style.dataset.dsParticipantsCenterLock2041='1';
     style.textContent=`
+      /* One canonical meeting encryption badge only. The Executive badge is authoritative. */
+      #meetingOverlay.ds-exec-lock .meeting-head .ds-approved-encryption{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-center-lock{
         position:absolute!important;
         right:auto!important;
@@ -51,6 +53,20 @@
 
   function side(){return q('#meetingOverlay .room-side.ds-participants-reference');}
   function rows(){return qa('#participantRoster [data-participant-id]');}
+
+  function syncEncryption(){
+    const head=q('#meetingOverlay .meeting-head');if(!head)return;
+    const exec=[...head.querySelectorAll('.ds-exec-encrypted')];
+    const approved=[...head.querySelectorAll('.ds-approved-encryption')];
+    if(exec.length){
+      exec.slice(1).forEach(node=>node.remove());
+      approved.forEach(node=>node.remove());
+      exec[0].setAttribute('aria-label','Encrypted media transport');
+      return;
+    }
+    approved.slice(1).forEach(node=>node.remove());
+  }
+
   function cleanName(row){
     const strong=row.querySelector('.person-copy strong');if(!strong)return;
     if(!strong.dataset.dsBaseName){strong.dataset.dsBaseName=String(row.dataset.participantName||strong.textContent||'Participant').replace(/\s*\((?:host|co-host|cohost|me)(?:\s*,\s*(?:host|co-host|cohost|me))*\)\s*$/i,'').trim()||'Participant';}
@@ -121,16 +137,25 @@
   }
 
   function sync(){
-    frame=0;ensureStyle();const panel=side();if(!panel||panel.hidden)return;
-    if(!initialized){initialized=true;try{localStorage.removeItem('ds_zoom_participants_geometry_2_0_41');}catch{}delete panel.dataset.dsAdaptiveUserPositioned;centerPanel(panel,true);}else if(panel.dataset.dsFinalCentered!=='1'&&panel.dataset.dsAdaptiveUserPositioned!=='1')centerPanel(panel,true);
+    frame=0;ensureStyle();syncEncryption();
+    const panel=side();
+    if(!panel||panel.hidden){wasVisible=false;return;}
+    if(!wasVisible){
+      wasVisible=true;
+      try{localStorage.removeItem('ds_zoom_participants_geometry_2_0_41');}catch{}
+      delete panel.dataset.dsAdaptiveUserPositioned;
+      delete panel.dataset.dsFinalCentered;
+    }
+    /* Default is always center. Only a real user drag/resize may move it away. */
+    if(panel.dataset.dsAdaptiveUserPositioned!=='1')centerPanel(panel,true);
     hideDuplicateActions(panel);for(const row of rows()){syncIdentity(row);ensureOverflow(row);}
   }
   function schedule(){if(frame)return;frame=requestAnimationFrame(sync);}
   document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('.ds-host-row-more'))closeMenu();},true);
-  window.addEventListener('resize',()=>{const panel=side();if(panel&&panel.dataset.dsAdaptiveUserPositioned!=='1')centerPanel(panel,true);},true);
+  window.addEventListener('resize',()=>{const panel=side();if(panel&&panel.dataset.dsAdaptiveUserPositioned!=='1')centerPanel(panel,true);syncEncryption();},true);
   window.addEventListener('dominion:meeting-ui-ready',schedule,true);
   const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style','data-participant-role','data-participant-self']});
-  const timer=setInterval(schedule,450);
+  const timer=setInterval(schedule,350);
   window.DominionParticipantsCenterLock2041=Object.freeze({version:'2.0.41',sync,center:()=>{const panel=side();if(panel){delete panel.dataset.dsAdaptiveUserPositioned;centerPanel(panel,true);}},dispose:()=>{clearInterval(timer);observer.disconnect();if(frame)cancelAnimationFrame(frame);closeMenu();}});
   sync();
 })();
