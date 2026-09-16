@@ -169,8 +169,9 @@ try{
   if(Number(proof.screens.activeShare.toolbarVisible)<.9||!proof.screens.activeShare.banner||!proof.screens.activeShare.labels.includes('Layout'))throw new Error(`Active share proof failed ${JSON.stringify(proof.screens.activeShare)}`);
   await screenshot('09-active-share-toolbar.png');
 
-  // 10 ACTIVE SHARE IDLE — toolbar must disappear when pointer is idle.
-  await evaluate(`document.querySelector('#meetingOverlay').classList.remove('ds-ref-presenter-visible')`);await settle(180);
+  // 10 ACTIVE SHARE IDLE — allow the production 1.65s pointer-reveal timer to
+  // expire naturally, then assert that the toolbar no longer intercepts input.
+  await evaluate(`document.querySelector('#meetingOverlay').classList.remove('ds-ref-presenter-visible')`);await settle(1900);
   proof.screens.activeShareIdle=await evaluate(`(()=>({opacity:getComputedStyle(document.querySelector('#inlinePresenterToolbar')).opacity,pointer:getComputedStyle(document.querySelector('#inlinePresenterToolbar')).pointerEvents,dock:Boolean(document.querySelector('#participantVideoDock')&&!document.querySelector('#participantVideoDock').hidden)}))()`);
   if(Number(proof.screens.activeShareIdle.opacity)>.1||proof.screens.activeShareIdle.pointer!=='none')throw new Error(`Active share idle proof failed ${JSON.stringify(proof.screens.activeShareIdle)}`);
   await screenshot('10-active-share-idle.png');
