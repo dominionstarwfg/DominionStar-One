@@ -1,20 +1,40 @@
 /* DominionStar Meet 2.0.41 — locked Host Tools proportions.
    Final visual authority for the compact Zoom-scale Host Tools surface. */
 
-/* Host Tools is created from the Participants surface. When that parent uses
-   translate(-50%,-50%), CSS fixed descendants become fixed to that transformed
-   parent instead of the meeting viewport. While Host Tools is open, center the
-   Participants window without a transform so Host Tools remains viewport-fixed. */
+/* Keep Participants centered when Host Tools is open. Host Tools is still
+   created from the Participants surface, so place it outside that panel rather
+   than allowing it to render over the participant list. This preserves the
+   approved centered Participants geometry and gives Host Tools its own visual
+   surface, matching the Zoom reference separation. */
 #meetingOverlay .room-side:has(.ds-ref-host-tools-panel){
-  left:calc(50% - 210px)!important;
-  top:calc(50% - 215px)!important;
+  left:50%!important;
+  top:50%!important;
   right:auto!important;
   bottom:auto!important;
-  transform:none!important;
+  transform:translate(-50%,-50%)!important;
   overflow:visible!important;
 }
 
-.ds-ref-host-tools-panel{
+#meetingOverlay .room-side:has(.ds-ref-host-tools-panel) .ds-ref-host-tools-panel,
+#meetingOverlay .room-side:has(.ds-ref-host-tools-panel) .ds-ref-host-tools-panel.detached{
+  position:absolute!important;
+  left:calc(100% + 18px)!important;
+  right:auto!important;
+  top:0!important;
+  bottom:auto!important;
+  transform:none!important;
+  width:248px!important;
+  min-width:248px!important;
+  max-width:248px!important;
+  height:auto!important;
+  max-height:330px!important;
+  border-radius:8px!important;
+  z-index:4200!important;
+}
+
+/* Fallback if Host Tools is ever promoted outside the Participants surface. */
+#meetingOverlay > .ds-ref-host-tools-panel,
+#meetingOverlay > .ds-ref-host-tools-panel.detached{
   position:fixed!important;
   left:auto!important;
   right:20px!important;
@@ -29,21 +49,7 @@
   border-radius:8px!important;
   z-index:4200!important;
 }
-.ds-ref-host-tools-panel.detached{
-  position:fixed!important;
-  left:auto!important;
-  right:20px!important;
-  top:136px!important;
-  bottom:auto!important;
-  transform:none!important;
-  width:248px!important;
-  min-width:248px!important;
-  max-width:248px!important;
-  height:auto!important;
-  max-height:330px!important;
-  border-radius:8px!important;
-  z-index:4200!important;
-}
+
 .ds-ref-host-tools-panel header{
   height:38px!important;
 }
