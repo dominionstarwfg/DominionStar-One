@@ -1,7 +1,7 @@
 (()=>{
   'use strict';
   if(window.DominionProfileSettingsNavigation2041)return;
-  const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const q=s=>document.querySelector(s);
   const desktop=window.dominionDesktop||{};
   let authState=null;
 
@@ -12,9 +12,9 @@
     style.textContent=`
       .sidebar .ds-profile-nav{margin-top:auto}
       .sidebar .ds-profile-nav+.settings-nav{margin-top:8px}
-      .ds-profile-nav .ds-profile-nav-avatar{width:24px;height:24px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(145deg,#d8ab38,#8b6719);color:#10151d;font-size:9px;font-weight:850;border:1px solid rgba(229,184,66,.45)}
-      .ds-profile-nav .ds-profile-nav-avatar img{width:100%;height:100%;object-fit:cover;display:block}
-      .ds-profile-nav .ds-profile-nav-avatar.no-photo::after{content:'+';position:absolute;transform:translate(9px,9px);width:11px;height:11px;border-radius:50%;display:grid;place-items:center;background:#2f80ed;color:white;font-size:9px;font-weight:900;box-shadow:0 0 0 2px #091522}
+      .ds-profile-nav .ds-profile-nav-avatar{position:relative;width:24px;height:24px;border-radius:50%;overflow:visible;display:grid;place-items:center;background:linear-gradient(145deg,#d8ab38,#8b6719);color:#10151d;font-size:9px;font-weight:850;border:1px solid rgba(229,184,66,.45)}
+      .ds-profile-nav .ds-profile-nav-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%}
+      .ds-profile-nav .ds-profile-nav-avatar.no-photo::after{content:'+';position:absolute;right:-5px;bottom:-4px;width:11px;height:11px;border-radius:50%;display:grid;place-items:center;background:#2f80ed;color:white;font-size:9px;font-weight:900;box-shadow:0 0 0 2px #091522}
       #settingsDialog{max-height:min(760px,calc(100vh - 36px));overflow:hidden}
       #settingsDialog>form{max-height:min(760px,calc(100vh - 36px));overflow:auto;padding:0 24px 18px;scrollbar-gutter:stable}
       #settingsDialog>form>header{position:sticky;top:0;z-index:5;margin:0 -24px 16px;padding:22px 24px 16px;background:linear-gradient(180deg,#0d1928 78%,rgba(13,25,40,.94));border-bottom:1px solid rgba(255,255,255,.08)}
@@ -68,14 +68,11 @@
 
   function normalizeSettingsOnOpen(){
     const dialog=q('#settingsDialog');if(!dialog)return;
-    dialog.addEventListener('close',()=>{const form=dialog.querySelector('form');if(form)form.scrollTop=0;dialog.scrollTop=0;},{once:false});
+    dialog.addEventListener('close',()=>{const form=dialog.querySelector('form');if(form)form.scrollTop=0;dialog.scrollTop=0;});
     const original=dialog.showModal?.bind(dialog);
     if(original&&!dialog.dataset.dsSettingsShowWrapped){
       dialog.dataset.dsSettingsShowWrapped='1';
-      dialog.showModal=function(){
-        try{window.DominionPreferences?.showList?.();}catch{}
-        const form=dialog.querySelector('form');if(form)form.scrollTop=0;dialog.scrollTop=0;return original();
-      };
+      dialog.showModal=function(){const form=dialog.querySelector('form');if(form)form.scrollTop=0;dialog.scrollTop=0;return original();};
     }
     dialog.addEventListener('click',event=>{
       if(event.target!==dialog)return;
