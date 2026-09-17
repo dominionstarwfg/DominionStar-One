@@ -6,8 +6,6 @@
   const savePref=(key,value)=>{try{localStorage.setItem(KEYS[key],String(value??''));}catch{}};
   const state={stream:null,cameraId:readPref('camera'),microphoneId:readPref('microphone'),speakerId:readPref('speaker'),cameraOn:true,cameraPending:false,micOn:false,mirror:readPref('mirror','true')!=='false',echoCancellation:readPref('echoCancellation','true')!=='false',noiseSuppression:readPref('noiseSuppression','true')!=='false',autoGainControl:readPref('autoGainControl','true')!=='false',originalSound:readPref('originalSound','false')==='true',userPreferencesLocked:false,lastError:'',permissionState:null};
   let cameraIntent=0,warmVideoTrack=null,warmVideoTimer=0;
-  const releaseWarmVideo=()=>{if(warmVideoTimer){clearTimeout(warmVideoTimer);warmVideoTimer=0;}if(warmVideoTrack){stopTrack(warmVideoTrack);warmVideoTrack=null;}};
-  const holdWarmVideo=track=>{releaseWarmVideo();if(!track||track.readyState!=='live')return;try{track.enabled=false;}catch{}warmVideoTrack=track;warmVideoTimer=setTimeout(releaseWarmVideo,1800);};
   const listeners=new Set();
   const emit=()=>{const snapshot=api.snapshot();for(const fn of listeners){try{fn(snapshot);}catch{}}};
   const stopTrack=track=>{if(track&&track.readyState!=='ended'){try{track.stop();}catch{}}};
@@ -16,6 +14,26 @@
   const unique=values=>[...new Set(values.filter(Boolean).map(String))];
   const mediaError=error=>String(error?.message||error||'Media device unavailable.').replace(/^.*?:\s*/,'');
   const ensureStream=()=>{if(!(state.stream instanceof MediaStream))state.stream=new MediaStream();return state.stream;};
+  const clearWarmVideoTimer=()=>{if(warmVideoTimer){clearTimeout(warmVideoTimer);warmVideoTimer=0;}};
+  const releaseWarmVideo=()=>{
+    clearWarmVideoTimer();
+    if(!warmVideoTrack)return;
+    const track=warmVideoTrack;warmVideoTrack=null;
+    try{state.stream?.removeTrack?.(track);}catch{}
+    stopTrack(track);
+  };
+  const holdWarmVideo=track=>{
+    clearWarmVideoTimer();
+    if(!track||track.readyState!=='live'){warmVideoTrack=null;return;}
+    try{track.enabled=false;}catch{}
+    warmVideoTrack=track;
+    warmVideoTimer=setTimeout(()=>{
+      if(warmVideoTrack!==track)return;
+      warmVideoTimer=0;warmVideoTrack=null;
+      try{state.stream?.removeTrack?.(track);}catch{}
+      stopTrack(track);emit();
+    },5000);
+  };
 
   async function ensurePermissions(kinds){
     if(!desktopMedia?.permissions)return null;
@@ -44,7 +62,7 @@
     };
   }
 
-  const videoConstraints=id=>({deviceId:id?{ideal:id}:undefined,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}});
+  const videoConstraints=id=>({deviceId:id?{ideal:id}:undefined,width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}});
   const audioConstraints=id=>({deviceId:id?{ideal:id}:undefined,echoCancellation:state.originalSound?false:state.echoCancellation,noiseSuppression:state.originalSound?false:state.noiseSuppression,autoGainControl:state.originalSound?false:state.autoGainControl,channelCount:state.originalSound?{ideal:2}:undefined,sampleRate:state.originalSound?{ideal:48000}:undefined});
 
   async function acquireKind(kind,preferredId=''){
@@ -72,6 +90,7 @@
     const stream=ensureStream();
     for(const track of [...stream.getTracks()].filter(track=>track.kind===kind)){
       try{stream.removeTrack(track);}catch{}
+      if(track===warmVideoTrack){warmVideoTrack=null;clearWarmVideoTimer();}
       stopTrack(track);
     }
   }
@@ -106,19 +125,23 @@
     startPreview,
     async setCamera(on){
       const enabled=Boolean(on);state.userPreferencesLocked=true;const intent=++cameraIntent;
+      const stream=ensureStream();
       if(!enabled){
         state.cameraOn=false;state.cameraPending=false;state.lastError='';
-        const stream=ensureStream(),current=live('video')[0]||null;
-        if(current){try{stream.removeTrack(current);}catch{}holdWarmVideo(current);}else releaseWarmVideo();
+        const current=live('video')[0]||warmVideoTrack||null;
+        if(current)holdWarmVideo(current);else releaseWarmVideo();
         emit();return api.snapshot();
       }
-      if(state.cameraOn&&live('video').length){state.cameraPending=false;return api.snapshot();}
-      state.cameraOn=true;state.cameraPending=true;state.lastError='';emit();
-      if(warmVideoTrack&&warmVideoTrack.readyState==='live'){
-        const track=warmVideoTrack;warmVideoTrack=null;if(warmVideoTimer){clearTimeout(warmVideoTimer);warmVideoTimer=0;}
-        if(intent!==cameraIntent||!state.cameraOn){holdWarmVideo(track);return api.snapshot();}
-        try{track.enabled=true;}catch{}ensureStream().addTrack(track);state.cameraPending=false;emit();return api.snapshot();
+
+      const reusable=live('video')[0]||warmVideoTrack||null;
+      if(reusable&&reusable.readyState==='live'){
+        clearWarmVideoTimer();warmVideoTrack=null;
+        if(!stream.getVideoTracks().includes(reusable)){try{stream.addTrack(reusable);}catch{}}
+        try{reusable.enabled=true;}catch{}
+        state.cameraOn=true;state.cameraPending=false;state.lastError='';emit();return api.snapshot();
       }
+
+      state.cameraOn=true;state.cameraPending=true;state.lastError='';emit();
       let fresh=null;
       try{
         fresh=await acquireKind('video',state.cameraId);
@@ -136,8 +159,8 @@
       try{await replaceKind('audio',state.microphoneId);}catch(error){state.micOn=false;state.lastError=mediaError(error);emit();throw error;}return api.snapshot();
     },
     async selectCamera(id){
-      const wanted=String(id||''),previous=state.cameraId;state.userPreferencesLocked=true;cameraIntent+=1;releaseWarmVideo();state.cameraPending=false;if(wanted===previous&&live('video').length)return api.snapshot();
-      state.cameraId=wanted;savePref('camera',wanted);if(state.cameraOn){try{await replaceKind('video',wanted);}catch(error){state.cameraId=previous;savePref('camera',previous);throw error;}}emit();return api.snapshot();
+      const wanted=String(id||''),previous=state.cameraId;state.userPreferencesLocked=true;cameraIntent+=1;releaseWarmVideo();state.cameraPending=false;if(wanted===previous&&live('video').some(track=>track.enabled!==false))return api.snapshot();
+      state.cameraId=wanted;savePref('camera',wanted);if(state.cameraOn){try{await replaceKind('video',wanted,true);}catch(error){state.cameraId=previous;savePref('camera',previous);throw error;}}emit();return api.snapshot();
     },
     async selectMicrophone(id){
       const wanted=String(id||''),previous=state.microphoneId;state.userPreferencesLocked=true;if(wanted===previous&&live('audio').length)return api.snapshot();
@@ -157,8 +180,12 @@
     },
     async recoverAfterResume(){
       const desired={cameraOn:state.cameraOn,micOn:state.micOn,cameraId:state.cameraId,microphoneId:state.microphoneId,speakerId:state.speakerId};
-      const videoAlive=live('video').length>0,audioAlive=live('audio').length>0;
-      if(desired.cameraOn&&!videoAlive){try{await replaceKind('video',desired.cameraId,true);}catch{}}
+      const videoTracks=live('video'),videoAlive=videoTracks.some(track=>track.enabled!==false),audioAlive=live('audio').length>0;
+      if(desired.cameraOn&&!videoAlive){
+        const dormant=videoTracks[0];
+        if(dormant){try{dormant.enabled=true;}catch{}}
+        else{try{await replaceKind('video',desired.cameraId,true);}catch{}}
+      }
       if(desired.micOn&&!audioAlive){try{await replaceKind('audio',desired.microphoneId,true);}catch{}}
       if(!desired.cameraOn)for(const track of live('video'))track.enabled=false;
       if(!desired.micOn)for(const track of live('audio'))track.enabled=false;
@@ -181,7 +208,7 @@
     enumerate,
     permissions:()=>desktopMedia?.permissions?.()||Promise.resolve(null),
     openPrivacy:kind=>desktopMedia?.openPrivacy?.(kind),
-    snapshot(){return {cameraOn:state.cameraOn,cameraPending:state.cameraPending,micOn:state.micOn,mirror:state.mirror,cameraId:state.cameraId,microphoneId:state.microphoneId,speakerId:state.speakerId,echoCancellation:state.echoCancellation,noiseSuppression:state.noiseSuppression,autoGainControl:state.autoGainControl,originalSound:state.originalSound,preferencesLocked:state.userPreferencesLocked,videoLive:live('video').length>0,audioLive:live('audio').length>0,lastError:state.lastError,permissionState:state.permissionState};},
+    snapshot(){return {cameraOn:state.cameraOn,cameraPending:state.cameraPending,micOn:state.micOn,mirror:state.mirror,cameraId:state.cameraId,microphoneId:state.microphoneId,speakerId:state.speakerId,echoCancellation:state.echoCancellation,noiseSuppression:state.noiseSuppression,autoGainControl:state.autoGainControl,originalSound:state.originalSound,preferencesLocked:state.userPreferencesLocked,videoLive:live('video').some(track=>track.enabled!==false),audioLive:live('audio').length>0,lastError:state.lastError,permissionState:state.permissionState};},
     onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}
   });
   window.DominionMediaController=api;
