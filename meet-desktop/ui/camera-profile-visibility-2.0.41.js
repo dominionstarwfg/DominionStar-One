@@ -15,10 +15,10 @@
       #prejoinVideo[hidden],#localMeetingVideo[hidden],#prejoinAvatar[hidden],#stageFallback[hidden]{display:none!important}
       #prejoinVideo:not([hidden]),#localMeetingVideo:not([hidden]){display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:100%!important;object-fit:cover!important;position:relative!important;z-index:2!important;background:#020812!important}
       #prejoinAvatar:not([hidden]){display:grid!important;visibility:visible!important;opacity:1!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;place-items:center!important;overflow:hidden!important;background:radial-gradient(circle at 50% 42%,#10233a 0,#07111d 52%,#020812 100%)!important;z-index:1!important}
-      #prejoinAvatar:not([hidden])>img.ds-profile-fallback-photo{display:block!important;width:clamp(160px,34%,220px)!important;height:clamp(160px,34%,220px)!important;max-width:42%!important;max-height:78%!important;aspect-ratio:1/1!important;border-radius:24px!important;object-fit:cover!important;box-shadow:0 14px 46px rgba(0,0,0,.42)!important}
-      #prejoinAvatar:not([hidden]):not(.has-photo){font-size:48px!important;font-weight:700!important}
+      #prejoinAvatar:not([hidden])>img.ds-profile-fallback-photo{display:block!important;width:180px!important;height:180px!important;min-width:180px!important;min-height:180px!important;max-width:min(42%,180px)!important;max-height:min(72%,180px)!important;aspect-ratio:1/1!important;border-radius:26px!important;object-fit:cover!important;box-shadow:0 14px 46px rgba(0,0,0,.42)!important}
+      #prejoinAvatar:not([hidden]):not(.has-photo){font-size:54px!important;font-weight:700!important}
       #stageFallback:not([hidden]){display:grid!important}
-      #stageFallback:not([hidden]) #stageAvatar.has-photo{width:124px!important;height:124px!important;overflow:hidden!important;border-radius:22px!important}
+      #stageFallback:not([hidden]) #stageAvatar.has-photo{width:132px!important;height:132px!important;overflow:hidden!important;border-radius:22px!important}
       #stageFallback:not([hidden]) #stageAvatar.has-photo>img.ds-profile-fallback-photo{width:100%!important;height:100%!important;object-fit:cover!important}
     `;
     document.head.append(style);
@@ -28,13 +28,19 @@
     const snapshot=media.snapshot?.()||{};
     const stream=media.stream?.()||null;
     const track=stream?.getVideoTracks?.().find(t=>t.readyState==='live'&&t.enabled!==false)||null;
-    return {snapshot,stream,track,live:Boolean(snapshot.cameraOn&&snapshot.videoLive&&track)};
+    return {snapshot,stream,track,live:Boolean(snapshot.cameraOn&&track)};
   }
 
-  function playVideo(video,stream){
+  function playVideo(video,stream,track){
     if(!video||!stream)return;
     video.muted=true;video.playsInline=true;video.autoplay=true;
-    if(video.srcObject!==stream)video.srcObject=stream;
+    const trackId=String(track?.id||'');
+    if(video.srcObject!==stream||video.dataset.dsVideoTrackId!==trackId){
+      try{video.pause?.();}catch{}
+      try{video.srcObject=null;}catch{}
+      video.srcObject=stream;
+      video.dataset.dsVideoTrackId=trackId;
+    }
     const attempt=()=>{try{const p=video.play?.();if(p&&typeof p.catch==='function')p.catch(()=>{});}catch{}};
     attempt();
     if(video.readyState<2){video.onloadedmetadata=attempt;video.oncanplay=attempt;}
@@ -70,12 +76,12 @@
 
   function sync(){
     ensureStyles();
-    const {stream,live}=liveVideoState();
+    const {stream,track,live}=liveVideoState();
     const preVideo=q('#prejoinVideo'),roomVideo=q('#localMeetingVideo'),preAvatar=q('#prejoinAvatar'),stageFallback=q('#stageFallback');
     const hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView'));
 
     if(live){
-      playVideo(preVideo,stream);playVideo(roomVideo,stream);
+      playVideo(preVideo,stream,track);playVideo(roomVideo,stream,track);
     }else{
       for(const video of [preVideo,roomVideo]){if(!video)continue;try{video.pause?.();}catch{}}
     }
