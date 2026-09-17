@@ -134,11 +134,6 @@
   window.addEventListener('dominion:preference-change',()=>schedulePaint());
   window.addEventListener('dominion:host-view-layout',()=>schedulePaint());
 
-  // Dynamic meeting surfaces (remote tiles, roster rows, waiting-room rows and
-  // the local floating dock) are created after this module loads. Repaint them
-  // on a bounded timer instead of a microtask. A MutationObserver that queues a
-  // DOM-mutating paintAll() microtask can feed itself indefinitely and starve
-  // Electron's renderer/CDP event loop.
   let repaintTimer=0;
   function schedulePaint(){
     if(repaintTimer)return;
@@ -155,12 +150,4 @@
   });
   window.DominionProfilePhotoFallback=api;
   ensureStyles();void refreshAuth(true);paintAll();
-})();
-
-(()=>{
-  if(document.querySelector('script[data-ds-profile-settings-nav-loader]'))return;
-  const script=document.createElement('script');
-  script.src='./profile-settings-navigation-2.0.41.js';
-  script.dataset.dsProfileSettingsNavLoader='1';
-  document.head.append(script);
 })();
