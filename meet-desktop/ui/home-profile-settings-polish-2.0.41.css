@@ -1,0 +1,50 @@
+/* DominionStar Meet 2.0.41 — home profile visibility + settings navigation polish. */
+
+body:not(.ds-in-meeting) #homeSection .ds-home-profile{grid-column:3!important;grid-row:2!important}
+body:not(.ds-in-meeting) #homeSection .ds-home-profile .ds-home-profile-photo{
+  position:relative!important;overflow:hidden!important;background:linear-gradient(145deg,#162b45,#0a1624)!important;
+  color:#f0c96b!important;font-size:27px!important;font-weight:800!important;letter-spacing:.04em!important;
+  border:1px solid rgba(235,190,92,.55)!important;box-shadow:0 14px 30px rgba(0,0,0,.34),inset 0 0 24px rgba(230,180,70,.06)!important;
+}
+body:not(.ds-in-meeting) #homeSection .ds-home-profile .ds-home-profile-photo img{width:100%!important;height:100%!important;display:block!important;object-fit:cover!important;border-radius:inherit!important}
+body:not(.ds-in-meeting) #homeSection .ds-home-profile .ds-home-profile-photo::after{
+  content:'+';position:absolute;right:7px;bottom:7px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  background:#167ff5;color:white;border:2px solid #07111d;font-size:15px;font-weight:800;line-height:1;
+}
+body:not(.ds-in-meeting) #appShell .profile-button{position:relative!important;overflow:visible!important}
+body:not(.ds-in-meeting) #appShell .profile-button::after{
+  content:'+';position:absolute;right:-4px;bottom:-4px;width:15px;height:15px;border-radius:50%;display:grid;place-items:center;
+  background:#167ff5;color:#fff;border:2px solid #07111d;font-size:10px;font-weight:800;line-height:1;
+}
+body:not(.ds-in-meeting) #appShell .profile-button .avatar img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important;display:block!important}
+
+.settings-modal{width:min(860px,calc(100vw - 52px))!important;max-width:860px!important;max-height:min(700px,calc(100vh - 42px))!important;overflow:hidden!important;padding:0!important}
+.settings-modal>form{width:100%!important;max-height:min(700px,calc(100vh - 42px))!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;padding:0!important}
+.settings-modal>form>header{flex:0 0 auto!important;position:relative!important;z-index:20!important;padding:18px 20px!important;border-bottom:1px solid rgba(255,255,255,.09)!important;background:#0d1928!important}
+.settings-modal>form>header .modal-close{width:36px!important;height:36px!important;min-width:36px!important;border-radius:9px!important;font-size:24px!important;line-height:1!important}
+.settings-modal .settings-list{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:18px 20px 12px!important;align-content:start!important;scrollbar-gutter:stable!important}
+.settings-modal .settings-row{min-height:68px!important;padding:12px 14px!important;border:1px solid rgba(255,255,255,.10)!important;border-radius:12px!important;background:rgba(255,255,255,.025)!important;text-align:left!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important}
+.settings-modal .settings-row:hover{background:rgba(255,255,255,.055)!important;border-color:rgba(92,156,234,.30)!important}
+.settings-modal .settings-row span:first-child{display:grid!important;gap:3px!important;min-width:0!important}
+.settings-modal .settings-row strong{font-size:12px!important;color:#f1f5f9!important}.settings-modal .settings-row small{font-size:9px!important;line-height:1.35!important;color:#92a2b5!important}
+.settings-modal .settings-note{flex:0 0 auto!important;margin:0!important;padding:0 20px 14px!important;color:#7f91a6!important;font-size:9px!important;line-height:1.45!important}
+.settings-modal #avSettingsDetail{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;padding:16px 20px!important;scrollbar-gutter:stable!important}
+.settings-modal .av-detail-head{position:sticky!important;top:-16px!important;z-index:15!important;margin:-16px -20px 8px!important;padding:16px 20px 12px!important;background:linear-gradient(180deg,#0d1928 78%,rgba(13,25,40,.96))!important;border-bottom:1px solid rgba(255,255,255,.07)!important}
+.settings-modal .av-back{min-width:90px!important;height:36px!important}
+.settings-modal .ds-settings-footer{flex:0 0 auto!important;min-height:58px!important;padding:10px 20px!important;border-top:1px solid rgba(255,255,255,.09)!important;background:#0b1624!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important}
+.settings-modal .ds-settings-footer span{font-size:9px!important;color:#8293a7!important;line-height:1.35!important}
+.settings-modal .ds-settings-footer .primary-button{height:36px!important;min-width:92px!important;padding:0 18px!important}
+.settings-modal.av-video-settings-open{width:min(860px,calc(100vw - 52px))!important;max-height:min(700px,calc(100vh - 42px))!important}
+.settings-modal.av-video-settings-open>form{max-height:min(700px,calc(100vh - 42px))!important}
+.settings-modal.av-video-settings-open #avSettingsDetail{overflow:auto!important;padding:16px 20px!important}
+.settings-modal.av-video-settings-open .av-detail-head{top:-16px!important;padding:16px 20px 12px!important}
+
+@media(max-width:760px){
+  .settings-modal{width:min(94vw,620px)!important}
+  .settings-modal .settings-list{grid-template-columns:1fr!important;padding:14px!important}
+  .settings-modal #avSettingsDetail{padding:14px!important}
+  .settings-modal .av-detail-head{margin:-14px -14px 8px!important;top:-14px!important;padding:14px!important}
+  .settings-modal .ds-settings-footer{padding:10px 14px!important}.settings-modal .ds-settings-footer span{display:none!important}
+}
+
+@media(max-width:1000px){body:not(.ds-in-meeting) #homeSection .ds-home-profile{grid-column:auto!important;grid-row:auto!important}}
