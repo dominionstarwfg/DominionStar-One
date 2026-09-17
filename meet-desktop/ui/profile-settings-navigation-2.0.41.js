@@ -4,9 +4,11 @@
   const q=s=>document.querySelector(s);
   const desktop=window.dominionDesktop||{};
   let authState=null;
+  let syncTimer=0;
+  let observer=null;
 
   function ensureStyles(){
-    if(q('style[data-ds-profile-settings-nav-2041]'))return;
+    if(q('style[data-ds-profile-settings-nav-2041]'))return true;
     const style=document.createElement('style');
     style.dataset.dsProfileSettingsNav2041='1';
     style.textContent=`
@@ -30,15 +32,23 @@
       @media(max-width:800px){.sidebar .ds-profile-nav{margin-top:auto}.sidebar .ds-profile-nav+.settings-nav{margin-top:6px}}
     `;
     document.head.append(style);
+    return true;
   }
 
   function initials(name){return String(name||'DominionStar Member').trim().split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]?.toUpperCase()||'').join('')||'DS';}
   function avatarUrl(user){const raw=String(user?.avatarUrl||'').trim();return /^https:\/\//i.test(raw)||/^data:image\//i.test(raw)?raw:'';}
   function paintNavAvatar(){
-    const host=q('.ds-profile-nav-avatar');if(!host)return;
-    const user=authState?.signedIn?authState.user:null,url=avatarUrl(user),label=initials(user?.name);
+    const host=q('.ds-profile-nav-avatar');if(!host)return false;
+    const user=authState?.signedIn?authState.user:null,url=avatarUrl(user),label=initials(user?.name),signature=`${url}|${label}`;
+    if(host.dataset.dsAvatarSignature===signature)return true;
+    host.dataset.dsAvatarSignature=signature;
     host.textContent='';host.classList.toggle('no-photo',!url);
-    if(url){const img=document.createElement('img');img.alt='';img.referrerPolicy='no-referrer';img.src=url;img.onerror=()=>{host.textContent=label;host.classList.add('no-photo');};host.append(img);}else host.textContent=label;
+    if(url){
+      const img=document.createElement('img');img.alt='';img.referrerPolicy='no-referrer';img.src=url;
+      img.onerror=()=>{host.dataset.dsAvatarSignature='';host.textContent=label;host.classList.add('no-photo');};
+      host.append(img);
+    }else host.textContent=label;
+    return true;
   }
 
   function openProfile(){
@@ -48,10 +58,13 @@
   }
 
   function installProfileNav(){
-    const sidebar=q('.sidebar'),settings=q('.settings-nav');if(!sidebar||!settings||q('.ds-profile-nav'))return false;
-    const button=document.createElement('button');button.type='button';button.className='nav-button ds-profile-nav';button.setAttribute('aria-label','Profile and profile picture');button.title='Profile';
-    button.innerHTML='<span class="ds-profile-nav-avatar no-photo">DS</span><span>Profile</span>';
-    button.onclick=openProfile;sidebar.insertBefore(button,settings);paintNavAvatar();return true;
+    const sidebar=q('.sidebar'),settings=q('.settings-nav');if(!sidebar||!settings)return false;
+    if(!q('.ds-profile-nav')){
+      const button=document.createElement('button');button.type='button';button.className='nav-button ds-profile-nav';button.setAttribute('aria-label','Profile and profile picture');button.title='Profile';
+      button.innerHTML='<span class="ds-profile-nav-avatar no-photo">DS</span><span>Profile</span>';
+      button.onclick=openProfile;sidebar.insertBefore(button,settings);
+    }
+    return paintNavAvatar();
   }
 
   function installSettingsProfileRow(){
@@ -62,16 +75,19 @@
   }
 
   function installSettingsDone(){
-    const form=q('#settingsDialog>form');if(!form||q('#settingsDialog .ds-settings-done-wrap'))return false;
-    const wrap=document.createElement('div');wrap.className='ds-settings-done-wrap';const done=document.createElement('button');done.type='button';done.className='primary-button ds-settings-done';done.textContent='Done';done.onclick=()=>q('#settingsDialog')?.close();wrap.append(done);form.append(wrap);return true;
+    const form=q('#settingsDialog>form');if(!form)return false;
+    if(!q('#settingsDialog .ds-settings-done-wrap')){
+      const wrap=document.createElement('div');wrap.className='ds-settings-done-wrap';const done=document.createElement('button');done.type='button';done.className='primary-button ds-settings-done';done.textContent='Done';done.onclick=()=>q('#settingsDialog')?.close();wrap.append(done);form.append(wrap);
+    }
+    return true;
   }
 
   function normalizeSettingsOnOpen(){
-    const dialog=q('#settingsDialog');if(!dialog)return;
+    const dialog=q('#settingsDialog');if(!dialog||dialog.dataset.dsSettingsNormalized)return Boolean(dialog);
+    dialog.dataset.dsSettingsNormalized='1';
     dialog.addEventListener('close',()=>{const form=dialog.querySelector('form');if(form)form.scrollTop=0;dialog.scrollTop=0;});
     const original=dialog.showModal?.bind(dialog);
-    if(original&&!dialog.dataset.dsSettingsShowWrapped){
-      dialog.dataset.dsSettingsShowWrapped='1';
+    if(original){
       dialog.showModal=function(){const form=dialog.querySelector('form');if(form)form.scrollTop=0;dialog.scrollTop=0;return original();};
     }
     dialog.addEventListener('click',event=>{
@@ -80,13 +96,21 @@
       const inside=event.clientX>=rect.left&&event.clientX<=rect.right&&event.clientY>=rect.top&&event.clientY<=rect.bottom;
       if(!inside)dialog.close();
     });
+    return true;
   }
 
   async function refreshAuth(){
     try{authState=await desktop.auth?.getState?.()||authState;}catch{}
     paintNavAvatar();
   }
-  function sync(){ensureStyles();installProfileNav();installSettingsProfileRow();installSettingsDone();paintNavAvatar();}
+
+  function sync(){
+    ensureStyles();
+    const ready=installProfileNav()&&installSettingsProfileRow()&&installSettingsDone()&&normalizeSettingsOnOpen();
+    if(ready&&observer){observer.disconnect();observer=null;}
+    return ready;
+  }
+  function scheduleSync(){if(syncTimer)return;syncTimer=setTimeout(()=>{syncTimer=0;sync();},32);}
 
   desktop.auth?.onChanged?.(state=>{authState=state;paintNavAvatar();});
   document.addEventListener('keydown',event=>{
@@ -95,8 +119,15 @@
     if(profile?.open){event.preventDefault();profile.close();return;}
     if(settings?.open){event.preventDefault();settings.close();}
   },true);
-  window.addEventListener('dominion:preference-change',sync,true);
-  const observer=new MutationObserver(sync);observer.observe(document.documentElement,{subtree:true,childList:true});
-  ensureStyles();normalizeSettingsOnOpen();sync();void refreshAuth();
+  window.addEventListener('dominion:preference-change',scheduleSync,true);
+
+  ensureStyles();
+  if(!sync()){
+    observer=new MutationObserver(scheduleSync);
+    observer.observe(document.documentElement,{subtree:true,childList:true});
+    setTimeout(scheduleSync,250);
+    setTimeout(scheduleSync,1000);
+  }
+  void refreshAuth();
   window.DominionProfileSettingsNavigation2041=Object.freeze({version:'2.0.41',sync,openProfile,refresh:refreshAuth});
 })();
