@@ -1,10 +1,31 @@
-name: DominionStar Meet Presenter Controls 2.0.27
+name: DominionStar Meet Presenter Controls 2.0.41
 
 on:
+  push:
+    branches:
+      - fix/profile-settings-navigation-2.0.41
+    paths:
+      - 'meet-desktop/src/share-service.mjs'
+      - 'meet-desktop/src/preload.cjs'
+      - 'meet-desktop/src/mac-share-presenter-overlay.mjs'
+      - 'meet-desktop/ui/presenter-toolbar.js'
+      - 'meet-desktop/ui/mac-presenter-toolbar.js'
+      - 'meet-desktop/ui/presenter-command-parity-2.0.27.js'
+      - 'meet-desktop/ui/share-controller.js'
+      - 'meet-desktop/ui/share-integration.js'
+      - 'meet-desktop/ui/auth-password.js'
+      - 'meet-desktop/scripts/verify-presenter-command-parity-2.0.27.mjs'
+      - '.github/workflows/presenter-command-parity-2.0.27.yml'
   pull_request:
     paths:
+      - 'meet-desktop/src/share-service.mjs'
+      - 'meet-desktop/src/preload.cjs'
+      - 'meet-desktop/src/mac-share-presenter-overlay.mjs'
       - 'meet-desktop/ui/presenter-toolbar.js'
+      - 'meet-desktop/ui/mac-presenter-toolbar.js'
       - 'meet-desktop/ui/presenter-command-parity-2.0.27.js'
+      - 'meet-desktop/ui/share-controller.js'
+      - 'meet-desktop/ui/share-integration.js'
       - 'meet-desktop/ui/auth-password.js'
       - 'meet-desktop/scripts/verify-presenter-command-parity-2.0.27.mjs'
       - '.github/workflows/presenter-command-parity-2.0.27.yml'
@@ -32,7 +53,12 @@ jobs:
         working-directory: meet-desktop
         run: |
           node --check ui/presenter-toolbar.js
+          node --check ui/mac-presenter-toolbar.js
           node --check ui/presenter-command-parity-2.0.27.js
+          node --check ui/share-controller.js
+          node --check ui/share-integration.js
+          node --check src/share-service.mjs
+          node --check src/mac-share-presenter-overlay.mjs
           node --check ui/auth-password.js
           node --check scripts/verify-presenter-command-parity-2.0.27.mjs
           node scripts/verify-presenter-command-parity-2.0.27.mjs
