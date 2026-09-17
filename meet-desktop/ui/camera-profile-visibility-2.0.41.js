@@ -43,7 +43,17 @@
     }
     const attempt=()=>{try{const p=video.play?.();if(p&&typeof p.catch==='function')p.catch(()=>{});}catch{}};
     attempt();
+    requestAnimationFrame(attempt);
+    setTimeout(attempt,80);
+    setTimeout(attempt,220);
     if(video.readyState<2){video.onloadedmetadata=attempt;video.oncanplay=attempt;}
+  }
+
+  function parkVideo(video){
+    if(!video)return;
+    try{video.pause?.();}catch{}
+    try{video.srcObject=null;}catch{}
+    video.dataset.dsVideoTrackId='';
   }
 
   function encryptionCandidates(){
@@ -83,7 +93,7 @@
     if(live){
       playVideo(preVideo,stream,track);playVideo(roomVideo,stream,track);
     }else{
-      for(const video of [preVideo,roomVideo]){if(!video)continue;try{video.pause?.();}catch{}}
+      parkVideo(preVideo);parkVideo(roomVideo);
     }
 
     if(preVideo){preVideo.hidden=!live;preVideo.setAttribute('aria-hidden',live?'false':'true');}
