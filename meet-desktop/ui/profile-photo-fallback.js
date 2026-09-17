@@ -156,3 +156,11 @@
   window.DominionProfilePhotoFallback=api;
   ensureStyles();void refreshAuth(true);paintAll();
 })();
+
+(()=>{
+  if(document.querySelector('script[data-ds-profile-settings-nav-loader]'))return;
+  const script=document.createElement('script');
+  script.src='./profile-settings-navigation-2.0.41.js';
+  script.dataset.dsProfileSettingsNavLoader='1';
+  document.head.append(script);
+})();
