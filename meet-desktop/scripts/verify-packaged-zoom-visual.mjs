@@ -53,14 +53,14 @@ try{
   const toolbar=await evaluate(`(()=>{const footer=document.querySelector('.meeting-footer'),fr=footer.getBoundingClientRect();const info=id=>{const b=document.querySelector('#'+id);if(!b)return {missing:true,left:0,right:0,width:0,height:0,icon:0,label:0,color:''};const r=b.getBoundingClientRect(),icon=b.querySelector('.ds-control-icon'),label=b.querySelector('.ds-control-label');return {missing:false,left:r.left,right:r.right,width:r.width,height:r.height,icon:icon?parseFloat(getComputedStyle(icon).width):0,label:label?parseFloat(getComputedStyle(label).fontSize):0,color:label?getComputedStyle(label).color:''};};const zones=[...footer.querySelectorAll(':scope > .ds-runtime-toolbar-zone')].map(node=>node.className);return {footer:{left:fr.left,right:fr.right,height:fr.height},zones,mic:info('roomMic'),camera:info('roomCamera'),share:info('roomShare'),participants:info('roomParticipants'),chat:info('roomChat'),reactions:info('roomReactions'),more:info('roomMore'),end:info('roomExitButton'),host:info('roomHostTools')};})()`);
   for(const key of ['mic','camera','share','participants','chat','reactions','more','end','host'])assert.equal(toolbar[key].missing,false,`${key} control was not mounted before visual measurement.`);
   assert.equal(toolbar.zones.length,3,'Meeting toolbar must retain independent left, center, and right runtime zones.');
-  assert.ok(toolbar.footer.height>=72,'Meeting toolbar is below readable desktop height.');
-  for(const key of ['mic','camera','share','participants','chat','reactions','more']){assert.ok(toolbar[key].icon>=27,`${key} icon is undersized.`);assert.ok(toolbar[key].label>=11.5,`${key} label is undersized.`);}
+  assert.ok(toolbar.footer.height>=55&&toolbar.footer.height<=57,`Meeting toolbar must remain at the approved 2.0.41 Zoom-reference height; received ${toolbar.footer.height}px.`);
+  for(const key of ['mic','camera','share','participants','chat','reactions','more']){assert.ok(toolbar[key].icon>=20.5,`${key} icon is below the approved 2.0.41 reference size.`);assert.ok(toolbar[key].label>=9.5,`${key} label is below the approved 2.0.41 reference size.`);}
   assert.ok(toolbar.mic.left-toolbar.footer.left<=24,'Audio must anchor the left toolbar zone.');
   assert.ok(toolbar.camera.left-toolbar.mic.right<=45,'Video must remain grouped with Audio.');
   assert.ok(toolbar.share.left-toolbar.camera.right>=60,'Primary meeting actions need Zoom-like separation from Audio/Video.');
   assert.ok(toolbar.footer.right-toolbar.end.right<=24,'End must anchor the far-right toolbar zone.');
   assert.match(toolbar.share.color,/rgb\((53, 198, 106|46, 204, 113|35, 198, 106)\)/,'Share Screen must use green primary-action emphasis.');
-  assert.ok(toolbar.host.label>=11.5,'Host Tools must be a readable first-class host control.');
+  assert.ok(toolbar.host.label>=9.5,'Host Tools must retain the approved compact Zoom-reference label size.');
 
   await evaluate(`document.querySelector('#roomParticipants').click();true`);await sleep(190);
   const participants=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),pr=panel.getBoundingClientRect(),br=document.querySelector('.meeting-body').getBoundingClientRect(),sr=document.querySelector('.stage').getBoundingClientRect(),searchWrap=panel.querySelector('.zoom-participant-search'),search=searchWrap?.querySelector('input'),head=panel.querySelector('.room-side-head strong'),footer=panel.querySelector('.zoom-participant-footer'),count=panel.querySelectorAll('#participantRoster [data-participant-id]').length;return {count,width:Math.round(pr.width),height:Math.round(pr.height),position:getComputedStyle(panel).position,mode:panel.dataset.dsRuntimeMode||'',inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10,centerDelta:Math.round(Math.abs((pr.left+pr.width/2)-(br.left+br.width/2))),searchVisible:Boolean(searchWrap&&!searchWrap.hidden&&getComputedStyle(searchWrap).display!=='none'),searchFont:search?parseFloat(getComputedStyle(search).fontSize):0,searchHeight:search?search.getBoundingClientRect().height:0,headFont:head?parseFloat(getComputedStyle(head).fontSize):0,footerVisible:Boolean(footer&&!footer.hidden),legacyVisible:Boolean(document.querySelector('#participantBulkActions')&&!document.querySelector('#participantBulkActions').hidden),stageRightGap:Math.round(br.right-sr.right)};})()`);
@@ -70,11 +70,11 @@ try{
   assert.ok(participants.centerDelta<=48,'Participants must open near the meeting center before the user moves it.');
   assert.ok(participants.width>=300&&participants.width<=420,'Desktop Participants width must stay readable and bounded.');
   assert.ok(Math.abs(participants.stageRightGap)<=2,'Opening Participants must not shrink the full-width live stage.');
-  assert.ok(participants.headFont>=14.5,'Participants heading is too small.');
+  assert.ok(participants.headFont>=11.5,'Participants heading is below the approved 2.0.41 compact reference size.');
   assert.equal(participants.footerVisible,true,'Zoom-style Participants Invite / Mute All / More footer is missing.');
   assert.equal(participants.legacyVisible,false,'Legacy bulk-control strip must not be visible.');
   assert.equal(participants.searchVisible,participants.count>=7,'Participant Search visibility must follow the useful-count threshold.');
-  if(participants.searchVisible)assert.ok(participants.searchFont>=12.5&&participants.searchHeight>=34,'Participant search is too small.');
+  if(participants.searchVisible)assert.ok(participants.searchFont>=9.5&&participants.searchHeight>=28,'Participant search is below the approved compact reference size.');
   await evaluate(`document.querySelector('#roomParticipants').click()`);
 
   await evaluate(`document.querySelector('#roomChat').click();true`);await sleep(190);
@@ -84,7 +84,7 @@ try{
   assert.equal(chat.mode,'floating','Normal desktop-width Chat must use the same floating application window model.');
   assert.ok(chat.centerDelta<=48,'Chat must open near the meeting center before the user moves it.');
   assert.ok(Math.abs(chat.stageRightGap)<=2,'Floating Chat must not shrink the full-width live stage.');
-  assert.ok(chat.headFont>=14.5&&chat.inputFont>=12.5,'Chat typography is undersized.');
+  assert.ok(chat.headFont>=11.5&&chat.inputFont>=9.5,'Chat typography is below the approved compact 2.0.41 reference size.');
   assert.equal(chat.policyVisible,false,'Chat policy must not permanently occupy the panel header.');
   assert.equal(chat.moreVisible,true,'Host chat options must be behind the More control.');
   await evaluate(`document.querySelector('#roomChat').click()`);
@@ -98,18 +98,20 @@ try{
   await evaluate(`document.querySelector('.ds-reaction-tray,.meeting-reaction-menu')?.remove()`);
 
   await evaluate(`document.querySelector('#roomMore').click();true`);
-  // The final transient-menu bridge uses a MutationObserver. Mutation delivery
-  // happens at the microtask checkpoint before paint, so inspect the paint-ready
-  // menu state rather than the same synchronous click stack.
+  // 2.0.41 supersedes the legacy list menu with the screenshot-reference tool
+  // grid. Read the actual label span so decorative icon glyphs do not corrupt
+  // semantic command assertions (e.g. adjacent spans flatten to "⚙Settings").
   await sleep(0);
-  const more=await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu,.ds-command-menu'),buttons=[...menu.querySelectorAll('button')];return {font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,hasSettings:buttons.some(b=>/Meeting settings/i.test(b.textContent||'')),hasHostDuplicate:buttons.some(b=>String(b.textContent||'').trim()==='Host tools')};})()`);
-  assert.ok(more.font>=11.5,'More menu text is too small.');
-  assert.equal(more.hasSettings,true,'Meeting settings must remain in More.');
+  const more=await evaluate(`(()=>{const menus=[...document.querySelectorAll('.ds-ref-meeting-more-grid,.meeting-more-menu,.ds-command-menu')],isVisible=node=>Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden'),menu=menus.find(node=>node.classList.contains('ds-ref-meeting-more-grid')&&isVisible(node))||menus.find(isVisible)||null,buttons=menu?[...menu.querySelectorAll('button')]:[],label=button=>String(button.querySelector('span:last-child')?.textContent||button.textContent||'').replace(/\\s+/g,' ').trim();return {menuClass:menu?.className||'',font:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||99)):0,labels:buttons.map(label),hasSettings:buttons.some(b=>label(b)==='Settings'),hasHostDuplicate:buttons.some(b=>label(b).toLowerCase()==='host tools')};})()`);
+  console.log('MORE_VISUAL_DIAGNOSTIC',JSON.stringify(more));
+  assert.ok(more.menuClass,'More must open a visible menu surface.');
+  assert.ok(more.font>=8.5,'More menu text is below the approved 2.0.41 compact reference size.');
+  assert.equal(more.hasSettings,true,'Settings must remain in More.');
   assert.equal(more.hasHostDuplicate,false,'Host Tools must not be duplicated in More when it has a primary toolbar control.');
   await sleep(120);
   assert.deepEqual(runtimeErrors,[],'Packaged meeting emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
 
-  console.log('DOMINIONSTAR_PACKAGED_ZOOM_VISUAL_OK stable-three-zone-toolbar icons-28 labels-12 audio-left video-left actions-centered end-right share-green host-tools participants-right-docked search-when-useful chat-right-docked readable-text reactions-left more-readable no-uncaught-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_ZOOM_VISUAL_OK stable-three-zone-toolbar reference-footer-56 icons-21 labels-10 audio-left video-left actions-centered end-right share-green host-tools participants-floating compact-reference-text reactions-left more-reference-text no-uncaught-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('visual gate shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);

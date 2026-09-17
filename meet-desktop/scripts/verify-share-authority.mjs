@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createShareSourceAuthority } from '../src/share-source-authority.mjs';
 
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
+const pkg=JSON.parse(read('package.json'));
 const service=read('src/share-service.mjs');
 const main=read('src/main.mjs');
 const preload=read('src/preload.cjs');
@@ -20,6 +21,8 @@ const annotation=read('ui/share-annotation.js');
 
 const requireText=(source,needle,message)=>assert.ok(source.includes(needle),message);
 const rejectText=(source,needle,message)=>assert.ok(!source.includes(needle),message);
+const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
+const atLeast=(major,minor,patch)=>versionMajor>major||(versionMajor===major&&(versionMinor>minor||(versionMinor===minor&&versionPatch>=patch)));
 
 // Source enumeration is single-flight per source family and remains bounded.
 let enumerateCount=0;
@@ -94,15 +97,28 @@ requireText(picker,'const next=[...(screenResult?.sources||[]),...(windowResult?
 requireText(picker,"const firstScreen=sources.find",'Screens view must prefer a desktop selection by default.');
 requireText(picker,'source.thumbnail','Share chooser must render real source previews.');
 requireText(picker,'selectedId=String(remembered?.id||firstScreen?.id||sources[0]?.id||\'\')','Preview refresh must preserve the selected source when possible.');
-requireText(pickerHtml,'data-tab="screens">Basic','Share chooser is missing the Zoom-familiar Basic source tab.');
-requireText(pickerHtml,'data-tab="advanced">Advanced','Share chooser is missing Advanced.');
-rejectText(pickerHtml,'data-tab="files"','Share chooser must not expose dead Files/cloud controls.');
+if(atLeast(2,0,41)){
+  // 2.0.41 is governed by the supplied screenshot reference. It supersedes
+  // the earlier Basic / Advanced labels without weakening the actual source,
+  // capture, or disabled-capability requirements above and below.
+  requireText(pickerHtml,'data-tab="screens">Screens','2.0.41+ chooser is missing the approved Screens tab.');
+  requireText(pickerHtml,'data-tab="files" aria-disabled="true"','2.0.41+ chooser must retain Files as a truthful disabled reference position.');
+  requireText(pickerHtml,'data-tab="advanced">More','2.0.41+ chooser is missing the approved More tab.');
+  requireText(pickerHtml,'Presenter layout','2.0.41+ chooser is missing Presenter layout.');
+  requireText(pickerHtml,'Share DominionStar Meet windows','2.0.41+ More/share-options authority is missing meeting-window visibility.');
+  requireText(pickerCss,'grid-template-columns:repeat(3,minmax(150px,1fr))','2.0.41+ source gallery must retain the approved three-column desktop geometry.');
+  requireText(pickerCss,'.tab.active{background:#3e4b58;color:#fff}','2.0.41+ active share tab must retain the screenshot-reference selected state.');
+}else{
+  requireText(pickerHtml,'data-tab="screens">Basic','Share chooser is missing the Zoom-familiar Basic source tab.');
+  requireText(pickerHtml,'data-tab="advanced">Advanced','Share chooser is missing Advanced.');
+  rejectText(pickerHtml,'data-tab="files"','Share chooser must not expose dead Files/cloud controls before the 2.0.41 reference supersession.');
+  requireText(pickerHtml,'Show DominionStar Meet windows','Advanced must expose the intentional meeting-window visibility setting.');
+  requireText(pickerCss,'grid-template-columns:repeat(auto-fill,minmax(170px,1fr))','Screens view must retain dense responsive source tiles.');
+  requireText(pickerCss,'.tab.active{color:#fff;border-bottom-color:var(--blue)','Active share tab must retain the Zoom-style underline.');
+}
 requireText(pickerHtml,'Share sound','Share chooser is missing Share sound.');
 requireText(pickerHtml,'Optimize for video sharing','Share chooser is missing video optimization.');
-requireText(pickerHtml,'Show DominionStar Meet windows','Advanced must expose the intentional meeting-window visibility setting.');
-requireText(pickerHtml,'Refresh automatically','Advanced must expose bounded live preview refresh.');
-requireText(pickerCss,'grid-template-columns:repeat(auto-fill,minmax(170px,1fr))','Screens view must retain dense responsive source tiles.');
-requireText(pickerCss,'.tab.active{color:#fff;border-bottom-color:var(--blue)','Active share tab must retain the Zoom-style underline.');
+requireText(pickerHtml,'Refresh automatically','Advanced/More must expose bounded live preview refresh.');
 
 // Capture stays single-owner, cannot hang forever, and preserves Pause/Resume.
 assert.ok((controller.match(/getDisplayMedia/g)||[]).length>=2,'ShareController must remain the only display-capture owner.');
@@ -207,4 +223,4 @@ requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
 
-console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK custom-only-preshare no-system-picker bounded-share-start zoom-screens-advanced real-desktop-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state one-way-capture-start share-companions first-click-presenter-controls direct-stop-share');
+console.log('DOMINIONSTAR_SHARE_AUTHORITY_OK carried-forward-on='+pkg.version+' custom-only-preshare no-system-picker bounded-share-start zoom-screens-files-more real-desktop-window-grid single-owner-capture pause-freeze transactional-new-share idempotent-annotation-state one-way-capture-start share-companions first-click-presenter-controls direct-stop-share');
