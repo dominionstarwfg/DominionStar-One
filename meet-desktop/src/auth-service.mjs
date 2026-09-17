@@ -19,11 +19,12 @@ function userSummary(user,profile=null){
   const metadata=user.user_metadata||{};
   const preferred=String(profile?.preferred_name||'').trim();
   const full=String(profile?.full_name||'').trim();
+  const profileAvatar=profile?.avatar_url||profile?.profile_photo_url||profile?.photo_url||profile?.picture_url||profile?.image_url||'';
   return {
     id:String(user.id||''),
     email:String(profile?.email||user.email||''),
     name:preferred||full||String(metadata.full_name||metadata.name||user.email?.split('@')[0]||'DominionStar Member'),
-    avatarUrl:String(profile?.avatar_url||metadata.avatar_url||metadata.picture||''),
+    avatarUrl:String(profileAvatar||metadata.avatar_url||metadata.picture||''),
     rank:String(profile?.rank||''),
     agentCode:String(profile?.agent_code||''),
     isFounder:Boolean(profile?.is_founder),
@@ -72,7 +73,7 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     if(error||!data?.session)return {ready:true,signedIn:false,user:null,error:error?.message||''};
     let profile=null;
     try{
-      const result=await client.from('member_profiles').select('full_name,preferred_name,email,rank,agent_code,is_founder,avatar_path').eq('id',data.session.user.id).maybeSingle();
+      const result=await client.from('member_profiles').select('*').eq('id',data.session.user.id).maybeSingle();
       if(!result.error){
         profile=result.data||null;
         if(profile?.avatar_path){const avatarUrl=await signedAvatarUrl(profile.avatar_path);if(avatarUrl)profile={...profile,avatar_url:avatarUrl};}
