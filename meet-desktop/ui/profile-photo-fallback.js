@@ -150,4 +150,11 @@
   });
   window.DominionProfilePhotoFallback=api;
   ensureStyles();void refreshAuth(true);paintAll();
+
+  if(!document.querySelector('script[data-ds-camera-profile-visibility-2041]')){
+    const repair=document.createElement('script');
+    repair.src='./camera-profile-visibility-2.0.41.js';
+    repair.dataset.dsCameraProfileVisibility2041='1';
+    document.body.append(repair);
+  }
 })();
