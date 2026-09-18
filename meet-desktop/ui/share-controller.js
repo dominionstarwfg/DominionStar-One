@@ -105,18 +105,30 @@
   async function captureFreezeFrame(videoElement){
     const track=state.liveStream?.getVideoTracks?.()[0];
     if(!track)throw new Error('Unable to freeze the shared frame.');
+    const bounded=async(promise,ms)=>{
+      let timer=0;
+      try{return await Promise.race([promise,new Promise(resolve=>{timer=setTimeout(()=>resolve(null),ms);})]);}
+      finally{if(timer)clearTimeout(timer);}
+    };
     const drawSource=async()=>{
-      if(Number(videoElement?.videoWidth)>1&&Number(videoElement?.videoHeight)>1)return {source:videoElement,width:Number(videoElement.videoWidth),height:Number(videoElement.videoHeight),close:null};
+      // The local shared-video surface is the cheapest and most reliable source.
+      // Give it a short bounded chance to expose a decoded frame before using
+      // lower-level capture APIs.
+      for(let attempt=0;attempt<5;attempt+=1){
+        if(Number(videoElement?.videoWidth)>1&&Number(videoElement?.videoHeight)>1)return {source:videoElement,width:Number(videoElement.videoWidth),height:Number(videoElement.videoHeight),close:null};
+        await new Promise(resolve=>setTimeout(resolve,40));
+      }
       if(typeof ImageCapture==='function'){
         try{
-          const bitmap=await new ImageCapture(track).grabFrame();
-          return {source:bitmap,width:Math.max(2,Number(bitmap.width)||1280),height:Math.max(2,Number(bitmap.height)||720),close:()=>bitmap.close?.()};
+          const bitmap=await bounded(new ImageCapture(track).grabFrame(),650);
+          if(bitmap)return {source:bitmap,width:Math.max(2,Number(bitmap.width)||1280),height:Math.max(2,Number(bitmap.height)||720),close:()=>bitmap.close?.()};
         }catch{}
       }
       if(typeof MediaStreamTrackProcessor==='function'){
         const processor=new MediaStreamTrackProcessor({track}),reader=processor.readable.getReader();
         try{
-          const {value:frame,done}=await reader.read();
+          const packet=await bounded(reader.read(),650);
+          const frame=packet?.value,done=Boolean(packet?.done);
           if(!done&&frame)return {source:frame,width:Math.max(2,Number(frame.displayWidth||frame.codedWidth)||1280),height:Math.max(2,Number(frame.displayHeight||frame.codedHeight)||720),close:()=>frame.close?.()};
         }finally{try{await reader.cancel();}catch{}try{reader.releaseLock();}catch{}}
       }
