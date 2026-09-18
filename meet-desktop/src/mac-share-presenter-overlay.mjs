@@ -50,11 +50,17 @@ if(process.platform==='darwin'){
     if(!isAlive(main))return false;
     try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
     try{if(main.isMinimized?.())main.restore();}catch{}
-    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
+    // During active share the meeting renderer is deliberately parked behind
+    // the right-side video dock. Never raise it above the native presenter UI.
+    if(shareActive&&!shareState.meetingVisible){
+      try{main.setAlwaysOnTop(false);}catch{}
+    }else{
+      try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
+    }
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
-    try{main.showInactive?.();}catch{}
     try{main.setOpacity?.(1);}catch{}
-    try{toolbarWindow?.moveTop?.();}catch{}
+    try{if(!main.isVisible?.())main.showInactive?.();}catch{}
+    try{toolbarWindow?.moveTop?.();videoWindow?.moveTop?.();}catch{}
     return true;
   }
   function rememberCaptureOwnerWindow(main){
@@ -65,13 +71,27 @@ if(process.platform==='darwin'){
     try{opacity=Number(main.getOpacity?.()??1)||1;}catch{}
     captureOwnerWindowState={minimumSize,bounds,opacity};
   }
-  function hideCaptureOwnerWindow(main=mainWindow()){
+  function parkCaptureOwnerBehindVideoDock(main=mainWindow()){
     if(!isAlive(main))return false;rememberCaptureOwnerWindow(main);
-    // Zoom-style presenter mode: the meeting window is not part of the shared
-    // stage. Background throttling is already disabled, so the renderer remains
-    // authoritative while the native toolbar and video dock stay visible.
+    // A fully hidden BrowserWindow can stop servicing renderer work on some
+    // physical Macs even with background throttling disabled. Keep the capture
+    // owner composited, but place it exactly behind the opaque participant/video
+    // dock so the shared stage still shows only content + presenter chrome.
     try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
-    try{main.hide();}catch{}
+    const display=displayForMain(),area=display.workArea||display.bounds;
+    let dockBounds=null;
+    try{dockBounds=isAlive(videoWindow)?videoWindow.getBounds():null;}catch{}
+    const width=Math.max(252,Math.min(360,Number(dockBounds?.width)||252));
+    const height=Math.max(174,Math.min(250,Number(dockBounds?.height)||174));
+    const x=Math.round(Number(dockBounds?.x) || (area.x+area.width-width-18));
+    const y=Math.round(Number(dockBounds?.y) || (area.y+78));
+    try{main.setAlwaysOnTop(false);}catch{}
+    try{main.setMinimumSize(1,1);}catch{}
+    try{main.setBounds({x,y,width,height},false);}catch{}
+    try{main.setIgnoreMouseEvents(true,{forward:false});}catch{}
+    try{main.setOpacity?.(1);}catch{}
+    try{main.showInactive?.();}catch{try{main.show();}catch{}}
+    try{videoWindow?.moveTop?.();toolbarWindow?.moveTop?.();}catch{}
     return true;
   }
   function restoreCaptureOwnerWindow(main=mainWindow(),{focus=false}={}){
@@ -117,6 +137,14 @@ if(process.platform==='darwin'){
     if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(190,Math.min(360,current.width||252));height=Math.max(132,Math.min(250,current.height||174));}catch{}}
     const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+78);
     try{videoWindow.setBounds({x,y,width,height},false);}catch{}
+    if(shareActive&&!shareState.meetingVisible){
+      const main=captureOwnerWindow();
+      if(isAlive(main)){
+        try{main.setBounds({x,y,width,height},false);}catch{}
+        try{main.setAlwaysOnTop(false);}catch{}
+        try{videoWindow.moveTop?.();toolbarWindow?.moveTop?.();}catch{}
+      }
+    }
   }
   function setVideoLayout(mode='speaker'){
     videoLayout=['speaker','gallery','hide'].includes(String(mode))?String(mode):'speaker';
@@ -191,9 +219,10 @@ if(process.platform==='darwin'){
     shareState={...shareState,meetingVisible:true};publishState();return true;
   }
   function hideMeeting(){
-    const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
-    hideCaptureOwnerWindow(main);
-    shareState={...shareState,meetingVisible:false};publishState();try{toolbarWindow?.moveTop?.();videoWindow?.moveTop?.();}catch{}return true;
+    const main=mainWindow();if(!isAlive(main))return false;
+    shareState={...shareState,meetingVisible:false};
+    parkCaptureOwnerBehindVideoDock(main);
+    publishState();try{toolbarWindow?.moveTop?.();videoWindow?.moveTop?.();}catch{}return true;
   }
   function showOverlays(){
     if(!shareActive)return;
