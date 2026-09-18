@@ -13,12 +13,10 @@ if(process.platform==='darwin'){
 }
 
 // Physical-Mac capture baseline guard.
-// The capture-owning meeting renderer must remain physically composited while
-// getDisplayMedia is live. The 2% opacity park used by earlier 2.0.41 candidates
-// proved unsafe on a real Mac: presenter commands reached the main process while
-// the renderer stopped servicing Pause/Stop. Keep the window fully opaque and
-// compact it only after capture startup; content protection prevents recursive
-// capture while the native presenter surfaces remain on top.
+// Zoom-style presenter mode hides the meeting window while the shared desktop
+// becomes the stage. Keep the capture-owning renderer scheduled with Chromium
+// background throttling disabled, but do not leave a compact/tiny Meet window
+// visible on the shared desktop.
 let physicalShareActive=false;
 let physicalShareStartupUntil=0;
 let physicalShareParkTimer=null;
@@ -48,20 +46,12 @@ if(process.platform==='darwin'){
       physicalShareParkTimer=null;
       if(!physicalShareActive)return;
       const main=mainMeetingWindow();if(!main||main.isDestroyed())return;
-      // Keep a real composited surface alive. A nearly transparent BrowserWindow
-      // can become occluded/throttled by macOS even with Chromium backgrounding
-      // switches disabled, which makes the floating toolbar look responsive
-      // while the capture renderer no longer executes commands.
-      const before=main.getBounds();
-      const width=Math.min(360,Math.max(320,Math.round(before.width*.3)));
-      const height=Math.min(250,Math.max(200,Math.round(width*.62)));
-      const x=Math.round(before.x+Math.max(0,before.width-width-18));
-      const y=Math.round(before.y+Math.max(40,Math.min(78,before.height-height-18)));
+      // Hidden does not mean throttled here: Electron keeps Page Visibility
+      // visible when backgroundThrottling is disabled. This preserves the
+      // capture renderer while leaving the desktop stage completely clear.
       try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
       try{originalSetOpacity.call(main,1);}catch{}
-      try{main.setMinimumSize(300,190);}catch{}
-      try{main.setBounds({x,y,width,height},false);}catch{}
-      try{originalSetIgnoreMouseEvents.call(main,true);}catch{}
+      try{main.hide();}catch{}
     },PHYSICAL_SHARE_STARTUP_MS);
   });
   ipcMain.on('mac-share:capture-stopped',()=>{
