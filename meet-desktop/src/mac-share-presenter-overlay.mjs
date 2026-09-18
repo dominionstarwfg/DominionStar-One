@@ -12,6 +12,8 @@ if(process.platform==='darwin'){
   let toolbarWindow=null;
   let borderWindows=[];
   let videoWindow=null;
+  let captureOwnerWebContents=null;
+  let captureOwnerWindowState=null;
   let shareActive=false;
   let toolbarReady=false;
   let toolbarMenuOpen=false;
@@ -28,7 +30,13 @@ if(process.platform==='darwin'){
   const bordersReady=()=>borderWindows.length===4&&borderWindows.every(isAlive);
   const isBorderWindow=win=>borderWindows.includes(win);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const captureOwnerWindow=()=>{
+    const wc=captureOwnerWebContents;
+    if(!wc||wc.isDestroyed?.())return null;
+    try{const win=BrowserWindow.fromWebContents(wc);return isAlive(win)?win:null;}catch{return null;}
+  };
   const mainWindow=()=>{
+    const owner=captureOwnerWindow();if(owner)return owner;
     const windows=BrowserWindow.getAllWindows().filter(isAlive);
     return windows.find(win=>String(win.webContents?.getURL?.()||'').includes('/ui/index.html'))
       ||windows.find(win=>win!==toolbarWindow&&!isBorderWindow(win)&&win!==videoWindow&&!String(win.webContents?.getURL?.()||'').includes('mac-presenter-toolbar.html')&&!String(win.webContents?.getURL?.()||'').includes('mac-share-video.html')&&win.isVisible?.())
@@ -45,9 +53,32 @@ if(process.platform==='darwin'){
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     try{main.showInactive?.();}catch{}
-    try{if(Number(main.getOpacity?.()||0)<0.01)main.setOpacity?.(0.02);}catch{}
+    try{main.setOpacity?.(1);}catch{}
     try{toolbarWindow?.moveTop?.();}catch{}
     return true;
+  }
+  function rememberCaptureOwnerWindow(main){
+    if(!isAlive(main)||captureOwnerWindowState)return;
+    let minimumSize=[960,640],bounds=null,opacity=1;
+    try{minimumSize=main.getMinimumSize();}catch{}
+    try{bounds={...main.getBounds()};}catch{}
+    try{opacity=Number(main.getOpacity?.()??1)||1;}catch{}
+    captureOwnerWindowState={minimumSize,bounds,opacity};
+  }
+  function compactCaptureOwnerWindow(main=mainWindow()){
+    if(!isAlive(main))return false;rememberCaptureOwnerWindow(main);const display=displayForMain(),area=display.workArea||display.bounds;
+    const size=24,x=Math.round(area.x+area.width-size-2),y=Math.round(area.y+area.height-size-2);
+    try{main.setMinimumSize(1,1);}catch{}try{main.setBounds({x,y,width:size,height:size},false);}catch{}
+    try{main.setIgnoreMouseEvents(true,{forward:false});}catch{}try{main.setOpacity?.(1);}catch{}
+    try{main.showInactive?.();}catch{}return true;
+  }
+  function restoreCaptureOwnerWindow(main=mainWindow()){
+    if(!isAlive(main))return false;const saved=captureOwnerWindowState;
+    try{main.setIgnoreMouseEvents(false);}catch{}
+    if(saved?.minimumSize){try{main.setMinimumSize(...saved.minimumSize);}catch{}}
+    if(saved?.bounds){try{main.setBounds(saved.bounds,false);}catch{}}
+    try{main.setOpacity?.(saved?.opacity??1);}catch{}
+    try{main.showInactive?.();}catch{}return true;
   }
   async function boundedLoad(label,loader){
     let timer=0;
@@ -157,18 +188,16 @@ if(process.platform==='darwin'){
       .finally(()=>{preparing=null;});return preparing;
   }
   function showMeeting(){
-    const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
-    try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(1);}catch{}
+    const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);restoreCaptureOwnerWindow(main);
     try{main.webContents.send('mac-share:show-meeting');}catch{}
     try{main.show();main.focus();}catch{}
     shareState={...shareState,meetingVisible:true};publishState();return true;
   }
   function hideMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
-    // Keep the capture-owning renderer fully composited. Near-zero opacity on
-    // physical macOS can starve renderer work while display capture continues,
-    // which makes presenter controls appear clickable but inert.
-    try{main.setIgnoreMouseEvents(true);}catch{}try{main.setOpacity?.(1);}catch{}
+    // Keep the capture renderer alive as a tiny protected compositor surface
+    // instead of leaving the full meeting window behind the shared desktop.
+    compactCaptureOwnerWindow(main);
     shareState={...shareState,meetingVisible:false};publishState();try{toolbarWindow?.moveTop?.();}catch{}return true;
   }
   function showOverlays(){
@@ -183,9 +212,11 @@ if(process.platform==='darwin'){
   }
   function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:92},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideBorder();}
   function resetSharePresentation(reason='capture-stopped'){
+    const owner=captureOwnerWindow();if(isAlive(owner))restoreCaptureOwnerWindow(owner);
     shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
     for(const [deliveryId] of [...presenterDeliveries])settlePresenterDelivery(deliveryId,{ok:false,sent:false,acknowledged:false,error:String(reason||'capture-stopped'),deliveryId});
     presenterCommandQueue.splice(0,presenterCommandQueue.length);
+    captureOwnerWebContents=null;captureOwnerWindowState=null;
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'capture-stopped')}`);
     return {ok:true,recovered:true,reason:String(reason||'capture-stopped')};
   }
@@ -217,12 +248,15 @@ if(process.platform==='darwin'){
   }
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
-  ipcMain.handle('mac-share:presenter-next-command',(event)=>{const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
-  ipcMain.on('share:capture-started',(_event,state={})=>{shareActive=true;shareState={...shareState,...state,meetingVisible:false};wakeMain();showOverlays();});
-  ipcMain.on('mac-share:state',(_event,state={})=>{if(!shareActive)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
-  ipcMain.on('mac-share:capture-stopped',()=>{resetSharePresentation('capture-stopped');});
+  ipcMain.handle('mac-share:presenter-next-command',(event)=>{const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
+  ipcMain.on('share:capture-started',(_event,state={})=>{
+    captureOwnerWebContents=_event.sender;const owner=captureOwnerWindow();if(isAlive(owner))rememberCaptureOwnerWindow(owner);
+    shareActive=true;shareState={...shareState,...state,meetingVisible:false};wakeMain(owner);hideMeeting();showOverlays();
+  });
+  ipcMain.on('mac-share:state',(event,state={})=>{if(!shareActive||event.sender!==captureOwnerWebContents)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
+  ipcMain.on('mac-share:capture-stopped',(event)=>{if(captureOwnerWebContents&&event.sender!==captureOwnerWebContents)return;resetSharePresentation('capture-stopped');});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
-    const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;removeQueuedPresenterDelivery(deliveryId);
+    const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return;removeQueuedPresenterDelivery(deliveryId);
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=${deliveryId} command=${String(payload?.command||'')} accepted=${payload?.accepted?1:0}`);
     settlePresenterDelivery(deliveryId,{ok:Boolean(payload?.accepted),sent:true,acknowledged:true,deliveryId,error:payload?.accepted?'':String(payload?.error||'presenter_command_rejected')});
   });
