@@ -12,6 +12,8 @@ const intelligence=read('ui/physical-intelligence-2.0.41.js');
 const shareService=read('src/share-service.mjs');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const relaunch=read('src/relaunch-service.mjs');
+const main=read('src/main.mjs');
+const boot=read('src/bootstrap.mjs');
 
 new Function(js);
 new Function(presenter);
@@ -64,9 +66,11 @@ assert(intelligence.includes('desktop.sharePicker?.choose?.(sourceId,options)')&
 assert(intelligence.includes("version:'2.0.41-picker-first-identity-aware-permission-zoom-handoff'"),'Physical share authority must identify the permission-aware Zoom handoff.');
 
 assert(shareService.includes('function parkMacMeetingWindow({preCapture=false}={})')&&shareService.includes('parkMacMeetingWindow({preCapture:true})'),'The main macOS meeting window must enter presenter mode before getDisplayMedia begins.');
-assert(shareService.includes('main.setOpacity?.(0.02)')&&shareService.includes('main.setIgnoreMouseEvents(true)'),'Presenter mode must park the capture-owning renderer at near-zero opacity instead of hiding/minimizing it.');
-assert(shareService.includes('protectMeetingChrome(main,true)')&&shareService.includes('main.webContents?.setBackgroundThrottling?.(false)'),'The parked meeting renderer must be capture-protected and kept scheduled.');
-assert(shareService.includes('captureStartWatchdog=setTimeout')&&shareService.includes('restoreMainWindowAfterShare()'),'A failed capture start must restore the meeting instead of leaving an invisible parked window.');
+assert(shareService.includes('main.setOpacity?.(1)')&&!shareService.includes('main.setOpacity?.(0.02)'),'Physical presenter mode must keep the capture-owning renderer fully composited; the rejected near-zero-opacity park must not return.');
+assert(shareService.includes('if(!preCapture){try{main.setIgnoreMouseEvents(true)')&&shareService.includes('protectMeetingChrome(main,true)'),'Presenter mode must stay capture-protected while deferring mouse passthrough until capture is actually starting.');
+assert(shareService.includes('main.webContents?.setBackgroundThrottling?.(false)')&&boot.includes('originalSetOpacity.call(main,1)')&&boot.includes('main.setBounds({x,y,width,height},false)'),'The physical Mac capture renderer must remain scheduled, opaque and compactly composited instead of becoming occluded.');
+assert(shareService.includes('captureStartWatchdog=setTimeout')&&shareService.includes('restoreMainWindowAfterShare()'),'A failed capture start must restore the meeting instead of leaving a parked window.');
+assert(shareService.includes('function forceStopShareChrome')&&main.includes("shareService?.forceStop?.('render-process-gone')"),'If the meeting renderer exits during capture, screen-share chrome must fail closed instead of remaining stuck.');
 assert(macOverlay.includes("setAlwaysOnTop(true,'screen-saver',1)"),'The green share boundary must sit above Dock/menu surfaces around the entire display.');
 assert(macOverlay.includes('deliverPresenterCommandWithRetry')&&macOverlay.includes('wakeMain(main)'),'Physical presenter commands must actively keep the capture-owning renderer scheduled and retry bounded delivery.');
 assert(macOverlay.includes("normalized==='layout-hide'")&&macOverlay.includes("setVideoLayout('gallery')")&&macOverlay.includes("setVideoLayout('speaker')"),'Zoom-style speaker/gallery/hide video-panel layouts must be handled locally by the Mac presenter surface.');
@@ -74,4 +78,4 @@ assert(macOverlay.includes("normalized==='layout-hide'")&&macOverlay.includes("s
 assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
 assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance module version must be explicit.');
 
-console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_2_0_41_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions six-second-float canonical-presenter-new-share real-source-recheck inline-macos-permission-recovery identity-aware-tcc-reset two-second-zoom-handoff pre-capture-presenter-park bounded-native-command-retry full-display-border local-video-layout readable-settings');
+console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_2_0_41_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat single-owner-clickable-reactions six-second-float canonical-presenter-new-share real-source-recheck inline-macos-permission-recovery identity-aware-tcc-reset two-second-zoom-handoff composited-capture-renderer fail-closed-stop bounded-native-command-retry full-display-border local-video-layout readable-settings');
