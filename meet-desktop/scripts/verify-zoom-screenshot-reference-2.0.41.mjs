@@ -154,14 +154,14 @@ has(macToolbarCss,'.share-strip','Native presenter toolbar must retain a dedicat
 has(macToolbarCss,'background:#27c96b','Native presenter toolbar must include the green live-sharing strip.');
 has(macToolbarCss,'.toolbar.auto-hidden','Native presenter toolbar must auto-hide its controls without hiding sharing state.');
 has(macToolbarCss,'.stop-share-icon svg','Native Stop Share vector icon styling is missing.');
-has(macToolbarJs,'const nativeBridge=desktop.macShare||null','Native presenter toolbar must retain the macOS acknowledged fallback bridge.');
-has(macToolbarJs,'const rendererBridge=desktop.presenter||null','Native presenter toolbar must expose the direct meeting-renderer bridge.');
-has(macToolbarJs,'result=await nativeBridge.command(normalized)','Native presenter toolbar must retain acknowledged Mac fallback delivery.');
-has(macToolbarJs,'result=await rendererBridge.command(command)','Native presenter toolbar must execute live meeting controls through the direct renderer bridge.');
-const directFirst=macToolbarJs.indexOf('try{return await sendRenderer(normalized);}');
-const nativeFallback=macToolbarJs.indexOf('if(nativeBridge?.command)return sendNative(normalized);');
-assert.ok(directFirst>=0&&nativeFallback>directFirst,'Native presenter toolbar must route live meeting controls direct-first, with native acknowledgement only as fallback.');
-has(macToolbarJs,"transport:rendererBridge?.command?'presenter-direct-first'",'Native presenter toolbar must expose direct-first transport authority for packaged QA.');
+has(macToolbarJs,'const nativeBridge=desktop.macShare||null','Native presenter toolbar must retain the macOS acknowledged command bridge.');
+has(macToolbarJs,'const rendererBridge=desktop.presenter||null','Native presenter toolbar must retain the generic renderer bridge as a fallback.');
+has(macToolbarJs,'result=await nativeBridge.command(normalized)','Native presenter toolbar must execute commands through acknowledged Mac delivery.');
+has(macToolbarJs,'result=await rendererBridge.command(command)','Native presenter toolbar must retain direct renderer fallback delivery.');
+const nativeFirst=macToolbarJs.indexOf('if(nativeBridge?.command)return await sendNative(normalized);');
+const rendererFallback=macToolbarJs.indexOf('return await sendRenderer(normalized);');
+assert.ok(nativeFirst>=0&&rendererFallback>nativeFirst,'Native presenter toolbar must route controls through acknowledged native delivery first, with direct renderer delivery only as fallback.');
+has(macToolbarJs,"transport:nativeBridge?.command?'macShare-ack-first'",'Native presenter toolbar must expose native acknowledgement-first transport authority for packaged QA.');
 has(macToolbarJs,"const label=q('#stopShareLabel')",'Stop Share state feedback must preserve the vector icon.');
 lacks(macToolbarJs,"textContent='■",'Stop Share runtime state must not reintroduce a text-square icon.');
 has(macToolbarJs,"state?.paused",'Native presenter toolbar must reflect real Pause/Resume state.');
@@ -176,4 +176,4 @@ for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,prese
   lacks(source,'private-user-images.githubusercontent.com','User image uploads must never be linked into the product.');
 }
 
-console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary direct-first-mac-presenter-routing isolated-presenter-preload vector-stop-share privacy');
+console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary native-ack-first-mac-presenter-routing isolated-presenter-preload vector-stop-share privacy');
