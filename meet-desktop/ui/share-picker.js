@@ -102,6 +102,10 @@
     try{
       const optimizeVideo=$('#optimizeVideo').checked,shareAudio=$('#shareAudio').checked;$('#optimizeSharingVideo').checked=optimizeVideo;writePref('ds_pref_share_optimize',optimizeVideo);writePref('ds_pref_share_audio',shareAudio);writePref('ds_pref_share_video_mode',optimizeVideo);writePref('ds_pref_share_side_by_side',$('.layout-option.active')?.dataset.layout==='side');
       const result=await bridge?.choose?.(selectedId,{optimizeVideo,shareAudio});if(!result?.ok)throw new Error(result?.error||'Unable to select this source.');
+      // The main process force-destroys the picker on a committed selection.
+      // Close locally as well so no stale chooser can remain visible if the
+      // BrowserWindow teardown is delayed by macOS.
+      try{window.close();}catch{}
     }catch(err){sharing=false;shareButton.textContent='Share';error.hidden=true;if(activeTab==='screens')sourceView.hidden=false;setStatus(`Share could not start: ${String(err?.message||err||'Unknown error')}`);updateSelectionSummary();startRefreshTimer();}
   }
 
