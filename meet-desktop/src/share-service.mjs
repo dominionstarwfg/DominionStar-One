@@ -68,19 +68,21 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(platform!=='darwin')return false;
     const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     keepMeetingRendererLive();
-    // The capture-owning renderer must remain visibly composited on macOS.
-    // Real-Mac trace evidence proved that the old 2% opacity park could leave
-    // the display capture alive while the renderer stopped servicing toolbar
-    // commands. Content protection stays enabled, but opacity stays at 1.
+    // Keep the meeting renderer authoritative, but do not leave DominionStar
+    // Meet on the shared stage. Electron keeps a hidden BrowserWindow's page
+    // active when backgroundThrottling is disabled.
     if(preCapture||!macPresenterParked)protectMeetingChrome(main,true);
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setOpacity?.(1);}catch{}
-    if(!preCapture){try{main.setIgnoreMouseEvents(true);}catch{}}
-    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
-    try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
-    try{main.showInactive?.();}catch{try{main.show();}catch{}}
+    if(preCapture){
+      try{main.setIgnoreMouseEvents(false);}catch{}
+      try{main.showInactive?.();}catch{try{main.show();}catch{}}
+    }else{
+      try{main.setIgnoreMouseEvents(false);}catch{}
+      try{main.hide();}catch{}
+    }
     macPresenterParked=true;
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();
     return true;
