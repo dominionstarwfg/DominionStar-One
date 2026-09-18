@@ -236,8 +236,23 @@ if(process.platform==='darwin'){
   }
   function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:92},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideBorder();}
   function resetSharePresentation(reason='capture-stopped'){
-    const owner=captureOwnerWindow();if(isAlive(owner))restoreCaptureOwnerWindow(owner,{focus:true});
+    const owner=captureOwnerWindow();
+    // Leave presenter mode first, then restore the meeting. Restoring while
+    // shareActive/meetingVisible still describe presenter mode can leave the
+    // main window parked behind other desktop windows.
     shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
+    if(isAlive(owner)){
+      restoreCaptureOwnerWindow(owner,{focus:false});
+      try{owner.setAlwaysOnTop(false);}catch{}
+      try{owner.setVisibleOnAllWorkspaces(false);}catch{}
+      try{owner.show();owner.moveTop?.();owner.focus();}catch{}
+      try{owner.webContents.send('mac-share:show-meeting');}catch{}
+      if(qaPresenterTrace)console.error(`QA_MAC_MEETING_RESTORED visible=${owner.isVisible?.()?1:0} focused=${owner.isFocused?.()?1:0}`);
+    }
+    // share-service owns a second copy of the saved main-window geometry from
+    // the preshare park. Force that authority to restore too, including when
+    // Stop Share had to use the native fallback instead of renderer stop().
+    try{ipcMain.emit('share:force-stop-chrome-main',null,String(reason||'capture-stopped'));}catch{}
     for(const [deliveryId] of [...presenterDeliveries])settlePresenterDelivery(deliveryId,{ok:false,sent:false,acknowledged:false,error:String(reason||'capture-stopped'),deliveryId});
     presenterCommandQueue.splice(0,presenterCommandQueue.length);
     captureOwnerWebContents=null;captureOwnerWindowState=null;
