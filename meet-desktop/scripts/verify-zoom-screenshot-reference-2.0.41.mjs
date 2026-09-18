@@ -131,7 +131,7 @@ lacks(macOverlay,'\n  void prepare();','Presenter chrome must not auto-create a 
 has(macOverlay,"ipcMain.on('share:capture-started'",'Native presenter overlay must activate from the real capture-started event.');
 has(macOverlay,"ipcMain.on('mac-share:capture-stopped'",'Native presenter overlay must close from the real capture-stopped event.');
 has(macOverlay,'setContentProtection(true)','Presenter chrome must be protected from recursive screen capture.');
-has(macOverlay,'border:4px solid #2ed573','Entire-display sharing must have a local green sharing boundary.');
+has(macOverlay,'border:${BORDER_THICKNESS}px solid ${BORDER_COLOR}','Entire-display sharing must have one full-display green sharing boundary owned by the native overlay.');
 has(macOverlay,"includes('/ui/index.html')",'Native presenter commands must resolve the canonical meeting renderer rather than auxiliary windows.');
 has(macOverlay,'presenter_command_ack_timeout','Native presenter commands must fail if the meeting renderer does not acknowledge delivery.');
 has(macOverlay,"const presenterPreloadPath=path.join(here,'presenter-preload.cjs')",'Floating presenter surfaces must use the isolated presenter preload.');
