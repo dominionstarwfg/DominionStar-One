@@ -272,6 +272,33 @@ if(process.platform==='darwin'){
   }
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
+  ipcMain.on('mac-share:presenter-command-fast',(event,{command}={})=>{
+    const normalized=String(command||'').replace(/^toolbar:/,'');
+    const fromToolbar=Boolean(isAlive(toolbarWindow)&&event.sender===toolbarWindow.webContents);
+    if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_RECEIVE command=${normalized} accepted=${fromToolbar?1:0}`);
+    if(!fromToolbar)return;
+    if(normalized==='show-meeting'){if(shareState.meetingVisible)hideMeeting();else showMeeting();return;}
+    if(normalized==='layout-hide'){setVideoLayout('hide');return;}
+    if(normalized==='layout-speaker'){setVideoLayout('speaker');return;}
+    if(normalized==='layout-gallery'){setVideoLayout('gallery');return;}
+    const main=mainWindow();
+    if(!isAlive(main)){
+      if(normalized==='stop')resetSharePresentation('meeting-renderer-unavailable-fast');
+      return;
+    }
+    wakeMain(main);
+    try{
+      // The floating toolbar must never wait on a cross-renderer invoke chain.
+      // Push the command directly to the already-registered capture-owner
+      // preload listener; that listener executes ShareController/MediaController
+      // locally in the meeting renderer and reports state back asynchronously.
+      main.webContents.send('share:presenter-command',{command:normalized,fast:true});
+      if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_FORWARDED command=${normalized} target=${Number(main.webContents?.id||0)||0}`);
+    }catch(error){
+      console.error('[DominionStar Meet] Fast presenter command failed.',error);
+      if(normalized==='stop')resetSharePresentation('fast-presenter-send-failed');
+    }
+  });
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{
     captureOwnerWebContents=_event.sender;const owner=captureOwnerWindow();if(isAlive(owner))rememberCaptureOwnerWindow(owner);
