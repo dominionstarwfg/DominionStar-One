@@ -13,10 +13,9 @@ if(process.platform==='darwin'){
 }
 
 // Physical-Mac capture baseline guard.
-// Zoom-style presenter mode hides the meeting window while the shared desktop
-// becomes the stage. Keep the capture-owning renderer scheduled with Chromium
-// background throttling disabled, but do not leave a compact/tiny Meet window
-// visible on the shared desktop.
+// The native presenter overlay owns post-capture parking geometry. Bootstrap
+// only guarantees that the capture-owning renderer stays scheduled; it must not
+// independently hide or relocate that renderer after sharing starts.
 let physicalShareActive=false;
 let physicalShareStartupUntil=0;
 let physicalShareParkTimer=null;
@@ -46,12 +45,11 @@ if(process.platform==='darwin'){
       physicalShareParkTimer=null;
       if(!physicalShareActive)return;
       const main=mainMeetingWindow();if(!main||main.isDestroyed())return;
-      // Hidden does not mean throttled here: Electron keeps Page Visibility
-      // visible when backgroundThrottling is disabled. This preserves the
-      // capture renderer while leaving the desktop stage completely clear.
+      // Do not hide here. The native presenter overlay keeps this renderer
+      // composited behind the right-side video dock so toolbar commands remain
+      // executable while the shared stage stays visually clean.
       try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
       try{originalSetOpacity.call(main,1);}catch{}
-      try{main.hide();}catch{}
     },PHYSICAL_SHARE_STARTUP_MS);
   });
   ipcMain.on('mac-share:capture-stopped',()=>{
