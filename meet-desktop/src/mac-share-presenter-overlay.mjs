@@ -309,7 +309,14 @@ if(process.platform==='darwin'){
       if(normalized==='stop')resetSharePresentation('fast-presenter-send-failed');
     });
   });
-  ipcMain.handle('mac-share:presenter-next-command',(event)=>{const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
+  ipcMain.on('mac-share:presenter-next-command-sync',(event)=>{
+    const owner=captureOwnerWebContents;
+    if(!owner||owner.isDestroyed?.()||event.sender!==owner){event.returnValue=null;return;}
+    const next=presenterCommandQueue.shift()||null;
+    if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length} transport=sync`);
+    event.returnValue=next?{...next}:null;
+  });
+  ipcMain.handle('mac-share:presenter-next-command',(event)=>{const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length} transport=invoke`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{
     captureOwnerWebContents=_event.sender;const owner=captureOwnerWindow();if(isAlive(owner))rememberCaptureOwnerWindow(owner);
     shareActive=true;shareState={...shareState,...state,meetingVisible:false};wakeMain(owner);hideMeeting();showOverlays();
