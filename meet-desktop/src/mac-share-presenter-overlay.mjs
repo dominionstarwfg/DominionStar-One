@@ -27,7 +27,7 @@ if(process.platform==='darwin'){
   let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
-  const bordersReady=()=>borderWindows.length===4&&borderWindows.every(isAlive);
+  const bordersReady=()=>borderWindows.length===1&&borderWindows.every(isAlive);
   const isBorderWindow=win=>borderWindows.includes(win);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const captureOwnerWindow=()=>{
@@ -65,20 +65,23 @@ if(process.platform==='darwin'){
     try{opacity=Number(main.getOpacity?.()??1)||1;}catch{}
     captureOwnerWindowState={minimumSize,bounds,opacity};
   }
-  function compactCaptureOwnerWindow(main=mainWindow()){
-    if(!isAlive(main))return false;rememberCaptureOwnerWindow(main);const display=displayForMain(),area=display.workArea||display.bounds;
-    const size=24,x=Math.round(area.x+area.width-size-2),y=Math.round(area.y+area.height-size-2);
-    try{main.setMinimumSize(1,1);}catch{}try{main.setBounds({x,y,width:size,height:size},false);}catch{}
-    try{main.setIgnoreMouseEvents(true,{forward:false});}catch{}try{main.setOpacity?.(1);}catch{}
-    try{main.showInactive?.();}catch{}return true;
+  function hideCaptureOwnerWindow(main=mainWindow()){
+    if(!isAlive(main))return false;rememberCaptureOwnerWindow(main);
+    // Zoom-style presenter mode: the meeting window is not part of the shared
+    // stage. Background throttling is already disabled, so the renderer remains
+    // authoritative while the native toolbar and video dock stay visible.
+    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
+    try{main.hide();}catch{}
+    return true;
   }
-  function restoreCaptureOwnerWindow(main=mainWindow()){
+  function restoreCaptureOwnerWindow(main=mainWindow(),{focus=false}={}){
     if(!isAlive(main))return false;const saved=captureOwnerWindowState;
     try{main.setIgnoreMouseEvents(false);}catch{}
     if(saved?.minimumSize){try{main.setMinimumSize(...saved.minimumSize);}catch{}}
     if(saved?.bounds){try{main.setBounds(saved.bounds,false);}catch{}}
     try{main.setOpacity?.(saved?.opacity??1);}catch{}
-    try{main.showInactive?.();}catch{}return true;
+    try{main.show();if(focus)main.focus();}catch{}
+    return true;
   }
   async function boundedLoad(label,loader){
     let timer=0;
@@ -96,14 +99,11 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForMain(),bounds=display.bounds,t=BORDER_THICKNESS;
-    const segments=[
-      {x:bounds.x,y:bounds.y,width:bounds.width,height:t},
-      {x:bounds.x,y:bounds.y+bounds.height-t,width:bounds.width,height:t},
-      {x:bounds.x,y:bounds.y+t,width:t,height:Math.max(t,bounds.height-(t*2))},
-      {x:bounds.x+bounds.width-t,y:bounds.y+t,width:t,height:Math.max(t,bounds.height-(t*2))}
-    ];
-    borderWindows.forEach((win,index)=>{try{win.setBounds(segments[index],false);}catch{}});
+    const display=displayForMain(),bounds=display.bounds;
+    // One overlay owns all four edges, so the bottom corners cannot drift or
+    // terminate early relative to the vertical edges.
+    const win=borderWindows[0];
+    try{win.setBounds({x:bounds.x,y:bounds.y,width:bounds.width,height:bounds.height},false);}catch{}
   }
   function showBorder(){
     if(!bordersReady())return;positionBorder();
@@ -156,19 +156,17 @@ if(process.platform==='darwin'){
   async function prepareBorder(){
     if(bordersReady())return borderWindows;
     for(const win of borderWindows)closeFailedWindow(win);borderWindows=[];
-    const html=`<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:${BORDER_COLOR}}body{border:4px solid #2ed573}</style>`;
-    const url=`data:text/html;charset=utf-8,${encodeURIComponent(html)}`;const created=[];
+    const html=`<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}body{border:${BORDER_THICKNESS}px solid ${BORDER_COLOR};pointer-events:none}</style>`;
+    const url=`data:text/html;charset=utf-8,${encodeURIComponent(html)}`;let win=null;
     try{
-      for(let index=0;index<4;index+=1){
-        const win=new BrowserWindow({width:2,height:2,show:false,frame:false,transparent:false,backgroundColor:BORDER_COLOR,resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
-        created.push(win);protect(win);try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
-        try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}
-        try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
-        win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
-      }
-      borderWindows=created;await Promise.all(created.map((win,index)=>boundedLoad(`mac_share_border_edge_${index}_load`,()=>win.loadURL(url))));
-      if(!bordersReady())throw new Error('mac_share_border_edges_incomplete');positionBorder();return borderWindows;
-    }catch(error){console.error('[DominionStar Meet] share border failed to prepare.',error);for(const win of created)closeFailedWindow(win);borderWindows=[];return null;}
+      win=new BrowserWindow({width:2,height:2,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
+      borderWindows=[win];protect(win);try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
+      try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}
+      try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+      win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
+      await boundedLoad('mac_share_border_overlay_load',()=>win.loadURL(url));
+      if(!bordersReady())throw new Error('mac_share_border_overlay_incomplete');positionBorder();return borderWindows;
+    }catch(error){console.error('[DominionStar Meet] share border failed to prepare.',error);if(win)closeFailedWindow(win);borderWindows=[];return null;}
   }
 
   async function prepareVideo(){
@@ -188,17 +186,14 @@ if(process.platform==='darwin'){
       .finally(()=>{preparing=null;});return preparing;
   }
   function showMeeting(){
-    const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);restoreCaptureOwnerWindow(main);
+    const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);restoreCaptureOwnerWindow(main,{focus:true});
     try{main.webContents.send('mac-share:show-meeting');}catch{}
-    try{main.show();main.focus();}catch{}
     shareState={...shareState,meetingVisible:true};publishState();return true;
   }
   function hideMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
-    // Keep the capture renderer alive as a tiny protected compositor surface
-    // instead of leaving the full meeting window behind the shared desktop.
-    compactCaptureOwnerWindow(main);
-    shareState={...shareState,meetingVisible:false};publishState();try{toolbarWindow?.moveTop?.();}catch{}return true;
+    hideCaptureOwnerWindow(main);
+    shareState={...shareState,meetingVisible:false};publishState();try{toolbarWindow?.moveTop?.();videoWindow?.moveTop?.();}catch{}return true;
   }
   function showOverlays(){
     if(!shareActive)return;
@@ -212,7 +207,7 @@ if(process.platform==='darwin'){
   }
   function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:92},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideBorder();}
   function resetSharePresentation(reason='capture-stopped'){
-    const owner=captureOwnerWindow();if(isAlive(owner))restoreCaptureOwnerWindow(owner);
+    const owner=captureOwnerWindow();if(isAlive(owner))restoreCaptureOwnerWindow(owner,{focus:true});
     shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
     for(const [deliveryId] of [...presenterDeliveries])settlePresenterDelivery(deliveryId,{ok:false,sent:false,acknowledged:false,error:String(reason||'capture-stopped'),deliveryId});
     presenterCommandQueue.splice(0,presenterCommandQueue.length);
