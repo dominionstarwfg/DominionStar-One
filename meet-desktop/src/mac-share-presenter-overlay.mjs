@@ -179,6 +179,13 @@ if(process.platform==='darwin'){
     });
   }
   function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:92},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideBorder();}
+  function resetSharePresentation(reason='capture-stopped'){
+    shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
+    for(const [deliveryId] of [...presenterDeliveries])settlePresenterDelivery(deliveryId,{ok:false,sent:false,acknowledged:false,error:String(reason||'capture-stopped'),deliveryId});
+    presenterCommandQueue.splice(0,presenterCommandQueue.length);
+    if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'capture-stopped')}`);
+    return {ok:true,recovered:true,reason:String(reason||'capture-stopped')};
+  }
 
   function removeQueuedPresenterDelivery(deliveryId){const id=Number(deliveryId||0)||0;if(!id)return false;const index=presenterCommandQueue.findIndex(item=>Number(item?.deliveryId||0)===id);if(index<0)return false;presenterCommandQueue.splice(index,1);return true;}
   function settlePresenterDelivery(deliveryId,result){const pending=presenterDeliveries.get(deliveryId);if(!pending)return false;presenterDeliveries.delete(deliveryId);clearTimeout(pending.timer);pending.resolve(result);return true;}
@@ -200,7 +207,7 @@ if(process.platform==='darwin'){
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{shareActive=true;shareState={...shareState,...state,meetingVisible:false};wakeMain();showOverlays();});
   ipcMain.on('mac-share:state',(_event,state={})=>{if(!shareActive)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
-  ipcMain.on('mac-share:capture-stopped',()=>{shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
+  ipcMain.on('mac-share:capture-stopped',()=>{resetSharePresentation('capture-stopped');});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;removeQueuedPresenterDelivery(deliveryId);
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=${deliveryId} command=${String(payload?.command||'')} accepted=${payload?.accepted?1:0}`);
@@ -208,13 +215,29 @@ if(process.platform==='darwin'){
   });
 
   ipcMain.handle('mac-share:presenter-command',async(_event,{command}={})=>{
-    const normalized=String(command||'').replace(/^toolbar:/,'');const main=mainWindow();if(!isAlive(main))return {ok:false,sent:false,acknowledged:false,error:'meeting_window_unavailable'};
+    const normalized=String(command||'').replace(/^toolbar:/,'');let main=mainWindow();
+    // Stop Share must be fail-safe even if the meeting renderer disappeared.
+    // A destroyed capture renderer no longer owns a live display track, so
+    // leaving the native toolbar/border visible would falsely indicate sharing.
+    if(!isAlive(main)){
+      if(normalized==='stop')return {...resetSharePresentation('meeting-renderer-unavailable'),sent:false,acknowledged:false};
+      return {ok:false,sent:false,acknowledged:false,error:'meeting_window_unavailable'};
+    }
     if(normalized==='show-meeting'){if(shareState.meetingVisible)hideMeeting();else showMeeting();return {ok:true,sent:true,acknowledged:true};}
     if(normalized==='layout-hide')return {...setVideoLayout('hide'),sent:true,acknowledged:true};
     if(normalized==='layout-speaker')return {...setVideoLayout('speaker'),sent:true,acknowledged:true};
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
     if(['participants','chat','annotate'].includes(normalized))showMeeting();
-    return deliverPresenterCommandWithRetry(main,normalized);
+    let result=await deliverPresenterCommandWithRetry(main,normalized);
+    if(!result?.ok&&normalized==='stop'){
+      // If an occluded physical-Mac renderer stops answering, restore the real
+      // meeting surface and retry the acknowledged Stop transaction.
+      showMeeting();await wait(180);main=mainWindow();
+      if(!isAlive(main))return {...resetSharePresentation('meeting-renderer-lost-during-stop'),sent:false,acknowledged:false};
+      result=await deliverPresenterCommandWithRetry(main,normalized);
+      if(!result?.ok&&!isAlive(mainWindow()))return {...resetSharePresentation('meeting-renderer-lost-after-stop-retry'),sent:false,acknowledged:false};
+    }
+    return result;
   });
   ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?286:92};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
