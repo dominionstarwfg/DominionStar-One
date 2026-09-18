@@ -59,8 +59,13 @@ const pollPresenterCommand=async()=>{
   if(process.platform!=='darwin'||presenterPollBusy||presenterCommandCallbacks.size===0)return;
   presenterPollBusy=true;
   try{
-    const payload=await invoke('mac-share:presenter-next-command').catch(()=>null);
-    if(payload)await handlePresenterPayload(payload,'pull');
+    // Physical macOS can stop accepting main->renderer IPC while the capture
+    // owner is parked under the native presenter surfaces even though its JS
+    // event loop and renderer->main IPC remain alive. Pull synchronously from
+    // the renderer so command delivery is initiated by the capture owner.
+    let payload=null;
+    try{payload=ipcRenderer.sendSync('mac-share:presenter-next-command-sync')||null;}catch{}
+    if(payload)await handlePresenterPayload(payload,'pull-sync');
   }finally{presenterPollBusy=false;}
 };
 const ensurePresenterPoll=()=>{
