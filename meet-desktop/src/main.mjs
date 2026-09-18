@@ -115,9 +115,18 @@ function createMainWindow(){
   mainWindow.webContents.once('did-finish-load',()=>{
     const pending=pendingJoinUrls[0]||'';if(pending)mainWindow?.webContents.send('app:join-url',pending);
   });
+  mainWindow.webContents.on('render-process-gone',(_event,details={})=>{
+    console.error('[DominionStar Meet] Meeting renderer exited.',details?.reason||'unknown',Number(details?.exitCode||0));
+    try{shareService?.forceStop?.('render-process-gone');}catch{}
+    if(process.platform==='darwin'){try{ipcMain.emit('mac-share:capture-stopped');}catch{}}
+  });
   mainWindow.on('focus',()=>{try{mainWindow?.flashFrame(false);}catch{}});
   void mainWindow.loadFile(path.join(uiDir,'index.html'));
-  mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
+  mainWindow.on('closed',()=>{
+    try{shareService?.forceStop?.('main-window-closed');}catch{}
+    if(process.platform==='darwin'){try{ipcMain.emit('mac-share:capture-stopped');}catch{}}
+    shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;
+  });
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
