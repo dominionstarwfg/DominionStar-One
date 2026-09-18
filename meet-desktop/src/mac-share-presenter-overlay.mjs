@@ -165,7 +165,10 @@ if(process.platform==='darwin'){
   }
   function hideMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
-    try{main.setIgnoreMouseEvents(true);}catch{}try{main.setOpacity?.(0.02);}catch{}
+    // Keep the capture-owning renderer fully composited. Near-zero opacity on
+    // physical macOS can starve renderer work while display capture continues,
+    // which makes presenter controls appear clickable but inert.
+    try{main.setIgnoreMouseEvents(true);}catch{}try{main.setOpacity?.(1);}catch{}
     shareState={...shareState,meetingVisible:false};publishState();try{toolbarWindow?.moveTop?.();}catch{}return true;
   }
   function showOverlays(){
@@ -198,6 +201,16 @@ if(process.platform==='darwin'){
       try{main.webContents.send('share:presenter-command',payload);}catch(error){clearTimeout(timer);presenterDeliveries.delete(deliveryId);removeQueuedPresenterDelivery(deliveryId);resolve({ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'presenter_command_failed'),deliveryId});}
     });
   }
+  async function executePresenterCommandDirect(main,command,timeoutMs=900){
+    if(!isAlive(main)||main.webContents?.isDestroyed?.())return {ok:false,handled:false,error:'meeting_renderer_unavailable',direct:true};
+    wakeMain(main);
+    try{
+      const payload=JSON.stringify(String(command||'')).replace(/</g,'\\u003c');
+      const directPromise=main.webContents.executeJavaScript(`(async()=>{const api=window.DominionShareIntegration;const fn=api?.dispatchPresenterCommand||window.__DominionPresenterDispatch;if(typeof fn!=='function')return {handled:false,error:'presenter_dispatcher_missing'};return await fn(${payload});})()`,true);
+      const result=await Promise.race([directPromise,new Promise(resolve=>setTimeout(()=>resolve({handled:false,error:'presenter_direct_timeout'}),timeoutMs))]);
+      return {ok:Boolean(result?.handled),handled:Boolean(result?.handled),error:result?.handled?'':String(result?.error||'presenter_direct_rejected'),direct:true};
+    }catch(error){return {ok:false,handled:false,error:String(error?.message||error||'presenter_direct_failed'),direct:true};}
+  }
   async function deliverPresenterCommandWithRetry(main,command){
     wakeMain(main);let result=await deliverPresenterCommand(main,command);if(result?.ok)return result;
     await wait(120);wakeMain(main);result=await deliverPresenterCommand(main,command);return result;
@@ -227,17 +240,31 @@ if(process.platform==='darwin'){
     if(normalized==='layout-hide')return {...setVideoLayout('hide'),sent:true,acknowledged:true};
     if(normalized==='layout-speaker')return {...setVideoLayout('speaker'),sent:true,acknowledged:true};
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
+
+    // Physical-Mac authority: execute the command in the capture-owning
+    // renderer directly first. The preload acknowledgement queue remains a
+    // second, independent transport rather than the only route.
+    let result=await executePresenterCommandDirect(main,normalized,normalized==='stop'?1200:900);
+    if(result?.ok)return {...result,sent:true,acknowledged:false};
+
     if(['participants','chat','annotate'].includes(normalized))showMeeting();
-    let result=await deliverPresenterCommandWithRetry(main,normalized);
-    if(!result?.ok&&normalized==='stop'){
-      // If an occluded physical-Mac renderer stops answering, restore the real
-      // meeting surface and retry the acknowledged Stop transaction.
+    const acknowledged=await deliverPresenterCommandWithRetry(main,normalized);
+    if(acknowledged?.ok)return acknowledged;
+
+    if(normalized==='stop'){
+      // Last bounded recovery: restore the meeting surface and retry both
+      // transports. Stop itself remains local-first in ShareController, so a
+      // successful direct call terminates the display track immediately.
       showMeeting();await wait(180);main=mainWindow();
       if(!isAlive(main))return {...resetSharePresentation('meeting-renderer-lost-during-stop'),sent:false,acknowledged:false};
-      result=await deliverPresenterCommandWithRetry(main,normalized);
-      if(!result?.ok&&!isAlive(mainWindow()))return {...resetSharePresentation('meeting-renderer-lost-after-stop-retry'),sent:false,acknowledged:false};
+      result=await executePresenterCommandDirect(main,normalized,1400);
+      if(result?.ok)return {...result,sent:true,acknowledged:false,recovered:true};
+      const retry=await deliverPresenterCommandWithRetry(main,normalized);
+      if(retry?.ok)return {...retry,recovered:true};
+      if(!isAlive(mainWindow()))return {...resetSharePresentation('meeting-renderer-lost-after-stop-retry'),sent:false,acknowledged:false};
+      return {ok:false,sent:Boolean(retry?.sent),acknowledged:Boolean(retry?.acknowledged),error:String(retry?.error||result?.error||'stop_share_delivery_failed')};
     }
-    return result;
+    return {ok:false,sent:Boolean(acknowledged?.sent),acknowledged:Boolean(acknowledged?.acknowledged),error:String(acknowledged?.error||result?.error||'presenter_command_delivery_failed')};
   });
   ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?286:92};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
