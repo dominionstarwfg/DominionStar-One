@@ -68,17 +68,16 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(platform!=='darwin')return false;
     const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     keepMeetingRendererLive();
-    // The capture-owning renderer must remain a visible, scheduled macOS
-    // window or Chromium can stop servicing toolbar IPC during real display
-    // capture. Park it at near-zero opacity instead of hiding/minimizing it.
-    // Content protection is installed before capture starts and then left
-    // untouched for the duration of the share.
+    // The capture-owning renderer must remain visibly composited on macOS.
+    // Real-Mac trace evidence proved that the old 2% opacity park could leave
+    // the display capture alive while the renderer stopped servicing toolbar
+    // commands. Content protection stays enabled, but opacity stays at 1.
     if(preCapture||!macPresenterParked)protectMeetingChrome(main,true);
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    try{main.setIgnoreMouseEvents(true);}catch{}
-    try{main.setOpacity?.(0.02);}catch{}
+    try{main.setOpacity?.(1);}catch{}
+    if(!preCapture){try{main.setIgnoreMouseEvents(true);}catch{}}
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
@@ -222,11 +221,14 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.on('share:qa-renderer-pulse',(event,payload={})=>{if(!qaPresenterTrace)return;const main=getMainWindow?.(),accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);qaPresenterLog('RENDERER_PULSE',{accepted:accepted?1:0,index:Number(payload?.index||0),delay:Number(payload?.delay||0),generation:Number(payload?.generation||0)});});
   ipcMain.on('share:presenter-preload-tap',(event,payload={})=>{const main=getMainWindow?.(),meta=presenterRendererMeta(),accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);qaPresenterLog('PRELOAD_TAP',{id:Number(payload?.qaCommandId||0)||0,command:String(payload?.command||''),accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid});});
   ipcMain.on('share:presenter-preload-ack',(event,payload={})=>{const main=getMainWindow?.();const meta=presenterRendererMeta();const accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);qaPresenterLog('PRELOAD_ACK',{id:Number(payload?.qaCommandId||0)||0,command:String(payload?.command||''),accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid});});
-  ipcMain.handle('share:capture-stopped',()=>{
+  function forceStopShareChrome(reason='renderer-stop'){
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
     shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();restoreMainWindowAfterShare();
-    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();return {ok:true};
-  });
+    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();
+    if(qaPresenterTrace)console.error(`QA_PRESENTER_FORCE_STOP reason=${String(reason||'unknown')}`);
+    return {ok:true,reason:String(reason||'renderer-stop')};
+  }
+  ipcMain.handle('share:capture-stopped',()=>forceStopShareChrome('renderer-stop'));
   ipcMain.handle('share:presenter-menu-state',(_event,{open=false}={})=>{if(!toolbarWindow||toolbarWindow.isDestroyed())return {ok:false};const bounds=toolbarWindow.getBounds();const nextHeight=open?286:72;if(bounds.height!==nextHeight){try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}}return {ok:true,height:nextHeight};});
   ipcMain.handle('share:presenter-command',async(_event,command)=>{
     const normalized=String(command?.command||command||'');let sent=false,delivery=null;const toolbarSenderId=Number(_event?.sender?.id||0)||0;
@@ -238,5 +240,5 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     return qaPresenterTrace?{ok:true,qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct)}:{ok:true};
   });
 
-  return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
+  return Object.freeze({openPicker,closePicker,closeToolbar,forceStop:forceStopShareChrome,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
 }
