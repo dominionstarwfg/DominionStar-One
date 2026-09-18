@@ -129,19 +129,19 @@ assert(meetingCaptions.includes("overlay.classList.toggle('caption-popout'")&&me
 assert(meetingCaptions.includes("pref('alwaysShowCaptions',false)")&&preferences.includes('Always show captions when available'),'Always-show captions must remain a local user preference.');
 assert(!preferences.includes('setCaptionState(')&&!preferences.includes('publishCaption('),'Personal Accessibility settings must never modify host caption/transcript authority.');
 
-// Presenter-state contract: shared content owns the stage. The meeting window
-// is hidden after capture starts, while its renderer remains explicitly
-// unthrottled so macOS presenter-command delivery can continue. Floating
-// presenter controls and the video dock remain independent native surfaces.
-assert(shareService.includes('function hideMeetingWindowForShare()'),'Desktop sharing must own a dedicated presenter-hidden state.');
+// Presenter-state contract: shared content owns the stage. On physical macOS
+// the canonical meeting renderer remains composited but is parked directly
+// behind the native right-side video dock; this keeps presenter commands live
+// without exposing a separate Meet window on the shared stage.
+assert(shareService.includes('function hideMeetingWindowForShare()'),'Desktop sharing must own a dedicated presenter state.');
 assert(!shareService.includes('presenterParkPoint={x:-32000,y:-32000}'),'Presenter state must not park the meeting at extreme off-screen coordinates.');
-assert(shareService.includes('try{main.hide();}catch{}'),'Zoom-style presenter mode must hide the main meeting window from the shared stage.');
-assert(shareService.includes('main.webContents?.setBackgroundThrottling?.(false)'),'The hidden capture renderer must remain explicitly unthrottled.');
+assert(!shareService.includes('try{main.hide();}catch{}'),'The share service must not independently hide the physical-Mac capture renderer.');
+assert(shareService.includes('main.webContents?.setBackgroundThrottling?.(false)'),'The capture renderer must remain explicitly unthrottled.');
 assert(main.includes('backgroundThrottling:false'),'The main meeting renderer must be created with background throttling disabled.');
 assert(!shareService.includes('main.setOpacity?.(0.02)'),'Presenter state must never regress to the rejected near-zero-opacity keep-alive workaround.');
-assert(!shareService.slice(shareService.indexOf('function hideMeetingWindowForShare()'),shareService.indexOf('function showMeetingWindow')).includes('setBounds('),'Presenter commit must not resize or relocate the capture-owning main window.');
+assert(!shareService.slice(shareService.indexOf('function hideMeetingWindowForShare()'),shareService.indexOf('function showMeetingWindow')).includes('setBounds('),'The share service must defer physical Mac parking geometry to the native overlay.');
 assert(!shareService.slice(shareService.indexOf('function hideMeetingWindowForShare()'),shareService.indexOf('function showMeetingWindow')).includes('setOpacity'),'Presenter commit must not change capture-renderer opacity.');
-assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the same hidden, renderer-live presenter state.');
+assert(shareService.includes("main.on('minimize',mainMinimizeHandler)"),'Minimizing during share must resolve to the same renderer-live presenter state.');
 assert(shareService.includes("alwaysOnTop:true")&&shareService.includes("setAlwaysOnTop(true,'floating')"),'Presenter controls must stay above shared content.');
 assert(shareService.includes('focusable:false')&&shareService.includes('acceptFirstMouse:true'),'macOS presenter toolbar must accept mouse input without becoming the focused capture window.');
 assert(shareService.includes('toolbarWindow.showInactive?.()')&&shareService.includes('created.showInactive?.()'),'Presenter toolbar must appear without stealing focus from the capture-owning renderer.');
