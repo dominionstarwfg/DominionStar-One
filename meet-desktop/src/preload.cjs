@@ -43,8 +43,11 @@ const handlePresenterPayload=async(payload,source='push')=>{
   const command=String(payload?.command||payload||'');
   const qaCommandId=Number(payload?.qaCommandId||0)||0;
   const deliveryId=Number(payload?.deliveryId||0)||0;
-  if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'&&deliveryId>0)console.error(`QA_PRESENTER_PRELOAD_DELIVERY source=${source} delivery=${deliveryId} command=${command} generation=${presenterListenerGeneration} listeners=${presenterCommandCallbacks.size}`);
+  const qaTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
+  if(qaTrace&&deliveryId>0)console.error(`QA_PRESENTER_PRELOAD_DELIVERY source=${source} delivery=${deliveryId} command=${command} generation=${presenterListenerGeneration} listeners=${presenterCommandCallbacks.size}`);
+  if(qaTrace&&payload?.fast)console.error(`QA_PRESENTER_PRELOAD_FAST_RECEIVE source=${source} command=${command} generation=${presenterListenerGeneration} listeners=${presenterCommandCallbacks.size}`);
   const result=await runPresenterPayload(payload);
+  if(qaTrace&&payload?.fast)console.error(`QA_PRESENTER_PRELOAD_FAST_RESULT command=${command} accepted=${result?.accepted?1:0} error=${String(result?.error||'')}`);
   if(deliveryId>0)ipcRenderer.send('share:presenter-delivery-ack',{deliveryId,command,generation:presenterListenerGeneration,accepted:Boolean(result?.accepted),error:result?.accepted?'':String(result?.error||'presenter_command_rejected')});
   if(qaCommandId>0)ipcRenderer.send('share:presenter-preload-ack',{qaCommandId,command,generation:presenterListenerGeneration});
   return result;
