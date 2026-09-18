@@ -287,17 +287,27 @@ if(process.platform==='darwin'){
       return;
     }
     wakeMain(main);
-    try{
-      // The floating toolbar must never wait on a cross-renderer invoke chain.
-      // Push the command directly to the already-registered capture-owner
-      // preload listener; that listener executes ShareController/MediaController
-      // locally in the meeting renderer and reports state back asynchronously.
-      main.webContents.send('share:presenter-command',{command:normalized,fast:true});
-      if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_FORWARDED command=${normalized} target=${Number(main.webContents?.id||0)||0}`);
-    }catch(error){
+    // Do not make the floating toolbar wait on cross-renderer work. Enqueue the
+    // command through the acknowledged presenter transport and let the capture
+    // renderer receive it by either channel: immediate webContents.send *or*
+    // its existing 80ms pull loop. Both carry the same deliveryId, so the
+    // preload de-duplicates them if both arrive.
+    if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_FORWARDED command=${normalized} target=${Number(main.webContents?.id||0)||0}`);
+    void deliverPresenterCommand(main,normalized).then(async result=>{
+      if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_SETTLED command=${normalized} ok=${result?.ok?1:0} acknowledged=${result?.acknowledged?1:0} error=${String(result?.error||'')}`);
+      if(result?.ok)return;
+      // Stop Share is fail-safe: if both push and pull delivery fail, expose the
+      // canonical meeting surface and make one bounded direct local attempt.
+      if(normalized==='stop'){
+        showMeeting();
+        const direct=await executePresenterCommandDirect(main,'stop',1200);
+        if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_STOP_FALLBACK ok=${direct?.ok?1:0} error=${String(direct?.error||'')}`);
+        if(!direct?.ok)resetSharePresentation('fast-stop-delivery-failed');
+      }
+    }).catch(error=>{
       console.error('[DominionStar Meet] Fast presenter command failed.',error);
       if(normalized==='stop')resetSharePresentation('fast-presenter-send-failed');
-    }
+    });
   });
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{
