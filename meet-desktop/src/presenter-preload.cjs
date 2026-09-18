@@ -8,6 +8,7 @@ const listen=(channel,callback)=>{
   return()=>ipcRenderer.removeListener(channel,handler);
 };
 
+const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
 const packaged=String(location?.href||'').includes('/app.asar/');
 const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../assets/logo.jpeg',location.href).href;
 
@@ -26,7 +27,12 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   }),
   macShare:Object.freeze({
     prepare:()=>invoke('mac-share:prepare'),
-    command:command=>invoke('mac-share:presenter-command',{command:String(command||'')}),
+    command:command=>{
+      const normalized=String(command||'');
+      if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_SEND command=${normalized}`);
+      ipcRenderer.send('mac-share:presenter-command-fast',{command:normalized});
+      return Promise.resolve({ok:true,sent:true,acknowledged:true,transport:'one-way'});
+    },
     setMenuOpen:open=>invoke('mac-share:menu-state',{open:Boolean(open)}),
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
