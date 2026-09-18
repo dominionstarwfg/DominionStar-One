@@ -68,21 +68,16 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(platform!=='darwin')return false;
     const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     keepMeetingRendererLive();
-    // Keep the meeting renderer authoritative, but do not leave DominionStar
-    // Meet on the shared stage. Electron keeps a hidden BrowserWindow's page
-    // active when backgroundThrottling is disabled.
+    // Native presenter overlay owns the physical post-capture parking geometry.
+    // This service only prepares/protects the canonical meeting renderer and
+    // marks it as presenter-owned; it must not hide the renderer independently.
     if(preCapture||!macPresenterParked)protectMeetingChrome(main,true);
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setOpacity?.(1);}catch{}
-    if(preCapture){
-      try{main.setIgnoreMouseEvents(false);}catch{}
-      try{main.showInactive?.();}catch{try{main.show();}catch{}}
-    }else{
-      try{main.setIgnoreMouseEvents(false);}catch{}
-      try{main.hide();}catch{}
-    }
+    try{main.setIgnoreMouseEvents(false);}catch{}
+    if(preCapture){try{main.showInactive?.();}catch{try{main.show();}catch{}}}
     macPresenterParked=true;
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();
     return true;
@@ -132,7 +127,14 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     positionNearMain(pickerWindow,900,620);pickerWindow.removeMenu?.();protectMeetingChrome(pickerWindow,true);pickerWindow.once('ready-to-show',()=>{pickerWindow?.show();pickerWindow?.focus();});void pickerWindow.loadFile(path.join(uiDir,'share-picker.html'));pickerWindow.on('closed',()=>{pickerWindow=null;});
     return {opened:true,reused:false,nativeSystemPicker:false};
   }
-  function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed())pickerWindow.close();pickerWindow=null;}
+  function closePicker(){
+    const win=pickerWindow;pickerWindow=null;
+    if(!win||win.isDestroyed())return;
+    // Share selection is a committed transition; the chooser must disappear
+    // immediately and may not remain as a stale always-visible surface.
+    try{win.hide();}catch{}
+    try{win.destroy();}catch{try{win.close();}catch{}}
+  }
 
   async function openToolbar(){
     if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishToolbarState();return true;}
