@@ -42,19 +42,12 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // Layout and Show Meeting are native floating-window responsibilities.
-      if(NATIVE_ONLY_COMMANDS.has(normalized))return await sendNative(normalized);
-      // Physical-Mac authority: Stop/Audio/Video/Pause/Chat/Participants/
-      // Annotate and other meeting controls execute in the meeting renderer
-      // first so a successful click means the live controller actually ran.
-      if(rendererBridge?.command){
-        try{return await sendRenderer(normalized);}
-        catch(error){
-          if(nativeBridge?.command)return sendNative(normalized);
-          throw error;
-        }
-      }
-      return await sendNative(normalized);
+      // The macOS native presenter bridge owns command delivery because it has
+      // delivery IDs, renderer acknowledgements, retries, and Stop recovery.
+      // Falling through the generic presenter bridge first can report sent:true
+      // even when an occluded capture renderer never executed the command.
+      if(nativeBridge?.command)return await sendNative(normalized);
+      return await sendRenderer(normalized);
     }finally{scheduleHide();}
   };
 
@@ -88,6 +81,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-direct-renderer-first-controls',transport:rendererBridge?.command?'presenter-direct-first':nativeBridge?.command?'macShare-ack-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-native-ack-first-controls',transport:nativeBridge?.command?'macShare-ack-first':rendererBridge?.command?'presenter-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
