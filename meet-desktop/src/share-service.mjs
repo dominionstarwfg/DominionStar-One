@@ -68,18 +68,24 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(platform!=='darwin')return false;
     const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     keepMeetingRendererLive();
-    // Native presenter overlay owns the physical post-capture parking geometry.
-    // This service only prepares/protects the canonical meeting renderer and
-    // marks it as presenter-owned; it must not hide the renderer independently.
+    // Phase 1 (preCapture) only records/protects the meeting. Physical parking
+    // is owned by mac-share-presenter-overlay after the renderer explicitly
+    // commits presenter mode; source selection must finish while the meeting
+    // renderer remains in its normal geometry.
     if(preCapture||!macPresenterParked)protectMeetingChrome(main,!Boolean(lastToolbarState.includeMeetWindows));
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setOpacity?.(1);}catch{}
     try{main.setIgnoreMouseEvents(false);}catch{}
-    if(preCapture){try{main.showInactive?.();}catch{try{main.show();}catch{}}}
-    macPresenterParked=true;
-    lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();
+    if(preCapture){
+      macPresenterParked=false;
+      try{main.showInactive?.();}catch{try{main.show();}catch{}}
+      lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};publishToolbarState();
+      return true;
+    }
+    macPresenterParked=!Boolean(lastToolbarState.includeMeetWindows);
+    lastToolbarState={...lastToolbarState,meetingVisible:Boolean(lastToolbarState.includeMeetWindows),companion:''};publishToolbarState();
     return true;
   }
   function hideMeetingWindowForShare(){
