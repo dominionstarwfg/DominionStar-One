@@ -133,7 +133,7 @@ try{
 
   await click('[data-command="new-share"]');
   picker=new Cdp((await findTarget(url=>url.includes('/ui/share-picker.html'),'New Share chooser')).webSocketDebuggerUrl);await picker.connect();
-  await picker.wait("document.readyState==='complete'&&document.querySelector('[data-tab="screens"]')&&document.querySelector('#cancelTop')",'New Share approved chooser');
+  await picker.wait(`document.readyState==='complete'&&document.querySelector('[data-tab="screens"]')&&document.querySelector('#cancelTop')`,'New Share approved chooser');
   assert.equal((await state()).share.active,true,'Opening New Share must not stop the current share before a replacement is selected.');
   await picker.eval("document.querySelector('#cancelTop').click()");
   picker.close();picker=null;
