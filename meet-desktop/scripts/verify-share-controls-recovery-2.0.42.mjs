@@ -38,7 +38,8 @@ assert(integration.includes("if(command==='stop'){clearCompanion();await share.s
 
 assert(videoMirror.includes("window.DominionMediaController||null")&&videoMirror.includes("media?.stream?.()||null"),'Floating presenter video must read the camera stream from the authoritative media controller.');
 assert(videoMirror.includes("new ImageCapture(track).grabFrame()"),'Presenter video mirror must sample the live camera track directly when available.');
-assert(videoMirror.includes("video.srcObject=stream")&&videoMirror.includes("temporary?'media-stream-fallback':'local-video'"),'Presenter video mirror must fall back to a temporary video bound to the same owned stream, not acquire a second camera.');
+assert(videoMirror.includes("new MediaStreamTrackProcessor({track})")&&videoMirror.includes("source:'track-processor'"),'Presenter video mirror must retain a DOM-independent live-track fallback when ImageCapture is unavailable.');
+assert(videoMirror.includes("video.srcObject=stream")&&videoMirror.includes("temporary?'media-stream-fallback':'local-video'"),'Presenter video mirror must finally fall back to a temporary video bound to the same owned stream, not acquire a second camera.');
 assert(!videoMirror.includes("navigator.mediaDevices.getUserMedia"),'Presenter video mirror must never acquire a second camera track.');
 assert(videoDock.includes("const showLive=Boolean(cameraOn&&lastFrame)"),'Floating video dock must fall back instead of displaying an empty live surface.');
 
