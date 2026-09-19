@@ -125,7 +125,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p qa-2.0.42-evidence
-          printf 'commit=%s\nversion=2.0.42\nqualification=grouped-functional-qa-not-user-release\ncontrols=acknowledged-native-first\nrepeated_audio_toggles=4\nrepeated_video_toggles=4\nrepeated_pause_resume_transitions=4\nparticipants=verified\nchat=verified\nannotation_on_off=verified\nstop_returns_to_live_meeting=verified\nre_share_without_relaunch=verified\nsecond_stop=verified\npresenter_camera_track_mirror=verified-with-deterministic-media\nphysical_real_camera_and_screen_tcc=still-required-before-user-installer\ninstaller=blocked\n' "$GITHUB_SHA" > qa-2.0.42-evidence/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=2.0.42\nqualification=grouped-functional-qa-not-user-release\ncontrols=acknowledged-native-first\nmute_unmute_cycles=4\nvideo_off_on_cycles=4\npause_resume_cycles=4\nlayout_switching=verified\nshow_meeting_toggle=verified\nnew_share_cancel_retains_share=verified\nparticipants=verified\nchat=verified\nannotation_on_off=verified\nstop_returns_to_live_meeting=verified\nre_share_without_relaunch=verified\nsecond_stop=verified\npresenter_camera_track_mirror=verified-with-deterministic-media\nphysical_real_camera_and_screen_tcc=still-required-before-user-installer\ninstaller=blocked\n' "$GITHUB_SHA" > qa-2.0.42-evidence/BUILD-PROVENANCE.txt
           shasum -a 256 "/Applications/DominionStar Meet.app/Contents/Resources/app.asar" > qa-2.0.42-evidence/APP-ASAR-SHA256.txt
 
       - name: Upload QA evidence
