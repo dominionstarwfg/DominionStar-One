@@ -15,7 +15,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let captureStartWatchdog=null;
   let macPresenterParked=false;
   let qaPresenterCommandSeq=0;
-  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};
+  let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};
 
   const macVersion=platform==='darwin'&&typeof process.getSystemVersion==='function'?String(process.getSystemVersion()||''):'';
   const macMajor=Number.parseInt(macVersion.split('.')[0]||'0',10)||0;
@@ -71,7 +71,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     // Native presenter overlay owns the physical post-capture parking geometry.
     // This service only prepares/protects the canonical meeting renderer and
     // marks it as presenter-owned; it must not hide the renderer independently.
-    if(preCapture||!macPresenterParked)protectMeetingChrome(main,true);
+    if(preCapture||!macPresenterParked)protectMeetingChrome(main,!Boolean(lastToolbarState.includeMeetWindows));
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
@@ -125,17 +125,25 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   function openPicker(){
     if(pickerWindow&&!pickerWindow.isDestroyed()){pickerWindow.show();pickerWindow.focus();return {opened:true,reused:true,nativeSystemPicker:false};}
+    closePicker();
     pickerWindow=new BrowserWindow({width:900,height:620,minWidth:760,minHeight:520,show:false,backgroundColor:'#16181b',title:'Share Screen',resizable:true,fullscreenable:false,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
     positionNearMain(pickerWindow,900,620);pickerWindow.removeMenu?.();protectMeetingChrome(pickerWindow,true);pickerWindow.once('ready-to-show',()=>{pickerWindow?.show();pickerWindow?.focus();});void pickerWindow.loadFile(path.join(uiDir,'share-picker.html'));pickerWindow.on('closed',()=>{pickerWindow=null;});
     return {opened:true,reused:false,nativeSystemPicker:false};
   }
   function closePicker(){
-    const win=pickerWindow;pickerWindow=null;
-    if(!win||win.isDestroyed())return;
-    // Share selection is a committed transition; the chooser must disappear
-    // immediately and may not remain as a stale always-visible surface.
-    try{win.hide();}catch{}
-    try{win.destroy();}catch{try{win.close();}catch{}}
+    const tracked=pickerWindow;pickerWindow=null;
+    const windows=new Set([tracked,...BrowserWindow.getAllWindows().filter(win=>{
+      try{const url=String(win.webContents?.getURL?.()||'');const title=String(win.getTitle?.()||'');return !win.isDestroyed()&&(url.includes('/ui/share-picker.html')||title==='Share Screen');}
+      catch{return false;}
+    })].filter(Boolean));
+    // Once a source is committed, no chooser may survive. This is also used
+    // during Stop Share so macOS cannot surface a stale "Starting share…"
+    // window instead of the active meeting.
+    for(const win of windows){
+      if(win.isDestroyed?.())continue;
+      try{win.hide();}catch{}
+      try{win.destroy();}catch{try{win.close();}catch{}}
+    }
   }
 
   async function openToolbar(){
@@ -200,7 +208,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;try{const result=await authority.list(options);if(result.timedOut)return {ok:false,timedOut:true,sources:[]};return {ok:true,timedOut:false,sources:result.sources.map(serialize)};}catch(error){return {ok:false,timedOut:false,sources:[],error:String(error?.message||error)};}});
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);
     const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
-    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)};pendingSelection={source,options:normalizedOptions};
+    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),includeMeetWindows:Boolean(options.includeMeetWindows)};pendingSelection={source,options:normalizedOptions};
+    lastToolbarState={...lastToolbarState,includeMeetWindows:normalizedOptions.includeMeetWindows};
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
     captureStartWatchdog=setTimeout(()=>{captureStartWatchdog=null;if(platform==='darwin'&&!shareActive){pendingSelection=null;restoreMainWindowAfterShare();}},6500);
@@ -210,6 +219,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   ipcMain.on('share:capture-started',(event,state={})=>{
     const main=getMainWindow?.();if(!main||main.isDestroyed()||event.sender!==main.webContents)return;
+    closePicker();
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
     shareActive=true;toolbarReadyForShare=platform==='darwin';presenterCommitPending=false;
     if(platform!=='darwin'){rememberMainWindow();keepMeetingRendererLive();attachShareWindowLifecycle();}
@@ -228,9 +238,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.on('share:presenter-preload-tap',(event,payload={})=>{const main=getMainWindow?.(),meta=presenterRendererMeta(),accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);qaPresenterLog('PRELOAD_TAP',{id:Number(payload?.qaCommandId||0)||0,command:String(payload?.command||''),accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid});});
   ipcMain.on('share:presenter-preload-ack',(event,payload={})=>{const main=getMainWindow?.();const meta=presenterRendererMeta();const accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);qaPresenterLog('PRELOAD_ACK',{id:Number(payload?.qaCommandId||0)||0,command:String(payload?.command||''),accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid});});
   function forceStopShareChrome(reason='renderer-stop'){
+    const wasShareActive=shareActive;
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
-    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();restoreMainWindowAfterShare();
-    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();
+    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();closePicker();restoreMainWindowAfterShare();
+    if(wasShareActive){const main=getMainWindow?.();if(main&&!main.isDestroyed())try{main.webContents.send('mac-share:show-meeting');}catch{}}
+    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();
     if(qaPresenterTrace)console.error(`QA_PRESENTER_FORCE_STOP reason=${String(reason||'unknown')}`);
     return {ok:true,reason:String(reason||'renderer-stop')};
   }
