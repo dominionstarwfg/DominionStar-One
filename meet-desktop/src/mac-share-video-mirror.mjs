@@ -30,18 +30,35 @@ if(process.platform==='darwin'){
     const main=mainWindow();if(!alive(main)||main.webContents?.isDestroyed?.())return;
     frameBusy=true;
     try{
-      const payload=await main.webContents.executeJavaScript(`(()=>{
-        const video=document.querySelector('#localMeetingVideo');
-        const stream=video?.srcObject instanceof MediaStream?video.srcObject:null;
+      const payload=await main.webContents.executeJavaScript(`(async()=>{
+        const controller=window.DominionMediaController||null;
+        const controllerStream=controller?.stream?.();
+        const legacyVideo=document.querySelector('#localMeetingVideo');
+        const stream=controllerStream instanceof MediaStream?controllerStream:(legacyVideo?.srcObject instanceof MediaStream?legacyVideo.srcObject:null);
         const track=stream?.getVideoTracks?.()[0]||null;
         const cameraLive=Boolean(track&&track.readyState==='live'&&track.enabled!==false);
-        if(!cameraLive||!video||video.readyState<2||video.videoWidth<2||video.videoHeight<2)return {cameraLive:false,frame:''};
-        const maxWidth=320,width=Math.min(maxWidth,Math.max(2,Number(video.videoWidth)||320));
-        const height=Math.max(2,Math.round(width*(Number(video.videoHeight)||180)/Math.max(2,Number(video.videoWidth)||320)));
-        const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-        const context=canvas.getContext('2d',{alpha:false});if(!context)return {cameraLive:false,frame:''};
-        context.drawImage(video,0,0,width,height);
-        return {cameraLive:true,frame:canvas.toDataURL('image/jpeg',0.62),mirrored:Boolean(getComputedStyle(video).transform&&getComputedStyle(video).transform!=='none')};
+        if(!cameraLive)return {cameraLive:false,frame:''};
+        const candidates=[...document.querySelectorAll('video')].filter(video=>{
+          const source=video?.srcObject;
+          if(!(source instanceof MediaStream))return false;
+          const candidateTrack=source.getVideoTracks?.()[0]||null;
+          return candidateTrack?.id===track.id&&video.readyState>=2&&video.videoWidth>1&&video.videoHeight>1;
+        });
+        const video=candidates.find(item=>item.id==='localMeetingVideo')||candidates[0]||null;
+        let source=video,width=Number(video?.videoWidth)||0,height=Number(video?.videoHeight)||0,close=null,mirrored=video?Boolean(getComputedStyle(video).transform&&getComputedStyle(video).transform!=='none'):true;
+        if(!source&&typeof ImageCapture==='function'){
+          try{
+            const bitmap=await new ImageCapture(track).grabFrame();
+            source=bitmap;width=Number(bitmap.width)||0;height=Number(bitmap.height)||0;close=()=>bitmap.close?.();
+          }catch{}
+        }
+        if(!source||width<2||height<2)return {cameraLive:true,frame:'',mirrored};
+        const maxWidth=320,outWidth=Math.min(maxWidth,Math.max(2,width));
+        const outHeight=Math.max(2,Math.round(outWidth*height/Math.max(2,width)));
+        const canvas=document.createElement('canvas');canvas.width=outWidth;canvas.height=outHeight;
+        const context=canvas.getContext('2d',{alpha:false});if(!context){close?.();return {cameraLive:true,frame:'',mirrored};}
+        context.drawImage(source,0,0,outWidth,outHeight);close?.();
+        return {cameraLive:true,frame:canvas.toDataURL('image/jpeg',0.68),mirrored};
       })()`,true).catch(()=>({cameraLive:false,frame:''}));
       if(shareActive)publish(payload||{cameraLive:false,frame:''});
     }finally{frameBusy=false;}
