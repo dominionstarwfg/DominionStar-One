@@ -233,11 +233,9 @@
         // listener updates the inline presenter toolbar synchronously. Do not
         // run a second DOM/layout transaction in the promise continuation.
         if(command==='pause'){await share.togglePause(sharedVideo);return {handled:true,command};}
-        if(command==='stop'){
-          clearCompanion();
+        if(command==='stop'){clearCompanion();await share.stop();applyLayout();
           try{window.DominionShareRuntimeAuthority2041?.close?.();}catch{}
           try{await desktop?.sharePicker?.cancel?.();}catch{}
-          await share.stop();applyLayout();
           try{window.DominionActiveShareHomeParity2041?.restoreMeeting?.();}catch{}
           return {handled:true,command};
         }
