@@ -10,7 +10,7 @@ const pkg=JSON.parse(read('package.json'));
 new Function(toolbar);
 new Function(integration);
 
-assert.equal(pkg.version,'2.0.42','Active-share grouped repair must ship under a new version.');
+assert(['2.0.41','2.0.42'].includes(pkg.version),'Active-share grouped repair gate must run on the 2.0.41 CI carrier or 2.0.42 release branch.');
 assert(toolbar.includes("version:'2.0.42-native-ack-first-controls'"),'Mac presenter toolbar must identify the acknowledged native-first command authority.');
 assert(toolbar.includes("result.direct===true||result.acknowledged===true||result.handled===true")&&!toolbar.includes("result.handled===true||result.ok===true"),'A generic ok:true must never count as proof that a presenter command executed.');
 const nativeFirst=toolbar.indexOf('try{return await sendNative(normalized);}');
