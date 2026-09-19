@@ -23,6 +23,7 @@ const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 const macToolbarCss=read('ui/mac-presenter-toolbar.css');
 const macToolbarJs=read('ui/mac-presenter-toolbar.js');
 const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
+const runtimeStability=read('ui/runtime-stability.js');
 
 const has=(s,n,m)=>assert.ok(s.includes(n),m);
 const lacks=(s,n,m)=>assert.ok(!s.includes(n),m);
@@ -41,6 +42,9 @@ has(refCss,'grid-template-columns:minmax(520px,1fr) 330px','Home must use action
 has(refCss,'#homeSection .action-icon','Home must use icon-first meeting actions rather than dashboard cards.');
 has(refJs,'My Notes','Home must include a working local My Notes action.');
 has(refJs,'ds-ref-search','Home must include the compact top search surface.');
+lacks(refJs,'setInterval(','Final screenshot/reference authority must be event-driven and must not periodically reposition the meeting toolbar.');
+has(runtimeStability,'window.DominionZoomScreenshotReference?.sync?.()','Runtime Stability must commit final screenshot/reference geometry in the same synchronous meeting-layout transaction.');
+has(refJs,"if(label&&label.textContent!==text)label.textContent=text",'Toolbar label synchronization must be idempotent and avoid background DOM churn.');
 has(activeShareHome,'Back to meeting','An active shared meeting must replace New Meeting with Back to meeting on Home.');
 has(activeShareHome,"data-action=\"back-to-meeting\"",'Back to meeting must be a real command surface.');
 has(activeShareHome,'desktop.macShare?.onShowMeeting','The native presenter Show meeting command must restore the existing meeting.');
