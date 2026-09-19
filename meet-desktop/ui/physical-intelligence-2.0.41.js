@@ -165,24 +165,40 @@
       const selected=root.querySelector('.ds2041-source.selected[data-source-id]')||root.querySelector('.ds2041-source[data-source-id]');
       const sourceId=String(selected?.dataset?.sourceId||'');if(!sourceId)return false;
       const status=root.querySelector('.ds2041-share-status');
-      const options={shareAudio:Boolean(root.querySelector('[data-share-audio]')?.checked),optimizeVideo:Boolean(root.querySelector('[data-optimize]')?.checked)};
+      const options={
+        shareAudio:Boolean(root.querySelector('[data-share-audio]')?.checked),
+        optimizeVideo:Boolean(root.querySelector('[data-optimize]')?.checked),
+        includeMeetWindows:Boolean(root.querySelector('[data-include-meet]')?.checked),
+        deferPresenterCommit:true
+      };
       shareCommitInFlight=true;button.disabled=true;button.textContent='Starting share…';if(status)status.textContent='Preparing selected content…';
+      let chooserHidden=false;
       try{
-        // Match the deliberate Zoom-style handoff the physical test expects:
-        // keep the chooser stable for at least two seconds before capture begins.
-        await wait(2000);
+        // The chooser must disappear BEFORE capture ownership changes. Parking
+        // the meeting renderer while this DOM surface was still visible is what
+        // caused Stop Share to restore the stale "Starting share…" screen.
+        await wait(350);
+        try{legacy.close?.();chooserHidden=true;}catch{}
         const result=await desktop.sharePicker?.choose?.(sourceId,options);if(result?.ok===false)throw new Error(result?.error||'share_source_not_available');
-        if(status)status.textContent='Starting selected content…';
         const deadline=Date.now()+5500;
         while(Date.now()<deadline){
-          if(window.DominionShareIntegration?.state?.()?.active){blocked=false;try{legacy.close?.();}catch{}return true;}
+          if(window.DominionShareIntegration?.state?.()?.active){
+            blocked=false;
+            window.DominionShareIntegration?.commitPresenterMode?.();
+            return true;
+          }
           await wait(80);
         }
         throw new Error('Screen sharing did not become active in time.');
       }catch(error){
-        if(status)status.textContent=String(error?.message||error||'Screen sharing could not start.');return false;
+        if(chooserHidden){try{await legacy.open?.();}catch{}}
+        const liveRoot=pickerRoot(),liveStatus=liveRoot?.querySelector('.ds2041-share-status');
+        if(liveStatus)liveStatus.textContent=String(error?.message||error||'Screen sharing could not start.');
+        return false;
       }finally{
-        shareCommitInFlight=false;if(button?.isConnected){button.disabled=false;button.textContent='Share';}
+        shareCommitInFlight=false;
+        const liveButton=pickerRoot()?.querySelector('.ds2041-share-button');
+        if(liveButton?.isConnected){liveButton.disabled=false;liveButton.textContent='Share';}
       }
     }
 
