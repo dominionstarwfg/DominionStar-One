@@ -61,6 +61,7 @@
         "NSScreenCaptureUsageDescription": "DominionStar Meet uses screen capture only when you explicitly choose to share a screen or application.",
         "NSAudioCaptureUsageDescription": "DominionStar Meet captures system audio only when you explicitly choose to share audio with your screen."
       }
-    }
+    },
+    "afterPack": "scripts/after-pack.cjs"
   }
 }
