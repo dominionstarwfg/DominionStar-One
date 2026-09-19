@@ -185,6 +185,8 @@ try{
     return true;
   })()`,'meeting-entry transition');
   mark('meeting-entry-complete');
+  await waitFor("window.DominionShareIntegration&&document.querySelector('#roomShare')",'native Share integration',3000);
+  await waitFor("document.querySelector('#roomShare')?.textContent?.trim()==='Share'",'approved Share control label',3000);
   assert.equal(await evaluate(`Boolean(window.DominionShareIntegration&&document.querySelector('#roomShare'))`),true,'Packaged meeting renderer did not wire the native Share integration.');
   assert.equal(await evaluate(`document.querySelector('#roomShare')?.textContent?.trim()==='Share'`),true,'Packaged meeting Share control is missing or mislabeled.');
   await evaluate(`window.DominionMeetingParity.install();window.DominionMeetingParity.decorateControls();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();true`);
