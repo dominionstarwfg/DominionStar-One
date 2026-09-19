@@ -28,6 +28,10 @@
   function shareActive(){return Boolean(q('#meetingOverlay')?.classList.contains('share-active'));}
   function restoreMeeting(){
     const overlay=q('#meetingOverlay');if(!overlay)return false;
+    // Stop Share returns to the active meeting, never to a stale pre-share
+    // chooser or permission surface.
+    try{window.DominionShareRuntimeAuthority2041?.close?.();}catch{}
+    for(const node of document.querySelectorAll('.ds2041-share-root,.ds2041-recovery,.ds2041-smart-recovery,#screenPermissionDialog,.ds-share-permission,.ds-219-share-recovery')){try{node.hidden=true;}catch{}}
     q('#appShell')?.setAttribute('hidden','');q('#waitingOverlay')?.setAttribute('hidden','');q('#prejoinOverlay')?.setAttribute('hidden','');overlay.hidden=false;
     try{window.DominionMeetingParity?.install?.();window.DominionMeetingParity?.syncShareLayout?.();window.DominionMeetingParity?.syncVideoDock?.();window.DominionZoomScreenshotReference?.requestSync?.();window.DominionZoomParticipantsReference2041?.sync?.();window.DominionParticipantsCenterLock2041?.sync?.();}catch{}
     return true;
@@ -47,7 +51,7 @@
     }
   }
 
-  function sync(){syncFrame=0;ensureStyle();loadParticipantsReference();loadParticipantsCenterLock();const active=shareActive();document.body.classList.toggle('ds-active-share-workspace',active);if(active!==lastActive){lastActive=active;patchHome(active);}else if(active&&q('#homeSection .action-card.new-meeting')?.dataset.action!=='back-to-meeting')patchHome(true);}
+  function sync(){syncFrame=0;ensureStyle();loadParticipantsReference();loadParticipantsCenterLock();const active=shareActive(),wasActive=lastActive;document.body.classList.toggle('ds-active-share-workspace',active);if(active!==lastActive){lastActive=active;patchHome(active);if(wasActive&&!active)restoreMeeting();}else if(active&&q('#homeSection .action-card.new-meeting')?.dataset.action!=='back-to-meeting')patchHome(true);}
   function schedule(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
 
   document.addEventListener('click',event=>{const back=event.target?.closest?.('#homeSection .action-card[data-action="back-to-meeting"]');if(!back)return;event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();restoreMeeting();},true);
