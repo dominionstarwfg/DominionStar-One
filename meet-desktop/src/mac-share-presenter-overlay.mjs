@@ -182,18 +182,24 @@ if(process.platform==='darwin'){
 
   function removeQueuedPresenterDelivery(deliveryId){const id=Number(deliveryId||0)||0;if(!id)return false;const index=presenterCommandQueue.findIndex(item=>Number(item?.deliveryId||0)===id);if(index<0)return false;presenterCommandQueue.splice(index,1);return true;}
   function settlePresenterDelivery(deliveryId,result){const pending=presenterDeliveries.get(deliveryId);if(!pending)return false;presenterDeliveries.delete(deliveryId);clearTimeout(pending.timer);pending.resolve(result);return true;}
-  function deliverPresenterCommand(main,command){
-    const deliveryId=++presenterDeliverySeq;const payload={command,deliveryId};presenterCommandQueue.push(payload);
+  function deliverPresenterCommand(main,command,reuseDeliveryId=0){
+    const deliveryId=Number(reuseDeliveryId||0)||++presenterDeliverySeq;
+    if(presenterDeliveries.has(deliveryId))return Promise.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_delivery_already_pending',deliveryId});
+    removeQueuedPresenterDelivery(deliveryId);
+    const payload={command,deliveryId};presenterCommandQueue.push(payload);
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ENQUEUE delivery=${deliveryId} command=${String(command||'')} queue=${presenterCommandQueue.length}`);
     return new Promise(resolve=>{
-      const timer=setTimeout(()=>{presenterDeliveries.delete(deliveryId);removeQueuedPresenterDelivery(deliveryId);resolve({ok:false,sent:true,acknowledged:false,error:'presenter_command_ack_timeout',deliveryId});},900);
+      const timer=setTimeout(()=>{presenterDeliveries.delete(deliveryId);removeQueuedPresenterDelivery(deliveryId);resolve({ok:false,sent:true,acknowledged:false,error:'presenter_command_ack_timeout',deliveryId});},1400);
       presenterDeliveries.set(deliveryId,{resolve,timer});
       try{main.webContents.send('share:presenter-command',payload);}catch(error){clearTimeout(timer);presenterDeliveries.delete(deliveryId);removeQueuedPresenterDelivery(deliveryId);resolve({ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'presenter_command_failed'),deliveryId});}
     });
   }
   async function deliverPresenterCommandWithRetry(main,command){
-    wakeMain(main);let result=await deliverPresenterCommand(main,command);if(result?.ok)return result;
-    await wait(120);wakeMain(main);result=await deliverPresenterCommand(main,command);return result;
+    // Reuse the same delivery id on retry. The renderer preload caches completed
+    // delivery ids, so a delayed first attempt cannot toggle Mic/Video/Pause twice.
+    const deliveryId=++presenterDeliverySeq;
+    wakeMain(main);let result=await deliverPresenterCommand(main,command,deliveryId);if(result?.ok)return result;
+    await wait(100);wakeMain(main);result=await deliverPresenterCommand(main,command,deliveryId);return result;
   }
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
@@ -214,7 +220,13 @@ if(process.platform==='darwin'){
     if(normalized==='layout-speaker')return {...setVideoLayout('speaker'),sent:true,acknowledged:true};
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
     if(['participants','chat','annotate'].includes(normalized))showMeeting();
-    return deliverPresenterCommandWithRetry(main,normalized);
+    const result=await deliverPresenterCommandWithRetry(main,normalized);
+    if(!result?.ok&&normalized==='stop'&&shareActive){
+      // Do not strand the user behind floating chrome when Stop Share cannot be
+      // acknowledged. Restore the meeting window so recovery is always possible.
+      showMeeting();
+    }
+    return result;
   });
   ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?286:92};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
