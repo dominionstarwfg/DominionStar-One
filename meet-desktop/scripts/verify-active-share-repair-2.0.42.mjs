@@ -11,11 +11,11 @@ new Function(toolbar);
 new Function(integration);
 
 assert.equal(pkg.version,'2.0.42','Active-share grouped repair must ship under a new version.');
-assert(toolbar.includes("version:'2.0.42-native-ack-first-controls'"),'Mac presenter toolbar must identify the acknowledged native-first command authority.');
+assert(toolbar.includes("version:'2.0.42-strict-direct-native-ack-fallback'"),'Mac presenter toolbar must identify the strict direct-first plus acknowledged fallback authority.');
 assert(toolbar.includes("result.direct===true||result.acknowledged===true||result.handled===true")&&!toolbar.includes("result.handled===true||result.ok===true"),'A generic ok:true must never count as proof that a presenter command executed.');
-const nativeFirst=toolbar.indexOf('try{return await sendNative(normalized);}');
-const rendererFallback=toolbar.indexOf('if(rendererBridge?.command)return await sendRenderer(normalized);');
-assert(nativeFirst>=0&&rendererFallback>nativeFirst,'Visible Mac presenter controls must use the acknowledged native delivery queue before renderer fallback.');
+const directFirst=toolbar.indexOf('try{return await sendRenderer(normalized);}');
+const nativeFallback=toolbar.indexOf('if(nativeBridge?.command)return sendNative(normalized);');
+assert(directFirst>=0&&nativeFallback>directFirst,'Visible Mac presenter controls must preserve direct-first routing but fall back to acknowledged native delivery when execution is not proven.');
 
 assert(integration.includes('const approved=window.DominionShareRuntimeAuthority2041;')&&integration.includes('if(approved?.open)return approved.open();'),'Presenter New Share must reopen the approved 2.0.41 runtime chooser instead of the legacy picker.');
 assert(integration.includes('await desktop?.sharePicker?.cancel?.()'),'Stop Share must close any stale legacy picker before restoring the meeting.');
