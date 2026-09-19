@@ -220,12 +220,12 @@
 
     function restoreMeetingAfterShareStop(){
       clearCompanion();
-      const meeting=q('#meetingOverlay');
+      const meeting=document.querySelector('#meetingOverlay');
       if(meeting){
         meeting.hidden=false;
-        q('#prejoinOverlay')?.setAttribute('hidden','');
-        q('#waitingOverlay')?.setAttribute('hidden','');
-        q('#appShell')?.setAttribute('hidden','');
+        document.querySelector('#prejoinOverlay')?.setAttribute('hidden','');
+        document.querySelector('#waitingOverlay')?.setAttribute('hidden','');
+        document.querySelector('#appShell')?.setAttribute('hidden','');
       }
       try{
         window.DominionMeetingParity?.install?.();
