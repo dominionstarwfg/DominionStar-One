@@ -202,7 +202,7 @@
       presenterCommitted=true;
       // Two-phase handoff: the chooser is already gone and display capture is
       // live before native presenter mode is allowed to park the meeting.
-      try{bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
+      try{if(!sameRendererPresenter)bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       if(sameRendererPresenter){void publishMacVideoFrame({force:true});scheduleMacVideoMirror(90);}
       return true;
     }
