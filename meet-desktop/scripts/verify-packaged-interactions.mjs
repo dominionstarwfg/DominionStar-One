@@ -181,7 +181,7 @@ try{
   await evaluateDiagnosed(`(()=>{
     document.querySelector('#appShell').hidden=true;
     const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;
-    window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();
+    window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionZoomScreenshotReference?.sync?.();
     return true;
   })()`,'meeting-entry transition');
   mark('meeting-entry-complete');
