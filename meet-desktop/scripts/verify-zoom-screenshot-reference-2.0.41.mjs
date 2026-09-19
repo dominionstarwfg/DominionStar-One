@@ -76,6 +76,8 @@ has(refJs,'data-participants','Host tools is missing Participants navigation.');
 has(refJs,'data-advanced','Host tools is missing Advanced navigation.');
 
 // More is its own tool grid.
+has(refJs,"label=document.createElement('span')",'Final toolbar sync must recreate a missing visible label instead of leaving an SVG-only control.');
+has(refJs,"label.className='ds-control-label'",'Recreated toolbar labels must use the certified control-label class.');
 has(refJs,'ds-ref-meeting-more-grid','Meeting More grid is missing.');
 for(const label of ['Record','Show captions','Breakout rooms','Polls/quizzes','Docs','Whiteboards','Apps','Meeting info','Transfer to room','Settings'])has(refJs,`'${label}'`,`Meeting More is missing ${label}.`);
 for(const label of ['Breakout rooms','Polls/quizzes','Docs','Whiteboards','Apps','Transfer to room']){
