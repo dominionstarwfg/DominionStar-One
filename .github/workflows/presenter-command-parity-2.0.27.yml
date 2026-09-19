@@ -1,0 +1,38 @@
+name: DominionStar Meet Presenter Controls 2.0.27
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/ui/presenter-toolbar.js'
+      - 'meet-desktop/ui/presenter-command-parity-2.0.27.js'
+      - 'meet-desktop/ui/auth-password.js'
+      - 'meet-desktop/scripts/verify-presenter-command-parity-2.0.27.mjs'
+      - '.github/workflows/presenter-command-parity-2.0.27.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  presenter-command-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify presenter control syntax and routing
+        working-directory: meet-desktop
+        run: |
+          node --check ui/presenter-toolbar.js
+          node --check ui/presenter-command-parity-2.0.27.js
+          node --check ui/auth-password.js
+          node --check scripts/verify-presenter-command-parity-2.0.27.mjs
+          node scripts/verify-presenter-command-parity-2.0.27.mjs

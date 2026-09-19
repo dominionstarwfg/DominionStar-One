@@ -52,6 +52,10 @@ jobs:
           node --check ui/zoom-behavior.js
           node --check ui/zoom-production-polish.js
           node --check ui/zoom-adaptive-parity.js
+          node --check ui/approved-reference-parity.js
+          node --check ui/runtime-stability.js
+          node --check ui/zoom-reaction-parity.js
+          node --check ui/zoom-contract-bridge.js
           node --check ui/participant-controls.js
           node --check ui/meeting-notifications.js
           node --check ui/share-annotation.js
@@ -60,8 +64,15 @@ jobs:
           node --check scripts/verify-meeting-identity-runtime.mjs
           node --check scripts/verify-packaged-interactions.mjs
           node --check scripts/verify-packaged-physical-mac-2.0.21.mjs
+          node --check scripts/verify-packaged-single-instance-2.0.28.mjs
+          node --check scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs
           node --check scripts/verify-packaged-zoom-window-parity.mjs
+          node --check scripts/verify-packaged-approved-reference-2.0.22.mjs
+          node --check scripts/verify-packaged-runtime-stability-2.0.22.mjs
+          node --check scripts/verify-packaged-reaction-flow-2.0.22.mjs
           node --check scripts/verify-physical-parity-2.0.21.mjs
+          node --check scripts/verify-approved-reference-parity-2.0.22.mjs
+          node --check scripts/verify-runtime-stability-2.0.22.mjs
           node scripts/verify-release-standard.mjs
           node scripts/verify-foundation.mjs
           node scripts/verify-auth.mjs
@@ -76,8 +87,11 @@ jobs:
           node scripts/verify-diagnostics.mjs
           node scripts/verify-physical-mac-2.0.21.mjs
           node scripts/verify-zoom-production-polish.mjs
+          node scripts/verify-reaction-parity.mjs
           node scripts/verify-zoom-window-parity.mjs
           node scripts/verify-physical-parity-2.0.21.mjs
+          node scripts/verify-approved-reference-parity-2.0.22.mjs
+          node scripts/verify-runtime-stability-2.0.22.mjs
 
       - name: Build and sign universal QA app once
         working-directory: meet-desktop
@@ -158,6 +172,16 @@ jobs:
           fi
           echo DOMINIONSTAR_MAC_PACKAGED_LAUNCH_OK
 
+      - name: Verify packaged single-instance authority
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-single-instance-2.0.28.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged physical runtime stability
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-runtime-stability-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Exercise packaged desktop controls
         working-directory: meet-desktop
         env:
@@ -182,15 +206,33 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-reaction-parity.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Verify packaged high-volume reaction flow
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-reaction-flow-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Verify packaged 2.0.21 physical Mac repairs
         working-directory: meet-desktop
         run: node scripts/verify-packaged-physical-mac-2.0.21.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Exercise packaged presenter toolbar round trip
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Verify packaged adaptive Zoom meeting behavior
         working-directory: meet-desktop
         env:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-zoom-window-parity.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Verify packaged approved 3D reference parity
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+        run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
       - name: Create clean QA archive
         shell: bash

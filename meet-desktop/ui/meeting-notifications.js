@@ -8,6 +8,22 @@
     const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-notifications.css';link.dataset.dsMeetingNotifications='1';document.head.append(link);
   }
 
+  // 2.0.41 primary toolbar geometry is fixed before meeting entry. Control
+  // labels may legitimately change with media/share state, but those changes
+  // must never resize neighboring controls or reproduce the rejected left/right
+  // toolbar shake after relaunch/background reconciliation.
+  if(!document.querySelector('style[data-ds-toolbar-slot-lock-2041]')){
+    const style=document.createElement('style');style.dataset.dsToolbarSlotLock2041='1';style.textContent=`
+      #meetingOverlay .meeting-footer .meeting-control:not(#roomExitButton){
+        width:68px!important;min-width:68px!important;max-width:68px!important;
+        flex:0 0 68px!important;box-sizing:border-box!important;
+      }
+      #meetingOverlay .meeting-footer .meeting-control:not(#roomExitButton) .ds-control-label{
+        max-width:60px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+      }
+    `;document.head.append(style);
+  }
+
   const pref=(key,fallback=true)=>{
     try{const p=window.DominionPreferences;if(!p?.read)return fallback;const value=p.read(key);return value==null?fallback:Boolean(value);}catch{return fallback;}
   };
@@ -91,5 +107,21 @@
   window.addEventListener('dominion:waiting-room-update',onWaiting);
   window.addEventListener('dominion:participant-presence',onPresence);
   window.addEventListener('dominion:meeting-ended',reset);
+
+  // 2.0.41 owns the visible Zoom-reference More and Host Tools surfaces.
+  // Route these commands at window-capture level so the older document-capture
+  // runtime handler cannot swallow them first.
+  function routeReferenceCommand(event){
+    const target=event.target,overlay=q('#meetingOverlay'),authority=window.DominionZoomScreenshotReference;
+    if(!target?.closest||!overlay||overlay.hidden||!authority)return;
+    const more=target.closest('#roomMore');
+    const host=target.closest('#roomHostTools');
+    if(!more&&!host)return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    if(more)authority.openMeetingMore?.(more);
+    else void authority.openHostToolsPanel?.();
+  }
+  window.addEventListener('click',routeReferenceCommand,true);
+
   window.DominionMeetingNotifications=Object.freeze({version:'1.1.0',play,toast,chat,participantBadge,reset});
 })();

@@ -47,3 +47,139 @@
 
 @media(max-width:1040px){:root{--ds-panel-w:360px}.meeting-control,.zoom-host-tools-control{min-width:70px!important}.ds-control-label{font-size:11px!important}}
 @media(max-width:760px){.meeting-footer{overflow-x:auto!important}.room-side,.meeting-chat-panel{width:min(370px,calc(100% - 20px))!important;max-width:none!important}.meeting-footer>#roomCamera{margin-right:0!important}.meeting-footer>#roomShare{margin-left:14px!important}}
+
+
+/* 2.0.34 Zoom-familiar participant roster density and media status. */
+.room-side .person-row{
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr) auto auto!important;
+  align-items:center!important;
+  column-gap:9px!important;
+  min-height:46px!important;
+  padding:5px 7px!important;
+}
+.room-side .person-badge{
+  width:32px!important;
+  height:32px!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  display:grid!important;
+  place-items:center!important;
+  flex:none!important;
+}
+.room-side .person-badge img.ds-meeting-avatar-photo{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  border-radius:inherit!important;
+}
+.room-side .person-copy{
+  min-width:0!important;
+  display:grid!important;
+  gap:1px!important;
+}
+.room-side .person-copy strong{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:12.5px!important;
+  line-height:1.2!important;
+}
+.room-side .person-copy small{
+  font-size:10px!important;
+  line-height:1.2!important;
+}
+.participant-you{
+  font-style:normal;
+  font-weight:500;
+  color:#a7a7a7;
+  font-size:10px;
+}
+.participant-media-state{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  min-width:42px;
+  justify-content:flex-end;
+}
+.participant-media-icon{
+  width:18px;
+  height:18px;
+  display:grid;
+  place-items:center;
+  border-radius:5px;
+  color:#9ea5ad;
+  transition:background .12s ease,color .12s ease,opacity .12s ease;
+}
+.participant-media-icon svg{
+  width:14px;
+  height:14px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.participant-media-icon.on{color:#d9dde2}
+.participant-media-icon.off{color:#ff5f67;background:rgba(255,95,103,.08)}
+.participant-media-icon.off::after{
+  content:"";
+  position:absolute;
+  width:14px;
+  height:1.5px;
+  border-radius:999px;
+  background:currentColor;
+  transform:rotate(-45deg);
+}
+.participant-media-icon{position:relative}
+.participant-media-icon.unknown{opacity:.38}
+.participant-actions{
+  min-width:42px;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+}
+.room-side .participant-more{
+  height:28px!important;
+  min-width:40px!important;
+  padding:0 8px!important;
+  border:0!important;
+  background:transparent!important;
+  font-size:10px!important;
+  color:#d7d7d7!important;
+}
+.room-side .participant-more:hover{
+  background:#303030!important;
+}
+.participant-control-menu{
+  width:220px!important;
+  padding:6px!important;
+}
+.participant-control-menu button{
+  min-height:34px!important;
+  padding:8px 10px!important;
+  font-size:11.5px!important;
+}
+
+
+/* 2.0.37 active-speaker participant roster ordering. */
+.room-side .person-row.participant-speaking{
+  background:rgba(45,140,255,.08)!important;
+}
+.room-side .person-row.participant-speaking .person-badge{
+  box-shadow:0 0 0 2px rgba(56,168,83,.9),0 0 0 4px rgba(56,168,83,.18)!important;
+}
+.participant-speaking-badge{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  margin-top:2px;
+  padding:1px 5px;
+  border-radius:999px;
+  font-size:8.5px;
+  font-weight:650;
+  line-height:1.4;
+  color:#9be7aa;
+  background:rgba(56,168,83,.12);
+}

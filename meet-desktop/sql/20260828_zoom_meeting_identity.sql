@@ -807,6 +807,7 @@ begin
     order by created_at desc limit 1;
   end if;
   if coalesce(v_actor_role,'') not in ('host','cohost') then raise exception 'host_authority_required'; end if;
+  if v_actor_role='cohost' and v_target.role='cohost' then raise exception 'cohost_cannot_remove_cohost'; end if;
 
   update public.meet_v2_participants
   set state='removed',left_at=now(),updated_at=now(),decision_at=now(),decision_by=v_actor

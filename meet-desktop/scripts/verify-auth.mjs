@@ -18,6 +18,10 @@ assert(authService.includes("provider:'google'"),'Google provider wiring is miss
 assert(authService.includes('redirectTo:CALLBACK_URL'),'OAuth must return to the local desktop callback.');
 assert(authService.includes('skipBrowserRedirect:true'),'Desktop must open the external browser explicitly.');
 assert(authService.includes('exchangeCodeForSession(code)'),'Desktop must exchange the PKCE code locally.');
+assert(authService.includes("app.focus?.({steal:true})"),'Successful desktop OAuth must explicitly activate the macOS application, not only focus its BrowserWindow.');
+assert(authService.includes('win.moveTop?.()'),'Successful desktop OAuth must raise the existing app window above the browser.');
+assert(authService.includes('foregroundAfterOAuth'),'OAuth completion must retry foreground activation after the browser renders the loopback response.');
+assert(authService.includes('setTimeout(()=>window.close(),220)'),'OAuth callback page should close itself when the browser permits it.');
 assert(authService.includes('callbackServer.listen(CALLBACK_PORT,CALLBACK_HOST)'),'Callback server must bind to fixed loopback authority.');
 assert(authService.includes('safeStorage.encryptString')&&authService.includes('safeStorage.decryptString'),'Desktop session storage must be encrypted when OS encryption is available.');
 assert(authService.includes("if(redirect!==CALLBACK_URL)throw new Error('Desktop authentication refused an unexpected redirect destination.')"),'Desktop must fail closed when Supabase changes the redirect destination.');

@@ -1,0 +1,126 @@
+/* 2.0.40 physical rejection repair: based on the failed installer screenshots. */
+
+/* PARTICIPANTS: one and only one media-status authority. The legacy physical
+   decorator may still create .ds-participant-media, but it must never render.
+   Canonical participant-controls owns the mic/video state and More action. */
+#participantRoster .ds-participant-media{display:none!important}
+#participantRoster .person-row.ds-modern-participant-row{
+  min-height:48px!important;
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr) auto auto!important;
+  align-items:center!important;
+  column-gap:9px!important;
+  padding:5px 8px!important;
+}
+#participantRoster .person-badge{
+  width:32px!important;
+  height:32px!important;
+  flex:0 0 32px!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+}
+#participantRoster .person-copy{display:grid!important;gap:1px!important}
+#participantRoster .person-copy strong{font-size:13px!important;gap:5px!important}
+#participantRoster .person-copy small{font-size:10.5px!important;line-height:1.15!important;color:#9f9f9f!important}
+#participantRoster [data-participant-self="1"] .person-copy small{display:none!important}
+#participantRoster .participant-media-state{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:3px!important;
+  min-width:42px!important;
+}
+#participantRoster .participant-media-icon{
+  width:19px!important;
+  height:19px!important;
+  border-radius:4px!important;
+}
+#participantRoster .participant-media-icon svg{width:14px!important;height:14px!important}
+#participantRoster .participant-actions.ds-participant-actions{
+  margin-left:0!important;
+  min-width:34px!important;
+  gap:0!important;
+}
+#participantRoster .participant-more.ds-participant-more,
+#participantRoster [data-ds-self-more]{
+  width:30px!important;
+  min-width:30px!important;
+  height:28px!important;
+}
+
+/* PRE-SHARE: one app-owned Zoom-familiar chooser. No Apple system overlay. */
+.ds-smart-share-picker{
+  background:rgba(0,0,0,.72)!important;
+  backdrop-filter:blur(10px)!important;
+}
+.ds-share-picker-card{
+  width:min(960px,calc(100vw - 56px))!important;
+  height:min(640px,calc(100vh - 64px))!important;
+  grid-template-rows:64px 46px minmax(0,1fr) 64px!important;
+  border:1px solid #454545!important;
+  border-radius:12px!important;
+  background:#202020!important;
+  box-shadow:0 30px 100px rgba(0,0,0,.72)!important;
+}
+.ds-share-picker-card>header{padding:0 18px!important;background:#252525!important}
+.ds-share-picker-card>header p{display:none!important}
+.ds-share-picker-card>header h2{font-size:0!important;font-weight:650!important}
+.ds-share-picker-card>header h2::after{content:'Share Screen';font-size:18px!important;color:#f5f5f5!important}
+.ds-share-picker-card>nav{
+  align-items:stretch!important;
+  justify-content:center!important;
+  gap:18px!important;
+  padding:0 18px!important;
+  background:#202020!important;
+}
+.ds-share-picker-card>nav button{
+  height:46px!important;
+  padding:0 8px!important;
+  font-size:13px!important;
+  border-bottom-width:2px!important;
+}
+.ds-share-source-grid{
+  padding:18px!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:14px!important;
+  background:#181818!important;
+}
+.ds-share-source{
+  padding:7px!important;
+  gap:7px!important;
+  border-radius:8px!important;
+  background:#222!important;
+}
+.ds-share-source:hover{background:#2b2b2b!important}
+.ds-share-source.selected{
+  border-color:#2d8cff!important;
+  background:#232c38!important;
+  box-shadow:0 0 0 1px rgba(45,140,255,.38)!important;
+}
+.ds-share-thumb{
+  height:140px!important;
+  border-radius:6px!important;
+  background:#0d0d0d!important;
+  border-color:#383838!important;
+}
+.ds-share-source strong{font-size:12px!important;text-align:center!important;padding:1px 3px 3px!important}
+.ds-share-picker-card>footer{
+  gap:16px!important;
+  padding:0 16px!important;
+  background:#252525!important;
+}
+.ds-share-picker-card>footer label{font-size:12px!important}
+.ds-share-picker-card>footer>button{height:36px!important;min-width:78px!important}
+.ds-share-picker-card>footer>button.primary{
+  min-width:86px!important;
+  background:#2d8cff!important;
+  border-color:#2d8cff!important;
+  color:#fff!important;
+}
+.ds-share-picker-card>footer>button.primary:disabled{opacity:.42!important}
+.ds-share-loading{min-height:300px!important}
+
+@media(max-width:760px){
+  .ds-share-source-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .ds-share-thumb{height:112px!important}
+}

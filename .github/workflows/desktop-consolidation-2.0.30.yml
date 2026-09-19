@@ -1,0 +1,40 @@
+name: DominionStar Meet Consolidated Desktop 2.0.30
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/src/auth-service.mjs'
+      - 'meet-desktop/src/main.mjs'
+      - 'meet-desktop/src/bootstrap.mjs'
+      - 'meet-desktop/ui/share-integration.js'
+      - 'meet-desktop/scripts/verify-desktop-consolidation-2.0.30.mjs'
+      - '.github/workflows/desktop-consolidation-2.0.30.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop-consolidation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify consolidated 2.0.30 authorities
+        working-directory: meet-desktop
+        run: |
+          node --check src/auth-service.mjs
+          node --check src/main.mjs
+          node --check ui/share-integration.js
+          node --check scripts/verify-desktop-consolidation-2.0.30.mjs
+          node scripts/verify-desktop-consolidation-2.0.30.mjs
+          node scripts/verify-auth.mjs
+          node scripts/verify-mac-install-authority.mjs

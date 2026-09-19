@@ -1,0 +1,36 @@
+name: DominionStar Meet Instant Camera 2.0.35
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/ui/media-controller.js'
+      - 'meet-desktop/ui/app.js'
+      - 'meet-desktop/scripts/verify-instant-camera-2.0.35.mjs'
+      - '.github/workflows/instant-camera-2.0.35.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  instant-camera:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify instant cancellable camera behavior
+        working-directory: meet-desktop
+        run: |
+          node --check ui/media-controller.js
+          node --check ui/app.js
+          node --check scripts/verify-instant-camera-2.0.35.mjs
+          node scripts/verify-instant-camera-2.0.35.mjs
+          node scripts/verify-zoom-participants-2.0.34.mjs
