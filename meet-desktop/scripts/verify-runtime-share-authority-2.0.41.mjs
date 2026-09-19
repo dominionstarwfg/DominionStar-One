@@ -11,6 +11,8 @@ const physical=read('ui/zoom-physical-acceptance.js');
 const integration=read('ui/share-integration.js');
 const controller=read('ui/share-controller.js');
 const preload=read('src/preload.cjs');
+const presenterPreload=read('src/presenter-preload.cjs');
+const main=read('src/main.mjs');
 const shareService=read('src/share-service.mjs');
 const relaunch=read('src/relaunch-service.mjs');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
@@ -18,6 +20,7 @@ const macToolbar=read('ui/mac-presenter-toolbar.html');
 const macToolbarJs=read('ui/mac-presenter-toolbar.js');
 const macVideo=read('ui/mac-share-video.html');
 const macVideoJs=read('ui/mac-share-video.js');
+const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 
 assert.equal(pkg.version,'2.0.41');
 new Function(authority);
@@ -66,22 +69,29 @@ assert(intelligence.includes('desktop.app?.privacyIdentity?.()')&&intelligence.i
 assert(intelligence.includes('Reset & Reauthorize This Build')&&intelligence.includes('previous build’s switch enabled'),'A granted-but-unreadable ad-hoc build must explain and repair the stale TCC row without another useless relaunch loop.');
 assert(relaunch.includes("tccutil',['reset','ScreenCapture','com.dominionstar.desktop']")&&relaunch.includes("signingMode:'adhoc'")&&relaunch.includes('stableAcrossRebuilds:false'),'The main-process recovery authority must reset only DominionStar ScreenCapture and report ad-hoc signing truthfully.');
 
-assert(intelligence.includes('async function commitGrantedShare(button)')&&intelligence.includes('await wait(2000)'),'Granted sharing must hold the chooser for a minimum two-second Zoom-style handoff before the real capture request.');
+assert(intelligence.includes('async function commitGrantedShare(button)'),'Granted sharing must retain one canonical commit path.');
 const grantedCommit=intelligence.slice(intelligence.indexOf('async function commitGrantedShare(button)'),intelligence.indexOf('async function open(){'));
-assert(grantedCommit.indexOf('await wait(2000)')<grantedCommit.indexOf('desktop.sharePicker?.choose?.(sourceId,options)'),'The two-second preparation must happen before the selected source is committed to getDisplayMedia.');
-assert(grantedCommit.includes('window.DominionShareIntegration?.state?.()?.active')&&grantedCommit.includes('legacy.close?.()'),'The approved chooser must close only after live capture is actually active.');
+assert(grantedCommit.includes("includeMeetWindows:Boolean(root.querySelector('[data-include-meet]')?.checked)")&&grantedCommit.includes('deferPresenterCommit:true'),'The active physical chooser must carry Meet-window privacy plus the two-phase presenter handoff.');
+assert(grantedCommit.indexOf('legacy.close?.()')>=0&&grantedCommit.indexOf('legacy.close?.()')<grantedCommit.indexOf('desktop.sharePicker?.choose?.(sourceId,options)'),'The chooser must disappear before display capture can park the meeting renderer.');
+assert(grantedCommit.includes('window.DominionShareIntegration?.state?.()?.active')&&grantedCommit.includes('window.DominionShareIntegration?.commitPresenterMode?.()'),'Presenter mode must be committed only after live capture is confirmed and the chooser is already gone.');
 assert(intelligence.includes("version:'2.0.41-picker-first-identity-aware-permission-zoom-handoff'"),'Physical intelligence must identify the permission-aware Zoom handoff.');
 assert(intelligence.includes('left:auto!important')&&intelligence.includes('width:auto!important')&&intelligence.includes('max-width:max-content!important'),'Prejoin Backgrounds control must be explicitly compact and cannot inherit the rejected full-width overlay geometry.');
 assert(!intelligence.includes('#homeSection')&&!intelligence.includes('.home-grid')&&!intelligence.includes('.action-card'),'Physical intelligence repair must not alter the locked Home surface.');
 
-assert(shareService.includes('function parkMacMeetingWindow({preCapture=false}={})')&&shareService.includes('parkMacMeetingWindow({preCapture:true})'),'The main macOS meeting window must be parked before source-selected starts getDisplayMedia.');
-assert(shareService.includes('main.setOpacity?.(0.02)')&&shareService.includes('main.setIgnoreMouseEvents(true)'),'The capture-owning renderer must remain scheduled at near-zero opacity rather than being hidden or minimized.');
-assert(shareService.includes('protectMeetingChrome(main,true)')&&shareService.includes('main.webContents?.setBackgroundThrottling?.(false)'),'Presenter mode must exclude DominionStar meeting chrome from the shared desktop while keeping its renderer alive.');
+assert(shareService.includes('function parkMacMeetingWindow({preCapture=false}={})')&&shareService.includes('parkMacMeetingWindow({preCapture:true})'),'The macOS share service must retain an explicit two-phase meeting-window authority.');
+assert(shareService.includes('if(preCapture){')&&shareService.includes('macPresenterParked=false')&&shareService.includes('meetingVisible:true'),'Pre-capture setup must keep the canonical meeting renderer in normal visible geometry until capture is live.');
+assert(!shareService.includes('main.setOpacity?.(0.02)')&&shareService.includes('main.webContents?.setBackgroundThrottling?.(false)'),'Presenter mode must reject the old near-zero-opacity workaround while keeping renderer throttling disabled.');
+assert(shareService.includes('protectMeetingChrome(main,!Boolean(lastToolbarState.includeMeetWindows))'),'DominionStar meeting chrome must be excluded by default and included only when the user explicitly chooses it.');
 assert(shareService.includes('captureStartWatchdog=setTimeout')&&shareService.includes('restoreMainWindowAfterShare()'),'Failed physical capture startup must restore the main meeting window automatically.');
 assert(shareService.includes("new Promise(resolve=>setTimeout(()=>resolve({handled:false,reason:'direct-timeout'}),700))"),'Generic presenter fallback must be bounded and may not hang the toolbar indefinitely.');
 
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-presenter-toolbar.html'))"),'macOS sharing must load the independent presenter toolbar.');
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-share-video.html'))"),'macOS sharing must load the independent presenter video dock.');
+assert(main.includes("disable-renderer-backgrounding")&&main.includes("disable-background-timer-throttling")&&main.includes("disable-backgrounding-occluded-windows"),'macOS must keep the capture-owning meeting renderer scheduled while presenter mode is off-screen.');
+assert(macOverlay.includes('let presenterModeCommitted=false')&&macOverlay.includes("ipcMain.on('share:presenter-committed'"),'Physical presenter UI must use a second explicit handoff after display capture starts.');
+assert(macOverlay.includes('presenterRendererResponsive')&&macOverlay.includes("presenter-renderer-unresponsive"),'The floating toolbar may appear only after the physically parked meeting renderer proves it is still executable.');
+assert(macOverlay.includes('screen.getAllDisplays?.()')&&macOverlay.includes('maxRight+96'),'The capture owner must be parked off-display at full meeting size instead of being resized underneath the video dock.');
+assert(!macOverlay.includes("try{main.setBounds({x,y,width,height},false);}catch{}\n        try{main.setAlwaysOnTop(false)"),'Video-dock positioning must not continuously resize the capture-owning meeting window underneath the dock.');
 assert(macOverlay.includes('border:4px solid #2ed573'),'Entire-screen sharing must retain a visible green display border.');
 assert(macOverlay.includes("setAlwaysOnTop(true,'screen-saver',1)"),'The green display border must remain above Dock/menu surfaces on all four edges.');
 assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('area.y+78'),'Presenter video dock must default to the upper-right below the floating toolbar on the active display.');
@@ -90,7 +100,10 @@ assert(macOverlay.includes('deliverPresenterCommandWithRetry')&&macOverlay.inclu
 assert(macOverlay.includes("normalized==='layout-hide'")&&macOverlay.includes("setVideoLayout('speaker')")&&macOverlay.includes("setVideoLayout('gallery')"),'Speaker, gallery, and hidden video-panel layouts must work locally on the Mac presenter surface.');
 assert(macToolbar.includes('You are screen sharing')&&macToolbar.includes('id="stopShare"')&&macToolbar.includes('id="stopShareLabel">Stop Share<')&&macToolbar.includes('class="stop-share-icon"'),'Presenter toolbar must provide persistent positive sharing state and the approved vector Stop Share control.');
 assert(macVideo.includes('DominionStar Meet')&&macVideo.includes('cameraMirror'),'Presenter video dock must retain DominionStar branding and the camera frame-mirror presentation surface.');
-assert(!macVideoJs.includes('navigator.mediaDevices.getUserMedia')&&macVideoJs.includes("bridge?.onState?.(state=>")&&macVideoJs.includes("dock.dataset.videoOwner='meeting-renderer-frame-mirror'"),'Floating presenter video must not open a second macOS camera capture; the meeting renderer remains the single camera owner while the dock mirrors meeting-owned frames and follows meeting camera/mic state.');
+assert(!macVideoJs.includes('navigator.mediaDevices.getUserMedia')&&macVideoJs.includes("bridge?.onState?.(state=>")&&macVideoJs.includes("dock.dataset.videoOwner='meeting-renderer-frame-mirror'"),'Floating presenter video must not open a second macOS camera capture; the meeting renderer remains the single camera owner while the dock mirrors meeting camera/mic state.');
+assert(preload.includes("publishVideoFrame:payload=>")&&preload.includes("ipcRenderer.send('mac-share:video-frame'"),'The live meeting renderer must push camera frames outward instead of being polled from an occluded window.');
+assert(integration.includes('publishMacVideoFrame')&&integration.includes('macMirrorCanvas.toDataURL')&&integration.includes('stopMacVideoMirror'),'Renderer-owned live video must publish continuously while sharing and stop cleanly with the share.');
+assert(presenterPreload.includes("await invoke('mac-share:presenter-command'")&&!presenterPreload.includes("transport:'one-way'"),'Floating toolbar controls must await real command execution instead of returning a synthetic acknowledgement.');
 
 assert(macToolbarJs.includes('const nativeBridge=desktop.macShare||null'),'Floating Mac toolbar must prefer the native macShare control bridge.');
 assert(macToolbarJs.includes('const rendererBridge=desktop.presenter||null'),'Floating Mac toolbar must retain only a bounded generic presenter fallback.');
@@ -102,5 +115,7 @@ assert(preload.includes("ipcRenderer.send('share:presenter-delivery-ack'"),'The 
 assert(shareService.includes('window.__DominionPresenterDispatch')&&shareService.includes('webContents.executeJavaScript'),'Generic presenter fallback must still directly invoke the live renderer dispatcher.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}"),'Stop Share must terminate the real ShareController capture, not only change toolbar chrome.');
 assert(controller.includes('stopTracks(state.frozenStream);stopTracks(state.liveStream);')&&controller.includes('void Promise.resolve(pending).catch'),'Stop Share must terminate local capture tracks before non-blocking presenter chrome cleanup.');
+assert(activeShareHome.includes('window.DominionShareRuntimeAuthority2041?.close?.()')&&activeShareHome.includes('.ds2041-share-root'),'Stop Share must close the in-renderer chooser before restoring the active meeting.');
+assert(integration.includes('selectionOptions.deferPresenterCommit')&&integration.includes('bridge?.presenterCommitted?.('),'Selected-source capture must finish before native presenter parking is committed.');
 
 console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-identity-aware-permission permission-state-before-request two-second-pre-capture-handoff live-share-confirmation zoom-style-in-place-refresh no-stacked-recovery targeted-tcc-reset compact-prejoin approved-screens-files-more real-source-bridge pre-capture-main-window-park capture-protected-meeting scheduled-capture-renderer bounded-native-command-retry full-display-green-border local-video-layout active-share-toolbar acknowledged-mac-presenter-routing truthful-toolbar-delivery local-first-stop single-camera-owner frame-mirror-video-dock no-second-display-capture-owner home-locked');
