@@ -164,7 +164,15 @@ try{
     const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;overlay.classList.add('share-active');document.querySelector('#roomRole').textContent='Host';document.querySelector('#roomTitle').textContent='QA Member’s Personal Meeting Room';
     window.DominionMeetingParity?.install?.();window.DominionApprovedReferenceParity?.sync?.();window.DominionRuntimeStability?.sync?.();
     let toolbar=document.querySelector('#inlinePresenterToolbar');if(!toolbar){toolbar=document.createElement('div');toolbar.id='inlinePresenterToolbar';toolbar.className='inline-presenter-toolbar';toolbar.innerHTML='<div class="inline-presenter-status"></div><div class="inline-presenter-actions"><button data-inline-command="audio">Audio</button><button data-inline-command="video">Video</button><button data-inline-command="participants">Participants</button><button data-inline-command="chat">Chat</button><button data-inline-command="pause">Pause</button><button data-inline-command="annotate">Annotate</button><button data-inline-command="new-share">Share</button><button class="stop" data-inline-command="stop">Stop Share</button></div>';overlay.append(toolbar);}
-    window.DominionZoomScreenshotReference.sync();overlay.classList.add('ds-ref-presenter-visible');
+    const liveIntegration=window.DominionShareIntegration;
+    try{
+      if(liveIntegration)Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:{...liveIntegration,state:()=>({active:true})}});
+      overlay.classList.add('share-active');
+      window.DominionZoomScreenshotReference.sync();
+    }finally{
+      if(liveIntegration)Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:liveIntegration});
+    }
+    overlay.classList.add('ds-ref-presenter-visible');
     let dock=document.querySelector('#participantVideoDock');if(dock){dock.hidden=false;let body=dock.querySelector('.participant-video-dock-body')||dock;body.innerHTML='<div class="remote-peer-tile" data-peer-id="qa"><div class="remote-peer-fallback">QM</div><div class="remote-peer-name">QA Member</div></div>';}
     return true;
   })()`);
