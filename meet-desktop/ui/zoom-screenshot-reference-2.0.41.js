@@ -26,7 +26,22 @@
     `;
     document.head.append(style);
   }
-  function setVisibleLabel(button,text){if(!button)return;const label=button.querySelector('.ds-control-label');if(label)label.textContent=text;else if(!button.querySelector('svg'))button.textContent=text;}
+  function setVisibleLabel(button,text){
+    if(!button)return;
+    let label=button.querySelector('.ds-control-label');
+    if(!label){
+      const icon=button.querySelector('.ds-control-icon');
+      if(icon){
+        label=document.createElement('span');
+        label.className='ds-control-label';
+        icon.insertAdjacentElement('afterend',label);
+      }else if(!button.querySelector('svg')){
+        button.textContent=text;
+        return;
+      }
+    }
+    if(label)label.textContent=text;
+  }
   function notice(title,copy){const d=q('#foundationDialog');if(!d)return;q('#foundationTitle').textContent=title;q('#foundationCopy').textContent=copy;if(!d.open)d.showModal();}
   function ensureDeterministicPresenterIdle(){if(document.querySelector('style[data-ds-ref-presenter-idle]'))return;const style=document.createElement('style');style.dataset.dsRefPresenterIdle='1';style.textContent='#meetingOverlay.share-active:not(.ds-ref-presenter-visible) #inlinePresenterToolbar{opacity:0!important;pointer-events:none!important;transition:none!important;transform:translateX(-50%) translateY(-12px)!important}';document.head.append(style);}
 
