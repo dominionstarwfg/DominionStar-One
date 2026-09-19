@@ -422,7 +422,7 @@ if(process.platform==='darwin'){
     let result=await executePresenterCommandDirect(main,normalized,normalized==='stop'?1200:900);
     if(result?.ok){
       if(['participants','chat','annotate'].includes(normalized))showCompanionWindow(normalized);
-      return {...result,sent:true,acknowledged:false};
+      return {...result,sent:true,acknowledged:true};
     }
 
     if(['participants','chat','annotate'].includes(normalized))showCompanionWindow(normalized);
@@ -436,7 +436,7 @@ if(process.platform==='darwin'){
       showMeeting();await wait(180);main=mainWindow();
       if(!isAlive(main))return {...resetSharePresentation('meeting-renderer-lost-during-stop'),sent:false,acknowledged:false};
       result=await executePresenterCommandDirect(main,normalized,1400);
-      if(result?.ok)return {...result,sent:true,acknowledged:false,recovered:true};
+      if(result?.ok)return {...result,sent:true,acknowledged:true,recovered:true};
       const retry=await deliverPresenterCommandWithRetry(main,normalized);
       if(retry?.ok)return {...retry,recovered:true};
       if(!isAlive(mainWindow()))return {...resetSharePresentation('meeting-renderer-lost-after-stop-retry'),sent:false,acknowledged:false};
