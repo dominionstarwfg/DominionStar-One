@@ -17,6 +17,8 @@ new Function(videoDock);
 
 assert(toolbar.includes("version:'2.0.42-acknowledged-native-first-controls'"),'Presenter toolbar must identify the 2.0.42 acknowledged transport.');
 assert(toolbar.includes("transport:nativeBridge?.command?'macShare-ack-first'"),'Physical Mac presenter controls must prefer the acknowledged native queue.');
+assert(toolbar.includes("if(nativeBridge?.command)return await sendNative(normalized);"),'When the native bridge exists, one authoritative acknowledged transport must own the command.');
+assert(!toolbar.includes("catch(error){\n          if(!NATIVE_ONLY_COMMANDS.has(normalized)&&rendererBridge?.command)return await sendRenderer(normalized);"),'A native timeout must not cross-fallback and double-toggle the same control.');
 assert(toolbar.includes("result.direct===true||result.acknowledged===true||result.handled===true"),'Toolbar success must require execution evidence.');
 assert(!toolbar.includes("result.direct===true||result.acknowledged===true||result.handled===true||result.ok===true"),'A bare ok:true must never be treated as presenter command execution.');
 
