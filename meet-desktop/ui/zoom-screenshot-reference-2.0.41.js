@@ -22,6 +22,7 @@
       #meetingOverlay .ds-runtime-toolbar-left,
       #meetingOverlay .ds-runtime-toolbar-center,
       #meetingOverlay .ds-runtime-toolbar-right{height:56px!important;max-height:56px!important}
+      #meetingOverlay #roomReactions .ds-control-label{font-size:10px!important;line-height:1.1!important;white-space:nowrap!important}
       #meetingOverlay .meeting-body{min-height:0!important}
     `;
     document.head.append(style);
