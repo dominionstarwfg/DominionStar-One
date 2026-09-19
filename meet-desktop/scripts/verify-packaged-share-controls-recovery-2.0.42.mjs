@@ -63,7 +63,7 @@ class Cdp{
   close(){try{this.socket?.close();}catch{}}
 }
 
-let main=null,toolbar=null,video=null,failure=null;
+let main=null,toolbar=null,video=null,picker=null,failure=null;
 try{
   main=new Cdp((await findTarget(url=>url.startsWith('file://')&&url.includes('/ui/index.html'),'meeting renderer')).webSocketDebuggerUrl);
   await main.connect();
@@ -125,6 +125,20 @@ try{
   if((await state()).share.paused){await click('[data-command="pause"]');await main.wait("window.DominionShareIntegration.state().paused===false",'share resumed');}
   await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'",'camera mirror recovered after repeated toggles',8000);
 
+  await click('[data-command="layout-gallery"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().videoLayout==='gallery'",'Gallery presenter-video layout');
+  await click('[data-command="layout-speaker"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().videoLayout==='speaker'",'Speaker presenter-video layout');
+
+  await click('[data-command="show-meeting"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().meetingVisible===true",'Show meeting');
+  await click('[data-command="show-meeting"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().meetingVisible===false",'Hide meeting back to presenter mode');
+
+  await click('[data-command="new-share"]');
+  picker=new Cdp((await findTarget(url=>url.includes('/ui/share-picker.html'),'New Share chooser')).webSocketDebuggerUrl);await picker.connect();
+  await picker.wait("document.readyState==='complete'&&document.querySelector('[data-tab="screens"]')&&document.querySelector('#cancelTop')",'New Share approved chooser');
+  assert.equal((await state()).share.active,true,'Opening New Share must not stop the current share before a replacement is selected.');
+  await picker.eval("document.querySelector('#cancelTop').click()");
+  picker.close();picker=null;
+  await main.wait("window.DominionShareIntegration.state().active===true",'current share retained after cancelling New Share');
+
   await click('[data-command="participants"]');await main.wait("document.body.dataset.dsShareCompanion==='participants'",'Participants command');
   await click('[data-command="chat"]');await main.wait("document.body.dataset.dsShareCompanion==='chat'",'Chat command');
   await click('[data-command="annotate"]');await main.wait("window.DominionShareIntegration.state().annotating===true",'Annotate command');
@@ -141,11 +155,11 @@ try{
   await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'",'presenter video live after re-share',8000);
   await click('#stopShare');await main.wait("window.DominionShareIntegration.state().active===false",'second Stop Share');
 
-  console.log('DOMINIONSTAR_PACKAGED_SHARE_CONTROLS_RECOVERY_2_0_42_OK acknowledged-toolbar 4x-audio 4x-video 4x-pause participants chat annotate stop-return re-share second-stop camera-mirror-live');
+  console.log('DOMINIONSTAR_PACKAGED_SHARE_CONTROLS_RECOVERY_2_0_42_OK acknowledged-toolbar 4x-audio 4x-video 4x-pause layout show-meeting new-share-cancel participants chat annotate stop-return re-share second-stop camera-mirror-live');
 }catch(error){
   failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());
 }finally{
-  video?.close();toolbar?.close();main?.close();
+  picker?.close();video?.close();toolbar?.close();main?.close();
   if(child.exitCode===null){try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 }
 if(failure)throw failure;
