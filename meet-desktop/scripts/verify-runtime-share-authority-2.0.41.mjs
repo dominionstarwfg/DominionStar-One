@@ -21,6 +21,7 @@ const macToolbar=read('ui/mac-presenter-toolbar.html');
 const macToolbarJs=read('ui/mac-presenter-toolbar.js');
 const macVideo=read('ui/mac-share-video.html');
 const macVideoJs=read('ui/mac-share-video.js');
+const macVideoMirror=read('src/mac-share-video-mirror.mjs');
 const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 
 assert.equal(pkg.version,'2.0.41');
@@ -90,6 +91,10 @@ assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-presenter-toolbar.html
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-share-video.html'))"),'macOS sharing must load the independent presenter video dock.');
 assert(bootstrap.includes("disable-renderer-backgrounding")&&bootstrap.includes("disable-background-timer-throttling")&&bootstrap.includes("disable-backgrounding-occluded-windows"),'macOS must keep the capture-owning meeting renderer scheduled while presenter mode is off-screen.');
 assert(macOverlay.includes('let presenterModeCommitted=false')&&macOverlay.includes("ipcMain.on('share:presenter-committed'"),'Physical presenter UI must use a second explicit handoff after display capture starts.');
+assert(integration.includes("try{bridge?.presenterCommitted?.(")&&!integration.includes("if(!sameRendererPresenter)bridge?.presenterCommitted?.("),'macOS live capture must commit into the native presenter authority instead of remaining inside the captured meeting window.');
+assert(integration.includes('inlinePresenter.hidden=!state.active||sameRendererPresenter'),'macOS active share must suppress the in-renderer presenter toolbar so it cannot be recursively captured.');
+assert(macOverlay.includes('focusable:true,acceptFirstMouse:true'),'The native macOS presenter toolbar must accept real pointer interaction rather than behaving as decorative chrome.');
+assert(macOverlay.includes('main.setContentProtection?.(Boolean(shareActive&&!shareState.includeMeetWindows))'),'Restoring the meeting during an active share must preserve the default privacy exclusion unless the user explicitly includes Meet windows.');
 assert(macOverlay.includes('presenterRendererResponsive')&&macOverlay.includes("presenter-renderer-unresponsive"),'The floating toolbar may appear only after the physically parked meeting renderer proves it is still executable.');
 assert(macOverlay.includes('screen.getAllDisplays?.()')&&macOverlay.includes('maxRight+96'),'The capture owner must be parked off-display at full meeting size instead of being resized underneath the video dock.');
 assert(!macOverlay.includes("try{main.setBounds({x,y,width,height},false);}catch{}\n        try{main.setAlwaysOnTop(false)"),'Video-dock positioning must not continuously resize the capture-owning meeting window underneath the dock.');
@@ -103,6 +108,8 @@ assert(macToolbar.includes('You are screen sharing')&&macToolbar.includes('id="s
 assert(macVideo.includes('DominionStar Meet')&&macVideo.includes('cameraMirror'),'Presenter video dock must retain DominionStar branding and the camera frame-mirror presentation surface.');
 assert(!macVideoJs.includes('navigator.mediaDevices.getUserMedia')&&macVideoJs.includes("bridge?.onState?.(state=>")&&macVideoJs.includes("dock.dataset.videoOwner='meeting-renderer-frame-mirror'"),'Floating presenter video must not open a second macOS camera capture; the meeting renderer remains the single camera owner while the dock mirrors meeting camera/mic state.');
 assert(preload.includes("publishVideoFrame:payload=>")&&preload.includes("ipcRenderer.send('mac-share:video-frame'"),'The live meeting renderer must push camera frames outward instead of being polled from an occluded window.');
+assert(macVideoMirror.includes("ipcMain.on('mac-share:video-frame'")&&macVideoMirror.includes("target.webContents.send('mac-share:video-frame'"),'The main process must forward renderer-owned camera frames into the protected presenter video dock.');
+assert(integration.includes("new ImageCapture(track)")&&integration.includes('macImageCapture.grabFrame()'),'macOS presenter video must prefer direct track frame capture so parking the meeting window cannot leave the video dock stuck on Starting video.');
 assert(integration.includes('publishMacVideoFrame')&&integration.includes('macMirrorCanvas.toDataURL')&&integration.includes('stopMacVideoMirror'),'Renderer-owned live video must publish continuously while sharing and stop cleanly with the share.');
 assert(presenterPreload.includes("await invoke('mac-share:presenter-command'")&&!presenterPreload.includes("transport:'one-way'"),'Floating toolbar controls must await real command execution instead of returning a synthetic acknowledgement.');
 
