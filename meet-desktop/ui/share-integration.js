@@ -218,6 +218,28 @@
     });
     companionObserver.observe(overlay,{subtree:true,attributes:true,attributeFilter:['hidden']});
 
+    function restoreMeetingAfterShareStop(){
+      clearCompanion();
+      const meeting=q('#meetingOverlay');
+      if(meeting){
+        meeting.hidden=false;
+        q('#prejoinOverlay')?.setAttribute('hidden','');
+        q('#waitingOverlay')?.setAttribute('hidden','');
+        q('#appShell')?.setAttribute('hidden','');
+      }
+      try{
+        window.DominionMeetingParity?.install?.();
+        window.DominionMeetingParity?.syncShareLayout?.();
+        window.DominionMeetingParity?.syncVideoDock?.();
+        window.DominionZoomScreenshotReference?.requestSync?.();
+        window.DominionZoomParticipantsReference2041?.sync?.();
+        window.DominionParticipantsCenterLock2041?.sync?.();
+      }catch{}
+      try{window.focus();}catch{}
+      window.dispatchEvent(new CustomEvent('dominion:share-stopped',{detail:{reason:'presenter-stop'}}));
+      return Boolean(meeting);
+    }
+
     async function dispatchPresenterCommand(rawCommand){
       const command=String(rawCommand?.command||rawCommand||'');
       const qaCommandId=Number(rawCommand?.qaCommandId||0)||0;
@@ -228,7 +250,7 @@
         // listener updates the inline presenter toolbar synchronously. Do not
         // run a second DOM/layout transaction in the promise continuation.
         if(command==='pause'){await share.togglePause(sharedVideo);return {handled:true,command};}
-        if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}
+        if(command==='stop'){clearCompanion();await share.stop();applyLayout();restoreMeetingAfterShareStop();return {handled:true,command};}
         if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return {handled:true,command};}
         if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return {handled:true,command};}
         if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return {handled:true,command};}
@@ -249,7 +271,7 @@
     window.__DominionPresenterDispatch=dispatchPresenterCommand;
     bridge?.onPresenterCommand?.(rawCommand=>dispatchPresenterCommand(rawCommand));
 
-    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand});
+    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:async()=>{const result=await share.stop();applyLayout();restoreMeetingAfterShareStop();return result;},state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand,restoreMeetingAfterShareStop});
   }
   void boot().catch(error=>console.error('[DominionStar Meet] Share Integration boot failed.',error)).finally(()=>{window.__DominionShareIntegrationBooting=false;});
 })();
