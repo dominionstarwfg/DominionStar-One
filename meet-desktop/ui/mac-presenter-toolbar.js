@@ -44,18 +44,18 @@
     try{
       // Layout and Show Meeting are native floating-window responsibilities.
       if(NATIVE_ONLY_COMMANDS.has(normalized))return await sendNative(normalized);
-      // Physical-Mac authority: every visible presenter control must complete
-      // through the acknowledged native delivery queue first. A renderer IPC
-      // invocation that merely returns {ok:true} is not proof that the live
-      // meeting controller actually executed the command.
-      if(nativeBridge?.command){
-        try{return await sendNative(normalized);}
+      // Preserve the established direct-first routing boundary, but require
+      // execution proof. A bare {ok:true} from the compatibility IPC is not
+      // success; sendRenderer rejects it and we fall through to the native
+      // acknowledged queue that proves the live meeting renderer handled it.
+      if(rendererBridge?.command){
+        try{return await sendRenderer(normalized);}
         catch(error){
-          if(rendererBridge?.command)return await sendRenderer(normalized);
+          if(nativeBridge?.command)return sendNative(normalized);
           throw error;
         }
       }
-      return await sendRenderer(normalized);
+      return await sendNative(normalized);
     }finally{scheduleHide();}
   };
 
@@ -89,6 +89,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.42-native-ack-first-controls',transport:nativeBridge?.command?'macShare-ack-first':rendererBridge?.command?'presenter-confirmed-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.42-strict-direct-native-ack-fallback',transport:rendererBridge?.command?'presenter-strict-direct-first':nativeBridge?.command?'macShare-ack-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
