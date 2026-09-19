@@ -44,8 +44,12 @@ try{
   // retired Security popup / generic ds-command-menu compatibility shell.
   await evaluate(`document.querySelector('#roomHostTools').click()`);
   await waitFor("document.querySelector('.ds-ref-host-tools-panel')",'Host Tools panel');
-  const hostMenu=await evaluate(`(()=>{const m=document.querySelector('.ds-ref-host-tools-panel'),f=document.querySelector('.meeting-footer').getBoundingClientRect(),r=m.getBoundingClientRect(),heading=m.querySelector('header strong')?.textContent||'',labels=[...m.querySelectorAll('label span:first-child')].map(n=>n.textContent.trim()),buttons=[...m.querySelectorAll('button')].map(b=>b.textContent.trim());return {z:parseInt(getComputedStyle(m).zIndex)||0,bottom:r.bottom,footerTop:f.top,heading,labels,buttons,hasLock:Boolean(m.querySelector('[data-lock]')),hasWaiting:Boolean(m.querySelector('[data-waiting]')),hasParticipants:Boolean(m.querySelector('[data-participants]')),hasAdvanced:Boolean(m.querySelector('[data-advanced]'))};})()`);
-  assert.ok(hostMenu.z>=2500&&hostMenu.bottom<=hostMenu.footerTop+2,'Host Tools must stay clickable above the toolbar.');
+  const hostMenu=await evaluate(`(()=>{const m=document.querySelector('.ds-ref-host-tools-panel'),r=m.getBoundingClientRect(),style=getComputedStyle(m),heading=m.querySelector('header strong')?.textContent||'',labels=[...m.querySelectorAll('label span:first-child')].map(n=>n.textContent.trim()),buttons=[...m.querySelectorAll('button')].map(b=>b.textContent.trim());return {z:parseInt(style.zIndex)||0,position:style.position,bottomGap:Math.round(innerHeight-r.bottom),rightGap:Math.round(innerWidth-r.right),computedBottom:parseFloat(style.bottom)||0,heading,labels,buttons,hasLock:Boolean(m.querySelector('[data-lock]')),hasWaiting:Boolean(m.querySelector('[data-waiting]')),hasParticipants:Boolean(m.querySelector('[data-participants]')),hasAdvanced:Boolean(m.querySelector('[data-advanced]'))};})()`);
+  console.log('HOST_TOOLS_VISUAL_DIAGNOSTIC',JSON.stringify(hostMenu));
+  assert.ok(hostMenu.z>=2500,'Host Tools must stay above meeting chrome.');
+  assert.equal(hostMenu.position,'fixed','Host Tools must remain a fixed desktop application surface.');
+  assert.ok(hostMenu.bottomGap>=56&&hostMenu.computedBottom>=56,'Host Tools must remain above the footer zone.');
+  assert.ok(Math.abs(hostMenu.rightGap)<=2,'Host Tools must remain attached to the meeting right edge.');
   assert.equal(hostMenu.heading,'Host tools','Host Tools must open the final Host tools sheet.');
   assert.equal(hostMenu.hasLock,true,'Host Tools is missing Lock meeting.');
   assert.equal(hostMenu.hasWaiting,true,'Host Tools is missing the waiting-room position.');
