@@ -211,7 +211,13 @@
       }
     });
 
-    share.onChange(()=>applyLayout());
+    let shareWasActive=Boolean(share.snapshot().active);
+    function cleanupStoppedShareSurfaces(){
+      try{window.DominionShareRuntimeAuthority2041?.close?.();}catch{}
+      try{const pending=desktop?.sharePicker?.cancel?.();void Promise.resolve(pending).catch(()=>{});}catch{}
+      try{window.DominionActiveShareHomeParity2041?.restoreMeeting?.();}catch{}
+    }
+    share.onChange(state=>{applyLayout();const active=Boolean(state?.active);if(shareWasActive&&!active)cleanupStoppedShareSurfaces();shareWasActive=active;});
     media.onChange(()=>{if(share.snapshot().active)applyLayout();});
 
     const companionObserver=new MutationObserver(()=>{
@@ -233,12 +239,7 @@
         // listener updates the inline presenter toolbar synchronously. Do not
         // run a second DOM/layout transaction in the promise continuation.
         if(command==='pause'){await share.togglePause(sharedVideo);return {handled:true,command};}
-        if(command==='stop'){clearCompanion();await share.stop();applyLayout();
-          try{window.DominionShareRuntimeAuthority2041?.close?.();}catch{}
-          try{await desktop?.sharePicker?.cancel?.();}catch{}
-          try{window.DominionActiveShareHomeParity2041?.restoreMeeting?.();}catch{}
-          return {handled:true,command};
-        }
+        if(command==='stop'){clearCompanion();await share.stop();applyLayout();return {handled:true,command};}
         if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);applyLayout();return {handled:true,command};}
         if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return {handled:true,command};}
         if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return {handled:true,command};}
