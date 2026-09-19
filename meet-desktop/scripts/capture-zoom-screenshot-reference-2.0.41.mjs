@@ -165,13 +165,12 @@ try{
     window.DominionMeetingParity?.install?.();window.DominionApprovedReferenceParity?.sync?.();window.DominionRuntimeStability?.sync?.();
     let toolbar=document.querySelector('#inlinePresenterToolbar');if(!toolbar){toolbar=document.createElement('div');toolbar.id='inlinePresenterToolbar';toolbar.className='inline-presenter-toolbar';toolbar.innerHTML='<div class="inline-presenter-status"></div><div class="inline-presenter-actions"><button data-inline-command="audio">Audio</button><button data-inline-command="video">Video</button><button data-inline-command="participants">Participants</button><button data-inline-command="chat">Chat</button><button data-inline-command="pause">Pause</button><button data-inline-command="annotate">Annotate</button><button data-inline-command="new-share">Share</button><button class="stop" data-inline-command="stop">Stop Share</button></div>';overlay.append(toolbar);}
     const liveIntegration=window.DominionShareIntegration;
-    try{
-      if(liveIntegration)Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:{...liveIntegration,state:()=>({active:true})}});
-      overlay.classList.add('share-active');
-      window.DominionZoomScreenshotReference.sync();
-    }finally{
-      if(liveIntegration)Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:liveIntegration});
+    if(liveIntegration){
+      window.__DominionQaOriginalShareIntegration=liveIntegration;
+      Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:{...liveIntegration,state:()=>({active:true})}});
     }
+    overlay.classList.add('share-active');
+    window.DominionZoomScreenshotReference.sync();
     overlay.classList.add('ds-ref-presenter-visible');
     let dock=document.querySelector('#participantVideoDock');if(dock){dock.hidden=false;let body=dock.querySelector('.participant-video-dock-body')||dock;body.innerHTML='<div class="remote-peer-tile" data-peer-id="qa"><div class="remote-peer-fallback">QM</div><div class="remote-peer-name">QA Member</div></div>';}
     return true;
@@ -187,6 +186,7 @@ try{
   proof.screens.activeShareIdle=await evaluate(`(()=>({opacity:getComputedStyle(document.querySelector('#inlinePresenterToolbar')).opacity,pointer:getComputedStyle(document.querySelector('#inlinePresenterToolbar')).pointerEvents,dock:Boolean(document.querySelector('#participantVideoDock')&&!document.querySelector('#participantVideoDock').hidden)}))()`);
   if(Number(proof.screens.activeShareIdle.opacity)>.1||proof.screens.activeShareIdle.pointer!=='none')throw new Error(`Active share idle proof failed ${JSON.stringify(proof.screens.activeShareIdle)}`);
   await screenshot('10-active-share-idle.png');
+  await evaluate(`(()=>{const original=window.__DominionQaOriginalShareIntegration;if(original){Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:original});delete window.__DominionQaOriginalShareIntegration;window.DominionZoomScreenshotReference?.sync?.();}return true;})()`);
 
   fs.writeFileSync(path.join(outputDir,'visual-proof.json'),JSON.stringify(proof,null,2));
   console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_VISUAL_PROOF_CAPTURED',JSON.stringify(proof));
