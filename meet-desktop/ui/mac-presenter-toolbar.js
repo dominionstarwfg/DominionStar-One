@@ -43,18 +43,12 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // Every macOS floating-toolbar command now goes through the acknowledged
-      // native delivery queue first. That queue waits for the meeting renderer
-      // to confirm execution and de-duplicates retries by delivery id.
-      if(nativeBridge?.command){
-        try{return await sendNative(normalized);}
-        catch(error){
-          // Renderer-direct is a bounded fallback only. Its result must prove
-          // direct execution; a bare ok/sent response is deliberately rejected.
-          if(!NATIVE_ONLY_COMMANDS.has(normalized)&&rendererBridge?.command)return await sendRenderer(normalized);
-          throw error;
-        }
-      }
+      // Every macOS floating-toolbar command goes through one authoritative,
+      // acknowledged delivery path. Do not cross-fallback after a timeout:
+      // a late first delivery plus a second transport can double-toggle
+      // Mic/Video/Pause. The native queue already retries idempotently by the
+      // same delivery id.
+      if(nativeBridge?.command)return await sendNative(normalized);
       if(!NATIVE_ONLY_COMMANDS.has(normalized)&&rendererBridge?.command)return await sendRenderer(normalized);
       throw new Error('mac_presenter_transport_unavailable');
     }finally{scheduleHide();}
