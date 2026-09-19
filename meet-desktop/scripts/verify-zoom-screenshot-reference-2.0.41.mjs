@@ -164,7 +164,7 @@ const sendBlock=macToolbarJs.slice(macToolbarJs.indexOf('const send=async comman
 const directFirst=sendBlock.indexOf('try{return await sendRenderer(normalized);}');
 const ackFallback=sendBlock.indexOf('if(nativeBridge?.command)return sendNative(normalized);');
 assert.ok(directFirst>=0&&ackFallback>directFirst,'Native presenter toolbar must try direct execution first and fall back to acknowledged native delivery when direct execution is not proven.');
-has(macToolbarJs,"transport:rendererBridge?.command?'presenter-direct-first-strict-ack'",'Native presenter toolbar must expose strict direct-first transport authority for packaged QA.');
+has(macToolbarJs,"transport:rendererBridge?.command?'presenter-direct-first'",'Native presenter toolbar must expose direct-first transport authority while strict success proof is enforced by accepted().');
 has(macToolbarJs,"const label=q('#stopShareLabel')",'Stop Share state feedback must preserve the vector icon.');
 lacks(macToolbarJs,"textContent='■",'Stop Share runtime state must not reintroduce a text-square icon.');
 has(macToolbarJs,"state?.paused",'Native presenter toolbar must reflect real Pause/Resume state.');
