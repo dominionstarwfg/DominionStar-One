@@ -225,7 +225,7 @@
     if(signal.type==='bye'){closePeer(remoteId);return;}
     let record;try{record=ensurePeer(remoteId);}catch{return;}const payload=signal.payload||{};
     if(signal.type==='offer'){
-      if(!payload.sdp)return;await record.pc.setRemoteDescription(payload.sdp);record.transceivers=record.pc.getTransceivers().slice(0,4);await syncLocalTracks(record);await flushIce(record);
+      if(!payload.sdp)return;await record.pc.setRemoteDescription(payload.sdp);record.transceivers=record.pc.getTransceivers().slice(0,4);for(const lane of record.transceivers)if(lane?.direction==='recvonly')lane.direction='sendrecv';await syncLocalTracks(record);await flushIce(record);
       const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:record.pc.localDescription});return;
     }
     if(signal.type==='answer'){if(payload.sdp){await record.pc.setRemoteDescription(payload.sdp);await flushIce(record);}return;}
