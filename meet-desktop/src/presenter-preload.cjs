@@ -27,11 +27,15 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   }),
   macShare:Object.freeze({
     prepare:()=>invoke('mac-share:prepare'),
-    command:command=>{
+    command:async command=>{
       const normalized=String(command||'');
       if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_SEND command=${normalized}`);
-      ipcRenderer.send('mac-share:presenter-command-fast',{command:normalized});
-      return Promise.resolve({ok:true,sent:true,acknowledged:true,transport:'one-way'});
+      // A toolbar click is successful only when main process reports that the
+      // live meeting renderer actually executed or positively acknowledged it.
+      // Never return a synthetic acknowledged:true for a one-way send.
+      const result=await invoke('mac-share:presenter-command',{command:normalized});
+      if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_RESULT command=${normalized} ok=${result?.ok?1:0} acknowledged=${result?.acknowledged?1:0} direct=${result?.direct?1:0} error=${String(result?.error||'')}`);
+      return result;
     },
     setMenuOpen:open=>invoke('mac-share:menu-state',{open:Boolean(open)}),
     showMeeting:()=>invoke('mac-share:show-meeting'),
