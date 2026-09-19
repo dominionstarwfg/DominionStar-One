@@ -13,6 +13,7 @@ const controller=read('ui/share-controller.js');
 const preload=read('src/preload.cjs');
 const presenterPreload=read('src/presenter-preload.cjs');
 const main=read('src/main.mjs');
+const bootstrap=read('src/bootstrap.mjs');
 const shareService=read('src/share-service.mjs');
 const relaunch=read('src/relaunch-service.mjs');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
@@ -87,7 +88,7 @@ assert(shareService.includes("new Promise(resolve=>setTimeout(()=>resolve({handl
 
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-presenter-toolbar.html'))"),'macOS sharing must load the independent presenter toolbar.');
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-share-video.html'))"),'macOS sharing must load the independent presenter video dock.');
-assert(main.includes("disable-renderer-backgrounding")&&main.includes("disable-background-timer-throttling")&&main.includes("disable-backgrounding-occluded-windows"),'macOS must keep the capture-owning meeting renderer scheduled while presenter mode is off-screen.');
+assert(bootstrap.includes("disable-renderer-backgrounding")&&bootstrap.includes("disable-background-timer-throttling")&&bootstrap.includes("disable-backgrounding-occluded-windows"),'macOS must keep the capture-owning meeting renderer scheduled while presenter mode is off-screen.');
 assert(macOverlay.includes('let presenterModeCommitted=false')&&macOverlay.includes("ipcMain.on('share:presenter-committed'"),'Physical presenter UI must use a second explicit handoff after display capture starts.');
 assert(macOverlay.includes('presenterRendererResponsive')&&macOverlay.includes("presenter-renderer-unresponsive"),'The floating toolbar may appear only after the physically parked meeting renderer proves it is still executable.');
 assert(macOverlay.includes('screen.getAllDisplays?.()')&&macOverlay.includes('maxRight+96'),'The capture owner must be parked off-display at full meeting size instead of being resized underneath the video dock.');
