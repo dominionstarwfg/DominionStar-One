@@ -54,6 +54,21 @@ if(process.platform==='darwin'){
             }finally{bitmap.close?.();}
           }catch{}
         }
+        if(typeof MediaStreamTrackProcessor==='function'){
+          const processor=new MediaStreamTrackProcessor({track}),reader=processor.readable.getReader();
+          try{
+            const read=await Promise.race([reader.read(),new Promise(resolve=>setTimeout(()=>resolve({done:true,value:null}),240))]);
+            const frameObject=!read?.done?read?.value:null;
+            if(frameObject){
+              try{
+                const width=Math.max(2,Number(frameObject.displayWidth||frameObject.codedWidth)||320);
+                const height=Math.max(2,Number(frameObject.displayHeight||frameObject.codedHeight)||180);
+                const frame=renderFrame(frameObject,width,height);
+                if(frame)return {cameraLive:true,frame,mirrored:snapshot.mirror!==false,source:'track-processor'};
+              }finally{frameObject.close?.();}
+            }
+          }catch{}finally{try{await reader.cancel();}catch{}try{reader.releaseLock();}catch{}}
+        }
         let video=document.querySelector('#localMeetingVideo');
         let temporary=false;
         if(!(video&&video.srcObject===stream&&video.readyState>=2&&video.videoWidth>1&&video.videoHeight>1)){
