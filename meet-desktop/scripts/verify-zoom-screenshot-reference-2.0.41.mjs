@@ -45,6 +45,7 @@ has(refJs,'ds-ref-search','Home must include the compact top search surface.');
 lacks(refJs,'setInterval(','Final screenshot/reference authority must be event-driven and must not periodically reposition the meeting toolbar.');
 has(runtimeStability,'window.DominionZoomScreenshotReference?.sync?.()','Runtime Stability must commit final screenshot/reference geometry in the same synchronous meeting-layout transaction.');
 has(refJs,"if(label&&label.textContent!==text)label.textContent=text",'Toolbar label synchronization must be idempotent and avoid background DOM churn.');
+has(refJs,"#meetingOverlay #roomReactions .ds-control-label{font-size:10px!important",'Final inline toolbar authority must lock the React label at the approved compact reference size.');
 has(activeShareHome,'Back to meeting','An active shared meeting must replace New Meeting with Back to meeting on Home.');
 has(activeShareHome,"data-action=\"back-to-meeting\"",'Back to meeting must be a real command surface.');
 has(activeShareHome,'desktop.macShare?.onShowMeeting','The native presenter Show meeting command must restore the existing meeting.');
