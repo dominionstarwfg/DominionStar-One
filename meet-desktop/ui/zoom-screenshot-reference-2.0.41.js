@@ -40,7 +40,7 @@
         return;
       }
     }
-    if(label)label.textContent=text;
+    if(label&&label.textContent!==text)label.textContent=text;
   }
   function notice(title,copy){const d=q('#foundationDialog');if(!d)return;q('#foundationTitle').textContent=title;q('#foundationCopy').textContent=copy;if(!d.open)d.showModal();}
   function ensureDeterministicPresenterIdle(){if(document.querySelector('style[data-ds-ref-presenter-idle]'))return;const style=document.createElement('style');style.dataset.dsRefPresenterIdle='1';style.textContent='#meetingOverlay.share-active:not(.ds-ref-presenter-visible) #inlinePresenterToolbar{opacity:0!important;pointer-events:none!important;transition:none!important;transform:translateX(-50%) translateY(-12px)!important}';document.head.append(style);}
@@ -90,7 +90,7 @@
 
   function sync(){syncQueued=false;ensureCriticalMeetingGeometry();ensureDeterministicPresenterIdle();ensureHomeTopbar();ensureNotesAction();ensurePrejoin();reconcileAuthoritativeShareClass();syncMeetingLabels();}
   function requestSync(){if(syncQueued)return;syncQueued=true;requestAnimationFrame(sync);}
-  const observer=new MutationObserver(requestSync);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-pressed']});window.addEventListener('dominion:meeting-ui-ready',requestSync,true);window.addEventListener('dominion:participant-update',requestSync,true);window.addEventListener('dominion:share-state',requestSync,true);window.addEventListener('resize',requestSync,{passive:true});const timer=setInterval(requestSync,650);
-  window.DominionZoomScreenshotReference=Object.freeze({version:'2.0.41',sync,requestSync,openHostToolsPanel,openMeetingMore,openParticipantBulkMenu,dispose:()=>{clearInterval(timer);observer.disconnect();clearTimeout(presenterTimer);window.removeEventListener('click',stableCommandDelegate,true);closeHostPanel();closeMeetingMore();closeParticipantBulk();}});
+  const observer=new MutationObserver(requestSync);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-pressed']});window.addEventListener('dominion:meeting-ui-ready',requestSync,true);window.addEventListener('dominion:participant-update',requestSync,true);window.addEventListener('dominion:share-state',requestSync,true);window.addEventListener('resize',requestSync,{passive:true});
+  window.DominionZoomScreenshotReference=Object.freeze({version:'2.0.41',sync,requestSync,openHostToolsPanel,openMeetingMore,openParticipantBulkMenu,dispose:()=>{observer.disconnect();clearTimeout(presenterTimer);window.removeEventListener('click',stableCommandDelegate,true);closeHostPanel();closeMeetingMore();closeParticipantBulk();}});
   sync();
 })();
