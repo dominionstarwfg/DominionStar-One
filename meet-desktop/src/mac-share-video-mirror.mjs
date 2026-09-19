@@ -30,18 +30,45 @@ if(process.platform==='darwin'){
     const main=mainWindow();if(!alive(main)||main.webContents?.isDestroyed?.())return;
     frameBusy=true;
     try{
-      const payload=await main.webContents.executeJavaScript(`(()=>{
-        const video=document.querySelector('#localMeetingVideo');
-        const stream=video?.srcObject instanceof MediaStream?video.srcObject:null;
+      const payload=await main.webContents.executeJavaScript(`(async()=>{
+        const media=window.DominionMediaController||null;
+        const snapshot=media?.snapshot?.()||{};
+        const stream=media?.stream?.()||null;
         const track=stream?.getVideoTracks?.()[0]||null;
-        const cameraLive=Boolean(track&&track.readyState==='live'&&track.enabled!==false);
-        if(!cameraLive||!video||video.readyState<2||video.videoWidth<2||video.videoHeight<2)return {cameraLive:false,frame:''};
-        const maxWidth=320,width=Math.min(maxWidth,Math.max(2,Number(video.videoWidth)||320));
-        const height=Math.max(2,Math.round(width*(Number(video.videoHeight)||180)/Math.max(2,Number(video.videoWidth)||320)));
-        const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-        const context=canvas.getContext('2d',{alpha:false});if(!context)return {cameraLive:false,frame:''};
-        context.drawImage(video,0,0,width,height);
-        return {cameraLive:true,frame:canvas.toDataURL('image/jpeg',0.62),mirrored:Boolean(getComputedStyle(video).transform&&getComputedStyle(video).transform!=='none')};
+        const cameraLive=Boolean(snapshot.cameraOn!==false&&snapshot.videoLive!==false&&track&&track.readyState==='live'&&track.enabled!==false);
+        if(!cameraLive)return {cameraLive:false,frame:'',mirrored:snapshot.mirror!==false};
+        const renderFrame=(source,sourceWidth,sourceHeight)=>{
+          const width=Math.min(320,Math.max(2,Number(sourceWidth)||320));
+          const height=Math.max(2,Math.round(width*(Number(sourceHeight)||180)/Math.max(2,Number(sourceWidth)||320)));
+          const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+          const context=canvas.getContext('2d',{alpha:false});if(!context)return '';
+          context.drawImage(source,0,0,width,height);
+          return canvas.toDataURL('image/jpeg',0.68);
+        };
+        if(typeof ImageCapture==='function'){
+          try{
+            const bitmap=await new ImageCapture(track).grabFrame();
+            try{
+              const frame=renderFrame(bitmap,bitmap.width,bitmap.height);
+              if(frame)return {cameraLive:true,frame,mirrored:snapshot.mirror!==false,source:'media-track'};
+            }finally{bitmap.close?.();}
+          }catch{}
+        }
+        let video=document.querySelector('#localMeetingVideo');
+        let temporary=false;
+        if(!(video&&video.srcObject===stream&&video.readyState>=2&&video.videoWidth>1&&video.videoHeight>1)){
+          video=document.createElement('video');temporary=true;video.autoplay=true;video.muted=true;video.playsInline=true;video.srcObject=stream;
+          try{await video.play();}catch{}
+          const deadline=Date.now()+320;
+          while(Date.now()<deadline&&(video.readyState<2||video.videoWidth<2||video.videoHeight<2))await new Promise(resolve=>setTimeout(resolve,20));
+        }
+        try{
+          if(video&&video.readyState>=2&&video.videoWidth>1&&video.videoHeight>1){
+            const frame=renderFrame(video,video.videoWidth,video.videoHeight);
+            if(frame)return {cameraLive:true,frame,mirrored:snapshot.mirror!==false,source:temporary?'media-stream-fallback':'local-video'};
+          }
+        }finally{if(temporary){try{video.pause();video.srcObject=null;}catch{}}}
+        return {cameraLive:false,frame:'',mirrored:snapshot.mirror!==false};
       })()`,true).catch(()=>({cameraLive:false,frame:''}));
       if(shareActive)publish(payload||{cameraLive:false,frame:''});
     }finally{frameBusy=false;}
