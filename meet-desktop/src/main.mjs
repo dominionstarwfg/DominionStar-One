@@ -110,10 +110,24 @@ function installLocalPermissionPolicy(desktopSession){
 
 function createMainWindow(){
   mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged,backgroundThrottling:false}});
+  const startupWindow=mainWindow;
+  let startupRevealTimer=null;
+  const revealStartupWindow=reason=>{
+    if(startupRevealTimer){clearTimeout(startupRevealTimer);startupRevealTimer=null;}
+    if(!startupWindow||startupWindow.isDestroyed())return false;
+    try{if(startupWindow.isMinimized())startupWindow.restore();}catch{}
+    try{startupWindow.show();}catch{}
+    try{startupWindow.moveTop?.();}catch{}
+    try{startupWindow.focus();}catch{}
+    if(process.env.ELECTRON_ENABLE_LOGGING==='1')console.error('[DominionStar Meet] Main window revealed:',reason);
+    return true;
+  };
   mainWindow.webContents.setWindowOpenHandler(({url})=>{if(/^https:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
   mainWindow.webContents.on('will-navigate',(event,url)=>{if(url.startsWith('file://'))return;event.preventDefault();if(/^https:\/\//i.test(url))void shell.openExternal(url);});
-  mainWindow.once('ready-to-show',()=>mainWindow?.show());
+  mainWindow.once('ready-to-show',()=>revealStartupWindow('ready-to-show'));
+  startupRevealTimer=setTimeout(()=>revealStartupWindow('bounded-fallback'),1800);
   mainWindow.webContents.once('did-finish-load',()=>{
+    queueMicrotask(()=>revealStartupWindow('did-finish-load'));
     const pending=pendingJoinUrls[0]||'';if(pending)mainWindow?.webContents.send('app:join-url',pending);
   });
   mainWindow.webContents.on('render-process-gone',(_event,details={})=>{
