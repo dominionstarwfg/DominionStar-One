@@ -69,7 +69,7 @@ try{
   await main.connect();
   await main.wait("document.readyState==='complete'&&window.DominionMediaController&&window.DominionShareController&&window.DominionShareIntegration&&window.__DominionPresenterDispatch",'meeting/share controllers');
 
-  const armed=await main.eval(`(async()=>{
+  const prepared=await main.eval(`(async()=>{
     document.querySelector('#bootScreen').hidden=true;
     document.querySelector('#authGate').hidden=true;
     document.querySelector('#appShell').hidden=true;
@@ -105,10 +105,22 @@ try{
     window.DominionMediaController.resetPreferences();
     await window.DominionMediaController.setMicrophone(true);
     const local=document.querySelector('#localMeetingVideo');local.srcObject=owned;void local.play().catch(()=>{});
-    await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
-    return {media:window.DominionMediaController.snapshot(),share:window.DominionShareController.snapshot()};
-  })()`,12000);
-  assert.equal(armed.media.cameraOn,true);assert.equal(armed.media.micOn,true);assert.equal(armed.share.active,true);
+    return {media:window.DominionMediaController.snapshot()};
+
+  })()`,8000);
+  assert.equal(prepared.media.cameraOn,true);assert.equal(prepared.media.micOn,true);assert.equal(prepared.media.videoLive,true);assert.equal(prepared.media.audioLive,true);
+
+  const shareKickoff=await main.eval(`(()=>{
+    window.__qaShareStartError='';
+    window.__qaShareStartPromise=window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}})
+      .catch(error=>{window.__qaShareStartError=String(error?.message||error||'share-start-failed');});
+    return true;
+  })()`);
+  assert.equal(shareKickoff,true);
+  await main.wait("window.DominionShareController.snapshot().active===true||Boolean(window.__qaShareStartError)",'synthetic share start',10000);
+  const startState=await main.eval(`(()=>({share:window.DominionShareController.snapshot(),error:window.__qaShareStartError||''}))()`);
+  assert.equal(startState.error,'',`Synthetic share failed: ${startState.error}`);
+  assert.equal(startState.share.active,true);
 
   toolbar=new Cdp((await findTarget(url=>url.includes('mac-presenter-toolbar.html'),'floating presenter toolbar')).webSocketDebuggerUrl);await toolbar.connect();
   await toolbar.wait("window.DominionMacPresenterToolbar?.transport==='macShare-ack-first'&&document.querySelector('#stopShare')",'2.0.42 acknowledged toolbar');
@@ -153,8 +165,17 @@ try{
   await main.wait("document.querySelector('#meetingOverlay').hidden===false&&document.querySelector('#prejoinOverlay').hidden===true&&document.querySelector('#appShell').hidden===true",'return to live meeting after Stop Share');
   const stopped=await state();assert.equal(stopped.meetingHidden,false);assert.equal(stopped.prejoinHidden,true);assert.equal(stopped.appHidden,true);
 
-  const reshared=await main.eval(`(async()=>{await window.DominionShareController.start({name:'QA Synthetic Re-share',options:{shareAudio:false,optimizeVideo:false}});return window.DominionShareIntegration.state();})()`,12000);
-  assert.equal(reshared.active,true,'A second share must start without ending or relaunching the meeting.');
+  const reShareKickoff=await main.eval(`(()=>{
+    window.__qaReShareError='';
+    window.__qaReSharePromise=window.DominionShareController.start({name:'QA Synthetic Re-share',options:{shareAudio:false,optimizeVideo:false}})
+      .catch(error=>{window.__qaReShareError=String(error?.message||error||'re-share-failed');});
+    return true;
+  })()`);
+  assert.equal(reShareKickoff,true);
+  await main.wait("window.DominionShareIntegration.state().active===true||Boolean(window.__qaReShareError)",'second share start',10000);
+  const reshared=await main.eval(`(()=>({share:window.DominionShareIntegration.state(),error:window.__qaReShareError||''}))()`);
+  assert.equal(reshared.error,'',`Second share failed: ${reshared.error}`);
+  assert.equal(reshared.share.active,true,'A second share must start without ending or relaunching the meeting.');
   await toolbar.wait("document.querySelector('#stopShare')",'presenter toolbar available after re-share');
   await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'",'presenter video live after re-share',8000);
   await click('#stopShare');await main.wait("window.DominionShareIntegration.state().active===false",'second Stop Share');
