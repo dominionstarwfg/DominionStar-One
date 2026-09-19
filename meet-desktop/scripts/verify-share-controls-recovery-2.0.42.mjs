@@ -32,7 +32,7 @@ assert(shareService.includes("const executed=Boolean(delivery?.direct)"),'Legacy
 assert(shareService.includes("presenter_command_not_acknowledged"),'Legacy presenter route must report unacknowledged execution instead of returning cosmetic success.');
 
 assert(integration.includes('function restoreMeetingAfterShareStop()'),'Stop Share must have explicit meeting-surface recovery.');
-assert(integration.includes("q('#prejoinOverlay')?.setAttribute('hidden','')")&&integration.includes("q('#appShell')?.setAttribute('hidden','')"),'Stop Share recovery must suppress prejoin/home fallback surfaces.');
+assert(integration.includes("document.querySelector('#prejoinOverlay')?.setAttribute('hidden','')")&&integration.includes("document.querySelector('#appShell')?.setAttribute('hidden','')"),'Stop Share recovery must suppress prejoin/home fallback surfaces with defined DOM selectors.');
 assert(integration.includes("window.dispatchEvent(new CustomEvent('dominion:share-stopped'"),'Stop Share recovery must publish a deterministic state transition.');
 assert(integration.includes("annotating:Boolean(state.annotating)"),'Native presenter state must expose real annotation state for active-share control verification.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();applyLayout();restoreMeetingAfterShareStop();"),'Floating Stop Share must terminate capture and restore the meeting in one command path.');
