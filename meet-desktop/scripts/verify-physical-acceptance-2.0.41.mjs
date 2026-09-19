@@ -47,7 +47,7 @@ assert(js.includes('desktop.sharePicker.choose(selectedShareId,options)'),'Compa
 assert(js.includes("sessionStorage.setItem('ds_screen_settings_opened','1')")&&js.includes('Recheck'),'Permission recovery must remember that Settings was opened and provide an active recheck path instead of looping blindly.');
 assert(presenter.includes('await bridge?.command?.(routedCommand(command));'),'Floating presenter controls must route commands through the presenter bridge.');
 assert(integration.includes("if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}"),'Presenter New Share must be handled by the canonical Share Integration.');
-assert(integration.includes("async function openPickerWithPermission(){clearCompanion();return beginShare({replace:share.snapshot().active});}"),'Presenter New Share must reopen the same permission-aware approved share entry.');
+assert(integration.includes('async function openPickerWithPermission(){')&&integration.includes('const approved=window.DominionShareRuntimeAuthority2041;')&&integration.includes('if(approved?.open)return approved.open();'),'Presenter New Share must reopen the approved runtime share chooser before any legacy fallback.');
 assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-grid'),'Compatibility screen sharing must retain a real-source picker rather than a permission-only dialog.');
 
 assert(!intelligence.includes('ds2041-permission-modal')&&!intelligence.includes('ds2041-permission-card'),'Screen Recording recovery must not create a blocking DominionStar permission modal over the approved picker.');

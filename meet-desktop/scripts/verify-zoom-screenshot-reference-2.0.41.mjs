@@ -23,6 +23,7 @@ const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 const macToolbarCss=read('ui/mac-presenter-toolbar.css');
 const macToolbarJs=read('ui/mac-presenter-toolbar.js');
 const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
+const runtimeStability=read('ui/runtime-stability.js');
 
 const has=(s,n,m)=>assert.ok(s.includes(n),m);
 const lacks=(s,n,m)=>assert.ok(!s.includes(n),m);
@@ -41,6 +42,10 @@ has(refCss,'grid-template-columns:minmax(520px,1fr) 330px','Home must use action
 has(refCss,'#homeSection .action-icon','Home must use icon-first meeting actions rather than dashboard cards.');
 has(refJs,'My Notes','Home must include a working local My Notes action.');
 has(refJs,'ds-ref-search','Home must include the compact top search surface.');
+lacks(refJs,'setInterval(','Final screenshot/reference authority must be event-driven and must not periodically reposition the meeting toolbar.');
+has(runtimeStability,'window.DominionZoomScreenshotReference?.sync?.()','Runtime Stability must commit final screenshot/reference geometry in the same synchronous meeting-layout transaction.');
+has(refJs,"if(label&&label.textContent!==text)label.textContent=text",'Toolbar label synchronization must be idempotent and avoid background DOM churn.');
+has(refJs,"#meetingOverlay #roomReactions .ds-control-label{font-size:10px!important",'Final inline toolbar authority must lock the React label at the approved compact reference size.');
 has(activeShareHome,'Back to meeting','An active shared meeting must replace New Meeting with Back to meeting on Home.');
 has(activeShareHome,"data-action=\"back-to-meeting\"",'Back to meeting must be a real command surface.');
 has(activeShareHome,'desktop.macShare?.onShowMeeting','The native presenter Show meeting command must restore the existing meeting.');
@@ -55,6 +60,8 @@ has(refJs,"strong.textContent='Backgrounds'",'Prejoin Backgrounds label is not n
 for(const label of ['Audio','Video','Participants','Chat','React','Raise hand','Share','Host tools','More','End'])has(refJs,`'${label}'`,`Meeting toolbar is missing ${label}.`);
 has(refCss,'height:56px!important','Meeting bottom toolbar must keep the compact Zoom-scale height.');
 has(refCss,'grid-template-columns:minmax(142px,1fr) auto minmax(142px,1fr)','Meeting toolbar must preserve left/center/right zoning.');
+has(refJs,"footer.style.setProperty(prop,'56px','important')",'Final sync must directly normalize the live meeting footer to the approved 56px geometry.');
+has(refJs,"zone.style.setProperty(prop,'56px','important')",'Final sync must directly normalize live toolbar zones to 56px.');
 
 // Participants / participant-wide controls are separate from Host tools.
 has(refJs,'ds-ref-participants-footer','Participants footer is missing.');
@@ -76,6 +83,8 @@ has(refJs,'data-participants','Host tools is missing Participants navigation.');
 has(refJs,'data-advanced','Host tools is missing Advanced navigation.');
 
 // More is its own tool grid.
+has(refJs,"label=document.createElement('span')",'Final toolbar sync must recreate a missing visible label instead of leaving an SVG-only control.');
+has(refJs,"label.className='ds-control-label'",'Recreated toolbar labels must use the certified control-label class.');
 has(refJs,'ds-ref-meeting-more-grid','Meeting More grid is missing.');
 for(const label of ['Record','Show captions','Breakout rooms','Polls/quizzes','Docs','Whiteboards','Apps','Meeting info','Transfer to room','Settings'])has(refJs,`'${label}'`,`Meeting More is missing ${label}.`);
 for(const label of ['Breakout rooms','Polls/quizzes','Docs','Whiteboards','Apps','Transfer to room']){
@@ -154,14 +163,17 @@ has(macToolbarCss,'.share-strip','Native presenter toolbar must retain a dedicat
 has(macToolbarCss,'background:#27c96b','Native presenter toolbar must include the green live-sharing strip.');
 has(macToolbarCss,'.toolbar.auto-hidden','Native presenter toolbar must auto-hide its controls without hiding sharing state.');
 has(macToolbarCss,'.stop-share-icon svg','Native Stop Share vector icon styling is missing.');
-has(macToolbarJs,'const nativeBridge=desktop.macShare||null','Native presenter toolbar must retain the macOS acknowledged fallback bridge.');
-has(macToolbarJs,'const rendererBridge=desktop.presenter||null','Native presenter toolbar must expose the direct meeting-renderer bridge.');
+has(macToolbarJs,'const nativeBridge=desktop.macShare||null','Native presenter toolbar must retain the acknowledged macOS fallback bridge.');
+has(macToolbarJs,'const rendererBridge=desktop.presenter||null','Native presenter toolbar must retain the direct renderer bridge.');
 has(macToolbarJs,'result=await nativeBridge.command(normalized)','Native presenter toolbar must retain acknowledged Mac fallback delivery.');
-has(macToolbarJs,'result=await rendererBridge.command(command)','Native presenter toolbar must execute live meeting controls through the direct renderer bridge.');
-const directFirst=macToolbarJs.indexOf('try{return await sendRenderer(normalized);}');
-const nativeFallback=macToolbarJs.indexOf('if(nativeBridge?.command)return sendNative(normalized);');
-assert.ok(directFirst>=0&&nativeFallback>directFirst,'Native presenter toolbar must route live meeting controls direct-first, with native acknowledgement only as fallback.');
-has(macToolbarJs,"transport:rendererBridge?.command?'presenter-direct-first'",'Native presenter toolbar must expose direct-first transport authority for packaged QA.');
+has(macToolbarJs,'result=await rendererBridge.command(command)','Native presenter toolbar must retain direct renderer delivery.');
+has(macToolbarJs,"result.direct===true||result.acknowledged===true||result.handled===true",'Presenter controls must require execution evidence, not a generic ok response.');
+lacks(macToolbarJs,"result.handled===true||result.ok===true",'A generic ok:true must not count as presenter command execution proof.');
+const sendBlock=macToolbarJs.slice(macToolbarJs.indexOf('const send=async command=>'),macToolbarJs.indexOf("q('#layoutButton')"));
+const directFirst=sendBlock.indexOf('try{return await sendRenderer(normalized);}');
+const ackFallback=sendBlock.indexOf('if(nativeBridge?.command)return sendNative(normalized);');
+assert.ok(directFirst>=0&&ackFallback>directFirst,'Native presenter toolbar must try direct execution first and fall back to acknowledged native delivery when direct execution is not proven.');
+has(macToolbarJs,"transport:rendererBridge?.command?'presenter-direct-first'",'Native presenter toolbar must expose direct-first transport authority while strict success proof is enforced by accepted().');
 has(macToolbarJs,"const label=q('#stopShareLabel')",'Stop Share state feedback must preserve the vector icon.');
 lacks(macToolbarJs,"textContent='■",'Stop Share runtime state must not reintroduce a text-square icon.');
 has(macToolbarJs,"state?.paused",'Native presenter toolbar must reflect real Pause/Resume state.');
@@ -176,4 +188,4 @@ for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,prese
   lacks(source,'private-user-images.githubusercontent.com','User image uploads must never be linked into the product.');
 }
 
-console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary direct-first-mac-presenter-routing isolated-presenter-preload vector-stop-share privacy');
+console.log('DOMINIONSTAR_ZOOM_SCREENSHOT_REFERENCE_2_0_41_OK home active-meeting-home prejoin meeting-toolbar participants participant-more host-tools meeting-more truthful-disabled-capabilities zoom-preshare bounded-share mouse-reveal-presenter mac-share-time-presenter green-share-boundary acknowledged-mac-presenter-routing isolated-presenter-preload vector-stop-share privacy');

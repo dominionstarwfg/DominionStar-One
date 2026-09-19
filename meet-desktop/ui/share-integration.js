@@ -149,6 +149,7 @@
     }
 
     async function beginShare({replace=false}={}){
+      if(replace&&window.DominionShareRuntimeAuthority2041?.open)return window.DominionShareRuntimeAuthority2041.open();
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return false;}
       button.classList.add('ds-share-checking');
       try{
@@ -179,7 +180,12 @@
       }
     }
 
-    async function openPickerWithPermission(){clearCompanion();return beginShare({replace:share.snapshot().active});}
+    async function openPickerWithPermission(){
+      clearCompanion();
+      const approved=window.DominionShareRuntimeAuthority2041;
+      if(approved?.open)return approved.open();
+      return beginShare({replace:share.snapshot().active});
+    }
 
     button.addEventListener('click',event=>{
       event.currentTarget.blur();
@@ -206,7 +212,13 @@
       }
     });
 
-    share.onChange(()=>applyLayout());
+    let shareWasActive=Boolean(share.snapshot().active);
+    function cleanupStoppedShareSurfaces(){
+      try{window.DominionShareRuntimeAuthority2041?.close?.();}catch{}
+      try{const pending=desktop?.sharePicker?.cancel?.();void Promise.resolve(pending).catch(()=>{});}catch{}
+      try{window.DominionActiveShareHomeParity2041?.restoreMeeting?.();}catch{}
+    }
+    share.onChange(state=>{applyLayout();const active=Boolean(state?.active);if(shareWasActive&&!active)cleanupStoppedShareSurfaces();shareWasActive=active;});
     media.onChange(()=>{if(share.snapshot().active)applyLayout();});
 
     const companionObserver=new MutationObserver(()=>{
