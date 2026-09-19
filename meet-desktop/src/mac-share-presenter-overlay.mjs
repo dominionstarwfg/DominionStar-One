@@ -218,6 +218,33 @@ if(process.platform==='darwin'){
     parkCaptureOwnerBehindVideoDock(main);
     publishState();try{toolbarWindow?.moveTop?.();videoWindow?.moveTop?.();}catch{}return true;
   }
+  function showCompanionWindow(kind='chat'){
+    if(!shareActive)return false;
+    const main=captureOwnerWindow();if(!isAlive(main))return false;rememberCaptureOwnerWindow(main);
+    const base=captureOwnerWindowState?.bounds||main.getBounds(),annotation=String(kind)==='annotate';
+    const width=annotation?Math.min(960,Math.max(720,base.width-120)):410;
+    const height=annotation?Math.min(660,Math.max(500,base.height-120)):Math.min(620,Math.max(500,base.height-100));
+    const display=displayForMain(),area=display.workArea||display.bounds;
+    const x=annotation?Math.round(area.x+(area.width-width)/2):Math.round(area.x+area.width-width-18);
+    const y=annotation?Math.round(area.y+(area.height-height)/2):Math.round(area.y+104);
+    try{main.setIgnoreMouseEvents(false);}catch{}
+    try{main.setContentProtection?.(!Boolean(shareState.includeMeetWindows));}catch{}
+    try{main.setMinimumSize(annotation?640:330,annotation?460:420);}catch{}
+    try{main.setBounds({x,y,width,height},false);}catch{}
+    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
+    try{main.show();main.focus();}catch{}
+    shareState={...shareState,meetingVisible:true,companion:String(kind||'')};publishState();
+    try{toolbarWindow?.moveTop?.();videoWindow?.moveTop?.();}catch{}
+    return true;
+  }
+  function hideCompanionWindow(){
+    if(!shareActive)return false;
+    const main=captureOwnerWindow();if(!isAlive(main))return false;
+    shareState={...shareState,companion:'',meetingVisible:Boolean(shareState.includeMeetWindows)};
+    if(!shareState.includeMeetWindows)parkCaptureOwnerBehindVideoDock(main);
+    publishState();return true;
+  }
+
   function showOverlays(){
     if(!shareActive)return;
     void prepare().then(()=>{
@@ -357,7 +384,17 @@ if(process.platform==='darwin'){
     }
     showOverlays();publishState();
   });
-  ipcMain.on('mac-share:state',(event,state={})=>{if(!shareActive||event.sender!==captureOwnerWebContents)return;shareState={...shareState,...state};publishState();if(!presenterModeCommitted||qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
+  ipcMain.on('mac-share:state',(event,state={})=>{
+    if(!shareActive||event.sender!==captureOwnerWebContents)return;
+    const priorCompanion=String(shareState.companion||'');
+    shareState={...shareState,...state};
+    const nextCompanion=String(shareState.companion||'');
+    if(presenterModeCommitted&&nextCompanion&&nextCompanion!==priorCompanion)showCompanionWindow(nextCompanion);
+    else if(presenterModeCommitted&&priorCompanion&&!nextCompanion)hideCompanionWindow();
+    else publishState();
+    if(!presenterModeCommitted||qaKeepPresenterHidden){hideBorder();return;}
+    if(isDisplayShare())showBorder();else hideBorder();
+  });
   ipcMain.on('mac-share:capture-stopped',(event)=>{if(captureOwnerWebContents&&event.sender!==captureOwnerWebContents)return;resetSharePresentation('capture-stopped');});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return;removeQueuedPresenterDelivery(deliveryId);
@@ -383,9 +420,12 @@ if(process.platform==='darwin'){
     // renderer directly first. The preload acknowledgement queue remains a
     // second, independent transport rather than the only route.
     let result=await executePresenterCommandDirect(main,normalized,normalized==='stop'?1200:900);
-    if(result?.ok)return {...result,sent:true,acknowledged:false};
+    if(result?.ok){
+      if(['participants','chat','annotate'].includes(normalized))showCompanionWindow(normalized);
+      return {...result,sent:true,acknowledged:false};
+    }
 
-    if(['participants','chat','annotate'].includes(normalized))showMeeting();
+    if(['participants','chat','annotate'].includes(normalized))showCompanionWindow(normalized);
     const acknowledged=await deliverPresenterCommandWithRetry(main,normalized);
     if(acknowledged?.ok)return acknowledged;
 
