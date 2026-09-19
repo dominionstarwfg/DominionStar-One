@@ -19,10 +19,11 @@
   const reveal=()=>{lastPointerAt=Date.now();toolbar?.classList.remove('auto-hidden');if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}};
   const scheduleHide=()=>{if(hideTimer)clearTimeout(hideTimer);if(menusOpen())return;hideTimer=setTimeout(()=>{hideTimer=0;if(menusOpen())return;if(Date.now()-lastPointerAt<AUTO_HIDE_MS-80){scheduleHide();return;}toolbar?.classList.add('auto-hidden');},AUTO_HIDE_MS);};
   const closeMenus=()=>{if(layoutMenu)layoutMenu.hidden=true;if(moreMenu)moreMenu.hidden=true;void setMenuState(false);scheduleHide();};
-  // A mere "sent:true" is not proof that the meeting renderer actually ran
-  // the command. Require direct execution, explicit acknowledgement, handled,
-  // or ok:true before the toolbar treats a click as successful.
-  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.direct===true||result.acknowledged===true||result.handled===true||result.ok===true);
+  // Never treat transport acceptance as execution. Physical-Mac failures showed
+  // that an IPC handler could return ok:true while the meeting renderer never
+  // ran the command. Only direct execution or an explicit renderer acknowledgement
+  // is allowed to flip a presenter control into "success".
+  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.direct===true||result.acknowledged===true||result.handled===true);
 
   async function sendNative(command){
     if(!nativeBridge?.command)throw new Error('mac_presenter_transport_unavailable');
@@ -42,19 +43,20 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // Layout and Show Meeting are native floating-window responsibilities.
-      if(NATIVE_ONLY_COMMANDS.has(normalized))return await sendNative(normalized);
-      // Physical-Mac authority: Stop/Audio/Video/Pause/Chat/Participants/
-      // Annotate and other meeting controls execute in the meeting renderer
-      // first so a successful click means the live controller actually ran.
-      if(rendererBridge?.command){
-        try{return await sendRenderer(normalized);}
+      // Every macOS floating-toolbar command now goes through the acknowledged
+      // native delivery queue first. That queue waits for the meeting renderer
+      // to confirm execution and de-duplicates retries by delivery id.
+      if(nativeBridge?.command){
+        try{return await sendNative(normalized);}
         catch(error){
-          if(nativeBridge?.command)return sendNative(normalized);
+          // Renderer-direct is a bounded fallback only. Its result must prove
+          // direct execution; a bare ok/sent response is deliberately rejected.
+          if(!NATIVE_ONLY_COMMANDS.has(normalized)&&rendererBridge?.command)return await sendRenderer(normalized);
           throw error;
         }
       }
-      return await sendNative(normalized);
+      if(!NATIVE_ONLY_COMMANDS.has(normalized)&&rendererBridge?.command)return await sendRenderer(normalized);
+      throw new Error('mac_presenter_transport_unavailable');
     }finally{scheduleHide();}
   };
 
@@ -88,6 +90,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-direct-renderer-first-controls',transport:rendererBridge?.command?'presenter-direct-first':nativeBridge?.command?'macShare-ack-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.42-acknowledged-native-first-controls',transport:nativeBridge?.command?'macShare-ack-first':rendererBridge?.command?'presenter-direct-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
