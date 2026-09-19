@@ -74,14 +74,14 @@
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
-    let macMirrorVideo=null,macMirrorCanvas=null,macMirrorContext=null,macMirrorTimer=0,macMirrorBusy=false,lastMacMirrorCameraOn=null;
+    let macMirrorVideo=null,macMirrorCanvas=null,macMirrorContext=null,macMirrorTimer=0,macMirrorBusy=false,lastMacMirrorCameraOn=null,macImageCapture=null,macImageCaptureTrackId='';
     const macVideoFrameBridge=bridge?.publishVideoFrame||null;
 
     function stopMacVideoMirror({publishOff=true}={}){
       if(macMirrorTimer){clearTimeout(macMirrorTimer);macMirrorTimer=0;}
       macMirrorBusy=false;lastMacMirrorCameraOn=null;
       if(macMirrorVideo){try{macMirrorVideo.pause?.();}catch{}try{macMirrorVideo.srcObject=null;}catch{}try{macMirrorVideo.remove?.();}catch{}macMirrorVideo=null;}
-      macMirrorCanvas=null;macMirrorContext=null;
+      macMirrorCanvas=null;macMirrorContext=null;macImageCapture=null;macImageCaptureTrackId='';
       if(publishOff&&sameRendererPresenter)try{macVideoFrameBridge?.({cameraOn:false,cameraLive:false,pending:false,frame:'',mirrored:media.snapshot().mirror!==false});}catch{}
     }
 
@@ -116,18 +116,30 @@
         if(!track||track.enabled===false){
           macVideoFrameBridge({cameraOn:true,cameraLive:false,pending:true,frame:'',mirrored});return;
         }
-        const video=ensureMacMirrorVideo(stream);
-        if(video.paused||video.readyState<2){try{await video.play();}catch{}}
-        if(video.readyState<2||video.videoWidth<2||video.videoHeight<2){
-          macVideoFrameBridge({cameraOn:true,cameraLive:false,pending:true,frame:'',mirrored});return;
+        let frameSource=null,sourceWidth=0,sourceHeight=0,closeFrame=null;
+        if(typeof ImageCapture==='function'){
+          try{
+            const trackId=String(track.id||'');
+            if(!macImageCapture||macImageCaptureTrackId!==trackId){macImageCapture=new ImageCapture(track);macImageCaptureTrackId=trackId;}
+            const bitmap=await Promise.race([macImageCapture.grabFrame(),wait(220).then(()=>null)]);
+            if(bitmap){frameSource=bitmap;sourceWidth=Number(bitmap.width)||0;sourceHeight=Number(bitmap.height)||0;closeFrame=()=>{try{bitmap.close?.();}catch{}};}
+          }catch{macImageCapture=null;macImageCaptureTrackId='';}
         }
-        const width=Math.min(640,Math.max(320,Number(video.videoWidth)||480));
-        const height=Math.max(180,Math.round(width*(Number(video.videoHeight)||270)/Math.max(2,Number(video.videoWidth)||480)));
+        if(!frameSource){
+          const video=ensureMacMirrorVideo(stream);
+          if(video.paused||video.readyState<2){try{await video.play();}catch{}}
+          if(video.readyState<2||video.videoWidth<2||video.videoHeight<2){
+            macVideoFrameBridge({cameraOn:true,cameraLive:false,pending:true,frame:'',mirrored});return;
+          }
+          frameSource=video;sourceWidth=Number(video.videoWidth)||480;sourceHeight=Number(video.videoHeight)||270;
+        }
+        const width=Math.min(640,Math.max(320,sourceWidth||480));
+        const height=Math.max(180,Math.round(width*(sourceHeight||270)/Math.max(2,sourceWidth||480)));
         if(!macMirrorCanvas){macMirrorCanvas=document.createElement('canvas');macMirrorContext=macMirrorCanvas.getContext('2d',{alpha:false,desynchronized:true});}
-        if(!macMirrorContext)return;
+        if(!macMirrorContext){closeFrame?.();return;}
         if(macMirrorCanvas.width!==width)macMirrorCanvas.width=width;if(macMirrorCanvas.height!==height)macMirrorCanvas.height=height;
-        macMirrorContext.drawImage(video,0,0,width,height);
-        macVideoFrameBridge({cameraOn:true,cameraLive:true,pending:false,frame:macMirrorCanvas.toDataURL('image/jpeg',0.7),mirrored});
+        macMirrorContext.drawImage(frameSource,0,0,width,height);closeFrame?.();
+        macVideoFrameBridge({cameraOn:true,cameraLive:true,pending:false,frame:macMirrorCanvas.toDataURL('image/jpeg',0.72),mirrored});
       }catch{
         try{macVideoFrameBridge?.({cameraOn:media.snapshot().cameraOn!==false,cameraLive:false,pending:true,frame:'',mirrored:media.snapshot().mirror!==false});}catch{}
       }finally{macMirrorBusy=false;scheduleMacVideoMirror(90);}
@@ -166,7 +178,7 @@
       // paint it on the presenter surface.
       sharedVideo.hidden=!state.active||sameRendererPresenter;
       label.hidden=!state.active;
-      inlinePresenter.hidden=!state.active;
+      inlinePresenter.hidden=!state.active||sameRendererPresenter;
       if(state.active){
         const shareState=inlinePresenter.querySelector('#inlineShareState'),shareSource=inlinePresenter.querySelector('#inlineShareSource');
         if(shareState)shareState.textContent=state.paused?'Share paused':'You are sharing';
@@ -201,8 +213,10 @@
       if(!state.active||presenterCommitted)return false;
       presenterCommitted=true;
       // Two-phase handoff: the chooser is already gone and display capture is
-      // live before native presenter mode is allowed to park the meeting.
-      try{if(!sameRendererPresenter)bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
+      // live before presenter mode may park the meeting. macOS must notify the
+      // native presenter authority here; otherwise the in-meeting toolbar stays
+      // inside the captured window and the capture renderer can recursively stall.
+      try{bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       if(sameRendererPresenter){void publishMacVideoFrame({force:true});scheduleMacVideoMirror(90);}
       return true;
     }
