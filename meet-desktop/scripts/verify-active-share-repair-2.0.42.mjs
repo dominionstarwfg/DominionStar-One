@@ -1,3 +1,4 @@
+// CI carrier synchronization marker: validates the current grouped active-share repair without changing product behavior.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
