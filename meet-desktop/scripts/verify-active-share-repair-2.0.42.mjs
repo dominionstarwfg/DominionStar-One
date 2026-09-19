@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const toolbar=read('ui/mac-presenter-toolbar.js');
+const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
 const integration=read('ui/share-integration.js');
 const mirror=read('src/mac-share-video-mirror.mjs');
 const pkg=JSON.parse(read('package.json'));
@@ -25,5 +26,6 @@ assert(integration.includes('shareWasActive&&!active')&&integration.includes('wi
 assert(mirror.includes('window.DominionMediaController||null')&&mirror.includes('controller?.stream?.()'),'Floating participant video must read the authoritative camera stream, not only one DOM video element.');
 assert(mirror.includes("typeof ImageCapture==='function'")&&mirror.includes('new ImageCapture(track).grabFrame()'),'Camera mirror must retain a frame-capture fallback when no live DOM video surface is paintable.');
 assert(mirror.includes("candidates.find(item=>item.id==='localMeetingVideo')||candidates[0]"),'Camera mirror must accept any live element bound to the authoritative camera track.');
+assert(screenshotReference.includes('data-ds-ref-critical-meeting-geometry')&&screenshotReference.includes('grid-template-rows:47px minmax(0,1fr) 56px!important')&&screenshotReference.includes('max-height:56px!important'),'Final screenshot authority must synchronously hard-lock the packaged meeting toolbar to the 56px Zoom-reference geometry.');
 
 console.log('DOMINIONSTAR_ACTIVE_SHARE_REPAIR_2_0_42_OK acknowledged-toolbar canonical-new-share clean-stop authoritative-camera-mirror');
