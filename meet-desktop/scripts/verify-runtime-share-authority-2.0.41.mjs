@@ -92,7 +92,7 @@ assert(macOverlay.includes('let presenterModeCommitted=false')&&macOverlay.inclu
 assert(macOverlay.includes('presenterRendererResponsive')&&macOverlay.includes("presenter-renderer-unresponsive"),'The floating toolbar may appear only after the physically parked meeting renderer proves it is still executable.');
 assert(macOverlay.includes('screen.getAllDisplays?.()')&&macOverlay.includes('maxRight+96'),'The capture owner must be parked off-display at full meeting size instead of being resized underneath the video dock.');
 assert(!macOverlay.includes("try{main.setBounds({x,y,width,height},false);}catch{}\n        try{main.setAlwaysOnTop(false)"),'Video-dock positioning must not continuously resize the capture-owning meeting window underneath the dock.');
-assert(macOverlay.includes('border:4px solid #2ed573'),'Entire-screen sharing must retain a visible green display border.');
+assert(macOverlay.includes('const BORDER_THICKNESS=4')&&macOverlay.includes("const BORDER_COLOR='#2ed573'")&&macOverlay.includes('border:${BORDER_THICKNESS}px solid ${BORDER_COLOR}'),'Entire-screen sharing must retain one four-pixel green display border authority.');
 assert(macOverlay.includes("setAlwaysOnTop(true,'screen-saver',1)"),'The green display border must remain above Dock/menu surfaces on all four edges.');
 assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('area.y+78'),'Presenter video dock must default to the upper-right below the floating toolbar on the active display.');
 assert(macOverlay.includes('showInactive?.();videoWindow.moveTop?.()'),'Presenter video dock must remain visible above the shared desktop without stealing focus.');
