@@ -1,0 +1,141 @@
+name: DominionStar Meet 2.0.42 Physical Share Controls Recovery
+
+on:
+  pull_request:
+    branches:
+      - fix/zoom-screenshot-reference-lock-2.0.41
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/share-controls-recovery-2.0.42.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  grouped-share-recovery:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+      DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+    steps:
+      - name: Checkout exact 2.0.42 repair candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clean generated state
+        run: |
+          rm -rf meet-desktop/node_modules meet-desktop/dist qa-2.0.42-evidence
+          sudo rm -rf "/Applications/DominionStar Meet.app"
+
+      - name: Verify 2.0.42 source and inherited reference gates
+        working-directory: meet-desktop
+        run: |
+          test "$(node -p "require('./package.json').version")" = '2.0.42'
+          node --check src/mac-share-presenter-overlay.mjs
+          node --check src/mac-share-video-mirror.mjs
+          node --check src/share-service.mjs
+          node --check ui/mac-presenter-toolbar.js
+          node --check ui/share-integration.js
+          node --check scripts/verify-share-controls-recovery-2.0.42.mjs
+          node --check scripts/verify-packaged-share-controls-recovery-2.0.42.mjs
+          node --check scripts/verify-physical-parity-2.0.42.mjs
+          node --check scripts/verify-zoom-screenshot-reference-2.0.42.mjs
+          node scripts/verify-share-controls-recovery-2.0.42.mjs
+          node scripts/verify-share-authority-2.0.41.mjs
+          node scripts/verify-physical-acceptance-2.0.41.mjs
+          node scripts/verify-physical-parity-2.0.42.mjs
+          node scripts/verify-zoom-screenshot-reference-2.0.42.mjs
+          node scripts/verify-media-authority.mjs
+          node scripts/verify-webrtc-transport.mjs
+          node scripts/verify-runtime-stability-2.0.22.mjs
+
+      - name: Install clean dependencies
+        working-directory: meet-desktop
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Run complete source verification
+        working-directory: meet-desktop
+        run: npm run verify
+
+      - name: Build universal packaged QA app
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          du -sh "$APP_PATH"
+
+      - name: Install exact QA package into Applications
+        shell: bash
+        run: |
+          sudo rm -rf "/Applications/DominionStar Meet.app"
+          sudo ditto "${{ steps.app.outputs.path }}" "/Applications/DominionStar Meet.app"
+          test -d "/Applications/DominionStar Meet.app"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx '2.0.42'
+          codesign --verify --deep --strict --verbose=2 "/Applications/DominionStar Meet.app"
+
+      - name: Audit packaged application
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-app.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged runtime stability
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-runtime-stability-2.0.22.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Exercise packaged desktop controls
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-interactions.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Exercise grouped share controls, camera dock, stop recovery, and re-share
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-share-controls-recovery-2.0.42.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged physical Mac carry-forward
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-physical-mac-2.0.21.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged adaptive Zoom behavior
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-zoom-window-parity.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify packaged approved reference parity
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Verify real More and Host Tools routing
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-reference-command-routing-2.0.41.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Record QA evidence only
+        shell: bash
+        run: |
+          mkdir -p qa-2.0.42-evidence
+          printf 'commit=%s\nversion=2.0.42\nqualification=grouped-functional-qa-not-user-release\ncontrols=acknowledged-native-first\nmute_unmute_cycles=4\nvideo_off_on_cycles=4\npause_resume_cycles=4\nlayout_switching=verified\nshow_meeting_toggle=verified\nnew_share_cancel_retains_share=verified\nparticipants=verified\nchat=verified\nannotation_on_off=verified\nstop_returns_to_live_meeting=verified\nre_share_without_relaunch=verified\nsecond_stop=verified\npresenter_camera_track_mirror=verified-with-deterministic-media\nphysical_real_camera_and_screen_tcc=still-required-before-user-installer\ninstaller=blocked\n' "$GITHUB_SHA" > qa-2.0.42-evidence/BUILD-PROVENANCE.txt
+          shasum -a 256 "/Applications/DominionStar Meet.app/Contents/Resources/app.asar" > qa-2.0.42-evidence/APP-ASAR-SHA256.txt
+
+      - name: Upload QA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.42-share-controls-evidence
+          path: qa-2.0.42-evidence/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove QA installation
+        if: always()
+        run: sudo rm -rf "/Applications/DominionStar Meet.app"
