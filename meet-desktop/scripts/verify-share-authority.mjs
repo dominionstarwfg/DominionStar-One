@@ -68,9 +68,20 @@ assert.equal(familyAuthority.get('window:one')?.id,'window:one');
 // be detected for diagnostics, but it must not own getDisplayMedia.
 requireText(main,"systemPreferences.getMediaAccessStatus(kind)",'macOS TCC status authority is missing.');
 requireText(main,"permissionStatus('screen')",'Screen Recording status must remain independently inspectable.');
-requireText(main,'function activeScreenCaptureProbe()','Post-failure screen diagnostics are missing.');
-requireText(main,'screenPermissionProbeInFlight','Post-failure screen diagnostics must remain single-flight.');
-requireText(main,'capture-probe-timeout','Post-failure screen diagnostics must remain bounded.');
+if(atLeast(2,0,41)){
+  const screenPermissionBody=main.match(/async function requestScreenPermission\(\)\{([\s\S]*?)\n\}/)?.[1]||'';
+  requireText(screenPermissionBody,"detectedBy:reportedStatus==='granted'?'tcc-status':'tcc-advisory'",'Non-granted Screen Recording status must remain advisory.');
+  requireText(screenPermissionBody,'ok:true','Explicit Share must not be hard-blocked by a stale Screen Recording status.');
+  requireText(screenPermissionBody,'source enumeration is the authoritative test','Real desktop source enumeration must remain the permission authority.');
+  rejectText(screenPermissionBody,'ok:false','requestScreenPermission must not reject an explicit Share action from advisory TCC state alone.');
+  rejectText(main,'function activeScreenCaptureProbe()','Permission state checks must not run an active screen-capture probe.');
+  rejectText(main,'screenPermissionProbeInFlight','Permission state checks must not keep hidden screen-enumeration probe state.');
+  rejectText(main,'capture-probe-timeout','Permission state checks must not enumerate screens behind the permission gate.');
+}else{
+  requireText(main,'function activeScreenCaptureProbe()','Post-failure screen diagnostics are missing.');
+  requireText(main,'screenPermissionProbeInFlight','Post-failure screen diagnostics must remain single-flight.');
+  requireText(main,'capture-probe-timeout','Post-failure screen diagnostics must remain bounded.');
+}
 requireText(service,"const systemPickerAvailable=platform==='darwin'&&macMajor>=15",'macOS picker capability diagnostics are missing.');
 requireText(service,'const nativeSystemPicker=false','The rejected Apple system picker must be disabled in the active share path.');
 requireText(service,'function configureDisplayMediaHandler(useSystemPicker)','Display-media handler authority is missing.');
