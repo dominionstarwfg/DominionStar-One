@@ -121,6 +121,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;},
     captureState:state=>{if(process.platform==='darwin'){ipcRenderer.send('mac-share:state',state||{});return true;}return invoke('share:capture-state',state);},
     presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;},
+    publishVideoFrame:payload=>{if(process.platform==='darwin'){ipcRenderer.send('mac-share:video-frame',payload||{});return true;}return false;},
     captureStopped:()=>{if(process.platform==='darwin')ipcRenderer.send('mac-share:capture-stopped');return invoke('share:capture-stopped');},
     onPresenterCommand:callback=>listenPresenterCommand(callback)
   }),
