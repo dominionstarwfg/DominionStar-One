@@ -20,22 +20,26 @@
   }
 
   function render(){
-    const mirror=q('#cameraMirror'),fallback=q('#cameraFallback'),dock=q('#dock');
+    const mirror=q('#cameraMirror'),pending=q('#cameraPending'),fallback=q('#cameraFallback'),dock=q('#dock');
     const showLive=Boolean(cameraOn&&lastFrame);
+    const showPending=Boolean(cameraOn&&!lastFrame);
     if(mirror){
       if(lastFrame&&mirror.src!==lastFrame)mirror.src=lastFrame;
       mirror.hidden=!showLive;
       mirror.style.transform=mirrored?'scaleX(-1)':'none';
     }
-    if(fallback)fallback.hidden=showLive;
-    if(dock){dock.dataset.cameraOn=cameraOn?'1':'0';dock.dataset.videoOwner='meeting-renderer-frame-mirror';dock.dataset.livePreview=showLive?'1':'0';}
+    if(pending)pending.hidden=!showPending;
+    // Zoom semantics: profile picture is a video-OFF fallback only.
+    if(fallback)fallback.hidden=cameraOn;
+    if(dock){dock.dataset.cameraOn=cameraOn?'1':'0';dock.dataset.videoOwner='meeting-renderer-frame-mirror';dock.dataset.livePreview=showLive?'1':'0';dock.dataset.videoPending=showPending?'1':'0';}
   }
 
   void loadIdentity();
   render();
   bridge?.onVideoFrame?.(payload=>{
-    const live=payload?.cameraLive!==false&&Boolean(payload?.frame);
-    lastFrame=live?String(payload.frame):'';
+    if(payload?.cameraOn===false){cameraOn=false;lastFrame='';}
+    else if(payload?.cameraOn===true)cameraOn=true;
+    if(payload?.cameraLive&&payload?.frame)lastFrame=String(payload.frame);
     mirrored=payload?.mirrored!==false;
     render();
   });
