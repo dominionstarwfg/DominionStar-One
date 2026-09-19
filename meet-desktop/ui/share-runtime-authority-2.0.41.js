@@ -145,19 +145,31 @@
     busy=true;syncSelected();stopAutoRefresh();
     const button=root.querySelector('.ds2041-share-button'),status=root.querySelector('.ds2041-share-status');
     button.textContent='Starting share…';if(status)status.textContent='Preparing selected content…';
-    const options={shareAudio:Boolean(root.querySelector('[data-share-audio]')?.checked),optimizeVideo:Boolean(root.querySelector('[data-optimize]')?.checked)};
+    const options={
+      shareAudio:Boolean(root.querySelector('[data-share-audio]')?.checked),
+      optimizeVideo:Boolean(root.querySelector('[data-optimize]')?.checked),
+      includeMeetWindows:Boolean(root.querySelector('[data-include-meet]')?.checked),
+      deferPresenterCommit:true
+    };
+    let chooserHidden=false;
     try{
+      // Do not let the renderer enter presenter parking with the chooser still
+      // painted. The share picker is a pre-share surface, never a stop-share
+      // destination.
+      close();chooserHidden=true;
       const result=await pickerBridge.choose(source.id,options);if(result?.ok===false)throw new Error(result.error||'share_source_not_available');
-      save('ds_pref_share_audio',options.shareAudio);save('ds_pref_share_optimize',options.optimizeVideo);
+      save('ds_pref_share_audio',options.shareAudio);save('ds_pref_share_optimize',options.optimizeVideo);save('ds_pref_share_include_meet',options.includeMeetWindows);
       const committed=await waitForShareCommit(source.name,Boolean(priorState.active));
       if(!committed)throw new Error('Screen sharing did not become active. Please choose the source again.');
-      if(status)status.textContent='';close();return true;
+      window.DominionShareIntegration?.commitPresenterMode?.();
+      return true;
     }
     catch(error){
-      if(status)status.textContent=String(error?.message||error||'That source could not start.');
+      if(chooserHidden&&root)root.hidden=false;
+      const liveStatus=root?.querySelector('.ds2041-share-status');if(liveStatus)liveStatus.textContent=String(error?.message||error||'That source could not start.');
       if(activeTab==='screens')startAutoRefresh();return false;
     }
-    finally{busy=false;button.textContent='Share';syncSelected();}
+    finally{busy=false;if(button?.isConnected)button.textContent='Share';syncSelected();}
   }
 
   function intercept(event){
