@@ -60,6 +60,8 @@ has(refJs,"strong.textContent='Backgrounds'",'Prejoin Backgrounds label is not n
 for(const label of ['Audio','Video','Participants','Chat','React','Raise hand','Share','Host tools','More','End'])has(refJs,`'${label}'`,`Meeting toolbar is missing ${label}.`);
 has(refCss,'height:56px!important','Meeting bottom toolbar must keep the compact Zoom-scale height.');
 has(refCss,'grid-template-columns:minmax(142px,1fr) auto minmax(142px,1fr)','Meeting toolbar must preserve left/center/right zoning.');
+has(refJs,"footer.style.setProperty(prop,'56px','important')",'Final sync must directly normalize the live meeting footer to the approved 56px geometry.');
+has(refJs,"zone.style.setProperty(prop,'56px','important')",'Final sync must directly normalize live toolbar zones to 56px.');
 
 // Participants / participant-wide controls are separate from Host tools.
 has(refJs,'ds-ref-participants-footer','Participants footer is missing.');
