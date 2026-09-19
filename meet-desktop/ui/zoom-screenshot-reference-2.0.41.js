@@ -8,6 +8,24 @@
 
   const sym=Object.freeze({plus:'＋',bell:'♧',calendar:'▣',record:'◉',captions:'CC',breakout:'▦',polls:'▥',docs:'▤',whiteboard:'▱',apps:'⌘',info:'ⓘ',transfer:'⇥',settings:'⚙'});
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+  function ensureCriticalMeetingGeometry(){
+    if(q('style[data-ds-ref-critical-meeting-geometry]'))return;
+    const style=document.createElement('style');
+    style.dataset.dsRefCriticalMeetingGeometry='1';
+    style.textContent=`
+      #meetingOverlay .meeting-shell{grid-template-rows:47px minmax(0,1fr) 56px!important}
+      #meetingOverlay .meeting-footer,
+      #meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]{
+        height:56px!important;min-height:56px!important;max-height:56px!important;
+        box-sizing:border-box!important;padding-top:0!important;padding-bottom:0!important
+      }
+      #meetingOverlay .ds-runtime-toolbar-left,
+      #meetingOverlay .ds-runtime-toolbar-center,
+      #meetingOverlay .ds-runtime-toolbar-right{height:56px!important;max-height:56px!important}
+      #meetingOverlay .meeting-body{min-height:0!important}
+    `;
+    document.head.append(style);
+  }
   function setVisibleLabel(button,text){if(!button)return;const label=button.querySelector('.ds-control-label');if(label)label.textContent=text;else if(!button.querySelector('svg'))button.textContent=text;}
   function notice(title,copy){const d=q('#foundationDialog');if(!d)return;q('#foundationTitle').textContent=title;q('#foundationCopy').textContent=copy;if(!d.open)d.showModal();}
   function ensureDeterministicPresenterIdle(){if(document.querySelector('style[data-ds-ref-presenter-idle]'))return;const style=document.createElement('style');style.dataset.dsRefPresenterIdle='1';style.textContent='#meetingOverlay.share-active:not(.ds-ref-presenter-visible) #inlinePresenterToolbar{opacity:0!important;pointer-events:none!important;transition:none!important;transform:translateX(-50%) translateY(-12px)!important}';document.head.append(style);}
@@ -47,7 +65,7 @@
   function closeOnOutside(event){if(participantBulkMenu&&!participantBulkMenu.contains(event.target)&&!event.target.closest?.('[data-ref-participant-more]'))closeParticipantBulk();if(meetingMoreMenu&&!meetingMoreMenu.contains(event.target)&&!event.target.closest?.('#roomMore'))closeMeetingMore();}
   document.addEventListener('pointerdown',closeOnOutside,true);
 
-  function sync(){syncQueued=false;ensureDeterministicPresenterIdle();ensureHomeTopbar();ensureNotesAction();ensurePrejoin();syncMeetingLabels();}
+  function sync(){syncQueued=false;ensureCriticalMeetingGeometry();ensureDeterministicPresenterIdle();ensureHomeTopbar();ensureNotesAction();ensurePrejoin();syncMeetingLabels();}
   function requestSync(){if(syncQueued)return;syncQueued=true;requestAnimationFrame(sync);}
   const observer=new MutationObserver(requestSync);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-pressed']});window.addEventListener('dominion:meeting-ui-ready',requestSync,true);window.addEventListener('dominion:participant-update',requestSync,true);window.addEventListener('dominion:share-state',requestSync,true);window.addEventListener('resize',requestSync,{passive:true});const timer=setInterval(requestSync,650);
   window.DominionZoomScreenshotReference=Object.freeze({version:'2.0.41',sync,requestSync,openHostToolsPanel,openMeetingMore,openParticipantBulkMenu,dispose:()=>{clearInterval(timer);observer.disconnect();clearTimeout(presenterTimer);window.removeEventListener('click',stableCommandDelegate,true);closeHostPanel();closeMeetingMore();closeParticipantBulk();}});
