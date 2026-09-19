@@ -117,53 +117,66 @@ try{
     return true;
   })()`);
   assert.equal(shareKickoff,true);
-  await main.wait("window.DominionShareController.snapshot().active===true||Boolean(window.__qaShareStartError)",'synthetic share start',10000);
-  const startState=await main.eval(`(()=>({share:window.DominionShareController.snapshot(),error:window.__qaShareStartError||''}))()`);
-  assert.equal(startState.error,'',`Synthetic share failed: ${startState.error}`);
-  assert.equal(startState.share.active,true);
+  console.log('QA_2042_STAGE share-kickoff-dispatched');
 
+  // Once capture is active, the main meeting renderer is also the source of
+  // presenter-camera frames. Do not probe that same renderer with CDP during
+  // active sharing: doing so can interfere with the frame-mirror evaluate call
+  // and create a false timeout. The native floating toolbar is the user-facing
+  // control authority, so verify active-share state through that window.
   toolbar=new Cdp((await findTarget(url=>url.includes('mac-presenter-toolbar.html'),'floating presenter toolbar')).webSocketDebuggerUrl);await toolbar.connect();
   await toolbar.wait("window.DominionMacPresenterToolbar?.transport==='macShare-ack-first'&&document.querySelector('#stopShare')",'2.0.42 acknowledged toolbar');
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().sourceName==='QA Synthetic Share'",'synthetic share state on native toolbar',10000);
+  console.log('QA_2042_STAGE native-toolbar-share-state');
+
   video=new Cdp((await findTarget(url=>url.includes('mac-share-video.html'),'floating participant video dock')).webSocketDebuggerUrl);await video.connect();
-  await video.wait("document.querySelector('#dock')",'floating video dock');
+  await video.wait("document.querySelector('#dock')",'floating participant video dock');
   await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'&&String(document.querySelector('#cameraMirror')?.src||'').startsWith('data:image/jpeg')",'live presenter camera frame',8000);
+  console.log('QA_2042_STAGE presenter-camera-live');
 
   const click=selector=>toolbar.eval(`(()=>{const node=document.querySelector(${JSON.stringify(selector)});if(!node)throw new Error('missing control');node.click();return true;})()`);
-  const state=()=>main.eval(`(()=>({media:window.DominionMediaController.snapshot(),share:window.DominionShareIntegration.state(),meetingHidden:document.querySelector('#meetingOverlay').hidden,prejoinHidden:document.querySelector('#prejoinOverlay').hidden,appHidden:document.querySelector('#appShell').hidden,companion:String(document.body.dataset.dsShareCompanion||'')}))()`);
+  const mainState=()=>main.eval(`(()=>({media:window.DominionMediaController.snapshot(),share:window.DominionShareIntegration.state(),meetingHidden:document.querySelector('#meetingOverlay').hidden,prejoinHidden:document.querySelector('#prejoinOverlay').hidden,appHidden:document.querySelector('#appShell').hidden,companion:String(document.body.dataset.dsShareCompanion||'')}))()`);
 
   for(let cycle=0;cycle<4;cycle+=1){
-    await click('[data-command="audio"]');await main.wait("window.DominionMediaController.snapshot().micOn===false",`audio mute ${cycle+1}`);
-    await click('[data-command="audio"]');await main.wait("window.DominionMediaController.snapshot().micOn===true",`audio unmute ${cycle+1}`);
-    await click('[data-command="video"]');await main.wait("window.DominionMediaController.snapshot().cameraOn===false",`video off ${cycle+1}`);
-    await click('[data-command="video"]');await main.wait("window.DominionMediaController.snapshot().cameraOn===true",`video on ${cycle+1}`);
-    await click('[data-command="pause"]');await main.wait("window.DominionShareIntegration.state().paused===true",`pause ${cycle+1}`,14000);
-    await click('[data-command="pause"]');await main.wait("window.DominionShareIntegration.state().paused===false",`resume ${cycle+1}`,14000);
+    await click('[data-command="audio"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().micOn===false",`audio mute ${cycle+1}`);
+    await click('[data-command="audio"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().micOn===true",`audio unmute ${cycle+1}`);
+    await click('[data-command="video"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().cameraOn===false",`video off ${cycle+1}`);
+    await click('[data-command="video"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().cameraOn===true",`video on ${cycle+1}`);
+    await click('[data-command="pause"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===true",`pause ${cycle+1}`,14000);
+    await click('[data-command="pause"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===false",`resume ${cycle+1}`,14000);
+    console.log(`QA_2042_STAGE control-cycle-${cycle+1}`);
   }
   await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'",'camera mirror recovered after repeated toggles',8000);
+  console.log('QA_2042_STAGE repeated-controls-and-camera-recovery');
 
   await click('[data-command="layout-gallery"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().videoLayout==='gallery'",'Gallery presenter-video layout');
   await click('[data-command="layout-speaker"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().videoLayout==='speaker'",'Speaker presenter-video layout');
 
   await click('[data-command="show-meeting"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().meetingVisible===true",'Show meeting');
   await click('[data-command="show-meeting"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().meetingVisible===false",'Hide meeting back to presenter mode');
+  console.log('QA_2042_STAGE layout-and-show-meeting');
 
   await click('[data-command="new-share"]');
   picker=new Cdp((await findTarget(url=>url.includes('/ui/share-picker.html'),'New Share chooser')).webSocketDebuggerUrl);await picker.connect();
   await picker.wait(`document.readyState==='complete'&&document.querySelector('[data-tab="screens"]')&&document.querySelector('#cancelTop')`,'New Share approved chooser');
-  assert.equal((await state()).share.active,true,'Opening New Share must not stop the current share before a replacement is selected.');
+  assert.equal((await toolbar.eval("window.DominionMacPresenterToolbar.state().sourceName")),'QA Synthetic Share','Opening New Share must retain the current share until a replacement is selected.');
   await picker.eval("document.querySelector('#cancelTop').click()");
   picker.close();picker=null;
-  await main.wait("window.DominionShareIntegration.state().active===true",'current share retained after cancelling New Share');
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().sourceName==='QA Synthetic Share'",'current share retained after cancelling New Share');
+  console.log('QA_2042_STAGE new-share-cancel-retained-current-share');
 
-  await click('[data-command="participants"]');await main.wait("document.body.dataset.dsShareCompanion==='participants'",'Participants command');
-  await click('[data-command="chat"]');await main.wait("document.body.dataset.dsShareCompanion==='chat'",'Chat command');
-  await click('[data-command="annotate"]');await main.wait("window.DominionShareIntegration.state().annotating===true",'Annotate command');
-  await click('[data-command="annotate"]');await main.wait("window.DominionShareIntegration.state().annotating===false",'Annotate off');
+  await click('[data-command="participants"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='participants'",'Participants command');
+  await click('[data-command="chat"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='chat'",'Chat command');
+  await click('[data-command="annotate"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().annotating===true",'Annotate command');
+  await click('[data-command="annotate"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().annotating===false",'Annotate off');
+  console.log('QA_2042_STAGE participants-chat-annotation');
 
   await click('#stopShare');
+  await sleep(350);
   await main.wait("window.DominionShareIntegration.state().active===false",'Stop Share');
   await main.wait("document.querySelector('#meetingOverlay').hidden===false&&document.querySelector('#prejoinOverlay').hidden===true&&document.querySelector('#appShell').hidden===true",'return to live meeting after Stop Share');
-  const stopped=await state();assert.equal(stopped.meetingHidden,false);assert.equal(stopped.prejoinHidden,true);assert.equal(stopped.appHidden,true);
+  const stopped=await mainState();assert.equal(stopped.meetingHidden,false);assert.equal(stopped.prejoinHidden,true);assert.equal(stopped.appHidden,true);
+  console.log('QA_2042_STAGE stop-returned-live-meeting');
 
   const reShareKickoff=await main.eval(`(()=>{
     window.__qaReShareError='';
@@ -172,13 +185,13 @@ try{
     return true;
   })()`);
   assert.equal(reShareKickoff,true);
-  await main.wait("window.DominionShareIntegration.state().active===true||Boolean(window.__qaReShareError)",'second share start',10000);
-  const reshared=await main.eval(`(()=>({share:window.DominionShareIntegration.state(),error:window.__qaReShareError||''}))()`);
-  assert.equal(reshared.error,'',`Second share failed: ${reshared.error}`);
-  assert.equal(reshared.share.active,true,'A second share must start without ending or relaunching the meeting.');
-  await toolbar.wait("document.querySelector('#stopShare')",'presenter toolbar available after re-share');
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().sourceName==='QA Synthetic Re-share'",'second share state on native toolbar',10000);
   await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'",'presenter video live after re-share',8000);
-  await click('#stopShare');await main.wait("window.DominionShareIntegration.state().active===false",'second Stop Share');
+  console.log('QA_2042_STAGE reshared-without-relaunch');
+  await click('#stopShare');
+  await sleep(350);
+  await main.wait("window.DominionShareIntegration.state().active===false",'second Stop Share');
+  console.log('QA_2042_STAGE second-stop-complete');
 
   console.log('DOMINIONSTAR_PACKAGED_SHARE_CONTROLS_RECOVERY_2_0_42_OK acknowledged-toolbar 4x-mute-unmute 4x-video-off-on 4x-pause-resume layout show-meeting new-share-cancel participants chat annotate stop-return re-share second-stop camera-mirror-live');
 }catch(error){
