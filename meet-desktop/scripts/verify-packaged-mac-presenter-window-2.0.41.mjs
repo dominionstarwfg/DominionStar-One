@@ -10,7 +10,7 @@ const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=12140+Math.floor(Math.random()*120);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let stderr='';
-const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1',DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN:'1'},stdio:['ignore','ignore','pipe']});
+const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*','--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
 const count=needle=>stderr.split(String(needle)).length-1;
 async function waitLog(needle,label,timeout=9000,minCount=1){const deadline=Date.now()+timeout;while(Date.now()<deadline){if(child.exitCode!==null)throw new Error(`App exited before ${label}.\n${stderr}`);if(count(needle)>=minCount)return;await sleep(60);}throw new Error(`Timed out waiting for ${label}: ${needle}\n${stderr}`);}
@@ -21,27 +21,45 @@ let main=null,toolbar=null,video=null,failure=null;
 try{
   const mainTarget=await target(url=>url.startsWith('file://')&&url.includes('/ui/index.html'),'meeting renderer');main=new Cdp(mainTarget.webSocketDebuggerUrl);await main.connect();
   await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.__DominionPresenterDispatch&&window.dominionDesktop?.macShare?.prepare",'share/presenter controllers');
-  const armed=await main.eval(`(()=>{
+  const armed=await main.eval(`(async()=>{
     document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity?.install?.();window.DominionMeetingFeatures?.toggleChat?.(false);window.DominionRuntimeStability?.sync?.();
     window.addEventListener('dominion:presenter-command-dispatch',event=>console.error('QA_MAC_DIRECT_COMMAND '+String(event.detail?.command||'')));
     window.__qaNativeCompanion='';new MutationObserver(()=>{const kind=String(document.body.dataset.dsShareCompanion||'none');if(kind!==window.__qaNativeCompanion){window.__qaNativeCompanion=kind;console.error('QA_MAC_DIRECT_COMPANION '+kind);}}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['data-ds-share-companion','hidden']});
-    console.error('QA_MAC_DIRECT_RENDERER_READY');return true;
-  })()`,4000);assert.equal(armed,true,'Direct-first presenter transport fixture was not armed.');
+    const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#07111f';ctx.fillRect(0,0,640,360);ctx.fillStyle='#d6b25e';ctx.fillRect(80,70,260,160);
+    const makeVideo=()=>canvas.captureStream(15).getVideoTracks()[0];
+    const audioContext=new AudioContext(),audioDestination=audioContext.createMediaStreamDestination(),makeAudio=()=>audioDestination.stream.getAudioTracks()[0].clone();
+    Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>new MediaStream([makeVideo()])});
+    Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>{const tracks=[];if(constraints?.video)tracks.push(makeVideo());if(constraints?.audio)tracks.push(makeAudio());return new MediaStream(tracks);}});
+    await window.DominionMediaController.setCamera(false);window.DominionMediaController.resetPreferences();const mediaStream=window.DominionMediaController.stream();mediaStream.addTrack(makeVideo());mediaStream.addTrack(makeAudio());await window.DominionMediaController.setMicrophone(false);
+    const shared=await window.DominionShareController.start({name:'Desktop 1',options:{shareAudio:false,optimizeVideo:false,includeMeetWindows:false}});if(!shared.active)throw new Error('Synthetic display share did not start.');window.DominionShareIntegration.commitPresenterMode();
+    console.error('QA_MAC_DIRECT_RENDERER_READY');return {active:window.DominionShareController.snapshot().active,cameraOn:window.DominionMediaController.snapshot().cameraOn,micOn:window.DominionMediaController.snapshot().micOn};
+  })()`,12000);assert.equal(armed.active,true,'Physical presenter fixture did not enter a live share.');assert.equal(armed.cameraOn,true);assert.equal(armed.micOn,false);
   const prepared=await main.eval(`window.dominionDesktop.macShare.prepare()`,12000);assert.equal(prepared?.ok,true,'Native macOS presenter surfaces did not prepare.');
-  toolbar=new Cdp((await target(url=>url.includes('mac-presenter-toolbar.html'),'floating presenter toolbar')).webSocketDebuggerUrl);await toolbar.connect();await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='presenter-direct-first'",'direct-first presenter bridge');
+  toolbar=new Cdp((await target(url=>url.includes('mac-presenter-toolbar.html'),'floating presenter toolbar')).webSocketDebuggerUrl);await toolbar.connect();await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='macShare-ack-first'",'direct-first presenter bridge');
   video=new Cdp((await target(url=>url.includes('mac-share-video.html'),'floating participant video dock')).webSocketDebuggerUrl);await video.connect();await video.wait("document.readyState==='complete'&&document.querySelector('#dock')",'floating participant video dock');
-  const surface=await toolbar.eval(`(()=>({brand:document.querySelector('.brand span')?.textContent||'',stop:document.querySelector('#stopShare')?.textContent||'',transport:window.DominionMacPresenterToolbar?.transport||'',commands:[...document.querySelectorAll('[data-command]')].map(n=>n.dataset.command)}))()`);assert.equal(surface.brand,'DominionStar');assert.match(surface.stop,/Stop share/i);assert.equal(surface.transport,'presenter-direct-first');for(const command of ['audio','video','participants','chat','pause','annotate','show-meeting'])assert.ok(surface.commands.includes(command),`Missing ${command} on native toolbar.`);if(proofPath)await toolbar.screenshot(proofPath);
+  const surface=await toolbar.eval(`(()=>({brand:document.querySelector('.brand span')?.textContent||'',stop:document.querySelector('#stopShare')?.textContent||'',transport:window.DominionMacPresenterToolbar?.transport||'',commands:[...document.querySelectorAll('[data-command]')].map(n=>n.dataset.command)}))()`);assert.equal(surface.brand,'DominionStar');assert.match(surface.stop,/Stop share/i);assert.equal(surface.transport,'macShare-ack-first');for(const command of ['audio','video','participants','chat','pause','annotate','show-meeting'])assert.ok(surface.commands.includes(command),`Missing ${command} on native toolbar.`);if(proofPath)await toolbar.screenshot(proofPath);
   await waitLog('QA_MAC_DIRECT_RENDERER_READY','direct renderer command fixture');
 
-  await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND pause','Pause direct delivery');
-  await toolbar.eval(`document.querySelector('[data-command="audio"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND audio','Audio direct delivery');
-  await toolbar.eval(`document.querySelector('[data-command="video"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND video','Video direct delivery');
-  await toolbar.eval(`document.querySelector('[data-command="participants"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND participants','Participants direct delivery');await waitLog('QA_MAC_DIRECT_COMPANION participants','Participants companion');
-  await toolbar.eval(`document.querySelector('[data-command="chat"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND chat','Chat direct delivery');await waitLog('QA_MAC_DIRECT_COMPANION chat','Chat companion');
-  await toolbar.eval(`document.querySelector('[data-command="annotate"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND annotate','Annotate direct delivery');
-  await toolbar.eval(`document.querySelector('#stopShare').click()`);await waitLog('QA_MAC_DIRECT_COMMAND stop','Stop Share direct delivery');
+  await video.wait("document.querySelector('#cameraMirror')?.hidden===false&&String(document.querySelector('#cameraMirror')?.src||'').startsWith('data:image/jpeg')",'meeting-owned live video frame',12000);
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK native-toolbar native-video-dock presenter-direct-first direct-command-delivery audio video pause participants chat annotate stop native-layout-fallback-preserved physical-visible-tcc-required');
+  await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND pause','Pause direct delivery');await main.wait("window.DominionShareController.snapshot().paused===true",'Pause state');
+  await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);await main.wait("window.DominionShareController.snapshot().paused===false",'Resume state');
+
+  await toolbar.eval(`document.querySelector('[data-command="audio"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND audio','Audio direct delivery');await main.wait("window.DominionMediaController.snapshot().micOn===true",'Unmute state');
+  await toolbar.eval(`document.querySelector('[data-command="audio"]').click()`);await main.wait("window.DominionMediaController.snapshot().micOn===false",'Mute state');
+
+  await toolbar.eval(`document.querySelector('[data-command="video"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND video','Video direct delivery');await main.wait("window.DominionMediaController.snapshot().cameraOn===false",'Video off state');await video.wait("document.querySelector('#cameraFallback')?.hidden===false&&document.querySelector('#cameraMirror')?.hidden===true",'Profile fallback');
+  await toolbar.eval(`document.querySelector('[data-command="video"]').click()`);await main.wait("window.DominionMediaController.snapshot().cameraOn===true&&window.DominionMediaController.snapshot().videoLive===true",'Video on state');await video.wait("document.querySelector('#cameraMirror')?.hidden===false",'Live video restored');
+
+  await toolbar.eval(`document.querySelector('[data-command="participants"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND participants','Participants direct delivery');await main.wait("document.body.dataset.dsShareCompanion==='participants'",'Participants companion');
+  await toolbar.eval(`document.querySelector('[data-command="chat"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND chat','Chat direct delivery');await main.wait("document.body.dataset.dsShareCompanion==='chat'",'Chat companion');
+  await toolbar.eval(`document.querySelector('[data-command="annotate"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND annotate','Annotate direct delivery');await main.wait("window.DominionShareAnnotation?.snapshot?.().active===true",'Annotation state');
+
+  await toolbar.eval(`document.querySelector('#stopShare').click()`);await waitLog('QA_MAC_DIRECT_COMMAND stop','Stop Share direct delivery');await main.wait("window.DominionShareController.snapshot().active===false",'Stop Share state',12000);await main.wait("document.querySelector('#meetingOverlay')?.hidden===false&&(!document.querySelector('.ds2041-share-root')||document.querySelector('.ds2041-share-root').hidden===true)",'Canonical meeting restore without share chooser');
+
+  const reshared=await main.eval(`(async()=>{const state=await window.DominionShareController.start({name:'Desktop 1',options:{shareAudio:false,optimizeVideo:false,includeMeetWindows:false}});if(!state.active)return false;window.DominionShareIntegration.commitPresenterMode();return true;})()`,10000);assert.equal(reshared,true,'Second share could not start after Stop Share.');await sleep(500);const secondStopped=await main.eval(`(async()=>{await window.DominionShareIntegration.stop();return !window.DominionShareController.snapshot().active;})()`,10000);assert.equal(secondStopped,true,'Second share could not stop cleanly.');
+
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK physical-parking two-phase-handoff real-toolbar-ack live-video profile-fallback pause resume mute unmute video-off video-on participants chat annotate stop-share meeting-restore reshare');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{video?.close();toolbar?.close();main?.close();if(child.exitCode===null){try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}}
 if(failure)throw failure;
