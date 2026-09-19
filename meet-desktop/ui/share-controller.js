@@ -60,7 +60,7 @@
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       let presenter=null;
       try{
-        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false}));
+        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)}));
         presenter=await Promise.race([acknowledgement,new Promise(resolve=>setTimeout(()=>resolve({ok:true,toolbarReady:true,pending:true}),900))]);
         void acknowledgement.then(result=>{
           if(result?.toolbarReady===false&&state.liveStream===stream)void stop();
@@ -97,7 +97,7 @@
       state.sourceName=String(name||track.label||'Shared content');state.options={...options};
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       stopTracks(previousFrozen);stopTracks(previousLive);
-      try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false});}catch{}
+      try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       return snapshot();
     }finally{state.busy=false;emit();}
   }
