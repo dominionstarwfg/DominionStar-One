@@ -30,6 +30,9 @@ const meetingFeaturesCss=read('ui/meeting-features.css');
 
 assert(main.includes("const uiDir=path.join(__dirname,'..','ui')"),'Desktop must define one local UI directory authority.');
 assert(main.includes("mainWindow.loadFile(path.join(uiDir,'index.html'))"),'Desktop must load Home from the local UI directory.');
+assert(main.includes("startupRevealTimer=setTimeout(()=>revealStartupWindow('bounded-fallback'),1800)"),'Desktop startup must have a bounded main-window reveal fallback.');
+assert(main.includes("queueMicrotask(()=>revealStartupWindow('did-finish-load'))"),'Desktop startup must reveal the main window after the local renderer finishes loading.');
+assert(main.includes("mainWindow.once('ready-to-show',()=>revealStartupWindow('ready-to-show'))"),'Desktop startup must retain ready-to-show as the primary reveal path.');
 assert(!main.includes('dominionstarld.com'),'Desktop shell must not depend on the public website.');
 assert(main.includes("if(url.startsWith('file://'))return"),'Navigation must remain local by default.');
 assert(preload.includes('contextIsolation')===false,'Preload should expose only the explicit bridge, not runtime configuration.');
