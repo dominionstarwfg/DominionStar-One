@@ -96,7 +96,7 @@ if(process.platform==='darwin'){
   function restoreCaptureOwnerWindow(main=mainWindow(),{focus=false}={}){
     if(!isAlive(main))return false;const saved=captureOwnerWindowState;
     try{main.setIgnoreMouseEvents(false);}catch{}
-    try{main.setContentProtection?.(false);}catch{}
+    try{main.setContentProtection?.(Boolean(shareActive&&!shareState.includeMeetWindows));}catch{}
     if(saved?.minimumSize){try{main.setMinimumSize(...saved.minimumSize);}catch{}}
     if(saved?.bounds){try{main.setBounds(saved.bounds,false);}catch{}}
     try{main.setOpacity?.(saved?.opacity??1);}catch{}
@@ -157,7 +157,7 @@ if(process.platform==='darwin'){
     const win=new BrowserWindow({
       width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
-      focusable:false,acceptFirstMouse:true,
+      focusable:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
     });
     toolbarWindow=win;protect(win);
