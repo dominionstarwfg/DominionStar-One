@@ -29,6 +29,6 @@ assert.ok(shareIntegration.includes("if(command==='pause'){await share.togglePau
 assert.ok(shareIntegration.includes("if(command==='stop'){")&&shareIntegration.includes("await share.stop();applyLayout();")&&shareIntegration.includes("DominionActiveShareHomeParity2041?.restoreMeeting?.()"),'Certified Stop Share authority must terminate capture and restore the same meeting.');
 assert.ok(shareIntegration.includes("if(command==='audio'){await media.setMicrophone"),'Certified microphone authority must remain intact.');
 assert.ok(shareIntegration.includes("if(command==='video'){await media.setCamera"),'Certified camera authority must remain intact.');
-assert.ok(shareIntegration.includes("if(command==='new-share'){await openPickerWithPermission()")&&shareIntegration.includes("const approved=window.DominionShareRuntimeAuthority2041;")&&shareIntegration.includes("if(approved?.open)return approved.open();"),'Certified New Share authority must reopen the approved runtime chooser.');
+assert.ok(shareIntegration.includes("if(command==='new-share'){await openPickerWithPermission()")&&shareIntegration.includes('async function openPickerWithPermission(){')&&shareIntegration.includes('const approved=window.DominionShareRuntimeAuthority2041;')&&shareIntegration.includes('if(approved?.open)return approved.open();'),'Certified New Share authority must reopen the approved runtime chooser.');
 
 console.log('DOMINIONSTAR_PRESENTER_COMMAND_PARITY_2_0_27_OK routed-chat routed-participants routed-annotate routed-stop floating-share-panels capture-authority-preserved');
