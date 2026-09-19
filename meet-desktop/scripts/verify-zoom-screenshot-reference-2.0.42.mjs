@@ -156,11 +156,11 @@ has(macToolbarCss,'.toolbar.auto-hidden','Native presenter toolbar must auto-hid
 has(macToolbarCss,'.stop-share-icon svg','Native Stop Share vector icon styling is missing.');
 has(macToolbarJs,'const nativeBridge=desktop.macShare||null','Native presenter toolbar must retain the macOS acknowledged fallback bridge.');
 has(macToolbarJs,'const rendererBridge=desktop.presenter||null','Native presenter toolbar must expose the direct meeting-renderer bridge.');
-has(macToolbarJs,'return await sendNative(normalized)','Native presenter toolbar must route through the acknowledged Mac delivery queue first.');
-has(macToolbarJs,'return await sendRenderer(normalized)','Native presenter toolbar must retain a bounded renderer-direct fallback.');
-const nativeFirst=macToolbarJs.indexOf('try{return await sendNative(normalized);}');
-const rendererFallback=macToolbarJs.indexOf("if(!NATIVE_ONLY_COMMANDS.has(normalized)&&rendererBridge?.command)return await sendRenderer(normalized);");
-assert.ok(nativeFirst>=0&&rendererFallback>nativeFirst,'Native presenter toolbar must route acknowledged-native-first with renderer-direct only as fallback.');
+has(macToolbarJs,'if(nativeBridge?.command)return await sendNative(normalized);','Native presenter toolbar must route through one acknowledged Mac delivery authority when available.');
+has(macToolbarJs,'if(!NATIVE_ONLY_COMMANDS.has(normalized)&&rendererBridge?.command)return await sendRenderer(normalized);','Renderer-direct transport may exist only when the native bridge itself is unavailable.');
+const nativeAuthority=macToolbarJs.indexOf('if(nativeBridge?.command)return await sendNative(normalized);');
+const rendererUnavailableFallback=macToolbarJs.indexOf("if(!NATIVE_ONLY_COMMANDS.has(normalized)&&rendererBridge?.command)return await sendRenderer(normalized);");
+assert.ok(nativeAuthority>=0&&rendererUnavailableFallback>nativeAuthority,'Native presenter toolbar must not cross-fallback after an acknowledged-path timeout.');
 has(macToolbarJs,"transport:nativeBridge?.command?'macShare-ack-first'",'Native presenter toolbar must expose acknowledged-native-first transport authority for packaged QA.');
 has(macToolbarJs,'result.direct===true||result.acknowledged===true||result.handled===true','Presenter toolbar success must require execution evidence, not a cosmetic ok:true response.');
 has(macToolbarJs,"const label=q('#stopShareLabel')",'Stop Share state feedback must preserve the vector icon.');
