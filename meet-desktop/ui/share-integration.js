@@ -149,6 +149,7 @@
     }
 
     async function beginShare({replace=false}={}){
+      if(replace&&window.DominionShareRuntimeAuthority2041?.open)return window.DominionShareRuntimeAuthority2041.open();
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return false;}
       button.classList.add('ds-share-checking');
       try{
@@ -179,12 +180,7 @@
       }
     }
 
-    async function openPickerWithPermission(){
-      clearCompanion();
-      const approved=window.DominionShareRuntimeAuthority2041;
-      if(approved?.open)return approved.open();
-      return beginShare({replace:share.snapshot().active});
-    }
+    async function openPickerWithPermission(){clearCompanion();return beginShare({replace:share.snapshot().active});}
 
     button.addEventListener('click',event=>{
       event.currentTarget.blur();
