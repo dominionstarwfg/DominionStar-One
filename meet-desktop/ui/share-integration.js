@@ -74,6 +74,64 @@
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
+    let macMirrorVideo=null,macMirrorCanvas=null,macMirrorContext=null,macMirrorTimer=0,macMirrorBusy=false,lastMacMirrorCameraOn=null;
+    const macVideoFrameBridge=bridge?.publishVideoFrame||null;
+
+    function stopMacVideoMirror({publishOff=true}={}){
+      if(macMirrorTimer){clearTimeout(macMirrorTimer);macMirrorTimer=0;}
+      macMirrorBusy=false;lastMacMirrorCameraOn=null;
+      if(macMirrorVideo){try{macMirrorVideo.pause?.();}catch{}try{macMirrorVideo.srcObject=null;}catch{}try{macMirrorVideo.remove?.();}catch{}macMirrorVideo=null;}
+      macMirrorCanvas=null;macMirrorContext=null;
+      if(publishOff&&sameRendererPresenter)try{macVideoFrameBridge?.({cameraOn:false,cameraLive:false,pending:false,frame:'',mirrored:media.snapshot().mirror!==false});}catch{}
+    }
+
+    function ensureMacMirrorVideo(stream){
+      if(!macMirrorVideo){
+        macMirrorVideo=document.createElement('video');macMirrorVideo.autoplay=true;macMirrorVideo.muted=true;macMirrorVideo.playsInline=true;macMirrorVideo.setAttribute('aria-hidden','true');
+        Object.assign(macMirrorVideo.style,{position:'fixed',left:'-12000px',top:'0',width:'480px',height:'270px',opacity:'0.001',pointerEvents:'none',zIndex:'-1'});
+        document.body.append(macMirrorVideo);
+      }
+      if(macMirrorVideo.srcObject!==stream){macMirrorVideo.srcObject=stream;try{void macMirrorVideo.play();}catch{}}
+      return macMirrorVideo;
+    }
+
+    function scheduleMacVideoMirror(delay=90){
+      if(!sameRendererPresenter||!share.snapshot().active)return;
+      if(macMirrorTimer)clearTimeout(macMirrorTimer);
+      macMirrorTimer=setTimeout(()=>{macMirrorTimer=0;void publishMacVideoFrame();},Math.max(45,Number(delay)||90));
+    }
+
+    async function publishMacVideoFrame({force=false}={}){
+      if(!sameRendererPresenter||!macVideoFrameBridge||!share.snapshot().active||macMirrorBusy)return;
+      macMirrorBusy=true;
+      try{
+        const mediaState=media.snapshot(),stream=media.stream(),track=stream?.getVideoTracks?.().find(item=>item?.readyState==='live')||null;
+        const cameraOn=mediaState.cameraOn!==false;
+        const mirrored=mediaState.mirror!==false;
+        if(!cameraOn){
+          if(force||lastMacMirrorCameraOn!==false)macVideoFrameBridge({cameraOn:false,cameraLive:false,pending:false,frame:'',mirrored});
+          lastMacMirrorCameraOn=false;return;
+        }
+        lastMacMirrorCameraOn=true;
+        if(!track||track.enabled===false){
+          macVideoFrameBridge({cameraOn:true,cameraLive:false,pending:true,frame:'',mirrored});return;
+        }
+        const video=ensureMacMirrorVideo(stream);
+        if(video.paused||video.readyState<2){try{await video.play();}catch{}}
+        if(video.readyState<2||video.videoWidth<2||video.videoHeight<2){
+          macVideoFrameBridge({cameraOn:true,cameraLive:false,pending:true,frame:'',mirrored});return;
+        }
+        const width=Math.min(640,Math.max(320,Number(video.videoWidth)||480));
+        const height=Math.max(180,Math.round(width*(Number(video.videoHeight)||270)/Math.max(2,Number(video.videoWidth)||480)));
+        if(!macMirrorCanvas){macMirrorCanvas=document.createElement('canvas');macMirrorContext=macMirrorCanvas.getContext('2d',{alpha:false,desynchronized:true});}
+        if(!macMirrorContext)return;
+        if(macMirrorCanvas.width!==width)macMirrorCanvas.width=width;if(macMirrorCanvas.height!==height)macMirrorCanvas.height=height;
+        macMirrorContext.drawImage(video,0,0,width,height);
+        macVideoFrameBridge({cameraOn:true,cameraLive:true,pending:false,frame:macMirrorCanvas.toDataURL('image/jpeg',0.7),mirrored});
+      }catch{
+        try{macVideoFrameBridge?.({cameraOn:media.snapshot().cameraOn!==false,cameraLive:false,pending:true,frame:'',mirrored:media.snapshot().mirror!==false});}catch{}
+      }finally{macMirrorBusy=false;scheduleMacVideoMirror(90);}
+    }
 
     let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
     let sharedVideo=stage.querySelector('#sharedContentVideo');if(!sharedVideo){sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);}
@@ -129,7 +187,7 @@
         // is active can stall Chromium's renderer on physical Mac.
         if(sameRendererPresenter){if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;}
         else{const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;}
-      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
+      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;stopMacVideoMirror();window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
       // On macOS, do not rebuild/rebind the Zoom-style video dock inside the
       // same transaction that flips Share to active. The existing dock remains
       // visually present, but media rebinding is deferred to normal meeting
@@ -139,12 +197,13 @@
     }
 
     function commitPresenterMode(){
-      const state=share.snapshot();
+      const state=share.snapshot(),mediaState=media.snapshot();
       if(!state.active||presenterCommitted)return false;
       presenterCommitted=true;
-      // macOS presenter controls live in this renderer. Crossing into the main
-      // process here caused the active capture renderer to stall on physical Mac.
-      if(!sameRendererPresenter)bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
+      // Two-phase handoff: the chooser is already gone and display capture is
+      // live before native presenter mode is allowed to park the meeting.
+      try{bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
+      if(sameRendererPresenter){void publishMacVideoFrame({force:true});scheduleMacVideoMirror(90);}
       return true;
     }
 
@@ -189,12 +248,12 @@
     });
 
     bridge?.onSourceSelected?.(async selection=>{
-      const replacing=share.snapshot().active;
+      const replacing=share.snapshot().active,selectionOptions=selection?.options||{};
       try{
-        if(replacing){await share.replaceSource({name:selection?.name,options:selection?.options||{}});window.DominionShareAnnotation?.deactivate?.();}
-        else await share.start({name:selection?.name,options:selection?.options||{}});
+        if(replacing){await share.replaceSource({name:selection?.name,options:selectionOptions});window.DominionShareAnnotation?.deactivate?.();}
+        else await share.start({name:selection?.name,options:selectionOptions});
         markCaptureProven();applyLayout();
-        if(!replacing)commitPresenterMode();
+        if(!replacing&&!selectionOptions.deferPresenterCommit)commitPresenterMode();
         if(replacing)toast(`Now sharing ${String(selection?.name||'new source')}`);
       }catch(error){
         applyLayout();
@@ -207,7 +266,7 @@
     });
 
     share.onChange(()=>applyLayout());
-    media.onChange(()=>{if(share.snapshot().active)applyLayout();});
+    media.onChange(()=>{if(share.snapshot().active){applyLayout();if(sameRendererPresenter)void publishMacVideoFrame({force:true});}});
 
     const companionObserver=new MutationObserver(()=>{
       if(!share.snapshot().active||!companionKind)return;
