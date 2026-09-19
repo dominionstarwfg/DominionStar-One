@@ -15,6 +15,7 @@ if(process.platform==='darwin'){
   let captureOwnerWebContents=null;
   let captureOwnerWindowState=null;
   let shareActive=false;
+  let presenterModeCommitted=false;
   let toolbarReady=false;
   let toolbarMenuOpen=false;
   let preparing=null;
@@ -24,7 +25,7 @@ if(process.platform==='darwin'){
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
   const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
-  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
+  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
   const bordersReady=()=>borderWindows.length===1&&borderWindows.every(isAlive);
@@ -73,20 +74,18 @@ if(process.platform==='darwin'){
   }
   function parkCaptureOwnerBehindVideoDock(main=mainWindow()){
     if(!isAlive(main))return false;rememberCaptureOwnerWindow(main);
-    // A fully hidden BrowserWindow can stop servicing renderer work on some
-    // physical Macs even with background throttling disabled. Keep the capture
-    // owner composited, but place it exactly behind the opaque participant/video
-    // dock so the shared stage still shows only content + presenter chrome.
+    // Keep the capture owner fully composited at its normal size, but move it
+    // outside every attached display. Resizing it underneath the video dock was
+    // starving the renderer on physical Macs and leaking a strip of meeting UI.
     try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
-    const display=displayForMain(),area=display.workArea||display.bounds;
-    let dockBounds=null;
-    try{dockBounds=isAlive(videoWindow)?videoWindow.getBounds():null;}catch{}
-    const width=Math.max(252,Math.min(360,Number(dockBounds?.width)||252));
-    const height=Math.max(174,Math.min(250,Number(dockBounds?.height)||174));
-    const x=Math.round(Number(dockBounds?.x) || (area.x+area.width-width-18));
-    const y=Math.round(Number(dockBounds?.y) || (area.y+78));
+    const saved=captureOwnerWindowState?.bounds||main.getBounds();
+    const displays=screen.getAllDisplays?.()||[displayForMain()];
+    const maxRight=Math.max(...displays.map(item=>Number(item?.bounds?.x||0)+Number(item?.bounds?.width||0)),Number(saved.x||0)+Number(saved.width||960));
+    const minTop=Math.min(...displays.map(item=>Number(item?.workArea?.y??item?.bounds?.y??0)),Number(saved.y||0));
+    const width=Math.max(960,Number(saved.width)||960),height=Math.max(640,Number(saved.height)||640);
+    const x=Math.round(maxRight+96),y=Math.round(minTop+48);
     try{main.setAlwaysOnTop(false);}catch{}
-    try{main.setMinimumSize(1,1);}catch{}
+    try{main.setContentProtection?.(!Boolean(shareState.includeMeetWindows));}catch{}
     try{main.setBounds({x,y,width,height},false);}catch{}
     try{main.setIgnoreMouseEvents(true,{forward:false});}catch{}
     try{main.setOpacity?.(1);}catch{}
@@ -97,6 +96,7 @@ if(process.platform==='darwin'){
   function restoreCaptureOwnerWindow(main=mainWindow(),{focus=false}={}){
     if(!isAlive(main))return false;const saved=captureOwnerWindowState;
     try{main.setIgnoreMouseEvents(false);}catch{}
+    try{main.setContentProtection?.(false);}catch{}
     if(saved?.minimumSize){try{main.setMinimumSize(...saved.minimumSize);}catch{}}
     if(saved?.bounds){try{main.setBounds(saved.bounds,false);}catch{}}
     try{main.setOpacity?.(saved?.opacity??1);}catch{}
@@ -137,14 +137,7 @@ if(process.platform==='darwin'){
     if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(190,Math.min(360,current.width||252));height=Math.max(132,Math.min(250,current.height||174));}catch{}}
     const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+78);
     try{videoWindow.setBounds({x,y,width,height},false);}catch{}
-    if(shareActive&&!shareState.meetingVisible){
-      const main=captureOwnerWindow();
-      if(isAlive(main)){
-        try{main.setBounds({x,y,width,height},false);}catch{}
-        try{main.setAlwaysOnTop(false);}catch{}
-        try{videoWindow.moveTop?.();toolbarWindow?.moveTop?.();}catch{}
-      }
-    }
+    try{videoWindow.moveTop?.();toolbarWindow?.moveTop?.();}catch{}
   }
   function setVideoLayout(mode='speaker'){
     videoLayout=['speaker','gallery','hide'].includes(String(mode))?String(mode):'speaker';
@@ -176,7 +169,7 @@ if(process.platform==='darwin'){
       await boundedLoad('mac_presenter_toolbar_load',()=>win.loadFile(path.join(uiDir,'mac-presenter-toolbar.html')));
       if(!isAlive(win)||toolbarWindow!==win)return null;
       toolbarReady=true;publishState();
-      if(shareActive&&!qaKeepPresenterHidden){positionToolbar();win.showInactive?.();win.moveTop?.();}
+      if(shareActive&&presenterModeCommitted&&!qaKeepPresenterHidden){positionToolbar();win.showInactive?.();win.moveTop?.();}
       return win;
     }catch(error){console.error('[DominionStar Meet] macOS presenter toolbar failed to prepare.',error);closeFailedWindow(win);if(toolbarWindow===win)toolbarWindow=null;toolbarReady=false;return null;}
   }
@@ -203,7 +196,7 @@ if(process.platform==='darwin'){
     videoWindow=win;protect(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
-    try{await boundedLoad('mac_share_video_load',()=>win.loadFile(path.join(uiDir,'mac-share-video.html')));if(!isAlive(win)||videoWindow!==win)return null;publishState();if(shareActive&&!qaKeepPresenterHidden&&videoLayout!=='hide'){positionVideo();win.showInactive?.();win.moveTop?.();}return win;}
+    try{await boundedLoad('mac_share_video_load',()=>win.loadFile(path.join(uiDir,'mac-share-video.html')));if(!isAlive(win)||videoWindow!==win)return null;publishState();if(shareActive&&presenterModeCommitted&&!qaKeepPresenterHidden&&videoLayout!=='hide'){positionVideo();win.showInactive?.();win.moveTop?.();}return win;}
     catch(error){console.error('[DominionStar Meet] macOS presenter video dock failed to prepare.',error);closeFailedWindow(win);if(videoWindow===win)videoWindow=null;return null;}
   }
 
@@ -220,6 +213,7 @@ if(process.platform==='darwin'){
   }
   function hideMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;
+    if(shareState.includeMeetWindows){shareState={...shareState,meetingVisible:true};publishState();return true;}
     shareState={...shareState,meetingVisible:false};
     parkCaptureOwnerBehindVideoDock(main);
     publishState();try{toolbarWindow?.moveTop?.();videoWindow?.moveTop?.();}catch{}return true;
@@ -240,7 +234,7 @@ if(process.platform==='darwin'){
     // Leave presenter mode first, then restore the meeting. Restoring while
     // shareActive/meetingVisible still describe presenter mode can leave the
     // main window parked behind other desktop windows.
-    shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
+    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
     if(isAlive(owner)){
       restoreCaptureOwnerWindow(owner,{focus:false});
       try{owner.setAlwaysOnTop(false);}catch{}
@@ -258,6 +252,14 @@ if(process.platform==='darwin'){
     captureOwnerWebContents=null;captureOwnerWindowState=null;
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'capture-stopped')}`);
     return {ok:true,recovered:true,reason:String(reason||'capture-stopped')};
+  }
+
+  async function presenterRendererResponsive(main=captureOwnerWindow(),timeoutMs=1000){
+    if(!isAlive(main)||main.webContents?.isDestroyed?.())return false;
+    try{
+      const probe=main.webContents.executeJavaScript(`Boolean(window.__DominionPresenterDispatch&&window.DominionShareIntegration&&window.DominionMediaController&&window.DominionShareController)`,true);
+      return Boolean(await Promise.race([probe,new Promise(resolve=>setTimeout(()=>resolve(false),Math.max(300,Number(timeoutMs)||1000)))]));
+    }catch{return false;}
   }
 
   function removeQueuedPresenterDelivery(deliveryId){const id=Number(deliveryId||0)||0;if(!id)return false;const index=presenterCommandQueue.findIndex(item=>Number(item?.deliveryId||0)===id);if(index<0)return false;presenterCommandQueue.splice(index,1);return true;}
@@ -334,9 +336,28 @@ if(process.platform==='darwin'){
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length} transport=invoke`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{
     captureOwnerWebContents=_event.sender;const owner=captureOwnerWindow();if(isAlive(owner))rememberCaptureOwnerWindow(owner);
-    shareActive=true;shareState={...shareState,...state,meetingVisible:false};wakeMain(owner);hideMeeting();showOverlays();
+    // Phase 1: capture is live, but the chooser/main meeting has not yet been
+    // parked. Prepare presenter windows hidden while the renderer stays fully
+    // interactive and finishes the source-selection transaction.
+    shareActive=true;presenterModeCommitted=false;shareState={...shareState,...state,meetingVisible:true};wakeMain(owner);void prepare();publishState();
   });
-  ipcMain.on('mac-share:state',(event,state={})=>{if(!shareActive||event.sender!==captureOwnerWebContents)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
+  ipcMain.on('share:presenter-committed',async(event,state={})=>{
+    if(!shareActive||event.sender!==captureOwnerWebContents||presenterModeCommitted)return;
+    const owner=captureOwnerWindow();if(!isAlive(owner))return;
+    shareState={...shareState,...state};presenterModeCommitted=true;
+    if(!shareState.includeMeetWindows)hideMeeting();
+    const responsive=await presenterRendererResponsive(owner,1100);
+    if(!responsive){
+      // Never expose a decorative/dead toolbar. Restore the meeting and stop
+      // the share if parking made the capture owner unresponsive.
+      presenterModeCommitted=false;restoreCaptureOwnerWindow(owner,{focus:false});shareState={...shareState,meetingVisible:true};publishState();await wait(160);
+      const stopped=await executePresenterCommandDirect(owner,'stop',1300);
+      if(!stopped?.ok)resetSharePresentation('presenter-renderer-unresponsive');
+      return;
+    }
+    showOverlays();publishState();
+  });
+  ipcMain.on('mac-share:state',(event,state={})=>{if(!shareActive||event.sender!==captureOwnerWebContents)return;shareState={...shareState,...state};publishState();if(!presenterModeCommitted||qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
   ipcMain.on('mac-share:capture-stopped',(event)=>{if(captureOwnerWebContents&&event.sender!==captureOwnerWebContents)return;resetSharePresentation('capture-stopped');});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const owner=captureOwnerWebContents;if(!owner||owner.isDestroyed?.()||event.sender!==owner)return;removeQueuedPresenterDelivery(deliveryId);
