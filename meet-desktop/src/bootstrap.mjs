@@ -46,8 +46,8 @@ if(process.platform==='darwin'){
       if(!physicalShareActive)return;
       const main=mainMeetingWindow();if(!main||main.isDestroyed())return;
       // Do not hide here. The native presenter overlay keeps this renderer
-      // composited behind the right-side video dock so toolbar commands remain
-      // executable while the shared stage stays visually clean.
+      // fully composited off-display at its normal meeting size so toolbar,
+      // media and Stop Share commands remain executable during presentation.
       try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
       try{originalSetOpacity.call(main,1);}catch{}
     },PHYSICAL_SHARE_STARTUP_MS);
