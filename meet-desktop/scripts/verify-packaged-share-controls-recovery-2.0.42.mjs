@@ -90,17 +90,21 @@ try{
     oscillator.connect(destination);oscillator.start();
 
     window.__qaMediaFixtures={cameraCanvas,shareCanvas,cameraBase,shareBase,audioContext,oscillator,destination};
-    Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>{
-      const tracks=[];
-      if(constraints?.video!==false&&constraints?.video)tracks.push(cameraBase.getVideoTracks()[0].clone());
-      if(constraints?.audio!==false&&constraints?.audio)tracks.push(destination.stream.getAudioTracks()[0].clone());
-      return new MediaStream(tracks);
-    }});
     Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>new MediaStream([shareBase.getVideoTracks()[0].clone()])});
-    window.ImageCapture=class{constructor(track){this.track=track;}async grabFrame(){return createImageBitmap(this.track.kind==='video'&&window.DominionShareController?.snapshot?.().active?shareCanvas:cameraCanvas);}};
+    window.ImageCapture=class{constructor(track){this.track=track;}async grabFrame(){return createImageBitmap(window.DominionShareController?.snapshot?.().active?shareCanvas:cameraCanvas);}};
 
-    await window.DominionMediaController.startPreview({cameraOn:true,micOn:true});
-    const local=document.querySelector('#localMeetingVideo');local.srcObject=window.DominionMediaController.stream();await local.play().catch(()=>{});
+    // Build deterministic live camera/microphone state without invoking macOS
+    // Camera/Microphone permission UI on the hosted runner. setCamera(false)
+    // creates the controller-owned MediaStream without acquisition. We then
+    // attach deterministic tracks to that same stream, restore the controller
+    // flags, and unmute using the already-live audio track.
+    await window.DominionMediaController.setCamera(false);
+    const owned=window.DominionMediaController.stream();
+    owned.addTrack(cameraBase.getVideoTracks()[0].clone());
+    owned.addTrack(destination.stream.getAudioTracks()[0].clone());
+    window.DominionMediaController.resetPreferences();
+    await window.DominionMediaController.setMicrophone(true);
+    const local=document.querySelector('#localMeetingVideo');local.srcObject=owned;void local.play().catch(()=>{});
     await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
     return {media:window.DominionMediaController.snapshot(),share:window.DominionShareController.snapshot()};
   })()`,12000);
@@ -116,13 +120,13 @@ try{
   const state=()=>main.eval(`(()=>({media:window.DominionMediaController.snapshot(),share:window.DominionShareIntegration.state(),meetingHidden:document.querySelector('#meetingOverlay').hidden,prejoinHidden:document.querySelector('#prejoinOverlay').hidden,appHidden:document.querySelector('#appShell').hidden,companion:String(document.body.dataset.dsShareCompanion||'')}))()`);
 
   for(let cycle=0;cycle<4;cycle+=1){
-    let before=await state();await click('[data-command="audio"]');await main.wait(`window.DominionMediaController.snapshot().micOn===${!before.media.micOn}`,`audio toggle ${cycle+1}`);
-    before=await state();await click('[data-command="video"]');await main.wait(`window.DominionMediaController.snapshot().cameraOn===${!before.media.cameraOn}`,`video toggle ${cycle+1}`);
-    before=await state();await click('[data-command="pause"]');await main.wait(`window.DominionShareIntegration.state().paused===${!before.share.paused}`,`pause toggle ${cycle+1}`,14000);
+    await click('[data-command="audio"]');await main.wait("window.DominionMediaController.snapshot().micOn===false",`audio mute ${cycle+1}`);
+    await click('[data-command="audio"]');await main.wait("window.DominionMediaController.snapshot().micOn===true",`audio unmute ${cycle+1}`);
+    await click('[data-command="video"]');await main.wait("window.DominionMediaController.snapshot().cameraOn===false",`video off ${cycle+1}`);
+    await click('[data-command="video"]');await main.wait("window.DominionMediaController.snapshot().cameraOn===true",`video on ${cycle+1}`);
+    await click('[data-command="pause"]');await main.wait("window.DominionShareIntegration.state().paused===true",`pause ${cycle+1}`,14000);
+    await click('[data-command="pause"]');await main.wait("window.DominionShareIntegration.state().paused===false",`resume ${cycle+1}`,14000);
   }
-  if(!(await state()).media.cameraOn){await click('[data-command="video"]');await main.wait("window.DominionMediaController.snapshot().cameraOn===true",'camera restored');}
-  if(!(await state()).media.micOn){await click('[data-command="audio"]');await main.wait("window.DominionMediaController.snapshot().micOn===true",'microphone restored');}
-  if((await state()).share.paused){await click('[data-command="pause"]');await main.wait("window.DominionShareIntegration.state().paused===false",'share resumed');}
   await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'",'camera mirror recovered after repeated toggles',8000);
 
   await click('[data-command="layout-gallery"]');await toolbar.wait("window.DominionMacPresenterToolbar.state().videoLayout==='gallery'",'Gallery presenter-video layout');
@@ -155,7 +159,7 @@ try{
   await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'",'presenter video live after re-share',8000);
   await click('#stopShare');await main.wait("window.DominionShareIntegration.state().active===false",'second Stop Share');
 
-  console.log('DOMINIONSTAR_PACKAGED_SHARE_CONTROLS_RECOVERY_2_0_42_OK acknowledged-toolbar 4x-audio 4x-video 4x-pause layout show-meeting new-share-cancel participants chat annotate stop-return re-share second-stop camera-mirror-live');
+  console.log('DOMINIONSTAR_PACKAGED_SHARE_CONTROLS_RECOVERY_2_0_42_OK acknowledged-toolbar 4x-mute-unmute 4x-video-off-on 4x-pause-resume layout show-meeting new-share-cancel participants chat annotate stop-return re-share second-stop camera-mirror-live');
 }catch(error){
   failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());
 }finally{
