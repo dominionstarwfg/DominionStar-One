@@ -235,7 +235,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     else if(['show-meeting','participants','chat','annotate'].includes(normalized)){const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}}
     if(!sent){delivery=await sendPresenterCommand(normalized,toolbarSenderId);sent=delivery.sent;}
     if(normalized==='stop'&&shareActive){if(stopRetryTimer)clearTimeout(stopRetryTimer);stopRetryTimer=setTimeout(()=>{stopRetryTimer=null;if(shareActive){if(platform!=='darwin')showMeetingWindow({focus:false});else keepMeetingRendererLive();void sendPresenterCommand('stop',0);}},700);}
-    return qaPresenterTrace?{ok:true,qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct)}:{ok:true};
+    const executed=Boolean(delivery?.direct);
+    // A sent IPC packet is not execution proof. Production must report the same
+    // truth as QA so floating controls can fall back to the acknowledged macOS
+    // delivery queue instead of silently accepting a dead command.
+    return {ok:executed,qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:executed,acknowledged:executed,error:executed?'':String(delivery?.error||'presenter_command_not_acknowledged')};
   });
 
   return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
