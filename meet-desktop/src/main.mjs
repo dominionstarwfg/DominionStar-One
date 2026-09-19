@@ -5,15 +5,6 @@ import { createDesktopAuth } from './auth-service.mjs';
 import { createMeetingService } from './meeting-service.mjs';
 import { createShareService } from './share-service.mjs';
 
-// Presenter mode intentionally moves/occludes the canonical meeting window on
-// macOS. Chromium can otherwise background or freeze that renderer even when
-// BrowserWindow backgroundThrottling is disabled. Keep the meeting renderer's
-// timers, IPC and media graph scheduled while it owns an active share.
-if(process.platform==='darwin'){
-  for(const name of ['disable-renderer-backgrounding','disable-background-timer-throttling','disable-backgrounding-occluded-windows']){
-    try{app.commandLine.appendSwitch(name);}catch{}
-  }
-}
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const uiDir=path.join(__dirname,'..','ui');
