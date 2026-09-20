@@ -240,7 +240,7 @@
         if(entry.mode==='custom')return true;
         try{
           const options={shareAudio:true,optimizeVideo:false};
-          if(replace){await share.replaceSource({name:'Shared content',options});window.DominionShareAnnotation?.deactivate?.();}
+          if(replace){await share.replaceSource({name:'Shared content',options});window.DominionShareAnnotation?.resetForNewShare?.();}
           else await share.start({name:'Shared content',options});
           markCaptureProven();applyLayout();
           if(!replace)commitPresenterMode();
@@ -272,7 +272,7 @@
     bridge?.onSourceSelected?.(async selection=>{
       const replacing=share.snapshot().active,selectionOptions=selection?.options||{};
       try{
-        if(replacing){await share.replaceSource({name:selection?.name,options:selectionOptions});window.DominionShareAnnotation?.deactivate?.();}
+        if(replacing){await share.replaceSource({name:selection?.name,options:selectionOptions});window.DominionShareAnnotation?.resetForNewShare?.();}
         else await share.start({name:selection?.name,options:selectionOptions});
         markCaptureProven();applyLayout();
         if(!replacing&&!selectionOptions.deferPresenterCommit)commitPresenterMode();
