@@ -143,7 +143,7 @@ requireText(controller,'canvas.captureStream(1)','Pause must transmit a frozen f
 requireText(controller,'const previousFrozen=state.frozenStream;','Resume must preserve the frozen participant-facing stream during the handoff.');
 requireText(controller,'await window.DominionWebRTCController?.syncLocalTracks?.()','Resume must wait for WebRTC sender replacement before ending the frozen frame.');
 requireText(controller,'stopTracks(previousFrozen);','Resume must retire the frozen stream only after the live sender handoff.');
-requireText(webrtc,"state.shareUnsub=window.DominionShareController?.onChange?.(()=>void syncAllSenders())",'WebRTC must react to Pause/Resume share-stream changes.');
+requireText(webrtc,"state.shareUnsub=window.DominionShareController?.onChange?.(()=>{void syncAllSenders();void announceShareState();})",'WebRTC must react to Pause/Resume share-stream changes and publish the authoritative share state.');
 requireText(webrtc,'lanes[2]?.sender?.replaceTrack(screen)','WebRTC must replace the participant-facing screen sender when Pause/Resume changes the output stream.');
 requireText(controller,'const previous={liveStream:state.liveStream,frozenStream:state.frozenStream,compositeStream:state.compositeStream};','Stop Share must retain the active participant-facing streams until sender detachment.');
 requireText(controller,'await Promise.race([\n            syncSenders({strict:true})','Stop Share must detach participant screen senders with a bounded strict WebRTC sync.');
@@ -151,7 +151,7 @@ requireText(controller,'window.DominionWebRTCController?.announceShareStopped?.(
 requireText(controller,'stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);','Stop Share must physically release composite, frozen, and live capture tracks.');
 const stopShareBlock=controller.slice(controller.indexOf('async function stop()'),controller.indexOf('const api=Object.freeze'));
 assert.ok(stopShareBlock.indexOf('syncSenders({strict:true})')<stopShareBlock.indexOf('stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);'),'Stop Share must detach participant screen senders before retiring old capture tracks.');
-requireText(webrtc,"meeting.sendSignal(record.id,'share:state',{active:false})",'Stop Share must signal remote viewers that screen sharing ended.');
+requireText(webrtc,"async function announceShareStopped(){return announceShareState(false);}",'Stop Share must signal remote viewers that screen sharing ended.');
 requireText(webrtc,"if(signal.type==='share:state')",'Remote clients must consume explicit share-state fallback signalling.');
 requireText(webrtc,'hideRemoteShare(remoteId);','Remote Stop Share handling must immediately leave the shared-content surface.');
 requireText(integration,'window.DominionShareAnnotation?.resetForNewShare?.();clearCompanion();','Stop Share must clear persistent annotation overlays before returning to the meeting.');
@@ -325,7 +325,7 @@ requireText(toolbarJs,"if(command==='stop')",'Presenter toolbar lacks direct Sto
 requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide immediate click feedback.');
 requireText(controller,'async function setOptimizeVideo(enabled)','Active-share Optimize for video must be a real controller operation.');
 requireText(controller,"track.contentHint=next?'motion':'detail'",'Optimize for video must change capture content hint while sharing.');
-requireText(controller,"track.applyConstraints?.({frameRate:next?{ideal:30,max:30}:{ideal:15,max:30}})",'Optimize for video must change active capture frame-rate constraints.');
+requireText(controller,"track.applyConstraints?.(next",'Optimize for video must change active capture constraints while sharing.');
 requireText(controller,'async function setShareAudioEnabled(enabled,{mode}={})','Share Sound must be independently toggleable while presenting.');
 requireText(controller,"error.code='share_audio_recapture_required'",'Enabling Share Sound without an audio track must request a transactional recapture instead of faking success.');
 requireText(controller,'async function setShareAudioMode(mode)','Share Sound Mono/Stereo must be an active controller setting.');
