@@ -153,6 +153,7 @@
       shareAudio:Boolean(root.querySelector('[data-share-audio]')?.checked),
       shareAudioMode:String(root.querySelector('[data-share-audio-mode]')?.value||'mono')==='stereo'?'stereo':'mono',
       optimizeVideo:Boolean(root.querySelector('[data-optimize]')?.checked),
+      showGreenBorder:pref('ds_pref_share_green_border',true),
       includeMeetWindows:Boolean(root.querySelector('[data-include-meet]')?.checked),
       deferPresenterCommit:true
     };
