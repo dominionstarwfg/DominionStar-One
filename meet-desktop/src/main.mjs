@@ -201,6 +201,7 @@ ipcMain.handle('meeting:rename-participant',(_event,{participantId,displayName})
 ipcMain.handle('meeting:set-recording-permission',(_event,{participantId,enabled})=>meetingService?.setRecordingPermission(participantId,enabled));
 ipcMain.handle('meeting:set-recording-state',(_event,{participantId,active,paused})=>meetingService?.setRecordingState(participantId,active,paused));
 ipcMain.handle('meeting:set-security',(_event,{roomId,options})=>meetingService?.setSecurity(roomId,options));
+ipcMain.handle('meeting:set-annotation-policy',(_event,{roomId,options})=>meetingService?.setAnnotationPolicy(roomId,options));
 ipMainHandleChatPolicy();
 ipMainHandleCaptions();
 ipcMain.handle('meeting:transfer-host-and-leave',(_event,{participantId})=>meetingService?.transferHostAndLeave(participantId));
@@ -212,6 +213,12 @@ ipcMain.handle('meeting:signal-prune',(_event,{roomId})=>meetingService?.pruneSi
 ipcMain.handle('meeting:ice-config',(_event,{force=false,ttl=7200}={})=>meetingService?.iceConfig({force:Boolean(force),ttl:Number(ttl)||7200}));
 
 ipcMain.handle('annotation:save',async(_event,{format='png',dataUrl='',title='DominionStar annotation'}={})=>{
+  const meetingContext=meetingService?.context?.()||{};
+  if(meetingContext.roomId){
+    const policy=await meetingService?.snapshot?.(meetingContext.roomId);
+    if(policy?.annotationEnabled===false)throw new Error('Annotation is disabled for this meeting.');
+    if(policy?.annotationSaveAllowed===false)throw new Error('Saving annotations is disabled by the host.');
+  }
   const normalized=String(format||'png').toLowerCase();
   if(!['png','pdf'].includes(normalized))throw new Error('Unsupported annotation format.');
   const match=String(dataUrl||'').match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
