@@ -227,11 +227,14 @@ ipcMain.handle('annotation:save',async(_event,{format='png',dataUrl='',title='Do
   if(!image.length||image.length>40*1024*1024)throw new Error('Annotation image is invalid or too large.');
   const safeTitle=String(title||'DominionStar annotation').replace(/[\\/:*?"<>|]+/g,'-').trim().slice(0,80)||'DominionStar annotation';
   const defaultPath=path.join(app.getPath('documents'),`${safeTitle}.${normalized}`);
-  const save=await dialog.showSaveDialog(mainWindow&&!mainWindow.isDestroyed()?mainWindow:undefined,{
+  const saveOptions={
     title:normalized==='pdf'?'Save annotation as PDF':'Save annotation as PNG',
     defaultPath,
     filters:[{name:normalized==='pdf'?'PDF document':'PNG image',extensions:[normalized]}]
-  });
+  };
+  const save=mainWindow&&!mainWindow.isDestroyed()
+    ? await dialog.showSaveDialog(mainWindow,saveOptions)
+    : await dialog.showSaveDialog(saveOptions);
   if(save.canceled||!save.filePath)return {ok:false,canceled:true};
   if(normalized==='png'){
     await writeFile(save.filePath,image);
