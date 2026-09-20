@@ -205,10 +205,11 @@
   async function syncLocalTracks(record){
     const lanes=transceivers(record);if(lanes.length<4)return;
     const media=localMedia(),share=shareMedia(),shareState=window.DominionShareController?.snapshot?.()||{};
-    const audio=media?.getAudioTracks?.()[0]||null,camera=await localCameraTrack(),screen=share?.getVideoTracks?.()[0]||null,shareAudio=share?.getAudioTracks?.()[0]||null;
+    const audio=media?.getAudioTracks?.()[0]||null,camera=await localCameraTrack(),screen=share?.getVideoTracks?.()[0]||null;
+    const shareAudio=shareState.options?.shareAudio!==false?(share?.getAudioTracks?.()[0]||null):null;
     await Promise.all([lanes[0]?.sender?.replaceTrack(audio),lanes[1]?.sender?.replaceTrack(camera),lanes[2]?.sender?.replaceTrack(screen),lanes[3]?.sender?.replaceTrack(shareAudio)].filter(Boolean));
     const screenSender=lanes[2]?.sender;if(screenSender&&screen){try{const params=screenSender.getParameters();params.degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced';params.encodings=params.encodings?.length?params.encodings:[{}];params.encodings[0].maxBitrate=shareState.options?.optimizeVideo?4500000:2500000;await screenSender.setParameters(params);}catch{}}
-    const shareAudioSender=lanes[3]?.sender;if(shareAudioSender&&shareAudio){try{const params=shareAudioSender.getParameters();params.encodings=params.encodings?.length?params.encodings:[{}];params.encodings[0].maxBitrate=128000;await shareAudioSender.setParameters(params);}catch{}}
+    const shareAudioSender=lanes[3]?.sender;if(shareAudioSender){try{const params=shareAudioSender.getParameters();params.encodings=params.encodings?.length?params.encodings:[{}];params.encodings[0].maxBitrate=shareState.options?.shareAudioMode==='stereo'?192000:96000;await shareAudioSender.setParameters(params);}catch{}}
   }
   async function initiate(record,iceRestart=false){
     if(record.makingOffer||record.pc.signalingState!=='stable')return;
