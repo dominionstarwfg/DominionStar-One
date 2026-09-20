@@ -26,8 +26,8 @@
     if(!editor)return;
     const value=String(editor.value||'').trimEnd();editor.remove();
     if(!commit||!value||!at||!state.ctx)return;
-    pushHistory();state.ctx.save();state.ctx.globalAlpha=1;state.ctx.globalCompositeOperation='source-over';state.ctx.fillStyle=state.color;state.ctx.font='600 26px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';state.ctx.textBaseline='top';
-    value.split(/\n/).slice(0,8).forEach((line,index)=>state.ctx.fillText(line,at.x,at.y+(index*31),Math.max(120,state.canvas.width-at.x-12)));
+    pushHistory();state.ctx.save();state.ctx.globalAlpha=1;state.ctx.globalCompositeOperation='source-over';state.ctx.fillStyle=state.color;state.ctx.font='600 '+state.fontSize+'px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';state.ctx.textBaseline='top';
+    const lineHeight=Math.round(state.fontSize*1.22);value.split(/\n/).slice(0,8).forEach((line,index)=>state.ctx.fillText(line,at.x,at.y+(index*lineHeight),Math.max(120,state.canvas.width-at.x-12)));
     state.ctx.restore();
   }
   function beginText(event){
@@ -40,9 +40,28 @@
     editor.addEventListener('blur',()=>{if(state.textEditor===editor)closeTextEditor({commit:true});},{once:true});
     queueMicrotask(()=>editor.focus());
   }
-  function down(event){if(!state.active||event.button!==0)return;if(state.mode==='text'){beginText(event);event.preventDefault();return;}state.drawing=true;state.last=point(event);state.canvas.setPointerCapture?.(event.pointerId);if(state.mode==='laser'){clearLaser();try{state.laserBase=state.ctx.getImageData(0,0,state.canvas.width,state.canvas.height);}catch{state.laserBase=null;}if(state.laserBase)drawLaser(state.last);}else pushHistory();event.preventDefault();}
-  function move(event){if(!state.drawing||!state.last)return;const next=point(event);if(state.mode==='laser'){if(state.laserBase)drawLaser(next);state.last=next;event.preventDefault();return;}style();state.ctx.beginPath();state.ctx.moveTo(state.last.x,state.last.y);state.ctx.lineTo(next.x,next.y);state.ctx.stroke();state.ctx.globalAlpha=1;state.last=next;event.preventDefault();}
-  function up(event){if(!state.drawing)return;state.drawing=false;state.last=null;state.canvas.releasePointerCapture?.(event.pointerId);if(state.mode==='laser')clearLaser(650);}
+  function down(event){
+    if(!state.active||event.button!==0)return;
+    const at=point(event);
+    if(state.mode==='text'){beginText(event);event.preventDefault();return;}
+    if(state.mode==='check'||state.mode==='star'){drawStamp(state.mode,at);event.preventDefault();return;}
+    state.drawing=true;state.start=at;state.last=at;state.canvas.setPointerCapture?.(event.pointerId);
+    if(state.mode==='laser'){clearLaser();try{state.laserBase=state.ctx.getImageData(0,0,state.canvas.width,state.canvas.height);}catch{state.laserBase=null;}if(state.laserBase)drawLaser(state.last);}
+    else if(shapeModes.has(state.mode)){state.shapeBase=captureImage();pushHistory();}
+    else pushHistory();
+    event.preventDefault();
+  }
+  function move(event){
+    if(!state.drawing||!state.last)return;const next=point(event);
+    if(state.mode==='laser'){if(state.laserBase)drawLaser(next);state.last=next;event.preventDefault();return;}
+    if(shapeModes.has(state.mode)){if(state.shapeBase)restore(state.shapeBase);drawShape(state.mode,state.start,next);state.last=next;event.preventDefault();return;}
+    style();state.ctx.beginPath();state.ctx.moveTo(state.last.x,state.last.y);state.ctx.lineTo(next.x,next.y);state.ctx.stroke();state.ctx.globalAlpha=1;state.last=next;event.preventDefault();
+  }
+  function up(event){
+    if(!state.drawing)return;
+    if(shapeModes.has(state.mode)&&state.start){const end=point(event);if(state.shapeBase)restore(state.shapeBase);drawShape(state.mode,state.start,end);}
+    state.drawing=false;state.last=null;state.start=null;state.shapeBase=null;state.canvas.releasePointerCapture?.(event.pointerId);if(state.mode==='laser')clearLaser(650);
+  }
   function setMode(mode){if(state.mode==='laser'&&mode!=='laser')clearLaser();if(state.mode==='text'&&mode!=='text')closeTextEditor({commit:true});state.mode=mode;for(const b of state.overlay?.querySelectorAll('[data-annotation-mode]')||[])b.classList.toggle('active',b.dataset.annotationMode===mode);}
   function clear(){if(!state.ctx||!state.canvas)return;closeTextEditor({commit:true});pushHistory();clearLaser();state.ctx.clearRect(0,0,state.canvas.width,state.canvas.height);}
   function ensure(){
