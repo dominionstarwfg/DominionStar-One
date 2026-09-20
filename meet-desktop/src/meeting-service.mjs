@@ -167,6 +167,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
   const setRecordingState=(participantId,active,paused=false)=>auth.rpc('meet_v2_set_recording_state',{p_participant_id:participantId,p_active:Boolean(active),p_paused:Boolean(paused)});
   const setSecurity=(roomId,{locked=false,muteOnEntry=false}={})=>auth.rpc('meet_v2_set_security',{p_room_id:roomId,p_locked:Boolean(locked),p_mute_on_entry:Boolean(muteOnEntry)});
   const setAnnotationPolicy=(roomId,{enabled=true,saveAllowed=true}={})=>auth.rpc('meet_v2_set_annotation_policy',{p_room_id:roomId,p_enabled:Boolean(enabled),p_save_allowed:Boolean(saveAllowed)});
+  const setAnnotationNames=(roomId,showNames=true)=>auth.rpc('meet_v2_set_annotation_names',{p_room_id:roomId,p_show_names:Boolean(showNames)});
   const setChatPolicy=(roomId,policy='everyone')=>auth.rpc('meet_v2_set_chat_policy',{p_room_id:roomId,p_policy:String(policy||'everyone')});
   const setCaptionState=(roomId,{mode='off',captionerParticipantId=null,transcriptEnabled=false}={})=>auth.rpc('meet_v2_set_caption_state',{p_room_id:roomId,p_mode:String(mode||'off'),p_captioner_participant_id:captionerParticipantId||null,p_transcript_enabled:Boolean(transcriptEnabled)});
   const publishCaption=(participantId,text,speakerName)=>auth.rpc('meet_v2_publish_caption',{p_participant_id:participantId,p_text:String(text||'').trim(),p_speaker_name:normalizeName(speakerName)||'Captioner'});
@@ -266,6 +267,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
     setRecordingState,
     setSecurity,
     setAnnotationPolicy,
+    setAnnotationNames,
     setChatPolicy,
     setCaptionState,
     publishCaption,
