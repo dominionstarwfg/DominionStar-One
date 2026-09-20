@@ -139,6 +139,11 @@ requireText(controller,'stopTracks(state.liveStream)','Stop Share must release c
 requireText(controller,'async function replaceSource','New Share must remain transactional.');
 requireText(annotation,'setAnnotationCanvas','Annotation must remain connected to the single ShareController.');
 requireText(annotation,'drawLaser','Laser pointer support is missing.');
+requireText(annotation,'data-annotation-mode="text"','Annotation must expose a real Text tool.');
+requireText(annotation,'data-annotation-redo disabled','Annotation must expose Redo alongside Undo.');
+requireText(annotation,'title="Spotlight / laser pointer">Spotlight</button>','Annotation must expose Zoom-familiar Spotlight naming for the laser pointer.');
+requireText(annotation,'function beginText(event)','Text annotation must create an editable text entry surface.');
+requireText(annotation,"if(event.shiftKey)redo();else undo();",'Annotation must support Zoom-style undo/redo keyboard shortcuts.');
 rejectText(controller,'rendererCommitted:true','ShareController must not own meeting visibility or presenter commit.');
 
 // Re-entrancy guard.
