@@ -269,3 +269,62 @@
   #meetingOverlay .meeting-head .ds-approved-encryption span:last-child{display:none !important;}
   #meetingOverlay .meeting-head .ds-approved-encryption{width:28px !important;padding:0 !important;justify-content:center !important;}
 }
+
+
+/* ---------- Active share participant video panel controls ---------- */
+/* Zoom keeps the sharing video panel directly controllable while presenting:
+   minimize to the active speaker, hide the panel, reset/reposition it, and
+   switch between vertical/right and horizontal/top placement. */
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head,
+#meetingOverlay.share-side-by-side #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head{
+  display:flex !important;
+  height:28px !important;
+  padding:0 4px !important;
+  background:rgba(14,16,20,.94) !important;
+  border-bottom:1px solid rgba(255,255,255,.10) !important;
+}
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head .dock-grip,
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head strong,
+#meetingOverlay.share-side-by-side #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head .dock-grip,
+#meetingOverlay.share-side-by-side #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head strong{
+  display:none !important;
+}
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head > div,
+#meetingOverlay.share-side-by-side #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head > div{
+  margin-left:auto !important;
+  display:flex !important;
+  gap:2px !important;
+}
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head button,
+#meetingOverlay.share-side-by-side #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head button{
+  width:24px !important;
+  height:22px !important;
+  border-radius:5px !important;
+  color:#eef2f6 !important;
+  cursor:pointer !important;
+}
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"].minimized{
+  width:176px !important;
+  height:auto !important;
+  min-height:0 !important;
+}
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"].minimized .participant-video-dock-body{
+  display:grid !important;
+  padding:0 !important;
+  width:176px !important;
+  height:auto !important;
+  overflow:hidden !important;
+}
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"].minimized .remote-peer-tile{
+  display:none !important;
+}
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"].minimized .remote-peer-tile.minimized-featured{
+  display:block !important;
+  width:176px !important;
+  height:99px !important;
+  min-width:176px !important;
+  min-height:99px !important;
+}
+#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"].minimized .participant-video-resize{
+  display:none !important;
+}
