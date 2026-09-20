@@ -50,7 +50,7 @@ for(const style of ['./personal-room.css','./schedule.css'])assert(html.includes
 assert(html.includes('id="scheduleForm"')&&html.includes('id="scheduledMeetingList"'),'Schedule and Meetings must have real UI surfaces.');
 assert(!html.includes('meet_personal_rooms'),'Undeployed legacy backend table name must never leak into the Home UI.');
 assert(css.includes('.action-card:active{transform:translateY(0) scale(.99)}'),'Action controls must visibly release after click.');
-assert(js.includes("document.body.dataset.shareAfterJoin='1';openDialog('join')"),'Home Share must enter the real meeting/share flow.');
+assert(js.includes("document.body.dataset.shareAfterJoin=shareMode?'1':''"),'Home Share dedicated mode must arm the real meeting/share flow without masquerading as Join.');
 assert(!js.includes("notice('Share remains isolated'"),'Home Share must not return to the old placeholder notice.');
 assert(!js.includes('getDisplayMedia'),'Home/room controller must not own screen capture.');
 assert(!/(?<!\$)\$\([^\n;]{0,180}\)\.forEach/.test(js),'Home bootstrap must never call forEach on the single-element $ selector; multi-element bindings must use $.');
