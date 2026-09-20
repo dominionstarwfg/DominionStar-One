@@ -69,6 +69,14 @@
     const overlay=await findMeetingSurface();
     if(!overlay)return;
     const media=window.DominionMediaController,share=window.DominionShareController;
+    async function annotationPolicy(){
+      try{
+        const ctx=await desktop?.meeting?.context?.();
+        if(!ctx?.roomId)return {enabled:true,saveAllowed:true};
+        const snapshot=await desktop?.meeting?.snapshot?.(ctx.roomId);
+        return {enabled:snapshot?.annotationEnabled!==false,saveAllowed:snapshot?.annotationSaveAllowed!==false};
+      }catch{return {enabled:true,saveAllowed:true};}
+    }
     const environment=await desktop?.environment?.().catch(()=>null);
     const sameRendererPresenter=String(environment?.platform||'')==='darwin';
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
@@ -306,7 +314,11 @@
         if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);applyLayout();return {handled:true,command};}
         if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return {handled:true,command};}
         if(command==='chat'){window.DominionRuntimeStability?.setParticipants?.(false);window.DominionRuntimeStability?.setChat?.(true);setCompanion('chat');return {handled:true,command};}
-        if(command==='annotate'){const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');applyLayout();return {handled:true,command};}
+        if(command==='annotate'){
+          const policy=await annotationPolicy();
+          if(!policy.enabled){toast('Annotation is disabled for this meeting.','error');return {handled:true,command};}
+          const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');applyLayout();return {handled:true,command};
+        }
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
