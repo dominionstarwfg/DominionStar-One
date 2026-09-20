@@ -141,7 +141,16 @@ requireText(controller,'await window.DominionWebRTCController?.syncLocalTracks?.
 requireText(controller,'stopTracks(previousFrozen);','Resume must retire the frozen stream only after the live sender handoff.');
 requireText(webrtc,"state.shareUnsub=window.DominionShareController?.onChange?.(()=>void syncAllSenders())",'WebRTC must react to Pause/Resume share-stream changes.');
 requireText(webrtc,'lanes[2]?.sender?.replaceTrack(screen)','WebRTC must replace the participant-facing screen sender when Pause/Resume changes the output stream.');
-requireText(controller,'stopTracks(state.liveStream)','Stop Share must release capture tracks.');
+requireText(controller,'const previous={liveStream:state.liveStream,frozenStream:state.frozenStream,compositeStream:state.compositeStream};','Stop Share must retain the active participant-facing streams until sender detachment.');
+requireText(controller,'await Promise.race([\n            syncSenders({strict:true})','Stop Share must detach participant screen senders with a bounded strict WebRTC sync.');
+requireText(controller,'window.DominionWebRTCController?.announceShareStopped?.()','Stop Share must publish an explicit remote share-ended fallback.');
+requireText(controller,'stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);','Stop Share must physically release composite, frozen, and live capture tracks.');
+const stopShareBlock=controller.slice(controller.indexOf('async function stop()'),controller.indexOf('const api=Object.freeze'));
+assert.ok(stopShareBlock.indexOf('syncSenders({strict:true})')<stopShareBlock.indexOf('stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);'),'Stop Share must detach participant screen senders before retiring old capture tracks.');
+requireText(webrtc,"meeting.sendSignal(record.id,'share:state',{active:false})",'Stop Share must signal remote viewers that screen sharing ended.');
+requireText(webrtc,"if(signal.type==='share:state')",'Remote clients must consume explicit share-state fallback signalling.');
+requireText(webrtc,'hideRemoteShare(remoteId);','Remote Stop Share handling must immediately leave the shared-content surface.');
+requireText(integration,'window.DominionShareAnnotation?.resetForNewShare?.();clearCompanion();','Stop Share must clear persistent annotation overlays before returning to the meeting.');
 requireText(controller,'async function replaceSource','New Share must remain transactional.');
 requireText(controller,'const previous={','New Share must retain the complete old share state until replacement commit.');
 requireText(controller,'compositeStream:state.compositeStream','New Share must retain the previous annotated/composited participant stream during replacement.');
