@@ -141,6 +141,15 @@ requireText(annotation,'setAnnotationCanvas','Annotation must remain connected t
 requireText(annotation,'drawLaser','Laser pointer support is missing.');
 requireText(annotation,'data-annotation-mode="text"','Annotation must expose a real Text tool.');
 requireText(annotation,'data-annotation-redo disabled','Annotation must expose Redo alongside Undo.');
+requireText(annotation,'data-annotation-mode="arrow"','Annotation must expose arrow and shape tools.');
+requireText(annotation,'data-annotation-mode="rect"','Annotation must expose rectangle drawing.');
+requireText(annotation,'data-annotation-mode="ellipse"','Annotation must expose ellipse drawing.');
+requireText(annotation,'data-annotation-mode="check"','Annotation must expose stamp tools.');
+requireText(annotation,'data-annotation-mode="star"','Annotation must expose stamp tools.');
+requireText(annotation,'data-annotation-width','Annotation Format must control line width.');
+requireText(annotation,'data-annotation-font-size','Annotation Format must control text size.');
+requireText(annotation,'function drawShape(kind,start,end)','Annotation shape controls must render real canvas geometry.');
+requireText(annotation,'function drawStamp(kind,at)','Annotation stamp controls must render real canvas marks.');
 requireText(annotation,'title="Spotlight / laser pointer">Spotlight</button>','Annotation must expose Zoom-familiar Spotlight naming for the laser pointer.');
 requireText(annotation,'function beginText(event)','Text annotation must create an editable text entry surface.');
 requireText(annotation,"if(event.shiftKey)redo();else undo();",'Annotation must support Zoom-style undo/redo keyboard shortcuts.');
