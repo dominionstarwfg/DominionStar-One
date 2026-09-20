@@ -3,6 +3,7 @@
   window.__DominionShareIntegrationBooting=true;
   const desktop=window.dominionDesktop||null;
   const bridge=desktop?.share||null;
+  const pickerBridge=desktop?.sharePicker||null;
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2';
   // Ad-hoc prototype rebuilds can receive a new macOS TCC identity while
@@ -213,7 +214,7 @@
       // visually present, but media rebinding is deferred to normal meeting
       // updates so presenter controls stay responsive.
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
     }
 
     function commitPresenterMode(){
@@ -270,7 +271,7 @@
     });
 
     bridge?.onSourceSelected?.(async selection=>{
-      const replacing=share.snapshot().active,selectionOptions=selection?.options||{};
+      const replacing=share.snapshot().active,selectionOptions={...(selection?.options||{}),sourceId:String(selection?.sourceId||selection?.options?.sourceId||'')};
       try{
         if(replacing){await share.replaceSource({name:selection?.name,options:selectionOptions});window.DominionShareAnnotation?.resetForNewShare?.();}
         else await share.start({name:selection?.name,options:selectionOptions});
@@ -299,6 +300,29 @@
     });
     companionObserver.observe(overlay,{subtree:true,attributes:true,attributeFilter:['hidden']});
 
+    const saveSharePreference=(key,value)=>{try{localStorage.setItem(key,typeof value==='boolean'?(value?'1':'0'):String(value??''));}catch{}};
+    async function setActiveShareSound(enabled){
+      const current=share.snapshot(),next=Boolean(enabled),mode=String(current.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono';
+      try{
+        await share.setShareAudioEnabled(next,{mode});saveSharePreference('ds_pref_share_audio',next);applyLayout();return true;
+      }catch(error){
+        if(error?.code!=='share_audio_recapture_required'||!next)throw error;
+        const sourceId=String(current.options?.sourceId||'');
+        if(!sourceId||!pickerBridge?.choose)throw new Error('To enable Share Sound, start New Share and select the current screen again.');
+        const options={...current.options,shareAudio:true,shareAudioMode:mode,deferPresenterCommit:true,sourceId};
+        const result=await pickerBridge.choose(sourceId,options);if(result?.ok===false)throw new Error(result.error||'Unable to enable Share Sound on the current source.');
+        saveSharePreference('ds_pref_share_audio',true);toast('Enabling Share Sound…');return true;
+      }
+    }
+    async function setActiveShareAudioMode(mode){
+      const normalized=String(mode||'mono')==='stereo'?'stereo':'mono';
+      await share.setShareAudioMode(normalized);saveSharePreference('ds_pref_share_audio_mode',normalized);applyLayout();return true;
+    }
+    async function toggleOptimizeVideo(){
+      const next=!Boolean(share.snapshot().options?.optimizeVideo);
+      await share.setOptimizeVideo(next);saveSharePreference('ds_pref_share_optimize',next);applyLayout();return true;
+    }
+
     async function dispatchPresenterCommand(rawCommand){
       const command=String(rawCommand?.command||rawCommand||'');
       const qaCommandId=Number(rawCommand?.qaCommandId||0)||0;
@@ -319,6 +343,10 @@
           // restricts viewers, not the person who is actively sharing.
           const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');applyLayout();return {handled:true,command};
         }
+        if(command==='share-sound'){await setActiveShareSound(!Boolean(share.snapshot().options?.shareAudio));return {handled:true,command};}
+        if(command==='share-sound-mono'){await setActiveShareAudioMode('mono');return {handled:true,command};}
+        if(command==='share-sound-stereo'){await setActiveShareAudioMode('stereo');return {handled:true,command};}
+        if(command==='optimize-video'){await toggleOptimizeVideo();return {handled:true,command};}
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
