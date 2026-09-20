@@ -25,7 +25,7 @@ if(process.platform==='darwin'){
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
   const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
-  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
+  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
   const bordersReady=()=>borderWindows.length===1&&borderWindows.every(isAlive);
@@ -252,7 +252,7 @@ if(process.platform==='darwin'){
       if(qaKeepPresenterHidden){if(qaPresenterTrace)console.error('QA_MAC_PRESENTER_PREPARED_HIDDEN');hideOverlays();return;}
       if(toolbarReady&&isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}
       if(isAlive(videoWindow)&&videoLayout!=='hide'){videoWindow.showInactive?.();videoWindow.moveTop?.();}
-      if(isDisplayShare())showBorder();else hideBorder();
+      if(isDisplayShare()&&shareState.showGreenBorder!==false)showBorder();else hideBorder();
     });
   }
   function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:92},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideBorder();}
@@ -261,7 +261,7 @@ if(process.platform==='darwin'){
     // Leave presenter mode first, then restore the meeting. Restoring while
     // shareActive/meetingVisible still describe presenter mode can leave the
     // main window parked behind other desktop windows.
-    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
+    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
     if(isAlive(owner)){
       restoreCaptureOwnerWindow(owner,{focus:false});
       try{owner.setAlwaysOnTop(false);}catch{}
@@ -393,7 +393,7 @@ if(process.platform==='darwin'){
     else if(presenterModeCommitted&&priorCompanion&&!nextCompanion)hideCompanionWindow();
     else publishState();
     if(!presenterModeCommitted||qaKeepPresenterHidden){hideBorder();return;}
-    if(isDisplayShare())showBorder();else hideBorder();
+    if(isDisplayShare()&&shareState.showGreenBorder!==false)showBorder();else hideBorder();
   });
   ipcMain.on('mac-share:capture-stopped',(event)=>{if(captureOwnerWebContents&&event.sender!==captureOwnerWebContents)return;resetSharePresentation('capture-stopped');});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
