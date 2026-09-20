@@ -315,8 +315,8 @@
         if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return {handled:true,command};}
         if(command==='chat'){window.DominionRuntimeStability?.setParticipants?.(false);window.DominionRuntimeStability?.setChat?.(true);setCompanion('chat');return {handled:true,command};}
         if(command==='annotate'){
-          const policy=await annotationPolicy();
-          if(!policy.enabled){toast('Annotation is disabled for this meeting.','error');return {handled:true,command};}
+          // Zoom's in-meeting "Enable/Disable Annotation for Others" setting
+          // restricts viewers, not the person who is actively sharing.
           const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');applyLayout();return {handled:true,command};
         }
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
