@@ -89,3 +89,8 @@
 .share-annotation-selection [data-select-handle="sw"]{left:-6px;bottom:-6px;cursor:nesw-resize}
 .share-annotation-selection [data-select-handle="se"]{right:-6px;bottom:-6px;cursor:nwse-resize}
 .share-annotation-tools [data-annotation-mode="select"].active{background:rgba(45,140,255,.18);color:#8fc2ff}
+
+.share-annotation-overlay.persist-visible:not(.active){display:block!important;pointer-events:none!important}
+.share-annotation-overlay.persist-visible:not(.active) .share-annotation-tools,
+.share-annotation-overlay.persist-visible:not(.active) .share-annotation-selection{display:none!important}
+.share-annotation-tools{z-index:12}
