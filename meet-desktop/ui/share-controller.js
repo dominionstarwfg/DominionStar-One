@@ -41,7 +41,10 @@
 
   async function acquireDisplay(options={}){
     const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio),generation=++displayRequestGeneration;
-    const capturePromise=navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
+    const videoConstraints=optimize
+      ? {frameRate:{ideal:30,max:30},width:{ideal:1920,max:1920},height:{ideal:1080,max:1080}}
+      : {frameRate:{ideal:15,max:30}};
+    const capturePromise=navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:videoConstraints});
     let timeoutId=0,stream=null,timedOut=false;
     const timeoutPromise=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{timedOut=true;const error=new Error('Screen sharing did not start within 5 seconds. Please choose the source again.');error.code='share_start_timeout';reject(error);},5000);});
     try{
@@ -68,7 +71,7 @@
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       let presenter=null;
       try{
-        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)}));
+        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows)}));
         presenter=await Promise.race([acknowledgement,new Promise(resolve=>setTimeout(()=>resolve({ok:true,toolbarReady:true,pending:true}),900))]);
         void acknowledgement.then(result=>{
           if(result?.toolbarReady===false&&state.liveStream===stream)void stop();
@@ -129,7 +132,7 @@
       await syncSenders({strict:true});
       committed=true;
       stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);
-      try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
+      try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       return snapshot();
     }catch(error){
       if(!committed&&transitionStarted){
@@ -244,7 +247,10 @@
     const track=state.liveStream.getVideoTracks?.()[0]||null;
     if(track){
       try{track.contentHint=next?'motion':'detail';}catch{}
-      try{await track.applyConstraints?.({frameRate:next?{ideal:30,max:30}:{ideal:15,max:30}});}catch{}
+      try{await track.applyConstraints?.(next
+        ? {frameRate:{ideal:30,max:30},width:{ideal:1920,max:1920},height:{ideal:1080,max:1080}}
+        : {frameRate:{ideal:15,max:30}}
+      );}catch{}
     }
     emit();
     try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:false});}catch{}
