@@ -71,3 +71,7 @@
 .annotation-format label{display:flex;align-items:center;gap:4px;color:#9eabb9;font-size:8px;font-weight:760}
 .annotation-format select{height:26px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:#1b222b;color:#eef4fa;font-size:8px;font-weight:700;padding:0 5px;outline:none}
 .share-annotation-tools [data-annotation-mode="arrow"].active,.share-annotation-tools [data-annotation-mode="line"].active,.share-annotation-tools [data-annotation-mode="rect"].active,.share-annotation-tools [data-annotation-mode="ellipse"].active,.share-annotation-tools [data-annotation-mode="check"].active,.share-annotation-tools [data-annotation-mode="star"].active{background:rgba(45,140,255,.18);color:#8fc2ff}
+
+.annotation-save-actions{display:flex;align-items:center;gap:3px;padding-left:4px;border-left:1px solid rgba(255,255,255,.11)}
+.annotation-save-actions button{min-width:58px!important;color:#9ec7ff!important}
+.annotation-save-actions button:disabled{opacity:.55!important}
