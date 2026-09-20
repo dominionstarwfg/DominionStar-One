@@ -319,6 +319,20 @@ requireText(toolbar,'Stop Share','Presenter toolbar Stop Share label is missing.
 requireText(toolbarCss,'min-width:104px','Stop Share target is too small.');
 requireText(toolbarJs,"if(command==='stop')",'Presenter toolbar lacks direct Stop Share click handling.');
 requireText(toolbarJs,"label.textContent='Stopping…'",'Stop Share must provide immediate click feedback.');
+requireText(controller,'async function setOptimizeVideo(enabled)','Active-share Optimize for video must be a real controller operation.');
+requireText(controller,"track.contentHint=next?'motion':'detail'",'Optimize for video must change capture content hint while sharing.');
+requireText(controller,"track.applyConstraints?.({frameRate:next?{ideal:30,max:30}:{ideal:15,max:30}})",'Optimize for video must change active capture frame-rate constraints.');
+requireText(controller,'async function setShareAudioEnabled(enabled,{mode}={})','Share Sound must be independently toggleable while presenting.');
+requireText(controller,"error.code='share_audio_recapture_required'",'Enabling Share Sound without an audio track must request a transactional recapture instead of faking success.');
+requireText(controller,'async function setShareAudioMode(mode)','Share Sound Mono/Stereo must be an active controller setting.');
+requireText(webrtc,"shareState.options?.shareAudio!==false?(share?.getAudioTracks?.()[0]||null):null",'Disabling Share Sound must detach the participant-facing system-audio sender.');
+requireText(webrtc,"shareState.options?.shareAudioMode==='stereo'?192000:96000",'Mono/Stereo mode must change outgoing share-audio bitrate.');
+requireText(integration,"if(command==='share-sound')",'Presenter toolbar Share Sound must execute in the live meeting renderer.');
+requireText(integration,"if(command==='optimize-video')",'Presenter toolbar Optimize for video must execute in the live meeting renderer.');
+requireText(integration,'pickerBridge.choose(sourceId,options)','Enabling Share Sound on a capture without system audio must reacquire the same source transactionally.');
+requireText(integration,"sourceId:String(selection?.sourceId||selection?.options?.sourceId||'')",'Selected source identity must survive into active-share option changes.');
+requireText(toolbar,'data-command="share-sound"','Presenter More menu must expose Share Sound.');
+requireText(toolbar,'data-command="optimize-video"','Presenter More menu must expose Optimize for video sharing.');
 
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
