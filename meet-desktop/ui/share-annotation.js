@@ -52,8 +52,8 @@
   function undo(){const image=state.history.pop();if(!image){syncHistory();return;}const current=captureLocal();if(current){state.redo.push(current);if(state.redo.length>20)state.redo.shift();}restoreLocal(image);clearSelection();syncHistory();}
   function redo(){const image=state.redo.pop();if(!image){syncHistory();return;}const current=captureLocal();if(current){state.history.push(current);if(state.history.length>20)state.history.shift();}restoreLocal(image);clearSelection();syncHistory();}
 
-  function drawShape(kind,start,end,ctx=state.localCtx){
-    if(!ctx||!start||!end)return;style(ctx,kind);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.strokeStyle=state.color;ctx.fillStyle=state.color;ctx.lineWidth=state.lineWidth;ctx.beginPath();
+  function drawShape(kind,start,end){
+    const ctx=state.localCtx;if(!ctx||!start||!end)return;style(ctx,kind);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.strokeStyle=state.color;ctx.fillStyle=state.color;ctx.lineWidth=state.lineWidth;ctx.beginPath();
     if(kind==='line'||kind==='arrow'){
       ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();
       if(kind==='arrow'){const angle=Math.atan2(end.y-start.y,end.x-start.x),head=Math.max(12,state.lineWidth*4);ctx.beginPath();ctx.moveTo(end.x,end.y);ctx.lineTo(end.x-head*Math.cos(angle-Math.PI/6),end.y-head*Math.sin(angle-Math.PI/6));ctx.lineTo(end.x-head*Math.cos(angle+Math.PI/6),end.y-head*Math.sin(angle+Math.PI/6));ctx.closePath();ctx.fill();}
@@ -239,7 +239,9 @@
   }
   function activate(){const controller=share();if(!controller?.snapshot?.().active)return false;const overlay=ensure();if(!overlay)return false;state.active=true;overlay.hidden=false;overlay.classList.add('active');resize();controller.setAnnotationCanvas(state.canvas);return true;}
   function deactivate(){
-    const controller=share(),controllerAnnotating=Boolean(controller?.snapshot?.().annotating),changed=state.active||state.drawing||controllerAnnotating;
+    const controller=share();
+    const controllerAnnotating=Boolean(controller?.snapshot?.().annotating);
+    const changed=state.active||state.drawing||controllerAnnotating;
     state.active=false;state.drawing=false;closeTextEditor({commit:true});clearLaser();clearSelection();
     const localAnnotations=hasLocalAnnotations(),persistent=localAnnotations||state.hasRemoteAnnotations;
     if(state.overlay){state.overlay.classList.remove('active');state.overlay.hidden=!persistent;state.overlay.classList.toggle('remote-visible',state.hasRemoteAnnotations);state.overlay.classList.toggle('persist-visible',persistent);}
