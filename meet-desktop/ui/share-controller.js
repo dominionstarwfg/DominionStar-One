@@ -98,9 +98,10 @@
       annotationCanvas:state.annotationCanvas,
       compositeStream:state.compositeStream
     };
-    let nextStream=null,committed=false;
+    let nextStream=null,transitionStarted=false,committed=false;
     try{
       const {stream,track}=await acquireDisplay(options);nextStream=stream;
+      transitionStarted=true;
       // Keep the participant-facing old stream alive while the replacement
       // capture is being acquired. If annotations are composited, suspend the
       // compositor without ending its MediaStream so viewers retain the last
@@ -115,21 +116,25 @@
       // This is the transactional commit point. Do not stop the old live,
       // frozen, or composite stream until every current WebRTC sender has had
       // a bounded chance to replace its screen track with the new source.
-      await window.DominionWebRTCController?.syncLocalTracks?.({strict:true});
+      const syncSenders=window.DominionWebRTCController?.syncLocalTracks;
+      if(typeof syncSenders!=='function')throw new Error('Screen-share transport is not ready to switch sources.');
+      await syncSenders({strict:true});
       committed=true;
       stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);
       try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       return snapshot();
     }catch(error){
-      if(!committed){
-        // Roll back atomically: participants keep the old share if the new
-        // source cannot be committed. Rebuild annotation compositing only
-        // after the old base stream is restored.
+      if(!committed&&transitionStarted){
+        // Roll back atomically only after replacement state was actually
+        // staged. If capture acquisition was cancelled/denied, the existing
+        // share was never touched and must remain completely undisturbed.
         state.liveStream=previous.liveStream;state.frozenStream=previous.frozenStream;state.freezeCanvas=previous.freezeCanvas;state.paused=previous.paused;
         state.sourceName=previous.sourceName;state.options={...previous.options};state.annotationCanvas=previous.annotationCanvas;
         if(previous.annotationCanvas)startComposite();
         try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:true});}catch{}
         stopTracks(previous.compositeStream);
+        stopTracks(nextStream);
+      }else if(!committed){
         stopTracks(nextStream);
       }
       throw error;
