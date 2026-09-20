@@ -180,7 +180,7 @@
   function clear(){
     if(!state.localCtx||!state.remoteCtx)return;closeTextEditor({commit:true});pushHistory();clearLaser();
     state.localCtx.clearRect(0,0,state.localCanvas.width,state.localCanvas.height);state.remoteCtx.clearRect(0,0,state.remoteCanvas.width,state.remoteCanvas.height);
-    state.hasRemoteAnnotations=false;renderComposite();clearSelection();if(state.overlay){state.overlay.classList.remove('remote-visible','persist-visible');if(!state.active)state.overlay.hidden=true;}if(!state.active&&share()?.snapshot?.().annotating)share()?.setAnnotationCanvas?.(null);
+    state.hasRemoteAnnotations=false;renderComposite();clearSelection();if(state.overlay){state.overlay.classList.remove('remote-visible','persist-visible');if(!state.active)state.overlay.hidden=true;}const controller=share();if(!state.active&&controller?.snapshot?.().annotating)controller.setAnnotationCanvas?.(null);
   }
 
   async function collaborativePolicy(){
