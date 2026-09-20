@@ -172,6 +172,23 @@
     return snapshot();
   }
   async function togglePause(videoElement){return state.paused?resume():pause(videoElement);}
+  async function exportImage(){
+    if(!state.liveStream)throw new Error('There is no active shared screen to save.');
+    let baseCanvas=null;
+    if(state.paused&&state.freezeCanvas){
+      baseCanvas=state.freezeCanvas;
+    }else{
+      baseCanvas=await captureFreezeFrame(null);
+    }
+    const width=Math.max(2,Number(baseCanvas?.width)||1280),height=Math.max(2,Number(baseCanvas?.height)||720);
+    const output=document.createElement('canvas');output.width=width;output.height=height;
+    const ctx=output.getContext('2d',{alpha:false});
+    if(!ctx)throw new Error('Unable to prepare the annotated screen for saving.');
+    ctx.fillStyle='#000';ctx.fillRect(0,0,width,height);
+    ctx.drawImage(baseCanvas,0,0,width,height);
+    if(state.annotationCanvas)ctx.drawImage(state.annotationCanvas,0,0,state.annotationCanvas.width,state.annotationCanvas.height,0,0,width,height);
+    return output.toDataURL('image/png');
+  }
   function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
   function setAnnotationCanvas(canvas){
     const next=canvas||null;
@@ -201,6 +218,6 @@
     }
     return snapshot();
   }
-  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,stop,outputStream,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
+  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,exportImage,stop,outputStream,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
   window.DominionShareController=api;
 })();
