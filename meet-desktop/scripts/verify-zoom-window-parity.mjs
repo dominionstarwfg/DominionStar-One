@@ -9,6 +9,8 @@ const css=read('ui/zoom-adaptive-parity.css');
 const approved=read('ui/approved-reference-parity.css');
 const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
+const meetingParity=read('ui/meeting-parity.js');
+const preferences=read('ui/preferences.js');
 
 // Pop Out / Merge remain available, while the final physical-Mac behavior keeps
 // Participants and Chat as floating, draggable surfaces at every meeting width.
@@ -39,5 +41,14 @@ assert(approved.includes('#meetingOverlay #participantVideoDock[data-approved-fi
 assert(approved.includes('right:14px !important;')&&approved.includes('grid-template-columns:176px !important;'),'Normal desktop video filmstrip must default to a right-side vertical column.');
 assert(approved.includes('@media(max-width:680px)'),'Top-style compact reflow must be reserved for genuinely narrow windows.');
 assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.21'"),'Carried-forward adaptive authorities must remain identifiable.');
+assert(preferences.includes("shareSideBySide:'ds_pref_share_side_by_side'")&&preferences.includes('shareSideBySide:false'),'Side-by-side viewing must use a dedicated saved preference rather than the legacy undefined localStorage key.');
+assert(preferences.includes("'See shared content in side-by-side mode'"),'Sharing settings must expose the Zoom-style automatic side-by-side preference.');
+assert(meetingParity.includes('const sideBySideCapable=stageRect.width>=680&&stageRect.height>=360'),'Side-by-side sharing must temporarily suspend when the meeting window is too compact to remain usable.');
+assert(meetingParity.includes("overlay.dataset.shareSideBySideSuspended=active&&showPanel&&requestedSideBySide&&!sideBySideCapable?'1':'0'"),'Compact-window side-by-side suspension must be observable and automatically reversible.');
+assert(meetingParity.includes("const anchor=automaticDockAnchor();dock.dataset.anchor=anchor"),'Floating share video must reuse the intelligent top/right dock anchor instead of remaining hard-wired to the right edge.');
+assert(meetingParity.includes("new ResizeObserver(()=>scheduleParityRefresh())"),'Share layout must react to stage-size changes even when no browser window resize event fires.');
+assert(meetingParity.includes("['ArrowLeft','ArrowRight','Home','End']"),'The side-by-side separator must support keyboard resizing as well as pointer dragging.');
+assert(runtime.includes("if(overlay.classList.contains('share-side-by-side')){releaseRuntimeVideoDockGeometry(dock);return false;}"),'Final runtime geometry must not override the dedicated side-by-side share layout.');
+assert(runtime.includes('function releaseRuntimeVideoDockGeometry(dock)'),'Entering side-by-side mode must clear stale inline dock geometry from floating mode.');
 
 console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
