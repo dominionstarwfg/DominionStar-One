@@ -17,6 +17,22 @@
   const clearTimer=name=>{clearInterval(timers[name]);timers[name]=0;};const stopPolling=()=>Object.keys(timers).forEach(clearTimer);
   function showSection(name){Object.entries(sections).forEach(([key,node])=>{if(node)node.hidden=key!==name;});$$('.nav-button[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===name));}
   function openDialog(name){const d=dialogs[name];if(d&&!d.open)d.showModal();}
+  function setJoinDialogMode(mode='join'){
+    const shareMode=mode==='share';
+    const dialog=dialogs.join;if(!dialog)return;
+    dialog.dataset.entryMode=shareMode?'share':'join';
+    const eyebrow=dialog.querySelector('.eyebrow'),heading=dialog.querySelector('h2');
+    const roomInput=$('#joinRoomCode'),nameInput=$('#joinDisplayName'),nameLabel=nameInput?.closest('label'),submit=$('#joinMeetingButton');
+    const firstLabel=roomInput?.closest('label')?.querySelector('span');
+    if(eyebrow)eyebrow.textContent=shareMode?'SHARE SCREEN':'JOIN A MEETING';
+    if(heading)heading.textContent=shareMode?'Share to an existing meeting':'Enter meeting details';
+    if(firstLabel)firstLabel.textContent=shareMode?'Meeting ID or DominionStar invite link':'Meeting ID or DominionStar invite link';
+    if(roomInput)roomInput.placeholder=shareMode?'Enter the meeting ID or invite link':'000 000 0000 or dominionstar-meet://join…';
+    if(nameLabel)nameLabel.hidden=shareMode;
+    if(nameInput&&shareMode)nameInput.value=authState.user?.name||nameInput.value||'';
+    if(submit)submit.textContent=shareMode?'Share Screen':'Continue';
+    document.body.dataset.shareAfterJoin=shareMode?'1':'';
+  }
   function notice(title,copy){$('#foundationTitle').textContent=title;$('#foundationCopy').textContent=copy;const d=$('#foundationDialog');if(!d.open)d.showModal();}
   function setAvatar(node,user,short){
     if(!node)return;const url=String(user?.avatarUrl||'').trim();node.textContent='';
@@ -57,7 +73,7 @@
 
     const room=document.createElement('section');room.id='meetingOverlay';room.className='meeting-overlay participants-hidden';room.hidden=true;room.innerHTML=`<div class="meeting-shell"><header class="meeting-head"><div><h2 id="roomTitle">DominionStar Meeting</h2><span id="roomCodeLabel" class="room-code"></span></div><span id="roomRole" class="status-pill">Participant</span></header><div class="meeting-body"><main class="stage"><video id="localMeetingVideo" autoplay playsinline muted></video><div id="stageFallback" class="stage-card"><div id="stageAvatar" class="stage-avatar">DS</div><h3 id="stageName">DominionStar Member</h3></div></main><aside class="room-side" hidden><section id="waitingQueueSection" hidden><h3>Waiting Room <span id="waitingCount"></span></h3><div id="waitingQueue"></div></section><section><h3>Participants</h3><div id="participantRoster"></div></section></aside></div><footer class="meeting-footer"><button id="roomMic" class="meeting-control" type="button" aria-label="Unmute">Unmute</button><button id="roomCamera" class="meeting-control" type="button" aria-label="Stop Video">Stop Video</button><button id="roomParticipants" class="meeting-control" type="button" aria-label="Participants" aria-pressed="false">Participants</button><button id="roomExitButton" class="meeting-control danger" type="button" aria-label="Leave meeting">Leave</button></footer></div>`;document.body.append(room);window.dispatchEvent(new CustomEvent('dominion:meeting-ui-ready'));
 
-    $$('[data-close-new]').forEach(b=>b.onclick=()=>newMeeting.close());$$('[data-close-join]').forEach(b=>b.onclick=()=>dialogs.join.close());
+    $('[data-close-new]').forEach(b=>b.onclick=()=>newMeeting.close());$('[data-close-join]').forEach(b=>b.onclick=()=>{document.body.dataset.shareAfterJoin='';setJoinDialogMode('join');dialogs.join.close();});dialogs.join.addEventListener('close',()=>{if(dialogs.join.dataset.entryMode==='share'&&!pendingJoin&&!activeRoom){document.body.dataset.shareAfterJoin='';setJoinDialogMode('join');}});
     $('#newMeetingForm').onsubmit=prepareNewMeeting;$('#joinMeetingForm').onsubmit=prepareJoinMeeting;$('#closePrejoin').onclick=cancelPrejoin;$('#prejoinCancel').onclick=cancelPrejoin;$('#prejoinContinue').onclick=continueFromPrejoin;$('#cancelWaiting').onclick=cancelWaiting;$('#roomExitButton').onclick=exitRoom;
     $('#prejoinMic').onclick=()=>toggleMic($('#prejoinMic'));$('#prejoinCamera').onclick=()=>toggleCamera($('#prejoinCamera'));$('#roomMic').onclick=()=>toggleMic($('#roomMic'));$('#roomCamera').onclick=()=>toggleCamera($('#roomCamera'));
     $('#cameraSelect').onchange=async e=>{await media.selectCamera(e.target.value);attachPreview();};$('#microphoneSelect').onchange=e=>media.selectMicrophone(e.target.value);$('#speakerSelect').onchange=e=>media.selectSpeaker(e.target.value,$('#localMeetingVideo'));const prejoinBackgrounds=$('#prejoinBackgrounds');if(prejoinBackgrounds)prejoinBackgrounds.onclick=()=>{const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();void window.DominionAVSettings?.openVideo?.();};
@@ -236,6 +252,6 @@
   });
   desktop?.joinLinks?.onOpen?.(url=>{pendingDesktopJoinUrl=String(url||'');applyJoinUrl(pendingDesktopJoinUrl);});
   desktop?.joinLinks?.consume?.().then(url=>{if(url){pendingDesktopJoinUrl=String(url);applyJoinUrl(pendingDesktopJoinUrl);}}).catch(()=>{});
-  window.addEventListener('dominion:preference-change',()=>attachPreview());document.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>showSection(b.dataset.section));$$('[data-open]').forEach(b=>b.onclick=()=>openDialog(b.dataset.open));$$('[data-action]').forEach(b=>b.onclick=()=>{if(b.dataset.action==='new-meeting')openDialog('newMeeting');if(b.dataset.action==='share-screen'){document.body.dataset.shareAfterJoin='1';openDialog('join');}});
+  window.addEventListener('dominion:preference-change',()=>attachPreview());document.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>showSection(b.dataset.section));$('[data-open]').forEach(b=>b.onclick=()=>{if(b.dataset.open==='join')setJoinDialogMode('join');openDialog(b.dataset.open);});$('[data-action]').forEach(b=>b.onclick=()=>{if(b.dataset.action==='new-meeting')openDialog('newMeeting');if(b.dataset.action==='share-screen'){setJoinDialogMode('share');openDialog('join');}});
   function clock(){const now=new Date();$('#clockTime').textContent=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(now);$('#clockDate').textContent=new Intl.DateTimeFormat(undefined,{weekday:'short',month:'short',day:'numeric'}).format(now);identity(authState.user);}clock();setInterval(clock,30000);desktop?.environment?.().then(info=>{$('.status-pill').textContent=info?.surface==='local-desktop-home'?'Local desktop':'Visual preview';if(info?.platform==='darwin'&&info?.packaged&&info?.installedInApplications===false){notice('Install DominionStar Meet first','For reliable macOS Camera, Microphone, and Screen & System Audio Recording permissions, quit this copy and install DominionStar Meet into Applications from the installer DMG before using meetings.');}}).catch(()=>{});void bootAuth();
 })();
