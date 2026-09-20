@@ -1,8 +1,8 @@
 (()=>{
   const bridge=window.dominionDesktop?.presenter;
-  const $=selector=>document.querySelector(selector),toolbar=$('#toolbar'),more=$('#moreMenu');let reactions=null,handRaised=false,hideTimer=0,lastPointerAt=Date.now();
+  const $=selector=>document.querySelector(selector),toolbar=$('#toolbar'),more=$('#moreMenu'),layout=$('#layoutMenu');let reactions=null,handRaised=false,hideTimer=0,lastPointerAt=Date.now();
   const AUTO_HIDE_MS=2400;
-  const menusOpen=()=>!more.hidden||Boolean(reactions);
+  const menusOpen=()=>!more.hidden||!layout.hidden||Boolean(reactions);
   const revealToolbar=()=>{
     lastPointerAt=Date.now();
     toolbar.classList.remove('auto-hidden');
@@ -34,7 +34,7 @@
   document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',async()=>{
     const command=String(button.dataset.command||'');
     if(command==='reactions'){setMenuExpanded(true);openReactions(button);return;}
-    closeReactions();more.hidden=true;setMenuExpanded(false);
+    closeReactions();more.hidden=true;layout.hidden=true;setMenuExpanded(false);
     if(command==='stop'){
       if(button.dataset.stopping==='1')return;
       button.dataset.stopping='1';button.disabled=true;const label=button.querySelector('span:last-child');if(label)label.textContent='Stopping…';
@@ -45,9 +45,10 @@
     }
     await bridge?.command?.(routedCommand(command));
   }));
-  $('#moreButton').addEventListener('click',()=>{closeReactions();more.hidden=!more.hidden;setMenuExpanded(!more.hidden);});
-  document.addEventListener('pointerdown',event=>{revealToolbar();if(!event.target.closest('.more-wrap')){more.hidden=true;closeReactions();setMenuExpanded(false);}},true);
-  window.addEventListener('blur',()=>{more.hidden=true;closeReactions();setMenuExpanded(false);});
+  $('#layoutButton').addEventListener('click',()=>{closeReactions();more.hidden=true;layout.hidden=!layout.hidden;setMenuExpanded(!layout.hidden);});
+  $('#moreButton').addEventListener('click',()=>{closeReactions();layout.hidden=true;more.hidden=!more.hidden;setMenuExpanded(!more.hidden);});
+  document.addEventListener('pointerdown',event=>{revealToolbar();if(!event.target.closest('.more-wrap')&&!event.target.closest('.layout-wrap')){more.hidden=true;layout.hidden=true;closeReactions();setMenuExpanded(false);}},true);
+  window.addEventListener('blur',()=>{more.hidden=true;layout.hidden=true;closeReactions();setMenuExpanded(false);});
   window.addEventListener('pointermove',()=>{revealToolbar();scheduleAutoHide();},{passive:true});
   window.addEventListener('pointerenter',()=>{revealToolbar();scheduleAutoHide();},{passive:true});
   window.addEventListener('focus',()=>{revealToolbar();scheduleAutoHide();});
