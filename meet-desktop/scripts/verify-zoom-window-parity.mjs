@@ -11,6 +11,7 @@ const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
 const meetingParity=read('ui/meeting-parity.js');
 const preferences=read('ui/preferences.js');
+const meetingParityCss=read('ui/meeting-parity.css');
 
 // Pop Out / Merge remain available, while the final physical-Mac behavior keeps
 // Participants and Chat as floating, draggable surfaces at every meeting width.
@@ -51,5 +52,12 @@ assert(meetingParity.includes("['ArrowLeft','ArrowRight','Home','End']"),'The si
 assert(runtime.includes("if(overlay.classList.contains('share-side-by-side')){releaseRuntimeVideoDockGeometry(dock);return false;}"),'Final runtime geometry must not override the dedicated side-by-side share layout.');
 assert(runtime.includes('function releaseRuntimeVideoDockGeometry(dock)'),'Entering side-by-side mode must clear stale inline dock geometry from floating mode.');
 assert(runtime.includes("new ResizeObserver(()=>schedule())")&&runtime.includes('stageResizeObserver.observe(stage)'),'Final runtime must react to stage-size changes, not only browser window resize events.');
+assert(meetingParity.includes('data-dock-minimize')&&meetingParity.includes('data-dock-hide'),'Sharing video panel must expose direct Minimize and Hide controls.');
+assert(meetingParity.includes('function syncMinimizedVideoPanel()')&&meetingParity.includes("tile.classList.add('minimized-featured')"),'Minimize Video Panel must retain one live participant tile instead of collapsing to empty chrome.');
+assert(meetingParity.includes("dock.querySelector('[data-dock-hide]').onclick=()=>{window.DominionPreferences?.write?.('shareVideoDock',false)"),'Hide Video Panel must use the authoritative sharing preference.');
+assert(meetingParity.includes('dock.hidden=false;'),'Show Video Panel must restore the actual participant video surface during an active share.');
+assert(meetingParityCss.includes('.meeting-overlay.share-panel-floating .participant-video-dock.minimized .remote-peer-tile.minimized-featured'),'Minimized sharing video panel must render the selected active-speaker tile.');
+assert(approved.includes('#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head'),'Approved sharing filmstrip must reveal compact panel controls while sharing.');
+assert(approved.includes('#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"].minimized .remote-peer-tile.minimized-featured'),'Approved sharing filmstrip must preserve the live minimized speaker tile.');
 
 console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
