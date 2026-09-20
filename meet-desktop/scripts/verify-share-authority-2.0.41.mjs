@@ -150,6 +150,16 @@ requireText(annotation,'data-annotation-width','Annotation Format must control l
 requireText(annotation,'data-annotation-font-size','Annotation Format must control text size.');
 requireText(annotation,'function drawShape(kind,start,end)','Annotation shape controls must render real canvas geometry.');
 requireText(annotation,'function drawStamp(kind,at)','Annotation stamp controls must render real canvas marks.');
+requireText(controller,'async function exportImage()','Annotation save must export the participant-visible shared frame plus annotations.');
+requireText(controller,"if(state.paused&&state.freezeCanvas)",'Annotation save during Pause must use the frozen participant-facing frame, not the presenter\'s private live screen.');
+requireText(controller,"return output.toDataURL('image/png')",'Annotation export must produce a real PNG image payload.');
+requireText(preload,"annotation:Object.freeze({save:payload=>invoke('annotation:save',payload||{})})",'Annotation saving must cross the isolated preload bridge.');
+requireText(main,"ipcMain.handle('annotation:save'",'Main process must own native annotation file saving.');
+requireText(main,"dialog.showSaveDialog",'Annotation save must use a native Save dialog.');
+requireText(main,"printToPDF",'Annotation PDF export must render a real PDF instead of renaming PNG bytes.');
+requireText(annotation,'data-annotation-save="png"','Annotation toolbar must expose PNG saving.');
+requireText(annotation,'data-annotation-save="pdf"','Annotation toolbar must expose PDF saving.');
+requireText(annotation,'controller.exportImage?.()','Annotation Save controls must invoke the real share-frame export path.');
 requireText(annotation,'title="Spotlight / laser pointer">Spotlight</button>','Annotation must expose Zoom-familiar Spotlight naming for the laser pointer.');
 requireText(annotation,'function beginText(event)','Text annotation must create an editable text entry surface.');
 requireText(annotation,"if(event.shiftKey)redo();else undo();",'Annotation must support Zoom-style undo/redo keyboard shortcuts.');
