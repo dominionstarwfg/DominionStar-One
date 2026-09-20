@@ -21,6 +21,9 @@ const annotation=read('ui/share-annotation.js');
 const meetingService=read('src/meeting-service.mjs');
 const meetingParity=read('ui/meeting-parity.js');
 const annotationPolicySql=read('sql/20260919_annotation_policy.sql');
+const annotationNamesSql=read('sql/20260919_annotation_names.sql');
+const remoteAnnotation=read('ui/remote-annotation.js');
+const indexHtml=read('ui/index.html');
 
 const requireText=(source,needle,message)=>assert.ok(source.includes(needle),message);
 const rejectText=(source,needle,message)=>assert.ok(!source.includes(needle),message);
@@ -174,8 +177,26 @@ requireText(main,"ipcMain.handle('meeting:set-annotation-policy'",'Main process 
 requireText(meetingParity,'data-security-annotation','Security menu must expose annotation enable/disable control.');
 requireText(meetingParity,'data-security-annotation-save','Security menu must expose annotation save permission control.');
 requireText(meetingParity,'desktop.meeting.setAnnotationPolicy','Security menu controls must persist to the meeting service.');
-requireText(integration,"if(!policy.enabled){toast('Annotation is disabled for this meeting.'",'Presenter Annotate control must honor host annotation policy.');
+rejectText(integration,"if(!policy.enabled){toast('Annotation is disabled for this meeting.'",'Participant annotation policy must not disable the presenter\'s own annotation tools.');
 requireText(main,"if(policy?.annotationSaveAllowed===false)throw new Error('Saving annotations is disabled by the host.')",'Native annotation saving must enforce host save policy in the main process.');
+requireText(annotationNamesSql,'annotation_names_visible boolean not null default true','Database migration must persist annotator-name visibility.');
+requireText(annotationNamesSql,'meet_v2_set_annotation_names','Database migration must expose annotator-name host control.');
+requireText(annotationNamesSql,"'annotationNamesVisible',v_room.annotation_names_visible",'Room snapshot must publish annotator-name visibility.');
+requireText(meetingService,"meet_v2_set_annotation_names",'Meeting service must persist annotator-name visibility.');
+requireText(preload,"setAnnotationNames:(roomId,showNames)=>invoke('meeting:set-annotation-names'",'Preload must expose annotator-name visibility through isolated IPC.');
+requireText(main,"ipcMain.handle('meeting:set-annotation-names'",'Main process must route annotator-name visibility changes.');
+requireText(meetingParity,'data-security-annotation-names','Security menu must expose Show names of annotators.');
+requireText(meetingParity,'Allow participants to annotate','Security menu must describe participant annotation scope accurately.');
+requireText(webrtc,"String(signal.type||'').startsWith('annotation:')",'WebRTC signalling must route collaborative annotation messages.');
+requireText(indexHtml,'<script src="./remote-annotation.js"></script>','Meeting shell must load the viewer annotation runtime.');
+requireText(remoteAnnotation,"meeting.sendSignal(target,type,payload)",'Viewer annotations must be sent to the active sharer over meeting signalling.');
+requireText(remoteAnnotation,"'annotation:stroke'",'Viewer annotation runtime must transmit draw/highlight/erase strokes.');
+requireText(remoteAnnotation,"'annotation:text'",'Viewer annotation runtime must transmit text annotations.');
+requireText(remoteAnnotation,"snap?.annotationEnabled!==false",'Viewer annotation entry must honor the host participant-annotation policy.');
+requireText(annotation,"type==='annotation:stroke'",'Sharer annotation engine must receive participant stroke events.');
+requireText(annotation,"type==='annotation:text'",'Sharer annotation engine must receive participant text events.');
+requireText(annotation,'snapshot?.annotationNamesVisible!==false','Sharer must honor Show names of annotators.');
+requireText(annotation,'showAnnotatorName(fromName','Sharer must display participant identity beside collaborative annotations when enabled.');
 requireText(annotation,'title="Spotlight / laser pointer">Spotlight</button>','Annotation must expose Zoom-familiar Spotlight naming for the laser pointer.');
 requireText(annotation,'function beginText(event)','Text annotation must create an editable text entry surface.');
 requireText(annotation,"if(event.shiftKey)redo();else undo();",'Annotation must support Zoom-style undo/redo keyboard shortcuts.');
@@ -185,7 +206,7 @@ rejectText(controller,'rendererCommitted:true','ShareController must not own mee
 requireText(controller,'if(state.annotationCanvas===next)','ShareController must suppress unchanged annotation-canvas emissions.');
 requireText(controller,'if(next&&state.liveStream&&!state.compositeStream)startComposite();','Idempotent annotation guard must still recover a missing active composite stream.');
 requireText(annotation,'const controllerAnnotating=Boolean(controller?.snapshot?.().annotating);','Annotation teardown must inspect real controller annotation state.');
-requireText(annotation,'if(controllerAnnotating)controller?.setAnnotationCanvas?.(null);','Annotation teardown must clear the controller only when annotation is actually attached.');
+requireText(annotation,'if(controllerAnnotating&&!state.hasRemoteAnnotations)controller?.setAnnotationCanvas?.(null);','Presenter annotation teardown must preserve remote participant annotations that still need compositing.');
 rejectText(annotation,'share()?.setAnnotationCanvas?.(null)','Annotation deactivate must not unconditionally feed an unchanged null canvas back into ShareController.');
 
 // Critical physical-Mac repair: capture-start notification itself is one-way.
