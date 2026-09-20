@@ -1,5 +1,6 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, session, shell, systemPreferences } from 'electron';
+import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, Notification, powerMonitor, session, shell, systemPreferences } from 'electron';
 import path from 'node:path';
+import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createDesktopAuth } from './auth-service.mjs';
 import { createMeetingService } from './meeting-service.mjs';
@@ -209,6 +210,41 @@ ipcMain.handle('meeting:signal-send',(_event,{toParticipantId,type,payload})=>me
 ipcMain.handle('meeting:signal-pull',(_event,{afterId,limit})=>meetingService?.pullSignals(afterId,limit));
 ipcMain.handle('meeting:signal-prune',(_event,{roomId})=>meetingService?.pruneSignals(roomId));
 ipcMain.handle('meeting:ice-config',(_event,{force=false,ttl=7200}={})=>meetingService?.iceConfig({force:Boolean(force),ttl:Number(ttl)||7200}));
+
+ipcMain.handle('annotation:save',async(_event,{format='png',dataUrl='',title='DominionStar annotation'}={})=>{
+  const normalized=String(format||'png').toLowerCase();
+  if(!['png','pdf'].includes(normalized))throw new Error('Unsupported annotation format.');
+  const match=String(dataUrl||'').match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
+  if(!match)throw new Error('Annotation image is unavailable.');
+  const image=Buffer.from(match[1],'base64');
+  if(!image.length||image.length>40*1024*1024)throw new Error('Annotation image is invalid or too large.');
+  const safeTitle=String(title||'DominionStar annotation').replace(/[\\/:*?"<>|]+/g,'-').trim().slice(0,80)||'DominionStar annotation';
+  const defaultPath=path.join(app.getPath('documents'),`${safeTitle}.${normalized}`);
+  const save=await dialog.showSaveDialog(mainWindow&&!mainWindow.isDestroyed()?mainWindow:undefined,{
+    title:normalized==='pdf'?'Save annotation as PDF':'Save annotation as PNG',
+    defaultPath,
+    filters:[{name:normalized==='pdf'?'PDF document':'PNG image',extensions:[normalized]}]
+  });
+  if(save.canceled||!save.filePath)return {ok:false,canceled:true};
+  if(normalized==='png'){
+    await writeFile(save.filePath,image);
+    return {ok:true,canceled:false,path:save.filePath,format:'png'};
+  }
+  let printWindow=null;
+  try{
+    printWindow=new BrowserWindow({
+      width:1200,height:800,show:false,backgroundColor:'#ffffff',
+      webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}
+    });
+    const html=`<!doctype html><html><head><meta charset="utf-8"><style>@page{size:auto;margin:0}html,body{margin:0;padding:0;background:#fff}body{display:flex;align-items:flex-start;justify-content:center}img{display:block;max-width:100%;height:auto}</style></head><body><img src="${String(dataUrl)}"></body></html>`;
+    await printWindow.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(html));
+    const pdf=await printWindow.webContents.printToPDF({printBackground:true,preferCSSPageSize:true});
+    await writeFile(save.filePath,pdf);
+    return {ok:true,canceled:false,path:save.filePath,format:'pdf'};
+  }finally{
+    if(printWindow&&!printWindow.isDestroyed())printWindow.destroy();
+  }
+});
 
 app.whenReady().then(async()=>{
   installLocalPermissionPolicy(session.defaultSession);
