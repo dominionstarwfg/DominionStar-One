@@ -23,7 +23,7 @@ assert(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participants 
 assert(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating participant/chat surfaces must remain draggable.');
 assert(runtime.includes("clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10))"),'Floating panel geometry must clamp intelligently when the meeting window changes size.');
 assert(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must own participant-video dock geometry.');
-assert(runtime.includes('const compact=width<760'),'Participant video dock must have one explicit compact reflow threshold.');
+assert(runtime.includes('const compact=width<760||height<520'),'Participant video dock must reflow on genuinely narrow or short meeting windows.');
 assert(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock runtime mode must resolve deterministically to user/top/right.');
 assert(runtime.includes("dock.style.setProperty('right','14px','important')"),'Wide meeting windows must return the default video dock to the right edge.');
 assert(runtime.includes("dock.style.setProperty('left','14px','important')")&&runtime.includes("dock.style.setProperty('right','14px','important')"),'Compact windows must reflow the video dock across the top.');
@@ -50,5 +50,6 @@ assert(meetingParity.includes("new ResizeObserver(()=>scheduleParityRefresh())")
 assert(meetingParity.includes("['ArrowLeft','ArrowRight','Home','End']"),'The side-by-side separator must support keyboard resizing as well as pointer dragging.');
 assert(runtime.includes("if(overlay.classList.contains('share-side-by-side')){releaseRuntimeVideoDockGeometry(dock);return false;}"),'Final runtime geometry must not override the dedicated side-by-side share layout.');
 assert(runtime.includes('function releaseRuntimeVideoDockGeometry(dock)'),'Entering side-by-side mode must clear stale inline dock geometry from floating mode.');
+assert(runtime.includes("new ResizeObserver(()=>schedule())")&&runtime.includes('stageResizeObserver.observe(stage)'),'Final runtime must react to stage-size changes, not only browser window resize events.');
 
 console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
