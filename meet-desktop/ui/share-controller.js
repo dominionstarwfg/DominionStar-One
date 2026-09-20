@@ -4,7 +4,7 @@
   const state={liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
   const listeners=new Set();
   let displayRequestGeneration=0;
-  const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
+  const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas),capturedShareAudio:Boolean(state.liveStream?.getAudioTracks?.().some(track=>track.readyState==='live'))});
   const emit=()=>{
     const value=snapshot();
     for(const listener of [...listeners]){
@@ -13,6 +13,14 @@
   };
   const stopTracks=stream=>{for(const track of stream?.getTracks?.()||[]){if(track.readyState!=='ended'){try{track.stop();}catch{}}}};
   const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream;
+
+  const normalizeAudioMode=value=>String(value||'mono')==='stereo'?'stereo':'mono';
+  async function applyShareAudioMode(track,mode){
+    if(!track)return false;const normalized=normalizeAudioMode(mode);
+    try{track.contentHint='music';}catch{}
+    try{await track.applyConstraints?.({channelCount:normalized==='stereo'?{ideal:2}:{ideal:1}});}catch{}
+    return true;
+  }
 
   function stopComposite(){cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;stopTracks(state.compositeStream);state.compositeStream=null;state.compositeCanvas=null;if(state.compositeVideo){state.compositeVideo.pause?.();state.compositeVideo.srcObject=null;state.compositeVideo.remove?.();state.compositeVideo=null;}}
   function compositeFrame(){
@@ -46,7 +54,7 @@
     const track=stream.getVideoTracks()[0];
     if(!track){stopTracks(stream);throw new Error('No screen capture track was returned.');}
     try{track.contentHint=optimize?'motion':'detail';}catch{}
-    for(const audioTrack of stream.getAudioTracks?.()||[]){try{audioTrack.contentHint='music';}catch{}}
+    for(const audioTrack of stream.getAudioTracks?.()||[])await applyShareAudioMode(audioTrack,options.shareAudioMode);
     return {stream,track};
   }
 
@@ -60,7 +68,7 @@
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       let presenter=null;
       try{
-        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)}));
+        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)}));
         presenter=await Promise.race([acknowledgement,new Promise(resolve=>setTimeout(()=>resolve({ok:true,toolbarReady:true,pending:true}),900))]);
         void acknowledgement.then(result=>{
           if(result?.toolbarReady===false&&state.liveStream===stream)void stop();
@@ -121,7 +129,7 @@
       await syncSenders({strict:true});
       committed=true;
       stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);
-      try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
+      try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       return snapshot();
     }catch(error){
       if(!committed&&transitionStarted){
@@ -229,6 +237,40 @@
     return output.toDataURL('image/png');
   }
   function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
+
+  async function setOptimizeVideo(enabled){
+    if(!state.liveStream)return snapshot();
+    const next=Boolean(enabled);state.options={...state.options,optimizeVideo:next};
+    const track=state.liveStream.getVideoTracks?.()[0]||null;
+    if(track){
+      try{track.contentHint=next?'motion':'detail';}catch{}
+      try{await track.applyConstraints?.({frameRate:next?{ideal:30,max:30}:{ideal:15,max:30}});}catch{}
+    }
+    emit();
+    try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:false});}catch{}
+    return snapshot();
+  }
+  async function setShareAudioEnabled(enabled,{mode}={}){
+    if(!state.liveStream)return snapshot();
+    const next=Boolean(enabled),normalizedMode=normalizeAudioMode(mode||state.options?.shareAudioMode);
+    const audioTrack=state.liveStream.getAudioTracks?.().find(track=>track.readyState==='live')||null;
+    if(next&&!audioTrack){
+      const error=new Error('Current screen capture has no system-audio track. Reacquire this source with Share Sound enabled.');
+      error.code='share_audio_recapture_required';throw error;
+    }
+    if(audioTrack)await applyShareAudioMode(audioTrack,normalizedMode);
+    state.options={...state.options,shareAudio:next,shareAudioMode:normalizedMode};emit();
+    try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:false});}catch{}
+    return snapshot();
+  }
+  async function setShareAudioMode(mode){
+    if(!state.liveStream)return snapshot();const normalized=normalizeAudioMode(mode);
+    const audioTrack=state.liveStream.getAudioTracks?.().find(track=>track.readyState==='live')||null;
+    if(audioTrack)await applyShareAudioMode(audioTrack,normalized);
+    state.options={...state.options,shareAudioMode:normalized};emit();
+    try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:false});}catch{}
+    return snapshot();
+  }
   function setAnnotationCanvas(canvas){
     const next=canvas||null;
     if(state.annotationCanvas===next){
@@ -278,6 +320,6 @@
     }
     return snapshot();
   }
-  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,exportImage,stop,outputStream,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
+  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,exportImage,stop,outputStream,setOptimizeVideo,setShareAudioEnabled,setShareAudioMode,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
   window.DominionShareController=api;
 })();
