@@ -308,9 +308,16 @@
     dock.addEventListener('pointerup',end,true);dock.addEventListener('pointercancel',end,true);
   }
 
+  function releaseRuntimeVideoDockGeometry(dock){
+    if(!dock)return;for(const prop of ['position','left','right','top','bottom','width','height','max-width','max-height','transform','z-index'])dock.style.removeProperty(prop);
+    const body=dock.querySelector('.participant-video-dock-body');if(body)for(const prop of ['grid-template-columns','grid-auto-flow','overflow-x','overflow-y'])body.style.removeProperty(prop);
+    delete dock.dataset.dsRuntimeDockMode;
+  }
+
   function syncVideoDockGeometry(){
     const overlay=q('#meetingOverlay'),stage=q('.stage'),dock=q('#participantVideoDock');
     if(!overlay||!stage||!dock||dock.hidden)return false;
+    if(overlay.classList.contains('share-side-by-side')){releaseRuntimeVideoDockGeometry(dock);return false;}
     if(dock.classList.contains('gallery-stage')||dock.classList.contains('multi-speaker-stage'))return false;
 
     const sr=stage.getBoundingClientRect();
@@ -461,5 +468,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.32-adaptive-video-dock',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.33-share-layout-aware',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,releaseRuntimeVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
