@@ -1,7 +1,7 @@
 (()=>{
   if(window.DominionShareAnnotation)return;
   const q=s=>document.querySelector(s);
-  const state={active:false,mode:'pen',color:'#ff3b30',drawing:false,last:null,start:null,overlay:null,canvas:null,ctx:null,resizeObserver:null,history:[],redo:[],laserBase:null,laserTimer:0,textEditor:null,textPoint:null,shapeBase:null,lineWidth:5,fontSize:26};
+  const state={active:false,mode:'pen',color:'#ff3b30',drawing:false,last:null,start:null,overlay:null,canvas:null,ctx:null,resizeObserver:null,history:[],redo:[],laserBase:null,laserTimer:0,textEditor:null,textPoint:null,shapeBase:null,lineWidth:5,fontSize:26,hasRemoteAnnotations:false,nameTimer:0};
   const share=()=>window.DominionShareController||null;
   function resize(){const stage=q('.stage'),canvas=state.canvas;if(!stage||!canvas)return;const r=stage.getBoundingClientRect(),ratio=Math.max(1,Math.min(2,window.devicePixelRatio||1));const w=Math.max(2,Math.round(r.width*ratio)),h=Math.max(2,Math.round(r.height*ratio));if(canvas.width===w&&canvas.height===h)return;const old=document.createElement('canvas');old.width=canvas.width;old.height=canvas.height;old.getContext('2d')?.drawImage(canvas,0,0);canvas.width=w;canvas.height=h;if(old.width&&old.height)canvas.getContext('2d')?.drawImage(old,0,0,old.width,old.height,0,0,w,h);state.ctx=canvas.getContext('2d');share()?.setAnnotationCanvas?.(canvas);}
   function point(event){const r=state.canvas.getBoundingClientRect();return {x:(event.clientX-r.left)*(state.canvas.width/r.width),y:(event.clientY-r.top)*(state.canvas.height/r.height)};}
@@ -63,7 +63,53 @@
     state.drawing=false;state.last=null;state.start=null;state.shapeBase=null;state.canvas.releasePointerCapture?.(event.pointerId);if(state.mode==='laser')clearLaser(650);
   }
   function setMode(mode){if(state.mode==='laser'&&mode!=='laser')clearLaser();if(state.mode==='text'&&mode!=='text')closeTextEditor({commit:true});state.mode=mode;for(const b of state.overlay?.querySelectorAll('[data-annotation-mode]')||[])b.classList.toggle('active',b.dataset.annotationMode===mode);}
-  function clear(){if(!state.ctx||!state.canvas)return;closeTextEditor({commit:true});pushHistory();clearLaser();state.ctx.clearRect(0,0,state.canvas.width,state.canvas.height);}
+  function clear(){if(!state.ctx||!state.canvas)return;closeTextEditor({commit:true});pushHistory();clearLaser();state.ctx.clearRect(0,0,state.canvas.width,state.canvas.height);state.hasRemoteAnnotations=false;if(state.overlay){state.overlay.classList.remove('remote-visible');if(!state.active)state.overlay.hidden=true;}}
+  async function collaborativePolicy(){
+    try{
+      const ctx=await window.dominionDesktop?.meeting?.context?.();
+      if(!ctx?.roomId)return {enabled:false,showNames:true};
+      const snapshot=await window.dominionDesktop?.meeting?.snapshot?.(ctx.roomId);
+      return {enabled:snapshot?.annotationEnabled!==false,showNames:snapshot?.annotationNamesVisible!==false};
+    }catch{return {enabled:false,showNames:true};}
+  }
+  function ensureRemoteCanvas(){
+    const controller=share();if(!controller?.snapshot?.().active)return null;
+    const overlay=ensure();if(!overlay)return null;
+    state.hasRemoteAnnotations=true;overlay.hidden=false;overlay.classList.add('remote-visible');controller.setAnnotationCanvas(state.canvas);return overlay;
+  }
+  function showAnnotatorName(name,at){
+    if(!state.overlay||!at)return;clearTimeout(state.nameTimer);
+    let badge=state.overlay.querySelector('.share-annotator-name');
+    if(!badge){badge=document.createElement('div');badge.className='share-annotator-name';state.overlay.append(badge);}
+    badge.textContent=String(name||'Participant').slice(0,80);badge.hidden=false;
+    badge.style.left=Math.max(0,Math.min(100,Number(at.x)||0))*100+'%';
+    badge.style.top=Math.max(0,Math.min(100,Number(at.y)||0))*100+'%';
+    state.nameTimer=setTimeout(()=>{if(badge)badge.hidden=true;},1800);
+  }
+  async function applyRemoteStroke(payload={},fromName='Participant'){
+    const policy=await collaborativePolicy();if(!policy.enabled)return false;
+    const points=Array.isArray(payload.points)?payload.points.slice(0,240):[];if(points.length<1)return false;
+    if(!ensureRemoteCanvas()||!state.ctx||!state.canvas)return false;
+    const mode=['pen','highlight','erase'].includes(String(payload.mode||''))?String(payload.mode):'pen';
+    const color=/^#[0-9a-f]{6}$/i.test(String(payload.color||''))?String(payload.color):'#ff3b30';
+    const width=Math.max(2,Math.min(24,Number(payload.width)||5));
+    state.ctx.save();state.ctx.lineCap='round';state.ctx.lineJoin='round';state.ctx.globalCompositeOperation=mode==='erase'?'destination-out':'source-over';state.ctx.globalAlpha=mode==='highlight'?.34:1;state.ctx.strokeStyle=mode==='highlight'?'#ffe45e':color;state.ctx.lineWidth=mode==='highlight'?Math.max(14,width*3):mode==='erase'?Math.max(18,width*3):width;
+    const mapped=points.map(p=>({x:Math.max(0,Math.min(1,Number(p?.x)||0))*state.canvas.width,y:Math.max(0,Math.min(1,Number(p?.y)||0))*state.canvas.height}));
+    if(mapped.length===1){state.ctx.beginPath();state.ctx.arc(mapped[0].x,mapped[0].y,state.ctx.lineWidth/2,0,Math.PI*2);state.ctx.fillStyle=mode==='erase'?'rgba(0,0,0,1)':state.ctx.strokeStyle;state.ctx.fill();}
+    else{state.ctx.beginPath();state.ctx.moveTo(mapped[0].x,mapped[0].y);for(const p of mapped.slice(1))state.ctx.lineTo(p.x,p.y);state.ctx.stroke();}
+    state.ctx.restore();if(policy.showNames)showAnnotatorName(fromName,points[points.length-1]);return true;
+  }
+  async function applyRemoteText(payload={},fromName='Participant'){
+    const policy=await collaborativePolicy();if(!policy.enabled)return false;
+    const text=String(payload.text||'').trim().slice(0,500);if(!text||!ensureRemoteCanvas()||!state.ctx||!state.canvas)return false;
+    const x=Math.max(0,Math.min(1,Number(payload.x)||0)),y=Math.max(0,Math.min(1,Number(payload.y)||0));
+    const color=/^#[0-9a-f]{6}$/i.test(String(payload.color||''))?String(payload.color):'#ff3b30';
+    const size=Math.max(16,Math.min(42,Number(payload.fontSize)||26));
+    state.ctx.save();state.ctx.globalAlpha=1;state.ctx.globalCompositeOperation='source-over';state.ctx.fillStyle=color;state.ctx.font='600 '+size+'px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';state.ctx.textBaseline='top';
+    const px=x*state.canvas.width,py=y*state.canvas.height,lineHeight=Math.round(size*1.22);
+    text.split(/\n/).slice(0,8).forEach((line,index)=>state.ctx.fillText(line,px,py+(index*lineHeight),Math.max(120,state.canvas.width-px-12)));
+    state.ctx.restore();if(policy.showNames)showAnnotatorName(fromName,{x,y});return true;
+  }
   async function save(format='png'){
     const controller=share();if(!controller?.snapshot?.().active)return false;
     const normalized=String(format||'png').toLowerCase()==='pdf'?'pdf':'png';
@@ -94,15 +140,20 @@
     const controllerAnnotating=Boolean(controller?.snapshot?.().annotating);
     const changed=state.active||state.drawing||controllerAnnotating;
     state.active=false;state.drawing=false;closeTextEditor({commit:true});clearLaser();
-    if(state.overlay){state.overlay.classList.remove('active');state.overlay.hidden=true;}
-    // Do not feed a no-op null canvas back into ShareController. Before capture
-    // becomes active, layout synchronization legitimately asks annotation to be
-    // inactive; that must remain an idempotent state, not an emit recursion.
-    if(controllerAnnotating)controller?.setAnnotationCanvas?.(null);
+    if(state.overlay){state.overlay.classList.remove('active');state.overlay.hidden=!state.hasRemoteAnnotations;state.overlay.classList.toggle('remote-visible',state.hasRemoteAnnotations);}
+    // Remote participant annotations must remain composited after the presenter
+    // closes their own tool palette. Detach the annotation canvas only when no
+    // remote annotation content remains.
+    if(controllerAnnotating&&!state.hasRemoteAnnotations)controller?.setAnnotationCanvas?.(null);
     return changed?false:false;
   }
   function toggle(){return state.active?deactivate():activate();}
+  window.addEventListener('dominion:meeting-signal',event=>{
+    const detail=event.detail||{},type=String(detail.type||'');
+    if(type==='annotation:stroke')void applyRemoteStroke(detail.payload||{},detail.fromDisplayName||'Participant');
+    if(type==='annotation:text')void applyRemoteText(detail.payload||{},detail.fromDisplayName||'Participant');
+  });
   document.addEventListener('keydown',event=>{if(!state.active)return;const modifier=event.metaKey||event.ctrlKey;if(!modifier||String(event.key).toLowerCase()!=='z')return;event.preventDefault();if(event.shiftKey)redo();else undo();});
   setInterval(()=>{if(state.active&&!share()?.snapshot?.().active)deactivate();},400);
-  window.DominionShareAnnotation=Object.freeze({version:'1.3.0',activate,deactivate,toggle,clear,undo,redo,save,setMode,snapshot:()=>({active:state.active,mode:state.mode,color:state.color,undoDepth:state.history.length,redoDepth:state.redo.length})});
+  window.DominionShareAnnotation=Object.freeze({version:'1.4.0',activate,deactivate,toggle,clear,undo,redo,save,setMode,applyRemoteStroke,applyRemoteText,snapshot:()=>({active:state.active,mode:state.mode,color:state.color,undoDepth:state.history.length,redoDepth:state.redo.length,hasRemoteAnnotations:state.hasRemoteAnnotations})});
 })();
