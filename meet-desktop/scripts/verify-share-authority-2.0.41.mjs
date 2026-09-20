@@ -24,6 +24,10 @@ const annotationPolicySql=read('sql/20260919_annotation_policy.sql');
 const annotationNamesSql=read('sql/20260919_annotation_names.sql');
 const remoteAnnotation=read('ui/remote-annotation.js');
 const indexHtml=read('ui/index.html');
+const preferences=read('ui/preferences.js');
+const webrtcCss=read('ui/webrtc.css');
+const runtimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
+const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 
 const requireText=(source,needle,message)=>assert.ok(source.includes(needle),message);
 const rejectText=(source,needle,message)=>assert.ok(!source.includes(needle),message);
@@ -333,6 +337,25 @@ requireText(integration,'pickerBridge.choose(sourceId,options)','Enabling Share 
 requireText(integration,"sourceId:String(selection?.sourceId||selection?.options?.sourceId||'')",'Selected source identity must survive into active-share option changes.');
 requireText(toolbar,'data-command="share-sound"','Presenter More menu must expose Share Sound.');
 requireText(toolbar,'data-command="optimize-video"','Presenter More menu must expose Optimize for video sharing.');
+requireText(controller,"width:{ideal:1920,max:1920},height:{ideal:1080,max:1080}",'Optimize for video must bound capture to 1080p while prioritizing motion.');
+requireText(controller,"? {frameRate:{ideal:30,max:30},width:{ideal:1920,max:1920},height:{ideal:1080,max:1080}}",'Optimized capture must target 30fps at up to 1080p.');
+requireText(preferences,"shareScaleToFit:'ds_pref_share_scale_to_fit'",'Share settings must persist Scale to fit content.');
+requireText(preferences,"shareEnterFullScreen:'ds_pref_share_enter_fullscreen'",'Share settings must persist Enter full screen when viewing shared content.');
+requireText(preferences,"shareGreenBorder:'ds_pref_share_green_border'",'Share settings must persist the presenter green-boundary preference.');
+requireText(preferences,"'Scale shared content to fit my window'",'Sharing settings must expose Scale shared content to fit my window.');
+requireText(preferences,"'Enter full screen when viewing shared content'",'Sharing settings must expose full-screen-on-share behavior.');
+requireText(preferences,"'Show green border around my shared content'",'Sharing settings must expose the green sharing boundary.');
+requireText(runtimeAuthority,"showGreenBorder:pref('ds_pref_share_green_border',true)",'The approved picker must carry the green-boundary preference into the selected capture.');
+requireText(service,"showGreenBorder:options.showGreenBorder!==false",'Main-process source selection must preserve the green-boundary setting.');
+requireText(macOverlay,"if(isDisplayShare()&&shareState.showGreenBorder!==false)showBorder();else hideBorder();",'macOS presenter chrome must honor the green-boundary preference only for full display sharing.');
+requireText(webrtc,"const payload={active,sourceName:String(shareState.sourceName||''),optimizeVideo:Boolean(shareState.options?.optimizeVideo),shareAudio:Boolean(shareState.options?.shareAudio)}",'Sharers must publish active-share quality metadata to viewers.');
+requireText(webrtc,"async function enterRemoteShareFullscreen()",'Viewer transport must support the full-screen-on-share preference.');
+requireText(webrtc,"readPreference('shareScaleToFit',true)",'Viewer transport must apply Scale to fit content.');
+requireText(webrtc,"const green=optimized;",'Receiver-side green boundary must be forced by optimized-video mode rather than the presenter-only green-border preference.');
+requireText(webrtcCss,'.remote-share-active.ds-share-scale-fit #remoteShareVideo','Viewer CSS must provide Scale-to-fit shared content.');
+requireText(webrtcCss,'.remote-share-active.ds-share-original-size #remoteShareVideo','Viewer CSS must preserve an original-size shared-content mode.');
+requireText(webrtcCss,'.remote-share-active.ds-remote-share-optimized #remoteShareVideo','Optimized shares must expose the Zoom-style receiver green boundary.');
+rejectText(webrtcCss,'.remote-share-active #remoteShareVideo{\n  outline:2px','Remote shares must not force a green border for every standard share.');
 
 requireText(mediaController,"script.src='./share-integration.js'",'Share Integration must remain isolated and loaded once.');
 rejectText(integration,'showModal','Meeting Share must never use a blocking in-meeting modal.');
