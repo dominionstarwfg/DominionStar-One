@@ -113,7 +113,7 @@ if(process.platform==='darwin'){
     if(!isAlive(toolbarWindow))return;
     const display=displayForMain(),area=display.workArea||display.bounds;
     const width=Math.min(890,Math.max(760,area.width-28));
-    const height=toolbarMenuOpen?286:92;
+    const height=toolbarMenuOpen?390:92;
     const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+4);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -155,7 +155,7 @@ if(process.platform==='darwin'){
     if(isAlive(toolbarWindow))closeFailedWindow(toolbarWindow);
     toolbarWindow=null;toolbarReady=false;
     const win=new BrowserWindow({
-      width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:890,height:92,minWidth:760,minHeight:92,maxHeight:390,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
       focusable:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
@@ -444,7 +444,7 @@ if(process.platform==='darwin'){
     }
     return {ok:false,sent:Boolean(acknowledged?.sent),acknowledged:Boolean(acknowledged?.acknowledged),error:String(acknowledged?.error||result?.error||'presenter_command_delivery_failed')};
   });
-  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?286:92};});
+  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?390:92};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
 
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();}});
