@@ -20,7 +20,7 @@
     more:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>',
     exit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h9a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8M12 8l-4 4 4 4M8 12h9"/></svg>'
   });
-  let moreMenu=null,securityMenu=null,viewMenu=null,panelDrag=null,dockDrag=null,dockResize=null,shareSplitDrag=null,lastMeta='',spotlightParticipantIds=[],activeSpeakerIds=[],toolbarOrderKey='',parityFrame=0; const VIEW_KEY='ds_meet_view_mode',SHARE_SPLIT_KEY='ds_meet_share_split_ratio';
+  let moreMenu=null,securityMenu=null,viewMenu=null,panelDrag=null,dockDrag=null,dockResize=null,shareSplitDrag=null,shareLayoutObserver=null,lastMeta='',spotlightParticipantIds=[],activeSpeakerIds=[],toolbarOrderKey='',parityFrame=0; const VIEW_KEY='ds_meet_view_mode',SHARE_SPLIT_KEY='ds_meet_share_split_ratio';
   if(!document.querySelector('link[data-ds-meeting-parity]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-parity.css';link.dataset.dsMeetingParity='1';document.head.append(link);}
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
   const formatCode=value=>String(value||'').replace(/\D/g,'').replace(/(\d{3})(?=\d)/g,'$1 ').trim();
@@ -30,8 +30,13 @@
   const sharing=()=>Boolean(q('#meetingOverlay')?.classList.contains('share-active')||document.body.classList.contains('remote-share-active'));
   const readView=()=>{try{const v=localStorage.getItem(VIEW_KEY);return ['speaker','gallery','multi'].includes(v)?v:'speaker';}catch{return 'speaker';}};
   const saveView=value=>{try{localStorage.setItem(VIEW_KEY,value);}catch{}};
-  const readShareSplit=()=>{try{return clamp(Number(localStorage.getItem(SHARE_SPLIT_KEY))||.74,.52,.86);}catch{return .74;}};
-  const saveShareSplit=value=>{try{localStorage.setItem(SHARE_SPLIT_KEY,String(clamp(value,.52,.86)));}catch{}};
+  const shareSplitBounds=stage=>{
+    const width=Math.max(1,stage?.getBoundingClientRect?.().width||stage?.clientWidth||0);
+    const min=clamp(360/width,.46,.68),max=clamp(1-(220/width),.60,.86);
+    return min<=max?{min,max}:{min:.58,max:.68};
+  };
+  const readShareSplit=stage=>{try{const bounds=shareSplitBounds(stage);return clamp(Number(localStorage.getItem(SHARE_SPLIT_KEY))||.74,bounds.min,bounds.max);}catch{return .74;}};
+  const saveShareSplit=(value,stage)=>{try{const bounds=shareSplitBounds(stage);localStorage.setItem(SHARE_SPLIT_KEY,String(clamp(value,bounds.min,bounds.max)));}catch{}};
   function applyViewMode(value=readView()){
     const mode=['speaker','gallery','multi'].includes(value)?value:'speaker',overlay=q('#meetingOverlay'),dock=q('#participantVideoDock');
     if(!overlay)return mode;overlay.dataset.viewMode=mode;saveView(mode);
@@ -108,12 +113,19 @@
     const stage=q('.stage');if(!stage)return null;let splitter=q('#shareLayoutSplitter');if(splitter)return splitter;
     splitter=document.createElement('div');splitter.id='shareLayoutSplitter';splitter.className='share-layout-splitter';splitter.hidden=true;splitter.setAttribute('role','separator');splitter.setAttribute('aria-orientation','vertical');splitter.setAttribute('aria-label','Resize shared content and participant video');
     stage.append(splitter);
+    splitter.tabIndex=0;splitter.setAttribute('aria-valuemin','46');splitter.setAttribute('aria-valuemax','86');
     splitter.addEventListener('pointerdown',event=>{
       if(event.button!==0)return;const rect=stage.getBoundingClientRect();shareSplitDrag={id:event.pointerId,left:rect.left,width:rect.width};splitter.setPointerCapture?.(event.pointerId);event.preventDefault();
     });
     splitter.addEventListener('pointermove',event=>{
       if(!shareSplitDrag||event.pointerId!==shareSplitDrag.id)return;
-      const ratio=clamp((event.clientX-shareSplitDrag.left)/Math.max(1,shareSplitDrag.width),.52,.86);stage.style.setProperty('--share-content-ratio',String(ratio));saveShareSplit(ratio);
+      const bounds=shareSplitBounds(stage),ratio=clamp((event.clientX-shareSplitDrag.left)/Math.max(1,shareSplitDrag.width),bounds.min,bounds.max);
+      stage.style.setProperty('--share-content-ratio',String(ratio));splitter.setAttribute('aria-valuenow',String(Math.round(ratio*100)));saveShareSplit(ratio,stage);
+    });
+    splitter.addEventListener('keydown',event=>{
+      if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();
+      const bounds=shareSplitBounds(stage),current=readShareSplit(stage),next=event.key==='Home'?bounds.min:event.key==='End'?bounds.max:clamp(current+(event.key==='ArrowRight'?.02:-.02),bounds.min,bounds.max);
+      stage.style.setProperty('--share-content-ratio',String(next));splitter.setAttribute('aria-valuenow',String(Math.round(next*100)));saveShareSplit(next,stage);
     });
     const end=event=>{if(!shareSplitDrag||(event?.pointerId!=null&&event.pointerId!==shareSplitDrag.id))return;shareSplitDrag=null;};
     splitter.addEventListener('pointerup',end);splitter.addEventListener('pointercancel',end);
@@ -122,8 +134,11 @@
   function syncShareLayout(){
     const overlay=q('#meetingOverlay'),stage=q('.stage'),dock=q('#participantVideoDock'),splitter=ensureShareSplitter();if(!overlay||!stage||!dock||!splitter)return;
     const active=sharing(),mode=readView(),showPanel=window.DominionPreferences?.read?.('shareVideoDock')!==false;
-    const sideBySide=active&&showPanel&&window.DominionPreferences?.read?.('shareSideBySide')===true;
+    const stageRect=stage.getBoundingClientRect(),requestedSideBySide=window.DominionPreferences?.read?.('shareSideBySide')===true;
+    const sideBySideCapable=stageRect.width>=680&&stageRect.height>=360;
+    const sideBySide=active&&showPanel&&requestedSideBySide&&sideBySideCapable;
     const floatingPanel=active&&showPanel&&!sideBySide;
+    overlay.dataset.shareSideBySideSuspended=active&&showPanel&&requestedSideBySide&&!sideBySideCapable?'1':'0';
     overlay.classList.toggle('share-side-by-side',sideBySide);
     overlay.classList.toggle('share-panel-floating',floatingPanel);
     overlay.classList.toggle('share-panel-hidden',active&&!showPanel);
@@ -150,11 +165,12 @@
           const top=clamp(rect.top-stageRect.top,8,Math.max(8,stageRect.height-rect.height-8));
           dock.style.left=`${left}px`;dock.style.top=`${top}px`;dock.style.right='auto';dock.style.bottom='auto';
         }else{
-          dock.dataset.anchor='right';dock.dataset.orientation='vertical';
-          dock.style.left='auto';dock.style.top='14px';dock.style.right='14px';dock.style.bottom='auto';
+          const anchor=automaticDockAnchor();dock.dataset.anchor=anchor;dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical';
+          if(anchor==='top'){dock.style.left='14px';dock.style.top='10px';dock.style.right='14px';dock.style.bottom='auto';}
+          else{dock.style.left='auto';dock.style.top='14px';dock.style.right='14px';dock.style.bottom='auto';}
         }
       }else{
-        stage.style.setProperty('--share-content-ratio',String(readShareSplit()));
+        const ratio=readShareSplit(stage);stage.style.setProperty('--share-content-ratio',String(ratio));splitter.setAttribute('aria-valuenow',String(Math.round(ratio*100)));
         dock.dataset.orientation='vertical';
         dock.dataset.anchor='right';
         dock.style.left='';dock.style.top='14px';dock.style.right='14px';dock.style.bottom='14px';
@@ -278,6 +294,7 @@
     syncBrand();syncGreeting();
     if(!overlay.dataset.dsParityInstalled){
       installParticipantPanel();installMeetingControls();ensureViewButton();ensureVideoDock();ensureShareSplitter();
+      if(!shareLayoutObserver&&typeof ResizeObserver==='function'){shareLayoutObserver=new ResizeObserver(()=>scheduleParityRefresh());const stage=q('.stage');if(stage)shareLayoutObserver.observe(stage);}
       overlay.dataset.dsParityInstalled='1';
     }else{decorateControls();arrangeToolbar();}
     applyViewMode(readView());syncShareLayout();syncVideoDock();void syncMeetingMeta();
@@ -305,5 +322,5 @@
   window.addEventListener('dominion:meeting-signal',scheduleParityRefresh);
   window.addEventListener('dominion:meeting-ended',()=>{if(parityFrame){cancelAnimationFrame(parityFrame);parityFrame=0;}spotlightParticipantIds=[];closeMenus();});
   install();
-  window.DominionMeetingParity=Object.freeze({version:'2.0.39-multi-spotlight',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout,openMore,openSecurity});
+  window.DominionMeetingParity=Object.freeze({version:'2.0.40-adaptive-share-layout',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout,openMore,openSecurity});
 })();
