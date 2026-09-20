@@ -156,6 +156,14 @@ requireText(annotation,'data-annotation-width','Annotation Format must control l
 requireText(annotation,'data-annotation-font-size','Annotation Format must control text size.');
 requireText(annotation,'function drawShape(kind,start,end)','Annotation shape controls must render real canvas geometry.');
 requireText(annotation,'function drawStamp(kind,at)','Annotation stamp controls must render real canvas marks.');
+requireText(annotation,'data-annotation-mode="select">Select</button>','Presenter annotation toolbar must expose Select as a first-class tool.');
+requireText(annotation,"localCanvas:null,localCtx:null,remoteCanvas:null,remoteCtx:null",'Presenter and participant annotations must live on separate canvas planes.');
+requireText(annotation,'function beginSelectionTransform(event,handle)','Select must support moving and resizing presenter-owned annotations.');
+requireText(annotation,"data-select-handle=\"nw\"",'Select must expose visible resize handles.');
+requireText(annotation,"state.localCtx.clearRect(t.source.x,t.source.y,t.source.w,t.source.h)",'Selection transforms must move presenter annotation pixels rather than duplicating them.');
+requireText(annotation,'drawSelectionBitmap(t.image,rect)','Selection resize must redraw the selected presenter annotation region at its new geometry.');
+requireText(annotation,'if(state.mode===\'select\'&&(event.key===\'Backspace\'||event.key===\'Delete\'))','Select must support deleting the presenter\'s selected annotation region.');
+requireText(annotation,'if(state.remoteCanvas)state.ctx.drawImage(state.remoteCanvas,0,0);','Participant annotations must remain separately composited while presenter selection changes only the local plane.');
 requireText(controller,'async function exportImage()','Annotation save must export the participant-visible shared frame plus annotations.');
 requireText(controller,"if(state.paused&&state.freezeCanvas)",'Annotation save during Pause must use the frozen participant-facing frame, not the presenter\'s private live screen.');
 requireText(controller,"return output.toDataURL('image/png')",'Annotation export must produce a real PNG image payload.');
