@@ -288,7 +288,13 @@
   async function pullSignals(){
     if(!state.running)return;try{const result=await meeting.pullSignals(state.lastSignalId,100);for(const signal of result?.signals||[])await handleSignal(signal);state.lastSignalId=Math.max(state.lastSignalId,Number(result?.lastId)||0);}catch{}
   }
-  async function syncAllSenders(){for(const record of state.peers.values()){try{await syncLocalTracks(record);}catch{}}const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(speakerId)for(const audio of document.querySelectorAll('#remoteAudioBin audio'))if(audio.setSinkId)void audio.setSinkId(speakerId).catch(()=>{});}
+  async function syncAllSenders({strict=false}={}){
+    const failures=[];
+    for(const record of state.peers.values()){try{await syncLocalTracks(record);}catch(error){failures.push(error);}}
+    const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(speakerId)for(const audio of document.querySelectorAll('#remoteAudioBin audio'))if(audio.setSinkId)void audio.setSinkId(speakerId).catch(()=>{});
+    if(strict&&failures.length)throw failures[0];
+    return {ok:failures.length===0,failures:failures.length};
+  }
   async function start(){
     if(state.running||Date.now()<state.nextStartAttemptAt)return;const context=await meeting.context();if(!context?.roomId||!context?.participantId||context.state!=='joined')return;
     ensureUi();setTransportStatus('Preparing network…','pending');
@@ -311,6 +317,6 @@
     if((!inRoom||!context?.roomId)&&state.running)void stop();
   }
   setInterval(()=>void lifecycleProbe(),500);
-  const api=Object.freeze({start,stop,recoverNetwork,touchPresence,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayExpiresAt:state.iceExpiresAtMs})});
+  const api=Object.freeze({start,stop,recoverNetwork,touchPresence,syncLocalTracks:options=>syncAllSenders(options||{}),snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayExpiresAt:state.iceExpiresAtMs})});
   window.DominionWebRTCController=api;
 })();
