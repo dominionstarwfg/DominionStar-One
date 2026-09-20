@@ -168,6 +168,7 @@
     syncMinimizedVideoPanel();
     if(active&&!showPanel)dock.hidden=true;
     if(active&&showPanel){
+      dock.hidden=false;
       dock.classList.remove('gallery-stage','multi-speaker-stage');
       if(floatingPanel){
         stage.style.removeProperty('--share-content-ratio');
