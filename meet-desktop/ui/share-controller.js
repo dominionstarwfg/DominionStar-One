@@ -240,19 +240,40 @@
     else{stopComposite();emit();}
     return snapshot();
   }
-  async function stop(){displayRequestGeneration+=1;const hadShare=Boolean(state.liveStream||state.frozenStream);
-    state.annotationCanvas=null;
-    stopComposite();
-    // Zoom-style Stop Share is local-first: terminate the display tracks and
-    // publish inactive state immediately. Main-process chrome restoration is
-    // a follow-up notification and must never hold capture open on a slow IPC.
-    stopTracks(state.frozenStream);stopTracks(state.liveStream);
+  async function stop(){displayRequestGeneration+=1;const hadShare=Boolean(state.liveStream||state.frozenStream||state.compositeStream);
+    const previous={liveStream:state.liveStream,frozenStream:state.frozenStream,compositeStream:state.compositeStream};
+    // Stop painting annotation/composite frames immediately, but preserve the
+    // participant-facing stream itself until WebRTC has detached the screen
+    // sender. This prevents a black/ended frame between Stop Share and the
+    // meeting view returning on participant devices.
+    cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;
+    if(state.compositeVideo){state.compositeVideo.pause?.();state.compositeVideo.srcObject=null;state.compositeVideo.remove?.();state.compositeVideo=null;}
+    state.annotationCanvas=null;state.compositeStream=null;state.compositeCanvas=null;
     state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};
     emit();
+
     if(hadShare){
+      // Zoom-style Stop Share returns viewers to the meeting before retiring
+      // the old capture objects. Use both RTP sender detachment and an explicit
+      // share-state signal so the remote UI does not depend on browser-specific
+      // MediaStreamTrack mute/ended timing.
       try{
-        const pending=bridge?.captureStopped?.();
-        void Promise.resolve(pending).catch(error=>console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error));
+        const syncSenders=window.DominionWebRTCController?.syncLocalTracks;
+        if(typeof syncSenders==='function'){
+          await Promise.race([
+            syncSenders({strict:true}),
+            new Promise((_,reject)=>setTimeout(()=>reject(new Error('share_stop_sender_timeout')),450))
+          ]);
+        }
+      }catch(error){console.warn('[DominionStar Meet] Share-stop sender detach fallback.',error);}
+      try{void window.DominionWebRTCController?.announceShareStopped?.();}catch{}
+      stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);
+
+      // Capture is physically stopped before native presenter chrome cleanup.
+      // Wait only a bounded interval so Stop Share can never hang on IPC.
+      try{
+        const cleanup=Promise.resolve(bridge?.captureStopped?.());
+        await Promise.race([cleanup,new Promise(resolve=>setTimeout(resolve,650))]);
       }catch(error){console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error);}
     }
     return snapshot();
