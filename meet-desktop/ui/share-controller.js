@@ -88,17 +88,51 @@
     if(state.busy||!state.liveStream)return snapshot();
     if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
     state.busy=true;emit();
-    const previousLive=state.liveStream,previousFrozen=state.frozenStream;
+    const previous={
+      liveStream:state.liveStream,
+      frozenStream:state.frozenStream,
+      freezeCanvas:state.freezeCanvas,
+      paused:state.paused,
+      sourceName:state.sourceName,
+      options:{...state.options},
+      annotationCanvas:state.annotationCanvas,
+      compositeStream:state.compositeStream
+    };
+    let nextStream=null,committed=false;
     try{
-      const {stream,track}=await acquireDisplay(options);
-      stopComposite();
-      state.annotationCanvas=null;
+      const {stream,track}=await acquireDisplay(options);nextStream=stream;
+      // Keep the participant-facing old stream alive while the replacement
+      // capture is being acquired. If annotations are composited, suspend the
+      // compositor without ending its MediaStream so viewers retain the last
+      // old frame until WebRTC commits the new sender track.
+      cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;
+      if(state.compositeVideo){state.compositeVideo.pause?.();state.compositeVideo.srcObject=null;state.compositeVideo.remove?.();state.compositeVideo=null;}
+      state.compositeStream=null;state.compositeCanvas=null;state.annotationCanvas=null;
       state.liveStream=stream;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
       state.sourceName=String(name||track.label||'Shared content');state.options={...options};
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
-      stopTracks(previousFrozen);stopTracks(previousLive);
+
+      // This is the transactional commit point. Do not stop the old live,
+      // frozen, or composite stream until every current WebRTC sender has had
+      // a bounded chance to replace its screen track with the new source.
+      await window.DominionWebRTCController?.syncLocalTracks?.({strict:true});
+      committed=true;
+      stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);
       try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       return snapshot();
+    }catch(error){
+      if(!committed){
+        // Roll back atomically: participants keep the old share if the new
+        // source cannot be committed. Rebuild annotation compositing only
+        // after the old base stream is restored.
+        state.liveStream=previous.liveStream;state.frozenStream=previous.frozenStream;state.freezeCanvas=previous.freezeCanvas;state.paused=previous.paused;
+        state.sourceName=previous.sourceName;state.options={...previous.options};state.annotationCanvas=previous.annotationCanvas;
+        if(previous.annotationCanvas)startComposite();
+        try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:true});}catch{}
+        stopTracks(previous.compositeStream);
+        stopTracks(nextStream);
+      }
+      throw error;
     }finally{state.busy=false;emit();}
   }
 
