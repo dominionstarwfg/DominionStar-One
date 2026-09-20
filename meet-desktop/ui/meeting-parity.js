@@ -239,16 +239,22 @@
     const role=String(q('#roomRole')?.textContent||'').toLowerCase().replace('-',''),canManage=['host','cohost'].includes(role);
     let snapshot=null,ctx=null;
     try{ctx=await desktop.meeting?.context?.();if(ctx?.roomId&&desktop.meeting?.snapshot)snapshot=await desktop.meeting.snapshot(ctx.roomId);}catch{}
-    const locked=Boolean(snapshot?.meetingLocked),muteOnEntry=Boolean(snapshot?.muteOnEntry);
-    securityMenu.innerHTML=`<div class="menu-heading"><strong>Security</strong><small>${meta}</small></div><button type="button" data-security-copy>Copy meeting information</button><button type="button" data-security-participants>Open Participants</button>${canManage?`<div class="security-separator"></div><button type="button" data-security-lock aria-pressed="${locked}">${locked?'✓ ':''}Lock Meeting</button><button type="button" data-security-mute-entry aria-pressed="${muteOnEntry}">${muteOnEntry?'✓ ':''}Mute Participants on Entry</button>`:''}`;
+    const locked=Boolean(snapshot?.meetingLocked),muteOnEntry=Boolean(snapshot?.muteOnEntry),annotationEnabled=snapshot?.annotationEnabled!==false,annotationSaveAllowed=snapshot?.annotationSaveAllowed!==false;
+    securityMenu.innerHTML=`<div class="menu-heading"><strong>Security</strong><small>${meta}</small></div><button type="button" data-security-copy>Copy meeting information</button><button type="button" data-security-participants>Open Participants</button>${canManage?`<div class="security-separator"></div><button type="button" data-security-lock aria-pressed="${locked}">${locked?'✓ ':''}Lock Meeting</button><button type="button" data-security-mute-entry aria-pressed="${muteOnEntry}">${muteOnEntry?'✓ ':''}Mute Participants on Entry</button><div class="security-separator"></div><button type="button" data-security-annotation aria-pressed="${annotationEnabled}">${annotationEnabled?'✓ ':''}Annotate on shared content</button><button type="button" data-security-annotation-save aria-pressed="${annotationSaveAllowed}">${annotationSaveAllowed?'✓ ':''}Allow saving annotations</button>`:''}`;
     securityMenu.querySelector('[data-security-copy]').onclick=async()=>{try{await navigator.clipboard.writeText(meta);}catch{}closeMenus();};
     securityMenu.querySelector('[data-security-participants]').onclick=()=>{toggleParticipants(true);closeMenus();};
     const persist=async next=>{
       if(!ctx?.roomId||!desktop.meeting?.setSecurity)return;
       try{await desktop.meeting.setSecurity(ctx.roomId,next);closeMenus();void openSecurity(anchor);}catch{}
     };
+    const persistAnnotation=async next=>{
+      if(!ctx?.roomId||!desktop.meeting?.setAnnotationPolicy)return;
+      try{await desktop.meeting.setAnnotationPolicy(ctx.roomId,next);closeMenus();void openSecurity(anchor);}catch{}
+    };
     const lockButton=securityMenu.querySelector('[data-security-lock]');if(lockButton)lockButton.onclick=()=>void persist({locked:!locked,muteOnEntry});
     const muteButton=securityMenu.querySelector('[data-security-mute-entry]');if(muteButton)muteButton.onclick=()=>void persist({locked,muteOnEntry:!muteOnEntry});
+    const annotationButton=securityMenu.querySelector('[data-security-annotation]');if(annotationButton)annotationButton.onclick=()=>void persistAnnotation({enabled:!annotationEnabled,saveAllowed:annotationSaveAllowed});
+    const annotationSaveButton=securityMenu.querySelector('[data-security-annotation-save]');if(annotationSaveButton)annotationSaveButton.onclick=()=>void persistAnnotation({enabled:annotationEnabled,saveAllowed:!annotationSaveAllowed});
   }
   function openMore(anchor){closeMenus();moreMenu=menuAt(anchor,'meeting-more-menu');const dock=q('#participantVideoDock');const add=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{closeMenus();action();};moreMenu.append(b);};if(canManageView())add('Host tools',()=>void openSecurity(anchor));if(q('#roomRecord'))add(q('#roomRecordStop')&&!q('#roomRecordStop').hidden?'Stop recording':'Record',()=>q('#roomRecordStop')&&!q('#roomRecordStop').hidden?q('#roomRecordStop').click():q('#roomRecord')?.click());if(q('#roomCaptions'))add(q('#roomCaptions')?.getAttribute('aria-pressed')==='true'?'Hide captions':'Show captions',()=>q('#roomCaptions')?.click());add('Meeting settings',()=>{const d=q('#settingsDialog');if(d&&!d.open)d.showModal();});add('Reset participant video panel',resetVideoDock);if(dock&&!dock.hidden)add('Hide participant video',()=>{dock.hidden=true;});}
   function arrangeToolbar(){
