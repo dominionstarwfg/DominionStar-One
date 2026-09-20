@@ -214,7 +214,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;try{const result=await authority.list(options);if(result.timedOut)return {ok:false,timedOut:true,sources:[]};return {ok:true,timedOut:false,sources:result.sources.map(serialize)};}catch(error){return {ok:false,timedOut:false,sources:[],error:String(error?.message||error)};}});
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);
     const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
-    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),includeMeetWindows:Boolean(options.includeMeetWindows)};pendingSelection={source,options:normalizedOptions};
+    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),shareAudioMode:String(options.shareAudioMode||'mono')==='stereo'?'stereo':'mono',includeMeetWindows:Boolean(options.includeMeetWindows)};pendingSelection={source,options:normalizedOptions};
     lastToolbarState={...lastToolbarState,includeMeetWindows:normalizedOptions.includeMeetWindows};
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
