@@ -207,7 +207,7 @@
         // is active can stall Chromium's renderer on physical Mac.
         if(sameRendererPresenter){if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;}
         else{const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;}
-      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;stopMacVideoMirror();window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
+      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;stopMacVideoMirror();window.DominionShareAnnotation?.resetForNewShare?.();clearCompanion();}
       // On macOS, do not rebuild/rebind the Zoom-style video dock inside the
       // same transaction that flips Share to active. The existing dock remains
       // visually present, but media rebinding is deferred to normal meeting
