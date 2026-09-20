@@ -214,7 +214,7 @@
       // visually present, but media rebinding is deferred to normal meeting
       // updates so presenter controls stay responsive.
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),includeMeetWindows:Boolean(state.options?.includeMeetWindows),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
     }
 
     function commitPresenterMode(){
@@ -240,7 +240,13 @@
         if(entry.mode==='blocked')return false;
         if(entry.mode==='custom')return true;
         try{
-          const options={shareAudio:true,optimizeVideo:false};
+          const prefs=window.DominionPreferences;
+          const options={
+            shareAudio:prefs?.read?.('shareAudio')!==false,
+            shareAudioMode:'mono',
+            optimizeVideo:Boolean(prefs?.read?.('shareOptimize')),
+            showGreenBorder:prefs?.read?.('shareGreenBorder')!==false
+          };
           if(replace){await share.replaceSource({name:'Shared content',options});window.DominionShareAnnotation?.resetForNewShare?.();}
           else await share.start({name:'Shared content',options});
           markCaptureProven();applyLayout();
