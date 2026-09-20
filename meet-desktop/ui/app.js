@@ -28,7 +28,7 @@
     if(heading)heading.textContent=shareMode?'Share to an existing meeting':'Enter meeting details';
     if(firstLabel)firstLabel.textContent=shareMode?'Meeting ID or DominionStar invite link':'Meeting ID or DominionStar invite link';
     if(roomInput)roomInput.placeholder=shareMode?'Enter the meeting ID or invite link':'000 000 0000 or dominionstar-meet://join…';
-    if(nameLabel)nameLabel.hidden=shareMode;
+    if(nameLabel){nameLabel.hidden=shareMode;nameLabel.style.display=shareMode?'none':'';}
     if(nameInput&&shareMode)nameInput.value=authState.user?.name||nameInput.value||'';
     if(submit)submit.textContent=shareMode?'Share Screen':'Continue';
     document.body.dataset.shareAfterJoin=shareMode?'1':'';
@@ -125,12 +125,26 @@
   async function prepareNewMeeting(event){event.preventDefault();if(!meeting)return notice('Desktop meeting engine required','Start meetings from the installed desktop rebuild.');const button=$('#startMeetingButton'),error=$('#newMeetingError');button.disabled=true;error.hidden=true;try{activeRoom=await meeting.create({title:$('#newMeetingTitle').value,passcode:$('#newMeetingPasscode').value,waitingRoomEnabled:$('#newMeetingWaiting').checked,externalGuestsAllowed:$('#newMeetingGuests').checked});activeRoom.role='host';dialogs.newMeeting.close();$('#newMeetingPasscode').value=randomPasscode();await openPrejoin('host');}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
   async function prepareJoinMeeting(event){
     event.preventDefault();
+    const shareMode=dialogs.join.dataset.entryMode==='share';
     const parsed=parseJoinValue($('#joinRoomCode').value),passcode=parsed.passcode||String($('#joinPasscode').value||'').replace(/\D/g,'');
     const error=$('#joinError');error.hidden=true;
     if(!/^\d{10,11}$/.test(parsed.roomCode)){error.textContent='Meeting ID must contain 10 or 11 digits.';error.hidden=false;return;}
     if(!/^\d{3,7}$/.test(passcode)){error.textContent='Passcode must contain 3 to 7 digits.';error.hidden=false;return;}
-    pendingJoin={roomCode:parsed.roomCode,passcode,displayName:$('#joinDisplayName').value||authState.user?.name};
-    dialogs.join.close();await openPrejoin('participant');
+    pendingJoin={roomCode:parsed.roomCode,passcode,displayName:shareMode?(authState.user?.name||'DominionStar Member'):($('#joinDisplayName').value||authState.user?.name)};
+    dialogs.join.close();
+    if(!shareMode){await openPrejoin('participant');return;}
+    pendingMediaPreferences={cameraOn:false,micOn:false,mirror:media.snapshot().mirror!==false};
+    media.stop();
+    try{
+      const response=await meeting.requestJoin(pendingJoin);activeRoom=response;pendingJoin=null;
+      if(['waiting_host','waiting'].includes(response.state)){showWaiting(response);return;}
+      if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);
+      activeRoom.state='joined';enterRoom();
+    }catch(e){
+      pendingJoin=null;activeRoom=null;document.body.dataset.shareAfterJoin='';
+      setJoinDialogMode('share');if(!dialogs.join.open)dialogs.join.showModal();
+      error.textContent=errorText(e);error.hidden=false;
+    }
   }
   function cancelPrejoin(){media.stop();$('#prejoinOverlay').hidden=true;$('#appShell').hidden=false;if($('#prejoinOverlay').dataset.mode==='host'&&activeRoom?.roomId)void meeting.end(activeRoom.roomId).catch(()=>{});activeRoom=null;pendingJoin=null;pendingMediaPreferences=null;document.body.dataset.shareAfterJoin='';}
   async function continueFromPrejoin(){const button=$('#prejoinContinue'),error=$('#prejoinError');button.disabled=true;error.hidden=true;try{if($('#prejoinOverlay').dataset.mode==='host'){enterRoom();return;}pendingMediaPreferences=media.snapshot();const response=await meeting.requestJoin(pendingJoin);activeRoom=response;pendingJoin=null;$('#prejoinOverlay').hidden=true;if(['waiting_host','waiting'].includes(response.state))showWaiting(response);else{if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);activeRoom.state='joined';if(response.muteOnEntry)await media.setMicrophone(false).catch(()=>{});enterRoom();}}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
