@@ -37,6 +37,10 @@ assert(!main.includes('dominionstarld.com'),'Desktop shell must not depend on th
 assert(main.includes("if(url.startsWith('file://'))return"),'Navigation must remain local by default.');
 assert(preload.includes('contextIsolation')===false,'Preload should expose only the explicit bridge, not runtime configuration.');
 for(const label of ['New Meeting','Join','Schedule','Share Screen'])assert(html.includes(`>${label}<`),`Missing Home action: ${label}`);
+assert(js.includes("function setJoinDialogMode(mode='join')"),'Home Share Screen must have a dedicated share-entry mode instead of masquerading as Join.');
+assert(js.includes("setJoinDialogMode('share');openDialog('join')"),'Home Share Screen must enter the dedicated share flow.');
+assert(!js.includes("document.body.dataset.shareAfterJoin='1';openDialog('join')"),'Home Share Screen must not directly open the generic Join dialog.');
+assert(js.includes("submit.textContent=shareMode?'Share Screen':'Continue'"),'Dedicated Home share entry must identify itself as Share Screen.');
 for(const section of ['homeSection','meetingsSection'])assert(html.includes(`id=\"${section}\"`),`Missing desktop section ${section}`);
 assert(!html.includes('id="contactsSection"')&&!html.includes('data-section="contacts"'),'Dead Contacts placeholder must not ship.');
 assert(!html.includes('aria-label="Search"'),'Dead Search control must not ship.');
