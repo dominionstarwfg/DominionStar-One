@@ -41,6 +41,10 @@ assert(js.includes("function setJoinDialogMode(mode='join')"),'Home Share Screen
 assert(js.includes("setJoinDialogMode('share');openDialog('join')"),'Home Share Screen must enter the dedicated share flow.');
 assert(!js.includes("document.body.dataset.shareAfterJoin='1';openDialog('join')"),'Home Share Screen must not directly open the generic Join dialog.');
 assert(js.includes("submit.textContent=shareMode?'Share Screen':'Continue'"),'Dedicated Home share entry must identify itself as Share Screen.');
+assert(js.includes("nameLabel.style.display=shareMode?'none':''"),'Home Share must hide the redundant signed-in display-name field.');
+assert(js.includes("const shareMode=dialogs.join.dataset.entryMode==='share'"),'Join submission must distinguish normal Join from Home Share.');
+assert(js.includes("if(!shareMode){await openPrejoin('participant');return;}"),'Normal Join keeps prejoin while Home Share bypasses camera/mic prejoin.');
+assert(js.includes("pendingMediaPreferences={cameraOn:false,micOn:false"),'Home Share must enter the meeting with camera and microphone off before opening the chooser.');
 for(const section of ['homeSection','meetingsSection'])assert(html.includes(`id=\"${section}\"`),`Missing desktop section ${section}`);
 assert(!html.includes('id="contactsSection"')&&!html.includes('data-section="contacts"'),'Dead Contacts placeholder must not ship.');
 assert(!html.includes('aria-label="Search"'),'Dead Search control must not ship.');
