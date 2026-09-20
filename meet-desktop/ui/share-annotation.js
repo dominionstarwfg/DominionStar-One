@@ -213,6 +213,17 @@
     renderComposite();if(policy.showNames)showAnnotatorName(fromName,{x,y});return true;
   }
 
+  function resetForNewShare(){
+    closeTextEditor({commit:false});clearLaser();clearSelection();state.drawing=false;state.last=null;state.start=null;state.shapeBase=null;
+    state.history.length=0;state.redo.length=0;state.hasRemoteAnnotations=false;
+    if(state.localCtx&&state.localCanvas)state.localCtx.clearRect(0,0,state.localCanvas.width,state.localCanvas.height);
+    if(state.remoteCtx&&state.remoteCanvas)state.remoteCtx.clearRect(0,0,state.remoteCanvas.width,state.remoteCanvas.height);
+    renderComposite();syncHistory();
+    state.active=false;
+    if(state.overlay){state.overlay.classList.remove('active','remote-visible','persist-visible');state.overlay.hidden=true;}
+    const controller=share();if(controller?.snapshot?.().annotating)controller.setAnnotationCanvas?.(null);
+    return true;
+  }
   async function save(format='png'){
     const controller=share();if(!controller?.snapshot?.().active)return false;const normalized=String(format||'png').toLowerCase()==='pdf'?'pdf':'png';
     const button=state.overlay?.querySelector(`[data-annotation-save="${normalized}"]`),prior=button?.textContent||'';if(button){button.disabled=true;button.textContent='Saving…';}
@@ -257,5 +268,5 @@
     if(state.mode==='select'&&event.key==='Escape')clearSelection();
   });
   setInterval(()=>{if(state.active&&!share()?.snapshot?.().active)deactivate();},400);
-  window.DominionShareAnnotation=Object.freeze({version:'1.5.0',activate,deactivate,toggle,clear,undo,redo,save,setMode,applyRemoteStroke,applyRemoteText,snapshot:()=>({active:state.active,mode:state.mode,color:state.color,undoDepth:state.history.length,redoDepth:state.redo.length,hasRemoteAnnotations:state.hasRemoteAnnotations,selection:state.selection.rect?{...state.selection.rect}:null})});
+  window.DominionShareAnnotation=Object.freeze({version:'1.5.1',activate,deactivate,toggle,clear,undo,redo,save,resetForNewShare,setMode,applyRemoteStroke,applyRemoteText,snapshot:()=>({active:state.active,mode:state.mode,color:state.color,undoDepth:state.history.length,redoDepth:state.redo.length,hasRemoteAnnotations:state.hasRemoteAnnotations,selection:state.selection.rect?{...state.selection.rect}:null})});
 })();
