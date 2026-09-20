@@ -10,7 +10,7 @@
   const readPreference=(name,fallback)=>{
     try{
       if(window.DominionPreferences?.read)return window.DominionPreferences.read(name);
-      const key={shareScaleToFit:'ds_pref_share_scale_to_fit',shareEnterFullScreen:'ds_pref_share_enter_fullscreen',shareGreenBorder:'ds_pref_share_green_border'}[name];
+      const key={shareScaleToFit:'ds_pref_share_scale_to_fit',shareEnterFullScreen:'ds_pref_share_enter_fullscreen'}[name];
       if(!key)return fallback;const raw=localStorage.getItem(key);return raw===null?fallback:raw==='1';
     }catch{return fallback;}
   };
@@ -75,7 +75,10 @@
   function applyRemoteShareView(id){
     const video=q('#remoteShareVideo');if(!video||String(video.dataset.peerId||'')!==String(id))return;
     const meta=state.remoteShareMeta.get(String(id))||{},fit=readPreference('shareScaleToFit',true),optimized=Boolean(meta.optimizeVideo);
-    const green=Boolean(readPreference('shareGreenBorder',true)||optimized);
+    // Zoom forces the receiver-side green boundary for optimized video shares.
+    // The user's "Show green border around my shared content" preference is
+    // presenter-side only and is enforced by the native macOS border overlay.
+    const green=optimized;
     document.body.classList.toggle('ds-share-scale-fit',fit);
     document.body.classList.toggle('ds-share-original-size',!fit);
     document.body.classList.toggle('ds-share-green-border',green);
