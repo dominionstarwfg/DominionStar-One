@@ -9,8 +9,10 @@
   let frame=0;
   let meetingObserver=null;
   let sideObserver=null;
+  let stageResizeObserver=null;
   let observedMeeting=null;
   let observedSideKey='';
+  let observedStage=null;
   let dockBound=null;
   let dockDrag=null;
   let surfaceDrag=null;
@@ -323,7 +325,7 @@
     const sr=stage.getBoundingClientRect();
     const width=Math.max(1,sr.width||stage.clientWidth||0);
     const height=Math.max(1,sr.height||stage.clientHeight||0);
-    const compact=width<760;
+    const compact=width<760||height<520;
     const userPositioned=dock.classList.contains('user-positioned');
 
     dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right';
@@ -386,7 +388,7 @@
   }
 
   function syncNow(){
-    frame=0;installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();
+    frame=0;installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();observeStageGeometry();
     if(!meetingOpen())return;
     primePhysicalControls();primeLegacyStructure();ensureToolbarZones();
     syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();
@@ -409,6 +411,12 @@
     sideObserver=new MutationObserver(()=>schedule());
     if(side)sideObserver.observe(side,{attributes:true,attributeFilter:['hidden']});
     if(chat)sideObserver.observe(chat,{attributes:true,attributeFilter:['hidden']});
+  }
+
+  function observeStageGeometry(){
+    const stage=q('.stage');if(stage===observedStage)return;
+    stageResizeObserver?.disconnect();observedStage=stage||null;if(!stage||typeof ResizeObserver!=='function')return;
+    stageResizeObserver=new ResizeObserver(()=>schedule());stageResizeObserver.observe(stage);
   }
 
   document.addEventListener('click',event=>{
@@ -468,5 +476,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.33-share-layout-aware',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,releaseRuntimeVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.34-stage-responsive-share-layout',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,releaseRuntimeVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
