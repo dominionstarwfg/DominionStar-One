@@ -168,6 +168,9 @@ assert(shareService.includes("meetingVisible:true"),'Presenter toolbar state mus
 assert(presenterHtml.includes('<svg viewBox="0 0 24 24"'),'Presenter toolbar must use vector controls.');
 for(const legacyGlyph of ['◉','▣','♙','▢','Ⅱ','✎','▤'])assert(!presenterHtml.includes(legacyGlyph),`Presenter toolbar must not regress to legacy glyph ${legacyGlyph}.`);
 assert(presenterHtml.includes('data-command="stop"')&&presenterHtml.includes('Stop Share'),'Presenter toolbar must expose Stop Share directly.');
+assert(presenterHtml.includes('id="layoutButton"')&&presenterHtml.includes('>Layout</span>'),'Presenter toolbar must expose Zoom-style Layout as a first-class share control.');
+assert(presenterHtml.includes('id="layoutMenu"')&&presenterHtml.includes('data-command="layout-speaker"')&&presenterHtml.includes('data-command="layout-gallery"')&&presenterHtml.includes('data-command="layout-hide"'),'Presenter Layout control must expose speaker, gallery, and hide-video choices.');
+assert(presenterJs.includes("layout=$('#layoutMenu')")&&presenterJs.includes("$('#layoutButton').addEventListener"),'Presenter Layout must own a functional popover instead of a decorative label.');
 assert(presenterCss.includes('.icon svg'),'Presenter toolbar must explicitly style its vector icon system.');
 assert(presenterCss.includes('.toolbar .stop'),'Stop Share must have dedicated presenter-toolbar styling.');
 assert(presenterJs.includes("if(command==='stop')"),'Presenter toolbar must own a direct Stop Share click transaction.');
