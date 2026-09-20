@@ -157,7 +157,20 @@
     state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();publishPauseState(true);return snapshot();
   }
 
-  async function resume(){if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot();}
+  async function resume(){
+    if(!state.liveStream||!state.paused)return snapshot();
+    const previousFrozen=state.frozenStream;
+    state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
+    if(state.annotationCanvas)startComposite();
+    emit();publishPauseState(false);
+    // Keep the participant-facing frozen track alive until WebRTC has
+    // replaced it with the live display track. Ending it first can expose a
+    // transient black/ended frame during Resume, which breaks Zoom-style
+    // frozen-frame privacy semantics.
+    try{await window.DominionWebRTCController?.syncLocalTracks?.();}catch{}
+    stopTracks(previousFrozen);
+    return snapshot();
+  }
   async function togglePause(videoElement){return state.paused?resume():pause(videoElement);}
   function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
   function setAnnotationCanvas(canvas){
