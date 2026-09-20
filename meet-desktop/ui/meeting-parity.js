@@ -131,11 +131,24 @@
     splitter.addEventListener('pointerup',end);splitter.addEventListener('pointercancel',end);
     return splitter;
   }
+  function syncMinimizedVideoPanel(){
+    const dock=q('#participantVideoDock');if(!dock)return null;
+    const tiles=qa('#participantVideoDock .remote-peer-tile');for(const tile of tiles)tile.classList.remove('minimized-featured');
+    if(!dock.classList.contains('minimized'))return null;
+    const featured=(spotlightParticipantIds[0]?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantIds[0])}"]`):null)
+      ||q('#participantVideoDock .remote-peer-tile.active-speaker')
+      ||q('#participantVideoDock .remote-peer-tile.share-featured')
+      ||tiles.find(tile=>!tile.hidden&&!tile.classList.contains('local-video-dock-tile'))
+      ||q('#localVideoDockTile');
+    if(featured)featured.classList.add('minimized-featured');
+    return featured||null;
+  }
+
   function syncShareLayout(){
     const overlay=q('#meetingOverlay'),stage=q('.stage'),dock=q('#participantVideoDock'),splitter=ensureShareSplitter();if(!overlay||!stage||!dock||!splitter)return;
     const active=sharing(),mode=readView(),showPanel=window.DominionPreferences?.read?.('shareVideoDock')!==false;
-    const stageRect=stage.getBoundingClientRect(),requestedSideBySide=window.DominionPreferences?.read?.('shareSideBySide')===true;
-    const sideBySideCapable=stageRect.width>=680&&stageRect.height>=360;
+    const stageRect=stage.getBoundingClientRect(),requestedSideBySide=window.DominionPreferences?.read?.('shareSideBySide')===true,minimized=dock.classList.contains('minimized');
+    const sideBySideCapable=stageRect.width>=680&&stageRect.height>=360&&!minimized;
     const sideBySide=active&&showPanel&&requestedSideBySide&&sideBySideCapable;
     const floatingPanel=active&&showPanel&&!sideBySide;
     overlay.dataset.shareSideBySideSuspended=active&&showPanel&&requestedSideBySide&&!sideBySideCapable?'1':'0';
@@ -152,6 +165,7 @@
         ||q('#localVideoDockTile');
       featured?.classList.add('share-featured');
     }
+    syncMinimizedVideoPanel();
     if(active&&!showPanel)dock.hidden=true;
     if(active&&showPanel){
       dock.classList.remove('gallery-stage','multi-speaker-stage');
@@ -194,8 +208,10 @@
   }
 
   function ensureVideoDock(){
-    const stage=q('.stage');if(!stage)return null;let dock=q('#participantVideoDock');if(!dock){dock=document.createElement('aside');dock.id='participantVideoDock';dock.className='participant-video-dock';dock.dataset.anchor='right';dock.hidden=true;dock.innerHTML='<header class="participant-video-dock-head"><span class="dock-grip" aria-hidden="true"><i></i><i></i><i></i></span><strong>Participant video</strong><div><button type="button" data-dock-minimize aria-label="Minimize participant video">−</button><button type="button" data-dock-reset aria-label="Reset participant video position">↺</button></div></header><div class="participant-video-dock-body"></div><span class="participant-video-resize" aria-hidden="true"></span>';stage.append(dock);
-      dock.querySelector('[data-dock-minimize]').onclick=()=>{dock.classList.toggle('minimized');dock.querySelector('[data-dock-minimize]').textContent=dock.classList.contains('minimized')?'□':'−';};dock.querySelector('[data-dock-reset]').onclick=()=>resetVideoDock();
+    const stage=q('.stage');if(!stage)return null;let dock=q('#participantVideoDock');if(!dock){dock=document.createElement('aside');dock.id='participantVideoDock';dock.className='participant-video-dock';dock.dataset.anchor='right';dock.hidden=true;dock.innerHTML='<header class="participant-video-dock-head"><span class="dock-grip" aria-hidden="true"><i></i><i></i><i></i></span><strong>Participant video</strong><div><button type="button" data-dock-minimize aria-label="Minimize participant video panel" title="Minimize video panel">−</button><button type="button" data-dock-reset aria-label="Reset participant video position" title="Reset video panel position">↺</button><button type="button" data-dock-hide aria-label="Hide participant video panel" title="Hide video panel">×</button></div></header><div class="participant-video-dock-body"></div><span class="participant-video-resize" aria-hidden="true"></span>';stage.append(dock);
+      dock.querySelector('[data-dock-minimize]').onclick=()=>{dock.classList.toggle('minimized');const minimized=dock.classList.contains('minimized'),button=dock.querySelector('[data-dock-minimize]');button.textContent=minimized?'□':'−';button.setAttribute('aria-label',minimized?'Restore participant video panel':'Minimize participant video panel');syncShareLayout();syncMinimizedVideoPanel();};
+      dock.querySelector('[data-dock-reset]').onclick=()=>resetVideoDock();
+      dock.querySelector('[data-dock-hide]').onclick=()=>{window.DominionPreferences?.write?.('shareVideoDock',false);syncShareLayout();syncVideoDock();};
       const head=dock.querySelector('.participant-video-dock-head');head.addEventListener('pointerdown',startDockDrag);head.addEventListener('pointermove',moveDockDrag);head.addEventListener('pointerup',endDockDrag);head.addEventListener('pointercancel',endDockDrag);
       const resize=dock.querySelector('.participant-video-resize');resize.addEventListener('pointerdown',startDockResize);resize.addEventListener('pointermove',moveDockResize);resize.addEventListener('pointerup',endDockResize);resize.addEventListener('pointercancel',endDockResize);restoreVideoDock();
     }
@@ -322,5 +338,5 @@
   window.addEventListener('dominion:meeting-signal',scheduleParityRefresh);
   window.addEventListener('dominion:meeting-ended',()=>{if(parityFrame){cancelAnimationFrame(parityFrame);parityFrame=0;}spotlightParticipantIds=[];closeMenus();});
   install();
-  window.DominionMeetingParity=Object.freeze({version:'2.0.40-adaptive-share-layout',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout,openMore,openSecurity});
+  window.DominionMeetingParity=Object.freeze({version:'2.0.41-share-video-panel',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout,syncMinimizedVideoPanel,openMore,openSecurity});
 })();
