@@ -214,7 +214,9 @@ rejectText(controller,'rendererCommitted:true','ShareController must not own mee
 requireText(controller,'if(state.annotationCanvas===next)','ShareController must suppress unchanged annotation-canvas emissions.');
 requireText(controller,'if(next&&state.liveStream&&!state.compositeStream)startComposite();','Idempotent annotation guard must still recover a missing active composite stream.');
 requireText(annotation,'const controllerAnnotating=Boolean(controller?.snapshot?.().annotating);','Annotation teardown must inspect real controller annotation state.');
-requireText(annotation,'if(controllerAnnotating&&!state.hasRemoteAnnotations)controller?.setAnnotationCanvas?.(null);','Presenter annotation teardown must preserve remote participant annotations that still need compositing.');
+requireText(annotation,'const localAnnotations=hasLocalAnnotations(),persistent=localAnnotations||state.hasRemoteAnnotations;','Presenter annotation teardown must preserve both local and remote annotation content after the tool palette closes.');
+requireText(annotation,'if(controllerAnnotating&&!persistent)controller?.setAnnotationCanvas?.(null);','Annotation canvas must detach only when no persistent annotation content remains.');
+requireText(annotation,"state.overlay.classList.toggle('persist-visible',persistent)",'Closing annotation tools must leave existing annotation content visible instead of erasing it.');
 rejectText(annotation,'share()?.setAnnotationCanvas?.(null)','Annotation deactivate must not unconditionally feed an unchanged null canvas back into ShareController.');
 
 // Critical physical-Mac repair: capture-start notification itself is one-way.
