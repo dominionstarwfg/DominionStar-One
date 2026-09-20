@@ -108,6 +108,7 @@
     box.hidden=false;box.style.left=(rect.x/state.canvas.width*100)+'%';box.style.top=(rect.y/state.canvas.height*100)+'%';box.style.width=(rect.w/state.canvas.width*100)+'%';box.style.height=(rect.h/state.canvas.height*100)+'%';
   }
   function clearSelection(){state.selection.rect=null;state.selection.marquee=false;state.selection.transform=null;const box=state.selection.box;if(box)box.hidden=true;}
+  function hasLocalAnnotations(){return Boolean(state.localCanvas&&localHasContent({x:0,y:0,w:state.localCanvas.width,h:state.localCanvas.height}));}
   function selectionRectFromHandle(start,handle,at){
     let x1=start.x,y1=start.y,x2=start.x+start.w,y2=start.y+start.h;
     if(handle.includes('w'))x1=at.x;if(handle.includes('e'))x2=at.x;if(handle.includes('n'))y1=at.y;if(handle.includes('s'))y2=at.y;
@@ -179,7 +180,7 @@
   function clear(){
     if(!state.localCtx||!state.remoteCtx)return;closeTextEditor({commit:true});pushHistory();clearLaser();
     state.localCtx.clearRect(0,0,state.localCanvas.width,state.localCanvas.height);state.remoteCtx.clearRect(0,0,state.remoteCanvas.width,state.remoteCanvas.height);
-    state.hasRemoteAnnotations=false;renderComposite();clearSelection();if(state.overlay){state.overlay.classList.remove('remote-visible');if(!state.active)state.overlay.hidden=true;}
+    state.hasRemoteAnnotations=false;renderComposite();clearSelection();if(state.overlay){state.overlay.classList.remove('remote-visible','persist-visible');if(!state.active)state.overlay.hidden=true;}if(!state.active&&share()?.snapshot?.().annotating)share()?.setAnnotationCanvas?.(null);
   }
 
   async function collaborativePolicy(){
@@ -240,8 +241,9 @@
   function deactivate(){
     const controller=share(),controllerAnnotating=Boolean(controller?.snapshot?.().annotating),changed=state.active||state.drawing||controllerAnnotating;
     state.active=false;state.drawing=false;closeTextEditor({commit:true});clearLaser();clearSelection();
-    if(state.overlay){state.overlay.classList.remove('active');state.overlay.hidden=!state.hasRemoteAnnotations;state.overlay.classList.toggle('remote-visible',state.hasRemoteAnnotations);}
-    if(controllerAnnotating&&!state.hasRemoteAnnotations)controller?.setAnnotationCanvas?.(null);
+    const localAnnotations=hasLocalAnnotations(),persistent=localAnnotations||state.hasRemoteAnnotations;
+    if(state.overlay){state.overlay.classList.remove('active');state.overlay.hidden=!persistent;state.overlay.classList.toggle('remote-visible',state.hasRemoteAnnotations);state.overlay.classList.toggle('persist-visible',persistent);}
+    if(controllerAnnotating&&!persistent)controller?.setAnnotationCanvas?.(null);
     return changed?false:false;
   }
   function toggle(){return state.active?deactivate():activate();}
