@@ -62,3 +62,7 @@
 .meeting-chat-form{grid-template-columns:1fr auto!important;align-items:end;padding:10px 12px!important;background:#171717;border-top:1px solid #303030!important}.meeting-chat-form textarea{min-height:42px;max-height:110px;resize:vertical;border:1px solid #3b3b3b;border-radius:7px;background:#202020;color:#f2f2f2;padding:9px 10px;font:inherit;font-size:10px;line-height:1.35}.meeting-chat-form textarea:focus{outline:1px solid #2d8cff;border-color:#2d8cff}.meeting-chat-form button{height:34px!important;border-radius:7px!important;background:#2d8cff!important;padding:0 13px!important}
 .meeting-control.has-unread::after{content:attr(data-unread);position:absolute;top:2px;right:10px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:#f04455;color:white;display:grid;place-items:center;font-size:8px;font-weight:800;line-height:1}
 .meeting-control[data-unread="0"]::after{display:none}
+
+.share-annotation-text-editor{position:absolute;z-index:3;width:min(300px,42vw);min-height:66px;padding:8px 10px;border:1px solid rgba(91,158,255,.72);border-radius:7px;outline:none;resize:both;background:rgba(10,15,22,.94);color:#fff;font:600 14px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-shadow:0 10px 28px rgba(0,0,0,.42);pointer-events:auto}
+.share-annotation-tools [data-annotation-mode="text"].active{background:rgba(45,140,255,.18);color:#8fc2ff}
+.share-annotation-tools [data-annotation-redo]:disabled,.share-annotation-tools [data-annotation-undo]:disabled{opacity:.38;cursor:not-allowed}
