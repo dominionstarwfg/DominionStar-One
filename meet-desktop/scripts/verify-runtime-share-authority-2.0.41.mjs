@@ -23,6 +23,9 @@ const macVideo=read('ui/mac-share-video.html');
 const macVideoJs=read('ui/mac-share-video.js');
 const macVideoMirror=read('src/mac-share-video-mirror.mjs');
 const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
+const preferences=read('ui/preferences.js');
+const webrtc=read('ui/webrtc-controller.js');
+const webrtcCss=read('ui/webrtc.css');
 
 assert.equal(pkg.version,'2.0.41');
 new Function(authority);
@@ -135,5 +138,14 @@ assert(macToolbar.includes('data-command="share-sound"')&&macToolbar.includes('d
 assert(macToolbarJs.includes("shareSound.textContent=`${state?.shareAudio?'✓ ':''}Share Sound`")&&macToolbarJs.includes("optimizeCommand.textContent=`${state?.optimizeVideo?'✓ ':''}Optimize for video sharing`"),'Mac presenter More menu must reflect authoritative active-share option state.');
 assert(macOverlay.includes('maxHeight:390')&&macOverlay.includes('toolbarMenuOpen?390:92'),'Expanded Mac presenter More menu must have enough native window geometry for live share options.');
 assert(shareService.includes("shareAudioMode:String(options.shareAudioMode||'mono')==='stereo'?'stereo':'mono'"),'Main-process source selection must preserve Mono/Stereo share-audio mode.');
+assert(controller.includes("width:{ideal:1920,max:1920},height:{ideal:1080,max:1080}")&&controller.includes("frameRate:{ideal:30,max:30}"),'Optimized full-screen video sharing must target smooth 30fps delivery at up to 1080p.');
+assert(preferences.includes("shareScaleToFit:'ds_pref_share_scale_to_fit'")&&preferences.includes("shareEnterFullScreen:'ds_pref_share_enter_fullscreen'")&&preferences.includes("shareGreenBorder:'ds_pref_share_green_border'"),'Share settings must persist Zoom-style viewer scaling/full-screen and presenter green-border preferences.');
+assert(authority.includes("showGreenBorder:pref('ds_pref_share_green_border',true)"),'Approved source chooser must carry the presenter green-border preference.');
+assert(shareService.includes('showGreenBorder:options.showGreenBorder!==false'),'Native source selection must preserve green-border intent.');
+assert(macOverlay.includes('isDisplayShare()&&shareState.showGreenBorder!==false'),'macOS green border must be limited to shared displays and respect the user preference.');
+assert(webrtc.includes("readPreference('shareScaleToFit',true)")&&webrtc.includes('async function enterRemoteShareFullscreen()'),'Viewer transport must support Scale-to-fit and Enter-full-screen-on-share behavior.');
+assert(webrtc.includes('const green=optimized;'),'Optimized receiving mode must force the green shared-content boundary without hijacking the presenter-only border preference.');
+assert(webrtcCss.includes('.remote-share-active.ds-share-scale-fit #remoteShareVideo')&&webrtcCss.includes('.remote-share-active.ds-share-original-size #remoteShareVideo'),'Remote shared content must support fit-to-window and original-size viewing modes.');
+assert(webrtcCss.includes('.remote-share-active.ds-remote-share-optimized #remoteShareVideo'),'Optimized remote content must render the Zoom-style green boundary.');
 
 console.log('DOMINIONSTAR_RUNTIME_SHARE_AUTHORITY_2_0_41_OK one-primary-share-command picker-first-identity-aware-permission permission-state-before-request two-second-pre-capture-handoff live-share-confirmation zoom-style-in-place-refresh no-stacked-recovery targeted-tcc-reset compact-prejoin approved-screens-files-more real-source-bridge pre-capture-main-window-park capture-protected-meeting scheduled-capture-renderer bounded-native-command-retry full-display-green-border local-video-layout active-share-toolbar acknowledged-mac-presenter-routing truthful-toolbar-delivery local-first-stop single-camera-owner frame-mirror-video-dock no-second-display-capture-owner home-locked');
