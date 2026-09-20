@@ -143,6 +143,23 @@ requireText(webrtc,"state.shareUnsub=window.DominionShareController?.onChange?.(
 requireText(webrtc,'lanes[2]?.sender?.replaceTrack(screen)','WebRTC must replace the participant-facing screen sender when Pause/Resume changes the output stream.');
 requireText(controller,'stopTracks(state.liveStream)','Stop Share must release capture tracks.');
 requireText(controller,'async function replaceSource','New Share must remain transactional.');
+requireText(controller,'const previous={','New Share must retain the complete old share state until replacement commit.');
+requireText(controller,'compositeStream:state.compositeStream','New Share must retain the previous annotated/composited participant stream during replacement.');
+requireText(controller,'let nextStream=null,transitionStarted=false,committed=false;','New Share must distinguish capture acquisition from an actual staged transition.');
+requireText(controller,'transitionStarted=true;','New Share must not disturb the old share before replacement capture acquisition succeeds.');
+requireText(controller,"if(typeof syncSenders!=='function')throw new Error('Screen-share transport is not ready to switch sources.')",'New Share must refuse to retire the old share without an authoritative WebRTC sender sync path.');
+requireText(controller,'await syncSenders({strict:true});','New Share must commit the replacement track through strict WebRTC sender synchronization.');
+requireText(controller,'stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);','New Share may retire old participant-facing tracks only after replacement commit.');
+requireText(controller,'if(!committed&&transitionStarted)','New Share rollback must only rebuild old state after replacement state was actually staged.');
+requireText(controller,'else if(!committed){\n        stopTracks(nextStream);','Cancelled or denied New Share acquisition must leave the existing share untouched.');
+requireText(webrtc,'async function syncAllSenders({strict=false}={})','WebRTC must support a strict sender-sync mode for transactional source switching.');
+requireText(webrtc,'if(strict&&failures.length)throw failures[0];','Strict New Share synchronization must fail when any current sender cannot replace its track.');
+requireText(webrtc,'syncLocalTracks:options=>syncAllSenders(options||{})','New Share must expose strict sender synchronization through the WebRTC controller.');
+requireText(annotation,'function resetForNewShare()','A committed New Share must have an explicit annotation reset path.');
+requireText(integration,"await share.replaceSource({name:selection?.name,options:selectionOptions});window.DominionShareAnnotation?.resetForNewShare?.();",'Annotations must clear only after the replacement source commits successfully.');
+const newShareBlock=controller.slice(controller.indexOf('async function replaceSource'),controller.indexOf('async function captureFreezeFrame'));
+assert.ok(newShareBlock.indexOf('await syncSenders({strict:true});')<newShareBlock.indexOf('stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);'),'New Share must never stop the old participant-facing tracks before strict sender replacement completes.');
+
 requireText(annotation,'setAnnotationCanvas','Annotation must remain connected to the single ShareController.');
 requireText(annotation,'drawLaser','Laser pointer support is missing.');
 requireText(annotation,'data-annotation-mode="text"','Annotation must expose a real Text tool.');
