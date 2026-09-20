@@ -53,7 +53,7 @@ assert(runtime.includes("if(overlay.classList.contains('share-side-by-side')){re
 assert(runtime.includes('function releaseRuntimeVideoDockGeometry(dock)'),'Entering side-by-side mode must clear stale inline dock geometry from floating mode.');
 assert(runtime.includes("new ResizeObserver(()=>schedule())")&&runtime.includes('stageResizeObserver.observe(stage)'),'Final runtime must react to stage-size changes, not only browser window resize events.');
 assert(meetingParity.includes('data-dock-minimize')&&meetingParity.includes('data-dock-hide'),'Sharing video panel must expose direct Minimize and Hide controls.');
-assert(meetingParity.includes('function syncMinimizedVideoPanel()')&&meetingParity.includes("tile.classList.add('minimized-featured')"),'Minimize Video Panel must retain one live participant tile instead of collapsing to empty chrome.');
+assert(meetingParity.includes('function syncMinimizedVideoPanel()')&&meetingParity.includes("featured.classList.add('minimized-featured')"),'Minimize Video Panel must retain one live participant tile instead of collapsing to empty chrome.');
 assert(meetingParity.includes("dock.querySelector('[data-dock-hide]').onclick=()=>{window.DominionPreferences?.write?.('shareVideoDock',false)"),'Hide Video Panel must use the authoritative sharing preference.');
 assert(meetingParity.includes('dock.hidden=false;'),'Show Video Panel must restore the actual participant video surface during an active share.');
 assert(meetingParityCss.includes('.meeting-overlay.share-panel-floating .participant-video-dock.minimized .remote-peer-tile.minimized-featured'),'Minimized sharing video panel must render the selected active-speaker tile.');
