@@ -3,7 +3,7 @@
   if(window.DominionRemoteAnnotation)return;
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s);
-  const state={active:false,mode:'pen',color:'#ff3b30',drawing:false,points:[],canvas:null,ctx:null,toolbar:null,button:null,textEditor:null,policy:{enabled:false,showNames:true},policyAt:0,clearTimer:0};
+  const state={active:false,mode:'pen',color:'#ff3b30',drawing:false,points:[],canvas:null,ctx:null,toolbar:null,button:null,textEditor:null,policy:{enabled:false,showNames:true},policyAt:0,clearTimer:0,refreshTimer:0};
 
   function remoteVideo(){const video=q('#remoteShareVideo');return video&&!video.hidden&&video.srcObject?video:null;}
   function stage(){return q('#meetingOverlay .stage')||q('.stage');}
@@ -87,6 +87,6 @@
     if(!visible&&state.active)deactivate();
   }
   const observer=new MutationObserver(()=>void refresh());observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class']});
-  window.addEventListener('resize',resize,{passive:true});setInterval(()=>void refresh(),1000);void refresh();
-  window.DominionRemoteAnnotation=Object.freeze({version:'1.0.0',activate,deactivate,state:()=>({active:state.active,mode:state.mode,color:state.color,policy:{...state.policy}}),dispose:()=>{observer.disconnect();clearInterval();}});
+  window.addEventListener('resize',resize,{passive:true});state.refreshTimer=setInterval(()=>void refresh(),1000);void refresh();
+  window.DominionRemoteAnnotation=Object.freeze({version:'1.0.1',activate,deactivate,state:()=>({active:state.active,mode:state.mode,color:state.color,policy:{...state.policy}}),dispose:()=>{observer.disconnect();clearInterval(state.refreshTimer);clearTimeout(state.clearTimer);}});
 })();
