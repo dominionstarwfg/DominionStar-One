@@ -78,6 +78,12 @@
     if(label)label.textContent=paused?'Share paused':'You are screen sharing';
     if(source){const raw=String(state?.sourceName||'Shared content');source.textContent=/screen|desktop|display|entire/i.test(raw)?'Entire screen':raw;}
     if(audioFlag)audioFlag.hidden=!state?.shareAudio;if(optimize)optimize.hidden=!state?.optimizeVideo;
+    const shareSound=q('#shareSoundCommand'),mono=q('#shareSoundMono'),stereo=q('#shareSoundStereo'),optimizeCommand=q('#optimizeVideoCommand');
+    if(shareSound)shareSound.textContent=`${state?.shareAudio?'✓ ':''}Share Sound`;
+    const mode=String(state?.shareAudioMode||'mono')==='stereo'?'stereo':'mono';
+    if(mono)mono.textContent=`${mode==='mono'?'✓ ':''}Sound mode: Mono`;
+    if(stereo)stereo.textContent=`${mode==='stereo'?'✓ ':''}Sound mode: Stereo (high fidelity)`;
+    if(optimizeCommand)optimizeCommand.textContent=`${state?.optimizeVideo?'✓ ':''}Optimize for video sharing`;
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
