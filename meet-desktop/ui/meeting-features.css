@@ -75,3 +75,8 @@
 .annotation-save-actions{display:flex;align-items:center;gap:3px;padding-left:4px;border-left:1px solid rgba(255,255,255,.11)}
 .annotation-save-actions button{min-width:58px!important;color:#9ec7ff!important}
 .annotation-save-actions button:disabled{opacity:.55!important}
+
+.share-annotation-overlay.remote-visible:not(.active){display:block!important;pointer-events:none!important}
+.share-annotation-overlay.remote-visible:not(.active) .share-annotation-tools{display:none!important}
+.share-annotator-name{position:absolute;z-index:6;transform:translate(10px,-105%);max-width:180px;padding:5px 8px;border-radius:7px;background:rgba(8,13,20,.9);border:1px solid rgba(255,255,255,.15);color:#f7f9fc;font-size:9px;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 22px rgba(0,0,0,.34);pointer-events:none}
+.share-annotator-name[hidden]{display:none!important}
