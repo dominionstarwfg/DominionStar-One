@@ -202,6 +202,7 @@ ipcMain.handle('meeting:set-recording-permission',(_event,{participantId,enabled
 ipcMain.handle('meeting:set-recording-state',(_event,{participantId,active,paused})=>meetingService?.setRecordingState(participantId,active,paused));
 ipcMain.handle('meeting:set-security',(_event,{roomId,options})=>meetingService?.setSecurity(roomId,options));
 ipcMain.handle('meeting:set-annotation-policy',(_event,{roomId,options})=>meetingService?.setAnnotationPolicy(roomId,options));
+ipcMain.handle('meeting:set-annotation-names',(_event,{roomId,showNames})=>meetingService?.setAnnotationNames(roomId,showNames));
 ipMainHandleChatPolicy();
 ipMainHandleCaptions();
 ipcMain.handle('meeting:transfer-host-and-leave',(_event,{participantId})=>meetingService?.transferHostAndLeave(participantId));
