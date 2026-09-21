@@ -59,5 +59,11 @@ assert(meetingParity.includes('dock.hidden=false;'),'Show Video Panel must resto
 assert(meetingParityCss.includes('.meeting-overlay.share-panel-floating .participant-video-dock.minimized .remote-peer-tile.minimized-featured'),'Minimized sharing video panel must render the selected active-speaker tile.');
 assert(approved.includes('#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head'),'Approved sharing filmstrip must reveal compact panel controls while sharing.');
 assert(approved.includes('#meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"].minimized .remote-peer-tile.minimized-featured'),'Approved sharing filmstrip must preserve the live minimized speaker tile.');
+assert(meetingParity.includes('data-dock-layout'),'Sharing video panel must expose a direct Speaker/Gallery layout control.');
+assert(meetingParity.includes("const current=readView(),next=current==='speaker'?'gallery':'speaker';applyViewMode(next);syncShareLayout();"),'Sharing video panel layout control must switch the real meeting view state, not only its icon.');
+assert(meetingParity.includes("layoutButton.textContent=mode==='speaker'?'▦':'◫'"),'Sharing video panel must visibly reflect Speaker versus Gallery mode.');
+assert(meetingParityCss.includes('.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock .remote-peer-tile.share-featured'),'Floating Speaker view must show only the active/featured participant tile.');
+assert(meetingParityCss.includes('.meeting-overlay.share-panel-floating[data-share-view="gallery"] #participantVideoDock .remote-peer-tile'),'Floating Gallery view must restore the participant filmstrip.');
+assert(approved.includes('#meetingOverlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile.share-featured'),'Approved-reference styling must preserve floating Speaker view.');
 
 console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
