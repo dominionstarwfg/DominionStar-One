@@ -65,5 +65,12 @@ assert(meetingParity.includes("layoutButton.textContent=mode==='speaker'?'▦':'
 assert(meetingParityCss.includes('.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock .remote-peer-tile.share-featured'),'Floating Speaker view must show only the active/featured participant tile.');
 assert(meetingParityCss.includes('.meeting-overlay.share-panel-floating[data-share-view="gallery"] #participantVideoDock .remote-peer-tile'),'Floating Gallery view must restore the participant filmstrip.');
 assert(approved.includes('#meetingOverlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile.share-featured'),'Approved-reference styling must preserve floating Speaker view.');
+assert(meetingParity.includes("SHARE_SPEAKER_SIZE_KEY='ds_meet_share_speaker_size'"),'Sharing Active Speaker panel size must persist independently from the main meeting layout.');
+assert(meetingParity.includes('data-dock-speaker-size'),'Sharing video panel must expose the macOS-style small/large Active Speaker control.');
+assert(meetingParity.includes("const next=readShareSpeakerSize()==='large'?'small':'large'"),'Active Speaker size control must change real panel state.');
+assert(meetingParity.includes("dock.classList.toggle('speaker-large',active&&mode==='speaker'&&speakerSize==='large'&&!minimized)"),'Large Active Speaker mode must only apply while sharing in Speaker view.');
+assert(meetingParity.includes("speakerSizeButton.hidden=!active||mode!=='speaker'||minimized"),'Active Speaker size control must hide in Gallery and minimized modes.');
+assert(meetingParityCss.includes('#participantVideoDock.speaker-large:not(.user-resized):not(.minimized)'),'Large Active Speaker preset must coexist with manual resize and minimized states.');
+assert(approved.includes('#participantVideoDock[data-approved-filmstrip="1"].speaker-large:not(.user-resized):not(.minimized)'),'Approved-reference styling must preserve the larger Active Speaker panel preset.');
 
 console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
