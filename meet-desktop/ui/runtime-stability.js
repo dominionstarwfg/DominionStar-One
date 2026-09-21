@@ -283,14 +283,16 @@
       panel.style.setProperty('transform','none','important');
       panel.style.setProperty('z-index','2600','important');
       if(panel.dataset.dsRuntimeUserPositioned==='1'){
+        const pw=Math.min(width,bodyWidth-20),ph=Math.min(height,bodyHeight-20);
         const currentLeft=parseFloat(panel.style.left),currentTop=parseFloat(panel.style.top);
-        const left=Number.isFinite(currentLeft)?clamp(currentLeft,10,Math.max(10,bodyWidth-width-10)):Math.max(10,bodyWidth-width-10);
-        const top=Number.isFinite(currentTop)?clamp(currentTop,10,Math.max(10,bodyHeight-Math.min(height,bodyHeight-20)-10)):10;
+        const left=Number.isFinite(currentLeft)?clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10)):Math.max(10,bodyWidth-pw-10);
+        const top=Number.isFinite(currentTop)?clamp(currentTop,10,Math.max(10,bodyHeight-ph-10)):10;
         panel.style.setProperty('left',`${left}px`,'important');
         panel.style.setProperty('right','auto','important');
         panel.style.setProperty('top',`${top}px`,'important');
         panel.style.setProperty('bottom','auto','important');
-        panel.style.setProperty('height',`${Math.min(height,bodyHeight-20)}px`,'important');
+        panel.style.setProperty('width',`${pw}px`,'important');
+        panel.style.setProperty('height',`${ph}px`,'important');
       }else{
         panel.style.setProperty('left','auto','important');
         panel.style.setProperty('right','10px','important');
