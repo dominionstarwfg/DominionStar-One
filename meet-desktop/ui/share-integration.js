@@ -358,6 +358,7 @@
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');applyLayout();return {handled:true,command};}
         if(command==='layout-show'){window.DominionMeetingFeatures?.setVideoPanelVisible?.(true);applyLayout();return {handled:true,command};}
         if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoPanelVisible?.(false);applyLayout();return {handled:true,command};}
+        if(command==='toggle-always-show-controls'){const prefs=window.DominionPreferences,current=Boolean(prefs?.read?.('alwaysShowMeetingControls'));prefs?.write?.('alwaysShowMeetingControls',!current);applyLayout();return {handled:true,command};}
         if(command.startsWith('reaction:')){await window.DominionMeetingFeatures?.sendReaction?.(command.slice('reaction:'.length));applyLayout();return {handled:true,command};}
         if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();applyLayout();return {handled:true,command};}
         if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();applyLayout();return {handled:true,command};}
