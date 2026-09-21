@@ -420,6 +420,11 @@
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       window.DominionMeetingFeatures?.openReactions?.(reactions);
       queueMicrotask(suppressLegacyReactionHand);
+      requestAnimationFrame(()=>{
+        const tray=q('.ds-reaction-tray')||q('.meeting-reaction-menu');if(!tray)return;const r=reactions.getBoundingClientRect(),w=tray.offsetWidth||330,h=tray.offsetHeight||68;
+        const left=clamp(r.left+r.width/2-w/2,10,Math.max(10,innerWidth-w-10)),top=Math.max(10,r.top-h-10);
+        tray.style.setProperty('left',`${left}px`,'important');tray.style.setProperty('right','auto','important');tray.style.setProperty('top',`${top}px`,'important');tray.style.setProperty('bottom','auto','important');
+      });
       return;
     }
     const hostTools=event.target.closest?.('#roomHostTools');
