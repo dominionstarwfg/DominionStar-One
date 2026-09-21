@@ -101,7 +101,13 @@
   function closeOnOutside(event){if(participantBulkMenu&&!participantBulkMenu.contains(event.target)&&!event.target.closest?.('[data-ref-participant-more]'))closeParticipantBulk();if(meetingMoreMenu&&!meetingMoreMenu.contains(event.target)&&!event.target.closest?.('#roomMore'))closeMeetingMore();}
   document.addEventListener('pointerdown',closeOnOutside,true);
 
-  function sync(){syncQueued=false;ensureCriticalMeetingGeometry();ensureDeterministicPresenterIdle();ensureHomeTopbar();ensureNotesAction();ensurePrejoin();reconcileAuthoritativeShareClass();syncMeetingLabels();}
+  function claimFinalMeetingAuthority(){
+    const overlay=q('#meetingOverlay');if(!overlay)return;
+    overlay.classList.remove('ds-exec-lock');
+    for(const node of qa('#meetingOverlay .ds-exec-icon,#meetingOverlay .ds-exec-label,#meetingOverlay .ds-exec-encrypted,#meetingOverlay .ds-exec-divider'))node.remove();
+    for(const node of qa('#meetingOverlay .ds-exec-control'))node.classList.remove('ds-exec-control');
+  }
+  function sync(){syncQueued=false;claimFinalMeetingAuthority();ensureCriticalMeetingGeometry();ensureDeterministicPresenterIdle();ensureHomeTopbar();ensureNotesAction();ensurePrejoin();reconcileAuthoritativeShareClass();syncMeetingLabels();}
   function requestSync(){if(syncQueued)return;syncQueued=true;requestAnimationFrame(sync);}
   const observer=new MutationObserver(requestSync);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-pressed']});window.addEventListener('dominion:meeting-ui-ready',requestSync,true);window.addEventListener('dominion:participant-update',requestSync,true);window.addEventListener('dominion:share-state',requestSync,true);window.addEventListener('resize',requestSync,{passive:true});
   window.DominionZoomScreenshotReference=Object.freeze({version:'2.0.41',sync,requestSync,openHostToolsPanel,openMeetingMore,openParticipantBulkMenu,dispose:()=>{observer.disconnect();clearTimeout(presenterTimer);window.removeEventListener('click',stableCommandDelegate,true);closeHostPanel();closeMeetingMore();closeParticipantBulk();}});
