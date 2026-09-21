@@ -140,7 +140,8 @@
   }
 
   function ensureSelfMore(row){
-    if(String(row.dataset.participantId||'')!==String(localParticipantId||''))return;
+    const id=String(row.dataset.participantId||'');
+    if(id!==String(localParticipantId||'')&&row.dataset.participantSelf!=='1')return;
     const actions=row.querySelector('.participant-actions');if(!actions)return;
     const duplicates=[...actions.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')];
     for(const node of duplicates)node.remove();
