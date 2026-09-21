@@ -44,6 +44,6 @@ assert(features.includes('r.left+r.width/2-width/2')&&features.includes('const t
 assert(personal.includes("passInput.value=String(state.room.passcode||'')")&&personal.includes('passInput.disabled=personal'),'Personal Meeting ID mode must not show a stale unrelated passcode.');
 assert(personalCss.includes('#newMeetingDialog label[hidden]{display:none!important}'),'Hidden personal-room passcode field must remain visually hidden.');
 assert(app.includes('const operation=media.setCamera(target);\n    syncMediaLabels();attachPreview();'),'Video button state must react immediately to user intent.');
-assert(media.includes('warmVideoTimer=setTimeout(releaseWarmVideo,12000)'),'Short camera-off/on toggles must reuse the warm camera path for responsive behavior.');
+assert(media.includes('warmVideoTimer=setTimeout(releaseWarmVideo,1800)'),'Camera warm handoff must remain bounded while immediate UI intent provides responsive control feedback.');
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_ZOOM_PARITY_2_0_43_OK stable-right-panels mac-panel-controls canonical-participant-row anchored-reactions readable-host-tools branded-header prejoin-avatar-safe personal-passcode-consistent responsive-video');
