@@ -76,19 +76,16 @@
 
   function centerParticipantPanel(side,count){
     const body=q('.meeting-body');if(!body||!side)return;
-    const width=count<=1?320:count<=6?360:390;
-    const height=count<=1?390:count<=6?500:Math.min(590,body.clientHeight-28);
-    const w=Math.min(width,Math.max(280,body.clientWidth-24));
-    const h=Math.min(height,Math.max(300,body.clientHeight-24));
-    side.dataset.zoomPanelMode='popout';
+    const width=Math.min(count<=1?360:390,Math.max(300,body.clientWidth-24));
+    side.dataset.zoomPanelMode='runtime';
     side.dataset.dsAdaptiveMode='floating';
     side.style.setProperty('position','absolute','important');
-    side.style.setProperty('width',`${w}px`,'important');
-    side.style.setProperty('height',`${h}px`,'important');
-    side.style.setProperty('left',`${Math.max(12,(body.clientWidth-w)/2)}px`,'important');
-    side.style.setProperty('right','auto','important');
-    side.style.setProperty('top',`${Math.max(12,(body.clientHeight-h)/2)}px`,'important');
-    side.style.setProperty('bottom','auto','important');
+    side.style.setProperty('width',`${width}px`,'important');
+    side.style.setProperty('height','auto','important');
+    side.style.setProperty('left','auto','important');
+    side.style.setProperty('right','10px','important');
+    side.style.setProperty('top','10px','important');
+    side.style.setProperty('bottom','10px','important');
     side.style.setProperty('transform','none','important');
   }
 
@@ -154,7 +151,9 @@
     const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<=1;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
 
-    sortParticipants();installParticipantPanelDrag();
+    sortParticipants();
+    if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();}
+    else installParticipantPanelDrag();
 
     if(!side.hidden&&!side.dataset.dsAdaptiveInitialized){
       side.dataset.dsAdaptiveInitialized='1';
@@ -184,6 +183,7 @@
     const panel=q('#meetingChatPanel'),body=q('.meeting-body'),stage=q('.stage'),overlay=q('#meetingOverlay');if(!panel||!body||!stage||!overlay)return;
     ensureChatNavigation(panel);
     if(panel.hidden){stage.style.removeProperty('margin-right');overlay.classList.remove('ds-chat-docked','ds-chat-floating');return;}
+    if(window.DominionRuntimeStability?.layoutSideSurface){overlay.classList.remove('ds-chat-docked');overlay.classList.add('ds-chat-floating');window.DominionRuntimeStability.layoutSideSurface();return;}
     const wide=body.clientWidth>=1120;
     overlay.classList.toggle('ds-chat-docked',wide);overlay.classList.toggle('ds-chat-floating',!wide);
     panel.dataset.dsAdaptiveMode=wide?'docked':'floating';
