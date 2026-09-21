@@ -23,6 +23,18 @@
   }
 
   const normalizePresenterLayout=value=>['background','shoulder','side'].includes(String(value||''))?String(value):'content';
+  const defaultPresenterGeometry=layout=>{
+    if(layout==='background')return {camera:{x:.70,y:.68,w:.27,h:.27},content:{x:0,y:0,w:1,h:1}};
+    if(layout==='shoulder')return {camera:{x:0,y:0,w:.38,h:1},content:{x:.405,y:.08,w:.57,h:.84}};
+    if(layout==='side')return {camera:{x:.02,y:.02,w:.30,h:.96},content:{x:.34,y:.02,w:.64,h:.96}};
+    return {camera:{x:.70,y:.68,w:.27,h:.27},content:{x:0,y:0,w:1,h:1}};
+  };
+  const normalizePresenterRect=(rect,fallback)=>{
+    const raw=rect&&typeof rect==='object'?rect:{},base=fallback||{x:0,y:0,w:1,h:1};let x=Number.isFinite(Number(raw.x))?Number(raw.x):base.x,y=Number.isFinite(Number(raw.y))?Number(raw.y):base.y,w=Number.isFinite(Number(raw.w))?Number(raw.w):base.w,h=Number.isFinite(Number(raw.h))?Number(raw.h):base.h;
+    x=Math.max(0,Math.min(.95,x));y=Math.max(0,Math.min(.95,y));w=Math.max(.08,Math.min(1,w));h=Math.max(.08,Math.min(1,h));w=Math.min(w,1-x);h=Math.min(h,1-y);return {x,y,w,h};
+  };
+  const presenterGeometry=layout=>{const base=defaultPresenterGeometry(layout),raw=state.options?.presenterGeometry||{};return {camera:normalizePresenterRect(raw.camera,base.camera),content:normalizePresenterRect(raw.content,base.content)};};
+  const rectPixels=(rect,width,height)=>({x:Math.round(rect.x*width),y:Math.round(rect.y*height),w:Math.max(2,Math.round(rect.w*width)),h:Math.max(2,Math.round(rect.h*height))});
   const needsComposite=()=>Boolean(state.annotationCanvas)||normalizePresenterLayout(state.options?.presenterLayout)!=='content';
   const presenterCameraTrack=()=>window.DominionMediaController?.stream?.()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null;
   const createHiddenVideo=()=>{const video=document.createElement('video');video.autoplay=true;video.muted=true;video.playsInline=true;video.style.display='none';document.body.append(video);return video;};
@@ -57,18 +69,15 @@
     ctx.fillStyle='#05080d';ctx.fillRect(0,0,width,height);
     const cameraReady=Boolean(camera?.readyState>=2&&Number(camera.videoWidth)>1&&Number(camera.videoHeight)>1);
     if(layout==='content'||!cameraReady){if(video.readyState>=2)ctx.drawImage(video,0,0,width,height);}
-    else if(layout==='background'){
-      if(video.readyState>=2)ctx.drawImage(video,0,0,width,height);
-      const cw=Math.round(width*.28),ch=Math.round(cw*9/16),margin=Math.round(width*.025),x=width-cw-margin,y=height-ch-margin;
-      ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=18;drawCovered(ctx,camera,x,y,cw,ch);ctx.restore();ctx.strokeStyle='rgba(255,255,255,.72)';ctx.lineWidth=Math.max(2,width*.002);ctx.strokeRect(x,y,cw,ch);
-    }else if(layout==='shoulder'){
-      const gap=Math.round(width*.025),cameraW=Math.round(width*.38),contentX=cameraW+gap,contentW=width-contentX-gap;
-      if(cameraReady)drawCovered(ctx,camera,0,0,cameraW,height);
-      if(video.readyState>=2)drawContained(ctx,video,contentX,Math.round(height*.08),contentW,Math.round(height*.84));
-    }else{
-      const gap=Math.round(width*.018),cameraW=Math.round(width*.32),contentX=cameraW+gap,contentW=width-contentX-gap;
-      if(cameraReady)drawCovered(ctx,camera,0,0,cameraW,height);
-      if(video.readyState>=2)drawContained(ctx,video,contentX,gap,contentW,height-(gap*2));
+    else{
+      const geometry=presenterGeometry(layout),cameraRect=rectPixels(geometry.camera,width,height),contentRect=rectPixels(geometry.content,width,height);
+      if(layout==='background'){
+        if(video.readyState>=2)drawContained(ctx,video,contentRect.x,contentRect.y,contentRect.w,contentRect.h);
+        ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=18;drawCovered(ctx,camera,cameraRect.x,cameraRect.y,cameraRect.w,cameraRect.h);ctx.restore();ctx.strokeStyle='rgba(255,255,255,.72)';ctx.lineWidth=Math.max(2,width*.002);ctx.strokeRect(cameraRect.x,cameraRect.y,cameraRect.w,cameraRect.h);
+      }else{
+        if(cameraReady)drawCovered(ctx,camera,cameraRect.x,cameraRect.y,cameraRect.w,cameraRect.h);
+        if(video.readyState>=2)drawContained(ctx,video,contentRect.x,contentRect.y,contentRect.w,contentRect.h);
+      }
     }
     if(state.annotationCanvas)ctx.drawImage(state.annotationCanvas,0,0,state.annotationCanvas.width,state.annotationCanvas.height,0,0,width,height);
     state.compositeRaf=requestAnimationFrame(compositeFrame);
@@ -291,8 +300,8 @@
       if(!media?.snapshot?.().videoLive)await media?.setCamera?.(true);
       if(!media?.snapshot?.().videoLive)throw new Error('Turn on your camera to use this presenter layout.');
     }
-    const hadComposite=Boolean(state.compositeStream);
-    state.options={...state.options,presenterLayout:next};
+    const hadComposite=Boolean(state.compositeStream),nextGeometry=defaultPresenterGeometry(next);
+    state.options={...state.options,presenterLayout:next,presenterGeometry:next==='content'?state.options?.presenterGeometry:{camera:{...nextGeometry.camera},content:{...nextGeometry.content}}};
     if(needsComposite()&&!state.compositeStream)startComposite();
     emit();
     try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:true});}
