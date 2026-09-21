@@ -216,7 +216,10 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
     const sourceKind=String(source.id||'').startsWith('screen:')?'screen':'window',displayId=sourceKind==='screen'?String(source.display_id||options.displayId||''):'';
     const presenterLayout=['background','shoulder','side'].includes(String(options.presenterLayout||''))?String(options.presenterLayout):'content';
-    const normalizedOptions={presenterLayout,optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),shareAudioMode:String(options.shareAudioMode||'mono')==='stereo'?'stereo':'mono',showGreenBorder:options.showGreenBorder!==false,includeMeetWindows:Boolean(options.includeMeetWindows),sourceKind,displayId};pendingSelection={source,options:normalizedOptions};
+    const clampRect=rect=>{const raw=rect&&typeof rect==='object'?rect:{};let x=Math.max(0,Math.min(.95,Number(raw.x)||0)),y=Math.max(0,Math.min(.95,Number(raw.y)||0)),w=Math.max(.08,Math.min(1,Number(raw.w)||1)),h=Math.max(.08,Math.min(1,Number(raw.h)||1));w=Math.min(w,1-x);h=Math.min(h,1-y);return {x,y,w,h};};
+    const rawGeometry=options.presenterGeometry&&typeof options.presenterGeometry==='object'?options.presenterGeometry:{};
+    const presenterGeometry={camera:clampRect(rawGeometry.camera),content:clampRect(rawGeometry.content)};
+    const normalizedOptions={presenterLayout,presenterGeometry,optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),shareAudioMode:String(options.shareAudioMode||'mono')==='stereo'?'stereo':'mono',showGreenBorder:options.showGreenBorder!==false,includeMeetWindows:Boolean(options.includeMeetWindows),sourceKind,displayId};pendingSelection={source,options:normalizedOptions};
     lastToolbarState={...lastToolbarState,includeMeetWindows:normalizedOptions.includeMeetWindows};
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
