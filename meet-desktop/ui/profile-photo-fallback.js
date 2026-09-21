@@ -92,7 +92,10 @@
 
   function paintLocal(){
     const user=state.user||{},name=String(user.name||'DominionStar Member'),avatarUrl=safePhotoUrl(user.avatarUrl),label=initials(name);
-    setBoxPhoto(q('#prejoinAvatar'),avatarUrl,label,{refreshLocal:true});
+    const prejoinAvatar=q('#prejoinAvatar'),prejoinVideo=q('#prejoinVideo'),mediaState=window.DominionMediaController?.snapshot?.()||{};
+    setBoxPhoto(prejoinAvatar,avatarUrl,label,{refreshLocal:true});
+    if(prejoinAvatar)prejoinAvatar.hidden=Boolean(mediaState.videoLive);
+    if(prejoinVideo)prejoinVideo.hidden=!Boolean(mediaState.videoLive);
     setBoxPhoto(q('#stageAvatar'),avatarUrl,label,{refreshLocal:true});
     const localDock=q('#localVideoDockTile .remote-peer-fallback');if(localDock)setTilePhoto(localDock,avatarUrl,label,{refreshLocal:true});
     syncLocalGalleryIdentity();
