@@ -7,6 +7,7 @@ const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
 const integration=read('ui/share-integration.js');
 const mirror=read('src/mac-share-video-mirror.mjs');
 const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
+const participantsReference=read('ui/zoom-participants-reference-2.0.41.js');
 const pkg=JSON.parse(read('package.json'));
 
 new Function(toolbar);
@@ -35,5 +36,6 @@ new Function(featureReady);
 assert(featureReady.includes('function finalReferenceReady(){return Boolean(window.DominionZoomScreenshotReference?.sync);}')&&featureReady.includes("o.classList.remove('ds-exec-lock')"),'Legacy 2.0.41 meeting chrome must yield its geometry class when the final Zoom-reference authority is available.');
 assert(featureReady.includes("o.querySelectorAll('.ds-exec-icon,.ds-exec-label,.ds-exec-encrypted,.ds-exec-divider')")&&featureReady.includes("o.querySelectorAll('.ds-exec-control')"),'Final-reference handoff must remove stale executive toolbar decoration that can widen or shift controls.');
 assert(featureReady.includes('window.DominionZoomScreenshotReference?.requestSync?.()'),'Legacy-to-final handoff must immediately reassert final Zoom-reference geometry after cleanup.');
+assert(participantsReference.includes('min-height:52px!important;height:52px!important')&&participantsReference.includes('white-space:nowrap!important;font-size:13px!important;font-weight:600!important;color:#f3f3f4!important}')&&participantsReference.includes('width:28px!important;height:28px!important;min-width:28px!important'),'Final Participants reference must keep readable row, name, and ellipsis hit-target scale under packaged physical acceptance.');
 
-console.log('DOMINIONSTAR_ACTIVE_SHARE_REPAIR_2_0_42_OK acknowledged-toolbar canonical-new-share clean-stop authoritative-camera-mirror stable-final-toolbar-handoff');
+console.log('DOMINIONSTAR_ACTIVE_SHARE_REPAIR_2_0_42_OK acknowledged-toolbar canonical-new-share clean-stop authoritative-camera-mirror stable-final-toolbar-handoff readable-participant-scale');
