@@ -421,6 +421,10 @@ if(process.platform==='darwin'){
       return {ok:false,sent:false,acknowledged:false,error:'meeting_window_unavailable'};
     }
     if(normalized==='show-meeting'){if(shareState.meetingVisible)hideMeeting();else showMeeting();return {ok:true,sent:true,acknowledged:true};}
+    if(normalized==='toggle-controls'){
+      if(toolbarReady&&isAlive(toolbarWindow)){try{toolbarWindow.webContents.send('mac-share:toggle-controls');toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}catch{}}
+      return {ok:true,sent:true,acknowledged:true};
+    }
     if(normalized==='layout-hide')return {...setVideoLayout('hide'),sent:true,acknowledged:true};
     if(normalized==='layout-show')return {...setVideoLayout('show'),sent:true,acknowledged:true};
     if(normalized==='layout-speaker')return {...setVideoLayout('speaker'),sent:true,acknowledged:true};
