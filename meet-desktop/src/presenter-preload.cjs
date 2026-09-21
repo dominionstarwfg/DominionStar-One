@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
     onShowMeeting:callback=>listen('mac-share:show-meeting',callback),
+    onToggleControls:callback=>listen('mac-share:toggle-controls',callback),
     onVideoFrame:callback=>listen('mac-share:video-frame',callback)
   })
 }));
