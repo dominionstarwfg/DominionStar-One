@@ -160,6 +160,9 @@ try{
 
   assert.equal(await evaluate(`(()=>{document.querySelector('[data-action="new-meeting"]').click();return document.querySelector('#newMeetingDialog').open;})()`),true,'New Meeting did not open its dialog.');
   assert.equal(await evaluate(`Boolean(document.querySelector('#newMeetingUsePersonal')&&document.querySelector('#newMeetingPasscode')?.maxLength===7)`),true,'New Meeting is missing Personal Meeting ID choice or 3–7 digit passcode limit.');
+  await sleep(120);
+  const personalPasscode=await evaluate(`(()=>{const toggle=document.querySelector('#newMeetingUsePersonal'),input=document.querySelector('#newMeetingPasscode'),label=input?.closest('label'),summary=document.querySelector('#newMeetingPersonalSummary'),match=String(summary?.textContent||'').match(/Passcode\\s+(\\d{3,7})/i);return {personal:Boolean(toggle?.checked),hidden:Boolean(label?.hidden||getComputedStyle(label).display==='none'),disabled:Boolean(input?.disabled),value:String(input?.value||''),summaryPass:match?.[1]||''};})()`);
+  if(personalPasscode.personal){assert.equal(personalPasscode.hidden,true,'Personal Meeting ID mode must hide the unrelated editable instant passcode field.');assert.equal(personalPasscode.disabled,true,'Personal Meeting ID mode must disable the unrelated instant passcode input.');if(personalPasscode.summaryPass)assert.equal(personalPasscode.value,personalPasscode.summaryPass,'Personal Meeting ID must not retain a stale mismatched passcode value.');}
   await evaluate(`document.querySelector('#newMeetingDialog').close()`);mark('new-meeting');
 
   assert.equal(await evaluate(`(()=>{document.querySelector('[data-open="join"]').click();return document.querySelector('#joinDialog').open;})()`),true,'Join did not open its dialog.');
@@ -177,6 +180,8 @@ try{
   assert.equal(await evaluate(`(()=>{document.querySelector('.nav-button[data-section="meetings"]').click();return !document.querySelector('#meetingsSection').hidden;})()`),true,'Meetings navigation did not switch sections.');
   assert.equal(await evaluate(`Boolean(document.querySelector('#personalRoomCard')&&document.querySelector('#scheduledMeetingList'))`),true,'Meetings surface is missing Personal Room or scheduled meetings area.');mark('meetings-surface');
 
+  assert.equal(await evaluate(`(()=>{const video=document.querySelector('#prejoinVideo'),avatar=document.querySelector('#prejoinAvatar'),overlay=document.querySelector('#prejoinOverlay');overlay.hidden=false;video.hidden=false;avatar.hidden=true;const hidden=getComputedStyle(avatar).display==='none';overlay.hidden=true;return hidden;})()`),true,'Prejoin profile avatar must stay hidden whenever the live camera preview is active.');mark('prejoin-avatar-safe');
+
   mark('meeting-entry-start');
   await evaluateDiagnosed(`(()=>{
     document.querySelector('#appShell').hidden=true;
@@ -190,6 +195,7 @@ try{
   await evaluate(`window.DominionMeetingParity.install();window.DominionMeetingParity.decorateControls();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();true`);
   assert.equal(await evaluate(`document.querySelector('.room-side')?.hidden===true&&document.querySelector('#meetingOverlay')?.classList.contains('participants-hidden')`),true,'Packaged meeting must start with Participants/Waiting Room closed.');
   assert.equal(await evaluate(`Boolean(document.querySelector('.ds-meeting-brand img')&&document.querySelector('.ds-meeting-brand strong')?.textContent==='DominionStar Meet')`),true,'Packaged live meeting header must contain DominionStar logo and name.');
+  assert.equal(await evaluate(`!document.querySelector('.ds-ref-meeting-head-icons')&&getComputedStyle(document.querySelector('#meetingViewButton')).display!=='none'`),true,'Meeting header must remove unexplained glyph controls and retain only the clear View action beside DominionStar branding.');
   const approvedToolbar=await evaluate(`(()=>{const expected=window.DominionApprovedReferenceParity.toolbarOrder;const entries=expected.map(id=>{const node=document.querySelector('#'+id),r=node?.getBoundingClientRect();return {id,left:r?.left??-1,visible:Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none')};});return {expected,visual:entries.filter(entry=>entry.visible).sort((a,b)=>a.left-b.left).map(entry=>entry.id)};})()`);
   assert.deepEqual(approvedToolbar.visual,approvedToolbar.expected,'Packaged primary toolbar must visually remain Audio, Video, Participants, Chat, React, Raise hand, Share, Host Tools, More, End/Leave.');
   assert.equal(await evaluate(`['roomRecord','roomRecordStop','roomSecurity','roomSettings'].every(id=>{const node=document.querySelector('#'+id);return !node||getComputedStyle(node).display==='none';})`),true,'Record/Security/Settings must not leak back onto the primary meeting toolbar.');
