@@ -108,7 +108,7 @@ assert.ok(layoutFix.includes('grid-column:auto!important')&&layoutFix.includes('
 
 assert.ok(motion.includes('transition:right .14s'),'Stage resize must use a short transition rather than snap.');
 assert.ok(motion.includes('@keyframes dsRuntimePanelIn'),'Participants/Chat must use a short entrance transition.');
-assert.ok(motion.includes('translate:10px 0')&&motion.includes('translate:0 0')&&motion.includes('opacity:'),'Panel entrance should use independent translate/opacity rather than the geometry transform property.');
+assert.ok(motion.includes('@keyframes dsRuntimePanelIn{from{opacity:.72;translate:0 0}to{opacity:1;translate:0 0}}'),'Panel entrance may fade, but must not translate horizontally or compete with final geometry.');
 assert.ok(!motion.includes('dsRuntimePanelIn{from{opacity:.72;transform:'),'Panel motion must not compete with the final transform geometry authority.');
 assert.ok(motion.includes('.meeting-control:active{transform:scale(.97)}'),'Controls must provide immediate tactile click feedback.');
 assert.ok(motion.includes('@media(prefers-reduced-motion:reduce)'),'Motion must respect reduced-motion preferences.');
