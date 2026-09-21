@@ -35,7 +35,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     }
   });
 
-  const serialize=source=>({id:String(source.id),name:String(source.name||'Untitled source'),kind:String(source.id||'').startsWith('screen:')?'screen':'window',thumbnail:source.thumbnail?.isEmpty?.()?'' : source.thumbnail?.toDataURL?.()||'',icon:source.appIcon?.isEmpty?.()?'' : source.appIcon?.toDataURL?.()||''});
+  const serialize=source=>({id:String(source.id),name:String(source.name||'Untitled source'),kind:String(source.id||'').startsWith('screen:')?'screen':'window',displayId:String(source.display_id||''),thumbnail:source.thumbnail?.isEmpty?.()?'' : source.thumbnail?.toDataURL?.()||'',icon:source.appIcon?.isEmpty?.()?'' : source.appIcon?.toDataURL?.()||''});
   const publishToolbarState=()=>{if(toolbarWindow&&!toolbarWindow.isDestroyed())toolbarWindow.webContents.send('share:toolbar-state',lastToolbarState);};
   const presenterRendererMeta=()=>{
     const main=getMainWindow?.(),webContents=main?.webContents;
@@ -214,7 +214,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;try{const result=await authority.list(options);if(result.timedOut)return {ok:false,timedOut:true,sources:[]};return {ok:true,timedOut:false,sources:result.sources.map(serialize)};}catch(error){return {ok:false,timedOut:false,sources:[],error:String(error?.message||error)};}});
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);
     const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
-    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),shareAudioMode:String(options.shareAudioMode||'mono')==='stereo'?'stereo':'mono',showGreenBorder:options.showGreenBorder!==false,includeMeetWindows:Boolean(options.includeMeetWindows)};pendingSelection={source,options:normalizedOptions};
+    const sourceKind=String(source.id||'').startsWith('screen:')?'screen':'window',displayId=sourceKind==='screen'?String(source.display_id||options.displayId||''):'';
+    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),shareAudioMode:String(options.shareAudioMode||'mono')==='stereo'?'stereo':'mono',showGreenBorder:options.showGreenBorder!==false,includeMeetWindows:Boolean(options.includeMeetWindows),sourceKind,displayId};pendingSelection={source,options:normalizedOptions};
     lastToolbarState={...lastToolbarState,includeMeetWindows:normalizedOptions.includeMeetWindows};
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
