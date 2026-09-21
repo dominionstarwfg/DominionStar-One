@@ -32,7 +32,7 @@
     toggle(section,'Always show captions when available','alwaysShowCaptions','Captions open automatically whenever the meeting provides caption text.');
     info(node,'Caption appearance and position are personal accessibility settings and do not change what other participants see.');
   }
-  function openShortcuts(){const node=detail();if(!node)return;heading(node,'Keyboard Shortcuts','Familiar meeting shortcuts while DominionStar Meet is focused.');toggle(node,'Enable meeting keyboard shortcuts','shortcuts');info(node,'Option+A: mute/unmute · Option+V: start/stop video · Option+S: share screen · Option+H: open/close chat.');}
+  function openShortcuts(){const node=detail();if(!node)return;heading(node,'Keyboard Shortcuts','Zoom-familiar macOS meeting shortcuts while DominionStar Meet is focused.');toggle(node,'Enable meeting keyboard shortcuts','shortcuts');info(node,'⌘⇧A mute/unmute · ⌘⇧V video · ⌘⇧S start/stop share · ⌘⇧T pause/resume share · ⌘U participants · ⌘⇧H chat · ⌘⇧W cycle Speaker/Multi-speaker/Gallery · ⌥Y raise/lower hand · ⌃⌥⌘H show/hide floating controls · ⌃\\ toggle Always show meeting controls.');}
   async function openAbout(){const node=detail();if(!node)return;heading(node,'About','DominionStar Meet desktop information.');let env={};try{env=await desktop.environment?.()||{};}catch{}info(node,`DominionStar Meet ${String(env.version||'2.0.0 QA')} · ${String(env.platform||navigator.platform)}. Clean desktop rebuild with local Home, PKCE authentication, Meet V2 lifecycle, WebRTC media, and isolated screen sharing.`);}
 
   function addRow(list,title,copy,handler){let row=qa('.settings-row').find(item=>item.querySelector('strong')?.textContent?.trim()===title);if(!row){row=document.createElement('button');row.type='button';row.className='settings-row';row.innerHTML=`<span><strong>${title}</strong><small>${copy}</small></span><span>›</span>`;list.append(row);}row.onclick=handler;return row;}
@@ -44,7 +44,28 @@
   async function showPrejoinCredentials(){const overlay=q('#prejoinOverlay'),windowNode=overlay?.querySelector('.prejoin-window');if(!windowNode||overlay.hidden)return;let ctx={};try{ctx=await desktop.meeting?.context?.()||{};}catch{}const roomCode=String(ctx.roomCode||'').replace(/\D/g,'').replace(/(\d{3})(?=\d)/g,'$1 ').trim(),pass=String(ctx.passcode||'');let box=q('#prejoinMeetingCredentials');if(!roomCode){box?.remove();return;}if(!box){box=document.createElement('div');box.id='prejoinMeetingCredentials';box.className='av-info-card prejoin-meeting-credentials';windowNode.querySelector('.preview-frame')?.insertAdjacentElement('beforebegin',box);}box.innerHTML=`<div><span>Meeting ID</span><strong>${roomCode}</strong><button type="button" data-copy-id>Copy</button></div><div><span>Passcode</span><strong>${pass}</strong><button type="button" data-copy-pass>Copy</button></div>`;box.querySelector('[data-copy-id]').onclick=()=>navigator.clipboard?.writeText?.(String(ctx.roomCode||''));box.querySelector('[data-copy-pass]').onclick=()=>navigator.clipboard?.writeText?.(pass);}
 
   function applyShareDockPreference(){const active=window.DominionShareController?.snapshot?.().active,dock=q('#participantVideoDock');if(!active||!dock)return;if(!read('shareVideoDock'))dock.hidden=true;else window.DominionMeetingParity?.syncVideoDock?.();}
-  function handleShortcut(event){if(!read('shortcuts')||!event.altKey||event.metaKey||event.ctrlKey||event.shiftKey||event.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;const key=event.key.toLowerCase();const map={a:'#roomMic',v:'#roomCamera',s:'#roomShare',h:'#roomChat'},selector=map[key];if(!selector)return;const button=q(selector);if(!button||button.disabled||button.offsetParent===null)return;event.preventDefault();button.click();}
+  function clickControl(selector){const button=q(selector);if(!button||button.disabled||button.offsetParent===null)return false;button.click();return true;}
+  function cycleMeetingView(){const overlay=q('#meetingOverlay');if(!overlay)return false;const current=String(overlay.dataset.viewMode||'speaker'),order=['speaker','multi','gallery'],next=order[(Math.max(0,order.indexOf(current))+1)%order.length];window.DominionMeetingParity?.applyViewMode?.(next);window.DominionMeetingParity?.syncShareLayout?.();return true;}
+  async function toggleMeetingFullscreen(){const target=q('#meetingOverlay')||document.documentElement;try{if(document.fullscreenElement){await document.exitFullscreen?.();return true;}if(target?.requestFullscreen){await target.requestFullscreen();return true;}}catch{}return false;}
+  function handleShortcut(event){
+    if(!read('shortcuts')||event.repeat||event.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
+    const key=String(event.key||'').toLowerCase(),shareActive=Boolean(window.DominionShareController?.snapshot?.().active);
+    let handled=false;
+    if(event.metaKey&&event.shiftKey&&!event.ctrlKey&&!event.altKey){
+      if(key==='a')handled=clickControl('#roomMic');
+      else if(key==='v')handled=clickControl('#roomCamera');
+      else if(key==='s'){handled=true;if(shareActive)void window.DominionShareIntegration?.dispatchPresenterCommand?.('stop');else handled=clickControl('#roomShare');}
+      else if(key==='t'&&shareActive){handled=true;void window.DominionShareIntegration?.dispatchPresenterCommand?.('pause');}
+      else if(key==='h')handled=clickControl('#roomChat');
+      else if(key==='w')handled=cycleMeetingView();
+      else if(key==='r'){handled=true;void window.DominionMeetingFeatures?.toggleRecording?.();}
+      else if(key==='f'){handled=true;void toggleMeetingFullscreen();}
+    }else if(event.metaKey&&!event.shiftKey&&!event.ctrlKey&&!event.altKey&&key==='u')handled=clickControl('#roomParticipants');
+    else if(event.altKey&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&key==='y'){handled=true;void window.DominionMeetingFeatures?.toggleRaiseHand?.();}
+    else if(event.ctrlKey&&event.altKey&&event.metaKey&&!event.shiftKey&&key==='h'){handled=true;if(shareActive)void desktop.macShare?.command?.('toggle-controls');}
+    else if(event.ctrlKey&&!event.altKey&&!event.metaKey&&!event.shiftKey&&key==='\\'){handled=true;write('alwaysShowMeetingControls',!Boolean(read('alwaysShowMeetingControls')));}
+    if(handled)event.preventDefault();
+  }
 
   window.addEventListener('keydown',handleShortcut,true);
   const observer=new MutationObserver(()=>{if(!installed)installSettings();void applyPrejoinDefaults();applyShareDockPreference();});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
