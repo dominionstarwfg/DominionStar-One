@@ -16,12 +16,18 @@ const personal=read('ui/personal-room.js');
 const personalCss=read('ui/personal-room.css');
 const app=read('ui/app.js');
 const media=read('ui/media-controller.js');
+const legacyParticipants=read('ui/participants-center-lock-2.0.41.js');
+const legacyHostTools=read('ui/host-tools-separation-lock-2.0.41.js');
+const legacyHostToolsCss=read('ui/host-tools-size-lock-2.0.41.css');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media])new Function(source);
 
 assert.equal(pkg.version,'2.0.43','Physical Mac Zoom-parity repair must ship as 2.0.43.');
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
+assert(legacyParticipants.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must never re-center or poll the live panel.');
+assert(legacyHostTools.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyHostTools.includes('centerParticipantsOnce')&&!legacyHostTools.includes("host.style.setProperty('width','248px'"),'Legacy Host Tools compatibility must not own Participants or Host Tools geometry.');
+assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.includes('.room-side:has(.ds-ref-host-tools-panel)'),'Legacy Host Tools stylesheet must not shrink Host Tools or move Participants.');
 assert(runtime.includes("panel.style.setProperty('right','10px','important')")&&runtime.includes("panel.style.setProperty('left','auto','important')"),'Default side surfaces must remain stably anchored at the meeting right edge.');
 assert(runtime.includes('function ensurePanelTraffic(panel)')&&runtime.includes("className='ds-panel-traffic'"),'Participants and Chat must expose Mac-style close/minimize/zoom controls.');
 assert(runtimeCss.includes('.ds-panel-traffic .close')&&runtimeCss.includes('.ds-panel-minimized'),'Panel traffic controls and minimization styling must be packaged.');
