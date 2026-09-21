@@ -214,7 +214,7 @@
       // visually present, but media rebinding is deferred to normal meeting
       // updates so presenter controls stay responsive.
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{},participantVideoVisible=window.DominionPreferences?.read?.('shareVideoDock')!==false,participantVideoLayout=String(overlay.dataset.shareView||overlay.dataset.viewMode||'speaker');void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows),participantVideoVisible,participantVideoLayout,handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{},participantVideoVisible=window.DominionPreferences?.read?.('shareVideoDock')!==false,participantVideoLayout=String(overlay.dataset.shareView||overlay.dataset.viewMode||'speaker'),alwaysShowControls=Boolean(window.DominionPreferences?.read?.('alwaysShowMeetingControls'));void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows),participantVideoVisible,participantVideoLayout,alwaysShowControls,handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
     }
 
     function commitPresenterMode(){
@@ -368,6 +368,7 @@
     }
     window.__DominionPresenterDispatch=dispatchPresenterCommand;
     bridge?.onPresenterCommand?.(rawCommand=>dispatchPresenterCommand(rawCommand));
+    window.addEventListener('dominion:preference-change',()=>{if(share.snapshot().active)applyLayout();});
 
     window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:()=>share.stop(),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand});
   }
