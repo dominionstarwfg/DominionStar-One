@@ -100,7 +100,7 @@
     if(sharing||!selectedId)return;
     sharing=true;stopRefreshTimer();shareButton.disabled=true;shareButton.textContent='Sharing…';
     try{
-      const optimizeVideo=$('#optimizeVideo').checked,shareAudio=$('#shareAudio').checked,includeMeetWindows=$('#includeMeetWindows').checked;$('#optimizeSharingVideo').checked=optimizeVideo;writePref('ds_pref_share_optimize',optimizeVideo);writePref('ds_pref_share_audio',shareAudio);writePref('ds_pref_share_video_mode',optimizeVideo);writePref('ds_pref_share_side_by_side',$('.layout-option.active')?.dataset.layout==='side');
+      const optimizeVideo=$('#optimizeVideo').checked,shareAudio=$('#shareAudio').checked,includeMeetWindows=$('#includeMeetWindows').checked;$('#optimizeSharingVideo').checked=optimizeVideo;writePref('ds_pref_share_optimize',optimizeVideo);writePref('ds_pref_share_audio',shareAudio);writePref('ds_pref_share_video_mode',optimizeVideo);
       const result=await bridge?.choose?.(selectedId,{optimizeVideo,shareAudio,includeMeetWindows});if(!result?.ok)throw new Error(result?.error||'Unable to select this source.');
       // The main process force-destroys the picker on a committed selection.
       // Close locally as well so no stale chooser can remain visible if the
@@ -113,8 +113,7 @@
   $$('.filter').forEach(button=>button.addEventListener('click',()=>{sourceFilter=String(button.dataset.filter||'all');$$('.filter').forEach(item=>item.classList.toggle('active',item===button));renderSources();}));
   $('#sourceSearch')?.addEventListener('input',renderSources);refreshButton?.addEventListener('click',()=>void refreshSources({background:false}));$('#retrySources').addEventListener('click',()=>void refreshSources({initial:true}));
 
-  $$('.layout-option').forEach(button=>button.addEventListener('click',()=>{if(button.disabled)return;$$('.layout-option').forEach(item=>item.classList.toggle('active',item===button));writePref('ds_pref_share_side_by_side',button.dataset.layout==='side');}));
-  if(readPref('ds_pref_share_side_by_side')){const side=$('[data-layout="side"]'),content=$('[data-layout="content"]');content?.classList.remove('active');side?.classList.add('active');}
+  $('.layout-option').forEach(button=>button.addEventListener('click',()=>{if(button.disabled)return;$('.layout-option').forEach(item=>item.classList.toggle('active',item===button));}));
 
   const syncMeetWindows=value=>{const checked=Boolean(value);$('#includeMeetWindows').checked=checked;$('#shareMeetWindowsMirror').checked=checked;writePref('ds_pref_share_include_meet',checked);void refreshSources({background:false});};
   $('#includeMeetWindows').addEventListener('change',event=>syncMeetWindows(event.currentTarget.checked));$('#shareMeetWindowsMirror').addEventListener('change',event=>syncMeetWindows(event.currentTarget.checked));
