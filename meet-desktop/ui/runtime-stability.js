@@ -161,9 +161,10 @@
     overlay.classList.toggle('participants-hidden',!show);
     button?.setAttribute('aria-pressed',String(show));
     if(show){
-      side.dataset.zoomPanelMode='popout';
+      side.dataset.zoomPanelMode='runtime';
       side.dataset.dsAdaptiveMode='floating';
       side.dataset.dsRuntimePanel='participants';
+      delete side.dataset.dsRuntimeUserPositioned;
       syncParticipantsSurface();
     }
     layoutSideSurface();
@@ -186,6 +187,8 @@
     panel.hidden=!show;button?.setAttribute('aria-pressed',String(show));
     if(show){
       panel.dataset.dsRuntimePanel='chat';
+      panel.dataset.zoomPanelMode='runtime';
+      delete panel.dataset.dsRuntimeUserPositioned;
       const refresh=window.DominionZoomBehavior?.refreshChatRecipients?.();
       Promise.resolve(refresh).catch(()=>{}).finally(()=>{
         if(!meetingOpen()||panel.hidden)return;
@@ -248,6 +251,18 @@
     handle.addEventListener('pointerup',end,true);handle.addEventListener('pointercancel',end,true);
   }
 
+  function ensurePanelTraffic(panel){
+    if(!panel)return;
+    const header=panel.matches('.room-side')?panel.querySelector('.room-side-head'):panel.querySelector('header');
+    if(!header||header.querySelector('.ds-panel-traffic'))return;
+    const traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.setAttribute('aria-label','Window controls');
+    traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Minimize panel"></button><button type="button" class="zoom" aria-label="Zoom panel"></button>';
+    header.prepend(traffic);
+    traffic.querySelector('.close').onclick=event=>{event.stopPropagation();panel.matches('.room-side')?setParticipants(false):closeChat();};
+    traffic.querySelector('.min').onclick=event=>{event.stopPropagation();panel.classList.toggle('ds-panel-minimized');};
+    traffic.querySelector('.zoom').onclick=event=>{event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.classList.toggle('ds-panel-wide');layoutSideSurface();};
+  }
+
   function layoutSideSurface(){
     const overlay=q('#meetingOverlay'),body=q('.meeting-body'),stage=q('.stage'),participants=q('.room-side'),chat=q('#meetingChatPanel');
     if(!overlay||!body||!stage)return;
@@ -256,29 +271,35 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const width=Math.min(410,Math.max(300,Math.round(bodyWidth*.31)));
-      const height=Math.min(590,Math.max(340,Math.round(bodyHeight*.72)));
+      const baseWidth=panel.classList.contains('ds-panel-wide')?460:390;
+      const width=Math.min(baseWidth,Math.max(300,bodyWidth-24));
+      const height=Math.max(320,bodyHeight-20);
       panel.dataset.dsRuntimeMode='floating';
-      panel.dataset.zoomPanelMode='popout';
+      panel.dataset.zoomPanelMode='runtime';
       panel.style.setProperty('position','absolute','important');
-      panel.style.setProperty('right','auto','important');
-      panel.style.setProperty('bottom','auto','important');
-      panel.style.setProperty('width',`${Math.min(width,bodyWidth-24)}px`,'important');
-      panel.style.setProperty('height',`${Math.min(height,bodyHeight-24)}px`,'important');
-      panel.style.setProperty('max-width','calc(100% - 24px)','important');
-      panel.style.setProperty('max-height','calc(100% - 24px)','important');
+      panel.style.setProperty('width',`${width}px`,'important');
+      panel.style.setProperty('max-width','calc(100% - 20px)','important');
+      panel.style.setProperty('max-height','calc(100% - 20px)','important');
       panel.style.setProperty('transform','none','important');
-      panel.style.setProperty('z-index','210','important');
-      const pw=Math.min(width,bodyWidth-24),ph=Math.min(height,bodyHeight-24);
-      let left=Math.max(12,(bodyWidth-pw)/2),top=Math.max(12,(bodyHeight-ph)/2);
+      panel.style.setProperty('z-index','2600','important');
       if(panel.dataset.dsRuntimeUserPositioned==='1'){
         const currentLeft=parseFloat(panel.style.left),currentTop=parseFloat(panel.style.top);
-        if(Number.isFinite(currentLeft))left=clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10));
-        if(Number.isFinite(currentTop))top=clamp(currentTop,10,Math.max(10,bodyHeight-ph-10));
+        const left=Number.isFinite(currentLeft)?clamp(currentLeft,10,Math.max(10,bodyWidth-width-10)):Math.max(10,bodyWidth-width-10);
+        const top=Number.isFinite(currentTop)?clamp(currentTop,10,Math.max(10,bodyHeight-Math.min(height,bodyHeight-20)-10)):10;
+        panel.style.setProperty('left',`${left}px`,'important');
+        panel.style.setProperty('right','auto','important');
+        panel.style.setProperty('top',`${top}px`,'important');
+        panel.style.setProperty('bottom','auto','important');
+        panel.style.setProperty('height',`${Math.min(height,bodyHeight-20)}px`,'important');
+      }else{
+        panel.style.setProperty('left','auto','important');
+        panel.style.setProperty('right','10px','important');
+        panel.style.setProperty('top','10px','important');
+        panel.style.setProperty('bottom','10px','important');
+        panel.style.setProperty('height','auto','important');
       }
-      panel.style.setProperty('left',`${left}px`,'important');
-      panel.style.setProperty('top',`${top}px`,'important');
-      overlay.dataset.dsRuntimeSide='floating';
+      overlay.dataset.dsRuntimeSide='floating-right';
+      ensurePanelTraffic(panel);
       installFloatingSurfaceDrag(panel);
     }else overlay.dataset.dsRuntimeSide='none';
     stage.style.setProperty('left','0px','important');
@@ -462,5 +483,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.32-adaptive-video-dock',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.43-stable-side-surfaces',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
