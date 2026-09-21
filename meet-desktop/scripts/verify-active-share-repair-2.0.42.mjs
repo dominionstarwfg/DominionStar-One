@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const toolbar=read('ui/mac-presenter-toolbar.js');
 const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
+const screenshotReferenceCss=read('ui/zoom-screenshot-reference-2.0.41.css');
 const integration=read('ui/share-integration.js');
 const mirror=read('src/mac-share-video-mirror.mjs');
 const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
@@ -31,6 +32,7 @@ assert(mirror.includes("typeof ImageCapture==='function'")&&mirror.includes('new
 assert(mirror.includes("candidates.find(item=>item.id==='localMeetingVideo')||candidates[0]"),'Camera mirror must accept any live element bound to the authoritative camera track.');
 assert(screenshotReference.includes('data-ds-ref-critical-meeting-geometry')&&screenshotReference.includes('grid-template-rows:47px minmax(0,1fr) 56px!important')&&screenshotReference.includes('max-height:56px!important'),'Final screenshot authority must synchronously hard-lock the packaged meeting toolbar to the 56px Zoom-reference geometry.');
 assert(screenshotReference.includes('function claimFinalMeetingAuthority(){')&&screenshotReference.includes("overlay.classList.remove('ds-exec-lock')")&&screenshotReference.includes("qa('#meetingOverlay .ds-exec-icon,#meetingOverlay .ds-exec-label,#meetingOverlay .ds-exec-encrypted,#meetingOverlay .ds-exec-divider')"),'Final Zoom-reference sync must synchronously strip stale executive geometry before any packaged interaction measurement.');
+assert(screenshotReferenceCss.includes('#meetingOverlay #participantRoster .person-row{min-height:52px!important')&&screenshotReferenceCss.includes('#meetingOverlay #participantRoster .person-copy strong{font-size:13px!important')&&screenshotReferenceCss.includes('.ds-participant-more{width:28px!important;height:28px!important;min-width:28px!important'),'The actually loaded final screenshot stylesheet must preserve readable Participants rows and ellipsis hit targets.');
 
 new Function(featureReady);
 assert(featureReady.includes('function finalReferenceReady(){return Boolean(window.DominionZoomScreenshotReference?.sync);}')&&featureReady.includes("o.classList.remove('ds-exec-lock')"),'Legacy 2.0.41 meeting chrome must yield its geometry class when the final Zoom-reference authority is available.');
