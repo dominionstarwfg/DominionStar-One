@@ -20,7 +20,7 @@
     more:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>',
     exit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h9a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8M12 8l-4 4 4 4M8 12h9"/></svg>'
   });
-  let moreMenu=null,securityMenu=null,viewMenu=null,panelDrag=null,dockDrag=null,dockResize=null,shareSplitDrag=null,shareLayoutObserver=null,lastMeta='',spotlightParticipantIds=[],activeSpeakerIds=[],toolbarOrderKey='',parityFrame=0; const VIEW_KEY='ds_meet_view_mode',SHARE_SPLIT_KEY='ds_meet_share_split_ratio';
+  let moreMenu=null,securityMenu=null,viewMenu=null,panelDrag=null,dockDrag=null,dockResize=null,shareSplitDrag=null,shareLayoutObserver=null,lastMeta='',spotlightParticipantIds=[],activeSpeakerIds=[],toolbarOrderKey='',parityFrame=0; const VIEW_KEY='ds_meet_view_mode',SHARE_SPLIT_KEY='ds_meet_share_split_ratio',SHARE_SPEAKER_SIZE_KEY='ds_meet_share_speaker_size';
   if(!document.querySelector('link[data-ds-meeting-parity]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-parity.css';link.dataset.dsMeetingParity='1';document.head.append(link);}
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
   const formatCode=value=>String(value||'').replace(/\D/g,'').replace(/(\d{3})(?=\d)/g,'$1 ').trim();
@@ -30,6 +30,8 @@
   const sharing=()=>Boolean(q('#meetingOverlay')?.classList.contains('share-active')||document.body.classList.contains('remote-share-active'));
   const readView=()=>{try{const v=localStorage.getItem(VIEW_KEY);return ['speaker','gallery','multi'].includes(v)?v:'speaker';}catch{return 'speaker';}};
   const saveView=value=>{try{localStorage.setItem(VIEW_KEY,value);}catch{}};
+  const readShareSpeakerSize=()=>{try{return localStorage.getItem(SHARE_SPEAKER_SIZE_KEY)==='large'?'large':'small';}catch{return 'small';}};
+  const saveShareSpeakerSize=value=>{try{localStorage.setItem(SHARE_SPEAKER_SIZE_KEY,value==='large'?'large':'small');}catch{}};
   const shareSplitBounds=stage=>{
     const width=Math.max(1,stage?.getBoundingClientRect?.().width||stage?.clientWidth||0);
     const min=clamp(360/width,.46,.68),max=clamp(1-(220/width),.60,.86);
@@ -156,8 +158,10 @@
     overlay.classList.toggle('share-panel-floating',floatingPanel);
     overlay.classList.toggle('share-panel-hidden',active&&!showPanel);
     overlay.dataset.shareView=active?mode:'';
-    const layoutButton=dock.querySelector('[data-dock-layout]');
+    const layoutButton=dock.querySelector('[data-dock-layout]'),speakerSizeButton=dock.querySelector('[data-dock-speaker-size]'),speakerSize=readShareSpeakerSize();
     if(layoutButton){layoutButton.hidden=!active;layoutButton.textContent=mode==='speaker'?'▦':'◫';layoutButton.setAttribute('aria-label',mode==='speaker'?'Switch participant video panel to Gallery view':'Switch participant video panel to Speaker view');layoutButton.title=layoutButton.getAttribute('aria-label');}
+    dock.classList.toggle('speaker-large',active&&mode==='speaker'&&speakerSize==='large'&&!minimized);
+    if(speakerSizeButton){speakerSizeButton.hidden=!active||mode!=='speaker'||minimized;speakerSizeButton.textContent=speakerSize==='large'?'↙':'↗';speakerSizeButton.setAttribute('aria-label',speakerSize==='large'?'Use smaller active speaker panel':'Enlarge active speaker panel');speakerSizeButton.title=speakerSizeButton.getAttribute('aria-label');}
     splitter.hidden=!sideBySide;
     qa('#participantVideoDock .remote-peer-tile').forEach(tile=>tile.classList.remove('share-featured'));
     if(active&&showPanel&&mode==='speaker'){
@@ -211,8 +215,9 @@
   }
 
   function ensureVideoDock(){
-    const stage=q('.stage');if(!stage)return null;let dock=q('#participantVideoDock');if(!dock){dock=document.createElement('aside');dock.id='participantVideoDock';dock.className='participant-video-dock';dock.dataset.anchor='right';dock.hidden=true;dock.innerHTML='<header class="participant-video-dock-head"><span class="dock-grip" aria-hidden="true"><i></i><i></i><i></i></span><strong>Participant video</strong><div><button type="button" data-dock-layout aria-label="Switch participant video layout" title="Switch Speaker / Gallery view">▦</button><button type="button" data-dock-minimize aria-label="Minimize participant video panel" title="Minimize video panel">−</button><button type="button" data-dock-reset aria-label="Reset participant video position" title="Reset video panel position">↺</button><button type="button" data-dock-hide aria-label="Hide participant video panel" title="Hide video panel">×</button></div></header><div class="participant-video-dock-body"></div><span class="participant-video-resize" aria-hidden="true"></span>';stage.append(dock);
+    const stage=q('.stage');if(!stage)return null;let dock=q('#participantVideoDock');if(!dock){dock=document.createElement('aside');dock.id='participantVideoDock';dock.className='participant-video-dock';dock.dataset.anchor='right';dock.hidden=true;dock.innerHTML='<header class="participant-video-dock-head"><span class="dock-grip" aria-hidden="true"><i></i><i></i><i></i></span><strong>Participant video</strong><div><button type="button" data-dock-layout aria-label="Switch participant video layout" title="Switch Speaker / Gallery view">▦</button><button type="button" data-dock-speaker-size aria-label="Enlarge active speaker panel" title="Enlarge active speaker panel">↗</button><button type="button" data-dock-minimize aria-label="Minimize participant video panel" title="Minimize video panel">−</button><button type="button" data-dock-reset aria-label="Reset participant video position" title="Reset video panel position">↺</button><button type="button" data-dock-hide aria-label="Hide participant video panel" title="Hide video panel">×</button></div></header><div class="participant-video-dock-body"></div><span class="participant-video-resize" aria-hidden="true"></span>';stage.append(dock);
       dock.querySelector('[data-dock-layout]').onclick=()=>{const current=readView(),next=current==='speaker'?'gallery':'speaker';applyViewMode(next);syncShareLayout();};
+      dock.querySelector('[data-dock-speaker-size]').onclick=()=>{const next=readShareSpeakerSize()==='large'?'small':'large';saveShareSpeakerSize(next);dock.classList.remove('user-resized');dock.style.removeProperty('width');dock.style.removeProperty('height');syncShareLayout();};
       dock.querySelector('[data-dock-minimize]').onclick=()=>{dock.classList.toggle('minimized');const minimized=dock.classList.contains('minimized'),button=dock.querySelector('[data-dock-minimize]');button.textContent=minimized?'□':'−';button.setAttribute('aria-label',minimized?'Restore participant video panel':'Minimize participant video panel');syncShareLayout();syncMinimizedVideoPanel();};
       dock.querySelector('[data-dock-reset]').onclick=()=>resetVideoDock();
       dock.querySelector('[data-dock-hide]').onclick=()=>{window.DominionPreferences?.write?.('shareVideoDock',false);syncShareLayout();syncVideoDock();};
@@ -234,7 +239,7 @@
   function endDockResize(event){if(!dockResize||(event?.pointerId!=null&&event.pointerId!==dockResize.id))return;dockResize=null;saveVideoDock();syncVideoDock();}
   function saveVideoDock(){const dock=q('#participantVideoDock'),stage=dockStageRect();if(!dock||!stage)return;try{const r=dock.getBoundingClientRect();localStorage.setItem(GEOMETRY_KEY,JSON.stringify({left:r.left-stage.left,top:r.top-stage.top,width:r.width,height:r.height,anchor:dock.dataset.anchor||'right',resized:dock.classList.contains('user-resized')}));}catch{}}
   function restoreVideoDock(){const dock=q('#participantVideoDock'),stage=dockStageRect();if(!dock||!stage)return;try{const g=JSON.parse(localStorage.getItem(GEOMETRY_KEY)||'null');if(!g)return;dock.dataset.anchor=['left','right','top','bottom'].includes(g.anchor)?g.anchor:'right';if(g.resized){dock.classList.add('user-resized');dock.style.width=`${clamp(Number(g.width)||220,150,Math.min(620,stage.width-16))}px`;dock.style.height=`${clamp(Number(g.height)||130,92,Math.min(620,stage.height-16))}px`;}dock.classList.add('user-positioned');dock.style.left=`${clamp(Number(g.left)||8,8,Math.max(8,stage.width-(Number(g.width)||dock.offsetWidth)-8))}px`;dock.style.top=`${clamp(Number(g.top)||8,8,Math.max(8,stage.height-(Number(g.height)||dock.offsetHeight)-8))}px`;dock.style.right='auto';dock.style.bottom='auto';}catch{}}
-  function resetVideoDock(){const dock=q('#participantVideoDock');if(!dock)return;try{localStorage.removeItem(GEOMETRY_KEY);}catch{}dock.classList.remove('user-positioned','user-resized','minimized');dock.removeAttribute('style');dock.dataset.anchor='right';syncVideoDock();}
+  function resetVideoDock(){const dock=q('#participantVideoDock');if(!dock)return;try{localStorage.removeItem(GEOMETRY_KEY);}catch{}dock.classList.remove('user-positioned','user-resized','minimized');dock.removeAttribute('style');dock.dataset.anchor='right';syncVideoDock();syncShareLayout();}
   function automaticDockAnchor(){
     const stage=dockStageRect();if(!stage)return 'right';
     return stage.width<900||stage.height<560?'top':'right';
@@ -342,5 +347,5 @@
   window.addEventListener('dominion:meeting-signal',scheduleParityRefresh);
   window.addEventListener('dominion:meeting-ended',()=>{if(parityFrame){cancelAnimationFrame(parityFrame);parityFrame=0;}spotlightParticipantIds=[];closeMenus();});
   install();
-  window.DominionMeetingParity=Object.freeze({version:'2.0.41-share-video-panel',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout,syncMinimizedVideoPanel,openMore,openSecurity});
+  window.DominionMeetingParity=Object.freeze({version:'2.0.42-share-speaker-sizing',install,decorateControls,toggleParticipants,syncVideoDock,resetVideoDock,syncMeetingMeta,setSpotlight,applyViewMode,syncShareLayout,syncMinimizedVideoPanel,openMore,openSecurity});
 })();
