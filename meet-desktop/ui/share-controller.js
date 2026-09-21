@@ -319,6 +319,17 @@
     emit();return snapshot();
   }
 
+  async function setPresenterGeometry(geometry){
+    if(!state.liveStream)return snapshot();
+    const layout=normalizePresenterLayout(state.options?.presenterLayout);if(layout==='content')return snapshot();
+    const base=defaultPresenterGeometry(layout),raw=geometry&&typeof geometry==='object'?geometry:{};
+    const next={camera:normalizePresenterRect(raw.camera,base.camera),content:normalizePresenterRect(raw.content,base.content)};
+    state.options={...state.options,presenterGeometry:next};
+    if(needsComposite()&&!state.compositeStream)startComposite();
+    emit();try{await bridge?.captureState?.({presenterLayout:layout,presenterGeometry:next});}catch{}
+    return snapshot();
+  }
+
   async function setOptimizeVideo(enabled){
     if(!state.liveStream)return snapshot();
     const next=Boolean(enabled);state.options={...state.options,optimizeVideo:next};
@@ -405,6 +416,6 @@
     }
     return snapshot();
   }
-  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,exportImage,stop,outputStream,setPresenterLayout,setOptimizeVideo,setShareAudioEnabled,setShareAudioMode,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
+  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,exportImage,stop,outputStream,setPresenterLayout,setPresenterGeometry,setOptimizeVideo,setShareAudioEnabled,setShareAudioMode,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
   window.DominionShareController=api;
 })();
