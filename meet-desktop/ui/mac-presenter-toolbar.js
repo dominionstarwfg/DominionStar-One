@@ -71,6 +71,23 @@
   window.addEventListener('pointermove',()=>{reveal();scheduleHide();},{passive:true});
   window.addEventListener('pointerenter',()=>{reveal();scheduleHide();},{passive:true});
   window.addEventListener('focus',()=>{reveal();scheduleHide();});
+  nativeBridge?.onToggleControls?.(()=>{toolbar?.classList.toggle('auto-hidden');});
+  window.addEventListener('keydown',event=>{
+    if(event.repeat||event.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
+    const key=String(event.key||'').toLowerCase();let handled=false;
+    if(event.metaKey&&event.shiftKey&&!event.ctrlKey&&!event.altKey){
+      if(key==='a'){handled=true;void send('audio');}
+      else if(key==='v'){handled=true;void send('video');}
+      else if(key==='s'){handled=true;void send('stop');}
+      else if(key==='t'){handled=true;void send('pause');}
+      else if(key==='h'){handled=true;void send('chat');}
+      else if(key==='r'){handled=true;void send('record');}
+    }else if(event.metaKey&&!event.shiftKey&&!event.ctrlKey&&!event.altKey&&key==='u'){handled=true;void send('participants');}
+    else if(event.altKey&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&key==='y'){handled=true;void send('toggle-hand');}
+    else if(event.ctrlKey&&event.altKey&&event.metaKey&&!event.shiftKey&&key==='h'){handled=true;toolbar?.classList.toggle('auto-hidden');}
+    else if(event.ctrlKey&&!event.altKey&&!event.metaKey&&!event.shiftKey&&key==='\\'){handled=true;void send('toggle-always-show-controls');}
+    if(handled)event.preventDefault();
+  },true);
 
   stateBridge?.onState?.(state=>{
     lastState={...lastState,...state};
@@ -93,6 +110,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.42-toolbar-visibility',transport:nativeBridge?.command?'macShare-ack-first':rendererBridge?.command?'presenter-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.43-zoom-mac-shortcuts',transport:nativeBridge?.command?'macShare-ack-first':rendererBridge?.command?'presenter-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
