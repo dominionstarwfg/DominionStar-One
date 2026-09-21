@@ -245,7 +245,8 @@ rejectText(controller,'rendererCommitted:true','ShareController must not own mee
 
 // Re-entrancy guard.
 requireText(controller,'if(state.annotationCanvas===next)','ShareController must suppress unchanged annotation-canvas emissions.');
-requireText(controller,'if(next&&state.liveStream&&!state.compositeStream)startComposite();','Idempotent annotation guard must still recover a missing active composite stream.');
+requireText(controller,'if(needsComposite()){','Annotation/presenter compositor guard must remain active whenever either annotations or presenter layouts need composition.');
+requireText(controller,'if(!state.compositeStream)startComposite();else emit();','Idempotent compositor guard must recover a missing composite stream without replacing a healthy participant-facing stream.');
 requireText(annotation,'const controllerAnnotating=Boolean(controller?.snapshot?.().annotating);','Annotation teardown must inspect real controller annotation state.');
 requireText(annotation,'const localAnnotations=hasLocalAnnotations(),persistent=localAnnotations||state.hasRemoteAnnotations;','Presenter annotation teardown must preserve both local and remote annotation content after the tool palette closes.');
 requireText(annotation,'if(controllerAnnotating&&!persistent)controller?.setAnnotationCanvas?.(null);','Annotation canvas must detach only when no persistent annotation content remains.');
