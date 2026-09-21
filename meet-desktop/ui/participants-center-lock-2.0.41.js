@@ -30,7 +30,6 @@
     syncEncryption();
     cleanLegacyParticipantDecorations();
     window.DominionRuntimeStability?.layoutSideSurface?.();
-    window.DominionZoomPhysicalAcceptance?.decorateParticipantRows?.();
   }
 
   function schedule(){if(frame)return;frame=requestAnimationFrame(sync);}
