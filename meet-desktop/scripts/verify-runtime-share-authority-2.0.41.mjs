@@ -26,6 +26,10 @@ const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 const preferences=read('ui/preferences.js');
 const webrtc=read('ui/webrtc-controller.js');
 const webrtcCss=read('ui/webrtc.css');
+const meetingFeatures=read('ui/meeting-features.js');
+const meetingParity=read('ui/meeting-parity.js');
+const presenterToolbar=read('ui/presenter-toolbar.html');
+const presenterToolbarJs=read('ui/presenter-toolbar.js');
 
 assert.equal(pkg.version,'2.0.41');
 new Function(authority);
@@ -107,6 +111,15 @@ assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('a
 assert(macOverlay.includes('showInactive?.();videoWindow.moveTop?.()'),'Presenter video dock must remain visible above the shared desktop without stealing focus.');
 assert(macOverlay.includes('deliverPresenterCommandWithRetry')&&macOverlay.includes('wakeMain(main)'),'Native presenter actions must wake the capture-owning renderer and retry delivery instead of trusting one hosted-only acknowledgement.');
 assert(macOverlay.includes("normalized==='layout-hide'")&&macOverlay.includes("setVideoLayout('speaker')")&&macOverlay.includes("setVideoLayout('gallery')"),'Speaker, gallery, and hidden video-panel layouts must work locally on the Mac presenter surface.');
+assert(macOverlay.includes("normalized==='layout-show'")&&macOverlay.includes("setVideoLayout('show')"),'Mac presenter toolbar must restore a hidden Participant Video Panel without ending the share.');
+assert(macOverlay.includes("participantVideoVisible:videoLayout!=='hide'")&&macOverlay.includes("lastVisibleVideoLayout=videoLayout"),'Native presenter panel must publish visibility state and remember its last visible Speaker/Gallery layout.');
+assert(macToolbar.includes('data-command="layout-show"')&&macToolbar.includes('data-command="layout-hide"'),'Mac presenter controls must expose Zoom-style Show Video Panel and Hide Video Panel actions.');
+assert(macToolbarJs.includes("'layout-show'")&&macToolbarJs.includes("layoutShowVideoPanel")&&macToolbarJs.includes("layoutHideVideoPanel"),'Mac presenter toolbar must route and reflect Show/Hide Video Panel state.');
+assert(presenterToolbar.includes('data-command="layout-show"')&&presenterToolbar.includes('data-command="layout-hide"'),'Fallback presenter controls must expose Show/Hide Video Panel actions.');
+assert(presenterToolbarJs.includes('presenterLayoutShowVideo')&&presenterToolbarJs.includes('presenterLayoutHideVideo'),'Fallback presenter toolbar must reflect authoritative video-panel visibility.');
+assert(meetingFeatures.includes("DominionPreferences?.write?.('shareVideoDock',next)")&&meetingFeatures.includes('setVideoPanelVisible'),'Renderer video-panel visibility must use the authoritative saved sharing preference.');
+assert(integration.includes("command==='layout-show'")&&integration.includes("setVideoPanelVisible?.(true)")&&integration.includes("setVideoPanelVisible?.(false)"),'Presenter Show/Hide commands must change real meeting video-panel state.');
+assert(meetingParity.includes("visible?'Hide Video Panel':'Show Video Panel'")&&meetingParity.includes("DominionPreferences?.write?.('shareVideoDock',!visible)"),'In-meeting More menu must offer reversible Zoom-style Show/Hide Video Panel behavior.');
 assert(macToolbar.includes('You are screen sharing')&&macToolbar.includes('id="stopShare"')&&macToolbar.includes('id="stopShareLabel">Stop Share<')&&macToolbar.includes('class="stop-share-icon"'),'Presenter toolbar must provide persistent positive sharing state and the approved vector Stop Share control.');
 assert(macVideo.includes('DominionStar Meet')&&macVideo.includes('cameraMirror'),'Presenter video dock must retain DominionStar branding and the camera frame-mirror presentation surface.');
 assert(!macVideoJs.includes('navigator.mediaDevices.getUserMedia')&&macVideoJs.includes("bridge?.onState?.(state=>")&&macVideoJs.includes("dock.dataset.videoOwner='meeting-renderer-frame-mirror'"),'Floating presenter video must not open a second macOS camera capture; the meeting renderer remains the single camera owner while the dock mirrors meeting camera/mic state.');
