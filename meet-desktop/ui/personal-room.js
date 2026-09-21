@@ -72,8 +72,8 @@
     const choice=document.createElement('div');choice.className='personal-new-meeting-choice';choice.innerHTML='<label class="personal-toggle"><span><strong>Use Personal Meeting ID</strong><small id="newMeetingPersonalSummary">Use your permanent Personal Room.</small></span><input id="newMeetingUsePersonal" type="checkbox"></label>';
     passLabel?.insertAdjacentElement('beforebegin',choice);
     const toggle=q('#newMeetingUsePersonal');
-    const sync=()=>{const personal=Boolean(toggle?.checked);if(passLabel)passLabel.hidden=personal;if(personal&&state.room)q('#newMeetingPersonalSummary').textContent=`${formatId(state.room.roomCode)} · Passcode ${state.room.passcode}`;else q('#newMeetingPersonalSummary').textContent='Use your permanent Personal Room.';};
-    toggle?.addEventListener('change',sync);
+    const sync=()=>{const personal=Boolean(toggle?.checked);if(passLabel){passLabel.hidden=personal;passLabel.setAttribute('aria-hidden',String(personal));}if(passInput){passInput.disabled=personal;if(personal&&state.room)passInput.value=String(state.room.passcode||'');}if(personal&&state.room)q('#newMeetingPersonalSummary').textContent=`${formatId(state.room.roomCode)} · Passcode ${state.room.passcode}`;else q('#newMeetingPersonalSummary').textContent='Use your permanent Personal Room.';};
+    toggle?.addEventListener('change',()=>{if(!toggle.checked&&passInput)passInput.value=randomPasscode();sync();});
     form.addEventListener('submit',async event=>{
       if(!toggle?.checked)return;
       event.preventDefault();event.stopImmediatePropagation();const button=q('#startMeetingButton'),error=q('#newMeetingError');button.disabled=true;error.hidden=true;
