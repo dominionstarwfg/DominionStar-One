@@ -86,9 +86,10 @@
     const before=media.snapshot(),target=!before.cameraOn;
     button?.classList.add('media-intent-active');
     const operation=media.setCamera(target);
-    syncMediaLabels();attachPreview();
+    syncMediaLabels();
+    attachPreview();
     try{
-      await operation;syncMediaLabels();attachPreview();
+      await operation;attachPreview();syncMediaLabels();
       const after=media.snapshot();
       if(after.cameraOn===target&&!after.cameraPending)window.DominionMeetingNotifications?.play?.(target?'video-on':'video-off');
     }catch(e){syncMediaLabels();attachPreview();notice('Camera unavailable',errorText(e));}
