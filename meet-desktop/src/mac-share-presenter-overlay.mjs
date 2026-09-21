@@ -27,7 +27,7 @@ if(process.platform==='darwin'){
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
   const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
-  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
+  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',sourceId:'',sourceKind:'',displayId:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
   const bordersReady=()=>borderWindows.length===1&&borderWindows.every(isAlive);
@@ -46,7 +46,13 @@ if(process.platform==='darwin'){
       ||null;
   };
   const displayForMain=()=>{const main=mainWindow();try{return main?screen.getDisplayMatching(main.getBounds()):screen.getPrimaryDisplay();}catch{return screen.getPrimaryDisplay();}};
-  const isDisplayShare=()=>/screen|desktop|display|entire/i.test(String(shareState.sourceName||''));
+  const isDisplayShare=()=>String(shareState.sourceKind||'')==='screen'||/screen|desktop|display|entire/i.test(String(shareState.sourceName||''));
+  const selectedShareDisplay=()=>{
+    if(!isDisplayShare())return null;
+    const wanted=String(shareState.displayId||'');if(!wanted)return null;
+    try{return (screen.getAllDisplays?.()||[]).find(item=>String(item?.id??'')===wanted)||null;}catch{return null;}
+  };
+  const displayForPresenter=()=>selectedShareDisplay()||displayForMain();
 
   function protect(win){if(!isAlive(win))return;try{win.setContentProtection(true);}catch{}}
   function wakeMain(main=mainWindow()){
@@ -113,7 +119,7 @@ if(process.platform==='darwin'){
   function closeFailedWindow(win){if(!isAlive(win))return;try{win.setClosable?.(true);win.close();}catch{try{win.destroy?.();}catch{}}}
   function positionToolbar({reset=false}={}){
     if(!isAlive(toolbarWindow))return;
-    const display=displayForMain(),area=display.workArea||display.bounds;
+    const display=displayForPresenter(),area=display.workArea||display.bounds;
     const width=Math.min(890,Math.max(760,area.width-28)),height=toolbarMenuOpen?390:92;
     let x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+4);
     if(toolbarUserPositioned&&!reset){
@@ -123,7 +129,7 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForMain(),bounds=display.bounds;
+    const display=displayForPresenter(),bounds=display.bounds;
     // One overlay owns all four edges, so the bottom corners cannot drift or
     // terminate early relative to the vertical edges.
     const win=borderWindows[0];
@@ -136,7 +142,7 @@ if(process.platform==='darwin'){
   function hideBorder(){for(const win of borderWindows){if(isAlive(win))try{win.hide();}catch{}}}
   function positionVideo(){
     if(!isAlive(videoWindow))return;
-    const display=displayForMain(),area=display.workArea||display.bounds;
+    const display=displayForPresenter(),area=display.workArea||display.bounds;
     let width=videoLayout==='gallery'?360:252,height=videoLayout==='gallery'?250:174;
     if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(190,Math.min(360,current.width||252));height=Math.max(132,Math.min(250,current.height||174));}catch{}}
     const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+78);
@@ -232,7 +238,7 @@ if(process.platform==='darwin'){
     const base=captureOwnerWindowState?.bounds||main.getBounds(),annotation=String(kind)==='annotate';
     const width=annotation?Math.min(960,Math.max(720,base.width-120)):410;
     const height=annotation?Math.min(660,Math.max(500,base.height-120)):Math.min(620,Math.max(500,base.height-100));
-    const display=displayForMain(),area=display.workArea||display.bounds;
+    const display=displayForPresenter(),area=display.workArea||display.bounds;
     const x=annotation?Math.round(area.x+(area.width-width)/2):Math.round(area.x+area.width-width-18);
     const y=annotation?Math.round(area.y+(area.height-height)/2):Math.round(area.y+104);
     try{main.setIgnoreMouseEvents(false);}catch{}
@@ -269,7 +275,7 @@ if(process.platform==='darwin'){
     // Leave presenter mode first, then restore the meeting. Restoring while
     // shareActive/meetingVisible still describe presenter mode can leave the
     // main window parked behind other desktop windows.
-    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';lastVisibleVideoLayout='speaker';toolbarUserPositioned=false;shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
+    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';lastVisibleVideoLayout='speaker';toolbarUserPositioned=false;shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',sourceId:'',sourceKind:'',displayId:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
     if(isAlive(owner)){
       restoreCaptureOwnerWindow(owner,{focus:false});
       try{owner.setAlwaysOnTop(false);}catch{}
@@ -461,7 +467,10 @@ if(process.platform==='darwin'){
   ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?390:92};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
 
-  screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();}});
+  const repositionPresenterSurfaces=()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();}};
+  screen.on('display-metrics-changed',repositionPresenterSurfaces);
+  screen.on('display-added',repositionPresenterSurfaces);
+  screen.on('display-removed',repositionPresenterSurfaces);
   app.on('before-quit',()=>{
     shareActive=false;hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'app_quitting',deliveryId});}
