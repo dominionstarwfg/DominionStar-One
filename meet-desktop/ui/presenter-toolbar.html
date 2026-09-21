@@ -21,13 +21,15 @@
       <div id="layoutMenu" class="more-menu layout-menu" hidden>
         <button type="button" data-command="layout-speaker">Speaker video</button>
         <button type="button" data-command="layout-gallery">Gallery video</button>
-        <button type="button" data-command="layout-hide">Hide participant video</button>
+        <button type="button" data-command="layout-show" id="presenterLayoutShowVideo" hidden>Show Video Panel</button>
+        <button type="button" data-command="layout-hide" id="presenterLayoutHideVideo">Hide Video Panel</button>
       </div>
     </div>
     <div class="more-wrap">
       <button id="moreButton" type="button" aria-label="More sharing controls"><span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></span><span>More</span></button>
       <div id="moreMenu" class="more-menu" hidden>
         <button type="button" data-command="new-share">New Share</button><button id="presenterShareSound" type="button" data-command="share-sound">Share Sound</button><button id="presenterShareSoundMono" type="button" data-command="share-sound-mono">Sound mode: Mono</button><button id="presenterShareSoundStereo" type="button" data-command="share-sound-stereo">Sound mode: Stereo (high fidelity)</button><button id="presenterOptimizeVideo" type="button" data-command="optimize-video">Optimize for video sharing</button><button id="presenterRecordCommand" type="button" data-command="record">Record meeting</button><button id="presenterStopRecord" type="button" data-command="stop-record" hidden>Stop recording</button>
+        <button type="button" data-command="layout-show" id="presenterMoreShowVideo" hidden>Show Video Panel</button><button type="button" data-command="layout-hide" id="presenterMoreHideVideo">Hide Video Panel</button>
         <button type="button" data-command="reactions">Reactions</button>
       </div>
     </div>
