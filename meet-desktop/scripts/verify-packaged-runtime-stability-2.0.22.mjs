@@ -36,12 +36,12 @@ try{
   assert.ok(Math.abs(viewport.shell.w-viewport.innerWidth)<=1,'Meeting shell must expand with the window.');
 
   await evaluate(`document.querySelector('#roomParticipants').click()`);await sleep(45);
-  const participantsImmediate=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,centerDelta:Math.round(Math.abs((sr.left+sr.width/2)-(br.left+br.width/2))),inside:sr.left>=br.left+10&&sr.right<=br.right-10&&sr.top>=br.top+10&&sr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||'',animation:getComputedStyle(side).animationName,reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,motionSheetLoaded:Array.from(document.styleSheets).some(sheet=>String(sheet.href||'').endsWith('/runtime-motion.css'))};})()`);
+  const participantsImmediate=await evaluate(`(()=>{const side=document.querySelector('.room-side'),chat=document.querySelector('#meetingChatPanel'),stage=document.querySelector('.stage'),body=document.querySelector('.meeting-body');const sr=side.getBoundingClientRect(),st=stage.getBoundingClientRect(),br=body.getBoundingClientRect();return {participantsOpen:!side.hidden,chatClosed:chat.hidden,mode:side.dataset.dsRuntimeMode,rightGap:Math.round(br.right-sr.right),inside:sr.left>=br.left+10&&sr.right<=br.right-10&&sr.top>=br.top+10&&sr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-st.right),panelWidth:Math.round(sr.width),count:side.querySelector('.room-side-head strong')?.textContent||'',animation:getComputedStyle(side).animationName,reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,motionSheetLoaded:Array.from(document.styleSheets).some(sheet=>String(sheet.href||'').endsWith('/runtime-motion.css'))};})()`);
   assert.equal(participantsImmediate.participantsOpen,true,'Participants must open immediately on Participants click.');
   assert.equal(participantsImmediate.chatClosed,true,'Opening Participants must keep Chat closed.');
   assert.equal(participantsImmediate.mode,'floating','Participants must open as a floating Zoom-style window at desktop width.');
   assert.equal(participantsImmediate.inside,true,'Floating Participants must remain inside the meeting body.');
-  assert.ok(participantsImmediate.centerDelta<=48,'Participants must open near the meeting center before the user moves it.');
+  assert.ok(participantsImmediate.rightGap>=8&&participantsImmediate.rightGap<=14,'Participants must open at a stable right-edge default before user movement.');
   assert.ok(Math.abs(participantsImmediate.stageRightGap)<=2,'Floating Participants must not reserve the right edge or shrink the stage.');
   assert.equal(participantsImmediate.count,'Participants (1)');
   assert.equal(participantsImmediate.motionSheetLoaded,true,'Runtime motion stylesheet must be active in the packaged renderer.');
@@ -94,6 +94,6 @@ try{
   assert.ok(responsiveness<500,`Renderer event loop is still starved; 80 ms timer took ${responsiveness} ms.`);
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip approved-runtime-share responsive-event-loop floating-panels-draggable-full-stage');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants stable-right-default accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip approved-runtime-share responsive-event-loop floating-panels-draggable-full-stage');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
