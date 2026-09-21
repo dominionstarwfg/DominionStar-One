@@ -214,7 +214,7 @@
       // visually present, but media rebinding is deferred to normal meeting
       // updates so presenter controls stay responsive.
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{},participantVideoVisible=window.DominionPreferences?.read?.('shareVideoDock')!==false,participantVideoLayout=String(overlay.dataset.shareView||overlay.dataset.viewMode||'speaker'),alwaysShowControls=Boolean(window.DominionPreferences?.read?.('alwaysShowMeetingControls'));void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows),participantVideoVisible,participantVideoLayout,alwaysShowControls,handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{},participantVideoVisible=window.DominionPreferences?.read?.('shareVideoDock')!==false,participantVideoLayout=String(overlay.dataset.shareView||overlay.dataset.viewMode||'speaker'),alwaysShowControls=Boolean(window.DominionPreferences?.read?.('alwaysShowMeetingControls'));void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,sourceId:String(state.options?.sourceId||''),sourceKind:String(state.options?.sourceKind||''),displayId:String(state.options?.displayId||''),shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows),participantVideoVisible,participantVideoLayout,alwaysShowControls,handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
     }
 
     function commitPresenterMode(){
@@ -225,7 +225,7 @@
       // live before presenter mode may park the meeting. macOS must notify the
       // native presenter authority here; otherwise the in-meeting toolbar stays
       // inside the captured window and the capture renderer can recursively stall.
-      try{bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
+      try{bridge?.presenterCommitted?.({sourceName:state.sourceName,sourceId:String(state.options?.sourceId||''),sourceKind:String(state.options?.sourceKind||''),displayId:String(state.options?.displayId||''),paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       if(sameRendererPresenter){void publishMacVideoFrame({force:true});scheduleMacVideoMirror(90);}
       return true;
     }
