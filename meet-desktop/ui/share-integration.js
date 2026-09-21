@@ -214,7 +214,7 @@
       // visually present, but media rebinding is deferred to normal meeting
       // updates so presenter controls stay responsive.
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{},participantVideoVisible=window.DominionPreferences?.read?.('shareVideoDock')!==false,participantVideoLayout=String(overlay.dataset.shareView||overlay.dataset.viewMode||'speaker');void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:String(state.options?.shareAudioMode||'mono')==='stereo'?'stereo':'mono',optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows),participantVideoVisible,participantVideoLayout,handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
     }
 
     function commitPresenterMode(){
@@ -354,9 +354,10 @@
         if(command==='share-sound-stereo'){await setActiveShareAudioMode('stereo');return {handled:true,command};}
         if(command==='optimize-video'){await toggleOptimizeVideo();return {handled:true,command};}
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
-        if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
-        if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
-        if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return {handled:true,command};}
+        if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');applyLayout();return {handled:true,command};}
+        if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');applyLayout();return {handled:true,command};}
+        if(command==='layout-show'){window.DominionMeetingFeatures?.setVideoPanelVisible?.(true);applyLayout();return {handled:true,command};}
+        if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoPanelVisible?.(false);applyLayout();return {handled:true,command};}
         if(command.startsWith('reaction:')){await window.DominionMeetingFeatures?.sendReaction?.(command.slice('reaction:'.length));applyLayout();return {handled:true,command};}
         if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();applyLayout();return {handled:true,command};}
         if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();applyLayout();return {handled:true,command};}
