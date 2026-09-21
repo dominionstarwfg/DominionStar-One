@@ -18,6 +18,8 @@ if(process.platform==='darwin'){
   let presenterModeCommitted=false;
   let toolbarReady=false;
   let toolbarMenuOpen=false;
+  let toolbarUserPositioned=false;
+  let positioningToolbar=false;
   let preparing=null;
   let presenterDeliverySeq=0;
   let videoLayout='speaker',lastVisibleVideoLayout='speaker';
@@ -109,13 +111,15 @@ if(process.platform==='darwin'){
     finally{if(timer)clearTimeout(timer);}
   }
   function closeFailedWindow(win){if(!isAlive(win))return;try{win.setClosable?.(true);win.close();}catch{try{win.destroy?.();}catch{}}}
-  function positionToolbar(){
+  function positionToolbar({reset=false}={}){
     if(!isAlive(toolbarWindow))return;
     const display=displayForMain(),area=display.workArea||display.bounds;
-    const width=Math.min(890,Math.max(760,area.width-28));
-    const height=toolbarMenuOpen?390:92;
-    const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+4);
-    try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
+    const width=Math.min(890,Math.max(760,area.width-28)),height=toolbarMenuOpen?390:92;
+    let x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+4);
+    if(toolbarUserPositioned&&!reset){
+      try{const current=toolbarWindow.getBounds();x=Math.round(Math.max(area.x+4,Math.min(current.x,area.x+area.width-width-4)));y=Math.round(Math.max(area.y+4,Math.min(current.y,area.y+area.height-height-4)));}catch{}
+    }
+    positioningToolbar=true;try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}finally{setTimeout(()=>{positioningToolbar=false;},0);}
   }
   function positionBorder(){
     if(!bordersReady())return;
@@ -166,8 +170,9 @@ if(process.platform==='darwin'){
     toolbarWindow=win;protect(win);
     try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+    win.on('move',()=>{if(!positioningToolbar&&isAlive(win))toolbarUserPositioned=true;});
     win.on('closed',()=>{if(toolbarWindow===win){toolbarWindow=null;toolbarReady=false;}});
-    positionToolbar();
+    positionToolbar({reset:!toolbarUserPositioned});
     try{
       await boundedLoad('mac_presenter_toolbar_load',()=>win.loadFile(path.join(uiDir,'mac-presenter-toolbar.html')));
       if(!isAlive(win)||toolbarWindow!==win)return null;
@@ -264,7 +269,7 @@ if(process.platform==='darwin'){
     // Leave presenter mode first, then restore the meeting. Restoring while
     // shareActive/meetingVisible still describe presenter mode can leave the
     // main window parked behind other desktop windows.
-    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';lastVisibleVideoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
+    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';lastVisibleVideoLayout='speaker';toolbarUserPositioned=false;shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
     if(isAlive(owner)){
       restoreCaptureOwnerWindow(owner,{focus:false});
       try{owner.setAlwaysOnTop(false);}catch{}
