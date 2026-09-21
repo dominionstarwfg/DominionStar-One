@@ -1,11 +1,13 @@
 (()=>{
   if(window.DominionPreferences)return;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)],media=()=>window.DominionMediaController||null,desktop=window.dominionDesktop||{};
-  const KEYS=Object.freeze({joinMuted:'ds_pref_join_muted',joinVideoOff:'ds_pref_join_video_off',showJoinPreview:'ds_pref_show_join_preview',hideSelfView:'ds_pref_hide_self_view',waitingRoomSound:'ds_pref_waiting_room_sound',joinLeaveSound:'ds_pref_join_leave_sound',desktopMeetingNotifications:'ds_pref_desktop_meeting_notifications',alwaysShowMeetingControls:'ds_pref_always_show_meeting_controls',shareVideoDock:'ds_pref_share_video_dock',shareSideBySide:'ds_pref_share_side_by_side',shareOptimize:'ds_pref_share_optimize',shareAudio:'ds_pref_share_audio',shareScaleToFit:'ds_pref_share_scale_to_fit',shareEnterFullScreen:'ds_pref_share_enter_fullscreen',shareGreenBorder:'ds_pref_share_green_border',chatSound:'ds_pref_chat_sound',recordMic:'ds_pref_record_mic',recordRemote:'ds_pref_record_remote',uiScale:'ds_pref_ui_scale',shortcuts:'ds_pref_shortcuts',captionFontSize:'ds_pref_caption_font_size',captionFontType:'ds_pref_caption_font_type',captionTheme:'ds_pref_caption_theme',captionPosition:'ds_pref_caption_position',alwaysShowCaptions:'ds_pref_always_show_captions'});
-  const defaults={joinMuted:true,joinVideoOff:false,showJoinPreview:true,hideSelfView:false,waitingRoomSound:true,joinLeaveSound:true,desktopMeetingNotifications:true,alwaysShowMeetingControls:false,shareVideoDock:true,shareSideBySide:false,shareOptimize:false,shareAudio:false,shareScaleToFit:true,shareEnterFullScreen:false,shareGreenBorder:true,chatSound:true,recordMic:true,recordRemote:true,uiScale:'100',shortcuts:true,captionFontSize:'100',captionFontType:'system',captionTheme:'white-black',captionPosition:'bottom',alwaysShowCaptions:false};
+  const KEYS=Object.freeze({joinMuted:'ds_pref_join_muted',joinVideoOff:'ds_pref_join_video_off',showJoinPreview:'ds_pref_show_join_preview',hideSelfView:'ds_pref_hide_self_view',waitingRoomSound:'ds_pref_waiting_room_sound',joinLeaveSound:'ds_pref_join_leave_sound',desktopMeetingNotifications:'ds_pref_desktop_meeting_notifications',alwaysShowMeetingControls:'ds_pref_always_show_meeting_controls',shareVideoDock:'ds_pref_share_video_dock',shareSideBySide:'ds_pref_share_side_by_side',shareOptimize:'ds_pref_share_optimize',shareAudio:'ds_pref_share_audio',shareScaleToFit:'ds_pref_share_scale_to_fit',shareEnterFullScreen:'ds_pref_share_enter_fullscreen',shareGreenBorder:'ds_pref_share_green_border',chatSound:'ds_pref_chat_sound',recordMic:'ds_pref_record_mic',recordRemote:'ds_pref_record_remote',uiScale:'ds_pref_ui_scale',shortcuts:'ds_pref_shortcuts',globalShortcutMute:'ds_pref_global_shortcut_mute',globalShortcutVideo:'ds_pref_global_shortcut_video',globalShortcutShare:'ds_pref_global_shortcut_share',globalShortcutParticipants:'ds_pref_global_shortcut_participants',globalShortcutChat:'ds_pref_global_shortcut_chat',globalShortcutHand:'ds_pref_global_shortcut_hand',captionFontSize:'ds_pref_caption_font_size',captionFontType:'ds_pref_caption_font_type',captionTheme:'ds_pref_caption_theme',captionPosition:'ds_pref_caption_position',alwaysShowCaptions:'ds_pref_always_show_captions'});
+  const defaults={joinMuted:true,joinVideoOff:false,showJoinPreview:true,hideSelfView:false,waitingRoomSound:true,joinLeaveSound:true,desktopMeetingNotifications:true,alwaysShowMeetingControls:false,shareVideoDock:true,shareSideBySide:false,shareOptimize:false,shareAudio:false,shareScaleToFit:true,shareEnterFullScreen:false,shareGreenBorder:true,chatSound:true,recordMic:true,recordRemote:true,uiScale:'100',shortcuts:true,globalShortcutMute:false,globalShortcutVideo:false,globalShortcutShare:false,globalShortcutParticipants:false,globalShortcutChat:false,globalShortcutHand:false,captionFontSize:'100',captionFontType:'system',captionTheme:'white-black',captionPosition:'bottom',alwaysShowCaptions:false};
   const read=(name)=>{try{const raw=localStorage.getItem(KEYS[name]);if(raw===null)return defaults[name];if(typeof defaults[name]==='boolean')return raw==='1';return raw;}catch{return defaults[name];}};
-  const write=(name,value)=>{try{localStorage.setItem(KEYS[name],typeof defaults[name]==='boolean'?(value?'1':'0'):String(value));}catch{}applyGlobal();};
+  const write=(name,value)=>{try{localStorage.setItem(KEYS[name],typeof defaults[name]==='boolean'?(value?'1':'0'):String(value));}catch{}applyGlobal();if(name==='shortcuts'||String(name).startsWith('globalShortcut'))void syncGlobalMeetingShortcuts();};
   const snapshot=()=>Object.fromEntries(Object.keys(defaults).map(key=>[key,read(key)]));
+  const globalShortcutConfig=()=>{const enabled=Boolean(read('shortcuts'));return {mute:enabled&&Boolean(read('globalShortcutMute')),video:enabled&&Boolean(read('globalShortcutVideo')),share:enabled&&Boolean(read('globalShortcutShare')),participants:enabled&&Boolean(read('globalShortcutParticipants')),chat:enabled&&Boolean(read('globalShortcutChat')),hand:enabled&&Boolean(read('globalShortcutHand'))};};
+  async function syncGlobalMeetingShortcuts(){try{return await desktop.app?.setGlobalMeetingShortcuts?.(globalShortcutConfig());}catch{return null;}}
   let installed=false,prejoinApplied=false;
 
   function applyGlobal(){const scale=Math.max(90,Math.min(125,Number(read('uiScale'))||100));document.documentElement.style.setProperty('--ds-ui-scale',String(scale/100));document.body.style.zoom=String(scale/100);document.body.classList.toggle('ds-hide-self-view',Boolean(read('hideSelfView')));window.dispatchEvent(new CustomEvent('dominion:preference-change',{detail:snapshot()}));}
@@ -32,7 +34,7 @@
     toggle(section,'Always show captions when available','alwaysShowCaptions','Captions open automatically whenever the meeting provides caption text.');
     info(node,'Caption appearance and position are personal accessibility settings and do not change what other participants see.');
   }
-  function openShortcuts(){const node=detail();if(!node)return;heading(node,'Keyboard Shortcuts','Zoom-familiar macOS meeting shortcuts while DominionStar Meet is focused.');toggle(node,'Enable meeting keyboard shortcuts','shortcuts');info(node,'⌘⇧A mute/unmute · ⌘⇧V video · ⌘⇧S start/stop share · ⌘⇧T pause/resume share · ⌘U participants · ⌘⇧H chat · ⌘⇧W cycle Speaker/Multi-speaker/Gallery · ⌥Y raise/lower hand · ⌃⌥⌘H show/hide floating controls · ⌃\\ toggle Always show meeting controls.');}
+  function openShortcuts(){const node=detail();if(!node)return;heading(node,'Keyboard Shortcuts','Zoom-familiar macOS meeting shortcuts, with opt-in global shortcuts for selected meeting controls.');toggle(node,'Enable meeting keyboard shortcuts','shortcuts');info(node,'Focused shortcuts: ⌘⇧A mute/unmute · ⌘⇧V video · ⌘⇧S start/stop share · ⌘⇧T pause/resume share · ⌘U participants · ⌘⇧H chat · ⌘⇧W cycle Speaker/Multi-speaker/Gallery · ⌥Y raise/lower hand · ⌃⌥⌘H show/hide floating controls · ⌃\\ toggle Always show meeting controls.');info(node,'Global shortcuts work while another app is focused. They are off by default to avoid taking shortcuts away from other apps.');toggle(node,'Use ⌘⇧A as a global shortcut','globalShortcutMute','Mute or unmute while another app is focused.');toggle(node,'Use ⌘⇧V as a global shortcut','globalShortcutVideo','Start or stop video while another app is focused.');toggle(node,'Use ⌘⇧S as a global shortcut','globalShortcutShare','Start or stop screen sharing while another app is focused.');toggle(node,'Use ⌘U as a global shortcut','globalShortcutParticipants','Show or hide Participants while another app is focused.');toggle(node,'Use ⌘⇧H as a global shortcut','globalShortcutChat','Show or hide meeting chat while another app is focused.');toggle(node,'Use ⌥Y as a global shortcut','globalShortcutHand','Raise or lower your hand while another app is focused.');}
   async function openAbout(){const node=detail();if(!node)return;heading(node,'About','DominionStar Meet desktop information.');let env={};try{env=await desktop.environment?.()||{};}catch{}info(node,`DominionStar Meet ${String(env.version||'2.0.0 QA')} · ${String(env.platform||navigator.platform)}. Clean desktop rebuild with local Home, PKCE authentication, Meet V2 lifecycle, WebRTC media, and isolated screen sharing.`);}
 
   function addRow(list,title,copy,handler){let row=qa('.settings-row').find(item=>item.querySelector('strong')?.textContent?.trim()===title);if(!row){row=document.createElement('button');row.type='button';row.className='settings-row';row.innerHTML=`<span><strong>${title}</strong><small>${copy}</small></span><span>›</span>`;list.append(row);}row.onclick=handler;return row;}
@@ -45,31 +47,49 @@
 
   function applyShareDockPreference(){const active=window.DominionShareController?.snapshot?.().active,dock=q('#participantVideoDock');if(!active||!dock)return;if(!read('shareVideoDock'))dock.hidden=true;else window.DominionMeetingParity?.syncVideoDock?.();}
   function clickControl(selector){const button=q(selector);if(!button||button.disabled||button.offsetParent===null)return false;button.click();return true;}
-  function cycleMeetingView(){const overlay=q('#meetingOverlay');if(!overlay)return false;const current=String(overlay.dataset.viewMode||'speaker'),order=['speaker','multi','gallery'],next=order[(Math.max(0,order.indexOf(current))+1)%order.length];window.DominionMeetingParity?.applyViewMode?.(next);window.DominionMeetingParity?.syncShareLayout?.();return true;}
+  const meetingActive=()=>{const overlay=q('#meetingOverlay');return Boolean(overlay&&!overlay.hidden&&overlay.offsetParent!==null);};
+  function executeMeetingShortcutCommand(command){
+    if(!meetingActive())return false;
+    const shareActive=Boolean(window.DominionShareController?.snapshot?.().active),normalized=String(command||'');
+    if(shareActive&&['audio','video','share','participants','chat','toggle-hand'].includes(normalized)){
+      const presenterCommand=normalized==='share'?'stop':normalized;void window.DominionShareIntegration?.dispatchPresenterCommand?.(presenterCommand);return true;
+    }
+    if(normalized==='audio')return clickControl('#roomMic');
+    if(normalized==='video')return clickControl('#roomCamera');
+    if(normalized==='share')return clickControl('#roomShare');
+    if(normalized==='participants')return clickControl('#roomParticipants');
+    if(normalized==='chat')return clickControl('#roomChat');
+    if(normalized==='toggle-hand'){void window.DominionMeetingFeatures?.toggleRaiseHand?.();return true;}
+    return false;
+  }
+  function cycleMeetingView(){const overlay=q('#meetingOverlay');if(!overlay||overlay.hidden)return false;const current=String(overlay.dataset.viewMode||'speaker'),order=['speaker','multi','gallery'],next=order[(Math.max(0,order.indexOf(current))+1)%order.length];window.DominionMeetingParity?.applyViewMode?.(next);window.DominionMeetingParity?.syncShareLayout?.();return true;}
   async function toggleMeetingFullscreen(){const target=q('#meetingOverlay')||document.documentElement;try{if(document.fullscreenElement){await document.exitFullscreen?.();return true;}if(target?.requestFullscreen){await target.requestFullscreen();return true;}}catch{}return false;}
   function handleShortcut(event){
     if(!read('shortcuts')||event.repeat||event.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
     const key=String(event.key||'').toLowerCase(),shareActive=Boolean(window.DominionShareController?.snapshot?.().active);
     let handled=false;
     if(event.metaKey&&event.shiftKey&&!event.ctrlKey&&!event.altKey){
-      if(key==='a')handled=clickControl('#roomMic');
-      else if(key==='v')handled=clickControl('#roomCamera');
-      else if(key==='s'){handled=true;if(shareActive)void window.DominionShareIntegration?.dispatchPresenterCommand?.('stop');else handled=clickControl('#roomShare');}
+      if(key==='a')handled=executeMeetingShortcutCommand('audio');
+      else if(key==='v')handled=executeMeetingShortcutCommand('video');
+      else if(key==='s')handled=executeMeetingShortcutCommand('share');
       else if(key==='t'&&shareActive){handled=true;void window.DominionShareIntegration?.dispatchPresenterCommand?.('pause');}
-      else if(key==='h')handled=clickControl('#roomChat');
+      else if(key==='h')handled=executeMeetingShortcutCommand('chat');
       else if(key==='w')handled=cycleMeetingView();
-      else if(key==='r'){handled=true;void window.DominionMeetingFeatures?.toggleRecording?.();}
-      else if(key==='f'){handled=true;void toggleMeetingFullscreen();}
-    }else if(event.metaKey&&!event.shiftKey&&!event.ctrlKey&&!event.altKey&&key==='u')handled=clickControl('#roomParticipants');
-    else if(event.altKey&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&key==='y'){handled=true;void window.DominionMeetingFeatures?.toggleRaiseHand?.();}
-    else if(event.ctrlKey&&event.altKey&&event.metaKey&&!event.shiftKey&&key==='h'){handled=true;if(shareActive)void desktop.macShare?.command?.('toggle-controls');}
-    else if(event.ctrlKey&&!event.altKey&&!event.metaKey&&!event.shiftKey&&key==='\\'){handled=true;write('alwaysShowMeetingControls',!Boolean(read('alwaysShowMeetingControls')));}
+      else if(key==='r'){handled=meetingActive();if(handled)void window.DominionMeetingFeatures?.toggleRecording?.();}
+      else if(key==='f'){handled=meetingActive();if(handled)void toggleMeetingFullscreen();}
+    }else if(event.metaKey&&!event.shiftKey&&!event.ctrlKey&&!event.altKey&&key==='u')handled=executeMeetingShortcutCommand('participants');
+    else if(event.altKey&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&key==='y')handled=executeMeetingShortcutCommand('toggle-hand');
+    else if(event.ctrlKey&&event.altKey&&event.metaKey&&!event.shiftKey&&key==='h'){handled=shareActive;if(handled)void desktop.macShare?.command?.('toggle-controls');}
+    else if(event.ctrlKey&&!event.altKey&&!event.metaKey&&!event.shiftKey&&key==='\\'){handled=meetingActive();if(handled)write('alwaysShowMeetingControls',!Boolean(read('alwaysShowMeetingControls')));}
     if(handled)event.preventDefault();
   }
+  function handleGlobalMeetingCommand(payload){if(!read('shortcuts'))return false;return executeMeetingShortcutCommand(String(payload?.command||payload||''));}
 
   window.addEventListener('keydown',handleShortcut,true);
+  desktop.app?.onGlobalMeetingCommand?.(handleGlobalMeetingCommand);
+  void syncGlobalMeetingShortcuts();
   const observer=new MutationObserver(()=>{if(!installed)installSettings();void applyPrejoinDefaults();applyShareDockPreference();});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
   setInterval(()=>{if(!installed)installSettings();void applyPrejoinDefaults();applyShareDockPreference();},700);
   applyGlobal();installSettings();
-  window.DominionPreferences=Object.freeze({read,write,snapshot,openMeetings,openSharing,openChat,openRecording,openAccessibility,openShortcuts,openAbout,applyPrejoinDefaults,applyShareDockPreference});
+  window.DominionPreferences=Object.freeze({read,write,snapshot,openMeetings,openSharing,openChat,openRecording,openAccessibility,openShortcuts,openAbout,applyPrejoinDefaults,applyShareDockPreference,syncGlobalMeetingShortcuts,executeMeetingShortcutCommand});
 })();
