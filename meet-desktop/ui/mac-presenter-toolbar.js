@@ -104,6 +104,9 @@
     if(mono)mono.textContent=`${mode==='mono'?'✓ ':''}Sound mode: Mono`;
     if(stereo)stereo.textContent=`${mode==='stereo'?'✓ ':''}Sound mode: Stereo (high fidelity)`;
     if(optimizeCommand)optimizeCommand.textContent=`${state?.optimizeVideo?'✓ ':''}Optimize for video sharing`;
+    const presenterLayout=['background','shoulder','side'].includes(String(state?.presenterLayout||''))?String(state.presenterLayout):'content';
+    const presenterLayoutLabels={content:'Content only',background:'As background',shoulder:'Over the shoulder',side:'Side by side'};
+    for(const [mode,id] of Object.entries({content:'presenterLayoutContent',background:'presenterLayoutBackground',shoulder:'presenterLayoutShoulder',side:'presenterLayoutSide'})){const node=q('#'+id);if(node)node.textContent=`${presenterLayout===mode?'✓ ':''}${presenterLayoutLabels[mode]}`;}
     const panelVisible=state?.participantVideoVisible!==false;
     for(const id of ['layoutShowVideoPanel','moreShowVideoPanel']){const node=q('#'+id);if(node)node.hidden=panelVisible;}
     for(const id of ['layoutHideVideoPanel','moreHideVideoPanel']){const node=q('#'+id);if(node)node.hidden=!panelVisible;}
