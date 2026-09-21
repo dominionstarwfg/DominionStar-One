@@ -342,3 +342,16 @@
 #meetingOverlay.share-panel-floating[data-share-view="multi"] #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile{
   display:block!important;
 }
+
+
+
+/* Approved-reference support for the larger Active Speaker share panel preset. */
+#meetingOverlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock[data-approved-filmstrip="1"].speaker-large:not(.user-resized):not(.minimized){
+  width:320px!important;
+  max-width:min(42vw,320px)!important;
+}
+#meetingOverlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock[data-approved-filmstrip="1"].speaker-large:not(.user-resized):not(.minimized) .remote-peer-tile.share-featured{
+  width:100%!important;
+  height:auto!important;
+  aspect-ratio:16/9!important;
+}
