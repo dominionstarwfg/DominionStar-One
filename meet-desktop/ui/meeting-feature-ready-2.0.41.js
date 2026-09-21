@@ -76,10 +76,14 @@ body.ds-in-meeting{overflow:hidden!important;background:#02060b!important}
 document.head.append(s);
 }
 
-function brand(){
-const h=q('#meetingOverlay .meeting-head');if(!h)return;
+function ensureBrandIdentity(){
+const h=q('#meetingOverlay .meeting-head');if(!h)return null;
 let b=h.querySelector('.ds-meeting-brand');if(!b){b=document.createElement('div');b.className='ds-meeting-brand';h.prepend(b);}
 if(!b.dataset.dsExec){b.textContent='';const url=String(desktop.brand?.logoUrl||'').trim();if(url){const img=document.createElement('img');img.src=url;img.alt='DominionStar';img.referrerPolicy='no-referrer';b.append(img);}else{const m=document.createElement('span');m.className='ds-exec-brand-fallback';m.textContent='DS';b.append(m);}const n=document.createElement('strong');n.textContent='DominionStar Meet';b.append(n);b.dataset.dsExec='1';}
+return {h,b};
+}
+function brand(){
+const identity=ensureBrandIdentity();if(!identity)return;const {h,b}=identity;
 if(!h.querySelector(':scope>.ds-exec-divider')){const d=document.createElement('span');d.className='ds-exec-divider';b.after(d);}
 if(!h.querySelector('.ds-exec-encrypted')){const e=document.createElement('span');e.className='ds-exec-encrypted';e.innerHTML=I.shield+'<span>Encrypted</span>';h.append(e);}
 const tools=h.querySelector('.ds-ref-meeting-head-icons');
@@ -97,8 +101,22 @@ if(l.textContent!==txt)l.textContent=txt;
 }
 function syncControls(){for(const [id,key,label] of controls)control(id,key,label);}
 
+function finalReferenceReady(){return Boolean(window.DominionZoomScreenshotReference?.sync);}
+function handoffToFinalReference(o){
+if(!o)return false;
+ensureBrandIdentity();
+o.classList.remove('ds-exec-lock');
+for(const node of o.querySelectorAll('.ds-exec-icon,.ds-exec-label,.ds-exec-encrypted,.ds-exec-divider'))node.remove();
+for(const node of o.querySelectorAll('.ds-exec-control'))node.classList.remove('ds-exec-control');
+window.DominionZoomScreenshotReference?.requestSync?.();
+return true;
+}
 function sync(){
-const o=q('#meetingOverlay');if(!o)return false;styles();o.classList.add('ds-exec-lock');brand();syncControls();requestAnimationFrame(()=>{brand();syncControls();});return true;
+const o=q('#meetingOverlay');if(!o)return false;styles();
+if(finalReferenceReady())return handoffToFinalReference(o);
+o.classList.add('ds-exec-lock');brand();syncControls();
+requestAnimationFrame(()=>{if(finalReferenceReady()){handoffToFinalReference(o);return;}brand();syncControls();});
+return true;
 }
 function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;sync();});}
 function observe(){const o=q('#meetingOverlay');if(!o||o===observed)return;observer?.disconnect();observed=o;observer=new MutationObserver(rs=>{if(rs.some(r=>r.type==='childList'||(r.type==='attributes'&&['hidden','class','aria-label','aria-pressed'].includes(r.attributeName))))schedule();});observer.observe(o,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-label','aria-pressed']});}

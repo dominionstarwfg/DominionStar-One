@@ -383,6 +383,7 @@
     if(!meetingOpen())return;
     primePhysicalControls();primeLegacyStructure();ensureToolbarZones();
     syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();
+    window.DominionZoomScreenshotReference?.sync?.();
     q('#meetingOverlay')?.setAttribute('data-ds-runtime-stable','1');
   }
 

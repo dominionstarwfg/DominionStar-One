@@ -8,7 +8,53 @@
 
   const sym=Object.freeze({plus:'＋',bell:'♧',calendar:'▣',record:'◉',captions:'CC',breakout:'▦',polls:'▥',docs:'▤',whiteboard:'▱',apps:'⌘',info:'ⓘ',transfer:'⇥',settings:'⚙'});
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
-  function setVisibleLabel(button,text){if(!button)return;const label=button.querySelector('.ds-control-label');if(label)label.textContent=text;else if(!button.querySelector('svg'))button.textContent=text;}
+  function ensureCriticalMeetingGeometry(){
+    let style=q('style[data-ds-ref-critical-meeting-geometry]');
+    if(!style){
+      style=document.createElement('style');
+      style.dataset.dsRefCriticalMeetingGeometry='1';
+      document.head.append(style);
+    }
+    style.textContent=`
+      #meetingOverlay .meeting-shell{grid-template-rows:47px minmax(0,1fr) 56px!important}
+      #meetingOverlay .meeting-footer,
+      #meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]{
+        height:56px!important;min-height:56px!important;max-height:56px!important;
+        box-sizing:border-box!important;padding-top:0!important;padding-bottom:0!important
+      }
+      #meetingOverlay .ds-runtime-toolbar-left,
+      #meetingOverlay .ds-runtime-toolbar-center,
+      #meetingOverlay .ds-runtime-toolbar-right{height:56px!important;min-height:56px!important;max-height:56px!important}
+      #meetingOverlay #roomReactions .ds-control-label{font-size:10px!important;line-height:1.1!important;white-space:nowrap!important}
+      #meetingOverlay .meeting-body{min-height:0!important}
+    `;
+    const footer=q('#meetingOverlay .meeting-footer');
+    if(footer){
+      for(const prop of ['height','min-height','max-height'])footer.style.setProperty(prop,'56px','important');
+      footer.style.setProperty('box-sizing','border-box','important');
+      footer.style.setProperty('padding-top','0','important');
+      footer.style.setProperty('padding-bottom','0','important');
+    }
+    for(const zone of qa('#meetingOverlay .ds-runtime-toolbar-left,#meetingOverlay .ds-runtime-toolbar-center,#meetingOverlay .ds-runtime-toolbar-right')){
+      for(const prop of ['height','min-height','max-height'])zone.style.setProperty(prop,'56px','important');
+    }
+  }
+  function setVisibleLabel(button,text){
+    if(!button)return;
+    let label=button.querySelector('.ds-control-label');
+    if(!label){
+      const icon=button.querySelector('.ds-control-icon');
+      if(icon){
+        label=document.createElement('span');
+        label.className='ds-control-label';
+        icon.insertAdjacentElement('afterend',label);
+      }else if(!button.querySelector('svg')){
+        button.textContent=text;
+        return;
+      }
+    }
+    if(label&&label.textContent!==text)label.textContent=text;
+  }
   function notice(title,copy){const d=q('#foundationDialog');if(!d)return;q('#foundationTitle').textContent=title;q('#foundationCopy').textContent=copy;if(!d.open)d.showModal();}
   function ensureDeterministicPresenterIdle(){if(document.querySelector('style[data-ds-ref-presenter-idle]'))return;const style=document.createElement('style');style.dataset.dsRefPresenterIdle='1';style.textContent='#meetingOverlay.share-active:not(.ds-ref-presenter-visible) #inlinePresenterToolbar{opacity:0!important;pointer-events:none!important;transition:none!important;transform:translateX(-50%) translateY(-12px)!important}';document.head.append(style);}
 
@@ -23,6 +69,14 @@
     const more=q('#roomMore');if(more&&more.dataset.dsRefMoreBound!=='1'){more.dataset.dsRefMoreBound='1';more.addEventListener('click',event=>{if(q('#meetingOverlay')?.hidden)return;event.preventDefault();event.stopImmediatePropagation();openMeetingMore(event.currentTarget);},true);}
   }
   function syncParticipantVisibility(){const overlay=q('#meetingOverlay'),side=overlay?.querySelector('.room-side');if(!overlay||!side)return;overlay.classList.toggle('participants-hidden',Boolean(side.hidden));}
+  function reconcileAuthoritativeShareClass(){
+    const overlay=q('#meetingOverlay'),integration=window.DominionShareIntegration;
+    if(!overlay||!integration?.state)return;
+    let active=false;
+    try{active=Boolean(integration.state()?.active);}catch{return;}
+    overlay.classList.toggle('share-active',active);
+    document.body.classList.toggle('ds-share-active',active);
+  }
   function syncMeetingLabels(){const overlay=q('#meetingOverlay');if(!overlay||overlay.hidden){document.body.classList.remove('ds-in-meeting','ds-share-active');closeHostPanel();closeMeetingMore();return;}document.body.classList.add('ds-in-meeting');syncParticipantVisibility();setVisibleLabel(q('#roomMic'),'Audio');setVisibleLabel(q('#roomCamera'),'Video');setVisibleLabel(q('#roomParticipants'),'Participants');setVisibleLabel(q('#roomChat'),'Chat');setVisibleLabel(q('#roomReactions'),'React');setVisibleLabel(q('#roomRaiseHand'),q('#roomRaiseHand')?.getAttribute('aria-pressed')==='true'?'Lower hand':'Raise hand');setVisibleLabel(q('#roomShare'),'Share');setVisibleLabel(q('#roomHostTools'),'Host tools');setVisibleLabel(q('#roomMore'),'More');setVisibleLabel(q('#roomExitButton'),'End');const count=qa('#participantRoster [data-participant-id]').length||1;if(q('#roomParticipants'))q('#roomParticipants').dataset.dsRefCount=String(count);ensureMeetingHead();bindPrimaryToolbar();ensureParticipantsFooter();syncPresenter();}
 
   function ensureParticipantsFooter(){const side=q('#meetingOverlay .room-side');if(!side)return;const count=qa('#participantRoster [data-participant-id]').length||1;const head=side.querySelector('.room-side-head');if(head){const strong=head.querySelector('strong');if(strong)strong.textContent=`Participants (${count})`;}let footer=side.querySelector('.ds-ref-participants-footer');if(footer)return;footer=document.createElement('div');footer.className='ds-ref-participants-footer';footer.innerHTML='<button type="button" data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more aria-label="More participant controls">More</button>';side.append(footer);footer.querySelector('[data-ref-invite]').onclick=async()=>{const info=String(q('#roomCodeLabel')?.textContent||'').trim();try{if(info)await navigator.clipboard.writeText(info);}catch{}notice('Invite',info?'Meeting information copied.':'Meeting information is unavailable.');};footer.querySelector('[data-ref-mute-all]').onclick=()=>void participants()?.sendAll?.('host:mute');footer.querySelector('[data-ref-participant-more]').onclick=event=>openParticipantBulkMenu(event.currentTarget);}
@@ -47,9 +101,15 @@
   function closeOnOutside(event){if(participantBulkMenu&&!participantBulkMenu.contains(event.target)&&!event.target.closest?.('[data-ref-participant-more]'))closeParticipantBulk();if(meetingMoreMenu&&!meetingMoreMenu.contains(event.target)&&!event.target.closest?.('#roomMore'))closeMeetingMore();}
   document.addEventListener('pointerdown',closeOnOutside,true);
 
-  function sync(){syncQueued=false;ensureDeterministicPresenterIdle();ensureHomeTopbar();ensureNotesAction();ensurePrejoin();syncMeetingLabels();}
+  function claimFinalMeetingAuthority(){
+    const overlay=q('#meetingOverlay');if(!overlay)return;
+    overlay.classList.remove('ds-exec-lock');
+    for(const node of qa('#meetingOverlay .ds-exec-icon,#meetingOverlay .ds-exec-label,#meetingOverlay .ds-exec-encrypted,#meetingOverlay .ds-exec-divider'))node.remove();
+    for(const node of qa('#meetingOverlay .ds-exec-control'))node.classList.remove('ds-exec-control');
+  }
+  function sync(){syncQueued=false;claimFinalMeetingAuthority();ensureCriticalMeetingGeometry();ensureDeterministicPresenterIdle();ensureHomeTopbar();ensureNotesAction();ensurePrejoin();reconcileAuthoritativeShareClass();syncMeetingLabels();}
   function requestSync(){if(syncQueued)return;syncQueued=true;requestAnimationFrame(sync);}
-  const observer=new MutationObserver(requestSync);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-pressed']});window.addEventListener('dominion:meeting-ui-ready',requestSync,true);window.addEventListener('dominion:participant-update',requestSync,true);window.addEventListener('dominion:share-state',requestSync,true);window.addEventListener('resize',requestSync,{passive:true});const timer=setInterval(requestSync,650);
-  window.DominionZoomScreenshotReference=Object.freeze({version:'2.0.41',sync,requestSync,openHostToolsPanel,openMeetingMore,openParticipantBulkMenu,dispose:()=>{clearInterval(timer);observer.disconnect();clearTimeout(presenterTimer);window.removeEventListener('click',stableCommandDelegate,true);closeHostPanel();closeMeetingMore();closeParticipantBulk();}});
+  const observer=new MutationObserver(requestSync);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-pressed']});window.addEventListener('dominion:meeting-ui-ready',requestSync,true);window.addEventListener('dominion:participant-update',requestSync,true);window.addEventListener('dominion:share-state',requestSync,true);window.addEventListener('resize',requestSync,{passive:true});
+  window.DominionZoomScreenshotReference=Object.freeze({version:'2.0.41',sync,requestSync,openHostToolsPanel,openMeetingMore,openParticipantBulkMenu,dispose:()=>{observer.disconnect();clearTimeout(presenterTimer);window.removeEventListener('click',stableCommandDelegate,true);closeHostPanel();closeMeetingMore();closeParticipantBulk();}});
   sync();
 })();

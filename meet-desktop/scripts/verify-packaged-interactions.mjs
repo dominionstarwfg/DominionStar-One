@@ -181,12 +181,12 @@ try{
   await evaluateDiagnosed(`(()=>{
     document.querySelector('#appShell').hidden=true;
     const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;
-    window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();
+    window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionZoomScreenshotReference?.sync?.();
     return true;
   })()`,'meeting-entry transition');
   mark('meeting-entry-complete');
   assert.equal(await evaluate(`Boolean(window.DominionShareIntegration&&document.querySelector('#roomShare'))`),true,'Packaged meeting renderer did not wire the native Share integration.');
-  assert.equal(await evaluate(`document.querySelector('#roomShare')?.textContent?.trim()==='Share'`),true,'Packaged meeting Share control is missing or mislabeled.');
+  assert.equal(await evaluate(`(()=>{const button=document.querySelector('#roomShare');if(!button)return false;const labels=[...button.querySelectorAll('.ds-exec-label,.ds-control-label')];const visible=labels.find(node=>{const style=getComputedStyle(node);return style.display!=='none'&&style.visibility!=='hidden'&&style.opacity!=='0';});return String(visible?.textContent||'').trim()==='Share';})()`),true,'Packaged meeting Share control is missing or its visible label is incorrect.');
   await evaluate(`window.DominionMeetingParity.install();window.DominionMeetingParity.decorateControls();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();true`);
   assert.equal(await evaluate(`document.querySelector('.room-side')?.hidden===true&&document.querySelector('#meetingOverlay')?.classList.contains('participants-hidden')`),true,'Packaged meeting must start with Participants/Waiting Room closed.');
   assert.equal(await evaluate(`Boolean(document.querySelector('.ds-meeting-brand img')&&document.querySelector('.ds-meeting-brand strong')?.textContent==='DominionStar Meet')`),true,'Packaged live meeting header must contain DominionStar logo and name.');

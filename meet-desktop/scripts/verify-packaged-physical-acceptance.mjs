@@ -24,8 +24,8 @@ try{
   const page=await target();socket=await connect(page.webSocketDebuggerUrl);
   socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(message.method==='Runtime.exceptionThrown'){const details=message.params?.exceptionDetails;runtimeErrors.push(details?.exception?.description||details?.text||'Uncaught renderer exception');return;}if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
   await cdp('Runtime.enable');
-  await waitFor("document.readyState==='complete'&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionZoomProductionPolish&&window.DominionZoomPhysicalAcceptance&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&window.DominionZoomReactionParity&&window.DominionShareIntegration",'final physical acceptance controllers');
-  await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionMeetingParity.decorateControls();window.DominionZoomProductionPolish.sync();window.DominionZoomPhysicalAcceptance.sync();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();window.DominionZoomReactionParity.mount();return true;})()`);
+  await waitFor("document.readyState==='complete'&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionZoomProductionPolish&&window.DominionZoomPhysicalAcceptance&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&window.DominionZoomReactionParity&&window.DominionShareIntegration&&window.DominionZoomScreenshotReference",'final physical acceptance controllers');
+  await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionMeetingParity.decorateControls();window.DominionZoomProductionPolish.sync();window.DominionZoomPhysicalAcceptance.sync();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();window.DominionZoomReactionParity.mount();window.DominionZoomScreenshotReference.sync();return true;})()`);
   await waitFor("['roomShare','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomHostTools','roomMore','meetingViewButton'].every(id=>document.querySelector('#'+id))",'physical acceptance controls');
   await sleep(160);
 
@@ -39,25 +39,34 @@ try{
   await evaluate(`[...document.querySelectorAll('.ds-command-menu button')].find(b=>/Gallery/.test(b.textContent||''))?.click()`);
   await waitFor("document.querySelector('#meetingOverlay').dataset.viewMode==='gallery'",'working Gallery action');
 
-  // Host Tools is a dedicated first-class toolbar control. The final runtime
-  // opens the canonical Security menu directly; it must not depend on the
-  // retired generic ds-command-menu compatibility shell.
+  // Host Tools is a dedicated first-class toolbar control. The final 2.0.41+
+  // screenshot authority owns a right-side Host tools sheet rather than the
+  // retired Security popup / generic ds-command-menu compatibility shell.
   await evaluate(`document.querySelector('#roomHostTools').click()`);
-  await waitFor("document.querySelector('.security-menu')&&!document.querySelector('.security-menu').hidden",'Host Tools security menu');
-  const hostMenu=await evaluate(`(()=>{const m=document.querySelector('.security-menu'),f=document.querySelector('.meeting-footer').getBoundingClientRect(),r=m.getBoundingClientRect(),heading=m.querySelector('.menu-heading strong')?.textContent||'';return {z:parseInt(getComputedStyle(m).zIndex)||0,bottom:r.bottom,footerTop:f.top,heading,items:[...m.querySelectorAll('button')].map(b=>b.textContent.trim())};})()`);
-  assert.ok(hostMenu.z>=2500&&hostMenu.bottom<=hostMenu.footerTop+2,'Host Tools must stay clickable above the toolbar.');
-  assert.match(hostMenu.heading,/Security/i,'Host Tools must open the canonical Security surface.');
-  assert.ok(hostMenu.items.some(v=>/Open Participants/i.test(v))&&hostMenu.items.some(v=>/Lock Meeting/i.test(v)),'Host Tools is missing live host actions.');
-  await evaluate(`document.querySelector('.security-menu')?.remove()`);
+  await waitFor("document.querySelector('.ds-ref-host-tools-panel')",'Host Tools panel');
+  const hostMenu=await evaluate(`(()=>{const m=document.querySelector('.ds-ref-host-tools-panel'),r=m.getBoundingClientRect(),style=getComputedStyle(m),heading=m.querySelector('header strong')?.textContent||'',labels=[...m.querySelectorAll('label span:first-child')].map(n=>n.textContent.trim()),buttons=[...m.querySelectorAll('button')].map(b=>b.textContent.trim());return {z:parseInt(style.zIndex)||0,position:style.position,bottomGap:Math.round(innerHeight-r.bottom),rightGap:Math.round(innerWidth-r.right),computedBottom:parseFloat(style.bottom)||0,heading,labels,buttons,hasLock:Boolean(m.querySelector('[data-lock]')),hasWaiting:Boolean(m.querySelector('[data-waiting]')),hasParticipants:Boolean(m.querySelector('[data-participants]')),hasAdvanced:Boolean(m.querySelector('[data-advanced]'))};})()`);
+  console.log('HOST_TOOLS_VISUAL_DIAGNOSTIC',JSON.stringify(hostMenu));
+  assert.ok(hostMenu.z>=2500,'Host Tools must stay above meeting chrome.');
+  assert.equal(hostMenu.position,'fixed','Host Tools must remain a fixed desktop application surface.');
+  assert.ok(hostMenu.bottomGap>=56&&hostMenu.computedBottom>=56,'Host Tools must remain above the footer zone.');
+  assert.ok(Math.abs(hostMenu.rightGap)<=2,'Host Tools must remain attached to the meeting right edge.');
+  assert.equal(hostMenu.heading,'Host tools','Host Tools must open the final Host tools sheet.');
+  assert.equal(hostMenu.hasLock,true,'Host Tools is missing Lock meeting.');
+  assert.equal(hostMenu.hasWaiting,true,'Host Tools is missing the waiting-room position.');
+  assert.equal(hostMenu.hasParticipants,true,'Host Tools is missing Participants navigation.');
+  assert.equal(hostMenu.hasAdvanced,true,'Host Tools is missing Advanced navigation.');
+  assert.ok(hostMenu.labels.some(v=>/Lock meeting/i.test(v)),'Host Tools must expose the live Lock meeting control.');
+  await evaluate(`document.querySelector('.ds-ref-host-tools-panel [data-close]')?.click()`);
+  await waitFor("!document.querySelector('.ds-ref-host-tools-panel')",'Host Tools close');
 
-  // More is the canonical meeting-more-menu. Host Tools must not be duplicated
-  // there when the dedicated Host Tools toolbar button is visible.
+  // More is the canonical final meeting-more-menu. Host Tools must not be
+  // duplicated there when the dedicated Host Tools toolbar button is visible.
   await evaluate(`document.querySelector('#roomMore').click()`);await sleep(0);
-  await waitFor("document.querySelector('.meeting-more-menu:not(.security-menu)')",'More menu');
-  const more=await evaluate(`(()=>{const m=document.querySelector('.meeting-more-menu:not(.security-menu)');return [...m.querySelectorAll('button')].map(b=>b.textContent.trim());})()`);
-  assert.ok(more.some(v=>/Meeting settings/i.test(v)),'More must expose Meeting settings.');
+  await waitFor("document.querySelector('.ds-ref-meeting-more-grid.meeting-more-menu')",'More menu');
+  const more=await evaluate(`(()=>{const m=document.querySelector('.ds-ref-meeting-more-grid.meeting-more-menu');return [...m.querySelectorAll('button')].map(b=>b.textContent.trim());})()`);
+  assert.ok(more.some(v=>/^Settings$/i.test(v)),'More must expose the approved Settings control.');
   assert.ok(!more.some(v=>/^Host Tools$/i.test(v)),'Host Tools must not be duplicated inside More.');
-  await evaluate(`document.querySelector('.meeting-more-menu:not(.security-menu)')?.remove()`);
+  await evaluate(`document.querySelector('.ds-ref-meeting-more-grid.meeting-more-menu')?.remove()`);
 
   // Participants: 2.0.22 final authority is one floating, draggable desktop
   // application surface at every width. It must stay inside the meeting body,
@@ -124,6 +133,6 @@ try{
   assert.equal(toolbarZones.zones,3,'Physical acceptance must retain three independent toolbar zones.');
 
   await sleep(100);assert.deepEqual(runtimeErrors,[],'Physical acceptance emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_ACCEPTANCE_OK view-click canonical-host-tools-security more-click participant-media floating-draggable-participants compact-floating-chat full-width-stage reaction-six-only dedicated-raise-hand ten-second-left-reactions settings-readable runtime-owned-native-share stable-toolbar no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_PHYSICAL_ACCEPTANCE_OK view-click canonical-host-tools-panel more-click participant-media floating-draggable-participants compact-floating-chat full-width-stage reaction-six-only dedicated-raise-hand ten-second-left-reactions settings-readable runtime-owned-native-share stable-toolbar no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('physical acceptance shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);

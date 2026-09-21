@@ -22,7 +22,7 @@
   // A mere "sent:true" is not proof that the meeting renderer actually ran
   // the command. Require direct execution, explicit acknowledgement, handled,
   // or ok:true before the toolbar treats a click as successful.
-  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.direct===true||result.acknowledged===true||result.handled===true||result.ok===true);
+  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.direct===true||result.acknowledged===true||result.handled===true);
 
   async function sendNative(command){
     if(!nativeBridge?.command)throw new Error('mac_presenter_transport_unavailable');
@@ -44,9 +44,10 @@
     try{
       // Layout and Show Meeting are native floating-window responsibilities.
       if(NATIVE_ONLY_COMMANDS.has(normalized))return await sendNative(normalized);
-      // Physical-Mac authority: Stop/Audio/Video/Pause/Chat/Participants/
-      // Annotate and other meeting controls execute in the meeting renderer
-      // first so a successful click means the live controller actually ran.
+      // Preserve the established direct-first routing boundary, but require
+      // execution proof. A bare {ok:true} from the compatibility IPC is not
+      // success; sendRenderer rejects it and we fall through to the native
+      // acknowledged queue that proves the live meeting renderer handled it.
       if(rendererBridge?.command){
         try{return await sendRenderer(normalized);}
         catch(error){
@@ -88,6 +89,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.41-direct-renderer-first-controls',transport:rendererBridge?.command?'presenter-direct-first':nativeBridge?.command?'macShare-ack-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.42-strict-direct-native-ack-fallback',transport:rendererBridge?.command?'presenter-direct-first':nativeBridge?.command?'macShare-ack-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
