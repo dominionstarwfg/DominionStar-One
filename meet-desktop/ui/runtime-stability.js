@@ -261,24 +261,24 @@
       panel.dataset.dsRuntimeMode='floating';
       panel.dataset.zoomPanelMode='popout';
       panel.style.setProperty('position','absolute','important');
-      panel.style.setProperty('right','auto','important');
       panel.style.setProperty('bottom','auto','important');
       panel.style.setProperty('width',`${Math.min(width,bodyWidth-24)}px`,'important');
       panel.style.setProperty('height',`${Math.min(height,bodyHeight-24)}px`,'important');
       panel.style.setProperty('max-width','calc(100% - 24px)','important');
       panel.style.setProperty('max-height','calc(100% - 24px)','important');
       panel.style.setProperty('transform','none','important');
-      panel.style.setProperty('z-index','210','important');
+      panel.style.setProperty('z-index','2600','important');
       const pw=Math.min(width,bodyWidth-24),ph=Math.min(height,bodyHeight-24);
-      let left=Math.max(12,(bodyWidth-pw)/2),top=Math.max(12,(bodyHeight-ph)/2);
+      let left=Math.max(10,bodyWidth-pw-12),top=12;
       if(panel.dataset.dsRuntimeUserPositioned==='1'){
         const currentLeft=parseFloat(panel.style.left),currentTop=parseFloat(panel.style.top);
         if(Number.isFinite(currentLeft))left=clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10));
         if(Number.isFinite(currentTop))top=clamp(currentTop,10,Math.max(10,bodyHeight-ph-10));
       }
       panel.style.setProperty('left',`${left}px`,'important');
+      panel.style.setProperty('right','auto','important');
       panel.style.setProperty('top',`${top}px`,'important');
-      overlay.dataset.dsRuntimeSide='floating';
+      overlay.dataset.dsRuntimeSide='right-floating';
       installFloatingSurfaceDrag(panel);
     }else overlay.dataset.dsRuntimeSide='none';
     stage.style.setProperty('left','0px','important');
