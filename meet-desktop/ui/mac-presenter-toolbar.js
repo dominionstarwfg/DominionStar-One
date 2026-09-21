@@ -11,7 +11,7 @@
   const toolbar=q('#toolbar'),layoutMenu=q('#layoutMenu'),moreMenu=q('#moreMenu');
   let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,lastState={paused:false,micOn:false,cameraOn:true};
   const AUTO_HIDE_MS=2300;
-  const NATIVE_ONLY_COMMANDS=new Set(['layout-speaker','layout-gallery','layout-hide','show-meeting']);
+  const NATIVE_ONLY_COMMANDS=new Set(['layout-speaker','layout-gallery','layout-show','layout-hide','show-meeting']);
 
   const logo=q('#brandLogo');if(logo&&desktop.brand?.logoUrl)logo.src=desktop.brand.logoUrl;
   const menusOpen=()=>Boolean(!layoutMenu?.hidden||!moreMenu?.hidden);
@@ -84,6 +84,9 @@
     if(mono)mono.textContent=`${mode==='mono'?'✓ ':''}Sound mode: Mono`;
     if(stereo)stereo.textContent=`${mode==='stereo'?'✓ ':''}Sound mode: Stereo (high fidelity)`;
     if(optimizeCommand)optimizeCommand.textContent=`${state?.optimizeVideo?'✓ ':''}Optimize for video sharing`;
+    const panelVisible=state?.participantVideoVisible!==false;
+    for(const id of ['layoutShowVideoPanel','moreShowVideoPanel']){const node=q('#'+id);if(node)node.hidden=panelVisible;}
+    for(const id of ['layoutHideVideoPanel','moreHideVideoPanel']){const node=q('#'+id);if(node)node.hidden=!panelVisible;}
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
