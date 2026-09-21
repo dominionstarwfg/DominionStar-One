@@ -245,14 +245,14 @@
     const canvas=await captureFreezeFrame(videoElement);
     const frozen=canvas.captureStream(1);
     for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone());}catch{}}
-    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(needsComposite())startComposite();emit();publishPauseState(true);return snapshot();
+    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(needsComposite()&&!state.compositeStream)startComposite();emit();publishPauseState(true);return snapshot();
   }
 
   async function resume(){
     if(!state.liveStream||!state.paused)return snapshot();
     const previousFrozen=state.frozenStream;
     state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
-    if(needsComposite())startComposite();
+    if(needsComposite()&&!state.compositeStream)startComposite();
     emit();publishPauseState(false);
     // Keep the participant-facing frozen track alive until WebRTC has
     // replaced it with the live display track. Ending it first can expose a
@@ -325,8 +325,9 @@
       return snapshot();
     }
     state.annotationCanvas=next;
-    if(needsComposite())startComposite();
-    else{stopComposite();emit();}
+    if(needsComposite()){
+      if(!state.compositeStream)startComposite();else emit();
+    }else{stopComposite();emit();}
     return snapshot();
   }
   async function stop(){displayRequestGeneration+=1;const hadShare=Boolean(state.liveStream||state.frozenStream||state.compositeStream);
