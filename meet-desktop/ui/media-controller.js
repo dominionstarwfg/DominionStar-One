@@ -7,7 +7,7 @@
   const state={stream:null,cameraId:readPref('camera'),microphoneId:readPref('microphone'),speakerId:readPref('speaker'),cameraOn:true,cameraPending:false,micOn:false,mirror:readPref('mirror','true')!=='false',echoCancellation:readPref('echoCancellation','true')!=='false',noiseSuppression:readPref('noiseSuppression','true')!=='false',autoGainControl:readPref('autoGainControl','true')!=='false',originalSound:readPref('originalSound','false')==='true',userPreferencesLocked:false,lastError:'',permissionState:null};
   let cameraIntent=0,warmVideoTrack=null,warmVideoTimer=0;
   const releaseWarmVideo=()=>{if(warmVideoTimer){clearTimeout(warmVideoTimer);warmVideoTimer=0;}if(warmVideoTrack){stopTrack(warmVideoTrack);warmVideoTrack=null;}};
-  const holdWarmVideo=track=>{releaseWarmVideo();if(!track||track.readyState!=='live')return;try{track.enabled=false;}catch{}warmVideoTrack=track;warmVideoTimer=setTimeout(releaseWarmVideo,1800);};
+  const holdWarmVideo=track=>{releaseWarmVideo();if(!track||track.readyState!=='live')return;try{track.enabled=false;}catch{}warmVideoTrack=track;warmVideoTimer=setTimeout(releaseWarmVideo,12000);};
   const listeners=new Set();
   const emit=()=>{const snapshot=api.snapshot();for(const fn of listeners){try{fn(snapshot);}catch{}}};
   const stopTrack=track=>{if(track&&track.readyState!=='ended'){try{track.stop();}catch{}}};
