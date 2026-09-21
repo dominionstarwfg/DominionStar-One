@@ -164,3 +164,32 @@ body.ds-local-speaking .meeting-overlay.share-active .stage{
 .participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3{order:-38}
 .participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{order:-37}
 @media(max-width:720px){.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-1,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-2,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{grid-column:span 1;grid-row:span 1}}
+
+
+/* Floating participant panel layouts during screen sharing. */
+.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock .participant-video-dock-body{
+  grid-template-columns:176px!important;
+  align-content:start!important;
+}
+.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock .remote-peer-tile{
+  display:none!important;
+}
+.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock .remote-peer-tile.share-featured,
+.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock .remote-peer-tile.minimized-featured{
+  display:block!important;
+  width:176px!important;
+  height:99px!important;
+  min-width:176px!important;
+  min-height:99px!important;
+}
+.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock.user-resized .remote-peer-tile.share-featured{
+  width:100%!important;
+  height:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  aspect-ratio:16/9!important;
+}
+.meeting-overlay.share-panel-floating[data-share-view="gallery"] #participantVideoDock .remote-peer-tile,
+.meeting-overlay.share-panel-floating[data-share-view="multi"] #participantVideoDock .remote-peer-tile{
+  display:block!important;
+}
