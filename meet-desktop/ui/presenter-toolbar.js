@@ -59,6 +59,9 @@
     $('#audioLabel').textContent=state?.micOn?'Mute':'Unmute';$('#videoLabel').textContent=state?.cameraOn?'Stop Video':'Start Video';const source=$('#shareSourceLabel');if(source)source.textContent=String(state?.sourceName||'Shared content');const audioFlag=$('#shareAudioFlag');if(audioFlag)audioFlag.hidden=!state?.shareAudio;const optimizeFlag=$('#shareOptimizeFlag');if(optimizeFlag)optimizeFlag.hidden=!state?.optimizeVideo;
     const shareSound=$('#presenterShareSound'),mono=$('#presenterShareSoundMono'),stereo=$('#presenterShareSoundStereo'),optimizeCommand=$('#presenterOptimizeVideo'),mode=String(state?.shareAudioMode||'mono')==='stereo'?'stereo':'mono';
     if(shareSound)shareSound.textContent=`${state?.shareAudio?'✓ ':''}Share Sound`;if(mono)mono.textContent=`${mode==='mono'?'✓ ':''}Sound mode: Mono`;if(stereo)stereo.textContent=`${mode==='stereo'?'✓ ':''}Sound mode: Stereo (high fidelity)`;if(optimizeCommand)optimizeCommand.textContent=`${state?.optimizeVideo?'✓ ':''}Optimize for video sharing`;
+    const panelVisible=state?.participantVideoVisible!==false;
+    for(const id of ['presenterLayoutShowVideo','presenterMoreShowVideo']){const node=$('#'+id);if(node)node.hidden=panelVisible;}
+    for(const id of ['presenterLayoutHideVideo','presenterMoreHideVideo']){const node=$('#'+id);if(node)node.hidden=!panelVisible;}
     const meetingLabel=$('#meetingLabel');if(meetingLabel)meetingLabel.textContent=state?.meetingVisible?'Hide meeting':'Show meeting';
     const record=$('#presenterRecordCommand'),stopRecord=$('#presenterStopRecord');if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';if(stopRecord)stopRecord.hidden=!state?.recording;
   });
