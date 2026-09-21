@@ -71,7 +71,7 @@
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       let presenter=null;
       try{
-        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows)}));
+        const acknowledgement=Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,sourceId:String(state.options?.sourceId||''),sourceKind:String(state.options?.sourceKind||''),displayId:String(state.options?.displayId||''),paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows)}));
         presenter=await Promise.race([acknowledgement,new Promise(resolve=>setTimeout(()=>resolve({ok:true,toolbarReady:true,pending:true}),900))]);
         void acknowledgement.then(result=>{
           if(result?.toolbarReady===false&&state.liveStream===stream)void stop();
@@ -132,7 +132,7 @@
       await syncSenders({strict:true});
       committed=true;
       stopTracks(previous.compositeStream);stopTracks(previous.frozenStream);stopTracks(previous.liveStream);
-      try{await bridge?.captureState?.({sourceName:state.sourceName,paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
+      try{await bridge?.captureState?.({sourceName:state.sourceName,sourceId:String(state.options?.sourceId||''),sourceKind:String(state.options?.sourceKind||''),displayId:String(state.options?.displayId||''),paused:false,shareAudio:Boolean(state.options?.shareAudio),shareAudioMode:normalizeAudioMode(state.options?.shareAudioMode),optimizeVideo:Boolean(state.options?.optimizeVideo),showGreenBorder:state.options?.showGreenBorder!==false,includeMeetWindows:Boolean(state.options?.includeMeetWindows)});}catch{}
       return snapshot();
     }catch(error){
       if(!committed&&transitionStarted){
