@@ -1,6 +1,6 @@
 (()=>{
   const bridge=window.dominionDesktop?.presenter;
-  const $=selector=>document.querySelector(selector),toolbar=$('#toolbar'),more=$('#moreMenu'),layout=$('#layoutMenu');let reactions=null,handRaised=false,hideTimer=0,lastPointerAt=Date.now();
+  const $=selector=>document.querySelector(selector),toolbar=$('#toolbar'),more=$('#moreMenu'),layout=$('#layoutMenu');let reactions=null,handRaised=false,hideTimer=0,lastPointerAt=Date.now(),lastState={};
   const AUTO_HIDE_MS=2400;
   const menusOpen=()=>!more.hidden||!layout.hidden||Boolean(reactions);
   const revealToolbar=()=>{
@@ -10,10 +10,10 @@
   };
   const scheduleAutoHide=()=>{
     if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}
-    if(menusOpen())return;
+    if(menusOpen()||lastState.alwaysShowControls===true)return;
     hideTimer=setTimeout(()=>{
       hideTimer=0;
-      if(menusOpen())return;
+      if(menusOpen()||lastState.alwaysShowControls===true)return;
       if(Date.now()-lastPointerAt<AUTO_HIDE_MS-80){scheduleAutoHide();return;}
       toolbar.classList.add('auto-hidden');
     },AUTO_HIDE_MS);
@@ -35,6 +35,7 @@
     const command=String(button.dataset.command||'');
     if(command==='reactions'){setMenuExpanded(true);openReactions(button);return;}
     closeReactions();more.hidden=true;layout.hidden=true;setMenuExpanded(false);
+    if(command==='hide-controls'){toolbar.classList.add('auto-hidden');return;}
     if(command==='stop'){
       if(button.dataset.stopping==='1')return;
       button.dataset.stopping='1';button.disabled=true;const label=button.querySelector('span:last-child');if(label)label.textContent='Stopping…';
@@ -55,6 +56,7 @@
   toolbar.addEventListener('pointerleave',scheduleAutoHide,{passive:true});
   revealToolbar();scheduleAutoHide();
   bridge?.onState?.(state=>{
+    lastState={...lastState,...state};if(lastState.alwaysShowControls===true)revealToolbar();else scheduleAutoHide();
     const paused=Boolean(state?.paused);handRaised=Boolean(state?.handRaised);toolbar.classList.toggle('paused',paused);$('#pauseLabel').textContent=paused?'Resume':'Pause';$('#shareStateLabel').textContent=paused?'Share paused':'You are sharing';
     $('#audioLabel').textContent=state?.micOn?'Mute':'Unmute';$('#videoLabel').textContent=state?.cameraOn?'Stop Video':'Start Video';const source=$('#shareSourceLabel');if(source)source.textContent=String(state?.sourceName||'Shared content');const audioFlag=$('#shareAudioFlag');if(audioFlag)audioFlag.hidden=!state?.shareAudio;const optimizeFlag=$('#shareOptimizeFlag');if(optimizeFlag)optimizeFlag.hidden=!state?.optimizeVideo;
     const shareSound=$('#presenterShareSound'),mono=$('#presenterShareSoundMono'),stereo=$('#presenterShareSoundStereo'),optimizeCommand=$('#presenterOptimizeVideo'),mode=String(state?.shareAudioMode||'mono')==='stereo'?'stereo':'mono';
