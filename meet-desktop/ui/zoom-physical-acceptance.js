@@ -142,8 +142,9 @@
   function ensureSelfMore(row){
     if(String(row.dataset.participantId||'')!==String(localParticipantId||''))return;
     const actions=row.querySelector('.participant-actions');if(!actions)return;
-    let button=actions.querySelector('[data-ds-self-more]');if(button)return;
-    button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';button.textContent='•••';button.setAttribute('aria-label','More options for yourself');
+    const duplicates=[...actions.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')];
+    for(const node of duplicates)node.remove();
+    const button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';button.textContent='•••';button.setAttribute('aria-label','More options for yourself');
     button.onclick=event=>{event.stopPropagation();openSelfParticipantMenu(button,row);};actions.append(button);
   }
   function openSelfParticipantMenu(button,row){
@@ -159,6 +160,24 @@
     if(!dialog.open)dialog.showModal();setTimeout(()=>{input.focus();input.select();},20);
   }
 
+  function normalizeParticipantIdentity(row,id){
+    const copy=row.querySelector('.person-copy');if(!copy)return;
+    const name=String(row.dataset.participantName||'Participant').trim()||'Participant';
+    const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
+    const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
+    for(const node of copy.querySelectorAll('.participant-you,.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-canonical-role,.ds-canonical-self'))node.remove();
+    copy.querySelector('small')?.remove();
+    let strong=copy.querySelector('strong');
+    if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
+    strong.textContent=name;
+    if(role==='host'||role==='cohost'){
+      const badge=document.createElement('span');badge.className='ds-canonical-role';badge.textContent=role==='host'?'Host':'Co-host';strong.append(badge);
+    }
+    if(self){
+      const selfLabel=document.createElement('span');selfLabel.className='ds-canonical-self';selfLabel.textContent='(me)';strong.append(selfLabel);
+    }
+  }
+
   function decorateParticipantRows(){
     if(!inMeeting())return;
     window.DominionParticipantControls?.sync?.();
@@ -167,10 +186,15 @@
       row.classList.add('ds-modern-participant-row');
       let actions=row.querySelector('.participant-actions');if(!actions){actions=document.createElement('span');actions.className='participant-actions ds-participant-actions';row.append(actions);}else actions.classList.add('ds-participant-actions');
       mediaStatusNode(row,id);
-      const more=row.querySelector('[data-participant-more]');if(more){more.textContent='•••';more.classList.add('ds-participant-more');more.setAttribute('aria-label',`More options for ${String(row.dataset.participantName||'participant')}`);actions.append(more);}
-      ensureSelfMore(row);
-      const copy=row.querySelector('.person-copy'),role=String(row.dataset.participantRole||'participant').toLowerCase();
-      if(copy){let badge=copy.querySelector('.ds-role-chip');if(!badge){badge=document.createElement('span');badge.className='ds-role-chip';copy.querySelector('strong')?.append(badge);}badge.textContent=role==='host'?'Host':role==='cohost'?'Co-host':'';badge.hidden=!['host','cohost'].includes(role);const legacy=copy.querySelector('small');if(legacy)legacy.textContent=id===localParticipantId?'You':role==='host'?'Meeting host':role==='cohost'?'Co-host':'Participant';}
+      const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
+      if(self)ensureSelfMore(row);
+      else{
+        const moreButtons=[...actions.querySelectorAll('[data-participant-more],.ds-host-row-more,[data-ds-self-more]')];
+        const more=moreButtons.find(node=>node.matches('[data-participant-more]'))||moreButtons[0]||null;
+        for(const node of moreButtons)if(node!==more)node.remove();
+        if(more){more.textContent='•••';more.classList.add('ds-participant-more');more.setAttribute('aria-label',`More options for ${String(row.dataset.participantName||'participant')}`);actions.append(more);}
+      }
+      normalizeParticipantIdentity(row,id);
     }
   }
 
@@ -190,7 +214,7 @@
   }
 
   function setReactionIcon(){
-    const icon=q('#roomReactions .ds-control-icon');if(!icon||icon.dataset.dsReactionIcon==='1')return;icon.dataset.dsReactionIcon='1';icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="12" r="7.5"/><path d="M7.8 10h.01M13.2 10h.01M7.6 14c.9 1.2 1.8 1.7 2.9 1.7 1.2 0 2.2-.5 3.1-1.7"/><path d="M18.2 3.8v3.4M16.5 5.5h3.4M18 15.7c1.9.2 3 1.1 3 2.4 0 1.6-1.8 2.6-4.7 2.7"/></svg>';
+    const icon=q('#roomReactions .ds-control-icon');if(!icon||icon.dataset.dsReactionIcon==='1')return;icon.dataset.dsReactionIcon='1';icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="12.5" r="7.5"/><path d="M7.7 10.5h.01M13.3 10.5h.01M7.8 14.2c.9 1.1 1.8 1.6 2.9 1.6 1.2 0 2.2-.5 3.1-1.6"/><circle cx="18.2" cy="6" r="3.1"/><path d="M18.2 4.5v3M16.7 6h3"/></svg>';
   }
   function installReactionAuthority(){
     const button=q('#roomReactions');if(!button)return;setReactionIcon();
