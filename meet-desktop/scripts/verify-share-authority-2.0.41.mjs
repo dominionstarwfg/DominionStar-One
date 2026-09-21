@@ -119,8 +119,8 @@ requireText(pickerHtml,'As background','Presenter layout is missing As backgroun
 requireText(pickerHtml,'Over the shoulder','Presenter layout is missing Over the shoulder.');
 requireText(pickerHtml,'Side by side','Presenter layout is missing Side by side.');
 requireText(pickerHtml,'data-layout="side" disabled','Presenter Side by side must remain disabled until real camera/content compositing is certified.');
-rejectText(pickerJs,"writePref('ds_pref_share_side_by_side'",'Presenter layout chooser must not mutate the viewer-side Side-by-side preference.');
-rejectText(pickerJs,"readPref('ds_pref_share_side_by_side')",'Presenter layout chooser must not inherit the viewer-side Side-by-side preference.');
+rejectText(picker,"writePref('ds_pref_share_side_by_side'",'Presenter layout chooser must not mutate the viewer-side Side-by-side preference.');
+rejectText(picker,"readPref('ds_pref_share_side_by_side')",'Presenter layout chooser must not inherit the viewer-side Side-by-side preference.');
 requireText(pickerHtml,'Share sound','Share chooser is missing Share sound.');
 requireText(pickerHtml,'Optimize for video sharing','Share chooser is missing video optimization.');
 requireText(pickerHtml,'Share DominionStar Meet windows','More must expose the intentional meeting-window visibility setting.');
