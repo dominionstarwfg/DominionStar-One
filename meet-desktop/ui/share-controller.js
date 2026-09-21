@@ -1,7 +1,7 @@
 (()=>{
   if(window.DominionShareController)return;
   const bridge=window.dominionDesktop?.share;
-  const state={liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
+  const state={liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeCameraVideo:null,compositeCameraTrackId:'',compositeRaf:0};
   const listeners=new Set();
   let displayRequestGeneration=0;
   const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas),capturedShareAudio:Boolean(state.liveStream?.getAudioTracks?.().some(track=>track.readyState==='live'))});
@@ -22,21 +22,62 @@
     return true;
   }
 
-  function stopComposite(){cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;stopTracks(state.compositeStream);state.compositeStream=null;state.compositeCanvas=null;if(state.compositeVideo){state.compositeVideo.pause?.();state.compositeVideo.srcObject=null;state.compositeVideo.remove?.();state.compositeVideo=null;}}
+  const normalizePresenterLayout=value=>['background','shoulder','side'].includes(String(value||''))?String(value):'content';
+  const needsComposite=()=>Boolean(state.annotationCanvas)||normalizePresenterLayout(state.options?.presenterLayout)!=='content';
+  const presenterCameraTrack=()=>window.DominionMediaController?.stream?.()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null;
+  const createHiddenVideo=()=>{const video=document.createElement('video');video.autoplay=true;video.muted=true;video.playsInline=true;video.style.display='none';document.body.append(video);return video;};
+  const drawContained=(ctx,source,x,y,w,h)=>{
+    const sw=Math.max(2,Number(source?.videoWidth)||Number(source?.width)||w),sh=Math.max(2,Number(source?.videoHeight)||Number(source?.height)||h),scale=Math.min(w/sw,h/sh),dw=sw*scale,dh=sh*scale;
+    ctx.drawImage(source,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+  };
+  const drawCovered=(ctx,source,x,y,w,h)=>{
+    const sw=Math.max(2,Number(source?.videoWidth)||Number(source?.width)||w),sh=Math.max(2,Number(source?.videoHeight)||Number(source?.height)||h),scale=Math.max(w/sw,h/sh),dw=sw*scale,dh=sh*scale;
+    ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.drawImage(source,x+(w-dw)/2,y+(h-dh)/2,dw,dh);ctx.restore();
+  };
+  function bindCompositeCamera(){
+    if(!state.compositeCameraVideo)return;
+    const track=presenterCameraTrack(),trackId=String(track?.id||'');
+    if(trackId===state.compositeCameraTrackId)return;
+    state.compositeCameraTrackId=trackId;
+    state.compositeCameraVideo.srcObject=track?new MediaStream([track]):null;
+    if(track)void state.compositeCameraVideo.play().catch(()=>{});
+  }
+  function stopComposite(){
+    cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;stopTracks(state.compositeStream);state.compositeStream=null;state.compositeCanvas=null;
+    for(const key of ['compositeVideo','compositeCameraVideo']){const video=state[key];if(video){video.pause?.();video.srcObject=null;video.remove?.();state[key]=null;}}
+    state.compositeCameraTrackId='';
+  }
   function compositeFrame(){
-    if(!state.annotationCanvas||!state.liveStream||!state.compositeCanvas||!state.compositeVideo)return;
+    if(!needsComposite()||!state.liveStream||!state.compositeCanvas||!state.compositeVideo)return;
     const base=baseOutputStream();if(state.compositeVideo.srcObject!==base){state.compositeVideo.srcObject=base;void state.compositeVideo.play().catch(()=>{});}
-    const video=state.compositeVideo,canvas=state.compositeCanvas,ctx=canvas.getContext('2d',{alpha:false});
-    const width=Math.max(2,Number(video.videoWidth)||Number(state.annotationCanvas.width)||1280),height=Math.max(2,Number(video.videoHeight)||Number(state.annotationCanvas.height)||720);
+    bindCompositeCamera();
+    const video=state.compositeVideo,camera=state.compositeCameraVideo,canvas=state.compositeCanvas,ctx=canvas.getContext('2d',{alpha:false}),layout=normalizePresenterLayout(state.options?.presenterLayout);
+    const width=Math.max(2,Number(video.videoWidth)||Number(state.annotationCanvas?.width)||1280),height=Math.max(2,Number(video.videoHeight)||Number(state.annotationCanvas?.height)||720);
     if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
-    ctx.fillStyle='#000';ctx.fillRect(0,0,width,height);if(video.readyState>=2)ctx.drawImage(video,0,0,width,height);ctx.drawImage(state.annotationCanvas,0,0,state.annotationCanvas.width,state.annotationCanvas.height,0,0,width,height);
+    ctx.fillStyle='#05080d';ctx.fillRect(0,0,width,height);
+    const cameraReady=Boolean(camera?.readyState>=2&&Number(camera.videoWidth)>1&&Number(camera.videoHeight)>1);
+    if(layout==='content'||!cameraReady){if(video.readyState>=2)ctx.drawImage(video,0,0,width,height);}
+    else if(layout==='background'){
+      if(video.readyState>=2)ctx.drawImage(video,0,0,width,height);
+      const cw=Math.round(width*.28),ch=Math.round(cw*9/16),margin=Math.round(width*.025),x=width-cw-margin,y=height-ch-margin;
+      ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=18;drawCovered(ctx,camera,x,y,cw,ch);ctx.restore();ctx.strokeStyle='rgba(255,255,255,.72)';ctx.lineWidth=Math.max(2,width*.002);ctx.strokeRect(x,y,cw,ch);
+    }else if(layout==='shoulder'){
+      const gap=Math.round(width*.025),cameraW=Math.round(width*.38),contentX=cameraW+gap,contentW=width-contentX-gap;
+      if(cameraReady)drawCovered(ctx,camera,0,0,cameraW,height);
+      if(video.readyState>=2)drawContained(ctx,video,contentX,Math.round(height*.08),contentW,Math.round(height*.84));
+    }else{
+      const gap=Math.round(width*.018),cameraW=Math.round(width*.32),contentX=cameraW+gap,contentW=width-contentX-gap;
+      if(cameraReady)drawCovered(ctx,camera,0,0,cameraW,height);
+      if(video.readyState>=2)drawContained(ctx,video,contentX,gap,contentW,height-(gap*2));
+    }
+    if(state.annotationCanvas)ctx.drawImage(state.annotationCanvas,0,0,state.annotationCanvas.width,state.annotationCanvas.height,0,0,width,height);
     state.compositeRaf=requestAnimationFrame(compositeFrame);
   }
   function startComposite(){
-    stopComposite();if(!state.annotationCanvas||!state.liveStream)return;
-    const canvas=document.createElement('canvas');canvas.width=Math.max(2,state.annotationCanvas.width||1280);canvas.height=Math.max(2,state.annotationCanvas.height||720);state.compositeCanvas=canvas;
-    const video=document.createElement('video');video.autoplay=true;video.muted=true;video.playsInline=true;video.style.display='none';document.body.append(video);state.compositeVideo=video;video.srcObject=baseOutputStream();void video.play().catch(()=>{});
-    const stream=canvas.captureStream(30);for(const track of baseOutputStream()?.getAudioTracks?.()||[]){try{stream.addTrack(track.clone());}catch{}}state.compositeStream=stream;compositeFrame();emit();
+    stopComposite();if(!needsComposite()||!state.liveStream)return;
+    const canvas=document.createElement('canvas');canvas.width=Math.max(2,state.annotationCanvas?.width||1280);canvas.height=Math.max(2,state.annotationCanvas?.height||720);state.compositeCanvas=canvas;
+    const video=createHiddenVideo(),camera=createHiddenVideo();state.compositeVideo=video;state.compositeCameraVideo=camera;video.srcObject=baseOutputStream();void video.play().catch(()=>{});bindCompositeCamera();
+    const stream=canvas.captureStream(state.options?.optimizeVideo?30:20);for(const track of baseOutputStream()?.getAudioTracks?.()||[]){try{stream.addTrack(track.clone());}catch{}}state.compositeStream=stream;compositeFrame();emit();
   }
 
   async function acquireDisplay(options={}){
@@ -67,7 +108,7 @@
     state.busy=true;emit();
     try{
       const {stream,track}=await acquireDisplay(options);
-      state.liveStream=stream;state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
+      state.liveStream=stream;state.sourceName=String(name||track.label||'Shared content');state.options={...options,presenterLayout:normalizePresenterLayout(options.presenterLayout)};state.paused=false;if(needsComposite())startComposite();
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
       let presenter=null;
       try{
@@ -121,7 +162,7 @@
       if(state.compositeVideo){state.compositeVideo.pause?.();state.compositeVideo.srcObject=null;state.compositeVideo.remove?.();state.compositeVideo=null;}
       state.compositeStream=null;state.compositeCanvas=null;state.annotationCanvas=null;
       state.liveStream=stream;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
-      state.sourceName=String(name||track.label||'Shared content');state.options={...options};
+      state.sourceName=String(name||track.label||'Shared content');state.options={...options,presenterLayout:normalizePresenterLayout(options.presenterLayout)};if(needsComposite())startComposite();
       track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
 
       // This is the transactional commit point. Do not stop the old live,
@@ -141,7 +182,7 @@
         // share was never touched and must remain completely undisturbed.
         state.liveStream=previous.liveStream;state.frozenStream=previous.frozenStream;state.freezeCanvas=previous.freezeCanvas;state.paused=previous.paused;
         state.sourceName=previous.sourceName;state.options={...previous.options};state.annotationCanvas=previous.annotationCanvas;
-        if(previous.annotationCanvas)startComposite();
+        if(needsComposite())startComposite();
         try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:true});}catch{}
         stopTracks(previous.compositeStream);
         stopTracks(nextStream);
@@ -204,14 +245,14 @@
     const canvas=await captureFreezeFrame(videoElement);
     const frozen=canvas.captureStream(1);
     for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone());}catch{}}
-    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();publishPauseState(true);return snapshot();
+    state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(needsComposite())startComposite();emit();publishPauseState(true);return snapshot();
   }
 
   async function resume(){
     if(!state.liveStream||!state.paused)return snapshot();
     const previousFrozen=state.frozenStream;
     state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
-    if(state.annotationCanvas)startComposite();
+    if(needsComposite())startComposite();
     emit();publishPauseState(false);
     // Keep the participant-facing frozen track alive until WebRTC has
     // replaced it with the live display track. Ending it first can expose a
@@ -239,7 +280,7 @@
     if(state.annotationCanvas)ctx.drawImage(state.annotationCanvas,0,0,state.annotationCanvas.width,state.annotationCanvas.height,0,0,width,height);
     return output.toDataURL('image/png');
   }
-  function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
+  function outputStream(){return needsComposite()&&state.compositeStream?state.compositeStream:baseOutputStream();}
 
   async function setOptimizeVideo(enabled){
     if(!state.liveStream)return snapshot();
@@ -284,7 +325,7 @@
       return snapshot();
     }
     state.annotationCanvas=next;
-    if(next)startComposite();
+    if(needsComposite())startComposite();
     else{stopComposite();emit();}
     return snapshot();
   }
@@ -295,7 +336,7 @@
     // sender. This prevents a black/ended frame between Stop Share and the
     // meeting view returning on participant devices.
     cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;
-    if(state.compositeVideo){state.compositeVideo.pause?.();state.compositeVideo.srcObject=null;state.compositeVideo.remove?.();state.compositeVideo=null;}
+    for(const key of ['compositeVideo','compositeCameraVideo']){const video=state[key];if(video){video.pause?.();video.srcObject=null;video.remove?.();state[key]=null;}}state.compositeCameraTrackId='';
     state.annotationCanvas=null;state.compositeStream=null;state.compositeCanvas=null;
     state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};
     emit();
