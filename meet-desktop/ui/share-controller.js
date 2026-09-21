@@ -1,7 +1,7 @@
 (()=>{
   if(window.DominionShareController)return;
   const bridge=window.dominionDesktop?.share;
-  const state={liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeCameraVideo:null,compositeCameraTrackId:'',compositeRaf:0};
+  const state={liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeCameraVideo:null,compositeCameraTrackId:'',compositeWallpaperImage:null,compositeWallpaperSrc:'',compositeRaf:0};
   const listeners=new Set();
   let displayRequestGeneration=0;
   const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas),capturedShareAudio:Boolean(state.liveStream?.getAudioTracks?.().some(track=>track.readyState==='live'))});
@@ -54,16 +54,23 @@
     state.compositeCameraVideo.srcObject=track?new MediaStream([track]):null;
     if(track)void state.compositeCameraVideo.play().catch(()=>{});
   }
+  function bindCompositeWallpaper(){
+    const src=String(state.options?.presenterWallpaper||'');
+    if(src===state.compositeWallpaperSrc)return;
+    state.compositeWallpaperSrc=src;state.compositeWallpaperImage=null;
+    if(!src)return;
+    const image=new Image();image.decoding='async';image.onload=()=>{state.compositeWallpaperImage=image;};image.onerror=()=>{if(state.compositeWallpaperSrc===src){state.compositeWallpaperImage=null;state.compositeWallpaperSrc='';}};image.src=src;
+  }
   function stopComposite(){
     cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;stopTracks(state.compositeStream);state.compositeStream=null;state.compositeCanvas=null;
     for(const key of ['compositeVideo','compositeCameraVideo']){const video=state[key];if(video){video.pause?.();video.srcObject=null;video.remove?.();state[key]=null;}}
-    state.compositeCameraTrackId='';
+    state.compositeCameraTrackId='';state.compositeWallpaperImage=null;state.compositeWallpaperSrc='';
   }
   function compositeFrame(){
     if(!needsComposite()||!state.liveStream||!state.compositeCanvas||!state.compositeVideo)return;
     const base=baseOutputStream();if(state.compositeVideo.srcObject!==base){state.compositeVideo.srcObject=base;void state.compositeVideo.play().catch(()=>{});}
-    bindCompositeCamera();
-    const video=state.compositeVideo,camera=state.compositeCameraVideo,canvas=state.compositeCanvas,ctx=canvas.getContext('2d',{alpha:false}),layout=normalizePresenterLayout(state.options?.presenterLayout);
+    bindCompositeCamera();bindCompositeWallpaper();
+    const video=state.compositeVideo,camera=state.compositeCameraVideo,wallpaper=state.compositeWallpaperImage,canvas=state.compositeCanvas,ctx=canvas.getContext('2d',{alpha:false}),layout=normalizePresenterLayout(state.options?.presenterLayout);
     const width=Math.max(2,Number(video.videoWidth)||Number(state.annotationCanvas?.width)||1280),height=Math.max(2,Number(video.videoHeight)||Number(state.annotationCanvas?.height)||720);
     if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
     ctx.fillStyle='#05080d';ctx.fillRect(0,0,width,height);
@@ -71,6 +78,7 @@
     if(layout==='content'||!cameraReady){if(video.readyState>=2)ctx.drawImage(video,0,0,width,height);}
     else{
       const geometry=presenterGeometry(layout),cameraRect=rectPixels(geometry.camera,width,height),contentRect=rectPixels(geometry.content,width,height);
+      if((layout==='shoulder'||layout==='side')&&wallpaper?.complete&&Number(wallpaper.naturalWidth)>1)drawCovered(ctx,wallpaper,0,0,width,height);
       if(layout==='background'){
         if(video.readyState>=2)drawContained(ctx,video,contentRect.x,contentRect.y,contentRect.w,contentRect.h);
         ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=18;drawCovered(ctx,camera,cameraRect.x,cameraRect.y,cameraRect.w,cameraRect.h);ctx.restore();ctx.strokeStyle='rgba(255,255,255,.72)';ctx.lineWidth=Math.max(2,width*.002);ctx.strokeRect(cameraRect.x,cameraRect.y,cameraRect.w,cameraRect.h);
@@ -85,7 +93,7 @@
   function startComposite(){
     stopComposite();if(!needsComposite()||!state.liveStream)return;
     const canvas=document.createElement('canvas');canvas.width=Math.max(2,state.annotationCanvas?.width||1280);canvas.height=Math.max(2,state.annotationCanvas?.height||720);state.compositeCanvas=canvas;
-    const video=createHiddenVideo(),camera=createHiddenVideo();state.compositeVideo=video;state.compositeCameraVideo=camera;video.srcObject=baseOutputStream();void video.play().catch(()=>{});bindCompositeCamera();
+    const video=createHiddenVideo(),camera=createHiddenVideo();state.compositeVideo=video;state.compositeCameraVideo=camera;video.srcObject=baseOutputStream();void video.play().catch(()=>{});bindCompositeCamera();bindCompositeWallpaper();
     const stream=canvas.captureStream(state.options?.optimizeVideo?30:20);for(const track of baseOutputStream()?.getAudioTracks?.()||[]){try{stream.addTrack(track.clone());}catch{}}state.compositeStream=stream;compositeFrame();emit();
   }
 
@@ -366,7 +374,7 @@
     // sender. This prevents a black/ended frame between Stop Share and the
     // meeting view returning on participant devices.
     cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;
-    for(const key of ['compositeVideo','compositeCameraVideo']){const video=state[key];if(video){video.pause?.();video.srcObject=null;video.remove?.();state[key]=null;}}state.compositeCameraTrackId='';
+    for(const key of ['compositeVideo','compositeCameraVideo']){const video=state[key];if(video){video.pause?.();video.srcObject=null;video.remove?.();state[key]=null;}}state.compositeCameraTrackId='';state.compositeWallpaperImage=null;state.compositeWallpaperSrc='';
     state.annotationCanvas=null;state.compositeStream=null;state.compositeCanvas=null;
     state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};
     emit();
