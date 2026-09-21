@@ -193,3 +193,20 @@ body.ds-local-speaking .meeting-overlay.share-active .stage{
 .meeting-overlay.share-panel-floating[data-share-view="multi"] #participantVideoDock .remote-peer-tile{
   display:block!important;
 }
+
+
+/* Zoom-style small / large Active Speaker panel presets during sharing. */
+.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock.speaker-large:not(.user-resized):not(.minimized){
+  width:320px!important;
+  max-width:min(42vw,320px)!important;
+}
+.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock.speaker-large:not(.user-resized):not(.minimized) .participant-video-dock-body{
+  grid-template-columns:1fr!important;
+}
+.meeting-overlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock.speaker-large:not(.user-resized):not(.minimized) .remote-peer-tile.share-featured{
+  width:100%!important;
+  height:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  aspect-ratio:16/9!important;
+}
