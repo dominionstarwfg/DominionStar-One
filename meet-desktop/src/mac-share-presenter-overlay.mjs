@@ -20,7 +20,7 @@ if(process.platform==='darwin'){
   let toolbarMenuOpen=false;
   let preparing=null;
   let presenterDeliverySeq=0;
-  let videoLayout='speaker';
+  let videoLayout='speaker',lastVisibleVideoLayout='speaker';
   const presenterDeliveries=new Map();
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
@@ -140,10 +140,13 @@ if(process.platform==='darwin'){
     try{videoWindow.moveTop?.();toolbarWindow?.moveTop?.();}catch{}
   }
   function setVideoLayout(mode='speaker'){
-    videoLayout=['speaker','gallery','hide'].includes(String(mode))?String(mode):'speaker';
-    if(!isAlive(videoWindow))return {ok:false,layout:videoLayout};
-    if(videoLayout==='hide'){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout};}
-    positionVideo();try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}return {ok:true,layout:videoLayout};
+    const requested=String(mode||'speaker');
+    videoLayout=requested==='show'?lastVisibleVideoLayout:(['speaker','gallery','hide'].includes(requested)?requested:'speaker');
+    if(videoLayout!=='hide')lastVisibleVideoLayout=videoLayout;
+    shareState={...shareState,participantVideoVisible:videoLayout!=='hide',participantVideoLayout:videoLayout==='hide'?lastVisibleVideoLayout:videoLayout};
+    if(!isAlive(videoWindow)){publishState();return {ok:false,layout:videoLayout};}
+    if(videoLayout==='hide'){try{videoWindow.hide();}catch{}publishState();return {ok:true,layout:videoLayout};}
+    positionVideo();try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}publishState();return {ok:true,layout:videoLayout};
   }
   function publishState(){
     if(toolbarReady&&isAlive(toolbarWindow))toolbarWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout});
@@ -261,7 +264,7 @@ if(process.platform==='darwin'){
     // Leave presenter mode first, then restore the meeting. Restoring while
     // shareActive/meetingVisible still describe presenter mode can leave the
     // main window parked behind other desktop windows.
-    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
+    shareActive=false;presenterModeCommitted=false;videoLayout='speaker';lastVisibleVideoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,showGreenBorder:true,includeMeetWindows:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();
     if(isAlive(owner)){
       restoreCaptureOwnerWindow(owner,{focus:false});
       try{owner.setAlwaysOnTop(false);}catch{}
@@ -323,6 +326,7 @@ if(process.platform==='darwin'){
     if(!fromToolbar)return;
     if(normalized==='show-meeting'){if(shareState.meetingVisible)hideMeeting();else showMeeting();return;}
     if(normalized==='layout-hide'){setVideoLayout('hide');return;}
+    if(normalized==='layout-show'){setVideoLayout('show');return;}
     if(normalized==='layout-speaker'){setVideoLayout('speaker');return;}
     if(normalized==='layout-gallery'){setVideoLayout('gallery');return;}
     const main=mainWindow();
@@ -413,6 +417,7 @@ if(process.platform==='darwin'){
     }
     if(normalized==='show-meeting'){if(shareState.meetingVisible)hideMeeting();else showMeeting();return {ok:true,sent:true,acknowledged:true};}
     if(normalized==='layout-hide')return {...setVideoLayout('hide'),sent:true,acknowledged:true};
+    if(normalized==='layout-show')return {...setVideoLayout('show'),sent:true,acknowledged:true};
     if(normalized==='layout-speaker')return {...setVideoLayout('speaker'),sent:true,acknowledged:true};
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
 
