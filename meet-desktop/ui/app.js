@@ -85,8 +85,14 @@
   async function toggleCamera(button){
     const before=media.snapshot(),target=!before.cameraOn;
     button?.classList.add('media-intent-active');
+    for(const id of ['#prejoinCamera','#roomCamera']){
+      const node=$(id);if(!node)continue;setControlLabel(id,target?'Stop Video':'Start Video');node.classList.toggle('is-off',!target);node.setAttribute('aria-pressed',String(!target));
+    }
+    if(!target){
+      const prejoinVideo=$('#prejoinVideo'),localVideo=$('#localMeetingVideo'),prejoinAvatar=$('#prejoinAvatar'),stageFallback=$('#stageFallback');
+      if(prejoinVideo)prejoinVideo.hidden=true;if(localVideo)localVideo.hidden=true;if(prejoinAvatar)prejoinAvatar.hidden=false;if(stageFallback)stageFallback.hidden=false;
+    }
     const operation=media.setCamera(target);
-    attachPreview();
     try{
       await operation;attachPreview();
       const after=media.snapshot();
