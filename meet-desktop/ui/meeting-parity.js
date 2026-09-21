@@ -156,6 +156,8 @@
     overlay.classList.toggle('share-panel-floating',floatingPanel);
     overlay.classList.toggle('share-panel-hidden',active&&!showPanel);
     overlay.dataset.shareView=active?mode:'';
+    const layoutButton=dock.querySelector('[data-dock-layout]');
+    if(layoutButton){layoutButton.hidden=!active;layoutButton.textContent=mode==='speaker'?'▦':'◫';layoutButton.setAttribute('aria-label',mode==='speaker'?'Switch participant video panel to Gallery view':'Switch participant video panel to Speaker view');layoutButton.title=layoutButton.getAttribute('aria-label');}
     splitter.hidden=!sideBySide;
     qa('#participantVideoDock .remote-peer-tile').forEach(tile=>tile.classList.remove('share-featured'));
     if(active&&showPanel&&mode==='speaker'){
@@ -209,7 +211,8 @@
   }
 
   function ensureVideoDock(){
-    const stage=q('.stage');if(!stage)return null;let dock=q('#participantVideoDock');if(!dock){dock=document.createElement('aside');dock.id='participantVideoDock';dock.className='participant-video-dock';dock.dataset.anchor='right';dock.hidden=true;dock.innerHTML='<header class="participant-video-dock-head"><span class="dock-grip" aria-hidden="true"><i></i><i></i><i></i></span><strong>Participant video</strong><div><button type="button" data-dock-minimize aria-label="Minimize participant video panel" title="Minimize video panel">−</button><button type="button" data-dock-reset aria-label="Reset participant video position" title="Reset video panel position">↺</button><button type="button" data-dock-hide aria-label="Hide participant video panel" title="Hide video panel">×</button></div></header><div class="participant-video-dock-body"></div><span class="participant-video-resize" aria-hidden="true"></span>';stage.append(dock);
+    const stage=q('.stage');if(!stage)return null;let dock=q('#participantVideoDock');if(!dock){dock=document.createElement('aside');dock.id='participantVideoDock';dock.className='participant-video-dock';dock.dataset.anchor='right';dock.hidden=true;dock.innerHTML='<header class="participant-video-dock-head"><span class="dock-grip" aria-hidden="true"><i></i><i></i><i></i></span><strong>Participant video</strong><div><button type="button" data-dock-layout aria-label="Switch participant video layout" title="Switch Speaker / Gallery view">▦</button><button type="button" data-dock-minimize aria-label="Minimize participant video panel" title="Minimize video panel">−</button><button type="button" data-dock-reset aria-label="Reset participant video position" title="Reset video panel position">↺</button><button type="button" data-dock-hide aria-label="Hide participant video panel" title="Hide video panel">×</button></div></header><div class="participant-video-dock-body"></div><span class="participant-video-resize" aria-hidden="true"></span>';stage.append(dock);
+      dock.querySelector('[data-dock-layout]').onclick=()=>{const current=readView(),next=current==='speaker'?'gallery':'speaker';applyViewMode(next);syncShareLayout();};
       dock.querySelector('[data-dock-minimize]').onclick=()=>{dock.classList.toggle('minimized');const minimized=dock.classList.contains('minimized'),button=dock.querySelector('[data-dock-minimize]');button.textContent=minimized?'□':'−';button.setAttribute('aria-label',minimized?'Restore participant video panel':'Minimize participant video panel');syncShareLayout();syncMinimizedVideoPanel();};
       dock.querySelector('[data-dock-reset]').onclick=()=>resetVideoDock();
       dock.querySelector('[data-dock-hide]').onclick=()=>{window.DominionPreferences?.write?.('shareVideoDock',false);syncShareLayout();syncVideoDock();};
