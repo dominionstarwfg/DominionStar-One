@@ -1,4 +1,4 @@
-import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, Notification, powerMonitor, session, shell, systemPreferences } from 'electron';
+import { app, BrowserWindow, desktopCapturer, dialog, globalShortcut, ipcMain, Notification, powerMonitor, session, shell, systemPreferences } from 'electron';
 import path from 'node:path';
 import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +16,15 @@ let mainWindow=null;
 let desktopAuth=null;
 let meetingService=null;
 let shareService=null;
+const globalMeetingAccelerators=new Map();
+const GLOBAL_MEETING_SHORTCUTS=Object.freeze({
+  mute:{accelerator:'CommandOrControl+Shift+A',command:'audio'},
+  video:{accelerator:'CommandOrControl+Shift+V',command:'video'},
+  share:{accelerator:'CommandOrControl+Shift+S',command:'share'},
+  participants:{accelerator:'CommandOrControl+U',command:'participants'},
+  chat:{accelerator:'CommandOrControl+Shift+H',command:'chat'},
+  hand:{accelerator:'Alt+Y',command:'toggle-hand'}
+});
 let qaPersonalRoom={roomId:'qa-personal-room',roomCode:'2468013579',passcode:'360',title:'Personal Meeting Room',useForInstant:true,waitingRoomEnabled:true,externalGuestsAllowed:true,status:'ready'};
 let qaSchedules=[];
 const pendingJoinUrls=globalThis.__dominionPendingJoinUrls=globalThis.__dominionPendingJoinUrls||[];
@@ -109,6 +118,25 @@ function installLocalPermissionPolicy(desktopSession){
   });
 }
 
+function dispatchGlobalMeetingCommand(command){
+  const target=mainWindow;
+  if(!target||target.isDestroyed())return false;
+  try{target.webContents.send('app:global-meeting-command',{command:String(command||''),at:Date.now()});return true;}catch{return false;}
+}
+function configureGlobalMeetingShortcuts(config={}){
+  for(const accelerator of globalMeetingAccelerators.keys()){try{globalShortcut.unregister(accelerator);}catch{}}
+  globalMeetingAccelerators.clear();
+  const results={};
+  for(const [key,definition] of Object.entries(GLOBAL_MEETING_SHORTCUTS)){
+    const enabled=config?.[key]===true;if(!enabled){results[key]={enabled:false,registered:false,accelerator:definition.accelerator};continue;}
+    let registered=false;
+    try{registered=globalShortcut.register(definition.accelerator,()=>dispatchGlobalMeetingCommand(definition.command));}catch{}
+    if(registered)globalMeetingAccelerators.set(definition.accelerator,key);
+    results[key]={enabled:true,registered,accelerator:definition.accelerator};
+  }
+  return results;
+}
+
 function createMainWindow(){
   mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged,backgroundThrottling:false}});
   const startupWindow=mainWindow;
@@ -146,6 +174,7 @@ function createMainWindow(){
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:set-global-meeting-shortcuts',(_event,config={})=>configureGlobalMeetingShortcuts(config));
 ipcMain.handle('app:consume-join-url',()=>{
   while(pendingJoinUrls.length){const value=validJoinUrl(pendingJoinUrls.shift());if(value)return value;}
   return '';
@@ -274,3 +303,4 @@ app.whenReady().then(async()=>{
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});
 });
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
+app.on('will-quit',()=>{for(const accelerator of globalMeetingAccelerators.keys()){try{globalShortcut.unregister(accelerator);}catch{}}globalMeetingAccelerators.clear();});
