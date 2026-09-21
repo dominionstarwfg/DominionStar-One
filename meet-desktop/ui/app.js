@@ -86,12 +86,12 @@
     const before=media.snapshot(),target=!before.cameraOn;
     button?.classList.add('media-intent-active');
     const operation=media.setCamera(target);
-    attachPreview();
+    syncMediaLabels();attachPreview();
     try{
-      await operation;attachPreview();
+      await operation;syncMediaLabels();attachPreview();
       const after=media.snapshot();
       if(after.cameraOn===target&&!after.cameraPending)window.DominionMeetingNotifications?.play?.(target?'video-on':'video-off');
-    }catch(e){attachPreview();notice('Camera unavailable',errorText(e));}
+    }catch(e){syncMediaLabels();attachPreview();notice('Camera unavailable',errorText(e));}
     finally{button?.classList.remove('media-intent-active');}
   }
 
