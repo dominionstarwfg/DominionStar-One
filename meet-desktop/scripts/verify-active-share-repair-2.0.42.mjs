@@ -6,6 +6,7 @@ const toolbar=read('ui/mac-presenter-toolbar.js');
 const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
 const integration=read('ui/share-integration.js');
 const mirror=read('src/mac-share-video-mirror.mjs');
+const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
 const pkg=JSON.parse(read('package.json'));
 
 new Function(toolbar);
@@ -29,4 +30,9 @@ assert(mirror.includes("typeof ImageCapture==='function'")&&mirror.includes('new
 assert(mirror.includes("candidates.find(item=>item.id==='localMeetingVideo')||candidates[0]"),'Camera mirror must accept any live element bound to the authoritative camera track.');
 assert(screenshotReference.includes('data-ds-ref-critical-meeting-geometry')&&screenshotReference.includes('grid-template-rows:47px minmax(0,1fr) 56px!important')&&screenshotReference.includes('max-height:56px!important'),'Final screenshot authority must synchronously hard-lock the packaged meeting toolbar to the 56px Zoom-reference geometry.');
 
-console.log('DOMINIONSTAR_ACTIVE_SHARE_REPAIR_2_0_42_OK acknowledged-toolbar canonical-new-share clean-stop authoritative-camera-mirror');
+new Function(featureReady);
+assert(featureReady.includes('function finalReferenceReady(){return Boolean(window.DominionZoomScreenshotReference?.sync);}')&&featureReady.includes("o.classList.remove('ds-exec-lock')"),'Legacy 2.0.41 meeting chrome must yield its geometry class when the final Zoom-reference authority is available.');
+assert(featureReady.includes("o.querySelectorAll('.ds-exec-icon,.ds-exec-label,.ds-exec-encrypted,.ds-exec-divider')")&&featureReady.includes("o.querySelectorAll('.ds-exec-control')"),'Final-reference handoff must remove stale executive toolbar decoration that can widen or shift controls.');
+assert(featureReady.includes('window.DominionZoomScreenshotReference?.requestSync?.()'),'Legacy-to-final handoff must immediately reassert final Zoom-reference geometry after cleanup.');
+
+console.log('DOMINIONSTAR_ACTIVE_SHARE_REPAIR_2_0_42_OK acknowledged-toolbar canonical-new-share clean-stop authoritative-camera-mirror stable-final-toolbar-handoff');
