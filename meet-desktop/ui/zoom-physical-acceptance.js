@@ -142,6 +142,8 @@
   function ensureSelfMore(row){
     if(String(row.dataset.participantId||'')!==String(localParticipantId||''))return;
     const actions=row.querySelector('.participant-actions');if(!actions)return;
+    const existing=actions.querySelector('[data-participant-more]');
+    if(existing){existing.classList.add('ds-participant-more');existing.textContent='•••';existing.setAttribute('aria-label','More options for yourself');return;}
     let button=actions.querySelector('[data-ds-self-more]');if(button)return;
     button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';button.textContent='•••';button.setAttribute('aria-label','More options for yourself');
     button.onclick=event=>{event.stopPropagation();openSelfParticipantMenu(button,row);};actions.append(button);
@@ -170,7 +172,12 @@
       const more=row.querySelector('[data-participant-more]');if(more){more.textContent='•••';more.classList.add('ds-participant-more');more.setAttribute('aria-label',`More options for ${String(row.dataset.participantName||'participant')}`);actions.append(more);}
       ensureSelfMore(row);
       const copy=row.querySelector('.person-copy'),role=String(row.dataset.participantRole||'participant').toLowerCase();
-      if(copy){let badge=copy.querySelector('.ds-role-chip');if(!badge){badge=document.createElement('span');badge.className='ds-role-chip';copy.querySelector('strong')?.append(badge);}badge.textContent=role==='host'?'Host':role==='cohost'?'Co-host':'';badge.hidden=!['host','cohost'].includes(role);const legacy=copy.querySelector('small');if(legacy)legacy.textContent=id===localParticipantId?'You':role==='host'?'Meeting host':role==='cohost'?'Co-host':'Participant';}
+      if(copy){
+        const strong=copy.querySelector('strong'),displayName=String(row.dataset.participantName||strong?.textContent||'Participant').replace(/\s*\((?:host|co-host|cohost|me)\)\s*/gi,' ').trim();
+        if(strong){strong.textContent=displayName;let badge=document.createElement('span');badge.className='ds-role-chip';badge.textContent=role==='host'?'Host':role==='cohost'?'Co-host':'';badge.hidden=!['host','cohost'].includes(role);strong.append(badge);}
+        const legacy=copy.querySelector('small');if(legacy){legacy.textContent=id===localParticipantId?'You':'Participant';legacy.hidden=true;}
+        for(const duplicate of [...row.querySelectorAll('.participant-more,.ds-participant-more')].slice(1))duplicate.remove();
+      }
     }
   }
 
