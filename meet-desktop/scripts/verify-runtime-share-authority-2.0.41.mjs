@@ -52,6 +52,8 @@ assert(controller.includes('navigator.mediaDevices.getDisplayMedia'),'ShareContr
 assert(integration.includes('bridge?.onSourceSelected?.(async selection=>'),'ShareIntegration must remain the selected-source consumer that starts or replaces ShareController capture.');
 assert(authority.includes("qa('.ds-smart-share-picker,.ds-share-permission,.ds-219-share-recovery,#screenPermissionDialog')"),'Approved runtime authority must suppress rejected duplicate physical-share/recovery surfaces.');
 for(const label of ['Screens','Files','More','Presenter layout','Content only','As background','Over the shoulder','Side by side','Share sound','Optimize for video sharing','Share DominionStar Meet windows'])assert(authority.includes(label),`Approved runtime chooser is missing ${label}.`);
+assert(authority.includes('data-layout="side" disabled'),'Approved runtime chooser must not expose a fake presenter Side by side layout before compositing is certified.');
+assert(!authority.includes("save('ds_pref_share_side_by_side'")&&!authority.includes("pref('ds_pref_share_side_by_side')"),'Approved runtime presenter chooser must remain independent from the viewer-side Side-by-side preference.');
 assert(authority.includes("desktop.media?.openPrivacy?.('screen')")&&authority.includes('desktop.app?.relaunch?.()'),'Legacy recovery remains bounded to macOS Settings plus one controlled app relaunch.');
 assert(!authority.includes('Recheck'),'Permission recovery must not return to the rejected same-process Recheck loop.');
 assert(!authority.includes('Share This Window')&&!authority.includes('Share Entire Screen')&&!authority.includes('Share All Application Windows'),'Apple system picker language must not return in the approved runtime chooser.');
