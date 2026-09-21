@@ -242,7 +242,18 @@
     }
   }
 
-  function setVideoLayout(mode){const dock=q('#participantVideoDock');if(!dock)return;dock.classList.remove('layout-speaker');if(mode==='hide'){dock.hidden=true;return;}dock.hidden=false;if(mode==='speaker')dock.classList.add('layout-speaker');window.DominionMeetingParity?.syncVideoDock?.();}
+  function setVideoPanelVisible(visible){
+    const next=Boolean(visible);window.DominionPreferences?.write?.('shareVideoDock',next);
+    const dock=q('#participantVideoDock');if(dock)dock.hidden=!next;
+    window.DominionMeetingParity?.syncShareLayout?.();window.DominionMeetingParity?.syncVideoDock?.();
+    return next;
+  }
+  function setVideoLayout(mode){
+    const normalized=mode==='gallery'?'gallery':'speaker';
+    setVideoPanelVisible(true);window.DominionMeetingParity?.applyViewMode?.(normalized);
+    window.DominionMeetingParity?.syncShareLayout?.();window.DominionMeetingParity?.syncVideoDock?.();
+    return normalized;
+  }
 
   function handleSignal(event){const detail=event.detail||{},payload=detail.payload||{};if(detail.type==='recording-state'){handleRecordingState(detail);return;}if(detail.type==='chat'){const text=String(payload.text||'').trim();if(text)appendMessage({text:text.slice(0,2000),name:String(payload.name||detail.fromDisplayName||'Participant'),at:payload.at||detail.createdAt,own:false,private:Boolean(payload.private),toName:payload.private?'You':''});}else if(detail.type==='reaction'){if(payload.kind==='hand'){const id=String(detail.fromParticipantId||payload.participantId||''),raised=Boolean(payload.raised);if(id){if(raised)state.raisedHands.set(id,{name:String(payload.name||detail.fromDisplayName||'Participant'),at:Date.now()});else state.raisedHands.delete(id);decorateRaisedHands();}return;}const emoji=String(payload.emoji||'');if(reactions.includes(emoji)){const id=String(detail.fromParticipantId||payload.participantId||''),name=String(payload.name||detail.fromDisplayName||'Participant');if(id)setParticipantReaction(id,emoji,name);showReaction(emoji,name);}}}
 
@@ -279,5 +290,5 @@
   const observer=new MutationObserver(()=>requestAnimationFrame(syncFeatureUi));
   if(overlay)observer.observe(overlay,{attributes:true,attributeFilter:['hidden']});
   ensureUi();
-  window.DominionMeetingFeatures=Object.freeze({version:'1.4.0-zoom-chat-shell',runtimeVersion:'2.0.22-event-driven',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,stopRecording,setVideoLayout,sync:syncFeatureUi,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,recordingPaused:state.recordingPaused,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))}),dispose:()=>{observer.disconnect();cancelAnimationFrame(featureFrame);featureFrame=0;resetMeetingFeatureState();}});
+  window.DominionMeetingFeatures=Object.freeze({version:'1.4.0-zoom-chat-shell',runtimeVersion:'2.0.22-event-driven',toggleChat,openReactions,sendReaction,toggleRaiseHand,setLocalHand,lowerParticipantHand,toggleRecording,stopRecording,setVideoPanelVisible,setVideoLayout,sync:syncFeatureUi,snapshot:()=>({chatOpen:!q('#meetingChatPanel')?.hidden,recording:state.recording,recordingPaused:state.recordingPaused,messageCount:state.messages.length,handRaised:state.localHandRaised,raisedHands:[...state.raisedHands.keys()],reactions:[...state.reactions.entries()].map(([participantId,value])=>({participantId,...value}))}),dispose:()=>{observer.disconnect();cancelAnimationFrame(featureFrame);featureFrame=0;resetMeetingFeatureState();}});
 })();
