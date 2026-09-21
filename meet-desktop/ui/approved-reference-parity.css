@@ -328,3 +328,17 @@
 #meetingOverlay.share-panel-floating #participantVideoDock[data-approved-filmstrip="1"].minimized .participant-video-resize{
   display:none !important;
 }
+
+
+/* Speaker / Gallery switching for the floating share participant panel. */
+#meetingOverlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile{
+  display:none!important;
+}
+#meetingOverlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile.share-featured,
+#meetingOverlay.share-panel-floating[data-share-view="speaker"] #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile.minimized-featured{
+  display:block!important;
+}
+#meetingOverlay.share-panel-floating[data-share-view="gallery"] #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile,
+#meetingOverlay.share-panel-floating[data-share-view="multi"] #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile{
+  display:block!important;
+}
