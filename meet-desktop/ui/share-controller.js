@@ -282,6 +282,26 @@
   }
   function outputStream(){return needsComposite()&&state.compositeStream?state.compositeStream:baseOutputStream();}
 
+  async function setPresenterLayout(layout){
+    if(!state.liveStream)return snapshot();
+    const next=normalizePresenterLayout(layout),previous=normalizePresenterLayout(state.options?.presenterLayout);
+    if(next===previous)return snapshot();
+    if(next!=='content'){
+      const media=window.DominionMediaController;
+      if(!media?.snapshot?.().videoLive)await media?.setCamera?.(true);
+      if(!media?.snapshot?.().videoLive)throw new Error('Turn on your camera to use this presenter layout.');
+    }
+    const hadComposite=Boolean(state.compositeStream);
+    state.options={...state.options,presenterLayout:next};
+    if(needsComposite()&&!state.compositeStream)startComposite();
+    emit();
+    try{await window.DominionWebRTCController?.syncLocalTracks?.({strict:true});}
+    catch(error){state.options={...state.options,presenterLayout:previous};if(!hadComposite&&state.compositeStream)stopComposite();throw error;}
+    if(!needsComposite()&&state.compositeStream)stopComposite();
+    try{await bridge?.captureState?.({presenterLayout:next});}catch{}
+    emit();return snapshot();
+  }
+
   async function setOptimizeVideo(enabled){
     if(!state.liveStream)return snapshot();
     const next=Boolean(enabled);state.options={...state.options,optimizeVideo:next};
@@ -368,6 +388,6 @@
     }
     return snapshot();
   }
-  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,exportImage,stop,outputStream,setOptimizeVideo,setShareAudioEnabled,setShareAudioMode,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
+  const api=Object.freeze({start,replaceSource,pause,resume,togglePause,exportImage,stop,outputStream,setPresenterLayout,setOptimizeVideo,setShareAudioEnabled,setShareAudioMode,setAnnotationCanvas,snapshot,onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}});
   window.DominionShareController=api;
 })();
