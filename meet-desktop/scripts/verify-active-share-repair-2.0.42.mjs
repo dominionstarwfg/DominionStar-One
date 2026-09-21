@@ -14,7 +14,7 @@ const pkg=JSON.parse(read('package.json'));
 new Function(toolbar);
 new Function(integration);
 
-assert.equal(pkg.version,'2.0.42','Active-share grouped repair must ship under a new version.');
+assert.ok(['2.0.42','2.0.43'].includes(pkg.version),'Active-share grouped repair must remain present in 2.0.42+ certified candidates.');
 assert(toolbar.includes("version:'2.0.42-strict-direct-native-ack-fallback'"),'Mac presenter toolbar must identify the strict direct-first plus acknowledged fallback authority.');
 assert(toolbar.includes("result.direct===true||result.acknowledged===true||result.handled===true")&&!toolbar.includes("result.handled===true||result.ok===true"),'A generic ok:true must never count as proof that a presenter command executed.');
 const sendBlock=toolbar.slice(toolbar.indexOf('const send=async command=>'),toolbar.indexOf("q('#layoutButton')"));
