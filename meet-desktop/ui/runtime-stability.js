@@ -14,6 +14,7 @@
   let dockBound=null;
   let dockDrag=null;
   let surfaceDrag=null;
+  let surfaceMouseDrag=null;
   let surfaceDragGlobalBound=false;
   let physicalPrimed=false;
   let legacyPrimed=false;
@@ -279,11 +280,41 @@
     const panel=surfaceDrag.panel;surfaceDrag=null;panel?.classList.remove('dragging');
   }
 
+  function moveFloatingSurfaceMouse(event){
+    if(!surfaceMouseDrag)return;
+    const {panel}=surfaceMouseDrag,body=q('.meeting-body');if(!panel||!body||panel.hidden)return;
+    const br=body.getBoundingClientRect();
+    const left=clamp(event.clientX-br.left-surfaceMouseDrag.dx,10,Math.max(10,br.width-panel.offsetWidth-10));
+    const top=clamp(event.clientY-br.top-surfaceMouseDrag.dy,10,Math.max(10,br.height-panel.offsetHeight-10));
+    panel.style.setProperty('left',`${left}px`,'important');
+    panel.style.setProperty('right','auto','important');
+    panel.style.setProperty('top',`${top}px`,'important');
+    event.preventDefault();
+  }
+
+  function endFloatingSurfaceMouse(){
+    if(!surfaceMouseDrag)return;
+    const panel=surfaceMouseDrag.panel;surfaceMouseDrag=null;panel?.classList.remove('dragging');
+  }
+
   function ensureFloatingSurfaceDocumentDrag(){
     if(surfaceDragGlobalBound)return;surfaceDragGlobalBound=true;
     document.addEventListener('pointermove',moveFloatingSurface,true);
     document.addEventListener('pointerup',endFloatingSurfaceDrag,true);
     document.addEventListener('pointercancel',endFloatingSurfaceDrag,true);
+    document.addEventListener('mousemove',moveFloatingSurfaceMouse,true);
+    document.addEventListener('mouseup',endFloatingSurfaceMouse,true);
+  }
+
+  function beginFloatingDrag(panel,event,kind='pointer'){
+    if(event.button!==0||event.target.closest?.('button,input,select,textarea,a'))return;
+    const body=q('.meeting-body');if(!body)return;
+    const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
+    const state={panel,dx:event.clientX-pr.left,dy:event.clientY-pr.top,body:br};
+    panel.dataset.dsRuntimeUserPositioned='1';panel.classList.add('dragging');
+    if(kind==='mouse')surfaceMouseDrag=state;
+    else{surfaceDrag={...state,id:event.pointerId};try{event.currentTarget?.setPointerCapture?.(event.pointerId);}catch{}}
+    event.preventDefault();
   }
 
   function installFloatingSurfaceDrag(panel){
@@ -292,17 +323,9 @@
     if(!handle)return;
     ensureFloatingSurfaceDocumentDrag();
     panel.dataset.dsRuntimeDragBound='1';
-    handle.style.cursor='default';
-    handle.addEventListener('pointerdown',event=>{
-      if(event.button!==0||event.target.closest?.('button,input,select,textarea,a'))return;
-      const body=q('.meeting-body');if(!body)return;
-      const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
-      surfaceDrag={panel,id:event.pointerId,dx:event.clientX-pr.left,dy:event.clientY-pr.top,body:br};
-      panel.dataset.dsRuntimeUserPositioned='1';
-      panel.classList.add('dragging');
-      try{handle.setPointerCapture?.(event.pointerId);}catch{}
-      event.preventDefault();
-    },true);
+    handle.style.cursor='move';
+    handle.addEventListener('pointerdown',event=>beginFloatingDrag(panel,event,'pointer'),true);
+    handle.addEventListener('mousedown',event=>beginFloatingDrag(panel,event,'mouse'),true);
   }
 
   function layoutSideSurface(){
