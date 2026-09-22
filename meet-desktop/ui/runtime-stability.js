@@ -51,7 +51,7 @@
   }
 
   function retireBackgroundReconcilers(){
-    for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])disposeLoop(name);
+    for(const name of ['DominionZoomAdaptiveParity','DominionZoomParticipantsReference2041','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])disposeLoop(name);
   }
 
   function primePhysicalControls(){
@@ -66,6 +66,7 @@
     if(legacyPrimed||!meetingOpen())return;
     legacyPrimed=true;
     window.DominionZoomProductionPolish?.sync?.();
+    window.DominionZoomParticipantsReference2041?.sync?.();
     window.DominionApprovedReferenceParity?.sync?.();
   }
 
