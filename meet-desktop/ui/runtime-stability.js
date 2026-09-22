@@ -273,7 +273,7 @@
       panel.style.setProperty('transform','none','important');
       panel.style.setProperty('z-index','2600','important');
       const pw=Math.min(Math.max(1,panel.offsetWidth||targetWidth),Math.max(1,bodyWidth-24)),ph=Math.min(Math.max(1,panel.offsetHeight||targetHeight),Math.max(1,bodyHeight-24));
-      let left=Math.max(10,bodyWidth-pw-12),top=12;
+      let left=Math.max(10,Math.round((bodyWidth-pw)/2)),top=Math.max(10,Math.round((bodyHeight-ph)/2));
       if(panel.dataset.dsRuntimeUserPositioned==='1'){
         const currentLeft=parseFloat(panel.style.left),currentTop=parseFloat(panel.style.top);
         if(Number.isFinite(currentLeft))left=clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10));
@@ -282,7 +282,7 @@
       panel.style.setProperty('left',`${left}px`,'important');
       panel.style.setProperty('right','auto','important');
       panel.style.setProperty('top',`${top}px`,'important');
-      overlay.dataset.dsRuntimeSide='right-floating';
+      overlay.dataset.dsRuntimeSide='center-floating';
       installFloatingSurfaceDrag(panel);
     }else overlay.dataset.dsRuntimeSide='none';
     stage.style.setProperty('left','0px','important');
@@ -434,7 +434,9 @@
     const hostTools=event.target.closest?.('#roomHostTools');
     if(hostTools&&meetingOpen()){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-      void window.DominionMeetingParity?.openSecurity?.(hostTools);
+      q('.ds-ref-host-tools-panel')?.remove();
+      qa('.meeting-command-menu,.ds-command-menu').forEach(node=>{if(!node.contains(hostTools))node.remove();});
+      void window.DominionZoomPhysicalAcceptance?.openHostTools?.(hostTools);
       return;
     }
     const more=event.target.closest?.('#roomMore');
