@@ -10,6 +10,7 @@ const pkg=JSON.parse(read('package.json'));
 const auth=read('ui/auth-password.js');
 const refJs=read('ui/zoom-screenshot-reference-2.0.41.js');
 const refCss=read('ui/zoom-screenshot-reference-2.0.41.css');
+const physical=read('ui/zoom-physical-acceptance.js');
 const pickerHtml=read('ui/share-picker.html');
 const pickerCss=read('ui/share-picker.css');
 const pickerJs=read('ui/share-picker.js');
@@ -72,15 +73,13 @@ has(refJs,'Host tools for participants','Participants More popover is missing Ho
 has(refJs,'data-clear disabled','Unimplemented participant feedback clearing must remain physically disabled.');
 has(refCss,'#participantRoster .ds-participant-media{display:none!important','Rejected duplicate participant media renderer must stay hidden.');
 
-// Host tools is its own right-side sheet.
-has(refJs,'ds-ref-host-tools-panel','Host tools right panel is missing.');
-has(refJs,'Lock meeting','Host tools is missing Lock meeting.');
-has(refJs,'Enable waiting room','Host tools is missing waiting-room position.');
-has(refJs,'data-waiting disabled','Waiting-room control must stay physically disabled until the live room-security RPC supports switching.');
-has(refJs,'Dynamic waiting-room switching is not exposed by the current room-security RPC','Waiting-room disabled state must explain its authority limitation.');
-has(refJs,'Hide profile pictures','Host tools is missing Hide profile pictures.');
-has(refJs,'data-participants','Host tools is missing Participants navigation.');
-has(refJs,'data-advanced','Host tools is missing Advanced navigation.');
+// Host Tools is a single toolbar popover owned by the physical/runtime authority.
+has(physical,"function openHostTools(button)",'Canonical Host Tools popover is missing.');
+has(physical,"addCommand(menu,'Open Participants'",'Host Tools is missing Participants.');
+has(physical,"addCommand(menu,'Copy meeting information'",'Host Tools is missing meeting information.');
+has(physical,"locked?'Unlock Meeting':'Lock Meeting'",'Host Tools is missing meeting lock control.');
+has(physical,"addCommand(menu,'Mute Participants on Entry'",'Host Tools is missing mute-on-entry.');
+assert.ok(!refJs.includes("host.addEventListener('click'"),'Screenshot reference must not bind a second Host Tools click authority.');
 
 // More is its own tool grid.
 has(refJs,"label=document.createElement('span')",'Final toolbar sync must recreate a missing visible label instead of leaving an SVG-only control.');
