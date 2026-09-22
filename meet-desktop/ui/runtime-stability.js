@@ -297,8 +297,18 @@
     const panel=surfaceMouseDrag.panel;surfaceMouseDrag=null;panel?.classList.remove('dragging');
   }
 
+  function delegatedFloatingPanel(event){
+    const handle=event.target?.closest?.('#meetingOverlay .room-side-head,#meetingOverlay #meetingChatPanel>header');
+    if(!handle)return null;
+    const panel=handle.closest?.('.room-side,#meetingChatPanel');
+    if(!panel||panel.hidden||panel.dataset.dsRuntimeMode!=='floating')return null;
+    return {panel,handle};
+  }
+
   function ensureFloatingSurfaceDocumentDrag(){
     if(surfaceDragGlobalBound)return;surfaceDragGlobalBound=true;
+    document.addEventListener('pointerdown',event=>{const hit=delegatedFloatingPanel(event);if(hit)beginFloatingDrag(hit.panel,event,'pointer');},true);
+    document.addEventListener('mousedown',event=>{const hit=delegatedFloatingPanel(event);if(hit)beginFloatingDrag(hit.panel,event,'mouse');},true);
     document.addEventListener('pointermove',moveFloatingSurface,true);
     document.addEventListener('pointerup',endFloatingSurfaceDrag,true);
     document.addEventListener('pointercancel',endFloatingSurfaceDrag,true);
@@ -323,9 +333,7 @@
     if(!handle)return;
     ensureFloatingSurfaceDocumentDrag();
     panel.dataset.dsRuntimeDragBound='1';
-    handle.style.cursor='move';
-    handle.addEventListener('pointerdown',event=>beginFloatingDrag(panel,event,'pointer'),true);
-    handle.addEventListener('mousedown',event=>beginFloatingDrag(panel,event,'mouse'),true);
+    handle.style.setProperty('cursor','move','important');
   }
 
   function layoutSideSurface(){
