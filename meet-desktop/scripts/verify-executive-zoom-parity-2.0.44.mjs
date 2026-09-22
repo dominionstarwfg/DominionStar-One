@@ -15,6 +15,7 @@ const app=read('ui/app.js');
 assert.equal(pkg.version,'2.0.44','Executive Zoom parity repair must ship under 2.0.44.');
 assert(!index.includes('participants-center-lock-2.0.41.js')&&!index.includes('host-tools-separation-lock-2.0.41.js'),'Conflicting legacy panel/host locks must not load.');
 assert(runtime.includes("overlay.dataset.dsRuntimeSide='center-floating'")&&runtime.includes("Math.round((bodyWidth-pw)/2)"),'Participants and Chat must share one stable centered floating authority.');
+assert(runtime.includes("document.addEventListener('pointermove',moveFloatingSurface,true)")&&runtime.includes("document.addEventListener('pointerup',endFloatingSurfaceDrag,true)"),'Floating panel drag must continue through document-level pointer movement after the pointer leaves the title bar.');
 assert(runtime.includes("'DominionZoomParticipantsReference2041'")&&runtime.includes("window.DominionZoomParticipantsReference2041?.sync?.()"),'Legacy participant chrome may prime once but its geometry reconciler must be retired.');
 assert(runtime.includes('function openRuntimeHostTools(anchor)')&&runtime.includes('void openRuntimeHostTools(hostTools)')&&!runtime.includes("DominionMeetingParity?.openSecurity?.(hostTools)"),'Host Tools must have one canonical runtime owner.');
 assert(screenshotJs.includes("host.dataset.dsRefHostBound='runtime-single-owner'"),'Screenshot compatibility layer must not bind a second Host Tools listener.');
