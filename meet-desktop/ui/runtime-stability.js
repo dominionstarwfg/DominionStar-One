@@ -144,6 +144,8 @@
     side.dataset.dsRuntimeCount=String(count);
     const title=side.querySelector('.room-side-head strong');if(title)title.textContent=`Participants (${count})`;
     const subtitle=side.querySelector('.room-side-head small');if(subtitle)subtitle.textContent=count===1?'1 person in this meeting':`${count} people in this meeting`;
+    const head=side.querySelector('.room-side-head');
+    if(head&&!head.querySelector('[data-ds-runtime-close-participants]')){const close=document.createElement('button');close.type='button';close.dataset.dsRuntimeCloseParticipants='1';close.setAttribute('aria-label','Close participants');close.textContent='×';head.append(close);}
     const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<7;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
     sortParticipants();
