@@ -39,25 +39,21 @@ try{
   await evaluate(`[...document.querySelectorAll('.ds-command-menu button')].find(b=>/Gallery/.test(b.textContent||''))?.click()`);
   await waitFor("document.querySelector('#meetingOverlay').dataset.viewMode==='gallery'",'working Gallery action');
 
-  // Host Tools is a dedicated first-class toolbar control. The final 2.0.41+
-  // screenshot authority owns a right-side Host tools sheet rather than the
-  // retired Security popup / generic ds-command-menu compatibility shell.
+  // Host Tools is a single Zoom-style toolbar popover. No second security
+  // sheet or compatibility panel may appear behind it.
   await evaluate(`document.querySelector('#roomHostTools').click()`);
-  await waitFor("document.querySelector('.ds-ref-host-tools-panel')",'Host Tools panel');
-  const hostMenu=await evaluate(`(()=>{const m=document.querySelector('.ds-ref-host-tools-panel'),r=m.getBoundingClientRect(),style=getComputedStyle(m),heading=m.querySelector('header strong')?.textContent||'',labels=[...m.querySelectorAll('label span:first-child')].map(n=>n.textContent.trim()),buttons=[...m.querySelectorAll('button')].map(b=>b.textContent.trim());return {z:parseInt(style.zIndex)||0,position:style.position,bottomGap:Math.round(innerHeight-r.bottom),rightGap:Math.round(innerWidth-r.right),computedBottom:parseFloat(style.bottom)||0,heading,labels,buttons,hasLock:Boolean(m.querySelector('[data-lock]')),hasWaiting:Boolean(m.querySelector('[data-waiting]')),hasParticipants:Boolean(m.querySelector('[data-participants]')),hasAdvanced:Boolean(m.querySelector('[data-advanced]'))};})()`);
+  await waitFor("document.querySelector('.ds-command-menu .ds-command-menu-heading')?.textContent==='Host Tools'",'Host Tools menu');
+  const hostMenu=await evaluate(`(()=>{const menus=[...document.querySelectorAll('.ds-command-menu')].filter(m=>getComputedStyle(m).display!=='none'),m=menus.find(x=>x.querySelector('.ds-command-menu-heading')?.textContent==='Host Tools'),f=document.querySelector('.meeting-footer').getBoundingClientRect(),r=m.getBoundingClientRect(),items=[...m.querySelectorAll('button')].map(b=>b.textContent.trim());return {commandCount:menus.length,legacyPanels:document.querySelectorAll('.ds-ref-host-tools-panel').length,heading:m.querySelector('.ds-command-menu-heading')?.textContent||'',items,bottom:r.bottom,footerTop:f.top};})()`);
   console.log('HOST_TOOLS_VISUAL_DIAGNOSTIC',JSON.stringify(hostMenu));
-  assert.ok(hostMenu.z>=2500,'Host Tools must stay above meeting chrome.');
-  assert.equal(hostMenu.position,'fixed','Host Tools must remain a fixed desktop application surface.');
-  assert.ok(hostMenu.bottomGap>=56&&hostMenu.computedBottom>=56,'Host Tools must remain above the footer zone.');
-  assert.ok(Math.abs(hostMenu.rightGap)<=14,'Host Tools must remain attached to the meeting right edge.');
-  assert.equal(hostMenu.heading,'Host tools','Host Tools must open the final Host tools sheet.');
-  assert.equal(hostMenu.hasLock,true,'Host Tools is missing Lock meeting.');
-  assert.equal(hostMenu.hasWaiting,true,'Host Tools is missing the waiting-room position.');
-  assert.equal(hostMenu.hasParticipants,true,'Host Tools is missing Participants navigation.');
-  assert.equal(hostMenu.hasAdvanced,true,'Host Tools is missing Advanced navigation.');
-  assert.ok(hostMenu.labels.some(v=>/Lock meeting/i.test(v)),'Host Tools must expose the live Lock meeting control.');
-  await evaluate(`document.querySelector('.ds-ref-host-tools-panel [data-close]')?.click()`);
-  await waitFor("!document.querySelector('.ds-ref-host-tools-panel')",'Host Tools close');
+  assert.equal(hostMenu.legacyPanels,0,'Legacy Host Tools sheet must not coexist with the canonical popover.');
+  assert.equal(hostMenu.commandCount,1,'Exactly one Host Tools popover may be visible.');
+  assert.equal(hostMenu.heading,'Host Tools','Host Tools heading is missing.');
+  assert.ok(hostMenu.items.some(v=>/Open Participants/i.test(v)),'Host Tools must expose Participants.');
+  assert.ok(hostMenu.items.some(v=>/Copy meeting information/i.test(v)),'Host Tools must expose meeting information.');
+  assert.ok(hostMenu.items.some(v=>/Lock Meeting|Unlock Meeting/i.test(v)),'Host Tools must expose meeting lock control.');
+  assert.ok(hostMenu.items.some(v=>/Mute Participants on Entry/i.test(v)),'Host Tools must expose mute-on-entry.');
+  assert.ok(hostMenu.bottom<=hostMenu.footerTop+2,'Host Tools must open above the toolbar.');
+  await evaluate(`document.querySelector('.ds-command-menu')?.remove()`);
 
   // More is the canonical final meeting-more-menu. Host Tools must not be
   // duplicated there when the dedicated Host Tools toolbar button is visible.
@@ -74,14 +70,14 @@ try{
   await evaluate(`(()=>{document.querySelector('#roomParticipants').click();const roster=document.querySelector('#participantRoster');roster.innerHTML='<div class="person-row" data-participant-id="qa-guest" data-participant-role="participant" data-participant-name="Taylor Participant" data-recording-allowed="0" data-record-eligible="1"><span class="person-badge">TP</span><span class="person-copy"><strong>Taylor Participant</strong><small>Participant</small></span></div>';window.DominionZoomPhysicalAcceptance.decorateParticipantRows();window.DominionRuntimeStability.syncParticipantsSurface();window.DominionRuntimeStability.layoutSideSurface();return true;})()`);
   await waitFor("document.querySelector('#participantRoster .ds-modern-participant-row .ds-participant-media')",'participant media indicators');
   await waitFor("document.querySelector('#participantRoster [data-participant-more]')",'participant ellipsis');
-  const participantRow=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const row=document.querySelector('#participantRoster .ds-modern-participant-row'),states=[...row.querySelectorAll('.ds-media-state')],more=row.querySelector('[data-participant-more]'),panel=document.querySelector('.room-side'),pr=panel.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect();return {height:row.getBoundingClientRect().height,stateCount:states.length,moreText:more?.textContent||'',nameFont:parseFloat(getComputedStyle(row.querySelector('.person-copy strong')).fontSize),moreWidth:more?.getBoundingClientRect().width||0,mode:panel.dataset.dsRuntimeMode||'',inside:pr.left>=body.left+10&&pr.right<=body.right-10&&pr.top>=body.top+10&&pr.bottom<=body.bottom-10,rightGap:Math.round(body.right-pr.right),panelWidth:Math.round(pr.width),stageRightGap:Math.round(body.right-stage.right),draggable:panel.dataset.dsRuntimeDragBound==='1'};})()`);
+  const participantRow=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const row=document.querySelector('#participantRoster .ds-modern-participant-row'),states=[...row.querySelectorAll('.ds-media-state')],more=row.querySelector('[data-participant-more]'),panel=document.querySelector('.room-side'),pr=panel.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect();return {height:row.getBoundingClientRect().height,stateCount:states.length,moreText:more?.textContent||'',nameFont:parseFloat(getComputedStyle(row.querySelector('.person-copy strong')).fontSize),moreWidth:more?.getBoundingClientRect().width||0,mode:panel.dataset.dsRuntimeMode||'',inside:pr.left>=body.left+10&&pr.right<=body.right-10&&pr.top>=body.top+10&&pr.bottom<=body.bottom-10,centerDelta:Math.round(Math.abs((pr.left+pr.width/2)-(body.left+body.width/2))),panelWidth:Math.round(pr.width),stageRightGap:Math.round(body.right-stage.right),draggable:panel.dataset.dsRuntimeDragBound==='1'};})()`);
   assert.ok(participantRow.height>=50&&participantRow.nameFont>=12.5,'Participant row is below the final readable runtime scale.');
   assert.equal(participantRow.stateCount,2,'Participant row must show microphone and video status.');
   assert.equal(participantRow.moreText,'•••','Participant management must use a three-dot control.');
   assert.ok(participantRow.moreWidth>=27,'Participant ellipsis target is too small.');
   assert.equal(participantRow.mode,'floating','Participants must use the final floating desktop panel model.');
   assert.equal(participantRow.inside,true,'Participants must remain contained inside the meeting surface.');
-  assert.ok(participantRow.rightGap>=8&&participantRow.rightGap<=16,'Participants must open at one stable Zoom-style right-edge position.');
+  assert.ok(participantRow.centerDelta<=8,'Participants must open at one stable centered floating position.');
   assert.ok(participantRow.panelWidth>=300&&participantRow.panelWidth<=420,'Participants width must remain readable and bounded.');
   assert.ok(Math.abs(participantRow.stageRightGap)<=2,'Floating Participants must not shrink the live stage.');
   assert.equal(participantRow.draggable,true,'Participants floating surface must have a drag authority.');
@@ -90,11 +86,11 @@ try{
   // Chat uses the same final floating application-surface model, remains compact,
   // and must leave the meeting stage full width.
   await evaluate(`document.querySelector('#roomChat').click()`);await waitFor("!document.querySelector('#meetingChatPanel').hidden",'Chat panel');
-  const chat=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const p=document.querySelector('#meetingChatPanel'),r=p.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect(),more=p.querySelector('.zoom-chat-more'),input=document.querySelector('#meetingChatInput');return {width:Math.round(r.width),mode:p.dataset.dsRuntimeMode||'',inside:r.left>=body.left+10&&r.right<=body.right-10&&r.top>=body.top+10&&r.bottom<=body.bottom-10,rightGap:Math.round(body.right-r.right),stageRightGap:Math.round(body.right-stage.right),head:parseFloat(getComputedStyle(p.querySelector('header strong')).fontSize),input:parseFloat(getComputedStyle(input).fontSize),more:Boolean(more&&getComputedStyle(more).display!=='none'),draggable:p.dataset.dsRuntimeDragBound==='1'};})()`);
+  const chat=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const p=document.querySelector('#meetingChatPanel'),r=p.getBoundingClientRect(),body=document.querySelector('.meeting-body').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect(),more=p.querySelector('.zoom-chat-more'),input=document.querySelector('#meetingChatInput');return {width:Math.round(r.width),mode:p.dataset.dsRuntimeMode||'',inside:r.left>=body.left+10&&r.right<=body.right-10&&r.top>=body.top+10&&r.bottom<=body.bottom-10,centerDelta:Math.round(Math.abs((r.left+r.width/2)-(body.left+body.width/2))),stageRightGap:Math.round(body.right-stage.right),head:parseFloat(getComputedStyle(p.querySelector('header strong')).fontSize),input:parseFloat(getComputedStyle(input).fontSize),more:Boolean(more&&getComputedStyle(more).display!=='none'),draggable:p.dataset.dsRuntimeDragBound==='1'};})()`);
   assert.ok(chat.width>=300&&chat.width<=420&&chat.head>=14.5&&chat.input>=12.5,'Chat is not at the approved compact readable runtime scale.');
   assert.equal(chat.mode,'floating','Chat must use the same final floating application-surface model.');
   assert.equal(chat.inside,true,'Chat must remain contained inside the meeting surface.');
-  assert.ok(chat.rightGap>=8&&chat.rightGap<=16,'Chat must open at one stable Zoom-style right-edge position.');
+  assert.ok(chat.centerDelta<=8,'Chat must open at one stable centered floating position.');
   assert.ok(Math.abs(chat.stageRightGap)<=2,'Floating Chat must not shrink the live stage.');
   assert.equal(chat.more,true,'Chat options ellipsis is missing.');
   assert.equal(chat.draggable,true,'Chat floating surface must have a drag authority.');
