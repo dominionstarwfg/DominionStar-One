@@ -262,13 +262,17 @@
       panel.dataset.zoomPanelMode='popout';
       panel.style.setProperty('position','absolute','important');
       panel.style.setProperty('bottom','auto','important');
-      panel.style.setProperty('width',`${Math.min(width,bodyWidth-24)}px`,'important');
-      panel.style.setProperty('height',`${Math.min(height,bodyHeight-24)}px`,'important');
+      const targetWidth=Math.max(1,Math.min(width,bodyWidth-24)),targetHeight=Math.max(1,Math.min(height,bodyHeight-24));
+      panel.style.setProperty('min-width','0px','important');
+      panel.style.setProperty('min-height','0px','important');
+      panel.style.setProperty('width',`${targetWidth}px`,'important');
+      panel.style.setProperty('height',`${targetHeight}px`,'important');
       panel.style.setProperty('max-width','calc(100% - 24px)','important');
       panel.style.setProperty('max-height','calc(100% - 24px)','important');
+      panel.style.setProperty('resize','none','important');
       panel.style.setProperty('transform','none','important');
       panel.style.setProperty('z-index','2600','important');
-      const pw=Math.min(width,bodyWidth-24),ph=Math.min(height,bodyHeight-24);
+      const pw=Math.min(Math.max(1,panel.offsetWidth||targetWidth),Math.max(1,bodyWidth-24)),ph=Math.min(Math.max(1,panel.offsetHeight||targetHeight),Math.max(1,bodyHeight-24));
       let left=Math.max(10,bodyWidth-pw-12),top=12;
       if(panel.dataset.dsRuntimeUserPositioned==='1'){
         const currentLeft=parseFloat(panel.style.left),currentTop=parseFloat(panel.style.top);
