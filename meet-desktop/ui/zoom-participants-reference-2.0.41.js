@@ -4,7 +4,7 @@
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const GEOMETRY_KEY='ds_zoom_participants_geometry_2_0_41';
-  const isMac=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
+  const isMac=/Mac|Darwin/i.test(String(navigator.userAgentData?.platform||navigator.platform||navigator.userAgent||''))||String(window.dominionDesktop?.platform||'').toLowerCase()==='darwin';
   let syncFrame=0;
 
   const ICONS=Object.freeze({
@@ -57,7 +57,7 @@
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy strong{min-width:0!important;display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:13px!important;font-weight:600!important;color:#f3f3f4!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy small{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-you{font-style:normal!important;color:#dedee0!important;font-weight:500!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-adaptive-role{display:inline!important;flex:none!important;font-size:11px!important;color:#dedee0!important;font-weight:500!important;white-space:nowrap!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-adaptive-role{display:inline!important;flex:none!important;font-size:11px!important;color:#dedee0!important;font-weight:500!important;white-space:nowrap!important}#meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-canonical-participant-role{display:inline!important;flex:none!important;font-size:11px!important;color:#dedee0!important;font-weight:500!important;white-space:nowrap!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-state{display:flex!important;align-items:center!important;gap:8px!important;margin:0!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon{width:18px!important;height:18px!important;display:grid!important;place-items:center!important;color:#d5d5d7!important;font-size:0!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon svg{width:18px!important;height:18px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important}
