@@ -13,6 +13,7 @@ const app=read('ui/app.js');
 
 assert.equal(pkg.version,'2.0.43','Physical Zoom-behavior repair must ship under 2.0.43.');
 assert(runtime.includes("overlay.dataset.dsRuntimeSide='right-floating'")&&runtime.includes("bodyWidth-pw-12"),'Participants and Chat must share one stable right-edge runtime authority.');
+assert(runtime.includes("panel.style.setProperty('min-width','0px','important')")&&runtime.includes("panel.offsetWidth||targetWidth")&&runtime.includes("panel.style.setProperty('resize','none','important')"),'Final runtime geometry must override stale participant minimums/resizing and clamp from rendered panel dimensions.');
 assert(runtime.includes("const tray=q('.ds-reaction-tray')||q('.meeting-reaction-menu')")&&runtime.includes("r.left+r.width/2-w/2"),'Reaction chooser must anchor directly above React.');
 assert(screenshotCss.includes('.meeting-head .ds-meeting-brand{display:flex!important')&&screenshotCss.includes('.ds-ref-meeting-head-icons{display:none!important}'),'Meeting header must show DominionStar branding and suppress stray top-right controls.');
 assert(screenshotCss.includes('.room-side{width:390px!important')&&screenshotCss.includes('right:12px!important')&&screenshotCss.includes('transform:none!important'),'Final Participants geometry must agree with right-edge runtime authority.');
