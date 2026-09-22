@@ -93,9 +93,11 @@
   function paintLocal(){
     const user=state.user||{},name=String(user.name||'DominionStar Member'),avatarUrl=safePhotoUrl(user.avatarUrl),label=initials(name);
     const prejoinAvatar=q('#prejoinAvatar'),prejoinVideo=q('#prejoinVideo'),mediaState=window.DominionMediaController?.snapshot?.()||{};
+    const videoTracks=prejoinVideo?.srcObject?.getVideoTracks?.()||[];
+    const videoActuallyLive=Boolean(mediaState.videoLive||videoTracks.some(track=>track.readyState==='live'&&track.enabled));
     setBoxPhoto(prejoinAvatar,avatarUrl,label,{refreshLocal:true});
-    if(prejoinAvatar)prejoinAvatar.hidden=Boolean(mediaState.videoLive);
-    if(prejoinVideo)prejoinVideo.hidden=!Boolean(mediaState.videoLive);
+    if(prejoinAvatar){prejoinAvatar.hidden=videoActuallyLive;prejoinAvatar.setAttribute('aria-hidden',videoActuallyLive?'true':'false');}
+    if(prejoinVideo)prejoinVideo.hidden=!videoActuallyLive;
     setBoxPhoto(q('#stageAvatar'),avatarUrl,label,{refreshLocal:true});
     const localDock=q('#localVideoDockTile .remote-peer-fallback');if(localDock)setTilePhoto(localDock,avatarUrl,label,{refreshLocal:true});
     syncLocalGalleryIdentity();
