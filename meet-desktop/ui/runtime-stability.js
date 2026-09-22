@@ -263,16 +263,33 @@
     return true;
   }
 
-  function moveFloatingSurface(event){
-    if(!surfaceDrag||surfaceDrag.id!==event.pointerId)return;
-    const {panel}=surfaceDrag,body=q('.meeting-body');if(!panel||!body||panel.hidden)return;
+  function dragAxisDelta(event,state,axis){
+    const cap=axis==='x'?'X':'Y',movement=Number(event[`movement${cap}`]||0);
+    state[`movement${cap}`]=(state[`movement${cap}`]||0)+movement;
+    const values=[
+      Number(event[`client${cap}`])-state[`startClient${cap}`],
+      Number(event[`page${cap}`])-state[`startPage${cap}`],
+      Number(event[`screen${cap}`])-state[`startScreen${cap}`],
+      state[`movement${cap}`]
+    ].filter(Number.isFinite);
+    return values.reduce((best,value)=>Math.abs(value)>Math.abs(best)?value:best,0);
+  }
+
+  function applyFloatingDrag(event,state){
+    const {panel}=state,body=q('.meeting-body');if(!panel||!body||panel.hidden)return;
     const br=body.getBoundingClientRect();
-    const left=clamp(event.clientX-br.left-surfaceDrag.dx,10,Math.max(10,br.width-panel.offsetWidth-10));
-    const top=clamp(event.clientY-br.top-surfaceDrag.dy,10,Math.max(10,br.height-panel.offsetHeight-10));
+    const deltaX=dragAxisDelta(event,state,'x'),deltaY=dragAxisDelta(event,state,'y');
+    const left=clamp(state.originLeft+deltaX,10,Math.max(10,br.width-panel.offsetWidth-10));
+    const top=clamp(state.originTop+deltaY,10,Math.max(10,br.height-panel.offsetHeight-10));
     panel.style.setProperty('left',`${left}px`,'important');
     panel.style.setProperty('right','auto','important');
     panel.style.setProperty('top',`${top}px`,'important');
     event.preventDefault();
+  }
+
+  function moveFloatingSurface(event){
+    if(!surfaceDrag||surfaceDrag.id!==event.pointerId)return;
+    applyFloatingDrag(event,surfaceDrag);
   }
 
   function endFloatingSurfaceDrag(event){
@@ -282,14 +299,7 @@
 
   function moveFloatingSurfaceMouse(event){
     if(!surfaceMouseDrag)return;
-    const {panel}=surfaceMouseDrag,body=q('.meeting-body');if(!panel||!body||panel.hidden)return;
-    const br=body.getBoundingClientRect();
-    const left=clamp(event.clientX-br.left-surfaceMouseDrag.dx,10,Math.max(10,br.width-panel.offsetWidth-10));
-    const top=clamp(event.clientY-br.top-surfaceMouseDrag.dy,10,Math.max(10,br.height-panel.offsetHeight-10));
-    panel.style.setProperty('left',`${left}px`,'important');
-    panel.style.setProperty('right','auto','important');
-    panel.style.setProperty('top',`${top}px`,'important');
-    event.preventDefault();
+    applyFloatingDrag(event,surfaceMouseDrag);
   }
 
   function endFloatingSurfaceMouse(){
@@ -320,7 +330,16 @@
     if(event.button!==0||event.target.closest?.('button,input,select,textarea,a'))return;
     const body=q('.meeting-body');if(!body)return;
     const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
-    const state={panel,dx:event.clientX-pr.left,dy:event.clientY-pr.top,body:br};
+    const inlineLeft=parseFloat(panel.style.left),inlineTop=parseFloat(panel.style.top);
+    const state={
+      panel,
+      originLeft:Number.isFinite(inlineLeft)?inlineLeft:pr.left-br.left,
+      originTop:Number.isFinite(inlineTop)?inlineTop:pr.top-br.top,
+      startClientX:Number(event.clientX),startClientY:Number(event.clientY),
+      startPageX:Number(event.pageX),startPageY:Number(event.pageY),
+      startScreenX:Number(event.screenX),startScreenY:Number(event.screenY),
+      movementX:0,movementY:0
+    };
     panel.dataset.dsRuntimeUserPositioned='1';panel.classList.add('dragging');
     if(kind==='mouse')surfaceMouseDrag=state;
     else{surfaceDrag={...state,id:event.pointerId};try{event.currentTarget?.setPointerCapture?.(event.pointerId);}catch{}}
