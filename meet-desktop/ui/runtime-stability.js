@@ -14,6 +14,7 @@
   let dockBound=null;
   let dockDrag=null;
   let surfaceDrag=null;
+  let surfaceDragGlobalBound=false;
   let physicalPrimed=false;
   let legacyPrimed=false;
   let shareOpening=false;
@@ -261,10 +262,35 @@
     return true;
   }
 
+  function moveFloatingSurface(event){
+    if(!surfaceDrag||surfaceDrag.id!==event.pointerId)return;
+    const {panel}=surfaceDrag,body=q('.meeting-body');if(!panel||!body||panel.hidden)return;
+    const br=body.getBoundingClientRect();
+    const left=clamp(event.clientX-br.left-surfaceDrag.dx,10,Math.max(10,br.width-panel.offsetWidth-10));
+    const top=clamp(event.clientY-br.top-surfaceDrag.dy,10,Math.max(10,br.height-panel.offsetHeight-10));
+    panel.style.setProperty('left',`${left}px`,'important');
+    panel.style.setProperty('right','auto','important');
+    panel.style.setProperty('top',`${top}px`,'important');
+    event.preventDefault();
+  }
+
+  function endFloatingSurfaceDrag(event){
+    if(!surfaceDrag||(event?.pointerId!=null&&event.pointerId!==surfaceDrag.id))return;
+    const panel=surfaceDrag.panel;surfaceDrag=null;panel?.classList.remove('dragging');
+  }
+
+  function ensureFloatingSurfaceDocumentDrag(){
+    if(surfaceDragGlobalBound)return;surfaceDragGlobalBound=true;
+    document.addEventListener('pointermove',moveFloatingSurface,true);
+    document.addEventListener('pointerup',endFloatingSurfaceDrag,true);
+    document.addEventListener('pointercancel',endFloatingSurfaceDrag,true);
+  }
+
   function installFloatingSurfaceDrag(panel){
     if(!panel||panel.dataset.dsRuntimeDragBound==='1')return;
     const handle=panel.matches('.room-side')?panel.querySelector('.room-side-head'):panel.querySelector('header');
     if(!handle)return;
+    ensureFloatingSurfaceDocumentDrag();
     panel.dataset.dsRuntimeDragBound='1';
     handle.style.cursor='default';
     handle.addEventListener('pointerdown',event=>{
@@ -274,23 +300,9 @@
       surfaceDrag={panel,id:event.pointerId,dx:event.clientX-pr.left,dy:event.clientY-pr.top,body:br};
       panel.dataset.dsRuntimeUserPositioned='1';
       panel.classList.add('dragging');
-      handle.setPointerCapture?.(event.pointerId);
+      try{handle.setPointerCapture?.(event.pointerId);}catch{}
       event.preventDefault();
     },true);
-    handle.addEventListener('pointermove',event=>{
-      if(!surfaceDrag||surfaceDrag.panel!==panel||surfaceDrag.id!==event.pointerId)return;
-      const body=q('.meeting-body');if(!body)return;const br=body.getBoundingClientRect();
-      const left=clamp(event.clientX-br.left-surfaceDrag.dx,10,Math.max(10,br.width-panel.offsetWidth-10));
-      const top=clamp(event.clientY-br.top-surfaceDrag.dy,10,Math.max(10,br.height-panel.offsetHeight-10));
-      panel.style.setProperty('left',`${left}px`,'important');
-      panel.style.setProperty('top',`${top}px`,'important');
-      event.preventDefault();
-    },true);
-    const end=event=>{
-      if(!surfaceDrag||surfaceDrag.panel!==panel||(event?.pointerId!=null&&event.pointerId!==surfaceDrag.id))return;
-      surfaceDrag=null;panel.classList.remove('dragging');
-    };
-    handle.addEventListener('pointerup',end,true);handle.addEventListener('pointercancel',end,true);
   }
 
   function layoutSideSurface(){
