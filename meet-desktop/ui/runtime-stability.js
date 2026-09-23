@@ -281,6 +281,14 @@
     const deltaX=dragAxisDelta(event,state,'x'),deltaY=dragAxisDelta(event,state,'y');
     const left=clamp(state.originLeft+deltaX,10,Math.max(10,br.width-panel.offsetWidth-10));
     const top=clamp(state.originTop+deltaY,10,Math.max(10,br.height-panel.offsetHeight-10));
+    panel.dataset.dsRuntimeDragTelemetry=JSON.stringify({
+      clientX:Number(event.clientX),clientY:Number(event.clientY),
+      pageX:Number(event.pageX),pageY:Number(event.pageY),
+      screenX:Number(event.screenX),screenY:Number(event.screenY),
+      movementX:Number(event.movementX||0),movementY:Number(event.movementY||0),
+      startClientX:state.startClientX,startClientY:state.startClientY,
+      originLeft:state.originLeft,originTop:state.originTop,deltaX,deltaY,left,top
+    });
     panel.style.setProperty('left',`${left}px`,'important');
     panel.style.setProperty('right','auto','important');
     panel.style.setProperty('top',`${top}px`,'important');
