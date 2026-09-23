@@ -289,6 +289,7 @@
 
   function moveFloatingSurface(event){
     if(!surfaceDrag||surfaceDrag.id!==event.pointerId)return;
+    surfaceDrag.panel.dataset.dsRuntimePointerMoves=String((Number(surfaceDrag.panel.dataset.dsRuntimePointerMoves)||0)+1);
     applyFloatingDrag(event,surfaceDrag);
   }
 
@@ -299,6 +300,7 @@
 
   function moveFloatingSurfaceMouse(event){
     if(!surfaceMouseDrag)return;
+    surfaceMouseDrag.panel.dataset.dsRuntimeMouseMoves=String((Number(surfaceMouseDrag.panel.dataset.dsRuntimeMouseMoves)||0)+1);
     applyFloatingDrag(event,surfaceMouseDrag);
   }
 
@@ -315,15 +317,20 @@
     return {panel,handle};
   }
 
+  function beginDelegatedFloatingPointer(event){const hit=delegatedFloatingPanel(event);if(hit)beginFloatingDrag(hit.panel,event,'pointer');}
+  function beginDelegatedFloatingMouse(event){const hit=delegatedFloatingPanel(event);if(hit)beginFloatingDrag(hit.panel,event,'mouse');}
+
   function ensureFloatingSurfaceDocumentDrag(){
     if(surfaceDragGlobalBound)return;surfaceDragGlobalBound=true;
-    document.addEventListener('pointerdown',event=>{const hit=delegatedFloatingPanel(event);if(hit)beginFloatingDrag(hit.panel,event,'pointer');},true);
-    document.addEventListener('mousedown',event=>{const hit=delegatedFloatingPanel(event);if(hit)beginFloatingDrag(hit.panel,event,'mouse');},true);
-    document.addEventListener('pointermove',moveFloatingSurface,true);
-    document.addEventListener('pointerup',endFloatingSurfaceDrag,true);
-    document.addEventListener('pointercancel',endFloatingSurfaceDrag,true);
-    document.addEventListener('mousemove',moveFloatingSurfaceMouse,true);
-    document.addEventListener('mouseup',endFloatingSurfaceMouse,true);
+    // Window-capture is the final movement authority. It runs before any
+    // retired/legacy document or title-bar listeners can stop propagation.
+    window.addEventListener('pointerdown',beginDelegatedFloatingPointer,true);
+    window.addEventListener('mousedown',beginDelegatedFloatingMouse,true);
+    window.addEventListener('pointermove',moveFloatingSurface,true);
+    window.addEventListener('pointerup',endFloatingSurfaceDrag,true);
+    window.addEventListener('pointercancel',endFloatingSurfaceDrag,true);
+    window.addEventListener('mousemove',moveFloatingSurfaceMouse,true);
+    window.addEventListener('mouseup',endFloatingSurfaceMouse,true);
   }
 
   function beginFloatingDrag(panel,event,kind='pointer'){
