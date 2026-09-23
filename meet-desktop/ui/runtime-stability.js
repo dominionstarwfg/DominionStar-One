@@ -368,7 +368,7 @@
       startScreenX:Number(event.screenX),startScreenY:Number(event.screenY),
       movementX:0,movementY:0
     };
-    panel.dataset.dsRuntimeUserPositioned='1';panel.classList.add('dragging');
+    panel.dataset.dsRuntimeUserPositioned='1';panel.dataset.dsAdaptiveUserPositioned='1';panel.dataset.dsAdaptiveInitialized='1';panel.classList.add('dragging');
     if(kind==='mouse')surfaceMouseDrag=state;
     else{surfaceDrag={...state,id:event.pointerId};try{event.currentTarget?.setPointerCapture?.(event.pointerId);}catch{}}
     event.preventDefault();
