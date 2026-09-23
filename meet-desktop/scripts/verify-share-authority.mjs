@@ -88,7 +88,7 @@ requireText(service,'function configureDisplayMediaHandler(useSystemPicker)','Di
 requireText(service,'configureDisplayMediaHandler(false);','DominionStar chooser must initialize the custom display-media handler.');
 requireText(service,"ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;",'Opening the approved chooser must reset stale selection and force custom capture mode.');
 requireText(service,"ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);",'Committing a source must force custom capture mode before getDisplayMedia.');
-requireText(service,"return {ok:true,nativeSystemPicker:false}",'Selected sources must explicitly remain on the DominionStar picker path.');
+requireText(service,"return {ok:true,nativeSystemPicker:false,options:normalizedOptions}",'Selected sources must explicitly remain on the DominionStar picker path while returning the effective capture options.');
 requireText(integration,"const SCREEN_CAPTURE_PROVEN_KEY='ds_screen_capture_proven_v2'",'Successful screen-capture proof must remain session-scoped.');
 requireText(integration,'async function grantedScreenPermission()','Granted Screen Recording helper is missing.');
 rejectText(integration,'bridge?.probeAccess?.()','Initial Share must not enumerate desktop sources as a permission probe.');
