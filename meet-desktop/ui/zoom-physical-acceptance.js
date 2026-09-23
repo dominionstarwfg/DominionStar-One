@@ -174,7 +174,7 @@
       const copy=row.querySelector('.person-copy'),role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-',''),self=id===String(localParticipantId||'')||row.dataset.participantSelf==='1';
       if(copy){
         const strong=copy.querySelector('strong'),displayName=String(row.dataset.participantName||strong?.textContent||'Participant').replace(/\s*\((?:host|co-host|cohost|me)(?:\s*,\s*(?:host|co-host|cohost|me))*\)\s*/gi,' ').trim();
-        copy.querySelectorAll('.ds-role-chip,.ds-adaptive-role,.ds-participant-role-badge,.ds-participant-self-label').forEach(node=>node.remove());
+        copy.querySelectorAll('.ds-role-chip,.ds-adaptive-role,.ds-participant-role-badge,.ds-participant-self-label,.ds-canonical-participant-role').forEach(node=>node.remove());
         if(strong)strong.textContent=displayName;
         let roleText='';
         if(role==='host'&&self)roleText='(Host, me)';else if(role==='host')roleText='(Host)';else if(role==='cohost'&&self)roleText='(Co-host, me)';else if(role==='cohost')roleText='(Co-host)';else if(self)roleText='(me)';
