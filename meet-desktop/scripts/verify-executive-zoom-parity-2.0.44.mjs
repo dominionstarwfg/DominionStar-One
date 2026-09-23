@@ -13,6 +13,7 @@ const personal=read('ui/personal-room.js');
 const app=read('ui/app.js');
 const activeShare=read('ui/active-share-home-parity-2.0.41.js');
 const meetingParity=read('ui/meeting-parity.js');
+const meetingNotifications=read('ui/meeting-notifications.js');
 
 assert.equal(pkg.version,'2.0.44','Executive Zoom parity repair must ship under 2.0.44.');
 assert(!index.includes('participants-center-lock-2.0.41.js')&&!index.includes('host-tools-separation-lock-2.0.41.js'),'Conflicting legacy panel/host locks must not load.');
@@ -32,6 +33,7 @@ assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:no
 assert(profile.includes('videoActuallyLive')&&profile.includes("getVideoTracks?.()"),'Prejoin avatar fallback must follow the actual live video track.');
 assert(physical.includes("roleText='(Host, me)'")&&physical.includes('.ds-canonical-participant-role')&&!physical.includes("badge.className='ds-role-chip'"),'Participant role presentation must be one Zoom-style suffix, never a duplicate badge.');
 assert(runtime.includes("host.onclick=event=>")&&runtime.includes("host.dataset.dsPhysicalAuthority='runtime-owned'")&&runtime.includes('installRuntimeHostToolsAuthority();'),'Host Tools must be rebound directly to the runtime owner after legacy priming.');
+assert(!meetingNotifications.includes("target.closest('#roomHostTools')")&&!meetingNotifications.includes('openHostToolsPanel?.()'),'Window-capture notification routing must not intercept the canonical runtime-owned Host Tools button.');
 assert(runtime.includes("data-ds-runtime-close-participants")||runtime.includes("dataset.dsRuntimeCloseParticipants='1'"),'Participants must expose a direct close control.');
 assert(personal.includes("passInput.value=String(state.room.passcode||'')")&&personal.includes("passLabel.style.setProperty('display',personal?'none':'','important')"),'Personal Meeting ID mode must not expose a stale alternate passcode.');
 assert(app.includes("if(!target){")&&app.includes("prejoinVideo.hidden=true"),'Camera-off feedback must remain immediate.');
