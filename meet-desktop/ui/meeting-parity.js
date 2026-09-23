@@ -172,9 +172,11 @@
   function installParticipantPanel(){
     const overlay=q('#meetingOverlay'),side=q('.room-side');if(!overlay||!side||side.dataset.dsZoomPanel)return;side.dataset.dsZoomPanel='1';side.hidden=true;overlay.classList.add('participants-hidden');
     const head=document.createElement('div');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small>Manage everyone in this meeting</small></div><button type="button" aria-label="Close participants">×</button>';side.prepend(head);head.querySelector('button').onclick=()=>toggleParticipants(false);
-    head.addEventListener('pointerdown',event=>{if(event.button!==0||event.target.closest('button'))return;const a=side.getBoundingClientRect();panelDrag={id:event.pointerId,dx:event.clientX-a.left,dy:event.clientY-a.top};head.setPointerCapture?.(event.pointerId);side.classList.add('dragging');side.style.right='auto';side.style.bottom='auto';event.preventDefault();});
-    head.addEventListener('pointermove',event=>{if(!panelDrag||event.pointerId!==panelDrag.id)return;const body=q('.meeting-body').getBoundingClientRect(),w=side.offsetWidth,h=side.offsetHeight;side.style.left=`${clamp(event.clientX-body.left-panelDrag.dx,10,Math.max(10,body.width-w-10))}px`;side.style.top=`${clamp(event.clientY-body.top-panelDrag.dy,10,Math.max(10,body.height-h-10))}px`;});
-    const end=event=>{if(!panelDrag||(event?.pointerId!=null&&event.pointerId!==panelDrag.id))return;panelDrag=null;side.classList.remove('dragging');savePanelGeometry();};head.addEventListener('pointerup',end);head.addEventListener('pointercancel',end);new ResizeObserver(()=>{if(!panelDrag)savePanelGeometry();}).observe(side);
+    // Runtime stability owns floating Participants/Chat movement. Keeping a
+    // second pointer-capture drag loop here caused the older geometry writer to
+    // overwrite the final runtime position on every physical mouse move.
+    head.dataset.dsParticipantDragAuthority='runtime-stability';
+    new ResizeObserver(()=>{if(!panelDrag)savePanelGeometry();}).observe(side);
   }
 
   function ensureVideoDock(){
