@@ -52,10 +52,13 @@ try{
   await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x,y:dragStart.y});
   await cdp('Input.dispatchMouseEvent',{type:'mousePressed',x:dragStart.x,y:dragStart.y,button:'left',buttons:1,clickCount:1});
   const dragPressed=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),el=document.elementFromPoint(${dragStart.x},${dragStart.y});return {target:el?.className||el?.tagName||'',userPositioned:panel.dataset.dsRuntimeUserPositioned||'',dragging:panel.classList.contains('dragging')};})()`);
-  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x+64,y:dragStart.y+34,button:'left',buttons:1});
+  for(const [dx,dy] of [[16,8],[32,17],[48,26],[64,34]]){
+    await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x+dx,y:dragStart.y+dy,button:'left',buttons:1});
+    await sleep(20);
+  }
   const dragMoved=await evaluate(`(()=>{const r=document.querySelector('.room-side').getBoundingClientRect();return {left:Math.round(r.left),top:Math.round(r.top)};})()`);
   await cdp('Input.dispatchMouseEvent',{type:'mouseReleased',x:dragStart.x+64,y:dragStart.y+34,button:'left',buttons:0,clickCount:1});
-  await sleep(50);
+  await sleep(120);
   const dragged=await evaluate(`(()=>{const r=document.querySelector('.room-side').getBoundingClientRect();return {dx:Math.round(r.left-${dragStart.left}),dy:Math.round(r.top-${dragStart.top})};})()`);
   console.log('PARTICIPANTS_DRAG_DIAGNOSTIC',JSON.stringify({dragStart,dragPressed,dragMoved,dragged}));
   assert.ok(Math.abs(dragged.dx)>=24||Math.abs(dragged.dy)>=18,`Participants must be movable with real pointer input. ${JSON.stringify(dragged)}`);
