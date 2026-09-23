@@ -11,6 +11,7 @@ const physical=read('ui/zoom-physical-acceptance.js');
 const profile=read('ui/profile-photo-fallback.js');
 const personal=read('ui/personal-room.js');
 const app=read('ui/app.js');
+const meetingParity=read('ui/meeting-parity.js');
 
 assert.equal(pkg.version,'2.0.44','Executive Zoom parity repair must ship under 2.0.44.');
 assert(!index.includes('participants-center-lock-2.0.41.js')&&!index.includes('host-tools-separation-lock-2.0.41.js'),'Conflicting legacy panel/host locks must not load.');
@@ -18,6 +19,7 @@ assert(runtime.includes("overlay.dataset.dsRuntimeSide='center-floating'")&&runt
 assert(runtime.includes("document.addEventListener('pointermove',moveFloatingSurface,true)")&&runtime.includes("document.addEventListener('pointerup',endFloatingSurfaceDrag,true)"),'Floating panel drag must continue through document-level pointer movement after the pointer leaves the title bar.');
 assert(runtime.includes("document.addEventListener('mousedown',event=>{const hit=delegatedFloatingPanel(event);if(hit)beginFloatingDrag(hit.panel,event,'mouse');},true)")&&runtime.includes("document.addEventListener('pointerdown',event=>{const hit=delegatedFloatingPanel(event);if(hit)beginFloatingDrag(hit.panel,event,'pointer');},true)"),'Floating panel drag must begin from delegated document-capture mouse/pointer input so title-bar replacement cannot break it.');
 assert(runtime.includes('function dragAxisDelta(event,state,axis)')&&runtime.includes('state.originLeft+deltaX')&&runtime.includes('state.originTop+deltaY'),'Floating drag must resolve movement from the captured drag origin rather than mixing viewport coordinates with the panel containing block.');
+assert(meetingParity.includes("head.dataset.dsParticipantDragAuthority='runtime-stability'")&&!meetingParity.includes("head.addEventListener('pointermove'"),'Meeting parity must not retain a second Participants pointer-drag authority.');
 assert(read('ui/zoom-participants-reference-2.0.41.js').includes('.ds-participants-mac .room-side-head>button{display:grid!important'),'Participants close control must remain visible on Mac.');
 assert(runtime.includes("'DominionZoomParticipantsReference2041'")&&runtime.includes("window.DominionZoomParticipantsReference2041?.sync?.()"),'Legacy participant chrome may prime once but its geometry reconciler must be retired.');
 assert(runtime.includes('function openRuntimeHostTools(anchor)')&&runtime.includes('void openRuntimeHostTools(hostTools)')&&!runtime.includes("DominionMeetingParity?.openSecurity?.(hostTools)"),'Host Tools must have one canonical runtime owner.');
