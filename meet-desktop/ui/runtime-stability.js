@@ -47,6 +47,19 @@
     menu.append(button);return button;
   }
 
+  function installRuntimeHostToolsAuthority(){
+    const host=q('#roomHostTools');if(!host)return false;
+    host.dataset.dsPhysicalAuthority='runtime-owned';
+    host.setAttribute('aria-haspopup','menu');
+    host.onclick=event=>{
+      event.preventDefault();event.stopPropagation();
+      q('.ds-ref-host-tools-panel')?.remove();
+      qa('.meeting-command-menu,.ds-command-menu').forEach(node=>{if(node!==runtimeHostMenu)node.remove();});
+      void openRuntimeHostTools(host);
+    };
+    return true;
+  }
+
   async function openRuntimeHostTools(anchor){
     closeRuntimeHostMenu();
     const menu=document.createElement('div');menu.className='ds-command-menu ds-runtime-host-tools';menu.setAttribute('role','menu');
@@ -102,7 +115,7 @@
     const controller=window.DominionZoomPhysicalAcceptance;if(!controller)return;
     physicalPrimed=true;
     try{controller.sync?.();}catch(error){console.warn('[DominionStar Meet] Physical control priming failed.',error);}
-    const host=q('#roomHostTools');if(host){host.onclick=null;host.dataset.dsPhysicalAuthority='runtime-owned';}
+    installRuntimeHostToolsAuthority();
     try{controller.dispose?.();}catch(error){console.warn('[DominionStar Meet] Physical background retirement failed.',error);}
   }
 
@@ -507,7 +520,7 @@
   function syncNow(){
     frame=0;installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();
     if(!meetingOpen())return;
-    primePhysicalControls();primeLegacyStructure();ensureToolbarZones();
+    primePhysicalControls();primeLegacyStructure();ensureToolbarZones();installRuntimeHostToolsAuthority();
     syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();
     window.DominionZoomScreenshotReference?.sync?.();
     q('#meetingOverlay')?.setAttribute('data-ds-runtime-stable','1');
@@ -553,14 +566,6 @@
       });
       return;
     }
-    const hostTools=event.target.closest?.('#roomHostTools');
-    if(hostTools&&meetingOpen()){
-      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-      q('.ds-ref-host-tools-panel')?.remove();
-      qa('.meeting-command-menu,.ds-command-menu').forEach(node=>{if(node!==runtimeHostMenu)node.remove();});
-      void openRuntimeHostTools(hostTools);
-      return;
-    }
     if(runtimeHostMenu&&!runtimeHostMenu.contains(event.target)&&!event.target.closest?.('#roomHostTools'))closeRuntimeHostMenu();
     const more=event.target.closest?.('#roomMore');
     if(more&&meetingOpen()){
@@ -596,5 +601,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.32-adaptive-video-dock',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.32-adaptive-video-dock',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,installRuntimeHostToolsAuthority,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
