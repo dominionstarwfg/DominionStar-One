@@ -50,7 +50,7 @@
     }
   }
 
-  function sync(){syncFrame=0;ensureStyle();loadParticipantsReference();loadParticipantsCenterLock();const active=shareActive();document.body.classList.toggle('ds-active-share-workspace',active);if(active!==lastActive){lastActive=active;patchHome(active);}else if(active&&q('#homeSection .action-card.new-meeting')?.dataset.action!=='back-to-meeting')patchHome(true);}
+  function sync(){syncFrame=0;ensureStyle();loadParticipantsReference();const active=shareActive();document.body.classList.toggle('ds-active-share-workspace',active);if(active!==lastActive){lastActive=active;patchHome(active);}else if(active&&q('#homeSection .action-card.new-meeting')?.dataset.action!=='back-to-meeting')patchHome(true);}
   function schedule(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
 
   document.addEventListener('click',event=>{const back=event.target?.closest?.('#homeSection .action-card[data-action="back-to-meeting"]');if(!back)return;event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();restoreMeeting();},true);
