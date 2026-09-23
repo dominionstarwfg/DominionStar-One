@@ -56,7 +56,7 @@ try{
     await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x+dx,y:dragStart.y+dy,button:'left',buttons:1});
     await sleep(20);
   }
-  const dragMoved=await evaluate(`(()=>{const r=document.querySelector('.room-side').getBoundingClientRect();return {left:Math.round(r.left),top:Math.round(r.top)};})()`);
+  const dragMoved=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),r=panel.getBoundingClientRect();return {left:Math.round(r.left),top:Math.round(r.top),pointerMoves:Number(panel.dataset.dsRuntimePointerMoves||0),mouseMoves:Number(panel.dataset.dsRuntimeMouseMoves||0)};})()`);
   await cdp('Input.dispatchMouseEvent',{type:'mouseReleased',x:dragStart.x+64,y:dragStart.y+34,button:'left',buttons:0,clickCount:1});
   await sleep(120);
   const dragged=await evaluate(`(()=>{const r=document.querySelector('.room-side').getBoundingClientRect();return {dx:Math.round(r.left-${dragStart.left}),dy:Math.round(r.top-${dragStart.top})};})()`);
