@@ -201,7 +201,7 @@
   }
 
   function setReactionIcon(){
-    const icon=q('#roomReactions .ds-control-icon');if(!icon||icon.dataset.dsReactionIcon==='1')return;icon.dataset.dsReactionIcon='1';icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="12" r="7.5"/><path d="M7.8 10h.01M13.2 10h.01M7.6 14c.9 1.2 1.8 1.7 2.9 1.7 1.2 0 2.2-.5 3.1-1.7"/><path d="M18.2 3.8v3.4M16.5 5.5h3.4M18 15.7c1.9.2 3 1.1 3 2.4 0 1.6-1.8 2.6-4.7 2.7"/></svg>';
+    const icon=q('#roomReactions .ds-control-icon');if(!icon)return;const markup='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="12" r="7.25"/><path d="M7.4 10h.01M12.6 10h.01M7.2 14c.85 1.15 1.75 1.65 2.8 1.65s1.95-.5 2.8-1.65"/><path d="M18.25 3.5v4M16.25 5.5h4"/></svg>';if(icon.dataset.dsReactionIcon==='executive-smile'&&icon.innerHTML===markup)return;icon.dataset.dsReactionIcon='executive-smile';icon.innerHTML=markup;
   }
   function installReactionAuthority(){
     const button=q('#roomReactions');if(!button)return;setReactionIcon();
