@@ -34,6 +34,7 @@ assert(runtime.includes("host.onclick=event=>")&&runtime.includes("host.dataset.
 assert(runtime.includes("data-ds-runtime-close-participants")||runtime.includes("dataset.dsRuntimeCloseParticipants='1'"),'Participants must expose a direct close control.');
 assert(personal.includes("passInput.value=String(state.room.passcode||'')")&&personal.includes("passLabel.style.setProperty('display',personal?'none':'','important')"),'Personal Meeting ID mode must not expose a stale alternate passcode.');
 assert(app.includes("if(!target){")&&app.includes("prejoinVideo.hidden=true"),'Camera-off feedback must remain immediate.');
-assert(app.includes("installedInApplications===false&&!info?.qaInteractionFixtures"),'QA interaction fixtures must not be covered by the intentional non-Applications install warning dialog.');
+assert(app.includes("installedInApplications===false&&!info?.qaInteractionRequested"),'Explicit QA interaction runs must not be covered by the intentional non-Applications install warning dialog.');
+assert(read('src/main.mjs').includes('qaInteractionRequested:qaFixtureRequested'),'Renderer environment must expose the explicit QA interaction request independently of release-channel fixture enablement.');
 
 console.log('DOMINIONSTAR_EXECUTIVE_ZOOM_PARITY_2_0_44_OK single-layout-authority centered-floating-panels single-host-tools prejoin-video-exclusive canonical-participant-role direct-close clean-personal-passcode');
