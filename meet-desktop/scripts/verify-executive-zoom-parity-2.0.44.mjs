@@ -16,7 +16,7 @@ const meetingParity=read('ui/meeting-parity.js');
 
 assert.equal(pkg.version,'2.0.44','Executive Zoom parity repair must ship under 2.0.44.');
 assert(!index.includes('participants-center-lock-2.0.41.js')&&!index.includes('host-tools-separation-lock-2.0.41.js'),'Conflicting legacy panel/host locks must not load.');
-assert(!activeShare.includes('participants-center-lock-2.0.41.js')&&!activeShare.includes('DominionParticipantsCenterLock2041'),'Active-share restoration must not reintroduce the retired Participants center-lock authority.');
+assert(!activeShare.includes('participants-center-lock-2.0.41.js')&&!activeShare.includes('DominionParticipantsCenterLock2041')&&!activeShare.includes('loadParticipantsCenterLock'),'Active-share restoration must not reintroduce or call the retired Participants center-lock authority.');
 assert(activeShare.includes('retireBackgroundReconcilers?.()')&&activeShare.includes('primeParticipantsReference()'),'Late-loaded Participants reference must be structurally primed once and immediately retired.');
 assert(runtime.includes("overlay.dataset.dsRuntimeSide='center-floating'")&&runtime.includes("Math.round((bodyWidth-pw)/2)"),'Participants and Chat must share one stable centered floating authority.');
 assert(runtime.includes("document.addEventListener('pointermove',moveFloatingSurface,true)")&&runtime.includes("document.addEventListener('pointerup',endFloatingSurfaceDrag,true)"),'Floating panel drag must continue through document-level pointer movement after the pointer leaves the title bar.');
