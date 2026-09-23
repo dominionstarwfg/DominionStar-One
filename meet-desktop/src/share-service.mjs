@@ -179,7 +179,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     },75);
   }
 
-  const displayMediaHandler=(_request,callback)=>{const selection=pendingSelection;pendingSelection=null;if(!selection?.source){callback({});return;}const response={video:selection.source};if(selection.options?.shareAudio&&(platform==='win32'||platform==='darwin'))response.audio='loopback';callback(response);};
+  const displayMediaHandler=(_request,callback)=>{const selection=pendingSelection;pendingSelection=null;if(!selection?.source){callback({});return;}const response={video:selection.source};if(selection.options?.shareAudio&&platform==='win32')response.audio='loopback';callback(response);};
   function configureDisplayMediaHandler(useSystemPicker){const mode=useSystemPicker?'native':'dominionstar';if(displayPickerMode===mode)return;desktopSession.setDisplayMediaRequestHandler(displayMediaHandler,{useSystemPicker:Boolean(useSystemPicker)});displayPickerMode=mode;}
   configureDisplayMediaHandler(false);
 
@@ -195,11 +195,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;try{const result=await authority.list(options);if(result.timedOut)return {ok:false,timedOut:true,sources:[]};return {ok:true,timedOut:false,sources:result.sources.map(serialize)};}catch(error){return {ok:false,timedOut:false,sources:[],error:String(error?.message||error)};}});
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);
     const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
-    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)};pendingSelection={source,options:normalizedOptions};
+    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)&&platform==='win32'};pendingSelection={source,options:normalizedOptions};
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
     captureStartWatchdog=setTimeout(()=>{captureStartWatchdog=null;if(platform==='darwin'&&!shareActive){pendingSelection=null;restoreMainWindowAfterShare();}},6500);
-    closePicker();queueMicrotask(()=>sendMain('share:source-selected',{sourceId:String(source.id),name:String(source.name||'Shared content'),options:normalizedOptions}));return {ok:true,nativeSystemPicker:false};
+    closePicker();queueMicrotask(()=>sendMain('share:source-selected',{sourceId:String(source.id),name:String(source.name||'Shared content'),options:normalizedOptions}));return {ok:true,nativeSystemPicker:false,options:normalizedOptions};
   });
   ipcMain.handle('share:cancel-picker',()=>{pendingSelection=null;closePicker();return {ok:true};});
 
