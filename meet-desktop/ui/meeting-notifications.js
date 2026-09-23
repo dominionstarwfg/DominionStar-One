@@ -108,18 +108,16 @@
   window.addEventListener('dominion:participant-presence',onPresence);
   window.addEventListener('dominion:meeting-ended',reset);
 
-  // 2.0.41 owns the visible Zoom-reference More and Host Tools surfaces.
-  // Route these commands at window-capture level so the older document-capture
-  // runtime handler cannot swallow them first.
+  // The screenshot-reference layer owns only the visible More surface.
+  // Host Tools is owned exclusively by runtime-stability.js; never intercept
+  // that button at window-capture level or the canonical runtime popover cannot open.
   function routeReferenceCommand(event){
     const target=event.target,overlay=q('#meetingOverlay'),authority=window.DominionZoomScreenshotReference;
     if(!target?.closest||!overlay||overlay.hidden||!authority)return;
     const more=target.closest('#roomMore');
-    const host=target.closest('#roomHostTools');
-    if(!more&&!host)return;
+    if(!more)return;
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-    if(more)authority.openMeetingMore?.(more);
-    else void authority.openHostToolsPanel?.();
+    authority.openMeetingMore?.(more);
   }
   window.addEventListener('click',routeReferenceCommand,true);
 
