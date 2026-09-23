@@ -34,6 +34,7 @@ assert(screenshotJs.includes("host.dataset.dsRefHostBound='runtime-single-owner'
 assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}'),'Hidden prejoin avatar must stay hidden over live video.');
 assert(profile.includes('videoActuallyLive')&&profile.includes("getVideoTracks?.()"),'Prejoin avatar fallback must follow the actual live video track.');
 assert(physical.includes("roleText='(Host, me)'")&&physical.includes('.ds-canonical-participant-role')&&!physical.includes("badge.className='ds-role-chip'"),'Participant role presentation must be one Zoom-style suffix, never a duplicate badge.');
+assert(physical.includes("dataset.dsReactionIcon='executive-smile'")&&physical.includes('M18.25 3.5v4M16.25 5.5h4')&&!physical.includes('M18 15.7c1.9'),'React toolbar must use the canonical smile-and-spark glyph without the rejected malformed tail.');
 assert(physical.includes(".ds-participant-self-label,.ds-canonical-participant-role"),'Canonical participant role decoration must remove its prior suffix before re-rendering.');
 assert(screenshotJs.includes(".zoom-participant-footer,#meetingOverlay .room-side #participantBulkActions"),'Final Participants footer must remove legacy duplicate action bars.');
 assert(runtime.includes("host.onclick=event=>")&&runtime.includes("host.dataset.dsPhysicalAuthority='runtime-owned'")&&runtime.includes('installRuntimeHostToolsAuthority();'),'Host Tools must be rebound directly to the runtime owner after legacy priming.');
