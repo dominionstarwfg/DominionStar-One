@@ -18,6 +18,7 @@
   let activeTab='screens';
   let autoRefreshTimer=0;
   let settingsOpened=false;
+  let platform='';
 
   function ensureStyle(){
     if(q('style[data-ds-share-runtime-authority-2041]'))return;
@@ -42,6 +43,17 @@
 
   function stopAutoRefresh(){clearInterval(autoRefreshTimer);autoRefreshTimer=0;}
   function startAutoRefresh(){stopAutoRefresh();if(!pref('ds_pref_share_auto_refresh',true)||activeTab!=='screens'||root?.hidden)return;autoRefreshTimer=setInterval(()=>{if(!busy&&document.visibilityState==='visible'&&root&&!root.hidden)void loadSources({background:true});},3000);}
+
+  async function syncPlatformCapabilities(){
+    try{platform=String((await desktop.environment?.())?.platform||platform||'');}catch{}
+    const input=root?.querySelector('[data-share-audio]'),label=input?.closest?.('.ds2041-option');
+    if(input&&platform==='darwin'){
+      input.checked=false;input.disabled=true;
+      label?.setAttribute('title','System audio sharing is not enabled in this macOS QA build. Screen and window video sharing remain available.');
+    }else if(input){
+      input.disabled=false;label?.removeAttribute('title');
+    }
+  }
 
   function ensureRoot(){
     ensureStyle();
@@ -122,7 +134,7 @@
   async function open(){
     if(!pickerBridge?.listSources||!pickerBridge?.choose)return false;
     qa('.ds-smart-share-picker,.ds-share-permission,.ds-219-share-recovery,#screenPermissionDialog').forEach(node=>{try{node.hidden=true;}catch{}});
-    const panel=ensureRoot();activeTab='screens';panel.querySelectorAll('[data-tab]').forEach(item=>item.classList.toggle('active',item.dataset.tab==='screens'));panel.hidden=false;selectedId='';sources=[];render();const ok=await loadSources();if(ok)startAutoRefresh();return ok;
+    const panel=ensureRoot();await syncPlatformCapabilities();activeTab='screens';panel.querySelectorAll('[data-tab]').forEach(item=>item.classList.toggle('active',item.dataset.tab==='screens'));panel.hidden=false;selectedId='';sources=[];render();const ok=await loadSources();if(ok)startAutoRefresh();return ok;
   }
 
   function close(){stopAutoRefresh();if(root)root.hidden=true;}
@@ -148,7 +160,9 @@
     const options={shareAudio:Boolean(root.querySelector('[data-share-audio]')?.checked),optimizeVideo:Boolean(root.querySelector('[data-optimize]')?.checked)};
     try{
       const result=await pickerBridge.choose(source.id,options);if(result?.ok===false)throw new Error(result.error||'share_source_not_available');
-      save('ds_pref_share_audio',options.shareAudio);save('ds_pref_share_optimize',options.optimizeVideo);
+      const effectiveOptions=result?.options||options;
+      save('ds_pref_share_audio',Boolean(effectiveOptions.shareAudio));save('ds_pref_share_optimize',effectiveOptions.optimizeVideo);
+      const audioToggle=root.querySelector('[data-share-audio]');if(audioToggle)audioToggle.checked=Boolean(effectiveOptions.shareAudio);
       const committed=await waitForShareCommit(source.name,Boolean(priorState.active));
       if(!committed)throw new Error('Screen sharing did not become active. Please choose the source again.');
       if(status)status.textContent='';close();return true;
