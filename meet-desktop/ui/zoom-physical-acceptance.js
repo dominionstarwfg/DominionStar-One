@@ -140,7 +140,8 @@
   }
 
   function ensureSelfMore(row){
-    if(String(row.dataset.participantId||'')!==String(localParticipantId||''))return;
+    const self=row.dataset.participantSelf==='1'||(localParticipantId&&String(row.dataset.participantId||'')===String(localParticipantId));
+    if(!self)return;
     const actions=row.querySelector('.participant-actions');if(!actions)return;
     const existing=actions.querySelector('[data-participant-more]');
     if(existing){existing.classList.add('ds-participant-more');existing.textContent='•••';existing.setAttribute('aria-label','More options for yourself');return;}
