@@ -102,10 +102,10 @@ try{
 
   // React contains six reactions only. Raise Hand is a separate toolbar control.
   const reactionIcon=await evaluate(`(()=>{window.DominionZoomPhysicalAcceptance.sync();const icon=document.querySelector('#roomReactions .ds-control-icon');return {marker:icon?.dataset.dsReactionIcon||'',svgCount:icon?.querySelectorAll('svg').length||0,pathCount:icon?.querySelectorAll('path').length||0,circleCount:icon?.querySelectorAll('circle').length||0,markup:icon?.innerHTML||''};})()`);
-  assert.equal(reactionIcon.marker,'executive-smile','React toolbar must use the canonical smile-and-spark icon.');
+  assert.equal(reactionIcon.marker,'executive-reaction-face','React toolbar must use the canonical reaction-face icon.');
   assert.equal(reactionIcon.svgCount,1,'React toolbar must render exactly one icon.');
-  assert.ok(reactionIcon.circleCount>=1&&reactionIcon.pathCount>=2,'React toolbar icon is missing its smile/spark geometry.');
-  assert.ok(!reactionIcon.markup.includes('M18 15.7'),'Rejected malformed React toolbar glyph returned.');
+  assert.ok(reactionIcon.circleCount>=3&&reactionIcon.pathCount>=1,'React toolbar icon must render one face, two eyes, and one smile path.');
+  assert.ok(!reactionIcon.markup.includes('M18.25 3.5v4'),'Rejected sparkle-based React toolbar glyph returned.');
   await evaluate(`document.querySelector('#roomReactions').click()`);await waitFor("document.querySelector('.meeting-reaction-menu')",'canonical reaction menu');
   const reactionTray=await evaluate(`(()=>{const tray=document.querySelector('.meeting-reaction-menu'),buttons=[...tray.querySelectorAll('.reaction-emoji-button')],dedicated=document.querySelector('#roomRaiseHand');return {z:parseInt(getComputedStyle(tray).zIndex)||0,reactions:buttons.filter(b=>getComputedStyle(b).display!=='none').length,legacyTrayAbsent:!document.querySelector('.ds-reaction-tray'),legacyHandSuppressed:!tray.querySelector('.reaction-hand-button')||getComputedStyle(tray.querySelector('.reaction-hand-button')).display==='none',dedicatedHand:Boolean(dedicated&&!dedicated.hidden&&getComputedStyle(dedicated).display!=='none'),pointer:getComputedStyle(tray).pointerEvents,minWidth:buttons.length?Math.min(...buttons.map(b=>b.getBoundingClientRect().width)):0,minFont:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||0)):0};})()`);
   assert.ok(reactionTray.z>=2700&&reactionTray.pointer!=='none','Reaction tray is behind another layer or cannot receive clicks.');
