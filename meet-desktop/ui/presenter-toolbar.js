@@ -23,7 +23,7 @@
     if(open)revealToolbar();else scheduleAutoHide();
     void bridge?.setMenuOpen?.(Boolean(open));
   };
-  const routedCommand=command=>['chat','participants','annotate','stop'].includes(String(command||''))?`toolbar:${command}`:String(command||'');
+  const routedCommand=command=>String(command||'');
   function closeReactions(){reactions?.remove();reactions=null;toolbar.classList.remove('menu-open');}
   function openReactions(anchor){
     closeReactions();toolbar.classList.add('menu-open');reactions=document.createElement('div');reactions.className='presenter-reaction-menu';
