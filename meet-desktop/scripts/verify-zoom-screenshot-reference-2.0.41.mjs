@@ -59,10 +59,10 @@ has(refJs,"strong.textContent='Backgrounds'",'Prejoin Backgrounds label is not n
 
 // Meeting toolbar contract.
 for(const label of ['Audio','Video','Participants','Chat','React','Raise hand','Share','Host tools','More','End'])has(refJs,`'${label}'`,`Meeting toolbar is missing ${label}.`);
-has(refCss,'height:56px!important','Meeting bottom toolbar must keep the compact Zoom-scale height.');
+has(refCss,'height:64px!important','Meeting bottom toolbar must keep the revised readable physical scale.');
 has(refCss,'grid-template-columns:minmax(142px,1fr) auto minmax(142px,1fr)','Meeting toolbar must preserve left/center/right zoning.');
-has(refJs,"footer.style.setProperty(prop,'56px','important')",'Final sync must directly normalize the live meeting footer to the approved 56px geometry.');
-has(refJs,"zone.style.setProperty(prop,'56px','important')",'Final sync must directly normalize live toolbar zones to 56px.');
+has(refJs,"footer.style.setProperty(prop,'64px','important')",'Final sync must directly normalize the live meeting footer to the approved 64px geometry.');
+has(refJs,"zone.style.setProperty(prop,'64px','important')",'Final sync must directly normalize live toolbar zones to 64px.');
 
 // Participants / participant-wide controls are separate from Host tools.
 has(refJs,'ds-ref-participants-footer','Participants footer is missing.');
@@ -151,13 +151,14 @@ has(preload,"ipcRenderer.send('mac-share:state'",'Live share/media state must re
 has(preload,"ipcRenderer.send('mac-share:capture-stopped'",'The macOS presenter overlay must receive authoritative Stop Share state.');
 has(preload,"ipcRenderer.send('share:presenter-delivery-ack'",'The meeting renderer preload must acknowledge native presenter command delivery.');
 has(preload,'macShare:Object.freeze','The native presenter control bridge is missing.');
-for(const label of ['Audio','Video','Participants','Chat','Share','Pause','Layout','Annotate','Show meeting','More'])has(macToolbarHtml,`>${label}<`,`Native presenter toolbar is missing ${label}.`);
+for(const label of ['Audio','Video','Participants','Chat','Share','Pause','Layout','Annotate','More'])has(macToolbarHtml,`>${label}<`,`Native presenter toolbar is missing ${label}.`);
+lacks(macToolbarHtml,'data-command="show-meeting"','Native presenter toolbar must not expose the meeting window as a share-time content control.');
 has(macToolbarHtml,'id="stopShare"','Native presenter toolbar is missing the Stop Share control.');
 has(macToolbarHtml,'id="stopShareLabel">Stop Share<','Native presenter toolbar is missing the Stop Share label.');
 has(macToolbarHtml,'class="stop-share-icon"','Native Stop Share must use a real vector icon rather than a text symbol.');
 has(macToolbarHtml,'<svg viewBox="0 0 16 16">','Native Stop Share vector icon is missing.');
 lacks(macToolbarHtml,'■ Stop','Native presenter toolbar must not use a text-square Stop Share icon.');
-has(macToolbarHtml,'DominionStar','Native presenter toolbar must retain DominionStar branding.');
+lacks(macToolbarHtml,'class="brand"','Native presenter toolbar must not waste share-time space on a branding block.');
 has(macToolbarCss,'.share-strip','Native presenter toolbar must retain a dedicated live-sharing strip.');
 has(macToolbarCss,'background:#27c96b','Native presenter toolbar must include the green live-sharing strip.');
 has(macToolbarCss,'.toolbar.auto-hidden','Native presenter toolbar must auto-hide its controls without hiding sharing state.');
