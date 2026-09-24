@@ -168,9 +168,10 @@ const captureStarted=service.slice(
 requireText(captureStarted,"ipcMain.on('share:capture-started'",'Main process must receive capture start as one-way IPC.');
 requireText(captureStarted,'event.sender!==main.webContents','Capture start must accept only the main meeting renderer.');
 requireText(captureStarted,'keepMeetingRendererLive();','Capture start must disable renderer throttling before presenter work begins.');
-rejectText(captureStarted,'scheduleToolbarForShare();','Capture start must not schedule presenter BrowserWindow creation.');
-rejectText(captureStarted,'openToolbar(','Capture start must never create/load presenter BrowserWindow.');
-rejectText(captureStarted,'hideMeetingWindowForShare()','Capture start must never hide the meeting.');
+requireText(captureStarted,'showShareBorder(activeDisplayId);','macOS capture start must mount one full-display share perimeter.');
+requireText(captureStarted,'scheduleToolbarForShare();','Capture start must schedule the real external presenter toolbar on macOS and other desktop platforms.');
+rejectText(captureStarted,'openToolbar(','Capture start must defer presenter BrowserWindow creation through the scheduler rather than load it synchronously.');
+rejectText(captureStarted,'hideMeetingWindowForShare()','Capture start must not synchronously hide/restore meeting chrome after capture begins.');
 rejectText(captureStarted,'return {ok:','Capture start must not expose a response contract.');
 
 requireText(service,'function scheduleToolbarForShare()','Presenter-control scheduler is missing.');
@@ -178,14 +179,12 @@ const scheduler=service.slice(
   service.indexOf('function scheduleToolbarForShare()'),
   service.indexOf('const displayMediaHandler')
 );
-requireText(scheduler,"if(platform==='darwin')",'macOS presenter scheduling must have a dedicated same-renderer path.');
-requireText(scheduler,'toolbarReadyForShare=true','macOS same-renderer presenter controls must be marked ready without a second BrowserWindow.');
-requireText(scheduler,'presenterCommitPending=false','macOS presenter commit must not wait on another renderer.');
-requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Non-macOS presenter toolbar must remain deferred to a later main-process turn.');
-requireText(scheduler,'const ready=await openToolbar();','Non-macOS scheduler must retain the existing presenter toolbar path.');
-requireText(scheduler,'},75);','Non-macOS presenter toolbar deferral must remain explicit and bounded.');
-requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Non-macOS toolbar readiness must still be recorded independently from capture start.');
-requireText(scheduler,"void sendPresenterCommand('stop',0)",'Non-macOS toolbar failure must fail the share closed through presenter command authority.');
+rejectText(scheduler,"if(platform==='darwin'){toolbarReadyForShare=true",'macOS must not bypass the external presenter toolbar after physical toolbar failure.');
+requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Presenter toolbar creation must remain deferred to a later main-process turn.');
+requireText(scheduler,'const ready=await openToolbar();','Presenter scheduler must open the real interactive toolbar on macOS and other desktop platforms.');
+requireText(scheduler,'},75);','Presenter toolbar deferral must remain explicit and bounded.');
+requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Presenter toolbar readiness must be recorded independently from capture start.');
+requireText(scheduler,"void sendPresenterCommand('stop',0)",'Toolbar creation failure must fail the share closed through presenter command authority.');
 requireText(integration,"id='inlinePresenterToolbar'","macOS presenter controls must exist inside the share-owning renderer.");
 requireText(integration,"data-inline-command=\"pause\"","Inline presenter controls must expose Pause/Resume.");
 requireText(integration,"data-inline-command=\"stop\"","Inline presenter controls must expose Stop Share.");
@@ -217,6 +216,13 @@ requireText(service,'acceptFirstMouse:true','Presenter toolbar must accept the f
 requireText(service,'backgroundThrottling:false','Presenter toolbar must stay responsive.');
 requireText(service,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true",'Presenter toolbar must remain visible across Spaces/full-screen apps.');
 requireText(service,"setAlwaysOnTop(true,'floating')",'Presenter toolbar must remain above shared applications.');
+requireText(toolbarJs,"const routedCommand=command=>String(command||'');",'Presenter toolbar must send exact working command names without dead toolbar-prefixed aliases.');
+rejectText(toolbarJs,'toolbar:${command}','Presenter toolbar must not reintroduce dead toolbar-prefixed commands.');
+requireText(service,"main.setBounds({x:-32000,y:-32000,width:saved.width,height:saved.height},false)",'macOS must park the protected DominionStar meeting window outside captured display content.');
+requireText(service,"function showShareBorder(displayId='')",'macOS must own a native full-display share perimeter surface.');
+requireText(service,'border:3px solid #31d074','Share perimeter must be one continuous green physical-display border.');
+requireText(service,'closeShareBorder();','Stop Share must remove the physical-display perimeter.');
+requireText(service,'restoreMainWindowAfterShare();','Stop Share must restore the same live meeting window directly.');
 rejectText(service,"type:platform==='darwin'?'panel':undefined",'Unsupported macOS nonactivating panel type must not return.');
 requireText(service,"['participants','chat','annotate'].includes(normalized)&&shareActive",'Share companions must be explicit presenter commands.');
 requireText(service,'showCompanionWindow(normalized)','Chat/Participants/Annotation must use compact share companions.');
