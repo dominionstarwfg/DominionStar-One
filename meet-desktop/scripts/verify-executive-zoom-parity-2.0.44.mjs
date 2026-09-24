@@ -17,8 +17,11 @@ const meetingNotifications=read('ui/meeting-notifications.js');
 const shareService=read('src/share-service.mjs');
 const shareRuntime=read('ui/share-runtime-authority-2.0.41.js');
 const participantControls=read('ui/participant-controls.js');
+const macPresenter=read('src/mac-share-presenter-overlay.mjs');
+const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
+const macToolbarCss=read('ui/mac-presenter-toolbar.css');
 
-assert.equal(pkg.version,'2.0.44','Executive Zoom parity repair must ship under 2.0.44.');
+assert.equal(pkg.version,'2.0.45','Physical Mac share polish must ship under 2.0.45.');
 assert(!index.includes('participants-center-lock-2.0.41.js')&&!index.includes('host-tools-separation-lock-2.0.41.js'),'Conflicting legacy panel/host locks must not load.');
 assert(!activeShare.includes('participants-center-lock-2.0.41.js')&&!activeShare.includes('DominionParticipantsCenterLock2041')&&!activeShare.includes('loadParticipantsCenterLock'),'Active-share restoration must not reintroduce or call the retired Participants center-lock authority.');
 assert(activeShare.includes('retireBackgroundReconcilers?.()')&&activeShare.includes('primeParticipantsReference()'),'Late-loaded Participants reference must be structurally primed once and immediately retired.');
@@ -35,7 +38,7 @@ assert(screenshotJs.includes("host.dataset.dsRefHostBound='runtime-single-owner'
 assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}'),'Hidden prejoin avatar must stay hidden over live video.');
 assert(profile.includes('videoActuallyLive')&&profile.includes("getVideoTracks?.()"),'Prejoin avatar fallback must follow the actual live video track.');
 assert(physical.includes("roleText='(Host, me)'")&&physical.includes('.ds-canonical-participant-role')&&!physical.includes("badge.className='ds-role-chip'"),'Participant role presentation must be one Zoom-style suffix, never a duplicate badge.');
-assert(physical.includes("dataset.dsReactionIcon='executive-smile'")&&physical.includes('M18.25 3.5v4M16.25 5.5h4')&&!physical.includes('M18 15.7c1.9'),'React toolbar must use the canonical smile-and-spark glyph without the rejected malformed tail.');
+assert(physical.includes("dataset.dsReactionIcon='executive-reaction-face'")&&physical.includes('<circle cx="12" cy="12" r="8.25"/>')&&physical.includes('M8.5 14c.95 1.2'),'React toolbar must use one unmistakable smile reaction glyph.');
 assert(physical.includes("row.dataset.participantSelf==='1'||(localParticipantId&&String(row.dataset.participantId||'')===String(localParticipantId))"),'Self participant More control must honor the authoritative row self marker without waiting for async meeting-context hydration.');
 assert(physical.includes("participantObserver.observe(roster,{childList:true})")&&!physical.includes("participantObserver.observe(roster,{childList:true,subtree:true})"),'Participant observer must watch roster membership only and must not retrigger itself on decorated descendants.');
 assert(physical.includes("wrap.dataset.dsMediaSignature!==signature"),'Participant media decoration must be state-signature idempotent rather than rewriting DOM every sync.');
@@ -49,10 +52,18 @@ assert(runtime.includes("host.onclick=event=>")&&runtime.includes("host.dataset.
 assert(!meetingNotifications.includes("target.closest('#roomHostTools')")&&!meetingNotifications.includes('openHostToolsPanel?.()'),'Window-capture notification routing must not intercept the canonical runtime-owned Host Tools button.');
 assert(shareService.includes("shareAudio:Boolean(options.shareAudio)&&platform==='win32'")&&shareService.includes("if(selection.options?.shareAudio&&platform==='win32')response.audio='loopback'")&&!shareService.includes("platform==='win32'||platform==='darwin'"),'macOS screen sharing must not request Electron loopback audio, which is unsupported by setDisplayMediaRequestHandler on macOS.');
 assert(shareRuntime.includes("if(input&&platform==='darwin')")&&shareRuntime.includes('input.checked=false;input.disabled=true'),'The macOS share chooser must not expose an enabled Share sound control while the supported capture path is video-only.');
+assert(screenshotCss.includes('width:168px!important;height:168px!important')&&screenshotCss.includes('#meetingOverlay #stageAvatar{width:184px!important;height:184px!important'),'Camera-off profile pictures must render at deliberate prejoin and in-meeting sizes instead of tiny fallback thumbnails.');
+assert(screenshotCss.includes('#roomMic.is-off .ds-control-icon::after')&&screenshotCss.includes('#roomCamera.is-off .ds-control-icon::after')&&screenshotCss.includes('background:#ff4055!important'),'Audio/video off state must use one clean red slash over a neutral icon.');
+assert(screenshotJs.includes("footer.style.setProperty(prop,'64px','important')")&&screenshotCss.includes('height:64px!important'),'Meeting toolbar must use the revised readable 64px physical scale.');
+assert(shareService.includes("main.setBounds({x:-32000,y:-32000,width:base.width,height:base.height},false)")&&shareService.includes('setBounds(saved.bounds,false)'),'macOS sharing must park the meeting off the captured desktop and restore it instantly after Stop Share.');
+assert(shareService.includes('return {ok:Boolean(sent)')&&shareService.includes('direct:Boolean(delivery?.direct)'),'Presenter command IPC must return execution proof instead of a bare success object.');
+assert(macPresenter.includes("enableLargerThanScreen:true")&&macPresenter.includes("positionBorder();\n    for(const win of borderWindows)"),'macOS sharing border must be re-applied after visibility so all four edges remain flush with the physical display.');
+assert(!macToolbarHtml.includes('data-command="show-meeting"')&&!macToolbarHtml.includes('class="brand"'),'Presenter toolbar must stay clean and content-focused while sharing.');
+assert(macToolbarCss.includes('min-width:68px')&&macToolbarCss.includes('font:550 10px/1'),'Presenter toolbar controls must remain readable at the revised physical scale.');
 assert(runtime.includes("data-ds-runtime-close-participants")||runtime.includes("dataset.dsRuntimeCloseParticipants='1'"),'Participants must expose a direct close control.');
 assert(personal.includes("passInput.value=String(state.room.passcode||'')")&&personal.includes("passLabel.style.setProperty('display',personal?'none':'','important')"),'Personal Meeting ID mode must not expose a stale alternate passcode.');
 assert(app.includes("if(!target){")&&app.includes("prejoinVideo.hidden=true"),'Camera-off feedback must remain immediate.');
 assert(app.includes("installedInApplications===false&&!info?.qaInteractionRequested"),'Explicit QA interaction runs must not be covered by the intentional non-Applications install warning dialog.');
 assert(read('src/main.mjs').includes('qaInteractionRequested:qaFixtureRequested'),'Renderer environment must expose the explicit QA interaction request independently of release-channel fixture enablement.');
 
-console.log('DOMINIONSTAR_EXECUTIVE_ZOOM_PARITY_2_0_44_OK single-layout-authority centered-floating-panels single-host-tools prejoin-video-exclusive canonical-participant-role direct-close clean-personal-passcode');
+console.log('DOMINIONSTAR_EXECUTIVE_ZOOM_PARITY_2_0_45_OK physical-avatar-scale single-av-slash reaction-face offscreen-meeting responsive-presenter-controls flush-share-border instant-stop-return');
