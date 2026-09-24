@@ -1,4 +1,4 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, session, shell, systemPreferences } from 'electron';
+import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, screen, session, shell, systemPreferences } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDesktopAuth } from './auth-service.mjs';
@@ -117,7 +117,7 @@ function createMainWindow(){
   });
   mainWindow.on('focus',()=>{try{mainWindow?.flashFrame(false);}catch{}});
   void mainWindow.loadFile(path.join(uiDir,'index.html'));
-  mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
+  mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();shareService?.closeBorder?.();mainWindow=null;});
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaInteractionRequested:qaFixtureRequested,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
@@ -191,7 +191,7 @@ app.whenReady().then(async()=>{
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
   await desktopAuth.initialize();
   meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
-  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
+  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,screen,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
   const sendPowerEvent=(type)=>{
     if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('app:power-event',{type,at:Date.now()});
