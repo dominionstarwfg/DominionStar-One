@@ -16,9 +16,9 @@
   const errorText=error=>{const raw=String(error?.message||error||'Meeting action failed.').replace(/^.*?:\s*/,'');const map={meeting_not_found:'Meeting not found or no longer available.',meeting_locked:'This meeting is locked. New participants cannot join right now.',incorrect_passcode:'Incorrect meeting passcode.',guest_access_disabled:'Guest access is disabled.',host_authority_required:'This action requires host authority.',participant_not_waiting:'This waiting-room request was already handled.',participant_not_admitted:'You have not been admitted yet.',participant_not_active:'This participant is not active.'};return map[raw]||raw;};
   const MEDIA_GLYPHS=Object.freeze({
     micOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
-    micOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6M4.5 4.5l15 15"/></svg>',
+    micOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/><path class="ds-off-strike" d="M4.5 4.5l15 15"/></svg>',
     videoOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg>',
-    videoOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3zM4.5 4.5l15 15"/></svg>'
+    videoOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/><path class="ds-off-strike" d="M4.5 4.5l15 15"/></svg>'
   });
   function syncMediaGlyph(node,on,kind){
     const icon=node?.querySelector?.('.ds-control-icon');if(!icon)return;
