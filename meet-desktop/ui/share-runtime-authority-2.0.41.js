@@ -65,11 +65,11 @@
     root.querySelector('.ds2041-share-close').onclick=close;
     root.querySelector('[data-share-audio]').checked=pref('ds_pref_share_audio');
     root.querySelector('[data-optimize]').checked=pref('ds_pref_share_optimize')||pref('ds_pref_share_video_mode');
-    root.querySelector('[data-include-meet]').checked=pref('ds_pref_share_include_meet');
+    const includeMeet=root.querySelector('[data-include-meet]');if(includeMeet){includeMeet.checked=false;includeMeet.disabled=true;includeMeet.closest('.ds2041-option')?.setAttribute('title','DominionStar Meet windows are excluded from shared content.');}save('ds_pref_share_include_meet',false);
     const savedSide=pref('ds_pref_share_side_by_side');if(savedSide){root.querySelector('[data-layout="content"]')?.classList.remove('active');root.querySelector('[data-layout="side"]')?.classList.add('active');}
     root.querySelectorAll('[data-layout]').forEach(button=>button.onclick=()=>{root.querySelectorAll('[data-layout]').forEach(item=>item.classList.toggle('active',item===button));save('ds_pref_share_side_by_side',button.dataset.layout==='side');});
     root.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{activeTab=button.dataset.tab;root.querySelectorAll('[data-tab]').forEach(item=>item.classList.toggle('active',item===button));render();if(activeTab==='screens')startAutoRefresh();else stopAutoRefresh();});
-    root.querySelector('[data-include-meet]').onchange=event=>{save('ds_pref_share_include_meet',event.currentTarget.checked);if(activeTab==='screens')void loadSources();};
+    root.querySelector('[data-include-meet]').onchange=event=>{event.currentTarget.checked=false;save('ds_pref_share_include_meet',false);};
     root.querySelector('[data-share-audio]').onchange=event=>save('ds_pref_share_audio',event.currentTarget.checked);
     root.querySelector('[data-optimize]').onchange=event=>save('ds_pref_share_optimize',event.currentTarget.checked);
     root.querySelector('.ds2041-share-button').onclick=()=>void commit();
@@ -87,8 +87,7 @@
 
   function renderMore(){
     const content=root.querySelector('.ds2041-share-content');
-    content.innerHTML=`<div class="ds2041-more"><article class="ds2041-more-card"><div><strong>Share DominionStar Meet windows</strong><p>Include DominionStar Meet windows in the Screens tab.</p></div><input type="checkbox" data-more-include ${pref('ds_pref_share_include_meet')?'checked':''}></article><article class="ds2041-more-card"><div><strong>Live source previews</strong><p>Refresh screen and application previews automatically while this chooser is open.</p></div><input type="checkbox" data-more-refresh ${pref('ds_pref_share_auto_refresh',true)?'checked':''}></article></div>`;
-    content.querySelector('[data-more-include]').onchange=event=>{save('ds_pref_share_include_meet',event.currentTarget.checked);root.querySelector('[data-include-meet]').checked=event.currentTarget.checked;};
+    content.innerHTML=`<div class="ds2041-more"><article class="ds2041-more-card"><div><strong>DominionStar Meet windows</strong><p>Excluded from shared content so participants see only what you intend to present.</p></div><input type="checkbox" data-more-include disabled></article><article class="ds2041-more-card"><div><strong>Live source previews</strong><p>Refresh screen and application previews automatically while this chooser is open.</p></div><input type="checkbox" data-more-refresh ${pref('ds_pref_share_auto_refresh',true)?'checked':''}></article></div>`;
     content.querySelector('[data-more-refresh]').onchange=event=>save('ds_pref_share_auto_refresh',event.currentTarget.checked);
   }
 
@@ -102,7 +101,7 @@
   async function loadSources({background=false}={}){
     if(busy||!pickerBridge?.listSources)return false;
     busy=true;const content=root.querySelector('.ds2041-share-content'),status=root.querySelector('.ds2041-share-status');if(!background){content.innerHTML='<div class="ds2041-loading"><i class="ds2041-spinner"></i><span>Finding screens and application windows…</span></div>';status.textContent='';}
-    const includeDominionStar=Boolean(root.querySelector('[data-include-meet]')?.checked);
+    const includeDominionStar=false;
     try{
       const [screenResult,windowResult]=await Promise.all([pickerBridge.listSources({kind:'screen',includeDominionStar}),pickerBridge.listSources({kind:'window',includeDominionStar})]);
       const next=[...(screenResult?.sources||[]),...(windowResult?.sources||[])];
