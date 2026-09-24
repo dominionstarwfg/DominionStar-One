@@ -113,8 +113,8 @@ assert.ok(!motion.includes('dsRuntimePanelIn{from{opacity:.72;transform:'),'Pane
 assert.ok(motion.includes('.meeting-control:active{transform:scale(.97)}'),'Controls must provide immediate tactile click feedback.');
 assert.ok(motion.includes('@media(prefers-reduced-motion:reduce)'),'Motion must respect reduced-motion preferences.');
 
-assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,subtree:true})"),'Expected legacy physical observer signature changed; review the stability isolation contract.');
-assert.ok(physical.includes('wrap.innerHTML='),'Expected legacy media-status mutation changed; review the stability isolation contract.');
+assert.ok(physical.includes("participantObserver.observe(roster,{childList:true})")&&!physical.includes("participantObserver.observe(roster,{childList:true,subtree:true})"),'Participant observer must watch roster membership only; descendant decoration must not recursively wake the renderer.');
+assert.ok(physical.includes("wrap.dataset.dsMediaSignature!==signature")&&physical.includes('wrap.innerHTML='),'Participant media status must update only when its semantic state signature changes.');
 assert.ok(runtime.includes('DominionZoomPhysicalAcceptance'),'Final runtime must explicitly isolate the physical acceptance loop.');
 
 // Share Screen has one click owner. Physical compatibility may expose explicit
