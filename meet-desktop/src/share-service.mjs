@@ -77,10 +77,15 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    const base=savedMainWindowState?.bounds||main.getBounds();
+    // Keep Chromium's capture-owning renderer scheduled, but move its native
+    // window completely off the shared desktop. Opacity-only parking still
+    // leaves a faint/late meeting image in ScreenCaptureKit during startup.
+    try{main.setBounds({x:-32000,y:-32000,width:base.width,height:base.height},false);}catch{}
     try{main.setIgnoreMouseEvents(true);}catch{}
-    try{main.setOpacity?.(0.02);}catch{}
-    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
-    try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+    try{main.setOpacity?.(1);}catch{}
+    try{main.setAlwaysOnTop(false);}catch{}
+    try{main.setVisibleOnAllWorkspaces(false);}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
     macPresenterParked=true;
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();
@@ -100,7 +105,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function showMeetingWindow({focus=true}={}){
     const main=getMainWindow?.();if(!main||main.isDestroyed())return false;const saved=savedMainWindowState;keepMeetingRendererLive();
     try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(saved?.opacity??1);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    if(saved){try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}}
+    if(saved){try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,false);}catch{}}
     try{main.setAlwaysOnTop(shareActive,'floating');}catch{try{main.setAlwaysOnTop(Boolean(shareActive));}catch{}}
     if(platform==='darwin'){try{main.setVisibleOnAllWorkspaces(Boolean(shareActive),{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}}
     if(!(platform==='darwin'&&shareActive))protectMeetingChrome(main,shareActive);
@@ -235,7 +240,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     else if(['show-meeting','participants','chat','annotate'].includes(normalized)){const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}}
     if(!sent){delivery=await sendPresenterCommand(normalized,toolbarSenderId);sent=delivery.sent;}
     if(normalized==='stop'&&shareActive){if(stopRetryTimer)clearTimeout(stopRetryTimer);stopRetryTimer=setTimeout(()=>{stopRetryTimer=null;if(shareActive){if(platform!=='darwin')showMeetingWindow({focus:false});else keepMeetingRendererLive();void sendPresenterCommand('stop',0);}},700);}
-    return qaPresenterTrace?{ok:true,qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct)}:{ok:true};
+    return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),acknowledged:Boolean(delivery?.acknowledged),handled:Boolean(sent)};
   });
 
   return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
