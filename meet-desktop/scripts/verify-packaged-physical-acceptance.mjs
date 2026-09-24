@@ -28,6 +28,13 @@ try{
   await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionMeetingParity.decorateControls();window.DominionZoomProductionPolish.sync();window.DominionZoomPhysicalAcceptance.sync();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();window.DominionZoomReactionParity.mount();window.DominionZoomScreenshotReference.sync();return true;})()`);
   await waitFor("['roomShare','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomHostTools','roomMore','meetingViewButton'].every(id=>document.querySelector('#'+id))",'physical acceptance controls');
   await sleep(160);
+  const identityScale=await evaluate(`(()=>{const pre=document.querySelector('#prejoinOverlay'),avatar=document.querySelector('#prejoinAvatar'),stage=document.querySelector('#stageAvatar'),priorPre=pre.hidden,priorAvatar=avatar.hidden;pre.hidden=false;avatar.hidden=false;const pr=avatar.getBoundingClientRect(),sr=stage.getBoundingClientRect();pre.hidden=priorPre;avatar.hidden=priorAvatar;return {preW:Math.round(pr.width),preH:Math.round(pr.height),stageW:Math.round(sr.width),stageH:Math.round(sr.height)};})()`);
+  assert.ok(identityScale.preW>=150&&identityScale.preH>=150,'Camera-off prejoin profile identity is physically too small.');
+  assert.ok(identityScale.stageW>=160&&identityScale.stageH>=160,'Camera-off in-meeting profile identity is physically too small.');
+  const offState=await evaluate(`(()=>{const button=document.querySelector('#roomMic');button.classList.add('is-off');const style=getComputedStyle(button.querySelector('.ds-control-icon'),'::after'),strike=button.querySelector('.ds-off-strike');return {pseudo:style.content||'',strikeCount:button.querySelectorAll('.ds-off-strike').length,strikeStroke:strike?getComputedStyle(strike).stroke:''};})()`);
+  assert.ok(offState.pseudo==='none'||offState.pseudo==='normal'||offState.pseudo==='','Off-state media control must not render a second CSS slash.');
+  assert.ok(offState.strikeCount<=1,'Off-state media control must never render more than one strike.');
+
 
   // View must remain a real clickable command surface and update the actual meeting layout state.
   await evaluate(`document.querySelector('#meetingViewButton').click()`);
@@ -102,10 +109,10 @@ try{
 
   // React contains six reactions only. Raise Hand is a separate toolbar control.
   const reactionIcon=await evaluate(`(()=>{window.DominionZoomPhysicalAcceptance.sync();const icon=document.querySelector('#roomReactions .ds-control-icon');return {marker:icon?.dataset.dsReactionIcon||'',svgCount:icon?.querySelectorAll('svg').length||0,pathCount:icon?.querySelectorAll('path').length||0,circleCount:icon?.querySelectorAll('circle').length||0,markup:icon?.innerHTML||''};})()`);
-  assert.equal(reactionIcon.marker,'executive-smile','React toolbar must use the canonical smile-and-spark icon.');
+  assert.equal(reactionIcon.marker,'zoom-smile','React toolbar must use the canonical smile reaction icon.');
   assert.equal(reactionIcon.svgCount,1,'React toolbar must render exactly one icon.');
-  assert.ok(reactionIcon.circleCount>=1&&reactionIcon.pathCount>=2,'React toolbar icon is missing its smile/spark geometry.');
-  assert.ok(!reactionIcon.markup.includes('M18 15.7'),'Rejected malformed React toolbar glyph returned.');
+  assert.ok(reactionIcon.circleCount===1&&reactionIcon.pathCount===1,'React toolbar icon must be one clean smile without decorative sparkle/tail paths.');
+  assert.ok(!reactionIcon.markup.includes('M18.25 3.5v4')&&!reactionIcon.markup.includes('M18 15.7'),'Rejected decorative/malformed React toolbar glyph returned.');
   await evaluate(`document.querySelector('#roomReactions').click()`);await waitFor("document.querySelector('.meeting-reaction-menu')",'canonical reaction menu');
   const reactionTray=await evaluate(`(()=>{const tray=document.querySelector('.meeting-reaction-menu'),buttons=[...tray.querySelectorAll('.reaction-emoji-button')],dedicated=document.querySelector('#roomRaiseHand');return {z:parseInt(getComputedStyle(tray).zIndex)||0,reactions:buttons.filter(b=>getComputedStyle(b).display!=='none').length,legacyTrayAbsent:!document.querySelector('.ds-reaction-tray'),legacyHandSuppressed:!tray.querySelector('.reaction-hand-button')||getComputedStyle(tray.querySelector('.reaction-hand-button')).display==='none',dedicatedHand:Boolean(dedicated&&!dedicated.hidden&&getComputedStyle(dedicated).display!=='none'),pointer:getComputedStyle(tray).pointerEvents,minWidth:buttons.length?Math.min(...buttons.map(b=>b.getBoundingClientRect().width)):0,minFont:buttons.length?Math.min(...buttons.map(b=>parseFloat(getComputedStyle(b).fontSize)||0)):0};})()`);
   assert.ok(reactionTray.z>=2700&&reactionTray.pointer!=='none','Reaction tray is behind another layer or cannot receive clicks.');
