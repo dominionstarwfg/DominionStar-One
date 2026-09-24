@@ -168,21 +168,22 @@
     }
   }
 
+  const bulkActions=Object.freeze({
+    muteAll:()=>sendAll('host:mute'),
+    askAllUnmute:()=>sendAll('host:ask-unmute'),
+    stopVideoAll:()=>sendAll('host:stop-video'),
+    askAllStartVideo:()=>sendAll('host:ask-start-video'),
+    lowerAllHands:()=>sendAll('host:lower-hand'),
+    labels:Object.freeze(['Mute All','Ask All to Unmute','Stop Video for All','Ask All to Start Video','Lower All Hands'])
+  });
+
   function syncPanelActions(){
-    const side=q('.room-side');if(!side)return;
-    let footer=q('#participantBulkActions');
-    if(!canManage()){footer?.remove();return;}
-    if(!footer){
-      footer=document.createElement('div');footer.id='participantBulkActions';footer.className='participant-bulk-actions';
-      footer.innerHTML='<button type="button" data-mute-all>Mute All</button><button type="button" data-ask-all>Ask All to Unmute</button><button type="button" data-stop-video-all>Stop Video for All</button><button type="button" data-ask-video-all>Ask All to Start Video</button><button type="button" data-lower-hands>Lower All Hands</button>';
-      side.append(footer);
-      footer.querySelector('[data-mute-all]').onclick=()=>void sendAll('host:mute');
-      footer.querySelector('[data-ask-all]').onclick=()=>void sendAll('host:ask-unmute');
-      footer.querySelector('[data-stop-video-all]').onclick=()=>void sendAll('host:stop-video');
-      footer.querySelector('[data-ask-video-all]').onclick=()=>void sendAll('host:ask-start-video');
-      footer.querySelector('[data-lower-hands]').onclick=()=>void sendAll('host:lower-hand');
-    }
-    qa('#participantBulkActions button').forEach(b=>b.disabled=busy);
+    q('#participantBulkActions')?.remove();
+    const footer=q('.ds-ref-participants-footer');
+    if(!footer)return;
+    footer.dataset.dsParticipantControlsReady='1';
+    const mute=footer.querySelector('[data-ref-mute-all]');
+    if(mute)mute.disabled=Boolean(busy);
   }
 
   function sync(){if(!inMeeting()){closeMenu();return;}syncRoster();syncPanelActions();syncAllMedia();}
@@ -190,5 +191,5 @@
   window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
   const timer=setInterval(sync,800);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.39',sync,sendAll,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'2.0.44',sync,sendAll,bulkActions,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
