@@ -1,8 +1,10 @@
 import { createShareSourceAuthority } from './share-source-authority.mjs';
 
-export function createShareService({BrowserWindow,desktopCapturer,desktopSession,ipcMain,path,uiDir,preloadPath,getMainWindow,platform,ensureScreenPermission,openPrivacySettings}){
+export function createShareService({BrowserWindow,desktopCapturer,desktopSession,ipcMain,path,screen,uiDir,preloadPath,getMainWindow,platform,ensureScreenPermission,openPrivacySettings}){
   let pickerWindow=null;
   let toolbarWindow=null;
+  let borderWindow=null;
+  let activeDisplayId='';
   let pendingSelection=null;
   let shareActive=false;
   let toolbarReadyForShare=false;
@@ -55,6 +57,30 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   function positionNearMain(win,width,height){const main=getMainWindow?.();if(!main||main.isDestroyed())return;const bounds=savedMainWindowState?.bounds||main.getBounds();win.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:Math.max(24,bounds.y+18),width,height});}
   function protectMeetingChrome(win,enabled=true){if(!win||win.isDestroyed())return;try{win.setContentProtection(Boolean(enabled));}catch{}}
+  function closeShareBorder(){if(borderWindow&&!borderWindow.isDestroyed()){try{borderWindow.setClosable?.(true);}catch{}try{borderWindow.close();}catch{}}borderWindow=null;}
+  function showShareBorder(displayId=''){
+    if(platform!=='darwin'||!screen)return false;
+    closeShareBorder();
+    let display=null;
+    try{display=screen.getAllDisplays?.().find(item=>String(item.id)===String(displayId||''))||null;}catch{}
+    if(!display){
+      const bounds=savedMainWindowState?.bounds||getMainWindow?.()?.getBounds?.();
+      try{if(bounds)display=screen.getDisplayMatching?.(bounds)||null;}catch{}
+    }
+    try{display=display||screen.getPrimaryDisplay?.()||null;}catch{}
+    if(!display?.bounds)return false;
+    const b=display.bounds;
+    const created=new BrowserWindow({x:b.x,y:b.y,width:b.width,height:b.height,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:false,movable:false,minimizable:false,maximizable:false,fullscreenable:false,closable:false,focusable:false,skipTaskbar:true,alwaysOnTop:true,hasShadow:false,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
+    borderWindow=created;
+    try{created.setIgnoreMouseEvents(true,{forward:true});}catch{}
+    try{created.setAlwaysOnTop(true,'screen-saver');}catch{try{created.setAlwaysOnTop(true);}catch{}}
+    try{created.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+    protectMeetingChrome(created,true);
+    const html='<!doctype html><meta charset="utf-8"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}body:after{content:"";position:fixed;inset:0;box-sizing:border-box;border:3px solid #31d074;border-radius:1px;pointer-events:none}</style>';
+    created.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(html)).then(()=>{if(created.isDestroyed()||borderWindow!==created)return;try{created.showInactive?.();}catch{try{created.show();}catch{}}}).catch(()=>{if(borderWindow===created)borderWindow=null;try{created.close();}catch{}});
+    created.on('closed',()=>{if(borderWindow===created)borderWindow=null;});
+    return true;
+  }
   function rememberMainWindow(){
     const main=getMainWindow?.();if(!main||main.isDestroyed()||savedMainWindowState)return main||null;
     const maximized=main.isMaximized?.()||false,fullScreen=main.isFullScreen?.()||false;let bounds=main.getBounds();
@@ -78,7 +104,9 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setIgnoreMouseEvents(true);}catch{}
-    try{main.setOpacity?.(0.02);}catch{}
+    const saved=savedMainWindowState?.bounds;
+    if(saved){try{main.setBounds({x:-32000,y:-32000,width:saved.width,height:saved.height},false);}catch{}}
+    try{main.setOpacity?.(0.01);}catch{}
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
@@ -169,7 +197,6 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function cancelToolbarOpen(){if(toolbarOpenTimer){clearTimeout(toolbarOpenTimer);toolbarOpenTimer=null;}}
   function scheduleToolbarForShare(){
     cancelToolbarOpen();
-    if(platform==='darwin'){toolbarReadyForShare=true;presenterCommitPending=false;return;}
     toolbarOpenTimer=setTimeout(async()=>{
       toolbarOpenTimer=null;if(!shareActive)return;
       const ready=await openToolbar();if(!shareActive)return;
@@ -196,6 +223,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);
     const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
     const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)&&platform==='win32'};pendingSelection={source,options:normalizedOptions};
+    activeDisplayId=String(source.display_id||source.displayId||'');
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
     captureStartWatchdog=setTimeout(()=>{captureStartWatchdog=null;if(platform==='darwin'&&!shareActive){pendingSelection=null;restoreMainWindowAfterShare();}},6500);
@@ -206,10 +234,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.on('share:capture-started',(event,state={})=>{
     const main=getMainWindow?.();if(!main||main.isDestroyed()||event.sender!==main.webContents)return;
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
-    shareActive=true;toolbarReadyForShare=platform==='darwin';presenterCommitPending=false;
+    shareActive=true;toolbarReadyForShare=false;presenterCommitPending=true;
     if(platform!=='darwin'){rememberMainWindow();keepMeetingRendererLive();attachShareWindowLifecycle();}
-    else keepMeetingRendererLive();
+    else{keepMeetingRendererLive();showShareBorder(activeDisplayId);}
     lastToolbarState={...lastToolbarState,...state,meetingVisible:platform==='darwin'?!macPresenterParked:true,companion:''};
+    scheduleToolbarForShare();
     const meta=presenterRendererMeta();qaPresenterLog('CAPTURE_STARTED',{sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid,url:encodeURIComponent(meta.url)});
   });
   ipcMain.handle('share:capture-state',(_event,state={})=>{const priorCompanion=String(lastToolbarState.companion||'');lastToolbarState={...lastToolbarState,...state};if(shareActive&&priorCompanion&&state.companionOpen===false)hideMeetingWindowForShare();else publishToolbarState();return {ok:true};});
@@ -224,7 +253,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.on('share:presenter-preload-ack',(event,payload={})=>{const main=getMainWindow?.();const meta=presenterRendererMeta();const accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);qaPresenterLog('PRELOAD_ACK',{id:Number(payload?.qaCommandId||0)||0,command:String(payload?.command||''),accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid});});
   ipcMain.handle('share:capture-stopped',()=>{
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
-    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();restoreMainWindowAfterShare();
+    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;activeDisplayId='';cancelToolbarOpen();closeShareBorder();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();restoreMainWindowAfterShare();
     lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();return {ok:true};
   });
   ipcMain.handle('share:presenter-menu-state',(_event,{open=false}={})=>{if(!toolbarWindow||toolbarWindow.isDestroyed())return {ok:false};const bounds=toolbarWindow.getBounds();const nextHeight=open?286:72;if(bounds.height!==nextHeight){try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}}return {ok:true,height:nextHeight};});
@@ -238,5 +267,5 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     return qaPresenterTrace?{ok:true,qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct)}:{ok:true};
   });
 
-  return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
+  return Object.freeze({openPicker,closePicker,closeToolbar,closeBorder:closeShareBorder,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
 }
