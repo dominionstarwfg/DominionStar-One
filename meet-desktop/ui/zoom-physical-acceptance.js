@@ -135,7 +135,11 @@
   }
   function mediaStatusNode(row,id){
     let wrap=row.querySelector('.ds-participant-media');if(!wrap){wrap=document.createElement('span');wrap.className='ds-participant-media';const actions=row.querySelector('.participant-actions')||document.createElement('span');if(!actions.isConnected){actions.className='participant-actions ds-participant-actions';row.append(actions);}actions.prepend(wrap);}
-    const state=statusFor(id);wrap.innerHTML=`<span class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
+    const state=statusFor(id),signature=`${state.known?'known':'unknown'}:${state.micOn?'mic-on':'mic-off'}:${state.cameraOn?'video-on':'video-off'}`;
+    if(wrap.dataset.dsMediaSignature!==signature){
+      wrap.dataset.dsMediaSignature=signature;
+      wrap.innerHTML=`<span class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
+    }
     return wrap;
   }
 
@@ -175,12 +179,17 @@
       const copy=row.querySelector('.person-copy'),role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-',''),self=id===String(localParticipantId||'')||row.dataset.participantSelf==='1';
       if(copy){
         const strong=copy.querySelector('strong'),displayName=String(row.dataset.participantName||strong?.textContent||'Participant').replace(/\s*\((?:host|co-host|cohost|me)(?:\s*,\s*(?:host|co-host|cohost|me))*\)\s*/gi,' ').trim();
-        copy.querySelectorAll('.ds-role-chip,.ds-adaptive-role,.ds-participant-role-badge,.ds-participant-self-label,.ds-canonical-participant-role').forEach(node=>node.remove());
-        if(strong)strong.textContent=displayName;
+        copy.querySelectorAll('.ds-role-chip,.ds-adaptive-role,.ds-participant-role-badge,.ds-participant-self-label').forEach(node=>node.remove());
+        if(strong&&strong.textContent!==displayName)strong.textContent=displayName;
         let roleText='';
         if(role==='host'&&self)roleText='(Host, me)';else if(role==='host')roleText='(Host)';else if(role==='cohost'&&self)roleText='(Co-host, me)';else if(role==='cohost')roleText='(Co-host)';else if(self)roleText='(me)';
-        if(roleText){const suffix=document.createElement('span');suffix.className='ds-canonical-participant-role';suffix.textContent=roleText;strong?.insertAdjacentElement('afterend',suffix);}
-        const legacy=copy.querySelector('small');if(legacy){legacy.textContent=self?'You':'Participant';legacy.hidden=true;}
+        const suffixes=[...copy.querySelectorAll('.ds-canonical-participant-role')];let suffix=suffixes.shift()||null;suffixes.forEach(node=>node.remove());
+        if(roleText){
+          if(!suffix){suffix=document.createElement('span');suffix.className='ds-canonical-participant-role';strong?.insertAdjacentElement('afterend',suffix);}
+          else if(strong&&suffix.previousElementSibling!==strong)strong.insertAdjacentElement('afterend',suffix);
+          if(suffix&&suffix.textContent!==roleText)suffix.textContent=roleText;
+        }else suffix?.remove();
+        const legacy=copy.querySelector('small');if(legacy){if(legacy.textContent!==(self?'You':'Participant'))legacy.textContent=self?'You':'Participant';legacy.hidden=true;}
         for(const duplicate of [...row.querySelectorAll('.participant-more,.ds-participant-more')].slice(1))duplicate.remove();
       }
     }
@@ -196,7 +205,7 @@
   function scheduleMediaBroadcast(delay=100){clearTimeout(mediaBroadcastTimer);mediaBroadcastTimer=setTimeout(()=>void broadcastLocalMediaState(),delay);}
 
   function installParticipantAuthority(){
-    const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(()=>requestAnimationFrame(decorateParticipantRows));participantObserver.observe(roster,{childList:true,subtree:true});}
+    const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(records=>{if(records.some(record=>record.target===roster&&record.type==='childList'))requestAnimationFrame(decorateParticipantRows);});participantObserver.observe(roster,{childList:true});}
     void refreshLocalParticipantId().then(()=>decorateParticipantRows());
     if(!mediaUnsub&&media()?.onChange){mediaUnsub=media().onChange(()=>{decorateParticipantRows();scheduleMediaBroadcast(80);});}
   }
