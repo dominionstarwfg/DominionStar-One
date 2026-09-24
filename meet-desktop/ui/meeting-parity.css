@@ -97,8 +97,8 @@
 
 /* Primary toolbar state must be stable. Secondary controls live under More even if feature modules toggle [hidden]. */
 .meeting-footer #roomSecurity,.meeting-footer #roomSettings,.meeting-footer #roomRecord,.meeting-footer #roomRecordStop,.meeting-footer .caption-control-cluster{display:none!important}
-.meeting-control.is-off .ds-control-icon,.preview-controls button.is-off .ds-control-icon{position:relative;color:#ff5368}
-.meeting-control.is-off .ds-control-icon::after,.preview-controls button.is-off .ds-control-icon::after{content:"";position:absolute;width:24px;height:2px;border-radius:2px;background:#ff5368;transform:rotate(-45deg);box-shadow:0 0 0 1px rgba(6,12,20,.65)}
+.meeting-control.is-off .ds-control-icon,.preview-controls button.is-off .ds-control-icon{position:relative;color:#eef4fa}.meeting-control.is-off .ds-control-icon .ds-off-strike,.preview-controls button.is-off .ds-control-icon .ds-off-strike{stroke:#ff5368!important;stroke-width:2.25!important}
+.meeting-control.is-off .ds-control-icon::after,.preview-controls button.is-off .ds-control-icon::after{content:none!important;display:none!important}
 .preview-controls button.is-off{border-color:rgba(255,83,104,.34);background:rgba(255,83,104,.08)}
 .meeting-control.is-off:hover{background:rgba(255,83,104,.08)!important}
 
@@ -115,3 +115,51 @@
 .room-side .person-row:hover,.room-side .queue-card:hover{background:#222!important}
 .room-side .person-badge{width:30px;height:30px;border-radius:8px;background:#26384a}
 .room-side .person-copy strong{font-size:11px}.room-side .person-copy small{font-size:9px;color:#999}
+
+
+/* Live microphone activity — driven by real RMS microphone energy. */
+body.ds-local-speaking #roomMic:not(.is-off) .ds-control-icon,
+body.ds-local-speaking [data-inline-command="audio"]{
+  color:#39d078!important;
+}
+body.ds-local-speaking #roomMic:not(.is-off) .ds-control-icon{
+  transform:scale(calc(1 + .12*var(--ds-local-voice-level,0)));
+  filter:drop-shadow(0 0 calc(3px + 7px*var(--ds-local-voice-level,0)) rgba(57,208,120,.72));
+  transition:transform 70ms linear,filter 70ms linear,color 70ms linear;
+}
+body.ds-local-speaking #roomMic:not(.is-off)::after{
+  content:'';
+  position:absolute;
+  left:50%;
+  bottom:5px;
+  width:22px;
+  height:3px;
+  border-radius:999px;
+  transform:translateX(-50%) scaleX(calc(.25 + .75*var(--ds-local-voice-level,0)));
+  transform-origin:center;
+  background:#39d078;
+  box-shadow:0 0 8px rgba(57,208,120,.58);
+}
+body.ds-local-speaking [data-inline-command="audio"]{
+  box-shadow:inset 0 -3px 0 rgba(57,208,120,calc(.28 + .72*var(--ds-local-voice-level,0)));
+}
+body.ds-local-speaking .meeting-overlay.share-active .stage{
+  box-shadow:none!important;
+}
+
+/* The presenter perimeter is owned by the native share-border window so it
+   reaches the physical display edges without drawing a line through content. */
+.meeting-overlay.share-active .stage{
+  outline:none!important;
+}
+
+.participant-video-dock .remote-peer-tile.spotlighted{border-color:#d6b25e!important;box-shadow:0 0 0 1px rgba(214,178,94,.28)!important}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-1,
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-2,
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3,
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{grid-column:span 2;grid-row:span 2;z-index:3}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-1{order:-40}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-2{order:-39}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3{order:-38}
+.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{order:-37}
+@media(max-width:720px){.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-1,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-2,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{grid-column:span 1;grid-row:span 1}}

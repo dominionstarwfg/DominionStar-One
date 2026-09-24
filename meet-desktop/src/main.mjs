@@ -1,4 +1,4 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, session, shell, systemPreferences } from 'electron';
+import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, screen, session, shell, systemPreferences } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDesktopAuth } from './auth-service.mjs';
@@ -14,9 +14,26 @@ let mainWindow=null;
 let desktopAuth=null;
 let meetingService=null;
 let shareService=null;
-let screenPermissionProbeInFlight=null;
 let qaPersonalRoom={roomId:'qa-personal-room',roomCode:'2468013579',passcode:'360',title:'Personal Meeting Room',useForInstant:true,waitingRoomEnabled:true,externalGuestsAllowed:true,status:'ready'};
 let qaSchedules=[];
+const pendingJoinUrls=globalThis.__dominionPendingJoinUrls=globalThis.__dominionPendingJoinUrls||[];
+const validJoinUrl=value=>{
+  try{
+    const url=new URL(String(value||''));
+    if(url.protocol!=='dominionstar-meet:'||url.hostname!=='join')return '';
+    const meetingId=String(url.searchParams.get('meetingId')||url.searchParams.get('mid')||'').replace(/\D/g,'');
+    const passcode=String(url.searchParams.get('passcode')||url.searchParams.get('pwd')||'').replace(/\D/g,'');
+    if(!/^\d{10,11}$/.test(meetingId)||!/^\d{3,7}$/.test(passcode))return '';
+    return `dominionstar-meet://join?meetingId=${encodeURIComponent(meetingId)}&passcode=${encodeURIComponent(passcode)}`;
+  }catch{return '';}
+};
+const pushJoinUrl=value=>{
+  const url=validJoinUrl(value);if(!url)return false;
+  if(!pendingJoinUrls.includes(url))pendingJoinUrls.push(url);
+  if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('app:join-url',url);
+  return true;
+};
+app.on('dominion:join-url',url=>pushJoinUrl(url));
 
 function qaSchedule(input={}){
   const scheduleId=`qa-schedule-${qaSchedules.length+1}`;
@@ -42,29 +59,22 @@ async function requestNativeMediaPermissions(kinds=[]){
   return {...status,ok:[...requested].every(kind=>!['denied','restricted'].includes(String(status[kind]||'')))};
 }
 
-function activeScreenCaptureProbe(){
-  if(!screenPermissionProbeInFlight){
-    screenPermissionProbeInFlight=desktopCapturer.getSources({types:['screen'],thumbnailSize:{width:2,height:2},fetchWindowIcons:false})
-      .then(sources=>({ok:Array.isArray(sources)&&sources.some(source=>source?.thumbnail&&!source.thumbnail.isEmpty?.()),sourceCount:Array.isArray(sources)?sources.length:0,status:'capture-probe-complete'}))
-      .catch(error=>({ok:false,sourceCount:0,status:'capture-probe-error',error:String(error?.message||error||'screen_probe_failed')}))
-      .finally(()=>{screenPermissionProbeInFlight=null;});
-  }
-  return Promise.race([
-    screenPermissionProbeInFlight,
-    new Promise(resolve=>setTimeout(()=>resolve({ok:false,sourceCount:0,status:'capture-probe-timeout'}),2200))
-  ]);
-}
-
 async function requestScreenPermission(){
   if(process.platform!=='darwin')return {ok:true,status:'granted',restartRequired:false,detectedBy:'platform'};
   const reportedStatus=permissionStatus('screen');
-  if(reportedStatus==='granted')return {ok:true,status:'granted',reportedStatus,restartRequired:false,detectedBy:'tcc-status'};
-  // TCC status can lag behind System Settings for a newly installed/replaced app.
-  // Prove whether capture is actually readable before sending the user back to
-  // Privacy & Security. This is bounded and single-flight so Share stays responsive.
-  const probe=await activeScreenCaptureProbe();
-  if(probe.ok)return {ok:true,status:'granted',reportedStatus,restartRequired:false,detectedBy:'capture-probe',sourceCount:probe.sourceCount};
-  return {ok:false,status:reportedStatus,restartRequired:reportedStatus!=='not-determined',detectedBy:'tcc-status+capture-probe',probeStatus:probe.status};
+  // Electron/macOS can keep reporting a stale denied Screen Recording state
+  // after the user has enabled the app in System Settings. Treat this status as
+  // advisory only. Opening Share is an explicit user action, and real desktop
+  // source enumeration is the authoritative test of whether capture is usable.
+  // If permission is genuinely absent, macOS owns the native consent prompt.
+  return {
+    ok:true,
+    status:reportedStatus,
+    reportedStatus,
+    restartRequired:false,
+    detectedBy:reportedStatus==='granted'?'tcc-status':'tcc-advisory',
+    advisory:reportedStatus!=='granted'
+  };
 }
 
 async function openPrivacySettings(kind='screen'){
@@ -98,16 +108,23 @@ function installLocalPermissionPolicy(desktopSession){
 }
 
 function createMainWindow(){
-  mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});
+  mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,backgroundColor:'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged,backgroundThrottling:false}});
   mainWindow.webContents.setWindowOpenHandler(({url})=>{if(/^https:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
   mainWindow.webContents.on('will-navigate',(event,url)=>{if(url.startsWith('file://'))return;event.preventDefault();if(/^https:\/\//i.test(url))void shell.openExternal(url);});
   mainWindow.once('ready-to-show',()=>mainWindow?.show());
+  mainWindow.webContents.once('did-finish-load',()=>{
+    const pending=pendingJoinUrls[0]||'';if(pending)mainWindow?.webContents.send('app:join-url',pending);
+  });
   mainWindow.on('focus',()=>{try{mainWindow?.flashFrame(false);}catch{}});
   void mainWindow.loadFile(path.join(uiDir,'index.html'));
-  mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
+  mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();shareService?.closeBorder?.();mainWindow=null;});
 }
 
-ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaInteractionRequested:qaFixtureRequested,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:consume-join-url',()=>{
+  while(pendingJoinUrls.length){const value=validJoinUrl(pendingJoinUrls.shift());if(value)return value;}
+  return '';
+});
 ipcMain.handle('auth:get-state',()=>desktopAuth?.getState?.()||{ready:false,signedIn:false,user:null});
 ipcMain.handle('auth:start-google',()=>desktopAuth?.startGoogle?.());
 ipcMain.handle('auth:sign-in-password',(_event,{email,password}={})=>desktopAuth?.signInPassword?.(email,password));
@@ -174,7 +191,7 @@ app.whenReady().then(async()=>{
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
   await desktopAuth.initialize();
   meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
-  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
+  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,screen,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
   const sendPowerEvent=(type)=>{
     if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('app:power-event',{type,at:Date.now()});

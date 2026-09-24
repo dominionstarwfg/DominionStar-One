@@ -2,7 +2,7 @@ export function createShareSourceAuthority({enumerateSources,timeoutMs=4500}){
   if(typeof enumerateSources!=='function')throw new Error('Share source authority requires an enumerator.');
   let inFlight=null;
   let inFlightKey='';
-  let sourceMap=new Map();
+  const sourceMaps=new Map();
 
   const keyFor=options=>{
     const kind=String(options?.kind||'screen')==='window'?'window':'screen';
@@ -18,8 +18,8 @@ export function createShareSourceAuthority({enumerateSources,timeoutMs=4500}){
   async function list(options={}){
     const requestedKey=keyFor(options);
     // Keep exactly one native ScreenCaptureKit enumeration active at a time.
-    // A second tab click never stacks another native call while the first is
-    // unresolved. Same-key requests reuse the current promise.
+    // Basic may request screens and windows together, but those native calls are
+    // serialized so macOS never receives overlapping discovery requests.
     if(inFlight){
       if(inFlightKey===requestedKey)return Promise.race([inFlight,timeoutResult()]);
       const previous=inFlight;
@@ -32,7 +32,7 @@ export function createShareSourceAuthority({enumerateSources,timeoutMs=4500}){
       .then(()=>enumerateSources(options))
       .then(sources=>{
         const safe=Array.isArray(sources)?sources:[];
-        sourceMap=new Map(safe.map(source=>[String(source.id),source]));
+        sourceMaps.set(requestedKey,new Map(safe.map(source=>[String(source.id),source])));
         return {ok:true,timedOut:false,sources:safe};
       })
       .finally(()=>{
@@ -42,8 +42,15 @@ export function createShareSourceAuthority({enumerateSources,timeoutMs=4500}){
     return Promise.race([tracked,timeoutResult()]);
   }
 
-  const get=id=>sourceMap.get(String(id||''))||null;
+  const get=id=>{
+    const key=String(id||'');
+    for(const map of sourceMaps.values()){
+      const source=map.get(key);
+      if(source)return source;
+    }
+    return null;
+  };
   const busy=()=>Boolean(inFlight);
-  const snapshot=()=>Object.freeze({busy:Boolean(inFlight),key:inFlightKey,sourceCount:sourceMap.size});
+  const snapshot=()=>Object.freeze({busy:Boolean(inFlight),key:inFlightKey,sourceCount:[...sourceMaps.values()].reduce((total,map)=>total+map.size,0),families:sourceMaps.size});
   return Object.freeze({list,get,busy,snapshot});
 }

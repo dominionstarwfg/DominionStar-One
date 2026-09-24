@@ -11,7 +11,7 @@ const CALLBACK_PORT=37654;
 const CALLBACK_PATH='/auth/callback';
 export const CALLBACK_URL=`http://${CALLBACK_HOST}:${CALLBACK_PORT}${CALLBACK_PATH}`;
 
-const callbackSuccessHtml=`<!doctype html><meta charset="utf-8"><title>DominionStar Meet</title><style>body{margin:0;background:#07111f;color:#f5f7fb;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;display:grid;place-items:center}.card{width:min(520px,calc(100% - 48px));padding:34px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:#0d1a2a;text-align:center}.mark{color:#e5b842;font-size:28px}h1{font-size:22px;margin:14px 0 8px}p{color:#91a0b4;line-height:1.55;margin:0}</style><div class="card"><div class="mark">✦</div><h1>Signed in to DominionStar Meet</h1><p>You can close this browser window. DominionStar Meet is returning to the foreground.</p></div>`;
+const callbackSuccessHtml=`<!doctype html><meta charset="utf-8"><title>DominionStar Meet</title><style>body{margin:0;background:#07111f;color:#f5f7fb;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;display:grid;place-items:center}.card{width:min(520px,calc(100% - 48px));padding:34px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:#0d1a2a;text-align:center}.mark{color:#e5b842;font-size:28px}h1{font-size:22px;margin:14px 0 8px}p{color:#91a0b4;line-height:1.55;margin:0}</style><div class="card"><div class="mark">✦</div><h1>Signed in to DominionStar Meet</h1><p>DominionStar Meet is opening now. If this tab stays open, you can close it.</p></div><script>setTimeout(()=>window.close(),220);setTimeout(()=>window.close(),900);</script>`;
 const callbackErrorHtml=message=>`<!doctype html><meta charset="utf-8"><title>DominionStar Meet sign-in error</title><style>body{margin:0;background:#07111f;color:#f5f7fb;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;display:grid;place-items:center}.card{width:min(520px,calc(100% - 48px));padding:34px;border:1px solid rgba(232,78,97,.32);border-radius:20px;background:#0d1a2a}h1{font-size:22px;margin:0 0 10px}p{color:#c5cfdb;line-height:1.55;margin:0}</style><div class="card"><h1>Sign-in could not be completed</h1><p>${String(message||'Unknown authentication error').replace(/[<>&"]/g,char=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[char]))}</p></div>`;
 
 function userSummary(user,profile=null){
@@ -41,14 +41,30 @@ function createEncryptedStorage(app){
 
 export function createDesktopAuth({app,shell,getMainWindow}){
   let client=null;let callbackServer=null;let subscription=null;
-  const foregroundApp=()=>{const win=getMainWindow?.();if(!win||win.isDestroyed())return;if(win.isMinimized())win.restore();win.show();win.focus();};
+  const avatarUrlCache=new Map();
+  const normalizeAvatarPath=value=>{const next=String(value||'').trim().replace(/^\/+/, '');return /^[0-9a-f-]{36}\/avatar\.(?:png|jpe?g|webp)$/i.test(next)?next:'';};
+  const foregroundApp=()=>{const win=getMainWindow?.();if(!win||win.isDestroyed())return false;try{app.focus?.({steal:true});}catch{}try{if(win.isMinimized())win.restore();}catch{}try{win.show();}catch{}try{win.moveTop?.();}catch{}try{win.focus();}catch{}return true;};
+  const foregroundAfterOAuth=()=>{foregroundApp();for(const delay of [120,420,900])setTimeout(()=>foregroundApp(),delay);};
   const emitState=async()=>{const state=await getState();const win=getMainWindow?.();if(win&&!win.isDestroyed())win.webContents.send('auth:changed',state);return state;};
 
   async function initialize(){
     if(client)return;
     client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storage:createEncryptedStorage(app)}});
     const {data}=client.auth.onAuthStateChange(()=>setTimeout(()=>void emitState(),0));subscription=data?.subscription||null;
-    app.once('before-quit',()=>{subscription?.unsubscribe?.();callbackServer?.close?.();});
+    app.once('before-quit',()=>{subscription?.unsubscribe?.();callbackServer?.close?.();avatarUrlCache.clear();});
+  }
+  async function signedAvatarUrl(value,{force=false}={}){
+    if(!client)await initialize();
+    const avatarPath=normalizeAvatarPath(value);if(!avatarPath)return '';
+    const cached=avatarUrlCache.get(avatarPath),now=Date.now();
+    if(!force&&cached?.url&&cached.expiresAt-now>10*60*1000)return cached.url;
+    try{
+      const signed=await client.storage.from('member-avatars').createSignedUrl(avatarPath,3600);
+      const url=String(signed.data?.signedUrl||'');
+      if(signed.error||!url){avatarUrlCache.delete(avatarPath);return '';}
+      avatarUrlCache.set(avatarPath,{url,expiresAt:now+50*60*1000});
+      return url;
+    }catch{avatarUrlCache.delete(avatarPath);return '';}
   }
   async function getState(){
     if(!client)return {ready:false,signedIn:false,user:null};
@@ -59,17 +75,14 @@ export function createDesktopAuth({app,shell,getMainWindow}){
       const result=await client.from('member_profiles').select('full_name,preferred_name,email,rank,agent_code,is_founder,avatar_path').eq('id',data.session.user.id).maybeSingle();
       if(!result.error){
         profile=result.data||null;
-        if(profile?.avatar_path){
-          const signed=await client.storage.from('member-avatars').createSignedUrl(String(profile.avatar_path),3600);
-          if(!signed.error&&signed.data?.signedUrl)profile={...profile,avatar_url:signed.data.signedUrl};
-        }
+        if(profile?.avatar_path){const avatarUrl=await signedAvatarUrl(profile.avatar_path);if(avatarUrl)profile={...profile,avatar_url:avatarUrl};}
       }
     }catch{}
     return {ready:true,signedIn:true,user:userSummary(data.session.user,profile)};
   }
   async function ensureCallbackServer(){
     if(callbackServer?.listening)return;
-    callbackServer=http.createServer(async(req,res)=>{try{const requestUrl=new URL(req.url||'/',CALLBACK_URL);if(req.method!=='GET'||requestUrl.pathname!==CALLBACK_PATH){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});res.end('Not found');return;}const providerError=requestUrl.searchParams.get('error_description')||requestUrl.searchParams.get('error');if(providerError)throw new Error(providerError);const code=requestUrl.searchParams.get('code');if(!code)throw new Error('The authentication callback did not contain a PKCE authorization code.');const {data,error}=await client.auth.exchangeCodeForSession(code);if(error||!data?.session)throw new Error(error?.message||'Supabase did not return a desktop session.');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(callbackSuccessHtml);foregroundApp();await emitState();}catch(error){res.writeHead(400,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(callbackErrorHtml(error?.message));const win=getMainWindow?.();if(win&&!win.isDestroyed())win.webContents.send('auth:error',{message:String(error?.message||error)});foregroundApp();}});
+    callbackServer=http.createServer(async(req,res)=>{try{const requestUrl=new URL(req.url||'/',CALLBACK_URL);if(req.method!=='GET'||requestUrl.pathname!==CALLBACK_PATH){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});res.end('Not found');return;}const providerError=requestUrl.searchParams.get('error_description')||requestUrl.searchParams.get('error');if(providerError)throw new Error(providerError);const code=requestUrl.searchParams.get('code');if(!code)throw new Error('The authentication callback did not contain a PKCE authorization code.');const {data,error}=await client.auth.exchangeCodeForSession(code);if(error||!data?.session)throw new Error(error?.message||'Supabase did not return a desktop session.');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(callbackSuccessHtml);foregroundAfterOAuth();await emitState();}catch(error){res.writeHead(400,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(callbackErrorHtml(error?.message));const win=getMainWindow?.();if(win&&!win.isDestroyed())win.webContents.send('auth:error',{message:String(error?.message||error)});foregroundAfterOAuth();}});
     await new Promise((resolve,reject)=>{const onError=error=>{callbackServer?.removeListener('listening',onListening);reject(error);};const onListening=()=>{callbackServer?.removeListener('error',onError);resolve();};callbackServer.once('error',onError);callbackServer.once('listening',onListening);callbackServer.listen(CALLBACK_PORT,CALLBACK_HOST);});
   }
   async function startGoogle(){
@@ -95,16 +108,17 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     const match=String(dataUrl||'').match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/i);if(!match)throw new Error('invalid_profile_image');
     const mime=match[1].toLowerCase()==='jpeg'?'image/jpeg':`image/${match[1].toLowerCase()}`;
     const bytes=Buffer.from(match[2],'base64');if(!bytes.length||bytes.length>5*1024*1024)throw new Error('profile_image_too_large');
-    const ext=mime==='image/jpeg'?'jpg':mime.split('/')[1];const userId=String(data.session.user.id);const path=`${userId}/avatar.${ext}`;
-    const upload=await client.storage.from('member-avatars').upload(path,bytes,{contentType:mime,upsert:true,cacheControl:'3600'});if(upload.error)throw new Error(upload.error.message||'avatar_upload_failed');
+    const ext=mime==='image/jpeg'?'jpg':mime.split('/')[1];const userId=String(data.session.user.id);const avatarPath=`${userId}/avatar.${ext}`;
+    const upload=await client.storage.from('member-avatars').upload(avatarPath,bytes,{contentType:mime,upsert:true,cacheControl:'3600'});if(upload.error)throw new Error(upload.error.message||'avatar_upload_failed');
     const current=await client.from('member_profiles').select('full_name,phone,address_line1,address_line2,city,state,postal_code,country').eq('id',userId).maybeSingle();if(current.error||!current.data)throw new Error(current.error?.message||'profile_not_found');
     const profile=current.data;
     const saved=await client.rpc('update_own_contact_profile',{
-      new_full_name:profile.full_name||'',new_phone:profile.phone||'',new_address_line1:profile.address_line1||'',new_address_line2:profile.address_line2||'',new_city:profile.city||'',new_state:profile.state||'',new_postal_code:profile.postal_code||'',new_country:profile.country||'',new_avatar_path:path
+      new_full_name:profile.full_name||'',new_phone:profile.phone||'',new_address_line1:profile.address_line1||'',new_address_line2:profile.address_line2||'',new_city:profile.city||'',new_state:profile.state||'',new_postal_code:profile.postal_code||'',new_country:profile.country||'',new_avatar_path:avatarPath
     });if(saved.error)throw new Error(saved.error.message||'avatar_profile_update_failed');
+    avatarUrlCache.delete(avatarPath);
     return emitState();
   }
-  async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;await emitState();return {ok:true};}
+  async function signOut(){if(!client)return {ok:true};const {error}=await client.auth.signOut();if(error)throw error;avatarUrlCache.clear();await emitState();return {ok:true};}
   async function rpc(name,args={}){if(!client)await initialize();const {data,error}=await client.rpc(name,args);if(error)throw new Error(error.message||`Meeting service failed: ${name}`);return data;}
   async function invokeServerFunction(name,body={}){
     if(!client)await initialize();
@@ -114,5 +128,5 @@ export function createDesktopAuth({app,shell,getMainWindow}){
     return data;
   }
 
-  return Object.freeze({initialize,getState,startGoogle,signInPassword,updateAvatar,signOut,rpc,invokeServerFunction,callbackUrl:CALLBACK_URL});
+  return Object.freeze({initialize,getState,startGoogle,signInPassword,updateAvatar,signOut,rpc,invokeServerFunction,signedAvatarUrl,callbackUrl:CALLBACK_URL});
 }

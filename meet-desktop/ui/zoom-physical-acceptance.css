@@ -29,3 +29,13 @@
 
 @media(max-width:1040px){:root{--ds-accept-panel:370px}.ds-share-source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){:root{--ds-accept-panel:min(380px,calc(100vw - 20px))}.room-side,#meetingChatPanel{min-width:0!important}.ds-share-picker-card{width:calc(100vw - 20px);height:calc(100vh - 20px)}.ds-share-source-grid{grid-template-columns:1fr}.ds-share-picker-card>footer{flex-wrap:wrap;height:auto;padding:10px 14px}.ds-share-picker-card{grid-template-rows:66px 46px minmax(0,1fr) auto}}
+
+
+/* Physical Mac acceptance: camera-off identity must remain readable at a
+   Zoom-like scale instead of collapsing to a thumbnail. */
+#prejoinOverlay .preview-avatar{width:158px!important;height:158px!important;border-radius:42px!important;font-size:34px!important;box-shadow:0 14px 36px rgba(0,0,0,.32)!important}
+#meetingOverlay .stage-avatar{width:168px!important;height:168px!important;border-radius:44px!important;font-size:36px!important;box-shadow:0 16px 42px rgba(0,0,0,.34)!important}
+#meetingOverlay .stage-card h3{margin-top:18px!important;font-size:15px!important}
+#prejoinOverlay .preview-avatar .ds-profile-fallback-photo,#meetingOverlay .stage-avatar .ds-profile-fallback-photo{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:inherit!important}
+#participantVideoDock .remote-peer-fallback .ds-profile-fallback-photo{width:72px!important;height:72px!important}
+@media(max-width:900px){#prejoinOverlay .preview-avatar{width:144px!important;height:144px!important}#meetingOverlay .stage-avatar{width:152px!important;height:152px!important}}
