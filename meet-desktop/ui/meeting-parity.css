@@ -144,14 +144,13 @@ body.ds-local-speaking [data-inline-command="audio"]{
   box-shadow:inset 0 -3px 0 rgba(57,208,120,calc(.28 + .72*var(--ds-local-voice-level,0)));
 }
 body.ds-local-speaking .meeting-overlay.share-active .stage{
-  box-shadow:inset 0 0 0 3px #39d078,inset 0 0 20px rgba(57,208,120,.16);
+  box-shadow:none!important;
 }
 
-
-/* Shared-area identity: steady Zoom-style green perimeter while sharing. */
+/* The presenter perimeter is owned by the native share-border window so it
+   reaches the physical display edges without drawing a line through content. */
 .meeting-overlay.share-active .stage{
-  outline:2px solid rgba(57,208,120,.88);
-  outline-offset:-2px;
+  outline:none!important;
 }
 
 .participant-video-dock .remote-peer-tile.spotlighted{border-color:#d6b25e!important;box-shadow:0 0 0 1px rgba(214,178,94,.28)!important}
