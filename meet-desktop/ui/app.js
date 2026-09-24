@@ -14,6 +14,18 @@
   const roomCode=value=>String(value||'').replace(/\D/g,'').replace(/(\d{3})(?=\d)/g,'$1 ').trim();
   const randomPasscode=()=>String(Math.floor(1000+Math.random()*9000));
   const errorText=error=>{const raw=String(error?.message||error||'Meeting action failed.').replace(/^.*?:\s*/,'');const map={meeting_not_found:'Meeting not found or no longer available.',meeting_locked:'This meeting is locked. New participants cannot join right now.',incorrect_passcode:'Incorrect meeting passcode.',guest_access_disabled:'Guest access is disabled.',host_authority_required:'This action requires host authority.',participant_not_waiting:'This waiting-room request was already handled.',participant_not_admitted:'You have not been admitted yet.',participant_not_active:'This participant is not active.'};return map[raw]||raw;};
+  const MEDIA_GLYPHS=Object.freeze({
+    micOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
+    micOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6M4.5 4.5l15 15"/></svg>',
+    videoOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg>',
+    videoOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3zM4.5 4.5l15 15"/></svg>'
+  });
+  function syncMediaGlyph(node,on,kind){
+    const icon=node?.querySelector?.('.ds-control-icon');if(!icon)return;
+    const key=`${kind}${on?'On':'Off'}`,markup=MEDIA_GLYPHS[key];if(!markup)return;
+    if(icon.dataset.dsMediaGlyph===key&&icon.innerHTML===markup)return;
+    icon.dataset.dsMediaGlyph=key;icon.innerHTML=markup;
+  }
   const clearTimer=name=>{clearInterval(timers[name]);timers[name]=0;};const stopPolling=()=>Object.keys(timers).forEach(clearTimer);
   function showSection(name){Object.entries(sections).forEach(([key,node])=>{if(node)node.hidden=key!==name;});$$('.nav-button[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===name));}
   function openDialog(name){const d=dialogs[name];if(d&&!d.open)d.showModal();}
@@ -80,7 +92,7 @@
   function attachPreview(){const stream=media.stream();for(const video of [$('#prejoinVideo'),$('#localMeetingVideo')]){if(video&&video.srcObject!==stream)video.srcObject=stream;}const s=media.snapshot();$('#prejoinVideo').hidden=!s.videoLive;$('#prejoinAvatar').hidden=s.videoLive;const hideSelf=hideSelfView();$('#localMeetingVideo').hidden=!s.videoLive||hideSelf;$('#stageFallback').hidden=s.videoLive&&!hideSelf;syncMediaLabels();applyMirror();}
   function applyMirror(){const mirrored=media.snapshot().mirror;$('#prejoinVideo').style.transform=mirrored?'scaleX(-1)':'none';$('#localMeetingVideo').style.transform=mirrored?'scaleX(-1)':'none';}
   function setControlLabel(id,text){const button=$(id);if(!button)return;const label=button.querySelector('.ds-control-label');if(label)label.textContent=text;else button.textContent=text;button.setAttribute('aria-label',text);}
-  function syncMediaLabels(){const s=media.snapshot();for(const id of ['#prejoinMic','#roomMic']){const node=$(id);setControlLabel(id,s.micOn?'Mute':'Unmute');node?.classList.toggle('is-off',!s.micOn);node?.setAttribute('aria-pressed',String(!s.micOn));}for(const id of ['#prejoinCamera','#roomCamera']){const node=$(id);setControlLabel(id,s.cameraOn?'Stop Video':'Start Video');node?.classList.toggle('is-off',!s.cameraOn);node?.setAttribute('aria-pressed',String(!s.cameraOn));}window.DominionMeetingParity?.decorateControls?.();}
+  function syncMediaLabels(){const s=media.snapshot();window.DominionMeetingParity?.decorateControls?.();for(const id of ['#prejoinMic','#roomMic']){const node=$(id);setControlLabel(id,s.micOn?'Mute':'Unmute');node?.classList.toggle('is-off',!s.micOn);node?.setAttribute('aria-pressed',String(!s.micOn));syncMediaGlyph(node,Boolean(s.micOn),'mic');}for(const id of ['#prejoinCamera','#roomCamera']){const node=$(id);setControlLabel(id,s.cameraOn?'Stop Video':'Start Video');node?.classList.toggle('is-off',!s.cameraOn);node?.setAttribute('aria-pressed',String(!s.cameraOn));syncMediaGlyph(node,Boolean(s.cameraOn),'video');}}
   async function toggleMic(button){button.disabled=true;const wasOn=media.snapshot().micOn;try{await media.setMicrophone(!wasOn);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().micOn?'mic-on':'mic-off');}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}}
   async function toggleCamera(button){
     const before=media.snapshot(),target=!before.cameraOn;
