@@ -154,7 +154,9 @@ assert(shareService.includes('setContentProtection'),'DominionStar meeting chrom
 assert(shareIntegration.includes('window.__DominionPresenterDispatch=dispatchPresenterCommand'),'Renderer must expose one direct presenter-command dispatcher.');
 assert(shareService.includes('webContents.executeJavaScript')&&shareService.includes('window.__DominionPresenterDispatch'),'Presenter toolbar must use the direct renderer dispatch path before IPC fallback.');
 assert(shareService.includes("sendMain('share:presenter-command',outbound)"),'Legacy presenter IPC must remain only as a compatibility fallback.');
-assert(shareService.includes("meetingVisible:true"),'Presenter toolbar state must truthfully report the meeting as visible while the capture-owning renderer remains unmodified.');
+assert(shareService.includes("meetingVisible:false")&&shareService.includes("main.setBounds({x:-32000,y:-32000,width:saved.width,height:saved.height},false)"),'macOS presenter state must truthfully report the protected meeting as hidden while it is parked outside captured content.');
+assert(shareService.includes("showShareBorder(activeDisplayId)")&&shareService.includes("closeShareBorder();"),'Physical sharing must mount and remove one full-display green perimeter with the share lifecycle.');
+assert(presenterJs.includes("const routedCommand=command=>String(command||'');")&&!presenterJs.includes('toolbar:${command}'),'External presenter controls must send working exact command names.');
 assert(presenterHtml.includes('<svg viewBox="0 0 24 24"'),'Presenter toolbar must use vector controls.');
 for(const legacyGlyph of ['◉','▣','♙','▢','Ⅱ','✎','▤'])assert(!presenterHtml.includes(legacyGlyph),`Presenter toolbar must not regress to legacy glyph ${legacyGlyph}.`);
 assert(presenterHtml.includes('data-command="stop"')&&presenterHtml.includes('Stop Share'),'Presenter toolbar must expose Stop Share directly.');
