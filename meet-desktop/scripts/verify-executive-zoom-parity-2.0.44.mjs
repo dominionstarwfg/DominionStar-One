@@ -16,6 +16,7 @@ const meetingParity=read('ui/meeting-parity.js');
 const meetingNotifications=read('ui/meeting-notifications.js');
 const shareService=read('src/share-service.mjs');
 const shareRuntime=read('ui/share-runtime-authority-2.0.41.js');
+const participantControls=read('ui/participant-controls.js');
 
 assert.equal(pkg.version,'2.0.44','Executive Zoom parity repair must ship under 2.0.44.');
 assert(!index.includes('participants-center-lock-2.0.41.js')&&!index.includes('host-tools-separation-lock-2.0.41.js'),'Conflicting legacy panel/host locks must not load.');
@@ -42,6 +43,8 @@ assert(physical.includes("const suffixes=[...copy.querySelectorAll('.ds-canonica
 assert(physical.includes(".ds-participant-self-label,.ds-canonical-participant-role"),'Canonical participant role decoration must remove its prior suffix before re-rendering.');
 assert(screenshotJs.includes(".zoom-participant-footer,#meetingOverlay .room-side #participantBulkActions"),'Final Participants footer must remove legacy duplicate action bars.');
 assert(screenshotJs.includes("footer.hidden=false;footer.removeAttribute('hidden');footer.removeAttribute('data-ds-legacy-participant-actions')"),'Canonical Participants footer must be explicitly revived after panel toggles instead of remaining hidden.');
+assert(!participantControls.includes("footer.id='participantBulkActions'")&&participantControls.includes("q('#participantBulkActions')?.remove()"),'Participant controls must retire the legacy bulk-action footer instead of recreating a second owner.');
+assert(screenshotJs.includes('data-stop-video')&&screenshotJs.includes('data-start-video')&&screenshotJs.includes('data-lower-hands'),'Canonical Participants More menu must retain meeting-wide video and hand controls after legacy footer retirement.');
 assert(runtime.includes("host.onclick=event=>")&&runtime.includes("host.dataset.dsPhysicalAuthority='runtime-owned'")&&runtime.includes('installRuntimeHostToolsAuthority();'),'Host Tools must be rebound directly to the runtime owner after legacy priming.');
 assert(!meetingNotifications.includes("target.closest('#roomHostTools')")&&!meetingNotifications.includes('openHostToolsPanel?.()'),'Window-capture notification routing must not intercept the canonical runtime-owned Host Tools button.');
 assert(shareService.includes("shareAudio:Boolean(options.shareAudio)&&platform==='win32'")&&shareService.includes("if(selection.options?.shareAudio&&platform==='win32')response.audio='loopback'")&&!shareService.includes("platform==='win32'||platform==='darwin'"),'macOS screen sharing must not request Electron loopback audio, which is unsupported by setDisplayMediaRequestHandler on macOS.');
