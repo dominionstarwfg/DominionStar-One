@@ -16,27 +16,27 @@
       document.head.append(style);
     }
     style.textContent=`
-      #meetingOverlay .meeting-shell{grid-template-rows:47px minmax(0,1fr) 56px!important}
+      #meetingOverlay .meeting-shell{grid-template-rows:47px minmax(0,1fr) 64px!important}
       #meetingOverlay .meeting-footer,
       #meetingOverlay .meeting-footer[data-ds-runtime-toolbar-zones="1"]{
-        height:56px!important;min-height:56px!important;max-height:56px!important;
+        height:64px!important;min-height:64px!important;max-height:64px!important;
         box-sizing:border-box!important;padding-top:0!important;padding-bottom:0!important
       }
       #meetingOverlay .ds-runtime-toolbar-left,
       #meetingOverlay .ds-runtime-toolbar-center,
-      #meetingOverlay .ds-runtime-toolbar-right{height:56px!important;min-height:56px!important;max-height:56px!important}
+      #meetingOverlay .ds-runtime-toolbar-right{height:64px!important;min-height:64px!important;max-height:64px!important}
       #meetingOverlay #roomReactions .ds-control-label{font-size:10px!important;line-height:1.1!important;white-space:nowrap!important}
       #meetingOverlay .meeting-body{min-height:0!important}
     `;
     const footer=q('#meetingOverlay .meeting-footer');
     if(footer){
-      for(const prop of ['height','min-height','max-height'])footer.style.setProperty(prop,'56px','important');
+      for(const prop of ['height','min-height','max-height'])footer.style.setProperty(prop,'64px','important');
       footer.style.setProperty('box-sizing','border-box','important');
       footer.style.setProperty('padding-top','0','important');
       footer.style.setProperty('padding-bottom','0','important');
     }
     for(const zone of qa('#meetingOverlay .ds-runtime-toolbar-left,#meetingOverlay .ds-runtime-toolbar-center,#meetingOverlay .ds-runtime-toolbar-right')){
-      for(const prop of ['height','min-height','max-height'])zone.style.setProperty(prop,'56px','important');
+      for(const prop of ['height','min-height','max-height'])zone.style.setProperty(prop,'64px','important');
     }
   }
   function setVisibleLabel(button,text){
