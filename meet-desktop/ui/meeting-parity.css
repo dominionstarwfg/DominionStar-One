@@ -100,6 +100,17 @@
 .meeting-control.is-off .ds-control-icon,.preview-controls button.is-off .ds-control-icon{position:relative;color:inherit}
 .meeting-control.is-off .ds-control-icon::before,.preview-controls button.is-off .ds-control-icon::before{content:none!important}.meeting-control.is-off .ds-control-icon::after,.preview-controls button.is-off .ds-control-icon::after{content:"";position:absolute;left:1px;right:1px;top:50%;height:2.4px;border-radius:999px;background:#ff5368;transform:translateY(-50%) rotate(-45deg);box-shadow:none!important}
 .preview-controls button.is-off{border-color:rgba(255,83,104,.34);background:rgba(255,83,104,.08)}
+/* One and only one OFF-state strike. Older layers may paint button-level
+   pseudo-elements; suppress them and keep the strike on the icon only. */
+#meetingOverlay #roomMic::before,#meetingOverlay #roomMic::after,
+#meetingOverlay #roomCamera::before,#meetingOverlay #roomCamera::after,
+#prejoinOverlay #prejoinMic::before,#prejoinOverlay #prejoinMic::after,
+#prejoinOverlay #prejoinCamera::before,#prejoinOverlay #prejoinCamera::after{content:none!important}
+#meetingOverlay #roomMic:not(.is-off) .ds-control-icon::after,
+#meetingOverlay #roomCamera:not(.is-off) .ds-control-icon::after,
+#prejoinOverlay #prejoinMic:not(.is-off) .ds-control-icon::after,
+#prejoinOverlay #prejoinCamera:not(.is-off) .ds-control-icon::after{content:none!important}
+
 .meeting-control.is-off:hover{background:rgba(255,83,104,.08)!important}
 
 /* Physical Mac polish: Zoom-like split-button carets and centered floating participants */
