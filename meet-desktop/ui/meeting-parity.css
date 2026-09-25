@@ -148,10 +148,11 @@ body.ds-local-speaking .meeting-overlay.share-active .stage{
 }
 
 
-/* Shared-area identity: steady Zoom-style green perimeter while sharing. */
+/* macOS uses the native presenter perimeter as the single share-area
+   indicator. Do not draw a second renderer outline that can appear offset
+   from the actually shared display. */
 .meeting-overlay.share-active .stage{
-  outline:2px solid rgba(57,208,120,.88);
-  outline-offset:-2px;
+  outline:none!important;
 }
 
 .participant-video-dock .remote-peer-tile.spotlighted{border-color:#d6b25e!important;box-shadow:0 0 0 1px rgba(214,178,94,.28)!important}
