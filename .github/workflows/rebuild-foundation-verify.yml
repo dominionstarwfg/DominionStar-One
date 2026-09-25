@@ -67,7 +67,7 @@ jobs:
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
       - name: Verify desktop authentication contract
         run: node 'meet-desktop/scripts/verify-auth.mjs'
-      - name: Verify Zoom-style meeting identity lifecycle
+      - name: Verify DominionStar meeting identity lifecycle
         run: node 'meet-desktop/scripts/verify-meeting-lifecycle.mjs'
       - name: Exercise meeting identity runtime
         run: node 'meet-desktop/scripts/verify-meeting-identity-runtime.mjs'
@@ -75,7 +75,7 @@ jobs:
         run: node 'meet-desktop/scripts/verify-media-authority.mjs'
       - name: Verify restored audio video settings
         run: node 'meet-desktop/scripts/verify-av-settings.mjs'
-      - name: Verify approved meeting chrome and Zoom behavior
+      - name: Verify approved DominionStar meeting chrome and behavior
         run: node 'meet-desktop/scripts/verify-meeting-parity.mjs'
       - name: Verify nonblocking screen-share authority
         run: node 'meet-desktop/scripts/verify-share-authority.mjs'
