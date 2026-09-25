@@ -93,7 +93,7 @@ assert(shareService.includes('main.setOpacity?.(0.02)')&&bootstrap.includes('ori
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
 assert(preload.includes("cameraFrame:payload=>{if(process.platform!=='darwin')return false;ipcRenderer.send('mac-share:camera-frame'"),'Mac share bridge must accept live camera frames from the authoritative meeting renderer.');
 const macMirror=read('src/mac-share-video-mirror.mjs');
-assert(macMirror.includes("ipcMain.on('mac-share:camera-frame'")&&macMirror.includes("event.sender!==main.webContents"),'Floating presenter video must receive camera frames only from the main meeting renderer.');
+assert(macMirror.includes("ipcMain.on('mac-share:camera-frame'")&&macMirror.includes("event.sender!==main.webContents")&&!macMirror.includes('executeJavaScript')&&!macMirror.includes('setInterval('),'Floating presenter video must receive camera frames only from the main meeting renderer, with no competing camera poller.');
 assert(preload.includes("if(process.platform==='darwin')ipcRenderer.send('mac-share:state',state||{});return invoke('share:capture-state',state);"),'Mac share state must reach both native overlay and companion-window authorities.');
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK authoritative-presenter-dispatch synchronized-media-ui live-camera-frame-bridge inset-share-border enlarged-profile-scale stable-right-panels mac-panel-controls canonical-participant-row');
