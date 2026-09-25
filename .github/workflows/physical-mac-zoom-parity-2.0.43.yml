@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'meet-desktop/**'
-      - '.github/workflows/physical-mac-zoom-parity-2.0.44.yml'
+      - '.github/workflows/physical-mac-zoom-parity-2.0.43.yml'
   workflow_dispatch:
 
 permissions:
@@ -51,7 +51,7 @@ jobs:
           node --check ui/mac-presenter-toolbar.js
           node --check ui/meeting-feature-ready-2.0.41.js
           node --check scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
-          node scripts/verify-physical-mac-zoom-parity-2.0.44.mjs
+          node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
 
       - name: Build clean universal Mac QA app
         working-directory: meet-desktop
