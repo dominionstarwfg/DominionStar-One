@@ -10,7 +10,7 @@ if(process.platform==='darwin'){
   const BORDER_THICKNESS=4;
   const BORDER_COLOR='#2ed573';
   let toolbarWindow=null;
-  let borderWindows=[];
+  let borderWindows=[]; // one full-display transparent perimeter window
   let videoWindow=null;
   let shareActive=false;
   let toolbarReady=false;
@@ -25,7 +25,7 @@ if(process.platform==='darwin'){
   let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
-  const bordersReady=()=>borderWindows.length===4&&borderWindows.every(isAlive);
+  const bordersReady=()=>borderWindows.length===1&&borderWindows.every(isAlive);
   const isBorderWindow=win=>borderWindows.includes(win);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const mainWindow=()=>{
@@ -66,25 +66,26 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS,inset=2;
-    // Keep all four edge windows inside the selected display. Frameless windows
-    // placed exactly on a macOS display boundary can be clipped at the bottom
-    // or menu-bar edge, producing an incomplete share outline.
-    const x=bounds.x+inset,y=bounds.y+inset,width=Math.max(t,bounds.width-inset*2),height=Math.max(t,bounds.height-inset*2);
-    const segments=[
-      {x,y,width,height:t},
-      {x,y:y+height-t,width,height:t},
-      {x,y,width:t,height},
-      {x:x+width-t,y,width:t,height}
-    ];
-    borderWindows.forEach((win,index)=>{try{win.setBounds(segments[index],false);}catch{}});
+    const display=displayForSharedContent(),bounds=display.bounds;
+    // One transparent full-display perimeter is the geometry authority.
+    // Four independent edge windows were rejected on physical Mac because
+    // macOS could clamp one edge differently, leaving the bottom cut or offset.
+    // Keep the single overlay a few physical pixels inside the selected display
+    // so no edge sits on a cross-display/menu-bar boundary.
+    const inset=3;
+    const frame={
+      x:Math.round(bounds.x+inset),
+      y:Math.round(bounds.y+inset),
+      width:Math.max(BORDER_THICKNESS*2+1,Math.round(bounds.width-inset*2)),
+      height:Math.max(BORDER_THICKNESS*2+1,Math.round(bounds.height-inset*2))
+    };
+    try{borderWindows[0].setBounds(frame,false);}catch{}
   }
   function showBorder(){
     if(!bordersReady())return;positionBorder();
     for(const win of borderWindows){try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}try{win.showInactive?.();win.moveTop?.();}catch{}}
-    // macOS can clamp one edge while the four border windows are first shown.
-    // Re-assert the exact selected-display bounds after the window manager has
-    // committed them so the green share outline remains flush on all four sides.
+    // Re-assert the single selected-display perimeter after the window manager
+    // commits its bounds. There are no independent edges left to drift apart.
     setImmediate(()=>{if(shareActive&&bordersReady()){positionBorder();for(const win of borderWindows){try{win.moveTop?.();}catch{}}}});
     setTimeout(()=>{if(shareActive&&bordersReady())positionBorder();},80);
   }
@@ -135,19 +136,33 @@ if(process.platform==='darwin'){
   async function prepareBorder(){
     if(bordersReady())return borderWindows;
     for(const win of borderWindows)closeFailedWindow(win);borderWindows=[];
-    const html=`<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:${BORDER_COLOR}}body{border:4px solid #2ed573}</style>`;
-    const url=`data:text/html;charset=utf-8,${encodeURIComponent(html)}`;const created=[];
+    const html=`<!doctype html><meta charset="utf-8"><style>
+      *{box-sizing:border-box}
+      html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+      body{box-shadow:inset 0 0 0 ${BORDER_THICKNESS}px ${BORDER_COLOR};border-radius:1px}
+    </style>`;
+    const url=`data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    let win=null;
     try{
-      for(let index=0;index<4;index+=1){
-        const win=new BrowserWindow({width:2,height:2,show:false,frame:false,transparent:false,backgroundColor:BORDER_COLOR,resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
-        created.push(win);protect(win);try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
-        try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}
-        try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
-        win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
-      }
-      borderWindows=created;await Promise.all(created.map((win,index)=>boundedLoad(`mac_share_border_edge_${index}_load`,()=>win.loadURL(url))));
-      if(!bordersReady())throw new Error('mac_share_border_edges_incomplete');positionBorder();return borderWindows;
-    }catch(error){console.error('[DominionStar Meet] share border failed to prepare.',error);for(const win of created)closeFailedWindow(win);borderWindows=[];return null;}
+      win=new BrowserWindow({
+        width:100,height:100,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+        resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,
+        closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,
+        webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
+      });
+      borderWindows=[win];protect(win);
+      try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
+      try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}
+      try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+      win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
+      await boundedLoad('mac_share_perimeter_load',()=>win.loadURL(url));
+      if(!bordersReady())throw new Error('mac_share_perimeter_incomplete');
+      positionBorder();
+      return borderWindows;
+    }catch(error){
+      console.error('[DominionStar Meet] share perimeter failed to prepare.',error);
+      if(win)closeFailedWindow(win);borderWindows=[];return null;
+    }
   }
 
   async function prepareVideo(){
