@@ -66,12 +66,16 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;
+    const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS,inset=2;
+    // Keep all four edge windows inside the selected display. Frameless windows
+    // placed exactly on a macOS display boundary can be clipped at the bottom
+    // or menu-bar edge, producing an incomplete share outline.
+    const x=bounds.x+inset,y=bounds.y+inset,width=Math.max(t,bounds.width-inset*2),height=Math.max(t,bounds.height-inset*2);
     const segments=[
-      {x:bounds.x,y:bounds.y,width:bounds.width,height:t},
-      {x:bounds.x,y:bounds.y+bounds.height-t,width:bounds.width,height:t},
-      {x:bounds.x,y:bounds.y,width:t,height:Math.max(t,bounds.height)},
-      {x:bounds.x+bounds.width-t,y:bounds.y,width:t,height:Math.max(t,bounds.height)}
+      {x,y,width,height:t},
+      {x,y:y+height-t,width,height:t},
+      {x,y,width:t,height},
+      {x:x+width-t,y,width:t,height}
     ];
     borderWindows.forEach((win,index)=>{try{win.setBounds(segments[index],false);}catch{}});
   }
@@ -88,8 +92,8 @@ if(process.platform==='darwin'){
   function positionVideo(){
     if(!isAlive(videoWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    let width=videoLayout==='gallery'?360:252,height=videoLayout==='gallery'?250:174;
-    if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(190,Math.min(360,current.width||252));height=Math.max(132,Math.min(250,current.height||174));}catch{}}
+    let width=videoLayout==='gallery'?400:320,height=videoLayout==='gallery'?268:200;
+    if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(240,Math.min(420,current.width||320));height=Math.max(150,Math.min(280,current.height||200));}catch{}}
     const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+78);
     try{videoWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -111,7 +115,7 @@ if(process.platform==='darwin'){
     const win=new BrowserWindow({
       width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
-      focusable:false,acceptFirstMouse:true,
+      focusable:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
     });
     toolbarWindow=win;protect(win);
@@ -148,7 +152,7 @@ if(process.platform==='darwin'){
 
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
-    const win=new BrowserWindow({width:252,height:174,minWidth:190,minHeight:132,maxWidth:360,maxHeight:250,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}});
+    const win=new BrowserWindow({width:320,height:200,minWidth:240,minHeight:150,maxWidth:420,maxHeight:280,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}});
     videoWindow=win;protect(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
