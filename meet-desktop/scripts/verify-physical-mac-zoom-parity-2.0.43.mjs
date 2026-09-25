@@ -19,8 +19,15 @@ const media=read('ui/media-controller.js');
 const legacyParticipants=read('ui/participants-center-lock-2.0.41.js');
 const legacyHostTools=read('ui/host-tools-separation-lock-2.0.41.js');
 const legacyHostToolsCss=read('ui/host-tools-size-lock-2.0.41.css');
+const indexHtml=read('ui/index.html');
+const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
+const profileFallback=read('ui/profile-photo-fallback.js');
+const shareService=read('src/share-service.mjs');
+const shareController=read('ui/share-controller.js');
+const macPresenter=read('src/mac-share-presenter-overlay.mjs');
+const bootstrap=read('src/bootstrap.mjs');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController])new Function(source);
 
 assert.equal(pkg.version,'2.0.43','Physical Mac Zoom-parity repair must ship as 2.0.43.');
 
@@ -51,5 +58,18 @@ assert(personal.includes("passInput.value=String(state.room.passcode||'')")&&per
 assert(personalCss.includes('#newMeetingDialog label[hidden]{display:none!important}'),'Hidden personal-room passcode field must remain visually hidden.');
 assert(app.includes('const operation=media.setCamera(target);\n    syncMediaLabels();\n    attachPreview();\n    try{\n      await operation;attachPreview();syncMediaLabels();'),'Video button state and camera fallback must react before waiting for device acquisition.');
 assert(media.includes('warmVideoTimer=setTimeout(releaseWarmVideo,1800)'),'Camera warm handoff must remain bounded while immediate UI intent provides responsive control feedback.');
+
+
+assert(indexHtml.indexOf('./share-integration.js')>=0&&indexHtml.indexOf('./share-integration.js')<indexHtml.indexOf('./share-runtime-authority-2.0.41.js'),'The live share integration must load before the final share chooser authority.');
+assert(featureReady.includes('#stageAvatar{width:176px!important;height:176px!important;border-radius:50%!important'),'Camera-off stage profile photos must use the enlarged circular meeting scale.');
+assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}')&&read('ui/meeting-parity.css').includes('#prejoinAvatar.preview-avatar{width:156px;height:156px;border-radius:50%'),'Prejoin must hide its avatar over live video and use the enlarged camera-off profile scale.');
+assert(profileFallback.includes('width:76px;height:76px;border-radius:50%'),'Participant camera-off profile photos must no longer use the undersized 58px fallback.');
+assert(featureReady.includes('box-shadow:none!important')&&read('ui/meeting-parity.css').includes('box-shadow:none!important'),'Mic/video off state must use one clean slash without the old doubled halo stripe.');
+assert(featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'The loaded meeting toolbar must use the recognizable reaction smile/spark icon.');
+assert(shareService.includes("return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)}"),'Presenter toolbar commands must receive real delivery proof instead of a bare production ok response.');
+assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
+assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
+assert(macPresenter.includes('const displayForSharedContent=()=>')&&macPresenter.includes('{x:bounds.x,y:bounds.y,width:t,height:Math.max(t,bounds.height)}'),'The green presenter border must use the selected display and flush full-height side edges.');
+assert(shareService.includes('main.setOpacity?.(0.001)')&&bootstrap.includes('originalSetOpacity.call(main,0.001)'),'The live meeting renderer must remain scheduled at near-zero opacity instead of visibly leaking into the shared desktop.');
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_ZOOM_PARITY_2_0_43_OK stable-right-panels mac-panel-controls canonical-participant-row anchored-reactions readable-host-tools branded-header prejoin-avatar-safe personal-passcode-consistent responsive-video');
