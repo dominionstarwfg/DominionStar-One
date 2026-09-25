@@ -18,6 +18,7 @@ const personalCss=read('ui/personal-room.css');
 const app=read('ui/app.js');
 const media=read('ui/media-controller.js');
 const legacyParticipants=read('ui/participants-center-lock-2.0.41.js');
+const participantsReference=read('ui/zoom-participants-reference-2.0.41.js');
 const legacyHostTools=read('ui/host-tools-separation-lock-2.0.41.js');
 const legacyHostToolsCss=read('ui/host-tools-size-lock-2.0.41.css');
 const indexHtml=read('ui/index.html');
@@ -32,7 +33,7 @@ const integration=read('ui/share-integration.js');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareRuntimeAuthority])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareRuntimeAuthority,participantsReference])new Function(source);
 
 assert.equal(pkg.version,'2.0.43','Physical Mac parity repair must ship as 2.0.43.');
 
@@ -51,6 +52,7 @@ assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;
 assert(adaptive.includes('if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();}')&&adaptive.includes("side.style.setProperty('right','10px','important')"),'Adaptive parity must defer to the final stable side-surface authority.');
 assert(polish.includes('if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();return;}')&&polish.includes("menu.dataset.dsAnchorStable='1'"),'Production polish must stop rewriting panel and reaction geometry.');
 assert(polish.includes("mode==='runtime'?'runtime':'docked'")&&polish.includes("participantPanelMode(side)==='docked'&&!event.target.closest('button')"),'Legacy participant pointer interception must recognize runtime-owned panels and stand down before final drag authority.');
+assert(participantsReference.includes("if(window.DominionRuntimeStability?.layoutSideSurface)return;")&&runtime.includes("'DominionZoomParticipantsReference2041'")&&runtime.includes('window.DominionZoomParticipantsReference2041?.sync?.();'),'Participant reference may prime visual structure once but must defer geometry and retire its background reconciliation under the final runtime.');
 
 assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}'),'Live prejoin video must never have the profile avatar painted over it.');
 assert(screenshotCss.includes('.meeting-head .ds-meeting-brand{display:flex!important')&&screenshotCss.includes('.meeting-view-button{display:inline-flex!important'),'Meeting chrome must expose DominionStar branding and a clear View control.');
