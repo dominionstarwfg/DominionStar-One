@@ -10,7 +10,7 @@ if(process.platform==='darwin'){
   const BORDER_THICKNESS=4;
   const BORDER_COLOR='#2ed573';
   let toolbarWindow=null;
-  let borderWindows=[]; // one full-display transparent perimeter window
+  let borderWindows=[]; // four thin edge windows driven by one geometry authority
   let videoWindow=null;
   let shareActive=false;
   let toolbarReady=false;
@@ -25,7 +25,7 @@ if(process.platform==='darwin'){
   let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
-  const bordersReady=()=>borderWindows.length===1&&borderWindows.every(isAlive);
+  const bordersReady=()=>borderWindows.length===4&&borderWindows.every(isAlive);
   const isBorderWindow=win=>borderWindows.includes(win);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const mainWindow=()=>{
@@ -41,12 +41,10 @@ if(process.platform==='darwin'){
   function protect(win){if(!isAlive(win))return;try{win.setContentProtection(true);}catch{}}
   function wakeMain(main=mainWindow()){
     if(!isAlive(main))return false;
+    // Renderer liveness only. Do not show, focus, resize, change opacity, or
+    // move the meeting BrowserWindow from the native presenter module.
+    // share-service is the sole meeting-window geometry authority.
     try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
-    try{if(main.isMinimized?.())main.restore();}catch{}
-    try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
-    try{main.showInactive?.();}catch{}
-    // Do not alter opacity here. The meeting renderer must remain fully
-    // composited while the share-service parks its native window off-display.
     try{toolbarWindow?.moveTop?.();}catch{}
     return true;
   }
@@ -66,26 +64,27 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForSharedContent(),bounds=display.bounds;
-    // One transparent full-display perimeter is the geometry authority.
-    // Four independent edge windows were rejected on physical Mac because
-    // macOS could clamp one edge differently, leaving the bottom cut or offset.
-    // Keep the single overlay a few physical pixels inside the selected display
-    // so no edge sits on a cross-display/menu-bar boundary.
-    const inset=3;
-    const frame={
-      x:Math.round(bounds.x+inset),
-      y:Math.round(bounds.y+inset),
-      width:Math.max(BORDER_THICKNESS*2+1,Math.round(bounds.width-inset*2)),
-      height:Math.max(BORDER_THICKNESS*2+1,Math.round(bounds.height-inset*2))
-    };
-    try{borderWindows[0].setBounds(frame,false);}catch{}
+    const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;
+    // One coordinate model, four thin non-occluding edges. Keep every edge
+    // safely inside the selected physical display so macOS cannot clip the
+    // bottom/menu-bar boundary independently.
+    const inset=6;
+    const x=Math.round(bounds.x+inset),y=Math.round(bounds.y+inset);
+    const width=Math.max(t*2+1,Math.round(bounds.width-inset*2));
+    const height=Math.max(t*2+1,Math.round(bounds.height-inset*2));
+    const edges=[
+      {x,y,width,height:t},
+      {x,y:y+height-t,width,height:t},
+      {x,y,width:t,height},
+      {x:x+width-t,y,width:t,height}
+    ];
+    borderWindows.forEach((win,index)=>{try{win.setBounds(edges[index],false);}catch{}});
   }
   function showBorder(){
     if(!bordersReady())return;positionBorder();
     for(const win of borderWindows){try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}try{win.showInactive?.();win.moveTop?.();}catch{}}
-    // Re-assert the single selected-display perimeter after the window manager
-    // commits its bounds. There are no independent edges left to drift apart.
+    // Re-assert all edges from the same selected-display geometry after the
+    // window manager commits them; no edge computes its own display bounds.
     setImmediate(()=>{if(shareActive&&bordersReady()){positionBorder();for(const win of borderWindows){try{win.moveTop?.();}catch{}}}});
     setTimeout(()=>{if(shareActive&&bordersReady())positionBorder();},80);
   }
@@ -136,35 +135,33 @@ if(process.platform==='darwin'){
   async function prepareBorder(){
     if(bordersReady())return borderWindows;
     for(const win of borderWindows)closeFailedWindow(win);borderWindows=[];
-    const html=`<!doctype html><meta charset="utf-8"><style>
-      *{box-sizing:border-box}
-      html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
-      body{box-shadow:inset 0 0 0 ${BORDER_THICKNESS}px ${BORDER_COLOR};border-radius:1px}
-    </style>`;
+    const html=`<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:${BORDER_COLOR}}</style>`;
     const url=`data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
-    let win=null;
+    const created=[];
     try{
-      win=new BrowserWindow({
-        width:100,height:100,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
-        resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,
-        closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,
-        webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
-      });
-      borderWindows=[win];protect(win);
-      try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
-      try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}
-      try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
-      win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
-      await boundedLoad('mac_share_perimeter_load',()=>win.loadURL(url));
-      if(!bordersReady())throw new Error('mac_share_perimeter_incomplete');
+      for(let index=0;index<4;index+=1){
+        const win=new BrowserWindow({
+          width:4,height:4,show:false,frame:false,transparent:false,backgroundColor:BORDER_COLOR,
+          resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,
+          closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,
+          webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
+        });
+        created.push(win);protect(win);
+        try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
+        try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}
+        try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+        win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
+      }
+      borderWindows=created;
+      await Promise.all(created.map((win,index)=>boundedLoad(`mac_share_border_edge_${index}_load`,()=>win.loadURL(url))));
+      if(!bordersReady())throw new Error('mac_share_border_edges_incomplete');
       positionBorder();
       return borderWindows;
     }catch(error){
-      console.error('[DominionStar Meet] share perimeter failed to prepare.',error);
-      if(win)closeFailedWindow(win);borderWindows=[];return null;
+      console.error('[DominionStar Meet] share border failed to prepare.',error);
+      for(const win of created)closeFailedWindow(win);borderWindows=[];return null;
     }
   }
-
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
     const win=new BrowserWindow({width:320,height:200,minWidth:240,minHeight:150,maxWidth:420,maxHeight:280,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}});
@@ -223,7 +220,7 @@ if(process.platform==='darwin'){
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
-  ipcMain.on('share:capture-started',(_event,state={})=>{shareActive=true;shareState={...shareState,...state,meetingVisible:false};wakeMain();showOverlays();});
+  ipcMain.on('share:capture-started',(_event,state={})=>{shareActive=true;shareState={...shareState,...state,meetingVisible:false};showOverlays();});
   ipcMain.on('mac-share:state',(_event,state={})=>{if(!shareActive)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
   ipcMain.on('mac-share:capture-stopped',()=>{shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
