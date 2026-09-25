@@ -88,7 +88,16 @@ assert(!macToolbarHtml.includes('id="layoutButton"')&&!macToolbarHtml.includes('
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
 assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
 assert(macPresenter.includes('const displayForSharedContent=()=>')&&macPresenter.includes('bordersReady=()=>borderWindows.length===1')&&macPresenter.includes("await boundedLoad('mac_share_perimeter_load'")&&macPresenter.includes('body{box-shadow:inset 0 0 0')&&macPresenter.includes('const inset=3;'),'The green presenter perimeter must be one selected-display overlay, not four independently clamped edge windows.');
-assert(shareService.includes('main.setOpacity?.(0.02)')&&bootstrap.includes('originalSetOpacity.call(main,0.02)')&&macPresenter.includes('main.setOpacity?.(0.02)'),'The live meeting renderer must use one non-suspending Mac parking opacity across every presenter authority.');
+assert(
+  shareService.includes('const MAC_PARK_COORDINATE=-32000;')&&
+  shareService.includes('main.setOpacity?.(1)')&&
+  shareService.includes('x:MAC_PARK_COORDINATE,y:MAC_PARK_COORDINATE')&&
+  bootstrap.includes("Number(value)<0.99)return")&&
+  !shareService.includes('main.setOpacity?.(0.02)')&&
+  !bootstrap.includes('originalSetOpacity.call(main,0.02)')&&
+  !macPresenter.includes('main.setOpacity?.(0.02)'),
+  'The live meeting renderer must remain fully composited and park off-display; near-transparent parking is forbidden because it starves physical-Mac presenter commands.'
+);
 
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
 assert(preload.includes("cameraFrame:payload=>{if(process.platform!=='darwin')return false;ipcRenderer.send('mac-share:camera-frame'"),'Mac share bridge must accept live camera frames from the authoritative meeting renderer.');
@@ -96,4 +105,4 @@ const macMirror=read('src/mac-share-video-mirror.mjs');
 assert(macMirror.includes("ipcMain.on('mac-share:camera-frame'")&&macMirror.includes("event.sender!==main.webContents")&&!macMirror.includes('executeJavaScript')&&!macMirror.includes('setInterval('),'Floating presenter video must receive camera frames only from the main meeting renderer, with no competing camera poller.');
 assert(preload.includes("if(process.platform==='darwin')ipcRenderer.send('mac-share:state',state||{});return invoke('share:capture-state',state);"),'Mac share state must reach both native overlay and companion-window authorities.');
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK authoritative-presenter-dispatch synchronized-media-ui live-camera-frame-bridge inset-share-border enlarged-profile-scale stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK acknowledged-presenter-dispatch composited-offscreen-renderer synchronized-media-ui live-camera-frame-bridge single-perimeter-border enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
