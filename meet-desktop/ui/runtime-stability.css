@@ -366,7 +366,7 @@ body>.ds-reaction-tray{
 }
 
 
-/* Physical Mac acceptance: Participants and Chat are Zoom-like floating
+/* Physical Mac acceptance: Participants and Chat are DominionStar floating
    windows. The right edge belongs to the participant video panel, not sidebars. */
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"],
 #meetingOverlay #meetingChatPanel[data-ds-runtime-mode="floating"]{
