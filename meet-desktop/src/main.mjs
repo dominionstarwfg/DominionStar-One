@@ -120,7 +120,7 @@ function createMainWindow(){
   mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
 }
 
-ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaKeepMacPresenterHidden:process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1',installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
 ipcMain.handle('app:consume-join-url',()=>{
   while(pendingJoinUrls.length){const value=validJoinUrl(pendingJoinUrls.shift());if(value)return value;}
   return '';
