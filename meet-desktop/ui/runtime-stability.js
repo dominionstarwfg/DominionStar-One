@@ -231,6 +231,12 @@
       const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
       surfaceDrag={panel,id:event.pointerId,dx:event.clientX-pr.left,dy:event.clientY-pr.top,body:br};
       panel.dataset.dsRuntimeUserPositioned='1';
+      panel.style.setProperty('left',`${pr.left-br.left}px`,'important');
+      panel.style.setProperty('top',`${pr.top-br.top}px`,'important');
+      panel.style.setProperty('right','auto','important');
+      panel.style.setProperty('bottom','auto','important');
+      panel.style.setProperty('width',`${pr.width}px`,'important');
+      panel.style.setProperty('height',`${pr.height}px`,'important');
       panel.classList.add('dragging');
       handle.setPointerCapture?.(event.pointerId);
       event.preventDefault();
@@ -273,7 +279,7 @@
     if(panel){
       const baseWidth=panel.classList.contains('ds-panel-wide')?460:390;
       const width=Math.min(baseWidth,Math.max(300,bodyWidth-24));
-      const height=Math.max(320,bodyHeight-20);
+      const height=Math.min(560,Math.max(320,bodyHeight-20));
       panel.dataset.dsRuntimeMode='floating';
       panel.dataset.zoomPanelMode='runtime';
       panel.style.setProperty('position','absolute','important');
@@ -297,8 +303,8 @@
         panel.style.setProperty('left','auto','important');
         panel.style.setProperty('right','10px','important');
         panel.style.setProperty('top','10px','important');
-        panel.style.setProperty('bottom','10px','important');
-        panel.style.setProperty('height','auto','important');
+        panel.style.setProperty('bottom','auto','important');
+        panel.style.setProperty('height',`${height}px`,'important');
       }
       overlay.dataset.dsRuntimeSide='floating-right';
       ensurePanelTraffic(panel);
