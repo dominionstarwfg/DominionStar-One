@@ -74,7 +74,7 @@
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
-    let macCameraFrameTimer=0,macCameraFrameBusy=false,macCameraFrameCanvas=null;
+    let macCameraFrameTimer=0,macCameraFrameBusy=false,macCameraFrameCanvas=null,macCameraFrameVideo=null;
 
     async function publishMacCameraFrame(){
       if(!sameRendererPresenter||!share.snapshot().active||macCameraFrameBusy||!bridge?.cameraFrame)return;
@@ -85,10 +85,25 @@
       let bitmap=null;
       try{
         let source=document.querySelector('#localMeetingVideo'),width=Number(source?.videoWidth)||0,height=Number(source?.videoHeight)||0;
+        // When the meeting BrowserWindow is parked during a display share,
+        // Chromium may stop producing drawable frames on the visible meeting
+        // element even though the canonical camera track is live. Mirror that
+        // same MediaStream into a hidden video element; this does not acquire
+        // a second camera track and keeps presenter video truthful.
+        if(!(source&&source.readyState>=2&&width>1&&height>1)){
+          if(!macCameraFrameVideo){
+            macCameraFrameVideo=document.createElement('video');
+            macCameraFrameVideo.autoplay=true;macCameraFrameVideo.playsInline=true;macCameraFrameVideo.muted=true;
+            macCameraFrameVideo.style.cssText='position:fixed;width:2px;height:2px;left:-10000px;top:-10000px;opacity:.01;pointer-events:none';
+            document.body.append(macCameraFrameVideo);
+          }
+          if(macCameraFrameVideo.srcObject!==stream){macCameraFrameVideo.srcObject=stream;void macCameraFrameVideo.play().catch(()=>{});}
+          source=macCameraFrameVideo;width=Number(source.videoWidth)||0;height=Number(source.videoHeight)||0;
+        }
         if(!(source&&source.readyState>=2&&width>1&&height>1)&&typeof ImageCapture==='function'){
           try{bitmap=await new ImageCapture(track).grabFrame();source=bitmap;width=Number(bitmap.width)||0;height=Number(bitmap.height)||0;}catch{}
         }
-        if(!source||width<2||height<2)return;
+        if(!source||width<2||height<2){bridge.cameraFrame({cameraLive:true,frame:'',mirrored:mediaState.mirror!==false});return;}
         const outWidth=Math.min(360,Math.max(2,width)),outHeight=Math.max(2,Math.round(outWidth*height/Math.max(2,width)));
         const canvas=macCameraFrameCanvas||(macCameraFrameCanvas=document.createElement('canvas'));
         if(canvas.width!==outWidth)canvas.width=outWidth;if(canvas.height!==outHeight)canvas.height=outHeight;
@@ -101,7 +116,7 @@
       if(!sameRendererPresenter||!bridge?.cameraFrame)return;
       const active=Boolean(share.snapshot().active);
       if(active&&!macCameraFrameTimer){void publishMacCameraFrame();macCameraFrameTimer=setInterval(()=>{void publishMacCameraFrame();},180);}
-      else if(!active&&macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;macCameraFrameBusy=false;bridge.cameraFrame({cameraLive:false,frame:'',mirrored:true});}
+      else if(!active&&macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;macCameraFrameBusy=false;if(macCameraFrameVideo){try{macCameraFrameVideo.pause();}catch{}macCameraFrameVideo.srcObject=null;}bridge.cameraFrame({cameraLive:false,frame:'',mirrored:true});}
     }
 
     let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
