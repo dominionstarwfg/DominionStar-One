@@ -51,7 +51,7 @@
   }
 
   function retireBackgroundReconcilers(){
-    for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])disposeLoop(name);
+    for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance','DominionZoomParticipantsReference2041'])disposeLoop(name);
   }
 
   function primePhysicalControls(){
@@ -67,6 +67,7 @@
     legacyPrimed=true;
     window.DominionZoomProductionPolish?.sync?.();
     window.DominionApprovedReferenceParity?.sync?.();
+    window.DominionZoomParticipantsReference2041?.sync?.();
   }
 
   function ensureToolbarZones(){
