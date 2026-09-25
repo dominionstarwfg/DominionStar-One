@@ -42,13 +42,13 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // One command path only. On physical macOS, the native presenter bridge
-      // owns delivery for every toolbar action and waits for an acknowledgement
-      // from the live meeting renderer. This prevents a failed direct attempt
-      // from being followed by a second duplicate command through another route.
-      if(nativeBridge?.command)return await sendNative(normalized);
-      // Non-mac/test fallback only.
+      // The capture-owning meeting renderer is the state authority. Functional
+      // controls go through share-service, which executes and awaits that
+      // renderer directly. Only native video-dock layout commands stay on the
+      // macShare bridge.
+      if(NATIVE_ONLY_COMMANDS.has(normalized)&&normalized!=='show-meeting'&&nativeBridge?.command)return await sendNative(normalized);
       if(rendererBridge?.command)return await sendRenderer(normalized);
+      if(nativeBridge?.command)return await sendNative(normalized);
       throw new Error('presenter_transport_unavailable');
     }finally{scheduleHide();}
   };
@@ -77,12 +77,15 @@
     const paused=Boolean(state?.paused),micOn=Boolean(state?.micOn),cameraOn=Boolean(state?.cameraOn);
     const pause=q('#pauseLabel'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand');
     if(pause)pause.textContent=paused?'Resume':'Pause';if(audio)audio.textContent=micOn?'Mute':'Unmute';if(video)video.textContent=cameraOn?'Stop Video':'Start Video';
+    const audioButton=q('[data-command="audio"]'),videoButton=q('[data-command="video"]');
+    audioButton?.classList.toggle('is-off',!micOn);videoButton?.classList.toggle('is-off',!cameraOn);
+    audioButton?.setAttribute('aria-pressed',String(!micOn));videoButton?.setAttribute('aria-pressed',String(!cameraOn));
     if(label)label.textContent=paused?'Share paused':'You are screen sharing';
     if(source){const raw=String(state?.sourceName||'Shared content');source.textContent=/screen|desktop|display|entire/i.test(raw)?'Entire screen':raw;}
     if(audioFlag)audioFlag.hidden=!state?.shareAudio;if(optimize)optimize.hidden=!state?.optimizeVideo;
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.43-single-ack-authority',transport:nativeBridge?.command?'macShare-single-ack':rendererBridge?.command?'presenter-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.44-authoritative-renderer-dispatch',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
