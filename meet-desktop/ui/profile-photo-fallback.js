@@ -12,7 +12,7 @@
     const style=document.createElement('style');style.dataset.dsProfilePhotoFallback='1';style.textContent=`
       .ds-profile-fallback-photo{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
       .remote-peer-fallback.has-photo{background:radial-gradient(circle at 50% 35%,#1d3045,#0b1420)!important;padding:0!important}
-      .remote-peer-fallback .ds-profile-fallback-photo{position:relative;width:58px;height:58px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 8px 24px rgba(0,0,0,.3);z-index:1}
+      .remote-peer-fallback .ds-profile-fallback-photo{position:relative;width:76px;height:76px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 8px 24px rgba(0,0,0,.3);z-index:1}
       .remote-peer-fallback .ds-profile-fallback-photo[hidden]{display:none}
       .remote-peer-fallback.has-photo>span{display:none!important}
       .person-badge .ds-profile-fallback-photo,.preview-avatar .ds-profile-fallback-photo,.stage-avatar .ds-profile-fallback-photo{width:100%;height:100%;border-radius:inherit;object-fit:cover}
