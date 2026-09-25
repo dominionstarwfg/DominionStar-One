@@ -64,7 +64,7 @@ assert(media.includes('warmVideoTimer=setTimeout(releaseWarmVideo,1800)'),'Camer
 
 
 assert(indexHtml.indexOf('./share-integration.js')>=0&&indexHtml.indexOf('./share-integration.js')<indexHtml.indexOf('./share-runtime-authority-2.0.41.js'),'The live share integration must load before the final share chooser authority.');
-assert(featureReady.includes('#stageAvatar{width:196px!important;height:196px!important;border-radius:50%!important'),'Camera-off stage profile photos must use the enlarged circular meeting scale.');
+assert(featureReady.includes('#stageAvatar{width:196px!important;height:196px!important;border-radius:50%!important')&&read('ui/meeting-parity.css').includes('.stage-avatar{width:196px;height:196px;border-radius:50%}'),'Camera-off stage profile photos must remain at the enlarged circular meeting scale after final reference handoff.');
 assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}')&&read('ui/meeting-parity.css').includes('#prejoinAvatar.preview-avatar{width:176px;height:176px;border-radius:50%'),'Prejoin must hide its avatar over live video and use the enlarged camera-off profile scale.');
 assert(profileFallback.includes('width:88px;height:88px;border-radius:50%'),'Participant camera-off profile photos must no longer use the undersized 58px fallback.');
 assert(featureReady.includes('box-shadow:none!important')&&read('ui/meeting-parity.css').includes('box-shadow:none!important'),'Mic/video off state must use one clean slash without the old doubled halo stripe.');
