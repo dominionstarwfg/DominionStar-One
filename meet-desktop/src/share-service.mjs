@@ -14,6 +14,10 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let stopRetryTimer=null;
   let captureStartWatchdog=null;
   let macPresenterParked=false;
+  let macCaptureStartedAt=0;
+  let macParkTimer=null;
+  const MAC_PARK_DELAY_MS=2100;
+  const MAC_PARK_COORDINATE=-32000;
   let qaPresenterCommandSeq=0;
   let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};
 
@@ -64,23 +68,40 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false,opacity};return main;
   }
   function keepMeetingRendererLive(){const main=getMainWindow?.();if(!main||main.isDestroyed())return false;try{main.webContents?.setBackgroundThrottling?.(false);}catch{}return true;}
+  function cancelMacParkTimer(){if(macParkTimer){clearTimeout(macParkTimer);macParkTimer=null;}}
+  function scheduleMacPark(){
+    if(platform!=='darwin'||!shareActive)return false;
+    cancelMacParkTimer();
+    const elapsed=Math.max(0,Date.now()-macCaptureStartedAt);
+    const delay=Math.max(0,MAC_PARK_DELAY_MS-elapsed);
+    if(delay>0){macParkTimer=setTimeout(()=>{macParkTimer=null;if(shareActive)parkMacMeetingWindow({preCapture:false});},delay);return true;}
+    return parkMacMeetingWindow({preCapture:false});
+  }
   function parkMacMeetingWindow({preCapture=false}={}){
     if(platform!=='darwin')return false;
     const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     keepMeetingRendererLive();
-    // The capture-owning renderer must remain a visible, scheduled macOS
-    // window or Chromium can stop servicing toolbar IPC during real display
-    // capture. Park it at low-but-renderable opacity instead of hiding/minimizing it.
-    // Content protection is installed before capture starts and then left
-    // untouched for the duration of the share.
+    // Preserve the capture-owning renderer as a normal, fully composited,
+    // visible BrowserWindow. Physical Mac proved near-zero opacity can leave
+    // Chromium alive enough to start capture yet unresponsive to presenter
+    // commands. The meeting window is therefore parked off-display at opacity
+    // 1 instead of hidden, minimized, or made transparent.
     if(preCapture||!macPresenterParked)protectMeetingChrome(main,true);
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    try{main.setOpacity?.(1);}catch{}
     try{main.setIgnoreMouseEvents(true);}catch{}
-    try{main.setOpacity?.(0.02);}catch{}
-    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
+    try{main.setAlwaysOnTop(false);}catch{}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+    if(preCapture){
+      // Capture startup stays on-screen until getDisplayMedia is established.
+      try{main.showInactive?.();}catch{try{main.show();}catch{}}
+      return true;
+    }
+    if(!shareActive)return false;
+    const current=main.getBounds();
+    try{main.setBounds({...current,x:MAC_PARK_COORDINATE,y:MAC_PARK_COORDINATE},false);}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
     macPresenterParked=true;
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();
@@ -90,7 +111,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(!shareActive)return false;
     // Do not mutate the main BrowserWindow at presenter commit. macOS physical
     // presenter mutation happens before capture in parkMacMeetingWindow().
-    if(platform==='darwin')return parkMacMeetingWindow({preCapture:false});
+    if(platform==='darwin')return scheduleMacPark();
     const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     const qaSyntheticShare=qaPresenterTrace&&String(lastToolbarState.sourceName||'')==='QA Synthetic Share';
     if(!qaSyntheticShare)protectMeetingChrome(main,true);
@@ -98,7 +119,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};publishToolbarState();return true;
   }
   function showMeetingWindow({focus=true}={}){
-    const main=getMainWindow?.();if(!main||main.isDestroyed())return false;const saved=savedMainWindowState;keepMeetingRendererLive();
+    const main=getMainWindow?.();if(!main||main.isDestroyed())return false;const saved=savedMainWindowState;keepMeetingRendererLive();if(platform==='darwin')cancelMacParkTimer();
     try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(saved?.opacity??1);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     if(saved){try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}}
     try{main.setAlwaysOnTop(shareActive,'floating');}catch{try{main.setAlwaysOnTop(Boolean(shareActive));}catch{}}
@@ -116,7 +137,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     lastToolbarState={...lastToolbarState,meetingVisible:true,companion:String(kind||'')};publishToolbarState();return true;
   }
   function restoreMainWindowAfterShare(){
-    const main=getMainWindow?.(),saved=savedMainWindowState;if(!main||main.isDestroyed()){savedMainWindowState=null;macPresenterParked=false;return;}
+    cancelMacParkTimer();macCaptureStartedAt=0;const main=getMainWindow?.(),saved=savedMainWindowState;if(!main||main.isDestroyed()){savedMainWindowState=null;macPresenterParked=false;return;}
     try{main.setIgnoreMouseEvents(false);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     if(saved){try{main.setOpacity?.(saved.opacity??1);}catch{}try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}try{main.setAlwaysOnTop(Boolean(saved.alwaysOnTop));}catch{}try{if(saved.maximized)main.maximize();else if(saved.fullScreen)main.setFullScreen(true);}catch{}}
     else{try{main.setOpacity?.(1);}catch{}try{main.setMinimumSize(960,640);}catch{}try{main.setAlwaysOnTop(false);}catch{}}
@@ -209,7 +230,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
     shareActive=true;toolbarReadyForShare=platform==='darwin';presenterCommitPending=false;
     if(platform!=='darwin'){rememberMainWindow();keepMeetingRendererLive();attachShareWindowLifecycle();}
-    else keepMeetingRendererLive();
+    else{rememberMainWindow();keepMeetingRendererLive();macCaptureStartedAt=Date.now();scheduleMacPark();}
     lastToolbarState={...lastToolbarState,...state,meetingVisible:platform==='darwin'?!macPresenterParked:true,companion:''};
     const meta=presenterRendererMeta();qaPresenterLog('CAPTURE_STARTED',{sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid,url:encodeURIComponent(meta.url)});
   });
