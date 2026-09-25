@@ -1,4 +1,4 @@
-name: DominionStar Meet Zoom Preshare 2.0.31
+name: DominionStar Meet Pre-Share 2.0.31
 
 on:
   pull_request:
@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  zoom-preshare:
+  preshare:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact candidate
@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify Zoom-style pre-share authority
+      - name: Verify DominionStar pre-share authority
         working-directory: meet-desktop
         run: |
           node --check ui/share-picker.js
