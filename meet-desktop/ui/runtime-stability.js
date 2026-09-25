@@ -245,6 +245,7 @@
       panel.style.setProperty('width',`${pr.width}px`,'important');
       panel.style.setProperty('height',`${pr.height}px`,'important');
       panel.classList.add('dragging');
+      panel.style.setProperty('animation','none','important');
       event.preventDefault();
     };
     const move=event=>{
