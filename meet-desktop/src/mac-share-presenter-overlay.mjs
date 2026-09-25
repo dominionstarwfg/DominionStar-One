@@ -43,10 +43,10 @@ if(process.platform==='darwin'){
     if(!isAlive(main))return false;
     try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
     try{if(main.isMinimized?.())main.restore();}catch{}
-    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     try{main.showInactive?.();}catch{}
-    try{if(Number(main.getOpacity?.()||0)>0.03)main.setOpacity?.(0.02);}catch{}
+    // Do not alter opacity here. The meeting renderer must remain fully
+    // composited while the share-service parks its native window off-display.
     try{toolbarWindow?.moveTop?.();}catch{}
     return true;
   }
@@ -190,7 +190,7 @@ if(process.platform==='darwin'){
   }
   function hideMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
-    try{main.setIgnoreMouseEvents(true);}catch{}try{main.setOpacity?.(0.02);}catch{}
+    try{main.setIgnoreMouseEvents(true);}catch{}
     shareState={...shareState,meetingVisible:false};publishState();try{toolbarWindow?.moveTop?.();}catch{}return true;
   }
   function showOverlays(){
