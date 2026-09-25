@@ -74,6 +74,35 @@
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
+    let macCameraFrameTimer=0,macCameraFrameBusy=false,macCameraFrameCanvas=null;
+
+    async function publishMacCameraFrame(){
+      if(!sameRendererPresenter||!share.snapshot().active||macCameraFrameBusy||!bridge?.cameraFrame)return;
+      const mediaState=media.snapshot(),stream=media.stream?.()||null,track=stream?.getVideoTracks?.()[0]||null;
+      const cameraLive=Boolean(mediaState.videoLive&&mediaState.cameraOn&&track&&track.readyState==='live'&&track.enabled!==false);
+      if(!cameraLive){bridge.cameraFrame({cameraLive:false,frame:'',mirrored:mediaState.mirror!==false});return;}
+      macCameraFrameBusy=true;
+      let bitmap=null;
+      try{
+        let source=document.querySelector('#localMeetingVideo'),width=Number(source?.videoWidth)||0,height=Number(source?.videoHeight)||0;
+        if(!(source&&source.readyState>=2&&width>1&&height>1)&&typeof ImageCapture==='function'){
+          try{bitmap=await new ImageCapture(track).grabFrame();source=bitmap;width=Number(bitmap.width)||0;height=Number(bitmap.height)||0;}catch{}
+        }
+        if(!source||width<2||height<2)return;
+        const outWidth=Math.min(360,Math.max(2,width)),outHeight=Math.max(2,Math.round(outWidth*height/Math.max(2,width)));
+        const canvas=macCameraFrameCanvas||(macCameraFrameCanvas=document.createElement('canvas'));
+        if(canvas.width!==outWidth)canvas.width=outWidth;if(canvas.height!==outHeight)canvas.height=outHeight;
+        const context=canvas.getContext('2d',{alpha:false});if(!context)return;
+        context.drawImage(source,0,0,outWidth,outHeight);
+        bridge.cameraFrame({cameraLive:true,frame:canvas.toDataURL('image/jpeg',0.7),mirrored:mediaState.mirror!==false});
+      }finally{try{bitmap?.close?.();}catch{}macCameraFrameBusy=false;}
+    }
+    function syncMacCameraFramePump(){
+      if(!sameRendererPresenter||!bridge?.cameraFrame)return;
+      const active=Boolean(share.snapshot().active);
+      if(active&&!macCameraFrameTimer){void publishMacCameraFrame();macCameraFrameTimer=setInterval(()=>{void publishMacCameraFrame();},180);}
+      else if(!active&&macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;macCameraFrameBusy=false;bridge.cameraFrame({cameraLive:false,frame:'',mirrored:true});}
+    }
 
     let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
     let sharedVideo=stage.querySelector('#sharedContentVideo');if(!sharedVideo){sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);}
@@ -136,6 +165,7 @@
       // updates so presenter controls stay responsive.
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
       const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+      syncMacCameraFramePump();
     }
 
     function commitPresenterMode(){
