@@ -29,12 +29,14 @@ if(process.platform==='darwin'){
     if(!shareActive||!alive(main)||event.sender!==main.webContents)return;
     publish({
       cameraLive:payload?.cameraLive!==false,
+      bytes:payload?.bytes||null,
+      mime:String(payload?.mime||'image/jpeg'),
       frame:String(payload?.frame||''),
       mirrored:payload?.mirrored!==false
     });
   });
   ipcMain.on('mac-share:capture-stopped',()=>{
     shareActive=false;
-    publish({cameraLive:false,frame:'',mirrored:true});
+    publish({cameraLive:false,bytes:null,mime:'',frame:'',mirrored:true});
   });
 }
