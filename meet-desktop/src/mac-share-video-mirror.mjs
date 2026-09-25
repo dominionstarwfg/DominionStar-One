@@ -77,5 +77,14 @@ if(process.platform==='darwin'){
   }
 
   ipcMain.on('share:capture-started',start);
+  ipcMain.on('mac-share:camera-frame',(event,payload={})=>{
+    const main=mainWindow();
+    if(!shareActive||!alive(main)||event.sender!==main.webContents)return;
+    publish({
+      cameraLive:payload?.cameraLive!==false,
+      frame:String(payload?.frame||''),
+      mirrored:payload?.mirrored!==false
+    });
+  });
   ipcMain.on('mac-share:capture-stopped',stop);
 }
