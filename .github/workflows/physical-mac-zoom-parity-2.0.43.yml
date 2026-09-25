@@ -1,4 +1,4 @@
-name: DominionStar Meet Physical Mac Zoom Parity 2.0.43
+name: DominionStar Meet Physical Mac Parity 2.0.43
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  physical-mac-zoom-parity:
+  physical-mac-parity:
     runs-on: macos-14
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
