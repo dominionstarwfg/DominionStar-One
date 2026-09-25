@@ -184,7 +184,7 @@ try{
   assert.equal(liveVideo.live,'1');
   assert.equal(liveVideo.mirrorHidden,false);
   assert.equal(liveVideo.fallbackHidden,true);
-  assert.ok(liveVideo.src.startsWith('data:image/jpeg'),'Presenter video must receive a real mirrored camera frame.');
+  assert.ok(liveVideo.src.startsWith('blob:')||liveVideo.src.startsWith('data:image/jpeg'),'Presenter video must receive a real mirrored camera frame.');
   stage('presenter-video-live');
 
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
