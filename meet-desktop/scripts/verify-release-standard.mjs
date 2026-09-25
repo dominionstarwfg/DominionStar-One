@@ -16,12 +16,12 @@ const requiredSteps=[
   'Launch packaged app',
   'Verify packaged physical runtime stability',
   'Exercise packaged desktop controls',
-  'Measure packaged Zoom-scale interface',
+  'Measure packaged DominionStar interface scale',
   'Exercise packaged physical acceptance',
   'Verify packaged reaction duration parity',
   'Verify packaged high-volume reaction flow',
   'Verify packaged 2.0.21 physical Mac repairs',
-  'Verify packaged adaptive Zoom meeting behavior',
+  'Verify packaged adaptive DominionStar meeting behavior',
   'Verify packaged approved 3D reference parity',
   'Create installable DMG, archive, and checksums',
   'Verify installer layout and installed app identity',
@@ -56,8 +56,8 @@ assert.ok(workflow.indexOf('Verify packaged physical runtime stability')<workflo
 assert.ok(workflow.indexOf('Exercise packaged physical acceptance')<workflow.indexOf('Verify packaged reaction duration parity'),'Reaction timing must be verified after the general physical-acceptance gate.');
 assert.ok(workflow.indexOf('Verify packaged reaction duration parity')<workflow.indexOf('Verify packaged high-volume reaction flow'),'High-volume reaction flow must run after the base 10-second reaction lifetime gate.');
 assert.ok(workflow.indexOf('Verify packaged high-volume reaction flow')<workflow.indexOf('Verify packaged 2.0.21 physical Mac repairs'),'Physical Mac repairs must remain behind the reaction-flow gate.');
-assert.ok(workflow.indexOf('Verify packaged 2.0.21 physical Mac repairs')<workflow.indexOf('Verify packaged adaptive Zoom meeting behavior'),'Adaptive Zoom physical-reference parity must run after the carried-forward physical-Mac constraints.');
-assert.ok(workflow.indexOf('Verify packaged adaptive Zoom meeting behavior')<workflow.indexOf('Verify packaged approved 3D reference parity'),'Approved 3D reference must be verified after adaptive Zoom behavior.');
+assert.ok(workflow.indexOf('Verify packaged 2.0.21 physical Mac repairs')<workflow.indexOf('Verify packaged adaptive DominionStar meeting behavior'),'Adaptive DominionStar physical-reference parity must run after the carried-forward physical-Mac constraints.');
+assert.ok(workflow.indexOf('Verify packaged adaptive DominionStar meeting behavior')<workflow.indexOf('Verify packaged approved 3D reference parity'),'Approved 3D reference must be verified after adaptive DominionStar behavior.');
 assert.ok(workflow.indexOf('Verify packaged approved 3D reference parity')<workflow.indexOf('Create installable DMG, archive, and checksums'),'Installer creation must remain behind approved 3D-reference parity.');
 assert.ok(workflow.indexOf('Verify installer layout and installed app identity')<workflow.indexOf('Upload production artifact'),'Artifact upload must remain behind installer verification.');
 assert.ok(workflow.includes("VERSION=\"$(node -p \"require('./meet-desktop/package.json').version\")\""),'Workflow must derive the candidate version from package.json.');
