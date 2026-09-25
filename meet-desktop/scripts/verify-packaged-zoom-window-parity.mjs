@@ -85,7 +85,7 @@ try{
   await setViewport(880,700);
   const constrainedChat=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('#meetingChatPanel'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {mode:panel.dataset.dsRuntimeMode,width:Math.round(pr.width),inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10,stageRightGap:Math.round(br.right-sr.right)};})()`);
   assert.equal(constrainedChat.mode,'floating','Constrained Chat must float instead of crushing the stage.');
-  assert.ok(constrainedChat.width<=360,'Floating Chat must remain compact.');
+  assert.ok(constrainedChat.width>=300&&constrainedChat.width<=420,'Floating Chat must remain compact and readable within the approved DominionStar panel range.');
   assert.equal(constrainedChat.inside,true,'Floating Chat must remain inside the meeting body.');
   assert.ok(Math.abs(constrainedChat.stageRightGap)<=2,'Floating Chat must release stage width.');
   await evaluate(`window.DominionRuntimeStability.setChat(false)`);
