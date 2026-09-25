@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{};
   const bridge=desktop.macShare||null;
   const q=s=>document.querySelector(s);
-  let cameraOn=true,lastFrame='',mirrored=true;
+  let cameraOn=true,lastFrame='',mirrored=true,lastObjectUrl='';
 
   const initials=name=>String(name||'DominionStar').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'DS';
   const avatarFrom=user=>String(user?.avatarUrl||user?.avatar_url||user?.user_metadata?.avatar_url||user?.user_metadata?.picture||'');
@@ -37,8 +37,18 @@
   bridge?.onVideoFrame?.(payload=>{
     const cameraLive=payload?.cameraLive!==false;
     cameraOn=cameraLive;
-    if(!cameraLive)lastFrame='';
-    else if(payload?.frame)lastFrame=String(payload.frame);
+    if(!cameraLive){
+      if(lastObjectUrl){try{URL.revokeObjectURL(lastObjectUrl);}catch{}lastObjectUrl='';}
+      lastFrame='';
+    }else if(payload?.bytes){
+      if(lastObjectUrl){try{URL.revokeObjectURL(lastObjectUrl);}catch{}}
+      const bytes=payload.bytes instanceof Uint8Array?payload.bytes:new Uint8Array(payload.bytes);
+      lastObjectUrl=URL.createObjectURL(new Blob([bytes],{type:String(payload?.mime||'image/jpeg')}));
+      lastFrame=lastObjectUrl;
+    }else if(payload?.frame){
+      if(lastObjectUrl){try{URL.revokeObjectURL(lastObjectUrl);}catch{}lastObjectUrl='';}
+      lastFrame=String(payload.frame);
+    }
     mirrored=payload?.mirrored!==false;
     render();
   });
