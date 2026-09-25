@@ -43,7 +43,7 @@
     setHidden(button,!manager());
   }
 
-  function participantPanelMode(side=q('.room-side')){return side?.dataset.zoomPanelMode==='popout'?'popout':'docked';}
+  function participantPanelMode(side=q('.room-side')){const mode=String(side?.dataset.zoomPanelMode||'');return mode==='popout'?'popout':mode==='runtime'?'runtime':'docked';}
   function dockParticipantPanel(side=q('.room-side')){
     if(!side)return;side.dataset.zoomPanelMode='docked';
     side.style.setProperty('position','absolute','important');
