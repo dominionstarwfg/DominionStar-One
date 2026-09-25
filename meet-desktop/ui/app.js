@@ -81,6 +81,11 @@
   function applyMirror(){const mirrored=media.snapshot().mirror;$('#prejoinVideo').style.transform=mirrored?'scaleX(-1)':'none';$('#localMeetingVideo').style.transform=mirrored?'scaleX(-1)':'none';}
   function setControlLabel(id,text){const button=$(id);if(!button)return;const label=button.querySelector('.ds-control-label');if(label)label.textContent=text;else button.textContent=text;button.setAttribute('aria-label',text);}
   function syncMediaLabels(){const s=media.snapshot();for(const id of ['#prejoinMic','#roomMic']){const node=$(id);setControlLabel(id,s.micOn?'Mute':'Unmute');node?.classList.toggle('is-off',!s.micOn);node?.setAttribute('aria-pressed',String(!s.micOn));}for(const id of ['#prejoinCamera','#roomCamera']){const node=$(id);setControlLabel(id,s.cameraOn?'Stop Video':'Start Video');node?.classList.toggle('is-off',!s.cameraOn);node?.setAttribute('aria-pressed',String(!s.cameraOn));}window.DominionMeetingParity?.decorateControls?.();}
+  // Every media mutation, including commands from the floating presenter toolbar,
+  // must repaint the canonical meeting controls and camera/profile surfaces.
+  // Without this subscription the track state could change while stale red
+  // slash classes and profile fallbacks remained on screen.
+  media.onChange?.(()=>{try{attachPreview();}catch{}});
   async function toggleMic(button){button.disabled=true;const wasOn=media.snapshot().micOn;try{await media.setMicrophone(!wasOn);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().micOn?'mic-on':'mic-off');}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}}
   async function toggleCamera(button){
     const before=media.snapshot(),target=!before.cameraOn;
