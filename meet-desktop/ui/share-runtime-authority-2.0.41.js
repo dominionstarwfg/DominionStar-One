@@ -7,6 +7,7 @@
   const q=s=>document.querySelector(s);
   const qa=s=>[...document.querySelectorAll(s)];
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  async function waitForShareIntegration(timeoutMs=3000){const deadline=Date.now()+Math.max(500,Number(timeoutMs)||3000);while(Date.now()<deadline){if(window.DominionShareIntegration?.state)return true;await wait(25);}return Boolean(window.DominionShareIntegration?.state);}
   const esc=value=>String(value||'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[char]));
   const pref=(key,fallback=false)=>{try{const v=localStorage.getItem(key);return v===null?fallback:v==='1';}catch{return fallback;}};
   const save=(key,value)=>{try{localStorage.setItem(key,value?'1':'0');}catch{}};
@@ -120,6 +121,7 @@
   async function showRecovery(){close();const box=ensureRecovery();await refreshRecoveryCopy();box.hidden=false;}
 
   async function open(){
+    if(!await waitForShareIntegration()){window.DominionMeetingNotifications?.toast?.('Share controls could not initialize. Please try again.');return false;}
     if(!pickerBridge?.listSources||!pickerBridge?.choose)return false;
     qa('.ds-smart-share-picker,.ds-share-permission,.ds-219-share-recovery,#screenPermissionDialog').forEach(node=>{try{node.hidden=true;}catch{}});
     const panel=ensureRoot();activeTab='screens';panel.querySelectorAll('[data-tab]').forEach(item=>item.classList.toggle('active',item.dataset.tab==='screens'));panel.hidden=false;selectedId='';sources=[];render();const ok=await loadSources();if(ok)startAutoRefresh();return ok;
