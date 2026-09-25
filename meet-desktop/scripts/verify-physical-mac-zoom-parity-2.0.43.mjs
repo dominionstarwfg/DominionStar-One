@@ -7,6 +7,7 @@ const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const polish=read('ui/zoom-production-polish.js');
+const polishCss=read('ui/zoom-production-polish.css');
 const screenshotJs=read('ui/zoom-screenshot-reference-2.0.41.js');
 const screenshotCss=read('ui/zoom-screenshot-reference-2.0.41.css');
 const physical=read('ui/zoom-physical-acceptance.js');
@@ -42,7 +43,7 @@ assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.incl
 assert(runtime.includes("panel.style.setProperty('right','10px','important')")&&runtime.includes("panel.style.setProperty('left','auto','important')"),'Default side surfaces must remain stably anchored at the meeting right edge.');
 assert(runtime.includes('function ensurePanelTraffic(panel)')&&runtime.includes("className='ds-panel-traffic'"),'Participants and Chat must expose Mac-style close/minimize/zoom controls.');
 assert(runtimeCss.includes('.ds-panel-traffic .close')&&runtimeCss.includes('.ds-panel-minimized'),'Panel traffic controls and minimization styling must be packaged.');
-assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;')&&!runtimeCss.includes('left:18px!important;\n  right:auto!important;\n  top:auto!important;\n  bottom:94px!important;'),'Reaction chooser must not be hard-pinned to the lower-left corner.');
+assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;')&&!runtimeCss.includes('left:18px!important;\n  right:auto!important;\n  top:auto!important;\n  bottom:94px!important;')&&!polishCss.includes('.meeting-reaction-menu{left:18px!important'),'Reaction chooser position must belong to the runtime anchor calculation, not a hard-pinned stylesheet.');
 
 assert(adaptive.includes('if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();}')&&adaptive.includes("side.style.setProperty('right','10px','important')"),'Adaptive parity must defer to the final stable side-surface authority.');
 assert(polish.includes('if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();return;}')&&polish.includes("menu.dataset.dsAnchorStable='1'"),'Production polish must stop rewriting panel and reaction geometry.');
