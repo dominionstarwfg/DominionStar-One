@@ -34,8 +34,10 @@
   void loadIdentity();
   render();
   bridge?.onVideoFrame?.(payload=>{
-    const live=payload?.cameraLive!==false&&Boolean(payload?.frame);
-    lastFrame=live?String(payload.frame):'';
+    const cameraLive=payload?.cameraLive!==false;
+    cameraOn=cameraLive;
+    if(!cameraLive)lastFrame='';
+    else if(payload?.frame)lastFrame=String(payload.frame);
     mirrored=payload?.mirrored!==false;
     render();
   });
