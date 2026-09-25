@@ -66,6 +66,12 @@ jobs:
           echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 
+      - name: Diagnose presenter loop with native surfaces hidden
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN: '1'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Exercise packaged presenter command round trip
         working-directory: meet-desktop
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
