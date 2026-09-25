@@ -42,20 +42,14 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // Layout and Show Meeting are native floating-window responsibilities.
-      if(NATIVE_ONLY_COMMANDS.has(normalized))return await sendNative(normalized);
-      // Preserve the established direct-first routing boundary, but require
-      // execution proof. A bare {ok:true} from the compatibility IPC is not
-      // success; sendRenderer rejects it and we fall through to the native
-      // acknowledged queue that proves the live meeting renderer handled it.
-      if(rendererBridge?.command){
-        try{return await sendRenderer(normalized);}
-        catch(error){
-          if(nativeBridge?.command)return sendNative(normalized);
-          throw error;
-        }
-      }
-      return await sendNative(normalized);
+      // One command path only. On physical macOS, the native presenter bridge
+      // owns delivery for every toolbar action and waits for an acknowledgement
+      // from the live meeting renderer. This prevents a failed direct attempt
+      // from being followed by a second duplicate command through another route.
+      if(nativeBridge?.command)return await sendNative(normalized);
+      // Non-mac/test fallback only.
+      if(rendererBridge?.command)return await sendRenderer(normalized);
+      throw new Error('presenter_transport_unavailable');
     }finally{scheduleHide();}
   };
 
