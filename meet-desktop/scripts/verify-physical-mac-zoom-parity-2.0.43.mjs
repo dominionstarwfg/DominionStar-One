@@ -28,6 +28,7 @@ const macPresenter=read('src/mac-share-presenter-overlay.mjs');
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
 const integration=read('ui/share-integration.js');
+const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController])new Function(source);
 
@@ -73,6 +74,7 @@ const macToolbar=read('ui/mac-presenter-toolbar.js');
 assert(macToolbar.includes("if(nativeBridge?.command)return await sendNative(normalized);")&&!macToolbar.includes("if(nativeBridge?.command)return sendNative(normalized);"),'Physical-Mac presenter controls must use one acknowledged native delivery path instead of duplicate renderer/native dispatch.');
 assert(preload.includes('const accepted=result?.handled===true;')&&!preload.includes('const accepted=result?.handled!==false;'),'Presenter preload must reject undefined/stale listener results instead of falsely acknowledging dead toolbar commands.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}")&&!integration.includes("await share.stop();applyLayout();return {handled:true,command};"),'Stop Share must use one local-first state transition and rely on the synchronous share-state listener to restore meeting chrome.');
+assert(!macToolbarHtml.includes('id="layoutButton"')&&!macToolbarHtml.includes('data-command="show-meeting"><span class="glyph"')&&macToolbarHtml.includes('<button type="button" data-command="show-meeting">Show meeting</button>'),'Presenter strip must expose only primary share controls while secondary layout/show-meeting actions live under More.');
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
 assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
 assert(macPresenter.includes('const displayForSharedContent=()=>')&&macPresenter.includes('{x:bounds.x,y:bounds.y,width:t,height:Math.max(t,bounds.height)}')&&macPresenter.includes('setImmediate(()=>{if(shareActive&&bordersReady()){positionBorder();'),'The green presenter border must use the selected display, flush full-height side edges, and re-lock after macOS window placement.');
