@@ -78,6 +78,11 @@ if(process.platform==='darwin'){
   function showBorder(){
     if(!bordersReady())return;positionBorder();
     for(const win of borderWindows){try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}try{win.showInactive?.();win.moveTop?.();}catch{}}
+    // macOS can clamp one edge while the four border windows are first shown.
+    // Re-assert the exact selected-display bounds after the window manager has
+    // committed them so the green share outline remains flush on all four sides.
+    setImmediate(()=>{if(shareActive&&bordersReady()){positionBorder();for(const win of borderWindows){try{win.moveTop?.();}catch{}}}});
+    setTimeout(()=>{if(shareActive&&bordersReady())positionBorder();},80);
   }
   function hideBorder(){for(const win of borderWindows){if(isAlive(win))try{win.hide();}catch{}}}
   function positionVideo(){
