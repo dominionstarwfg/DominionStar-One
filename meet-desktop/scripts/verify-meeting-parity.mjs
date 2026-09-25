@@ -110,7 +110,7 @@ assert(participantControls.includes('authorizedSender')&&participantControls.inc
 assert(participantControls.includes("media()?.setMicrophone?.(false)")&&participantControls.includes("media()?.setCamera?.(false)"),'Verified host controls must call the existing media authority rather than manipulate tracks directly.');
 assert(participantControls.includes('Mute All')&&participantControls.includes('Ask All to Unmute'),'Participant panel must expose Zoom-style bulk audio controls.');
 assert(features.includes("kind:'hand'")&&features.includes('toggleRaiseHand')&&features.includes('raisedHands:new Map()'),'Raise Hand must be persistent meeting state, not a timed emoji reaction.');
-assert(features.includes("hand.textContent=state.localHandRaised?'✋ Lower Hand':'✋ Raise Hand'"),'Reactions menu must toggle Raise Hand / Lower Hand for the local participant.');
+assert(features.includes("const button=q('#roomReactions'),dedicatedHand=q('#roomRaiseHand')")&&features.includes("if(dedicatedHand){"),'Raise Hand must remain on its dedicated toolbar control rather than being inserted into the reaction chooser.');
 assert(features.includes('raised-hand-indicator')&&features.includes('remote-raised-hand'),'Raised Hand must decorate both participant roster and video tile state.');
 assert(participantControls.includes("type==='host:lower-hand'")&&participantControls.includes("await window.DominionMeetingFeatures?.setLocalHand?.(false"),'Host/co-host Lower Hand must pass through verified participant-control authority before changing local hand state.');
 assert(participantControls.includes("row.dataset.raisedHand==='1'")&&participantControls.includes("add('Lower Hand'"),'Host/co-host participant More menu must expose Lower Hand only for a raised participant.');
