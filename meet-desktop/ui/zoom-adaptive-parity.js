@@ -152,8 +152,13 @@
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
 
     sortParticipants();
-    if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();}
-    else installParticipantPanelDrag();
+    if(window.DominionRuntimeStability?.layoutSideSurface){
+      side.dataset.dsAdaptiveInitialized='1';
+      window.DominionRuntimeStability.layoutSideSurface();
+      for(const row of rows)row.querySelector('.ds-role-chip')?.setAttribute('aria-hidden','true');
+      return;
+    }
+    installParticipantPanelDrag();
 
     if(!side.hidden&&!side.dataset.dsAdaptiveInitialized){
       side.dataset.dsAdaptiveInitialized='1';
