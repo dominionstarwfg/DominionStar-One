@@ -48,13 +48,13 @@ try{
   if(participantsImmediate.reduceMotion)assert.equal(participantsImmediate.animation,'none','Reduce Motion must suppress the Participants entrance animation.');
   else assert.match(participantsImmediate.animation,/dsRuntimePanelIn/,'Participants must use the short runtime entrance motion.');
 
-  const dragStart=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),head=panel.querySelector('.room-side-head'),r=panel.getBoundingClientRect(),h=head.getBoundingClientRect();return {left:r.left,top:r.top,x:h.left+Math.min(110,h.width*.45),y:h.top+h.height/2};})()`);
+  const dragStart=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),head=panel.querySelector('.room-side-head'),r=panel.getBoundingClientRect(),h=head.getBoundingClientRect(),x=h.left+Math.min(110,h.width*.45),y=h.top+h.height/2,hit=document.elementFromPoint(x,y);return {left:r.left,top:r.top,x,y,hitTag:hit?.tagName||'',hitId:hit?.id||'',hitClass:String(hit?.className||''),bound:panel.dataset.dsRuntimeDragBound||'',mode:panel.dataset.dsRuntimeMode||''};})()`);
   await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x,y:dragStart.y});
   await cdp('Input.dispatchMouseEvent',{type:'mousePressed',x:dragStart.x,y:dragStart.y,button:'left',buttons:1,clickCount:1});
   await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragStart.x+64,y:dragStart.y+34,button:'left',buttons:1});
   await cdp('Input.dispatchMouseEvent',{type:'mouseReleased',x:dragStart.x+64,y:dragStart.y+34,button:'left',buttons:0,clickCount:1});
   await sleep(50);
-  const dragged=await evaluate(`(()=>{const r=document.querySelector('.room-side').getBoundingClientRect();return {dx:Math.round(r.left-${dragStart.left}),dy:Math.round(r.top-${dragStart.top})};})()`);
+  const dragged=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),r=panel.getBoundingClientRect(),br=body.getBoundingClientRect();return {dx:Math.round(r.left-${dragStart.left}),dy:Math.round(r.top-${dragStart.top}),begin:Number(panel.dataset.dsRuntimeDragBegin||0),move:Number(panel.dataset.dsRuntimeDragMove||0),end:Number(panel.dataset.dsRuntimeDragEnd||0),user:panel.dataset.dsRuntimeUserPositioned||'',left:panel.style.left,top:panel.style.top,right:panel.style.right,bottom:panel.style.bottom,width:Math.round(r.width),height:Math.round(r.height),bodyWidth:Math.round(br.width),bodyHeight:Math.round(br.height),animation:getComputedStyle(panel).animationName,hit:${JSON.stringify('${dragStart.hitTag}')},hitId:${JSON.stringify('${dragStart.hitId}')},hitClass:${JSON.stringify('${dragStart.hitClass}')}};})()`);
   assert.ok(Math.abs(dragged.dx)>=24||Math.abs(dragged.dy)>=18,`Participants must be movable with real pointer input. ${JSON.stringify(dragged)}`);
 
   await evaluate(`document.querySelector('#roomChat').click()`);await sleep(60);
