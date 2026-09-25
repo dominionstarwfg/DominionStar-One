@@ -180,6 +180,7 @@
   }
 
   function applyGeometry(side){
+    if(window.DominionRuntimeStability?.layoutSideSurface)return;
     const body=q('#meetingOverlay .meeting-body');if(!body)return;side.dataset.zoomPanelMode='popout';side.dataset.dsAdaptiveMode='floating';side.dataset.dsAdaptiveInitialized='1';
     if(side.dataset.dsAdaptiveUserPositioned==='1')return;
     let saved=null;try{saved=JSON.parse(localStorage.getItem(GEOMETRY_KEY)||'null');}catch{}
