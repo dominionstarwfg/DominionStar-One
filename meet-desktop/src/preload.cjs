@@ -22,7 +22,7 @@ const runPresenterPayload=payload=>{
     for(const callback of [...presenterCommandCallbacks]){
       try{
         const result=await Promise.resolve(callback(payload));
-        const accepted=result?.handled!==false;
+        const accepted=result?.handled===true;
         if(accepted)return {accepted:true,error:'',command,qaCommandId,deliveryId};
         lastError=String(result?.error||lastError);
       }catch(error){
