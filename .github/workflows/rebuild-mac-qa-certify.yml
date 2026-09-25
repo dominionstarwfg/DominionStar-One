@@ -193,7 +193,7 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Measure packaged Zoom-scale interface
+      - name: Measure packaged DominionStar interface scale
         working-directory: meet-desktop
         env:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
@@ -227,7 +227,7 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Verify packaged adaptive Zoom meeting behavior
+      - name: Verify packaged adaptive DominionStar meeting behavior
         working-directory: meet-desktop
         env:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
