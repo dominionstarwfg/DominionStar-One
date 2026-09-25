@@ -1,0 +1,90 @@
+name: DominionStar Meet Physical Mac Zoom Parity 2.0.43
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/physical-mac-zoom-parity-2.0.43.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  physical-mac-zoom-parity:
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+      DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
+    steps:
+      - name: Checkout exact 2.0.43 candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clean generated state
+        run: |
+          rm -rf meet-desktop/node_modules meet-desktop/dist qa-artifact
+          find . -maxdepth 2 \( -name '*.dmg' -o -name '*.pkg' -o -name '*.zip' \) -print0 | xargs -0 -I{} rm -f '{}' || true
+
+      - name: Install exact rebuild dependencies
+        working-directory: meet-desktop
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Verify 2.0.43 source contract
+        working-directory: meet-desktop
+        run: |
+          test "$(node -p "require('./package.json').version")" = "2.0.43"
+          node --check src/preload.cjs
+          node --check src/share-service.mjs
+          node --check src/mac-share-presenter-overlay.mjs
+          node --check ui/share-controller.js
+          node --check ui/share-integration.js
+          node --check ui/mac-presenter-toolbar.js
+          node --check ui/meeting-feature-ready-2.0.41.js
+          node --check scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
+          node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
+
+      - name: Build clean universal Mac QA app
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Locate packaged app
+        id: app
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
+      - name: Exercise packaged presenter command round trip
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Exercise packaged physical meeting acceptance
+        working-directory: meet-desktop
+        run: node scripts/verify-packaged-physical-acceptance.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Create physical Mac QA artifact
+        shell: bash
+        run: |
+          mkdir -p qa-artifact
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-2.0.43-Physical-Mac-QA.zip
+          shasum -a 256 qa-artifact/DominionStar-Meet-2.0.43-Physical-Mac-QA.zip | tee qa-artifact/SHA256.txt
+
+      - name: Upload 2.0.43 QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.43-physical-mac-qa
+          path: qa-artifact/*
+          if-no-files-found: error
+          retention-days: 14
