@@ -35,7 +35,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     }
   });
 
-  const serialize=source=>({id:String(source.id),name:String(source.name||'Untitled source'),kind:String(source.id||'').startsWith('screen:')?'screen':'window',thumbnail:source.thumbnail?.isEmpty?.()?'' : source.thumbnail?.toDataURL?.()||'',icon:source.appIcon?.isEmpty?.()?'' : source.appIcon?.toDataURL?.()||''});
+  const serialize=source=>({id:String(source.id),name:String(source.name||'Untitled source'),kind:String(source.id||'').startsWith('screen:')?'screen':'window',displayId:String(source.display_id||''),thumbnail:source.thumbnail?.isEmpty?.()?'' : source.thumbnail?.toDataURL?.()||'',icon:source.appIcon?.isEmpty?.()?'' : source.appIcon?.toDataURL?.()||''});
   const publishToolbarState=()=>{if(toolbarWindow&&!toolbarWindow.isDestroyed())toolbarWindow.webContents.send('share:toolbar-state',lastToolbarState);};
   const presenterRendererMeta=()=>{
     const main=getMainWindow?.(),webContents=main?.webContents;
@@ -78,7 +78,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setIgnoreMouseEvents(true);}catch{}
-    try{main.setOpacity?.(0.02);}catch{}
+    try{main.setOpacity?.(0.001);}catch{}
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
@@ -131,7 +131,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     positionNearMain(pickerWindow,900,620);pickerWindow.removeMenu?.();protectMeetingChrome(pickerWindow,true);pickerWindow.once('ready-to-show',()=>{pickerWindow?.show();pickerWindow?.focus();});void pickerWindow.loadFile(path.join(uiDir,'share-picker.html'));pickerWindow.on('closed',()=>{pickerWindow=null;});
     return {opened:true,reused:false,nativeSystemPicker:false};
   }
-  function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed())pickerWindow.close();pickerWindow=null;}
+  function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed()){try{pickerWindow.hide();}catch{}try{pickerWindow.close();}catch{}}pickerWindow=null;}
 
   async function openToolbar(){
     if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishToolbarState();return true;}
@@ -195,11 +195,12 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;try{const result=await authority.list(options);if(result.timedOut)return {ok:false,timedOut:true,sources:[]};return {ok:true,timedOut:false,sources:result.sources.map(serialize)};}catch(error){return {ok:false,timedOut:false,sources:[],error:String(error?.message||error)};}});
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);
     const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
-    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio)};pendingSelection={source,options:normalizedOptions};
+    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),displayId:String(source.display_id||'')};pendingSelection={source,options:normalizedOptions};
+    closePicker();
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
     captureStartWatchdog=setTimeout(()=>{captureStartWatchdog=null;if(platform==='darwin'&&!shareActive){pendingSelection=null;restoreMainWindowAfterShare();}},6500);
-    closePicker();queueMicrotask(()=>sendMain('share:source-selected',{sourceId:String(source.id),name:String(source.name||'Shared content'),options:normalizedOptions}));return {ok:true,nativeSystemPicker:false};
+    queueMicrotask(()=>sendMain('share:source-selected',{sourceId:String(source.id),name:String(source.name||'Shared content'),options:normalizedOptions}));return {ok:true,nativeSystemPicker:false};
   });
   ipcMain.handle('share:cancel-picker',()=>{pendingSelection=null;closePicker();return {ok:true};});
 
@@ -235,7 +236,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     else if(['show-meeting','participants','chat','annotate'].includes(normalized)){const main=getMainWindow?.();if(main&&!main.isDestroyed()){main.show();main.focus();}}
     if(!sent){delivery=await sendPresenterCommand(normalized,toolbarSenderId);sent=delivery.sent;}
     if(normalized==='stop'&&shareActive){if(stopRetryTimer)clearTimeout(stopRetryTimer);stopRetryTimer=setTimeout(()=>{stopRetryTimer=null;if(shareActive){if(platform!=='darwin')showMeetingWindow({focus:false});else keepMeetingRendererLive();void sendPresenterCommand('stop',0);}},700);}
-    return qaPresenterTrace?{ok:true,qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct)}:{ok:true};
+    return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)};
   });
 
   return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
