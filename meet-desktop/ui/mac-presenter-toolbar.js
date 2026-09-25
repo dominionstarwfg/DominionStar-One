@@ -83,6 +83,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.42-strict-direct-native-ack-fallback',transport:rendererBridge?.command?'presenter-direct-first':nativeBridge?.command?'macShare-ack-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.43-single-ack-authority',transport:nativeBridge?.command?'macShare-single-ack':rendererBridge?.command?'presenter-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
