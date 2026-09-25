@@ -62,7 +62,7 @@ assert.ok(participantSetter.includes('layoutSideSurface();'),'Participants visib
 assert.ok(chatSetter.includes('layoutSideSurface();'),'Chat visibility and responsive geometry must commit in the same click transaction.');
 assert.ok(!participantSetter.includes('schedule();'),'Participants click must not wait for requestAnimationFrame to acquire final geometry.');
 assert.ok(!chatSetter.includes('schedule();'),'Chat click must not wait for requestAnimationFrame to acquire final geometry.');
-assert.ok(runtime.includes("for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance'])"),'All known periodic layout authorities must be retired by the final runtime.');
+assert.ok(runtime.includes("for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance','DominionZoomParticipantsReference2041'])"),'All known periodic layout authorities, including the retired participant-reference geometry reconciler, must be retired by the final runtime.');
 assert.ok(runtime.includes('primePhysicalControls()'),'Physical controls must be primed once without restoring their background loop.');
 assert.ok(runtime.includes('primeLegacyStructure()'),'Legacy structural polish must be primed once rather than on every snapshot.');
 assert.ok(runtime.includes('if(legacyPrimed||!meetingOpen())return'),'Legacy structural passes must be one-shot per meeting.');
