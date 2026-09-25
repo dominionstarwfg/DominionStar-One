@@ -70,7 +70,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     keepMeetingRendererLive();
     // The capture-owning renderer must remain a visible, scheduled macOS
     // window or Chromium can stop servicing toolbar IPC during real display
-    // capture. Park it at near-zero opacity instead of hiding/minimizing it.
+    // capture. Park it at low-but-renderable opacity instead of hiding/minimizing it.
     // Content protection is installed before capture starts and then left
     // untouched for the duration of the share.
     if(preCapture||!macPresenterParked)protectMeetingChrome(main,true);
@@ -78,7 +78,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setIgnoreMouseEvents(true);}catch{}
-    try{main.setOpacity?.(0.001);}catch{}
+    try{main.setOpacity?.(0.02);}catch{}
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
