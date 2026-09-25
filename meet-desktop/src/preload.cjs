@@ -112,6 +112,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     openPicker:async permission=>{await prepareMacPresenter();return invoke('share:open-picker',{permission:String(permission||'unknown')});},probeAccess:()=>invoke('share:probe-access'),onSourceSelected:callback=>listen('share:source-selected',callback),
     captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;},
     captureState:state=>{if(process.platform==='darwin'){ipcRenderer.send('mac-share:state',state||{});return true;}return invoke('share:capture-state',state);},
+    cameraFrame:payload=>{if(process.platform!=='darwin')return false;ipcRenderer.send('mac-share:camera-frame',payload||{});return true;},
     presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;},
     captureStopped:()=>{if(process.platform==='darwin')ipcRenderer.send('mac-share:capture-stopped');return invoke('share:capture-stopped');},
     onPresenterCommand:callback=>listenPresenterCommand(callback)
