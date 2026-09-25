@@ -61,6 +61,10 @@ jobs:
           node --check ui/share-annotation.js
           node --check ui/share-integration.js
           node --check ui/physical-mac-repair.js
+          node --check ui/mac-presenter-toolbar.js
+          node --check src/preload.cjs
+          node --check src/mac-share-presenter-overlay.mjs
+          node --check scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
           node --check scripts/verify-meeting-identity-runtime.mjs
           node --check scripts/verify-packaged-interactions.mjs
           node --check scripts/verify-packaged-physical-mac-2.0.21.mjs
@@ -92,6 +96,7 @@ jobs:
           node scripts/verify-physical-parity-2.0.21.mjs
           node scripts/verify-approved-reference-parity-2.0.22.mjs
           node scripts/verify-runtime-stability-2.0.22.mjs
+          node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
 
       - name: Build and sign universal QA app once
         working-directory: meet-desktop
