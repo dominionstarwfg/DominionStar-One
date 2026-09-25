@@ -80,17 +80,19 @@
       if(!sameRendererPresenter||!share.snapshot().active||macCameraFrameBusy||!bridge?.cameraFrame)return;
       const mediaState=media.snapshot(),stream=media.stream?.()||null,track=stream?.getVideoTracks?.()[0]||null;
       const cameraLive=Boolean(mediaState.videoLive&&mediaState.cameraOn&&track&&track.readyState==='live'&&track.enabled!==false);
-      if(!cameraLive){bridge.cameraFrame({cameraLive:false,frame:'',mirrored:mediaState.mirror!==false});return;}
+      if(!cameraLive){bridge.cameraFrame({cameraLive:false,bytes:null,mime:'',mirrored:mediaState.mirror!==false});return;}
       macCameraFrameBusy=true;
       let bitmap=null;
       try{
-        let source=document.querySelector('#localMeetingVideo'),width=Number(source?.videoWidth)||0,height=Number(source?.videoHeight)||0;
-        // When the meeting BrowserWindow is parked during a display share,
-        // Chromium may stop producing drawable frames on the visible meeting
-        // element even though the canonical camera track is live. Mirror that
-        // same MediaStream into a hidden video element; this does not acquire
-        // a second camera track and keeps presenter video truthful.
-        if(!(source&&source.readyState>=2&&width>1&&height>1)){
+        let source=null,width=0,height=0;
+        // Prefer ImageCapture: it reads the canonical camera track without
+        // forcing the meeting's visible <video> through a synchronous GPU read.
+        if(typeof ImageCapture==='function'){
+          try{bitmap=await new ImageCapture(track).grabFrame();source=bitmap;width=Number(bitmap.width)||0;height=Number(bitmap.height)||0;}catch{}
+        }
+        // Fallback uses the same MediaStream in an off-screen video element;
+        // it never acquires a second camera track.
+        if(!source||width<2||height<2){
           if(!macCameraFrameVideo){
             macCameraFrameVideo=document.createElement('video');
             macCameraFrameVideo.autoplay=true;macCameraFrameVideo.playsInline=true;macCameraFrameVideo.muted=true;
@@ -100,23 +102,26 @@
           if(macCameraFrameVideo.srcObject!==stream){macCameraFrameVideo.srcObject=stream;void macCameraFrameVideo.play().catch(()=>{});}
           source=macCameraFrameVideo;width=Number(source.videoWidth)||0;height=Number(source.videoHeight)||0;
         }
-        if(!(source&&source.readyState>=2&&width>1&&height>1)&&typeof ImageCapture==='function'){
-          try{bitmap=await new ImageCapture(track).grabFrame();source=bitmap;width=Number(bitmap.width)||0;height=Number(bitmap.height)||0;}catch{}
-        }
-        if(!source||width<2||height<2){bridge.cameraFrame({cameraLive:true,frame:'',mirrored:mediaState.mirror!==false});return;}
+        if(!source||width<2||height<2){bridge.cameraFrame({cameraLive:true,bytes:null,mime:'',mirrored:mediaState.mirror!==false});return;}
         const outWidth=Math.min(360,Math.max(2,width)),outHeight=Math.max(2,Math.round(outWidth*height/Math.max(2,width)));
         const canvas=macCameraFrameCanvas||(macCameraFrameCanvas=document.createElement('canvas'));
         if(canvas.width!==outWidth)canvas.width=outWidth;if(canvas.height!==outHeight)canvas.height=outHeight;
         const context=canvas.getContext('2d',{alpha:false});if(!context)return;
         context.drawImage(source,0,0,outWidth,outHeight);
-        bridge.cameraFrame({cameraLive:true,frame:canvas.toDataURL('image/jpeg',0.7),mirrored:mediaState.mirror!==false});
+        // Never use synchronous canvas.toDataURL() in the meeting renderer
+        // while it owns display capture. Encode asynchronously and transfer
+        // binary bytes through Electron IPC.
+        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.72));
+        if(!blob)return;
+        const bytes=new Uint8Array(await blob.arrayBuffer());
+        bridge.cameraFrame({cameraLive:true,bytes,mime:'image/jpeg',mirrored:mediaState.mirror!==false});
       }finally{try{bitmap?.close?.();}catch{}macCameraFrameBusy=false;}
     }
     function syncMacCameraFramePump(){
       if(!sameRendererPresenter||!bridge?.cameraFrame)return;
       const active=Boolean(share.snapshot().active);
-      if(active&&!macCameraFrameTimer){void publishMacCameraFrame();macCameraFrameTimer=setInterval(()=>{void publishMacCameraFrame();},180);}
-      else if(!active&&macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;macCameraFrameBusy=false;if(macCameraFrameVideo){try{macCameraFrameVideo.pause();}catch{}macCameraFrameVideo.srcObject=null;}bridge.cameraFrame({cameraLive:false,frame:'',mirrored:true});}
+      if(active&&!macCameraFrameTimer){void publishMacCameraFrame();macCameraFrameTimer=setInterval(()=>{void publishMacCameraFrame();},250);}
+      else if(!active&&macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;macCameraFrameBusy=false;if(macCameraFrameVideo){try{macCameraFrameVideo.pause();}catch{}macCameraFrameVideo.srcObject=null;}bridge.cameraFrame({cameraLive:false,bytes:null,mime:'',mirrored:true});}
     }
 
     let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
