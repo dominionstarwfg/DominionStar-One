@@ -20,14 +20,15 @@
   }
 
   function render(){
-    const mirror=q('#cameraMirror'),fallback=q('#cameraFallback'),dock=q('#dock');
-    const showLive=Boolean(cameraOn&&lastFrame);
+    const mirror=q('#cameraMirror'),fallback=q('#cameraFallback'),pending=q('#cameraPending'),dock=q('#dock');
+    const showLive=Boolean(cameraOn&&lastFrame),waitingForFrame=Boolean(cameraOn&&!lastFrame);
     if(mirror){
       if(lastFrame&&mirror.src!==lastFrame)mirror.src=lastFrame;
       mirror.hidden=!showLive;
       mirror.style.transform=mirrored?'scaleX(-1)':'none';
     }
-    if(fallback)fallback.hidden=showLive;
+    if(fallback)fallback.hidden=Boolean(cameraOn);
+    if(pending)pending.hidden=!waitingForFrame;
     if(dock){dock.dataset.cameraOn=cameraOn?'1':'0';dock.dataset.videoOwner='meeting-renderer-frame-mirror';dock.dataset.livePreview=showLive?'1':'0';}
   }
 
