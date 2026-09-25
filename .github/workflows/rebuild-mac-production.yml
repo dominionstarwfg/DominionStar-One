@@ -149,7 +149,7 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-interactions.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Measure packaged Zoom-scale interface
+      - name: Measure packaged DominionStar interface scale
         working-directory: meet-desktop
         env:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
@@ -177,7 +177,7 @@ jobs:
         working-directory: meet-desktop
         run: node scripts/verify-packaged-physical-mac-2.0.21.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Verify packaged adaptive Zoom meeting behavior
+      - name: Verify packaged adaptive DominionStar meeting behavior
         working-directory: meet-desktop
         env:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
@@ -212,7 +212,7 @@ jobs:
           test -s "$DMG"
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" "$ZIP"
           shasum -a 256 "$DMG" "$ZIP" | tee production-artifact/SHA256.txt
-          printf 'commit=%s\nversion=%s\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\ntcc_persistence=not-certified-adhoc\nphysical_reference=approved-3d-plus-zoom-current-macos\nnative_share_picker=macos-15-plus\nreference_gate=approved-2.0.22\nruntime_stability_gate=physical-freeze-full-window-panels\nreaction_flow_gate=left-lanes-blossoms-bounded\n' "$GITHUB_SHA" "${{ steps.meta.outputs.version }}" > production-artifact/BUILD-PROVENANCE.txt
+          printf 'commit=%s\nversion=%s\nsource=main\ninstaller=dmg-drag-to-Applications\nbundle_id=com.dominionstar.desktop\nsigning=adhoc\ntcc_persistence=not-certified-adhoc\nphysical_reference=approved-3d-plus-current-macos-reference\nnative_share_picker=macos-15-plus\nreference_gate=approved-2.0.22\nruntime_stability_gate=physical-freeze-full-window-panels\nreaction_flow_gate=left-lanes-blossoms-bounded\n' "$GITHUB_SHA" "${{ steps.meta.outputs.version }}" > production-artifact/BUILD-PROVENANCE.txt
 
       - name: Verify installer layout and installed app identity
         shell: bash
