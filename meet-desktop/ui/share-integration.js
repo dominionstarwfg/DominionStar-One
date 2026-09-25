@@ -71,6 +71,7 @@
     const media=window.DominionMediaController,share=window.DominionShareController;
     const environment=await desktop?.environment?.().catch(()=>null);
     const sameRendererPresenter=String(environment?.platform||'')==='darwin';
+    const qaKeepMacPresenterHidden=Boolean(environment?.qaKeepMacPresenterHidden);
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
@@ -119,6 +120,9 @@
     }
     function syncMacCameraFramePump(){
       if(!sameRendererPresenter||!bridge?.cameraFrame)return;
+      // Diagnostic isolation only: prove whether the camera relay is the
+      // renderer-stall trigger while all native presenter surfaces are hidden.
+      if(qaKeepMacPresenterHidden){if(macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;}macCameraFrameBusy=false;return;}
       const active=Boolean(share.snapshot().active);
       if(active&&!macCameraFrameTimer){void publishMacCameraFrame();macCameraFrameTimer=setInterval(()=>{void publishMacCameraFrame();},250);}
       else if(!active&&macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;macCameraFrameBusy=false;if(macCameraFrameVideo){try{macCameraFrameVideo.pause();}catch{}macCameraFrameVideo.srcObject=null;}bridge.cameraFrame({cameraLive:false,bytes:null,mime:'',mirrored:true});}
