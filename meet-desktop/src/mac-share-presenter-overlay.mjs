@@ -22,7 +22,7 @@ if(process.platform==='darwin'){
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
   const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
-  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
+  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
   const bordersReady=()=>borderWindows.length===4&&borderWindows.every(isAlive);
@@ -35,6 +35,7 @@ if(process.platform==='darwin'){
       ||null;
   };
   const displayForMain=()=>{const main=mainWindow();try{return main?screen.getDisplayMatching(main.getBounds()):screen.getPrimaryDisplay();}catch{return screen.getPrimaryDisplay();}};
+  const displayForSharedContent=()=>{const id=String(shareState.displayId||'');if(id){try{const matched=screen.getAllDisplays().find(display=>String(display.id)===id);if(matched)return matched;}catch{}}return displayForMain();};
   const isDisplayShare=()=>/screen|desktop|display|entire/i.test(String(shareState.sourceName||''));
 
   function protect(win){if(!isAlive(win))return;try{win.setContentProtection(true);}catch{}}
@@ -45,7 +46,7 @@ if(process.platform==='darwin'){
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     try{main.showInactive?.();}catch{}
-    try{if(Number(main.getOpacity?.()||0)<0.01)main.setOpacity?.(0.02);}catch{}
+    try{if(Number(main.getOpacity?.()||0)>0.01)main.setOpacity?.(0.001);}catch{}
     try{toolbarWindow?.moveTop?.();}catch{}
     return true;
   }
@@ -57,7 +58,7 @@ if(process.platform==='darwin'){
   function closeFailedWindow(win){if(!isAlive(win))return;try{win.setClosable?.(true);win.close();}catch{try{win.destroy?.();}catch{}}}
   function positionToolbar(){
     if(!isAlive(toolbarWindow))return;
-    const display=displayForMain(),area=display.workArea||display.bounds;
+    const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
     const width=Math.min(890,Math.max(760,area.width-28));
     const height=toolbarMenuOpen?286:92;
     const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+4);
@@ -65,12 +66,12 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForMain(),bounds=display.bounds,t=BORDER_THICKNESS;
+    const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;
     const segments=[
       {x:bounds.x,y:bounds.y,width:bounds.width,height:t},
       {x:bounds.x,y:bounds.y+bounds.height-t,width:bounds.width,height:t},
-      {x:bounds.x,y:bounds.y+t,width:t,height:Math.max(t,bounds.height-(t*2))},
-      {x:bounds.x+bounds.width-t,y:bounds.y+t,width:t,height:Math.max(t,bounds.height-(t*2))}
+      {x:bounds.x,y:bounds.y,width:t,height:Math.max(t,bounds.height)},
+      {x:bounds.x+bounds.width-t,y:bounds.y,width:t,height:Math.max(t,bounds.height)}
     ];
     borderWindows.forEach((win,index)=>{try{win.setBounds(segments[index],false);}catch{}});
   }
@@ -81,7 +82,7 @@ if(process.platform==='darwin'){
   function hideBorder(){for(const win of borderWindows){if(isAlive(win))try{win.hide();}catch{}}}
   function positionVideo(){
     if(!isAlive(videoWindow))return;
-    const display=displayForMain(),area=display.workArea||display.bounds;
+    const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
     let width=videoLayout==='gallery'?360:252,height=videoLayout==='gallery'?250:174;
     if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(190,Math.min(360,current.width||252));height=Math.max(132,Math.min(250,current.height||174));}catch{}}
     const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+78);
@@ -200,7 +201,7 @@ if(process.platform==='darwin'){
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{shareActive=true;shareState={...shareState,...state,meetingVisible:false};wakeMain();showOverlays();});
   ipcMain.on('mac-share:state',(_event,state={})=>{if(!shareActive)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
-  ipcMain.on('mac-share:capture-stopped',()=>{shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
+  ipcMain.on('mac-share:capture-stopped',()=>{shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;removeQueuedPresenterDelivery(deliveryId);
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=${deliveryId} command=${String(payload?.command||'')} accepted=${payload?.accepted?1:0}`);
