@@ -1,4 +1,4 @@
-name: DominionStar Meet Zoom Participants 2.0.34
+name: DominionStar Meet Participants 2.0.34
 
 on:
   pull_request:
@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  zoom-participants:
+  participants:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact candidate
@@ -28,7 +28,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify Zoom-familiar participant roster
+      - name: Verify DominionStar participant roster
         working-directory: meet-desktop
         run: |
           node --check ui/app.js
