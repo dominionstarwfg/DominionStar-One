@@ -64,6 +64,7 @@ jobs:
           node --check ui/mac-presenter-toolbar.js
           node --check src/preload.cjs
           node --check src/mac-share-presenter-overlay.mjs
+          node --check src/mac-share-video-mirror.mjs
           node --check scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
           node --check scripts/verify-meeting-identity-runtime.mjs
           node --check scripts/verify-packaged-interactions.mjs
