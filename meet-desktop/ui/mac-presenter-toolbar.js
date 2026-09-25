@@ -22,7 +22,7 @@
   // A mere "sent:true" is not proof that the meeting renderer actually ran
   // the command. Require direct execution, explicit acknowledgement, handled,
   // or ok:true before the toolbar treats a click as successful.
-  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.direct===true||result.acknowledged===true||result.handled===true);
+  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.ok===true||result.direct===true||result.acknowledged===true||result.handled===true);
 
   async function sendNative(command){
     if(!nativeBridge?.command)throw new Error('mac_presenter_transport_unavailable');
@@ -46,9 +46,12 @@
       // controls go through share-service, which executes and awaits that
       // renderer directly. Only native video-dock layout commands stay on the
       // macShare bridge.
-      if(NATIVE_ONLY_COMMANDS.has(normalized)&&normalized!=='show-meeting'&&nativeBridge?.command)return await sendNative(normalized);
-      if(rendererBridge?.command)return await sendRenderer(normalized);
+      // Physical Mac QA proved the direct renderer IPC can report a healthy
+      // toolbar while real capture leaves the controls inert. The native macOS
+      // presenter bridge owns delivery during an active share because it wakes
+      // the meeting renderer, retries once, and requires an explicit ACK.
       if(nativeBridge?.command)return await sendNative(normalized);
+      if(rendererBridge?.command)return await sendRenderer(normalized);
       throw new Error('presenter_transport_unavailable');
     }finally{scheduleHide();}
   };
@@ -86,6 +89,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.44-authoritative-renderer-dispatch',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.44-physical-mac-acknowledged-dispatch',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
