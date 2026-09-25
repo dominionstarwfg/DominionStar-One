@@ -122,8 +122,16 @@ async function setupRenderer(){
   }});
   Object.defineProperty(window,'ImageCapture',{configurable:true,value:class{async grabFrame(){return createImageBitmap(cameraCanvas);}}});
 
+  // Do not call startPreview in the headless Mac gate: its device
+  // enumeration can block even when getUserMedia is stubbed. Seed the real
+  // MediaController stream directly, then emit through a normal controller
+  // preference mutation so app.js attaches the live track to its video surfaces.
+  await window.DominionMediaController.setCamera(false);
   window.DominionMediaController.resetPreferences();
-  await window.DominionMediaController.startPreview({cameraOn:true,micOn:false});
+  const cameraTrack=cameraMaster.getVideoTracks()[0]?.clone();
+  if(!cameraTrack)throw new Error('Synthetic live camera track is unavailable.');
+  window.DominionMediaController.stream().addTrack(cameraTrack);
+  window.DominionMediaController.setMirror(true);
   const mediaState=window.DominionMediaController.snapshot();
   if(!mediaState.videoLive||!mediaState.cameraOn)throw new Error('Synthetic live camera did not initialize.');
   const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
