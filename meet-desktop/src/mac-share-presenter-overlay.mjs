@@ -46,7 +46,7 @@ if(process.platform==='darwin'){
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     try{main.showInactive?.();}catch{}
-    try{if(Number(main.getOpacity?.()||0)>0.01)main.setOpacity?.(0.001);}catch{}
+    try{if(Number(main.getOpacity?.()||0)>0.03)main.setOpacity?.(0.02);}catch{}
     try{toolbarWindow?.moveTop?.();}catch{}
     return true;
   }
