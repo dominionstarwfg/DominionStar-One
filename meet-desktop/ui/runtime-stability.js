@@ -225,11 +225,11 @@
     if(!handle)return;
     panel.dataset.dsRuntimeDragBound='1';
     handle.style.cursor='default';
-    const begin=(event,source)=>{
+    const begin=event=>{
       if(surfaceDrag||event.button!==0||event.target.closest?.('button,input,select,textarea,a'))return;
       const body=q('.meeting-body');if(!body)return;
       const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
-      surfaceDrag={panel,source,id:source==='pointer'?event.pointerId:null,dx:event.clientX-pr.left,dy:event.clientY-pr.top,body:br};
+      surfaceDrag={panel,id:event.pointerId??null,dx:event.clientX-pr.left,dy:event.clientY-pr.top,body:br};
       panel.dataset.dsRuntimeUserPositioned='1';
       panel.style.setProperty('left',`${pr.left-br.left}px`,'important');
       panel.style.setProperty('top',`${pr.top-br.top}px`,'important');
@@ -238,12 +238,12 @@
       panel.style.setProperty('width',`${pr.width}px`,'important');
       panel.style.setProperty('height',`${pr.height}px`,'important');
       panel.classList.add('dragging');
-      if(source==='pointer')handle.setPointerCapture?.(event.pointerId);
+      if(event.pointerId!=null)handle.setPointerCapture?.(event.pointerId);
       event.preventDefault();
     };
-    const move=(event,source)=>{
-      if(!surfaceDrag||surfaceDrag.panel!==panel||surfaceDrag.source!==source)return;
-      if(source==='pointer'&&surfaceDrag.id!==event.pointerId)return;
+    const move=event=>{
+      if(!surfaceDrag||surfaceDrag.panel!==panel)return;
+      if(event.pointerId!=null&&surfaceDrag.id!=null&&event.pointerId!==surfaceDrag.id)return;
       const body=q('.meeting-body');if(!body)return;const br=body.getBoundingClientRect();
       const left=clamp(event.clientX-br.left-surfaceDrag.dx,10,Math.max(10,br.width-panel.offsetWidth-10));
       const top=clamp(event.clientY-br.top-surfaceDrag.dy,10,Math.max(10,br.height-panel.offsetHeight-10));
@@ -251,18 +251,18 @@
       panel.style.setProperty('top',`${top}px`,'important');
       event.preventDefault();
     };
-    const end=(event,source)=>{
-      if(!surfaceDrag||surfaceDrag.panel!==panel||surfaceDrag.source!==source)return;
-      if(source==='pointer'&&event?.pointerId!=null&&event.pointerId!==surfaceDrag.id)return;
+    const end=event=>{
+      if(!surfaceDrag||surfaceDrag.panel!==panel)return;
+      if(event?.pointerId!=null&&surfaceDrag.id!=null&&event.pointerId!==surfaceDrag.id)return;
       surfaceDrag=null;panel.classList.remove('dragging');
     };
-    handle.addEventListener('pointerdown',event=>begin(event,'pointer'),true);
-    handle.addEventListener('pointermove',event=>move(event,'pointer'),true);
-    handle.addEventListener('pointerup',event=>end(event,'pointer'),true);
-    handle.addEventListener('pointercancel',event=>end(event,'pointer'),true);
-    handle.addEventListener('mousedown',event=>begin(event,'mouse'),true);
-    document.addEventListener('mousemove',event=>move(event,'mouse'),true);
-    document.addEventListener('mouseup',event=>end(event,'mouse'),true);
+    handle.addEventListener('pointerdown',begin,true);
+    handle.addEventListener('pointermove',move,true);
+    handle.addEventListener('pointerup',end,true);
+    handle.addEventListener('pointercancel',end,true);
+    handle.addEventListener('mousedown',begin,true);
+    document.addEventListener('mousemove',move,true);
+    document.addEventListener('mouseup',end,true);
   }
 
   function ensurePanelTraffic(panel){
