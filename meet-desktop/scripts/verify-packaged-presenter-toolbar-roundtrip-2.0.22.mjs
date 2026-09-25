@@ -134,11 +134,17 @@ async function setupRenderer(){
   window.DominionMediaController.setMirror(true);
   const mediaState=window.DominionMediaController.snapshot();
   if(!mediaState.videoLive||!mediaState.cameraOn)throw new Error('Synthetic live camera did not initialize.');
-  const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
-  window.DominionShareIntegration.commitPresenterMode();
-  if(!shareState.active)throw new Error('Synthetic share did not start.');
+  setTimeout(()=>{
+    void (async()=>{
+      try{
+        console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
+        const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
+        window.DominionShareIntegration.commitPresenterMode();
+        console.error('QA_REAL_PRESENTER_SHARE_READY active='+(shareState.active?1:0));
+      }catch(error){console.error('QA_REAL_PRESENTER_SHARE_FAILURE '+String(error?.stack||error));}
+    })();
+  },30);
   return {
-    shareActive:window.DominionShareController.snapshot().active,
     cameraOn:window.DominionMediaController.snapshot().cameraOn,
     videoLive:window.DominionMediaController.snapshot().videoLive,
     micOn:window.DominionMediaController.snapshot().micOn,
@@ -154,12 +160,13 @@ try{
   stage('controllers-loaded');
 
   const prepared=await main.eval('('+setupRenderer.toString()+')()',15000);
-  assert.equal(prepared.shareActive,true);
   assert.equal(prepared.cameraOn,true);
   assert.equal(prepared.videoLive,true);
   assert.equal(prepared.micOn,false);
   assert.equal(prepared.chatReady,true);
-  stage('share-and-live-camera-started');
+  stage('live-camera-prepared');
+  await main.wait("window.DominionShareController.snapshot().active===true",'synthetic share activation',10000);
+  stage('share-started');
 
   // Wait beyond the physical-Mac startup parking interval. The exact controls
   // below must still mutate the capture-owning renderer after it is parked.
