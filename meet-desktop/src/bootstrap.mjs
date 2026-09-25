@@ -49,11 +49,13 @@ if(process.platform==='darwin'){
       if(!physicalShareActive)return;
       const main=mainMeetingWindow();if(!main||main.isDestroyed())return;
       // Bypass only our startup guard here. Do not hide or minimize the
-      // capture-owning renderer; keeping it technically visible at near-zero opacity preserves
-      // Chromium scheduling while clearing it from the presenter's desktop.
+      // capture-owning renderer. Keep it technically visible above Chromium's
+      // near-transparent compositor threshold so the renderer continues to
+      // service media and presenter commands while content protection keeps
+      // meeting chrome out of the captured output.
       try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
       try{originalSetIgnoreMouseEvents.call(main,true);}catch{}
-      try{originalSetOpacity.call(main,0.001);}catch{}
+      try{originalSetOpacity.call(main,0.02);}catch{}
     },PHYSICAL_SHARE_STARTUP_MS);
   });
   ipcMain.on('mac-share:capture-stopped',()=>{
