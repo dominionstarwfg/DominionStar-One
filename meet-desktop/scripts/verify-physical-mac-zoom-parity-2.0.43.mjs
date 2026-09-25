@@ -28,11 +28,12 @@ const macPresenter=read('src/mac-share-presenter-overlay.mjs');
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
 const integration=read('ui/share-integration.js');
+const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareRuntimeAuthority])new Function(source);
 
-assert.equal(pkg.version,'2.0.43','Physical Mac Zoom-parity repair must ship as 2.0.43.');
+assert.equal(pkg.version,'2.0.43','Physical Mac parity repair must ship as 2.0.43.');
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
 assert(legacyParticipants.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must never re-center or poll the live panel.');
@@ -50,7 +51,7 @@ assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:no
 assert(screenshotCss.includes('.meeting-head .ds-meeting-brand{display:flex!important')&&screenshotCss.includes('.meeting-view-button{display:inline-flex!important'),'Meeting chrome must expose DominionStar branding and a clear View control.');
 assert(screenshotCss.includes('.ds-ref-meeting-head-icons{display:none!important}')&&screenshotJs.includes("head.querySelector('.ds-ref-meeting-head-icons')?.remove()"),'Obsolete unexplained meeting-head glyph controls must be removed.');
 assert(screenshotCss.includes('#meetingOverlay .room-side{width:390px!important')&&screenshotCss.includes('right:10px!important;bottom:10px!important;transform:none!important'),'Final Participants CSS must agree with the right-edge runtime position.');
-assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:86px;bottom:68px;width:360px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use a readable Zoom-scale panel.');
+assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:86px;bottom:68px;width:360px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
 
 assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("copy.querySelector('small')?.remove()")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must collapse duplicate role labels and duplicate ellipsis controls to one canonical representation.');
 assert(physical.includes("className='ds-canonical-role'")&&physical.includes("className='ds-canonical-self'"),'Participant identity must render one role badge and one self marker.');
@@ -63,7 +64,8 @@ assert(app.includes('const operation=media.setCamera(target);\n    syncMediaLabe
 assert(media.includes('warmVideoTimer=setTimeout(releaseWarmVideo,1800)'),'Camera warm handoff must remain bounded while immediate UI intent provides responsive control feedback.');
 
 
-assert(indexHtml.indexOf('./share-integration.js')>=0&&indexHtml.indexOf('./share-integration.js')<indexHtml.indexOf('./share-runtime-authority-2.0.41.js'),'The live share integration must load before the final share chooser authority.');
+assert(!indexHtml.includes('<script src="./share-integration.js"></script>')&&media.includes("script.src='./share-integration.js'")&&media.includes("script.dataset.dsShareIntegration='1'"),'Share integration must have one bootstrap authority owned by MediaController, with no competing static loader.');
+assert(shareRuntimeAuthority.includes('async function waitForShareIntegration(timeoutMs=3000)')&&shareRuntimeAuthority.includes('if(!await waitForShareIntegration())'),'The final Share chooser must wait for the single Share integration bootstrap before source enumeration or commit.');
 assert(featureReady.includes('#stageAvatar{width:196px!important;height:196px!important;border-radius:50%!important')&&read('ui/meeting-parity.css').includes('.stage-avatar{width:196px;height:196px;border-radius:50%}'),'Camera-off stage profile photos must remain at the enlarged circular meeting scale after final reference handoff.');
 assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}')&&read('ui/meeting-parity.css').includes('#prejoinAvatar.preview-avatar{width:176px;height:176px;border-radius:50%'),'Prejoin must hide its avatar over live video and use the enlarged camera-off profile scale.');
 assert(screenshotCss.includes('#meetingOverlay .meeting-footer{height:64px!important;min-height:64px!important')&&screenshotCss.includes('#meetingOverlay .meeting-control{min-width:68px!important;height:58px!important')&&screenshotCss.includes('.meeting-control .ds-control-icon{width:24px!important;height:24px!important')&&screenshotCss.includes('.meeting-control .ds-control-label{font-size:11px!important'),'Final meeting toolbar must preserve readable control targets and icon/label scale instead of reverting to the undersized reference dimensions.');
@@ -81,4 +83,4 @@ assert(shareService.includes("displayId:String(source.display_id||'')")&&shareCo
 assert(macPresenter.includes('const displayForSharedContent=()=>')&&macPresenter.includes('{x:bounds.x,y:bounds.y,width:t,height:Math.max(t,bounds.height)}')&&macPresenter.includes('setImmediate(()=>{if(shareActive&&bordersReady()){positionBorder();'),'The green presenter border must use the selected display, flush full-height side edges, and re-lock after macOS window placement.');
 assert(shareService.includes('main.setOpacity?.(0.001)')&&bootstrap.includes('originalSetOpacity.call(main,0.001)'),'The live meeting renderer must remain scheduled at near-zero opacity instead of visibly leaking into the shared desktop.');
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_ZOOM_PARITY_2_0_43_OK stable-right-panels mac-panel-controls canonical-participant-row anchored-reactions readable-host-tools branded-header prejoin-avatar-safe personal-passcode-consistent responsive-video');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_43_OK stable-right-panels mac-panel-controls canonical-participant-row anchored-reactions readable-host-tools branded-header prejoin-avatar-safe personal-passcode-consistent responsive-video single-share-bootstrap');
