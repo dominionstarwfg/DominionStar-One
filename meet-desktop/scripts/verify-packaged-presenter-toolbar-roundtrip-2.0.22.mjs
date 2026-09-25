@@ -175,6 +175,19 @@ try{
   await main.wait("window.DominionShareController.snapshot().active===true",'synthetic share activation',10000);
   stage('share-started');
 
+  if(process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1'){
+    await sleep(3600);
+    const health=await main.eval("(()=>({active:window.DominionShareController.snapshot().active,media:Boolean(window.DominionMediaController),now:Date.now()}))()",5000);
+    assert.equal(health.active,true,'Hidden-presenter diagnostic lost active share state.');
+    assert.equal(health.media,true,'Hidden-presenter diagnostic lost media controller.');
+    stage('hidden-presenter-renderer-remained-responsive');
+    console.log('DOMINIONSTAR_HIDDEN_PRESENTER_RENDERER_LIVENESS_OK camera-relay-disabled');
+    main.close();
+    if(child.exitCode===null)child.kill('SIGTERM');
+    await sleep(1000);
+    process.exit(0);
+  }
+
   // Wait beyond the physical-Mac startup parking interval. The exact controls
   // below must still mutate the capture-owning renderer after it is parked.
   await sleep(2700);
