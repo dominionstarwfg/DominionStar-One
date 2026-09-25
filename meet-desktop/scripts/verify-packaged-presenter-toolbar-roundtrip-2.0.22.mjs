@@ -7,33 +7,30 @@ if(!appPath)throw new Error('Usage: node verify-packaged-presenter-toolbar-round
 const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=10880+Math.floor(Math.random()*100);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const stage=name=>console.log(`PRESENTER_STAGE_OK ${name}`);
+const stage=name=>console.log('PRESENTER_STAGE_OK '+name);
 let stderr='';
-const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*','--use-fake-ui-for-media-stream'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
+const child=spawn(executable,['--remote-debugging-port='+port,'--remote-allow-origins=*','--use-fake-ui-for-media-stream'],{
+  env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},
+  stdio:['ignore','ignore','pipe']
+});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
-const count=needle=>stderr.split(String(needle)).length-1;
-async function waitLog(needle,label,timeout=9000,minCount=1){
-  const deadline=Date.now()+timeout;
-  while(Date.now()<deadline){
-    if(child.exitCode!==null)throw new Error(`Packaged app exited before ${label}.\n${stderr}`);
-    if(stderr.includes('QA_PRESENTER_SELF_FAILURE'))throw new Error(`Renderer presenter sequence failed before ${label}.\n${stderr}`);
-    if(count(needle)>=minCount)return;
-    await sleep(60);
-  }
-  throw new Error(`Timed out waiting for ${label}: ${needle}\n${stderr}`);
+
+async function listTargets(){
+  const response=await fetch('http://127.0.0.1:'+port+'/json/list',{signal:AbortSignal.timeout(900)});
+  return response.json();
 }
-async function waitTarget(timeout=15000){
+async function waitTarget(predicate,label,timeout=16000){
   const deadline=Date.now()+timeout;
   while(Date.now()<deadline){
+    if(child.exitCode!==null)throw new Error('Packaged app exited while waiting for '+label+'.\n'+stderr);
     try{
-      const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(900)});
-      const targets=await response.json();
-      const target=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://')&&!String(item.url||'').includes('presenter-toolbar.html'));
+      const targets=await listTargets();
+      const target=targets.find(item=>item.type==='page'&&predicate(item));
       if(target?.webSocketDebuggerUrl)return target;
     }catch{}
     await sleep(120);
   }
-  throw new Error('Timed out waiting for main renderer.');
+  throw new Error('Timed out waiting for '+label+'.\n'+stderr);
 }
 class Cdp{
   constructor(url){this.url=url;this.socket=null;this.nextId=0;this.pending=new Map();}
@@ -57,7 +54,7 @@ class Cdp{
   call(method,params={},timeout=8000){
     return new Promise((resolve,reject)=>{
       const id=++this.nextId;
-      const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(`CDP timeout ${method}`));},timeout);
+      const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error('CDP timeout '+method));},timeout);
       this.pending.set(id,{resolve,reject,timer});
       this.socket.send(JSON.stringify({id,method,params}));
     });
@@ -68,243 +65,175 @@ class Cdp{
     return result.result?.value;
   }
   async wait(expression,label,timeout=9000){
-    const deadline=Date.now()+timeout;let error='';
+    const deadline=Date.now()+timeout;let last='';
     while(Date.now()<deadline){
-      try{if(await this.eval(`Boolean(${expression})`,2500))return;}catch(e){error=String(e?.message||e);}
+      if(child.exitCode!==null)throw new Error('Packaged app exited before '+label+'.\n'+stderr);
+      try{if(await this.eval('Boolean('+expression+')',2500))return;}catch(error){last=String(error?.message||error);}
       await sleep(90);
     }
-    throw new Error(`Timed out waiting for ${label}${error?`: ${error}`:''}`);
+    throw new Error('Timed out waiting for '+label+(last?': '+last:'')+'.\n'+stderr);
+  }
+  async click(selector){
+    await this.eval("document.querySelector('#toolbar')?.classList.remove('auto-hidden'); true");
+    const point=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
+    await this.call('Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y,button:'none'});
+    await this.call('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
+    await this.call('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
   }
   close(){try{this.socket?.close();}catch{}}
 }
 
-let main=null;
+async function setupRenderer(){
+  document.querySelector('#bootScreen').hidden=true;
+  document.querySelector('#authGate').hidden=true;
+  document.querySelector('#appShell').hidden=true;
+  document.querySelector('#prejoinOverlay').hidden=true;
+  document.querySelector('#waitingOverlay').hidden=true;
+  const overlay=document.querySelector('#meetingOverlay');
+  overlay.hidden=false;overlay.dataset.viewMode='speaker';
+  const role=document.querySelector('#roomRole');if(role)role.textContent='Host';
+  window.DominionMeetingParity.install();
+  window.DominionMeetingFeatures.toggleChat(false);
+  window.DominionRuntimeStability.sync();
+  window.DominionRuntimeStability.ensureToolbarZones();
+
+  const shareCanvas=document.createElement('canvas');shareCanvas.width=640;shareCanvas.height=360;
+  const shareContext=shareCanvas.getContext('2d',{alpha:false});
+  shareContext.fillStyle='#07111f';shareContext.fillRect(0,0,640,360);
+  shareContext.fillStyle='#d6b25e';shareContext.fillRect(80,80,180,120);
+  shareContext.fillStyle='#fff';shareContext.font='28px sans-serif';shareContext.fillText('DominionStar QA Share',40,260);
+  const displayMaster=shareCanvas.captureStream(15);
+
+  const cameraCanvas=document.createElement('canvas');cameraCanvas.width=640;cameraCanvas.height=360;
+  const cameraContext=cameraCanvas.getContext('2d',{alpha:false});
+  cameraContext.fillStyle='#112a3f';cameraContext.fillRect(0,0,640,360);
+  cameraContext.fillStyle='#f0c769';cameraContext.beginPath();cameraContext.arc(320,180,90,0,Math.PI*2);cameraContext.fill();
+  cameraContext.fillStyle='#fff';cameraContext.font='24px sans-serif';cameraContext.fillText('LIVE CAMERA',240,190);
+  const cameraMaster=cameraCanvas.captureStream(8);
+
+  const audioContext=new AudioContext();
+  const audioDestination=audioContext.createMediaStreamDestination();
+  Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>displayMaster.clone()});
+  Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>{
+    const tracks=[];
+    if(constraints?.video){const track=cameraMaster.getVideoTracks()[0]?.clone();if(track)tracks.push(track);}
+    if(constraints?.audio){const track=audioDestination.stream.getAudioTracks()[0]?.clone();if(track)tracks.push(track);}
+    return new MediaStream(tracks);
+  }});
+  Object.defineProperty(window,'ImageCapture',{configurable:true,value:class{async grabFrame(){return createImageBitmap(cameraCanvas);}}});
+
+  window.DominionMediaController.resetPreferences();
+  await window.DominionMediaController.startPreview({cameraOn:true,micOn:false});
+  const mediaState=window.DominionMediaController.snapshot();
+  if(!mediaState.videoLive||!mediaState.cameraOn)throw new Error('Synthetic live camera did not initialize.');
+  const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
+  window.DominionShareIntegration.commitPresenterMode();
+  if(!shareState.active)throw new Error('Synthetic share did not start.');
+  return {
+    shareActive:window.DominionShareController.snapshot().active,
+    cameraOn:window.DominionMediaController.snapshot().cameraOn,
+    videoLive:window.DominionMediaController.snapshot().videoLive,
+    micOn:window.DominionMediaController.snapshot().micOn,
+    chatReady:Boolean(document.querySelector('#meetingChatPanel'))
+  };
+}
+
+let main=null,toolbar=null,video=null;
 try{
-  const target=await waitTarget();
-  main=new Cdp(target.webSocketDebuggerUrl);
-  await main.connect();
-  stage('main-connected');
-  await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareAnnotation&&window.DominionMediaController",'share controllers and meeting features',15000);
+  const mainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'main meeting renderer');
+  main=new Cdp(mainTarget.webSocketDebuggerUrl);await main.connect();stage('main-connected');
+  await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareAnnotation&&window.DominionMediaController",'meeting/share controllers',15000);
   stage('controllers-loaded');
 
-  const prepared=await main.eval(`(async()=>{
-    document.querySelector('#bootScreen').hidden=true;
-    document.querySelector('#authGate').hidden=true;
-    document.querySelector('#appShell').hidden=true;
-    document.querySelector('#prejoinOverlay').hidden=true;
-    document.querySelector('#waitingOverlay').hidden=true;
-    const overlay=document.querySelector('#meetingOverlay');
-    overlay.hidden=false;overlay.dataset.viewMode='speaker';
-    const role=document.querySelector('#roomRole');if(role)role.textContent='Host';
+  const prepared=await main.eval('('+setupRenderer.toString()+')()',15000);
+  assert.equal(prepared.shareActive,true);
+  assert.equal(prepared.cameraOn,true);
+  assert.equal(prepared.videoLive,true);
+  assert.equal(prepared.micOn,false);
+  assert.equal(prepared.chatReady,true);
+  stage('share-and-live-camera-started');
 
-    // A production meeting entry initializes MeetingFeatures before presenter
-    // controls can be used. Step 20 must exercise that reachable state rather
-    // than a synthetic overlay with no Chat panel mounted.
-    window.DominionMeetingParity.install();
-    window.DominionMeetingFeatures.toggleChat(false);
-    window.DominionRuntimeStability.sync();
-    window.DominionRuntimeStability.ensureToolbarZones();
+  // Wait beyond the physical-Mac startup parking interval. The exact controls
+  // below must still mutate the capture-owning renderer after it is parked.
+  await sleep(2700);
 
-    window.__qaCommands=[];
-    window.addEventListener('dominion:presenter-command-dispatch',event=>{
-      const command=String(event.detail?.command||'');
-      window.__qaCommands.push(command);
-      console.log('QA_PRESENTER_COMMAND '+command);
-    });
-    window.DominionShareController.onChange(state=>console.log('QA_SHARE_STATE active='+(state.active?1:0)+' paused='+(state.paused?1:0)+' annotating='+(state.annotating?1:0)));
+  const toolbarTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-presenter-toolbar.html'),'actual floating Mac presenter toolbar');
+  toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
+  await toolbar.wait("window.DominionMacPresenterToolbar&&document.querySelector('[data-command=\"audio\"]')",'floating toolbar runtime');
+  stage('real-floating-toolbar-connected');
 
-    const frameCanvas=document.createElement('canvas');
-    frameCanvas.width=640;frameCanvas.height=360;
-    const frameCtx=frameCanvas.getContext('2d',{alpha:false});
-    frameCtx.fillStyle='#07111f';frameCtx.fillRect(0,0,640,360);
-    frameCtx.fillStyle='#d6b25e';frameCtx.fillRect(80,80,180,120);
-    frameCtx.fillStyle='#fff';frameCtx.font='28px sans-serif';frameCtx.fillText('DominionStar QA Share',40,260);
-    window.__qaFrameCanvas=frameCanvas;
+  const videoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'floating presenter video panel');
+  video=new Cdp(videoTarget.webSocketDebuggerUrl);await video.connect();
+  await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'&&!document.querySelector('#cameraMirror')?.hidden",'live camera frame in presenter video',9000);
+  const liveVideo=await video.eval("(()=>({live:document.querySelector('#dock').dataset.livePreview,mirrorHidden:document.querySelector('#cameraMirror').hidden,fallbackHidden:document.querySelector('#cameraFallback').hidden,src:String(document.querySelector('#cameraMirror').src||'').slice(0,22)}))()");
+  assert.equal(liveVideo.live,'1');
+  assert.equal(liveVideo.mirrorHidden,false);
+  assert.equal(liveVideo.fallbackHidden,true);
+  assert.ok(liveVideo.src.startsWith('data:image/jpeg'),'Presenter video must receive a real mirrored camera frame.');
+  stage('presenter-video-live');
 
-    const makeTrack=(kind='video')=>({kind,id:'qa-'+kind+'-'+Math.random().toString(36).slice(2),label:'QA Logical '+kind,readyState:'live',enabled:true,contentHint:'',addEventListener(){},removeEventListener(){},stop(){this.readyState='ended';},clone(){return makeTrack(kind);}});
-    const makeStream=(kind='video')=>{
-      const tracks=[makeTrack(kind)];
-      return {
-        getVideoTracks:()=>tracks.filter(track=>track.kind==='video'),
-        getAudioTracks:()=>tracks.filter(track=>track.kind==='audio'),
-        getTracks:()=>[...tracks],
-        addTrack(track){if(track&&!tracks.includes(track))tracks.push(track);},
-        removeTrack(track){const index=tracks.indexOf(track);if(index>=0)tracks.splice(index,1);}
-      };
-    };
-    window.__qaMakeLogicalStream=makeStream;
-    window.__qaLogicalShare=makeStream('video');
+  await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
+  await toolbar.click('[data-command="audio"]');
+  await main.wait("window.DominionMediaController.snapshot().micOn===true&&!document.querySelector('#roomMic')?.classList.contains('is-off')",'floating Audio command changed real media and canonical UI',8000);
+  await toolbar.wait("!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Mute'",'floating Audio visual state');
+  stage('audio-real-toolbar');
 
-    // Annotation composition uses a hidden video element. The QA share is a
-    // deliberate plain-JS stream contract (not Chromium MediaStream) so the
-    // Mac runner cannot re-enter its unstable native capture substrate. Keep
-    // the real compositor behavior while allowing that logical stream to be
-    // attached to the hidden QA video element.
-    const nativeSrcObject=Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype,'srcObject');
-    Object.defineProperty(HTMLMediaElement.prototype,'srcObject',{
-      configurable:true,
-      get(){return Object.prototype.hasOwnProperty.call(this,'__qaLogicalSrcObject')?this.__qaLogicalSrcObject:nativeSrcObject?.get?.call(this)||null;},
-      set(value){
-        if(value&&!(value instanceof MediaStream)){this.__qaLogicalSrcObject=value;return;}
-        delete this.__qaLogicalSrcObject;
-        if(nativeSrcObject?.set)nativeSrcObject.set.call(this,value);
-      }
-    });
+  await toolbar.click('[data-command="video"]');
+  await main.wait("window.DominionMediaController.snapshot().cameraOn===false&&document.querySelector('#roomCamera')?.classList.contains('is-off')",'floating Video command changed real media and canonical UI',8000);
+  await toolbar.wait("document.querySelector('[data-command=\"video\"]')?.classList.contains('is-off')&&document.querySelector('#videoLabel')?.textContent==='Start Video'",'floating Video visual state');
+  await video.wait("document.querySelector('#dock')?.dataset.cameraOn==='0'&&!document.querySelector('#cameraFallback')?.hidden",'presenter panel camera-off fallback',6000);
+  const fallbackWidth=await video.eval("Math.round(document.querySelector('#profileInitials').getBoundingClientRect().width)");
+  assert.ok(fallbackWidth>=100,'Presenter camera-off profile fallback is still undersized: '+fallbackWidth+'px');
+  stage('video-real-toolbar');
 
-    Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>window.__qaLogicalShare});
-    window.__qaOriginalCaptureStream=HTMLCanvasElement.prototype.captureStream;
-    HTMLCanvasElement.prototype.captureStream=function(){return makeStream('video');};
-    Object.defineProperty(window,'ImageCapture',{configurable:true,value:class{async grabFrame(){return createImageBitmap(window.__qaFrameCanvas);}}});
-    window.__qaAudioContext=new AudioContext();
-    const destination=window.__qaAudioContext.createMediaStreamDestination();
-    Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>constraints?.audio?destination.stream:new MediaStream()});
+  await toolbar.click('[data-command="pause"]');
+  await main.wait("window.DominionShareController.snapshot().paused===true",'real floating Pause command',8000);
+  await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause label switched to Resume');
+  stage('pause-real-toolbar');
 
-    // Step 20 certifies presenter control behavior, not macOS TCC prompts.
-    // Create MediaController's real internal stream through the permission-free
-    // camera-off path, restore normal meeting defaults, then seed a real live
-    // synthetic audio track. Presenter Unmute therefore exercises the actual
-    // setMicrophone/track/voice-meter state path without opening headless TCC.
-    await window.DominionMediaController.setCamera(false);
-    window.DominionMediaController.resetPreferences();
-    const qaMicTrack=destination.stream.getAudioTracks()[0];
-    if(!qaMicTrack)throw new Error('Synthetic presenter microphone track unavailable.');
-    window.DominionMediaController.stream().addTrack(qaMicTrack);
+  await toolbar.click('[data-command="pause"]');
+  await main.wait("window.DominionShareController.snapshot().paused===false",'real floating Resume command',8000);
+  await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Pause'",'Resume label switched to Pause');
+  stage('resume-real-toolbar');
 
-    const qaButton=command=>document.querySelector('[data-inline-command="'+command+'"]');
-    const qaClick=command=>{
-      const button=qaButton(command);
-      if(!button||button.hidden)throw new Error('Presenter control unavailable: '+command);
-      button.click();
-    };
-    const qaAssert=(predicate,label)=>{
-      let ok=false;
-      try{ok=Boolean(predicate());}catch(error){throw new Error(label+': '+String(error?.message||error));}
-      if(!ok)throw new Error(label+' did not update synchronously.');
-      return true;
-    };
-    const qaWaitController=(subscribe,predicate,label)=>new Promise((resolve,reject)=>{
-      let settled=false;let unsubscribe=()=>{};
-      const finish=()=>{
-        if(settled)return;
-        try{
-          if(!predicate())return;
-          settled=true;unsubscribe();resolve(true);
-        }catch(error){settled=true;unsubscribe();reject(new Error(label+': '+String(error?.message||error)));}
-      };
-      unsubscribe=subscribe(()=>queueMicrotask(finish));
-      finish();
-    });
-    const qaWaitDom=(predicate,label)=>new Promise((resolve,reject)=>{
-      let settled=false;
-      const observer=new MutationObserver(()=>queueMicrotask(finish));
-      const finish=()=>{
-        if(settled)return;
-        try{
-          if(!predicate())return;
-          settled=true;observer.disconnect();resolve(true);
-        }catch(error){settled=true;observer.disconnect();reject(new Error(label+': '+String(error?.message||error)));}
-      };
-      observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:['hidden','class','data-ds-share-companion']});
-      queueMicrotask(finish);
-    });
-    const qaWaitShare=(predicate,label)=>qaWaitController(fn=>window.DominionShareController.onChange(fn),predicate,label);
-    const qaWaitMedia=(predicate,label)=>qaWaitController(fn=>window.DominionMediaController.onChange(fn),predicate,label);
-    const qaMark=name=>console.log('QA_PRESENTER_SELF_OK '+name);
+  await toolbar.click('[data-command="participants"]');
+  await main.wait("document.body.dataset.dsShareCompanion==='participants'&&document.querySelector('.room-side')?.hidden===false",'real floating Participants command',8000);
+  stage('participants-real-toolbar');
+  await main.eval("window.DominionRuntimeStability.setParticipants(false)");
+  await main.wait("!document.body.dataset.dsShareCompanion",'Participants companion closure synchronized',8000);
 
-    window.__qaPresenterSelfRun=async()=>{
-      try{
-        console.log('QA_PRESENTER_SELF_BEGIN');
-        const state=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
-        window.DominionShareIntegration.commitPresenterMode();
-        qaAssert(()=>state.active===true&&window.DominionShareController.snapshot().active===true&&Boolean(document.querySelector('#inlinePresenterToolbar:not([hidden])')),'Active inline presenter toolbar');
-        if(state.sourceName!=='QA Synthetic Share')throw new Error('Unexpected share source: '+state.sourceName);
-        qaMark('share-active');
+  await toolbar.click('[data-command="chat"]');
+  await main.wait("document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false",'real floating Chat command',8000);
+  stage('chat-real-toolbar');
+  await main.eval("window.DominionRuntimeStability.setChat(false)");
+  await main.wait("!document.body.dataset.dsShareCompanion",'Chat companion closure synchronized',8000);
 
-        qaClick('pause');
-        await qaWaitShare(()=>window.DominionShareController.snapshot().paused===true&&qaButton('pause')?.textContent==='Resume','Pause state');
-        qaMark('pause');
+  await toolbar.click('[data-command="annotate"]');
+  await main.wait("window.DominionShareAnnotation.snapshot().active===true&&document.body.dataset.dsShareCompanion==='annotate'",'real floating Annotate command',8000);
+  stage('annotate-real-toolbar');
+  await toolbar.click('[data-command="annotate"]');
+  await main.wait("window.DominionShareAnnotation.snapshot().active===false&&!document.body.dataset.dsShareCompanion",'real floating Annotate close command',8000);
+  stage('annotate-close-real-toolbar');
 
-        qaClick('pause');
-        await qaWaitShare(()=>window.DominionShareController.snapshot().paused===false&&qaButton('pause')?.textContent==='Pause','Resume state');
-        qaMark('resume');
+  await toolbar.click('[data-command="new-share"]');
+  await waitTarget(item=>String(item.url||'').includes('/ui/share-picker.html'),'New Share picker from floating toolbar',8000);
+  await main.eval("window.dominionDesktop.sharePicker.cancel()");
+  stage('new-share-real-toolbar');
 
-        const chatReady=qaWaitDom(()=>document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false,'Chat companion');
-        qaClick('chat');
-        await chatReady;
-        qaMark('chat');
-        window.DominionRuntimeStability.setChat(false);
+  await toolbar.click('#stopShare');
+  await main.wait("window.DominionShareController.snapshot().active===false",'real floating Stop Share command',10000);
+  await main.wait("document.querySelector('#meetingOverlay')?.classList.contains('share-active')===false",'meeting restored after Stop Share',6000);
+  stage('stop-share-real-toolbar');
 
-        const participantsReady=qaWaitDom(()=>document.body.dataset.dsShareCompanion==='participants'&&document.querySelector('.room-side')?.hidden===false,'Participants companion');
-        qaClick('participants');
-        await participantsReady;
-        qaMark('participants');
-        window.DominionRuntimeStability.setParticipants(false);
-
-        const annotationReady=qaWaitDom(()=>window.DominionShareAnnotation.snapshot().active===true,'Annotation active');
-        qaClick('annotate');
-        await annotationReady;
-        qaMark('annotate');
-        const annotationClosed=qaWaitDom(()=>window.DominionShareAnnotation.snapshot().active===false,'Annotation closed');
-        qaClick('annotate');
-        await annotationClosed;
-        qaMark('annotate-close');
-
-        qaClick('audio');
-        await qaWaitMedia(()=>window.DominionMediaController.snapshot().micOn===true&&qaButton('audio')?.textContent==='Mute','Presenter audio state');
-        qaMark('audio');
-
-        qaClick('video');
-        await qaWaitMedia(()=>window.DominionMediaController.snapshot().cameraOn===false&&qaButton('video')?.textContent==='Start Video','Presenter video state');
-        qaMark('video');
-
-        qaClick('stop');
-        await qaWaitShare(()=>window.DominionShareController.snapshot().active===false&&document.querySelector('#inlinePresenterToolbar')?.hidden===true,'Stop Share completion');
-        qaMark('stop-share');
-        console.log('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK logical-share production-meeting-features annotation-compositor synthetic-live-microphone self-driven-renderer pause-resume chat participants annotate audio video stop-share zoom-style-inline-controls');
-      }catch(error){
-        console.error('QA_PRESENTER_SELF_FAILURE '+String(error?.stack||error));
-      }
-    };
-
-    return {
-      meetingVisible:!overlay.hidden,
-      chatPanelReady:Boolean(document.querySelector('#meetingChatPanel')),
-      tracks:window.__qaLogicalShare.getTracks().length,
-      selfRunner:typeof window.__qaPresenterSelfRun==='function'
-    };
-  })()`,12000);
-
-  assert.equal(prepared.meetingVisible,true);
-  assert.equal(prepared.chatPanelReady,true,'Presenter QA must begin from a production-reachable meeting state with Chat UI initialized.');
-  assert.equal(prepared.tracks,1);
-  assert.equal(prepared.selfRunner,true);
-  stage('logical-media-prepared');
-
-  const scheduled=await main.eval(`(()=>{setTimeout(()=>{void window.__qaPresenterSelfRun();},30);return true;})()`,2500);
-  assert.equal(scheduled,true);
-  stage('self-run-scheduled');
-  main.close();main=null;
-
-  await waitLog('QA_PRESENTER_SELF_OK share-active','self-driven Share activation',12000);stage('share-active');
-  await waitLog('QA_PRESENTER_COMMAND pause','Pause command',6000,1);await waitLog('QA_PRESENTER_SELF_OK pause','Pause state',6000);stage('pause');
-  await waitLog('QA_PRESENTER_COMMAND pause','Resume command',6000,2);await waitLog('QA_PRESENTER_SELF_OK resume','Resume state',6000);stage('resume');
-  await waitLog('QA_PRESENTER_COMMAND chat','Chat command',6000);await waitLog('QA_PRESENTER_SELF_OK chat','Chat companion',6000);stage('chat');
-  await waitLog('QA_PRESENTER_COMMAND participants','Participants command',6000);await waitLog('QA_PRESENTER_SELF_OK participants','Participants companion',6000);stage('participants');
-  await waitLog('QA_PRESENTER_COMMAND annotate','Annotate command',6000,1);await waitLog('QA_PRESENTER_SELF_OK annotate','Annotation active',6000);stage('annotate');
-  await waitLog('QA_PRESENTER_COMMAND annotate','Annotate close command',6000,2);await waitLog('QA_PRESENTER_SELF_OK annotate-close','Annotation closed',6000);stage('annotate-close');
-  await waitLog('QA_PRESENTER_COMMAND audio','Audio command',6000);await waitLog('QA_PRESENTER_SELF_OK audio','Presenter audio state',6000);stage('audio');
-  await waitLog('QA_PRESENTER_COMMAND video','Video command',6000);await waitLog('QA_PRESENTER_SELF_OK video','Presenter video state',6000);stage('video');
-  await waitLog('QA_PRESENTER_COMMAND stop','Stop Share command',6000);await waitLog('QA_PRESENTER_SELF_OK stop-share','Stop Share completion',10000);stage('stop-share');
-  await waitLog('DOMINIONSTAR_PACKAGED_PRESENTER_TOOLBAR_ROUNDTRIP_2_0_22_OK','presenter toolbar certification',3000);
-
-  assert.equal(child.exitCode,null,'Packaged app exited during presenter round trip.');
+  assert.equal(child.exitCode,null,'Packaged app exited during physical presenter control loop.');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_44_OK actual-floating-toolbar cdp-pointer-clicks parked-renderer audio video pause resume participants chat annotate new-share stop-share live-camera-panel canonical-av-state');
 }catch(error){
   console.error('PRESENTER_STAGE_FAILURE',error);
   console.error(stderr);
   process.exitCode=1;
 }finally{
-  main?.close();
+  video?.close();toolbar?.close();main?.close();
   if(child.exitCode===null)child.kill('SIGTERM');
-  await sleep(2000);
+  await sleep(1800);
   if(child.exitCode===null)child.kill('SIGKILL');
 }
