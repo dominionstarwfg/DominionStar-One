@@ -122,6 +122,13 @@ async function setupRenderer(){
   }});
   Object.defineProperty(window,'ImageCapture',{configurable:true,value:class{async grabFrame(){return createImageBitmap(cameraCanvas);}}});
 
+  // Match the production sequence exactly: native presenter surfaces are
+  // constructed while the meeting renderer is idle, before display capture
+  // begins. Creating BrowserWindows after capture starts is a separate macOS
+  // compositor hazard and is not how DominionStar enters sharing.
+  const nativePrepared=await window.dominionDesktop?.macShare?.prepare?.();
+  if(!nativePrepared?.ok)throw new Error('Native presenter surfaces did not pre-prepare before capture.');
+
   // Do not call startPreview in the headless Mac gate: its device
   // enumeration can block even when getUserMedia is stubbed. Seed the real
   // MediaController stream directly, then emit through a normal controller
