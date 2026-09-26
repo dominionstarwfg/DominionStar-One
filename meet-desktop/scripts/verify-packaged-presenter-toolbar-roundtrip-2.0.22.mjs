@@ -83,7 +83,8 @@ class Cdp{
   close(){try{this.socket?.close();}catch{}}
 }
 
-async function setupRenderer(){
+async function setupRenderer(skipShareLayout=false){
+  window.__DOMINION_QA_SKIP_SHARE_LAYOUT=Boolean(skipShareLayout);
   document.querySelector('#bootScreen').hidden=true;
   document.querySelector('#authGate').hidden=true;
   document.querySelector('#appShell').hidden=true;
@@ -166,7 +167,8 @@ try{
   await main.wait("document.readyState==='complete'&&window.DominionShareController&&window.DominionShareIntegration&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareAnnotation&&window.DominionMediaController",'meeting/share controllers',15000);
   stage('controllers-loaded');
 
-  const prepared=await main.eval('('+setupRenderer.toString()+')()',15000);
+  const skipShareLayout=process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
+  const prepared=await main.eval('('+setupRenderer.toString()+')('+JSON.stringify(skipShareLayout)+')',15000);
   assert.equal(prepared.cameraOn,true);
   assert.equal(prepared.videoLive,true);
   assert.equal(prepared.micOn,false);
