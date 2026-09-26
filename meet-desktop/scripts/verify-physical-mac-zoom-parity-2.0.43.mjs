@@ -118,18 +118,16 @@ assert(
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
   shareService.includes('if(qaNoMacPark){cancelMacParkTimer();keepMeetingRendererLive();return true;}')&&
-  shareService.includes('const MAC_SENTINEL_WIDTH=320;')&&
-  shareService.includes('const MAC_SENTINEL_HEIGHT=200;')&&
   shareService.includes('main.setOpacity?.(1)')&&
-  shareService.includes('main.setMinimumSize?.(1,1)')&&
-  shareService.includes('width:MAC_SENTINEL_WIDTH')&&
-  shareService.includes('height:MAC_SENTINEL_HEIGHT')&&
-  shareService.includes('y:Math.round(area.y+78)')&&
+  shareService.includes('try{main.blur?.();}catch{}')&&
+  shareService.includes('Do not resize, move, minimize, hide or fade the meeting engine after')&&
+  !shareService.includes('MAC_SENTINEL_WIDTH')&&
+  !shareService.includes('MAC_SENTINEL_HEIGHT')&&
   !shareService.includes('MAC_PARK_COORDINATE=-32000')&&
   !shareService.includes('main.setOpacity?.(0.02)')&&
   !bootstrap.includes('originalSetOpacity.call(main,0.02)')&&
   !macPresenter.includes('main.setOpacity?.(0.02)'),
-  'The meeting control renderer must remain fully composited under the 320x200 presenter-video surface after capture is isolated; tiny, off-display and near-transparent parking are forbidden because they can starve physical-Mac presenter commands.'
+  'The meeting control renderer must keep stable on-display geometry after capture is isolated; resize, off-display, minimize and near-transparent parking are forbidden because they starve physical-Mac presenter commands.'
 );
 
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
