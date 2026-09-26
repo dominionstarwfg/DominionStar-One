@@ -36,6 +36,12 @@ const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareRuntimeAuthority,participantsReference])new Function(source);
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
+assert(
+  shareController.includes("const constraints=macLike") &&
+  shareController.includes("? {audio:shareAudio,video:true}") &&
+  shareController.includes(": {audio:shareAudio,video:{frameRate:"),
+  'macOS display capture must use native video:true acquisition; sender policy owns quality tuning.'
+);
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
 assert(legacyParticipants.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must never re-center or poll the live panel.');
