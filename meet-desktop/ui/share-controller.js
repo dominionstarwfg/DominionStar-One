@@ -35,15 +35,27 @@
 
   async function acquireDisplay(options={}){
     const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio),generation=++displayRequestGeneration;
-    const capturePromise=navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
-    let timeoutId=0,stream=null,timedOut=false;
-    const timeoutPromise=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{timedOut=true;const error=new Error('Screen sharing did not start within 5 seconds. Please choose the source again.');error.code='share_start_timeout';reject(error);},5000);});
-    try{
-      stream=await Promise.race([capturePromise,timeoutPromise]);
-    }catch(error){
-      if(timedOut){displayRequestGeneration+=1;void capturePromise.then(lateStream=>stopTracks(lateStream)).catch(()=>{});}
-      throw error;
-    }finally{if(timeoutId)clearTimeout(timeoutId);}
+    const constraints={audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}};
+    const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
+    let stream=null;
+    if(macLike){
+      // Physical-Mac isolation proved the raw ScreenCaptureKit stream remains
+      // responsive, while wrapping the acquisition promise in Promise.race()
+      // is the remaining controller-only difference. Let macOS resolve its
+      // native capture request directly; the main-process source-selection
+      // watchdog still bounds an abandoned picker transaction.
+      stream=await navigator.mediaDevices.getDisplayMedia(constraints);
+    }else{
+      const capturePromise=navigator.mediaDevices.getDisplayMedia(constraints);
+      let timeoutId=0,timedOut=false;
+      const timeoutPromise=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{timedOut=true;const error=new Error('Screen sharing did not start within 5 seconds. Please choose the source again.');error.code='share_start_timeout';reject(error);},5000);});
+      try{
+        stream=await Promise.race([capturePromise,timeoutPromise]);
+      }catch(error){
+        if(timedOut){displayRequestGeneration+=1;void capturePromise.then(lateStream=>stopTracks(lateStream)).catch(()=>{});}
+        throw error;
+      }finally{if(timeoutId)clearTimeout(timeoutId);}
+    }
     if(generation!==displayRequestGeneration){stopTracks(stream);throw new DOMException('Screen share request was replaced.','AbortError');}
     const track=stream.getVideoTracks()[0];
     if(!track){stopTracks(stream);throw new Error('No screen capture track was returned.');}
@@ -52,7 +64,6 @@
     // changed after acquisition, and the physical-Mac presenter loop showed
     // the renderer becoming unresponsive immediately after ShareController
     // activated an otherwise healthy display track.
-    const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
     if(!macLike){try{track.contentHint=optimize?'motion':'detail';}catch{}}
     for(const audioTrack of stream.getAudioTracks?.()||[]){try{audioTrack.contentHint='music';}catch{}}
     return {stream,track};
