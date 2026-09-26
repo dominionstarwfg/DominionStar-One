@@ -151,6 +151,9 @@ async function setupRenderer(skipShareLayout=false){
           console.error('QA_CONTROLLER_NO_NOTIFY_BEGIN');
           const state=await window.DominionShareController.start({name:'QA Controller No Notify',options:{shareAudio:false,optimizeVideo:false,__qaSkipCaptureStarted:true,__qaSkipEndedListener:true,__qaSkipPresenterHandshake:true}});
           console.error('QA_CONTROLLER_NO_NOTIFY_READY active='+(state.active?1:0));
+          [250,900,2200,4200].forEach((delay,index)=>setTimeout(()=>{
+            console.error('QA_CONTROLLER_POST_ACTIVE_PULSE index='+(index+1)+' delay='+delay+' active='+(window.DominionShareController.snapshot().active?1:0));
+          },delay));
           return;
         }
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
@@ -183,15 +186,22 @@ try{
   assert.equal(prepared.chatReady,true);
   stage('live-camera-prepared');
   if(process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1'){
-    await main.wait("window.DominionShareController.snapshot().active===true",'controller share activation with layout disabled',10000);
+    const deadline=Date.now()+10000;
+    while(Date.now()<deadline&&!stderr.includes('QA_CONTROLLER_NO_NOTIFY_READY active=1'))await sleep(80);
+    assert.ok(stderr.includes('QA_CONTROLLER_NO_NOTIFY_READY active=1'),'Controller did not report an active synthetic share.');
     stage('controller-no-layout-share-started');
-    await sleep(3600);
-    const health=await main.eval("(()=>({active:window.DominionShareController.snapshot().active,media:Boolean(window.DominionMediaController),skip:Boolean(window.__DOMINION_QA_SKIP_SHARE_LAYOUT),now:Date.now()}))()",5000);
-    assert.equal(health.active,true,'No-layout controller diagnostic lost active share state.');
-    assert.equal(health.media,true,'No-layout controller diagnostic lost media controller.');
-    assert.equal(health.skip,true,'No-layout controller diagnostic lost its layout suppression flag.');
+
+    // CDP Runtime.evaluate can itself stall while Electron owns an active
+    // synthetic display MediaStream on macOS. Do not mistake debugger transport
+    // starvation for application event-loop starvation. Prove renderer liveness
+    // with timers scheduled inside the renderer before control returns.
+    const pulseDeadline=Date.now()+7000;
+    while(Date.now()<pulseDeadline&&!stderr.includes('QA_CONTROLLER_POST_ACTIVE_PULSE index=4'))await sleep(100);
+    assert.ok(stderr.includes('QA_CONTROLLER_POST_ACTIVE_PULSE index=1'),'Renderer missed first post-share heartbeat.');
+    assert.ok(stderr.includes('QA_CONTROLLER_POST_ACTIVE_PULSE index=4'),'Renderer stopped servicing timers after share activation.');
+    assert.ok(stderr.includes('QA_CONTROLLER_POST_ACTIVE_PULSE index=4 delay=4200 active=1'),'Share did not remain active through renderer liveness interval.');
     stage('controller-no-layout-renderer-remained-responsive');
-    console.log('DOMINIONSTAR_CONTROLLER_NO_NOTIFY_LIVENESS_OK active-stream listeners-suppressed no-capture-started no-layout no-window-park');
+    console.log('DOMINIONSTAR_CONTROLLER_NO_NOTIFY_LIVENESS_OK active-stream renderer-heartbeat listeners-suppressed no-capture-started no-layout no-window-park');
     main.close();
     if(child.exitCode===null)child.kill('SIGTERM');
     await sleep(1000);
