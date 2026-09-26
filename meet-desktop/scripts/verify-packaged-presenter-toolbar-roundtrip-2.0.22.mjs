@@ -19,8 +19,19 @@ async function waitStderr(match,label,timeout=8000,startAt=0){
   throw new Error('Timed out waiting for '+label+'.\n'+stderr);
 }
 const ackPattern=command=>new RegExp('QA_MAC_PRESENTER_ACK\\s+delivery=\\d+\\s+command='+command+'\\s+accepted=1');
+async function terminatePackagedApp(){
+  if(child.exitCode!==null)return;
+  const exited=new Promise(resolve=>child.once('exit',resolve));
+  try{child.kill('SIGTERM');}catch{}
+  await Promise.race([exited,sleep(2200)]);
+  if(child.exitCode===null){
+    try{child.kill('SIGKILL');}catch{}
+    await Promise.race([new Promise(resolve=>child.once('exit',resolve)),sleep(1200)]);
+  }
+}
 let stderr='';
-const child=spawn(executable,['--remote-debugging-port='+port,'--remote-allow-origins=*','--use-fake-ui-for-media-stream'],{
+const qaUserData=path.join('/tmp','dominionstar-presenter-qa-'+process.pid+'-'+port);
+const child=spawn(executable,['--user-data-dir='+qaUserData,'--remote-debugging-port='+port,'--remote-allow-origins=*','--use-fake-ui-for-media-stream'],{
   env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},
   stdio:['ignore','ignore','pipe']
 });
@@ -205,8 +216,7 @@ try{
     stage('hidden-presenter-preflight-responsive');
     console.log('DOMINIONSTAR_HIDDEN_PRESENTER_PREFLIGHT_OK controllers-loaded renderer-process-heartbeat no-synthetic-canvas-capture');
     main.close();
-    if(child.exitCode===null)child.kill('SIGTERM');
-    await sleep(1000);
+    await terminatePackagedApp();
     process.exit(0);
   }
 
@@ -308,7 +318,5 @@ try{
   process.exitCode=1;
 }finally{
   video?.close();toolbar?.close();main?.close();
-  if(child.exitCode===null)child.kill('SIGTERM');
-  await sleep(1800);
-  if(child.exitCode===null)child.kill('SIGKILL');
+  await terminatePackagedApp();
 }
