@@ -17,6 +17,7 @@ const logoUrl=new URL(packaged?'../../branding/dominionstar-logo.jpeg':'../../as
 // turning visible presenter controls into dead buttons.
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
+  environment:()=>invoke('app:get-environment'),
   brand:Object.freeze({logoUrl}),
   auth:Object.freeze({getState:()=>invoke('auth:get-state')}),
   presenter:Object.freeze({
