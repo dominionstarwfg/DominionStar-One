@@ -216,10 +216,13 @@ try{
   stage('share-started');
 
   // From this point forward, never use CDP against the capture-owning meeting
-  // renderer. The production presenter path itself is the liveness oracle:
-  // each toolbar click must be acknowledged by the renderer and the resulting
-  // state must return to the floating presenter surfaces.
-  await sleep(2700);
+  // renderer. Require an independent preload heartbeat after share activation
+  // before touching the presenter toolbar, then use the production ACK path as
+  // the command liveness oracle.
+  const activeSharePulseStart=stderr.length;
+  await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(3|4|5)/,'active-share meeting renderer heartbeat',7000,activeSharePulseStart);
+  stage('active-share-renderer-responsive');
+  await sleep(300);
 
   const toolbarTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-presenter-toolbar.html'),'actual floating Mac presenter toolbar');
   toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
