@@ -22,6 +22,7 @@ if(process.platform==='darwin'){
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
   const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
+  const qaDeferPresenterShow=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_DEFER_MAC_PRESENTER_SHOW==='1';
   let shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
@@ -220,6 +221,7 @@ if(process.platform==='darwin'){
   }
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
+  ipcMain.handle('mac-share:reveal',()=>{showOverlays();return {ok:true};});
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{
     shareActive=true;shareState={...shareState,...state,meetingVisible:false};
@@ -229,6 +231,10 @@ if(process.platform==='darwin'){
     // from macOS compositor/window-server effects.
     if(qaKeepPresenterHidden){
       if(qaPresenterTrace)console.error('QA_MAC_CAPTURE_STARTED_NO_SURFACE_MUTATION');
+      return;
+    }
+    if(qaDeferPresenterShow){
+      if(qaPresenterTrace)console.error('QA_MAC_PRESENTER_SHOW_DEFERRED');
       return;
     }
     showOverlays();
