@@ -220,7 +220,18 @@ if(process.platform==='darwin'){
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
-  ipcMain.on('share:capture-started',(_event,state={})=>{shareActive=true;shareState={...shareState,...state,meetingVisible:false};showOverlays();});
+  ipcMain.on('share:capture-started',(_event,state={})=>{
+    shareActive=true;shareState={...shareState,...state,meetingVisible:false};
+    // Hidden-presenter diagnostic must be a true zero-surface-mutation test.
+    // Do not position, publish to, show, hide, resize, or raise any presenter
+    // BrowserWindow after capture starts. This isolates the capture renderer
+    // from macOS compositor/window-server effects.
+    if(qaKeepPresenterHidden){
+      if(qaPresenterTrace)console.error('QA_MAC_CAPTURE_STARTED_NO_SURFACE_MUTATION');
+      return;
+    }
+    showOverlays();
+  });
   ipcMain.on('mac-share:state',(_event,state={})=>{if(!shareActive)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
   ipcMain.on('mac-share:capture-stopped',()=>{shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
