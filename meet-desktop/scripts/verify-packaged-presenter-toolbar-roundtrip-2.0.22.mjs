@@ -174,7 +174,7 @@ async function setupRenderer(skipShareLayout=false){
           return;
         }
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
-        const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false,__qaSyntheticWorker:true}});
+        const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true}});
         window.DominionShareIntegration.commitPresenterMode();
         console.error('QA_REAL_PRESENTER_SHARE_READY active='+(shareState.active?1:0));
       }catch(error){console.error((skipShareLayout?'QA_RAW_DISPLAY_FAILURE ':'QA_REAL_PRESENTER_SHARE_FAILURE ')+String(error?.stack||error));}
@@ -220,7 +220,7 @@ try{
   // before touching the presenter toolbar, then use the production ACK path as
   // the command liveness oracle.
   const activeSharePulseStart=stderr.length;
-  await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(3|4|5)/,'active-share meeting renderer heartbeat before presenter reveal',7000,activeSharePulseStart);
+  await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(4|5)/,'active-share meeting renderer heartbeat before presenter reveal',7000,activeSharePulseStart);
   stage('active-share-renderer-responsive-before-reveal');
 
   const revealStart=stderr.length;
