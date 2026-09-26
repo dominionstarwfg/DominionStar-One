@@ -193,6 +193,17 @@ try{
     assert.equal(health.media,true,'Raw display diagnostic lost media controller.');
     stage('raw-display-renderer-remained-responsive');
     console.log('DOMINIONSTAR_RAW_DISPLAY_RENDERER_LIVENESS_OK no-share-controller no-presenter-ipc no-share-layout no-window-park');
+
+    // Now add exactly one production transition: notify the main process that a
+    // capture started, without involving ShareController or share-active DOM.
+    await main.eval("window.dominionDesktop.share.captureStarted({sourceName:'QA Raw Notify',displayId:'',paused:false}); true",3000);
+    stage('raw-capture-start-notified');
+    await sleep(1800);
+    const postNotify=await main.eval("(()=>({raw:Boolean(window.__DOMINION_QA_RAW_DISPLAY_STREAM?.getVideoTracks?.().length),now:Date.now()}))()",5000);
+    assert.equal(postNotify.raw,true,'Renderer stopped responding after captureStarted notification.');
+    stage('capture-start-notification-renderer-remained-responsive');
+    console.log('DOMINIONSTAR_CAPTURE_STARTED_IPC_LIVENESS_OK raw-display plus-main-process-notify');
+
     main.close();
     if(child.exitCode===null)child.kill('SIGTERM');
     await sleep(1000);
