@@ -134,7 +134,7 @@
   async function boot(){
     try{
       const environment=await desktop.environment?.();
-      qaInteractionFixtures=Boolean(environment?.qaInteractionFixtures);
+      qaInteractionFixtures=Boolean(environment?.qaPresenterFixtures||environment?.qaInteractionFixtures);
     }catch{}
     await loadIdentity();
     render();
