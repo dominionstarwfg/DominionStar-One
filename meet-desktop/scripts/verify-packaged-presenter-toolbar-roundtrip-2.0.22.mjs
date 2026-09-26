@@ -85,6 +85,7 @@ class Cdp{
 
 async function setupRenderer(skipShareLayout=false){
   window.__DOMINION_QA_SKIP_SHARE_LAYOUT=Boolean(skipShareLayout);
+  window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS=Boolean(skipShareLayout);
   document.querySelector('#bootScreen').hidden=true;
   document.querySelector('#authGate').hidden=true;
   document.querySelector('#appShell').hidden=true;
@@ -190,7 +191,7 @@ try{
     assert.equal(health.media,true,'No-layout controller diagnostic lost media controller.');
     assert.equal(health.skip,true,'No-layout controller diagnostic lost its layout suppression flag.');
     stage('controller-no-layout-renderer-remained-responsive');
-    console.log('DOMINIONSTAR_CONTROLLER_NO_LAYOUT_LIVENESS_OK share-controller capture-started no-layout no-window-park');
+    console.log('DOMINIONSTAR_CONTROLLER_NO_LISTENER_LIVENESS_OK share-controller capture-started listeners-suppressed no-layout no-window-park');
     main.close();
     if(child.exitCode===null)child.kill('SIGTERM');
     await sleep(1000);
