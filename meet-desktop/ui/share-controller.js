@@ -1,7 +1,21 @@
 (()=>{
   if(window.DominionShareController)return;
   const bridge=window.dominionDesktop?.share;
-  const state={liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
+  const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
+  const state={_liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
+  // Physical-Mac liveness authority: a raw display stream held directly on
+  // window remains responsive under ScreenCaptureKit, while the old closure-
+  // owned stream path repeatedly starved the renderer after activation.
+  // Preserve the public state.liveStream API through an accessor so every
+  // existing controller/transport call remains unchanged.
+  Object.defineProperty(state,'liveStream',{
+    configurable:false,enumerable:false,
+    get(){return macLike?(window.__DOMINION_MAC_ACTIVE_SHARE_STREAM||null):state._liveStream;},
+    set(value){
+      if(macLike)window.__DOMINION_MAC_ACTIVE_SHARE_STREAM=value||null;
+      else state._liveStream=value||null;
+    }
+  });
   const listeners=new Set();
   let displayRequestGeneration=0;
   const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
@@ -36,7 +50,6 @@
   async function acquireDisplay(options={}){
     const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio),generation=++displayRequestGeneration;
     const constraints={audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}};
-    const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
     let stream=null;
     if(macLike){
       // Physical-Mac isolation proved the raw ScreenCaptureKit stream remains
