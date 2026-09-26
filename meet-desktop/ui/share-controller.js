@@ -81,6 +81,10 @@
       }else{
         console.error('QA_SHARE_TRACK_ENDED_LISTENER_SUPPRESSED');
       }
+      if(options?.__qaSkipPresenterHandshake){
+        console.error('QA_SHARE_PRESENTER_HANDSHAKE_SUPPRESSED');
+        return snapshot();
+      }
       let presenter=null;
       try{
         const qaSkipCaptureStarted=Boolean(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS&&options?.__qaSkipCaptureStarted);
