@@ -149,7 +149,7 @@ async function setupRenderer(skipShareLayout=false){
         if(skipShareLayout){
           // Controller isolation with every applyLayout entry point disabled.
           console.error('QA_CONTROLLER_NO_NOTIFY_BEGIN');
-          const state=await window.DominionShareController.start({name:'QA Controller No Notify',options:{shareAudio:false,optimizeVideo:false,__qaSkipCaptureStarted:true}});
+          const state=await window.DominionShareController.start({name:'QA Controller No Notify',options:{shareAudio:false,optimizeVideo:false,__qaSkipCaptureStarted:true,__qaSkipEndedListener:true}});
           console.error('QA_CONTROLLER_NO_NOTIFY_READY active='+(state.active?1:0));
           return;
         }
