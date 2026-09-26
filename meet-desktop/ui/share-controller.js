@@ -76,7 +76,11 @@
     try{
       const {stream,track}=await acquireDisplay(options);
       state.liveStream=stream;state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
-      track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
+      if(!options?.__qaSkipEndedListener){
+        track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
+      }else{
+        console.error('QA_SHARE_TRACK_ENDED_LISTENER_SUPPRESSED');
+      }
       let presenter=null;
       try{
         const qaSkipCaptureStarted=Boolean(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS&&options?.__qaSkipCaptureStarted);
