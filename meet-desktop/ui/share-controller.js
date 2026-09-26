@@ -52,7 +52,12 @@
 
   async function acquireDisplay(options={}){
     const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio),generation=++displayRequestGeneration;
-    const constraints={audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}};
+    // Keep ScreenCaptureKit acquisition native on macOS. The raw
+    // video:true path is proven renderer-safe; structured frame-rate
+    // constraints are applied later through the WebRTC sender instead.
+    const constraints=macLike
+      ? {audio:shareAudio,video:true}
+      : {audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}};
     let stream=null;
     if(macLike){
       // Physical-Mac isolation proved the raw ScreenCaptureKit stream remains
