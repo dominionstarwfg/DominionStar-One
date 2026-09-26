@@ -314,7 +314,12 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       if(mainPid&&workerPid&&mainPid===workerPid){
         return {ok:false,error:'capture_worker_process_not_isolated'};
       }
-      showCaptureWorker();
+      if(payload?.qaLifecycleOnly){
+        if(qaPresenterTrace)qaPresenterLog('CAPTURE_WORKER_VISIBILITY',{shown:0,reason:'qa-lifecycle-only'});
+      }else{
+        showCaptureWorker();
+        if(qaPresenterTrace)qaPresenterLog('CAPTURE_WORKER_VISIBILITY',{shown:1,reason:'capture-active'});
+      }
       worker.webContents.send('share-capture:start',payload||{});
       return {ok:true,isolated:true,mainPid,workerPid};
     }catch(error){return {ok:false,error:String(error?.message||error||'capture_worker_start_failed')};}
