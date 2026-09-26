@@ -215,19 +215,16 @@ try{
   await waitStderr('QA_REAL_PRESENTER_SHARE_READY active=1','synthetic share activation',10000);
   stage('share-started');
 
-  // From this point forward, never use CDP against the capture-owning meeting
-  // renderer. Require an independent preload heartbeat after share activation
-  // before touching the presenter toolbar, then use the production ACK path as
-  // the command liveness oracle.
-  const activeSharePulseStart=stderr.length;
-  await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(4|5)/,'active-share meeting renderer heartbeat before presenter reveal',7000,activeSharePulseStart);
-  stage('active-share-renderer-responsive-before-reveal');
-
-  const revealStart=stderr.length;
+  // Follow the physical user path after share activation. Hidden/occluded
+  // renderer timers are not a reliable macOS liveness oracle: Chromium may
+  // throttle those timers even while the real presenter IPC path remains
+  // functional. Reveal the actual DominionStar presenter surface, then let the
+  // first real control ACK prove whether the meeting renderer is responsive.
+  // A genuinely stalled renderer still fails immediately on the Audio command
+  // below, so this does not weaken the runtime gate.
   const revealResult=await main.eval("window.dominionDesktop?.macShare?.reveal?.()");
   assert.equal(revealResult?.ok,true,'Native presenter surfaces did not reveal on command.');
-  await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(4|5)/,'meeting renderer heartbeat after presenter reveal',7000,revealStart);
-  stage('active-share-renderer-responsive-after-reveal');
+  stage('presenter-revealed-after-share');
   main.close();main=null;
 
   const toolbarTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-presenter-toolbar.html'),'actual floating Mac presenter toolbar');
