@@ -7,9 +7,11 @@
   const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
   const emit=()=>{
     const value=snapshot();
+    if(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS)return value;
     for(const listener of [...listeners]){
       try{listener(value);}catch(error){console.error('[DominionStar Meet] Share state listener failed.',error);}
     }
+    return value;
   };
   const stopTracks=stream=>{for(const track of stream?.getTracks?.()||[]){if(track.readyState!=='ended'){try{track.stop();}catch{}}}};
   const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream;
