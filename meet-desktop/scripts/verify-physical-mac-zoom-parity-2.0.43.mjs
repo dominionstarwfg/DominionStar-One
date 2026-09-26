@@ -45,6 +45,14 @@ for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,pari
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
 assert(
+  shareService.includes("partition:'dominion-share-capture-v2044'") &&
+  shareService.includes("getOSProcessId?.()") &&
+  shareService.includes("capture_worker_process_not_isolated") &&
+  shareService.includes("CAPTURE_PROCESS_BOUNDARY"),
+  'The macOS capture worker must run in a separately verifiable renderer process and fail closed if Chromium coalesces it with the meeting renderer.'
+);
+
+assert(
   shareController.includes("const captureBridge=window.dominionDesktop?.shareCapture||null;") &&
   shareController.includes('return acquireMacWorkerDisplay(options,generation);') &&
   shareController.includes("throw new Error('Dedicated Mac screen-capture worker is unavailable.')") &&
