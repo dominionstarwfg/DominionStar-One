@@ -20,7 +20,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let macCaptureStartedAt=0;
   let macParkTimer=null;
   const MAC_PARK_DELAY_MS=2100;
-  const MAC_SENTINEL_SIZE=8;
+  const MAC_SENTINEL_WIDTH=320;
+  const MAC_SENTINEL_HEIGHT=200;
   let qaPresenterCommandSeq=0;
   let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};
 
@@ -168,11 +169,14 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       const area=display?.workArea||display?.bounds;
       if(area){
         main.setMinimumSize?.(1,1);
+        // Keep the meeting engine at the exact default presenter-video
+        // footprint and directly underneath that always-on-top surface.
+        // 8x8 was too small for macOS to keep the renderer scheduled.
         main.setBounds({
-          x:Math.round(area.x+area.width-MAC_SENTINEL_SIZE-2),
-          y:Math.round(area.y+area.height-MAC_SENTINEL_SIZE-2),
-          width:MAC_SENTINEL_SIZE,
-          height:MAC_SENTINEL_SIZE
+          x:Math.round(area.x+area.width-MAC_SENTINEL_WIDTH-18),
+          y:Math.round(area.y+78),
+          width:MAC_SENTINEL_WIDTH,
+          height:MAC_SENTINEL_HEIGHT
         },false);
       }
     }catch{}
