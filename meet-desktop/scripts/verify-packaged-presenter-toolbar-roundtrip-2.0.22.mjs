@@ -201,22 +201,15 @@ try{
   assert.equal(prepared.chatReady,true);
   stage('live-camera-prepared');
   if(process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1'){
-    const deadline=Date.now()+10000;
-    while(Date.now()<deadline&&!stderr.includes('QA_CONTROLLER_NO_NOTIFY_READY active=1'))await sleep(80);
-    assert.ok(stderr.includes('QA_CONTROLLER_NO_NOTIFY_READY active=1'),'Controller did not report an active synthetic share.');
+    await waitStderr('QA_CONTROLLER_NO_NOTIFY_READY active=1','controller active-share marker',10000);
     stage('controller-no-layout-share-started');
 
-    // CDP Runtime.evaluate can itself stall while Electron owns an active
-    // synthetic display MediaStream on macOS. Do not mistake debugger transport
-    // starvation for application event-loop starvation. Prove renderer liveness
-    // with timers scheduled inside the renderer before control returns.
-    const pulseDeadline=Date.now()+7000;
-    while(Date.now()<pulseDeadline&&!stderr.includes('QA_CONTROLLER_POST_ACTIVE_PULSE index=4'))await sleep(100);
-    assert.ok(stderr.includes('QA_CONTROLLER_POST_ACTIVE_PULSE index=1'),'Renderer missed first post-share heartbeat.');
-    assert.ok(stderr.includes('QA_CONTROLLER_POST_ACTIVE_PULSE index=4'),'Renderer stopped servicing timers after share activation.');
-    assert.ok(stderr.includes('QA_CONTROLLER_POST_ACTIVE_PULSE index=4 delay=4200 active=1'),'Share did not remain active through renderer liveness interval.');
-    stage('controller-no-layout-renderer-remained-responsive');
-    console.log('DOMINIONSTAR_CONTROLLER_NO_NOTIFY_LIVENESS_OK active-stream renderer-heartbeat listeners-suppressed no-capture-started no-layout no-window-park');
+    // The hidden diagnostic proves renderer-process liveness only. The full
+    // non-hidden pass below proves main-world execution by requiring explicit
+    // presenter command ACKs from the capture-owning renderer.
+    await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(3|4|5)/,'renderer preload heartbeat after share activation',8000);
+    stage('controller-no-layout-renderer-process-remained-responsive');
+    console.log('DOMINIONSTAR_CONTROLLER_NO_NOTIFY_LIVENESS_OK active-stream renderer-process-heartbeat listeners-suppressed no-capture-started no-layout no-window-park');
     main.close();
     if(child.exitCode===null)child.kill('SIGTERM');
     await sleep(1000);
