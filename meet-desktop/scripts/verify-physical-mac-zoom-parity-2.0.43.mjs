@@ -96,11 +96,11 @@ assert(shareService.includes("displayId:String(source.display_id||'')")&&shareCo
 assert(
   macPresenter.includes('const displayForSharedContent=()=>')&&
   macPresenter.includes('bordersReady=()=>borderWindows.length===4')&&
-  macPresenter.includes('const inset=6;')&&
+  macPresenter.includes('const inset=1;')&&
   macPresenter.includes('{x,y:y+height-t,width,height:t}')&&
   macPresenter.includes("mac_share_border_edge_")&&
   !macPresenter.includes("mac_share_perimeter_load"),
-  'The green presenter perimeter must use four thin non-occluding edges driven by one selected-display geometry.'
+  'The green presenter perimeter must use four thin non-occluding edges one pixel inside the selected-display geometry.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
