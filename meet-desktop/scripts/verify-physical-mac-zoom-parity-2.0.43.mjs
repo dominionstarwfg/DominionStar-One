@@ -49,7 +49,7 @@ assert(
   shareController.includes('return acquireMacWorkerDisplay(options,generation);') &&
   shareController.includes("throw new Error('Dedicated Mac screen-capture worker is unavailable.')") &&
   captureWorker.includes('navigator.mediaDevices.getDisplayMedia({video:true,audio:Boolean(payload?.shareAudio)})') &&
-  captureWorker.includes('pc.addTrack(track,captureStream)') &&
+  captureWorker.includes('for(const track of stream.getTracks())nextPc.addTrack(track,stream);') &&
   capturePreload.includes("ipcRenderer.send('share-capture:offer'") &&
   preload.includes('shareCapture:Object.freeze({') &&
   shareService.includes("ipcMain.handle('share-capture:start'"),
