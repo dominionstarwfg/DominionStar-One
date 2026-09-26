@@ -16,6 +16,7 @@ const parity=read('ui/meeting-parity.js');
 const personal=read('ui/personal-room.js');
 const personalCss=read('ui/personal-room.css');
 const app=read('ui/app.js');
+const main=read('src/main.mjs');
 const media=read('ui/media-controller.js');
 const legacyParticipants=read('ui/participants-center-lock-2.0.41.js');
 const participantsReference=read('ui/zoom-participants-reference-2.0.41.js');
@@ -123,6 +124,7 @@ assert(
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
 assert(preload.includes("if(process.platform==='darwin')ipcRenderer.send('mac-share:state',state||{});return invoke('share:capture-state',state);"),'Mac share state must reach both native overlay and companion-window authorities.');
 assert(presenterPreload.includes("environment:()=>invoke('app:get-environment')"),'Mac presenter surfaces must be able to detect certified QA runtime without loading the full meeting preload.');
+assert(main.includes('qaPresenterFixtures:qaFixtureRequested')&&macVideoJs.includes('environment?.qaPresenterFixtures||environment?.qaInteractionFixtures'),'Packaged presenter QA must use an explicit fixture request without weakening production fixture gating.');
 assert(
   integration.includes("cameraId:String(mediaState.cameraId||'')")&&
   integration.includes("mirror:mediaState.mirror!==false")&&
