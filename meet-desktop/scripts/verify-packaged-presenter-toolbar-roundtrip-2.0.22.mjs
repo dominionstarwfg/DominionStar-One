@@ -8,6 +8,17 @@ const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=10880+Math.floor(Math.random()*100);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const stage=name=>console.log('PRESENTER_STAGE_OK '+name);
+async function waitStderr(match,label,timeout=8000,startAt=0){
+  const deadline=Date.now()+timeout;
+  while(Date.now()<deadline){
+    const hay=stderr.slice(startAt);
+    if(typeof match==='string'?hay.includes(match):match.test(hay))return hay;
+    if(child.exitCode!==null)throw new Error('Packaged app exited while waiting for '+label+'.\n'+stderr);
+    await sleep(80);
+  }
+  throw new Error('Timed out waiting for '+label+'.\n'+stderr);
+}
+const ackPattern=command=>new RegExp('QA_MAC_PRESENTER_ACK\\s+delivery=\\d+\\s+command='+command+'\\s+accepted=1');
 let stderr='';
 const child=spawn(executable,['--remote-debugging-port='+port,'--remote-allow-origins=*','--use-fake-ui-for-media-stream'],{
   env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},
