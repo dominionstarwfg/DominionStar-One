@@ -86,8 +86,17 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
         width:320,height:180,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
         resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,closable:false,
         focusable:false,alwaysOnTop:false,skipTaskbar:true,hasShadow:false,
-        webPreferences:{preload:capturePreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
+        webPreferences:{
+          preload:capturePreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,
+          devTools:false,backgroundThrottling:false,
+          // A dedicated StoragePartition prevents Chromium from coalescing the
+          // capture surface with the meeting SiteInstance/process.
+          partition:'dominion-share-capture-v2044'
+        }
       });
+      // The worker has its own Session, so it needs the same selected-source
+      // display-media authority as the main session.
+      try{win.webContents.session.setDisplayMediaRequestHandler(displayMediaHandler,{useSystemPicker:false});}catch{}
       captureWorkerWindow=win;
       protectMeetingChrome(win,true);
       try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
@@ -299,9 +308,15 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{
       const worker=await ensureCaptureWorker();
       if(!worker||worker.isDestroyed())return {ok:false,error:'capture_worker_unavailable'};
+      const mainPid=Number(main.webContents?.getOSProcessId?.()||0);
+      const workerPid=Number(worker.webContents?.getOSProcessId?.()||0);
+      qaPresenterLog('CAPTURE_PROCESS_BOUNDARY',{mainPid,workerPid,isolated:mainPid&&workerPid&&mainPid!==workerPid?1:0});
+      if(mainPid&&workerPid&&mainPid===workerPid){
+        return {ok:false,error:'capture_worker_process_not_isolated'};
+      }
       showCaptureWorker();
       worker.webContents.send('share-capture:start',payload||{});
-      return {ok:true};
+      return {ok:true,isolated:true,mainPid,workerPid};
     }catch(error){return {ok:false,error:String(error?.message||error||'capture_worker_start_failed')};}
   });
   ipcMain.handle('share-capture:stop',(event)=>{
