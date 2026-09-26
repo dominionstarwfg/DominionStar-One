@@ -22,7 +22,7 @@ if(process.platform==='darwin'){
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
   const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
-  let shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
+  let shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
   const bordersReady=()=>borderWindows.length===4&&borderWindows.every(isAlive);
@@ -234,7 +234,7 @@ if(process.platform==='darwin'){
     showOverlays();
   });
   ipcMain.on('mac-share:state',(_event,state={})=>{if(!shareActive)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
-  ipcMain.on('mac-share:capture-stopped',()=>{if(qaPresenterTrace)console.error('QA_MAC_CAPTURE_STOPPED');shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
+  ipcMain.on('mac-share:capture-stopped',()=>{if(qaPresenterTrace)console.error('QA_MAC_CAPTURE_STOPPED');shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;removeQueuedPresenterDelivery(deliveryId);
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=${deliveryId} command=${String(payload?.command||'')} accepted=${payload?.accepted?1:0}`);
