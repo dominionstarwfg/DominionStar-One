@@ -145,11 +145,21 @@ async function setupRenderer(skipShareLayout=false){
   setTimeout(()=>{
     void (async()=>{
       try{
+        if(skipShareLayout){
+          // Raw-media isolation. Do not touch the DominionStar share controller,
+          // presenter IPC, or meeting DOM. If this alone stalls CDP on the
+          // macOS runner, canvas-captureStream is not a valid liveness fixture.
+          console.error('QA_RAW_DISPLAY_BEGIN');
+          const raw=await navigator.mediaDevices.getDisplayMedia({audio:false,video:true});
+          window.__DOMINION_QA_RAW_DISPLAY_STREAM=raw;
+          console.error('QA_RAW_DISPLAY_READY tracks='+raw.getVideoTracks().length);
+          return;
+        }
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
         const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
         window.DominionShareIntegration.commitPresenterMode();
         console.error('QA_REAL_PRESENTER_SHARE_READY active='+(shareState.active?1:0));
-      }catch(error){console.error('QA_REAL_PRESENTER_SHARE_FAILURE '+String(error?.stack||error));}
+      }catch(error){console.error((skipShareLayout?'QA_RAW_DISPLAY_FAILURE ':'QA_REAL_PRESENTER_SHARE_FAILURE ')+String(error?.stack||error));}
     })();
   },30);
   return {
@@ -174,21 +184,23 @@ try{
   assert.equal(prepared.micOn,false);
   assert.equal(prepared.chatReady,true);
   stage('live-camera-prepared');
-  await main.wait("window.DominionShareController.snapshot().active===true",'synthetic share activation',10000);
-  stage('share-started');
-
   if(process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1'){
+    await main.wait("Boolean(window.__DOMINION_QA_RAW_DISPLAY_STREAM?.getVideoTracks?.().length)",'raw synthetic display stream',10000);
+    stage('raw-display-started');
     await sleep(3600);
-    const health=await main.eval("(()=>({active:window.DominionShareController.snapshot().active,media:Boolean(window.DominionMediaController),now:Date.now()}))()",5000);
-    assert.equal(health.active,true,'Hidden-presenter diagnostic lost active share state.');
-    assert.equal(health.media,true,'Hidden-presenter diagnostic lost media controller.');
-    stage('hidden-presenter-renderer-remained-responsive');
-    console.log('DOMINIONSTAR_HIDDEN_PRESENTER_RENDERER_LIVENESS_OK camera-relay-disabled');
+    const health=await main.eval("(()=>({raw:Boolean(window.__DOMINION_QA_RAW_DISPLAY_STREAM?.getVideoTracks?.().length),media:Boolean(window.DominionMediaController),now:Date.now()}))()",5000);
+    assert.equal(health.raw,true,'Raw display diagnostic lost its synthetic display track.');
+    assert.equal(health.media,true,'Raw display diagnostic lost media controller.');
+    stage('raw-display-renderer-remained-responsive');
+    console.log('DOMINIONSTAR_RAW_DISPLAY_RENDERER_LIVENESS_OK no-share-controller no-presenter-ipc no-share-layout no-window-park');
     main.close();
     if(child.exitCode===null)child.kill('SIGTERM');
     await sleep(1000);
     process.exit(0);
   }
+
+  await main.wait("window.DominionShareController.snapshot().active===true",'synthetic share activation',10000);
+  stage('share-started');
 
   // Wait beyond the physical-Mac startup parking interval. The exact controls
   // below must still mutate the capture-owning renderer after it is parked.
