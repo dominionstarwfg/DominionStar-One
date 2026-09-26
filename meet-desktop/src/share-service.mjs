@@ -28,6 +28,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   // reopen after the user has already selected a DominionStar source.
   const nativeSystemPicker=false;
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
+  const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
 
   const authority=createShareSourceAuthority({
     timeoutMs:4500,
@@ -71,6 +72,10 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function cancelMacParkTimer(){if(macParkTimer){clearTimeout(macParkTimer);macParkTimer=null;}}
   function scheduleMacPark(){
     if(platform!=='darwin'||!shareActive)return false;
+    // Hidden-presenter liveness diagnostic: keep the capture-owning renderer
+    // in its exact pre-share geometry. This isolates macOS window mutation from
+    // display-track and presenter-surface effects.
+    if(qaNoMacPark){cancelMacParkTimer();keepMeetingRendererLive();return true;}
     cancelMacParkTimer();
     const elapsed=Math.max(0,Date.now()-macCaptureStartedAt);
     const delay=Math.max(0,MAC_PARK_DELAY_MS-elapsed);
