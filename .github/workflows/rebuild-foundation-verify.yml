@@ -5,8 +5,6 @@ on:
     branches: [main]
     paths:
       - 'meet-desktop/**'
-      - 'scripts/build-rebuild-netlify.sh'
-      - 'netlify.toml'
       - '.github/workflows/rebuild-foundation-verify.yml'
   workflow_dispatch:
 
@@ -43,6 +41,9 @@ jobs:
           node --check 'meet-desktop/ui/meeting-features.js'
           node --check 'meet-desktop/ui/meeting-captions.js'
           node --check 'meet-desktop/ui/zoom-behavior.js'
+          node --check 'meet-desktop/ui/zoom-adaptive-parity.js'
+          node --check 'meet-desktop/ui/approved-reference-parity.js'
+          node --check 'meet-desktop/ui/runtime-stability.js'
           node --check 'meet-desktop/ui/participant-controls.js'
           node --check 'meet-desktop/ui/meeting-notifications.js'
           node --check 'meet-desktop/ui/preferences.js'
@@ -58,11 +59,15 @@ jobs:
           node --check 'meet-desktop/ui/diagnostics.js'
           node --check 'meet-desktop/ui/app.js'
           node --check 'meet-desktop/scripts/verify-meeting-identity-runtime.mjs'
+          node --check 'meet-desktop/scripts/verify-approved-reference-parity-2.0.22.mjs'
+          node --check 'meet-desktop/scripts/verify-runtime-stability-2.0.22.mjs'
+          node --check 'meet-desktop/scripts/verify-packaged-approved-reference-2.0.22.mjs'
+          node --check 'meet-desktop/scripts/verify-packaged-runtime-stability-2.0.22.mjs'
       - name: Verify clean Home contract
         run: node 'meet-desktop/scripts/verify-foundation.mjs'
       - name: Verify desktop authentication contract
         run: node 'meet-desktop/scripts/verify-auth.mjs'
-      - name: Verify Zoom-style meeting identity lifecycle
+      - name: Verify DominionStar meeting identity lifecycle
         run: node 'meet-desktop/scripts/verify-meeting-lifecycle.mjs'
       - name: Exercise meeting identity runtime
         run: node 'meet-desktop/scripts/verify-meeting-identity-runtime.mjs'
@@ -70,7 +75,7 @@ jobs:
         run: node 'meet-desktop/scripts/verify-media-authority.mjs'
       - name: Verify restored audio video settings
         run: node 'meet-desktop/scripts/verify-av-settings.mjs'
-      - name: Verify approved meeting chrome and Zoom behavior
+      - name: Verify approved DominionStar meeting chrome and behavior
         run: node 'meet-desktop/scripts/verify-meeting-parity.mjs'
       - name: Verify nonblocking screen-share authority
         run: node 'meet-desktop/scripts/verify-share-authority.mjs'
@@ -80,8 +85,18 @@ jobs:
         run: node 'meet-desktop/scripts/verify-turn-relay.mjs'
       - name: Verify physical QA diagnostics
         run: node 'meet-desktop/scripts/verify-diagnostics.mjs'
-      - name: Verify Netlify publishes the same UI
-        run: bash scripts/build-rebuild-netlify.sh
+      - name: Verify approved 3D reference source parity
+        run: node 'meet-desktop/scripts/verify-approved-reference-parity-2.0.22.mjs'
+      - name: Verify physical runtime stability
+        run: node 'meet-desktop/scripts/verify-runtime-stability-2.0.22.mjs'
+      - name: Verify public root and Meet bundle remain separate
+        run: |
+          test -s index.html
+          test -s meet-desktop/ui/index.html
+          grep -Fq 'Financial Education & Career Development' index.html
+          grep -Fq 'DominionStar Meet' meet-desktop/ui/index.html
+          ! cmp -s index.html meet-desktop/ui/index.html
+          echo DOMINIONSTAR_PUBLIC_AND_MEET_BOUNDARY_OK
       - name: Assert legacy runtime is absent
         run: |
           test ! -e desktop

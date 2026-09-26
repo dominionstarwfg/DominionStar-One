@@ -43,7 +43,7 @@
     setHidden(button,!manager());
   }
 
-  function participantPanelMode(side=q('.room-side')){return side?.dataset.zoomPanelMode==='popout'?'popout':'docked';}
+  function participantPanelMode(side=q('.room-side')){const mode=String(side?.dataset.zoomPanelMode||'');return mode==='popout'?'popout':mode==='runtime'?'runtime':'docked';}
   function dockParticipantPanel(side=q('.room-side')){
     if(!side)return;side.dataset.zoomPanelMode='docked';
     side.style.setProperty('position','absolute','important');
@@ -72,6 +72,7 @@
   }
   function normalizeParticipantPanel(){
     const side=q('.room-side');if(!side)return;
+    if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();return;}
     if(participantPanelMode(side)==='popout'){
       side.style.setProperty('position','absolute','important');
       side.style.setProperty('right','auto','important');
@@ -93,6 +94,7 @@
   }
   function ensureParticipantLayoutControl(){
     const side=q('.room-side'),head=side?.querySelector('.room-side-head');if(!side||!head)return;
+    if(window.DominionRuntimeStability?.layoutSideSurface){head.querySelector('.zoom-participant-layout-button')?.remove();side.dataset.zoomPanelMode='runtime';return;}
     if(!side.dataset.zoomPanelMode)side.dataset.zoomPanelMode='docked';
     let button=head.querySelector('.zoom-participant-layout-button');
     if(!button){
@@ -145,6 +147,7 @@
 
   function normalizeChatPanel(){
     const panel=q('#meetingChatPanel');if(!panel)return;
+    if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();return;}
     panel.style.setProperty('position','absolute','important');
     panel.style.setProperty('left','auto','important');
     panel.style.setProperty('right','10px','important');
@@ -172,7 +175,7 @@
     const more=actions.querySelector('.zoom-chat-more');setHidden(more,!manager());
   }
 
-  function normalizeReactionMenu(){const menu=q('.meeting-reaction-menu');if(!menu)return;menu.style.left='18px';menu.style.right='auto';menu.style.top='auto';menu.style.bottom='94px';}
+  function normalizeReactionMenu(){const menu=q('.meeting-reaction-menu');if(!menu)return;menu.dataset.dsAnchorStable='1';}
   function normalizePermissionDialog(){
     const dialog=q('#screenPermissionDialog'),copy=dialog?.querySelector('[data-permission-copy]');if(!dialog||!copy||dialog.hidden)return;
     const next='Screen sharing permission is not active for this running copy yet. Open System Settings and enable DominionStar Meet. When you return, click Share Screen again — DominionStar Meet will re-check the actual capture permission automatically.';

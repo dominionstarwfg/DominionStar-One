@@ -3,7 +3,7 @@
   if(window.DominionPersonalRoom)return;
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  const state={room:null,loading:false,error:'',hostStart:null};
+  const state={room:null,loading:false,loadPromise:null,error:'',hostStart:null};
   const esc=v=>String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const digits=v=>String(v||'').replace(/\D/g,'');
   const formatId=v=>{const d=digits(v);return d.length>6?`${d.slice(0,3)} ${d.slice(3,6)} ${d.slice(6)}`:d.length>3?`${d.slice(0,3)} ${d.slice(3)}`:d;};
@@ -11,11 +11,16 @@
   const signedIn=()=>Boolean(q('#appShell')&&!q('#appShell').hidden&&q('#profileName')?.textContent?.trim());
 
   async function load(force=false){
-    if(!meeting?.personalRoom||state.loading||(!force&&state.room)||!signedIn())return state.room;
+    if(!meeting?.personalRoom||!signedIn())return state.room;
+    if(state.loadPromise)return state.loadPromise;
+    if(!force&&state.room)return state.room;
     state.loading=true;state.error='';
-    try{state.room=await meeting.personalRoom();render();return state.room;}
-    catch(error){state.error=String(error?.message||error||'Personal Room unavailable.');render();return null;}
-    finally{state.loading=false;}
+    state.loadPromise=(async()=>{
+      try{state.room=await meeting.personalRoom();render();return state.room;}
+      catch(error){state.error=String(error?.message||error||'Personal Room unavailable.');render();return null;}
+      finally{state.loading=false;state.loadPromise=null;}
+    })();
+    return state.loadPromise;
   }
 
   function ensureEditDialog(){
@@ -56,7 +61,7 @@
     const card=ensureMeetingCard();if(!card)return;
     if(!state.room){card.innerHTML=`<div><p class="eyebrow">PERSONAL ROOM</p><h2>Personal Meeting Room</h2><p>${esc(state.error||'Loading your permanent meeting room…')}</p></div>`;return;}
     card.innerHTML=`<div class="personal-room-copy"><p class="eyebrow">PERSONAL ROOM</p><h2>Personal Meeting Room</h2><p>Your permanent DominionStar meeting room for people you meet with regularly.</p><div class="personal-credentials"><span><small>Meeting ID</small><strong>${esc(formatId(state.room.roomCode))}</strong></span><span><small>Passcode</small><strong>${esc(state.room.passcode)}</strong></span></div></div><div class="personal-room-actions"><button type="button" class="primary-button" data-personal-start>Start</button><button type="button" class="secondary-button" data-personal-copy>Copy invite</button><button type="button" class="secondary-button" data-personal-edit>Edit</button></div>`;
-    card.querySelector('[data-personal-start]').onclick=()=>void startPersonal();card.querySelector('[data-personal-edit]').onclick=()=>void openEditor();card.querySelector('[data-personal-copy]').onclick=async e=>{const text=`DominionStar Meet\nMeeting ID: ${formatId(state.room.roomCode)}\nPasscode: ${state.room.passcode}`;try{await navigator.clipboard.writeText(text);e.currentTarget.textContent='Copied';setTimeout(()=>{if(e.currentTarget.isConnected)e.currentTarget.textContent='Copy invite';},1200);}catch{}};
+    card.querySelector('[data-personal-start]').onclick=()=>void startPersonal();card.querySelector('[data-personal-edit]').onclick=()=>void openEditor();card.querySelector('[data-personal-copy]').onclick=async e=>{const link=`dominionstar-meet://join?meetingId=${encodeURIComponent(String(state.room.roomCode||''))}&passcode=${encodeURIComponent(String(state.room.passcode||''))}`;const text=`DominionStar Meet\nJoin: ${link}\nMeeting ID: ${formatId(state.room.roomCode)}\nPasscode: ${state.room.passcode}`;try{await navigator.clipboard.writeText(text);e.currentTarget.textContent='Copied';setTimeout(()=>{if(e.currentTarget.isConnected)e.currentTarget.textContent='Copy invite';},1200);}catch{}};
   }
 
   function configureNewMeeting(){
@@ -67,16 +72,40 @@
     const choice=document.createElement('div');choice.className='personal-new-meeting-choice';choice.innerHTML='<label class="personal-toggle"><span><strong>Use Personal Meeting ID</strong><small id="newMeetingPersonalSummary">Use your permanent Personal Room.</small></span><input id="newMeetingUsePersonal" type="checkbox"></label>';
     passLabel?.insertAdjacentElement('beforebegin',choice);
     const toggle=q('#newMeetingUsePersonal');
-    const sync=()=>{const personal=Boolean(toggle?.checked);if(passLabel)passLabel.hidden=personal;if(personal&&state.room)q('#newMeetingPersonalSummary').textContent=`${formatId(state.room.roomCode)} · Passcode ${state.room.passcode}`;else q('#newMeetingPersonalSummary').textContent='Use your permanent Personal Room.';};
-    toggle?.addEventListener('change',sync);
+    const sync=()=>{const personal=Boolean(toggle?.checked);if(passLabel){passLabel.hidden=personal;passLabel.setAttribute('aria-hidden',String(personal));}if(passInput){passInput.disabled=personal;if(personal&&state.room)passInput.value=String(state.room.passcode||'');}if(personal&&state.room)q('#newMeetingPersonalSummary').textContent=`${formatId(state.room.roomCode)} · Passcode ${state.room.passcode}`;else q('#newMeetingPersonalSummary').textContent='Use your permanent Personal Room.';};
+    toggle?.addEventListener('change',()=>{if(!toggle.checked&&passInput)passInput.value=randomPasscode();sync();});
     form.addEventListener('submit',async event=>{
-      if(!toggle?.checked||!state.room)return;
+      if(!toggle?.checked)return;
       event.preventDefault();event.stopImmediatePropagation();const button=q('#startMeetingButton'),error=q('#newMeetingError');button.disabled=true;error.hidden=true;
-      try{const room=await meeting.startPersonalRoom();state.hostStart=room;q('#newMeetingDialog')?.close();beginHostPrejoin(room,'personal');}
-      catch(e){error.textContent=String(e?.message||e);error.hidden=false;}
+      try{
+        const personal=state.room||await load();
+        if(!personal)throw new Error(state.error||'Personal Meeting Room is unavailable.');
+        const room=await meeting.startPersonalRoom();state.hostStart=room;q('#newMeetingDialog')?.close();beginHostPrejoin(room,'personal');
+      }catch(e){error.textContent=String(e?.message||e);error.hidden=false;}
       finally{button.disabled=false;}
     },true);
-    q('[data-action="new-meeting"]')?.addEventListener('click',()=>{void load().then(()=>{toggle.checked=Boolean(state.room&&state.room.useForInstant!==false);if(!toggle.checked&&passInput)passInput.value=randomPasscode();sync();});},true);
+    const newMeetingAction=q('[data-action="new-meeting"]');
+    if(newMeetingAction&&!newMeetingAction.dataset.dsPersonalOpenBound){
+      newMeetingAction.dataset.dsPersonalOpenBound='1';
+      newMeetingAction.addEventListener('click',event=>{
+        event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+        const dialog=q('#newMeetingDialog'),button=q('#startMeetingButton'),summary=q('#newMeetingPersonalSummary'),error=q('#newMeetingError');
+        toggle.checked=state.room?Boolean(state.room.useForInstant!==false):true;
+        if(!toggle.checked&&passInput)passInput.value=randomPasscode();
+        sync();
+        if(!state.room&&summary)summary.textContent='Loading your Personal Meeting ID…';
+        if(error)error.hidden=true;
+        if(dialog&&!dialog.open)dialog.showModal();
+        if(state.room)return;
+        if(button)button.disabled=true;
+        void load().then(room=>{
+          toggle.checked=Boolean(room&&room.useForInstant!==false);
+          if(!toggle.checked&&passInput)passInput.value=randomPasscode();
+          sync();
+          if(!room&&error){error.textContent=state.error||'Personal Meeting Room is unavailable.';error.hidden=false;}
+        }).finally(()=>{if(button)button.disabled=false;});
+      },true);
+    }
     sync();
   }
 
@@ -101,8 +130,14 @@
   function watchMeetingEntry(){if(q('#meetingOverlay')&&!q('#meetingOverlay').hidden&&document.body.dataset.persistentHostStart)clearHostStart();}
   function render(){ensureSettingsRow();renderCard();configureNewMeeting();if(state.room){const small=q('.action-card.new-meeting small');if(small)small.textContent=state.room.useForInstant!==false?'Start your Personal Room':'Start instantly';}}
 
+  function loadPhysicalIntelligence(){
+    if(q('script[data-ds-physical-intelligence-2041]')||window.DominionPhysicalIntelligence2041)return;
+    const script=document.createElement('script');script.src='./physical-intelligence-2.0.41.js';script.dataset.dsPhysicalIntelligence2041='1';document.body.append(script);
+  }
+
   const observer=new MutationObserver(()=>{ensureSettingsRow();configureNewMeeting();decorateHostPrejoin();interceptHostCancel();watchMeetingEntry();if(signedIn()&&!state.room&&!state.loading)void load();});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   setInterval(()=>{if(signedIn()&&!state.room&&!state.loading)void load();ensureSettingsRow();configureNewMeeting();},1000);
+  if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',loadPhysicalIntelligence,{once:true});else setTimeout(loadPhysicalIntelligence,0);
   ensureEditDialog();render();void load();
   window.DominionPersonalRoom=Object.freeze({load,room:()=>state.room,openEditor,start:startPersonal,beginHostPrejoin});
 })();

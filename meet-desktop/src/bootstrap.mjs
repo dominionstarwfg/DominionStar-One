@@ -1,26 +1,122 @@
-import { app } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import path from 'node:path';
+
+// The meeting renderer remains the authoritative owner of media and presenter
+// commands while native macOS sharing surfaces float above it. Prevent Chromium
+// from backgrounding or occlusion-throttling that renderer during active share;
+// otherwise toolbar IPC can arrive in the main process while Pause/Stop/Chat
+// never reaches the meeting renderer until sharing ends.
+if(process.platform==='darwin'){
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-background-timer-throttling');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+}
+
+// Physical-Mac renderer scheduling guard.
+let physicalShareActive=false;
+const sharePickerVisible=()=>BrowserWindow.getAllWindows().some(win=>{
+  try{return !win.isDestroyed()&&win.isVisible?.()&&String(win.getTitle?.()||'')==='Share Screen';}
+  catch{return false;}
+});
+const isMainMeetingWindow=win=>{
+  try{return Boolean(win&&!win.isDestroyed()&&String(win.webContents?.getURL?.()||'').includes('/ui/index.html'));}
+  catch{return false;}
+};
+if(process.platform==='darwin'){
+  const originalSetOpacity=BrowserWindow.prototype.setOpacity;
+  ipcMain.on('share:capture-started',()=>{physicalShareActive=true;});
+  ipcMain.on('mac-share:capture-stopped',()=>{physicalShareActive=false;});
+
+  // Never allow active screen sharing to park the capture-owning renderer by
+  // opacity. It stays fully composited and is moved off-display by share-service.
+  BrowserWindow.prototype.setOpacity=function(value,...rest){
+    if(isMainMeetingWindow(this)&&(sharePickerVisible()||physicalShareActive)&&Number(value)<0.99)return;
+    return originalSetOpacity.call(this,value,...rest);
+  };
+}
 
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
+const packagedMac=()=>process.platform==='darwin'&&app.isPackaged&&!isCi;
+const CANONICAL_MAC_APP='/Applications/DominionStar Meet.app';
+const currentMacBundlePath=()=>{
+  if(process.platform!=='darwin'||!app.isPackaged)return '';
+  return path.resolve(path.dirname(process.execPath),'../..');
+};
+const isCanonicalMacInstall=()=>!packagedMac()||currentMacBundlePath()===CANONICAL_MAC_APP;
+const JOIN_SCHEME='dominionstar-meet://join';
+const pendingJoinUrls=globalThis.__dominionPendingJoinUrls=globalThis.__dominionPendingJoinUrls||[];
+const isJoinUrl=value=>String(value||'').toLowerCase().startsWith(JOIN_SCHEME);
+const queueJoinUrl=value=>{
+  const url=String(value||'').trim();if(!isJoinUrl(url))return false;
+  if(!pendingJoinUrls.includes(url))pendingJoinUrls.push(url);
+  try{app.emit('dominion:join-url',url);}catch{}
+  return true;
+};
+for(const arg of process.argv)queueJoinUrl(arg);
+app.on('open-url',(event,url)=>{event.preventDefault();queueJoinUrl(url);});
+const singleInstanceLock=app.requestSingleInstanceLock();
+
+function focusRunningInstance(){
+  const win=BrowserWindow.getAllWindows().find(candidate=>candidate&&!candidate.isDestroyed()&&String(candidate.webContents?.getURL?.()||'').includes('/ui/index.html'))||BrowserWindow.getAllWindows().find(candidate=>candidate&&!candidate.isDestroyed()&&candidate.isVisible?.());
+  if(!win)return false;
+  try{if(win.isMinimized())win.restore();}catch{}
+  try{win.show();}catch{}
+  try{win.focus();}catch{}
+  return true;
+}
+
+if(singleInstanceLock){
+  app.on('second-instance',(_event,commandLine=[])=>{
+    for(const arg of commandLine)queueJoinUrl(arg);
+    if(app.isReady())focusRunningInstance();
+    else app.once('ready',focusRunningInstance);
+  });
+}
+
+function rejectDuplicateLaunch(){app.quit();}
 
 async function canonicalizeMacInstall(){
-  if(process.platform!=='darwin'||!app.isPackaged||isCi||app.isInApplicationsFolder())return {moved:false,skipped:true};
+  if(!packagedMac())return {moved:false,skipped:true,canonical:true,conflictType:'',currentBundlePath:''};
+  const currentBundlePath=currentMacBundlePath();
+  if(currentBundlePath===CANONICAL_MAC_APP)return {moved:false,skipped:true,canonical:true,conflictType:'',currentBundlePath};
+  if(app.isInApplicationsFolder())return {moved:false,skipped:false,canonical:false,conflictType:'duplicateName',currentBundlePath};
+  let conflictType='';
   try{
-    const moved=app.moveToApplicationsFolder({
-      conflictHandler:conflictType=>conflictType==='exists'
-    });
-    return {moved:Boolean(moved),skipped:false};
+    const moved=app.moveToApplicationsFolder({conflictHandler:type=>{conflictType=String(type||'');return conflictType==='exists';}});
+    return {moved:Boolean(moved),skipped:false,canonical:false,conflictType,currentBundlePath};
   }catch(error){
     console.error('[DominionStar Meet] Could not move app to /Applications.',error);
-    return {moved:false,skipped:false,error:String(error?.message||error||'move_failed')};
+    return {moved:false,skipped:false,canonical:false,conflictType,currentBundlePath,error:String(error?.message||error||'move_failed')};
   }
+}
+
+function rejectNonCanonicalLaunch(install={}){
+  const running=String(install.conflictType||'')==='existsAndRunning';
+  const duplicateName=String(install.conflictType||'')==='duplicateName';
+  const version=app.getVersion();
+  const message=running?'Quit the older DominionStar Meet first':duplicateName?'Use the canonical DominionStar Meet app':'DominionStar Meet must run from Applications';
+  const detail=running
+    ? `Another DominionStar Meet is already running from Applications. Quit that copy completely, then open build ${version} again so it can replace the installed app. This copy will not run from the DMG or Downloads because macOS Screen Recording “Quit & Reopen” could otherwise reopen the wrong build.`
+    : duplicateName
+      ? `This copy is running as ${install.currentBundlePath||'a renamed DominionStar Meet app'}. Quit all DominionStar Meet copies, remove renamed duplicates such as “DominionStar Meet 2.app”, and install this build exactly as ${CANONICAL_MAC_APP}. The meeting runtime will not start from a duplicate app name because macOS can treat it as a separate Screen Recording privacy identity.`
+      : `This build (${version}) could not complete installation into Applications${install.error?` (${install.error})`:''}. It will close instead of starting from the DMG or Downloads. Install DominionStar Meet into Applications, then reopen it before granting Camera, Microphone, or Screen & System Audio Recording access.`;
+  try{dialog.showMessageBoxSync({type:'warning',title:'Finish installing DominionStar Meet',message,detail,buttons:['Quit this copy'],defaultId:0,noLink:true});}catch{}
+  app.quit();
 }
 
 async function launch(){
   await app.whenReady();
+  const needsCanonicalInstall=packagedMac()&&!isCanonicalMacInstall();
   const install=await canonicalizeMacInstall();
   if(install.moved)return;
+  if(needsCanonicalInstall){rejectNonCanonicalLaunch(install);return;}
   await import('./relaunch-service.mjs');
   await import('./main.mjs');
+  if(process.platform==='darwin'){
+    await import('./mac-share-presenter-overlay.mjs');
+    await import('./mac-share-video-mirror.mjs');
+  }
 }
 
-void launch();
+if(singleInstanceLock)void launch();
+else void rejectDuplicateLaunch();

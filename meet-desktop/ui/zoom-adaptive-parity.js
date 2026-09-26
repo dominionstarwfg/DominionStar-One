@@ -13,6 +13,7 @@
   let participantDocumentDragBound=false;
   let videoDockDrag=null;
   let videoDockBound=null;
+  let videoDockDocumentDragBound=false;
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -75,19 +76,16 @@
 
   function centerParticipantPanel(side,count){
     const body=q('.meeting-body');if(!body||!side)return;
-    const width=count<=1?320:count<=6?360:390;
-    const height=count<=1?390:count<=6?500:Math.min(590,body.clientHeight-28);
-    const w=Math.min(width,Math.max(280,body.clientWidth-24));
-    const h=Math.min(height,Math.max(300,body.clientHeight-24));
-    side.dataset.zoomPanelMode='popout';
+    const width=Math.min(count<=1?360:390,Math.max(300,body.clientWidth-24));
+    side.dataset.zoomPanelMode='runtime';
     side.dataset.dsAdaptiveMode='floating';
     side.style.setProperty('position','absolute','important');
-    side.style.setProperty('width',`${w}px`,'important');
-    side.style.setProperty('height',`${h}px`,'important');
-    side.style.setProperty('left',`${Math.max(12,(body.clientWidth-w)/2)}px`,'important');
-    side.style.setProperty('right','auto','important');
-    side.style.setProperty('top',`${Math.max(12,(body.clientHeight-h)/2)}px`,'important');
-    side.style.setProperty('bottom','auto','important');
+    side.style.setProperty('width',`${width}px`,'important');
+    side.style.setProperty('height','auto','important');
+    side.style.setProperty('left','auto','important');
+    side.style.setProperty('right','10px','important');
+    side.style.setProperty('top','10px','important');
+    side.style.setProperty('bottom','10px','important');
     side.style.setProperty('transform','none','important');
   }
 
@@ -153,7 +151,14 @@
     const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<=1;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
 
-    sortParticipants();installParticipantPanelDrag();
+    sortParticipants();
+    if(window.DominionRuntimeStability?.layoutSideSurface){
+      side.dataset.dsAdaptiveInitialized='1';
+      window.DominionRuntimeStability.layoutSideSurface();
+      for(const row of rows)row.querySelector('.ds-role-chip')?.setAttribute('aria-hidden','true');
+      return;
+    }
+    installParticipantPanelDrag();
 
     if(!side.hidden&&!side.dataset.dsAdaptiveInitialized){
       side.dataset.dsAdaptiveInitialized='1';
@@ -183,6 +188,7 @@
     const panel=q('#meetingChatPanel'),body=q('.meeting-body'),stage=q('.stage'),overlay=q('#meetingOverlay');if(!panel||!body||!stage||!overlay)return;
     ensureChatNavigation(panel);
     if(panel.hidden){stage.style.removeProperty('margin-right');overlay.classList.remove('ds-chat-docked','ds-chat-floating');return;}
+    if(window.DominionRuntimeStability?.layoutSideSurface){overlay.classList.remove('ds-chat-docked');overlay.classList.add('ds-chat-floating');window.DominionRuntimeStability.layoutSideSurface();return;}
     const wide=body.clientWidth>=1120;
     overlay.classList.toggle('ds-chat-docked',wide);overlay.classList.toggle('ds-chat-floating',!wide);
     panel.dataset.dsAdaptiveMode=wide?'docked':'floating';
@@ -195,12 +201,35 @@
   function startVideoDockDrag(event){
     if(event.button!==0||event.target.closest?.('button,.participant-video-resize,a,input,select,textarea'))return;
     const dock=event.currentTarget,stage=q('.stage');if(!dock||!stage)return;
-    const dr=dock.getBoundingClientRect();videoDockDrag={id:event.pointerId,dx:event.clientX-dr.left,dy:event.clientY-dr.top};
-    event.stopImmediatePropagation();event.preventDefault();dock.setPointerCapture?.(event.pointerId);dock.classList.add('user-positioned','dragging');dock.style.right='auto';dock.style.bottom='auto';
+    const dr=dock.getBoundingClientRect();videoDockDrag={dx:event.clientX-dr.left,dy:event.clientY-dr.top,dock};
+    event.stopImmediatePropagation();event.preventDefault();dock.classList.add('user-positioned','dragging');dock.style.right='auto';dock.style.bottom='auto';
   }
-  function moveVideoDockDrag(event){if(!videoDockDrag||event.pointerId!==videoDockDrag.id)return;const dock=event.currentTarget,stage=q('.stage');if(!dock||!stage)return;const sr=stage.getBoundingClientRect();dock.style.left=`${clamp(event.clientX-sr.left-videoDockDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8))}px`;dock.style.top=`${clamp(event.clientY-sr.top-videoDockDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8))}px`;event.stopImmediatePropagation();}
-  function endVideoDockDrag(event){if(!videoDockDrag||(event?.pointerId!=null&&event.pointerId!==videoDockDrag.id))return;const dock=event.currentTarget,stage=q('.stage');videoDockDrag=null;if(dock&&stage){dock.classList.remove('dragging');dock.dataset.anchor=nearestVideoDockAnchor(dock,stage);saveVideoDockGeometry(dock,stage);window.DominionMeetingParity?.syncVideoDock?.();}event?.stopImmediatePropagation?.();}
-  function installVideoDockDrag(){const dock=q('#participantVideoDock');if(!dock||dock===videoDockBound)return;if(videoDockBound){videoDockBound.removeEventListener('pointerdown',startVideoDockDrag,true);videoDockBound.removeEventListener('pointermove',moveVideoDockDrag,true);videoDockBound.removeEventListener('pointerup',endVideoDockDrag,true);videoDockBound.removeEventListener('pointercancel',endVideoDockDrag,true);}videoDockBound=dock;dock.dataset.dsAdaptiveWholePanelDrag='1';dock.addEventListener('pointerdown',startVideoDockDrag,true);dock.addEventListener('pointermove',moveVideoDockDrag,true);dock.addEventListener('pointerup',endVideoDockDrag,true);dock.addEventListener('pointercancel',endVideoDockDrag,true);}
+  function moveVideoDockDrag(event){
+    if(!videoDockDrag)return;
+    const dock=videoDockDrag.dock,stage=q('.stage');if(!dock||!stage)return;
+    const sr=stage.getBoundingClientRect();dock.style.left=`${clamp(event.clientX-sr.left-videoDockDrag.dx,8,Math.max(8,sr.width-dock.offsetWidth-8))}px`;dock.style.top=`${clamp(event.clientY-sr.top-videoDockDrag.dy,8,Math.max(8,sr.height-dock.offsetHeight-8))}px`;event.stopImmediatePropagation();event.preventDefault();
+  }
+  function endVideoDockDrag(event){
+    if(!videoDockDrag)return;
+    const dock=videoDockDrag.dock,stage=q('.stage');videoDockDrag=null;
+    if(dock&&stage){dock.classList.remove('dragging');dock.dataset.anchor=nearestVideoDockAnchor(dock,stage);saveVideoDockGeometry(dock,stage);window.DominionMeetingParity?.syncVideoDock?.();}
+    event?.stopImmediatePropagation?.();event?.preventDefault?.();
+  }
+  function installVideoDockDrag(){
+    const dock=q('#participantVideoDock');if(!dock)return;
+    if(dock!==videoDockBound){
+      if(videoDockBound)videoDockBound.removeEventListener('mousedown',startVideoDockDrag,true);
+      videoDockBound=dock;
+    }
+    dock.dataset.dsAdaptiveWholePanelDrag='1';dock.dataset.dsAdaptiveVideoDrag='mouse-document';
+    dock.removeEventListener('mousedown',startVideoDockDrag,true);
+    dock.addEventListener('mousedown',startVideoDockDrag,true);
+    if(!videoDockDocumentDragBound){
+      videoDockDocumentDragBound=true;
+      document.addEventListener('mousemove',moveVideoDockDrag,true);
+      document.addEventListener('mouseup',endVideoDockDrag,true);
+    }
+  }
 
   function ensurePrejoinChrome(win){
     const preview=win?.querySelector('.preview-frame');if(!win||!preview)return;
@@ -220,5 +249,5 @@
   const observer=new MutationObserver(()=>requestAnimationFrame(sync));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','data-raised-hand']});
   timer=setInterval(sync,650);sync();
 
-  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncMeetingEntry,syncParticipants,syncChat,syncPrejoin,installParticipantPanelDrag,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(participantHeadBound){participantHeadBound.removeEventListener('pointerdown',blockLegacyParticipantPointerDown,true);participantHeadBound.removeEventListener('mousedown',startParticipantPanelDrag,true);}if(participantDocumentDragBound){document.removeEventListener('mousemove',moveParticipantPanelDrag,true);document.removeEventListener('mouseup',endParticipantPanelDrag,true);participantDocumentDragBound=false;}if(videoDockBound){videoDockBound.removeEventListener('pointerdown',startVideoDockDrag,true);videoDockBound.removeEventListener('pointermove',moveVideoDockDrag,true);videoDockBound.removeEventListener('pointerup',endVideoDockDrag,true);videoDockBound.removeEventListener('pointercancel',endVideoDockDrag,true);}}});
+  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncMeetingEntry,syncParticipants,syncChat,syncPrejoin,installParticipantPanelDrag,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(participantHeadBound){participantHeadBound.removeEventListener('pointerdown',blockLegacyParticipantPointerDown,true);participantHeadBound.removeEventListener('mousedown',startParticipantPanelDrag,true);}if(participantDocumentDragBound){document.removeEventListener('mousemove',moveParticipantPanelDrag,true);document.removeEventListener('mouseup',endParticipantPanelDrag,true);participantDocumentDragBound=false;}if(videoDockBound)videoDockBound.removeEventListener('mousedown',startVideoDockDrag,true);if(videoDockDocumentDragBound){document.removeEventListener('mousemove',moveVideoDockDrag,true);document.removeEventListener('mouseup',endVideoDockDrag,true);videoDockDocumentDragBound=false;}}});
 })();

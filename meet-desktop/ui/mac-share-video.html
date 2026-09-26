@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DominionStar Meet – Presenter Video</title>
+  <link rel="stylesheet" href="./mac-share-video.css">
+</head>
+<body>
+  <main id="dock" class="video-dock" aria-label="DominionStar Meet presenter video">
+    <section class="video-stage">
+      <video id="cameraPreview" class="camera-preview" autoplay muted playsinline hidden></video>
+      <div id="cameraPending" class="camera-pending" hidden><span>Camera on</span></div>
+      <div id="cameraFallback" class="camera-fallback">
+        <img id="profileImage" alt="">
+        <span id="profileInitials">DS</span>
+      </div>
+      <div class="participant-name"><span id="micState" class="mic-state" aria-hidden="true">●</span><strong id="displayName">You</strong></div>
+    </section>
+  </main>
+  <script src="./mac-share-video.js"></script>
+</body>
+</html>

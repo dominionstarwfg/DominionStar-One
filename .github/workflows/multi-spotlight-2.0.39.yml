@@ -1,0 +1,37 @@
+name: DominionStar Meet Multi Spotlight 2.0.39
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/ui/participant-controls.js'
+      - 'meet-desktop/ui/meeting-parity.js'
+      - 'meet-desktop/ui/meeting-parity.css'
+      - 'meet-desktop/scripts/verify-multi-spotlight-2.0.39.mjs'
+      - '.github/workflows/multi-spotlight-2.0.39.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  multi-spotlight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify multi-spotlight behavior
+        working-directory: meet-desktop
+        run: |
+          node --check ui/participant-controls.js
+          node --check ui/meeting-parity.js
+          node --check scripts/verify-multi-spotlight-2.0.39.mjs
+          node scripts/verify-multi-spotlight-2.0.39.mjs
+          node scripts/verify-cohost-authority-2.0.38.mjs
