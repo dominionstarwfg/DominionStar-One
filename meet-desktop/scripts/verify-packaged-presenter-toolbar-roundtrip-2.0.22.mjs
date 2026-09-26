@@ -216,11 +216,13 @@ try{
     process.exit(0);
   }
 
-  await main.wait("window.DominionShareController.snapshot().active===true",'synthetic share activation',10000);
+  await waitStderr('QA_REAL_PRESENTER_SHARE_READY active=1','synthetic share activation',10000);
   stage('share-started');
 
-  // Wait beyond the physical-Mac startup parking interval. The exact controls
-  // below must still mutate the capture-owning renderer after it is parked.
+  // From this point forward, never use CDP against the capture-owning meeting
+  // renderer. The production presenter path itself is the liveness oracle:
+  // each toolbar click must be acknowledged by the renderer and the resulting
+  // state must return to the floating presenter surfaces.
   await sleep(2700);
 
   const toolbarTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-presenter-toolbar.html'),'actual floating Mac presenter toolbar');
@@ -239,60 +241,73 @@ try{
   stage('presenter-video-live');
 
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
+  let logStart=stderr.length;
   await toolbar.click('[data-command="audio"]');
-  await main.wait("window.DominionMediaController.snapshot().micOn===true&&!document.querySelector('#roomMic')?.classList.contains('is-off')",'floating Audio command changed real media and canonical UI',8000);
-  await toolbar.wait("!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Mute'",'floating Audio visual state');
+  await waitStderr(ackPattern('audio'),'renderer ACK for Audio',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().micOn===true&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Mute'",'floating Audio state synchronized from real media',8000);
   stage('audio-real-toolbar');
 
+  logStart=stderr.length;
   await toolbar.click('[data-command="video"]');
-  await main.wait("window.DominionMediaController.snapshot().cameraOn===false&&document.querySelector('#roomCamera')?.classList.contains('is-off')",'floating Video command changed real media and canonical UI',8000);
-  await toolbar.wait("document.querySelector('[data-command=\"video\"]')?.classList.contains('is-off')&&document.querySelector('#videoLabel')?.textContent==='Start Video'",'floating Video visual state');
+  await waitStderr(ackPattern('video'),'renderer ACK for Video',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().cameraOn===false&&document.querySelector('[data-command=\"video\"]')?.classList.contains('is-off')&&document.querySelector('#videoLabel')?.textContent==='Start Video'",'floating Video state synchronized from real media',8000);
   await video.wait("document.querySelector('#dock')?.dataset.cameraOn==='0'&&!document.querySelector('#cameraFallback')?.hidden",'presenter panel camera-off fallback',6000);
   const fallbackWidth=await video.eval("Math.round(document.querySelector('#profileInitials').getBoundingClientRect().width)");
   assert.ok(fallbackWidth>=100,'Presenter camera-off profile fallback is still undersized: '+fallbackWidth+'px');
   stage('video-real-toolbar');
 
+  logStart=stderr.length;
   await toolbar.click('[data-command="pause"]');
-  await main.wait("window.DominionShareController.snapshot().paused===true",'real floating Pause command',8000);
-  await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause label switched to Resume');
+  await waitStderr(ackPattern('pause'),'renderer ACK for Pause',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===true&&document.querySelector('#pauseLabel')?.textContent==='Resume'",'Pause state returned to floating toolbar',8000);
   stage('pause-real-toolbar');
 
+  logStart=stderr.length;
   await toolbar.click('[data-command="pause"]');
-  await main.wait("window.DominionShareController.snapshot().paused===false",'real floating Resume command',8000);
-  await toolbar.wait("document.querySelector('#pauseLabel')?.textContent==='Pause'",'Resume label switched to Pause');
+  await waitStderr(ackPattern('pause'),'renderer ACK for Resume',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===false&&document.querySelector('#pauseLabel')?.textContent==='Pause'",'Resume state returned to floating toolbar',8000);
   stage('resume-real-toolbar');
 
+  logStart=stderr.length;
   await toolbar.click('[data-command="participants"]');
-  await main.wait("document.body.dataset.dsShareCompanion==='participants'&&document.querySelector('.room-side')?.hidden===false",'real floating Participants command',8000);
+  await waitStderr(ackPattern('participants'),'renderer ACK for Participants',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='participants'",'Participants companion state returned to toolbar',8000);
   stage('participants-real-toolbar');
-  await main.eval("window.DominionRuntimeStability.setParticipants(false)");
-  await main.wait("!document.body.dataset.dsShareCompanion",'Participants companion closure synchronized',8000);
 
+  logStart=stderr.length;
   await toolbar.click('[data-command="chat"]');
-  await main.wait("document.body.dataset.dsShareCompanion==='chat'&&document.querySelector('#meetingChatPanel')?.hidden===false",'real floating Chat command',8000);
+  await waitStderr(ackPattern('chat'),'renderer ACK for Chat',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='chat'",'Chat companion state returned to toolbar',8000);
   stage('chat-real-toolbar');
-  await main.eval("window.DominionRuntimeStability.setChat(false)");
-  await main.wait("!document.body.dataset.dsShareCompanion",'Chat companion closure synchronized',8000);
 
+  logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
-  await main.wait("window.DominionShareAnnotation.snapshot().active===true&&document.body.dataset.dsShareCompanion==='annotate'",'real floating Annotate command',8000);
+  await waitStderr(ackPattern('annotate'),'renderer ACK for Annotate',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='annotate'",'Annotate companion state returned to toolbar',8000);
   stage('annotate-real-toolbar');
+
+  logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
-  await main.wait("window.DominionShareAnnotation.snapshot().active===false&&!document.body.dataset.dsShareCompanion",'real floating Annotate close command',8000);
+  await waitStderr(ackPattern('annotate'),'renderer ACK for Annotate close',8000,logStart);
+  await toolbar.wait("!window.DominionMacPresenterToolbar.state().companion",'Annotate close state returned to toolbar',8000);
   stage('annotate-close-real-toolbar');
 
+  logStart=stderr.length;
   await toolbar.click('[data-command="new-share"]');
-  await waitTarget(item=>String(item.url||'').includes('/ui/share-picker.html'),'New Share picker from floating toolbar',8000);
-  await main.eval("window.dominionDesktop.sharePicker.cancel()");
+  await waitStderr(ackPattern('new-share'),'renderer ACK for New Share',8000,logStart);
+  const pickerTarget=await waitTarget(item=>String(item.url||'').includes('/ui/share-picker.html'),'New Share picker from floating toolbar',8000);
+  const picker=new Cdp(pickerTarget.webSocketDebuggerUrl);await picker.connect();
+  await picker.wait("document.querySelector('#cancelTop')",'New Share picker controls',5000);
+  await picker.click('#cancelTop');picker.close();
   stage('new-share-real-toolbar');
 
+  logStart=stderr.length;
   await toolbar.click('#stopShare');
-  await main.wait("window.DominionShareController.snapshot().active===false",'real floating Stop Share command',10000);
-  await main.wait("document.querySelector('#meetingOverlay')?.classList.contains('share-active')===false",'meeting restored after Stop Share',6000);
+  await waitStderr(ackPattern('stop'),'renderer ACK for Stop Share',10000,logStart);
+  await waitStderr('QA_MAC_CAPTURE_STOPPED','native capture-stopped notification',10000,logStart);
   stage('stop-share-real-toolbar');
-
   assert.equal(child.exitCode,null,'Packaged app exited during physical presenter control loop.');
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_44_OK actual-floating-toolbar cdp-pointer-clicks parked-renderer audio video pause resume participants chat annotate new-share stop-share live-camera-panel canonical-av-state');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_44_OK actual-floating-toolbar cdp-pointer-clicks renderer-acks audio video pause resume participants chat annotate new-share stop-share live-camera-panel toolbar-state-roundtrip');
 }catch(error){
   console.error('PRESENTER_STAGE_FAILURE',error);
   console.error(stderr);
