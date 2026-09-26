@@ -31,7 +31,7 @@ async function terminatePackagedApp(){
 }
 let stderr='';
 const qaUserData=path.join('/tmp','dominionstar-presenter-qa-'+process.pid+'-'+port);
-const child=spawn(executable,['--user-data-dir='+qaUserData,'--remote-debugging-port='+port,'--remote-allow-origins=*','--use-fake-ui-for-media-stream'],{
+const child=spawn(executable,['--user-data-dir='+qaUserData,'--remote-debugging-port='+port,'--remote-allow-origins=*','--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream'],{
   env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},
   stdio:['ignore','ignore','pipe']
 });
