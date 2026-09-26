@@ -1,6 +1,6 @@
 import { createShareSourceAuthority } from './share-source-authority.mjs';
 
-export function createShareService({BrowserWindow,desktopCapturer,desktopSession,ipcMain,path,uiDir,preloadPath,getMainWindow,platform,ensureScreenPermission,openPrivacySettings}){
+export function createShareService({BrowserWindow,desktopCapturer,desktopSession,ipcMain,path,uiDir,preloadPath,getMainWindow,platform,screen,ensureScreenPermission,openPrivacySettings}){
   let pickerWindow=null;
   let toolbarWindow=null;
   let pendingSelection=null;
@@ -17,7 +17,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let macCaptureStartedAt=0;
   let macParkTimer=null;
   const MAC_PARK_DELAY_MS=2100;
-  const MAC_PARK_COORDINATE=-32000;
+  const MAC_SENTINEL_SIZE=8;
   let qaPresenterCommandSeq=0;
   let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};
 
@@ -82,10 +82,13 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
     keepMeetingRendererLive();
     // Preserve the capture-owning renderer as a normal, fully composited,
-    // visible BrowserWindow. Physical Mac proved near-zero opacity can leave
-    // Chromium alive enough to start capture yet unresponsive to presenter
-    // commands. The meeting window is therefore parked off-display at opacity
-    // 1 instead of hidden, minimized, or made transparent.
+    // visible BrowserWindow. Physical Mac and the packaged liveness gate both
+    // proved that moving the renderer off-display can cause macOS/Chromium to
+    // stop servicing its event loop even though the capture track stays live.
+    //
+    // Keep a tiny ON-DISPLAY sentinel instead. Content protection prevents the
+    // meeting chrome from entering the shared capture while the 8px composited
+    // window keeps Chromium scheduled and able to execute presenter commands.
     if(preCapture||!macPresenterParked)protectMeetingChrome(main,true);
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
@@ -95,13 +98,25 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{main.setAlwaysOnTop(false);}catch{}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     if(preCapture){
-      // Capture startup stays on-screen until getDisplayMedia is established.
+      // Capture startup stays in the user's normal meeting geometry until
+      // getDisplayMedia has established the track.
       try{main.showInactive?.();}catch{try{main.show();}catch{}}
       return true;
     }
     if(!shareActive)return false;
-    const current=main.getBounds();
-    try{main.setBounds({...current,x:MAC_PARK_COORDINATE,y:MAC_PARK_COORDINATE},false);}catch{}
+    try{
+      const display=screen?.getDisplayMatching?.(savedMainWindowState?.bounds||main.getBounds?.())||screen?.getPrimaryDisplay?.();
+      const area=display?.workArea||display?.bounds;
+      if(area){
+        main.setMinimumSize?.(1,1);
+        main.setBounds({
+          x:Math.round(area.x+area.width-MAC_SENTINEL_SIZE-2),
+          y:Math.round(area.y+area.height-MAC_SENTINEL_SIZE-2),
+          width:MAC_SENTINEL_SIZE,
+          height:MAC_SENTINEL_SIZE
+        },false);
+      }
+    }catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
     macPresenterParked=true;
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();
