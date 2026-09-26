@@ -232,12 +232,12 @@ try{
 
   const videoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'floating presenter video panel');
   video=new Cdp(videoTarget.webSocketDebuggerUrl);await video.connect();
-  await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'&&!document.querySelector('#cameraMirror')?.hidden",'live camera frame in presenter video',9000);
-  const liveVideo=await video.eval("(()=>({live:document.querySelector('#dock').dataset.livePreview,mirrorHidden:document.querySelector('#cameraMirror').hidden,fallbackHidden:document.querySelector('#cameraFallback').hidden,src:String(document.querySelector('#cameraMirror').src||'').slice(0,22)}))()");
+  await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'&&!document.querySelector('#cameraPreview')?.hidden&&document.querySelector('#cameraPreview')?.srcObject?.getVideoTracks?.()[0]?.readyState==='live'",'live camera preview in presenter video',9000);
+  const liveVideo=await video.eval("(()=>({live:document.querySelector('#dock').dataset.livePreview,previewHidden:document.querySelector('#cameraPreview').hidden,fallbackHidden:document.querySelector('#cameraFallback').hidden,trackState:document.querySelector('#cameraPreview').srcObject?.getVideoTracks?.()[0]?.readyState||''}))()");
   assert.equal(liveVideo.live,'1');
-  assert.equal(liveVideo.mirrorHidden,false);
+  assert.equal(liveVideo.previewHidden,false);
   assert.equal(liveVideo.fallbackHidden,true);
-  assert.ok(liveVideo.src.startsWith('blob:')||liveVideo.src.startsWith('data:image/jpeg'),'Presenter video must receive a real mirrored camera frame.');
+  assert.equal(liveVideo.trackState,'live','Presenter video must own a live preview track while camera state is on.');
   stage('presenter-video-live');
 
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
@@ -307,7 +307,7 @@ try{
   await waitStderr('QA_MAC_CAPTURE_STOPPED','native capture-stopped notification',10000,logStart);
   stage('stop-share-real-toolbar');
   assert.equal(child.exitCode,null,'Packaged app exited during physical presenter control loop.');
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_44_OK actual-floating-toolbar cdp-pointer-clicks renderer-acks audio video pause resume participants chat annotate new-share stop-share live-camera-panel toolbar-state-roundtrip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_44_OK actual-floating-toolbar cdp-pointer-clicks renderer-acks audio video pause resume participants chat annotate new-share stop-share live-camera-panel dedicated-preview toolbar-state-roundtrip');
 }catch(error){
   console.error('PRESENTER_STAGE_FAILURE',error);
   console.error(stderr);
