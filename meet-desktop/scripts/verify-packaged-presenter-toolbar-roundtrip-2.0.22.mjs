@@ -148,9 +148,9 @@ async function setupRenderer(skipShareLayout=false){
       try{
         if(skipShareLayout){
           // Controller isolation with every applyLayout entry point disabled.
-          console.error('QA_CONTROLLER_NO_LAYOUT_BEGIN');
-          const state=await window.DominionShareController.start({name:'QA Controller No Layout',options:{shareAudio:false,optimizeVideo:false}});
-          console.error('QA_CONTROLLER_NO_LAYOUT_READY active='+(state.active?1:0));
+          console.error('QA_CONTROLLER_NO_NOTIFY_BEGIN');
+          const state=await window.DominionShareController.start({name:'QA Controller No Notify',options:{shareAudio:false,optimizeVideo:false,__qaSkipCaptureStarted:true}});
+          console.error('QA_CONTROLLER_NO_NOTIFY_READY active='+(state.active?1:0));
           return;
         }
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
@@ -191,7 +191,7 @@ try{
     assert.equal(health.media,true,'No-layout controller diagnostic lost media controller.');
     assert.equal(health.skip,true,'No-layout controller diagnostic lost its layout suppression flag.');
     stage('controller-no-layout-renderer-remained-responsive');
-    console.log('DOMINIONSTAR_CONTROLLER_NO_LISTENER_LIVENESS_OK share-controller capture-started listeners-suppressed no-layout no-window-park');
+    console.log('DOMINIONSTAR_CONTROLLER_NO_NOTIFY_LIVENESS_OK active-stream listeners-suppressed no-capture-started no-layout no-window-park');
     main.close();
     if(child.exitCode===null)child.kill('SIGTERM');
     await sleep(1000);
