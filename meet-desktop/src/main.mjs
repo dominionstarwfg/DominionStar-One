@@ -1,4 +1,4 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, session, shell, systemPreferences } from 'electron';
+import {app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, session, shell, systemPreferences, screen} from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDesktopAuth } from './auth-service.mjs';
@@ -191,7 +191,7 @@ app.whenReady().then(async()=>{
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
   await desktopAuth.initialize();
   meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
-  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
+  shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,screen,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
   const sendPowerEvent=(type)=>{
     if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('app:power-event',{type,at:Date.now()});
