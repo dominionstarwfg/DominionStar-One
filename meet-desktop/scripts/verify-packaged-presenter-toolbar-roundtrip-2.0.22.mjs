@@ -146,13 +146,10 @@ async function setupRenderer(skipShareLayout=false){
     void (async()=>{
       try{
         if(skipShareLayout){
-          // Raw-media isolation. Do not touch the DominionStar share controller,
-          // presenter IPC, or meeting DOM. If this alone stalls CDP on the
-          // macOS runner, canvas-captureStream is not a valid liveness fixture.
-          console.error('QA_RAW_DISPLAY_BEGIN');
-          const raw=await navigator.mediaDevices.getDisplayMedia({audio:false,video:true});
-          window.__DOMINION_QA_RAW_DISPLAY_STREAM=raw;
-          console.error('QA_RAW_DISPLAY_READY tracks='+raw.getVideoTracks().length);
+          // Controller isolation with every applyLayout entry point disabled.
+          console.error('QA_CONTROLLER_NO_LAYOUT_BEGIN');
+          const state=await window.DominionShareController.start({name:'QA Controller No Layout',options:{shareAudio:false,optimizeVideo:false}});
+          console.error('QA_CONTROLLER_NO_LAYOUT_READY active='+(state.active?1:0));
           return;
         }
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
@@ -185,25 +182,15 @@ try{
   assert.equal(prepared.chatReady,true);
   stage('live-camera-prepared');
   if(process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1'){
-    await main.wait("Boolean(window.__DOMINION_QA_RAW_DISPLAY_STREAM?.getVideoTracks?.().length)",'raw synthetic display stream',10000);
-    stage('raw-display-started');
+    await main.wait("window.DominionShareController.snapshot().active===true",'controller share activation with layout disabled',10000);
+    stage('controller-no-layout-share-started');
     await sleep(3600);
-    const health=await main.eval("(()=>({raw:Boolean(window.__DOMINION_QA_RAW_DISPLAY_STREAM?.getVideoTracks?.().length),media:Boolean(window.DominionMediaController),now:Date.now()}))()",5000);
-    assert.equal(health.raw,true,'Raw display diagnostic lost its synthetic display track.');
-    assert.equal(health.media,true,'Raw display diagnostic lost media controller.');
-    stage('raw-display-renderer-remained-responsive');
-    console.log('DOMINIONSTAR_RAW_DISPLAY_RENDERER_LIVENESS_OK no-share-controller no-presenter-ipc no-share-layout no-window-park');
-
-    // Now add exactly one production transition: notify the main process that a
-    // capture started, without involving ShareController or share-active DOM.
-    await main.eval("window.dominionDesktop.share.captureStarted({sourceName:'QA Raw Notify',displayId:'',paused:false}); true",3000);
-    stage('raw-capture-start-notified');
-    await sleep(1800);
-    const postNotify=await main.eval("(()=>({raw:Boolean(window.__DOMINION_QA_RAW_DISPLAY_STREAM?.getVideoTracks?.().length),now:Date.now()}))()",5000);
-    assert.equal(postNotify.raw,true,'Renderer stopped responding after captureStarted notification.');
-    stage('capture-start-notification-renderer-remained-responsive');
-    console.log('DOMINIONSTAR_CAPTURE_STARTED_IPC_LIVENESS_OK raw-display plus-main-process-notify');
-
+    const health=await main.eval("(()=>({active:window.DominionShareController.snapshot().active,media:Boolean(window.DominionMediaController),skip:Boolean(window.__DOMINION_QA_SKIP_SHARE_LAYOUT),now:Date.now()}))()",5000);
+    assert.equal(health.active,true,'No-layout controller diagnostic lost active share state.');
+    assert.equal(health.media,true,'No-layout controller diagnostic lost media controller.');
+    assert.equal(health.skip,true,'No-layout controller diagnostic lost its layout suppression flag.');
+    stage('controller-no-layout-renderer-remained-responsive');
+    console.log('DOMINIONSTAR_CONTROLLER_NO_LAYOUT_LIVENESS_OK share-controller capture-started no-layout no-window-park');
     main.close();
     if(child.exitCode===null)child.kill('SIGTERM');
     await sleep(1000);
