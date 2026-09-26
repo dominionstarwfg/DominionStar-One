@@ -29,7 +29,10 @@ const shareController=read('ui/share-controller.js');
 const macPresenter=read('src/mac-share-presenter-overlay.mjs');
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
+const presenterPreload=read('src/presenter-preload.cjs');
 const integration=read('ui/share-integration.js');
+const macVideoJs=read('ui/mac-share-video.js');
+const macVideoHtml=read('ui/mac-share-video.html');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
@@ -118,15 +121,23 @@ assert(
 );
 
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
-assert(preload.includes("cameraFrame:payload=>{if(process.platform!=='darwin')return false;ipcRenderer.send('mac-share:camera-frame'"),'Mac share bridge must accept live camera frames from the authoritative meeting renderer.');
-assert(
-  integration.includes("canvas.toBlob(resolve,'image/jpeg',0.72)")&&
-  integration.includes("new Uint8Array(await blob.arrayBuffer())")&&
-  !integration.includes("canvas.toDataURL('image/jpeg'"),
-  'Mac presenter camera relay must use asynchronous binary encoding; synchronous JPEG data URLs are forbidden in the capture-owning renderer.'
-);
-const macMirror=read('src/mac-share-video-mirror.mjs');
-assert(macMirror.includes("ipcMain.on('mac-share:camera-frame'")&&macMirror.includes("event.sender!==main.webContents")&&!macMirror.includes('executeJavaScript')&&!macMirror.includes('setInterval('),'Floating presenter video must receive camera frames only from the main meeting renderer, with no competing camera poller.');
 assert(preload.includes("if(process.platform==='darwin')ipcRenderer.send('mac-share:state',state||{});return invoke('share:capture-state',state);"),'Mac share state must reach both native overlay and companion-window authorities.');
+assert(presenterPreload.includes("environment:()=>invoke('app:get-environment')"),'Mac presenter surfaces must be able to detect certified QA runtime without loading the full meeting preload.');
+assert(
+  integration.includes("cameraId:String(mediaState.cameraId||'')")&&
+  integration.includes("mirror:mediaState.mirror!==false")&&
+  integration.includes("const syncMacCameraFramePump=()=>{};")&&
+  !integration.includes("canvas.toBlob(resolve,'image/jpeg'")&&
+  !integration.includes("new Uint8Array(await blob.arrayBuffer())"),
+  'The capture-owning renderer must publish camera state only; it must not encode presenter-preview frames while screen sharing.'
+);
+assert(
+  macVideoHtml.includes('<video id="cameraPreview" class="camera-preview" autoplay muted playsinline hidden></video>')&&
+  macVideoJs.includes("navigator.mediaDevices.getUserMedia({audio:false,video})")&&
+  macVideoJs.includes("if(cameraId)video.deviceId={ideal:cameraId}")&&
+  macVideoJs.includes("fallback.hidden=Boolean(cameraOn)")&&
+  macVideoJs.includes("dock.dataset.videoOwner='presenter-device-preview'"),
+  'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
+);
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui async-binary-camera-frame-bridge non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui dedicated-presenter-camera-preview non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
