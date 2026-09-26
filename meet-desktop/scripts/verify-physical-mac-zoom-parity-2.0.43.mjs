@@ -97,6 +97,8 @@ assert(
   'The green presenter perimeter must use four thin non-occluding edges driven by one selected-display geometry.'
 );
 assert(
+  shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
+  shareService.includes('if(qaNoMacPark){cancelMacParkTimer();keepMeetingRendererLive();return true;}')&&
   shareService.includes('const MAC_SENTINEL_SIZE=8;')&&
   shareService.includes('main.setOpacity?.(1)')&&
   shareService.includes('main.setMinimumSize?.(1,1)')&&
