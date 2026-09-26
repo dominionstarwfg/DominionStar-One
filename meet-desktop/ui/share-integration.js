@@ -272,7 +272,15 @@
       try{const pending=desktop?.sharePicker?.cancel?.();void Promise.resolve(pending).catch(()=>{});}catch{}
       try{window.DominionActiveShareHomeParity2041?.restoreMeeting?.();}catch{}
     }
-    share.onChange(state=>{applyLayout();const active=Boolean(state?.active);if(shareWasActive&&!active)cleanupStoppedShareSurfaces();shareWasActive=active;});
+    share.onChange(state=>{
+      // Physical-Mac diagnostic isolation: prove whether capture itself or the
+      // share-active DOM/layout reconciliation is responsible for renderer
+      // starvation. Production never sets this flag.
+      if(!window.__DOMINION_QA_SKIP_SHARE_LAYOUT)applyLayout();
+      const active=Boolean(state?.active);
+      if(shareWasActive&&!active)cleanupStoppedShareSurfaces();
+      shareWasActive=active;
+    });
     media.onChange(()=>{if(share.snapshot().active)applyLayout();});
 
     const companionObserver=new MutationObserver(()=>{
