@@ -349,6 +349,16 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     else{rememberMainWindow();keepMeetingRendererLive();macCaptureStartedAt=Date.now();scheduleMacPark();}
     lastToolbarState={...lastToolbarState,...state,meetingVisible:platform==='darwin'?!macPresenterParked:true,companion:''};
     const meta=presenterRendererMeta();qaPresenterLog('CAPTURE_STARTED',{sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid,url:encodeURIComponent(meta.url)});
+    if(qaPresenterTrace&&platform==='darwin'){
+      setTimeout(()=>{
+        const target=getMainWindow?.()?.webContents;
+        if(!target||target.isDestroyed?.()){qaPresenterLog('ACTIVE_JS_PROBE',{ok:0,error:'renderer-unavailable'});return;}
+        const probe=target.executeJavaScript("(()=>({ready:document.readyState,dispatcher:typeof window.__DominionPresenterDispatch==='function',stamp:Date.now()}))()",true);
+        void Promise.race([probe,new Promise(resolve=>setTimeout(()=>resolve({__timeout:true}),900))])
+          .then(result=>qaPresenterLog('ACTIVE_JS_PROBE',{ok:result?.__timeout?0:1,timeout:result?.__timeout?1:0,ready:result?.ready||'',dispatcher:result?.dispatcher?1:0}))
+          .catch(error=>qaPresenterLog('ACTIVE_JS_PROBE',{ok:0,error:String(error?.message||error||'execute-failed')}));
+      },900);
+    }
   });
   ipcMain.handle('share:capture-state',(_event,state={})=>{const priorCompanion=String(lastToolbarState.companion||'');lastToolbarState={...lastToolbarState,...state};if(shareActive&&priorCompanion&&state.companionOpen===false)hideMeetingWindowForShare();else publishToolbarState();return {ok:true};});
   ipcMain.on('share:presenter-committed',(event,state={})=>{
