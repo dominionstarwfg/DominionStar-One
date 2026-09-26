@@ -97,14 +97,16 @@ assert(
   'The green presenter perimeter must use four thin non-occluding edges driven by one selected-display geometry.'
 );
 assert(
-  shareService.includes('const MAC_PARK_COORDINATE=-32000;')&&
+  shareService.includes('const MAC_SENTINEL_SIZE=8;')&&
   shareService.includes('main.setOpacity?.(1)')&&
-  shareService.includes('x:MAC_PARK_COORDINATE,y:MAC_PARK_COORDINATE')&&
-  bootstrap.includes("Number(value)<0.99)return")&&
+  shareService.includes('main.setMinimumSize?.(1,1)')&&
+  shareService.includes('width:MAC_SENTINEL_SIZE')&&
+  shareService.includes('height:MAC_SENTINEL_SIZE')&&
+  !shareService.includes('MAC_PARK_COORDINATE=-32000')&&
   !shareService.includes('main.setOpacity?.(0.02)')&&
   !bootstrap.includes('originalSetOpacity.call(main,0.02)')&&
   !macPresenter.includes('main.setOpacity?.(0.02)'),
-  'The live meeting renderer must remain fully composited and park off-display; near-transparent parking is forbidden because it starves physical-Mac presenter commands.'
+  'The live meeting renderer must remain fully composited in a tiny on-display sentinel; off-display and near-transparent parking are forbidden because they can starve physical-Mac presenter commands.'
 );
 
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
@@ -119,4 +121,4 @@ const macMirror=read('src/mac-share-video-mirror.mjs');
 assert(macMirror.includes("ipcMain.on('mac-share:camera-frame'")&&macMirror.includes("event.sender!==main.webContents")&&!macMirror.includes('executeJavaScript')&&!macMirror.includes('setInterval('),'Floating presenter video must receive camera frames only from the main meeting renderer, with no competing camera poller.');
 assert(preload.includes("if(process.platform==='darwin')ipcRenderer.send('mac-share:state',state||{});return invoke('share:capture-state',state);"),'Mac share state must reach both native overlay and companion-window authorities.');
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK acknowledged-presenter-dispatch composited-offscreen-renderer synchronized-media-ui async-binary-camera-frame-bridge non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui async-binary-camera-frame-bridge non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
