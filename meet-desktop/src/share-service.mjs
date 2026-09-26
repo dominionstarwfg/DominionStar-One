@@ -125,15 +125,12 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function cancelMacParkTimer(){if(macParkTimer){clearTimeout(macParkTimer);macParkTimer=null;}}
   function scheduleMacPark(){
     if(platform!=='darwin'||!shareActive)return false;
-    // Hidden-presenter liveness diagnostic: keep the capture-owning renderer
-    // in its exact pre-share geometry. This isolates macOS window mutation from
-    // display-track and presenter-surface effects.
-    if(qaNoMacPark){cancelMacParkTimer();keepMeetingRendererLive();return true;}
+    // Capture now belongs to the isolated worker. Do not perform any delayed
+    // post-share mutation on the meeting/control renderer. Physical Mac proved
+    // the old 2.1s parking transition was exactly where presenter IPC stopped.
     cancelMacParkTimer();
-    const elapsed=Math.max(0,Date.now()-macCaptureStartedAt);
-    const delay=Math.max(0,MAC_PARK_DELAY_MS-elapsed);
-    if(delay>0){macParkTimer=setTimeout(()=>{macParkTimer=null;if(shareActive)parkMacMeetingWindow({preCapture:false});},delay);return true;}
-    return parkMacMeetingWindow({preCapture:false});
+    keepMeetingRendererLive();
+    return true;
   }
   function parkMacMeetingWindow({preCapture=false}={}){
     if(platform!=='darwin')return false;
