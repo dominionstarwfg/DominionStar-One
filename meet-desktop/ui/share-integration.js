@@ -152,6 +152,7 @@
     function clearCompanion(){if(companionKind||document.body.dataset.dsShareCompanion)setCompanion('');}
 
     function applyLayout(){
+      if(window.__DOMINION_QA_SKIP_SHARE_LAYOUT)return;
       const state=share.snapshot(),mediaState=media.snapshot();
       overlay.classList.toggle('share-active',state.active);
       // On macOS the share-owning renderer must not visibly mirror the
