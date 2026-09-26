@@ -20,8 +20,11 @@
   let displayRequestGeneration=0;
   const snapshot=()=>({active:Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
   const emit=()=>{
+    // A suppressed physical-Mac diagnostic must execute zero observer/snapshot
+    // work. This distinguishes controller transaction bookkeeping from the
+    // already-proven healthy raw display stream.
+    if(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS)return null;
     const value=snapshot();
-    if(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS)return value;
     for(const listener of [...listeners]){
       try{listener(value);}catch(error){console.error('[DominionStar Meet] Share state listener failed.',error);}
     }
