@@ -17,6 +17,8 @@ const personal=read('ui/personal-room.js');
 const personalCss=read('ui/personal-room.css');
 const app=read('ui/app.js');
 const main=read('src/main.mjs');
+assert(main.includes("appendSwitch('disable-renderer-backgrounding')")&&main.includes("appendSwitch('disable-background-timer-throttling')")&&main.includes("appendSwitch('disable-backgrounding-occluded-windows')"),'Mac presenter mode must disable Chromium occlusion/background scheduling so the meeting control renderer remains responsive during active share.');
+
 const media=read('ui/media-controller.js');
 const legacyParticipants=read('ui/participants-center-lock-2.0.41.js');
 const participantsReference=read('ui/zoom-participants-reference-2.0.41.js');
