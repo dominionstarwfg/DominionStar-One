@@ -75,58 +75,14 @@
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
-    let macCameraFrameTimer=0,macCameraFrameBusy=false,macCameraFrameCanvas=null,macCameraFrameVideo=null;
-
-    async function publishMacCameraFrame(){
-      if(!sameRendererPresenter||!share.snapshot().active||macCameraFrameBusy||!bridge?.cameraFrame)return;
-      const mediaState=media.snapshot(),stream=media.stream?.()||null,track=stream?.getVideoTracks?.()[0]||null;
-      const cameraLive=Boolean(mediaState.videoLive&&mediaState.cameraOn&&track&&track.readyState==='live'&&track.enabled!==false);
-      if(!cameraLive){bridge.cameraFrame({cameraLive:false,bytes:null,mime:'',mirrored:mediaState.mirror!==false});return;}
-      macCameraFrameBusy=true;
-      let bitmap=null;
-      try{
-        let source=null,width=0,height=0;
-        // Prefer ImageCapture: it reads the canonical camera track without
-        // forcing the meeting's visible <video> through a synchronous GPU read.
-        if(typeof ImageCapture==='function'){
-          try{bitmap=await new ImageCapture(track).grabFrame();source=bitmap;width=Number(bitmap.width)||0;height=Number(bitmap.height)||0;}catch{}
-        }
-        // Fallback uses the same MediaStream in an off-screen video element;
-        // it never acquires a second camera track.
-        if(!source||width<2||height<2){
-          if(!macCameraFrameVideo){
-            macCameraFrameVideo=document.createElement('video');
-            macCameraFrameVideo.autoplay=true;macCameraFrameVideo.playsInline=true;macCameraFrameVideo.muted=true;
-            macCameraFrameVideo.style.cssText='position:fixed;width:2px;height:2px;left:-10000px;top:-10000px;opacity:.01;pointer-events:none';
-            document.body.append(macCameraFrameVideo);
-          }
-          if(macCameraFrameVideo.srcObject!==stream){macCameraFrameVideo.srcObject=stream;void macCameraFrameVideo.play().catch(()=>{});}
-          source=macCameraFrameVideo;width=Number(source.videoWidth)||0;height=Number(source.videoHeight)||0;
-        }
-        if(!source||width<2||height<2){bridge.cameraFrame({cameraLive:true,bytes:null,mime:'',mirrored:mediaState.mirror!==false});return;}
-        const outWidth=Math.min(360,Math.max(2,width)),outHeight=Math.max(2,Math.round(outWidth*height/Math.max(2,width)));
-        const canvas=macCameraFrameCanvas||(macCameraFrameCanvas=document.createElement('canvas'));
-        if(canvas.width!==outWidth)canvas.width=outWidth;if(canvas.height!==outHeight)canvas.height=outHeight;
-        const context=canvas.getContext('2d',{alpha:false});if(!context)return;
-        context.drawImage(source,0,0,outWidth,outHeight);
-        // Never use synchronous canvas.toDataURL() in the meeting renderer
-        // while it owns display capture. Encode asynchronously and transfer
-        // binary bytes through Electron IPC.
-        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.72));
-        if(!blob)return;
-        const bytes=new Uint8Array(await blob.arrayBuffer());
-        bridge.cameraFrame({cameraLive:true,bytes,mime:'image/jpeg',mirrored:mediaState.mirror!==false});
-      }finally{try{bitmap?.close?.();}catch{}macCameraFrameBusy=false;}
-    }
-    function syncMacCameraFramePump(){
-      if(!sameRendererPresenter||!bridge?.cameraFrame)return;
-      // Diagnostic isolation only: prove whether the camera relay is the
-      // renderer-stall trigger while all native presenter surfaces are hidden.
-      if(qaKeepMacPresenterHidden){if(macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;}macCameraFrameBusy=false;return;}
-      const active=Boolean(share.snapshot().active);
-      if(active&&!macCameraFrameTimer){void publishMacCameraFrame();macCameraFrameTimer=setInterval(()=>{void publishMacCameraFrame();},250);}
-      else if(!active&&macCameraFrameTimer){clearInterval(macCameraFrameTimer);macCameraFrameTimer=0;macCameraFrameBusy=false;if(macCameraFrameVideo){try{macCameraFrameVideo.pause();}catch{}macCameraFrameVideo.srcObject=null;}bridge.cameraFrame({cameraLive:false,bytes:null,mime:'',mirrored:true});}
-    }
+    // The capture-owning meeting renderer no longer encodes presenter-camera
+    // JPEG frames while a display share is active. That pipeline was a real
+    // physical-Mac failure point: the floating video panel could remain on a
+    // stale profile image while the camera was live, and renderer work could
+    // starve presenter commands. The presenter video surface now opens a
+    // low-rate preview of the authoritative selected camera device and follows
+    // cameraOn/cameraId/mirror state published by this renderer.
+    const syncMacCameraFramePump=()=>{};
 
     let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
     let sharedVideo=stage.querySelector('#sharedContentVideo');if(!sharedVideo){sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);}
@@ -189,7 +145,7 @@
       // visually present, but media rebinding is deferred to normal meeting
       // updates so presenter controls stay responsive.
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind)});
       syncMacCameraFramePump();
     }
 
