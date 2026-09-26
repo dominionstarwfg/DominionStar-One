@@ -65,10 +65,11 @@ if(process.platform==='darwin'){
   function positionBorder(){
     if(!bordersReady())return;
     const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;
-    // One coordinate model, four thin non-occluding edges. Keep every edge
-    // safely inside the selected physical display so macOS cannot clip the
-    // bottom/menu-bar boundary independently.
-    const inset=6;
+    // One coordinate model, four thin non-occluding edges. Keep the perimeter
+    // one physical pixel inside the selected display: close enough to read as
+    // the exact shared-screen boundary, while still avoiding macOS clipping an
+    // edge that sits precisely on a multi-display/menu-bar boundary.
+    const inset=1;
     const x=Math.round(bounds.x+inset),y=Math.round(bounds.y+inset);
     const width=Math.max(t*2+1,Math.round(bounds.width-inset*2));
     const height=Math.max(t*2+1,Math.round(bounds.height-inset*2));
