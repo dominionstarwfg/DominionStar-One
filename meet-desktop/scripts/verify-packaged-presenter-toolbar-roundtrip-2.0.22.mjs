@@ -115,7 +115,11 @@ async function setupRenderer(skipShareLayout=false){
 
   const audioContext=new AudioContext();
   const audioDestination=audioContext.createMediaStreamDestination();
-  Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>displayMaster.clone()});
+  // Production getDisplayMedia returns the capture stream itself. Do not clone
+  // a CanvasCaptureMediaStream in the Mac gate: Chromium's synthetic canvas
+  // clone path can starve the renderer and is not representative of
+  // ScreenCaptureKit delivery on the installed app.
+  Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>displayMaster});
   Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>{
     const tracks=[];
     if(constraints?.video){const track=cameraMaster.getVideoTracks()[0]?.clone();if(track)tracks.push(track);}
