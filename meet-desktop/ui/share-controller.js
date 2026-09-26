@@ -94,7 +94,8 @@
     const started=await captureBridge.start({
       shareAudio:Boolean(options.shareAudio),
       optimizeVideo:Boolean(options.optimizeVideo),
-      qaSynthetic:Boolean(options.__qaSyntheticWorker)
+      qaSynthetic:Boolean(options.__qaSyntheticWorker),
+      qaLifecycleOnly:Boolean(options.__qaLifecycleOnlyWorker)
     });
     if(!started?.ok){disposeMacCaptureClient({stopWorker:false});throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.');}
     let acquired;
