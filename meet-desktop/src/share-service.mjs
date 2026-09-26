@@ -20,8 +20,6 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let macCaptureStartedAt=0;
   let macParkTimer=null;
   const MAC_PARK_DELAY_MS=2100;
-  const MAC_SENTINEL_WIDTH=320;
-  const MAC_SENTINEL_HEIGHT=200;
   let qaPresenterCommandSeq=0;
   let lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};
 
@@ -164,22 +162,12 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       return true;
     }
     if(!shareActive)return false;
-    try{
-      const display=screen?.getDisplayMatching?.(savedMainWindowState?.bounds||main.getBounds?.())||screen?.getPrimaryDisplay?.();
-      const area=display?.workArea||display?.bounds;
-      if(area){
-        main.setMinimumSize?.(1,1);
-        // Keep the meeting engine at the exact default presenter-video
-        // footprint and directly underneath that always-on-top surface.
-        // 8x8 was too small for macOS to keep the renderer scheduled.
-        main.setBounds({
-          x:Math.round(area.x+area.width-MAC_SENTINEL_WIDTH-18),
-          y:Math.round(area.y+78),
-          width:MAC_SENTINEL_WIDTH,
-          height:MAC_SENTINEL_HEIGHT
-        },false);
-      }
-    }catch{}
+    // Do not resize, move, minimize, hide or fade the meeting engine after
+    // sharing begins. Physical Mac proved that geometry mutation causes
+    // Chromium to demote this renderer even when background throttling is off.
+    // Capture is isolated in its own renderer and this window is content-
+    // protected, so presenter mode only changes focus/input authority.
+    try{main.blur?.();}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
     macPresenterParked=true;
     lastToolbarState={...lastToolbarState,meetingVisible:false,companion:''};publishToolbarState();
