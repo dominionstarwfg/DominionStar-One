@@ -32,7 +32,7 @@ async function terminatePackagedApp(){
 let stderr='';
 const qaUserData=path.join('/tmp','dominionstar-presenter-qa-'+process.pid+'-'+port);
 const child=spawn(executable,['--user-data-dir='+qaUserData,'--remote-debugging-port='+port,'--remote-allow-origins=*','--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream'],{
-  env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},
+  env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1',DOMINIONSTAR_QA_DEFER_MAC_PRESENTER_SHOW:'1'},
   stdio:['ignore','ignore','pipe']
 });
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
@@ -220,9 +220,15 @@ try{
   // before touching the presenter toolbar, then use the production ACK path as
   // the command liveness oracle.
   const activeSharePulseStart=stderr.length;
-  await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(3|4|5)/,'active-share meeting renderer heartbeat',7000,activeSharePulseStart);
-  stage('active-share-renderer-responsive');
-  await sleep(300);
+  await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(3|4|5)/,'active-share meeting renderer heartbeat before presenter reveal',7000,activeSharePulseStart);
+  stage('active-share-renderer-responsive-before-reveal');
+
+  const revealStart=stderr.length;
+  const revealResult=await main.eval("window.dominionDesktop?.macShare?.reveal?.()");
+  assert.equal(revealResult?.ok,true,'Native presenter surfaces did not reveal on command.');
+  await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(4|5)/,'meeting renderer heartbeat after presenter reveal',7000,revealStart);
+  stage('active-share-renderer-responsive-after-reveal');
+  main.close();main=null;
 
   const toolbarTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-presenter-toolbar.html'),'actual floating Mac presenter toolbar');
   toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
