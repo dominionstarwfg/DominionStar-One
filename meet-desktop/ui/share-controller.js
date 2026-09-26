@@ -47,7 +47,13 @@
     if(generation!==displayRequestGeneration){stopTracks(stream);throw new DOMException('Screen share request was replaced.','AbortError');}
     const track=stream.getVideoTracks()[0];
     if(!track){stopTracks(stream);throw new Error('No screen capture track was returned.');}
-    try{track.contentHint=optimize?'motion':'detail';}catch{}
+    // Do not force MediaStreamTrack.contentHint on macOS. Electron/Chromium
+    // can switch the ScreenCaptureKit track pipeline when this property is
+    // changed after acquisition, and the physical-Mac presenter loop showed
+    // the renderer becoming unresponsive immediately after ShareController
+    // activated an otherwise healthy display track.
+    const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
+    if(!macLike){try{track.contentHint=optimize?'motion':'detail';}catch{}}
     for(const audioTrack of stream.getAudioTracks?.()||[]){try{audioTrack.contentHint='music';}catch{}}
     return {stream,track};
   }
