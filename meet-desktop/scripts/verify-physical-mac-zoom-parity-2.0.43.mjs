@@ -48,12 +48,13 @@ assert(
   shareController.includes("const captureBridge=window.dominionDesktop?.shareCapture||null;") &&
   shareController.includes('return acquireMacWorkerDisplay(options,generation);') &&
   shareController.includes("throw new Error('Dedicated Mac screen-capture worker is unavailable.')") &&
+  shareController.includes('macWorkerActive=true;') &&
+  shareController.includes('if(macLike)return null;') &&
+  !shareController.includes('const pc=new RTCPeerConnection({iceServers:[]});') &&
   captureWorker.includes('navigator.mediaDevices.getDisplayMedia({video:true,audio:Boolean(payload?.shareAudio)})') &&
-  captureWorker.includes('for(const track of stream.getTracks())nextPc.addTrack(track,stream);') &&
-  capturePreload.includes("ipcRenderer.send('share-capture:offer'") &&
   preload.includes('shareCapture:Object.freeze({') &&
   shareService.includes("ipcMain.handle('share-capture:start'"),
-  'macOS display capture must be owned by a dedicated renderer and tunneled to the meeting renderer over local WebRTC.'
+  'macOS display capture must remain owned by the dedicated capture renderer and must not loop the live screen track back into the meeting/control renderer.'
 );
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
@@ -160,4 +161,4 @@ assert(
   'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
 );
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK isolated-capture-worker acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui dedicated-presenter-camera-preview non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui dedicated-presenter-camera-preview non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
