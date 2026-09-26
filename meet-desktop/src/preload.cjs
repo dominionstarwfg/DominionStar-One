@@ -135,6 +135,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   presenter:Object.freeze({command:command=>invoke('share:presenter-command',command),setMenuOpen:open=>invoke('share:presenter-menu-state',{open:Boolean(open)}),onState:callback=>listen('share:toolbar-state',callback)}),
   macShare:Object.freeze({
     prepare:()=>prepareMacPresenter(),
+    reveal:()=>invoke('mac-share:reveal'),
     command:command=>invoke('mac-share:presenter-command',{command:String(command||'')}),
     setMenuOpen:open=>invoke('mac-share:menu-state',{open:Boolean(open)}),
     showMeeting:()=>invoke('mac-share:show-meeting'),
