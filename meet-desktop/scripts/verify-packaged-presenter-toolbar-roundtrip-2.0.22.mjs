@@ -121,15 +121,9 @@ async function setupRenderer(skipShareLayout=false){
   window.DominionRuntimeStability.sync();
   window.DominionRuntimeStability.ensureToolbarZones();
 
-  // Use Electron's native fake media device for the synthetic "display"
-  // transport. A CanvasCaptureMediaStream is a different Chromium pipeline and
-  // can suspend the renderer under macOS CI even though ScreenCaptureKit does
-  // not. The app is launched with --use-fake-ui-for-media-stream, so this stays
-  // deterministic while exercising a native MediaStreamTrack implementation.
-  const nativeGetUserMedia=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-  const displayMaster=await nativeGetUserMedia({video:true,audio:false});
-  const displayTrack=displayMaster.getVideoTracks()[0];
-  if(!displayTrack)throw new Error('Native fake display track is unavailable.');
+  // Fail immediately if the meeting renderer tries to own display capture.
+  // The dedicated capture worker is the only Mac ScreenCaptureKit authority.
+  Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>{throw new Error('meeting_renderer_display_capture_forbidden');}});
 
   const cameraCanvas=document.createElement('canvas');cameraCanvas.width=640;cameraCanvas.height=360;
   const cameraContext=cameraCanvas.getContext('2d',{alpha:false});
@@ -140,9 +134,6 @@ async function setupRenderer(skipShareLayout=false){
 
   const audioContext=new AudioContext();
   const audioDestination=audioContext.createMediaStreamDestination();
-  // Production getDisplayMedia returns a native capture stream. Preserve that
-  // ownership model here and return the original native fake-device stream.
-  Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>displayMaster});
   Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>{
     const tracks=[];
     if(constraints?.video){const track=cameraMaster.getVideoTracks()[0]?.clone();if(track)tracks.push(track);}
@@ -183,7 +174,7 @@ async function setupRenderer(skipShareLayout=false){
           return;
         }
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
-        const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false}});
+        const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false,__qaSyntheticWorker:true}});
         window.DominionShareIntegration.commitPresenterMode();
         console.error('QA_REAL_PRESENTER_SHARE_READY active='+(shareState.active?1:0));
       }catch(error){console.error((skipShareLayout?'QA_RAW_DISPLAY_FAILURE ':'QA_REAL_PRESENTER_SHARE_FAILURE ')+String(error?.stack||error));}

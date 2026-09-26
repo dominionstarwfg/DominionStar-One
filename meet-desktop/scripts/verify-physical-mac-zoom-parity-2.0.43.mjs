@@ -29,6 +29,8 @@ const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
 const profileFallback=read('ui/profile-photo-fallback.js');
 const shareService=read('src/share-service.mjs');
 const shareController=read('ui/share-controller.js');
+const captureWorker=read('ui/share-capture-worker.js');
+const capturePreload=read('src/share-capture-preload.cjs');
 const macPresenter=read('src/mac-share-presenter-overlay.mjs');
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
@@ -39,14 +41,19 @@ const macVideoHtml=read('ui/mac-share-video.html');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareRuntimeAuthority,participantsReference])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,captureWorker,shareRuntimeAuthority,participantsReference])new Function(source);
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
 assert(
-  shareController.includes("const constraints=macLike") &&
-  shareController.includes("? {audio:shareAudio,video:true}") &&
-  shareController.includes(": {audio:shareAudio,video:{frameRate:"),
-  'macOS display capture must use native video:true acquisition; sender policy owns quality tuning.'
+  shareController.includes("const captureBridge=window.dominionDesktop?.shareCapture||null;") &&
+  shareController.includes('return acquireMacWorkerDisplay(options,generation);') &&
+  shareController.includes("throw new Error('Dedicated Mac screen-capture worker is unavailable.')") &&
+  captureWorker.includes('navigator.mediaDevices.getDisplayMedia({video:true,audio:Boolean(payload?.shareAudio)})') &&
+  captureWorker.includes('pc.addTrack(track,captureStream)') &&
+  capturePreload.includes("ipcRenderer.send('share-capture:offer'") &&
+  preload.includes('shareCapture:Object.freeze({') &&
+  shareService.includes("ipcMain.handle('share-capture:start'"),
+  'macOS display capture must be owned by a dedicated renderer and tunneled to the meeting renderer over local WebRTC.'
 );
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
@@ -120,7 +127,7 @@ assert(
   !shareService.includes('main.setOpacity?.(0.02)')&&
   !bootstrap.includes('originalSetOpacity.call(main,0.02)')&&
   !macPresenter.includes('main.setOpacity?.(0.02)'),
-  'The live meeting renderer must remain fully composited in a tiny on-display sentinel; off-display and near-transparent parking are forbidden because they can starve physical-Mac presenter commands.'
+  'The meeting control renderer must remain fully composited in a tiny on-display sentinel after capture is isolated; off-display and near-transparent parking are forbidden because they can starve physical-Mac presenter commands.'
 );
 
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
@@ -144,4 +151,4 @@ assert(
   'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
 );
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui dedicated-presenter-camera-preview non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK isolated-capture-worker acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui dedicated-presenter-camera-preview non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');

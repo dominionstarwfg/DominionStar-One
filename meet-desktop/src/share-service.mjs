@@ -2,6 +2,9 @@ import { createShareSourceAuthority } from './share-source-authority.mjs';
 
 export function createShareService({BrowserWindow,desktopCapturer,desktopSession,ipcMain,path,uiDir,preloadPath,getMainWindow,platform,screen,ensureScreenPermission,openPrivacySettings}){
   let pickerWindow=null;
+  let captureWorkerWindow=null;
+  let captureWorkerLoading=null;
+  let activeCaptureDisplayId='';
   let toolbarWindow=null;
   let pendingSelection=null;
   let shareActive=false;
@@ -60,6 +63,57 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   function positionNearMain(win,width,height){const main=getMainWindow?.();if(!main||main.isDestroyed())return;const bounds=savedMainWindowState?.bounds||main.getBounds();win.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:Math.max(24,bounds.y+18),width,height});}
   function protectMeetingChrome(win,enabled=true){if(!win||win.isDestroyed())return;try{win.setContentProtection(Boolean(enabled));}catch{}}
+  const capturePreloadPath=path.join(path.dirname(preloadPath),'share-capture-preload.cjs');
+  const captureWorkerAlive=()=>Boolean(captureWorkerWindow&&!captureWorkerWindow.isDestroyed());
+  function captureWorkerSender(event){return Boolean(captureWorkerAlive()&&event?.sender===captureWorkerWindow.webContents);}
+  function positionCaptureWorker(){
+    if(!captureWorkerAlive()||platform!=='darwin')return;
+    let display=null;
+    try{display=screen?.getAllDisplays?.().find(item=>String(item.id)===String(activeCaptureDisplayId||''))||screen?.getPrimaryDisplay?.();}catch{}
+    const area=display?.workArea||display?.bounds;
+    if(!area)return;
+    // Keep a normal compositor surface alive without presenting application UI.
+    // The document itself is fully transparent and click-through.
+    const width=Math.min(320,Math.max(180,Math.round(area.width*.18)));
+    const height=Math.min(180,Math.max(120,Math.round(width*9/16)));
+    try{captureWorkerWindow.setBounds({x:Math.round(area.x+area.width-width-4),y:Math.round(area.y+area.height-height-4),width,height},false);}catch{}
+  }
+  async function ensureCaptureWorker(){
+    if(platform!=='darwin')return null;
+    if(captureWorkerAlive())return captureWorkerWindow;
+    if(captureWorkerLoading)return captureWorkerLoading;
+    captureWorkerLoading=(async()=>{
+      const win=new BrowserWindow({
+        width:320,height:180,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+        resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,closable:false,
+        focusable:false,alwaysOnTop:false,skipTaskbar:true,hasShadow:false,
+        webPreferences:{preload:capturePreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
+      });
+      captureWorkerWindow=win;
+      protectMeetingChrome(win,true);
+      try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
+      try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+      win.on('closed',()=>{if(captureWorkerWindow===win)captureWorkerWindow=null;});
+      await win.loadFile(path.join(uiDir,'share-capture-worker.html'));
+      if(!captureWorkerAlive())throw new Error('share_capture_worker_closed_during_load');
+      positionCaptureWorker();
+      return win;
+    })().catch(error=>{
+      if(captureWorkerAlive()){try{captureWorkerWindow.destroy();}catch{}}
+      captureWorkerWindow=null;
+      throw error;
+    }).finally(()=>{captureWorkerLoading=null;});
+    return captureWorkerLoading;
+  }
+  function showCaptureWorker(){
+    if(!captureWorkerAlive())return false;
+    positionCaptureWorker();
+    try{captureWorkerWindow.setOpacity?.(1);}catch{}
+    try{captureWorkerWindow.showInactive?.();}catch{try{captureWorkerWindow.show();}catch{}}
+    return true;
+  }
+  function hideCaptureWorker(){if(captureWorkerAlive())try{captureWorkerWindow.hide();}catch{}}
+  function signalCaptureWorker(channel,payload={}){if(!captureWorkerAlive())return false;try{captureWorkerWindow.webContents.send(channel,payload);return true;}catch{return false;}}
   function rememberMainWindow(){
     const main=getMainWindow?.();if(!main||main.isDestroyed()||savedMainWindowState)return main||null;
     const maximized=main.isMaximized?.()||false,fullScreen=main.isFullScreen?.()||false;let bounds=main.getBounds();
@@ -226,6 +280,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
 
   ipcMain.handle('share:open-picker',async(_event,{permission='unknown'}={})=>{
     const status=String(permission||'unknown').toLowerCase();configureDisplayMediaHandler(false);
+    if(platform==='darwin')void ensureCaptureWorker().catch(error=>console.error('[DominionStar Meet] Capture worker prewarm failed.',error));
     if(platform==='darwin'&&typeof ensureScreenPermission==='function'){
       const permissionResult=await ensureScreenPermission();
       if(!permissionResult?.ok)return {opened:false,nativeSystemPicker:false,systemPickerAvailable,permissionRequired:true,status:String(permissionResult?.status||status||'unknown'),restartRequired:Boolean(permissionResult?.restartRequired),passive:true};
@@ -236,7 +291,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.handle('share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null;try{const result=await authority.list(options);if(result.timedOut)return {ok:false,timedOut:true,sources:[]};return {ok:true,timedOut:false,sources:result.sources.map(serialize)};}catch(error){return {ok:false,timedOut:false,sources:[],error:String(error?.message||error)};}});
   ipcMain.handle('share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false);
     const source=authority.get(sourceId);if(!source)return {ok:false,error:'share_source_not_available'};
-    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),displayId:String(source.display_id||'')};pendingSelection={source,options:normalizedOptions};
+    const normalizedOptions={optimizeVideo:Boolean(options.optimizeVideo),shareAudio:Boolean(options.shareAudio),displayId:String(source.display_id||'')};pendingSelection={source,options:normalizedOptions};activeCaptureDisplayId=normalizedOptions.displayId;
     closePicker();
     if(platform==='darwin')parkMacMeetingWindow({preCapture:true});
     if(captureStartWatchdog)clearTimeout(captureStartWatchdog);
@@ -244,6 +299,43 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     queueMicrotask(()=>sendMain('share:source-selected',{sourceId:String(source.id),name:String(source.name||'Shared content'),options:normalizedOptions}));return {ok:true,nativeSystemPicker:false};
   });
   ipcMain.handle('share:cancel-picker',()=>{pendingSelection=null;closePicker();return {ok:true};});
+
+
+  // macOS capture runs in a dedicated renderer. The meeting renderer receives
+  // the screen track over an in-process WebRTC bridge, so presenter controls,
+  // chat, participants, mic and camera never share the ScreenCaptureKit owner.
+  ipcMain.handle('share-capture:start',async(event,payload={})=>{
+    const main=getMainWindow?.();
+    if(platform!=='darwin'||!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false,error:'capture_client_unavailable'};
+    try{
+      const worker=await ensureCaptureWorker();
+      if(!worker||worker.isDestroyed())return {ok:false,error:'capture_worker_unavailable'};
+      showCaptureWorker();
+      worker.webContents.send('share-capture:start',payload||{});
+      return {ok:true};
+    }catch(error){return {ok:false,error:String(error?.message||error||'capture_worker_start_failed')};}
+  });
+  ipcMain.handle('share-capture:stop',(event)=>{
+    const main=getMainWindow?.();
+    if(!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false};
+    signalCaptureWorker('share-capture:stop',{});
+    return {ok:true};
+  });
+  ipcMain.handle('share-capture:answer',(event,payload={})=>{
+    const main=getMainWindow?.();
+    if(!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false};
+    return {ok:signalCaptureWorker('share-capture:answer',payload||{})};
+  });
+  ipcMain.handle('share-capture:client-ice',(event,payload={})=>{
+    const main=getMainWindow?.();
+    if(!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false};
+    return {ok:signalCaptureWorker('share-capture:client-ice',payload||{})};
+  });
+  ipcMain.on('share-capture:offer',(event,payload={})=>{if(captureWorkerSender(event))sendMain('share-capture:offer',payload||{});});
+  ipcMain.on('share-capture:worker-ice',(event,payload={})=>{if(captureWorkerSender(event))sendMain('share-capture:worker-ice',payload||{});});
+  ipcMain.on('share-capture:started',(event,payload={})=>{if(captureWorkerSender(event))sendMain('share-capture:started',payload||{});});
+  ipcMain.on('share-capture:stopped',(event,payload={})=>{if(!captureWorkerSender(event))return;sendMain('share-capture:stopped',payload||{});hideCaptureWorker();});
+  ipcMain.on('share-capture:error',(event,payload={})=>{if(!captureWorkerSender(event))return;sendMain('share-capture:error',payload||{});hideCaptureWorker();});
 
   ipcMain.on('share:capture-started',(event,state={})=>{
     const main=getMainWindow?.();if(!main||main.isDestroyed()||event.sender!==main.webContents)return;
@@ -266,7 +358,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.on('share:presenter-preload-ack',(event,payload={})=>{const main=getMainWindow?.();const meta=presenterRendererMeta();const accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);qaPresenterLog('PRELOAD_ACK',{id:Number(payload?.qaCommandId||0)||0,command:String(payload?.command||''),accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid});});
   ipcMain.handle('share:capture-stopped',()=>{
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
-    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();restoreMainWindowAfterShare();
+    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;activeCaptureDisplayId='';signalCaptureWorker('share-capture:stop',{});cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();restoreMainWindowAfterShare();
     lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();return {ok:true};
   });
   ipcMain.handle('share:presenter-menu-state',(_event,{open=false}={})=>{if(!toolbarWindow||toolbarWindow.isDestroyed())return {ok:false};const bounds=toolbarWindow.getBounds();const nextHeight=open?286:72;if(bounds.height!==nextHeight){try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}}return {ok:true,height:nextHeight};});

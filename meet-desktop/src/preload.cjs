@@ -117,6 +117,17 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     captureStopped:()=>{if(process.platform==='darwin')ipcRenderer.send('mac-share:capture-stopped');return invoke('share:capture-stopped');},
     onPresenterCommand:callback=>listenPresenterCommand(callback)
   }),
+  shareCapture:Object.freeze({
+    start:payload=>invoke('share-capture:start',payload||{}),
+    stop:()=>invoke('share-capture:stop'),
+    answer:payload=>invoke('share-capture:answer',payload||{}),
+    candidate:payload=>invoke('share-capture:client-ice',payload||{}),
+    onOffer:callback=>listen('share-capture:offer',callback),
+    onCandidate:callback=>listen('share-capture:worker-ice',callback),
+    onStarted:callback=>listen('share-capture:started',callback),
+    onStopped:callback=>listen('share-capture:stopped',callback),
+    onError:callback=>listen('share-capture:error',callback)
+  }),
   sharePicker:Object.freeze({
     listSources:async options=>{await prepareMacPresenter();return invoke('share:list-sources',options);},
     choose:(sourceId,options)=>invoke('share:select-source',{sourceId,options}),cancel:()=>invoke('share:cancel-picker')

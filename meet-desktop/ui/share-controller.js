@@ -1,7 +1,9 @@
 (()=>{
   if(window.DominionShareController)return;
   const bridge=window.dominionDesktop?.share;
+  const captureBridge=window.dominionDesktop?.shareCapture||null;
   const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
+  let macCapturePeer=null,macCaptureUnsubs=[],macCaptureSignalGeneration=0;
   const state={_liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
   // Physical-Mac liveness authority: a raw display stream held directly on
   // window remains responsive under ScreenCaptureKit, while the old closure-
@@ -50,55 +52,122 @@
     const stream=canvas.captureStream(30);for(const track of baseOutputStream()?.getAudioTracks?.()||[]){try{stream.addTrack(track.clone());}catch{}}state.compositeStream=stream;compositeFrame();emit();
   }
 
+
+  function disposeMacCaptureClient({stopWorker=false}={}){
+    const peer=macCapturePeer;macCapturePeer=null;macCaptureSignalGeneration=0;
+    for(const off of macCaptureUnsubs.splice(0)){try{off?.();}catch{}}
+    try{peer?.close?.();}catch{}
+    if(stopWorker&&captureBridge?.stop){
+      try{const pending=captureBridge.stop();void Promise.resolve(pending).catch(()=>{});}catch{}
+    }
+  }
+
+  async function acquireMacWorkerDisplay(options={},generation){
+    if(!captureBridge?.start)throw new Error('Dedicated Mac screen-capture worker is unavailable.');
+    disposeMacCaptureClient({stopWorker:false});
+    try{await captureBridge.stop?.();}catch{}
+
+    const pc=new RTCPeerConnection({iceServers:[]});
+    macCapturePeer=pc;
+    const stream=new MediaStream(),pendingCandidates=[];
+    let settled=false,resolveReady,rejectReady;
+    const ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});
+    const rejectOnce=error=>{if(settled)return;settled=true;rejectReady(error instanceof Error?error:new Error(String(error||'capture_worker_failed')));};
+    const resolveIfReady=()=>{
+      if(settled)return;
+      const track=stream.getVideoTracks()[0]||null;
+      if(track){settled=true;resolveReady({stream,track});}
+    };
+
+    pc.ontrack=event=>{
+      const track=event.track;
+      if(track&&!stream.getTracks().some(item=>item.id===track.id))stream.addTrack(track);
+      resolveIfReady();
+    };
+    pc.onicecandidate=event=>{
+      if(!event.candidate||pc!==macCapturePeer)return;
+      try{const pending=captureBridge.candidate({generation:macCaptureSignalGeneration,candidate:event.candidate.toJSON?.()||event.candidate});void Promise.resolve(pending).catch(()=>{});}catch{}
+    };
+    pc.onconnectionstatechange=()=>{
+      if(pc!==macCapturePeer)return;
+      if(['failed','closed'].includes(pc.connectionState)&&!settled)rejectOnce(new Error('Dedicated Mac screen-capture transport failed.'));
+    };
+
+    macCaptureUnsubs=[
+      captureBridge.onOffer?.(payload=>{void (async()=>{
+        if(pc!==macCapturePeer)return;
+        try{
+          macCaptureSignalGeneration=Number(payload?.generation||0)||0;
+          if(!payload?.sdp)throw new Error('Capture worker offer is missing.');
+          await pc.setRemoteDescription(payload.sdp);
+          while(pendingCandidates.length)await pc.addIceCandidate(pendingCandidates.shift()).catch(()=>{});
+          const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
+          await captureBridge.answer({generation:macCaptureSignalGeneration,sdp:{type:pc.localDescription.type,sdp:pc.localDescription.sdp}});
+        }catch(error){rejectOnce(error);}
+      })();}),
+      captureBridge.onCandidate?.(payload=>{void (async()=>{
+        if(pc!==macCapturePeer||!payload?.candidate)return;
+        if(Number(payload?.generation||0)!==macCaptureSignalGeneration&&macCaptureSignalGeneration)return;
+        if(!pc.remoteDescription){pendingCandidates.push(payload.candidate);return;}
+        await pc.addIceCandidate(payload.candidate).catch(()=>{});
+      })();}),
+      captureBridge.onError?.(payload=>{
+        const message=String(payload?.error||'Dedicated Mac screen capture failed.');
+        if(!settled)rejectOnce(new Error(message));
+        else if(state.liveStream===stream&&!state.busy)void stop();
+      }),
+      captureBridge.onStopped?.(()=>{
+        if(!settled)rejectOnce(new Error('Dedicated Mac screen capture stopped before it was ready.'));
+        else if(state.liveStream===stream&&!state.busy)void stop();
+      })
+    ].filter(Boolean);
+
+    const started=await captureBridge.start({
+      shareAudio:Boolean(options.shareAudio),
+      optimizeVideo:Boolean(options.optimizeVideo),
+      qaSynthetic:Boolean(options.__qaSyntheticWorker)
+    });
+    if(!started?.ok){disposeMacCaptureClient({stopWorker:false});throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.');}
+    let acquired;
+    try{
+      acquired=await Promise.race([ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Dedicated Mac screen capture did not connect within 6 seconds.')),6000))]);
+    }catch(error){disposeMacCaptureClient({stopWorker:true});throw error;}
+    if(generation!==displayRequestGeneration){stopTracks(acquired.stream);disposeMacCaptureClient({stopWorker:true});throw new DOMException('Screen share request was replaced.','AbortError');}
+    return acquired;
+  }
+
   async function acquireDisplay(options={}){
     const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio),generation=++displayRequestGeneration;
-    // Keep ScreenCaptureKit acquisition native on macOS. The raw
-    // video:true path is proven renderer-safe; structured frame-rate
-    // constraints are applied later through the WebRTC sender instead.
-    const constraints=macLike
-      ? {audio:shareAudio,video:true}
-      : {audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}};
-    let stream=null;
     if(macLike){
-      // Physical-Mac isolation proved the raw ScreenCaptureKit stream remains
-      // responsive, while wrapping the acquisition promise in Promise.race()
-      // is the remaining controller-only difference. Let macOS resolve its
-      // native capture request directly; the main-process source-selection
-      // watchdog still bounds an abandoned picker transaction.
-      stream=await navigator.mediaDevices.getDisplayMedia(constraints);
-    }else{
-      const capturePromise=navigator.mediaDevices.getDisplayMedia(constraints);
-      let timeoutId=0,timedOut=false;
-      const timeoutPromise=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{timedOut=true;const error=new Error('Screen sharing did not start within 5 seconds. Please choose the source again.');error.code='share_start_timeout';reject(error);},5000);});
-      try{
-        stream=await Promise.race([capturePromise,timeoutPromise]);
-      }catch(error){
-        if(timedOut){displayRequestGeneration+=1;void capturePromise.then(lateStream=>stopTracks(lateStream)).catch(()=>{});}
-        throw error;
-      }finally{if(timeoutId)clearTimeout(timeoutId);}
+      // ScreenCaptureKit ownership is isolated in a dedicated renderer. The
+      // meeting renderer receives only a local WebRTC track, keeping presenter
+      // controls, media controls, chat and participants independently alive.
+      return acquireMacWorkerDisplay(options,generation);
     }
+    if(!macLike&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
+    const capturePromise=navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
+    let timeoutId=0,stream=null,timedOut=false;
+    const timeoutPromise=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{timedOut=true;const error=new Error('Screen sharing did not start within 5 seconds. Please choose the source again.');error.code='share_start_timeout';reject(error);},5000);});
+    try{stream=await Promise.race([capturePromise,timeoutPromise]);}
+    catch(error){if(timedOut){displayRequestGeneration+=1;void capturePromise.then(lateStream=>stopTracks(lateStream)).catch(()=>{});}throw error;}
+    finally{if(timeoutId)clearTimeout(timeoutId);}
     if(generation!==displayRequestGeneration){stopTracks(stream);throw new DOMException('Screen share request was replaced.','AbortError');}
     const track=stream.getVideoTracks()[0];
     if(!track){stopTracks(stream);throw new Error('No screen capture track was returned.');}
-    // Do not force MediaStreamTrack.contentHint on macOS. Electron/Chromium
-    // can switch the ScreenCaptureKit track pipeline when this property is
-    // changed after acquisition, and the physical-Mac presenter loop showed
-    // the renderer becoming unresponsive immediately after ShareController
-    // activated an otherwise healthy display track.
-    if(!macLike){try{track.contentHint=optimize?'motion':'detail';}catch{}}
+    try{track.contentHint=optimize?'motion':'detail';}catch{}
     for(const audioTrack of stream.getAudioTracks?.()||[]){try{audioTrack.contentHint='music';}catch{}}
     return {stream,track};
   }
 
   async function start({name='',options={}}={}){
     if(state.busy||state.liveStream)return snapshot();
-    if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
+    if(!macLike&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
     state.busy=true;emit();
     try{
       const {stream,track}=await acquireDisplay(options);
       state.liveStream=stream;state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
       if(!options?.__qaSkipEndedListener){
-        track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
+        track.addEventListener('ended',()=>{if(!state.busy&&state.liveStream===stream)void stop();},{once:true});
       }else{
         console.error('QA_SHARE_TRACK_ENDED_LISTENER_SUPPRESSED');
       }
@@ -146,7 +215,7 @@
       state.annotationCanvas=null;
       state.liveStream=stream;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
       state.sourceName=String(name||track.label||'Shared content');state.options={...options};
-      track.addEventListener('ended',()=>{if(state.liveStream===stream)void stop();},{once:true});
+      track.addEventListener('ended',()=>{if(!state.busy&&state.liveStream===stream)void stop();},{once:true});
       stopTracks(previousFrozen);stopTracks(previousLive);
       try{await bridge?.captureState?.({sourceName:state.sourceName,displayId:String(state.options?.displayId||''),paused:false});}catch{}
       return snapshot();
@@ -218,6 +287,7 @@
     // a follow-up notification and must never hold capture open on a slow IPC.
     stopTracks(state.frozenStream);stopTracks(state.liveStream);
     state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};
+    if(macLike){disposeMacCaptureClient({stopWorker:true});}
     emit();
     if(hadShare){
       try{
