@@ -5,6 +5,17 @@ import { createDesktopAuth } from './auth-service.mjs';
 import { createMeetingService } from './meeting-service.mjs';
 import { createShareService } from './share-service.mjs';
 
+if(process.platform==='darwin'){
+  // A presenter app must keep the meeting/control renderer scheduled while its
+  // window is occluded or reduced during display sharing. backgroundThrottling
+  // on BrowserWindow is not sufficient on macOS once Chromium classifies the
+  // window as occluded; disable the renderer/timer occlusion policies before
+  // Electron creates any renderer process.
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-background-timer-throttling');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+}
+
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const uiDir=path.join(__dirname,'..','ui');
 const preloadPath=path.join(__dirname,'preload.cjs');
