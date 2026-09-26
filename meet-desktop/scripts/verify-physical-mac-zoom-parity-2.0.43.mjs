@@ -60,6 +60,10 @@ assert(
   shareController.includes('if(macLike)return null;') &&
   !shareController.includes('const pc=new RTCPeerConnection({iceServers:[]});') &&
   captureWorker.includes('navigator.mediaDevices.getDisplayMedia({video:true,audio:Boolean(payload?.shareAudio)})') &&
+  !captureWorker.includes('RTCPeerConnection') &&
+  !captureWorker.includes('createOffer(') &&
+  !captureWorker.includes('addTrack(') &&
+  captureWorker.includes("transport:'lifecycle-only'") &&
   preload.includes('shareCapture:Object.freeze({') &&
   shareService.includes("ipcMain.handle('share-capture:start'"),
   'macOS display capture must remain owned by the dedicated capture renderer and must not loop the live screen track back into the meeting/control renderer.'
