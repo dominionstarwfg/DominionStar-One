@@ -110,6 +110,28 @@
     function applyLayout(){
       if(window.__DOMINION_QA_SKIP_SHARE_LAYOUT)return;
       const state=share.snapshot(),mediaState=media.snapshot();
+      if(sameRendererPresenter&&state.active){
+        // macOS presenter mode has dedicated native toolbar/video surfaces.
+        // Keep the meeting renderer as a media/control engine only: applying
+        // the full share-active DOM/CSS graph here triggers the legacy layout
+        // observers and starves presenter IPC on physical Mac.
+        overlay.classList.remove('share-active');
+        sharedVideo.hidden=true;if(sharedVideo.srcObject)sharedVideo.srcObject=null;
+        label.hidden=true;inlinePresenter.hidden=true;
+        if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;
+        const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};
+        void bridge?.captureState?.({
+          paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,
+          cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,
+          sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),
+          optimizeVideo:Boolean(state.options?.optimizeVideo),
+          handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),
+          recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,
+          companionOpen:Boolean(companionKind)
+        });
+        syncMacCameraFramePump();
+        return;
+      }
       overlay.classList.toggle('share-active',state.active);
       // On macOS the share-owning renderer must not visibly mirror the
       // captured screen back into itself. That recursive compositor path can
