@@ -121,12 +121,15 @@ async function setupRenderer(skipShareLayout=false){
   window.DominionRuntimeStability.sync();
   window.DominionRuntimeStability.ensureToolbarZones();
 
-  const shareCanvas=document.createElement('canvas');shareCanvas.width=640;shareCanvas.height=360;
-  const shareContext=shareCanvas.getContext('2d',{alpha:false});
-  shareContext.fillStyle='#07111f';shareContext.fillRect(0,0,640,360);
-  shareContext.fillStyle='#d6b25e';shareContext.fillRect(80,80,180,120);
-  shareContext.fillStyle='#fff';shareContext.font='28px sans-serif';shareContext.fillText('DominionStar QA Share',40,260);
-  const displayMaster=shareCanvas.captureStream(15);
+  // Use Electron's native fake media device for the synthetic "display"
+  // transport. A CanvasCaptureMediaStream is a different Chromium pipeline and
+  // can suspend the renderer under macOS CI even though ScreenCaptureKit does
+  // not. The app is launched with --use-fake-ui-for-media-stream, so this stays
+  // deterministic while exercising a native MediaStreamTrack implementation.
+  const nativeGetUserMedia=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  const displayMaster=await nativeGetUserMedia({video:true,audio:false});
+  const displayTrack=displayMaster.getVideoTracks()[0];
+  if(!displayTrack)throw new Error('Native fake display track is unavailable.');
 
   const cameraCanvas=document.createElement('canvas');cameraCanvas.width=640;cameraCanvas.height=360;
   const cameraContext=cameraCanvas.getContext('2d',{alpha:false});
@@ -137,10 +140,8 @@ async function setupRenderer(skipShareLayout=false){
 
   const audioContext=new AudioContext();
   const audioDestination=audioContext.createMediaStreamDestination();
-  // Production getDisplayMedia returns the capture stream itself. Do not clone
-  // a CanvasCaptureMediaStream in the Mac gate: Chromium's synthetic canvas
-  // clone path can starve the renderer and is not representative of
-  // ScreenCaptureKit delivery on the installed app.
+  // Production getDisplayMedia returns a native capture stream. Preserve that
+  // ownership model here and return the original native fake-device stream.
   Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>displayMaster});
   Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>{
     const tracks=[];
