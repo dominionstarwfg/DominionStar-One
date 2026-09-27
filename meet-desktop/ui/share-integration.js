@@ -83,6 +83,19 @@
     // low-rate preview of the authoritative selected camera device and follows
     // cameraOn/cameraId/mirror state published by this renderer.
     const syncMacCameraFramePump=()=>{};
+    let lastVoiceSentAt=0,lastVoiceSpeaking=false,lastVoiceLevel=0;
+    const forwardVoiceLevel=event=>{
+      if(!sameRendererPresenter||!share.snapshot().active)return;
+      const detail=event?.detail||{};
+      const level=Math.max(0,Math.min(1,Number(detail.level)||0));
+      const speaking=Boolean(detail.speaking&&level>0);
+      const now=performance.now();
+      const changed=speaking!==lastVoiceSpeaking||Math.abs(level-lastVoiceLevel)>=.08;
+      if(!changed&&now-lastVoiceSentAt<90)return;
+      lastVoiceSentAt=now;lastVoiceSpeaking=speaking;lastVoiceLevel=level;
+      try{bridge?.voiceLevel?.({level,speaking});}catch{}
+    };
+    window.addEventListener('dominion:local-voice-level',forwardVoiceLevel);
 
     let button=overlay.querySelector('#roomShare');if(!button){button=document.createElement('button');button.id='roomShare';button.className='meeting-control room-share-control';button.type='button';button.textContent='Share';footer.insertBefore(button,overlay.querySelector('#roomExitButton'));}window.DominionMeetingParity?.decorateControls?.();
     let sharedVideo=stage.querySelector('#sharedContentVideo');if(!sharedVideo){sharedVideo=document.createElement('video');sharedVideo.id='sharedContentVideo';sharedVideo.className='shared-content-video';sharedVideo.autoplay=true;sharedVideo.playsInline=true;sharedVideo.muted=true;sharedVideo.hidden=true;stage.append(sharedVideo);}
