@@ -55,6 +55,12 @@ assert(
   'Active Mac sharing must never let the periodic preference poller resync the legacy meeting video dock; the native presenter surface owns share-time video.'
 );
 assert(
+  integration.includes('if(sameRendererPresenter&&replacing){') &&
+  integration.includes("const entry=await resolveShareEntry('granted');") &&
+  integration.includes("return entry.mode==='custom'||entry.mode==='native';"),
+  'Active Mac New Share must open the dedicated source-picker window instead of re-entering the meeting-renderer picker authority.'
+);
+assert(
   shareService.includes("partition:'dominion-share-capture-v2044'") &&
   shareService.includes("getOSProcessId?.()") &&
   shareService.includes("capture_worker_process_not_isolated") &&
