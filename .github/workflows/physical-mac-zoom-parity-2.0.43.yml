@@ -100,6 +100,12 @@ jobs:
           DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-ack-only'
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Diagnose share controller before presenter handshake
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'controller-worker-no-handshake'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Diagnose capture worker boundary
         working-directory: meet-desktop
         env:
