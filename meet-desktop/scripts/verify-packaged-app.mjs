@@ -25,7 +25,7 @@ const unpackDir=path.resolve('.package-audit');
 fs.rmSync(unpackDir,{recursive:true,force:true});
 execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'extract',asarPath,unpackDir]);
 const read=(...parts)=>fs.readFileSync(path.join(unpackDir,...parts),'utf8');
-const main=read('src','main.mjs'),auth=read('src','auth-service.mjs'),meeting=read('src','meeting-service.mjs'),preload=read('src','preload.cjs'),share=read('src','share-source-authority.mjs'),shareService=read('src','share-service.mjs');
+const main=read('src','main.mjs'),auth=read('src','auth-service.mjs'),meeting=read('src','meeting-service.mjs'),preload=read('src','preload.cjs'),share=read('src','share-source-authority.mjs'),shareService=read('src','share-service.mjs'),macPresenter=read('src','mac-share-presenter-overlay.mjs');
 const appUi=read('ui','app.js'),media=read('ui','media-controller.js'),videoEffects=read('ui','video-effects.js'),authPassword=read('ui','auth-password.js'),html=read('ui','index.html'),av=read('ui','av-settings.js'),parity=read('ui','meeting-parity.js'),parityCss=read('ui','meeting-parity.css'),features=read('ui','meeting-features.js'),captions=read('ui','meeting-captions.js'),captionsCss=read('ui','meeting-captions.css'),zoomBehavior=read('ui','zoom-behavior.js'),zoomCss=read('ui','zoom-behavior.css'),participantControls=read('ui','participant-controls.js'),participantCss=read('ui','participant-controls.css'),meetingNotifications=read('ui','meeting-notifications.js'),meetingNotificationsCss=read('ui','meeting-notifications.css'),preferences=read('ui','preferences.js'),personal=read('ui','personal-room.js'),schedule=read('ui','schedule-controller.js'),scheduleCss=read('ui','schedule.css'),shareController=read('ui','share-controller.js'),annotation=read('ui','share-annotation.js'),presenterHtml=read('ui','presenter-toolbar.html'),presenterJs=read('ui','presenter-toolbar.js'),presenterCss=read('ui','presenter-toolbar.css'),webrtc=read('ui','webrtc-controller.js');
 assert(participantControls.includes("type==='host:view-layout'")&&participantControls.includes('authorizedSender(detail.fromParticipantId)'),'Packaged meeting-wide View changes must verify host/co-host sender authority.');
 assert(parity.includes("applyAll.dataset.applyViewEveryone='1'")&&parity.includes("desktop.meeting.sendSignal(p.participantId,'host:view-layout',payload)"),'Packaged host/co-host View menu must broadcast Apply View to Everyone through meeting signaling.');
@@ -219,7 +219,22 @@ assert(shareController.includes('async function replaceSource')&&shareController
 assert(shareController.indexOf('const {stream,track}=await acquireDisplay(options);',shareController.indexOf('async function replaceSource'))<shareController.indexOf('stopTracks(previousFrozen);stopTracks(previousLive);',shareController.indexOf('async function replaceSource')),'Packaged New Share must acquire the replacement before stopping the old presentation.');
 assert(read('ui','share-integration.js').includes("if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}")&&read('ui','share-integration.js').includes('if(replacing){await share.replaceSource'),'Packaged presenter New Share must keep the old presentation live through picker selection.');
 assert(shareService.includes('if(toolbarWindow&&!toolbarWindow.isDestroyed())')&&shareService.includes('publishToolbarState();')&&shareService.includes('return true;'),'Packaged presenter toolbar must reuse one existing toolbar instance across source changes.');
-assert(!shareService.slice(shareService.indexOf("ipcMain.handle('share:select-source'"),shareService.indexOf("ipcMain.handle('share:capture-stopped'")).includes('closeToolbar()'),'Packaged New Share/source selection must not close the presenter toolbar.');
+assert(
+  shareService.includes("if(platform==='darwin'){closeToolbar();return true;}") &&
+  shareService.includes("if(platform==='darwin')closeToolbar();"),
+  'Packaged macOS sharing must explicitly retire the obsolete legacy presenter toolbar so it cannot duplicate the native Mac presenter surface.'
+);
+assert(
+  !macPresenter.slice(
+    macPresenter.indexOf("ipcMain.on('mac-share:state'"),
+    macPresenter.indexOf("ipcMain.on('mac-share:capture-stopped'")
+  ).includes('hideOverlays()') &&
+  !macPresenter.slice(
+    macPresenter.indexOf("ipcMain.on('mac-share:state'"),
+    macPresenter.indexOf("ipcMain.on('mac-share:capture-stopped'")
+  ).includes('toolbarWindow.close'),
+  'Packaged New Share/source-state updates must keep the native Mac presenter toolbar alive until capture actually stops.'
+);
 assert(presenterHtml.includes('shareSourceLabel')&&presenterHtml.includes('shareAudioFlag')&&presenterHtml.includes('shareOptimizeFlag'),'Packaged presenter toolbar must show source and active Computer Sound / Optimize states.');
 assert(presenterJs.includes('state?.shareAudio')&&presenterJs.includes('state?.optimizeVideo'),'Packaged presenter toolbar flags must follow live share state.');
 assert(shareService.includes("ipcMain.handle('share:presenter-menu-state'")&&shareService.includes("const nextHeight=open?286:72"),'Packaged presenter menus must expand and collapse within the compact toolbar window.');
