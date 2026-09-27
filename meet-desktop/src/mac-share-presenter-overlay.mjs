@@ -7,7 +7,7 @@ if(process.platform==='darwin'){
   const uiDir=path.resolve(here,'../ui');
   const presenterPreloadPath=path.join(here,'presenter-preload.cjs');
   const PREPARE_STEP_TIMEOUT_MS=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'?10000:5000;
-  const BORDER_THICKNESS=4;
+  const BORDER_THICKNESS=3;
   const BORDER_COLOR='#2ed573';
   let toolbarWindow=null;
   let borderWindows=[]; // four thin edge windows driven by one geometry authority
@@ -23,7 +23,7 @@ if(process.platform==='darwin'){
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
   const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
   const qaDeferPresenterShow=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_DEFER_MAC_PRESENTER_SHOW==='1';
-  let shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false};
+  let shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
   const bordersReady=()=>borderWindows.length===4&&borderWindows.every(isAlive);
@@ -65,12 +65,12 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;
-    // One coordinate model, four thin non-occluding edges. Keep the perimeter
-    // one physical pixel inside the selected display: close enough to read as
-    // the exact shared-screen boundary, while still avoiding macOS clipping an
-    // edge that sits precisely on a multi-display/menu-bar boundary.
-    const inset=1;
+    const display=displayForSharedContent(),bounds=display.workArea||display.bounds,t=BORDER_THICKNESS;
+    // Follow the visible macOS desktop work area, not the raw display edge.
+    // This keeps the perimeter below the menu bar and above the Dock, and a
+    // two-pixel inset prevents the bottom/right edges from being clipped by
+    // the compositor on Retina and multi-display arrangements.
+    const inset=2;
     const x=Math.round(bounds.x+inset),y=Math.round(bounds.y+inset);
     const width=Math.max(t*2+1,Math.round(bounds.width-inset*2));
     const height=Math.max(t*2+1,Math.round(bounds.height-inset*2));
@@ -265,7 +265,14 @@ if(process.platform==='darwin'){
     showOverlays();
   });
   ipcMain.on('mac-share:state',(_event,state={})=>{if(!shareActive)return;shareState={...shareState,...state};publishState();if(qaKeepPresenterHidden){hideBorder();return;}if(isDisplayShare())showBorder();else hideBorder();});
-  ipcMain.on('mac-share:capture-stopped',()=>{if(qaPresenterTrace)console.error('QA_MAC_CAPTURE_STOPPED');shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true};hideOverlays();});
+  ipcMain.on('mac-share:voice-level',(_event,payload={})=>{
+    if(!shareActive)return;
+    const level=Math.max(0,Math.min(1,Number(payload?.level)||0));
+    const speaking=Boolean(payload?.speaking&&level>0);
+    shareState={...shareState,voiceLevel:level,speaking};
+    publishState();
+  });
+  ipcMain.on('mac-share:capture-stopped',()=>{if(qaPresenterTrace)console.error('QA_MAC_CAPTURE_STOPPED');shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,voiceLevel:0,speaking:false};hideOverlays();});
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;removeQueuedPresenterDelivery(deliveryId);
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=${deliveryId} command=${String(payload?.command||'')} accepted=${payload?.accepted?1:0}`);
