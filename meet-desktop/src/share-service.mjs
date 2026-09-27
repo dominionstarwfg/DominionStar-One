@@ -308,6 +308,31 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   // macOS capture runs in a dedicated renderer. The meeting renderer receives
   // the screen track over an in-process WebRTC bridge, so presenter controls,
   // chat, participants, mic and camera never share the ScreenCaptureKit owner.
+  ipcMain.handle('share-capture:qa-prepare',async(event)=>{
+    const main=getMainWindow?.();
+    if(!qaPresenterTrace||platform!=='darwin'||!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false,error:'qa_capture_prepare_unavailable'};
+    try{
+      const worker=await ensureCaptureWorker();
+      if(!worker||worker.isDestroyed())return {ok:false,error:'capture_worker_unavailable'};
+      const shown=showCaptureWorker();
+      const mainPid=Number(main.webContents?.getOSProcessId?.()||0),workerPid=Number(worker.webContents?.getOSProcessId?.()||0);
+      qaPresenterLog('CAPTURE_QA_PREPARE',{shown:shown?1:0,mainPid,workerPid});
+      return {ok:true,shown:Boolean(shown),mainPid,workerPid};
+    }catch(error){return {ok:false,error:String(error?.message||error||'qa_capture_prepare_failed')};}
+  });
+  ipcMain.handle('share-capture:qa-message-only',async(event)=>{
+    const main=getMainWindow?.();
+    if(!qaPresenterTrace||platform!=='darwin'||!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false,error:'qa_capture_message_unavailable'};
+    try{
+      const worker=await ensureCaptureWorker();
+      if(!worker||worker.isDestroyed())return {ok:false,error:'capture_worker_unavailable'};
+      const shown=showCaptureWorker();
+      worker.webContents.send('share-capture:start',{qaMessageOnly:true});
+      const mainPid=Number(main.webContents?.getOSProcessId?.()||0),workerPid=Number(worker.webContents?.getOSProcessId?.()||0);
+      qaPresenterLog('CAPTURE_QA_MESSAGE_ONLY',{shown:shown?1:0,mainPid,workerPid});
+      return {ok:true,shown:Boolean(shown),mainPid,workerPid};
+    }catch(error){return {ok:false,error:String(error?.message||error||'qa_capture_message_failed')};}
+  });
   ipcMain.handle('share-capture:start',async(event,payload={})=>{
     const main=getMainWindow?.();
     if(platform!=='darwin'||!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false,error:'capture_client_unavailable'};
