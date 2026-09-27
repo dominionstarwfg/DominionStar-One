@@ -81,7 +81,11 @@
     const pause=q('#pauseLabel'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand');
     if(pause)pause.textContent=paused?'Resume':'Pause';if(audio)audio.textContent=micOn?'Mute':'Unmute';if(video)video.textContent=cameraOn?'Stop Video':'Start Video';
     const audioButton=q('[data-command="audio"]'),videoButton=q('[data-command="video"]');
-    audioButton?.classList.toggle('is-off',!micOn);videoButton?.classList.toggle('is-off',!cameraOn);
+    const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0));
+    const speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0);
+    const voiceBucket=!speaking?0:voiceLevel>.55?3:voiceLevel>.22?2:1;
+    audioButton?.classList.toggle('is-off',!micOn);audioButton?.classList.toggle('is-speaking',speaking);videoButton?.classList.toggle('is-off',!cameraOn);
+    if(audioButton)audioButton.dataset.voiceLevel=String(voiceBucket);
     audioButton?.setAttribute('aria-pressed',String(!micOn));videoButton?.setAttribute('aria-pressed',String(!cameraOn));
     if(label)label.textContent=paused?'Share paused':'You are screen sharing';
     if(source){const raw=String(state?.sourceName||'Shared content');source.textContent=/screen|desktop|display|entire/i.test(raw)?'Entire screen':raw;}
