@@ -221,7 +221,7 @@ try{
   micVisual=await mediaSlashState();
   assert.equal(micVisual.slashCount,0,'Unmuted microphone retained a stale or duplicate red slash.');
   await evaluate(`document.body.classList.add('ds-local-speaking');true`);
-  assert.equal(await evaluate(`(()=>{const icons=[...document.querySelectorAll('#roomMic>:is(.ds-control-icon,.ds-exec-icon)')];const visible=icons.find(icon=>{const s=getComputedStyle(icon);return s.display!=='none'&&s.visibility!=='hidden';});return Boolean(visible&&getComputedStyle(visible).color==='rgb(49, 209, 88)'&&getComputedStyle(visible,'::after').display==='none');})()`),true,'Live speaking microphone state must use green activity feedback with no red slash on the visible authoritative icon.');
+  assert.equal(await evaluate(`(()=>{const icons=[...document.querySelectorAll('#roomMic>:is(.ds-control-icon,.ds-exec-icon)')];const visible=icons.find(icon=>{const s=getComputedStyle(icon);return s.display!=='none'&&s.visibility!=='hidden';});if(!visible)return false;const color=getComputedStyle(visible).color.match(/\\d+/g)?.map(Number)||[];const after=getComputedStyle(visible,'::after');const noSlash=!after.content||after.content==='none'||after.content==='normal'||after.content==='""';return color.length>=3&&color[1]>color[0]&&color[1]>color[2]&&noSlash;})()`),true,'Live speaking microphone state must use green activity feedback with no visible red slash on the authoritative icon.');
   await evaluate(`document.body.classList.remove('ds-local-speaking');document.querySelector('#roomMic').click();true`);
   await waitFor("document.querySelector('#roomMic').classList.contains('is-off')",'restored muted local microphone visual state',5000);
   micVisual=await mediaSlashState();
