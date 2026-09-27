@@ -4,6 +4,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   let pickerWindow=null;
   let captureWorkerWindow=null;
   let captureWorkerLoading=null;
+  let captureWorkerStartPending=null;
   let activeCaptureDisplayId='';
   let toolbarWindow=null;
   let pendingSelection=null;
@@ -123,6 +124,10 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   }
   function hideCaptureWorker(){if(captureWorkerAlive())try{captureWorkerWindow.hide();}catch{}}
   function signalCaptureWorker(channel,payload={}){if(!captureWorkerAlive())return false;try{captureWorkerWindow.webContents.send(channel,payload);return true;}catch{return false;}}
+  function settleCaptureWorkerStart(result={}){
+    const pending=captureWorkerStartPending;if(!pending)return false;
+    captureWorkerStartPending=null;clearTimeout(pending.timer);pending.resolve(result);return true;
+  }
   function rememberMainWindow(){
     const main=getMainWindow?.();if(!main||main.isDestroyed()||savedMainWindowState)return main||null;
     const maximized=main.isMaximized?.()||false,fullScreen=main.isFullScreen?.()||false;let bounds=main.getBounds();
@@ -322,10 +327,17 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       // and click-through, so compositor visibility does not expose app UI.
       const workerShown=showCaptureWorker();
       if(qaPresenterTrace)qaPresenterLog('CAPTURE_WORKER_VISIBILITY',{shown:workerShown?1:0,reason:payload?.qaLifecycleOnly?'qa-lifecycle-composited':'capture-active'});
+      if(captureWorkerStartPending)return {ok:false,error:'capture_worker_start_pending',isolated:true,mainPid,workerPid};
+      const workerReady=new Promise(resolve=>{
+        const timer=setTimeout(()=>{if(captureWorkerStartPending){captureWorkerStartPending=null;resolve({ok:false,error:'capture_worker_start_timeout'});}},6000);
+        captureWorkerStartPending={resolve,timer};
+      });
       const workerPayload={...payload,sourceId:String(pendingSelection?.source?.id||payload?.sourceId||'')};
-      worker.webContents.send('share-capture:start',workerPayload);
-      return {ok:true,isolated:true,mainPid,workerPid};
-    }catch(error){return {ok:false,error:String(error?.message||error||'capture_worker_start_failed')};}
+      try{worker.webContents.send('share-capture:start',workerPayload);}
+      catch(error){settleCaptureWorkerStart({ok:false,error:String(error?.message||error||'capture_worker_send_failed')});}
+      const ready=await workerReady;
+      return {...ready,isolated:true,mainPid,workerPid};
+    }catch(error){settleCaptureWorkerStart({ok:false,error:String(error?.message||error||'capture_worker_start_failed')});return {ok:false,error:String(error?.message||error||'capture_worker_start_failed')};}
   });
   ipcMain.handle('share-capture:stop',(event)=>{
     const main=getMainWindow?.();
@@ -345,9 +357,18 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   });
   ipcMain.on('share-capture:offer',(event,payload={})=>{if(captureWorkerSender(event))sendMain('share-capture:offer',payload||{});});
   ipcMain.on('share-capture:worker-ice',(event,payload={})=>{if(captureWorkerSender(event))sendMain('share-capture:worker-ice',payload||{});});
-  ipcMain.on('share-capture:started',(event,payload={})=>{if(captureWorkerSender(event))sendMain('share-capture:started',payload||{});});
-  ipcMain.on('share-capture:stopped',(event,payload={})=>{if(!captureWorkerSender(event))return;sendMain('share-capture:stopped',payload||{});hideCaptureWorker();});
-  ipcMain.on('share-capture:error',(event,payload={})=>{if(!captureWorkerSender(event))return;sendMain('share-capture:error',payload||{});hideCaptureWorker();});
+  ipcMain.on('share-capture:started',(event,payload={})=>{if(!captureWorkerSender(event))return;settleCaptureWorkerStart({ok:true,...payload});});
+  ipcMain.on('share-capture:stopped',(event,payload={})=>{
+    if(!captureWorkerSender(event))return;
+    if(!settleCaptureWorkerStart({ok:false,error:'capture_worker_stopped_before_ready',...payload}))sendMain('share-capture:stopped',payload||{});
+    hideCaptureWorker();
+  });
+  ipcMain.on('share-capture:error',(event,payload={})=>{
+    if(!captureWorkerSender(event))return;
+    const failure={ok:false,error:String(payload?.error||'capture_worker_failed'),...payload};
+    if(!settleCaptureWorkerStart(failure))sendMain('share-capture:error',payload||{});
+    hideCaptureWorker();
+  });
 
   ipcMain.on('share:capture-started',(event,state={})=>{
     const main=getMainWindow?.();if(!main||main.isDestroyed()||event.sender!==main.webContents)return;
