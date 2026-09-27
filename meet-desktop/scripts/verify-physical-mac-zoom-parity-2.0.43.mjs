@@ -168,7 +168,8 @@ assert(
   integration.includes("label.hidden=true;") &&
   integration.includes("sharedVideo.hidden=true;") &&
   integration.includes("cameraTile.hidden=true;") &&
-  integration.includes("overlay.classList.remove('share-active');"),
+  integration.includes("document.body.classList.add('ds-native-mac-presenter-share')") &&
+  integration.includes("overlay.classList.remove('share-active','ds-ref-presenter-visible')"),
   'Active Mac sharing must hard-hide every renderer-owned share toolbar/status/video surface so only native presenter chrome is visible.'
 );
 assert(
