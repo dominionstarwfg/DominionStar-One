@@ -6,6 +6,26 @@ let presenterListenerGeneration=0;
 let presenterPollTimer=null;
 let presenterPollBusy=false;
 const presenterDeliveryTasks=new Map();
+const captureStartWaiters=new Map();
+let captureStartRequestSeq=0;
+ipcRenderer.on('share-capture:start-result',(_event,payload={})=>{
+  const requestId=Number(payload?.requestId||0)||0;
+  const waiter=captureStartWaiters.get(requestId);
+  if(!waiter)return;
+  captureStartWaiters.delete(requestId);clearTimeout(waiter.timer);
+  waiter.resolve({...payload,requestId});
+});
+const startCaptureWorker=payload=>new Promise(resolve=>{
+  const requestId=++captureStartRequestSeq;
+  const timer=setTimeout(()=>{
+    if(!captureStartWaiters.has(requestId))return;
+    captureStartWaiters.delete(requestId);
+    resolve({ok:false,error:'capture_worker_start_timeout',requestId});
+  },7000);
+  captureStartWaiters.set(requestId,{resolve,timer});
+  try{ipcRenderer.send('share-capture:start-request',{requestId,payload:payload||{}});}
+  catch(error){clearTimeout(timer);captureStartWaiters.delete(requestId);resolve({ok:false,error:String(error?.message||error||'capture_worker_start_send_failed'),requestId});}
+});
 
 const runPresenterPayload=payload=>{
   const command=String(payload?.command||payload||'');
@@ -121,7 +141,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     qaPrepare:()=>invoke('share-capture:qa-prepare'),
     qaMessageOnly:()=>invoke('share-capture:qa-message-only'),
     qaDetachedLifecycle:()=>invoke('share-capture:qa-detached-lifecycle'),
-    start:payload=>invoke('share-capture:start',payload||{}),
+    start:payload=>startCaptureWorker(payload||{}),
     stop:()=>invoke('share-capture:stop'),
     answer:payload=>invoke('share-capture:answer',payload||{}),
     candidate:payload=>invoke('share-capture:client-ice',payload||{}),
