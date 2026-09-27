@@ -139,6 +139,12 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false,opacity};return main;
   }
   function keepMeetingRendererLive(){const main=getMainWindow?.();return Boolean(main&&!main.isDestroyed());}
+  function setMacPresenterStealth(main,enabled){
+    if(platform!=='darwin'||!main||main.isDestroyed())return false;
+    try{main.setWindowButtonVisibility?.(!enabled);}catch{}
+    try{main.setHasShadow?.(!enabled);}catch{}
+    return true;
+  }
   function cancelMacParkTimer(){if(macParkTimer){clearTimeout(macParkTimer);macParkTimer=null;}}
   function scheduleMacPark(){
     if(platform!=='darwin'||!shareActive)return false;
@@ -146,7 +152,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     // post-share mutation on the meeting/control renderer. Physical Mac proved
     // the old 2.1s parking transition was exactly where presenter IPC stopped.
     cancelMacParkTimer();
-    keepMeetingRendererLive();
+    const main=getMainWindow?.();keepMeetingRendererLive();setMacPresenterStealth(main,true);
     return true;
   }
   function parkMacMeetingWindow({preCapture=false}={}){
@@ -166,6 +172,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setOpacity?.(1);}catch{}
+    setMacPresenterStealth(main,true);
     try{main.setIgnoreMouseEvents(true);}catch{}
     try{main.setAlwaysOnTop(false);}catch{}
     try{main.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
@@ -200,7 +207,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   }
   function showMeetingWindow({focus=true}={}){
     const main=getMainWindow?.();if(!main||main.isDestroyed())return false;const saved=savedMainWindowState;keepMeetingRendererLive();if(platform==='darwin')cancelMacParkTimer();
-    try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(saved?.opacity??1);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    setMacPresenterStealth(main,false);try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(saved?.opacity??1);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     if(saved){try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}}
     try{main.setAlwaysOnTop(shareActive,'floating');}catch{try{main.setAlwaysOnTop(Boolean(shareActive));}catch{}}
     if(platform==='darwin'){try{main.setVisibleOnAllWorkspaces(Boolean(shareActive),{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}}
@@ -237,7 +244,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
         if(y+height>area.y+area.height-10)y=Math.max(area.y+10,area.y+area.height-height-10);
       }catch{}
     }
-    try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(savedMainWindowState?.opacity??1);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
+    setMacPresenterStealth(main,false);try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(savedMainWindowState?.opacity??1);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setMinimumSize(330,420);}catch{}try{main.setBounds({x,y,width,height},false);}catch{}keepMeetingRendererLive();
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}if(!(platform==='darwin'&&shareActive))protectMeetingChrome(main,true);main.show();main.focus();
     lastToolbarState={...lastToolbarState,meetingVisible:true,companion:normalized};publishToolbarState();return true;
@@ -247,7 +254,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{main.setIgnoreMouseEvents(false);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     if(saved){try{main.setOpacity?.(saved.opacity??1);}catch{}try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}try{main.setAlwaysOnTop(Boolean(saved.alwaysOnTop));}catch{}try{if(saved.maximized)main.maximize();else if(saved.fullScreen)main.setFullScreen(true);}catch{}}
     else{try{main.setOpacity?.(1);}catch{}try{main.setMinimumSize(960,640);}catch{}try{main.setAlwaysOnTop(false);}catch{}}
-    if(platform==='darwin'){try{main.setVisibleOnAllWorkspaces(false);}catch{}}protectMeetingChrome(main,false);main.show();savedMainWindowState=null;macPresenterParked=false;
+    if(platform==='darwin'){try{main.setVisibleOnAllWorkspaces(false);}catch{}}setMacPresenterStealth(main,false);protectMeetingChrome(main,false);main.show();savedMainWindowState=null;macPresenterParked=false;
   }
   function attachShareWindowLifecycle(){const main=getMainWindow?.();if(!main||main.isDestroyed()||mainMinimizeHandler)return;mainMinimizeHandler=event=>{if(!shareActive)return;event?.preventDefault?.();hideMeetingWindowForShare();};main.on('minimize',mainMinimizeHandler);}
   function detachShareWindowLifecycle(){const main=getMainWindow?.();if(main&&!main.isDestroyed()&&mainMinimizeHandler)main.removeListener('minimize',mainMinimizeHandler);mainMinimizeHandler=null;}
