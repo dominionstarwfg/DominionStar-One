@@ -191,10 +191,17 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=capture-event-only active=event-only');
           return;
         }
-        if(diagnostic==='worker-only'||diagnostic==='worker-plus-event'){
+        if(diagnostic==='worker-only'||diagnostic==='worker-plus-event'||diagnostic==='worker-plus-event-plus-state'){
           const options={shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true};
           if(diagnostic==='worker-only')options.__qaSkipCaptureStarted=true;
           const shareState=await window.DominionShareController.start({name:'QA '+diagnostic,options});
+          if(diagnostic==='worker-plus-event-plus-state'){
+            await window.dominionDesktop?.share?.captureState?.({
+              paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,
+              sourceName:'QA State Sync',shareAudio:false,optimizeVideo:false,
+              handRaised:false,recording:false,recordingPaused:false,companion:'',companionOpen:false
+            });
+          }
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode='+diagnostic+' active='+(shareState.active?1:0));
           return;
         }
