@@ -463,7 +463,7 @@ try{
   await toolbar.click('[data-command="annotate"]');
   await waitStderr(ackPattern('annotate-close'),'renderer ACK for explicit Annotate close',8000,logStart);
   await toolbar.wait("!window.DominionMacPresenterToolbar.state().companion",'Annotate close state returned to toolbar',8000);
-  await annotation.wait("document.visibilityState==='hidden'",'native annotation palette hidden after Annotate closes',5000);
+  await waitStderr('QA_MAC_ANNOTATION_VISIBILITY visible=0','native annotation BrowserWindow hidden after Annotate closes',5000,logStart);
   annotation.close();
   stage('annotate-close-real-toolbar');
 
