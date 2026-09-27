@@ -198,6 +198,23 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=worker-ack-only active=acknowledged');
           return;
         }
+        if(diagnostic==='worker-ack-with-listeners'){
+          const offError=window.dominionDesktop?.shareCapture?.onError?.(()=>{});
+          const offStopped=window.dominionDesktop?.shareCapture?.onStopped?.(()=>{});
+          const started=await window.dominionDesktop?.shareCapture?.start?.({qaLifecycleOnly:true});
+          if(!started?.ok)throw new Error(started?.error||'QA acknowledged worker lifecycle with listeners failed.');
+          window.__DOMINION_QA_CAPTURE_LISTENER_CLEANUP=()=>{try{offError?.();}catch{}try{offStopped?.();}catch{}};
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=worker-ack-with-listeners active=acknowledged');
+          return;
+        }
+        if(diagnostic==='controller-after-acquire'){
+          const shareState=await window.DominionShareController.start({
+            name:'QA Controller After Acquire',
+            options:{shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true,__qaReturnAfterAcquire:true}
+          });
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=controller-after-acquire active='+(shareState.active?1:0));
+          return;
+        }
         if(diagnostic==='controller-worker-no-handshake'){
           const shareState=await window.DominionShareController.start({
             name:'QA Controller Worker No Handshake',
