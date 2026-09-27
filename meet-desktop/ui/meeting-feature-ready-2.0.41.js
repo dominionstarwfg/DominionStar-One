@@ -63,7 +63,9 @@ body.ds-in-meeting{overflow:hidden!important;background:#02060b!important}
 #meetingOverlay.ds-exec-lock .ds-exec-icon .spark{fill:#e9b94c!important;stroke:#e9b94c!important;stroke-width:1.1!important}
 #meetingOverlay.ds-exec-lock .ds-exec-label{display:block!important;visibility:visible!important;opacity:1!important;color:currentColor!important;font-size:12px!important;font-weight:560!important;line-height:1.05!important;white-space:nowrap!important}
 #meetingOverlay.ds-exec-lock .ds-exec-control>.ds-control-icon,#meetingOverlay.ds-exec-lock .ds-exec-control>.ds-control-label,#meetingOverlay.ds-exec-lock .ds-exec-control>.ds-reactions-fixed-label{display:none!important}
-#meetingOverlay.ds-exec-lock #roomMic.is-off .ds-exec-icon::after,#meetingOverlay.ds-exec-lock #roomCamera.is-off .ds-exec-icon::after{content:"";position:absolute;left:2px;right:2px;top:13px;height:2px;border-radius:999px;background:#ff4261;transform:rotate(-42deg);box-shadow:none!important}
+#meetingOverlay.ds-exec-lock #roomMic .ds-exec-icon::after,#meetingOverlay.ds-exec-lock #roomCamera .ds-exec-icon::after{content:none!important;display:none!important;box-shadow:none!important}
+#meetingOverlay.ds-exec-lock #roomMic.is-off .ds-exec-icon::after,#meetingOverlay.ds-exec-lock #roomCamera.is-off .ds-exec-icon::after{content:""!important;display:block!important;position:absolute;left:2px;right:2px;top:13px;height:2px;border-radius:999px;background:#ff4261;transform:rotate(-42deg);box-shadow:none!important}
+body.ds-local-speaking #meetingOverlay.ds-exec-lock #roomMic:not(.is-off) .ds-exec-icon{color:#31d158!important;filter:drop-shadow(0 0 4px rgba(49,209,88,.62))!important}
 #meetingOverlay.ds-exec-lock.share-active #roomShare,body.ds-share-active #meetingOverlay.ds-exec-lock #roomShare,#meetingOverlay.ds-exec-lock #roomShare[aria-pressed="true"]{color:#20e278!important}
 #meetingOverlay.ds-exec-lock #roomExitButton{min-width:72px!important;color:#ff3f59!important;background:transparent!important;border:0!important}
 #meetingOverlay.ds-exec-lock #roomExitButton:hover{background:rgba(255,63,89,.08)!important}
