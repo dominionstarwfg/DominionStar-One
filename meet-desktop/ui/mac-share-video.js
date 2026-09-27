@@ -172,8 +172,13 @@
 
     const mic=q('#micState');
     if(mic){
-      mic.style.color=micOn?'#31d158':'#ff3b30';
-      mic.title=micOn?'Microphone on':'Muted';
+      const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0));
+      const speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0);
+      const voiceBucket=!speaking?0:voiceLevel>.55?3:voiceLevel>.22?2:1;
+      mic.dataset.voiceLevel=String(voiceBucket);
+      mic.classList.toggle('speaking',speaking);
+      mic.classList.toggle('muted',!micOn);
+      mic.title=!micOn?'Muted':speaking?'Speaking':'Microphone on';
     }
     const audioAction=q('#videoMenuAudio'),cameraAction=q('#videoMenuCamera');
     if(audioAction)audioAction.textContent=micOn?'Mute':'Unmute';
