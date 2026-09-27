@@ -159,9 +159,12 @@ const macToolbar=read('ui/mac-presenter-toolbar.js');
 const macToolbarCss=read('ui/mac-presenter-toolbar.css');
 assert(macToolbar.includes("if(nativeBridge?.command)return await sendNative(normalized);")&&macToolbar.includes("result.ok===true"),'Physical-Mac presenter controls must use the acknowledged native delivery path first, with renderer dispatch only as fallback.');
 assert(
-  shareService.includes("if(platform==='darwin'){closeToolbar();return true;}") &&
-  shareService.includes("if(platform==='darwin')closeToolbar();"),
-  'macOS must use exactly one presenter toolbar authority; the legacy presenter-toolbar BrowserWindow must never coexist with the native Mac presenter overlay.'
+  shareService.includes('function closeLegacyMacPresenterWindows(){') &&
+  shareService.includes("url.includes('/ui/presenter-toolbar.html')") &&
+  shareService.includes("if(platform==='darwin'){closeLegacyMacPresenterWindows();closeToolbar();return true;}") &&
+  shareService.includes('closeLegacyMacPresenterWindows();') &&
+  read('ui/presenter-toolbar.js').includes("document.documentElement.style.display='none'"),
+  'macOS must use exactly one presenter toolbar authority; every legacy presenter-toolbar window must be closed and the legacy renderer must self-disable on Mac.'
 );
 assert(
   integration.includes("inlinePresenter.hidden=true;") &&
