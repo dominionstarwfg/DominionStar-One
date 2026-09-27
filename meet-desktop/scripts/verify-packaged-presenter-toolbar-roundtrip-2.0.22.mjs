@@ -198,6 +198,14 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=worker-ack-only active=acknowledged');
           return;
         }
+        if(diagnostic==='controller-worker-no-handshake'){
+          const shareState=await window.DominionShareController.start({
+            name:'QA Controller Worker No Handshake',
+            options:{shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true,__qaSkipPresenterHandshake:true}
+          });
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=controller-worker-no-handshake active='+(shareState.active?1:0));
+          return;
+        }
         if(diagnostic==='capture-event-only'){
           window.dominionDesktop?.share?.captureStarted?.({sourceName:'QA Capture Event Only',displayId:'',paused:false});
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=capture-event-only active=event-only');
