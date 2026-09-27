@@ -126,7 +126,9 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function signalCaptureWorker(channel,payload={}){if(!captureWorkerAlive())return false;try{captureWorkerWindow.webContents.send(channel,payload);return true;}catch{return false;}}
   function settleCaptureWorkerStart(result={}){
     const pending=captureWorkerStartPending;if(!pending)return false;
-    captureWorkerStartPending=null;clearTimeout(pending.timer);pending.resolve(result);return true;
+    captureWorkerStartPending=null;clearTimeout(pending.timer);
+    try{pending.reply({...pending.meta,...result,requestId:pending.requestId});}catch{}
+    return true;
   }
   function rememberMainWindow(){
     const main=getMainWindow?.();if(!main||main.isDestroyed()||savedMainWindowState)return main||null;
@@ -346,36 +348,36 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       return {ok:true,shown:Boolean(shown),mainPid,workerPid};
     }catch(error){return {ok:false,error:String(error?.message||error||'qa_capture_detached_failed')};}
   });
-  ipcMain.handle('share-capture:start',async(event,payload={})=>{
+  ipcMain.on('share-capture:start-request',async(event,message={})=>{
+    const requestId=Number(message?.requestId||0)||0;
+    const payload=message?.payload||{};
+    const reply=result=>{try{event.reply('share-capture:start-result',{requestId,...result});}catch{}};
     const main=getMainWindow?.();
-    if(platform!=='darwin'||!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false,error:'capture_client_unavailable'};
+    if(!requestId||platform!=='darwin'||!main||main.isDestroyed()||event.sender!==main.webContents){reply({ok:false,error:'capture_client_unavailable'});return;}
     try{
       const worker=await ensureCaptureWorker();
-      if(!worker||worker.isDestroyed())return {ok:false,error:'capture_worker_unavailable'};
+      if(!worker||worker.isDestroyed()){reply({ok:false,error:'capture_worker_unavailable'});return;}
       const mainPid=Number(main.webContents?.getOSProcessId?.()||0);
       const workerPid=Number(worker.webContents?.getOSProcessId?.()||0);
-      qaPresenterLog('CAPTURE_PROCESS_BOUNDARY',{mainPid,workerPid,isolated:mainPid&&workerPid&&mainPid!==workerPid?1:0});
-      if(mainPid&&workerPid&&mainPid===workerPid){
-        return {ok:false,error:'capture_worker_process_not_isolated'};
-      }
+      const meta={isolated:Boolean(mainPid&&workerPid&&mainPid!==workerPid),mainPid,workerPid};
+      qaPresenterLog('CAPTURE_PROCESS_BOUNDARY',{mainPid,workerPid,isolated:meta.isolated?1:0});
+      if(mainPid&&workerPid&&mainPid===workerPid){reply({ok:false,error:'capture_worker_process_not_isolated',...meta});return;}
       // Keep the capture renderer compositor-visible for every active share,
-      // including lifecycle-only QA. A hidden macOS BrowserWindow can be
-      // deprioritized in a way that also starves the meeting renderer even
-      // though the processes are isolated. The worker document is transparent
-      // and click-through, so compositor visibility does not expose app UI.
+      // including lifecycle-only QA. The start acknowledgement is delivered
+      // asynchronously so the meeting renderer never sits inside a nested
+      // renderer -> main -> worker -> main -> renderer invoke transaction.
       const workerShown=showCaptureWorker();
       if(qaPresenterTrace)qaPresenterLog('CAPTURE_WORKER_VISIBILITY',{shown:workerShown?1:0,reason:payload?.qaLifecycleOnly?'qa-lifecycle-composited':'capture-active'});
-      if(captureWorkerStartPending)return {ok:false,error:'capture_worker_start_pending',isolated:true,mainPid,workerPid};
-      const workerReady=new Promise(resolve=>{
-        const timer=setTimeout(()=>{if(captureWorkerStartPending){captureWorkerStartPending=null;resolve({ok:false,error:'capture_worker_start_timeout'});}},6000);
-        captureWorkerStartPending={resolve,timer};
-      });
+      if(captureWorkerStartPending){reply({ok:false,error:'capture_worker_start_pending',...meta});return;}
+      const timer=setTimeout(()=>{settleCaptureWorkerStart({ok:false,error:'capture_worker_start_timeout'});},6000);
+      captureWorkerStartPending={requestId,reply,timer,meta};
       const workerPayload={...payload,sourceId:String(pendingSelection?.source?.id||payload?.sourceId||'')};
       try{worker.webContents.send('share-capture:start',workerPayload);}
       catch(error){settleCaptureWorkerStart({ok:false,error:String(error?.message||error||'capture_worker_send_failed')});}
-      const ready=await workerReady;
-      return {...ready,isolated:true,mainPid,workerPid};
-    }catch(error){settleCaptureWorkerStart({ok:false,error:String(error?.message||error||'capture_worker_start_failed')});return {ok:false,error:String(error?.message||error||'capture_worker_start_failed')};}
+    }catch(error){
+      const failure={ok:false,error:String(error?.message||error||'capture_worker_start_failed')};
+      if(!settleCaptureWorkerStart(failure))reply(failure);
+    }
   });
   ipcMain.handle('share-capture:stop',(event)=>{
     const main=getMainWindow?.();
