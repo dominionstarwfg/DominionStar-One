@@ -6,7 +6,7 @@ if(process.platform==='darwin'){
   const here=path.dirname(fileURLToPath(import.meta.url));
   const uiDir=path.resolve(here,'../ui');
   const presenterPreloadPath=path.join(here,'presenter-preload.cjs');
-  const PREPARE_STEP_TIMEOUT_MS=5000;
+  const PREPARE_STEP_TIMEOUT_MS=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'?10000:5000;
   const BORDER_THICKNESS=4;
   const BORDER_COLOR='#2ed573';
   let toolbarWindow=null;
