@@ -193,8 +193,14 @@
   let voiceContext=null,voiceSource=null,voiceAnalyser=null,voiceTimer=0,voiceTrackId='';
   const applyVoiceVisual=({level=0,speaking=false}={})=>{
     const normalized=Math.max(0,Math.min(1,Number(level)||0));
+    const active=Boolean(speaking&&normalized>0);
     document.documentElement.style.setProperty('--ds-local-voice-level',normalized.toFixed(3));
-    document.body.classList.toggle('ds-local-speaking',Boolean(speaking&&normalized>0));
+    document.body.classList.toggle('ds-local-speaking',active);
+    const mic=document.querySelector('#roomMic');
+    if(mic){
+      mic.classList.toggle('is-speaking',active&&!mic.classList.contains('is-off'));
+      mic.dataset.voiceLevel=normalized.toFixed(3);
+    }
   };
   window.addEventListener('dominion:local-voice-level',event=>applyVoiceVisual(event?.detail||{}));
   const publishVoiceVisual=(level=0,speaking=false)=>window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level,speaking}}));
