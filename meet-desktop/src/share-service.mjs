@@ -314,12 +314,13 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       if(mainPid&&workerPid&&mainPid===workerPid){
         return {ok:false,error:'capture_worker_process_not_isolated'};
       }
-      if(payload?.qaLifecycleOnly){
-        if(qaPresenterTrace)qaPresenterLog('CAPTURE_WORKER_VISIBILITY',{shown:0,reason:'qa-lifecycle-only'});
-      }else{
-        showCaptureWorker();
-        if(qaPresenterTrace)qaPresenterLog('CAPTURE_WORKER_VISIBILITY',{shown:1,reason:'capture-active'});
-      }
+      // Keep the capture renderer compositor-visible for every active share,
+      // including lifecycle-only QA. A hidden macOS BrowserWindow can be
+      // deprioritized in a way that also starves the meeting renderer even
+      // though the processes are isolated. The worker document is transparent
+      // and click-through, so compositor visibility does not expose app UI.
+      const workerShown=showCaptureWorker();
+      if(qaPresenterTrace)qaPresenterLog('CAPTURE_WORKER_VISIBILITY',{shown:workerShown?1:0,reason:payload?.qaLifecycleOnly?'qa-lifecycle-composited':'capture-active'});
       worker.webContents.send('share-capture:start',payload||{});
       return {ok:true,isolated:true,mainPid,workerPid};
     }catch(error){return {ok:false,error:String(error?.message||error||'capture_worker_start_failed')};}
