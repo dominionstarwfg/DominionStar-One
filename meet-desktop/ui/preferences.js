@@ -43,7 +43,18 @@
   }
   async function showPrejoinCredentials(){const overlay=q('#prejoinOverlay'),windowNode=overlay?.querySelector('.prejoin-window');if(!windowNode||overlay.hidden)return;let ctx={};try{ctx=await desktop.meeting?.context?.()||{};}catch{}const roomCode=String(ctx.roomCode||'').replace(/\D/g,'').replace(/(\d{3})(?=\d)/g,'$1 ').trim(),pass=String(ctx.passcode||'');let box=q('#prejoinMeetingCredentials');if(!roomCode){box?.remove();return;}if(!box){box=document.createElement('div');box.id='prejoinMeetingCredentials';box.className='av-info-card prejoin-meeting-credentials';windowNode.querySelector('.preview-frame')?.insertAdjacentElement('beforebegin',box);}box.innerHTML=`<div><span>Meeting ID</span><strong>${roomCode}</strong><button type="button" data-copy-id>Copy</button></div><div><span>Passcode</span><strong>${pass}</strong><button type="button" data-copy-pass>Copy</button></div>`;box.querySelector('[data-copy-id]').onclick=()=>navigator.clipboard?.writeText?.(String(ctx.roomCode||''));box.querySelector('[data-copy-pass]').onclick=()=>navigator.clipboard?.writeText?.(pass);}
 
-  function applyShareDockPreference(){const active=window.DominionShareController?.snapshot?.().active,dock=q('#participantVideoDock');if(!active||!dock)return;if(!read('shareVideoDock'))dock.hidden=true;else window.DominionMeetingParity?.syncVideoDock?.();}
+  function applyShareDockPreference(){
+    const active=Boolean(window.DominionShareController?.snapshot?.().active);
+    if(!active)return;
+    const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
+    // Active macOS sharing uses the native presenter video surface. Never
+    // resync/rebind the legacy meeting video dock from this 700 ms preference
+    // poller while capture is active; doing so re-enters the meeting renderer's
+    // media surfaces and can starve presenter controls on physical Mac.
+    if(macLike)return;
+    const dock=q('#participantVideoDock');if(!dock)return;
+    if(!read('shareVideoDock'))dock.hidden=true;else window.DominionMeetingParity?.syncVideoDock?.();
+  }
   function handleShortcut(event){if(!read('shortcuts')||!event.altKey||event.metaKey||event.ctrlKey||event.shiftKey||event.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;const key=event.key.toLowerCase();const map={a:'#roomMic',v:'#roomCamera',s:'#roomShare',h:'#roomChat'},selector=map[key];if(!selector)return;const button=q(selector);if(!button||button.disabled||button.offsetParent===null)return;event.preventDefault();button.click();}
 
   window.addEventListener('keydown',handleShortcut,true);
