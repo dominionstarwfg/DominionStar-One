@@ -305,6 +305,11 @@ try{
 
   await waitStderr('QA_REAL_PRESENTER_SHARE_READY active=1','synthetic share activation',10000);
   stage('share-started');
+  const rendererShareChrome=await main.eval("(()=>({inlineHidden:document.querySelector('#inlinePresenterToolbar')?.hidden!==false,labelHidden:document.querySelector('#shareStageLabel')?.hidden!==false,shareActive:document.querySelector('#meetingOverlay')?.classList.contains('share-active')===true}))()");
+  assert.equal(rendererShareChrome.inlineHidden,true,'Legacy inline presenter toolbar is visible during native Mac sharing.');
+  assert.equal(rendererShareChrome.labelHidden,true,'Legacy renderer share-status label is visible during native Mac sharing.');
+  assert.equal(rendererShareChrome.shareActive,false,'Meeting renderer entered legacy share-active layout during native Mac presenter mode.');
+  stage('legacy-share-chrome-suppressed');
 
   // Follow the physical user path after share activation. Hidden/occluded
   // renderer timers are not a reliable macOS liveness oracle: Chromium may
@@ -340,6 +345,13 @@ try{
   stage('presenter-revealed-after-share');
   main.close();main=null;
 
+  const presenterTargets=await listTargets();
+  const nativeToolbarTargets=presenterTargets.filter(item=>item.type==='page'&&String(item.url||'').includes('/ui/mac-presenter-toolbar.html'));
+  const legacyToolbarTargets=presenterTargets.filter(item=>item.type==='page'&&String(item.url||'').includes('/ui/presenter-toolbar.html'));
+  assert.equal(nativeToolbarTargets.length,1,'Exactly one native Mac presenter toolbar must exist.');
+  assert.equal(legacyToolbarTargets.length,0,'Legacy presenter-toolbar window must not coexist with native Mac presenter toolbar.');
+  stage('single-presenter-toolbar');
+
   const toolbarTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-presenter-toolbar.html'),'actual floating Mac presenter toolbar');
   toolbar=new Cdp(toolbarTarget.webSocketDebuggerUrl);await toolbar.connect();
   await toolbar.wait("window.DominionMacPresenterToolbar&&document.querySelector('[data-command=\"audio\"]')",'floating toolbar runtime');
@@ -354,6 +366,15 @@ try{
   assert.equal(liveVideo.fallbackHidden,true);
   assert.equal(liveVideo.trackState,'live','Presenter video must own a live preview track while camera state is on.');
   stage('presenter-video-live');
+
+  await video.wait("document.querySelector('#videoMoreButton')&&document.querySelector('#videoMoreMenu')",'presenter video quick-controls shell',5000);
+  await video.click('#videoMoreButton');
+  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===false",'presenter video quick-controls open',4000);
+  const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoMoreMenu button')].map(button=>button.textContent.trim())");
+  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
+  await video.click('#videoMoreButton');
+  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===true",'presenter video quick-controls close',4000);
+  stage('presenter-video-hover-controls');
 
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
   let logStart=stderr.length;
