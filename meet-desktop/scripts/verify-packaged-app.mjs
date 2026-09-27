@@ -15,7 +15,7 @@ assert(fs.existsSync(path.join(resources,'branding','dominionstar-logo.jpeg')),'
 const listing=execFileSync(process.execPath,[path.resolve('node_modules/@electron/asar/bin/asar.js'),'list',asarPath],{encoding:'utf8'});
 const required=[
   '/src/main.mjs','/src/auth-service.mjs','/src/meeting-service.mjs','/src/share-service.mjs','/src/share-source-authority.mjs','/src/preload.cjs',
-  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/video-effects.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/meeting-captions.js','/ui/meeting-captions.css','/ui/zoom-behavior.js','/ui/zoom-behavior.css','/ui/participant-controls.js','/ui/participant-controls.css','/ui/meeting-notifications.js','/ui/meeting-notifications.css','/ui/preferences.js','/ui/personal-room.js','/ui/personal-room.css','/ui/schedule-controller.js','/ui/schedule.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html',
+  '/ui/index.html','/ui/app.js','/ui/auth-password.js','/ui/media-controller.js','/ui/video-effects.js','/ui/av-settings.js','/ui/av-settings.css','/ui/meeting-parity.js','/ui/meeting-parity.css','/ui/meeting-features.js','/ui/meeting-features.css','/ui/meeting-captions.js','/ui/meeting-captions.css','/ui/zoom-behavior.js','/ui/zoom-behavior.css','/ui/participant-controls.js','/ui/participant-controls.css','/ui/meeting-notifications.js','/ui/meeting-notifications.css','/ui/preferences.js','/ui/personal-room.js','/ui/personal-room.css','/ui/schedule-controller.js','/ui/schedule.css','/ui/share-controller.js','/ui/share-integration.js','/ui/share-annotation.js','/ui/share-picker.html','/ui/presenter-toolbar.html','/ui/mac-annotation-toolbar.html','/ui/mac-annotation-toolbar.js','/ui/mac-annotation-toolbar.css',
   '/ui/webrtc-controller.js','/ui/webrtc.css','/ui/diagnostics.js','/ui/diagnostics.css','/package.json'
 ];
 for(const item of required)assert(listing.includes(item),`Packaged ASAR is missing ${item}`);
@@ -34,6 +34,8 @@ assert(parity.includes('spotlightParticipantIds[0]?q(`#participantVideoDock .rem
 assert(parityCss.includes('button[data-apply-view-everyone]'),'Packaged host Apply View action must include dedicated styling.');
 
 assert(main.includes("loadFile(path.join(uiDir,'index.html'))"),'Packaged desktop must launch the local Home file.');
+assert(main.includes("transparent:process.platform==='darwin'")&&main.includes("backgroundColor:process.platform==='darwin'?'#00000000':'#07111f'"),'Packaged macOS main window must support transparent presenter mode without hiding/minimizing the live renderer.');
+assert(listing.includes('/ui/mac-annotation-toolbar.html')&&listing.includes('/ui/mac-annotation-toolbar.js')&&listing.includes('/ui/mac-annotation-toolbar.css'),'Packaged app must contain the independent native Mac annotation palette.');
 assert(!main.includes('dominionstarld.com'),'Packaged desktop must not launch the public website.');
 assert(main.includes('systemPreferences.getMediaAccessStatus(kind)'),'Packaged desktop must include native macOS media permission authority.');
 assert(main.includes('powerMonitor')&&main.includes("powerMonitor.on('suspend'")&&main.includes("powerMonitor.on('resume'")&&preload.includes("power:Object.freeze({onChanged:"),'Packaged desktop must bridge native sleep/wake lifecycle through preload.');
