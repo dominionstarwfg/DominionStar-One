@@ -188,8 +188,17 @@
 
   // Zoom-style local voice activity: measure real microphone energy and expose
   // it to the meeting/presenter controls without changing mute authority.
+  // The custom event is the single synchronous visual contract used by both
+  // real RMS updates and packaged interaction verification.
   let voiceContext=null,voiceSource=null,voiceAnalyser=null,voiceTimer=0,voiceTrackId='';
-  const stopVoiceMeter=()=>{if(voiceTimer){clearInterval(voiceTimer);voiceTimer=0;}try{voiceSource?.disconnect?.();}catch{}try{voiceContext?.close?.();}catch{}voiceContext=null;voiceSource=null;voiceAnalyser=null;voiceTrackId='';document.documentElement.style.setProperty('--ds-local-voice-level','0');document.body.classList.remove('ds-local-speaking');};
+  const applyVoiceVisual=({level=0,speaking=false}={})=>{
+    const normalized=Math.max(0,Math.min(1,Number(level)||0));
+    document.documentElement.style.setProperty('--ds-local-voice-level',normalized.toFixed(3));
+    document.body.classList.toggle('ds-local-speaking',Boolean(speaking&&normalized>0));
+  };
+  window.addEventListener('dominion:local-voice-level',event=>applyVoiceVisual(event?.detail||{}));
+  const publishVoiceVisual=(level=0,speaking=false)=>window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level,speaking}}));
+  const stopVoiceMeter=()=>{if(voiceTimer){clearInterval(voiceTimer);voiceTimer=0;}try{voiceSource?.disconnect?.();}catch{}try{voiceContext?.close?.();}catch{}voiceContext=null;voiceSource=null;voiceAnalyser=null;voiceTrackId='';publishVoiceVisual(0,false);};
   const startVoiceMeter=()=>{
     const track=live('audio')[0];
     if(!state.micOn||!track||track.enabled===false){stopVoiceMeter();return;}
@@ -199,10 +208,9 @@
       voiceContext=new AudioContext();if(voiceContext.state==='suspended')void voiceContext.resume().catch(()=>{});voiceSource=voiceContext.createMediaStreamSource(new MediaStream([track]));voiceAnalyser=voiceContext.createAnalyser();voiceAnalyser.fftSize=256;voiceAnalyser.smoothingTimeConstant=.72;voiceSource.connect(voiceAnalyser);voiceTrackId=String(track.id||'');
       const data=new Uint8Array(voiceAnalyser.fftSize);
       voiceTimer=setInterval(()=>{
-        if(!state.micOn||track.readyState!=='live'||track.enabled===false){document.documentElement.style.setProperty('--ds-local-voice-level','0');document.body.classList.remove('ds-local-speaking');return;}
+        if(!state.micOn||track.readyState!=='live'||track.enabled===false){publishVoiceVisual(0,false);return;}
         voiceAnalyser.getByteTimeDomainData(data);let sum=0;for(const value of data){const n=(value-128)/128;sum+=n*n;}const raw=Math.sqrt(sum/data.length);const level=Math.max(0,Math.min(1,(raw-.008)/.09));const speaking=level>.08;
-        document.documentElement.style.setProperty('--ds-local-voice-level',level.toFixed(3));document.body.classList.toggle('ds-local-speaking',speaking);
-        window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level,speaking}}));
+        publishVoiceVisual(level,speaking);
       },80);
     }catch{stopVoiceMeter();}
   };
