@@ -150,6 +150,7 @@ assert(featureReady.includes('box-shadow:none!important')&&read('ui/meeting-pari
 assert(!featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'Final meeting reconciliation must not restore the rejected legacy reaction glyph.');
 assert(shareService.includes("return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)}"),'Presenter command service must expose execution proof instead of a bare production ok response.');
 const macToolbar=read('ui/mac-presenter-toolbar.js');
+const macToolbarCss=read('ui/mac-presenter-toolbar.css');
 assert(macToolbar.includes("if(nativeBridge?.command)return await sendNative(normalized);")&&macToolbar.includes("result.ok===true"),'Physical-Mac presenter controls must use the acknowledged native delivery path first, with renderer dispatch only as fallback.');
 assert(
   shareService.includes("if(platform==='darwin'){closeToolbar();return true;}") &&
@@ -189,6 +190,25 @@ assert(
   macVideoCss.includes('.video-stage:hover .video-more-button'),
   'The floating presenter video must expose hover quick controls wired through acknowledged presenter commands.'
 );
+assert(
+  media.includes("voiceContext.state==='suspended'") &&
+  media.includes("dominion:local-voice-level") &&
+  preload.includes("voiceLevel:payload=>") &&
+  preload.includes("ipcRenderer.send('mac-share:voice-level'") &&
+  integration.includes("window.addEventListener('dominion:local-voice-level',forwardVoiceLevel)") &&
+  integration.includes("bridge?.voiceLevel?.({level,speaking})") &&
+  macPresenter.includes("ipcMain.on('mac-share:voice-level'") &&
+  macPresenter.includes('voiceLevel:level,speaking') &&
+  macToolbarHtml.includes('class="mic-live-meter"') &&
+  macToolbar.includes("audioButton.dataset.voiceLevel=String(voiceBucket)") &&
+  macToolbar.includes("audioButton?.classList.toggle('is-speaking',speaking)") &&
+  macToolbarCss.includes('[data-command="audio"].is-speaking .mic-live-meter') &&
+  macVideoHtml.includes('id="micState" class="mic-state"') &&
+  macVideoJs.includes("mic.dataset.voiceLevel=String(voiceBucket)") &&
+  macVideoJs.includes("mic.classList.toggle('speaking',speaking)") &&
+  macVideoCss.includes('.mic-state[data-voice-level="3"]'),
+  'Real microphone RMS must propagate from the authoritative meeting track into visible activity meters on both native Mac presenter surfaces.'
+);
 assert(preload.includes('const accepted=result?.handled===true;')&&!preload.includes('const accepted=result?.handled!==false;'),'Presenter preload must reject undefined/stale listener results instead of falsely acknowledging dead toolbar commands.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}")&&!integration.includes("await share.stop();applyLayout();return {handled:true,command};"),'Stop Share must use one local-first state transition and rely on the synchronous share-state listener to restore meeting chrome.');
 assert(
@@ -203,13 +223,15 @@ assert(!macToolbarHtml.includes('id="layoutButton"')&&!macToolbarHtml.includes('
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
 assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
 assert(
+  macPresenter.includes('const BORDER_THICKNESS=3;')&&
   macPresenter.includes('const displayForSharedContent=()=>')&&
   macPresenter.includes('bordersReady=()=>borderWindows.length===4')&&
-  macPresenter.includes('const inset=1;')&&
+  macPresenter.includes('const display=displayForSharedContent(),bounds=display.workArea||display.bounds,t=BORDER_THICKNESS;')&&
+  macPresenter.includes('const inset=2;')&&
   macPresenter.includes('{x,y:y+height-t,width,height:t}')&&
   macPresenter.includes("mac_share_border_edge_")&&
   !macPresenter.includes("mac_share_perimeter_load"),
-  'The green presenter perimeter must use four thin non-occluding edges one pixel inside the selected-display geometry.'
+  'The green presenter perimeter must use four thin continuous edges inside the visible macOS work area so menu bar/Dock clipping cannot cut the boundary.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
