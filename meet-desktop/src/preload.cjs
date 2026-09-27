@@ -120,6 +120,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   shareCapture:Object.freeze({
     qaPrepare:()=>invoke('share-capture:qa-prepare'),
     qaMessageOnly:()=>invoke('share-capture:qa-message-only'),
+    qaDetachedLifecycle:()=>invoke('share-capture:qa-detached-lifecycle'),
     start:payload=>invoke('share-capture:start',payload||{}),
     stop:()=>invoke('share-capture:stop'),
     answer:payload=>invoke('share-capture:answer',payload||{}),
