@@ -224,7 +224,9 @@ try{
   // below, so this does not weaken the runtime gate.
   const revealResult=await main.eval("window.dominionDesktop?.macShare?.reveal?.()");
   assert.equal(revealResult?.ok,true,'Native presenter surfaces did not reveal on command.');
+  await waitStderr(/QA_MAC_PRESENTER_PROCESS_BOUNDARY mainPid=\d+ toolbarPid=\d+ videoPid=\d+ isolated=1/,'isolated presenter renderer process boundary',6000);
   stage('presenter-revealed-after-share');
+  stage('presenter-processes-isolated');
   main.close();main=null;
 
   const toolbarTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-presenter-toolbar.html'),'actual floating Mac presenter toolbar');
