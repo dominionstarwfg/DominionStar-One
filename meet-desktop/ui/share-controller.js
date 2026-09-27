@@ -71,8 +71,8 @@
       // while skipping creation of the capture BrowserWindow. If presenter
       // controls remain alive here, the renderer starvation is inside the
       // worker/compositor boundary rather than share-state reconciliation.
-      macWorkerActive=true;
-      console.error('QA_CAPTURE_WORKER_CREATION_BYPASSED lifecycle-only=1');
+      macWorkerActive=!options?.__qaLogicalInactive;
+      console.error(`QA_CAPTURE_WORKER_CREATION_BYPASSED lifecycle-only=1 logicalActive=${macWorkerActive?1:0}`);
       return {stream:null,track:{label:'QA Lifecycle Share',readyState:'live'}};
     }
     if(!captureBridge?.start)throw new Error('Dedicated Mac screen-capture worker is unavailable.');
