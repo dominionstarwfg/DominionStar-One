@@ -150,3 +150,25 @@ body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon
 #meetingOverlay #roomMic.is-speaking:not(.is-off) .ds-exec-icon::after{
   content:none!important;display:none!important;background:transparent!important;box-shadow:none!important
 }
+
+
+.ds-room-mic-meter{
+  position:absolute;left:50%;top:7px;margin-left:12px;width:9px;height:18px;
+  display:flex;align-items:flex-end;justify-content:center;gap:1px;
+  opacity:0;pointer-events:none;transition:opacity .08s linear
+}
+.ds-room-mic-meter[hidden]{display:none!important}
+#meetingOverlay #roomMic.is-speaking:not(.is-off)>.ds-room-mic-meter{opacity:1}
+.ds-room-mic-meter i{
+  display:block;width:2px;height:4px;border-radius:999px;background:#31d158!important;
+  box-shadow:0 0 4px rgba(49,209,88,.5);transition:height .08s linear
+}
+.ds-room-mic-meter[data-level="1"] i:nth-child(1){height:8px}
+.ds-room-mic-meter[data-level="1"] i:nth-child(2){height:5px}
+.ds-room-mic-meter[data-level="1"] i:nth-child(3){height:7px}
+.ds-room-mic-meter[data-level="2"] i:nth-child(1){height:11px}
+.ds-room-mic-meter[data-level="2"] i:nth-child(2){height:16px}
+.ds-room-mic-meter[data-level="2"] i:nth-child(3){height:9px}
+.ds-room-mic-meter[data-level="3"] i:nth-child(1){height:16px}
+.ds-room-mic-meter[data-level="3"] i:nth-child(2){height:11px}
+.ds-room-mic-meter[data-level="3"] i:nth-child(3){height:18px}
