@@ -14,6 +14,10 @@
     generation+=1;const current=generation;cleanup(false);
     let stream=null;
     try{
+      if(payload?.qaMessageOnly){
+        console.error('QA_CAPTURE_WORKER_MESSAGE_ONLY_RECEIVED');
+        return;
+      }
       if(payload?.qaLifecycleOnly){
         bridge.started({generation:current,video:true,audio:false,label:'QA Lifecycle Share',lifecycleOnly:true});
         return;
