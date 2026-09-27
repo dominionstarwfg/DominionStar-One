@@ -94,9 +94,10 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
           partition:'dominion-share-capture-v2044'
         }
       });
-      // The worker has its own Session, so it needs the same selected-source
-      // display-media authority as the main session.
-      try{win.webContents.session.setDisplayMediaRequestHandler(displayMediaHandler,{useSystemPicker:false});}catch{}
+      // The worker captures the already selected DesktopCapturer source ID
+      // directly. Do not register a second session-level display-media handler
+      // here; physical Mac QA proved that worker-side handler registration can
+      // starve the independent meeting/control renderer.
       captureWorkerWindow=win;
       protectMeetingChrome(win,true);
       try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
@@ -321,7 +322,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       // and click-through, so compositor visibility does not expose app UI.
       const workerShown=showCaptureWorker();
       if(qaPresenterTrace)qaPresenterLog('CAPTURE_WORKER_VISIBILITY',{shown:workerShown?1:0,reason:payload?.qaLifecycleOnly?'qa-lifecycle-composited':'capture-active'});
-      worker.webContents.send('share-capture:start',payload||{});
+      const workerPayload={...payload,sourceId:String(pendingSelection?.source?.id||payload?.sourceId||'')};
+      worker.webContents.send('share-capture:start',workerPayload);
       return {ok:true,isolated:true,mainPid,workerPid};
     }catch(error){return {ok:false,error:String(error?.message||error||'capture_worker_start_failed')};}
   });
