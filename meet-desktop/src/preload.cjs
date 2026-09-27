@@ -118,6 +118,8 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     onPresenterCommand:callback=>listenPresenterCommand(callback)
   }),
   shareCapture:Object.freeze({
+    qaPrepare:()=>invoke('share-capture:qa-prepare'),
+    qaMessageOnly:()=>invoke('share-capture:qa-message-only'),
     start:payload=>invoke('share-capture:start',payload||{}),
     stop:()=>invoke('share-capture:stop'),
     answer:payload=>invoke('share-capture:answer',payload||{}),
