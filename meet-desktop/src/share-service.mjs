@@ -208,13 +208,39 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     main.show();if(focus)main.focus();lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};publishToolbarState();return true;
   }
   function showCompanionWindow(kind='chat'){
-    if(!shareActive)return false;const main=rememberMainWindow();if(!main||main.isDestroyed())return false;const base=savedMainWindowState?.bounds||main.getBounds();const annotation=kind==='annotate';
-    const width=annotation?Math.min(960,Math.max(720,base.width-120)):410,height=annotation?Math.min(660,Math.max(500,base.height-120)):Math.min(620,Math.max(500,base.height-100));
-    const x=annotation?Math.round(base.x+(base.width-width)/2):Math.round(base.x+base.width-width-18),y=annotation?Math.round(base.y+(base.height-height)/2):Math.round(base.y+70);
+    if(!shareActive)return false;
+    const main=rememberMainWindow();if(!main||main.isDestroyed())return false;
+    const normalized=String(kind||'chat');
+    // Annotation belongs to the presenter/share surface. Resizing the entire
+    // meeting BrowserWindow for Annotate compresses Chat, Participants and
+    // meeting chrome into one crowded window. Keep the renderer geometry
+    // untouched and let the annotation layer own its own interaction.
+    if(platform==='darwin'&&normalized==='annotate'){
+      keepMeetingRendererLive();
+      lastToolbarState={...lastToolbarState,meetingVisible:false,companion:'annotate'};publishToolbarState();
+      return true;
+    }
+    const base=savedMainWindowState?.bounds||main.getBounds();
+    const width=Math.min(390,Math.max(340,base.width-40));
+    const height=Math.min(590,Math.max(460,base.height-120));
+    let x=Math.round(base.x+base.width-width-18),y=Math.round(base.y+76);
+    if(platform==='darwin'){
+      try{
+        const display=screen.getDisplayMatching(base),area=display.workArea||display.bounds;
+        const video=BrowserWindow.getAllWindows().find(win=>!win.isDestroyed?.()&&String(win.webContents?.getURL?.()||'').includes('/ui/mac-share-video.html')&&win.isVisible?.());
+        const toolbar=BrowserWindow.getAllWindows().find(win=>!win.isDestroyed?.()&&String(win.webContents?.getURL?.()||'').includes('/ui/mac-presenter-toolbar.html')&&win.isVisible?.());
+        const vb=video?.getBounds?.()||null,tb=toolbar?.getBounds?.()||null;
+        const gap=12;
+        const preferredRight=vb?Math.round(vb.x-width-gap):Math.round(area.x+area.width-width-18);
+        x=Math.max(area.x+10,Math.min(preferredRight,area.x+area.width-width-10));
+        y=Math.max(area.y+10,tb?tb.y+tb.height+gap:area.y+82);
+        if(y+height>area.y+area.height-10)y=Math.max(area.y+10,area.y+area.height-height-10);
+      }catch{}
+    }
     try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(savedMainWindowState?.opacity??1);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    try{main.setMinimumSize(annotation?640:330,annotation?460:420);}catch{}try{main.setBounds({x,y,width,height},false);}catch{}keepMeetingRendererLive();
+    try{main.setMinimumSize(330,420);}catch{}try{main.setBounds({x,y,width,height},false);}catch{}keepMeetingRendererLive();
     try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}if(!(platform==='darwin'&&shareActive))protectMeetingChrome(main,true);main.show();main.focus();
-    lastToolbarState={...lastToolbarState,meetingVisible:true,companion:String(kind||'')};publishToolbarState();return true;
+    lastToolbarState={...lastToolbarState,meetingVisible:true,companion:normalized};publishToolbarState();return true;
   }
   function restoreMainWindowAfterShare(){
     cancelMacParkTimer();macCaptureStartedAt=0;const main=getMainWindow?.(),saved=savedMainWindowState;if(!main||main.isDestroyed()){savedMainWindowState=null;macPresenterParked=false;return;}
@@ -235,6 +261,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function closePicker(){if(pickerWindow&&!pickerWindow.isDestroyed()){try{pickerWindow.hide();}catch{}try{pickerWindow.close();}catch{}}pickerWindow=null;}
 
   async function openToolbar(){
+    // macOS has one presenter authority: mac-share-presenter-overlay.mjs.
+    // Never create the legacy presenter-toolbar BrowserWindow on Mac; two
+    // independent toolbar windows produce the duplicated share chrome seen on
+    // the physical machine.
+    if(platform==='darwin'){closeToolbar();return true;}
     if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishToolbarState();return true;}
     const created=new BrowserWindow({width:900,height:72,minWidth:720,minHeight:72,maxHeight:292,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:false,acceptFirstMouse:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
     toolbarWindow=created;positionNearMain(created,900,72);try{created.setAlwaysOnTop(true,'floating');}catch{}
@@ -414,6 +445,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     const main=getMainWindow?.();if(!main||main.isDestroyed()||event.sender!==main.webContents)return;
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
     shareActive=true;toolbarReadyForShare=platform==='darwin';presenterCommitPending=false;
+    if(platform==='darwin')closeToolbar();
     if(platform!=='darwin'){rememberMainWindow();keepMeetingRendererLive();attachShareWindowLifecycle();}
     else{rememberMainWindow();keepMeetingRendererLive();macCaptureStartedAt=Date.now();scheduleMacPark();}
     lastToolbarState={...lastToolbarState,...state,meetingVisible:platform==='darwin'?!macPresenterParked:true,companion:''};
