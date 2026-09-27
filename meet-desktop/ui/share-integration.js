@@ -141,16 +141,19 @@
       if(window.__DOMINION_QA_SKIP_SHARE_LAYOUT)return;
       const state=share.snapshot(),mediaState=media.snapshot();
       if(sameRendererPresenter&&state.active){
-        // macOS has a single native presenter surface. Keep every legacy
-        // renderer share control/status hidden so the physical desktop never
-        // shows duplicate toolbars or duplicate "You are sharing" strips.
-        overlay.classList.remove('share-active');
+        // Native macOS presenter mode is visually independent from the meeting
+        // renderer. This class is the authoritative signal used by all later
+        // reconciliation layers so none of them can recreate a second share
+        // toolbar/banner or expose the dark meeting surface underneath.
+        document.body.classList.add('ds-native-mac-presenter-share');
+        overlay.classList.remove('share-active','ds-ref-presenter-visible');
         inlinePresenter.hidden=true;
         label.hidden=true;
         sharedVideo.hidden=true;
         cameraTile.hidden=true;
         return;
       }
+      document.body.classList.remove('ds-native-mac-presenter-share');
       overlay.classList.toggle('share-active',state.active);
       // On macOS the share-owning renderer must not visibly mirror the
       // captured screen back into itself. That recursive compositor path can
@@ -180,7 +183,7 @@
         // is active can stall Chromium's renderer on physical Mac.
         if(sameRendererPresenter){if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;}
         else{const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;}
-      }else{sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
+      }else{document.body.classList.remove('ds-native-mac-presenter-share');sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
       // On macOS, do not rebuild/rebind the Zoom-style video dock inside the
       // same transaction that flips Share to active. The existing dock remains
       // visually present, but media rebinding is deferred to normal meeting
@@ -331,6 +334,18 @@
           const active=Boolean(window.DominionShareAnnotation?.toggle?.());
           setCompanion(active?'annotate':'');
           if(!sameRendererPresenter)applyLayout();
+          return {handled:true,command};
+        }
+        if(command.startsWith('annotate-')){
+          const annotation=window.DominionShareAnnotation;
+          const action=command.slice('annotate-'.length);
+          if(action==='close'){annotation?.deactivate?.();clearCompanion();return {handled:true,command};}
+          if(!annotation?.snapshot?.().active)annotation?.activate?.();
+          if(['pen','highlight','laser','erase'].includes(action))annotation?.setMode?.(action);
+          else if(action==='undo')annotation?.undo?.();
+          else if(action==='clear')annotation?.clear?.();
+          else return {handled:false,command};
+          setCompanion('annotate');
           return {handled:true,command};
         }
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
