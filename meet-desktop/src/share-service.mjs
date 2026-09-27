@@ -130,7 +130,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     let opacity=1;try{opacity=Number(main.getOpacity?.()??1)||1;}catch{}
     savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false,opacity};return main;
   }
-  function keepMeetingRendererLive(){const main=getMainWindow?.();if(!main||main.isDestroyed())return false;try{main.webContents?.setBackgroundThrottling?.(false);}catch{}return true;}
+  function keepMeetingRendererLive(){const main=getMainWindow?.();return Boolean(main&&!main.isDestroyed());}
   function cancelMacParkTimer(){if(macParkTimer){clearTimeout(macParkTimer);macParkTimer=null;}}
   function scheduleMacPark(){
     if(platform!=='darwin'||!shareActive)return false;
@@ -213,7 +213,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{main.setIgnoreMouseEvents(false);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     if(saved){try{main.setOpacity?.(saved.opacity??1);}catch{}try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}try{main.setAlwaysOnTop(Boolean(saved.alwaysOnTop));}catch{}try{if(saved.maximized)main.maximize();else if(saved.fullScreen)main.setFullScreen(true);}catch{}}
     else{try{main.setOpacity?.(1);}catch{}try{main.setMinimumSize(960,640);}catch{}try{main.setAlwaysOnTop(false);}catch{}}
-    if(platform==='darwin'){try{main.setVisibleOnAllWorkspaces(false);}catch{}}protectMeetingChrome(main,false);try{main.webContents?.setBackgroundThrottling?.(false);}catch{}main.show();savedMainWindowState=null;macPresenterParked=false;
+    if(platform==='darwin'){try{main.setVisibleOnAllWorkspaces(false);}catch{}}protectMeetingChrome(main,false);main.show();savedMainWindowState=null;macPresenterParked=false;
   }
   function attachShareWindowLifecycle(){const main=getMainWindow?.();if(!main||main.isDestroyed()||mainMinimizeHandler)return;mainMinimizeHandler=event=>{if(!shareActive)return;event?.preventDefault?.();hideMeetingWindowForShare();};main.on('minimize',mainMinimizeHandler);}
   function detachShareWindowLifecycle(){const main=getMainWindow?.();if(main&&!main.isDestroyed()&&mainMinimizeHandler)main.removeListener('minimize',mainMinimizeHandler);mainMinimizeHandler=null;}
