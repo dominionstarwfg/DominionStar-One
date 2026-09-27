@@ -220,13 +220,14 @@ if(process.platform==='darwin'){
   function showMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
     try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(1);}catch{}
-    try{main.webContents.send('mac-share:show-meeting');}catch{}
+    try{main.webContents.send('mac-share:show-meeting',{visible:true});}catch{}
     try{main.show();main.focus();}catch{}
     shareState={...shareState,meetingVisible:true};publishState();return true;
   }
   function hideMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
     try{main.setIgnoreMouseEvents(true);}catch{}
+    try{main.webContents.send('mac-share:show-meeting',{visible:false});}catch{}
     shareState={...shareState,meetingVisible:false};publishState();try{toolbarWindow?.moveTop?.();}catch{}return true;
   }
   function logProcessBoundary(){
