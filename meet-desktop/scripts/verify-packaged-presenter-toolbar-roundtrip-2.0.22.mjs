@@ -222,11 +222,31 @@ try{
   // first real control ACK prove whether the meeting renderer is responsive.
   // A genuinely stalled renderer still fails immediately on the Audio command
   // below, so this does not weaken the runtime gate.
-  const revealResult=await main.eval("window.dominionDesktop?.macShare?.reveal?.()");
-  assert.equal(revealResult?.ok,true,'Native presenter surfaces did not reveal on command.');
+  const probeMeetingRenderer=async label=>{
+    await sleep(350);
+    const result=await main.eval("(()=>({ready:document.readyState,dispatcher:typeof window.__DominionPresenterDispatch==='function',stamp:Date.now()}))()",2500);
+    assert.equal(result?.ready,'complete',label+' changed meeting renderer readiness.');
+    assert.equal(result?.dispatcher,true,label+' lost presenter dispatcher.');
+    stage(label+'-main-responsive');
+  };
+
+  const toolbarReveal=await main.eval("window.dominionDesktop?.macShare?.qaRevealStage?.('toolbar')");
+  assert.equal(toolbarReveal?.ok,true,'Native presenter toolbar did not reveal on command.');
   await waitStderr(/QA_MAC_PRESENTER_PROCESS_BOUNDARY mainPid=\d+ toolbarPid=\d+ videoPid=\d+ isolated=1/,'isolated presenter renderer process boundary',6000);
-  stage('presenter-revealed-after-share');
+  stage('presenter-toolbar-revealed');
   stage('presenter-processes-isolated');
+  await probeMeetingRenderer('toolbar-reveal');
+
+  const videoReveal=await main.eval("window.dominionDesktop?.macShare?.qaRevealStage?.('video')");
+  assert.equal(videoReveal?.ok,true,'Native presenter video surface did not reveal on command.');
+  stage('presenter-video-revealed');
+  await probeMeetingRenderer('video-reveal');
+
+  const borderReveal=await main.eval("window.dominionDesktop?.macShare?.qaRevealStage?.('border')");
+  assert.equal(borderReveal?.ok,true,'Native share perimeter stage did not complete.');
+  stage('presenter-perimeter-revealed');
+  await probeMeetingRenderer('perimeter-reveal');
+  stage('presenter-revealed-after-share');
   main.close();main=null;
 
   const toolbarTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-presenter-toolbar.html'),'actual floating Mac presenter toolbar');
