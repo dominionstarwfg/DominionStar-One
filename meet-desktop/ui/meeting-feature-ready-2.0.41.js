@@ -8,7 +8,7 @@ mic:'<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><p
 video:'<svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg>',
 people:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20a6 6 0 0 1 12 0M14 19a4.8 4.8 0 0 1 7 0"/></svg>',
 chat:'<svg viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>',
-react:'<svg viewBox="0 0 24 24"><circle cx="11.2" cy="12.3" r="7.8"/><circle cx="8.5" cy="10.6" r=".7" fill="currentColor" stroke="none"/><circle cx="13.9" cy="10.6" r=".7" fill="currentColor" stroke="none"/><path d="M8.2 14.1c.8 1.15 1.8 1.75 3 1.75 1.2 0 2.2-.6 3-1.75"/><path class="spark" d="M18.8 3.1v3.6M17 4.9h3.6"/></svg>',
+react:'<span class="reaction-emoji-glyph" aria-hidden="true">😊</span>',
 hand:'<svg viewBox="0 0 24 24"><path d="M8.2 11.5V6.8a1.35 1.35 0 0 1 2.7 0v4.1-5.4a1.35 1.35 0 0 1 2.7 0v5.4-4.7a1.35 1.35 0 0 1 2.7 0v5.2-3.7a1.35 1.35 0 0 1 2.7 0v5.6c0 4.6-2.9 7.2-7 7.2-2.8 0-4.6-1-6-3l-2.2-3a1.5 1.5 0 0 1 2.3-1.9z"/></svg>',
 share:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="m8 11 4-4 4 4M12 7v8M8 21h8"/></svg>',
 host:'<svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6z"/><path d="m12 8 .8 1.8 1.9.2-1.45 1.25.45 1.9-1.7-1-1.7 1 .45-1.9L9.3 10l1.9-.2z"/></svg>',
