@@ -215,7 +215,7 @@
   }
 
   function setReactionIcon(){
-    const icon=q('#roomReactions .ds-control-icon');if(!icon||icon.dataset.dsReactionIcon==='1')return;icon.dataset.dsReactionIcon='1';icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="12.5" r="7.5"/><path d="M7.7 10.5h.01M13.3 10.5h.01M7.8 14.2c.9 1.1 1.8 1.6 2.9 1.6 1.2 0 2.2-.5 3.1-1.6"/><circle cx="18.2" cy="6" r="3.1"/><path d="M18.2 4.5v3M16.7 6h3"/></svg>';
+    const icon=q('#roomReactions .ds-control-icon');if(!icon||icon.dataset.dsReactionIcon==='1')return;icon.dataset.dsReactionIcon='1';icon.innerHTML='<span class="reaction-emoji-glyph" aria-hidden="true">😊</span>';
   }
   function installReactionAuthority(){
     const button=q('#roomReactions');if(!button)return;setReactionIcon();
