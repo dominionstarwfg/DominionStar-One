@@ -5,6 +5,7 @@
   const q=s=>document.querySelector(s);
 
   let cameraOn=true;
+  let micOn=false;
   let cameraId='';
   let mirrored=true;
   let previewStream=null;
@@ -131,6 +132,25 @@
     void openPreview();
   }
 
+  const menu=q('#videoMoreMenu'),menuButton=q('#videoMoreButton');
+  function closeMenu(){if(menu)menu.hidden=true;if(menuButton)menuButton.setAttribute('aria-expanded','false');}
+  function toggleMenu(){
+    if(!menu||!menuButton)return;
+    menu.hidden=!menu.hidden;menuButton.setAttribute('aria-expanded',String(!menu.hidden));
+  }
+  async function presenterCommand(command){
+    try{
+      const result=await bridge?.command?.(String(command||''));
+      if(result?.ok===false)throw new Error(result?.error||'presenter_command_failed');
+      return true;
+    }catch(error){console.error('[DominionStar Meet] Presenter video command failed.',error);return false;}
+  }
+  menuButton?.addEventListener('click',event=>{event.stopPropagation();toggleMenu();});
+  q('#videoMenuAudio')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('audio');});
+  q('#videoMenuCamera')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('video');});
+  q('#videoMenuHide')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-hide');});
+  document.addEventListener('pointerdown',event=>{if(!event.target?.closest?.('#videoMoreButton,#videoMoreMenu'))closeMenu();},true);
+
   async function boot(){
     try{
       const environment=await desktop.environment?.();
@@ -143,6 +163,7 @@
 
   bridge?.onState?.(state=>{
     const nextCameraOn=state?.cameraOn!==false;
+    micOn=state?.micOn!==false;
     const nextCameraId=String(state?.cameraId||'');
     const nextMirror=state?.mirror!==false;
     const deviceChanged=nextCameraId!==cameraId;
@@ -151,9 +172,12 @@
 
     const mic=q('#micState');
     if(mic){
-      mic.style.color=state?.micOn===false?'#ff3b30':'#31d158';
-      mic.title=state?.micOn===false?'Muted':'Microphone on';
+      mic.style.color=micOn?'#31d158':'#ff3b30';
+      mic.title=micOn?'Microphone on':'Muted';
     }
+    const audioAction=q('#videoMenuAudio'),cameraAction=q('#videoMenuCamera');
+    if(audioAction)audioAction.textContent=micOn?'Mute':'Unmute';
+    if(cameraAction)cameraAction.textContent=cameraOn?'Stop Video':'Start Video';
 
     if(cameraChanged||deviceChanged)syncPreview();
     else render();
