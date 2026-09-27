@@ -196,7 +196,7 @@
     if(voiceAnalyser&&voiceTrackId===String(track.id||''))return;
     stopVoiceMeter();
     try{
-      voiceContext=new AudioContext();voiceSource=voiceContext.createMediaStreamSource(new MediaStream([track]));voiceAnalyser=voiceContext.createAnalyser();voiceAnalyser.fftSize=256;voiceAnalyser.smoothingTimeConstant=.72;voiceSource.connect(voiceAnalyser);voiceTrackId=String(track.id||'');
+      voiceContext=new AudioContext();if(voiceContext.state==='suspended')void voiceContext.resume().catch(()=>{});voiceSource=voiceContext.createMediaStreamSource(new MediaStream([track]));voiceAnalyser=voiceContext.createAnalyser();voiceAnalyser.fftSize=256;voiceAnalyser.smoothingTimeConstant=.72;voiceSource.connect(voiceAnalyser);voiceTrackId=String(track.id||'');
       const data=new Uint8Array(voiceAnalyser.fftSize);
       voiceTimer=setInterval(()=>{
         if(!state.micOn||track.readyState!=='live'||track.enabled===false){document.documentElement.style.setProperty('--ds-local-voice-level','0');document.body.classList.remove('ds-local-speaking');return;}
