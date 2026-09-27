@@ -21,7 +21,13 @@
       if(payload?.qaSynthetic){
         stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
       }else{
-        stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:Boolean(payload?.shareAudio)});
+        const sourceId=String(payload?.sourceId||'');
+        if(!sourceId)throw new Error('Selected desktop source is unavailable.');
+        const frameRate=payload?.optimizeVideo?30:15;
+        stream=await navigator.mediaDevices.getUserMedia({
+          audio:payload?.shareAudio?{mandatory:{chromeMediaSource:'desktop'}}:false,
+          video:{mandatory:{chromeMediaSource:'desktop',chromeMediaSourceId:sourceId,maxFrameRate:frameRate}}
+        });
       }
       if(current!==generation){stopTracks(stream);return;}
       const videoTrack=stream.getVideoTracks()[0];
