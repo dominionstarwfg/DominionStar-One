@@ -42,10 +42,12 @@ const integration=read('ui/share-integration.js');
 const preferences=read('ui/preferences.js');
 const macVideoJs=read('ui/mac-share-video.js');
 const macVideoHtml=read('ui/mac-share-video.html');
+const macVideoCss=read('ui/mac-share-video.css');
+const parityCss=read('ui/meeting-parity.css');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,captureWorker,shareRuntimeAuthority,participantsReference])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,captureWorker,shareRuntimeAuthority,participantsReference,macVideoJs,integration])new Function(source);
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
 assert(
@@ -120,7 +122,16 @@ assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;t
 
 assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("copy.querySelector('small')?.remove()")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must collapse duplicate role labels and duplicate ellipsis controls to one canonical representation.');
 assert(physical.includes("className='ds-canonical-role'")&&physical.includes("className='ds-canonical-self'"),'Participant identity must render one role badge and one self marker.');
-assert(parity.includes('<circle cx="18.2" cy="6" r="3.1"/>')&&physical.includes('<circle cx="18.2" cy="6" r="3.1"/>'),'Reaction toolbar icon must be a recognizable smiley-plus symbol.');
+assert(
+  parity.includes('reaction-emoji-glyph') &&
+  parity.includes('😊') &&
+  physical.includes('reaction-emoji-glyph') &&
+  physical.includes('😊') &&
+  featureReady.includes('reaction-emoji-glyph') &&
+  featureReady.includes('😊') &&
+  parityCss.includes('.reaction-emoji-glyph'),
+  'Reactions must remain an obvious emoji-style control through base, physical-acceptance and final-handoff reconciliation.'
+);
 assert(features.includes('r.left+r.width/2-width/2')&&features.includes('const top=Math.max(10,r.top-height-10)'),'Reaction chooser must open directly above its toolbar button.');
 
 assert(personal.includes("passInput.value=String(state.room.passcode||'')")&&personal.includes('passInput.disabled=personal'),'Personal Meeting ID mode must not show a stale unrelated passcode.');
@@ -136,10 +147,48 @@ assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:no
 assert(screenshotCss.includes('#meetingOverlay .meeting-footer{height:64px!important;min-height:64px!important')&&screenshotCss.includes('#meetingOverlay .meeting-control{min-width:68px!important;height:58px!important')&&screenshotCss.includes('.meeting-control .ds-control-icon{width:24px!important;height:24px!important')&&screenshotCss.includes('.meeting-control .ds-control-label{font-size:11px!important'),'Final meeting toolbar must preserve readable control targets and icon/label scale instead of reverting to the undersized reference dimensions.');
 assert(profileFallback.includes('width:88px;height:88px;border-radius:50%'),'Participant camera-off profile photos must no longer use the undersized 58px fallback.');
 assert(featureReady.includes('box-shadow:none!important')&&read('ui/meeting-parity.css').includes('box-shadow:none!important'),'Mic/video off state must use one clean slash without the old doubled halo stripe.');
-assert(featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'The loaded meeting toolbar must use the recognizable reaction smile/spark icon.');
+assert(!featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'Final meeting reconciliation must not restore the rejected legacy reaction glyph.');
 assert(shareService.includes("return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)}"),'Presenter command service must expose execution proof instead of a bare production ok response.');
 const macToolbar=read('ui/mac-presenter-toolbar.js');
 assert(macToolbar.includes("if(nativeBridge?.command)return await sendNative(normalized);")&&macToolbar.includes("result.ok===true"),'Physical-Mac presenter controls must use the acknowledged native delivery path first, with renderer dispatch only as fallback.');
+assert(
+  shareService.includes("if(platform==='darwin'){closeToolbar();return true;}") &&
+  shareService.includes("if(platform==='darwin')closeToolbar();"),
+  'macOS must use exactly one presenter toolbar authority; the legacy presenter-toolbar BrowserWindow must never coexist with the native Mac presenter overlay.'
+);
+assert(
+  integration.includes("inlinePresenter.hidden=true;") &&
+  integration.includes("label.hidden=true;") &&
+  integration.includes("sharedVideo.hidden=true;") &&
+  integration.includes("cameraTile.hidden=true;") &&
+  integration.includes("overlay.classList.remove('share-active');"),
+  'Active Mac sharing must hard-hide every renderer-owned share toolbar/status/video surface so only native presenter chrome is visible.'
+);
+assert(
+  integration.includes("window.DominionShareAnnotation?.deactivate?.();") &&
+  integration.includes("window.DominionRuntimeStability?.setParticipants?.(false);") &&
+  integration.includes("window.DominionRuntimeStability?.setChat?.(false);"),
+  'Participants, Chat and Annotate presenter commands must coordinate as mutually exclusive companion surfaces.'
+);
+assert(
+  shareService.includes("includes('/ui/mac-share-video.html')") &&
+  shareService.includes("includes('/ui/mac-presenter-toolbar.html')") &&
+  shareService.includes("preferredRight=vb?Math.round(vb.x-width-gap)") &&
+  shareService.includes("normalized==='annotate'"),
+  'Mac companion geometry must avoid the presenter video/toolbar and Annotate must not resize the entire meeting BrowserWindow.'
+);
+assert(
+  macVideoHtml.includes('id="videoMoreButton"') &&
+  macVideoHtml.includes('id="videoMoreMenu"') &&
+  macVideoHtml.includes('id="videoMenuAudio"') &&
+  macVideoHtml.includes('id="videoMenuCamera"') &&
+  macVideoHtml.includes('id="videoMenuHide"') &&
+  macVideoJs.includes("presenterCommand('audio')") &&
+  macVideoJs.includes("presenterCommand('video')") &&
+  macVideoJs.includes("presenterCommand('layout-hide')") &&
+  macVideoCss.includes('.video-stage:hover .video-more-button'),
+  'The floating presenter video must expose hover quick controls wired through acknowledged presenter commands.'
+);
 assert(preload.includes('const accepted=result?.handled===true;')&&!preload.includes('const accepted=result?.handled!==false;'),'Presenter preload must reject undefined/stale listener results instead of falsely acknowledging dead toolbar commands.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}")&&!integration.includes("await share.stop();applyLayout();return {handled:true,command};"),'Stop Share must use one local-first state transition and rely on the synchronous share-state listener to restore meeting chrome.');
 assert(
