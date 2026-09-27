@@ -23,7 +23,7 @@
     // work. This distinguishes controller transaction bookkeeping from the
     // already-proven healthy raw display stream.
     if(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS)return null;
-    const value=snapshot(),qaTrace=Boolean(window.dominionDesktop)&&/Mac/i.test(String(navigator.platform||navigator.userAgent||''))&&String(location?.href||'').includes('/ui/index.html');
+    const value=snapshot(),qaTrace=typeof window.__DOMINION_QA_SKIP_SHARE_LAYOUT==='boolean';
     let listenerIndex=0;
     if(qaTrace)console.error(`QA_SHARE_EMIT_BEGIN active=${value.active?1:0} busy=${value.busy?1:0} listeners=${listeners.size}`);
     for(const listener of [...listeners]){
