@@ -222,9 +222,11 @@ assert(shareController.indexOf('const {stream,track}=await acquireDisplay(option
 assert(read('ui','share-integration.js').includes("if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}")&&read('ui','share-integration.js').includes('if(replacing){await share.replaceSource'),'Packaged presenter New Share must keep the old presentation live through picker selection.');
 assert(shareService.includes('if(toolbarWindow&&!toolbarWindow.isDestroyed())')&&shareService.includes('publishToolbarState();')&&shareService.includes('return true;'),'Packaged presenter toolbar must reuse one existing toolbar instance across source changes.');
 assert(
-  shareService.includes("if(platform==='darwin'){closeToolbar();return true;}") &&
-  shareService.includes("if(platform==='darwin')closeToolbar();"),
-  'Packaged macOS sharing must explicitly retire the obsolete legacy presenter toolbar so it cannot duplicate the native Mac presenter surface.'
+  shareService.includes('function closeLegacyMacPresenterWindows(){') &&
+  shareService.includes("url.includes('/ui/presenter-toolbar.html')") &&
+  shareService.includes("if(platform==='darwin'){closeLegacyMacPresenterWindows();closeToolbar();return true;}") &&
+  read('ui','presenter-toolbar.js').includes("document.documentElement.style.display='none'"),
+  'Packaged macOS sharing must close every obsolete legacy presenter toolbar window and the legacy renderer must self-disable on Mac.'
 );
 assert(
   !macPresenter.slice(
