@@ -135,3 +135,18 @@ body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-control-i
 body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon{
   color:#f3f3f4!important;filter:none!important
 }
+
+
+/* Authoritative live-mic state: one clean green activity state, never a red
+   slash while the microphone is live. Driven by real RMS voice-level events. */
+#meetingOverlay #roomMic.is-speaking:not(.is-off) .ds-control-icon,
+#meetingOverlay #roomMic.is-speaking:not(.is-off) .ds-exec-icon{
+  color:#31d158!important;
+  filter:drop-shadow(0 0 4px rgba(49,209,88,.62))!important
+}
+#meetingOverlay #roomMic.is-speaking:not(.is-off) .ds-control-icon::before,
+#meetingOverlay #roomMic.is-speaking:not(.is-off) .ds-control-icon::after,
+#meetingOverlay #roomMic.is-speaking:not(.is-off) .ds-exec-icon::before,
+#meetingOverlay #roomMic.is-speaking:not(.is-off) .ds-exec-icon::after{
+  content:none!important;display:none!important;background:transparent!important;box-shadow:none!important
+}
