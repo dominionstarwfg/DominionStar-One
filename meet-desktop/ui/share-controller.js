@@ -69,8 +69,13 @@
   async function acquireMacWorkerDisplay(options={},generation){
     if(!captureBridge?.start)throw new Error('Dedicated Mac screen-capture worker is unavailable.');
     disposeMacCaptureClient({stopWorker:false});
-    try{await captureBridge.stop?.();}catch{}
 
+    // Do not pre-stop/hide the capture worker before every start. The worker's
+    // begin() path already advances its generation and atomically cleans up any
+    // existing capture track. A stop -> hidden -> show transition immediately
+    // before capture start can destabilize Chromium's macOS compositor and
+    // starve the independent meeting/control renderer.
+    //
     // Critical macOS boundary: the ScreenCaptureKit-owned video track must
     // never be looped back into the meeting/control renderer. The worker owns
     // capture and later share transport; this renderer receives only logical
