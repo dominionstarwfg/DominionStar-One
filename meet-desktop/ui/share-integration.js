@@ -344,6 +344,10 @@
           if(['pen','highlight','laser','erase'].includes(action))annotation?.setMode?.(action);
           else if(action==='undo')annotation?.undo?.();
           else if(action==='clear')annotation?.clear?.();
+          else if(action==='color-red')annotation?.setColor?.('#ff3b30');
+          else if(action==='color-blue')annotation?.setColor?.('#2d8cff');
+          else if(action==='color-green')annotation?.setColor?.('#28c76f');
+          else if(action==='color-white')annotation?.setColor?.('#ffffff');
           else return {handled:false,command};
           setCompanion('annotate');
           return {handled:true,command};
