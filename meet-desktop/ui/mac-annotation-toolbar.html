@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DominionStar Meet – Annotation</title>
+  <link rel="stylesheet" href="./mac-annotation-toolbar.css">
+</head>
+<body>
+  <main class="annotation-palette" aria-label="Annotation tools">
+    <button type="button" data-command="annotate-pen" class="active" aria-label="Pen"><span>✎</span><small>Pen</small></button>
+    <button type="button" data-command="annotate-highlight" aria-label="Highlight"><span>▰</span><small>Highlight</small></button>
+    <button type="button" data-command="annotate-laser" aria-label="Laser"><span>•</span><small>Laser</small></button>
+    <button type="button" data-command="annotate-erase" aria-label="Erase"><span>⌫</span><small>Erase</small></button>
+    <div class="palette-colors" aria-label="Annotation colors">
+      <button type="button" data-command="annotate-color-red" class="swatch red active" aria-label="Red"></button>
+      <button type="button" data-command="annotate-color-blue" class="swatch blue" aria-label="Blue"></button>
+      <button type="button" data-command="annotate-color-green" class="swatch green" aria-label="Green"></button>
+      <button type="button" data-command="annotate-color-white" class="swatch white" aria-label="White"></button>
+    </div>
+    <div class="separator"></div>
+    <button type="button" data-command="annotate-undo" aria-label="Undo"><span>↶</span><small>Undo</small></button>
+    <button type="button" data-command="annotate-clear" aria-label="Clear"><span>⌧</span><small>Clear</small></button>
+    <button type="button" data-command="annotate-close" class="done" aria-label="Done"><span>✓</span><small>Done</small></button>
+  </main>
+  <script src="./mac-annotation-toolbar.js"></script>
+</body>
+</html>
