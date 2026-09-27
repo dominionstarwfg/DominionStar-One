@@ -118,7 +118,7 @@ if(process.platform==='darwin'){
       width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
       focusable:true,acceptFirstMouse:true,
-      webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}
+      webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-toolbar-v2044'}
     });
     toolbarWindow=win;protect(win);
     try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
@@ -166,7 +166,7 @@ if(process.platform==='darwin'){
   }
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
-    const win=new BrowserWindow({width:320,height:200,minWidth:240,minHeight:150,maxWidth:420,maxHeight:280,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false}});
+    const win=new BrowserWindow({width:320,height:200,minWidth:240,minHeight:150,maxWidth:420,maxHeight:280,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
     videoWindow=win;protect(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
@@ -196,6 +196,14 @@ if(process.platform==='darwin'){
     if(!shareActive)return;
     void prepare().then(()=>{
       if(!shareActive)return;positionToolbar();positionBorder();positionVideo();publishState();
+      if(qaPresenterTrace){
+        const main=mainWindow();
+        const mainPid=Number(main?.webContents?.getOSProcessId?.()||0)||0;
+        const toolbarPid=Number(toolbarWindow?.webContents?.getOSProcessId?.()||0)||0;
+        const videoPid=Number(videoWindow?.webContents?.getOSProcessId?.()||0)||0;
+        const isolated=Boolean(mainPid&&toolbarPid&&videoPid&&mainPid!==toolbarPid&&mainPid!==videoPid&&toolbarPid!==videoPid);
+        console.error(`QA_MAC_PRESENTER_PROCESS_BOUNDARY mainPid=${mainPid} toolbarPid=${toolbarPid} videoPid=${videoPid} isolated=${isolated?1:0}`);
+      }
       if(qaKeepPresenterHidden){if(qaPresenterTrace)console.error('QA_MAC_PRESENTER_PREPARED_HIDDEN');hideOverlays();return;}
       if(toolbarReady&&isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}
       if(isAlive(videoWindow)&&videoLayout!=='hide'){videoWindow.showInactive?.();videoWindow.moveTop?.();}
