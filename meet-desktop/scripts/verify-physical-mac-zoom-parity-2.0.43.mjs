@@ -39,6 +39,7 @@ const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
 const presenterPreload=read('src/presenter-preload.cjs');
 const integration=read('ui/share-integration.js');
+const preferences=read('ui/preferences.js');
 const macVideoJs=read('ui/mac-share-video.js');
 const macVideoHtml=read('ui/mac-share-video.html');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
@@ -47,6 +48,12 @@ const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,captureWorker,shareRuntimeAuthority,participantsReference])new Function(source);
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
+assert(
+  preferences.includes("const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));") &&
+  preferences.includes('if(macLike)return;') &&
+  preferences.includes("window.DominionMeetingParity?.syncVideoDock?.();"),
+  'Active Mac sharing must never let the periodic preference poller resync the legacy meeting video dock; the native presenter surface owns share-time video.'
+);
 assert(
   shareService.includes("partition:'dominion-share-capture-v2044'") &&
   shareService.includes("getOSProcessId?.()") &&
