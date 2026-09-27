@@ -206,6 +206,28 @@ try{
   assert.equal(await evaluate(`window.DominionApprovedReferenceParity.toolbarOrder.every(id=>id==='roomExitButton'||Boolean(document.querySelector('#'+id+' .ds-control-icon svg'))||(id==='roomReactions'&&Boolean(document.querySelector('#roomReactions .reaction-emoji-glyph'))))`),true,'Every approved primary meeting control must retain a modern icon, with Reactions allowed to use the approved emoji glyph.');
   assert.equal(await evaluate(`document.querySelector('#meetDiagnosticsButton')?.hidden!==false`),true,'Diagnostics must not be visible in the normal production meeting UI.');
 
+  const mediaSlashState=async()=>evaluate(`(()=>{
+    const button=document.querySelector('#roomMic');
+    const icons=[...button.querySelectorAll(':scope>.ds-control-icon,:scope>.ds-exec-icon')];
+    const visibleIcons=icons.filter(icon=>{const s=getComputedStyle(icon);return s.display!=='none'&&s.visibility!=='hidden';});
+    const slashCount=visibleIcons.filter(icon=>{const s=getComputedStyle(icon,'::after');return s.display!=='none'&&s.content&&s.content!=='none'&&s.content!=='normal';}).length;
+    return {off:button.classList.contains('is-off'),slashCount,label:button.getAttribute('aria-label')||button.textContent};
+  })()`);
+  let micVisual=await mediaSlashState();
+  assert.equal(micVisual.off,true,'Meeting must begin with authoritative muted visual state in packaged interaction fixture.');
+  assert.equal(micVisual.slashCount,1,'Muted microphone must render exactly one red slash.');
+  await evaluate(`document.querySelector('#roomMic').click();true`);
+  await waitFor("!document.querySelector('#roomMic').classList.contains('is-off')",'unmuted local microphone visual state',5000);
+  micVisual=await mediaSlashState();
+  assert.equal(micVisual.slashCount,0,'Unmuted microphone retained a stale or duplicate red slash.');
+  await evaluate(`document.body.classList.add('ds-local-speaking');true`);
+  assert.equal(await evaluate(`getComputedStyle(document.querySelector('#roomMic .ds-control-icon,.meeting-control#roomMic .ds-exec-icon')).color==='rgb(49, 209, 88)'`),true,'Live speaking microphone state must use green activity feedback with no red slash.');
+  await evaluate(`document.body.classList.remove('ds-local-speaking');document.querySelector('#roomMic').click();true`);
+  await waitFor("document.querySelector('#roomMic').classList.contains('is-off')",'restored muted local microphone visual state',5000);
+  micVisual=await mediaSlashState();
+  assert.equal(micVisual.slashCount,1,'Muted microphone did not return to exactly one red slash.');
+  mark('single-mute-slash');
+
   // Command-menu compatibility decoration is intentionally done by a narrow
   // direct-body MutationObserver. Do not require that compatibility class in
   // the same JavaScript call stack as the button click.
