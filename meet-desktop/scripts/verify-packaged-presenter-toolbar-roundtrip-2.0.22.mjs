@@ -186,6 +186,12 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=worker-message-only active=message-only');
           return;
         }
+        if(diagnostic==='worker-detached-lifecycle'){
+          const sent=await window.dominionDesktop?.shareCapture?.qaDetachedLifecycle?.();
+          if(!sent?.ok)throw new Error(sent?.error||'QA detached lifecycle probe failed.');
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=worker-detached-lifecycle active=detached');
+          return;
+        }
         if(diagnostic==='capture-event-only'){
           window.dominionDesktop?.share?.captureStarted?.({sourceName:'QA Capture Event Only',displayId:'',paused:false});
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=capture-event-only active=event-only');
