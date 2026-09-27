@@ -81,9 +81,10 @@
     // capture and later share transport; this renderer receives only logical
     // share lifecycle state so its event loop stays available for controls.
     //
-    // Start is one acknowledged invoke. The main process waits for the worker's
-    // ready/error signal and returns that result directly, avoiding the old
-    // worker -> main -> meeting-renderer "started" event relay.
+    // Start uses an asynchronous request/result channel. The main process
+    // forwards the request to the isolated worker and later returns readiness
+    // as a correlated event, avoiding a nested cross-renderer invoke while
+    // preserving one acknowledged start transaction for this controller.
     macCaptureUnsubs=[
       captureBridge.onError?.(payload=>{
         if(macWorkerActive&&!state.busy)void stop();
