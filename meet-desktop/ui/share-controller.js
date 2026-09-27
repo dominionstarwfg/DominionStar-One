@@ -71,30 +71,20 @@
     disposeMacCaptureClient({stopWorker:false});
     try{await captureBridge.stop?.();}catch{}
 
-    let settled=false,resolveReady,rejectReady;
-    const ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});
-    const rejectOnce=error=>{if(settled)return;settled=true;rejectReady(error instanceof Error?error:new Error(String(error||'capture_worker_failed')));};
-
     // Critical macOS boundary: the ScreenCaptureKit-owned video track must
     // never be looped back into the meeting/control renderer. The worker owns
     // capture and later share transport; this renderer receives only logical
     // share lifecycle state so its event loop stays available for controls.
+    //
+    // Start is one acknowledged invoke. The main process waits for the worker's
+    // ready/error signal and returns that result directly, avoiding the old
+    // worker -> main -> meeting-renderer "started" event relay.
     macCaptureUnsubs=[
-      captureBridge.onStarted?.(payload=>{
-        if(settled)return;
-        settled=true;
-        macCaptureSignalGeneration=Number(payload?.generation||0)||0;
-        macWorkerActive=true;
-        resolveReady({stream:null,track:{label:String(payload?.label||'Shared content'),readyState:'live'}});
-      }),
       captureBridge.onError?.(payload=>{
-        const message=String(payload?.error||'Dedicated Mac screen capture failed.');
-        if(!settled)rejectOnce(new Error(message));
-        else if(macWorkerActive&&!state.busy)void stop();
+        if(macWorkerActive&&!state.busy)void stop();
       }),
       captureBridge.onStopped?.(()=>{
-        if(!settled)rejectOnce(new Error('Dedicated Mac screen capture stopped before it was ready.'));
-        else if(macWorkerActive&&!state.busy){macWorkerActive=false;void stop();}
+        if(macWorkerActive&&!state.busy){macWorkerActive=false;void stop();}
       })
     ].filter(Boolean);
 
@@ -104,13 +94,11 @@
       qaSynthetic:Boolean(options.__qaSyntheticWorker),
       qaLifecycleOnly:Boolean(options.__qaLifecycleOnlyWorker)
     });
-    if(!started?.ok){disposeMacCaptureClient({stopWorker:false});throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.');}
-    let acquired;
-    try{
-      acquired=await Promise.race([ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Dedicated Mac screen capture did not start within 6 seconds.')),6000))]);
-    }catch(error){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw error;}
+    if(!started?.ok){disposeMacCaptureClient({stopWorker:false});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.');}
+    macCaptureSignalGeneration=Number(started?.generation||0)||0;
+    macWorkerActive=true;
     if(generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw new DOMException('Screen share request was replaced.','AbortError');}
-    return acquired;
+    return {stream:null,track:{label:String(started?.label||'Shared content'),readyState:'live'}};
   }
 
   async function acquireDisplay(options={}){
