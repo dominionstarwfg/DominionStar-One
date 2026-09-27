@@ -100,6 +100,18 @@ jobs:
           DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-ack-only'
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Diagnose acknowledged worker with controller listeners
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-ack-with-listeners'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Diagnose controller immediately after worker acquire
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'controller-after-acquire'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Diagnose share controller before presenter handshake
         working-directory: meet-desktop
         env:
