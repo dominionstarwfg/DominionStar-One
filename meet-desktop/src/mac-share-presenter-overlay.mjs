@@ -107,7 +107,11 @@ if(process.platform==='darwin'){
     const x=Math.round(area.x+10),y=Math.round(area.y+Math.max(92,(area.height-height)/2));
     try{annotationWindow.setBounds({x,y,width,height},false);}catch{}
   }
-  function hideAnnotationPalette(){if(isAlive(annotationWindow))try{annotationWindow.hide();}catch{}}
+  function hideAnnotationPalette(){
+    if(!isAlive(annotationWindow))return;
+    try{annotationWindow.hide();}catch{}
+    if(qaPresenterTrace)console.error(`QA_MAC_ANNOTATION_VISIBILITY visible=${annotationWindow.isVisible?.()?1:0}`);
+  }
   function showAnnotationPalette(){
     if(!shareActive)return;
     void prepareAnnotation().then(win=>{if(!shareActive||String(shareState.companion||'')!=='annotate'||!isAlive(win))return;positionAnnotation();try{win.showInactive?.();win.moveTop?.();}catch{}});
