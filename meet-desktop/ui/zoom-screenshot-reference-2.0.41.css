@@ -106,3 +106,32 @@ body.ds-local-speaking #meetingOverlay:not(.ds-exec-lock) #roomMic:not(.is-off)>
 body:not(.ds-local-speaking) #meetingOverlay:not(.ds-exec-lock) #roomMic:not(.is-off)>.ds-control-icon{
   filter:none!important
 }
+
+
+/* Physical-Mac media-state authority: exactly one mute slash, never a stale
+   red strike after unmute. Speaking feedback is color/glow only. */
+#meetingOverlay #roomMic:not(.is-off) .ds-control-icon::before,
+#meetingOverlay #roomMic:not(.is-off) .ds-control-icon::after,
+#meetingOverlay #roomMic:not(.is-off) .ds-exec-icon::before,
+#meetingOverlay #roomMic:not(.is-off) .ds-exec-icon::after{
+  content:none!important;display:none!important;background:transparent!important;box-shadow:none!important
+}
+#meetingOverlay.ds-exec-lock #roomMic.is-off>.ds-control-icon::before,
+#meetingOverlay.ds-exec-lock #roomMic.is-off>.ds-control-icon::after{
+  content:none!important;display:none!important
+}
+#meetingOverlay.ds-exec-lock #roomMic.is-off .ds-exec-icon::before{content:none!important;display:none!important}
+#meetingOverlay.ds-exec-lock #roomMic.is-off .ds-exec-icon::after{
+  content:""!important;display:block!important;position:absolute!important;
+  left:2px!important;right:2px!important;top:50%!important;height:2px!important;
+  border-radius:999px!important;background:#ff4058!important;
+  transform:translateY(-50%) rotate(-43deg)!important;box-shadow:none!important
+}
+body.ds-local-speaking #meetingOverlay #roomMic:not(.is-off) .ds-control-icon,
+body.ds-local-speaking #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon{
+  color:#31d158!important;filter:drop-shadow(0 0 4px rgba(49,209,88,.62))!important
+}
+body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-control-icon,
+body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon{
+  color:#f3f3f4!important;filter:none!important
+}
