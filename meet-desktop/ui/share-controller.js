@@ -66,6 +66,15 @@
   }
 
   async function acquireMacWorkerDisplay(options={},generation){
+    if(options?.__qaLifecycleOnlyWorker){
+      // Certification isolation: keep the logical share lifecycle identical
+      // while skipping creation of the capture BrowserWindow. If presenter
+      // controls remain alive here, the renderer starvation is inside the
+      // worker/compositor boundary rather than share-state reconciliation.
+      macWorkerActive=true;
+      console.error('QA_CAPTURE_WORKER_CREATION_BYPASSED lifecycle-only=1');
+      return {stream:null,track:{label:'QA Lifecycle Share',readyState:'live'}};
+    }
     if(!captureBridge?.start)throw new Error('Dedicated Mac screen-capture worker is unavailable.');
     disposeMacCaptureClient({stopWorker:false});
     try{await captureBridge.stop?.();}catch{}
