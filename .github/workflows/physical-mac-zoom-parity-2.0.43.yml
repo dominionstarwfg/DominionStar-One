@@ -88,6 +88,12 @@ jobs:
           DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-message-only'
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Diagnose detached worker lifecycle boundary
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-detached-lifecycle'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Diagnose capture worker boundary
         working-directory: meet-desktop
         env:
