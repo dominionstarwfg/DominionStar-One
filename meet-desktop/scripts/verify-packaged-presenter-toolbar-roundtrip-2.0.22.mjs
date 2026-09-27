@@ -310,6 +310,15 @@ try{
   assert.equal(rendererShareChrome.labelHidden,true,'Legacy renderer share-status label is visible during native Mac sharing.');
   assert.equal(rendererShareChrome.shareActive,false,'Meeting renderer entered legacy share-active layout during native Mac presenter mode.');
   stage('legacy-share-chrome-suppressed');
+  await sleep(1500);
+  const delayedRendererChrome=await main.eval("(()=>{const shell=document.querySelector('#meetingOverlay>.meeting-shell');const footer=document.querySelector('#meetingOverlay .meeting-footer');return {native:document.body.classList.contains('ds-native-mac-presenter-share'),shareActive:document.querySelector('#meetingOverlay')?.classList.contains('share-active')===true,inlineHidden:document.querySelector('#inlinePresenterToolbar')?.hidden!==false,banner:Boolean(document.querySelector('.ds-ref-share-banner')),shellVisibility:shell?getComputedStyle(shell).visibility:'missing',footerDisplay:footer?getComputedStyle(footer).display:'missing',bodyBackground:getComputedStyle(document.body).backgroundColor};})()");
+  assert.equal(delayedRendererChrome.native,true,'Native Mac presenter visual authority disappeared after final-reference reconciliation.');
+  assert.equal(delayedRendererChrome.shareActive,false,'Final-reference reconciliation recreated legacy share-active state.');
+  assert.equal(delayedRendererChrome.inlineHidden,true,'Final-reference reconciliation recreated the inline share toolbar.');
+  assert.equal(delayedRendererChrome.banner,false,'Final-reference reconciliation recreated the duplicate green share banner.');
+  assert.equal(delayedRendererChrome.shellVisibility,'hidden','Dark meeting shell is still physically visible behind native sharing.');
+  assert.ok(/rgba\(0, 0, 0, 0\)|transparent/i.test(String(delayedRendererChrome.bodyBackground)),'Meeting renderer body is not transparent during native Mac share: '+delayedRendererChrome.bodyBackground);
+  stage('delayed-share-reconciliation-clean');
 
   // Follow the physical user path after share activation. Hidden/occluded
   // renderer timers are not a reliable macOS liveness oracle: Chromium may
@@ -433,10 +442,29 @@ try{
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='annotate'",'Annotate companion state returned to toolbar',8000);
   stage('annotate-real-toolbar');
 
+  const annotationTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-annotation-toolbar.html'),'left-side native annotation palette',8000);
+  const annotation=new Cdp(annotationTarget.webSocketDebuggerUrl);await annotation.connect();
+  await annotation.wait("window.DominionMacAnnotationPalette&&document.visibilityState==='visible'&&document.querySelector('[data-command=\"annotate-pen\"]')",'visible native annotation palette',5000);
+  const annotationGeometry=await annotation.eval("(()=>({x:window.screenX,availLeft:window.screen.availLeft||0,width:window.innerWidth,flex:getComputedStyle(document.querySelector('.annotation-palette')).flexDirection}))()");
+  assert.ok(annotationGeometry.width<=76,'Annotation palette is not a compact vertical surface: '+annotationGeometry.width+'px');
+  assert.equal(annotationGeometry.flex,'column','Annotation palette is not vertically arranged.');
+  assert.ok(Math.abs(Number(annotationGeometry.x)-Number(annotationGeometry.availLeft))<=28,'Annotation palette is not positioned on the left edge of the shared display.');
+  const annotationMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for annotation engine');
+  const annotationMain=new Cdp(annotationMainTarget.webSocketDebuggerUrl);await annotationMain.connect();
+  await annotationMain.wait("document.body.classList.contains('ds-native-mac-presenter-share')&&document.querySelector('.share-annotation-tools')&&getComputedStyle(document.querySelector('.share-annotation-tools')).display==='none'",'legacy horizontal annotation tools suppressed',5000);
+  logStart=stderr.length;
+  await annotation.click('[data-command="annotate-laser"]');
+  await waitStderr(ackPattern('annotate-laser'),'renderer ACK for native Laser tool',8000,logStart);
+  await annotationMain.wait("window.DominionShareAnnotation?.snapshot?.().mode==='laser'",'native annotation palette controls authoritative annotation mode',5000);
+  annotationMain.close();
+  stage('annotation-left-vertical-palette');
+
   logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
   await waitStderr(ackPattern('annotate'),'renderer ACK for Annotate close',8000,logStart);
   await toolbar.wait("!window.DominionMacPresenterToolbar.state().companion",'Annotate close state returned to toolbar',8000);
+  await annotation.wait("document.visibilityState==='hidden'",'native annotation palette hidden after Annotate closes',5000);
+  annotation.close();
   stage('annotate-close-real-toolbar');
 
   logStart=stderr.length;
