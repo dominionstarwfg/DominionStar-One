@@ -339,7 +339,7 @@ if(process.platform==='darwin'){
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
     if(['participants','chat'].includes(normalized))showMeeting();
     if(normalized==='annotate'||normalized.startsWith('annotate-'))hideMeeting();
-    const closingAnnotationToggle=normalized==='annotate'&&String(shareState.companion||'')==='annotate';
+    const closingAnnotationToggle=normalized==='annotate'&&isAlive(annotationWindow)&&Boolean(annotationWindow.isVisible?.());
     const delivered=await deliverPresenterCommandWithRetry(main,normalized);
     if((normalized==='annotate-close'||closingAnnotationToggle)&&delivered?.ok){
       shareState={...shareState,companion:'',companionOpen:false};
