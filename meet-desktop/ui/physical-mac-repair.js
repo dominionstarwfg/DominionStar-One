@@ -265,7 +265,14 @@
 
   function bindShareState(){
     if(shareStateUnsub||!window.DominionShareController?.onChange)return;
-    shareStateUnsub=window.DominionShareController.onChange(()=>requestAnimationFrame(syncVideoDockPolicy));
+    shareStateUnsub=window.DominionShareController.onChange(state=>{
+      if(window.__DOMINION_QA_TRACE_SHARE_TRANSACTION)console.error(`QA_MAC_DOCK_SHARE_LISTENER active=${state?.active?1:0} busy=${state?.busy?1:0}`);
+      requestAnimationFrame(()=>{
+        if(window.__DOMINION_QA_TRACE_SHARE_TRANSACTION)console.error('QA_MAC_DOCK_RAF_BEGIN');
+        syncVideoDockPolicy();
+        if(window.__DOMINION_QA_TRACE_SHARE_TRANSACTION)console.error('QA_MAC_DOCK_RAF_END');
+      });
+    });
   }
 
   function sync(){syncPersonalChoice();syncParticipantCount();syncVideoDockPolicy();bindVideoDockMouseDrag();bindShareState();}
