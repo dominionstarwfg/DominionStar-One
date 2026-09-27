@@ -76,6 +76,24 @@ jobs:
           DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN: '1'
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Diagnose capture worker boundary
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-only'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Diagnose capture-started event boundary
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'capture-event-only'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
+      - name: Diagnose combined active-share boundary
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-plus-event'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Exercise packaged presenter command round trip
         working-directory: meet-desktop
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
