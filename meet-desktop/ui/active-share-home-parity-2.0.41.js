@@ -51,7 +51,11 @@
   function schedule(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
 
   document.addEventListener('click',event=>{const back=event.target?.closest?.('#homeSection .action-card[data-action="back-to-meeting"]');if(!back)return;event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();restoreMeeting();},true);
-  desktop.macShare?.onShowMeeting?.(()=>restoreMeeting());
+  desktop.macShare?.onShowMeeting?.(payload=>{
+    const visible=payload?.visible!==false;
+    document.body.classList.toggle('ds-native-mac-show-meeting',visible);
+    if(visible)restoreMeeting();
+  });
   window.addEventListener('dominion:share-state',schedule,true);
   window.addEventListener('dominion:meeting-ended',()=>{lastActive=false;document.body.classList.remove('ds-active-share-workspace');patchHome(false);},true);
   const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','hidden'],childList:true});
