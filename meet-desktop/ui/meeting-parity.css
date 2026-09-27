@@ -176,3 +176,10 @@ body.ds-local-speaking .meeting-overlay.share-active .stage{
 .participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3{order:-38}
 .participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{order:-37}
 @media(max-width:720px){.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-1,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-2,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-3,.participant-video-dock.multi-speaker-stage .remote-peer-tile.spotlight-rank-4{grid-column:span 1;grid-row:span 1}}
+
+
+/* 2.0.44 physical-Mac interaction polish */
+.reaction-emoji-glyph{
+  display:grid;place-items:center;width:23px;height:23px;
+  font-size:20px;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji",sans-serif;
+}
