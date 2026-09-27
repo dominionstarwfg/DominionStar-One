@@ -215,6 +215,14 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=controller-after-acquire active='+(shareState.active?1:0));
           return;
         }
+        if(diagnostic==='controller-before-worker-active'){
+          const shareState=await window.DominionShareController.start({
+            name:'QA Controller Before Worker Active',
+            options:{shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true,__qaReturnBeforeWorkerActivate:true,__qaReturnAfterAcquire:true}
+          });
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=controller-before-worker-active active='+(shareState.active?1:0));
+          return;
+        }
         if(diagnostic==='controller-worker-no-handshake'){
           const shareState=await window.DominionShareController.start({
             name:'QA Controller Worker No Handshake',
