@@ -198,8 +198,20 @@
     document.body.classList.toggle('ds-local-speaking',active);
     const mic=document.querySelector('#roomMic');
     if(mic){
-      mic.classList.toggle('is-speaking',active&&!mic.classList.contains('is-off'));
+      const speakingNow=active&&!mic.classList.contains('is-off');
+      mic.classList.toggle('is-speaking',speakingNow);
       mic.dataset.voiceLevel=normalized.toFixed(3);
+      let meter=mic.querySelector(':scope>.ds-room-mic-meter');
+      if(!meter){
+        meter=document.createElement('span');
+        meter.className='ds-room-mic-meter';
+        meter.setAttribute('aria-hidden','true');
+        meter.innerHTML='<i></i><i></i><i></i>';
+        mic.append(meter);
+      }
+      const bucket=!speakingNow?0:normalized>.55?3:normalized>.22?2:1;
+      meter.dataset.level=String(bucket);
+      meter.hidden=!speakingNow;
     }
   };
   window.addEventListener('dominion:local-voice-level',event=>applyVoiceVisual(event?.detail||{}));
