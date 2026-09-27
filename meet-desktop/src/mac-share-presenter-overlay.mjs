@@ -339,7 +339,13 @@ if(process.platform==='darwin'){
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
     if(['participants','chat'].includes(normalized))showMeeting();
     if(normalized==='annotate'||normalized.startsWith('annotate-'))hideMeeting();
-    return deliverPresenterCommandWithRetry(main,normalized);
+    const delivered=await deliverPresenterCommandWithRetry(main,normalized);
+    if(normalized==='annotate-close'&&delivered?.ok){
+      shareState={...shareState,companion:'',companionOpen:false};
+      hideAnnotationPalette();
+      publishState();
+    }
+    return delivered;
   });
   ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?286:92};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
