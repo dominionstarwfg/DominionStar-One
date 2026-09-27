@@ -62,7 +62,12 @@ assert(
   shareController.includes('macWorkerActive=true;') &&
   shareController.includes('if(macLike)return null;') &&
   !shareController.includes('const pc=new RTCPeerConnection({iceServers:[]});') &&
-  captureWorker.includes('navigator.mediaDevices.getDisplayMedia({video:true,audio:Boolean(payload?.shareAudio)})') &&
+  captureWorker.includes('navigator.mediaDevices.getUserMedia({') &&
+  captureWorker.includes("chromeMediaSource:'desktop'") &&
+  captureWorker.includes('chromeMediaSourceId:sourceId') &&
+  !captureWorker.includes('navigator.mediaDevices.getDisplayMedia(') &&
+  !shareService.includes('win.webContents.session.setDisplayMediaRequestHandler') &&
+  shareService.includes("sourceId:String(pendingSelection?.source?.id||payload?.sourceId||'')") &&
   !captureWorker.includes('RTCPeerConnection') &&
   !captureWorker.includes('createOffer(') &&
   !captureWorker.includes('addTrack(') &&
