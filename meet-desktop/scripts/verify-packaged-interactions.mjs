@@ -203,7 +203,7 @@ try{
   await sleep(2300);
   const toolbarGeometryAfter=await evaluate(`window.DominionApprovedReferenceParity.toolbarOrder.map(id=>{const r=document.querySelector('#'+id).getBoundingClientRect();return [id,Math.round(r.left),Math.round(r.width)];})`);
   assert.deepEqual(toolbarGeometryAfter,toolbarGeometryBefore,'Primary toolbar geometry changed while idle; controls must not dance left/right during background activity.');
-  assert.equal(await evaluate(`window.DominionApprovedReferenceParity.toolbarOrder.every(id=>Boolean(document.querySelector('#'+id+' .ds-control-icon svg'))||id==='roomExitButton')`),true,'Every approved primary meeting control must retain a modern icon.');
+  assert.equal(await evaluate(`window.DominionApprovedReferenceParity.toolbarOrder.every(id=>id==='roomExitButton'||Boolean(document.querySelector('#'+id+' .ds-control-icon svg'))||(id==='roomReactions'&&Boolean(document.querySelector('#roomReactions .reaction-emoji-glyph'))))`),true,'Every approved primary meeting control must retain a modern icon, with Reactions allowed to use the approved emoji glyph.');
   assert.equal(await evaluate(`document.querySelector('#meetDiagnosticsButton')?.hidden!==false`),true,'Diagnostics must not be visible in the normal production meeting UI.');
 
   // Command-menu compatibility decoration is intentionally done by a narrow
