@@ -383,6 +383,17 @@ try{
   await toolbar.wait("window.DominionMacPresenterToolbar.state().micOn===true&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Mute'",'floating Audio state synchronized from real media',8000);
   stage('audio-real-toolbar');
 
+  const voiceMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for microphone-level bridge');
+  const voiceMain=new Cdp(voiceMainTarget.webSocketDebuggerUrl);await voiceMain.connect();
+  await voiceMain.eval("window.dominionDesktop?.share?.voiceLevel?.({level:.72,speaking:true}); true");
+  await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='3'&&document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone activity meter',5000);
+  await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='3'&&document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone activity meter',5000);
+  await voiceMain.eval("window.dominionDesktop?.share?.voiceLevel?.({level:0,speaking:false}); true");
+  await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='0'&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone meter idle',5000);
+  await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='0'&&!document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone meter idle',5000);
+  voiceMain.close();
+  stage('live-microphone-meter-roundtrip');
+
   logStart=stderr.length;
   await toolbar.click('[data-command="video"]');
   await waitStderr(ackPattern('video'),'renderer ACK for Video',8000,logStart);
