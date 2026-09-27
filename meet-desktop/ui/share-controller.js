@@ -23,16 +23,10 @@
     // work. This distinguishes controller transaction bookkeeping from the
     // already-proven healthy raw display stream.
     if(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS)return null;
-    const value=snapshot(),qaTrace=typeof window.__DOMINION_QA_SKIP_SHARE_LAYOUT==='boolean';
-    let listenerIndex=0;
-    if(qaTrace)console.error(`QA_SHARE_EMIT_BEGIN active=${value.active?1:0} busy=${value.busy?1:0} listeners=${listeners.size}`);
+    const value=snapshot();
     for(const listener of [...listeners]){
-      listenerIndex+=1;
-      if(qaTrace)console.error(`QA_SHARE_LISTENER_BEGIN index=${listenerIndex} name=${String(listener?.name||'anonymous')}`);
       try{listener(value);}catch(error){console.error('[DominionStar Meet] Share state listener failed.',error);}
-      if(qaTrace)console.error(`QA_SHARE_LISTENER_END index=${listenerIndex}`);
     }
-    if(qaTrace)console.error('QA_SHARE_EMIT_END');
     return value;
   };
   const stopTracks=stream=>{for(const track of stream?.getTracks?.()||[]){if(track.readyState!=='ended'){try{track.stop();}catch{}}}};
@@ -66,15 +60,6 @@
   }
 
   async function acquireMacWorkerDisplay(options={},generation){
-    if(options?.__qaLifecycleOnlyWorker){
-      // Certification isolation: keep the logical share lifecycle identical
-      // while skipping creation of the capture BrowserWindow. If presenter
-      // controls remain alive here, the renderer starvation is inside the
-      // worker/compositor boundary rather than share-state reconciliation.
-      macWorkerActive=!options?.__qaLogicalInactive;
-      console.error(`QA_CAPTURE_WORKER_CREATION_BYPASSED lifecycle-only=1 logicalActive=${macWorkerActive?1:0}`);
-      return {stream:null,track:{label:'QA Lifecycle Share',readyState:'live'}};
-    }
     if(!captureBridge?.start)throw new Error('Dedicated Mac screen-capture worker is unavailable.');
     disposeMacCaptureClient({stopWorker:false});
     try{await captureBridge.stop?.();}catch{}
@@ -163,7 +148,7 @@
       }
       let presenter=null;
       try{
-        const qaSkipCaptureStarted=Boolean(options?.__qaSkipCaptureStarted);
+        const qaSkipCaptureStarted=Boolean(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS&&options?.__qaSkipCaptureStarted);
         const acknowledgement=qaSkipCaptureStarted
           ? Promise.resolve({ok:true,toolbarReady:true,qaSkipped:true})
           : Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,displayId:String(state.options?.displayId||''),paused:false}));
