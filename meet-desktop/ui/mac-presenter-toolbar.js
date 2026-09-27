@@ -65,7 +65,9 @@
     catch(error){console.error('[DominionStar Meet] Stop share command failed.',error);button.disabled=false;button.removeAttribute('aria-busy');if(label)label.textContent='Stop Share';toolbar?.classList.add('command-error');setTimeout(()=>toolbar?.classList.remove('command-error'),1200);}
   });
   document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',async event=>{
-    const control=event.currentTarget,command=String(control.dataset.command||'');closeMenus();control.classList.add('command-pending');control.setAttribute('aria-busy','true');
+    const control=event.currentTarget;let command=String(control.dataset.command||'');
+    if(command==='annotate'&&String(lastState?.companion||'')==='annotate')command='annotate-close';
+    closeMenus();control.classList.add('command-pending');control.setAttribute('aria-busy','true');
     try{await send(command);}
     catch(error){console.error(`[DominionStar Meet] Presenter command failed: ${command}`,error);control.classList.add('command-error');setTimeout(()=>control.classList.remove('command-error'),1000);}
     finally{control.classList.remove('command-pending');control.removeAttribute('aria-busy');}
