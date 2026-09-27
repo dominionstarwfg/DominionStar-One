@@ -1,4 +1,12 @@
 (()=>{
+  // macOS presenter sharing is owned exclusively by mac-presenter-toolbar.html.
+  // If this legacy surface is ever instantiated by a stale route or cached
+  // window, render nothing instead of producing a second toolbar.
+  if(/Mac/i.test(String(navigator.platform||navigator.userAgent||''))){
+    document.documentElement.style.display='none';
+    document.body?.replaceChildren?.();
+    return;
+  }
   const bridge=window.dominionDesktop?.presenter;
   const $=selector=>document.querySelector(selector),toolbar=$('#toolbar'),more=$('#moreMenu');let reactions=null,handRaised=false,hideTimer=0,lastPointerAt=Date.now();
   const AUTO_HIDE_MS=2400;
