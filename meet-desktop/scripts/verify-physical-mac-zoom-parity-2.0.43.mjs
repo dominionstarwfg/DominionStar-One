@@ -43,11 +43,17 @@ const preferences=read('ui/preferences.js');
 const macVideoJs=read('ui/mac-share-video.js');
 const macVideoHtml=read('ui/mac-share-video.html');
 const macVideoCss=read('ui/mac-share-video.css');
+const macAnnotationHtml=read('ui/mac-annotation-toolbar.html');
+const macAnnotationJs=read('ui/mac-annotation-toolbar.js');
+const macAnnotationCss=read('ui/mac-annotation-toolbar.css');
+const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
+const screenshotReferenceCss=read('ui/zoom-screenshot-reference-2.0.41.css');
+const shareCss=read('ui/share.css');
 const parityCss=read('ui/meeting-parity.css');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,captureWorker,shareRuntimeAuthority,participantsReference,macVideoJs,integration])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,captureWorker,shareRuntimeAuthority,participantsReference,macVideoJs,macAnnotationJs,integration,screenshotReference])new Function(source);
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
 assert(
@@ -189,6 +195,43 @@ assert(
   macVideoJs.includes("presenterCommand('layout-hide')") &&
   macVideoCss.includes('.video-stage:hover .video-more-button'),
   'The floating presenter video must expose hover quick controls wired through acknowledged presenter commands.'
+);
+assert(
+  main.includes("transparent:process.platform==='darwin'") &&
+  main.includes("backgroundColor:process.platform==='darwin'?'#00000000':'#07111f'") &&
+  integration.includes("document.body.classList.add('ds-native-mac-presenter-share')") &&
+  screenshotReference.includes("const nativeMacPresenter=document.body.classList.contains('ds-native-mac-presenter-share')") &&
+  screenshotReference.includes("q('.ds-ref-share-banner')?.remove()") &&
+  shareCss.includes("body.ds-native-mac-presenter-share:not([data-ds-share-companion]):not(.ds-native-mac-show-meeting) #meetingOverlay>.meeting-shell") &&
+  shareService.includes('setMacPresenterStealth(main,true)') &&
+  shareService.includes('main.setWindowButtonVisibility?.(!enabled)') &&
+  shareService.includes('main.setHasShadow?.(!enabled)'),
+  'Native Mac sharing must keep the control renderer alive while making its meeting chrome, duplicate footer/banner, shadow and traffic lights physically disappear.'
+);
+assert(
+  macAnnotationHtml.includes('data-command="annotate-pen"') &&
+  macAnnotationHtml.includes('data-command="annotate-highlight"') &&
+  macAnnotationHtml.includes('data-command="annotate-laser"') &&
+  macAnnotationHtml.includes('data-command="annotate-erase"') &&
+  macAnnotationHtml.includes('data-command="annotate-undo"') &&
+  macAnnotationHtml.includes('data-command="annotate-clear"') &&
+  macAnnotationHtml.includes('data-command="annotate-close"') &&
+  macAnnotationCss.includes('flex-direction:column') &&
+  macAnnotationJs.includes("version:'2.0.44-left-vertical'") &&
+  macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
+  macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
+  macPresenter.includes("String(shareState.companion||'')!=='annotate'") &&
+  integration.includes("if(command.startsWith('annotate-'))"),
+  'Annotate must use one independent vertical left-side native palette while the drawing engine remains authoritative in the meeting renderer.'
+);
+assert(
+  screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
+  screenshotReferenceCss.includes("body.ds-local-speaking #meetingOverlay:not(.ds-exec-lock) #roomMic:not(.is-off)>.ds-control-icon") &&
+  featureReady.includes("#roomMic .ds-exec-icon::after") &&
+  featureReady.includes("content:none!important;display:none!important") &&
+  app.includes("node?.classList.toggle('is-off',!s.micOn)") &&
+  app.includes("node?.classList.toggle('is-off',!s.cameraOn)"),
+  'Local Audio/Video controls must have one authoritative off slash, no slash while live, and green microphone speaking feedback only from the real media state.'
 );
 assert(
   media.includes("voiceContext.state==='suspended'") &&
