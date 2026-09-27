@@ -101,6 +101,10 @@
       qaLifecycleOnly:Boolean(options.__qaLifecycleOnlyWorker)
     });
     if(!started?.ok){disposeMacCaptureClient({stopWorker:false});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.');}
+    if(options?.__qaReturnBeforeWorkerActivate){
+      console.error('QA_CAPTURE_RETURN_BEFORE_WORKER_ACTIVATE');
+      return {stream:null,track:{label:String(started?.label||'Shared content'),readyState:'live'}};
+    }
     macCaptureSignalGeneration=Number(started?.generation||0)||0;
     macWorkerActive=true;
     if(generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw new DOMException('Screen share request was replaced.','AbortError');}
