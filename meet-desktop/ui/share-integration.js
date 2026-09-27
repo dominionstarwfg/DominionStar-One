@@ -217,9 +217,19 @@
 
     async function openPickerWithPermission(){
       clearCompanion();
+      const replacing=Boolean(share.snapshot().active);
+      // While an active macOS share is running, New Share must open the
+      // dedicated source-picker BrowserWindow. Keeping source discovery out of
+      // the capture-owning meeting renderer avoids re-entering legacy meeting
+      // layout/media code and gives the presenter a predictable replacement
+      // flow with independent cancel/focus behavior.
+      if(sameRendererPresenter&&replacing){
+        const entry=await resolveShareEntry('granted');
+        return entry.mode==='custom'||entry.mode==='native';
+      }
       const approved=window.DominionShareRuntimeAuthority2041;
       if(approved?.open)return approved.open();
-      return beginShare({replace:share.snapshot().active});
+      return beginShare({replace:replacing});
     }
 
     button.addEventListener('click',event=>{
