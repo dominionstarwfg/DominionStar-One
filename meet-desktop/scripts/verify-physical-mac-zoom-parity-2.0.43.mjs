@@ -73,8 +73,13 @@ assert(
   !captureWorker.includes('addTrack(') &&
   captureWorker.includes("transport:'lifecycle-only'") &&
   preload.includes('shareCapture:Object.freeze({') &&
-  shareService.includes("ipcMain.handle('share-capture:start'"),
-  'macOS display capture must remain owned by the dedicated capture renderer and must not loop the live screen track back into the meeting/control renderer.'
+  preload.includes("ipcRenderer.send('share-capture:start-request'") &&
+  preload.includes("ipcRenderer.on('share-capture:start-result'") &&
+  preload.includes('start:payload=>startCaptureWorker(payload||{})') &&
+  shareService.includes("ipcMain.on('share-capture:start-request'") &&
+  shareService.includes("event.reply('share-capture:start-result'") &&
+  !shareService.includes("ipcMain.handle('share-capture:start'"),
+  'macOS display capture must remain owned by the dedicated capture renderer and use the event-driven start/result boundary without looping the live screen track back into the meeting/control renderer.'
 );
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
