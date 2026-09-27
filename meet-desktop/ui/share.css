@@ -92,6 +92,20 @@ body[data-ds-share-companion="annotate"] .share-stage-label{top:10px!important;l
 /* Native macOS presenter: keep the meeting renderer alive for command/media
    authority, but make its ordinary chrome visually disappear. */
 body.ds-native-mac-presenter-share{background:transparent!important}
+body.ds-in-meeting.ds-native-mac-presenter-share{
+  background:transparent!important;background-color:transparent!important;background-image:none!important
+}
+body.ds-in-meeting.ds-native-mac-presenter-share #meetingOverlay,
+body.ds-in-meeting.ds-native-mac-presenter-share #meetingOverlay.ds-exec-lock,
+body.ds-in-meeting.ds-native-mac-presenter-share #meetingOverlay>.meeting-shell,
+body.ds-in-meeting.ds-native-mac-presenter-share #meetingOverlay.ds-exec-lock>.meeting-shell,
+body.ds-in-meeting.ds-native-mac-presenter-share #meetingOverlay .meeting-body,
+body.ds-in-meeting.ds-native-mac-presenter-share #meetingOverlay.ds-exec-lock .meeting-body,
+body.ds-in-meeting.ds-native-mac-presenter-share #meetingOverlay .stage,
+body.ds-in-meeting.ds-native-mac-presenter-share #meetingOverlay.ds-exec-lock .stage{
+  background:transparent!important;background-color:transparent!important;background-image:none!important;
+  box-shadow:none!important;border-color:transparent!important
+}
 body.ds-native-mac-presenter-share #meetingOverlay,
 body.ds-native-mac-presenter-share #meetingOverlay>.meeting-shell,
 body.ds-native-mac-presenter-share #meetingOverlay .meeting-body,
