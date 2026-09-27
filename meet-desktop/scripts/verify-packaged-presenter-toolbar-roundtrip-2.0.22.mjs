@@ -174,6 +174,18 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
           console.error('QA_HIDDEN_PRESENTER_PREFLIGHT_READY');
           return;
         }
+        if(diagnostic==='worker-prepare-only'){
+          const prepared=await window.dominionDesktop?.shareCapture?.qaPrepare?.();
+          if(!prepared?.ok)throw new Error(prepared?.error||'QA worker prepare failed.');
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=worker-prepare-only active=prepared');
+          return;
+        }
+        if(diagnostic==='worker-message-only'){
+          const sent=await window.dominionDesktop?.shareCapture?.qaMessageOnly?.();
+          if(!sent?.ok)throw new Error(sent?.error||'QA worker message probe failed.');
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=worker-message-only active=message-only');
+          return;
+        }
         if(diagnostic==='capture-event-only'){
           window.dominionDesktop?.share?.captureStarted?.({sourceName:'QA Capture Event Only',displayId:'',paused:false});
           console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=capture-event-only active=event-only');
