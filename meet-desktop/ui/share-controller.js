@@ -140,6 +140,10 @@
       qaShareTrace('QA_SHARE_START_BEFORE_ACQUIRE');
       const {stream,track}=await acquireDisplay(options);
       qaShareTrace('QA_SHARE_START_AFTER_ACQUIRE');
+      if(options?.__qaReturnAfterAcquire){
+        console.error('QA_SHARE_RETURN_AFTER_ACQUIRE');
+        return {active:macLike?Boolean(macWorkerActive):Boolean(stream),paused:false,busy:true,sourceName:'',options:{},annotating:false};
+      }
       if(!macLike)state.liveStream=stream;
       state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
       if(!macLike&&!options?.__qaSkipEndedListener){
