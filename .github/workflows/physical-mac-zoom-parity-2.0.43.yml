@@ -106,6 +106,12 @@ jobs:
           DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-plus-event'
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Diagnose presenter state fan-out boundary
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'worker-plus-event-plus-state'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Exercise packaged presenter command round trip
         working-directory: meet-desktop
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
