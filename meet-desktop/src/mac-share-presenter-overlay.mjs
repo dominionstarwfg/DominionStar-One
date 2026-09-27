@@ -192,18 +192,34 @@ if(process.platform==='darwin'){
     try{main.setIgnoreMouseEvents(true);}catch{}
     shareState={...shareState,meetingVisible:false};publishState();try{toolbarWindow?.moveTop?.();}catch{}return true;
   }
+  function logProcessBoundary(){
+    if(!qaPresenterTrace)return;
+    const main=mainWindow();
+    const mainPid=Number(main?.webContents?.getOSProcessId?.()||0)||0;
+    const toolbarPid=Number(toolbarWindow?.webContents?.getOSProcessId?.()||0)||0;
+    const videoPid=Number(videoWindow?.webContents?.getOSProcessId?.()||0)||0;
+    const isolated=Boolean(mainPid&&toolbarPid&&videoPid&&mainPid!==toolbarPid&&mainPid!==videoPid&&toolbarPid!==videoPid);
+    console.error(`QA_MAC_PRESENTER_PROCESS_BOUNDARY mainPid=${mainPid} toolbarPid=${toolbarPid} videoPid=${videoPid} isolated=${isolated?1:0}`);
+  }
+  async function qaRevealStage(stage='toolbar'){
+    if(!qaPresenterTrace||!shareActive)return {ok:false,stage:String(stage||''),error:'qa_stage_unavailable'};
+    await prepare();
+    const normalized=String(stage||'toolbar');
+    positionToolbar();positionBorder();positionVideo();publishState();logProcessBoundary();
+    if(normalized==='toolbar'){
+      if(toolbarReady&&isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}
+    }else if(normalized==='video'){
+      if(isAlive(videoWindow)&&videoLayout!=='hide'){videoWindow.showInactive?.();videoWindow.moveTop?.();}
+    }else if(normalized==='border'){
+      if(isDisplayShare())showBorder();else hideBorder();
+    }else return {ok:false,stage:normalized,error:'unknown_qa_reveal_stage'};
+    console.error(`QA_MAC_REVEAL_STAGE stage=${normalized}`);
+    return {ok:true,stage:normalized};
+  }
   function showOverlays(){
     if(!shareActive)return;
     void prepare().then(()=>{
-      if(!shareActive)return;positionToolbar();positionBorder();positionVideo();publishState();
-      if(qaPresenterTrace){
-        const main=mainWindow();
-        const mainPid=Number(main?.webContents?.getOSProcessId?.()||0)||0;
-        const toolbarPid=Number(toolbarWindow?.webContents?.getOSProcessId?.()||0)||0;
-        const videoPid=Number(videoWindow?.webContents?.getOSProcessId?.()||0)||0;
-        const isolated=Boolean(mainPid&&toolbarPid&&videoPid&&mainPid!==toolbarPid&&mainPid!==videoPid&&toolbarPid!==videoPid);
-        console.error(`QA_MAC_PRESENTER_PROCESS_BOUNDARY mainPid=${mainPid} toolbarPid=${toolbarPid} videoPid=${videoPid} isolated=${isolated?1:0}`);
-      }
+      if(!shareActive)return;positionToolbar();positionBorder();positionVideo();publishState();logProcessBoundary();
       if(qaKeepPresenterHidden){if(qaPresenterTrace)console.error('QA_MAC_PRESENTER_PREPARED_HIDDEN');hideOverlays();return;}
       if(toolbarReady&&isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}
       if(isAlive(videoWindow)&&videoLayout!=='hide'){videoWindow.showInactive?.();videoWindow.moveTop?.();}
@@ -230,6 +246,7 @@ if(process.platform==='darwin'){
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
   ipcMain.handle('mac-share:reveal',()=>{showOverlays();return {ok:true};});
+  ipcMain.handle('mac-share:qa-reveal-stage',(_event,{stage='toolbar'}={})=>qaRevealStage(stage));
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{
     shareActive=true;shareState={...shareState,...state,meetingVisible:false};
