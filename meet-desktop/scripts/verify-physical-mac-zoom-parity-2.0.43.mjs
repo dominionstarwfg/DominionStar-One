@@ -280,7 +280,9 @@ assert(
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
   shareService.includes('Do not perform any delayed')&&
-  shareService.includes('cancelMacParkTimer();\n    keepMeetingRendererLive();\n    return true;')&&
+  shareService.includes('cancelMacParkTimer();\n    const main=getMainWindow?.();keepMeetingRendererLive();setMacPresenterStealth(main,true);\n    return true;')&&
+  shareService.includes('main.setWindowButtonVisibility?.(!enabled)')&&
+  shareService.includes('main.setHasShadow?.(!enabled)')&&
   !shareService.includes('setTimeout(()=>{macParkTimer=null;if(shareActive)parkMacMeetingWindow({preCapture:false});')&&
   shareService.includes('main.setOpacity?.(1)')&&
   shareService.includes('try{main.blur?.();}catch{}')&&
