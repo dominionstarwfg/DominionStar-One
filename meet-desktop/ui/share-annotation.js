@@ -17,6 +17,13 @@
   function up(event){if(!state.drawing)return;state.drawing=false;state.last=null;state.canvas.releasePointerCapture?.(event.pointerId);if(state.mode==='laser')clearLaser(650);}
   function setMode(mode){if(state.mode==='laser'&&mode!=='laser')clearLaser();state.mode=mode;for(const b of state.overlay?.querySelectorAll('[data-annotation-mode]')||[])b.classList.toggle('active',b.dataset.annotationMode===mode);}
   function clear(){if(!state.ctx||!state.canvas)return;pushHistory();clearLaser();state.ctx.clearRect(0,0,state.canvas.width,state.canvas.height);}
+  function setColor(color){
+    const wanted=String(color||'').toLowerCase();
+    if(!['#ff3b30','#2d8cff','#28c76f','#ffffff'].includes(wanted))return false;
+    state.color=wanted;
+    for(const b of state.overlay?.querySelectorAll('[data-annotation-color]')||[])b.classList.toggle('active',String(b.dataset.annotationColor||'').toLowerCase()===wanted);
+    return true;
+  }
   function ensure(){
     const stage=q('.stage');if(!stage)return null;if(state.overlay?.isConnected)return state.overlay;
     const overlay=document.createElement('div');overlay.className='share-annotation-overlay';overlay.hidden=true;overlay.innerHTML='<canvas class="share-annotation-canvas"></canvas><div class="share-annotation-tools"><button type="button" data-annotation-mode="pen">Pen</button><button type="button" data-annotation-mode="highlight">Highlight</button><button type="button" data-annotation-mode="laser">Laser</button><button type="button" data-annotation-mode="erase">Erase</button><span class="annotation-colors" aria-label="Annotation color"><button type="button" data-annotation-color="#ff3b30" class="active" aria-label="Red"></button><button type="button" data-annotation-color="#2d8cff" aria-label="Blue"></button><button type="button" data-annotation-color="#28c76f" aria-label="Green"></button><button type="button" data-annotation-color="#ffffff" aria-label="White"></button></span><button type="button" data-annotation-undo disabled>Undo</button><button type="button" data-annotation-clear>Clear</button><button type="button" data-annotation-close>Done</button></div>';stage.append(overlay);state.overlay=overlay;state.canvas=overlay.querySelector('canvas');state.ctx=state.canvas.getContext('2d');state.canvas.addEventListener('pointerdown',down);state.canvas.addEventListener('pointermove',move);state.canvas.addEventListener('pointerup',up);state.canvas.addEventListener('pointercancel',up);overlay.querySelectorAll('[data-annotation-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.annotationMode));overlay.querySelectorAll('[data-annotation-color]').forEach(b=>b.onclick=()=>{state.color=b.dataset.annotationColor||'#ff3b30';overlay.querySelectorAll('[data-annotation-color]').forEach(x=>x.classList.toggle('active',x===b));});overlay.querySelector('[data-annotation-undo]').onclick=undo;overlay.querySelector('[data-annotation-clear]').onclick=clear;overlay.querySelector('[data-annotation-close]').onclick=()=>deactivate();state.resizeObserver=new ResizeObserver(resize);state.resizeObserver.observe(stage);resize();setMode('pen');syncUndo();return overlay;
@@ -36,5 +43,5 @@
   }
   function toggle(){return state.active?deactivate():activate();}
   setInterval(()=>{if(state.active&&!share()?.snapshot?.().active)deactivate();},400);
-  window.DominionShareAnnotation=Object.freeze({version:'1.1.1',activate,deactivate,toggle,clear,undo,setMode,snapshot:()=>({active:state.active,mode:state.mode,color:state.color,undoDepth:state.history.length})});
+  window.DominionShareAnnotation=Object.freeze({version:'1.2.0-native-palette',activate,deactivate,toggle,clear,undo,setMode,setColor,snapshot:()=>({active:state.active,mode:state.mode,color:state.color,undoDepth:state.history.length})});
 })();
