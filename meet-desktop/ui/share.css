@@ -98,8 +98,16 @@ body.ds-native-mac-presenter-share #meetingOverlay .meeting-body,
 body.ds-native-mac-presenter-share #meetingOverlay .stage{
   background:transparent!important;box-shadow:none!important;border-color:transparent!important
 }
-body.ds-native-mac-presenter-share:not([data-ds-share-companion]) #meetingOverlay>.meeting-shell{
+body.ds-native-mac-presenter-share:not([data-ds-share-companion]):not(.ds-native-mac-show-meeting) #meetingOverlay>.meeting-shell{
   visibility:hidden!important;pointer-events:none!important
+}
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting #meetingOverlay>.meeting-shell{
+  visibility:visible!important;pointer-events:auto!important
+}
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting #meetingOverlay .meeting-footer,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting #inlinePresenterToolbar,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting .ds-ref-share-banner{
+  display:none!important
 }
 body.ds-native-mac-presenter-share .inline-presenter-toolbar,
 body.ds-native-mac-presenter-share .share-stage-label,
