@@ -112,6 +112,12 @@ jobs:
           DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'controller-after-acquire'
         run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
+      - name: Diagnose controller before worker-active commit
+        working-directory: meet-desktop
+        env:
+          DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC: 'controller-before-worker-active'
+        run: node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "../${{ steps.app.outputs.path }}"
+
       - name: Diagnose share controller before presenter handshake
         working-directory: meet-desktop
         env:
