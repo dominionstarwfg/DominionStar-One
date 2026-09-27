@@ -298,7 +298,7 @@
     if(panel){
       const baseWidth=panel.classList.contains('ds-panel-wide')?460:390;
       const width=Math.min(baseWidth,Math.max(300,bodyWidth-24));
-      const height=Math.min(560,Math.max(320,bodyHeight-20));
+      const height=Math.min(520,Math.max(320,bodyHeight-96));
       panel.dataset.dsRuntimeMode='floating';
       panel.dataset.zoomPanelMode='runtime';
       panel.style.setProperty('position','absolute','important');
