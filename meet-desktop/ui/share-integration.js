@@ -128,10 +128,14 @@
       if(window.__DOMINION_QA_SKIP_SHARE_LAYOUT)return;
       const state=share.snapshot(),mediaState=media.snapshot();
       if(sameRendererPresenter&&state.active){
-        // Native macOS presenter mode is deliberately headless inside the
-        // meeting renderer. Do not mutate share DOM or publish generalized
-        // state from the share-onChange transaction; either action can wake
-        // unrelated observers while presenter commands need the event loop.
+        // macOS has a single native presenter surface. Keep every legacy
+        // renderer share control/status hidden so the physical desktop never
+        // shows duplicate toolbars or duplicate "You are sharing" strips.
+        overlay.classList.remove('share-active');
+        inlinePresenter.hidden=true;
+        label.hidden=true;
+        sharedVideo.hidden=true;
+        cameraTile.hidden=true;
         return;
       }
       overlay.classList.toggle('share-active',state.active);
@@ -296,9 +300,26 @@
         if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}
         if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
-        if(command==='participants'){window.DominionRuntimeStability?.setChat?.(false);window.DominionRuntimeStability?.setParticipants?.(true);setCompanion('participants');return {handled:true,command};}
-        if(command==='chat'){window.DominionRuntimeStability?.setParticipants?.(false);window.DominionRuntimeStability?.setChat?.(true);setCompanion('chat');return {handled:true,command};}
-        if(command==='annotate'){const active=Boolean(window.DominionShareAnnotation?.toggle?.());setCompanion(active?'annotate':'');if(!sameRendererPresenter)applyLayout();return {handled:true,command};}
+        if(command==='participants'){
+          window.DominionShareAnnotation?.deactivate?.();
+          window.DominionRuntimeStability?.setChat?.(false);
+          window.DominionRuntimeStability?.setParticipants?.(true);
+          setCompanion('participants');return {handled:true,command};
+        }
+        if(command==='chat'){
+          window.DominionShareAnnotation?.deactivate?.();
+          window.DominionRuntimeStability?.setParticipants?.(false);
+          window.DominionRuntimeStability?.setChat?.(true);
+          setCompanion('chat');return {handled:true,command};
+        }
+        if(command==='annotate'){
+          window.DominionRuntimeStability?.setParticipants?.(false);
+          window.DominionRuntimeStability?.setChat?.(false);
+          const active=Boolean(window.DominionShareAnnotation?.toggle?.());
+          setCompanion(active?'annotate':'');
+          if(!sameRendererPresenter)applyLayout();
+          return {handled:true,command};
+        }
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
