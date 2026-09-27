@@ -6,7 +6,7 @@ if(process.platform==='darwin'){
   const here=path.dirname(fileURLToPath(import.meta.url));
   const uiDir=path.resolve(here,'../ui');
   const presenterPreloadPath=path.join(here,'presenter-preload.cjs');
-  const PREPARE_STEP_TIMEOUT_MS=2200;
+  const PREPARE_STEP_TIMEOUT_MS=5000;
   const BORDER_THICKNESS=4;
   const BORDER_COLOR='#2ed573';
   let toolbarWindow=null;
@@ -42,10 +42,10 @@ if(process.platform==='darwin'){
   function protect(win){if(!isAlive(win))return;try{win.setContentProtection(true);}catch{}}
   function wakeMain(main=mainWindow()){
     if(!isAlive(main))return false;
-    // Renderer liveness only. Do not show, focus, resize, change opacity, or
-    // move the meeting BrowserWindow from the native presenter module.
-    // share-service is the sole meeting-window geometry authority.
-    try{main.webContents?.setBackgroundThrottling?.(false);}catch{}
+    // Renderer scheduling is fixed at BrowserWindow creation. Do not mutate
+    // background throttling while macOS presenter surfaces are hidden/shown;
+    // the 43.x compositor path is sensitive to that runtime transition.
+    // share-service remains the sole meeting-window geometry authority.
     try{toolbarWindow?.moveTop?.();}catch{}
     return true;
   }
