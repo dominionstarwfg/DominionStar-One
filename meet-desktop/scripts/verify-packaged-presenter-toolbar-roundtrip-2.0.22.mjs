@@ -105,9 +105,10 @@ class Cdp{
   close(){try{this.socket?.close();}catch{}}
 }
 
-async function setupRenderer(skipShareLayout=false){
+async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
+  const diagnostic=String(diagnosticMode||'');
   window.__DOMINION_QA_SKIP_SHARE_LAYOUT=Boolean(skipShareLayout);
-  window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS=Boolean(skipShareLayout);
+  window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS=Boolean(skipShareLayout||diagnostic);
   document.querySelector('#bootScreen').hidden=true;
   document.querySelector('#authGate').hidden=true;
   document.querySelector('#appShell').hidden=true;
@@ -173,6 +174,18 @@ async function setupRenderer(skipShareLayout=false){
           console.error('QA_HIDDEN_PRESENTER_PREFLIGHT_READY');
           return;
         }
+        if(diagnostic==='capture-event-only'){
+          window.dominionDesktop?.share?.captureStarted?.({sourceName:'QA Capture Event Only',displayId:'',paused:false});
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode=capture-event-only active=event-only');
+          return;
+        }
+        if(diagnostic==='worker-only'||diagnostic==='worker-plus-event'){
+          const options={shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true};
+          if(diagnostic==='worker-only')options.__qaSkipCaptureStarted=true;
+          const shareState=await window.DominionShareController.start({name:'QA '+diagnostic,options});
+          console.error('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode='+diagnostic+' active='+(shareState.active?1:0));
+          return;
+        }
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
         const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true}});
         window.DominionShareIntegration.commitPresenterMode();
@@ -196,12 +209,26 @@ try{
   stage('controllers-loaded');
 
   const skipShareLayout=process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
-  const prepared=await main.eval('('+setupRenderer.toString()+')('+JSON.stringify(skipShareLayout)+')',15000);
+  const diagnosticMode=String(process.env.DOMINIONSTAR_QA_ACTIVE_SHARE_DIAGNOSTIC||'');
+  const prepared=await main.eval('('+setupRenderer.toString()+')('+JSON.stringify(skipShareLayout)+','+JSON.stringify(diagnosticMode)+')',15000);
   assert.equal(prepared.cameraOn,true);
   assert.equal(prepared.videoLive,true);
   assert.equal(prepared.micOn,false);
   assert.equal(prepared.chatReady,true);
   stage('live-camera-prepared');
+  if(diagnosticMode){
+    await waitStderr('QA_ACTIVE_SHARE_DIAGNOSTIC_READY mode='+diagnosticMode,'active-share diagnostic '+diagnosticMode,10000);
+    let responsive=false,error='';
+    try{
+      await sleep(550);
+      const result=await main.eval("(()=>({ready:document.readyState,dispatcher:typeof window.__DominionPresenterDispatch==='function'}))()",2500);
+      responsive=result?.ready==='complete'&&result?.dispatcher===true;
+    }catch(reason){error=String(reason?.message||reason||'probe-failed').replace(/\s+/g,'_');}
+    console.log('DOMINIONSTAR_ACTIVE_SHARE_DIAGNOSTIC_RESULT mode='+diagnosticMode+' responsive='+(responsive?1:0)+(error?' error='+error:''));
+    main.close();
+    await terminatePackagedApp();
+    process.exit(0);
+  }
   if(process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1'){
     await waitStderr('QA_HIDDEN_PRESENTER_PREFLIGHT_READY','hidden presenter preflight marker',5000);
     await waitStderr(/QA_PRESENTER_RENDERER_PULSE accepted=1 index=(1|2)/,'renderer preload heartbeat with presenter surfaces hidden',6000);
