@@ -153,7 +153,7 @@
       }
       let presenter=null;
       try{
-        const qaSkipCaptureStarted=Boolean(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS&&options?.__qaSkipCaptureStarted);
+        const qaSkipCaptureStarted=Boolean(options?.__qaSkipCaptureStarted);
         qaShareTrace('QA_SHARE_START_BEFORE_CAPTURE_STARTED');
         const acknowledgement=qaSkipCaptureStarted
           ? Promise.resolve({ok:true,toolbarReady:true,qaSkipped:true})
