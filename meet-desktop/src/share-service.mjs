@@ -139,8 +139,40 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false,opacity};return main;
   }
   function keepMeetingRendererLive(){const main=getMainWindow?.();return Boolean(main&&!main.isDestroyed());}
+  function closeLegacyMacPresenterWindows(){
+    if(platform!=='darwin')return 0;
+    let closed=0;
+    for(const win of BrowserWindow.getAllWindows()){
+      if(!win||win.isDestroyed?.())continue;
+      const url=String(win.webContents?.getURL?.()||'');
+      if(!url.includes('/ui/presenter-toolbar.html'))continue;
+      try{win.setClosable?.(true);}catch{}
+      try{win.hide?.();}catch{}
+      try{win.close?.();closed+=1;}catch{}
+    }
+    if(toolbarWindow&&!toolbarWindow.isDestroyed?.()){
+      try{toolbarWindow.setClosable?.(true);}catch{}
+      try{toolbarWindow.hide?.();}catch{}
+      try{toolbarWindow.close?.();closed+=1;}catch{}
+      toolbarWindow=null;
+    }
+    return closed;
+  }
+  function syncMacTransparentPresenterShell(main,enabled){
+    if(platform!=='darwin'||!main||main.isDestroyed())return false;
+    try{main.setBackgroundColor?.(enabled?'#00000000':'#07111f');}catch{}
+    try{
+      const script=enabled
+        ? `(()=>{document.documentElement.style.background='transparent';document.body.style.background='transparent';document.body.classList.add('ds-native-mac-presenter-share');document.body.classList.remove('ds-native-mac-show-meeting');const shell=document.querySelector('#meetingOverlay>.meeting-shell');if(shell){shell.style.visibility='hidden';shell.style.pointerEvents='none';}return true;})()`
+        : `(()=>{document.documentElement.style.background='';document.body.style.background='';document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');const shell=document.querySelector('#meetingOverlay>.meeting-shell');if(shell){shell.style.visibility='';shell.style.pointerEvents='';}return true;})()`;
+      void main.webContents?.executeJavaScript?.(script,true).catch?.(()=>{});
+    }catch{}
+    return true;
+  }
   function setMacPresenterStealth(main,enabled){
     if(platform!=='darwin'||!main||main.isDestroyed())return false;
+    closeLegacyMacPresenterWindows();
+    syncMacTransparentPresenterShell(main,Boolean(enabled));
     try{main.setWindowButtonVisibility?.(!enabled);}catch{}
     try{main.setHasShadow?.(!enabled);}catch{}
     return true;
@@ -272,7 +304,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     // Never create the legacy presenter-toolbar BrowserWindow on Mac; two
     // independent toolbar windows produce the duplicated share chrome seen on
     // the physical machine.
-    if(platform==='darwin'){closeToolbar();return true;}
+    if(platform==='darwin'){closeLegacyMacPresenterWindows();closeToolbar();return true;}
     if(toolbarWindow&&!toolbarWindow.isDestroyed()){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();publishToolbarState();return true;}
     const created=new BrowserWindow({width:900,height:72,minWidth:720,minHeight:72,maxHeight:292,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,focusable:false,acceptFirstMouse:true,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}});
     toolbarWindow=created;positionNearMain(created,900,72);try{created.setAlwaysOnTop(true,'floating');}catch{}
