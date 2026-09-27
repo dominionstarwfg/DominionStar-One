@@ -17,16 +17,23 @@
   });
   const listeners=new Set();
   let displayRequestGeneration=0;
+  let qaShareEmitSequence=0;
+  const qaShareTrace=message=>{if(window.__DOMINION_QA_TRACE_SHARE_TRANSACTION)console.error(message);};
   const snapshot=()=>({active:macLike?Boolean(macWorkerActive):Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
   const emit=()=>{
     // A suppressed physical-Mac diagnostic must execute zero observer/snapshot
     // work. This distinguishes controller transaction bookkeeping from the
     // already-proven healthy raw display stream.
-    if(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS)return null;
-    const value=snapshot();
+    if(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS){qaShareTrace('QA_SHARE_EMIT_SUPPRESSED');return null;}
+    const value=snapshot(),sequence=++qaShareEmitSequence;
+    qaShareTrace(`QA_SHARE_EMIT_BEGIN sequence=${sequence} active=${value.active?1:0} busy=${value.busy?1:0} listeners=${listeners.size}`);
+    let index=0;
     for(const listener of [...listeners]){
+      index+=1;qaShareTrace(`QA_SHARE_LISTENER_BEGIN sequence=${sequence} index=${index}`);
       try{listener(value);}catch(error){console.error('[DominionStar Meet] Share state listener failed.',error);}
+      qaShareTrace(`QA_SHARE_LISTENER_END sequence=${sequence} index=${index}`);
     }
+    qaShareTrace(`QA_SHARE_EMIT_END sequence=${sequence}`);
     return value;
   };
   const stopTracks=stream=>{for(const track of stream?.getTracks?.()||[]){if(track.readyState!=='ended'){try{track.stop();}catch{}}}};
@@ -132,9 +139,13 @@
   async function start({name='',options={}}={}){
     if(state.busy||state.liveStream)return snapshot();
     if(!macLike&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
+    if(options?.__qaLifecycleOnlyWorker)window.__DOMINION_QA_TRACE_SHARE_TRANSACTION=true;
+    qaShareTrace('QA_SHARE_START_ENTER');
     state.busy=true;emit();
     try{
+      qaShareTrace('QA_SHARE_START_BEFORE_ACQUIRE');
       const {stream,track}=await acquireDisplay(options);
+      qaShareTrace('QA_SHARE_START_AFTER_ACQUIRE');
       if(!macLike)state.liveStream=stream;
       state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
       if(!macLike&&!options?.__qaSkipEndedListener){
@@ -149,10 +160,13 @@
       let presenter=null;
       try{
         const qaSkipCaptureStarted=Boolean(window.__DOMINION_QA_SUPPRESS_SHARE_LISTENERS&&options?.__qaSkipCaptureStarted);
+        qaShareTrace('QA_SHARE_START_BEFORE_CAPTURE_STARTED');
         const acknowledgement=qaSkipCaptureStarted
           ? Promise.resolve({ok:true,toolbarReady:true,qaSkipped:true})
           : Promise.resolve(bridge?.captureStarted?.({sourceName:state.sourceName,displayId:String(state.options?.displayId||''),paused:false}));
+        qaShareTrace('QA_SHARE_START_AFTER_CAPTURE_STARTED_SEND');
         presenter=await Promise.race([acknowledgement,new Promise(resolve=>setTimeout(()=>resolve({ok:true,toolbarReady:true,pending:true}),900))]);
+        qaShareTrace('QA_SHARE_START_AFTER_CAPTURE_STARTED_ACK');
         void acknowledgement.then(result=>{
           if(result?.toolbarReady===false&&(macLike?macWorkerActive:state.liveStream===stream))void stop();
         }).catch(error=>{
@@ -171,8 +185,14 @@
         try{await bridge?.captureStopped?.();}catch{}
         throw new Error('Presenter controls could not start. Screen sharing was cancelled safely.');
       }
+      qaShareTrace('QA_SHARE_START_RETURN_READY');
       return snapshot();
-    }finally{state.busy=false;emit();}
+    }finally{
+      state.busy=false;
+      qaShareTrace('QA_SHARE_START_BEFORE_FINAL_EMIT');
+      emit();
+      qaShareTrace('QA_SHARE_START_AFTER_FINAL_EMIT');
+    }
   }
 
   async function replaceSource({name='',options={}}={}){
