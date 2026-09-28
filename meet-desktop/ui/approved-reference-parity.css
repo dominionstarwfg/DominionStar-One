@@ -226,6 +226,60 @@
 #participantVideoDock[data-approved-filmstrip="1"] .dock-grip{
   display:none !important;
 }
+#participantVideoDock[data-approved-filmstrip="1"] .local-video-dock-tile{
+  order:-100 !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-hover-actions{
+  position:absolute !important;
+  z-index:9 !important;
+  top:7px !important;
+  right:7px !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:5px !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+  transform:translateY(-2px) !important;
+  transition:opacity .12s ease,transform .12s ease !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile:hover .participant-video-hover-actions,
+#participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile:focus-within .participant-video-hover-actions{
+  opacity:1 !important;
+  pointer-events:auto !important;
+  transform:translateY(0) !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-hover-actions[aria-hidden="false"]{
+  opacity:1 !important;
+  pointer-events:auto !important;
+  transform:translateY(0) !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-hover-actions button{
+  width:auto !important;
+  min-width:0 !important;
+  height:27px !important;
+  padding:0 9px !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  border-radius:6px !important;
+  background:rgba(18,19,21,.88) !important;
+  color:#fff !important;
+  font-size:10px !important;
+  font-weight:650 !important;
+  line-height:1 !important;
+  box-shadow:0 4px 14px rgba(0,0,0,.32) !important;
+  backdrop-filter:blur(10px) !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-hover-actions button:hover{
+  background:rgba(53,54,58,.96) !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-hover-primary[hidden]{
+  display:none !important;
+}
+#participantVideoDock[data-approved-filmstrip="1"] .participant-video-hover-more{
+  width:30px !important;
+  padding:0 !important;
+  font-size:14px !important;
+  letter-spacing:.08em !important;
+}
 #participantVideoDock[data-approved-filmstrip="1"] button,
 #participantVideoDock[data-approved-filmstrip="1"] .participant-video-resize{
   cursor:pointer !important;
