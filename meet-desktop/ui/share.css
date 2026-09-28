@@ -112,6 +112,9 @@ body.ds-native-mac-presenter-share #meetingOverlay .meeting-body,
 body.ds-native-mac-presenter-share #meetingOverlay .stage{
   background:transparent!important;box-shadow:none!important;border-color:transparent!important
 }
+body.ds-native-mac-presenter-share #appShell{
+  visibility:hidden!important;opacity:0!important;pointer-events:none!important
+}
 body.ds-native-mac-presenter-share:not([data-ds-share-companion]):not(.ds-native-mac-show-meeting) #meetingOverlay>.meeting-shell{
   visibility:hidden!important;pointer-events:none!important
 }
