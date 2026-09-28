@@ -249,13 +249,13 @@ try{
   assert.ok(participantPanelGeometry.rightGap>=18&&participantPanelGeometry.rightGap<=36,'Participants must open as an inset floating surface rather than an edge-attached sidebar.');
   assert.ok(Math.abs(participantPanelGeometry.stageRightGap)<=2,'Floating Participants must not reserve the right edge or shrink the live stage.');
   assert.ok(Math.abs(participantPanelGeometry.stageWidth-participantPanelGeometry.bodyWidth)<=2,'The live stage must remain full width underneath floating Participants.');
-  assert.equal(await evaluate(`Boolean(document.querySelector('.room-side .ds-panel-traffic .close')&&document.querySelector('.room-side-head button[aria-label="Close participants"]'))`),true,'Participants floating surface must expose direct close controls.');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.room-side-head button[aria-label="Close participants"]'))&&!document.querySelector('.room-side .ds-panel-traffic')`),true,'Participants floating surface must expose direct close controls.');
   const participantBeforeDrag=await evaluate(`(()=>{const p=document.querySelector('.room-side').getBoundingClientRect();return {left:p.left,top:p.top};})()`);
   await evaluate(`(()=>{const panel=document.querySelector('.room-side');panel.dataset.dsRuntimeUserPositioned='1';panel.style.setProperty('left','72px','important');panel.style.setProperty('top','86px','important');panel.style.setProperty('right','auto','important');window.DominionRuntimeStability.layoutSideSurface();return true;})()`);
   const participantAfterDrag=await evaluate(`(()=>{const p=document.querySelector('.room-side').getBoundingClientRect();return {left:Math.round(p.left),top:Math.round(p.top),user:document.querySelector('.room-side').dataset.dsRuntimeUserPositioned};})()`);
   assert.equal(participantAfterDrag.user,'1','Participants must preserve user-positioned floating state.');
   assert.ok(Math.abs(participantAfterDrag.left-participantBeforeDrag.left)>10||Math.abs(participantAfterDrag.top-participantBeforeDrag.top)>10,'Participants floating geometry did not move away from its default position.');
-  assert.equal(await evaluate(`(()=>{document.querySelector('.room-side .ds-panel-traffic .close').click();return document.querySelector('.room-side').hidden===true;})()`),true,'Participants direct close control did not close the floating panel.');
+  assert.equal(await evaluate(`(()=>{document.querySelector('.room-side-head button[aria-label="Close participants"]').click();return document.querySelector('.room-side').hidden===true;})()`),true,'Participants direct close control did not close the floating panel.');
   await evaluate(`document.querySelector('#roomParticipants').click();true`);
   const participantReopen=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const p=document.querySelector('.room-side').getBoundingClientRect();return {left:Math.round(p.left),top:Math.round(p.top),user:document.querySelector('.room-side').dataset.dsRuntimeUserPositioned};})()`);
   assert.equal(participantReopen.user,'1','Participants forgot dragged geometry after reopening.');
@@ -266,11 +266,11 @@ try{
   assert.equal(await evaluate(`Boolean(document.querySelector('#meetingChatRecipient')&&document.querySelector('#meetingChatInput')&&document.querySelector('#meetingChatForm'))`),true,'Chat must retain recipient targeting, message entry, and send controls under the approved clean chrome.');
   assert.equal(await evaluate(`document.querySelector('#meetingChatRecipient')?.options?.[0]?.value==='everyone'`),true,'Chat must default to Everyone while retaining private-recipient support.');
   assert.equal(await evaluate(`getComputedStyle(document.querySelector('#meetingChatPanel .meeting-chat-recipient')).display==='none'`),true,'Legacy To: row must remain hidden under the approved Chat chrome.');
-  assert.equal(await evaluate(`Boolean(document.querySelector('#meetingChatPanel .ds-panel-traffic .close')&&document.querySelector('#meetingChatPanel [data-chat-close]'))`),true,'Chat floating surface must expose direct close controls.');
+  assert.equal(await evaluate(`Boolean(document.querySelector('#meetingChatPanel [data-chat-close]'))&&!document.querySelector('#meetingChatPanel .ds-panel-traffic')`),true,'Chat floating surface must expose direct close controls.');
   const chatGeometry=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const p=document.querySelector('#meetingChatPanel').getBoundingClientRect(),b=document.querySelector('.meeting-body').getBoundingClientRect();return {rightGap:Math.round(b.right-p.right),topGap:Math.round(p.top-b.top),mode:document.querySelector('#meetingChatPanel').dataset.dsRuntimeMode};})()`);
   assert.equal(chatGeometry.mode,'floating','Chat must use the floating runtime surface.');
   assert.ok(chatGeometry.rightGap>=18&&chatGeometry.rightGap<=36&&chatGeometry.topGap>=40,'Chat must open inset from the meeting edge rather than docked to it.');
-  assert.equal(await evaluate(`(()=>{document.querySelector('#meetingChatPanel .ds-panel-traffic .close').click();return document.querySelector('#meetingChatPanel').hidden===true;})()`),true,'Chat direct close control did not close chat.');mark('chat-floating');
+  assert.equal(await evaluate(`(()=>{document.querySelector('#meetingChatPanel [data-chat-close]').click();return document.querySelector('#meetingChatPanel').hidden===true;})()`),true,'Chat direct close control did not close chat.');mark('chat-floating');
 
   await evaluate(`document.querySelector('#roomReactions').click();true`);
   await waitFor("document.querySelector('.meeting-reaction-menu')",'reaction menu',2500);
@@ -294,17 +294,20 @@ try{
     strip.replaceChildren();
     for(let i=0;i<4;i+=1){const tile=document.createElement('article');tile.className='remote-peer-tile';tile.dataset.participantId='qa-'+i;tile.innerHTML='<video></video><footer><strong>QA</strong></footer>';strip.append(tile);}
     window.DominionMeetingParity.resetVideoDock();
-    window.DominionMeetingParity.syncVideoDock();window.DominionZoomAdaptiveParity.sync();window.DominionApprovedReferenceParity.syncVideoPanel();
+    window.DominionMeetingParity.syncVideoDock();window.DominionZoomAdaptiveParity.sync();window.DominionApprovedReferenceParity.syncVideoPanel();window.DominionRuntimeStability.syncVideoDockGeometry();
     const node=document.querySelector('#participantVideoDock'),stage=document.querySelector('.stage');
     const nr=node.getBoundingClientRect(),sr=stage.getBoundingClientRect();
-    return {hidden:node.hidden,className:node.className,orientation:node.dataset.orientation,grid:getComputedStyle(node.querySelector('.participant-video-dock-body')).gridTemplateColumns,rightGap:Math.round(sr.right-nr.right),topGap:Math.round(nr.top-sr.top)};
+    return {hidden:node.hidden,className:node.className,orientation:node.dataset.orientation,grid:getComputedStyle(node.querySelector('.participant-video-dock-body')).gridTemplateColumns,rightGap:Math.round(sr.right-nr.right),topGap:Math.round(nr.top-sr.top),columns:Number(node.dataset.dsRuntimeColumns||0),visible:Number(node.dataset.dsRuntimeVisibleCount||0),width:Math.round(nr.width),height:Math.round(nr.height)};
   })()`);
   assert.equal(dock.hidden,false,'Four participant tiles must show the Zoom-style video filmstrip.');
   assert.match(dock.className,/count-4/,'Four participant tiles must retain the four-tile adaptive dock state.');
   assert.equal(dock.orientation,'vertical','Normal Speaker view must keep the participant filmstrip vertical on the right.');
   assert.ok(dock.rightGap>=8&&dock.rightGap<=24,`Default participant video filmstrip must sit against the right edge; received ${dock.rightGap}px.`);
   assert.ok(dock.topGap>=8&&dock.topGap<=24,`Default participant video filmstrip must start near the upper-right corner; received ${dock.topGap}px.`);
-  assert.equal(String(dock.grid).split(' ').filter(Boolean).length,1,'Normal Speaker view must remain a single-column right filmstrip rather than inventing a grid.');
+  assert.equal(dock.visible,4,'Adaptive participant video panel did not count all visible participant tiles.');
+  assert.equal(dock.columns,2,'Four visible participants must expand the video panel to two columns.');
+  assert.equal(String(dock.grid).split(' ').filter(Boolean).length,2,'Four visible participants must render a two-column adaptive video grid.');
+  assert.ok(dock.width>=350&&dock.height>=220,'Four visible participants did not enlarge the video panel geometry.');
   const shareDock=await evaluate(`(()=>{
     const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');
     overlay.classList.add('share-active');window.DominionPreferences?.write?.('shareVideoDock',true);window.DominionPreferences?.write?.('shareSideBySide',false);
