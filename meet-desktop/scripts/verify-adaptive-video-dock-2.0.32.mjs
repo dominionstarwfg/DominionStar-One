@@ -33,5 +33,10 @@ assert.ok(parity.includes("selfRow=q('#participantRoster [data-participant-self=
 assert.ok(parity.includes('const should=Boolean(!hideSelf)')&&parity.includes("fallback.hidden=!should"),'Camera-off self view must remain represented by its fallback/profile surface rather than disappearing.');
 assert.ok(participantControls.includes('sendParticipant:send')&&participantControls.includes('openParticipantMenu'),'Filmstrip moderation must reuse participant authority instead of duplicating host logic.');
 assert.ok(webrtc.includes('tile.dataset.participantRole')&&webrtc.includes('tile.dataset.micOn'),'Remote video tiles must carry live role and microphone state for contextual actions.');
+assert.ok(parity.includes('VIDEO_PANEL_MODE_KEY')&&parity.includes("['speaker','strip','gallery']")&&parity.includes('data-dock-panel-mode="hide"'),'Floating video panel must expose speaker, strip, gallery, and hide modes.');
+assert.ok(parity.includes("index>0&&index%5===0")&&parity.includes("all.length>5"),'Gallery paging and scroll affordance must cap each visible participant group at five.');
+assert.ok(approved.includes('max-height:527px !important')&&approved.includes('max-height:313px !important')&&approved.includes('scrollbar-width:none !important'),'Video panel must show no more than five equal tiles before internal scrolling, with no outside scrollbar.');
+assert.ok(approved.includes('width:176px !important')&&approved.includes('height:99px !important')&&approved.includes('max-width:176px !important')&&approved.includes('max-height:99px !important'),'Floating participant tiles must use one stable 16:9 size.');
+assert.ok(approved.includes('.participant-video-dock-modes')&&approved.includes('.participant-video-scroll-controls'),'The panel must keep compact native-looking layout controls and internal up/down scroll controls inside the floating surface.');
 
-console.log('DOMINIONSTAR_ADAPTIVE_VIDEO_DOCK_2_0_32_OK wide-right compact-top restore-right user-clamp event-driven no-polling self-first smart-hover role-aware self-name camera-off-fallback');
+console.log('DOMINIONSTAR_ADAPTIVE_VIDEO_DOCK_2_0_32_OK wide-right compact-top restore-right user-clamp event-driven no-polling self-first smart-hover role-aware self-name camera-off-fallback equal-tiles five-visible internal-scroll speaker-strip-gallery-hide');
