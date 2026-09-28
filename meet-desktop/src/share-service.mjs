@@ -291,6 +291,37 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   function attachShareWindowLifecycle(){const main=getMainWindow?.();if(!main||main.isDestroyed()||mainMinimizeHandler)return;mainMinimizeHandler=event=>{if(!shareActive)return;event?.preventDefault?.();hideMeetingWindowForShare();};main.on('minimize',mainMinimizeHandler);}
   function detachShareWindowLifecycle(){const main=getMainWindow?.();if(main&&!main.isDestroyed()&&mainMinimizeHandler)main.removeListener('minimize',mainMinimizeHandler);mainMinimizeHandler=null;}
 
+  function recoverMainWindow({focus=true}={}){
+    const main=getMainWindow?.();if(!main||main.isDestroyed())return false;
+    if(shareActive)return showMeetingWindow({focus:Boolean(focus)});
+    restoreMainWindowAfterShare();
+    try{if(main.isMinimized?.())main.restore();}catch{}
+    try{main.show();}catch{}
+    if(focus)try{main.focus();}catch{}
+    return true;
+  }
+  function shutdown(){
+    if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
+    if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}
+    cancelToolbarOpen();detachShareWindowLifecycle();
+    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;activeCaptureDisplayId='';
+    try{signalCaptureWorker('share-capture:stop',{});}catch{}
+    if(captureWorkerAlive()){try{captureWorkerWindow.destroy();}catch{}captureWorkerWindow=null;}
+    try{closePicker();}catch{}
+    try{closeToolbar();}catch{}
+    try{closeLegacyMacPresenterWindows();}catch{}
+    try{globalThis.__dominionMacSharePresenterOverlay?.hideOverlays?.();}catch{}
+    const main=getMainWindow?.();
+    if(main&&!main.isDestroyed()){
+      try{main.setIgnoreMouseEvents(false);}catch{}
+      try{main.setAlwaysOnTop(false);}catch{}
+      try{protectMeetingChrome(main,false);}catch{}
+      try{setMacPresenterStealth(main,false);}catch{}
+    }
+    savedMainWindowState=null;macPresenterParked=false;
+    return true;
+  }
+
   function openPicker(){
     if(pickerWindow&&!pickerWindow.isDestroyed()){pickerWindow.show();pickerWindow.focus();return {opened:true,reused:true,nativeSystemPicker:false};}
     pickerWindow=new BrowserWindow({width:900,height:620,minWidth:760,minHeight:520,show:false,backgroundColor:'#16181b',title:'Share Screen',resizable:true,fullscreenable:false,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false}});
@@ -526,5 +557,5 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)};
   });
 
-  return Object.freeze({openPicker,closePicker,closeToolbar,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
+  return Object.freeze({openPicker,closePicker,closeToolbar,recoverMainWindow,shutdown,sourceAuthority:authority,nativeSystemPicker,systemPickerAvailable});
 }
