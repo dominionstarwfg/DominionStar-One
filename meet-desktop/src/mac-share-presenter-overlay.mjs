@@ -7,7 +7,7 @@ if(process.platform==='darwin'){
   const uiDir=path.resolve(here,'../ui');
   const presenterPreloadPath=path.join(here,'presenter-preload.cjs');
   const PREPARE_STEP_TIMEOUT_MS=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'?10000:5000;
-  const BORDER_THICKNESS=3;
+  const BORDER_THICKNESS=4;
   const BORDER_COLOR='#2ed573';
   let toolbarWindow=null;
   let borderWindows=[]; // four thin edge windows driven by one geometry authority
@@ -71,15 +71,16 @@ if(process.platform==='darwin'){
     // area. Keep it just inside the physical display edge so it encloses the
     // menu-bar and Dock regions without losing the bottom/right edge to the
     // compositor.
-    const inset=2;
+    const inset=1,overlap=1;
     const x=Math.round(bounds.x+inset),y=Math.round(bounds.y+inset);
-    const width=Math.max(t*2+1,Math.round(bounds.width-inset*2));
-    const height=Math.max(t*2+1,Math.round(bounds.height-inset*2));
+    const width=Math.max((t+overlap)*2+1,Math.round(bounds.width-inset*2));
+    const height=Math.max((t+overlap)*2+1,Math.round(bounds.height-inset*2));
+    const edge=t+overlap;
     const edges=[
-      {x,y,width,height:t},
-      {x,y:y+height-t,width,height:t},
-      {x,y,width:t,height},
-      {x:x+width-t,y,width:t,height}
+      {x,y,width,height:edge},
+      {x,y:y+height-edge,width,height:edge},
+      {x,y,width:edge,height},
+      {x:x+width-edge,y,width:edge,height}
     ];
     borderWindows.forEach((win,index)=>{try{win.setBounds(edges[index],false);}catch{}});
   }
@@ -161,14 +162,14 @@ if(process.platform==='darwin'){
     try{
       for(let index=0;index<4;index+=1){
         const win=new BrowserWindow({
-          width:4,height:4,show:false,frame:false,transparent:false,backgroundColor:BORDER_COLOR,
+          width:5,height:5,show:false,frame:false,type:'panel',transparent:false,backgroundColor:BORDER_COLOR,
           resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,
           closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,
           webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
         });
         created.push(win);protect(win);
         try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
-        try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}
+        try{win.setAlwaysOnTop(true,'screen-saver',2);}catch{try{win.setAlwaysOnTop(true);}catch{}}
         try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
         win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
       }
