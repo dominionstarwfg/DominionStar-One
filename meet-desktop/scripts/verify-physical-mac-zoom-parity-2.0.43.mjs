@@ -289,15 +289,18 @@ assert(!macToolbarHtml.includes('id="layoutButton"')&&!macToolbarHtml.includes('
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
 assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
 assert(
-  macPresenter.includes('const BORDER_THICKNESS=3;')&&
+  macPresenter.includes('const BORDER_THICKNESS=4;')&&
   macPresenter.includes('const displayForSharedContent=()=>')&&
   macPresenter.includes('bordersReady=()=>borderWindows.length===4')&&
   macPresenter.includes('const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;')&&
-  macPresenter.includes('const inset=2;')&&
-  macPresenter.includes('{x,y:y+height-t,width,height:t}')&&
+  macPresenter.includes('const inset=1,overlap=1;')&&
+  macPresenter.includes('const edge=t+overlap;')&&
+  macPresenter.includes('{x,y:y+height-edge,width,height:edge}')&&
+  macPresenter.includes("type:'panel'")&&
+  macPresenter.includes("'screen-saver',2")&&
   macPresenter.includes("mac_share_border_edge_")&&
   !macPresenter.includes("mac_share_perimeter_load"),
-  'The green presenter perimeter must use four thin continuous edges inside the visible macOS work area so menu bar/Dock clipping cannot cut the boundary.'
+  'The green presenter perimeter must use four overlapping full-display panel edges at screen-saver level so the bottom edge remains continuous across macOS Dock geometry.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
