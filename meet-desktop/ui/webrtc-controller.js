@@ -54,13 +54,14 @@
   }
   function ensureAudio(id){ensureUi();const bin=q('#remoteAudioBin');if(!bin)return null;let audio=bin.querySelector(`[data-audio-peer="${CSS.escape(id)}"]`);if(!audio){audio=document.createElement('audio');audio.autoplay=true;audio.dataset.audioPeer=id;bin.append(audio);}return audio;}
   function ensureShareAudio(id){ensureUi();const bin=q('#remoteAudioBin');if(!bin)return null;let audio=bin.querySelector(`[data-share-audio-peer="${CSS.escape(id)}"]`);if(!audio){audio=document.createElement('audio');audio.autoplay=true;audio.dataset.shareAudioPeer=id;bin.append(audio);}return audio;}
-  function updateTileIdentity(id){const tile=ensureTile(id);if(!tile)return;const name=participantName(id);tile.querySelector('strong').textContent=name;tile.querySelector('.remote-peer-fallback span').textContent=initials(name);const share=q('#remoteShareVideo'),banner=q('#remoteShareBanner');if(share&&banner&&String(share.dataset.peerId||'')===String(id)){const label=banner.querySelector('strong');if(label)label.textContent=`${name} is sharing`;}}
+  function updateTileIdentity(id){const tile=ensureTile(id);if(!tile)return;const participant=state.participants.get(id)||{},name=participantName(id);tile.dataset.participantId=String(id);tile.dataset.participantSelf='0';tile.dataset.participantRole=String(participant.role||'participant').toLowerCase();tile.dataset.participantName=name;tile.querySelector('strong').textContent=name;tile.querySelector('.remote-peer-fallback span').textContent=initials(name);const share=q('#remoteShareVideo'),banner=q('#remoteShareBanner');if(share&&banner&&String(share.dataset.peerId||'')===String(id)){const label=banner.querySelector('strong');if(label)label.textContent=`${name} is sharing`;}}
   function removeTile(id){q(`#remoteTileStrip [data-peer-id="${CSS.escape(id)}"]`)?.remove();q(`#remoteAudioBin [data-audio-peer="${CSS.escape(id)}"]`)?.remove();q(`#remoteAudioBin [data-share-audio-peer="${CSS.escape(id)}"]`)?.remove();}
   function setTileState(id,text){const tile=ensureTile(id);if(tile)tile.querySelector('small').textContent=text;}
   function setRemoteMediaState(id,patch={}){
     const key=String(id||'');if(!key)return;
     const current=state.remoteMedia.get(key)||{micOn:false,cameraOn:false};
     const next={...current,...patch};state.remoteMedia.set(key,next);
+    const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);if(tile){tile.dataset.micOn=next.micOn?'1':'0';tile.dataset.cameraOn=next.cameraOn?'1':'0';}
     window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:key,...next}}));
   }
   function showRemoteCamera(id,stream){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');video.srcObject=stream;video.hidden=false;tile.querySelector('.remote-peer-fallback').hidden=true;setRemoteMediaState(id,{cameraOn:true});void video.play().catch(()=>{});}
