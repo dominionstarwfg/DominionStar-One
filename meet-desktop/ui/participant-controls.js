@@ -190,5 +190,5 @@
   window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
   const timer=setInterval(sync,800);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.39',sync,sendAll,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'2.0.44-smart-video-panel',sync,sendAll,sendParticipant:send,openParticipantMenu,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
