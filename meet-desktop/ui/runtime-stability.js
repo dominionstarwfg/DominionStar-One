@@ -165,7 +165,6 @@
       side.dataset.zoomPanelMode='runtime';
       side.dataset.dsAdaptiveMode='floating';
       side.dataset.dsRuntimePanel='participants';
-      delete side.dataset.dsRuntimeUserPositioned;
       syncParticipantsSurface();
     }
     layoutSideSurface();
@@ -189,7 +188,6 @@
     if(show){
       panel.dataset.dsRuntimePanel='chat';
       panel.dataset.zoomPanelMode='runtime';
-      delete panel.dataset.dsRuntimeUserPositioned;
       const refresh=window.DominionZoomBehavior?.refreshChatRecipients?.();
       Promise.resolve(refresh).catch(()=>{}).finally(()=>{
         if(!meetingOpen()||panel.hidden)return;
@@ -225,7 +223,7 @@
     const liveHandle=()=>panel.matches('.room-side')?panel.querySelector('.room-side-head'):panel.querySelector('header');
     const initialHandle=liveHandle();if(!initialHandle)return;
     panel.dataset.dsRuntimeDragBound='1';
-    initialHandle.style.cursor='default';
+    initialHandle.style.cursor='grab';
 
     const eligible=event=>{
       const handle=liveHandle();if(!handle||!handle.contains(event.target))return false;
@@ -320,12 +318,12 @@
         panel.style.setProperty('height',`${ph}px`,'important');
       }else{
         panel.style.setProperty('left','auto','important');
-        panel.style.setProperty('right','10px','important');
-        panel.style.setProperty('top','10px','important');
+        panel.style.setProperty('right','24px','important');
+        panel.style.setProperty('top','54px','important');
         panel.style.setProperty('bottom','auto','important');
-        panel.style.setProperty('height',`${height}px`,'important');
+        panel.style.setProperty('height',`${Math.min(height,Math.max(320,bodyHeight-78))}px`,'important');
       }
-      overlay.dataset.dsRuntimeSide='floating-right';
+      overlay.dataset.dsRuntimeSide='floating';
       ensurePanelTraffic(panel);
       installFloatingSurfaceDrag(panel);
     }else overlay.dataset.dsRuntimeSide='none';
