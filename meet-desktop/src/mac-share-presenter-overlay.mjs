@@ -73,13 +73,18 @@ if(process.platform==='darwin'){
   }
   function showBorder(){
     if(!bordersReady())return;positionBorder();
-    for(const win of borderWindows){try{win.setAlwaysOnTop(true,'screen-saver',2);}catch{try{win.setAlwaysOnTop(true);}catch{}}try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}try{win.showInactive?.();win.moveTop?.();}catch{}}
+    for(const win of borderWindows){
+      try{win.setAlwaysOnTop(true,'screen-saver',2);}catch{try{win.setAlwaysOnTop(true);}catch{}}
+      try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+      try{if(process.platform==='darwin'&&typeof win.setSimpleFullScreen==='function'&&!win.isSimpleFullScreen?.())win.setSimpleFullScreen(true);}catch{}
+      try{win.showInactive?.();win.moveTop?.();}catch{}
+    }
     // Re-assert all edges from the same selected-display geometry after the
     // window manager commits them; no edge computes its own display bounds.
     setImmediate(()=>{if(shareActive&&bordersReady()){positionBorder();for(const win of borderWindows){try{win.moveTop?.();}catch{}}}});
     setTimeout(()=>{if(shareActive&&bordersReady())positionBorder();},80);
   }
-  function hideBorder(){for(const win of borderWindows){if(isAlive(win))try{win.hide();}catch{}}}
+  function hideBorder(){for(const win of borderWindows){if(!isAlive(win))continue;try{if(process.platform==='darwin'&&win.isSimpleFullScreen?.())win.setSimpleFullScreen(false);}catch{}try{win.hide();}catch{}}}
   function positionVideo(){
     if(!isAlive(videoWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
@@ -320,8 +325,8 @@ if(process.platform==='darwin'){
   function resetPresenterSession(reason='reset'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
     shareActive=false;videoLayout='speaker';toolbarMenuOpen=false;
-    shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,voiceLevel:0,speaking:false};
-    hideOverlays();presenterCommandQueue.length=0;
+    shareState={paused:false,micOn:false,cameraOn:false,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false};
+    publishState();hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
     presenterDeliveries.clear();
     return true;
