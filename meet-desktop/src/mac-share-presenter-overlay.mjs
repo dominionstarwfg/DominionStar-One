@@ -66,11 +66,11 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForSharedContent(),bounds=display.workArea||display.bounds,t=BORDER_THICKNESS;
-    // Follow the visible macOS desktop work area, not the raw display edge.
-    // This keeps the perimeter below the menu bar and above the Dock, and a
-    // two-pixel inset prevents the bottom/right edges from being clipped by
-    // the compositor on Retina and multi-display arrangements.
+    const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;
+    // The perimeter represents the entire shared display, not the macOS work
+    // area. Keep it just inside the physical display edge so it encloses the
+    // menu-bar and Dock regions without losing the bottom/right edge to the
+    // compositor.
     const inset=2;
     const x=Math.round(bounds.x+inset),y=Math.round(bounds.y+inset);
     const width=Math.max(t*2+1,Math.round(bounds.width-inset*2));
