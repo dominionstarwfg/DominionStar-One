@@ -482,7 +482,7 @@ try{
   logStart=stderr.length;
   await toolbar.click('#stopShare');
   await waitStderr(ackPattern('stop'),'renderer ACK for Stop Share',10000,logStart);
-  await waitStderr('QA_MAC_CAPTURE_STOPPED','native capture-stopped notification',10000,logStart);
+  await waitStderr('QA_MAC_PRESENTER_RESET reason=capture-stopped','native capture-stopped presenter reset',10000,logStart);
   stage('stop-share-real-toolbar');
   assert.equal(child.exitCode,null,'Packaged app exited during physical presenter control loop.');
   console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_44_OK actual-floating-toolbar cdp-pointer-clicks renderer-acks audio video pause resume participants chat annotate new-share stop-share live-camera-panel dedicated-preview toolbar-state-roundtrip');
