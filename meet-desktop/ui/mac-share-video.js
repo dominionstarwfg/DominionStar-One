@@ -150,6 +150,8 @@
   q('#videoMenuCamera')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('video');});
   q('#videoMenuHide')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-hide');});
   document.addEventListener('pointerdown',event=>{if(!event.target?.closest?.('#videoMoreButton,#videoMoreMenu'))closeMenu();},true);
+  window.addEventListener('mouseleave',()=>closeMenu(),{passive:true});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
 
   async function boot(){
     try{
