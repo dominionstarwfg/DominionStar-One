@@ -73,7 +73,7 @@ assert(ui.includes("previousState=activeRoom.state")&&ui.includes("if(previousSt
 assert(ui.includes("timers.queue=setInterval(()=>void refreshQueue(),900)"),'Host/cohost waiting-room queue must update independently.');
 assert(ui.includes('data-decision="admit"')&&ui.includes('data-decision="decline"'),'Host/cohost must have Admit and Decline controls.');
 assert(ui.includes("activeRoom.role==='host'?'End':'Leave'"),'Host and participant exit semantics must differ.');
-assert(ui.includes('async function stopMeetingPresentation()')&&ui.includes('waitForCleanup:true')&&ui.includes('await returnHome()'),'Ending or leaving a meeting must synchronously tear down active screen sharing before returning Home.');
+assert(ui.includes('async function stopMeetingPresentation()')&&ui.includes('waitForCleanup:true')&&ui.includes('desktop?.share?.captureStopped?.()')&&ui.includes('await returnHome()'),'Ending or leaving a meeting must tear down active sharing and always reconcile main-process presenter state before returning Home.');
 assert(ui.includes("document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting')")&&ui.includes("appShell.style.removeProperty('visibility')"),'Meeting-end fallback must clear native presenter classes and restore the application shell even if share cleanup is delayed.');
 assert(shareController.includes('const waitForCleanup=Boolean(options?.waitForCleanup)')&&shareController.includes('Promise.race([cleanupPromise'), 'ShareController must support bounded main-process cleanup after capture is stopped locally.');
 assert(shareIntegration.includes('stop:options=>share.stop(options||{})'),'Share integration must expose bounded meeting-end cleanup options.');
