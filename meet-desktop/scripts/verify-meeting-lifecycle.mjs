@@ -10,6 +10,7 @@ const ui=read('ui/app.js');
 const shareController=read('ui/share-controller.js');
 const shareIntegration=read('ui/share-integration.js');
 const shareService=read('src/share-service.mjs');
+const macPresenter=read('src/mac-share-presenter-overlay.mjs');
 const personal=read('ui/personal-room.js');
 const schedule=read('ui/schedule-controller.js');
 const migration=read('sql/20260828_zoom_meeting_identity.sql');
@@ -78,6 +79,7 @@ assert(ui.includes("document.body.classList.remove('ds-native-mac-presenter-shar
 assert(shareController.includes('const waitForCleanup=Boolean(options?.waitForCleanup)')&&shareController.includes('Promise.race([cleanupPromise'), 'ShareController must support bounded main-process cleanup after capture is stopped locally.');
 assert(shareIntegration.includes('stop:options=>share.stop(options||{})'),'Share integration must expose bounded meeting-end cleanup options.');
 assert(shareService.includes('function recoverMainWindow({focus=true}={})')&&shareService.includes('function shutdown()'),'Share service must expose explicit recovery and shutdown lifecycle operations.');
+assert(macPresenter.includes("function resetPresenterSession(reason='reset')")&&macPresenter.includes("reset:()=>resetPresenterSession('external-reset')")&&shareService.includes('__dominionMacSharePresenterOverlay?.reset?.()'),'Native Mac presenter state must be reset, not merely hidden, whenever the meeting/share service shuts down.');
 assert(main.includes('function focusOrCreateMainWindow()')&&main.includes("app.on('activate',focusOrCreateMainWindow)"),'macOS Dock activation must recover an existing main window instead of only creating one when all BrowserWindows are gone.');
 assert(main.includes("app.on('before-quit',()=>{try{shareService?.shutdown?.();}catch{}})"),'Explicit Quit must deterministically tear down presenter/capture resources before Electron exits.');
 assert(!ui.includes('data-cohost=')&&!ui.includes('data-remove='),'Legacy inline participant authority buttons must not duplicate the Zoom-style More menu.');
