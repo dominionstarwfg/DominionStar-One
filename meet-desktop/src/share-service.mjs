@@ -139,6 +139,20 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     savedMainWindowState={bounds:{...bounds},minimumSize,maximized,fullScreen,alwaysOnTop:main.isAlwaysOnTop?.()||false,opacity};return main;
   }
   function keepMeetingRendererLive(){const main=getMainWindow?.();return Boolean(main&&!main.isDestroyed());}
+  const shareSurfaceUrlMarkers=['/ui/presenter-toolbar.html','/ui/mac-presenter-toolbar.html','/ui/mac-share-video.html','/ui/mac-annotation-toolbar.html','/ui/share-picker.html','/ui/share-capture-worker.html'];
+  function destroyShareOnlyWindows(){
+    let destroyed=0;
+    for(const win of BrowserWindow.getAllWindows()){
+      if(!win||win.isDestroyed?.())continue;
+      const main=getMainWindow?.();if(main&&win===main)continue;
+      const url=String(win.webContents?.getURL?.()||'');
+      if(!shareSurfaceUrlMarkers.some(marker=>url.includes(marker)))continue;
+      try{win.setClosable?.(true);}catch{}
+      try{win.hide?.();}catch{}
+      try{win.destroy?.();destroyed+=1;}catch{try{win.close?.();destroyed+=1;}catch{}}
+    }
+    return destroyed;
+  }
   function closeLegacyMacPresenterWindows(){
     if(platform!=='darwin')return 0;
     let closed=0;
@@ -185,6 +199,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     // the old 2.1s parking transition was exactly where presenter IPC stopped.
     cancelMacParkTimer();
     const main=getMainWindow?.();keepMeetingRendererLive();setMacPresenterStealth(main,true);
+    try{main?.setOpacity?.(0.001);}catch{}
     return true;
   }
   function parkMacMeetingWindow({preCapture=false}={}){
@@ -203,7 +218,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
     try{if(main.isMaximized?.())main.unmaximize();}catch{}
-    try{main.setOpacity?.(1);}catch{}
+    try{main.setOpacity?.(0.001);}catch{}
     setMacPresenterStealth(main,true);
     try{main.setIgnoreMouseEvents(true);}catch{}
     try{main.setAlwaysOnTop(false);}catch{}
@@ -311,6 +326,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{closeToolbar();}catch{}
     try{closeLegacyMacPresenterWindows();}catch{}
     try{globalThis.__dominionMacSharePresenterOverlay?.destroy?.();}catch{try{globalThis.__dominionMacSharePresenterOverlay?.reset?.();}catch{try{globalThis.__dominionMacSharePresenterOverlay?.hideOverlays?.();}catch{}}}
+    try{destroyShareOnlyWindows();}catch{}
     const main=getMainWindow?.();
     if(main&&!main.isDestroyed()){
       try{main.setIgnoreMouseEvents(false);}catch{}
@@ -543,8 +559,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   ipcMain.on('share:presenter-preload-ack',(event,payload={})=>{const main=getMainWindow?.();const meta=presenterRendererMeta();const accepted=Boolean(main&&!main.isDestroyed()&&event.sender===main.webContents);qaPresenterLog('PRELOAD_ACK',{id:Number(payload?.qaCommandId||0)||0,command:String(payload?.command||''),accepted:accepted?1:0,sender:Number(event.sender?.id||0),target:meta.webContentsId,pid:meta.osPid});});
   ipcMain.handle('share:capture-stopped',()=>{
     if(captureStartWatchdog){clearTimeout(captureStartWatchdog);captureStartWatchdog=null;}
-    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;activeCaptureDisplayId='';signalCaptureWorker('share-capture:stop',{});cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();restoreMainWindowAfterShare();
-    lastToolbarState={paused:false,micOn:false,cameraOn:true,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();return {ok:true};
+    shareActive=false;toolbarReadyForShare=false;presenterCommitPending=false;pendingSelection=null;activeCaptureDisplayId='';signalCaptureWorker('share-capture:stop',{});if(captureWorkerAlive()){try{captureWorkerWindow.destroy();}catch{}captureWorkerWindow=null;}cancelToolbarOpen();if(stopRetryTimer){clearTimeout(stopRetryTimer);stopRetryTimer=null;}detachShareWindowLifecycle();
+    try{globalThis.__dominionMacSharePresenterOverlay?.destroy?.();}catch{}
+    try{destroyShareOnlyWindows();}catch{}
+    restoreMainWindowAfterShare();
+    lastToolbarState={paused:false,micOn:false,cameraOn:false,sourceName:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,companion:''};closeToolbar();return {ok:true};
   });
   ipcMain.handle('share:presenter-menu-state',(_event,{open=false}={})=>{if(!toolbarWindow||toolbarWindow.isDestroyed())return {ok:false};const bounds=toolbarWindow.getBounds();const nextHeight=open?286:72;if(bounds.height!==nextHeight){try{toolbarWindow.setBounds({...bounds,height:nextHeight},false);}catch{}}return {ok:true,height:nextHeight};});
   ipcMain.handle('share:presenter-command',async(_event,command)=>{
