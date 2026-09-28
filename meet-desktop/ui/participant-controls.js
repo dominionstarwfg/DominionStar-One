@@ -128,6 +128,7 @@
     }
     if(row.dataset.raisedHand==='1')add('Lower Hand',()=>send(id,'host:lower-hand'));
     add('Rename',()=>renameParticipant(id,name));
+    if(localRole()==='host'&&role!=='host'&&row.dataset.recordEligible==='1'&&typeof meeting.transferHost==='function')add('Make Host',async()=>{await meeting.transferHost(id);toast(`${name} is now the host`);window.dispatchEvent(new CustomEvent('dominion:host-transferred',{detail:{participantId:id,name}}));});
     if(localRole()==='host'&&row.dataset.recordEligible==='1'&&role!=='cohost'){
       add(row.dataset.recordingAllowed==='1'?'Forbid Record':'Allow Record',async()=>{await meeting.setRecordingPermission(id,row.dataset.recordingAllowed!=='1');});
     }
