@@ -166,7 +166,7 @@
     const name=String(row.dataset.participantName||'Participant').trim()||'Participant';
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
     const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
-    for(const node of copy.querySelectorAll('.participant-you,.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-canonical-role,.ds-canonical-self'))node.remove();
+    for(const node of copy.querySelectorAll('.participant-you,.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-adaptive-role,.ds-canonical-role,.ds-canonical-self'))node.remove();
     copy.querySelector('small')?.remove();
     let strong=copy.querySelector('strong');
     if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
