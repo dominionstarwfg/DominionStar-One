@@ -179,7 +179,7 @@
   function syncVideoPanel(){
     const dock=q('#participantVideoDock');if(!dock)return;
     setData(dock,'approvedFilmstrip','1');setAttr(dock,'aria-label','Participant video panel');
-    const head=dock.querySelector('.participant-video-dock-head');if(head)setAttr(head,'aria-hidden','true');
+    const head=dock.querySelector('.participant-video-dock-head');if(head){head.removeAttribute('aria-hidden');setAttr(head,'aria-label','Video panel controls');}
     for(const tile of qa('#participantVideoDock .remote-peer-tile'))setData(tile,'approvedVideoTile','1');
   }
 
