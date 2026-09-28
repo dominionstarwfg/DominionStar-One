@@ -101,7 +101,7 @@ try{
   assert.ok(chat.width>=300&&chat.width<=420&&chat.head>=14.5&&chat.input>=12.5,'Chat is not at the approved compact readable runtime scale.');
   assert.equal(chat.mode,'floating','Chat must use the same final floating application-surface model.');
   assert.equal(chat.inside,true,'Chat must remain contained inside the meeting surface.');
-  assert.ok(chat.rightGap>=8&&chat.rightGap<=14,'Chat must open stably at the meeting right edge before user positioning.');
+  assert.ok(chat.rightGap>=18&&chat.rightGap<=36,'Chat must open as an inset floating surface before user positioning.');
   assert.ok(Math.abs(chat.stageRightGap)<=2,'Floating Chat must not shrink the live stage.');
   assert.equal(chat.more,true,'Chat options ellipsis is missing.');
   assert.equal(chat.draggable,true,'Chat floating surface must have a drag authority.');
