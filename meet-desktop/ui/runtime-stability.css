@@ -470,3 +470,33 @@ body>.meeting-reaction-menu,
 #meetingOverlay #meetingChatPanel.ds-panel-minimized>:not(header){display:none!important}
 #meetingOverlay .room-side.ds-panel-wide,
 #meetingOverlay #meetingChatPanel.ds-panel-wide{width:min(460px,calc(100% - 20px))!important}
+
+/* Physical-Mac floating surface authority. */
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"],
+#meetingOverlay #meetingChatPanel[data-ds-runtime-mode="floating"]{
+  border:1px solid rgba(255,255,255,.18)!important;
+  border-radius:13px!important;
+  background:#202020!important;
+  box-shadow:0 24px 72px rgba(0,0,0,.62)!important;
+  overflow:hidden!important;
+}
+#meetingOverlay .room-side-head,
+#meetingOverlay #meetingChatPanel>header{
+  cursor:grab!important;
+}
+#meetingOverlay .room-side.dragging .room-side-head,
+#meetingOverlay #meetingChatPanel.dragging>header{
+  cursor:grabbing!important;
+}
+#meetingOverlay .room-side-head button[aria-label="Close participants"],
+#meetingOverlay #meetingChatPanel [data-chat-close]{
+  display:grid!important;place-items:center!important;
+  width:30px!important;height:30px!important;min-width:30px!important;
+  border-radius:7px!important;border:1px solid rgba(255,255,255,.09)!important;
+  background:rgba(255,255,255,.035)!important;color:#f3f3f3!important;
+  font-size:18px!important;line-height:1!important;opacity:1!important;visibility:visible!important;
+}
+#meetingOverlay .room-side-head button[aria-label="Close participants"]:hover,
+#meetingOverlay #meetingChatPanel [data-chat-close]:hover{
+  background:rgba(255,255,255,.11)!important
+}
