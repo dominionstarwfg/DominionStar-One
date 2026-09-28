@@ -7,6 +7,7 @@ const app=read('ui/app.js');
 const controls=read('ui/participant-controls.js');
 const webrtc=read('ui/webrtc-controller.js');
 const css=read('ui/zoom-production-polish.css');
+const participantReference=read('ui/zoom-participants-reference-2.0.41.js');
 
 const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
 assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
@@ -41,5 +42,7 @@ for(const required of ["add('Mute'","add('Ask to Unmute'","add('Stop Video'","ad
   assert.ok(controls.includes(required),`Existing participant control missing: ${required}`);
 }
 assert.ok(controls.includes("add('Make Co-host'")&&controls.includes("add('Remove Co-host'"),'Host-only co-host authority must remain intact.');
+assert.ok(controls.includes("add('Make Host'")&&controls.includes("meeting.transferHost(id)"),'Current host must be able to transfer host authority to a signed-in participant.');
+assert.ok(participantReference.includes('max-height:364px!important')&&participantReference.includes('overflow-y:auto!important')&&participantReference.includes('overscroll-behavior:contain!important'),'Participants panel must cap the roster at seven 52px rows and scroll internally beyond that point.');
 
-console.log('DOMINIONSTAR_ZOOM_PARTICIPANTS_2_0_34_OK host-first cohost-second stable-row real-mic real-video vector-icons profile-avatar more-controls host-authority-preserved');
+console.log('DOMINIONSTAR_ZOOM_PARTICIPANTS_2_0_34_OK host-first cohost-second stable-row seven-visible internal-scroll real-mic real-video vector-icons profile-avatar more-controls make-host host-authority-preserved');
