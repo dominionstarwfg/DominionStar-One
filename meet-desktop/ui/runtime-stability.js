@@ -274,16 +274,26 @@
     document.addEventListener('mouseup',end,true);
   }
 
-  function ensurePanelTraffic(panel){
+  function ensurePanelClose(panel){
     if(!panel)return;
-    const header=panel.matches('.room-side')?panel.querySelector('.room-side-head'):panel.querySelector('header');
-    if(!header||header.querySelector('.ds-panel-traffic'))return;
-    const traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.setAttribute('aria-label','Window controls');
-    traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Minimize panel"></button><button type="button" class="zoom" aria-label="Zoom panel"></button>';
-    header.prepend(traffic);
-    traffic.querySelector('.close').onclick=event=>{event.stopPropagation();panel.matches('.room-side')?setParticipants(false):closeChat();};
-    traffic.querySelector('.min').onclick=event=>{event.stopPropagation();panel.classList.toggle('ds-panel-minimized');};
-    traffic.querySelector('.zoom').onclick=event=>{event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.classList.toggle('ds-panel-wide');layoutSideSurface();};
+    const participants=panel.matches('.room-side');
+    const header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
+    if(!header)return;
+    for(const legacy of header.querySelectorAll('.ds-panel-traffic'))legacy.remove();
+    let close=participants?header.querySelector('button[aria-label="Close participants"]'):header.querySelector('[data-chat-close]');
+    if(!close){
+      close=document.createElement('button');close.type='button';close.textContent='×';
+      if(participants)close.setAttribute('aria-label','Close participants');
+      else{close.dataset.chatClose='1';close.setAttribute('aria-label','Close chat');}
+      header.append(close);
+    }
+    if(close.dataset.dsRuntimeCloseBound!=='1'){
+      close.dataset.dsRuntimeCloseBound='1';
+      close.addEventListener('click',event=>{
+        event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+        participants?setParticipants(false):closeChat();
+      },true);
+    }
   }
 
   function layoutSideSurface(){
@@ -298,7 +308,10 @@
       const width=Math.min(baseWidth,Math.max(300,bodyWidth-24));
       const height=Math.min(520,Math.max(320,bodyHeight-96));
       panel.dataset.dsRuntimeMode='floating';
+      panel.dataset.dsAdaptiveMode='floating';
       panel.dataset.zoomPanelMode='runtime';
+      overlay.classList.remove('ds-chat-docked');
+      if(panel===chat)overlay.classList.add('ds-chat-floating');
       panel.style.setProperty('position','absolute','important');
       panel.style.setProperty('width',`${width}px`,'important');
       panel.style.setProperty('max-width','calc(100% - 20px)','important');
@@ -324,7 +337,7 @@
         panel.style.setProperty('height',`${Math.min(height,Math.max(320,bodyHeight-78))}px`,'important');
       }
       overlay.dataset.dsRuntimeSide='floating';
-      ensurePanelTraffic(panel);
+      ensurePanelClose(panel);
       installFloatingSurfaceDrag(panel);
     }else overlay.dataset.dsRuntimeSide='none';
     stage.style.setProperty('left','0px','important');
@@ -409,16 +422,28 @@
         body.style.setProperty('overflow-y','hidden','important');
       }
     }else{
+      const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
+      const count=Math.max(1,tiles.length);
+      const columns=count<=2?1:count<=6?2:3;
+      const rows=Math.min(3,Math.ceil(count/columns));
+      const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
+      const desiredWidth=columns*tileWidth+(columns-1)*gap+padding;
+      const desiredHeight=headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding;
+      dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
+      dock.dataset.dsRuntimeColumns=String(columns);
       dock.style.setProperty('left','auto','important');
       dock.style.setProperty('right','14px','important');
       dock.style.setProperty('top','14px','important');
-      dock.style.setProperty('width','auto','important');
+      dock.style.setProperty('width',`${Math.min(desiredWidth,Math.max(176,width-28))}px`,'important');
+      dock.style.setProperty('height',`${Math.min(desiredHeight,Math.max(127,height-28))}px`,'important');
+      dock.style.setProperty('max-width','calc(100% - 28px)','important');
       dock.style.setProperty('max-height','calc(100% - 28px)','important');
       if(body){
-        body.style.setProperty('grid-template-columns','176px','important');
+        body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important');
         body.style.setProperty('grid-auto-flow','row','important');
         body.style.setProperty('overflow-x','hidden','important');
-        body.style.setProperty('overflow-y','auto','important');
+        body.style.setProperty('overflow-y',rows<Math.ceil(count/columns)?'auto':'hidden','important');
+        body.style.setProperty('align-content','start','important');
       }
     }
     return true;
