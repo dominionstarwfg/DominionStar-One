@@ -19,7 +19,7 @@ assert(js.includes("if(event.target.closest?.('#roomMore'))cleanMoreMenu()")&&js
 assert(js.includes('placeholder="Search participants"'),'Participants must expose direct search for large meetings.');
 assert(js.includes("data-zoom-mute-all")&&js.includes("zoom-participant-more"),'Participants footer must use Zoom-style Mute All plus More instead of a row of tiny bulk buttons.');
 assert(css.includes('--ds-panel-w:390px')&&css.includes('.room-side .person-copy strong{font-size:13px'),'Participants must use a readable Zoom-scale roster instead of the undersized admin-card layout.');
-assert(css.includes('.room-side{position:absolute!important;z-index:62!important;left:auto!important;right:10px!important;top:10px!important;bottom:10px!important;transform:none!important'),'Participants must retain Zoom current default right-side docked geometry.');
+assert(css.includes('.room-side{position:absolute!important;z-index:62!important;left:auto!important;right:24px!important;top:54px!important;bottom:auto!important;transform:none!important'),'Participants must open as a readable inset floating window rather than a right-edge dock.');
 assert(js.includes("side.dataset.zoomPanelMode='docked'")&&js.includes("side.style.setProperty('right','10px','important')"),'Runtime must make right docking the default Participants mode.');
 assert(js.includes("action.textContent=popout?'Merge to Meeting':'Pop Out'")&&js.includes('function popOutParticipantPanel'),'Participants must expose Zoom-style Pop Out and Merge to Meeting behavior.');
 assert(js.includes("requestAnimationFrame(()=>{ensureParticipantLayoutControl();normalizeParticipantPanel();})"),'Participants click reconciliation must apply the Zoom panel mode after legacy placement in the same frame.');
@@ -36,4 +36,4 @@ assert(js.includes("observer.observe(document.body,{childList:true,subtree:true}
 assert(js.includes('setHidden=(node,value)'),'Repeated polish reconciliation must update visibility idempotently.');
 assert(js.includes("version:'1.5.0'"),'Production polish module version must be explicit.');
 
-console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools host-tools-authoritative-single participant-search participants-right-default participant-popout merge-to-meeting zoom-roster zoom-chat chat-runtime-geometry chat-typography-authority chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
+console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools host-tools-authoritative-single participant-search participants-floating-default participant-popout merge-to-meeting zoom-roster zoom-chat chat-runtime-geometry chat-typography-authority chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
