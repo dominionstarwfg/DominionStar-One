@@ -161,6 +161,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
   async function snapshot(roomId){return enrichParticipantList(roomId,await auth.rpc('meet_v2_room_snapshot',{p_room_id:roomId}),'participants');}
   const touchPresence=(participantId,joinToken)=>auth.rpc('meet_v2_touch_presence',{p_participant_id:participantId,p_join_token:joinToken});
   const setCohost=(participantId,enabled)=>auth.rpc('meet_v2_set_cohost',{p_participant_id:participantId,p_enabled:Boolean(enabled)});
+  const transferHost=participantId=>auth.rpc('meet_v2_transfer_host',{p_target_participant_id:participantId});
   const removeParticipant=participantId=>auth.rpc('meet_v2_remove_participant',{p_participant_id:participantId});
   const renameParticipant=(participantId,displayName)=>auth.rpc('meet_v2_rename_participant',{p_participant_id:participantId,p_display_name:normalizeName(displayName)});
   const setRecordingPermission=(participantId,enabled)=>auth.rpc('meet_v2_set_recording_permission',{p_participant_id:participantId,p_enabled:Boolean(enabled)});
@@ -259,6 +260,7 @@ export function createMeetingService({auth,allowDirectQa=false}){
     snapshot,
     touchPresence,
     setCohost,
+    transferHost,
     removeParticipant,
     renameParticipant,
     setRecordingPermission,
