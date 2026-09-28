@@ -7,10 +7,10 @@
 .video-more-button{
   position:absolute;right:7px;top:7px;z-index:12;width:30px;height:25px;padding:0;border:1px solid rgba(255,255,255,.17);
   border-radius:7px;background:rgba(0,0,0,.72);color:#fff;font-size:13px;font-weight:800;letter-spacing:1px;
-  display:grid;place-items:center;cursor:pointer;opacity:0;transform:translateY(-2px);transition:opacity .12s ease,transform .12s ease;
+  display:grid;place-items:center;cursor:pointer;opacity:.88;transform:none;transition:opacity .12s ease,transform .12s ease,background .12s ease;
   -webkit-app-region:no-drag
 }
-.video-stage:hover .video-more-button,.video-more-button[aria-expanded="true"]{opacity:1;transform:none}
+.video-stage:hover .video-more-button,.video-more-button:hover,.video-more-button[aria-expanded="true"]{opacity:1;transform:none;background:rgba(0,0,0,.88)}
 .video-more-menu{
   position:absolute;right:7px;top:37px;z-index:13;width:154px;padding:5px;border:1px solid rgba(255,255,255,.14);
   border-radius:9px;background:rgba(22,22,22,.97);box-shadow:0 12px 30px rgba(0,0,0,.48);-webkit-app-region:no-drag
