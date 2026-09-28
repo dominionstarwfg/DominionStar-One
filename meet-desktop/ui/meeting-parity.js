@@ -184,7 +184,8 @@
       const resize=dock.querySelector('.participant-video-resize');resize.addEventListener('pointerdown',startDockResize);resize.addEventListener('pointermove',moveDockResize);resize.addEventListener('pointerup',endDockResize);resize.addEventListener('pointercancel',endDockResize);restoreVideoDock();
     }
     const body=dock.querySelector('.participant-video-dock-body'),track=q('#remoteTileStrip');if(track&&track.parentElement!==body)body.append(track);
-    let local=dock.querySelector('#localVideoDockTile');if(!local){local=document.createElement('article');local.id='localVideoDockTile';local.className='remote-peer-tile local-video-dock-tile';local.hidden=true;local.innerHTML='<video autoplay playsinline muted></video><div class="remote-peer-fallback"><span>YOU</span></div><footer><strong>You</strong><small>Local</small></footer>';body.prepend(local);}
+    let local=dock.querySelector('#localVideoDockTile');if(!local){local=document.createElement('article');local.id='localVideoDockTile';local.className='remote-peer-tile local-video-dock-tile';local.dataset.participantSelf='1';local.hidden=true;local.innerHTML='<video autoplay playsinline muted></video><div class="remote-peer-fallback"><span>YOU</span></div><footer><strong>You</strong><small>You</small></footer>';body.prepend(local);}
+    if(!dock.dataset.dsSmartHoverBound){dock.dataset.dsSmartHoverBound='1';dock.addEventListener('click',event=>void handleDockTileClick(event));}
     return dock;
   }
 
@@ -203,6 +204,50 @@
     const stage=dockStageRect();if(!stage)return 'right';
     return stage.width<900||stage.height<560?'top':'right';
   }
+  const dockTileSelf=tile=>Boolean(tile&&(tile.classList.contains('local-video-dock-tile')||tile.dataset.participantSelf==='1'));
+  function ensureDockTileActions(tile){
+    if(!tile||tile.querySelector('.participant-video-hover-actions'))return;
+    const actions=document.createElement('div');actions.className='participant-video-hover-actions';actions.setAttribute('aria-hidden','true');
+    actions.innerHTML='<button type="button" class="participant-video-hover-primary" data-dock-tile-action="primary"></button><button type="button" class="participant-video-hover-more" data-dock-tile-action="more" aria-label="More video options">•••</button>';
+    tile.append(actions);
+  }
+  function syncDockTileActions(){
+    const localSnap=media()?.snapshot?.()||{},selfRow=q('#participantRoster [data-participant-self="1"]');
+    for(const tile of qa('#participantVideoDock .remote-peer-tile')){
+      ensureDockTileActions(tile);
+      const self=dockTileSelf(tile),primary=tile.querySelector('.participant-video-hover-primary'),more=tile.querySelector('.participant-video-hover-more');
+      tile.dataset.participantSelf=self?'1':'0';
+      if(self){
+        const selfName=String(selfRow?.dataset.participantName||selfRow?.querySelector('strong')?.textContent||'You').trim()||'You';
+        tile.dataset.participantName=selfName;tile.dataset.participantRole=localRole()||'participant';tile.dataset.micOn=localSnap.micOn?'1':'0';tile.dataset.cameraOn=localSnap.cameraOn?'1':'0';
+        const name=tile.querySelector('footer strong'),status=tile.querySelector('footer small');if(name)name.textContent=selfName;if(status)status.textContent='You';
+      }
+      const micOn=tile.dataset.micOn==='1';
+      if(primary){
+        if(self){primary.hidden=false;primary.textContent=micOn?'Mute':'Unmute';primary.setAttribute('aria-label',micOn?'Mute my microphone':'Unmute my microphone');}
+        else if(canManageView()){primary.hidden=false;primary.textContent=micOn?'Mute':'Ask to Unmute';primary.setAttribute('aria-label',micOn?'Mute participant':'Ask participant to unmute');}
+        else{primary.hidden=true;primary.textContent='';primary.removeAttribute('aria-label');}
+      }
+      if(more)more.setAttribute('aria-label',self?'More options for my video':`More options for ${String(tile.dataset.participantName||tile.querySelector('footer strong')?.textContent||'participant')}`);
+    }
+  }
+  async function handleDockTileClick(event){
+    const button=event.target.closest?.('[data-dock-tile-action]');if(!button)return;
+    const tile=button.closest('.remote-peer-tile');if(!tile)return;event.preventDefault();event.stopPropagation();
+    const self=dockTileSelf(tile),action=String(button.dataset.dockTileAction||'');
+    if(action==='primary'){
+      if(self){q('#roomMic')?.click();setTimeout(syncDockTileActions,120);return;}
+      if(!canManageView())return;
+      const id=String(tile.dataset.participantId||tile.dataset.peerId||'');if(!id)return;
+      const type=tile.dataset.micOn==='1'?'host:mute':'host:ask-unmute';
+      await window.DominionParticipantControls?.sendParticipant?.(id,type);return;
+    }
+    if(action==='more'){
+      if(self){openMore(button);return;}
+      if(canManageView()&&window.DominionParticipantControls?.openParticipantMenu){await window.DominionParticipantControls.openParticipantMenu(button);return;}
+      toggleParticipants(true);
+    }
+  }
 
   function ensureActiveSpeakerStage(){const stage=q('.stage');if(!stage)return null;let video=q('#remoteActiveSpeakerStage');if(!video){video=document.createElement('video');video.id='remoteActiveSpeakerStage';video.className='remote-active-speaker-stage';video.autoplay=true;video.playsInline=true;video.hidden=true;stage.append(video);}return video;}
   function syncActiveSpeakerStage(){const activeStage=ensureActiveSpeakerStage();if(!activeStage)return false;qa('.remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'));if(sharing()||spotlightParticipantIds.length>1){activeStage.hidden=true;activeStage.srcObject=null;q('#meetingOverlay')?.classList.remove('remote-speaker-stage');return false;}const spotlightTile=spotlightParticipantIds[0]?q(`#remoteTileStrip .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantIds[0])}"]`):null;const tile=spotlightTile||q('#remoteTileStrip .remote-peer-tile.active-speaker'),source=tile?.querySelector('video');if(!source?.srcObject||source.hidden){activeStage.hidden=true;activeStage.srcObject=null;q('#meetingOverlay')?.classList.remove('remote-speaker-stage');return false;}activeStage.srcObject=source.srcObject;activeStage.hidden=false;tile.classList.add('stage-promoted');q('#meetingOverlay')?.classList.add('remote-speaker-stage');void activeStage.play().catch(()=>{});return true;}
@@ -211,7 +256,7 @@
   function syncLocalDockTile(remotePromoted=false){const dock=ensureVideoDock(),tile=q('#localVideoDockTile');if(!dock||!tile)return;const snapshot=media()?.snapshot?.()||{},stream=media()?.stream?.()||null,hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView')),should=Boolean(!hideSelf&&(sharing()||remotePromoted));tile.hidden=!should;const video=tile.querySelector('video'),fallback=tile.querySelector('.remote-peer-fallback');if(should&&snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live')){if(video.srcObject!==stream)video.srcObject=stream;if(fallback)fallback.hidden=true;void video.play().catch(()=>{});}else{video.srcObject=null;if(fallback)fallback.hidden=!should;}}
   function syncVideoDock(){
     const dock=ensureVideoDock();if(!dock)return;const mode=readView(),share=sharing(),multiSpotlight=spotlightParticipantIds.length>1&&!share;
-    syncSpotlightTiles();
+    syncSpotlightTiles();syncDockTileActions();
     dock.classList.toggle('gallery-stage',mode==='gallery'&&!share&&!multiSpotlight);dock.classList.toggle('multi-speaker-stage',(mode==='multi'||multiSpotlight)&&!share);
     // While sharing, the Zoom-style dock keeps its existing media surfaces.
     // Rebuilding/rebinding them in the presenter transaction can starve the
@@ -220,8 +265,9 @@
     const promoted=mode==='speaker'?syncActiveSpeakerStage():(()=>{const s=ensureActiveSpeakerStage();if(s){s.hidden=true;s.srcObject=null;}q('#meetingOverlay')?.classList.remove('remote-speaker-stage');qa('.remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'));return false;})();
     const localShouldAlways=mode!=='speaker'&&!share;
     const localTile=q('#localVideoDockTile'),snapshot=media()?.snapshot?.()||{},stream=media()?.stream?.()||null,hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView'));
-    if(localShouldAlways&&localTile){const should=Boolean(snapshot.videoLive&&!hideSelf);localTile.hidden=!should;const video=localTile.querySelector('video');if(should){if(video.srcObject!==stream)video.srcObject=stream;localTile.querySelector('.remote-peer-fallback').hidden=true;void video.play().catch(()=>{});}else{video.srcObject=null;}}
+    if(localShouldAlways&&localTile){const should=Boolean(!hideSelf);localTile.hidden=!should;const video=localTile.querySelector('video'),fallback=localTile.querySelector('.remote-peer-fallback'),live=Boolean(snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'));if(should&&live){if(video.srcObject!==stream)video.srcObject=stream;if(fallback)fallback.hidden=true;void video.play().catch(()=>{});}else{video.srcObject=null;if(fallback)fallback.hidden=!should;}}
     else syncLocalDockTile(promoted);
+    syncDockTileActions();
     const tiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')),count=tiles.length;
     dock.dataset.count=String(Math.min(count,9));dock.classList.toggle('dock-empty',count===0);dock.hidden=count===0;
     for(let i=1;i<=9;i++)dock.classList.toggle(`count-${i}`,Math.min(count,9)===i);
@@ -291,6 +337,8 @@
     applyViewMode(mode);
   });
   window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.slice(0,4):[];syncVideoDock();});
+  window.addEventListener('dominion:remote-media-state',syncDockTileActions,true);
+  media()?.onChange?.(()=>syncDockTileActions());
   window.addEventListener('dominion:meeting-ui-ready',()=>{install();scheduleParityRefresh();});
   window.addEventListener('dominion:meeting-snapshot',scheduleParityRefresh);
   window.addEventListener('dominion:participant-presence',scheduleParityRefresh);
