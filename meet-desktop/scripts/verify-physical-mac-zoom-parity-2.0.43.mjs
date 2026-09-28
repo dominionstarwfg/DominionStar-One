@@ -109,7 +109,7 @@ assert(legacyHostTools.includes("version:'2.0.43-compatibility-no-geometry'")&&!
 assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.includes('.room-side:has(.ds-ref-host-tools-panel)'),'Legacy Host Tools stylesheet must not shrink Host Tools or move Participants.');
 assert(runtime.includes("panel.style.setProperty('right','10px','important')")&&runtime.includes("panel.style.setProperty('left','auto','important')"),'Default side surfaces must remain stably anchored at the meeting right edge.');
 assert(runtime.includes('function ensurePanelTraffic(panel)')&&runtime.includes("className='ds-panel-traffic'"),'Participants and Chat must expose Mac-style close/minimize/full-size controls.');
-assert(runtime.includes("const height=Math.min(520,Math.max(320,bodyHeight-96));")&&runtime.includes("panel.style.setProperty('bottom','auto','important');")&&runtime.includes("panel.style.setProperty('height',`${height}px`,'important');"),'Floating Participants and Chat must retain enough vertical travel to be genuinely movable while staying readable.');
+assert(runtime.includes("const height=Math.min(520,Math.max(320,bodyHeight-96));")&&runtime.includes("panel.style.setProperty('right','24px','important');")&&runtime.includes("panel.style.setProperty('top','54px','important');")&&runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),'Floating Participants and Chat must open inset from the screen edge with enough travel to behave as independent surfaces.');
 assert(runtime.includes("panel.style.setProperty('left',`${pr.left-br.left}px`,'important');")&&runtime.includes("panel.style.setProperty('right','auto','important');")&&runtime.includes("panel.style.setProperty('width',`${pr.width}px`,'important');"),'Final drag authority must capture explicit panel geometry before movement rather than depending on a legacy handler.');
 assert(runtime.includes("document.addEventListener('pointerdown',begin,true);")&&runtime.includes("document.addEventListener('mousedown',begin,true);")&&runtime.includes("document.addEventListener('pointermove',move,true);")&&runtime.includes("document.addEventListener('mousemove',move,true);")&&runtime.includes("const liveHandle=()=>")&&!runtime.includes("surfaceDrag.source!==source"),'Final floating-panel drag authority must capture pointer/mouse input at the document level and resolve the live panel header dynamically.');
 assert(runtimeCss.includes('.ds-panel-traffic .close')&&runtimeCss.includes('.ds-panel-minimized'),'Panel traffic controls and minimization styling must be packaged.');
@@ -123,7 +123,17 @@ assert(participantsReference.includes("if(window.DominionRuntimeStability?.layou
 assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}'),'Live prejoin video must never have the profile avatar painted over it.');
 assert(screenshotCss.includes('.meeting-head .ds-meeting-brand{display:flex!important')&&screenshotCss.includes('.meeting-view-button{display:inline-flex!important'),'Meeting chrome must expose DominionStar branding and a clear View control.');
 assert(screenshotCss.includes('.ds-ref-meeting-head-icons{display:none!important}')&&screenshotJs.includes("head.querySelector('.ds-ref-meeting-head-icons')?.remove()"),'Obsolete unexplained meeting-head glyph controls must be removed.');
-assert(screenshotCss.includes('#meetingOverlay .room-side{width:390px!important')&&screenshotCss.includes('right:10px!important;bottom:10px!important;transform:none!important'),'Final Participants CSS must agree with the right-edge runtime position.');
+assert(
+  runtime.includes("initialHandle.style.cursor='grab'") &&
+  !runtime.includes("delete side.dataset.dsRuntimeUserPositioned") &&
+  !runtime.includes("delete panel.dataset.dsRuntimeUserPositioned") &&
+  runtimeCss.includes('.room-side[data-ds-runtime-mode="floating"]') &&
+  runtimeCss.includes('#meetingChatPanel[data-ds-runtime-mode="floating"]') &&
+  runtimeCss.includes('cursor:grab!important') &&
+  panelStability.includes('right:24px!important') &&
+  panelStability.includes('top:54px!important'),
+  'Participants and Chat must remain visibly floating, draggable, closable, and preserve user-positioned geometry across reopen.'
+);
 assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:86px;bottom:68px;width:360px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
 
 assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("copy.querySelector('small')?.remove()")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must collapse duplicate role labels and duplicate ellipsis controls to one canonical representation.');
@@ -190,6 +200,7 @@ assert(
 );
 assert(
   macVideoHtml.includes('id="videoMoreButton"') &&
+  macVideoCss.includes('opacity:.88') &&
   macVideoHtml.includes('id="videoMoreMenu"') &&
   macVideoHtml.includes('id="videoMenuAudio"') &&
   macVideoHtml.includes('id="videoMenuCamera"') &&
@@ -224,6 +235,8 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-undo"') &&
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
+  macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
+  macAnnotationCss.includes('background:linear-gradient(180deg') &&
   macAnnotationCss.includes('flex-direction:column') &&
   macAnnotationJs.includes("version:'2.0.44-left-vertical'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
