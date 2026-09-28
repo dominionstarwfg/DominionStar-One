@@ -136,6 +136,7 @@
   }
   function ensureParticipantFooter(){
     const side=q('.room-side');if(!side)return;const legacy=q('#participantBulkActions');setHidden(legacy,true);
+    const approved=side.querySelector('.ds-ref-participants-footer');if(approved){side.querySelector('.zoom-participant-footer')?.remove();return;}
     let footer=side.querySelector('.zoom-participant-footer');
     if(!footer){
       footer=document.createElement('div');footer.className='zoom-participant-footer';
