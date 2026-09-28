@@ -276,21 +276,26 @@
     else{stopComposite();emit();}
     return snapshot();
   }
-  async function stop(){displayRequestGeneration+=1;const hadShare=macLike?Boolean(macWorkerActive):Boolean(state.liveStream||state.frozenStream);
+  async function stop(options={}){displayRequestGeneration+=1;const hadShare=macLike?Boolean(macWorkerActive):Boolean(state.liveStream||state.frozenStream);
+    const waitForCleanup=Boolean(options?.waitForCleanup);
     state.annotationCanvas=null;
     stopComposite();
-    // Zoom-style Stop Share is local-first: terminate the display tracks and
-    // publish inactive state immediately. Main-process chrome restoration is
-    // a follow-up notification and must never hold capture open on a slow IPC.
+    // Stop Share is local-first: terminate capture immediately, then optionally
+    // wait for bounded main-process cleanup when the entire meeting is ending.
     stopTracks(state.frozenStream);stopTracks(state.liveStream);
     state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};
     if(macLike){macWorkerActive=false;disposeMacCaptureClient({stopWorker:true});}
     emit();
+    let cleanupPromise=Promise.resolve();
     if(hadShare){
       try{
-        const pending=bridge?.captureStopped?.();
-        void Promise.resolve(pending).catch(error=>console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error));
+        cleanupPromise=Promise.resolve(bridge?.captureStopped?.()).catch(error=>{console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error);});
       }catch(error){console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error);}
+    }
+    if(waitForCleanup&&hadShare){
+      await Promise.race([cleanupPromise,new Promise(resolve=>setTimeout(resolve,1800))]);
+    }else{
+      void cleanupPromise;
     }
     return snapshot();
   }
