@@ -384,8 +384,8 @@ try{
   await video.wait("document.querySelector('#videoMoreMenu')?.hidden===false",'presenter video quick-controls open',4000);
   const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoMoreMenu button')].map(button=>button.textContent.trim())");
   assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
-  await video.click('#videoMoreButton');
-  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===true",'presenter video quick-controls close',4000);
+  await video.eval("window.dispatchEvent(new MouseEvent('mouseleave'))");
+  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===true",'presenter video quick-controls dismiss when pointer leaves floating video surface',4000);
   stage('presenter-video-hover-controls');
 
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
@@ -483,6 +483,7 @@ try{
   await toolbar.click('#stopShare');
   await waitStderr(ackPattern('stop'),'renderer ACK for Stop Share',10000,logStart);
   await waitStderr('QA_MAC_PRESENTER_RESET reason=capture-stopped','native capture-stopped presenter reset',10000,logStart);
+  await waitStderr('QA_MAC_PRESENTER_DESTROY reason=capture-stopped remaining=0','native capture-stopped presenter hard destroy',10000,logStart);
   stage('stop-share-real-toolbar');
   assert.equal(child.exitCode,null,'Packaged app exited during physical presenter control loop.');
   console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_44_OK actual-floating-toolbar cdp-pointer-clicks renderer-acks audio video pause resume participants chat annotate new-share stop-share live-camera-panel dedicated-preview toolbar-state-roundtrip');
