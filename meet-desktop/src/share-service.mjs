@@ -310,7 +310,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     try{closePicker();}catch{}
     try{closeToolbar();}catch{}
     try{closeLegacyMacPresenterWindows();}catch{}
-    try{globalThis.__dominionMacSharePresenterOverlay?.hideOverlays?.();}catch{}
+    try{globalThis.__dominionMacSharePresenterOverlay?.reset?.();}catch{try{globalThis.__dominionMacSharePresenterOverlay?.hideOverlays?.();}catch{}}
     const main=getMainWindow?.();
     if(main&&!main.isDestroyed()){
       try{main.setIgnoreMouseEvents(false);}catch{}
