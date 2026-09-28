@@ -292,26 +292,25 @@ assert(shareService.includes("displayId:String(source.display_id||'')")&&shareCo
 assert(
   macPresenter.includes('const BORDER_THICKNESS=4;')&&
   macPresenter.includes('const displayForSharedContent=()=>')&&
-  macPresenter.includes('bordersReady=()=>borderWindows.length===4')&&
-  macPresenter.includes('const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;')&&
-  macPresenter.includes('const overlap=2;')&&
-  macPresenter.includes('const x=Math.round(bounds.x),y=Math.round(bounds.y);')&&
-  macPresenter.includes('const width=Math.max((t+overlap)*2+1,Math.round(bounds.width));')&&
-  macPresenter.includes('const height=Math.max((t+overlap)*2+1,Math.round(bounds.height));')&&
-  macPresenter.includes('const edge=t+overlap;')&&
-  macPresenter.includes('{x,y:y+height-edge,width,height:edge}')&&
-  macPresenter.includes("type:'panel'")&&
+  macPresenter.includes('bordersReady=()=>borderWindows.length===1')&&
+  macPresenter.includes('const display=displayForSharedContent(),bounds=display.bounds,win=borderWindows[0];')&&
+  macPresenter.includes("backgroundColor:'#00000000'")&&
+  macPresenter.includes('transparent:true')&&
+  macPresenter.includes('body::before')&&
+  macPresenter.includes('border:${BORDER_THICKNESS}px solid ${BORDER_COLOR}')&&
   macPresenter.includes("'screen-saver',2")&&
-  macPresenter.includes("mac_share_border_edge_")&&
-  !macPresenter.includes("mac_share_perimeter_load"),
-  'The green presenter perimeter must use four overlapping panel edges anchored to the exact physical display bounds so no inset or broken-looking segment remains.'
+  macPresenter.includes("mac_share_perimeter_load")&&
+  !macPresenter.includes("mac_share_border_edge_"),
+  'The green presenter perimeter must be one continuous transparent full-display overlay so no segmented seams or inset edge windows remain.'
 );
 assert(
   shareAnnotation.includes('getCoalescedEvents')&&
   shareAnnotation.includes('quadraticCurveTo')&&
-  shareAnnotation.includes("version:'1.3.0-smoothed-native-palette'")&&
+  shareAnnotation.includes('pointerrawupdate')&&
+  shareAnnotation.includes('drawImage(state.canvas,0,0)')&&
+  shareAnnotation.includes("version:'1.4.0-low-latency-smoothed-native-palette'")&&
   shareAnnotation.includes("state.canvas.style.touchAction='none'"),
-  'Annotation pen input must use coalesced pointer samples and quadratic interpolation for smooth handwriting.'
+  'Annotation pen input must use low-latency coalesced/raw pointer samples, lightweight history snapshots, and quadratic interpolation.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
@@ -353,4 +352,4 @@ assert(
   'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
 );
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui dedicated-presenter-camera-preview flush-display-perimeter smoothed-annotation enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch hidden-meeting-renderer synchronized-media-ui dedicated-presenter-camera-preview continuous-full-display-perimeter low-latency-smoothed-annotation enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
