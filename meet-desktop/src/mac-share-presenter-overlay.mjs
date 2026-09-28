@@ -67,14 +67,13 @@ if(process.platform==='darwin'){
   function positionBorder(){
     if(!bordersReady())return;
     const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;
-    // The perimeter represents the entire shared display, not the macOS work
-    // area. Keep it just inside the physical display edge so it encloses the
-    // menu-bar and Dock regions without losing the bottom/right edge to the
-    // compositor.
-    const inset=1,overlap=1;
-    const x=Math.round(bounds.x+inset),y=Math.round(bounds.y+inset);
-    const width=Math.max((t+overlap)*2+1,Math.round(bounds.width-inset*2));
-    const height=Math.max((t+overlap)*2+1,Math.round(bounds.height-inset*2));
+    // The share perimeter is a physical-display edge treatment, not a work-area
+    // treatment. Anchor every edge at the exact display bounds so the frame
+    // touches the menu-bar/Dock edges with no visible inset or broken corners.
+    const overlap=2;
+    const x=Math.round(bounds.x),y=Math.round(bounds.y);
+    const width=Math.max((t+overlap)*2+1,Math.round(bounds.width));
+    const height=Math.max((t+overlap)*2+1,Math.round(bounds.height));
     const edge=t+overlap;
     const edges=[
       {x,y,width,height:edge},
@@ -86,7 +85,7 @@ if(process.platform==='darwin'){
   }
   function showBorder(){
     if(!bordersReady())return;positionBorder();
-    for(const win of borderWindows){try{win.setAlwaysOnTop(true,'screen-saver',1);}catch{try{win.setAlwaysOnTop(true);}catch{}}try{win.showInactive?.();win.moveTop?.();}catch{}}
+    for(const win of borderWindows){try{win.setAlwaysOnTop(true,'screen-saver',2);}catch{try{win.setAlwaysOnTop(true);}catch{}}try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}try{win.showInactive?.();win.moveTop?.();}catch{}}
     // Re-assert all edges from the same selected-display geometry after the
     // window manager commits them; no edge computes its own display bounds.
     setImmediate(()=>{if(shareActive&&bordersReady()){positionBorder();for(const win of borderWindows){try{win.moveTop?.();}catch{}}}});
