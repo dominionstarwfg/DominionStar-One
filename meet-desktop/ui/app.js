@@ -7,7 +7,7 @@
   const desktop=window.dominionDesktop||null,auth=desktop?.auth||null,meeting=desktop?.meeting||null,media=window.DominionMediaController;
   const sections={home:$('#homeSection'),meetings:$('#meetingsSection'),contacts:$('#contactsSection')};
   const dialogs={join:$('#joinDialog'),schedule:$('#scheduleDialog'),settings:$('#settingsDialog'),profile:$('#profileDialog')};
-  let authState={ready:!auth,signedIn:!auth,user:null};let activeRoom=null;let pendingJoin=null;let pendingDesktopJoinUrl='';let pendingMediaPreferences=null;let timers={waiting:0,queue:0,snapshot:0};let lastWaitingMap=new Map(),waitingEventsInitialized=false,lastParticipantMap=new Map(),participantEventsInitialized=false,activeSpeakerIds=[];
+  let authState={ready:!auth,signedIn:!auth,user:null};let activeRoom=null;let pendingJoin=null;let pendingDesktopJoinUrl='';let pendingMediaPreferences=null;let timers={waiting:0,queue:0,snapshot:0};let lastWaitingMap=new Map(),waitingEventsInitialized=false,lastParticipantMap=new Map(),participantEventsInitialized=false,activeSpeakerIds=[];let returningHome=false;
 
   const initials=name=>String(name||'DominionStar Member').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'DS';
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -227,8 +227,38 @@
     window.DominionParticipantControls?.sync?.();
     window.DominionZoomBehavior?.sync?.();
   }
-  async function exitRoom(){if(!activeRoom)return;const button=$('#roomExitButton');button.disabled=true;try{if(activeRoom.role==='host')await meeting.end(activeRoom.roomId);else await meeting.leave(activeRoom.participantId,activeRoom.joinToken);returnHome();}catch(e){notice('Meeting could not close',errorText(e));}finally{button.disabled=false;}}
-  function returnHome(){stopPolling();window.dispatchEvent(new CustomEvent('dominion:meeting-ended'));lastWaitingMap=new Map();waitingEventsInitialized=false;lastParticipantMap=new Map();participantEventsInitialized=false;activeSpeakerIds=[];media.stop();pendingMediaPreferences=null;$('#meetingOverlay').hidden=true;activeRoom=null;document.body.dataset.shareAfterJoin='';showHome(authState);}
+  async function stopMeetingPresentation(){
+    const integration=window.DominionShareIntegration,controller=window.DominionShareController;
+    const active=Boolean(integration?.state?.().active??controller?.snapshot?.().active);
+    if(active){
+      try{
+        const stop=integration?.stop?.({waitForCleanup:true})??controller?.stop?.({waitForCleanup:true});
+        await Promise.race([Promise.resolve(stop),new Promise(resolve=>setTimeout(resolve,2200))]);
+      }catch(error){console.warn('[DominionStar Meet] Meeting-end share cleanup failed.',error);}
+    }
+    try{window.DominionShareAnnotation?.deactivate?.();}catch{}
+    delete document.body.dataset.dsShareCompanion;
+    document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');
+    const appShell=$('#appShell');
+    if(appShell){
+      appShell.style.removeProperty('visibility');
+      appShell.style.removeProperty('opacity');
+      appShell.style.removeProperty('pointer-events');
+    }
+  }
+  async function exitRoom(){if(!activeRoom||returningHome)return;const button=$('#roomExitButton');button.disabled=true;try{if(activeRoom.role==='host')await meeting.end(activeRoom.roomId);else await meeting.leave(activeRoom.participantId,activeRoom.joinToken);await returnHome();}catch(e){notice('Meeting could not close',errorText(e));}finally{button.disabled=false;}}
+  async function returnHome(){
+    if(returningHome)return;
+    returningHome=true;
+    stopPolling();
+    try{
+      await stopMeetingPresentation();
+      window.dispatchEvent(new CustomEvent('dominion:meeting-ended'));
+      lastWaitingMap=new Map();waitingEventsInitialized=false;lastParticipantMap=new Map();participantEventsInitialized=false;activeSpeakerIds=[];
+      media.stop();pendingMediaPreferences=null;$('#meetingOverlay').hidden=true;activeRoom=null;document.body.dataset.shareAfterJoin='';
+      showHome(authState);
+    }finally{returningHome=false;}
+  }
 
   async function bootAuth(){if(!auth){showHome({ready:true,signedIn:true,user:{id:'preview',name:'DominionStar Preview',email:'preview@local'}});$('.status-pill').textContent='Visual preview';return;}try{const state=await auth.getState();state?.signedIn?showHome(state):showAuth();}catch(e){showAuth(errorText(e),'error');}}
   $('#googleSignIn').onclick=async()=>{const b=$('#googleSignIn'),s=$('#authStatus');b.disabled=true;s.classList.remove('error');s.textContent='Opening Google in your browser. DominionStar Meet is waiting for the secure return.';try{await auth.startGoogle();s.textContent='Complete Google verification in your browser. This app will unlock automatically.';}catch(e){b.disabled=false;s.classList.add('error');s.textContent=errorText(e);}};
