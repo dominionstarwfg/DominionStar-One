@@ -5,6 +5,7 @@ const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const pkg=JSON.parse(read('package.json'));
 const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
+const panelStability=read('ui/participant-panel-stability.css');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const polish=read('ui/zoom-production-polish.js');
 const polishCss=read('ui/zoom-production-polish.css');
