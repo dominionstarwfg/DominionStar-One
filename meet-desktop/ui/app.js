@@ -236,6 +236,13 @@
         await Promise.race([Promise.resolve(stop),new Promise(resolve=>setTimeout(resolve,2200))]);
       }catch(error){console.warn('[DominionStar Meet] Meeting-end share cleanup failed.',error);}
     }
+    // Always reconcile the main process too. This is intentionally idempotent:
+    // it clears stale presenter/content-protection state even when the renderer
+    // already believes capture is inactive.
+    try{
+      const cleanup=desktop?.share?.captureStopped?.();
+      await Promise.race([Promise.resolve(cleanup),new Promise(resolve=>setTimeout(resolve,1200))]);
+    }catch(error){console.warn('[DominionStar Meet] Meeting-end main-process reconciliation failed.',error);}
     try{window.DominionShareAnnotation?.deactivate?.();}catch{}
     delete document.body.dataset.dsShareCompanion;
     document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');
