@@ -128,7 +128,16 @@ function createMainWindow(){
   });
   mainWindow.on('focus',()=>{try{mainWindow?.flashFrame(false);}catch{}});
   void mainWindow.loadFile(path.join(uiDir,'index.html'));
-  mainWindow.on('closed',()=>{shareService?.closePicker?.();shareService?.closeToolbar?.();mainWindow=null;});
+  mainWindow.on('closed',()=>{try{shareService?.shutdown?.();}catch{}mainWindow=null;});
+}
+function focusOrCreateMainWindow(){
+  if(mainWindow&&!mainWindow.isDestroyed()){
+    if(shareService?.recoverMainWindow?.({focus:true}))return;
+    try{if(mainWindow.isMinimized())mainWindow.restore();}catch{}
+    try{mainWindow.show();mainWindow.focus();}catch{}
+    return;
+  }
+  createMainWindow();
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaPresenterFixtures:qaFixtureRequested,qaKeepMacPresenterHidden:process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1',installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
@@ -211,6 +220,7 @@ app.whenReady().then(async()=>{
   powerMonitor.on('resume',()=>sendPowerEvent('resume'));
   powerMonitor.on('lock-screen',()=>sendPowerEvent('lock-screen'));
   powerMonitor.on('unlock-screen',()=>sendPowerEvent('unlock-screen'));
-  app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});
+  app.on('activate',focusOrCreateMainWindow);
 });
+app.on('before-quit',()=>{try{shareService?.shutdown?.();}catch{}});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
