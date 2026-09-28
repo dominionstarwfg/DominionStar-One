@@ -82,7 +82,7 @@ try{
   assert.ok(participantRow.moreWidth>=27,'Participant ellipsis target is too small.');
   assert.equal(participantRow.mode,'floating','Participants must use the final floating desktop panel model.');
   assert.equal(participantRow.inside,true,'Participants must remain contained inside the meeting surface.');
-  assert.ok(participantRow.rightGap>=8&&participantRow.rightGap<=14,'Participants must open stably at the meeting right edge before user positioning.');
+  assert.ok(participantRow.rightGap>=18&&participantRow.rightGap<=36,'Participants must open as an inset floating surface before user positioning.');
   assert.ok(participantRow.panelWidth>=300&&participantRow.panelWidth<=420,'Participants width must remain readable and bounded.');
   assert.ok(Math.abs(participantRow.stageRightGap)<=2,'Floating Participants must not shrink the live stage.');
   assert.equal(participantRow.draggable,true,'Participants floating surface must have a drag authority.');
