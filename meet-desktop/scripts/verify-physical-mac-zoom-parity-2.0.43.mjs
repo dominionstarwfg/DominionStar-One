@@ -30,6 +30,7 @@ const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
 const profileFallback=read('ui/profile-photo-fallback.js');
 const shareService=read('src/share-service.mjs');
 const shareController=read('ui/share-controller.js');
+const shareAnnotation=read('ui/share-annotation.js');
 const captureWorker=read('ui/share-capture-worker.js');
 const capturePreload=read('src/share-capture-preload.cjs');
 const macPresenter=read('src/mac-share-presenter-overlay.mjs');
@@ -54,7 +55,7 @@ const parityCss=read('ui/meeting-parity.css');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,captureWorker,shareRuntimeAuthority,participantsReference,macVideoJs,macAnnotationJs,integration,screenshotReference])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,participantsReference,macVideoJs,macAnnotationJs,integration,screenshotReference])new Function(source);
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
 assert(
@@ -293,14 +294,24 @@ assert(
   macPresenter.includes('const displayForSharedContent=()=>')&&
   macPresenter.includes('bordersReady=()=>borderWindows.length===4')&&
   macPresenter.includes('const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;')&&
-  macPresenter.includes('const inset=1,overlap=1;')&&
+  macPresenter.includes('const overlap=2;')&&
+  macPresenter.includes('const x=Math.round(bounds.x),y=Math.round(bounds.y);')&&
+  macPresenter.includes('const width=Math.max((t+overlap)*2+1,Math.round(bounds.width));')&&
+  macPresenter.includes('const height=Math.max((t+overlap)*2+1,Math.round(bounds.height));')&&
   macPresenter.includes('const edge=t+overlap;')&&
   macPresenter.includes('{x,y:y+height-edge,width,height:edge}')&&
   macPresenter.includes("type:'panel'")&&
   macPresenter.includes("'screen-saver',2")&&
   macPresenter.includes("mac_share_border_edge_")&&
   !macPresenter.includes("mac_share_perimeter_load"),
-  'The green presenter perimeter must use four overlapping full-display panel edges at screen-saver level so the bottom edge remains continuous across macOS Dock geometry.'
+  'The green presenter perimeter must use four overlapping panel edges anchored to the exact physical display bounds so no inset or broken-looking segment remains.'
+);
+assert(
+  shareAnnotation.includes('getCoalescedEvents')&&
+  shareAnnotation.includes('quadraticCurveTo')&&
+  shareAnnotation.includes("version:'1.3.0-smoothed-native-palette'")&&
+  shareAnnotation.includes("state.canvas.style.touchAction='none'"),
+  'Annotation pen input must use coalesced pointer samples and quadratic interpolation for smooth handwriting.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
@@ -342,4 +353,4 @@ assert(
   'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
 );
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui dedicated-presenter-camera-preview non-occluding-perimeter-geometry enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch composited-onscreen-sentinel synchronized-media-ui dedicated-presenter-camera-preview flush-display-perimeter smoothed-annotation enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
