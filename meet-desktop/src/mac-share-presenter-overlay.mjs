@@ -352,7 +352,7 @@ if(process.platform==='darwin'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_DESTROY reason=${String(reason||'meeting-ended')} remaining=${windows.filter(isAlive).length}`);
     return true;
   }
-  ipcMain.on('mac-share:capture-stopped',()=>resetPresenterSession('capture-stopped'));
+  ipcMain.on('mac-share:capture-stopped',()=>destroyPresenterSession('capture-stopped'));
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;removeQueuedPresenterDelivery(deliveryId);
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=${deliveryId} command=${String(payload?.command||'')} accepted=${payload?.accepted?1:0}`);
