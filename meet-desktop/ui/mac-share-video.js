@@ -151,6 +151,9 @@
   q('#videoMenuHide')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-hide');});
   document.addEventListener('pointerdown',event=>{if(!event.target?.closest?.('#videoMoreButton,#videoMoreMenu'))closeMenu();},true);
   window.addEventListener('mouseleave',()=>closeMenu(),{passive:true});
+  window.addEventListener('blur',()=>closeMenu());
+  window.addEventListener('pagehide',()=>{closeMenu();stopPreview();},{once:true});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)closeMenu();});
   document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
 
   async function boot(){
@@ -191,5 +194,6 @@
   });
 
   window.addEventListener('beforeunload',stopPreview,{once:true});
+  window.addEventListener('unload',stopPreview,{once:true});
   void boot();
 })();
