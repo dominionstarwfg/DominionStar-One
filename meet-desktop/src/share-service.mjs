@@ -258,7 +258,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     if(saved){try{main.setMinimumSize(...saved.minimumSize);}catch{}try{main.setBounds(saved.bounds,true);}catch{}}
     try{main.setAlwaysOnTop(shareActive,'floating');}catch{try{main.setAlwaysOnTop(Boolean(shareActive));}catch{}}
     if(platform==='darwin'){try{main.setVisibleOnAllWorkspaces(Boolean(shareActive),{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}}
-    if(!(platform==='darwin'&&shareActive))protectMeetingChrome(main,shareActive);
+    protectMeetingChrome(main,Boolean(shareActive));
     main.show();if(focus)main.focus();lastToolbarState={...lastToolbarState,meetingVisible:true,companion:''};publishToolbarState();return true;
   }
   function showCompanionWindow(kind='chat'){
@@ -298,7 +298,7 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     }
     setMacPresenterStealth(main,false);try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(savedMainWindowState?.opacity??1);}catch{}try{if(main.isMinimized?.())main.restore();}catch{}try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}try{if(main.isMaximized?.())main.unmaximize();}catch{}
     try{main.setMinimumSize(330,420);}catch{}try{main.setBounds({x,y,width,height},false);}catch{}keepMeetingRendererLive();
-    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}if(!(platform==='darwin'&&shareActive))protectMeetingChrome(main,true);main.show();main.focus();
+    try{main.setAlwaysOnTop(true,'floating');}catch{try{main.setAlwaysOnTop(true);}catch{}}protectMeetingChrome(main,true);main.show();main.focus();
     lastToolbarState={...lastToolbarState,meetingVisible:true,companion:normalized};publishToolbarState();return true;
   }
   function restoreMainWindowAfterShare(){
