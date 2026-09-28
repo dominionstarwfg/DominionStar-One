@@ -207,6 +207,10 @@ assert(
   screenshotReference.includes("const nativeMacPresenter=document.body.classList.contains('ds-native-mac-presenter-share')") &&
   screenshotReference.includes("q('.ds-ref-share-banner')?.remove()") &&
   shareCss.includes("body.ds-native-mac-presenter-share:not([data-ds-share-companion]):not(.ds-native-mac-show-meeting) #meetingOverlay>.meeting-shell") &&
+  shareCss.includes('body.ds-native-mac-presenter-share #appShell') &&
+  shareCss.includes('visibility:hidden!important;opacity:0!important;pointer-events:none!important') &&
+  shareService.includes("const appShell=document.querySelector('#appShell')") &&
+  shareService.includes("appShell.style.setProperty('visibility','hidden','important')") &&
   shareService.includes('setMacPresenterStealth(main,true)') &&
   shareService.includes('main.setWindowButtonVisibility?.(!enabled)') &&
   shareService.includes('main.setHasShadow?.(!enabled)'),
@@ -273,7 +277,7 @@ assert(
   macPresenter.includes('const BORDER_THICKNESS=3;')&&
   macPresenter.includes('const displayForSharedContent=()=>')&&
   macPresenter.includes('bordersReady=()=>borderWindows.length===4')&&
-  macPresenter.includes('const display=displayForSharedContent(),bounds=display.workArea||display.bounds,t=BORDER_THICKNESS;')&&
+  macPresenter.includes('const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;')&&
   macPresenter.includes('const inset=2;')&&
   macPresenter.includes('{x,y:y+height-t,width,height:t}')&&
   macPresenter.includes("mac_share_border_edge_")&&
