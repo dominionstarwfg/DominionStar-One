@@ -311,13 +311,16 @@ try{
   assert.equal(rendererShareChrome.shareActive,false,'Meeting renderer entered legacy share-active layout during native Mac presenter mode.');
   stage('legacy-share-chrome-suppressed');
   await sleep(1500);
-  const delayedRendererChrome=await main.eval("(()=>{const shell=document.querySelector('#meetingOverlay>.meeting-shell');const footer=document.querySelector('#meetingOverlay .meeting-footer');return {native:document.body.classList.contains('ds-native-mac-presenter-share'),shareActive:document.querySelector('#meetingOverlay')?.classList.contains('share-active')===true,inlineHidden:document.querySelector('#inlinePresenterToolbar')?.hidden!==false,banner:Boolean(document.querySelector('.ds-ref-share-banner')),shellVisibility:shell?getComputedStyle(shell).visibility:'missing',footerDisplay:footer?getComputedStyle(footer).display:'missing',bodyBackground:getComputedStyle(document.body).backgroundColor};})()");
+  const delayedRendererChrome=await main.eval("(()=>{const shell=document.querySelector('#meetingOverlay>.meeting-shell');const footer=document.querySelector('#meetingOverlay .meeting-footer');const appShell=document.querySelector('#appShell');const appStyle=appShell?getComputedStyle(appShell):null;return {native:document.body.classList.contains('ds-native-mac-presenter-share'),shareActive:document.querySelector('#meetingOverlay')?.classList.contains('share-active')===true,inlineHidden:document.querySelector('#inlinePresenterToolbar')?.hidden!==false,banner:Boolean(document.querySelector('.ds-ref-share-banner')),shellVisibility:shell?getComputedStyle(shell).visibility:'missing',footerDisplay:footer?getComputedStyle(footer).display:'missing',bodyBackground:getComputedStyle(document.body).backgroundColor,appShellVisibility:appStyle?.visibility||'missing',appShellOpacity:appStyle?.opacity||'missing'};})()");
   assert.equal(delayedRendererChrome.native,true,'Native Mac presenter visual authority disappeared after final-reference reconciliation.');
   assert.equal(delayedRendererChrome.shareActive,false,'Final-reference reconciliation recreated legacy share-active state.');
   assert.equal(delayedRendererChrome.inlineHidden,true,'Final-reference reconciliation recreated the inline share toolbar.');
   assert.equal(delayedRendererChrome.banner,false,'Final-reference reconciliation recreated the duplicate green share banner.');
   assert.equal(delayedRendererChrome.shellVisibility,'hidden','Dark meeting shell is still physically visible behind native sharing.');
   assert.ok(/rgba\(0, 0, 0, 0\)|transparent/i.test(String(delayedRendererChrome.bodyBackground)),'Meeting renderer body is not transparent during native Mac share: '+delayedRendererChrome.bodyBackground);
+  assert.equal(delayedRendererChrome.appShellVisibility,'hidden','DominionStar application workspace remains visible behind the shared desktop.');
+  assert.ok(Number(delayedRendererChrome.appShellOpacity)===0,'DominionStar application workspace did not become visually transparent during native share.');
+  stage('full-app-shell-suppressed');
   stage('delayed-share-reconciliation-clean');
 
   // Follow the physical user path after share activation. Hidden/occluded
