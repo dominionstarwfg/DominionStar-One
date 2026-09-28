@@ -172,3 +172,38 @@ body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon
 .ds-room-mic-meter[data-level="3"] i:nth-child(1){height:16px}
 .ds-room-mic-meter[data-level="3"] i:nth-child(2){height:11px}
 .ds-room-mic-meter[data-level="3"] i:nth-child(3){height:18px}
+
+/* Final microphone visual authority: live = clean mic + green RMS meter.
+   Muted = exactly one red slash on the visible icon. */
+#meetingOverlay #roomMic:not(.is-off)::before,
+#meetingOverlay #roomMic:not(.is-off)::after,
+#meetingOverlay #roomMic:not(.is-off) *::before,
+#meetingOverlay #roomMic:not(.is-off) *::after{
+  content:none!important;
+  display:none!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+#meetingOverlay #roomMic.is-off>.ds-exec-icon::before,
+#meetingOverlay #roomMic.is-off>.ds-control-icon::before{
+  content:none!important;
+  display:none!important;
+}
+#meetingOverlay #roomMic.is-off>.ds-exec-icon::after{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  left:2px!important;
+  right:2px!important;
+  top:50%!important;
+  height:2px!important;
+  border-radius:999px!important;
+  background:#ff4058!important;
+  transform:translateY(-50%) rotate(-43deg)!important;
+  box-shadow:none!important;
+}
+#meetingOverlay #roomMic.is-off>.ds-control-icon::after{
+  content:none!important;
+  display:none!important;
+}
