@@ -27,7 +27,7 @@ if(process.platform==='darwin'){
   let shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false};
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
-  const bordersReady=()=>borderWindows.length===4&&borderWindows.every(isAlive);
+  const bordersReady=()=>borderWindows.length===1&&borderWindows.every(isAlive);
   const isBorderWindow=win=>borderWindows.includes(win);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const mainWindow=()=>{
@@ -66,22 +66,10 @@ if(process.platform==='darwin'){
   }
   function positionBorder(){
     if(!bordersReady())return;
-    const display=displayForSharedContent(),bounds=display.bounds,t=BORDER_THICKNESS;
-    // The share perimeter is a physical-display edge treatment, not a work-area
-    // treatment. Anchor every edge at the exact display bounds so the frame
-    // touches the menu-bar/Dock edges with no visible inset or broken corners.
-    const overlap=2;
-    const x=Math.round(bounds.x),y=Math.round(bounds.y);
-    const width=Math.max((t+overlap)*2+1,Math.round(bounds.width));
-    const height=Math.max((t+overlap)*2+1,Math.round(bounds.height));
-    const edge=t+overlap;
-    const edges=[
-      {x,y,width,height:edge},
-      {x,y:y+height-edge,width,height:edge},
-      {x,y,width:edge,height},
-      {x:x+width-edge,y,width:edge,height}
-    ];
-    borderWindows.forEach((win,index)=>{try{win.setBounds(edges[index],false);}catch{}});
+    const display=displayForSharedContent(),bounds=display.bounds,win=borderWindows[0];
+    const frame={x:Math.round(bounds.x),y:Math.round(bounds.y),width:Math.round(bounds.width),height:Math.round(bounds.height)};
+    try{win.setBounds(frame,false);}catch{}
+    try{win.setPosition(frame.x,frame.y,false);}catch{}
   }
   function showBorder(){
     if(!bordersReady())return;positionBorder();
@@ -155,31 +143,32 @@ if(process.platform==='darwin'){
   async function prepareBorder(){
     if(bordersReady())return borderWindows;
     for(const win of borderWindows)closeFailedWindow(win);borderWindows=[];
-    const html=`<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:${BORDER_COLOR}}</style>`;
+    const html=`<!doctype html><meta charset="utf-8"><style>
+      *{box-sizing:border-box}
+      html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+      body::before{content:"";position:fixed;inset:0;pointer-events:none;box-sizing:border-box;border:${BORDER_THICKNESS}px solid ${BORDER_COLOR};border-radius:0}
+    </style>`;
     const url=`data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
-    const created=[];
+    let win=null;
     try{
-      for(let index=0;index<4;index+=1){
-        const win=new BrowserWindow({
-          width:5,height:5,show:false,frame:false,type:'panel',transparent:false,backgroundColor:BORDER_COLOR,
-          resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,
-          closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,
-          webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
-        });
-        created.push(win);protect(win);
-        try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
-        try{win.setAlwaysOnTop(true,'screen-saver',2);}catch{try{win.setAlwaysOnTop(true);}catch{}}
-        try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
-        win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
-      }
-      borderWindows=created;
-      await Promise.all(created.map((win,index)=>boundedLoad(`mac_share_border_edge_${index}_load`,()=>win.loadURL(url))));
-      if(!bordersReady())throw new Error('mac_share_border_edges_incomplete');
+      win=new BrowserWindow({
+        width:8,height:8,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+        resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,
+        closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,roundedCorners:false,
+        webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
+      });
+      borderWindows=[win];protect(win);
+      try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
+      try{win.setAlwaysOnTop(true,'screen-saver',2);}catch{try{win.setAlwaysOnTop(true);}catch{}}
+      try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+      win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
+      await boundedLoad('mac_share_perimeter_load',()=>win.loadURL(url));
+      if(!bordersReady())throw new Error('mac_share_perimeter_incomplete');
       positionBorder();
       return borderWindows;
     }catch(error){
-      console.error('[DominionStar Meet] share border failed to prepare.',error);
-      for(const win of created)closeFailedWindow(win);borderWindows=[];return null;
+      console.error('[DominionStar Meet] share perimeter failed to prepare.',error);
+      if(win)closeFailedWindow(win);borderWindows=[];return null;
     }
   }
   async function prepareVideo(){
