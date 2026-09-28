@@ -328,7 +328,16 @@ if(process.platform==='darwin'){
     shareState={...shareState,voiceLevel:level,speaking};
     publishState();
   });
-  ipcMain.on('mac-share:capture-stopped',()=>{if(qaPresenterTrace)console.error('QA_MAC_CAPTURE_STOPPED');shareActive=false;videoLayout='speaker';shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,voiceLevel:0,speaking:false};hideOverlays();});
+  function resetPresenterSession(reason='reset'){
+    if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
+    shareActive=false;videoLayout='speaker';toolbarMenuOpen=false;
+    shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:true,voiceLevel:0,speaking:false};
+    hideOverlays();presenterCommandQueue.length=0;
+    for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
+    presenterDeliveries.clear();
+    return true;
+  }
+  ipcMain.on('mac-share:capture-stopped',()=>resetPresenterSession('capture-stopped'));
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;removeQueuedPresenterDelivery(deliveryId);
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=${deliveryId} command=${String(payload?.command||'')} accepted=${payload?.accepted?1:0}`);
@@ -357,10 +366,9 @@ if(process.platform==='darwin'){
 
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();positionAnnotation();}});
   app.on('before-quit',()=>{
-    shareActive=false;hideOverlays();presenterCommandQueue.length=0;
-    for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'app_quitting',deliveryId});}
-    presenterDeliveries.clear();for(const win of [toolbarWindow,...borderWindows,videoWindow,annotationWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}borderWindows=[];
+    resetPresenterSession('app-quitting');
+    for(const win of [toolbarWindow,...borderWindows,videoWindow,annotationWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}borderWindows=[];
   });
 
-  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,hideMeeting,showOverlays,hideOverlays,prepare,state:()=>({shareActive,prepared:Boolean(toolbarReady&&isAlive(toolbarWindow)&&bordersReady()&&isAlive(videoWindow)),videoLayout,shareState:{...shareState}})});
+  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,hideMeeting,showOverlays,hideOverlays,prepare,reset:()=>resetPresenterSession('external-reset'),state:()=>({shareActive,prepared:Boolean(toolbarReady&&isAlive(toolbarWindow)&&bordersReady()&&isAlive(videoWindow)),videoLayout,shareState:{...shareState}})});
 }
