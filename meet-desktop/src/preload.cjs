@@ -106,7 +106,7 @@ const prepareMacPresenter=()=>process.platform==='darwin'?invoke('mac-share:prep
 contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
   isDesktop:true,
   environment:()=>invoke('app:get-environment'),
-  app:Object.freeze({relaunch:()=>invoke('app:relaunch'),privacyIdentity:()=>invoke('app:privacy-identity'),resetScreenPermission:()=>invoke('app:reset-screen-permission')}),
+  app:Object.freeze({relaunch:()=>invoke('app:relaunch'),privacyIdentity:()=>invoke('app:privacy-identity'),resetScreenPermission:()=>invoke('app:reset-screen-permission'),meetingEnded:()=>invoke('app:meeting-ended')}),
   brand:Object.freeze({logoUrl}),
   power:Object.freeze({onChanged:callback=>listen('app:power-event',callback)}),
   joinLinks:Object.freeze({consume:()=>invoke('app:consume-join-url'),onOpen:callback=>listen('app:join-url',callback)}),
