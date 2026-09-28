@@ -228,16 +228,23 @@ assert(
   read('ui','presenter-toolbar.js').includes("document.documentElement.style.display='none'"),
   'Packaged macOS sharing must close every obsolete legacy presenter toolbar window and the legacy renderer must self-disable on Mac.'
 );
+{
+  const macStateHandler=macPresenter.slice(
+    macPresenter.indexOf("ipcMain.on('mac-share:state'"),
+    macPresenter.indexOf("ipcMain.on('mac-share:voice-level'")
+  );
+  assert(
+    !macStateHandler.includes('hideOverlays()') &&
+    !macStateHandler.includes('toolbarWindow.close') &&
+    !macStateHandler.includes('destroyPresenterSession('),
+    'Packaged New Share/source-state updates must keep the native Mac presenter toolbar alive until capture actually stops.'
+  );
+}
 assert(
-  !macPresenter.slice(
-    macPresenter.indexOf("ipcMain.on('mac-share:state'"),
-    macPresenter.indexOf("ipcMain.on('mac-share:capture-stopped'")
-  ).includes('hideOverlays()') &&
-  !macPresenter.slice(
-    macPresenter.indexOf("ipcMain.on('mac-share:state'"),
-    macPresenter.indexOf("ipcMain.on('mac-share:capture-stopped'")
-  ).includes('toolbarWindow.close'),
-  'Packaged New Share/source-state updates must keep the native Mac presenter toolbar alive until capture actually stops.'
+  macPresenter.includes("function destroyPresenterSession(reason='meeting-ended')") &&
+  macPresenter.includes("destroy:()=>destroyPresenterSession('external-destroy')") &&
+  shareService.includes('__dominionMacSharePresenterOverlay?.destroy?.()'),
+  'Packaged meeting termination must hard-destroy native Mac presenter windows so the desktop can quit and reopen cleanly.'
 );
 assert(presenterHtml.includes('shareSourceLabel')&&presenterHtml.includes('shareAudioFlag')&&presenterHtml.includes('shareOptimizeFlag'),'Packaged presenter toolbar must show source and active Computer Sound / Optimize states.');
 assert(presenterJs.includes('state?.shareAudio')&&presenterJs.includes('state?.optimizeVideo'),'Packaged presenter toolbar flags must follow live share state.');
