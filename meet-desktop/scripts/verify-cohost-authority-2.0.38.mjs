@@ -7,6 +7,7 @@ const controls=read('ui/participant-controls.js');
 const app=read('ui/app.js');
 const service=read('src/meeting-service.mjs');
 const sql=read('sql/20260828_zoom_meeting_identity.sql');
+const authorityPolish=read('sql/20260928_host_authority_polish.sql');
 
 const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
 assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
@@ -30,7 +31,11 @@ assert.ok(sql.includes("if coalesce(v_room.active_host_id,v_room.host_id)<>v_act
 assert.ok(sql.includes("where id=p_room_id and coalesce(active_host_id,host_id)=v_user"),'End Meeting must remain active-host-only.');
 
 assert.ok(service.includes("const setCohost=(participantId,enabled)=>auth.rpc('meet_v2_set_cohost'"),'Co-host role mutation must remain backend-owned.');
-assert.ok(service.includes("const transferHostAndLeave=async participantId=>{const result=await auth.rpc('meet_v2_transfer_host_and_leave'"),'Host transfer must remain backend-owned.');
+assert.ok(service.includes("const transferHostAndLeave=async participantId=>{const result=await auth.rpc('meet_v2_transfer_host_and_leave'"),'Transfer-and-leave must remain backend-owned.');
+assert.ok(service.includes("const transferHost=participantId=>auth.rpc('meet_v2_transfer_host'"),'In-meeting host transfer must remain backend-owned.');
+assert.ok(controls.includes("add('Make Host'")&&controls.includes("meeting.transferHost(id)"),'Only the current host UI may initiate an in-meeting host transfer.');
+assert.ok(authorityPolish.includes("role='cohost'")&&authorityPolish.includes("id<>v_target.id")&&authorityPolish.includes("set role=case when member_id is null then 'guest' else 'participant' end"),'Appointing a co-host must demote any prior active co-host so only one remains.');
+assert.ok(authorityPolish.includes("create or replace function public.meet_v2_transfer_host(")&&authorityPolish.includes("set role='participant'")&&authorityPolish.includes("set role='host'")&&authorityPolish.includes("set active_host_id=v_target.member_id"),'Host transfer must demote the previous host, promote exactly one replacement, and update active host authority.');
 assert.ok(service.includes("const endRoom=async roomId=>{const result=await auth.rpc('meet_v2_end_room'"),'End Meeting must remain backend-owned.');
 
-console.log('DOMINIONSTAR_COHOST_AUTHORITY_2_0_38_OK waiting-room participant-controls host-only-cohost-mutation host-only-transfer-end cohost-cannot-remove-cohost');
+console.log('DOMINIONSTAR_COHOST_AUTHORITY_2_0_38_OK waiting-room participant-controls single-cohost host-only-cohost-mutation in-meeting-host-transfer host-only-transfer-end cohost-cannot-remove-cohost');
