@@ -271,6 +271,11 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     // untouched and let the annotation layer own its own interaction.
     if(platform==='darwin'&&normalized==='annotate'){
       keepMeetingRendererLive();
+      // The native window stays transparent except for the annotation canvas.
+      // Renderer CSS hides meeting chrome while this opacity restores visible ink.
+      try{main.setOpacity?.(savedMainWindowState?.opacity??1);}catch{}
+      try{main.setIgnoreMouseEvents(false);}catch{}
+      try{main.showInactive?.();}catch{try{main.show();}catch{}}
       lastToolbarState={...lastToolbarState,meetingVisible:false,companion:'annotate'};publishToolbarState();
       return true;
     }
