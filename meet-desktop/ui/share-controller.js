@@ -287,12 +287,12 @@
     if(macLike){macWorkerActive=false;disposeMacCaptureClient({stopWorker:true});}
     emit();
     let cleanupPromise=Promise.resolve();
-    if(hadShare){
+    if(hadShare||macLike){
       try{
         cleanupPromise=Promise.resolve(bridge?.captureStopped?.()).catch(error=>{console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error);});
       }catch(error){console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error);}
     }
-    if(waitForCleanup&&hadShare){
+    if(waitForCleanup&&(hadShare||macLike)){
       await Promise.race([cleanupPromise,new Promise(resolve=>setTimeout(resolve,1800))]);
     }else{
       void cleanupPromise;
