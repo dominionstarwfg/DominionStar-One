@@ -132,6 +132,14 @@ function createMainWindow(){
 }
 function focusOrCreateMainWindow(){
   if(mainWindow&&!mainWindow.isDestroyed()){
+    let rendererHealthy=true;
+    try{rendererHealthy=Boolean(mainWindow.webContents&&!mainWindow.webContents.isDestroyed()&&!mainWindow.webContents.isCrashed?.());}catch{rendererHealthy=false;}
+    if(!rendererHealthy){
+      try{mainWindow.destroy();}catch{}
+      mainWindow=null;
+      createMainWindow();
+      return;
+    }
     if(shareService?.recoverMainWindow?.({focus:true}))return;
     try{if(mainWindow.isMinimized())mainWindow.restore();}catch{}
     try{mainWindow.show();mainWindow.focus();}catch{}
@@ -141,6 +149,11 @@ function focusOrCreateMainWindow(){
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaPresenterFixtures:qaFixtureRequested,qaKeepMacPresenterHidden:process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1',installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:meeting-ended',()=>{
+  try{shareService?.shutdown?.();}catch(error){console.error('[DominionStar Meet] Meeting-end native cleanup failed.',error);}
+  focusOrCreateMainWindow();
+  return {ok:true};
+});
 ipcMain.handle('app:consume-join-url',()=>{
   while(pendingJoinUrls.length){const value=validJoinUrl(pendingJoinUrls.shift());if(value)return value;}
   return '';
