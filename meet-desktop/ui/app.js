@@ -259,12 +259,16 @@
     returningHome=true;
     stopPolling();
     try{
+      // Local camera/microphone ownership ends immediately with the meeting.
+      // Do not leave hardware tracks alive while native share teardown finishes.
+      media.stop();
+      attachPreview();
       await stopMeetingPresentation();
       try{await Promise.race([Promise.resolve(desktop?.app?.meetingEnded?.()),new Promise(resolve=>setTimeout(resolve,1500))]);}
       catch(error){console.warn('[DominionStar Meet] Native meeting-end teardown failed.',error);}
       window.dispatchEvent(new CustomEvent('dominion:meeting-ended'));
       lastWaitingMap=new Map();waitingEventsInitialized=false;lastParticipantMap=new Map();participantEventsInitialized=false;activeSpeakerIds=[];
-      media.stop();pendingMediaPreferences=null;$('#meetingOverlay').hidden=true;activeRoom=null;document.body.dataset.shareAfterJoin='';
+      pendingMediaPreferences=null;$('#meetingOverlay').hidden=true;activeRoom=null;document.body.dataset.shareAfterJoin='';
       showHome(authState);
     }finally{returningHome=false;}
   }
