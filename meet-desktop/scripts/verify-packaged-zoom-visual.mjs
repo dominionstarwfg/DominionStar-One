@@ -67,7 +67,7 @@ try{
   assert.equal(participants.position,'absolute','Participants must remain a floating desktop application surface.');
   assert.equal(participants.mode,'floating','Normal desktop-width Participants must use the floating Zoom-style window.');
   assert.equal(participants.inside,true,'Participants must remain inside the current meeting body.');
-  assert.ok(participants.rightGap>=8&&participants.rightGap<=14,'Participants must open at the stable right-edge position before user movement.');
+  assert.ok(participants.rightGap>=18&&participants.rightGap<=36,'Participants must open inset from the meeting edge as a floating window before user movement.');
   assert.ok(participants.width>=300&&participants.width<=420,'Desktop Participants width must stay readable and bounded.');
   assert.ok(Math.abs(participants.stageRightGap)<=2,'Opening Participants must not shrink the full-width live stage.');
   assert.ok(participants.headFont>=11.5,'Participants heading is below the approved 2.0.41 compact reference size.');
@@ -82,7 +82,7 @@ try{
   assert.ok(chat.width>=300&&chat.width<=420,'Chat width must remain compact and readable instead of becoming an oversized form panel.');
   assert.equal(chat.inside,true,'Chat must remain inside the meeting surface.');
   assert.equal(chat.mode,'floating','Normal desktop-width Chat must use the same floating application window model.');
-  assert.ok(chat.rightGap>=8&&chat.rightGap<=14,'Chat must open at the stable right-edge position before user movement.');
+  assert.ok(chat.rightGap>=18&&chat.rightGap<=36,'Chat must open inset from the meeting edge as a floating window before user movement.');
   assert.ok(Math.abs(chat.stageRightGap)<=2,'Floating Chat must not shrink the full-width live stage.');
   assert.ok(chat.headFont>=11.5&&chat.inputFont>=9.5,'Chat typography is below the approved compact 2.0.41 reference size.');
   assert.equal(chat.policyVisible,false,'Chat policy must not permanently occupy the panel header.');
