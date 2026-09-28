@@ -5,6 +5,9 @@ const read=path=>fs.readFileSync(path,'utf8');
 const pkg=JSON.parse(read('package.json'));
 const runtime=read('ui/runtime-stability.js');
 const approved=read('ui/approved-reference-parity.css');
+const parity=read('ui/meeting-parity.js');
+const participantControls=read('ui/participant-controls.js');
+const webrtc=read('ui/webrtc-controller.js');
 
 const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
 assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
@@ -22,5 +25,13 @@ assert.ok(runtime.includes("window.addEventListener('resize',schedule,{passive:t
 assert.ok(!runtime.includes('setInterval('),'Dock reflow must not add polling.');
 assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();'),'Dock geometry must commit in the same final runtime pass.');
 assert.ok(approved.includes('right:14px !important;'),'Approved reference must retain the wide right-filmstrip visual baseline.');
+assert.ok(approved.includes('.local-video-dock-tile')&&approved.includes('order:-100 !important'),'Self view must remain first in the participant filmstrip regardless of host role.');
+assert.ok(approved.includes('.remote-peer-tile:hover .participant-video-hover-actions')&&approved.includes('opacity:0 !important')&&approved.includes('pointer-events:none !important'),'Video-tile actions must stay visually quiet until pointer/focus interaction.');
+assert.ok(parity.includes('participant-video-hover-actions')&&parity.includes("primary.textContent=micOn?'Mute':'Unmute'"),'Self tile must expose pointer-driven Mute/Unmute controls.');
+assert.ok(parity.includes("else if(canManageView())")&&parity.includes("primary.textContent=micOn?'Mute':'Ask to Unmute'"),'Remote moderation control must only appear for host/co-host authority.');
+assert.ok(parity.includes("selfRow=q('#participantRoster [data-participant-self=\"1\"]')")&&parity.includes("name.textContent=selfName"),'Self tile must use the signed-in participant meeting name instead of a host assumption.');
+assert.ok(parity.includes('const should=Boolean(!hideSelf)')&&parity.includes("fallback.hidden=!should"),'Camera-off self view must remain represented by its fallback/profile surface rather than disappearing.');
+assert.ok(participantControls.includes('sendParticipant:send')&&participantControls.includes('openParticipantMenu'),'Filmstrip moderation must reuse participant authority instead of duplicating host logic.');
+assert.ok(webrtc.includes('tile.dataset.participantRole')&&webrtc.includes('tile.dataset.micOn'),'Remote video tiles must carry live role and microphone state for contextual actions.');
 
-console.log('DOMINIONSTAR_ADAPTIVE_VIDEO_DOCK_2_0_32_OK wide-right compact-top restore-right user-clamp event-driven no-polling');
+console.log('DOMINIONSTAR_ADAPTIVE_VIDEO_DOCK_2_0_32_OK wide-right compact-top restore-right user-clamp event-driven no-polling self-first smart-hover role-aware self-name camera-off-fallback');
