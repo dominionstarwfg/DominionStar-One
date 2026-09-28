@@ -500,3 +500,33 @@ body>.meeting-reaction-menu,
 #meetingOverlay #meetingChatPanel [data-chat-close]:hover{
   background:rgba(255,255,255,.11)!important
 }
+
+
+/* Final floating-surface chrome: one obvious Close control; no duplicate
+   traffic-light window controls competing with Participants/Chat actions. */
+#meetingOverlay .ds-panel-traffic{display:none!important}
+#meetingOverlay .room-side-head>div,
+#meetingOverlay #meetingChatPanel>header>div:first-of-type{padding-left:0!important}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"],
+#meetingOverlay #meetingChatPanel[data-ds-runtime-mode="floating"]{
+  position:absolute!important;
+  right:18px!important;
+  border-radius:13px!important;
+  resize:none!important
+}
+#meetingOverlay .room-side[data-ds-runtime-user-positioned="1"],
+#meetingOverlay #meetingChatPanel[data-ds-runtime-user-positioned="1"]{right:auto!important}
+#meetingOverlay .room-side-head button[aria-label="Close participants"],
+#meetingOverlay #meetingChatPanel [data-chat-close]{
+  margin-left:auto!important;
+  display:grid!important;place-items:center!important;
+  width:30px!important;height:30px!important;min-width:30px!important;
+  border:0!important;border-radius:7px!important;
+  background:transparent!important;color:#f4f4f4!important;
+  font-size:20px!important;line-height:1!important;cursor:pointer!important
+}
+#meetingOverlay .room-side-head button[aria-label="Close participants"]:hover,
+#meetingOverlay #meetingChatPanel [data-chat-close]:hover{background:rgba(255,255,255,.09)!important}
+#participantVideoDock[data-ds-runtime-dock-mode="right"]{
+  transition:width .16s ease,height .16s ease!important
+}
