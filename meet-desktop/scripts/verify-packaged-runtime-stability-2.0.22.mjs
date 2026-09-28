@@ -41,7 +41,7 @@ try{
   assert.equal(participantsImmediate.chatClosed,true,'Opening Participants must keep Chat closed.');
   assert.equal(participantsImmediate.mode,'floating','Participants must open as a floating Zoom-style window at desktop width.');
   assert.equal(participantsImmediate.inside,true,'Floating Participants must remain inside the meeting body.');
-  assert.ok(participantsImmediate.rightGap>=8&&participantsImmediate.rightGap<=14,'Participants must open at a stable right-edge default before user movement.');
+  assert.ok(participantsImmediate.rightGap>=18&&participantsImmediate.rightGap<=36,'Participants must open inset from the meeting edge as a floating surface before user movement.');
   assert.ok(Math.abs(participantsImmediate.stageRightGap)<=2,'Floating Participants must not reserve the right edge or shrink the stage.');
   assert.equal(participantsImmediate.count,'Participants (1)');
   assert.equal(participantsImmediate.motionSheetLoaded,true,'Runtime motion stylesheet must be active in the packaged renderer.');
