@@ -48,7 +48,7 @@ try{
   assert.equal(desktopParticipants.mode,'floating','Desktop Participants must remain a floating DominionStar window regardless of roster size.');
   assert.ok(desktopParticipants.width>=300&&desktopParticipants.width<=420,'Desktop Participants width is outside the readable bounded range.');
   assert.equal(desktopParticipants.inside,true,'Desktop Participants must remain inside the meeting body.');
-  assert.ok(desktopParticipants.rightGap>=8&&desktopParticipants.rightGap<=14,'Desktop Participants must open at the stable right-edge default before the user moves it.');
+  assert.ok(desktopParticipants.rightGap>=18&&desktopParticipants.rightGap<=36,'Desktop Participants must open inset from the meeting edge rather than as an attached sidebar.');
   assert.ok(Math.abs(desktopParticipants.stageRightGap)<=2,'Desktop Participants must float over a full-width stage instead of shrinking it.');
   assert.equal(desktopParticipants.searchHidden,true,'Search must remain hidden for a one-person roster.');
   assert.equal(desktopParticipants.waitingHidden,true,'Empty Waiting Room must not consume space.');
