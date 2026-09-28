@@ -299,6 +299,8 @@ assert(
   macPresenter.includes('body::before')&&
   macPresenter.includes('border:${BORDER_THICKNESS}px solid ${BORDER_COLOR}')&&
   macPresenter.includes("'screen-saver',2")&&
+  macPresenter.includes("setSimpleFullScreen(true)")&&
+  macPresenter.includes("setSimpleFullScreen(false)")&&
   macPresenter.includes("mac_share_perimeter_load")&&
   !macPresenter.includes("mac_share_border_edge_"),
   'The green presenter perimeter must be one continuous transparent full-display overlay so no segmented seams or inset edge windows remain.'
@@ -306,11 +308,12 @@ assert(
 assert(
   shareAnnotation.includes('getCoalescedEvents')&&
   shareAnnotation.includes('quadraticCurveTo')&&
-  shareAnnotation.includes('pointerrawupdate')&&
+  shareAnnotation.includes("batch.length-4")&&
+  !shareAnnotation.includes('pointerrawupdate')&&
   shareAnnotation.includes('drawImage(state.canvas,0,0)')&&
-  shareAnnotation.includes("version:'1.4.0-low-latency-smoothed-native-palette'")&&
+  shareAnnotation.includes("version:'1.4.1-low-latency-smoothed-native-palette'")&&
   shareAnnotation.includes("state.canvas.style.touchAction='none'"),
-  'Annotation pen input must use low-latency coalesced/raw pointer samples, lightweight history snapshots, and quadratic interpolation.'
+  'Annotation pen input must keep quadratic smoothing while limiting coalesced samples so handwriting paints without a perceptible backlog.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
@@ -322,6 +325,8 @@ assert(
   shareService.includes('main.setOpacity?.(1)')&&
   shareService.includes('try{main.blur?.();}catch{}')&&
   shareService.includes('Do not resize, move, minimize, hide or fade the meeting engine after')&&
+  shareService.includes('protectMeetingChrome(main,Boolean(shareActive));')&&
+  shareService.includes('protectMeetingChrome(main,true);main.show();main.focus();')&&
   !shareService.includes('MAC_SENTINEL_WIDTH')&&
   !shareService.includes('MAC_SENTINEL_HEIGHT')&&
   !shareService.includes('MAC_PARK_COORDINATE=-32000')&&
@@ -352,4 +357,4 @@ assert(
   'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
 );
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch hidden-meeting-renderer synchronized-media-ui dedicated-presenter-camera-preview continuous-full-display-perimeter low-latency-smoothed-annotation enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch hidden-meeting-renderer synchronized-media-ui dedicated-presenter-camera-preview simple-fullscreen-perimeter low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
