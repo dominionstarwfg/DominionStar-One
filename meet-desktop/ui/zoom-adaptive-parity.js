@@ -63,6 +63,8 @@
     for(const entry of sorted){
       const copy=entry.row.querySelector('.person-copy');if(!copy)continue;
       let suffix=copy.querySelector('.ds-adaptive-role');
+      const canonical=Boolean(copy.querySelector('.ds-canonical-role,.ds-canonical-self'));
+      if(canonical){suffix?.remove();continue;}
       if(!suffix){suffix=document.createElement('span');suffix.className='ds-adaptive-role';copy.querySelector('strong')?.insertAdjacentElement('afterend',suffix);}
       suffix.textContent=entry.self&&entry.role==='host'?'(Host, me)':entry.self?'(me)':entry.role==='host'?'(Host)':entry.role==='cohost'?'(Co-host)':'';
       suffix.hidden=!suffix.textContent;
