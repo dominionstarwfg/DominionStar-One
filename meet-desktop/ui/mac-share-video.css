@@ -12,13 +12,13 @@
 }
 .video-stage:hover .video-more-button,.video-more-button:hover,.video-more-button[aria-expanded="true"]{opacity:1;transform:none;background:rgba(0,0,0,.88)}
 .video-more-menu{
-  position:absolute;right:7px;top:37px;z-index:13;width:154px;padding:5px;border:1px solid rgba(255,255,255,.14);
-  border-radius:9px;background:rgba(22,22,22,.97);box-shadow:0 12px 30px rgba(0,0,0,.48);-webkit-app-region:no-drag
+  position:absolute;right:7px;top:37px;z-index:13;width:172px;padding:4px;border:1px solid rgba(255,255,255,.10);
+  border-radius:8px;background:rgba(40,40,42,.98);box-shadow:0 10px 28px rgba(0,0,0,.46);-webkit-app-region:no-drag
 }
 .video-more-menu[hidden]{display:none!important}
 .video-more-menu button{
-  width:100%;height:31px;border:0;border-radius:6px;background:transparent;color:#f4f4f5;text-align:left;padding:0 9px;
-  font:600 10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer
+  width:100%;height:34px;border:0;border-radius:5px;background:transparent;color:#f4f4f5;text-align:left;padding:0 10px;
+  font:500 12.5px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer
 }
 .video-more-menu button:hover{background:rgba(255,255,255,.09)}
 
