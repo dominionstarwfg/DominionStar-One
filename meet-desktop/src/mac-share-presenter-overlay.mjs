@@ -337,6 +337,21 @@ if(process.platform==='darwin'){
     presenterDeliveries.clear();
     return true;
   }
+  function destroyPresenterSession(reason='meeting-ended'){
+    resetPresenterSession(reason);
+    preparing=null;
+    const windows=[toolbarWindow,...borderWindows,videoWindow,annotationWindow];
+    toolbarWindow=null;toolbarReady=false;borderWindows=[];videoWindow=null;annotationWindow=null;
+    for(const win of windows){
+      if(!isAlive(win))continue;
+      try{win.setClosable?.(true);}catch{}
+      try{win.hide?.();}catch{}
+      try{win.close?.();}catch{try{win.destroy?.();}catch{}}
+      if(isAlive(win)){try{win.destroy?.();}catch{}}
+    }
+    if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_DESTROY reason=${String(reason||'meeting-ended')} remaining=${windows.filter(isAlive).length}`);
+    return true;
+  }
   ipcMain.on('mac-share:capture-stopped',()=>resetPresenterSession('capture-stopped'));
   ipcMain.on('share:presenter-delivery-ack',(event,payload={})=>{
     const deliveryId=Number(payload?.deliveryId||0)||0;if(!deliveryId)return;const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return;removeQueuedPresenterDelivery(deliveryId);
@@ -365,10 +380,7 @@ if(process.platform==='darwin'){
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
 
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();positionAnnotation();}});
-  app.on('before-quit',()=>{
-    resetPresenterSession('app-quitting');
-    for(const win of [toolbarWindow,...borderWindows,videoWindow,annotationWindow]){if(isAlive(win)){try{win.setClosable?.(true);win.close();}catch{}}}borderWindows=[];
-  });
+  app.on('before-quit',()=>{destroyPresenterSession('app-quitting');});
 
-  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,hideMeeting,showOverlays,hideOverlays,prepare,reset:()=>resetPresenterSession('external-reset'),state:()=>({shareActive,prepared:Boolean(toolbarReady&&isAlive(toolbarWindow)&&bordersReady()&&isAlive(videoWindow)),videoLayout,shareState:{...shareState}})});
+  globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,hideMeeting,showOverlays,hideOverlays,prepare,reset:()=>resetPresenterSession('external-reset'),destroy:()=>destroyPresenterSession('external-destroy'),state:()=>({shareActive,prepared:Boolean(toolbarReady&&isAlive(toolbarWindow)&&bordersReady()&&isAlive(videoWindow)),videoLayout,shareState:{...shareState}})});
 }
