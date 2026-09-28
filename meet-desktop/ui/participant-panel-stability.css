@@ -1,9 +1,10 @@
-/* Keep the Participants roster on the Zoom-style right edge from its first visible frame.
-   Runtime polish uses the same geometry so there is no centered flash or legacy-position jump. */
+/* Participants opens as a floating desktop surface from its first frame.
+   RuntimeStability owns subsequent drag/resize geometry and preserves it. */
 .room-side:not([style*="left:"]){
   left:auto!important;
-  right:10px!important;
-  top:10px!important;
-  bottom:10px!important;
+  right:24px!important;
+  top:54px!important;
+  bottom:auto!important;
+  height:min(520px,calc(100% - 78px))!important;
   transform:none!important;
 }
