@@ -87,7 +87,7 @@ try{
   assert.ok(Math.abs(participantRow.stageRightGap)<=2,'Floating Participants must not shrink the live stage.');
   assert.equal(participantRow.draggable,true,'Participants floating surface must have a drag authority.');
   assert.equal(participantRow.close,true,'Participants must expose a visible direct Close control.');
-  assert.equal(participantRow.traffic,0,'Participants must not duplicate the Close control with traffic-light window chrome.');
+  assert.equal(participantRow.traffic,3,'Mac Participants must expose exactly three functional traffic-light controls for close, collapse and expand.');
   const canonicalSelf=await evaluate(`(()=>{const row=document.querySelector('#participantRoster [data-participant-self="1"]'),strong=row.querySelector('.person-copy strong'),actions=row.querySelector('.participant-actions');return {name:String(strong?.childNodes?.[0]?.textContent||'').trim(),roles:row.querySelectorAll('.ds-canonical-role').length,selfLabels:row.querySelectorAll('.ds-canonical-self').length,more:actions?.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more').length||0};})()`);
   assert.equal(canonicalSelf.name,'QA Host','Participant name must not retain duplicated inline Host/me text.');
   assert.equal(canonicalSelf.roles,1,'Host role must render exactly once.');
