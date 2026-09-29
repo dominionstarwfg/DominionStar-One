@@ -14,7 +14,7 @@ if(process.platform==='darwin'){
   let videoWindow=null;
   let annotationWindow=null;
   let shareActive=false;
-  let toolbarReady=false;
+  let toolbarReady=false,toolbarAutoHidden=false;
   let toolbarMenuOpen=false;
   let preparing=null;
   let presenterDeliverySeq=0;
@@ -60,7 +60,7 @@ if(process.platform==='darwin'){
     if(!isAlive(toolbarWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
     const width=Math.min(890,Math.max(760,area.width-28));
-    const height=toolbarMenuOpen?286:92;
+    const height=toolbarMenuOpen?286:(toolbarAutoHidden?8:92);
     const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+4);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -324,7 +324,7 @@ if(process.platform==='darwin'){
   });
   function resetPresenterSession(reason='reset'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
-    shareActive=false;videoLayout='speaker';toolbarMenuOpen=false;
+    shareActive=false;videoLayout='speaker';toolbarMenuOpen=false;toolbarAutoHidden=false;
     shareState={paused:false,micOn:false,cameraOn:false,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false};
     publishState();hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
@@ -370,7 +370,8 @@ if(process.platform==='darwin'){
     }
     return delivered;
   });
-  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);positionToolbar();return {ok:true,height:toolbarMenuOpen?286:92};});
+  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);if(toolbarMenuOpen)toolbarAutoHidden=false;positionToolbar();return {ok:true,height:toolbarMenuOpen?286:(toolbarAutoHidden?8:92)};});
+  ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?8:92};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
 
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();positionAnnotation();}});
