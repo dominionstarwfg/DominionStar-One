@@ -40,7 +40,13 @@ if(process.platform==='darwin'){
   const displayForSharedContent=()=>{const id=String(shareState.displayId||'');if(id){try{const matched=screen.getAllDisplays().find(display=>String(display.id)===id);if(matched)return matched;}catch{}}return displayForMain();};
   const isDisplayShare=()=>/screen|desktop|display|entire/i.test(String(shareState.sourceName||''));
 
-  function protect(win){if(!isAlive(win))return;try{win.setContentProtection(true);}catch{}}
+  // Presenter chrome must remain visible in normal macOS screenshots. Content
+  // protection makes Electron windows render blank in screenshots, which is not
+  // acceptable for meeting controls, the participant video companion, annotation
+  // palette, or the share perimeter. Keep these non-sensitive presenter surfaces
+  // capturable and rely on share-stream composition rules rather than OS capture
+  // blocking for presenter UX.
+  function allowSystemCapture(win){if(!isAlive(win))return;try{win.setContentProtection(false);}catch{}}
   function wakeMain(main=mainWindow()){
     if(!isAlive(main))return false;
     // Renderer scheduling is fixed at BrowserWindow creation. Do not mutate
@@ -131,7 +137,7 @@ if(process.platform==='darwin'){
       focusable:false,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-toolbar-v2044'}
     });
-    toolbarWindow=win;protect(win);
+    toolbarWindow=win;allowSystemCapture(win);
     try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(toolbarWindow===win){toolbarWindow=null;toolbarReady=false;}});
@@ -162,7 +168,7 @@ if(process.platform==='darwin'){
         closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,roundedCorners:false,
         webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:false,backgroundThrottling:false}
       });
-      borderWindows=[win];protect(win);
+      borderWindows=[win];allowSystemCapture(win);
       try{win.setIgnoreMouseEvents(true,{forward:true});}catch{}
       try{win.setAlwaysOnTop(true,'screen-saver',2);}catch{try{win.setAlwaysOnTop(true);}catch{}}
       try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
@@ -179,7 +185,7 @@ if(process.platform==='darwin'){
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
     const win=new BrowserWindow({width:292,height:176,minWidth:220,minHeight:132,maxWidth:380,maxHeight:250,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
-    videoWindow=win;protect(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
+    videoWindow=win;allowSystemCapture(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
     try{await boundedLoad('mac_share_video_load',()=>win.loadFile(path.join(uiDir,'mac-share-video.html')));if(!isAlive(win)||videoWindow!==win)return null;publishState();if(shareActive&&!qaKeepPresenterHidden&&videoLayout!=='hide'){positionVideo();win.showInactive?.();win.moveTop?.();}return win;}
@@ -193,7 +199,7 @@ if(process.platform==='darwin'){
       resizable:false,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-annotation-v2044'}
     });
-    annotationWindow=win;protect(win);
+    annotationWindow=win;allowSystemCapture(win);
     try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(annotationWindow===win)annotationWindow=null;});
