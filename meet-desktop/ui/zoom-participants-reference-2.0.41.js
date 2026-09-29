@@ -20,26 +20,26 @@
     style.dataset.dsZoomParticipantsReference2041='1';
     style.textContent=`
       #meetingOverlay .room-side.ds-participants-reference{
-        position:absolute!important;width:390px!important;min-width:320px!important;max-width:min(460px,calc(100% - 24px))!important;
-        height:520px!important;min-height:310px!important;max-height:calc(100% - 24px)!important;
-        left:auto!important;right:12px!important;top:12px!important;bottom:auto!important;transform:none!important;
+        position:absolute!important;width:330px!important;min-width:300px!important;max-width:min(360px,calc(100% - 24px))!important;
+        height:438px!important;min-height:300px!important;max-height:calc(100% - 24px)!important;
+        left:auto!important;right:14px!important;top:14px!important;bottom:auto!important;transform:none!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
         background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:both!important;z-index:3200!important;color:#f5f5f6!important
       }
       #meetingOverlay .room-side.ds-participants-reference[hidden]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.dragging{transform:none!important;box-shadow:0 22px 64px rgba(0,0,0,.62)!important}
-      #meetingOverlay .room-side.ds-participants-reference .room-side-head{position:relative!important;flex:0 0 43px!important;height:43px!important;min-height:43px!important;padding:0 44px!important;display:flex!important;align-items:center!important;justify-content:center!important;border:0!important;border-bottom:1px solid #46474a!important;border-radius:10px 10px 0 0!important;background:#353537!important;cursor:move!important;user-select:none!important}
+      #meetingOverlay .room-side.ds-participants-reference .room-side-head{position:relative!important;flex:0 0 38px!important;height:38px!important;min-height:38px!important;padding:0 40px!important;display:flex!important;align-items:center!important;justify-content:center!important;border:0!important;border-bottom:1px solid #46474a!important;border-radius:10px 10px 0 0!important;background:#353537!important;cursor:move!important;user-select:none!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head>div{text-align:center!important;min-width:0!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head strong{font-size:14px!important;font-weight:650!important;letter-spacing:0!important;color:#f5f5f6!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head small{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head>button{position:absolute!important;right:9px!important;top:8px!important;width:26px!important;height:26px!important;border:0!important;background:transparent!important;color:#e4e4e5!important;font-size:18px!important;line-height:1!important;cursor:pointer!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:block!important}
-      .ds-participants-traffic{position:absolute;left:12px;top:0;height:43px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
+      .ds-participants-traffic{position:absolute;left:10px;top:0;height:38px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
       .ds-participants-traffic .close{background:#ff5f57}.ds-participants-traffic .min{background:#febc2e}.ds-participants-traffic .max{background:#28c840}
-      .ds-participant-search-wrap{flex:0 0 auto;padding:10px 12px 8px;background:#2b2b2d;position:relative}
-      .ds-participant-search-wrap svg{position:absolute;left:23px;top:20px;width:17px;height:17px;fill:none;stroke:#d4d4d6;stroke-width:2;pointer-events:none}
-      #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary{display:block!important;width:100%!important;height:35px!important;margin:0!important;padding:0 12px 0 36px!important;border:1px solid #737477!important;border-radius:7px!important;outline:none!important;background:#202023!important;color:#f5f5f6!important;font:500 12px/35px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;box-shadow:none!important}
+      .ds-participant-search-wrap{flex:0 0 auto;padding:8px 10px 7px;background:#2b2b2d;position:relative}
+      .ds-participant-search-wrap svg{position:absolute;left:20px;top:17px;width:15px;height:15px;fill:none;stroke:#d4d4d6;stroke-width:2;pointer-events:none}
+      #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary{display:block!important;width:100%!important;height:32px!important;margin:0!important;padding:0 10px 0 32px!important;border:1px solid #737477!important;border-radius:7px!important;outline:none!important;background:#202023!important;color:#f5f5f6!important;font:500 11px/32px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;box-shadow:none!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary:focus{border-color:#36a8ff!important;box-shadow:0 0 0 1px #36a8ff!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary::placeholder{color:#c6c6c8!important;opacity:1!important}
       #meetingOverlay .room-side.ds-participants-reference [data-ds-legacy-participant-search="1"],#meetingOverlay .room-side.ds-participants-reference [data-ds-legacy-participant-actions="1"]{display:none!important}
@@ -47,17 +47,17 @@
       #meetingOverlay .room-side.ds-participants-reference>section:not(#waitingQueueSection){display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
       #meetingOverlay .room-side.ds-participants-reference section>h3{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference #waitingQueueSection{flex:0 0 auto!important;max-height:150px!important;overflow:auto!important;border-bottom:1px solid #414245!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:364px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 8px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row{min-height:52px!important;height:52px!important;margin:0!important;padding:5px 7px!important;border:0!important;border-radius:7px!important;background:transparent!important;display:grid!important;grid-template-columns:34px minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:9px!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:294px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 8px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row{min-height:42px!important;height:42px!important;margin:0!important;padding:5px 7px!important;border:0!important;border-radius:7px!important;background:transparent!important;display:grid!important;grid-template-columns:30px minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:9px!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row:hover{background:#3a3a3d!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking{background:#303b34!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking .person-copy strong{color:#55d98a!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking [data-participant-mic]{color:#55d98a!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row[hidden]{display:none!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge{width:34px!important;height:34px!important;border-radius:50%!important;margin:0!important;overflow:hidden!important;display:grid!important;place-items:center!important;background:#59616d!important;color:#fff!important;font-size:11px!important;font-weight:700!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge{width:30px!important;height:30px!important;border-radius:50%!important;margin:0!important;overflow:hidden!important;display:grid!important;place-items:center!important;background:#59616d!important;color:#fff!important;font-size:11px!important;font-weight:700!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy{min-width:0!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:5px!important;overflow:hidden!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy strong{min-width:0!important;display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:13px!important;font-weight:600!important;color:#f3f3f4!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy strong{min-width:0!important;display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:12px!important;font-weight:600!important;color:#f3f3f4!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy small{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-you{font-style:normal!important;color:#dedee0!important;font-weight:500!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-adaptive-role{display:inline!important;flex:none!important;font-size:11px!important;color:#dedee0!important;font-weight:500!important;white-space:nowrap!important}
@@ -72,17 +72,17 @@
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-more,#meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-participant-more{width:28px!important;height:28px!important;min-width:28px!important;padding:0!important;border:0!important;border-radius:5px!important;background:transparent!important;color:#d7d7d9!important;font-size:0!important;display:grid!important;place-items:center!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-more:before,#meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-participant-more:before{content:'•••';font-size:11px!important;letter-spacing:1px!important;line-height:1!important}
       #participantBulkActions{display:none!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 58px!important;height:58px!important;padding:10px 12px!important;margin:0!important;border-top:1px solid #454649!important;border-radius:0 0 10px 10px!important;background:#333335!important;display:flex!important;align-items:center!important;gap:10px!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button{height:34px!important;min-width:96px!important;padding:0 18px!important;border:0!important;border-radius:18px!important;background:#55565a!important;color:#fff!important;font-size:11px!important;font-weight:600!important;cursor:pointer!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 50px!important;height:50px!important;padding:8px 10px!important;margin:0!important;border-top:1px solid #454649!important;border-radius:0 0 10px 10px!important;background:#333335!important;display:flex!important;align-items:center!important;gap:10px!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button{height:32px!important;min-width:82px!important;padding:0 14px!important;border:0!important;border-radius:18px!important;background:#55565a!important;color:#fff!important;font-size:11px!important;font-weight:600!important;cursor:pointer!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button:hover{background:#65666a!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button:last-child{margin-left:auto!important;min-width:70px!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button:last-child{margin-left:auto!important;min-width:58px!important}
       #meetingOverlay .meeting-footer #roomMic.ds-av-off .ds-control-icon,#meetingOverlay .meeting-footer #roomCamera.ds-av-off .ds-control-icon{color:#ff5365!important}
       #meetingOverlay .meeting-footer #roomMic .ds-control-icon svg,#meetingOverlay .meeting-footer #roomCamera .ds-control-icon svg{fill:none!important;stroke:currentColor!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important}
       #meetingOverlay .meeting-footer #roomCamera::before,#meetingOverlay .meeting-footer #roomCamera::after,#meetingOverlay .meeting-footer #roomCamera .ds-control-icon::before,#meetingOverlay .meeting-footer #roomCamera .ds-control-icon::after{content:none!important}
       #meetingOverlay .meeting-footer #roomCamera.ds-av-off .ds-control-icon{position:relative!important}
       #meetingOverlay .meeting-footer #roomCamera.ds-av-off .ds-control-icon::after{content:""!important;position:absolute!important;left:-1px!important;right:-1px!important;top:50%!important;height:2px!important;border-radius:999px!important;background:#ff5365!important;transform:translateY(-50%) rotate(-45deg)!important;pointer-events:none!important}
       .ds-participant-search-empty{padding:28px 14px;text-align:center;color:#a9aaad;font-size:11px}
-      #meetingOverlay .room-side.ds-participants-reference.ds-panel-collapsed{height:43px!important;min-height:43px!important;resize:none!important}
+      #meetingOverlay .room-side.ds-participants-reference.ds-panel-collapsed{height:38px!important;min-height:38px!important;resize:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-panel-collapsed>:not(.room-side-head){display:none!important}
       @media(max-width:720px){#meetingOverlay .room-side.ds-participants-reference{width:min(360px,calc(100% - 20px))!important;height:min(500px,calc(100% - 20px))!important;right:10px!important;top:10px!important}}
     `;
@@ -192,10 +192,10 @@
     if(side.dataset.dsAdaptiveUserPositioned==='1')return;
     let saved=null;try{saved=JSON.parse(localStorage.getItem(GEOMETRY_KEY)||'null');}catch{}
     if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.top)&&Number.isFinite(saved.width)&&Number.isFinite(saved.height)){
-      const width=Math.min(Math.max(saved.width,320),Math.min(460,body.clientWidth-24)),height=Math.min(Math.max(saved.height,310),body.clientHeight-24),left=Math.max(10,Math.min(saved.left,body.clientWidth-width-10)),top=Math.max(10,Math.min(saved.top,body.clientHeight-height-10));
+      const width=Math.min(Math.max(saved.width,300),Math.min(360,body.clientWidth-24)),height=Math.min(Math.max(saved.height,300),Math.min(470,body.clientHeight-24)),left=Math.max(10,Math.min(saved.left,body.clientWidth-width-10)),top=Math.max(10,Math.min(saved.top,body.clientHeight-height-10));
       side.style.setProperty('width',`${width}px`,'important');side.style.setProperty('height',`${height}px`,'important');side.style.setProperty('left',`${left}px`,'important');side.style.setProperty('right','auto','important');side.style.setProperty('top',`${top}px`,'important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
     }else{
-      side.style.setProperty('width',`${Math.min(390,Math.max(320,body.clientWidth-24))}px`,'important');side.style.setProperty('height',`${Math.min(520,Math.max(310,body.clientHeight-24))}px`,'important');side.style.setProperty('left','auto','important');side.style.setProperty('right','12px','important');side.style.setProperty('top','12px','important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
+      side.style.setProperty('width',`${Math.min(330,Math.max(300,body.clientWidth-24))}px`,'important');side.style.setProperty('height',`${Math.min(438,Math.max(300,body.clientHeight-24))}px`,'important');side.style.setProperty('left','auto','important');side.style.setProperty('right','14px','important');side.style.setProperty('top','14px','important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
     }
   }
 
@@ -207,7 +207,7 @@
 
   function sync(){
     syncFrame=0;ensureStyle();if(!meetingOpen())return;const side=sidePanel();if(!side)return;
-    side.classList.add('ds-participants-reference');ensureHeader(side);const search=ensureSearch(side);cleanupLegacyActionBars(side);applyGeometry(side);
+    side.classList.add('ds-participants-reference');ensureHeader(side);if(side.hidden)return;const search=ensureSearch(side);cleanupLegacyActionBars(side);applyGeometry(side);
     const rows=participantRows(),head=side.querySelector('.room-side-head strong');if(head)head.textContent=`Participants (${rows.length||1})`;
     sortRows();syncParticipantMediaIcons();syncToolbarAvIcons();syncShareState();syncFooter(side);if(search)filterRows(search.value);
   }
@@ -217,8 +217,8 @@
   document.addEventListener('pointerup',()=>{const side=sidePanel();if(side?.dataset.dsAdaptiveUserPositioned==='1')saveGeometry(side);},true);
   window.addEventListener('resize',schedule,true);window.addEventListener('dominion:remote-media-state',schedule,true);window.addEventListener('dominion:share-state',schedule,true);window.addEventListener('dominion:meeting-ui-ready',schedule,true);window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();},true);
   window.dominionDesktop?.environment?.().then(info=>{if(info?.platform==='darwin'&&!runtimeMac){runtimeMac=true;schedule();}}).catch(()=>{});
-  const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style','data-participant-role','data-participant-name']});
-  const timer=setInterval(schedule,500);
+  const observer=new MutationObserver(schedule);const observedRoot=q('#meetingOverlay')||document.body;observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-name','data-participant-self']});
+  const timer=setInterval(()=>{const side=sidePanel();if(meetingOpen()&&side&&!side.hidden)schedule();},1800);
 
   window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.41',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
