@@ -178,7 +178,9 @@
     for(const row of qa('#participantRoster [data-participant-id]')){
       let button=row.querySelector('[data-participant-more]');
       const role=String(row.dataset.participantRole||'participant');
-      if(!canManage()||role==='host'){button?.remove();continue;}
+      const self=row.dataset.participantSelf==='1';
+      if(self){syncRowMedia(row);continue;}
+      if(!canManage()||role==='host'){button?.remove();syncRowMedia(row);continue;}
       if(!button){button=document.createElement('button');button.type='button';button.dataset.participantMore='1';button.className='mini-btn participant-more';button.textContent='More';button.setAttribute('aria-label',`More controls for ${String(row.dataset.participantName||'participant')}`);button.onclick=event=>{event.stopPropagation();void openParticipantMenu(button);};row.querySelector('.participant-actions')?.append(button)||row.append(button);}syncRowMedia(row);
     }
   }
