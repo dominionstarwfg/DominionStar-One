@@ -36,7 +36,7 @@
 
   window.addEventListener('dominion:meeting-ui-ready',schedule,true);
   const observer=new MutationObserver(schedule);
-  observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-self']});
+  const observed=q('#meetingOverlay');if(observed)observer.observe(observed,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-self']});
 
   window.DominionParticipantsCenterLock2041=Object.freeze({
     version:'2.0.43-compatibility-no-geometry',
