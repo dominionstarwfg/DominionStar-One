@@ -9,15 +9,16 @@
   const stateBridge=nativeBridge||rendererBridge;
   const q=s=>document.querySelector(s);
   const toolbar=q('#toolbar'),layoutMenu=q('#layoutMenu'),moreMenu=q('#moreMenu');
-  let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,lastState={paused:false,micOn:false,cameraOn:true};
+  let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,nativeHidden=false,lastState={paused:false,micOn:false,cameraOn:true};
   const AUTO_HIDE_MS=2300;
   const NATIVE_ONLY_COMMANDS=new Set(['layout-speaker','layout-gallery','layout-hide','show-meeting']);
 
   const logo=q('#brandLogo');if(logo&&desktop.brand?.logoUrl)logo.src=desktop.brand.logoUrl;
   const menusOpen=()=>Boolean(!layoutMenu?.hidden||!moreMenu?.hidden);
   const setMenuState=async open=>{menuOpen=Boolean(open);toolbar?.classList.toggle('menu-open',menuOpen);try{await nativeBridge?.setMenuOpen?.(menuOpen);}catch{}};
-  const reveal=()=>{lastPointerAt=Date.now();toolbar?.classList.remove('auto-hidden');if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}};
-  const scheduleHide=()=>{if(hideTimer)clearTimeout(hideTimer);if(menusOpen())return;hideTimer=setTimeout(()=>{hideTimer=0;if(menusOpen())return;if(Date.now()-lastPointerAt<AUTO_HIDE_MS-80){scheduleHide();return;}toolbar?.classList.add('auto-hidden');},AUTO_HIDE_MS);};
+  const setNativeHidden=hidden=>{const next=Boolean(hidden);if(nativeHidden===next)return;nativeHidden=next;try{void nativeBridge?.setToolbarHidden?.(next);}catch{}};
+  const reveal=()=>{lastPointerAt=Date.now();toolbar?.classList.remove('auto-hidden');setNativeHidden(false);if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}};
+  const scheduleHide=()=>{if(hideTimer)clearTimeout(hideTimer);if(menusOpen())return;hideTimer=setTimeout(()=>{hideTimer=0;if(menusOpen())return;if(Date.now()-lastPointerAt<AUTO_HIDE_MS-80){scheduleHide();return;}toolbar?.classList.add('auto-hidden');setNativeHidden(true);},AUTO_HIDE_MS);};
   const closeMenus=()=>{if(layoutMenu)layoutMenu.hidden=true;if(moreMenu)moreMenu.hidden=true;void setMenuState(false);scheduleHide();};
   // A mere "sent:true" is not proof that the meeting renderer actually ran
   // the command. Require direct execution, explicit acknowledgement, handled,
@@ -66,6 +67,8 @@
   });
   document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',async event=>{
     const control=event.currentTarget;let command=String(control.dataset.command||'');
+    if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';
+    if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';
     if(command==='annotate'&&String(lastState?.companion||'')==='annotate')command='annotate-close';
     closeMenus();control.classList.add('command-pending');control.setAttribute('aria-busy','true');
     try{await send(command);}
@@ -95,6 +98,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.44-physical-mac-acknowledged-dispatch',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.44-explicit-av-native-autohide',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
