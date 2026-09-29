@@ -59,9 +59,9 @@ if(process.platform==='darwin'){
   function positionToolbar(){
     if(!isAlive(toolbarWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=Math.min(890,Math.max(760,area.width-28));
-    const height=toolbarMenuOpen?286:(toolbarAutoHidden?8:92);
-    const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+4);
+    const width=Math.min(830,Math.max(700,area.width-28));
+    const height=toolbarMenuOpen?286:(toolbarAutoHidden?14:88);
+    const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+2);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
   }
   function positionBorder(){
@@ -126,7 +126,7 @@ if(process.platform==='darwin'){
     if(isAlive(toolbarWindow))closeFailedWindow(toolbarWindow);
     toolbarWindow=null;toolbarReady=false;
     const win=new BrowserWindow({
-      width:890,height:92,minWidth:760,minHeight:92,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:830,height:88,minWidth:700,minHeight:14,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
       focusable:false,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-toolbar-v2044'}
@@ -262,7 +262,7 @@ if(process.platform==='darwin'){
       if(isDisplayShare())showBorder();else hideBorder();
     });
   }
-  function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:92},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideAnnotationPalette();hideBorder();}
+  function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:88},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideAnnotationPalette();hideBorder();}
 
   function removeQueuedPresenterDelivery(deliveryId){const id=Number(deliveryId||0)||0;if(!id)return false;const index=presenterCommandQueue.findIndex(item=>Number(item?.deliveryId||0)===id);if(index<0)return false;presenterCommandQueue.splice(index,1);return true;}
   function settlePresenterDelivery(deliveryId,result){const pending=presenterDeliveries.get(deliveryId);if(!pending)return false;presenterDeliveries.delete(deliveryId);clearTimeout(pending.timer);pending.resolve(result);return true;}
@@ -370,8 +370,8 @@ if(process.platform==='darwin'){
     }
     return delivered;
   });
-  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);if(toolbarMenuOpen)toolbarAutoHidden=false;positionToolbar();return {ok:true,height:toolbarMenuOpen?286:(toolbarAutoHidden?8:92)};});
-  ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?8:92};});
+  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);if(toolbarMenuOpen)toolbarAutoHidden=false;positionToolbar();return {ok:true,height:toolbarMenuOpen?286:(toolbarAutoHidden?14:88)};});
+  ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?14:88};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
 
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();positionAnnotation();}});
