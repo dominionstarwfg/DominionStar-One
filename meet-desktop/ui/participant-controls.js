@@ -213,6 +213,11 @@
   window.addEventListener('dominion:meeting-ended',closeMenu,true);
   window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
-  const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(inMeeting()&&side&&!side.hidden)sync();},2000);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.44-self-menu-stable-participants',sync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
+  let syncFrame=0;
+  const requestSync=()=>{if(syncFrame)return;syncFrame=requestAnimationFrame(()=>{syncFrame=0;sync();});};
+  window.addEventListener('dominion:meeting-snapshot',requestSync,true);
+  window.addEventListener('dominion:participant-presence',requestSync,true);
+  window.addEventListener('dominion:active-speakers',requestSync,true);
+  const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(!document.hidden&&inMeeting()&&side&&!side.hidden)requestSync();},6000);sync();
+  window.DominionParticipantControls=Object.freeze({version:'2.0.45-event-driven-self-menu-stable-participants',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
