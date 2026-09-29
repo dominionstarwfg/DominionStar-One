@@ -13,6 +13,7 @@
   let previewGeneration=0;
   let qaInteractionFixtures=false;
   let qaCanvasTimer=0;
+  let videoLayout='speaker';
 
   const initials=name=>String(name||'DominionStar').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'DS';
   const avatarFrom=user=>String(user?.avatarUrl||user?.avatar_url||user?.user_metadata?.avatar_url||user?.user_metadata?.picture||'');
@@ -151,6 +152,14 @@
   q('#videoMenuSpeaker')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-speaker');});
   q('#videoMenuGallery')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-gallery');});
   q('#videoMenuHide')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-hide');});
+  const setLayoutActive=layout=>{
+    videoLayout=String(layout||'speaker');
+    q('#videoViewSpeaker')?.classList.toggle('active',videoLayout==='speaker');
+    q('#videoViewGallery')?.classList.toggle('active',videoLayout==='gallery');
+  };
+  q('#videoViewSpeaker')?.addEventListener('click',async()=>{if(await presenterCommand('layout-speaker'))setLayoutActive('speaker');});
+  q('#videoViewGallery')?.addEventListener('click',async()=>{if(await presenterCommand('layout-gallery'))setLayoutActive('gallery');});
+  q('#videoViewHide')?.addEventListener('click',async()=>{await presenterCommand('layout-hide');});
   document.addEventListener('pointerdown',event=>{if(!event.target?.closest?.('#videoMoreButton,#videoMoreMenu'))closeMenu();},true);
   window.addEventListener('mouseleave',()=>closeMenu(),{passive:true});
   window.addEventListener('blur',()=>closeMenu());
@@ -171,6 +180,7 @@
   bridge?.onState?.(state=>{
     const nextCameraOn=state?.cameraOn!==false;
     micOn=state?.micOn!==false;
+    if(state?.videoLayout)setLayoutActive(state.videoLayout);
     const nextCameraId=String(state?.cameraId||'');
     const nextMirror=state?.mirror!==false;
     const deviceChanged=nextCameraId!==cameraId;
