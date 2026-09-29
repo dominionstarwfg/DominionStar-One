@@ -325,7 +325,11 @@ assert(
   !shareAnnotation.includes('pointerrawupdate')&&
   shareAnnotation.includes("addEventListener('pointermove',move,{passive:false})")&&
   shareAnnotation.includes('drawImage(state.canvas,0,0)')&&
-  shareAnnotation.includes("version:'1.6.0-low-latency-native-annotation'")&&
+  shareAnnotation.includes("version:'1.7.0-async-history-event-driven-annotation'")&&
+  shareAnnotation.includes('createImageBitmap(state.canvas)')&&
+  shareAnnotation.includes('historyPending')&&
+  shareAnnotation.includes("window.addEventListener('dominion:share-state'")&&
+  !shareAnnotation.includes("setInterval(()=>{if(state.active")&&
   shareAnnotation.includes('function drawShape')&&
   shareAnnotation.includes('function setWidth')&&
   shareAnnotation.includes("state.canvas.style.touchAction='none'"),
