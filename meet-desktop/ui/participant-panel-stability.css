@@ -2,9 +2,9 @@
    RuntimeStability owns subsequent drag/resize geometry and preserves it. */
 .room-side:not([style*="left:"]){
   left:auto!important;
-  right:24px!important;
-  top:54px!important;
+  right:14px!important;
+  top:14px!important;
   bottom:auto!important;
-  height:min(520px,calc(100% - 78px))!important;
+  height:min(438px,calc(100% - 28px))!important;
   transform:none!important;
 }
