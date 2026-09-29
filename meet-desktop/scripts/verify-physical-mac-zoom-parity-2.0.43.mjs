@@ -239,13 +239,19 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-highlight"') &&
   macAnnotationHtml.includes('data-command="annotate-laser"') &&
   macAnnotationHtml.includes('data-command="annotate-erase"') &&
+  macAnnotationHtml.includes('data-command="annotate-width-thin"') &&
+  macAnnotationHtml.includes('data-command="annotate-width-heavy"') &&
+  macAnnotationHtml.includes('data-command="annotate-shape-line"') &&
+  macAnnotationHtml.includes('data-command="annotate-shape-rect"') &&
+  macAnnotationHtml.includes('data-command="annotate-shape-ellipse"') &&
+  macAnnotationHtml.includes('data-command="annotate-shape-arrow"') &&
   macAnnotationHtml.includes('data-command="annotate-undo"') &&
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('background:linear-gradient(180deg') &&
-  macAnnotationCss.includes('flex-direction:column') &&
-  macAnnotationJs.includes("version:'2.0.44-left-vertical'") &&
+  macAnnotationCss.includes('width:184px') &&
+  macAnnotationCss.includes('grid-template-columns:repeat(4,1fr)') &&
+  macAnnotationJs.includes("version:'2.0.44-professional-palette'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
   macPresenter.includes("String(shareState.companion||'')!=='annotate'") &&
@@ -319,9 +325,11 @@ assert(
   !shareAnnotation.includes('pointerrawupdate')&&
   shareAnnotation.includes("addEventListener('pointermove',move,{passive:false})")&&
   shareAnnotation.includes('drawImage(state.canvas,0,0)')&&
-  shareAnnotation.includes("version:'1.4.3-pointermove-smoothed-native-palette'")&&
+  shareAnnotation.includes("version:'1.5.0-shapes-widths-smoothed-native-palette'")&&
+  shareAnnotation.includes('function drawShape')&&
+  shareAnnotation.includes('function setWidth')&&
   shareAnnotation.includes("state.canvas.style.touchAction='none'"),
-  'Annotation pen input must use reliable pointermove delivery with the existing quadratic smoothing and tiny coalesced batch.'
+  'Annotation input must preserve reliable pointermove smoothing while supporting functional stroke widths and shapes.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
