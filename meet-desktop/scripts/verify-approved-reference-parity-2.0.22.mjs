@@ -59,7 +59,7 @@ assert.ok(js.includes('function requestSync()'),'Approved reference controller i
 assert.ok(js.includes('if(syncQueued)return;'),'Approved reference scheduler must reject duplicate queued frames.');
 assert.ok(js.includes("attributeFilter:['hidden']"),'Observer must be limited to meeting visibility rather than self-written class/ARIA state.');
 assert.ok(!js.includes("attributeFilter:['hidden','class','aria-pressed']"),'Self-triggering class/aria observer must never return.');
-assert.ok(js.includes('timer=setInterval(requestSync,1200)'),'Fallback reconciliation must be bounded and coalesced.');
+assert.ok(js.includes("timer=setInterval(()=>{if(!document.hidden)requestSync();},2500)"),'Fallback reconciliation must remain bounded, coalesced, and suspended while the document is hidden.');
 assert.ok(js.includes("setClass(button,'hand-raised',raised)"),'Raise-hand state updates must be idempotent.');
 assert.ok(js.includes("setAttr(button,'aria-pressed',raised)"),'Raise-hand ARIA updates must be idempotent.');
 assert.ok(!js.includes('footer.append(control)'),'Approved toolbar authority must not reorder DOM nodes.');
