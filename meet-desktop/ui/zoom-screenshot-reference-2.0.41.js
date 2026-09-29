@@ -121,10 +121,14 @@
     if(target?.closest?.('#roomParticipants,.room-side-head>button,.ds-participants-traffic'))closeParticipantBulk();
     if(target?.closest?.('#roomChat,#roomHostTools,#roomMore,[data-chat-close]'))closeParticipantBulk();
     if(target?.closest?.('#roomParticipants,#roomChat,[data-chat-close]'))closeHostPanel();
+    // RuntimeStability is the canonical command router. Keep this layer focused
+    // on reference chrome/transient lifecycle so two capture-phase authorities
+    // never compete for the same toolbar click.
+    if(window.DominionRuntimeStability)return;
     const more=target?.closest?.('#roomMore');
-    if(more&&q('#meetingOverlay')&&!q('#meetingOverlay').hidden){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();openMeetingMore(more);return;}
+    if(more&&q('#meetingOverlay')&&!q('#meetingOverlay').hidden){event.preventDefault();event.stopPropagation();openMeetingMore(more);return;}
     const host=target?.closest?.('#roomHostTools');
-    if(host&&q('#meetingOverlay')&&!q('#meetingOverlay').hidden){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();void openHostToolsPanel();}
+    if(host&&q('#meetingOverlay')&&!q('#meetingOverlay').hidden){event.preventDefault();event.stopPropagation();void openHostToolsPanel();}
   }
   window.addEventListener('click',stableCommandDelegate,true);
   function closeOnOutside(event){if(participantBulkMenu&&!participantBulkMenu.contains(event.target)&&!event.target.closest?.('[data-ref-participant-more]'))closeParticipantBulk();if(meetingMoreMenu&&!meetingMoreMenu.contains(event.target)&&!event.target.closest?.('#roomMore'))closeMeetingMore();}
@@ -139,6 +143,6 @@
   function sync(){syncQueued=false;claimFinalMeetingAuthority();ensureCriticalMeetingGeometry();ensureDeterministicPresenterIdle();ensureHomeTopbar();ensureNotesAction();ensurePrejoin();reconcileAuthoritativeShareClass();syncMeetingLabels();}
   function requestSync(){if(syncQueued)return;syncQueued=true;requestAnimationFrame(sync);}
   const observer=new MutationObserver(requestSync);for(const root of [q('#meetingOverlay'),q('#prejoinOverlay'),q('#appShell')])if(root)observer.observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','aria-pressed']});window.addEventListener('dominion:meeting-ui-ready',requestSync,true);window.addEventListener('dominion:participant-update',requestSync,true);window.addEventListener('dominion:share-state',requestSync,true);window.addEventListener('resize',requestSync,{passive:true});
-  window.DominionZoomScreenshotReference=Object.freeze({version:'2.0.46-race-safe-panel-lifecycle',sync,requestSync,openHostToolsPanel,openMeetingMore,openParticipantBulkMenu,closeTransient,dispose:()=>{observer.disconnect();clearTimeout(presenterTimer);window.removeEventListener('click',stableCommandDelegate,true);closeTransient();}});
+  window.DominionZoomScreenshotReference=Object.freeze({version:'2.0.48-single-command-authority',sync,requestSync,openHostToolsPanel,openMeetingMore,openParticipantBulkMenu,closeTransient,dispose:()=>{observer.disconnect();clearTimeout(presenterTimer);window.removeEventListener('click',stableCommandDelegate,true);closeTransient();}});
   sync();
 })();
