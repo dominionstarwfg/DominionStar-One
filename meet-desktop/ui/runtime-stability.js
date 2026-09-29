@@ -4,6 +4,7 @@
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+  const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
   const disposed=new Set();
   const htmlDescriptor=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
   let frame=0;
@@ -279,7 +280,14 @@
     const participants=panel.matches('.room-side');
     const header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
     if(!header)return;
-    for(const legacy of header.querySelectorAll('.ds-panel-traffic'))legacy.remove();
+    if(isMac&&!header.querySelector('.ds-panel-traffic')){
+      const traffic=document.createElement('div');traffic.className='ds-panel-traffic';
+      traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Collapse panel"></button><button type="button" class="zoom" aria-label="Expand panel"></button>';
+      header.prepend(traffic);
+      traffic.querySelector('.close').onclick=event=>{event.preventDefault();event.stopPropagation();participants?setParticipants(false):closeChat();};
+      traffic.querySelector('.min').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.toggle('ds-panel-minimized');panel.classList.remove('ds-panel-wide');layoutSideSurface();};
+      traffic.querySelector('.zoom').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.classList.toggle('ds-panel-wide');layoutSideSurface();};
+    }
     let close=participants?header.querySelector('button[aria-label="Close participants"]'):header.querySelector('[data-chat-close]');
     if(!close){
       close=document.createElement('button');close.type='button';close.textContent='×';
@@ -304,9 +312,10 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel.classList.contains('ds-panel-wide')?460:390;
+      const baseWidth=panel.classList.contains('ds-panel-wide')?420:330;
+      const baseHeight=panel===chat?480:438;
       const width=Math.min(baseWidth,Math.max(300,bodyWidth-24));
-      const height=Math.min(520,Math.max(320,bodyHeight-96));
+      const height=Math.min(baseHeight,Math.max(300,bodyHeight-82));
       panel.dataset.dsRuntimeMode='floating';
       panel.dataset.dsAdaptiveMode='floating';
       panel.dataset.zoomPanelMode='runtime';
@@ -331,10 +340,10 @@
         panel.style.setProperty('height',`${ph}px`,'important');
       }else{
         panel.style.setProperty('left','auto','important');
-        panel.style.setProperty('right','24px','important');
-        panel.style.setProperty('top','54px','important');
+        panel.style.setProperty('right','14px','important');
+        panel.style.setProperty('top','14px','important');
         panel.style.setProperty('bottom','auto','important');
-        panel.style.setProperty('height',`${Math.min(height,Math.max(320,bodyHeight-78))}px`,'important');
+        panel.style.setProperty('height',`${Math.min(height,Math.max(300,bodyHeight-28))}px`,'important');
       }
       overlay.dataset.dsRuntimeSide='floating';
       ensurePanelClose(panel);
@@ -533,5 +542,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.43-stable-side-surfaces',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.44-compact-mac-side-surfaces',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
