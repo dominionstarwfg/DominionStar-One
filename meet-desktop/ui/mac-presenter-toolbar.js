@@ -65,15 +65,23 @@
     try{await send('stop');}
     catch(error){console.error('[DominionStar Meet] Stop share command failed.',error);button.disabled=false;button.removeAttribute('aria-busy');if(label)label.textContent='Stop Share';toolbar?.classList.add('command-error');setTimeout(()=>toolbar?.classList.remove('command-error'),1200);}
   });
+  const applyAcknowledgedAvState=command=>{
+    if(command==='audio-on'||command==='audio-off')lastState={...lastState,micOn:command==='audio-on'};
+    if(command==='video-on'||command==='video-off')lastState={...lastState,cameraOn:command==='video-on'};
+    const audio=q('[data-command="audio"]'),video=q('[data-command="video"]'),audioLabel=q('#audioLabel'),videoLabel=q('#videoLabel');
+    audio?.classList.toggle('is-off',!lastState.micOn);video?.classList.toggle('is-off',!lastState.cameraOn);
+    if(audioLabel)audioLabel.textContent=lastState.micOn?'Mute':'Unmute';
+    if(videoLabel)videoLabel.textContent=lastState.cameraOn?'Stop Video':'Start Video';
+  };
   document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',async event=>{
-    const control=event.currentTarget;let command=String(control.dataset.command||'');
+    const control=event.currentTarget;if(control.disabled||control.getAttribute('aria-busy')==='true')return;let command=String(control.dataset.command||'');
     if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';
     if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';
     if(command==='annotate'&&String(lastState?.companion||'')==='annotate')command='annotate-close';
-    closeMenus();control.classList.add('command-pending');control.setAttribute('aria-busy','true');
-    try{await send(command);}
+    closeMenus();control.disabled=true;control.classList.add('command-pending');control.setAttribute('aria-busy','true');
+    try{await send(command);applyAcknowledgedAvState(command);}
     catch(error){console.error(`[DominionStar Meet] Presenter command failed: ${command}`,error);control.classList.add('command-error');setTimeout(()=>control.classList.remove('command-error'),1000);}
-    finally{control.classList.remove('command-pending');control.removeAttribute('aria-busy');}
+    finally{control.disabled=false;control.classList.remove('command-pending');control.removeAttribute('aria-busy');}
   }));
   document.addEventListener('pointerdown',event=>{reveal();if(!event.target.closest('.menu-wrap'))closeMenus();},{capture:true});
   window.addEventListener('pointermove',()=>{reveal();scheduleHide();},{passive:true});
@@ -98,6 +106,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.44-explicit-av-native-autohide',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.44-serialized-av-native-autohide',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
