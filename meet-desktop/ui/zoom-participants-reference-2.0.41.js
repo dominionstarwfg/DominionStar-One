@@ -5,7 +5,7 @@
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const GEOMETRY_KEY='ds_zoom_participants_geometry_2_0_41';
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
-  let runtimeMac=isMac,syncFrame=0,activeSpeakerIds=[];
+  let runtimeMac=isMac||/Mac/i.test(String(window.dominionDesktop?.platform||'')),syncFrame=0,activeSpeakerIds=[];
 
   const ICONS=Object.freeze({
     micOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path></svg>',
@@ -33,8 +33,8 @@
       #meetingOverlay .room-side.ds-participants-reference .room-side-head strong{font-size:14px!important;font-weight:650!important;letter-spacing:0!important;color:#f5f5f6!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head small{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head>button{position:absolute!important;right:9px!important;top:8px!important;width:26px!important;height:26px!important;border:0!important;background:transparent!important;color:#e4e4e5!important;font-size:18px!important;line-height:1!important;cursor:pointer!important}
-      #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:none!important}
-      .ds-participants-traffic{position:absolute;left:12px;top:0;height:43px;display:flex!important;align-items:center;gap:8px;z-index:4;pointer-events:auto}
+      #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:block!important}
+      .ds-participants-traffic{position:absolute;left:12px;top:0;height:43px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
       .ds-participants-traffic .close{background:#ff5f57}.ds-participants-traffic .min{background:#febc2e}.ds-participants-traffic .max{background:#28c840}
       .ds-participant-search-wrap{flex:0 0 auto;padding:10px 12px 8px;background:#2b2b2d;position:relative}
@@ -78,6 +78,9 @@
       #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button:last-child{margin-left:auto!important;min-width:70px!important}
       #meetingOverlay .meeting-footer #roomMic.ds-av-off .ds-control-icon,#meetingOverlay .meeting-footer #roomCamera.ds-av-off .ds-control-icon{color:#ff5365!important}
       #meetingOverlay .meeting-footer #roomMic .ds-control-icon svg,#meetingOverlay .meeting-footer #roomCamera .ds-control-icon svg{fill:none!important;stroke:currentColor!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+      #meetingOverlay .meeting-footer #roomCamera::before,#meetingOverlay .meeting-footer #roomCamera::after,#meetingOverlay .meeting-footer #roomCamera .ds-control-icon::before,#meetingOverlay .meeting-footer #roomCamera .ds-control-icon::after{content:none!important}
+      #meetingOverlay .meeting-footer #roomCamera.ds-av-off .ds-control-icon{position:relative!important}
+      #meetingOverlay .meeting-footer #roomCamera.ds-av-off .ds-control-icon::after{content:""!important;position:absolute!important;left:-1px!important;right:-1px!important;top:50%!important;height:2px!important;border-radius:999px!important;background:#ff5365!important;transform:translateY(-50%) rotate(-45deg)!important;pointer-events:none!important}
       .ds-participant-search-empty{padding:28px 14px;text-align:center;color:#a9aaad;font-size:11px}
       #meetingOverlay .room-side.ds-participants-reference.ds-panel-collapsed{height:43px!important;min-height:43px!important;resize:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-panel-collapsed>:not(.room-side-head){display:none!important}
