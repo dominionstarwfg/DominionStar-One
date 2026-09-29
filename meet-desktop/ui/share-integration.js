@@ -350,6 +350,8 @@
           if(action==='close'){annotation?.deactivate?.();clearCompanion();return {handled:true,command};}
           if(!annotation?.snapshot?.().active)annotation?.activate?.();
           if(['pen','highlight','laser','erase'].includes(action))annotation?.setMode?.(action);
+          else if(action.startsWith('shape-'))annotation?.setMode?.(action.slice('shape-'.length));
+          else if(action.startsWith('width-'))annotation?.setWidth?.(action.slice('width-'.length));
           else if(action==='undo')annotation?.undo?.();
           else if(action==='clear')annotation?.clear?.();
           else if(action==='color-red')annotation?.setColor?.('#ff3b30');
