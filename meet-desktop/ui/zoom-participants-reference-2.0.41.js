@@ -38,6 +38,7 @@
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
       .ds-participants-traffic .close{background:#ff5f57}.ds-participants-traffic .min{background:#febc2e}.ds-participants-traffic .max{background:#28c840}
       .ds-participant-search-wrap{flex:0 0 auto;padding:8px 10px 7px;background:#2b2b2d;position:relative}
+       .ds-participant-search-wrap[hidden],#meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary[hidden]{display:none!important}
       .ds-participant-search-wrap svg{position:absolute;left:20px;top:17px;width:15px;height:15px;fill:none;stroke:#d4d4d6;stroke-width:2;pointer-events:none}
       #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary{display:block!important;width:100%!important;height:32px!important;margin:0!important;padding:0 10px 0 32px!important;border:1px solid #737477!important;border-radius:7px!important;outline:none!important;background:#202023!important;color:#f5f5f6!important;font:500 11px/32px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;box-shadow:none!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary:focus{border-color:#36a8ff!important;box-shadow:0 0 0 1px #36a8ff!important}
