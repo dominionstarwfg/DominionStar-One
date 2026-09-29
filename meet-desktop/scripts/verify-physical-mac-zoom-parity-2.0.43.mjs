@@ -109,13 +109,13 @@ assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.include
 assert(legacyParticipants.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must never re-center or poll the live panel.');
 assert(legacyHostTools.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyHostTools.includes('centerParticipantsOnce')&&!legacyHostTools.includes("host.style.setProperty('width','248px'"),'Legacy Host Tools compatibility must not own Participants or Host Tools geometry.');
 assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.includes('.room-side:has(.ds-ref-host-tools-panel)'),'Legacy Host Tools stylesheet must not shrink Host Tools or move Participants.');
-assert(runtime.includes("panel.style.setProperty('right','24px','important')")&&runtime.includes("panel.style.setProperty('top','54px','important')")&&runtime.includes("panel.style.setProperty('left','auto','important')"),'Default side surfaces must open as inset floating windows rather than edge-attached sidebars.');
+assert(runtime.includes("panel.style.setProperty('right','14px','important')")&&runtime.includes("panel.style.setProperty('top','14px','important')")&&runtime.includes("panel.style.setProperty('left','auto','important')"),'Default side surfaces must open as inset floating windows rather than edge-attached sidebars.');
 assert(runtime.includes('function ensurePanelClose(panel)')&&runtime.includes("aria-label','Close participants'")&&runtime.includes("aria-label','Close chat'"),'Participants and Chat must expose one explicit runtime-owned Close control.');
-assert(runtime.includes("const height=Math.min(520,Math.max(320,bodyHeight-96));")&&runtime.includes("panel.style.setProperty('right','24px','important');")&&runtime.includes("panel.style.setProperty('top','54px','important');")&&runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),'Floating Participants and Chat must open inset from the screen edge with enough travel to behave as independent surfaces.');
+assert(runtime.includes("const baseWidth=panel.classList.contains('ds-panel-wide')?420:330;")&&runtime.includes("const baseHeight=panel===chat?480:438;")&&runtime.includes("panel.style.setProperty('right','14px','important');")&&runtime.includes("panel.style.setProperty('top','14px','important');")&&runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),'Floating Participants and Chat must use the compact runtime geometry while remaining independent movable surfaces.');
 assert(runtime.includes("panel.style.setProperty('left',`${pr.left-br.left}px`,'important');")&&runtime.includes("panel.style.setProperty('right','auto','important');")&&runtime.includes("panel.style.setProperty('width',`${pr.width}px`,'important');"),'Final drag authority must capture explicit panel geometry before movement rather than depending on a legacy handler.');
 assert(runtime.includes("document.addEventListener('pointerdown',begin,true);")&&runtime.includes("document.addEventListener('mousedown',begin,true);")&&runtime.includes("document.addEventListener('pointermove',move,true);")&&runtime.includes("document.addEventListener('mousemove',move,true);")&&runtime.includes("const liveHandle=()=>")&&!runtime.includes("surfaceDrag.source!==source"),'Final floating-panel drag authority must capture pointer/mouse input at the document level and resolve the live panel header dynamically.');
 assert(runtime.includes("const columns=count<=2?1:count<=6?2:3;")&&runtime.includes("const desiredWidth=columns*tileWidth")&&runtime.includes("dock.dataset.dsRuntimeColumns=String(columns)")&&runtime.includes("body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important')"),'Participant video dock must grow rows/columns automatically as visible participant tiles increase.');
-assert(runtimeCss.includes('#meetingOverlay .ds-panel-traffic{display:none!important}')&&runtimeCss.includes('button[aria-label="Close participants"]')&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),'Floating Participants/Chat must suppress duplicate traffic controls and package one visible Close control.');
+assert(runtimeCss.includes('#meetingOverlay .ds-panel-traffic{display:flex!important}')&&runtime.includes("aria-label=\"Collapse panel\"")&&runtime.includes("aria-label=\"Expand panel\"")&&runtimeCss.includes('button[aria-label="Close participants"]')&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),'Mac Participants/Chat must expose working traffic-light close/collapse/expand controls plus accessible close controls.');
 assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;')&&!runtimeCss.includes('left:18px!important;\n  right:auto!important;\n  top:auto!important;\n  bottom:94px!important;')&&!polishCss.includes('.meeting-reaction-menu{left:18px!important'),'Reaction chooser position must belong to the runtime anchor calculation, not a hard-pinned stylesheet.');
 
 assert(adaptive.includes("if(window.DominionRuntimeStability?.layoutSideSurface){\n      side.dataset.dsAdaptiveInitialized='1';\n      window.DominionRuntimeStability.layoutSideSurface();")&&adaptive.includes('return;\n    }\n    installParticipantPanelDrag();'),'Adaptive Participants must stop immediately when final runtime geometry authority is available.');
@@ -133,11 +133,11 @@ assert(
   runtimeCss.includes('.room-side[data-ds-runtime-mode="floating"]') &&
   runtimeCss.includes('#meetingChatPanel[data-ds-runtime-mode="floating"]') &&
   runtimeCss.includes('cursor:grab!important') &&
-  panelStability.includes('right:24px!important') &&
-  panelStability.includes('top:54px!important'),
+  panelStability.includes('right:14px!important') &&
+  panelStability.includes('top:14px!important'),
   'Participants and Chat must remain visibly floating, draggable, closable, and preserve user-positioned geometry across reopen.'
 );
-assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:86px;bottom:68px;width:360px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
+assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:70px;bottom:60px;width:330px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
 
 assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("copy.querySelector('small')?.remove()")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must collapse duplicate role labels and duplicate ellipsis controls to one canonical representation.');
 assert(physical.includes("className='ds-canonical-role'")&&physical.includes("className='ds-canonical-self'"),'Participant identity must render one role badge and one self marker.');
@@ -319,17 +319,17 @@ assert(
   'The green presenter perimeter must be one continuous transparent full-display overlay so no segmented seams or inset edge windows remain.'
 );
 assert(
-  shareAnnotation.includes('getCoalescedEvents')&&
+  shareAnnotation.includes('getCoalescedEvents')&&shareAnnotation.includes('batch.length-12')&&shareAnnotation.includes('desynchronized:true')&&
   shareAnnotation.includes('quadraticCurveTo')&&
   shareAnnotation.includes("batch.length-2")&&
   !shareAnnotation.includes('pointerrawupdate')&&
   shareAnnotation.includes("addEventListener('pointermove',move,{passive:false})")&&
   shareAnnotation.includes('drawImage(state.canvas,0,0)')&&
-  shareAnnotation.includes("version:'1.5.0-shapes-widths-smoothed-native-palette'")&&
+  shareAnnotation.includes("version:'1.6.0-low-latency-native-annotation'")&&
   shareAnnotation.includes('function drawShape')&&
   shareAnnotation.includes('function setWidth')&&
   shareAnnotation.includes("state.canvas.style.touchAction='none'"),
-  'Annotation input must preserve reliable pointermove smoothing while supporting functional stroke widths and shapes.'
+  'Annotation input must preserve immediate low-latency pointer delivery while supporting functional stroke widths and shapes.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
