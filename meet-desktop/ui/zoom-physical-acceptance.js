@@ -193,7 +193,7 @@
         const moreButtons=[...actions.querySelectorAll('[data-participant-more],.ds-host-row-more,[data-ds-self-more]')];
         const more=moreButtons.find(node=>node.matches('[data-participant-more]'))||moreButtons[0]||null;
         for(const node of moreButtons)if(node!==more)node.remove();
-        if(more){more.textContent='•••';more.classList.add('ds-participant-more');more.setAttribute('aria-label',`More options for ${String(row.dataset.participantName||'participant')}`);actions.append(more);}
+        if(more){more.textContent='•••';more.classList.add('ds-participant-more');more.setAttribute('aria-label',`More options for ${String(row.dataset.participantName||'participant')}`);more.onclick=event=>{event.stopPropagation();void window.DominionParticipantControls?.openParticipantMenu?.(more);};actions.append(more);}
       }
       normalizeParticipantIdentity(row,id);
     }
