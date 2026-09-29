@@ -266,9 +266,9 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
 }
 #meetingOverlay .person-row.ds-modern-participant-row:hover{background:#292929!important}
 #meetingOverlay .person-row .person-badge{
-  flex:0 0 34px!important;
+  flex:0 0 30px!important;
   width:30px!important;
-  height:34px!important;
+  height:30px!important;
   border-radius:8px!important;
 }
 #meetingOverlay .person-row .person-copy{
@@ -318,7 +318,7 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
 
 /* Chat shares the same side-surface geometry and always consumes full height. */
 #meetingOverlay #meetingChatPanel{
-  grid-template-rows:54px auto minmax(0,1fr) auto auto!important;
+  grid-template-rows:42px auto minmax(0,1fr) auto auto!important;
   min-width:0!important;
 }
 #meetingOverlay #meetingChatPanel>header{
@@ -529,3 +529,6 @@ body>.meeting-reaction-menu,
 #participantVideoDock[data-ds-runtime-dock-mode="right"]{
   transition:width .16s ease,height .16s ease!important
 }
+
+/* macOS participant-window chrome: traffic controls are the primary window actions. */
+#meetingOverlay .room-side-head:has(.ds-panel-traffic)>button[aria-label="Close participants"]{display:none!important}
