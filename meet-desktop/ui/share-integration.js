@@ -314,8 +314,16 @@
         // run a second DOM/layout transaction in the promise continuation.
         if(command==='pause'){await share.togglePause(sharedVideo);return {handled:true,command};}
         if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}
-        if(command==='audio'){await media.setMicrophone(!media.snapshot().micOn);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
-        if(command==='video'){await media.setCamera(!media.snapshot().cameraOn);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
+        if(command==='audio'||command==='audio-on'||command==='audio-off'){
+          const target=command==='audio-on'?true:command==='audio-off'?false:!media.snapshot().micOn;
+          console.info('[DominionStar Meet] presenter AV intent',{kind:'microphone',target,command});
+          await media.setMicrophone(target);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command,target};
+        }
+        if(command==='video'||command==='video-on'||command==='video-off'){
+          const target=command==='video-on'?true:command==='video-off'?false:!media.snapshot().cameraOn;
+          console.info('[DominionStar Meet] presenter AV intent',{kind:'camera',target,command});
+          await media.setCamera(target);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command,target};
+        }
         if(command==='participants'){
           window.DominionShareAnnotation?.deactivate?.();
           window.DominionRuntimeStability?.setChat?.(false);
