@@ -4,8 +4,8 @@
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const GEOMETRY_KEY='ds_zoom_participants_geometry_2_0_41';
-  const isMac=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
-  let syncFrame=0;
+  const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
+  let runtimeMac=isMac,syncFrame=0,activeSpeakerIds=[];
 
   const ICONS=Object.freeze({
     micOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path></svg>',
@@ -34,7 +34,7 @@
       #meetingOverlay .room-side.ds-participants-reference .room-side-head small{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head>button{position:absolute!important;right:9px!important;top:8px!important;width:26px!important;height:26px!important;border:0!important;background:transparent!important;color:#e4e4e5!important;font-size:18px!important;line-height:1!important;cursor:pointer!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:none!important}
-      .ds-participants-traffic{position:absolute;left:12px;top:0;height:43px;display:flex;align-items:center;gap:8px}
+      .ds-participants-traffic{position:absolute;left:12px;top:0;height:43px;display:flex!important;align-items:center;gap:8px;z-index:4;pointer-events:auto}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
       .ds-participants-traffic .close{background:#ff5f57}.ds-participants-traffic .min{background:#febc2e}.ds-participants-traffic .max{background:#28c840}
       .ds-participant-search-wrap{flex:0 0 auto;padding:10px 12px 8px;background:#2b2b2d;position:relative}
@@ -50,6 +50,9 @@
       #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:364px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 8px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row{min-height:52px!important;height:52px!important;margin:0!important;padding:5px 7px!important;border:0!important;border-radius:7px!important;background:transparent!important;display:grid!important;grid-template-columns:34px minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:9px!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row:hover{background:#3a3a3d!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking{background:#303b34!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking .person-copy strong{color:#55d98a!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking [data-participant-mic]{color:#55d98a!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row[hidden]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge{width:34px!important;height:34px!important;border-radius:50%!important;margin:0!important;overflow:hidden!important;display:grid!important;place-items:center!important;background:#59616d!important;color:#fff!important;font-size:11px!important;font-weight:700!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important}
@@ -92,7 +95,7 @@
     let head=side.querySelector('.room-side-head');
     if(!head){head=document.createElement('header');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small></small></div><button type="button" aria-label="Close participants">×</button>';side.prepend(head);}
     const close=head.querySelector(':scope > button');if(close&&close.dataset.dsParticipantRefClose!=='1'){close.dataset.dsParticipantRefClose='1';close.onclick=()=>q('#roomParticipants')?.click();}
-    if(isMac&&!head.querySelector('.ds-participants-traffic')){
+    if(runtimeMac&&!head.querySelector('.ds-participants-traffic')){
       side.classList.add('ds-participants-mac');const traffic=document.createElement('div');traffic.className='ds-participants-traffic';
       traffic.innerHTML='<button type="button" class="close" aria-label="Close participants"></button><button type="button" class="min" aria-label="Collapse participants"></button><button type="button" class="max" aria-label="Expand participants"></button>';head.prepend(traffic);
       traffic.querySelector('.close').onclick=event=>{event.stopPropagation();q('#roomParticipants')?.click();};
@@ -153,15 +156,16 @@
   function syncToolbarAvIcons(){
     for(const [id,kind] of [['#roomMic','mic'],['#roomCamera','video']]){
       const button=q(id),icon=button?.querySelector('.ds-control-icon');if(!button||!icon)continue;const off=toolbarOff(button,kind),signature=`${kind}:${off?'off':'on'}`;
-      if(icon.dataset.dsSemanticState!==signature){icon.dataset.dsSemanticState=signature;icon.innerHTML=kind==='mic'?(off?ICONS.micOff:ICONS.micOn):(off?ICONS.videoOff:ICONS.videoOn);}
+      if(icon.dataset.dsSemanticState!==signature){icon.dataset.dsSemanticState=signature;icon.innerHTML=kind==='mic'?ICONS.micOn:ICONS.videoOn;}
       button.classList.toggle('ds-av-off',off);
     }
   }
 
   function micIsOn(row){return Boolean(row.querySelector('[data-participant-mic].on'));}
   function sortRows(){
-    const roster=q('#participantRoster');if(!roster)return;const rows=participantRows();
-    const rank=row=>{const self=row.dataset.participantSelf==='1',role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');if(self)return 0;if(role==='host')return 1;if(role==='cohost')return 2;if(micIsOn(row))return 3;return 4;};
+    const roster=q('#participantRoster');if(!roster)return;const rows=participantRows(),speakerRank=id=>{const index=activeSpeakerIds.indexOf(String(id||''));return index<0?999:index;};
+    const rank=row=>{const speaking=speakerRank(row.dataset.participantId)<999,self=row.dataset.participantSelf==='1',role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');if(speaking)return speakerRank(row.dataset.participantId);if(self)return 20;if(role==='host')return 21;if(role==='cohost')return 22;if(micIsOn(row))return 23;return 24;};
+    for(const row of rows)row.classList.toggle('participant-speaking',speakerRank(row.dataset.participantId)<999);
     const sorted=[...rows].sort((a,b)=>rank(a)-rank(b)||String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''),undefined,{numeric:true,sensitivity:'base'}));
     if(sorted.some((row,index)=>row!==rows[index])){const fragment=document.createDocumentFragment();sorted.forEach(row=>fragment.append(row));roster.append(fragment);}
   }
@@ -208,7 +212,8 @@
 
   document.addEventListener('mouseup',()=>{const side=sidePanel();if(side?.dataset.dsAdaptiveUserPositioned==='1')saveGeometry(side);},true);
   document.addEventListener('pointerup',()=>{const side=sidePanel();if(side?.dataset.dsAdaptiveUserPositioned==='1')saveGeometry(side);},true);
-  window.addEventListener('resize',schedule,true);window.addEventListener('dominion:remote-media-state',schedule,true);window.addEventListener('dominion:share-state',schedule,true);window.addEventListener('dominion:meeting-ui-ready',schedule,true);
+  window.addEventListener('resize',schedule,true);window.addEventListener('dominion:remote-media-state',schedule,true);window.addEventListener('dominion:share-state',schedule,true);window.addEventListener('dominion:meeting-ui-ready',schedule,true);window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();},true);
+  window.dominionDesktop?.environment?.().then(info=>{if(info?.platform==='darwin'&&!runtimeMac){runtimeMac=true;schedule();}}).catch(()=>{});
   const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style','data-participant-role','data-participant-name']});
   const timer=setInterval(schedule,500);
 
