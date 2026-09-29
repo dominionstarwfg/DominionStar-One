@@ -449,7 +449,7 @@ try{
   const annotation=new Cdp(annotationTarget.webSocketDebuggerUrl);await annotation.connect();
   await annotation.wait("window.DominionMacAnnotationPalette&&document.visibilityState==='visible'&&document.querySelector('[data-command=\"annotate-pen\"]')",'visible native annotation palette',5000);
   const annotationGeometry=await annotation.eval("(()=>({x:window.screenX,availLeft:window.screen.availLeft||0,width:window.innerWidth,flex:getComputedStyle(document.querySelector('.annotation-palette')).flexDirection}))()");
-  assert.ok(annotationGeometry.width<=76,'Annotation palette is not a compact vertical surface: '+annotationGeometry.width+'px');
+  assert.ok(annotationGeometry.width>=176&&annotationGeometry.width<=192,'Annotation palette is not the approved professional width: '+annotationGeometry.width+'px');
   assert.equal(annotationGeometry.flex,'column','Annotation palette is not vertically arranged.');
   assert.ok(Math.abs(Number(annotationGeometry.x)-Number(annotationGeometry.availLeft))<=28,'Annotation palette is not positioned on the left edge of the shared display.');
   const annotationMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for annotation engine');
@@ -459,8 +459,16 @@ try{
   await annotation.click('[data-command="annotate-laser"]');
   await waitStderr(ackPattern('annotate-laser'),'renderer ACK for native Laser tool',8000,logStart);
   await annotationMain.wait("window.DominionShareAnnotation?.snapshot?.().mode==='laser'",'native annotation palette controls authoritative annotation mode',5000);
+  logStart=stderr.length;
+  await annotation.click('[data-command="annotate-width-thick"]');
+  await waitStderr(ackPattern('annotate-width-thick'),'renderer ACK for native annotation width',8000,logStart);
+  await annotationMain.wait("Math.abs((window.DominionShareAnnotation?.snapshot?.().widthScale||0)-1.65)<0.02",'native annotation width controls authoritative drawing width',5000);
+  logStart=stderr.length;
+  await annotation.click('[data-command="annotate-shape-rect"]');
+  await waitStderr(ackPattern('annotate-shape-rect'),'renderer ACK for native rectangle tool',8000,logStart);
+  await annotationMain.wait("window.DominionShareAnnotation?.snapshot?.().mode==='rect'",'native annotation shape controls authoritative drawing mode',5000);
   annotationMain.close();
-  stage('annotation-left-vertical-palette');
+  stage('annotation-professional-palette');
 
   logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
