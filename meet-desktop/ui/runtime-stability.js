@@ -316,8 +316,8 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel.classList.contains('ds-panel-wide')?420:330;
-      const baseHeight=panel===chat?480:438;
+      const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:318);
+      const baseHeight=panel===chat?440:390;
       const width=Math.min(baseWidth,Math.max(300,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(300,bodyHeight-82));
       panel.dataset.dsRuntimeMode='floating';
@@ -546,5 +546,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.45-coalesced-side-surfaces',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.46-reference-side-surface-geometry',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
