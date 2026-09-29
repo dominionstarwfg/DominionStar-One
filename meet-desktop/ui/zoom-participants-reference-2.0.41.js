@@ -21,7 +21,7 @@
     style.textContent=`
       #meetingOverlay .room-side.ds-participants-reference{
         position:absolute!important;width:356px!important;min-width:324px!important;max-width:min(382px,calc(100% - 24px))!important;
-        height:500px!important;min-height:360px!important;max-height:calc(100% - 24px)!important;
+        height:452px!important;min-height:360px!important;max-height:calc(100% - 24px)!important;
         left:auto!important;right:24px!important;top:18px!important;bottom:auto!important;transform:none!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
         background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:both!important;z-index:3200!important;color:#f5f5f6!important
@@ -51,7 +51,7 @@
       #meetingOverlay .room-side.ds-participants-reference>section:not(#waitingQueueSection){display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
       #meetingOverlay .room-side.ds-participants-reference section>h3{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference #waitingQueueSection{flex:0 0 auto!important;max-height:150px!important;overflow:auto!important;border-bottom:1px solid #414245!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:392px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 8px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:331px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 8px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row{min-height:46px!important;height:46px!important;margin:0!important;padding:6px 8px!important;border:0!important;border-radius:7px!important;background:transparent!important;display:grid!important;grid-template-columns:34px minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:10px!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row:hover{background:#3a3a3d!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking{background:#303b34!important}
