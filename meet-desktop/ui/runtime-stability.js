@@ -158,6 +158,7 @@
 
   function setParticipants(show){
     const overlay=q('#meetingOverlay'),side=q('.room-side'),button=q('#roomParticipants');if(!overlay||!side)return false;
+    window.DominionZoomScreenshotReference?.closeTransient?.();
     if(show)closeChat(false);
     side.hidden=!show;
     overlay.classList.toggle('participants-hidden',!show);
@@ -174,6 +175,7 @@
 
   function closeChat(layoutAfter=true){
     const panel=q('#meetingChatPanel'),button=q('#roomChat');if(!panel)return false;
+    window.DominionZoomScreenshotReference?.closeTransient?.();
     panel.hidden=true;button?.setAttribute('aria-pressed','false');
     q('#meetingOverlay')?.classList.remove('ds-chat-docked','ds-chat-floating');
     if(layoutAfter)layoutSideSurface();
@@ -182,6 +184,7 @@
 
   function setChat(show){
     const panel=q('#meetingChatPanel'),button=q('#roomChat');if(!panel)return false;
+    window.DominionZoomScreenshotReference?.closeTransient?.();
     if(show)setParticipants(false);
     if(window.DominionMeetingFeatures?.toggleChat)window.DominionMeetingFeatures.toggleChat(Boolean(show));
     else panel.hidden=!show;
@@ -473,7 +476,7 @@
   function observeMeetingVisibility(){
     const overlay=q('#meetingOverlay');if(!overlay||overlay===observedMeeting)return;
     meetingObserver?.disconnect();observedMeeting=overlay;
-    meetingObserver=new MutationObserver(()=>syncNow());
+    meetingObserver=new MutationObserver(()=>schedule());
     meetingObserver.observe(overlay,{attributes:true,attributeFilter:['hidden']});
   }
 
@@ -543,5 +546,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.44-compact-mac-side-surfaces',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.45-coalesced-side-surfaces',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
