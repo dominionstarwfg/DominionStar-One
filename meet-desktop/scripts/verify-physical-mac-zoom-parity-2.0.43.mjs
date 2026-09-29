@@ -207,9 +207,13 @@ assert(
   macVideoHtml.includes('id="videoMoreMenu"') &&
   macVideoHtml.includes('id="videoMenuAudio"') &&
   macVideoHtml.includes('id="videoMenuCamera"') &&
+  macVideoHtml.includes('id="videoMenuSpeaker"') &&
+  macVideoHtml.includes('id="videoMenuGallery"') &&
   macVideoHtml.includes('id="videoMenuHide"') &&
-  macVideoJs.includes("presenterCommand('audio')") &&
-  macVideoJs.includes("presenterCommand('video')") &&
+  macVideoJs.includes("micOn?'audio-off':'audio-on'") &&
+  macVideoJs.includes("cameraOn?'video-off':'video-on'") &&
+  macVideoJs.includes("presenterCommand('layout-speaker')") &&
+  macVideoJs.includes("presenterCommand('layout-gallery')") &&
   macVideoJs.includes("presenterCommand('layout-hide')") &&
   macVideoCss.includes('.video-stage:hover .video-more-button'),
   'The floating presenter video must expose hover quick controls wired through acknowledged presenter commands.'
@@ -277,6 +281,9 @@ assert(
   'Real microphone RMS must propagate from the authoritative meeting track into visible activity meters on both native Mac presenter surfaces.'
 );
 assert(preload.includes('const accepted=result?.handled===true;')&&!preload.includes('const accepted=result?.handled!==false;'),'Presenter preload must reject undefined/stale listener results instead of falsely acknowledging dead toolbar commands.');
+assert(macToolbar.includes("if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';")&&macToolbar.includes("if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';")&&integration.includes("command==='audio-on'||command==='audio-off'")&&integration.includes("command==='video-on'||command==='video-off'"),'Presenter Audio/Video commands must be explicit idempotent targets so delivery retries cannot toggle state twice.');
+assert(presenterPreload.includes("setToolbarHidden:hidden=>invoke('mac-share:toolbar-hidden'")&&macPresenter.includes("ipcMain.handle('mac-share:toolbar-hidden'")&&macToolbar.includes("setNativeHidden(true)")&&macToolbarCss.includes(".toolbar.auto-hidden .control-strip{transform:translateY(-72px);opacity:0;pointer-events:none}"),'Idle presenter controls must shrink to a native reveal zone and visually disappear until pointer activity returns.');
+assert(macPresenter.includes('focusable:true,alwaysOnTop:true')&&macVideoJs.includes("window.addEventListener('blur',()=>closeMenu())"),'Floating video options must close through normal focus loss instead of requiring the ellipsis button again.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}")&&!integration.includes("await share.stop();applyLayout();return {handled:true,command};"),'Stop Share must use one local-first state transition and rely on the synchronous share-state listener to restore meeting chrome.');
 assert(
   integration.includes('if(sameRendererPresenter&&state.active){')&&
@@ -308,12 +315,12 @@ assert(
 assert(
   shareAnnotation.includes('getCoalescedEvents')&&
   shareAnnotation.includes('quadraticCurveTo')&&
-  shareAnnotation.includes("batch.length-4")&&
-  !shareAnnotation.includes('pointerrawupdate')&&
+  shareAnnotation.includes("batch.length-2")&&
+  shareAnnotation.includes("('onpointerrawupdate' in window)?'pointerrawupdate':'pointermove'")&&
   shareAnnotation.includes('drawImage(state.canvas,0,0)')&&
-  shareAnnotation.includes("version:'1.4.1-low-latency-smoothed-native-palette'")&&
+  shareAnnotation.includes("version:'1.4.2-raw-low-latency-smoothed-native-palette'")&&
   shareAnnotation.includes("state.canvas.style.touchAction='none'"),
-  'Annotation pen input must keep quadratic smoothing while limiting coalesced samples so handwriting paints without a perceptible backlog.'
+  'Annotation pen input must use the working raw Mac pointer stream with only a tiny coalesced batch so ink stays responsive.'
 );
 assert(
   shareService.includes("const qaNoMacPark=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';")&&
@@ -357,4 +364,4 @@ assert(
   'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
 );
 
-console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch hidden-meeting-renderer synchronized-media-ui dedicated-presenter-camera-preview simple-fullscreen-perimeter low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
+console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui dedicated-presenter-camera-preview simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
