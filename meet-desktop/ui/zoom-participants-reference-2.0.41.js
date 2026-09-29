@@ -100,12 +100,12 @@
     const close=head.querySelector(':scope > button[aria-label="Close participants"]');if(close&&close.dataset.dsParticipantRefClose!=='1'){close.dataset.dsParticipantRefClose='1';close.onclick=()=>q('#roomParticipants')?.click();}
     let popout=head.querySelector('.ds-participants-popout');if(!popout){popout=document.createElement('button');popout.type='button';popout.className='ds-participants-popout';popout.setAttribute('aria-label','Expand participants');popout.title='Expand participants';popout.textContent='↗';head.insertBefore(popout,close||null);}
     if(popout.dataset.dsParticipantPopoutBound!=='1'){popout.dataset.dsParticipantPopoutBound='1';popout.onclick=event=>{event.stopPropagation();side.classList.toggle('ds-panel-wide');window.DominionRuntimeStability?.layoutSideSurface?.();};}
-    if(!window.DominionRuntimeStability&&(runtimeMac||Boolean(window.dominionDesktop))&&!head.querySelector('.ds-participants-traffic')){
+    if((runtimeMac||Boolean(window.dominionDesktop))&&!head.querySelector('.ds-participants-traffic')){
       side.classList.add('ds-participants-mac');const traffic=document.createElement('div');traffic.className='ds-participants-traffic';
       traffic.innerHTML='<button type="button" class="close" aria-label="Close participants"></button><button type="button" class="min" aria-label="Collapse participants"></button><button type="button" class="max" aria-label="Expand participants"></button>';head.prepend(traffic);
       traffic.querySelector('.close').onclick=event=>{event.stopPropagation();q('#roomParticipants')?.click();};
-      traffic.querySelector('.min').onclick=event=>{event.stopPropagation();side.classList.toggle('ds-panel-collapsed');};
-      traffic.querySelector('.max').onclick=event=>{event.stopPropagation();side.classList.remove('ds-panel-collapsed');side.style.setProperty('height',`${Math.max(360,(q('.meeting-body')?.clientHeight||560)-24)}px`,'important');saveGeometry(side);};
+      traffic.querySelector('.min').onclick=event=>{event.stopPropagation();side.classList.add('ds-panel-collapsed');};
+      traffic.querySelector('.max').onclick=event=>{event.stopPropagation();side.classList.remove('ds-panel-collapsed');side.classList.toggle('ds-panel-wide');window.DominionRuntimeStability?.layoutSideSurface?.();saveGeometry(side);};
     }
     return head;
   }
@@ -224,6 +224,6 @@
   const observer=new MutationObserver(schedule);const observedRoot=q('#meetingOverlay')||document.body;observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-name','data-participant-self']});
   const timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
 
-  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.47-seven-row-scroll-reference',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.48-mac-traffic-seven-row-reference',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();
