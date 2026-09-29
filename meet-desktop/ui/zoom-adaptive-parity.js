@@ -124,15 +124,18 @@
   function installParticipantPanelDrag(){
     const head=q('.room-side .room-side-head');if(!head)return;
     if(head!==participantHeadBound){
-      if(participantHeadBound)participantHeadBound.removeEventListener('pointerdown',startParticipantPanelDrag,true);
+      if(participantHeadBound){participantHeadBound.removeEventListener('pointerdown',startParticipantPanelDrag,true);participantHeadBound.removeEventListener('mousedown',startParticipantPanelDrag,true);}
       participantHeadBound=head;head.dataset.dsAdaptiveParticipantDrag='pointer-document';
       head.addEventListener('pointerdown',startParticipantPanelDrag,true);
+      head.addEventListener('mousedown',startParticipantPanelDrag,true);
     }
     if(!participantDocumentDragBound){
       participantDocumentDragBound=true;
       document.addEventListener('pointermove',moveParticipantPanelDrag,true);
       document.addEventListener('pointerup',endParticipantPanelDrag,true);
       document.addEventListener('pointercancel',endParticipantPanelDrag,true);
+      document.addEventListener('mousemove',moveParticipantPanelDrag,true);
+      document.addEventListener('mouseup',endParticipantPanelDrag,true);
     }
   }
 
@@ -245,5 +248,5 @@
   const observer=new MutationObserver(()=>requestAnimationFrame(sync));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','data-raised-hand']});
   timer=setInterval(sync,650);sync();
 
-  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncMeetingEntry,syncParticipants,syncChat,syncPrejoin,installParticipantPanelDrag,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(participantHeadBound)participantHeadBound.removeEventListener('pointerdown',startParticipantPanelDrag,true);if(participantDocumentDragBound){document.removeEventListener('pointermove',moveParticipantPanelDrag,true);document.removeEventListener('pointerup',endParticipantPanelDrag,true);document.removeEventListener('pointercancel',endParticipantPanelDrag,true);participantDocumentDragBound=false;}if(videoDockBound)videoDockBound.removeEventListener('mousedown',startVideoDockDrag,true);if(videoDockDocumentDragBound){document.removeEventListener('mousemove',moveVideoDockDrag,true);document.removeEventListener('mouseup',endVideoDockDrag,true);videoDockDocumentDragBound=false;}}});
+  window.DominionZoomAdaptiveParity=Object.freeze({version:'2.0.21',sync,syncMeetingEntry,syncParticipants,syncChat,syncPrejoin,installParticipantPanelDrag,installVideoDockDrag,dispose:()=>{clearInterval(timer);observer.disconnect();if(participantHeadBound){participantHeadBound.removeEventListener('pointerdown',startParticipantPanelDrag,true);participantHeadBound.removeEventListener('mousedown',startParticipantPanelDrag,true);}if(participantDocumentDragBound){document.removeEventListener('pointermove',moveParticipantPanelDrag,true);document.removeEventListener('pointerup',endParticipantPanelDrag,true);document.removeEventListener('pointercancel',endParticipantPanelDrag,true);document.removeEventListener('mousemove',moveParticipantPanelDrag,true);document.removeEventListener('mouseup',endParticipantPanelDrag,true);participantDocumentDragBound=false;}if(videoDockBound)videoDockBound.removeEventListener('mousedown',startVideoDockDrag,true);if(videoDockDocumentDragBound){document.removeEventListener('mousemove',moveVideoDockDrag,true);document.removeEventListener('mouseup',endVideoDockDrag,true);videoDockDocumentDragBound=false;}}});
 })();
