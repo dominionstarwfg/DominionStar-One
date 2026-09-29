@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     prepare:()=>invoke('mac-share:prepare'),
     command:command=>invoke('mac-share:presenter-command',{command:String(command||'')}),
     setMenuOpen:open=>invoke('mac-share:menu-state',{open:Boolean(open)}),
+    setToolbarHidden:hidden=>invoke('mac-share:toolbar-hidden',{hidden:Boolean(hidden)}),
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
     onShowMeeting:callback=>listen('mac-share:show-meeting',callback),
