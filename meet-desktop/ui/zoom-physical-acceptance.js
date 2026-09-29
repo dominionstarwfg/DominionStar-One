@@ -135,7 +135,7 @@
   }
   function mediaStatusNode(row,id){
     let wrap=row.querySelector('.ds-participant-media');if(!wrap){wrap=document.createElement('span');wrap.className='ds-participant-media';const actions=row.querySelector('.participant-actions')||document.createElement('span');if(!actions.isConnected){actions.className='participant-actions ds-participant-actions';row.append(actions);}actions.prepend(wrap);}
-    const state=statusFor(id);wrap.innerHTML=`<span class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
+    const state=statusFor(id);wrap.innerHTML=`<span data-participant-mic class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span data-participant-video class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
     return wrap;
   }
 
@@ -150,8 +150,12 @@
   }
   function openSelfParticipantMenu(button,row){
     closeTransientMenus();const id=String(row.dataset.participantId||'');selfMenu=document.createElement('div');selfMenu.className='ds-command-menu ds-self-participant-menu';document.body.append(selfMenu);
-    const rename=document.createElement('button');rename.type='button';rename.className='ds-command-item';rename.innerHTML='<span></span><strong>Rename</strong>';rename.onclick=()=>{closeSelfMenu();openRenamePrompt(id,String(row.dataset.participantName||''));};selfMenu.append(rename);
-    const copy=document.createElement('button');copy.type='button';copy.className='ds-command-item';copy.innerHTML='<span></span><strong>Copy display name</strong>';copy.onclick=async()=>{closeSelfMenu();try{await navigator.clipboard.writeText(String(row.dataset.participantName||''));}catch{}};selfMenu.append(copy);
+    const mediaState=window.DominionMediaController?.snapshot?.()||{};
+    const addSelfAction=(label,handler)=>{const item=document.createElement('button');item.type='button';item.className='ds-command-item';item.innerHTML=`<span></span><strong>${label}</strong>`;item.onclick=()=>{closeSelfMenu();void handler();};selfMenu.append(item);};
+    addSelfAction(mediaState.micOn?'Mute':'Unmute',()=>window.DominionMediaController?.setMicrophone?.(!mediaState.micOn));
+    addSelfAction(mediaState.cameraOn?'Stop Video':'Start Video',()=>window.DominionMediaController?.setCamera?.(!mediaState.cameraOn));
+    addSelfAction('Rename',()=>openRenamePrompt(id,String(row.dataset.participantName||'')));
+    addSelfAction('Copy display name',async()=>{try{await navigator.clipboard.writeText(String(row.dataset.participantName||''));}catch{}});
     positionMenu(selfMenu,button,{width:220,above:false});
   }
   function openRenamePrompt(id,currentName){
