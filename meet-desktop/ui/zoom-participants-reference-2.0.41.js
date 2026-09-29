@@ -20,8 +20,8 @@
     style.dataset.dsZoomParticipantsReference2041='1';
     style.textContent=`
       #meetingOverlay .room-side.ds-participants-reference{
-        position:absolute!important;width:330px!important;min-width:300px!important;max-width:min(360px,calc(100% - 24px))!important;
-        height:438px!important;min-height:300px!important;max-height:calc(100% - 24px)!important;
+        position:absolute!important;width:318px!important;min-width:294px!important;max-width:min(340px,calc(100% - 24px))!important;
+        height:392px!important;min-height:284px!important;max-height:calc(100% - 24px)!important;
         left:auto!important;right:14px!important;top:14px!important;bottom:auto!important;transform:none!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
         background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:both!important;z-index:3200!important;color:#f5f5f6!important
@@ -47,7 +47,7 @@
       #meetingOverlay .room-side.ds-participants-reference>section:not(#waitingQueueSection){display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
       #meetingOverlay .room-side.ds-participants-reference section>h3{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference #waitingQueueSection{flex:0 0 auto!important;max-height:150px!important;overflow:auto!important;border-bottom:1px solid #414245!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:294px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 8px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:248px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 8px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row{min-height:42px!important;height:42px!important;margin:0!important;padding:5px 7px!important;border:0!important;border-radius:7px!important;background:transparent!important;display:grid!important;grid-template-columns:30px minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:9px!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row:hover{background:#3a3a3d!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking{background:#303b34!important}
@@ -98,7 +98,7 @@
     let head=side.querySelector('.room-side-head');
     if(!head){head=document.createElement('header');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small></small></div><button type="button" aria-label="Close participants">×</button>';side.prepend(head);}
     const close=head.querySelector(':scope > button');if(close&&close.dataset.dsParticipantRefClose!=='1'){close.dataset.dsParticipantRefClose='1';close.onclick=()=>q('#roomParticipants')?.click();}
-    if(runtimeMac&&!head.querySelector('.ds-participants-traffic')){
+    if((runtimeMac||Boolean(window.dominionDesktop))&&!head.querySelector('.ds-participants-traffic')){
       side.classList.add('ds-participants-mac');const traffic=document.createElement('div');traffic.className='ds-participants-traffic';
       traffic.innerHTML='<button type="button" class="close" aria-label="Close participants"></button><button type="button" class="min" aria-label="Collapse participants"></button><button type="button" class="max" aria-label="Expand participants"></button>';head.prepend(traffic);
       traffic.querySelector('.close').onclick=event=>{event.stopPropagation();q('#roomParticipants')?.click();};
@@ -192,10 +192,10 @@
     if(side.dataset.dsAdaptiveUserPositioned==='1')return;
     let saved=null;try{saved=JSON.parse(localStorage.getItem(GEOMETRY_KEY)||'null');}catch{}
     if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.top)&&Number.isFinite(saved.width)&&Number.isFinite(saved.height)){
-      const width=Math.min(Math.max(saved.width,300),Math.min(360,body.clientWidth-24)),height=Math.min(Math.max(saved.height,300),Math.min(470,body.clientHeight-24)),left=Math.max(10,Math.min(saved.left,body.clientWidth-width-10)),top=Math.max(10,Math.min(saved.top,body.clientHeight-height-10));
+      const width=Math.min(Math.max(saved.width,294),Math.min(340,body.clientWidth-24)),height=Math.min(Math.max(saved.height,284),Math.min(430,body.clientHeight-24)),left=Math.max(10,Math.min(saved.left,body.clientWidth-width-10)),top=Math.max(10,Math.min(saved.top,body.clientHeight-height-10));
       side.style.setProperty('width',`${width}px`,'important');side.style.setProperty('height',`${height}px`,'important');side.style.setProperty('left',`${left}px`,'important');side.style.setProperty('right','auto','important');side.style.setProperty('top',`${top}px`,'important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
     }else{
-      side.style.setProperty('width',`${Math.min(330,Math.max(300,body.clientWidth-24))}px`,'important');side.style.setProperty('height',`${Math.min(438,Math.max(300,body.clientHeight-24))}px`,'important');side.style.setProperty('left','auto','important');side.style.setProperty('right','14px','important');side.style.setProperty('top','14px','important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
+      side.style.setProperty('width',`${Math.min(318,Math.max(294,body.clientWidth-24))}px`,'important');side.style.setProperty('height',`${Math.min(392,Math.max(284,body.clientHeight-24))}px`,'important');side.style.setProperty('left','auto','important');side.style.setProperty('right','14px','important');side.style.setProperty('top','14px','important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
     }
   }
 
@@ -218,8 +218,8 @@
   window.addEventListener('resize',schedule,true);window.addEventListener('dominion:remote-media-state',schedule,true);window.addEventListener('dominion:share-state',schedule,true);window.addEventListener('dominion:meeting-ui-ready',schedule,true);window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();},true);
   window.dominionDesktop?.environment?.().then(info=>{if(info?.platform==='darwin'&&!runtimeMac){runtimeMac=true;schedule();}}).catch(()=>{});
   const observer=new MutationObserver(schedule);const observedRoot=q('#meetingOverlay')||document.body;observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-name','data-participant-self']});
-  const timer=setInterval(()=>{const side=sidePanel();if(meetingOpen()&&side&&!side.hidden)schedule();},1800);
+  const timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
 
-  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.41',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.44-responsive-reference',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();
