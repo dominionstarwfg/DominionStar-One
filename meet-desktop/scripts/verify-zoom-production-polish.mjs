@@ -32,8 +32,8 @@ assert(js.includes('zoom-chat-more')&&css.includes('.meeting-chat-policy{display
 assert(js.includes("if(!q('#meetingChatPolicy'))return"),'Chat chrome must wait for the behavior controller to create and wire its policy control before moving the close-button anchor.');
 assert(css.includes('.meeting-reaction-bubble{left:24px!important')&&css.includes('@keyframes dsZoomReactionRise'),'Meeting reactions must rise from the left side of the stage.');
 assert(js.includes('re-check the actual capture permission automatically'),'Permission recovery copy must tell the user that Share performs a real re-check.');
-assert(js.includes("observer.observe(document.body,{childList:true,subtree:true})")&&!js.includes("attributeFilter:['hidden','class']"),'Production polish must not observe its own visibility/class mutations and starve the renderer.');
+assert(js.includes("observer.observe(overlay,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']})")&&!js.includes("observer.observe(document.body,{childList:true,subtree:true})")&&!js.includes("attributeFilter:['hidden','class']"),'Production polish must observe only the meeting surface and avoid full-body/self-written mutation churn.');
 assert(js.includes('setHidden=(node,value)'),'Repeated polish reconciliation must update visibility idempotently.');
-assert(js.includes("version:'1.5.0'"),'Production polish module version must be explicit.');
+assert(js.includes("version:'1.6.0-event-driven'")&&js.includes("setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000)"),'Production polish must use the event-driven controller with only a slow hidden-safe fallback.');
 
 console.log('DOMINIONSTAR_ZOOM_PRODUCTION_POLISH_OK toolbar-zones av-caret-sequence readable-toolbar left-audio right-end green-share host-tools host-tools-authoritative-single participant-search participants-floating-default participant-popout merge-to-meeting zoom-roster zoom-chat chat-runtime-geometry chat-typography-authority chat-race-safe readable-contrast left-rising-reactions permission-recheck stable-reconciliation');
