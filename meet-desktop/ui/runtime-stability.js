@@ -353,8 +353,8 @@
         panel.style.setProperty('height',`${ph}px`,'important');
       }else{
         panel.style.setProperty('left','auto','important');
-        panel.style.setProperty('right','14px','important');
-        panel.style.setProperty('top','14px','important');
+        panel.style.setProperty('right','24px','important');
+        panel.style.setProperty('top','18px','important');
         panel.style.setProperty('bottom','auto','important');
         panel.style.setProperty('height',`${Math.min(height,Math.max(300,bodyHeight-28))}px`,'important');
       }
