@@ -237,6 +237,7 @@
       const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
       surfaceDrag={panel,id:event.pointerId??null,dx:event.clientX-pr.left,dy:event.clientY-pr.top};
       panel.dataset.dsRuntimeUserPositioned='1';
+      panel.dataset.dsAdaptiveUserPositioned='1';
       panel.dataset.dsRuntimeDragBegin=String((Number(panel.dataset.dsRuntimeDragBegin)||0)+1);
       panel.style.setProperty('left',`${pr.left-br.left}px`,'important');
       panel.style.setProperty('top',`${pr.top-br.top}px`,'important');
