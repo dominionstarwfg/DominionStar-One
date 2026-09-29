@@ -46,7 +46,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
   height:26px;min-width:344px;max-width:650px;padding:0 0 0 12px;border-radius:0 0 5px 5px;
   background:#27c96b;color:#06150c;display:flex;align-items:center;justify-content:center;gap:8px;
   box-shadow:0 5px 14px rgba(0,0,0,.28);font-size:9px;font-weight:650;
-  transition:top .18s cubic-bezier(.2,.8,.2,1);-webkit-app-region:drag
+  transition:top .18s cubic-bezier(.2,.8,.2,1),opacity .12s ease;-webkit-app-region:drag
 }
 .share-copy{min-width:0;display:flex;align-items:center;gap:6px}
 .share-copy strong{white-space:nowrap}
@@ -63,8 +63,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 .stop-share-icon svg{width:11px;height:11px;display:block;fill:currentColor;stroke:none}
 .stop-share:hover{background:#f05a65}
 .stop-share:disabled{opacity:.78;cursor:default}
-.toolbar.auto-hidden .control-strip{transform:translateY(-57px);opacity:.97}
-.toolbar.auto-hidden .share-strip{top:4px}
+.toolbar.auto-hidden .control-strip{transform:translateY(-72px);opacity:0;pointer-events:none}
+.toolbar.auto-hidden .share-strip{top:-30px;opacity:0;pointer-events:none}
 .toolbar.menu-open .control-strip,.toolbar:hover .control-strip{transform:translateY(0);opacity:1}
 .toolbar.menu-open .share-strip,.toolbar:hover .share-strip{top:62px}
 @media(max-width:840px){
