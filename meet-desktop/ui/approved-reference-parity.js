@@ -101,7 +101,7 @@
       button=document.createElement('button');button.id='roomRaiseHand';button.type='button';button.className='meeting-control ds-approved-raise-hand';button.dataset.approvedDedicatedRaiseHand='1';button.setAttribute('aria-label','Raise hand');
       button.innerHTML=`<span class="ds-control-icon">${HAND_ICON}</span><span class="ds-control-label">Raise hand</span>`;
       button.onclick=async()=>{button.disabled=true;try{await window.DominionMeetingFeatures?.toggleRaiseHand?.();syncRaiseHandState();syncReactionLabel();}finally{button.disabled=false;}};
-      footer.insertBefore(button,exit);
+      const owner=exit.parentElement||footer;if(exit.parentElement===owner)owner.insertBefore(button,exit);else owner.append(button);
     }
     syncRaiseHandState();return button;
   }
