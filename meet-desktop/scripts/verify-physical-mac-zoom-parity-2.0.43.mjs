@@ -83,7 +83,8 @@ assert(
   shareController.includes('return acquireMacWorkerDisplay(options,generation);') &&
   shareController.includes("throw new Error('Dedicated Mac screen-capture worker is unavailable.')") &&
   shareController.includes('macWorkerActive=true;') &&
-  shareController.includes('if(macLike)return null;') &&
+  shareController.includes('const nativeMacCapture=macLike&&Boolean(captureBridge?.start);') &&
+  shareController.includes('if(nativeMacCapture)return null;') &&
   !shareController.includes('const pc=new RTCPeerConnection({iceServers:[]});') &&
   captureWorker.includes('navigator.mediaDevices.getUserMedia({') &&
   captureWorker.includes("chromeMediaSource:'desktop'") &&
