@@ -5,7 +5,7 @@
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   let menu=null,prompt=null,renameDialog=null,busy=false,spotlightParticipantIds=[],localMediaUnsub=null;const remoteMedia=new Map();
   const esc=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const localRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');
+  const localRole=()=>{const direct=String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');if(['host','cohost'].includes(direct))return direct;const self=q('#participantRoster [data-participant-self="1"]');return String(self?.dataset.participantRole||direct||'participant').toLowerCase().replace('-','');};
   const canManage=()=>['host','cohost'].includes(localRole());
   const inMeeting=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
 
@@ -148,14 +148,28 @@
     node.setAttribute('aria-label',kind==='mic'?(known?(on?'Microphone on':'Microphone muted'):'Microphone status unknown'):(known?(on?'Video on':'Video off'):'Video status unknown'));
     node.title=node.getAttribute('aria-label');
   }
+  function bindMediaAction(node,row,kind){
+    if(!node)return;const id=String(row.dataset.participantId||''),self=row.dataset.participantSelf==='1';
+    const interactive=self||canManage();node.style.cursor=interactive?'pointer':'default';node.tabIndex=interactive?0:-1;node.setAttribute('role',interactive?'button':'img');
+    const activate=()=>{
+      if(!interactive)return;
+      if(self){q(kind==='mic'?'#roomMic':'#roomCamera')?.click();return;}
+      const on=node.classList.contains('on');
+      if(kind==='mic')void send(id,on?'host:mute':'host:ask-unmute');
+      else void send(id,on?'host:stop-video':'host:ask-start-video');
+    };
+    node.onclick=event=>{event.stopPropagation();activate();};
+    node.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();activate();}};
+  }
   function syncRowMedia(row){
     const id=String(row.dataset.participantId||''),self=row.dataset.participantSelf==='1';
     let state=null;
     if(self){
       const snap=media()?.snapshot?.();state=snap?{micOn:Boolean(snap.micOn),cameraOn:Boolean(snap.cameraOn)}:null;
     }else state=remoteMedia.get(id)||null;
-    setMediaIcon(row.querySelector('[data-participant-mic]'),state?.micOn,'mic');
-    setMediaIcon(row.querySelector('[data-participant-video]'),state?.cameraOn,'video');
+    const micNode=row.querySelector('[data-participant-mic]'),videoNode=row.querySelector('[data-participant-video]');
+    setMediaIcon(micNode,state?.micOn,'mic');setMediaIcon(videoNode,state?.cameraOn,'video');
+    bindMediaAction(micNode,row,'mic');bindMediaAction(videoNode,row,'video');
   }
   function syncAllMedia(){for(const row of qa('#participantRoster [data-participant-id]'))syncRowMedia(row);}
 
