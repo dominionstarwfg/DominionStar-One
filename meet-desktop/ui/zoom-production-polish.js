@@ -34,11 +34,15 @@
     if(!button){
       button=document.createElement('button');button.id='roomHostTools';button.type='button';button.className='zoom-host-tools-control';button.setAttribute('aria-label','Host Tools');
       button.innerHTML='<span class="ds-control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6z"/><path d="M8.5 12h7M12 8.5v7"/></svg></span><span class="ds-control-label">Host Tools</span>';
-      footer.insertBefore(button,more);
+      const owner=more.parentElement;
+      if(owner)owner.insertBefore(button,more);else footer.append(button);
       button.onclick=()=>{
         const security=q('#roomSecurity');if(!security)return;
         security.click();requestAnimationFrame(()=>{const menu=q('.security-menu');if(menu)positionAbove(menu,button,250);});
       };
+    }else if(!button.isConnected){
+      const owner=more.parentElement;
+      if(owner)owner.insertBefore(button,more);else footer.append(button);
     }
     setHidden(button,!manager());
   }
