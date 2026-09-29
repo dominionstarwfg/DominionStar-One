@@ -128,7 +128,7 @@
     }
     if(row.dataset.raisedHand==='1')add('Lower Hand',()=>send(id,'host:lower-hand'));
     add('Rename',()=>renameParticipant(id,name));
-    if(localRole()==='host'&&role!=='host'&&row.dataset.recordEligible==='1'&&typeof meeting.transferHost==='function')add('Make Host',async()=>{await meeting.transferHost(id);toast(`${name} is now the host`);window.dispatchEvent(new CustomEvent('dominion:host-transferred',{detail:{participantId:id,name}}));});
+    if(localRole()==='host'&&role!=='host'&&typeof meeting.transferHost==='function')add('Make Host',async()=>{await meeting.transferHost(id);toast(`${name} is now the host`);window.dispatchEvent(new CustomEvent('dominion:host-transferred',{detail:{participantId:id,name}}));});
     if(localRole()==='host'&&row.dataset.recordEligible==='1'&&role!=='cohost'){
       add(row.dataset.recordingAllowed==='1'?'Forbid Record':'Allow Record',async()=>{await meeting.setRecordingPermission(id,row.dataset.recordingAllowed!=='1');});
     }
@@ -202,10 +202,12 @@
     qa('#participantBulkActions button').forEach(b=>b.disabled=busy);
   }
 
-  function sync(){if(!inMeeting()){closeMenu();return;}syncRoster();syncPanelActions();syncAllMedia();}
+  function sync(){if(!inMeeting()){closeMenu();return;}const side=q('#meetingOverlay .room-side');if(!side||side.hidden){closeMenu();return;}syncRoster();syncPanelActions();syncAllMedia();}
   document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();},true);
+  document.addEventListener('click',event=>{if(menu&&event.target.closest?.('#roomParticipants,#roomChat,#roomHostTools,#roomMore,.room-side-head>button,.ds-participants-traffic'))closeMenu();},true);
+  window.addEventListener('dominion:meeting-ended',closeMenu,true);
   window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
-  const timer=setInterval(sync,800);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.39',sync,sendAll,sendParticipant:send,openParticipantMenu,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
+  const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(inMeeting()&&side&&!side.hidden)sync();},2000);sync();
+  window.DominionParticipantControls=Object.freeze({version:'2.0.44-stable-participant-menus',sync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
