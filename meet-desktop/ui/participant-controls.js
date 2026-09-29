@@ -104,11 +104,16 @@
 
   function closeMenu(){menu?.remove();menu=null;}
   async function openParticipantMenu(button){
-    closeMenu();const row=button.closest('[data-participant-id]');if(!row||!canManage())return;
-    const id=String(row.dataset.participantId||''),role=String(row.dataset.participantRole||'participant'),name=String(row.dataset.participantName||'Participant');
-    if(!id||role==='host')return;
+    closeMenu();const row=button.closest('[data-participant-id]');if(!row)return;
+    const id=String(row.dataset.participantId||''),role=String(row.dataset.participantRole||'participant'),name=String(row.dataset.participantName||'Participant'),self=row.dataset.participantSelf==='1';
+    if(!id)return;
     menu=document.createElement('div');menu.className='participant-control-menu';
     const add=(label,handler,danger=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(danger)b.className='danger';b.onclick=()=>{closeMenu();void handler();};menu.append(b);};
+    if(self){
+      add('Rename',()=>renameParticipant(id,name));
+      add('Copy display name',async()=>{try{await navigator.clipboard.writeText(name);toast('Display name copied');}catch{toast('Unable to copy display name');}});
+    }else{
+      if(!canManage()||role==='host'){closeMenu();return;}
     add('Mute',()=>send(id,'host:mute'));
     add('Ask to Unmute',()=>send(id,'host:ask-unmute'));
     add('Stop Video',()=>send(id,'host:stop-video'));
@@ -135,6 +140,7 @@
     if(localRole()==='host'&&role!=='cohost')add('Make Co-host',async()=>{await meeting.setCohost(id,true);});
     if(localRole()==='host'&&role==='cohost')add('Remove Co-host',async()=>{await meeting.setCohost(id,false);});
     if(localRole()==='host'||role!=='cohost')add('Remove',async()=>{await meeting.removeParticipant(id);},true);
+    }
     document.body.append(menu);const r=button.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-230,r.right-210))}px`;menu.style.top=`${Math.max(10,Math.min(innerHeight-menu.offsetHeight-10,r.bottom+6))}px`;
     menu.setAttribute('aria-label',`Controls for ${name}`);
   }
@@ -179,9 +185,8 @@
       let button=row.querySelector('[data-participant-more]');
       const role=String(row.dataset.participantRole||'participant');
       const self=row.dataset.participantSelf==='1';
-      if(self){syncRowMedia(row);continue;}
-      if(!canManage()||role==='host'){button?.remove();syncRowMedia(row);continue;}
-      if(!button){button=document.createElement('button');button.type='button';button.dataset.participantMore='1';button.className='mini-btn participant-more';button.textContent='More';button.setAttribute('aria-label',`More controls for ${String(row.dataset.participantName||'participant')}`);button.onclick=event=>{event.stopPropagation();void openParticipantMenu(button);};row.querySelector('.participant-actions')?.append(button)||row.append(button);}syncRowMedia(row);
+      if(!self&&(!canManage()||role==='host')){button?.remove();syncRowMedia(row);continue;}
+      if(!button){button=document.createElement('button');button.type='button';button.dataset.participantMore='1';button.className='mini-btn participant-more';button.textContent='More';button.setAttribute('aria-label',`More controls for ${String(row.dataset.participantName||'participant')}`);row.querySelector('.participant-actions')?.append(button)||row.append(button);}if(button&&!button.dataset.dsParticipantMenuBound){button.dataset.dsParticipantMenuBound='1';button.onclick=event=>{event.stopPropagation();void openParticipantMenu(button);};}syncRowMedia(row);
     }
   }
 
@@ -209,5 +214,5 @@
   window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
   const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(inMeeting()&&side&&!side.hidden)sync();},2000);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.44-stable-participant-menus',sync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'2.0.44-self-menu-stable-participants',sync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();
