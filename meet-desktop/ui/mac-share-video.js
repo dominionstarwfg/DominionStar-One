@@ -146,8 +146,10 @@
     }catch(error){console.error('[DominionStar Meet] Presenter video command failed.',error);return false;}
   }
   menuButton?.addEventListener('click',event=>{event.stopPropagation();toggleMenu();});
-  q('#videoMenuAudio')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('audio');});
-  q('#videoMenuCamera')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('video');});
+  q('#videoMenuAudio')?.addEventListener('click',async()=>{closeMenu();await presenterCommand(micOn?'audio-off':'audio-on');});
+  q('#videoMenuCamera')?.addEventListener('click',async()=>{closeMenu();await presenterCommand(cameraOn?'video-off':'video-on');});
+  q('#videoMenuSpeaker')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-speaker');});
+  q('#videoMenuGallery')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-gallery');});
   q('#videoMenuHide')?.addEventListener('click',async()=>{closeMenu();await presenterCommand('layout-hide');});
   document.addEventListener('pointerdown',event=>{if(!event.target?.closest?.('#videoMoreButton,#videoMoreMenu'))closeMenu();},true);
   window.addEventListener('mouseleave',()=>closeMenu(),{passive:true});
