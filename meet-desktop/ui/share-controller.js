@@ -3,6 +3,7 @@
   const bridge=window.dominionDesktop?.share;
   const captureBridge=window.dominionDesktop?.shareCapture||null;
   const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));
+  const nativeMacCapture=macLike&&Boolean(captureBridge?.start);
   let macCapturePeer=null,macCaptureUnsubs=[],macCaptureSignalGeneration=0,macWorkerActive=false;
   const state={_liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
   // Physical-Mac liveness authority: a raw display stream held directly on
@@ -12,14 +13,14 @@
   // existing controller/transport call remains unchanged.
   Object.defineProperty(state,'liveStream',{
     configurable:false,enumerable:false,
-    get(){return macLike?null:state._liveStream;},
-    set(value){if(!macLike)state._liveStream=value||null;}
+    get(){return nativeMacCapture?null:state._liveStream;},
+    set(value){if(!nativeMacCapture)state._liveStream=value||null;}
   });
   const listeners=new Set();
   let displayRequestGeneration=0;
   let qaShareEmitSequence=0;
   const qaShareTrace=message=>{if(window.__DOMINION_QA_TRACE_SHARE_TRANSACTION)console.error(message);};
-  const snapshot=()=>({active:macLike?Boolean(macWorkerActive):Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
+  const snapshot=()=>({active:nativeMacCapture?Boolean(macWorkerActive):Boolean(state.liveStream),paused:state.paused,busy:state.busy,sourceName:state.sourceName,options:{...state.options},annotating:Boolean(state.annotationCanvas)});
   const emit=()=>{
     // A suppressed physical-Mac diagnostic must execute zero observer/snapshot
     // work. This distinguishes controller transaction bookkeeping from the
@@ -113,13 +114,13 @@
 
   async function acquireDisplay(options={}){
     const optimize=Boolean(options.optimizeVideo),shareAudio=Boolean(options.shareAudio),generation=++displayRequestGeneration;
-    if(macLike){
+    if(nativeMacCapture){
       // ScreenCaptureKit ownership is isolated in a dedicated renderer. The
       // meeting renderer receives only a local WebRTC track, keeping presenter
       // controls, media controls, chat and participants independently alive.
       return acquireMacWorkerDisplay(options,generation);
     }
-    if(!macLike&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
+    if(!nativeMacCapture&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
     const capturePromise=navigator.mediaDevices.getDisplayMedia({audio:shareAudio,video:{frameRate:optimize?{ideal:30,max:30}:{ideal:15,max:30}}});
     let timeoutId=0,stream=null,timedOut=false;
     const timeoutPromise=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{timedOut=true;const error=new Error('Screen sharing did not start within 5 seconds. Please choose the source again.');error.code='share_start_timeout';reject(error);},5000);});
@@ -136,7 +137,7 @@
 
   async function start({name='',options={}}={}){
     if(state.busy||state.liveStream)return snapshot();
-    if(!macLike&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
+    if(!nativeMacCapture&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
     if(options?.__qaLifecycleOnlyWorker)window.__DOMINION_QA_TRACE_SHARE_TRANSACTION=true;
     qaShareTrace('QA_SHARE_START_ENTER');
     state.busy=true;emit();
@@ -146,11 +147,11 @@
       qaShareTrace('QA_SHARE_START_AFTER_ACQUIRE');
       if(options?.__qaReturnAfterAcquire){
         console.error('QA_SHARE_RETURN_AFTER_ACQUIRE');
-        return {active:macLike?Boolean(macWorkerActive):Boolean(stream),paused:false,busy:true,sourceName:'',options:{},annotating:false};
+        return {active:nativeMacCapture?Boolean(macWorkerActive):Boolean(stream),paused:false,busy:true,sourceName:'',options:{},annotating:false};
       }
-      if(!macLike)state.liveStream=stream;
+      if(!nativeMacCapture)state.liveStream=stream;
       state.sourceName=String(name||track.label||'Shared content');state.options={...options};state.paused=false;
-      if(!macLike&&!options?.__qaSkipEndedListener){
+      if(!nativeMacCapture&&!options?.__qaSkipEndedListener){
         track.addEventListener('ended',()=>{if(!state.busy&&state.liveStream===stream)void stop();},{once:true});
       }else if(options?.__qaSkipEndedListener){
         console.error('QA_SHARE_TRACK_ENDED_LISTENER_SUPPRESSED');
@@ -170,10 +171,10 @@
         presenter=await Promise.race([acknowledgement,new Promise(resolve=>setTimeout(()=>resolve({ok:true,toolbarReady:true,pending:true}),900))]);
         qaShareTrace('QA_SHARE_START_AFTER_CAPTURE_STARTED_ACK');
         void acknowledgement.then(result=>{
-          if(result?.toolbarReady===false&&(macLike?macWorkerActive:state.liveStream===stream))void stop();
+          if(result?.toolbarReady===false&&(nativeMacCapture?macWorkerActive:state.liveStream===stream))void stop();
         }).catch(error=>{
           console.error('[DominionStar Meet] Presenter toolbar acknowledgement failed.',error);
-          if(macLike?macWorkerActive:state.liveStream===stream)void stop();
+          if(nativeMacCapture?macWorkerActive:state.liveStream===stream)void stop();
         });
       }catch(error){
         state.liveStream=null;state.sourceName='';state.options={};state.paused=false;
@@ -251,7 +252,7 @@
   }
 
   async function pause(videoElement){
-    if(macLike){
+    if(nativeMacCapture){
       if(!macWorkerActive||state.paused)return snapshot();
       state.paused=true;emit();publishPauseState(true);return snapshot();
     }
@@ -262,9 +263,9 @@
     state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();publishPauseState(true);return snapshot();
   }
 
-  async function resume(){if(macLike){if(!macWorkerActive||!state.paused)return snapshot();state.paused=false;emit();publishPauseState(false);return snapshot();}if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot();}
+  async function resume(){if(nativeMacCapture){if(!macWorkerActive||!state.paused)return snapshot();state.paused=false;emit();publishPauseState(false);return snapshot();}if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot();}
   async function togglePause(videoElement){return state.paused?resume():pause(videoElement);}
-  function outputStream(){if(macLike)return null;return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
+  function outputStream(){if(nativeMacCapture)return null;return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
   function setAnnotationCanvas(canvas){
     const next=canvas||null;
     if(state.annotationCanvas===next){
@@ -276,7 +277,7 @@
     else{stopComposite();emit();}
     return snapshot();
   }
-  async function stop(options={}){displayRequestGeneration+=1;const hadShare=macLike?Boolean(macWorkerActive):Boolean(state.liveStream||state.frozenStream);
+  async function stop(options={}){displayRequestGeneration+=1;const hadShare=nativeMacCapture?Boolean(macWorkerActive):Boolean(state.liveStream||state.frozenStream);
     const waitForCleanup=Boolean(options?.waitForCleanup);
     state.annotationCanvas=null;
     stopComposite();
@@ -284,15 +285,15 @@
     // wait for bounded main-process cleanup when the entire meeting is ending.
     stopTracks(state.frozenStream);stopTracks(state.liveStream);
     state.liveStream=null;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.busy=false;state.sourceName='';state.options={};
-    if(macLike){macWorkerActive=false;disposeMacCaptureClient({stopWorker:true});}
+    if(nativeMacCapture){macWorkerActive=false;disposeMacCaptureClient({stopWorker:true});}
     emit();
     let cleanupPromise=Promise.resolve();
-    if(hadShare||macLike){
+    if(hadShare||nativeMacCapture){
       try{
         cleanupPromise=Promise.resolve(bridge?.captureStopped?.()).catch(error=>{console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error);});
       }catch(error){console.warn('[DominionStar Meet] Share-stop chrome cleanup failed.',error);}
     }
-    if(waitForCleanup&&(hadShare||macLike)){
+    if(waitForCleanup&&(hadShare||nativeMacCapture)){
       await Promise.race([cleanupPromise,new Promise(resolve=>setTimeout(resolve,1800))]);
     }else{
       void cleanupPromise;
