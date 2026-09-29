@@ -88,16 +88,16 @@ if(process.platform==='darwin'){
   function positionVideo(){
     if(!isAlive(videoWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    let width=videoLayout==='gallery'?400:320,height=videoLayout==='gallery'?268:200;
-    if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(240,Math.min(420,current.width||320));height=Math.max(150,Math.min(280,current.height||200));}catch{}}
-    const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+78);
+    let width=videoLayout==='gallery'?350:292,height=videoLayout==='gallery'?230:176;
+    if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(240,Math.min(360,current.width||292));height=Math.max(145,Math.min(225,current.height||176));}catch{}}
+    const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+74);
     try{videoWindow.setBounds({x,y,width,height},false);}catch{}
   }
   function positionAnnotation(){
     if(!isAlive(annotationWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=72,height=Math.min(430,Math.max(360,area.height-170));
-    const x=Math.round(area.x+10),y=Math.round(area.y+Math.max(92,(area.height-height)/2));
+    const width=184,height=Math.min(520,Math.max(455,area.height-150));
+    const x=Math.round(area.x+8),y=Math.round(area.y+Math.max(82,(area.height-height)/2));
     try{annotationWindow.setBounds({x,y,width,height},false);}catch{}
   }
   function hideAnnotationPalette(){
@@ -178,7 +178,7 @@ if(process.platform==='darwin'){
   }
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
-    const win=new BrowserWindow({width:320,height:200,minWidth:240,minHeight:150,maxWidth:420,maxHeight:280,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
+    const win=new BrowserWindow({width:292,height:176,minWidth:220,minHeight:132,maxWidth:380,maxHeight:250,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
     videoWindow=win;protect(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
@@ -189,7 +189,7 @@ if(process.platform==='darwin'){
   async function prepareAnnotation(){
     if(isAlive(annotationWindow))return annotationWindow;
     const win=new BrowserWindow({
-      width:72,height:410,minWidth:72,maxWidth:72,minHeight:340,maxHeight:520,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:184,height:500,minWidth:184,maxWidth:184,minHeight:455,maxHeight:560,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:false,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-annotation-v2044'}
     });
