@@ -38,7 +38,7 @@
   function schedule(){if(frame)return;frame=requestAnimationFrame(sync);}
 
   const observer=new MutationObserver(schedule);
-  observer.observe(document.documentElement,{subtree:true,childList:true});
+  observer.observe(document.body,{subtree:false,childList:true});
   window.addEventListener('resize',schedule,true);
   window.addEventListener('dominion:meeting-ui-ready',schedule,true);
 
