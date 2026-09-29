@@ -3,21 +3,23 @@
   if(window.DominionPersonalRoom)return;
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  const state={room:null,loading:false,loadPromise:null,error:'',hostStart:null};
+  const state={room:null,loading:false,loadPromise:null,error:'',hostStart:null,nextRetryAt:0};
   const esc=v=>String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const digits=v=>String(v||'').replace(/\D/g,'');
   const formatId=v=>{const d=digits(v);return d.length>6?`${d.slice(0,3)} ${d.slice(3,6)} ${d.slice(6)}`:d.length>3?`${d.slice(0,3)} ${d.slice(3)}`:d;};
   const randomPasscode=()=>String(Math.floor(100000+Math.random()*900000));
-  const signedIn=()=>Boolean(q('#appShell')&&!q('#appShell').hidden&&q('#profileName')?.textContent?.trim());
+  const meetingSurfaceActive=()=>Boolean((q('#meetingOverlay')&&!q('#meetingOverlay').hidden)||(q('#prejoinOverlay')&&!q('#prejoinOverlay').hidden)||(q('#waitingOverlay')&&!q('#waitingOverlay').hidden));
+  const signedIn=()=>Boolean(q('#appShell')&&!q('#appShell').hidden&&q('#profileName')?.textContent?.trim()&&!meetingSurfaceActive());
 
   async function load(force=false){
     if(!meeting?.personalRoom||!signedIn())return state.room;
     if(state.loadPromise)return state.loadPromise;
     if(!force&&state.room)return state.room;
+    if(!force&&Date.now()<state.nextRetryAt)return state.room;
     state.loading=true;state.error='';
     state.loadPromise=(async()=>{
       try{state.room=await meeting.personalRoom();render();return state.room;}
-      catch(error){state.error=String(error?.message||error||'Personal Room unavailable.');render();return null;}
+      catch(error){state.error=String(error?.message||error||'Personal Room unavailable.');state.nextRetryAt=Date.now()+Math.min(30000,state.error.includes('authentication_required')?30000:5000);render();return null;}
       finally{state.loading=false;state.loadPromise=null;}
     })();
     return state.loadPromise;
@@ -135,8 +137,9 @@
     const script=document.createElement('script');script.src='./physical-intelligence-2.0.41.js';script.dataset.dsPhysicalIntelligence2041='1';document.body.append(script);
   }
 
-  const observer=new MutationObserver(()=>{ensureSettingsRow();configureNewMeeting();decorateHostPrejoin();interceptHostCancel();watchMeetingEntry();if(signedIn()&&!state.room&&!state.loading)void load();});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  setInterval(()=>{if(signedIn()&&!state.room&&!state.loading)void load();ensureSettingsRow();configureNewMeeting();},1000);
+  const requestHomeRefresh=()=>{ensureSettingsRow();configureNewMeeting();decorateHostPrejoin();interceptHostCancel();watchMeetingEntry();if(signedIn()&&!state.room&&!state.loading&&Date.now()>=state.nextRetryAt)void load();};
+  const observer=new MutationObserver(()=>queueMicrotask(requestHomeRefresh));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  window.addEventListener('dominion:meeting-ended',()=>{state.nextRetryAt=0;queueMicrotask(requestHomeRefresh);},{passive:true});
   if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',loadPhysicalIntelligence,{once:true});else setTimeout(loadPhysicalIntelligence,0);
   ensureEditDialog();render();void load();
   window.DominionPersonalRoom=Object.freeze({load,room:()=>state.room,openEditor,start:startPersonal,beginHostPrejoin});
