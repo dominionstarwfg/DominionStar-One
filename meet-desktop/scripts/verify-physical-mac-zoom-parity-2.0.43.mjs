@@ -249,14 +249,14 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('width:184px') &&
-  macAnnotationCss.includes('grid-template-columns:repeat(4,1fr)') &&
+  macAnnotationCss.includes('width:196px') &&
+  macAnnotationCss.includes('grid-template-columns:repeat(2,1fr)') &&
   macAnnotationJs.includes("version:'2.0.44-professional-palette'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
   macPresenter.includes("String(shareState.companion||'')!=='annotate'") &&
   integration.includes("if(command.startsWith('annotate-'))"),
-  'Annotate must use one independent vertical left-side native palette while the drawing engine remains authoritative in the meeting renderer.'
+  'Annotate must use one readable independent vertical left-side native palette while the drawing engine remains authoritative in the meeting renderer.'
 );
 assert(
   screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
