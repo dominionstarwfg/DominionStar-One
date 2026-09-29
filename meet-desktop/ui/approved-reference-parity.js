@@ -206,7 +206,7 @@
   window.addEventListener('resize',requestSync);
   observer=new MutationObserver(requestSync);
   for(const root of [q('#meetingOverlay'),q('#prejoinOverlay'),q('#appShell')])if(root)observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  timer=setInterval(()=>{if(!document.hidden)requestSync();},2500);sync();
+  timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);sync();
 
-  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.22-profile-first',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,syncProfilePictures,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();remoteAvatars.clear();profileSentTo.clear();}});
+  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.45-event-driven-profile-first',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,syncProfilePictures,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();remoteAvatars.clear();profileSentTo.clear();}});
 })();
