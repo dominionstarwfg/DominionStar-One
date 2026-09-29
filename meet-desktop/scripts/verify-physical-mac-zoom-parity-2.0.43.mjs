@@ -320,8 +320,8 @@ assert(
 );
 assert(
   shareAnnotation.includes('getCoalescedEvents')&&shareAnnotation.includes('batch.length-12')&&shareAnnotation.includes('desynchronized:true')&&
-  shareAnnotation.includes('quadraticCurveTo')&&
-  shareAnnotation.includes("batch.length-2")&&
+  shareAnnotation.includes("state.ctx.lineTo(next.x,next.y)")&&
+  !shareAnnotation.includes("batch.length-2")&&
   !shareAnnotation.includes('pointerrawupdate')&&
   shareAnnotation.includes("addEventListener('pointermove',move,{passive:false})")&&
   shareAnnotation.includes('drawImage(state.canvas,0,0)')&&
