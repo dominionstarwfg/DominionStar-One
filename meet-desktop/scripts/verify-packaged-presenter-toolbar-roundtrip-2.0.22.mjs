@@ -383,7 +383,7 @@ try{
   await video.click('#videoMoreButton');
   await video.wait("document.querySelector('#videoMoreMenu')?.hidden===false",'presenter video quick-controls open',4000);
   const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoMoreMenu button')].map(button=>button.textContent.trim())");
-  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
+  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Speaker View','Gallery View','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
   await video.eval("window.dispatchEvent(new MouseEvent('mouseleave'))");
   await video.wait("document.querySelector('#videoMoreMenu')?.hidden===true",'presenter video quick-controls dismiss when pointer leaves floating video surface',4000);
   stage('presenter-video-hover-controls');
@@ -391,7 +391,7 @@ try{
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
   let logStart=stderr.length;
   await toolbar.click('[data-command="audio"]');
-  await waitStderr(ackPattern('audio'),'renderer ACK for Audio',8000,logStart);
+  await waitStderr(ackPattern('audio-on'),'renderer ACK for Audio',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().micOn===true&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Mute'",'floating Audio state synchronized from real media',8000);
   stage('audio-real-toolbar');
 
@@ -408,7 +408,7 @@ try{
 
   logStart=stderr.length;
   await toolbar.click('[data-command="video"]');
-  await waitStderr(ackPattern('video'),'renderer ACK for Video',8000,logStart);
+  await waitStderr(ackPattern('video-off'),'renderer ACK for Video',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().cameraOn===false&&document.querySelector('[data-command=\"video\"]')?.classList.contains('is-off')&&document.querySelector('#videoLabel')?.textContent==='Start Video'",'floating Video state synchronized from real media',8000);
   await video.wait("document.querySelector('#dock')?.dataset.cameraOn==='0'&&!document.querySelector('#cameraFallback')?.hidden",'presenter panel camera-off fallback',6000);
   const fallbackWidth=await video.eval("Math.round(document.querySelector('#profileInitials').getBoundingClientRect().width)");
