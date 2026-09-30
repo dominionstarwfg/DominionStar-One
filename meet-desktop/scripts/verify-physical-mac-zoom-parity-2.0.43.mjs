@@ -171,6 +171,14 @@ assert(!featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'Final meeting reconci
 assert(shareService.includes("return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)}"),'Presenter command service must expose execution proof instead of a bare production ok response.');
 const macToolbar=read('ui/mac-presenter-toolbar.js');
 const macToolbarCss=read('ui/mac-presenter-toolbar.css');
+assert(
+  macToolbar.includes("toolbar?.classList.toggle('is-paused',paused)")&&
+  macToolbar.includes("pauseGlyph.innerHTML=paused?")&&
+  macToolbar.includes("state?.paused")&&
+  macToolbarCss.includes('.toolbar.is-paused .share-strip{background:#f5b942')&&
+  macToolbarCss.includes('.toolbar.is-paused .toolbar-reveal{background:#f5b942'),
+  'Paused native sharing must switch the presenter strip/reveal state to amber and change Pause into a true Resume/play control.'
+);
 assert(macToolbar.includes("if(nativeBridge?.command)return await sendNative(normalized);")&&macToolbar.includes("result.ok===true"),'Physical-Mac presenter controls must use the acknowledged native delivery path first, with renderer dispatch only as fallback.');
 assert(
   shareService.includes('function closeLegacyMacPresenterWindows(){') &&
@@ -311,13 +319,17 @@ assert(
   macPresenter.includes("backgroundColor:'#00000000'")&&
   macPresenter.includes('transparent:true')&&
   macPresenter.includes('body::before')&&
-  macPresenter.includes('border:${BORDER_THICKNESS}px solid ${BORDER_COLOR}')&&
+  macPresenter.includes("const BORDER_ACTIVE_COLOR='#2ed573';")&&
+  macPresenter.includes("const BORDER_PAUSED_COLOR='#f5b942';")&&
+  macPresenter.includes('border:${BORDER_THICKNESS}px solid ${BORDER_ACTIVE_COLOR}')&&
+  macPresenter.includes('body[data-share-state="paused"]::before{border-color:${BORDER_PAUSED_COLOR}}')&&
+  macPresenter.includes("document.body.dataset.shareState='${paused?'paused':'active'}'")&&
   macPresenter.includes("'screen-saver',2")&&
   macPresenter.includes("setSimpleFullScreen(true)")&&
   macPresenter.includes("setSimpleFullScreen(false)")&&
   macPresenter.includes("mac_share_perimeter_load")&&
   !macPresenter.includes("mac_share_border_edge_"),
-  'The green presenter perimeter must be one continuous transparent full-display overlay so no segmented seams or inset edge windows remain.'
+  'The presenter perimeter must be one continuous full-display overlay that changes coherently from green active-share state to amber paused-share state.'
 );
 assert(
   shareAnnotation.includes('getCoalescedEvents')&&shareAnnotation.includes('batch.length-12')&&shareAnnotation.includes('desynchronized:true')&&
