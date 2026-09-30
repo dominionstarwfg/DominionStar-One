@@ -62,7 +62,15 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
   };
 
   function positionNearMain(win,width,height){const main=getMainWindow?.();if(!main||main.isDestroyed())return;const bounds=savedMainWindowState?.bounds||main.getBounds();win.setBounds({x:Math.round(bounds.x+(bounds.width-width)/2),y:Math.max(24,bounds.y+18),width,height});}
-  function protectMeetingChrome(win,enabled=true){if(!win||win.isDestroyed())return;try{win.setContentProtection(Boolean(enabled));}catch{}}
+  function protectMeetingChrome(win,enabled=true){
+    if(!win||win.isDestroyed())return;
+    // On macOS, content protection also blanks ordinary screenshots. Native
+    // screen sharing now runs in an isolated capture worker, while presenter
+    // mode parks the meeting renderer nearly transparent, so self-capture
+    // avoidance no longer depends on screenshot blocking.
+    const protect=platform==='darwin'?false:Boolean(enabled);
+    try{win.setContentProtection(protect);}catch{}
+  }
   const capturePreloadPath=path.join(path.dirname(preloadPath),'share-capture-preload.cjs');
   const captureWorkerAlive=()=>Boolean(captureWorkerWindow&&!captureWorkerWindow.isDestroyed());
   function captureWorkerSender(event){return Boolean(captureWorkerAlive()&&event?.sender===captureWorkerWindow.webContents);}
@@ -211,9 +219,9 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     // proved that moving the renderer off-display can cause macOS/Chromium to
     // stop servicing its event loop even though the capture track stays live.
     //
-    // Keep a tiny ON-DISPLAY sentinel instead. Content protection prevents the
-    // meeting chrome from entering the shared capture while the 8px composited
-    // window keeps Chromium scheduled and able to execute presenter commands.
+    // Keep a tiny ON-DISPLAY sentinel instead. The isolated capture worker
+    // owns screen capture, while the nearly transparent meeting renderer stays
+    // composited and responsive without using macOS screenshot blocking.
     if(preCapture||!macPresenterParked)protectMeetingChrome(main,true);
     try{if(main.isMinimized?.())main.restore();}catch{}
     try{if(main.isFullScreen?.())main.setFullScreen(false);}catch{}
@@ -233,8 +241,8 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
     // Do not resize, move, minimize, hide or fade the meeting engine after
     // sharing begins. Physical Mac proved that geometry mutation causes
     // Chromium to demote this renderer even when background throttling is off.
-    // Capture is isolated in its own renderer and this window is content-
-    // protected, so presenter mode only changes focus/input authority.
+    // Capture is isolated in its own renderer, so presenter mode only changes
+    // focus/input/visibility authority and remains capturable in macOS screenshots.
     try{main.blur?.();}catch{}
     try{main.showInactive?.();}catch{try{main.show();}catch{}}
     macPresenterParked=true;
