@@ -2,9 +2,24 @@
   if(window.DominionMediaController)return;
   const desktopMedia=window.dominionDesktop?.media||null;
   const KEYS=Object.freeze({camera:'ds_meet_camera_id',microphone:'ds_meet_microphone_id',speaker:'ds_meet_speaker_id',mirror:'ds_meet_mirror',echoCancellation:'ds_meet_echo_cancellation',noiseSuppression:'ds_meet_noise_suppression',autoGainControl:'ds_meet_auto_gain_control',originalSound:'ds_meet_original_sound'});
+  const AUDIO_PROFILE_VERSION_KEY='ds_meet_audio_profile_version';
   const readPref=(key,fallback='')=>{try{const value=localStorage.getItem(KEYS[key]);return value===null?fallback:value;}catch{return fallback;}};
   const savePref=(key,value)=>{try{localStorage.setItem(KEYS[key],String(value??''));}catch{}};
-  const state={stream:null,cameraId:readPref('camera'),microphoneId:readPref('microphone'),speakerId:readPref('speaker'),cameraOn:true,cameraPending:false,micOn:false,mirror:readPref('mirror','true')!=='false',echoCancellation:readPref('echoCancellation','true')!=='false',noiseSuppression:readPref('noiseSuppression','true')!=='false',autoGainControl:readPref('autoGainControl','true')!=='false',originalSound:readPref('originalSound','false')==='true',userPreferencesLocked:false,lastError:'',permissionState:null};
+  const migrateGentleSpeechProfile=()=>{
+    try{
+      if(Number(localStorage.getItem(AUDIO_PROFILE_VERSION_KEY)||0)>=2)return;
+      const echo=localStorage.getItem(KEYS.echoCancellation),noise=localStorage.getItem(KEYS.noiseSuppression),gain=localStorage.getItem(KEYS.autoGainControl);
+      const stillLegacyDefaults=(echo===null||echo==='true')&&(noise===null||noise==='true')&&(gain===null||gain==='true');
+      if(stillLegacyDefaults){
+        localStorage.setItem(KEYS.echoCancellation,'true');
+        localStorage.setItem(KEYS.noiseSuppression,'true');
+        localStorage.setItem(KEYS.autoGainControl,'false');
+      }
+      localStorage.setItem(AUDIO_PROFILE_VERSION_KEY,'2');
+    }catch{}
+  };
+  migrateGentleSpeechProfile();
+  const state={stream:null,cameraId:readPref('camera'),microphoneId:readPref('microphone'),speakerId:readPref('speaker'),cameraOn:true,cameraPending:false,micOn:false,mirror:readPref('mirror','true')!=='false',echoCancellation:readPref('echoCancellation','true')!=='false',noiseSuppression:readPref('noiseSuppression','true')!=='false',autoGainControl:readPref('autoGainControl','false')!=='false',originalSound:readPref('originalSound','false')==='true',userPreferencesLocked:false,lastError:'',permissionState:null};
   let cameraIntent=0,warmVideoTrack=null,warmVideoTimer=0;
   const releaseWarmVideo=()=>{if(warmVideoTimer){clearTimeout(warmVideoTimer);warmVideoTimer=0;}if(warmVideoTrack){stopTrack(warmVideoTrack);warmVideoTrack=null;}};
   const holdWarmVideo=track=>{releaseWarmVideo();if(!track||track.readyState!=='live')return;try{track.enabled=false;}catch{}warmVideoTrack=track;warmVideoTimer=setTimeout(releaseWarmVideo,1800);};
@@ -56,8 +71,9 @@
       channelCount:original?{ideal:2}:{ideal:1},
       sampleRate:{ideal:48000}
     };
-    // Keep the standard meeting profile light: mono speech capture improves
-    // separation and leaves Chromium's built-in suppression/AGC in charge.
+    // Gentle speech profile: Chromium echo cancellation + noise suppression
+    // stay enabled, while AGC defaults off so quiet room noise is not pumped
+    // upward between phrases. Original Sound bypasses all speech processing.
     // Do not force unsupported or aggressive DSP constraints.
     if(!original&&supported.latency)constraints.latency={ideal:0.02,max:0.08};
     return constraints;
@@ -192,7 +208,7 @@
       const track=await acquireKind('video',wanted);track.enabled=true;return new MediaStream([track]);
     },
     stop(){cameraIntent+=1;releaseWarmVideo();state.cameraPending=false;stopTracks(state.stream?.getTracks?.()||[]);state.stream=null;emit();},
-    resetPreferences(){cameraIntent+=1;releaseWarmVideo();state.cameraPending=false;state.userPreferencesLocked=false;state.cameraId='';state.microphoneId='';state.speakerId='';state.cameraOn=true;state.micOn=false;state.mirror=true;state.echoCancellation=true;state.noiseSuppression=true;state.autoGainControl=true;state.originalSound=false;for(const key of Object.keys(KEYS)){const v=key==='mirror'||['echoCancellation','noiseSuppression','autoGainControl'].includes(key)?'true':key==='originalSound'?'false':'';savePref(key,v);}emit();},
+    resetPreferences(){cameraIntent+=1;releaseWarmVideo();state.cameraPending=false;state.userPreferencesLocked=false;state.cameraId='';state.microphoneId='';state.speakerId='';state.cameraOn=true;state.micOn=false;state.mirror=true;state.echoCancellation=true;state.noiseSuppression=true;state.autoGainControl=false;state.originalSound=false;for(const key of Object.keys(KEYS)){const v=key==='mirror'||['echoCancellation','noiseSuppression'].includes(key)?'true':key==='autoGainControl'||key==='originalSound'?'false':'';savePref(key,v);}try{localStorage.setItem(AUDIO_PROFILE_VERSION_KEY,'2');}catch{}emit();},
     stream(){return state.stream;},
     enumerate,
     permissions:()=>desktopMedia?.permissions?.()||Promise.resolve(null),
