@@ -61,9 +61,10 @@
     if(!session)return {ready:true,signedIn:false,user:null};
     return {ready:true,signedIn:true,user:await profileSummary(instance,session.user)};
   }
-  async function emitAuth(instance=await client()){
-    const result=await instance.auth.getSession(),session=result.data?.session;
-    const state=session?{ready:true,signedIn:true,user:await profileSummary(instance,session.user)}:{ready:true,signedIn:false,user:null};
+  async function emitAuth(instance=null){
+    const resolved=instance||await client();
+    const result=await resolved.auth.getSession(),session=result.data?.session;
+    const state=session?{ready:true,signedIn:true,user:await profileSummary(resolved,session.user)}:{ready:true,signedIn:false,user:null};
     for(const fn of authListeners){try{fn(state);}catch{}}
     return state;
   }
