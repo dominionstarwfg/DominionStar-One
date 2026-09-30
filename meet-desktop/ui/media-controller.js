@@ -45,7 +45,23 @@
   }
 
   const videoConstraints=id=>({deviceId:id?{ideal:id}:undefined,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}});
-  const audioConstraints=id=>({deviceId:id?{ideal:id}:undefined,echoCancellation:state.originalSound?false:state.echoCancellation,noiseSuppression:state.originalSound?false:state.noiseSuppression,autoGainControl:state.originalSound?false:state.autoGainControl,channelCount:state.originalSound?{ideal:2}:undefined,sampleRate:state.originalSound?{ideal:48000}:undefined});
+  const audioConstraints=id=>{
+    const original=state.originalSound;
+    const supported=navigator.mediaDevices?.getSupportedConstraints?.()||{};
+    const constraints={
+      deviceId:id?{ideal:id}:undefined,
+      echoCancellation:original?false:state.echoCancellation,
+      noiseSuppression:original?false:state.noiseSuppression,
+      autoGainControl:original?false:state.autoGainControl,
+      channelCount:original?{ideal:2}:{ideal:1},
+      sampleRate:{ideal:48000}
+    };
+    // Keep the standard meeting profile light: mono speech capture improves
+    // separation and leaves Chromium's built-in suppression/AGC in charge.
+    // Do not force unsupported or aggressive DSP constraints.
+    if(!original&&supported.latency)constraints.latency={ideal:0.02,max:0.08};
+    return constraints;
+  };
 
   async function acquireKind(kind,preferredId=''){
     await ensurePermissions([kind==='video'?'camera':'microphone']);
