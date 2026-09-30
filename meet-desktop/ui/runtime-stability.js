@@ -428,7 +428,7 @@
       }else{
         panel.style.setProperty('left','auto','important');
         panel.style.setProperty('right','24px','important');
-        panel.style.setProperty('top','18px','important');
+        panel.style.setProperty('top',panel===chat?'46px':'18px','important');
         panel.style.setProperty('bottom','auto','important');
         panel.style.setProperty('height',`${Math.min(height,Math.max(300,bodyHeight-28))}px`,'important');
       }
@@ -654,5 +654,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.52-single-panel-header-authority',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.53-canonical-chat-inset',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
