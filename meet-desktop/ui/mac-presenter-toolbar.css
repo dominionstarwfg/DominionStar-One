@@ -48,6 +48,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
   box-shadow:0 5px 14px rgba(0,0,0,.28);font-size:9px;font-weight:650;
   transition:top .18s cubic-bezier(.2,.8,.2,1),opacity .12s ease;-webkit-app-region:drag
 }
+.toolbar.is-paused .share-strip{background:#f5b942;color:#2b2104}
+.toolbar.is-paused .share-copy small{color:#5a4307}
+.toolbar.is-paused .live-dot{background:#7a5a08}
+.toolbar.is-paused .toolbar-reveal{background:#f5b942}
+.toolbar.is-paused .toolbar-reveal span{background:rgba(84,61,2,.72)}
+.toolbar.is-paused [data-command="pause"] .glyph{color:#f5c85a}
 .share-copy{min-width:0;display:flex;align-items:center;gap:6px}
 .share-copy strong{white-space:nowrap}
 .share-copy small{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0d3b22;font-size:7.5px;font-weight:600}
