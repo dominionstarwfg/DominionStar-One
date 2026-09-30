@@ -8,7 +8,8 @@ if(process.platform==='darwin'){
   const presenterPreloadPath=path.join(here,'presenter-preload.cjs');
   const PREPARE_STEP_TIMEOUT_MS=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1'?10000:5000;
   const BORDER_THICKNESS=4;
-  const BORDER_COLOR='#2ed573';
+  const BORDER_ACTIVE_COLOR='#2ed573';
+  const BORDER_PAUSED_COLOR='#f5b942';
   let toolbarWindow=null;
   let borderWindows=[]; // four thin edge windows driven by one geometry authority
   let videoWindow=null;
@@ -121,10 +122,19 @@ if(process.platform==='darwin'){
     if(videoLayout==='hide'){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout};}
     positionVideo();try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}return {ok:true,layout:videoLayout};
   }
+  function syncBorderState(){
+    if(!bordersReady())return;
+    const paused=Boolean(shareState.paused);
+    for(const win of borderWindows){
+      if(!isAlive(win))continue;
+      void win.webContents.executeJavaScript(`document.body.dataset.shareState='${paused?'paused':'active'}';true`,true).catch(()=>{});
+    }
+  }
   function publishState(){
     if(toolbarReady&&isAlive(toolbarWindow))toolbarWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout});
     if(isAlive(videoWindow))videoWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout});
     if(isAlive(annotationWindow))annotationWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout});
+    syncBorderState();
   }
 
   async function prepareToolbar(){
@@ -157,7 +167,7 @@ if(process.platform==='darwin'){
     const html=`<!doctype html><meta charset="utf-8"><style>
       *{box-sizing:border-box}
       html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
-      body::before{content:"";position:fixed;inset:0;pointer-events:none;box-sizing:border-box;border:${BORDER_THICKNESS}px solid ${BORDER_COLOR};border-radius:0}
+      body::before{content:"";position:fixed;inset:0;pointer-events:none;box-sizing:border-box;border:${BORDER_THICKNESS}px solid ${BORDER_ACTIVE_COLOR};border-radius:0}\n      body[data-share-state="paused"]::before{border-color:${BORDER_PAUSED_COLOR}}
     </style>`;
     const url=`data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
     let win=null;
@@ -174,6 +184,7 @@ if(process.platform==='darwin'){
       try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
       win.on('closed',()=>{borderWindows=borderWindows.filter(candidate=>candidate!==win);});
       await boundedLoad('mac_share_perimeter_load',()=>win.loadURL(url));
+      syncBorderState();
       if(!bordersReady())throw new Error('mac_share_perimeter_incomplete');
       positionBorder();
       return borderWindows;
