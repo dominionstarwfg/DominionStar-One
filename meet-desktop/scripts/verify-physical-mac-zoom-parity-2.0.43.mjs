@@ -358,6 +358,7 @@ assert(
   shareService.includes('main.setOpacity?.(1)')&&
   shareService.includes('try{main.blur?.();}catch{}')&&
   shareService.includes('Do not resize, move, minimize, hide or fade the meeting engine after')&&
+  shareService.includes("const protect=platform==='darwin'?false:Boolean(enabled);")&&
   shareService.includes('protectMeetingChrome(main,Boolean(shareActive));')&&
   shareService.includes('protectMeetingChrome(main,true);main.show();main.focus();')&&
   !shareService.includes('MAC_SENTINEL_WIDTH')&&
@@ -366,7 +367,7 @@ assert(
   !shareService.includes('main.setOpacity?.(0.02)')&&
   !bootstrap.includes('originalSetOpacity.call(main,0.02)')&&
   !macPresenter.includes('main.setOpacity?.(0.02)'),
-  'The meeting control renderer must keep stable on-display geometry after capture is isolated; resize, off-display, minimize and near-transparent parking are forbidden because they starve physical-Mac presenter commands.'
+  'The meeting control renderer must keep stable on-display geometry after capture is isolated and must remain visible to ordinary macOS screenshots; resize, off-display and minimize transitions are forbidden because they starve physical-Mac presenter commands.'
 );
 
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
