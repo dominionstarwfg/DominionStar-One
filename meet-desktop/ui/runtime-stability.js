@@ -82,6 +82,20 @@
       right=document.createElement('div');right.className='ds-runtime-toolbar-zone ds-runtime-toolbar-right';right.setAttribute('role','presentation');
       footer.append(left,center,right);
     }
+    footer.style.setProperty('display','grid','important');
+    footer.style.setProperty('grid-template-columns','minmax(190px,1fr) auto minmax(115px,1fr)','important');
+    footer.style.setProperty('align-items','center','important');
+    footer.style.setProperty('column-gap','10px','important');
+    left.style.setProperty('grid-column','1','important');
+    left.style.setProperty('justify-self','start','important');
+    left.style.setProperty('justify-content','flex-start','important');
+    left.style.setProperty('min-width','190px','important');
+    center.style.setProperty('grid-column','2','important');
+    center.style.setProperty('justify-self','center','important');
+    center.style.setProperty('justify-content','center','important');
+    right.style.setProperty('grid-column','3','important');
+    right.style.setProperty('justify-self','end','important');
+    right.style.setProperty('justify-content','flex-end','important');
     const carets=qa('.meeting-footer .av-device-caret');
     const audioCaret=carets.find(node=>node.dataset.kind==='audio'||/audio/i.test(node.getAttribute('aria-label')||''));
     const videoCaret=carets.find(node=>node.dataset.kind==='video'||/video/i.test(node.getAttribute('aria-label')||''));
@@ -580,5 +594,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.49-stable-direct-sync',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.50-deterministic-toolbar-zones',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
