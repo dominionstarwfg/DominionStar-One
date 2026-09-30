@@ -488,6 +488,19 @@
     }
   }
 
+  function syncDirect(){
+    if(syncRunning){
+      pendingSync=true;
+      if(meetingOpen()){
+        ensureViewport();
+        ensureToolbarZones();
+        window.DominionZoomScreenshotReference?.sync?.();
+      }
+      return;
+    }
+    return syncNow();
+  }
+
   function schedule(){if(frame||syncRunning){pendingSync=true;return;}frame=requestAnimationFrame(syncNow);}
 
   function observeMeetingVisibility(){
@@ -567,5 +580,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.48-nonreentrant-ui-sync',sync:syncNow,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.49-stable-direct-sync',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
