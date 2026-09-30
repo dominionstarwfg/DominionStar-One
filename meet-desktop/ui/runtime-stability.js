@@ -326,11 +326,11 @@
     const participants=panel.matches('.room-side');
     const header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
     if(!header)return;
-    if(isMac&&!header.querySelector('.ds-panel-traffic')){
+    if(participants&&isMac&&!header.querySelector('.ds-participants-traffic,.ds-panel-traffic')){
       const traffic=document.createElement('div');traffic.className='ds-panel-traffic';
       traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Collapse panel"></button><button type="button" class="zoom" aria-label="Expand panel"></button>';
       header.prepend(traffic);
-      traffic.querySelector('.close').onclick=event=>{event.preventDefault();event.stopPropagation();participants?setParticipants(false):closeChat();};
+      traffic.querySelector('.close').onclick=event=>{event.preventDefault();event.stopPropagation();setParticipants(false);};
       traffic.querySelector('.min').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.toggle('ds-panel-minimized');panel.classList.remove('ds-panel-wide');layoutSideSurface();};
       traffic.querySelector('.zoom').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.classList.toggle('ds-panel-wide');layoutSideSurface();};
     }
@@ -347,6 +347,46 @@
         event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
         participants?setParticipants(false):closeChat();
       },true);
+    }
+    if(!participants){
+      let actions=header.querySelector('.zoom-chat-header-actions');
+      if(!actions){
+        actions=document.createElement('div');actions.className='zoom-chat-header-actions';
+        header.insertBefore(actions,close);
+        actions.append(close);
+      }
+      let more=actions.querySelector('.zoom-chat-more');
+      if(!more){
+        more=document.createElement('button');more.type='button';more.className='zoom-chat-more';more.textContent='•••';more.setAttribute('aria-label','Chat options');
+        actions.insertBefore(more,close);
+      }
+      more.hidden=false;
+      if(more.dataset.dsRuntimeChatMoreBound!=='1'){
+        more.dataset.dsRuntimeChatMoreBound='1';
+        more.onclick=event=>{
+          event.preventDefault();event.stopPropagation();
+          for(const node of document.querySelectorAll('.ds-runtime-chat-options'))node.remove();
+          const menu=document.createElement('div');menu.className='zoom-chat-policy-menu ds-runtime-chat-options';
+          const select=q('#meetingChatPolicy');
+          const role=String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace(/[-\s]/g,'');
+          const manager=['host','cohost'].includes(role)||q('.meeting-footer')?.dataset.approvedRoleState==='manager';
+          if(manager&&select){
+            const heading=document.createElement('button');heading.type='button';heading.disabled=true;heading.textContent='Participant can chat with';menu.append(heading);
+            for(const option of [...select.options]){
+              const item=document.createElement('button');item.type='button';item.textContent=String(option.textContent||option.value).replace(/^Participants (can|cannot) chat:\s*/i,'');
+              item.classList.toggle('selected',option.value===select.value);
+              item.onclick=()=>{select.value=option.value;select.dispatchEvent(new Event('change',{bubbles:true}));menu.remove();};
+              menu.append(item);
+            }
+          }else{
+            const item=document.createElement('button');item.type='button';item.textContent='Close chat';item.onclick=()=>{menu.remove();closeChat();};menu.append(item);
+          }
+          document.body.append(menu);
+          const r=more.getBoundingClientRect(),width=manager?265:210;
+          menu.style.left=`${Math.max(10,Math.min(innerWidth-width-10,r.right-width))}px`;
+          menu.style.top=`${Math.max(10,r.top-menu.offsetHeight-8)}px`;
+        };
+      }
     }
   }
 
@@ -614,5 +654,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.51-synchronous-av-caret-slots',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.52-single-panel-header-authority',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
