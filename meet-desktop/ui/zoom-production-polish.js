@@ -177,7 +177,10 @@
     if(!q('#meetingChatPolicy'))return;
     let actions=header.querySelector('.zoom-chat-header-actions');
     if(!actions){actions=document.createElement('div');actions.className='zoom-chat-header-actions';const more=document.createElement('button');more.type='button';more.className='zoom-chat-more';more.textContent='•••';more.setAttribute('aria-label','Chat options');more.onclick=event=>{event.stopPropagation();openChatPolicyMenu(more);};actions.append(more);header.insertBefore(actions,close);actions.append(close);}
-    const more=actions.querySelector('.zoom-chat-more');setHidden(more,!manager());
+    const more=actions.querySelector('.zoom-chat-more');
+    const approvedRole=String(q('.meeting-footer')?.dataset.approvedRoleState||'');
+    const roleKnownManager=manager()||approvedRole==='manager';
+    setHidden(more,approvedRole==='participant'&&!roleKnownManager);
   }
 
   function normalizeReactionMenu(){const menu=q('.meeting-reaction-menu');if(!menu)return;menu.dataset.dsAnchorStable='1';}
