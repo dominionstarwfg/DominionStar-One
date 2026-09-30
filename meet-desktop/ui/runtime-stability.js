@@ -71,6 +71,24 @@
     window.DominionZoomParticipantsReference2041?.sync?.();
   }
 
+  function ensureRuntimeDeviceCaret(button,kind){
+    if(!button)return null;
+    let caret=button.nextElementSibling?.classList?.contains('av-device-caret')?button.nextElementSibling:null;
+    if(!caret){
+      caret=document.createElement('button');
+      caret.type='button';
+      caret.className='av-device-caret attached-device-caret';
+      caret.dataset.kind=kind;
+      caret.dataset.dsRuntimeCaretSlot='1';
+      caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);
+      caret.innerHTML='<span aria-hidden="true">⌃</span>';
+      caret.disabled=true;
+      button.insertAdjacentElement('afterend',caret);
+    }
+    button.classList.add('has-device-caret');
+    return caret;
+  }
+
   function ensureToolbarZones(){
     const footer=q('.meeting-footer');if(!footer)return false;
     let left=footer.querySelector(':scope > .ds-runtime-toolbar-left');
@@ -96,6 +114,8 @@
     right.style.setProperty('grid-column','3','important');
     right.style.setProperty('justify-self','end','important');
     right.style.setProperty('justify-content','flex-end','important');
+    ensureRuntimeDeviceCaret(q('#roomMic'),'audio');
+    ensureRuntimeDeviceCaret(q('#roomCamera'),'video');
     const carets=qa('.meeting-footer .av-device-caret');
     const audioCaret=carets.find(node=>node.dataset.kind==='audio'||/audio/i.test(node.getAttribute('aria-label')||''));
     const videoCaret=carets.find(node=>node.dataset.kind==='video'||/video/i.test(node.getAttribute('aria-label')||''));
@@ -594,5 +614,5 @@
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.50-deterministic-toolbar-zones',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.51-synchronous-av-caret-slots',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
