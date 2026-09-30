@@ -91,8 +91,11 @@
   stateBridge?.onState?.(state=>{
     lastState={...lastState,...state};
     const paused=Boolean(state?.paused),micOn=Boolean(state?.micOn),cameraOn=Boolean(state?.cameraOn);
-    const pause=q('#pauseLabel'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand');
-    if(pause)pause.textContent=paused?'Resume':'Pause';if(audio)audio.textContent=micOn?'Mute':'Unmute';if(video)video.textContent=cameraOn?'Stop Video':'Start Video';
+    const pause=q('#pauseLabel'),pauseGlyph=q('#pauseGlyph'),toolbar=q('#toolbar'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand');
+    toolbar?.classList.toggle('is-paused',paused);
+    if(pause)pause.textContent=paused?'Resume':'Pause';
+    if(pauseGlyph)pauseGlyph.innerHTML=paused?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5 18 12 8 18.5z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>';
+    if(audio)audio.textContent=micOn?'Mute':'Unmute';if(video)video.textContent=cameraOn?'Stop Video':'Start Video';
     const audioButton=q('[data-command="audio"]'),videoButton=q('[data-command="video"]');
     const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0));
     const speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0);
@@ -106,6 +109,6 @@
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.44-serialized-av-native-autohide',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.45-stateful-share-chrome',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();
