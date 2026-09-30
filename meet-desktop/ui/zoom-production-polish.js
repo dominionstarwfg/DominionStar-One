@@ -165,6 +165,10 @@
   function closeChatPolicyMenu(){chatPolicyMenu?.remove();chatPolicyMenu=null;}
   function openChatPolicyMenu(anchor){
     closeChatPolicyMenu();const select=q('#meetingChatPolicy');if(!select)return;chatPolicyMenu=document.createElement('div');chatPolicyMenu.className='zoom-chat-policy-menu';
+    if(!manager()){
+      const closeChat=document.createElement('button');closeChat.type='button';closeChat.textContent='Close chat';closeChat.onclick=()=>{closeChatPolicyMenu();q('[data-chat-close]')?.click();};chatPolicyMenu.append(closeChat);
+      document.body.append(chatPolicyMenu);positionAbove(chatPolicyMenu,anchor,210);return;
+    }
     const heading=document.createElement('button');heading.type='button';heading.disabled=true;heading.textContent='Participant can chat with';chatPolicyMenu.append(heading);
     for(const option of [...select.options]){
       const b=document.createElement('button');b.type='button';b.textContent=String(option.textContent||option.value).replace(/^Participants (can|cannot) chat:\s*/i,'');b.classList.toggle('selected',option.value===select.value);
@@ -178,9 +182,10 @@
     let actions=header.querySelector('.zoom-chat-header-actions');
     if(!actions){actions=document.createElement('div');actions.className='zoom-chat-header-actions';const more=document.createElement('button');more.type='button';more.className='zoom-chat-more';more.textContent='•••';more.setAttribute('aria-label','Chat options');more.onclick=event=>{event.stopPropagation();openChatPolicyMenu(more);};actions.append(more);header.insertBefore(actions,close);actions.append(close);}
     const more=actions.querySelector('.zoom-chat-more');
-    const approvedRole=String(q('.meeting-footer')?.dataset.approvedRoleState||'');
-    const roleKnownManager=manager()||approvedRole==='manager';
-    setHidden(more,approvedRole==='participant'&&!roleKnownManager);
+    // The options affordance is stable for every participant. Manager-only
+    // policy mutations remain enforced by the menu/action layer rather than
+    // making the header geometry change during role reconciliation.
+    setHidden(more,false);
   }
 
   function normalizeReactionMenu(){const menu=q('.meeting-reaction-menu');if(!menu)return;menu.dataset.dsAnchorStable='1';}
