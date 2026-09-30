@@ -265,7 +265,12 @@
 
   function installMeetingQuickMenus(media){
     const mic=$('#roomMic'),camera=$('#roomCamera');if(!mic||!camera||mic.dataset.avQuickInstalled)return;mic.dataset.avQuickInstalled='1';
-    for(const [button,kind] of [[mic,'audio'],[camera,'video']]){const caret=document.createElement('button');caret.type='button';caret.className='av-device-caret attached-device-caret';caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.innerHTML='<span aria-hidden="true">⌃</span>';button.classList.add('has-device-caret');button.insertAdjacentElement('afterend',caret);caret.onclick=event=>{event.stopPropagation();void openQuickMenu(media,kind,caret);};}
+    for(const [button,kind] of [[mic,'audio'],[camera,'video']]){
+      let caret=button.nextElementSibling?.classList?.contains('av-device-caret')?button.nextElementSibling:null;
+      if(!caret){caret=document.createElement('button');caret.type='button';caret.className='av-device-caret attached-device-caret';button.insertAdjacentElement('afterend',caret);}
+      caret.dataset.kind=kind;caret.dataset.dsRuntimeCaretSlot='0';caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.innerHTML='<span aria-hidden="true">⌃</span>';caret.disabled=false;
+      button.classList.add('has-device-caret');caret.onclick=event=>{event.stopPropagation();void openQuickMenu(media,kind,caret);};
+    }
   }
 
   waitForMedia().then(media=>{
