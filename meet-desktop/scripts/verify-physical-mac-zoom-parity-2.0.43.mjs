@@ -545,9 +545,9 @@ assert(
 );
 assert(
   macToolbarCss.includes('2.0.44+ physical Mac presenter menu collision lock')&&
-  macToolbarCss.includes('.toolbar.menu-open .popup-menu{top:92px}')&&
+  macToolbarCss.includes('.toolbar.menu-open .popup-menu{top:86px}')&&
   macPresenter.includes('const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);'),
-  'Presenter More must open below the green share-status strip with enough native window height to expose every command.'
+  'Presenter More must open below the compact green share-status strip with enough native window height to expose every command.'
 );
 
 /* PHYSICAL_MAC_2_0_50_REFERENCE_GEOMETRY_LOCK */
