@@ -47,7 +47,8 @@ for(const label of ['New Meeting','Join','Schedule','Share Screen']){
 }
 
 assert(shareIntegration.includes("button.id='roomShare'"),'Share integration must create the in-meeting Share Screen control.');
-assert(shareIntegration.includes("button.textContent='Share Screen'"),'Share Screen control text must remain explicit.');
+assert(shareIntegration.includes("button.textContent='Share'"),'In-meeting Share control must retain the compact visible label.');
+assert(shareIntegration.includes("button.setAttribute('aria-label','Share Screen')"),'Compact Share control must retain explicit screen-sharing accessibility semantics.');
 for(const command of ['pause','new-share','stop','annotate','participants','chat']){
   assert(shareIntegration.includes(command),`Share presenter command missing: ${command}`);
 }
