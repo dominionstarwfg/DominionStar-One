@@ -73,18 +73,27 @@
 
   function ensureRuntimeDeviceCaret(button,kind){
     if(!button)return null;
-    let caret=button.nextElementSibling?.classList?.contains('av-device-caret')?button.nextElementSibling:null;
+    const footer=button.closest('.meeting-footer');
+    const label=(kind==='audio'?'Audio':'Video')+' options';
+    const candidates=footer?[...footer.querySelectorAll('.av-device-caret')].filter(node=>node.dataset.kind===kind||String(node.getAttribute('aria-label')||'').toLowerCase().includes(kind)):[];
+    let caret=candidates.find(node=>node.dataset.dsRuntimeCaretSlot==='1')||candidates[0]||null;
+    for(const node of candidates){if(node!==caret)node.remove();}
+    for(const node of [...button.parentElement.children]){
+      if(node===button||node===caret)continue;
+      const aria=String(node.getAttribute?.('aria-label')||'').toLowerCase();
+      if(node.matches?.('.attached-device-caret,[data-kind="'+kind+'"]')||aria===label.toLowerCase())node.remove();
+    }
     if(!caret){
       caret=document.createElement('button');
       caret.type='button';
       caret.className='av-device-caret attached-device-caret';
       caret.dataset.kind=kind;
-      caret.dataset.dsRuntimeCaretSlot='1';
-      caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);
+      caret.setAttribute('aria-label',label);
       caret.innerHTML='<span aria-hidden="true">⌃</span>';
-      caret.disabled=true;
       button.insertAdjacentElement('afterend',caret);
     }
+    caret.dataset.dsRuntimeCaretSlot='1';
+    caret.disabled=false;
     button.classList.add('has-device-caret');
     return caret;
   }
@@ -173,8 +182,29 @@
     }
   }
 
+  function canonicalizeParticipantRows(){
+    for(const row of participantRows()){
+      let actions=row.querySelector('.participant-actions');
+      if(!actions){
+        actions=document.createElement('span');
+        actions.className='participant-actions';
+        row.append(actions);
+      }
+      const moreCandidates=[...row.querySelectorAll('.participant-more,.ds-participant-more,[data-participant-more]')];
+      let more=moreCandidates.find(node=>actions.contains(node))||moreCandidates[0]||null;
+      for(const node of moreCandidates){if(node!==more)node.remove();}
+      if(more&&more.parentElement!==actions)actions.append(more);
+      for(const node of [...row.children]){
+        if(node===actions||node.matches?.('.person-badge,.person-copy,.participant-media-state,.ds-participant-share-state'))continue;
+        const txt=String(node.textContent||'').replace(/\s/g,'');
+        if(/^(?:\.{3}|…|•••)$/.test(txt))node.remove();
+      }
+    }
+  }
+
   function syncParticipantsSurface(){
     const side=q('.room-side'),roster=q('#participantRoster');if(!side||!roster)return;
+    canonicalizeParticipantRows();
     const count=participantRows().length;
     side.dataset.dsRuntimeCount=String(count);
     const title=side.querySelector('.room-side-head strong');if(title)title.textContent=`Participants (${count})`;
@@ -344,7 +374,10 @@
     const participants=panel.matches('.room-side');
     const header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
     if(!header)return;
-    if(participants&&isMac&&!header.querySelector('.ds-participants-traffic,.ds-panel-traffic')){
+    if(participants&&isMac){
+      for(const legacy of [...header.querySelectorAll('.ds-participants-traffic')])legacy.remove();
+    }
+    if(participants&&isMac&&!header.querySelector('.ds-panel-traffic')){
       const traffic=document.createElement('div');traffic.className='ds-panel-traffic';
       traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Collapse panel"></button><button type="button" class="zoom" aria-label="Expand panel"></button>';
       header.prepend(traffic);
@@ -418,9 +451,11 @@
     if(panel){
       const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:318);
       const participantCount=participantRows().length;
-      const baseHeight=panel===chat?440:(participantCount>=7?438:390);
+      const participantBaseHeight=Math.min(438,Math.max(194,102+(Math.max(1,participantCount)*46)+(participantCount>=7?46:0)));
+      const baseHeight=panel===chat?440:participantBaseHeight;
+      const minPanelHeight=panel===chat?300:194;
       const width=Math.min(baseWidth,Math.max(300,bodyWidth-24));
-      const height=Math.min(baseHeight,Math.max(300,bodyHeight-82));
+      const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
       panel.dataset.dsRuntimeMode='floating';
       panel.dataset.dsAdaptiveMode='floating';
       panel.dataset.zoomPanelMode='runtime';
