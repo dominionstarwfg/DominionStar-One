@@ -50,11 +50,9 @@ assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance 
 // Physical-Mac active-share control authority. Layout/show-meeting remain native
 // floating-window operations, while every live meeting/media command must try
 // the capture-owning meeting renderer before falling back to the native queue.
-assert(macPresenter.includes("const NATIVE_ONLY_COMMANDS=new Set(['layout-speaker','layout-gallery','layout-hide','show-meeting'])"),'Mac presenter native-only command boundary must remain explicit.');
-assert(macPresenter.includes("if(NATIVE_ONLY_COMMANDS.has(normalized))return await sendNative(normalized);"),'Mac layout/show-meeting controls must stay on native window authority.');
-const rendererFirst=macPresenter.indexOf('try{return await sendRenderer(normalized);}');
-const nativeFallback=macPresenter.indexOf('if(nativeBridge?.command)return sendNative(normalized);');
-assert(rendererFirst>=0&&nativeFallback>rendererFirst,'Mac Stop/Audio/Video/Pause/Chat/Participants/Annotate must execute in the meeting renderer before native fallback.');
+const nativeFirst=macPresenter.indexOf("if(nativeBridge?.command)return await sendNative(normalized);");
+const rendererFallback=macPresenter.indexOf("if(rendererBridge?.command)return await sendRenderer(normalized);");
+assert(nativeFirst>=0&&rendererFallback>nativeFirst,'Mac presenter commands must use acknowledged native delivery first during active sharing, with direct renderer fallback only when native presenter transport is unavailable.');
 assert(macPresenter.includes("q('#stopShare')?.addEventListener('click'")&&macPresenter.includes("try{await send('stop');}"),'Mac Stop Share must use the direct-first presenter command authority.');
 assert(macPresenter.includes('const accepted=result=>Boolean(result)')&&macPresenter.includes('result.direct===true')&&macPresenter.includes('result.acknowledged===true'),'Mac presenter controls must require execution/acknowledgement rather than treating a one-way send as success.');
 assert(macPresenter.includes("version:'2.0.41-direct-renderer-first-controls'"),'Mac presenter direct-first control version must remain explicit.');
