@@ -397,10 +397,10 @@ try{
 
   const voiceMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for microphone-level bridge');
   const voiceMain=new Cdp(voiceMainTarget.webSocketDebuggerUrl);await voiceMain.connect();
-  await voiceMain.eval("window.dominionDesktop?.share?.voiceLevel?.({level:.72,speaking:true}); true");
+  assert.equal(await voiceMain.eval("(()=>{if(!window.DominionShareIntegration||!window.DominionShareController?.snapshot?.().active)return false;window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:.72,speaking:true}}));return true;})()"),true,'Meeting renderer must have the active share integration before microphone activity is published.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='3'&&document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone activity meter',5000);
   await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='3'&&document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone activity meter',5000);
-  await voiceMain.eval("window.dominionDesktop?.share?.voiceLevel?.({level:0,speaking:false}); true");
+  assert.equal(await voiceMain.eval("(()=>{window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:0,speaking:false}}));return true;})()"),true,'Meeting renderer must publish microphone idle state through the same production voice event path.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='0'&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone meter idle',5000);
   await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='0'&&!document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone meter idle',5000);
   voiceMain.close();
