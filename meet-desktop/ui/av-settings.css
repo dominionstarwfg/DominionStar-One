@@ -149,3 +149,15 @@
   border-color:#2d8cff!important;
   box-shadow:0 0 0 2px rgba(45,140,255,.22)!important;
 }
+
+
+/* 2.0.50 in-meeting Audio/Video settings panel geometry */
+@media(min-width:1180px){
+  body.ds-in-meeting .settings-modal.av-video-settings-open,
+  body.ds-in-meeting .settings-modal.av-audio-settings-open{position:fixed!important;left:auto!important;right:10px!important;top:64px!important;bottom:64px!important;width:330px!important;max-width:330px!important;max-height:none!important;margin:0!important;border-radius:10px!important;background:#202124!important;border-color:#3b3d41!important;box-shadow:0 16px 44px rgba(0,0,0,.46)!important}
+  body.ds-in-meeting .settings-modal.av-video-settings-open::backdrop,
+  body.ds-in-meeting .settings-modal.av-audio-settings-open::backdrop{background:transparent!important;backdrop-filter:none!important}
+  body.ds-in-meeting .settings-modal.av-video-settings-open>form,
+  body.ds-in-meeting .settings-modal.av-audio-settings-open>form{max-height:100%!important;height:100%!important;padding:14px!important;background:#202124!important}
+  body.ds-in-meeting .settings-modal.av-video-settings-open .zoom-reference-preview{height:165px!important}
+}

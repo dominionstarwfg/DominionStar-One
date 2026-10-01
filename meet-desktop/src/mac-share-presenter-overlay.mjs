@@ -17,6 +17,7 @@ if(process.platform==='darwin'){
   let shareActive=false;
   let toolbarReady=false,toolbarAutoHidden=false;
   let toolbarMenuOpen=false;
+  let cursorWatchTimer=0,lastCursorPoint=null;
   let preparing=null;
   let presenterDeliverySeq=0;
   let videoLayout='speaker';
@@ -71,11 +72,24 @@ if(process.platform==='darwin'){
     finally{if(timer)clearTimeout(timer);}
   }
   function closeFailedWindow(win){if(!isAlive(win))return;try{win.setClosable?.(true);win.close();}catch{try{win.destroy?.();}catch{}}}
+  function stopCursorWatch(){if(cursorWatchTimer){clearInterval(cursorWatchTimer);cursorWatchTimer=0;}lastCursorPoint=null;}
+  function startCursorWatch(){
+    if(cursorWatchTimer)return;
+    try{lastCursorPoint=screen.getCursorScreenPoint();}catch{lastCursorPoint=null;}
+    cursorWatchTimer=setInterval(()=>{
+      if(!shareActive||!toolbarAutoHidden||toolbarMenuOpen||qaKeepPresenterHidden)return;
+      let point=null;try{point=screen.getCursorScreenPoint();}catch{return;}
+      if(!lastCursorPoint){lastCursorPoint=point;return;}
+      const moved=Math.abs(point.x-lastCursorPoint.x)+Math.abs(point.y-lastCursorPoint.y);lastCursorPoint=point;
+      if(moved<4)return;
+      toolbarAutoHidden=false;shareState={...shareState,forceRevealAt:Date.now()};positionToolbar();publishState();
+    },140);
+  }
   function positionToolbar(){
     if(!isAlive(toolbarWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=Math.min(830,Math.max(700,area.width-28));
-    const height=toolbarMenuOpen?324:(toolbarAutoHidden?14:88);
+    const width=Math.min(770,Math.max(680,area.width-28));
+    const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);
     const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+2);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -104,15 +118,15 @@ if(process.platform==='darwin'){
   function positionVideo(){
     if(!isAlive(videoWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    let width=videoLayout==='gallery'?350:292,height=videoLayout==='gallery'?230:176;
-    if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(240,Math.min(360,current.width||292));height=Math.max(145,Math.min(225,current.height||176));}catch{}}
+    let width=videoLayout==='gallery'?340:212,height=videoLayout==='gallery'?220:124;
+    if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(196,Math.min(278,current.width||212));height=Math.max(112,Math.min(166,current.height||124));}catch{}}
     const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+74);
     try{videoWindow.setBounds({x,y,width,height},false);}catch{}
   }
   function positionAnnotation(){
     if(!isAlive(annotationWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=68,height=Math.min(470,Math.max(420,area.height-180));
+    const width=46,height=Math.min(526,Math.max(430,area.height-180));
     const x=Math.round(area.x+8),y=Math.round(area.y+Math.max(82,(area.height-height)/2));
     try{annotationWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -151,7 +165,7 @@ if(process.platform==='darwin'){
     if(isAlive(toolbarWindow))closeFailedWindow(toolbarWindow);
     toolbarWindow=null;toolbarReady=false;
     const win=new BrowserWindow({
-      width:830,height:88,minWidth:700,minHeight:14,maxHeight:286,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:770,height:84,minWidth:680,minHeight:28,maxHeight:300,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
       focusable:false,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-toolbar-v2044'}
@@ -204,7 +218,7 @@ if(process.platform==='darwin'){
   }
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
-    const win=new BrowserWindow({width:292,height:176,minWidth:220,minHeight:132,maxWidth:380,maxHeight:250,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
+    const win=new BrowserWindow({width:212,height:124,minWidth:196,minHeight:112,maxWidth:340,maxHeight:220,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
     videoWindow=win;allowSystemCapture(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
@@ -215,7 +229,7 @@ if(process.platform==='darwin'){
   async function prepareAnnotation(){
     if(isAlive(annotationWindow))return annotationWindow;
     const win=new BrowserWindow({
-      width:68,height:440,minWidth:68,maxWidth:68,minHeight:410,maxHeight:480,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:46,height:500,minWidth:46,maxWidth:46,minHeight:430,maxHeight:526,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:false,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-annotation-v2044'}
     });
@@ -288,7 +302,7 @@ if(process.platform==='darwin'){
       if(isDisplayShare())showBorder();else hideBorder();
     });
   }
-  function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:88},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideAnnotationPalette();hideBorder();}
+  function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:84},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideAnnotationPalette();hideBorder();}
 
   function removeQueuedPresenterDelivery(deliveryId){const id=Number(deliveryId||0)||0;if(!id)return false;const index=presenterCommandQueue.findIndex(item=>Number(item?.deliveryId||0)===id);if(index<0)return false;presenterCommandQueue.splice(index,1);return true;}
   function settlePresenterDelivery(deliveryId,result){const pending=presenterDeliveries.get(deliveryId);if(!pending)return false;presenterDeliveries.delete(deliveryId);clearTimeout(pending.timer);pending.resolve(result);return true;}
@@ -311,7 +325,7 @@ if(process.platform==='darwin'){
   ipcMain.handle('mac-share:qa-reveal-stage',(_event,{stage='toolbar'}={})=>qaRevealStage(stage));
   ipcMain.handle('mac-share:presenter-next-command',(event)=>{const main=mainWindow();if(!isAlive(main)||event.sender!==main.webContents)return null;const next=presenterCommandQueue.shift()||null;if(next&&qaPresenterTrace)console.error(`QA_MAC_PRESENTER_PULL delivery=${Number(next.deliveryId||0)||0} command=${String(next.command||'')} queue=${presenterCommandQueue.length}`);return next?{...next}:null;});
   ipcMain.on('share:capture-started',(_event,state={})=>{
-    shareActive=true;shareState={...shareState,...state,meetingVisible:false};
+    shareActive=true;shareState={...shareState,...state,meetingVisible:false};startCursorWatch();
     // Hidden-presenter diagnostic must be a true zero-surface-mutation test.
     // Do not position, publish to, show, hide, resize, or raise any presenter
     // BrowserWindow after capture starts. This isolates the capture renderer
@@ -350,7 +364,7 @@ if(process.platform==='darwin'){
   });
   function resetPresenterSession(reason='reset'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
-    shareActive=false;videoLayout='speaker';toolbarMenuOpen=false;toolbarAutoHidden=false;
+    shareActive=false;videoLayout='speaker';toolbarMenuOpen=false;toolbarAutoHidden=false;stopCursorWatch();
     shareState={paused:false,micOn:false,cameraOn:false,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false};
     publishState();hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
@@ -397,8 +411,8 @@ if(process.platform==='darwin'){
     }
     return delivered;
   });
-  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);if(toolbarMenuOpen)toolbarAutoHidden=false;positionToolbar();return {ok:true,height:toolbarMenuOpen?324:(toolbarAutoHidden?14:88)};});
-  ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?14:88};});
+  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);if(toolbarMenuOpen)toolbarAutoHidden=false;positionToolbar();return {ok:true,height:toolbarMenuOpen?300:(toolbarAutoHidden?28:84)};});
+  ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();if(toolbarAutoHidden){try{lastCursorPoint=screen.getCursorScreenPoint();}catch{lastCursorPoint=null;}}return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?28:84};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
 
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();positionAnnotation();}});

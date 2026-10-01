@@ -89,7 +89,7 @@
     detail=document.createElement('section');detail.id='avSettingsDetail';detail.className='av-settings-detail';detail.hidden=true;dialog.querySelector('form')?.insertBefore(detail,dialog.querySelector('.settings-note'));return detail;
   }
   function detailHeader(detail,title,copy){detail.innerHTML='';const header=document.createElement('header');header.className='av-detail-head';const back=document.createElement('button');back.type='button';back.className='secondary-button av-back';back.textContent='‹ Back';const text=document.createElement('div');const h=document.createElement('h3');h.textContent=title;const p=document.createElement('p');p.textContent=copy;text.append(h,p);header.append(back,text);detail.append(header);back.onclick=()=>showSettingsList();}
-  function showSettingsList(){stopSettingsPreview();const dialog=$('#settingsDialog');if(!dialog)return;dialog.classList.remove('av-video-settings-open');dialog.querySelector('.settings-list').hidden=false;dialog.querySelector('.settings-note').hidden=false;const detail=dialog.querySelector('#avSettingsDetail');if(detail)detail.hidden=true;}
+  function showSettingsList(){stopSettingsPreview();const dialog=$('#settingsDialog');if(!dialog)return;dialog.classList.remove('av-video-settings-open','av-audio-settings-open');dialog.querySelector('.settings-list').hidden=false;dialog.querySelector('.settings-note').hidden=false;const detail=dialog.querySelector('#avSettingsDetail');if(detail)detail.hidden=true;}
   function addSelect(detail,labelText,attr){const label=document.createElement('label');label.className='av-field';const span=document.createElement('span');span.textContent=labelText;const select=document.createElement('select');select.setAttribute(attr,'1');label.append(span,select);detail.append(label);return select;}
   function addToggle(detail,labelText,checked,onChange){const label=document.createElement('label');label.className='av-toggle-row';const span=document.createElement('span');span.className='av-toggle-label';span.textContent=labelText;const input=document.createElement('input');input.type='checkbox';input.checked=Boolean(checked);input.setAttribute('role','switch');input.setAttribute('aria-label',labelText);const slider=document.createElement('span');slider.className='av-switch';slider.setAttribute('aria-hidden','true');input.onchange=()=>onChange(input.checked);label.append(span,input,slider);detail.append(label);return input;}
   function addBackgroundPicker(detail,fx,video,media){
@@ -128,7 +128,7 @@
     }catch(error){cancelAnimationFrame(raf);for(const track of stream?.getTracks?.()||[])track.stop();try{context?.close();}catch{}status.textContent=String(error?.message||'Microphone test unavailable.');meter.value=0;}
   }
   async function openAudioSettings(media){
-    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Audio','Microphone, speaker, and audio-processing preferences.');
+    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.classList.remove('av-video-settings-open');dialog.classList.add('av-audio-settings-open');dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Audio','Microphone, speaker, and audio-processing preferences.');
     const devices=avGroup(detail,'Devices','Choose and test the hardware DominionStar Meet uses.');
     const mic=addSelect(devices,'Microphone','data-av-microphone'),speaker=addSelect(devices,'Speaker','data-av-speaker');
     const testRow=document.createElement('div');testRow.className='av-audio-test-row';
@@ -166,7 +166,7 @@
   }
   function avDivider(parent){const line=document.createElement('div');line.className='av-zoom-divider';parent.append(line);return line;}
   async function openVideoSettings(media){
-    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.classList.add('av-video-settings-open');dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Video','Preview your camera and tune the same core video behaviors users expect from Zoom.');
+    const dialog=$('#settingsDialog'),detail=ensureDetail(dialog);dialog.classList.remove('av-audio-settings-open');dialog.classList.add('av-video-settings-open');dialog.querySelector('.settings-list').hidden=true;dialog.querySelector('.settings-note').hidden=true;detail.hidden=false;detailHeader(detail,'Video','Preview your camera and tune the same core video behaviors users expect from Zoom.');
 
     const cameraGroup=avGroup(detail,'Camera','Select your camera and review the live preview.');
     const camera=addSelect(cameraGroup,'Camera','data-av-camera');

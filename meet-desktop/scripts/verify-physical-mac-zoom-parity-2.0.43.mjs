@@ -375,7 +375,7 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('.annotation-palette{width:68px') &&
+  macAnnotationCss.includes('.annotation-palette{width:46px') &&
   macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
   macAnnotationJs.includes("version:'2.0.44-professional-palette'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
@@ -425,7 +425,7 @@ assert(
   integration.includes('media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter)return;applyLayout();});'),
   'Active Mac sharing must bypass meeting share-layout reconciliation and publish only command-specific presenter state.'
 );
-assert(!macToolbarHtml.includes('id="layoutButton"')&&!macToolbarHtml.includes('data-command="show-meeting"><span class="glyph"')&&macToolbarHtml.includes('<button type="button" data-command="show-meeting">Show meeting</button>'),'Presenter strip must expose only primary share controls while secondary layout/show-meeting actions live under More.');
+assert(macToolbarHtml.includes('id="layoutButton"')&&macToolbarHtml.includes('data-command="show-meeting"><span class="glyph"')&&!macToolbarHtml.includes('<button type="button" data-command="show-meeting">Show meeting</button>'),'Presenter strip must expose Layout and Show meeting as primary reference controls without duplicate secondary entries.');
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
 assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
 assert(
@@ -544,8 +544,21 @@ assert(
 assert(
   macToolbarCss.includes('2.0.44+ physical Mac presenter menu collision lock')&&
   macToolbarCss.includes('.toolbar.menu-open .popup-menu{top:92px}')&&
-  macPresenter.includes('const height=toolbarMenuOpen?324:(toolbarAutoHidden?14:88);'),
+  macPresenter.includes('const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);'),
   'Presenter More must open below the green share-status strip with enough native window height to expose every command.'
+);
+
+/* PHYSICAL_MAC_2_0_50_REFERENCE_GEOMETRY_LOCK */
+assert(
+  macPresenter.includes('const width=Math.min(770,Math.max(680,area.width-28));')&&
+  macPresenter.includes("let width=videoLayout==='gallery'?340:212,height=videoLayout==='gallery'?220:124;")&&
+  macPresenter.includes('const width=46,height=Math.min(526,Math.max(430,area.height-180));')&&
+  macPresenter.includes('screen.getCursorScreenPoint()')&&
+  macToolbarCss.includes('width:760px;max-width:calc(100% - 8px);height:58px')&&
+  macToolbarCss.includes('.toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}')&&
+  macToolbar.includes('const AUTO_HIDE_MS=2400;')&&
+  shareAnnotation.includes("state.active&&state.mode==='laser'"),
+  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, global mouse-motion reveal, 210x120-class presenter video, 46px annotation rail, and live laser pointer.'
 );
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui dedicated-presenter-camera-preview simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');

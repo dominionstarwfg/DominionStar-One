@@ -10,8 +10,8 @@
   const stateBridge=nativeBridge||rendererBridge;
   const q=s=>document.querySelector(s);
   const toolbar=q('#toolbar'),layoutMenu=q('#layoutMenu'),moreMenu=q('#moreMenu');
-  let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,nativeHidden=false,lastState={paused:false,micOn:false,cameraOn:true};
-  const AUTO_HIDE_MS=2300;
+  let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,nativeHidden=false,lastForceRevealAt=0,lastState={paused:false,micOn:false,cameraOn:true};
+  const AUTO_HIDE_MS=2400;
 
   const logo=q('#brandLogo');if(logo&&desktop.brand?.logoUrl)logo.src=desktop.brand.logoUrl;
   const menusOpen=()=>Boolean(!layoutMenu?.hidden||!moreMenu?.hidden);
@@ -86,6 +86,7 @@
 
   stateBridge?.onState?.(state=>{
     lastState={...lastState,...state};
+    const forcedAt=Math.max(0,Number(state?.forceRevealAt)||0);if(forcedAt>lastForceRevealAt){lastForceRevealAt=forcedAt;reveal();scheduleHide();}
     const paused=Boolean(state?.paused),micOn=Boolean(state?.micOn),cameraOn=Boolean(state?.cameraOn);
     const pause=q('#pauseLabel'),pauseGlyph=q('#pauseGlyph'),toolbar=q('#toolbar'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand');
     toolbar?.classList.toggle('is-paused',paused);

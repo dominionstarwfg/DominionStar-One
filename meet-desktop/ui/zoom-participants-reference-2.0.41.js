@@ -20,7 +20,7 @@
     style.dataset.dsZoomParticipantsReference2041='1';
     style.textContent=`
       #meetingOverlay .room-side.ds-participants-reference{
-        position:absolute!important;width:330px!important;min-width:310px!important;max-width:min(360px,calc(100% - 24px))!important;
+        position:absolute!important;width:318px!important;min-width:300px!important;max-width:min(342px,calc(100% - 24px))!important;
         height:452px!important;min-height:360px!important;max-height:calc(100% - 24px)!important;
         left:auto!important;right:24px!important;top:18px!important;bottom:auto!important;transform:none!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
