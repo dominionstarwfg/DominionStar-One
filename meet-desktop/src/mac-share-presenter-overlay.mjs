@@ -47,7 +47,15 @@ if(process.platform==='darwin'){
   // palette, or the share perimeter. Keep these non-sensitive presenter surfaces
   // capturable and rely on share-stream composition rules rather than OS capture
   // blocking for presenter UX.
-  function allowSystemCapture(win){if(!isAlive(win))return;try{win.setContentProtection(false);}catch{}}
+  function allowSystemCapture(win){
+    if(!isAlive(win))return false;
+    try{win.setContentProtection(false);}catch{}
+    // Reassert on every reveal. Older builds only cleared protection at window
+    // creation, so a later presenter/session transition could leave a visible
+    // surface blank in ordinary macOS screenshots.
+    try{win.__dominionSystemCaptureAllowed=true;}catch{}
+    return true;
+  }
   function wakeMain(main=mainWindow()){
     if(!isAlive(main))return false;
     // Renderer scheduling is fixed at BrowserWindow creation. Do not mutate
@@ -84,6 +92,7 @@ if(process.platform==='darwin'){
       try{win.setAlwaysOnTop(true,'screen-saver',2);}catch{try{win.setAlwaysOnTop(true);}catch{}}
       try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
       try{if(process.platform==='darwin'&&typeof win.setSimpleFullScreen==='function'&&!win.isSimpleFullScreen?.())win.setSimpleFullScreen(true);}catch{}
+      allowSystemCapture(win);
       try{win.showInactive?.();win.moveTop?.();}catch{}
     }
     // Re-assert all edges from the same selected-display geometry after the
@@ -114,13 +123,13 @@ if(process.platform==='darwin'){
   }
   function showAnnotationPalette(){
     if(!shareActive)return;
-    void prepareAnnotation().then(win=>{if(!shareActive||String(shareState.companion||'')!=='annotate'||!isAlive(win))return;positionAnnotation();try{win.showInactive?.();win.moveTop?.();}catch{}});
+    void prepareAnnotation().then(win=>{if(!shareActive||String(shareState.companion||'')!=='annotate'||!isAlive(win))return;positionAnnotation();allowSystemCapture(win);try{win.showInactive?.();win.moveTop?.();}catch{}});
   }
   function setVideoLayout(mode='speaker'){
     videoLayout=['speaker','gallery','hide'].includes(String(mode))?String(mode):'speaker';
     if(!isAlive(videoWindow))return {ok:false,layout:videoLayout};
     if(videoLayout==='hide'){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout};}
-    positionVideo();try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}return {ok:true,layout:videoLayout};
+    positionVideo();allowSystemCapture(videoWindow);try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}return {ok:true,layout:videoLayout};
   }
   function syncBorderState(){
     if(!bordersReady())return;
@@ -274,8 +283,8 @@ if(process.platform==='darwin'){
     void prepare().then(()=>{
       if(!shareActive)return;positionToolbar();positionBorder();positionVideo();publishState();logProcessBoundary();
       if(qaKeepPresenterHidden){if(qaPresenterTrace)console.error('QA_MAC_PRESENTER_PREPARED_HIDDEN');hideOverlays();return;}
-      if(toolbarReady&&isAlive(toolbarWindow)){toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}
-      if(isAlive(videoWindow)&&videoLayout!=='hide'){videoWindow.showInactive?.();videoWindow.moveTop?.();}
+      if(toolbarReady&&isAlive(toolbarWindow)){allowSystemCapture(toolbarWindow);toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}
+      if(isAlive(videoWindow)&&videoLayout!=='hide'){allowSystemCapture(videoWindow);videoWindow.showInactive?.();videoWindow.moveTop?.();}
       if(isDisplayShare())showBorder();else hideBorder();
     });
   }
