@@ -1,9 +1,10 @@
 (()=>{
   'use strict';
   const desktop=window.dominionDesktop||{};
-  // The floating macOS surface owns native-only layout/show-meeting actions.
-  // Live meeting/media controls execute directly in the capture-owning meeting
-  // renderer first; the acknowledged native queue remains a bounded fallback.
+  // During an active macOS share, the floating presenter surface uses the
+  // acknowledged native bridge as the command authority. That bridge wakes and
+  // coordinates the capture-owning meeting renderer; direct renderer IPC is a
+  // bounded fallback only when the native presenter bridge is unavailable.
   const nativeBridge=desktop.macShare||null;
   const rendererBridge=desktop.presenter||null;
   const stateBridge=nativeBridge||rendererBridge;
@@ -11,7 +12,6 @@
   const toolbar=q('#toolbar'),layoutMenu=q('#layoutMenu'),moreMenu=q('#moreMenu');
   let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,nativeHidden=false,lastState={paused:false,micOn:false,cameraOn:true};
   const AUTO_HIDE_MS=2300;
-  const NATIVE_ONLY_COMMANDS=new Set(['layout-speaker','layout-gallery','layout-hide','show-meeting']);
 
   const logo=q('#brandLogo');if(logo&&desktop.brand?.logoUrl)logo.src=desktop.brand.logoUrl;
   const menusOpen=()=>Boolean(!layoutMenu?.hidden||!moreMenu?.hidden);
@@ -43,10 +43,6 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // The capture-owning meeting renderer is the state authority. Functional
-      // controls go through share-service, which executes and awaits that
-      // renderer directly. Only native video-dock layout commands stay on the
-      // macShare bridge.
       // Physical Mac QA proved the direct renderer IPC can report a healthy
       // toolbar while real capture leaves the controls inert. The native macOS
       // presenter bridge owns delivery during an active share because it wakes
