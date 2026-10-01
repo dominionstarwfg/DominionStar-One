@@ -12,7 +12,7 @@
     const style=document.createElement('style');style.dataset.dsProfilePhotoFallback='1';style.textContent=`
       .ds-profile-fallback-photo{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
       .remote-peer-fallback.has-photo{background:radial-gradient(circle at 50% 35%,#1d3045,#0b1420)!important;padding:0!important}
-      .remote-peer-fallback .ds-profile-fallback-photo{position:relative;width:88px;height:88px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 8px 24px rgba(0,0,0,.3);z-index:1}
+      .remote-peer-fallback .ds-profile-fallback-photo{position:relative;width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 8px 24px rgba(0,0,0,.3);z-index:1}
       .remote-peer-fallback .ds-profile-fallback-photo[hidden]{display:none}
       .remote-peer-fallback.has-photo>span{display:none!important}
       .person-badge .ds-profile-fallback-photo,.preview-avatar .ds-profile-fallback-photo,.stage-avatar .ds-profile-fallback-photo{width:100%;height:100%;border-radius:inherit;object-fit:cover}
@@ -47,7 +47,7 @@
     const tiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')),count=tiles.length;
     dock.dataset.count=String(Math.min(count,9));dock.classList.toggle('dock-empty',count===0);dock.hidden=count===0;
     for(let i=1;i<=9;i++)dock.classList.toggle(`count-${i}`,Math.min(count,9)===i);
-    if(count>0)dock.dataset.orientation='grid';
+    if(count>0&&(dock.classList.contains('gallery-stage')||dock.classList.contains('multi-speaker-stage')))dock.dataset.orientation='grid';
   }
 
   let localVisibilityObserver=null,observedTile=null,observedDock=null;
