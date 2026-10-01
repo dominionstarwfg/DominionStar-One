@@ -479,4 +479,22 @@ assert(
   'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
 );
 
+/* PHYSICAL_MAC_SCREENSHOT_2026_10_01_IDENTITY_AND_MENU_LOCK */
+assert(
+  physical.includes("nameNode.className='ds-canonical-name'")&&
+  physical.includes("badge.textContent=role==='host'?'(Host)':'(Co-host)'")&&
+  physical.includes("selfLabel.textContent='(me)'")&&
+  screenshotReferenceCss.includes('2.0.44+ physical Mac participant identity lock')&&
+  screenshotReferenceCss.includes('.ds-canonical-name{min-width:0!important;flex:1 1 auto!important')&&
+  screenshotReferenceCss.includes('.ds-canonical-role{display:inline!important;flex:0 0 auto!important')&&
+  screenshotReferenceCss.includes('.ds-canonical-self{display:inline!important;flex:0 0 auto!important'),
+  'Participants must keep the name independently truncatable while Host/Co-host and (me) remain visible inline.'
+);
+assert(
+  macToolbarCss.includes('2.0.44+ physical Mac presenter menu collision lock')&&
+  macToolbarCss.includes('.toolbar.menu-open .popup-menu{top:92px}')&&
+  macPresenter.includes('const height=toolbarMenuOpen?324:(toolbarAutoHidden?14:88);'),
+  'Presenter More must open below the green share-status strip with enough native window height to expose every command.'
+);
+
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui dedicated-presenter-camera-preview simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');

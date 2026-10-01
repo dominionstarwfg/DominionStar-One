@@ -186,9 +186,10 @@
     copy.querySelector('small')?.remove();
     let strong=copy.querySelector('strong');
     if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
-    strong.textContent=name;
+    strong.textContent='';
+    const nameNode=document.createElement('span');nameNode.className='ds-canonical-name';nameNode.textContent=name;strong.append(nameNode);
     if(role==='host'||role==='cohost'){
-      const badge=document.createElement('span');badge.className='ds-canonical-role';badge.textContent=role==='host'?'Host':'Co-host';strong.append(badge);
+      const badge=document.createElement('span');badge.className='ds-canonical-role';badge.textContent=role==='host'?'(Host)':'(Co-host)';strong.append(badge);
     }
     if(self){
       const selfLabel=document.createElement('span');selfLabel.className='ds-canonical-self';selfLabel.textContent='(me)';strong.append(selfLabel);

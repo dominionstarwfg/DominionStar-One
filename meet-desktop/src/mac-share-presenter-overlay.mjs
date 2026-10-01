@@ -75,7 +75,7 @@ if(process.platform==='darwin'){
     if(!isAlive(toolbarWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
     const width=Math.min(830,Math.max(700,area.width-28));
-    const height=toolbarMenuOpen?286:(toolbarAutoHidden?14:88);
+    const height=toolbarMenuOpen?324:(toolbarAutoHidden?14:88);
     const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+2);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
   }

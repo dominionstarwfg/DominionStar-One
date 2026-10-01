@@ -207,3 +207,10 @@ body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon
   content:none!important;
   display:none!important;
 }
+
+
+/* 2.0.44+ physical Mac participant identity lock */
+#meetingOverlay #participantRoster .person-copy strong{overflow:visible!important;text-overflow:clip!important;display:flex!important;align-items:center!important;gap:4px!important;width:100%!important}
+#meetingOverlay #participantRoster .ds-canonical-name{min-width:0!important;flex:1 1 auto!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+#meetingOverlay #participantRoster .ds-canonical-role{display:inline!important;flex:0 0 auto!important;height:auto!important;padding:0!important;border-radius:0!important;background:transparent!important;color:#dedee0!important;font-size:11px!important;font-weight:500!important;text-transform:none!important;letter-spacing:0!important}
+#meetingOverlay #participantRoster .ds-canonical-self{display:inline!important;flex:0 0 auto!important;color:#bfc0c4!important;font-size:11px!important;font-weight:500!important;margin-left:0!important}

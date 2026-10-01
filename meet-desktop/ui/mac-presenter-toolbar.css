@@ -105,3 +105,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 [data-command="audio"][data-voice-level="3"] .mic-live-meter i:nth-child(2){height:12px}
 [data-command="audio"][data-voice-level="3"] .mic-live-meter i:nth-child(3){height:18px}
 [data-command="audio"].is-off .mic-live-meter{opacity:.16;filter:none}
+
+
+/* 2.0.44+ physical Mac presenter menu collision lock */
+.toolbar.menu-open .popup-menu{top:92px}
