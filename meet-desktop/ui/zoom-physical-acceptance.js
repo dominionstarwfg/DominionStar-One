@@ -15,6 +15,7 @@
 
   const REACTIONS=['👏','👍','❤️','😂','😮','🎉'];
   const remoteMediaState=new Map();
+  const sharingParticipantIds=new Set();
   let localParticipantId='';
   let commandMenu=null;
   let reactionMenu=null;
@@ -28,6 +29,7 @@
   let participantObserver=null;
   let reactionObserver=null;
   let mediaUnsub=null;
+  let shareUnsub=null;
   let presenterUnsub=null;
 
   function closeCommandMenu(){commandMenu?.remove();commandMenu=null;for(const node of qa('[aria-expanded="true"]'))node.setAttribute('aria-expanded','false');}
@@ -138,6 +140,16 @@
     const state=statusFor(id);wrap.innerHTML=`<span data-participant-mic class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span data-participant-video class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
     return wrap;
   }
+  const SHARE_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="13" rx="2"/><path d="M8 12h8M13 9l3 3-3 3"/></svg>';
+  function participantShareStateNode(row,id){
+    const active=sharingParticipantIds.has(String(id));
+    let node=row.querySelector('.ds-participant-share-state');
+    if(!active){node?.remove();return null;}
+    if(!node){node=document.createElement('span');node.className='ds-participant-share-state';node.setAttribute('title','Sharing screen');node.setAttribute('aria-label','Sharing screen');}
+    node.innerHTML=SHARE_ON;
+    const actions=row.querySelector('.participant-actions');if(actions&&node.parentElement!==actions)actions.prepend(node);
+    return node;
+  }
 
   function ensureSelfMore(row){
     const id=String(row.dataset.participantId||'');
@@ -191,6 +203,7 @@
       row.classList.add('ds-modern-participant-row');
       let actions=row.querySelector('.participant-actions');if(!actions){actions=document.createElement('span');actions.className='participant-actions ds-participant-actions';row.append(actions);}else actions.classList.add('ds-participant-actions');
       mediaStatusNode(row,id);
+      participantShareStateNode(row,id);
       const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
       if(self)ensureSelfMore(row);
       else{
@@ -216,6 +229,9 @@
     const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(()=>requestAnimationFrame(decorateParticipantRows));participantObserver.observe(roster,{childList:true,subtree:true});}
     void refreshLocalParticipantId().then(()=>decorateParticipantRows());
     if(!mediaUnsub&&media()?.onChange){mediaUnsub=media().onChange(()=>{decorateParticipantRows();scheduleMediaBroadcast(80);});}
+    if(!shareUnsub&&window.DominionShareController?.onChange){
+      shareUnsub=window.DominionShareController.onChange(state=>{void refreshLocalParticipantId().then(()=>{const id=String(localParticipantId||'');if(id){if(state?.active)sharingParticipantIds.add(id);else sharingParticipantIds.delete(id);}decorateParticipantRows();});});
+    }
   }
 
   function setReactionIcon(){
@@ -309,7 +325,11 @@
   window.addEventListener('dominion:meeting-signal',event=>{
     const detail=event.detail||{},payload=detail.payload||{};if(detail.type!=='reaction'||payload.kind!=='media-state')return;const id=String(detail.fromParticipantId||payload.participantId||'');if(!id)return;remoteMediaState.set(id,{micOn:Boolean(payload.micOn),cameraOn:Boolean(payload.cameraOn),at:payload.at||Date.now()});decorateParticipantRows();
   },true);
+  window.addEventListener('dominion:remote-share-state',event=>{
+    const id=String(event.detail?.participantId||'');if(!id)return;if(event.detail?.active)sharingParticipantIds.add(id);else sharingParticipantIds.delete(id);decorateParticipantRows();
+  },true);
   window.addEventListener('dominion:meeting-snapshot',()=>{void refreshLocalParticipantId().then(()=>{decorateParticipantRows();scheduleMediaBroadcast(140);});});
+  window.addEventListener('dominion:meeting-ended',()=>{sharingParticipantIds.clear();remoteMediaState.clear();decorateParticipantRows();},true);
   window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
   document.addEventListener('pointerdown',event=>{
     if(commandMenu&&!commandMenu.contains(event.target)&&!event.target.closest?.('#roomMore,#roomHostTools,#meetingViewButton'))closeCommandMenu();
@@ -319,5 +339,5 @@
   window.addEventListener('resize',()=>{closeTransientMenus();},{passive:true});
 
   const timer=setInterval(sync,700);sync();
-  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.11-physical-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{clearInterval(timer);clearTimeout(mediaBroadcastTimer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();presenterUnsub?.();closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
+  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.11-physical-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{clearInterval(timer);clearTimeout(mediaBroadcastTimer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
 })();
