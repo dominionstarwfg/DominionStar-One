@@ -183,3 +183,25 @@
   color:#9be7aa;
   background:rgba(56,168,83,.12);
 }
+
+
+/* Explicit active-share state in participant rows. */
+.room-side .ds-participant-share-state{
+  width:20px;
+  height:20px;
+  display:grid;
+  place-items:center;
+  flex:0 0 20px;
+  color:#35c66a;
+  border-radius:5px;
+  background:rgba(53,198,106,.10);
+}
+.room-side .ds-participant-share-state svg{
+  width:15px;
+  height:15px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
