@@ -353,11 +353,13 @@ assert(
   'Share-toolbar Participants and Chat must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
 );
 assert(
-  participantsReference.includes('width:330px!important;min-width:310px!important')&&
+  participantsReference.includes('width:318px!important;min-width:300px!important')&&
   participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div{padding-left:0!important')&&
-  screenshotReference.includes("footer.innerHTML='<button type=\"button\" data-ref-invite>Invite</button><button type=\"button\" data-ref-mute-all>Mute all</button>'")&&
-  !screenshotReference.includes('data-ref-participant-more aria-label="More participant controls"'),
-  'Participants must preserve the compact floating reference with centered title, traffic controls, canonical rows, and a simple two-action footer.'
+  screenshotReference.includes('data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more')&&
+  participantsReference.includes('if(more)more.hidden=!manager;')&&
+  screenshotReference.includes('function openParticipantBulkMenu(anchor)')&&
+  screenshotReference.includes('function openParticipantInvite(anchor)'),
+  'Participants must preserve the 318px compact floating reference with centered title, traffic controls, canonical rows, functional Invite/Mute all actions, and host-aware More management.'
 );
 
 assert(
