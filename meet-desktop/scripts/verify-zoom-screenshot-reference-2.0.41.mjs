@@ -157,7 +157,9 @@ has(preload,"ipcRenderer.send('mac-share:state'",'Live share/media state must re
 has(preload,"ipcRenderer.send('mac-share:capture-stopped'",'The macOS presenter overlay must receive authoritative Stop Share state.');
 has(preload,"ipcRenderer.send('share:presenter-delivery-ack'",'The meeting renderer preload must acknowledge native presenter command delivery.');
 has(preload,'macShare:Object.freeze','The native presenter control bridge is missing.');
-for(const label of ['Audio','Video','Participants','Chat','Share','Pause','Layout','Annotate','Show meeting','More'])has(macToolbarHtml,`>${label}<`,`Native presenter toolbar is missing ${label}.`);
+for(const label of ['Audio','Video','Participants','Chat','Share','Pause','Annotate','More'])has(macToolbarHtml,`>${label}<`,`Native presenter toolbar is missing ${label}.`);
+has(macToolbarHtml,'data-command="show-meeting">Show meeting<','Native presenter More menu is missing Show meeting.');
+for(const command of ['layout-speaker','layout-gallery','layout-hide'])has(macToolbarHtml,`data-command="${command}"`,`Native presenter More menu is missing ${command} layout behavior.`);
 has(macToolbarHtml,'id="stopShare"','Native presenter toolbar is missing the Stop Share control.');
 has(macToolbarHtml,'id="stopShareLabel">Stop Share<','Native presenter toolbar is missing the Stop Share label.');
 has(macToolbarHtml,'class="stop-share-icon"','Native Stop Share must use a real vector icon rather than a text symbol.');
