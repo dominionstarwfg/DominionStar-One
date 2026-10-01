@@ -52,6 +52,7 @@ const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
 const screenshotReferenceCss=read('ui/zoom-screenshot-reference-2.0.41.css');
 const shareCss=read('ui/share.css');
 const parityCss=read('ui/meeting-parity.css');
+const webrtc=read('ui/webrtc-controller.js');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
@@ -433,6 +434,28 @@ assert(
   !bootstrap.includes('originalSetOpacity.call(main,0.02)')&&
   !macPresenter.includes('main.setOpacity?.(0.02)'),
   'The meeting control renderer must keep stable on-display geometry after capture is isolated and must remain visible to ordinary macOS screenshots; resize, off-display and minimize transitions are forbidden because they starve physical-Mac presenter commands.'
+);
+
+assert(
+  webrtc.includes("window.dispatchEvent(new CustomEvent('dominion:remote-share-state'")&&
+  physical.includes("const sharingParticipantIds=new Set();")&&
+  physical.includes("participantShareStateNode(row,id)")&&
+  physical.includes("window.addEventListener('dominion:remote-share-state'"),
+  'Participant roster must show a canonical green sharing-state indicator driven by real local/remote share state.'
+);
+assert(
+  parityCss.includes('2.0.44+ compact right-side participant filmstrip reference')&&
+  parityCss.includes('#participantVideoDock[data-orientation="vertical"]:not(.gallery-stage):not(.multi-speaker-stage)')&&
+  parityCss.includes('grid-template-columns:176px!important')&&
+  parityCss.includes('max-height:515px!important')&&
+  parityCss.includes('.remote-peer-tile.active-speaker')&&
+  parityCss.includes('border-color:#35d07f!important'),
+  'Right-side participant video must remain a one-column five-visible filmstrip with internal scroll and green active-speaker outline.'
+);
+assert(
+  profileFallback.includes("width:64px;height:64px")&&
+  !profileFallback.includes("if(count>0)dock.dataset.orientation='grid';"),
+  'Profile-photo fallback must stay compact and must not force the right-side filmstrip into grid orientation.'
 );
 
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
