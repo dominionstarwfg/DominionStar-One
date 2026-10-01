@@ -166,6 +166,22 @@ assert(featureReady.includes('#stageAvatar{width:196px!important;height:196px!im
 assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}')&&read('ui/meeting-parity.css').includes('#prejoinAvatar.preview-avatar{width:196px;height:196px;border-radius:50%'),'Prejoin must hide its avatar over live video and use the enlarged camera-off profile scale.');
 assert(screenshotCss.includes('#meetingOverlay .meeting-footer{height:64px!important;min-height:64px!important')&&screenshotCss.includes('#meetingOverlay .meeting-control{min-width:68px!important;height:58px!important')&&screenshotCss.includes('.meeting-control .ds-control-icon{width:24px!important;height:24px!important')&&screenshotCss.includes('.meeting-control .ds-control-label{font-size:11px!important'),'Final meeting toolbar must preserve readable control targets and icon/label scale instead of reverting to the undersized reference dimensions.');
 assert(profileFallback.includes('width:88px;height:88px;border-radius:50%'),'Participant camera-off profile photos must no longer use the undersized 58px fallback.');
+assert(
+  media.includes("echoCancellation:readPref('echoCancellation','true')!=='false'")&&
+  media.includes("noiseSuppression:readPref('noiseSuppression','true')!=='false'")&&
+  media.includes("autoGainControl:readPref('autoGainControl','false')!=='false'")&&
+  media.includes("localStorage.setItem(KEYS.autoGainControl,'false')"),
+  'Default microphone processing must use gentle echo/noise suppression without automatic gain pumping.'
+);
+assert(
+  macPresenter.includes('function allowSystemCapture(win)')&&
+  macPresenter.includes('win.setContentProtection(false)')&&
+  macPresenter.includes('allowSystemCapture(toolbarWindow)')&&
+  macPresenter.includes('allowSystemCapture(videoWindow)')&&
+  macPresenter.includes('allowSystemCapture(win);try{win.showInactive?.();win.moveTop?.();}catch{}')&&
+  shareService.includes("const protect=platform==='darwin'?false:Boolean(enabled);"),
+  'Visible presenter surfaces must remain capturable in ordinary macOS screenshots throughout an active share.'
+);
 assert(featureReady.includes('box-shadow:none!important')&&read('ui/meeting-parity.css').includes('box-shadow:none!important'),'Mic/video off state must use one clean slash without the old doubled halo stripe.');
 assert(!featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'Final meeting reconciliation must not restore the rejected legacy reaction glyph.');
 assert(shareService.includes("return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)}"),'Presenter command service must expose execution proof instead of a bare production ok response.');
