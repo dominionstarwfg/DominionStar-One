@@ -4,7 +4,7 @@
   const participants=()=>window.DominionParticipantControls||null;
   const meeting=()=>window.dominionDesktop?.meeting||null;
   const prefs=()=>window.DominionPreferences||null;
-  let syncQueued=false,presenterTimer=0,notesDialog=null,hostPanel=null,participantBulkMenu=null,meetingMoreMenu=null,transientEpoch=0;
+  let syncQueued=false,presenterTimer=0,notesDialog=null,hostPanel=null,participantBulkMenu=null,participantInviteMenu=null,meetingMoreMenu=null,transientEpoch=0;
 
   const sym=Object.freeze({plus:'＋',bell:'♧',calendar:'▣',record:'◉',captions:'CC',breakout:'▦',polls:'▥',docs:'▤',whiteboard:'▱',apps:'⌘',info:'ⓘ',transfer:'⇥',settings:'⚙'});
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
@@ -97,10 +97,47 @@
   }
   function syncMeetingLabels(){const overlay=q('#meetingOverlay');if(!overlay||overlay.hidden){document.body.classList.remove('ds-in-meeting','ds-share-active');closeHostPanel();closeMeetingMore();closeParticipantBulk();return;}document.body.classList.add('ds-in-meeting');ensureCoreMeetingControls();syncParticipantVisibility();setVisibleLabel(q('#roomMic'),'Audio');setVisibleLabel(q('#roomCamera'),'Video');setVisibleLabel(q('#roomParticipants'),'Participants');setVisibleLabel(q('#roomChat'),'Chat');setVisibleLabel(q('#roomReactions'),'React');setVisibleLabel(q('#roomRaiseHand'),q('#roomRaiseHand')?.getAttribute('aria-pressed')==='true'?'Lower hand':'Raise hand');setVisibleLabel(q('#roomShare'),'Share');setVisibleLabel(q('#roomHostTools'),'Host tools');setVisibleLabel(q('#roomMore'),'More');setVisibleLabel(q('#roomExitButton'),'End');const count=qa('#participantRoster [data-participant-id]').length||1;if(q('#roomParticipants'))q('#roomParticipants').dataset.dsRefCount=String(count);ensureMeetingHead();bindPrimaryToolbar();ensureParticipantsFooter();syncPresenter();}
 
-  function ensureParticipantsFooter(){const side=q('#meetingOverlay .room-side');if(!side)return;side.querySelector('.zoom-participant-footer')?.remove();const count=qa('#participantRoster [data-participant-id]').length||1;const head=side.querySelector('.room-side-head');if(head){const strong=head.querySelector('strong');if(strong)strong.textContent=`Participants (${count})`;}let footer=side.querySelector('.ds-ref-participants-footer');if(footer)return;footer=document.createElement('div');footer.className='ds-ref-participants-footer';footer.innerHTML='<button type="button" data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button>';side.append(footer);footer.querySelector('[data-ref-invite]').onclick=async()=>{const info=String(q('#roomCodeLabel')?.textContent||'').trim();try{if(info)await navigator.clipboard.writeText(info);}catch{}notice('Invite',info?'Meeting information copied.':'Meeting information is unavailable.');};footer.querySelector('[data-ref-mute-all]').onclick=()=>void participants()?.sendAll?.('host:mute');}
+  function closeParticipantInvite(){participantInviteMenu?.remove();participantInviteMenu=null;}
+  async function copyParticipantInvite(text){
+    const value=String(text||'').trim();if(!value)return false;
+    try{await navigator.clipboard.writeText(value);return true;}catch{}
+    try{const area=document.createElement('textarea');area.value=value;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.append(area);area.select();const ok=document.execCommand?.('copy')!==false;area.remove();return Boolean(ok);}catch{return false;}
+  }
+  function flashFooterButton(button,text,reset,delay=1500){if(!button)return;clearTimeout(Number(button.dataset.dsFlashTimer)||0);button.textContent=text;button.dataset.dsFlashTimer=String(setTimeout(()=>{button.textContent=reset;},delay));}
+  function openParticipantInvite(anchor){
+    closeParticipantInvite();closeParticipantBulk();
+    const side=q('#meetingOverlay .room-side');if(!side||side.hidden)return;
+    const info=String(q('#roomCodeLabel')?.textContent||'').trim();
+    participantInviteMenu=document.createElement('div');participantInviteMenu.className='ds-ref-invite-menu';
+    participantInviteMenu.innerHTML='<strong>Invite to meeting</strong><p data-invite-info></p><div><button type="button" data-copy>Copy invitation</button><button type="button" data-close>Close</button></div>';
+    side.append(participantInviteMenu);participantInviteMenu.style.right='8px';participantInviteMenu.style.bottom='52px';
+    participantInviteMenu.querySelector('[data-invite-info]').textContent=info||'Meeting information is not available yet.';
+    participantInviteMenu.querySelector('[data-copy]').onclick=async event=>{const ok=await copyParticipantInvite(info);flashFooterButton(event.currentTarget,ok?'Copied':'Copy failed','Copy invitation');};
+    participantInviteMenu.querySelector('[data-close]').onclick=closeParticipantInvite;
+    return anchor;
+  }
+  function ensureParticipantsFooter(){
+    const side=q('#meetingOverlay .room-side');if(!side)return;
+    side.querySelector('.zoom-participant-footer')?.remove();
+    const count=qa('#participantRoster [data-participant-id]').length||1;
+    const head=side.querySelector('.room-side-head');if(head){const strong=head.querySelector('strong');if(strong)strong.textContent=`Participants (${count})`;}
+    let footer=side.querySelector('.ds-ref-participants-footer');if(footer)return;
+    footer=document.createElement('div');footer.className='ds-ref-participants-footer';
+    footer.innerHTML='<button type="button" data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more aria-label="More participant controls">More</button>';
+    side.append(footer);
+    footer.querySelector('[data-ref-invite]').onclick=event=>openParticipantInvite(event.currentTarget);
+    footer.querySelector('[data-ref-mute-all]').onclick=async event=>{
+      const button=event.currentTarget;
+      const result=await participants()?.sendAll?.('host:mute');
+      if(result?.reason==='not_authorized')flashFooterButton(button,'Host only','Mute all');
+      else if(result?.count===0)flashFooterButton(button,'No one to mute','Mute all');
+      else flashFooterButton(button,'Muted','Mute all');
+    };
+    footer.querySelector('[data-ref-participant-more]').onclick=event=>void openParticipantBulkMenu(event.currentTarget);
+  }
   function bumpTransientEpoch(){transientEpoch=(transientEpoch+1)%1000000;return transientEpoch;}
   function closeParticipantBulk(){participantBulkMenu?.remove();participantBulkMenu=null;}
-  function closeTransient(){bumpTransientEpoch();closeParticipantBulk();closeHostPanel();closeMeetingMore();}
+  function closeTransient(){bumpTransientEpoch();closeParticipantInvite();closeParticipantBulk();closeHostPanel();closeMeetingMore();}
   async function currentSecurity(){let ctx={},snap={};try{ctx=await meeting()?.context?.()||{};if(ctx.roomId)snap=await meeting()?.snapshot?.(ctx.roomId)||{};}catch{}return {ctx,snap,locked:Boolean(snap.meetingLocked),muteOnEntry:Boolean(snap.muteOnEntry)};}
   async function setSecurityPatch(patch={}){const state=await currentSecurity();if(!state.ctx.roomId)return false;await meeting()?.setSecurity?.(state.ctx.roomId,{locked:patch.locked??state.locked,muteOnEntry:patch.muteOnEntry??state.muteOnEntry});return true;}
   async function openParticipantBulkMenu(anchor){closeParticipantBulk();const side=q('#meetingOverlay .room-side');if(!side||side.hidden)return;const epoch=bumpTransientEpoch();const state=await currentSecurity();if(epoch!==transientEpoch||!side.isConnected||side.hidden)return;participantBulkMenu=document.createElement('div');participantBulkMenu.className='ds-ref-participant-bulk-menu';participantBulkMenu.innerHTML=`<button type="button" data-ask>Ask all to unmute</button><button type="button" data-clear disabled>Clear all feedback</button><div class="ds-ref-bulk-divider"></div><label><span>Mute all upon entry</span><input type="checkbox" data-mute-entry ${state.muteOnEntry?'checked':''}></label><label><span>Play join and leave sound</span><input type="checkbox" data-join-sound ${prefs()?.read?.('joinLeaveSound')!==false?'checked':''}></label><div class="ds-ref-bulk-divider"></div><button type="button" data-host-participants>Host tools for participants</button>`;side.append(participantBulkMenu);participantBulkMenu.style.right='8px';participantBulkMenu.style.bottom='52px';participantBulkMenu.querySelector('[data-ask]').onclick=()=>{closeParticipantBulk();void participants()?.sendAll?.('host:ask-unmute');};participantBulkMenu.querySelector('[data-mute-entry]').onchange=async event=>{event.currentTarget.disabled=true;try{await setSecurityPatch({muteOnEntry:event.currentTarget.checked});}finally{event.currentTarget.disabled=false;}};participantBulkMenu.querySelector('[data-join-sound]').onchange=event=>prefs()?.write?.('joinLeaveSound',event.currentTarget.checked);participantBulkMenu.querySelector('[data-host-participants]').onclick=()=>{closeParticipantBulk();openHostToolsPanel();};}
@@ -131,7 +168,7 @@
     if(host&&q('#meetingOverlay')&&!q('#meetingOverlay').hidden){event.preventDefault();event.stopPropagation();void openHostToolsPanel();}
   }
   window.addEventListener('click',stableCommandDelegate,true);
-  function closeOnOutside(event){if(participantBulkMenu&&!participantBulkMenu.contains(event.target)&&!event.target.closest?.('[data-ref-participant-more]'))closeParticipantBulk();if(meetingMoreMenu&&!meetingMoreMenu.contains(event.target)&&!event.target.closest?.('#roomMore'))closeMeetingMore();}
+  function closeOnOutside(event){if(participantInviteMenu&&!participantInviteMenu.contains(event.target)&&!event.target.closest?.('[data-ref-invite]'))closeParticipantInvite();if(participantBulkMenu&&!participantBulkMenu.contains(event.target)&&!event.target.closest?.('[data-ref-participant-more]'))closeParticipantBulk();if(meetingMoreMenu&&!meetingMoreMenu.contains(event.target)&&!event.target.closest?.('#roomMore'))closeMeetingMore();}
   document.addEventListener('pointerdown',closeOnOutside,true);
 
   function claimFinalMeetingAuthority(){

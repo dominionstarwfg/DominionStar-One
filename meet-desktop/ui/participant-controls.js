@@ -81,13 +81,25 @@
 
   async function send(target,type){if(!canManage()||!meeting?.sendSignal)return false;await meeting.sendSignal(target,type,{at:new Date().toISOString()});return true;}
   async function sendAll(type){
-    if(busy||!canManage())return;busy=true;syncPanelActions();
+    if(busy)return {ok:false,reason:'busy',count:0};
+    if(!canManage()){toast('Host controls are unavailable.');return {ok:false,reason:'not_authorized',count:0};}
+    busy=true;syncPanelActions();
     try{
       const list=(await peers()).filter(p=>String(p.role||'').toLowerCase()!=='host');
-      await Promise.allSettled(list.map(p=>send(p.participantId,type)));
+      if(!list.length){
+        const emptyLabels={'host:mute':'No other participants to mute','host:ask-unmute':'No other participants to ask','host:stop-video':'No other participant video to stop','host:ask-start-video':'No other participants to ask','host:lower-hand':'No raised hands to lower'};
+        toast(emptyLabels[type]||'No other participants available');
+        return {ok:true,count:0,empty:true};
+      }
+      const results=await Promise.allSettled(list.map(p=>send(p.participantId,type)));
+      const sent=results.filter(result=>result.status==='fulfilled'&&result.value!==false).length;
       const labels={'host:mute':'All participants muted','host:ask-unmute':'Unmute requests sent','host:stop-video':'Video stopped for all participants','host:ask-start-video':'Start-video requests sent','host:lower-hand':'All raised hands lowered'};
-      toast(labels[type]||'Meeting-wide action sent');
-    } finally{busy=false;syncPanelActions();}
+      toast(sent?labels[type]||'Meeting-wide action sent':'Participant action could not be sent');
+      return {ok:sent>0,count:sent,requested:list.length};
+    }catch(error){
+      toast(String(error?.message||error||'Participant action unavailable.'));
+      return {ok:false,reason:'error',count:0,error:String(error?.message||error||'participant_action_failed')};
+    }finally{busy=false;syncPanelActions();}
   }
 
   function ensureRenameDialog(){

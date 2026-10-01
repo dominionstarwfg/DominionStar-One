@@ -214,3 +214,7 @@ body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon
 #meetingOverlay #participantRoster .ds-canonical-name{min-width:0!important;flex:1 1 auto!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
 #meetingOverlay #participantRoster .ds-canonical-role{display:inline!important;flex:0 0 auto!important;height:auto!important;padding:0!important;border-radius:0!important;background:transparent!important;color:#dedee0!important;font-size:11px!important;font-weight:500!important;text-transform:none!important;letter-spacing:0!important}
 #meetingOverlay #participantRoster .ds-canonical-self{display:inline!important;flex:0 0 auto!important;color:#bfc0c4!important;font-size:11px!important;font-weight:500!important;margin-left:0!important}
+
+.ds-ref-invite-menu{position:absolute;z-index:3900;width:252px;padding:12px;border:1px solid #56575b;border-radius:10px;background:#252527;box-shadow:0 16px 42px rgba(0,0,0,.54);color:#f3f3f4}
+.ds-ref-invite-menu strong{display:block;font-size:12px;margin-bottom:7px}.ds-ref-invite-menu p{margin:0 0 10px;padding:8px;border-radius:7px;background:#1d1d1f;color:#d8d8da;font-size:10px;line-height:1.35;word-break:break-word}
+.ds-ref-invite-menu>div{display:flex;gap:7px}.ds-ref-invite-menu button{height:30px;padding:0 10px;border:0;border-radius:7px;background:#45464a;color:#fff;font-size:10px;cursor:pointer}.ds-ref-invite-menu button:first-child{background:#2d78df}

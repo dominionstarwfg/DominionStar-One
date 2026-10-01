@@ -310,6 +310,19 @@ assert(
   shareService.includes('main.setHasShadow?.(!enabled)'),
   'Native Mac sharing must keep the control renderer alive while making its meeting chrome, duplicate footer/banner, shadow and traffic lights physically disappear.'
 );
+/* PHYSICAL_MAC_PARTICIPANT_FOOTER_ACTION_LOCK */
+assert(
+  screenshotReference.includes('function openParticipantInvite(anchor)')&&
+  screenshotReference.includes("data-ref-participant-more aria-label=\"More participant controls\"")&&
+  screenshotReference.includes("participants()?.sendAll?.('host:mute')")&&
+  screenshotReferenceCss.includes('.ds-ref-invite-menu{position:absolute')&&
+  participantsReference.includes("if(more)more.hidden=!manager;")&&
+  participantsReference.includes("action.textContent='No one to mute'")&&
+  read('ui/participant-controls.js').includes("return {ok:true,count:0,empty:true};")&&
+  read('ui/participant-controls.js').includes("return {ok:sent>0,count:sent,requested:list.length};"),
+  'Participants footer controls must remain functional: in-panel Invite, deterministic Mute-all feedback, and host-only More management.'
+);
+
 /* PHYSICAL_MAC_SHARE_COMPANION_AND_COMPACT_ANNOTATION_LOCK */
 assert(
   macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized);")&&

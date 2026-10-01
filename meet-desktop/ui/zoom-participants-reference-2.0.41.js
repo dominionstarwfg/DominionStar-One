@@ -210,8 +210,13 @@
 
   function syncFooter(side){
     const footer=side.querySelector('.ds-ref-participants-footer');if(!footer)return;footer.hidden=false;footer.removeAttribute('data-ds-legacy-participant-actions');
-    const action=footer.querySelector('[data-ref-mute-all]');if(!action)return;const manager=['host','cohost'].includes(localRole()),desired=manager?'Mute all':'Unmute me';if(action.textContent!==desired)action.textContent=desired;
-    if(action.dataset.dsParticipantRefAction!==desired){action.dataset.dsParticipantRefAction=desired;action.onclick=()=>{if(manager)void window.DominionParticipantControls?.sendAll?.('host:mute');else{const mic=q('#roomMic');if(toolbarOff(mic,'mic'))mic.click();}};}
+    const action=footer.querySelector('[data-ref-mute-all]'),more=footer.querySelector('[data-ref-participant-more]');if(!action)return;
+    const manager=['host','cohost'].includes(localRole()),desired=manager?'Mute all':'Unmute me';if(action.textContent!==desired&&!['Muted','No one to mute','Host only'].includes(action.textContent))action.textContent=desired;
+    if(more)more.hidden=!manager;
+    if(action.dataset.dsParticipantRefAction!==desired){
+      action.dataset.dsParticipantRefAction=desired;
+      action.onclick=async()=>{if(manager){const result=await window.DominionParticipantControls?.sendAll?.('host:mute');if(result?.count===0){action.textContent='No one to mute';setTimeout(()=>{action.textContent='Mute all';},1500);}}else{const mic=q('#roomMic');if(toolbarOff(mic,'mic'))mic.click();}};
+    }
   }
 
   function sync(){
