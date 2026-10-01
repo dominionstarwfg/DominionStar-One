@@ -183,3 +183,72 @@ body.ds-local-speaking .meeting-overlay.share-active .stage{
   display:grid;place-items:center;width:23px;height:23px;
   font-size:20px;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji",sans-serif;
 }
+
+
+/* 2.0.44+ compact right-side participant filmstrip reference.
+   A vertical dock is a filmstrip, never a participant grid. Keep five tiles
+   visible and scroll inside the panel for additional participants. */
+#participantVideoDock[data-orientation="vertical"]:not(.gallery-stage):not(.multi-speaker-stage){
+  width:188px!important;
+  max-width:188px!important;
+  max-height:min(548px,calc(100% - 28px))!important;
+}
+#participantVideoDock[data-orientation="vertical"]:not(.gallery-stage):not(.multi-speaker-stage) .participant-video-dock-body{
+  grid-template-columns:176px!important;
+  grid-auto-flow:row!important;
+  grid-auto-rows:99px!important;
+  width:186px!important;
+  max-height:515px!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  align-content:start!important;
+  scrollbar-width:thin;
+}
+#participantVideoDock[data-orientation="vertical"]:not(.gallery-stage):not(.multi-speaker-stage) .remote-peer-tile{
+  width:176px!important;
+  height:99px!important;
+  aspect-ratio:auto!important;
+}
+#participantVideoDock[data-orientation="vertical"].panel-scrollable:not(.gallery-stage):not(.multi-speaker-stage) .participant-video-scroll-controls{
+  display:flex!important;
+  position:absolute;
+  left:50%;
+  bottom:4px;
+  transform:translateX(-50%);
+  z-index:12;
+  gap:4px;
+  padding:2px 5px;
+  border-radius:999px;
+  background:rgba(5,9,15,.78);
+  backdrop-filter:blur(8px);
+}
+#participantVideoDock[data-orientation="vertical"]:not(.panel-scrollable) .participant-video-scroll-controls{
+  display:none!important;
+}
+#participantVideoDock[data-orientation="vertical"] .remote-peer-tile.active-speaker{
+  border-color:#35d07f!important;
+  box-shadow:0 0 0 1px rgba(53,208,127,.22)!important;
+  transform:none!important;
+}
+#participantVideoDock[data-orientation="vertical"] .remote-peer-tile footer{
+  left:5px!important;
+  right:auto!important;
+  bottom:5px!important;
+  width:auto!important;
+  max-width:calc(100% - 10px)!important;
+  padding:3px 6px!important;
+  border-radius:6px!important;
+  background:rgba(0,0,0,.62)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:5px!important;
+}
+#participantVideoDock[data-orientation="vertical"] .remote-peer-tile footer strong{
+  font-size:9px!important;
+  line-height:1.15!important;
+}
+#participantVideoDock[data-orientation="vertical"] .remote-peer-tile footer small{
+  font-size:8px!important;
+  line-height:1.15!important;
+}
