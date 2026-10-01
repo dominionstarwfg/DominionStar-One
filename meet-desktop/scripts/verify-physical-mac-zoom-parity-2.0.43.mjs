@@ -118,9 +118,52 @@ assert(
   'Default Participants and Chat surfaces must open as inset floating windows with independent header-safe vertical offsets rather than edge-attached sidebars.'
 );
 assert(runtime.includes('function ensurePanelClose(panel)')&&runtime.includes("aria-label','Close participants'")&&runtime.includes("aria-label','Close chat'"),'Participants and Chat must expose one explicit runtime-owned Close control.');
-assert(runtime.includes("const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:318);")&&runtime.includes("const participantCount=participantRows().length;")&&runtime.includes("const baseHeight=panel===chat?440:(participantCount>=7?438:390);")&&runtime.includes("panel.style.setProperty('right','24px','important');")&&runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important');")&&runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),'Floating Participants and Chat must use adaptive compact reference geometry with header-safe offsets while remaining independent movable surfaces.');
+assert(
+  runtime.includes("const candidates=footer?[...footer.querySelectorAll('.av-device-caret')]") &&
+  runtime.includes("for(const node of candidates){if(node!==caret)node.remove();}") &&
+  runtime.includes("caret.dataset.dsRuntimeCaretSlot='1';"),
+  'Audio and Video must each collapse to one runtime-owned options caret with duplicate legacy carets removed.'
+);
+assert(
+  runtime.includes('function canonicalizeParticipantRows(){') &&
+  runtime.includes("const moreCandidates=[...row.querySelectorAll('.participant-more,.ds-participant-more,[data-participant-more]')];") &&
+  runtime.includes("for(const node of moreCandidates){if(node!==more)node.remove();}"),
+  'Each participant row must expose one canonical More action with orphan duplicate ellipsis controls removed.'
+);
+assert(
+  runtime.includes('let meetingSignalTimer=0;') &&
+  runtime.includes("meetingSignalTimer=setTimeout(()=>{meetingSignalTimer=0;schedule();},80);") &&
+  runtime.includes("window.addEventListener('dominion:meeting-signal',scheduleMeetingSignal);"),
+  'Generic meeting signaling must be coalesced before full UI reconciliation so signaling bursts cannot monopolize the renderer.'
+);
+assert(
+  runtime.includes('data-ds-runtime-reference-primed') &&
+  runtime.includes('window.DominionZoomScreenshotReference?.sync?.();'),
+  'Heavy reference reconciliation must prime once per meeting instead of repainting on every generic runtime pass.'
+);
+assert(
+  runtime.includes("const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:318);") &&
+  runtime.includes("const participantCount=participantRows().length;") &&
+  runtime.includes("const participantBaseHeight=Math.min(438,Math.max(194,102+(Math.max(1,participantCount)*46)+(participantCount>=7?46:0)));") &&
+  runtime.includes("const minPanelHeight=panel===chat?300:194;") &&
+  runtime.includes("panel.style.setProperty('right','24px','important');") &&
+  runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important');") &&
+  runtime.includes("Math.max(minPanelHeight,bodyHeight-28)") &&
+  runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),
+  'Floating Participants and Chat must use roster-driven compact geometry with header-safe offsets while remaining independent movable surfaces.'
+);
 assert(runtime.includes("panel.style.setProperty('left',`${pr.left-br.left}px`,'important');")&&runtime.includes("panel.style.setProperty('right','auto','important');")&&runtime.includes("panel.style.setProperty('width',`${pr.width}px`,'important');"),'Final drag authority must capture explicit panel geometry before movement rather than depending on a legacy handler.');
-assert(runtime.includes("document.addEventListener('pointerdown',begin,true);")&&runtime.includes("document.addEventListener('mousedown',begin,true);")&&runtime.includes("document.addEventListener('pointermove',move,true);")&&runtime.includes("document.addEventListener('mousemove',move,true);")&&runtime.includes("const liveHandle=()=>")&&!runtime.includes("surfaceDrag.source!==source"),'Final floating-panel drag authority must capture pointer/mouse input at the document level and resolve the live panel header dynamically.');
+assert(
+  runtime.includes("document.addEventListener('pointerdown',begin,true);") &&
+  runtime.includes("document.addEventListener('pointermove',move,true);") &&
+  runtime.includes("document.addEventListener('pointerup',end,true);") &&
+  !runtime.includes("document.addEventListener('mousedown',begin,true);") &&
+  !runtime.includes("document.addEventListener('mousemove',move,true);") &&
+  !runtime.includes("document.addEventListener('mouseup',end,true);") &&
+  runtime.includes("const liveHandle=()=>") &&
+  !runtime.includes("surfaceDrag.source!==source"),
+  'Final floating-panel drag authority must use one Pointer Events pipeline only and resolve the live panel header dynamically.'
+);
 assert(runtime.includes("const columns=count<=2?1:count<=6?2:3;")&&runtime.includes("const desiredWidth=columns*tileWidth")&&runtime.includes("dock.dataset.dsRuntimeColumns=String(columns)")&&runtime.includes("body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important')"),'Participant video dock must grow rows/columns automatically as visible participant tiles increase.');
 assert(runtimeCss.includes('#meetingOverlay .ds-panel-traffic{display:flex!important}')&&runtime.includes("aria-label=\"Collapse panel\"")&&runtime.includes("aria-label=\"Expand panel\"")&&runtimeCss.includes('button[aria-label="Close participants"]')&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),'Mac Participants/Chat must expose working traffic-light close/collapse/expand controls plus accessible close controls.');
 assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;')&&!runtimeCss.includes('left:18px!important;\n  right:auto!important;\n  top:auto!important;\n  bottom:94px!important;')&&!polishCss.includes('.meeting-reaction-menu{left:18px!important'),'Reaction chooser position must belong to the runtime anchor calculation, not a hard-pinned stylesheet.');
