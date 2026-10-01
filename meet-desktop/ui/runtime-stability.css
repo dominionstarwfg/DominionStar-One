@@ -546,3 +546,72 @@ body>.meeting-reaction-menu,
 #meetingOverlay .room-side .ds-participant-search-wrap[hidden]{display:none!important}
 #meetingOverlay .room-side .ds-participant-search-wrap{flex:0 0 auto!important}
 #meetingOverlay .room-side .ds-ref-participants-footer{flex:0 0 50px!important;height:50px!important}
+
+
+/* 2.0.44 physical-Mac acceptance cleanup: one AV affordance, one participant
+   action cluster, and compact roster-driven Participants geometry. */
+#meetingOverlay .meeting-footer .av-device-caret[data-ds-runtime-caret-slot="1"]{
+  display:grid!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"]{
+  min-height:194px!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-panel-traffic{
+  left:12px!important;top:0!important;height:38px!important;
+  display:flex!important;align-items:center!important;gap:8px!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-panel-traffic>button{
+  width:12px!important;min-width:12px!important;max-width:12px!important;
+  height:12px!important;min-height:12px!important;max-height:12px!important;
+  padding:0!important;margin:0!important;border:0!important;border-radius:50%!important;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.22)!important;
+  font-size:0!important;line-height:0!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-panel-traffic>.close{background:#ff5f57!important}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-panel-traffic>.min{background:#febc2e!important}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-panel-traffic>.zoom{background:#28c840!important}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-participants-traffic{display:none!important}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head{
+  min-height:38px!important;height:38px!important;padding:0 9px 0 12px!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head>div{
+  min-width:0!important;flex:1 1 auto!important;padding-left:54px!important;text-align:center!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head strong{
+  font-size:12px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster{
+  flex:1 1 auto!important;min-height:0!important;max-height:322px!important;
+  padding:4px 8px!important;overflow-y:auto!important;overflow-x:hidden!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-row{
+  min-height:44px!important;height:44px!important;
+  grid-template-columns:34px minmax(0,1fr) auto!important;
+  column-gap:8px!important;padding:5px 7px!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-copy{
+  min-width:0!important;overflow:visible!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-copy strong{
+  min-width:0!important;max-width:none!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .participant-actions{
+  display:flex!important;align-items:center!important;gap:7px!important;min-width:0!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster>.participant-more,
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster>.ds-participant-more,
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-row>.participant-more:not(.participant-actions *),
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-row>.ds-participant-more:not(.participant-actions *){
+  display:none!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-ref-participants-footer{
+  flex:0 0 46px!important;height:46px!important;min-height:46px!important;
+  padding:7px 9px!important;gap:8px!important;background:#29292b!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-ref-participants-footer button{
+  height:30px!important;min-width:0!important;padding:0 13px!important;
+  border-radius:7px!important;font-size:10.5px!important;font-weight:600!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-ref-participants-footer button:last-child{
+  min-width:54px!important;margin-left:auto!important;
+}
