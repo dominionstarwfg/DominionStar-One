@@ -7,6 +7,8 @@ const css=read('ui/zoom-physical-acceptance.css');
 const bootstrap=read('ui/auth-password.js');
 const presenter=read('ui/presenter-toolbar.js');
 const macPresenter=read('ui/mac-presenter-toolbar.js');
+const shareIntegration=read('ui/share-integration.js');
+const macPresenterHtml=read('ui/mac-presenter-toolbar.html');
 const runtime=read('ui/runtime-stability.js');
 const features=read('ui/meeting-features.js');
 
@@ -39,7 +41,8 @@ assert(css.includes('.ds-reaction-tray{position:fixed;z-index:2800'),'Reaction t
 assert(js.includes('openSmartSharePicker')&&js.includes('sharePicker?.listSources?.({kind,includeDominionStar:false})'),'Share permission authority must test actual desktop sources instead of relying only on stale TCC status.');
 assert(js.includes('desktop.sharePicker.choose(selectedShareId,options)'),'Share picker must feed the selected real source into the existing capture pipeline.');
 assert(js.includes("sessionStorage.setItem('ds_screen_settings_opened','1')")&&js.includes('Recheck'),'Permission recovery must remember that Settings was opened and provide an active recheck path instead of looping blindly.');
-assert(presenter.includes("if(command==='new-share')command='smart-new-share'"),'Floating share toolbar New Share must use the same real-source authority.');
+assert(macPresenterHtml.includes('data-command="new-share"'),'Floating macOS share toolbar must expose New Share through the canonical new-share command.');
+assert(shareIntegration.includes("if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}"),'New Share must route through the certified picker/permission authority in the meeting renderer.');
 assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-grid'),'Screen sharing must expose a production source picker instead of another permission-only dialog.');
 assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
 assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance module version must be explicit.');
