@@ -55,6 +55,6 @@ const rendererFallback=macPresenter.indexOf("if(rendererBridge?.command)return a
 assert(nativeFirst>=0&&rendererFallback>nativeFirst,'Mac presenter commands must use acknowledged native delivery first during active sharing, with direct renderer fallback only when native presenter transport is unavailable.');
 assert(macPresenter.includes("q('#stopShare')?.addEventListener('click'")&&macPresenter.includes("try{await send('stop');}"),'Mac Stop Share must use the direct-first presenter command authority.');
 assert(macPresenter.includes('const accepted=result=>Boolean(result)')&&macPresenter.includes('result.direct===true')&&macPresenter.includes('result.acknowledged===true'),'Mac presenter controls must require execution/acknowledgement rather than treating a one-way send as success.');
-assert(macPresenter.includes("version:'2.0.41-direct-renderer-first-controls'"),'Mac presenter direct-first control version must remain explicit.');
+assert(macPresenter.includes("version:'2.0.45-stateful-share-chrome'"),'Mac presenter stateful native-first control version must remain explicit.');
 
 console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat clickable-reactions six-second-float real-source-share-recheck readable-settings mac-direct-first-presenter-controls');
