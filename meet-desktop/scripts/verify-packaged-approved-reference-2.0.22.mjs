@@ -110,7 +110,7 @@ try{
   assert.ok(video.modeCount>=4,'Video panel control bar must expose speaker, strip, gallery, and hide controls.');
   assert.equal(video.gripDisplay,'none','Legacy visible drag grip must remain hidden.');
   assert.ok(video.radius>=8,'Video tiles must retain the approved rounded filmstrip geometry.');
-  assert.match(video.activeBorder,/66\D+212\D+108/,'Active speaker must retain the approved green filmstrip emphasis.');
+  assert.match(video.activeBorder,/53\D+208\D+127/,'Active speaker must retain the approved #35d07f green filmstrip emphasis.');
 
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
