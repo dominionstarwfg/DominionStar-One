@@ -23,7 +23,12 @@ try{
   const page=await target();socket=await connect(page.webSocketDebuggerUrl);
   socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
   await cdp('Runtime.enable');
-  await waitFor("document.readyState==='complete'&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&document.querySelector('#meetingOverlay')",'stable runtime controllers');
+  try{
+    await waitFor("document.readyState==='complete'&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&document.querySelector('#meetingOverlay')",'stable runtime controllers');
+  }catch(error){
+    const readiness=await evaluate(`(()=>({readyState:document.readyState,runtime:Boolean(window.DominionRuntimeStability),parity:Boolean(window.DominionMeetingParity),features:Boolean(window.DominionMeetingFeatures),overlay:Boolean(document.querySelector('#meetingOverlay')),runtimeScript:Boolean(document.querySelector('script[data-ds-runtime-stability]')),runtimePrime:Boolean(document.querySelector('script[data-ds-runtime-prime],script[data-ds-runtime-stability][data-ds-runtime-prime="1"]'))}))()`).catch(()=>null);
+    throw new Error(`${error.message} readiness=${JSON.stringify(readiness)}`);
+  }
   await waitFor("Array.from(document.styleSheets).some(sheet=>String(sheet.href||'').endsWith('/runtime-motion.css'))",'runtime motion stylesheet');
 
   await evaluate(`(()=>{for(const dialog of document.querySelectorAll('dialog[open]')){try{dialog.close();}catch{dialog.removeAttribute('open');}}document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;overlay.dataset.viewMode='speaker';const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);const roster=document.querySelector('#participantRoster');roster.innerHTML='<div class="person-row" data-participant-id="self" data-participant-role="host" data-participant-name="QA Host"><span class="person-badge">QH</span><span class="person-copy"><strong>QA Host</strong><small>You</small></span></div>';window.DominionRuntimeStability.sync();return true;})()`);

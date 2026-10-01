@@ -32,6 +32,11 @@
     if(existing){if(window.DominionZoomScreenshotReference)loadActiveShareHome();else existing.addEventListener('load',loadActiveShareHome,{once:true});return;}
     const script=document.createElement('script');script.src='./zoom-screenshot-reference-2.0.41.js';script.dataset.dsZoomScreenshotReference2041='1';script.onload=loadActiveShareHome;document.head.append(script);
   };
+  const primeRuntimeStability=()=>{
+    const existing=document.querySelector('script[data-ds-runtime-stability]');
+    if(existing)return existing;
+    const script=document.createElement('script');script.src='./runtime-stability.js';script.dataset.dsRuntimeStability='1';script.dataset.dsRuntimePrime='1';document.head.append(script);return script;
+  };
   const loadRuntimeStability=()=>{
     const existing=document.querySelector('script[data-ds-runtime-stability]');
     if(existing){if(window.DominionRuntimeStability)loadScreenshotReference();else existing.addEventListener('load',loadScreenshotReference,{once:true});return;}
@@ -62,6 +67,7 @@
   if(!document.querySelector('script[data-ds-zoom-contract-bridge]')){const script=document.createElement('script');script.src='./zoom-contract-bridge.js';script.dataset.dsZoomContractBridge='1';document.head.append(script);}
   if(!document.querySelector('script[data-ds-presenter-command-parity-227]')){const script=document.createElement('script');script.src='./presenter-command-parity-2.0.27.js';script.dataset.dsPresenterCommandParity227='1';document.head.append(script);}
 
+  primeRuntimeStability();
   if(physicalStyle.sheet)loadPhysicalRepair();
   else{
     physicalStyle.addEventListener('load',loadPhysicalRepair,{once:true});
