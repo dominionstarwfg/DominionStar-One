@@ -52,9 +52,10 @@ assert(shareIntegration.includes("button.setAttribute('aria-label','Share Screen
 for(const command of ['pause','new-share','stop','annotate','participants','chat']){
   assert(shareIntegration.includes(command),`Share presenter command missing: ${command}`);
 }
-for(const text of ['Screens','Applications','Share sound','Optimize for video sharing']){
+for(const text of ['Screens','Windows','Share sound','Optimize for video sharing']){
   assert((read('ui/share-picker.html')+sharePicker).includes(text),`Share picker text is missing: ${text}`);
 }
+assert((read('ui/share-picker.html')+sharePicker).includes('Application window'),'Share picker must retain explicit application-window semantics.');
 for(const text of ['Mute','Stop Video','Participants','Leave']){
   assert((app+presenter).includes(text),`Meeting control text is missing: ${text}`);
 }
