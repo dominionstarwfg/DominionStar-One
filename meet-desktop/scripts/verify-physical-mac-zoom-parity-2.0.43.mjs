@@ -54,9 +54,10 @@ const shareCss=read('ui/share.css');
 const parityCss=read('ui/meeting-parity.css');
 const webrtc=read('ui/webrtc-controller.js');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
+const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,participantsReference,macVideoJs,macAnnotationJs,integration,screenshotReference])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,integration,screenshotReference])new Function(source);
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
 assert(
@@ -143,7 +144,7 @@ assert(
   'Heavy reference reconciliation must prime once per meeting instead of repainting on every generic runtime pass.'
 );
 assert(
-  runtime.includes("const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:318);") &&
+  runtime.includes("const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:330);") &&
   runtime.includes("const participantCount=participantRows().length;") &&
   runtime.includes("const participantBaseHeight=Math.min(438,Math.max(194,102+(Math.max(1,participantCount)*46)+(participantCount>=7?46:0)));") &&
   runtime.includes("const minPanelHeight=panel===chat?300:194;") &&
@@ -309,6 +310,27 @@ assert(
   shareService.includes('main.setHasShadow?.(!enabled)'),
   'Native Mac sharing must keep the control renderer alive while making its meeting chrome, duplicate footer/banner, shadow and traffic lights physically disappear.'
 );
+/* PHYSICAL_MAC_SHARE_COMPANION_AND_COMPACT_ANNOTATION_LOCK */
+assert(
+  macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized);")&&
+  macPresenter.includes("if(panelCommand&&delivered?.ok)showMeeting();")&&
+  macPresenter.indexOf("const delivered=await deliverPresenterCommandWithRetry(main,normalized);")<
+    macPresenter.indexOf("if(panelCommand&&delivered?.ok)showMeeting();")&&
+  activeShareHome.includes('function restoreShareCompanion(){')&&
+  activeShareHome.includes("if(shareActive()&&(kind==='participants'||kind==='chat'))restoreShareCompanion();")&&
+  integration.includes("['participants','chat'].includes(previous)")&&
+  integration.includes("desktop?.macShare?.showMeeting?.()")&&
+  shareCss.includes('2.0.44+ native Mac floating Participants/Chat companion lock'),
+  'Share-toolbar Participants and Chat must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
+);
+assert(
+  participantsReference.includes('width:330px!important;min-width:310px!important')&&
+  participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div{padding-left:0!important')&&
+  screenshotReference.includes("footer.innerHTML='<button type=\"button\" data-ref-invite>Invite</button><button type=\"button\" data-ref-mute-all>Mute all</button>'")&&
+  !screenshotReference.includes('data-ref-participant-more aria-label="More participant controls"'),
+  'Participants must preserve the compact floating reference with centered title, traffic controls, canonical rows, and a simple two-action footer.'
+);
+
 assert(
   macAnnotationHtml.includes('data-command="annotate-pen"') &&
   macAnnotationHtml.includes('data-command="annotate-highlight"') &&
@@ -324,8 +346,8 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('width:196px') &&
-  macAnnotationCss.includes('grid-template-columns:repeat(2,1fr)') &&
+  macAnnotationCss.includes('.annotation-palette{width:68px') &&
+  macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
   macAnnotationJs.includes("version:'2.0.44-professional-palette'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&

@@ -118,7 +118,14 @@
       if(companionKind)document.body.dataset.dsShareCompanion=companionKind;else delete document.body.dataset.dsShareCompanion;
       void bridge?.captureState?.({companion:companionKind,companionOpen:Boolean(companionKind)}).catch?.(()=>{});
     }
-    function clearCompanion(){if(companionKind||document.body.dataset.dsShareCompanion)setCompanion('');}
+    function clearCompanion(){
+      const previous=String(companionKind||document.body.dataset.dsShareCompanion||'');
+      if(previous)setCompanion('');
+      if(sameRendererPresenter&&['participants','chat'].includes(previous)&&document.body.classList.contains('ds-native-mac-show-meeting')){
+        document.body.classList.remove('ds-native-mac-show-meeting');
+        try{void Promise.resolve(desktop?.macShare?.showMeeting?.()).catch(()=>{});}catch{}
+      }
+    }
 
     function publishMacPresenterState(){
       if(!sameRendererPresenter||!share.snapshot().active)return;

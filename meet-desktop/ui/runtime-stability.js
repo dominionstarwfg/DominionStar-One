@@ -446,7 +446,7 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:318);
+      const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:330);
       const participantCount=participantRows().length;
       const participantBaseHeight=Math.min(438,Math.max(194,102+(Math.max(1,participantCount)*46)+(participantCount>=7?46:0)));
       const baseHeight=panel===chat?440:participantBaseHeight;

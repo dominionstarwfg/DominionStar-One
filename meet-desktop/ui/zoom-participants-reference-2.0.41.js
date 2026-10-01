@@ -20,7 +20,7 @@
     style.dataset.dsZoomParticipantsReference2041='1';
     style.textContent=`
       #meetingOverlay .room-side.ds-participants-reference{
-        position:absolute!important;width:356px!important;min-width:324px!important;max-width:min(382px,calc(100% - 24px))!important;
+        position:absolute!important;width:330px!important;min-width:310px!important;max-width:min(360px,calc(100% - 24px))!important;
         height:452px!important;min-height:360px!important;max-height:calc(100% - 24px)!important;
         left:auto!important;right:24px!important;top:18px!important;bottom:auto!important;transform:none!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
@@ -30,13 +30,16 @@
       #meetingOverlay .room-side.ds-participants-reference.dragging{transform:none!important;box-shadow:0 22px 64px rgba(0,0,0,.62)!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head{position:relative!important;flex:0 0 38px!important;height:38px!important;min-height:38px!important;padding:0 40px!important;display:flex!important;align-items:center!important;justify-content:center!important;border:0!important;border-bottom:1px solid #46474a!important;border-radius:10px 10px 0 0!important;background:#353537!important;cursor:move!important;user-select:none!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head>div{text-align:center!important;min-width:0!important}
-      #meetingOverlay .room-side.ds-participants-reference .room-side-head strong{font-size:14px!important;font-weight:650!important;letter-spacing:0!important;color:#f5f5f6!important}
+      #meetingOverlay .room-side.ds-participants-reference .room-side-head strong{font-size:13px!important;font-weight:650!important;letter-spacing:0!important;color:#f5f5f6!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head small{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head>button{position:absolute!important;right:9px!important;top:8px!important;width:26px!important;height:26px!important;border:0!important;background:transparent!important;color:#e4e4e5!important;font-size:18px!important;line-height:1!important;cursor:pointer!important}
        #meetingOverlay .room-side.ds-participants-reference .room-side-head>.ds-participants-popout{right:38px!important;font-size:14px!important;display:grid!important;place-items:center!important}
        #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>.ds-participants-popout{right:9px!important}
        #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button[aria-label="Close participants"]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:block!important}
+      #meetingOverlay .room-side.ds-participants-reference .room-side-head:has(.ds-panel-traffic)>div{padding-left:0!important;text-align:center!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;gap:7px!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>button{width:11px!important;min-width:11px!important;height:11px!important}
       .ds-participants-traffic{position:absolute;left:10px;top:0;height:38px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
       .ds-participants-traffic .close{background:#ff5f57}.ds-participants-traffic .min{background:#febc2e}.ds-participants-traffic .max{background:#28c840}

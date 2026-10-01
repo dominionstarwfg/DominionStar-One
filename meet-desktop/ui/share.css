@@ -179,3 +179,30 @@ body.ds-native-mac-presenter-share[data-ds-share-companion="annotate"] .share-an
 /* The native Mac annotation palette owns visible tools; keep only the canvas in
    this transparent renderer. */
 body.ds-native-mac-presenter-share[data-ds-share-companion="annotate"] .share-annotation-tools{display:none!important}
+
+
+/* 2.0.44+ native Mac floating Participants/Chat companion lock */
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="participants"] #meetingOverlay .meeting-head,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="participants"] #meetingOverlay .stage,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="participants"] #meetingOverlay .meeting-footer,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="participants"] #participantVideoDock,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="chat"] #meetingOverlay .meeting-head,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="chat"] #meetingOverlay .stage,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="chat"] #meetingOverlay .meeting-footer,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="chat"] #participantVideoDock{
+  visibility:hidden!important;opacity:0!important;pointer-events:none!important
+}
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="participants"] #meetingOverlay .meeting-body,
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="chat"] #meetingOverlay .meeting-body{
+  background:transparent!important;overflow:visible!important
+}
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="participants"] #meetingOverlay .room-side{
+  display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+  inset:auto!important;border:1px solid #55565a!important;border-radius:10px!important;
+  background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important
+}
+body.ds-native-mac-presenter-share.ds-native-mac-show-meeting[data-ds-share-companion="chat"] #meetingChatPanel{
+  display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+  inset:auto!important;border:1px solid #55565a!important;border-radius:10px!important;
+  background:#242426!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important
+}

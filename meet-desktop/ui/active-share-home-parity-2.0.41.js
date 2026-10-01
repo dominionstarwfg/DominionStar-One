@@ -33,6 +33,19 @@
     return true;
   }
 
+  function restoreShareCompanion(){
+    const overlay=q('#meetingOverlay');if(!overlay)return false;
+    q('#appShell')?.setAttribute('hidden','');q('#waitingOverlay')?.setAttribute('hidden','');q('#prejoinOverlay')?.setAttribute('hidden','');overlay.hidden=false;
+    const kind=String(document.body.dataset.dsShareCompanion||'');
+    try{
+      if(kind==='participants')window.DominionRuntimeStability?.setParticipants?.(true);
+      else if(kind==='chat')window.DominionRuntimeStability?.setChat?.(true);
+      window.DominionRuntimeStability?.layoutSideSurface?.();
+      if(kind==='participants')window.DominionZoomParticipantsReference2041?.sync?.();
+    }catch{}
+    return kind==='participants'||kind==='chat';
+  }
+
   function patchHome(active){
     const back=q('#homeSection .action-card.new-meeting'),join=q('#homeSection .action-card.join'),share=q('#homeSection .action-card.share');
     if(!back)return;
@@ -54,7 +67,11 @@
   desktop.macShare?.onShowMeeting?.(payload=>{
     const visible=payload?.visible!==false;
     document.body.classList.toggle('ds-native-mac-show-meeting',visible);
-    if(visible)restoreMeeting();
+    if(visible){
+      const kind=String(document.body.dataset.dsShareCompanion||'');
+      if(shareActive()&&(kind==='participants'||kind==='chat'))restoreShareCompanion();
+      else restoreMeeting();
+    }
   });
   window.addEventListener('dominion:share-state',schedule,true);
   window.addEventListener('dominion:meeting-ended',()=>{lastActive=false;document.body.classList.remove('ds-active-share-workspace');patchHome(false);},true);
