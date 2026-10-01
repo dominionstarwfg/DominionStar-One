@@ -133,6 +133,7 @@
     for(const id of ['roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore'])move(center,q(`#${id}`));
     move(right,q('#roomExitButton'));
     footer.dataset.dsRuntimeToolbarZones='1';
+    queueMicrotask(()=>{try{window.DominionAVSettings?.bindToolbar?.();}catch(error){console.warn('[DominionStar Meet] AV quick-menu rebind failed.',error);}});
     return true;
   }
 

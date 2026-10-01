@@ -43,7 +43,7 @@
     }
   }
 
-  function closeMenu(){menu?.remove();menu=null;}
+  function closeMenu(){const owner=menu?.dataset.ownerKind;if(owner){document.querySelector(`.meeting-footer .av-device-caret[data-kind="${owner}"]`)?.setAttribute('aria-expanded','false');}menu?.remove();menu=null;}
   function option(select,item){const node=document.createElement('option');node.value=String(item.id||'');node.textContent=safeLabel(item.label,'Device');select.append(node);}
   async function fillSelects(media,root=document){
     const devices=await media.enumerate();const snapshot=media.snapshot();
@@ -239,7 +239,7 @@
   }
 
   async function openQuickMenu(media,kind,anchor){
-    closeMenu();menu=document.createElement('div');menu.className='av-quick-menu';menu.dataset.kind=kind;document.body.append(menu);
+    closeMenu();menu=document.createElement('div');menu.className='av-quick-menu';menu.dataset.kind=kind;menu.dataset.ownerKind=kind;menu.setAttribute('role','menu');document.body.append(menu);anchor.setAttribute('aria-expanded','true');
     const heading=document.createElement('strong');heading.textContent=kind==='audio'?'Audio options':'Video options';menu.append(heading);
     const devices=await media.enumerate(),snapshot=media.snapshot(),items=kind==='audio'?devices.microphones:devices.cameras,current=kind==='audio'?snapshot.microphoneId:snapshot.cameraId;
     const label=document.createElement('small');label.textContent=kind==='audio'?'Microphone':'Camera';menu.append(label);
@@ -259,18 +259,26 @@
         const denoise=document.createElement('button');denoise.type='button';denoise.textContent=`${fxSnap.denoise?'✓ ':''}Optimize outgoing video with de-noise`;denoise.onclick=()=>{fx.setDenoise(!fx.snapshot().denoise);closeMenu();};menu.append(denoise);
       }
     }
-    const divider=document.createElement('hr');menu.append(divider);const settings=document.createElement('button');settings.type='button';settings.textContent='Audio & Video Settings…';settings.onclick=()=>{closeMenu();const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();kind==='audio'?void openAudioSettings(media):void openVideoSettings(media);};menu.append(settings);
+    const divider=document.createElement('hr');menu.append(divider);const settings=document.createElement('button');settings.type='button';settings.textContent=kind==='audio'?'Audio Settings…':'Video Settings…';settings.onclick=()=>{closeMenu();const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();kind==='audio'?void openAudioSettings(media):void openVideoSettings(media);};menu.append(settings);
     const rect=anchor.getBoundingClientRect(),width=280,left=Math.min(window.innerWidth-width-12,Math.max(12,rect.left));menu.style.left=`${left}px`;menu.style.bottom=`${Math.max(74,window.innerHeight-rect.top+8)}px`;
   }
 
   function installMeetingQuickMenus(media){
-    const mic=$('#roomMic'),camera=$('#roomCamera');if(!mic||!camera||mic.dataset.avQuickInstalled)return;mic.dataset.avQuickInstalled='1';
+    const mic=$('#roomMic'),camera=$('#roomCamera');if(!mic||!camera)return false;
+    const footer=mic.closest('.meeting-footer')||camera.closest('.meeting-footer');
     for(const [button,kind] of [[mic,'audio'],[camera,'video']]){
-      let caret=button.nextElementSibling?.classList?.contains('av-device-caret')?button.nextElementSibling:null;
+      const existing=footer?[...footer.querySelectorAll('.av-device-caret')].filter(node=>String(node.dataset.kind||'')===kind):[];
+      let caret=existing.find(node=>node.dataset.dsRuntimeCaretSlot==='1')||existing[0]||null;
+      for(const duplicate of existing){if(duplicate!==caret)duplicate.remove();}
+      if(!caret&&button.nextElementSibling?.classList?.contains('av-device-caret'))caret=button.nextElementSibling;
       if(!caret){caret=document.createElement('button');caret.type='button';caret.className='av-device-caret attached-device-caret';button.insertAdjacentElement('afterend',caret);}
-      caret.dataset.kind=kind;caret.dataset.dsRuntimeCaretSlot='0';caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.innerHTML='<span aria-hidden="true">⌃</span>';caret.disabled=false;
-      button.classList.add('has-device-caret');caret.onclick=event=>{event.stopPropagation();void openQuickMenu(media,kind,caret);};
+      caret.classList.add('attached-device-caret');caret.dataset.kind=kind;caret.dataset.dsRuntimeCaretSlot='1';caret.dataset.avQuickBound='1';
+      caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.setAttribute('aria-haspopup','menu');caret.setAttribute('aria-expanded','false');
+      caret.innerHTML='<span aria-hidden="true">⌃</span>';caret.disabled=false;
+      button.dataset.avQuickInstalled='1';button.classList.add('has-device-caret');
+      caret.onclick=event=>{event.preventDefault();event.stopPropagation();void openQuickMenu(media,kind,caret);};
     }
+    return true;
   }
 
   waitForMedia().then(media=>{
@@ -279,6 +287,6 @@
     const observer=new MutationObserver(()=>installMeetingQuickMenus(media));observer.observe(document.body,{childList:true,subtree:true});installMeetingQuickMenus(media);
     document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('.av-device-caret'))closeMenu();},true);
     window.addEventListener('resize',closeMenu);
-    window.DominionAVSettings=Object.freeze({version:'1.0.0-clean-port',openAudio:()=>openAudioSettings(media),openVideo:()=>openVideoSettings(media),applyLowLight:()=>applyLowLight(media),applyQuality:()=>applyQuality(media),snapshot:()=>({...state,...media.snapshot()})});
+    window.DominionAVSettings=Object.freeze({version:'1.0.1-runtime-caret-authority',openAudio:()=>openAudioSettings(media),openVideo:()=>openVideoSettings(media),bindToolbar:()=>installMeetingQuickMenus(media),openQuick:(kind,anchor)=>openQuickMenu(media,String(kind||''),anchor),applyLowLight:()=>applyLowLight(media),applyQuality:()=>applyQuality(media),snapshot:()=>({...state,...media.snapshot()})});
   });
 })();

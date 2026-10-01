@@ -615,3 +615,18 @@ body>.meeting-reaction-menu,
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-ref-participants-footer button:last-child{
   min-width:54px!important;margin-left:auto!important;
 }
+
+
+/* 2.0.44+ explicit Audio/Video device-caret visibility lock */
+#meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret[data-kind="audio"],
+#meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret[data-kind="video"]{
+  display:grid!important;place-items:center!important;
+  width:20px!important;min-width:20px!important;height:58px!important;
+  margin-left:-9px!important;padding:0!important;border:0!important;border-radius:5px!important;
+  background:transparent!important;color:#f3f3f4!important;font-size:11px!important;
+  opacity:1!important;visibility:visible!important;pointer-events:auto!important;cursor:pointer!important
+}
+#meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret[data-kind="audio"]{margin-right:7px!important}
+#meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret[data-kind="video"]{margin-right:0!important}
+#meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret:hover,
+#meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret[aria-expanded="true"]{background:#2b2c2f!important}

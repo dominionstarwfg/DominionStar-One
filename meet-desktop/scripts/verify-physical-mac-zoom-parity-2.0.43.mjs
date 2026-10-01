@@ -56,6 +56,7 @@ const webrtc=read('ui/webrtc-controller.js');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
+const avSettings=read('ui/av-settings.js');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,integration,screenshotReference])new Function(source);
 
@@ -310,6 +311,21 @@ assert(
   shareService.includes('main.setHasShadow?.(!enabled)'),
   'Native Mac sharing must keep the control renderer alive while making its meeting chrome, duplicate footer/banner, shadow and traffic lights physically disappear.'
 );
+/* PHYSICAL_MAC_AUDIO_VIDEO_SETTINGS_CARET_LOCK */
+assert(
+  runtime.includes("ensureRuntimeDeviceCaret(q('#roomMic'),'audio');")&&
+  runtime.includes("ensureRuntimeDeviceCaret(q('#roomCamera'),'video');")&&
+  runtime.includes("window.DominionAVSettings?.bindToolbar?.();")&&
+  runtimeCss.includes('explicit Audio/Video device-caret visibility lock')&&
+  runtimeCss.includes('[data-kind="audio"]')&&runtimeCss.includes('[data-kind="video"]')&&
+  avSettings.includes("version:'1.0.1-runtime-caret-authority'")&&
+  avSettings.includes("bindToolbar:()=>installMeetingQuickMenus(media)")&&
+  avSettings.includes("settings.textContent=kind==='audio'?'Audio Settings…':'Video Settings…'")&&
+  avSettings.includes("caret.setAttribute('aria-haspopup','menu')")&&
+  avSettings.includes("caret.dataset.avQuickBound='1'"),
+  'Audio and Video must each expose one visible, rebound device/settings caret with functional quick menus after every toolbar reconciliation.'
+);
+
 /* PHYSICAL_MAC_PARTICIPANT_FOOTER_ACTION_LOCK */
 assert(
   screenshotReference.includes('function openParticipantInvite(anchor)')&&
