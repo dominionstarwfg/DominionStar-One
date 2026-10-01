@@ -71,7 +71,7 @@
     const role=String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');
     if(['host','cohost'].includes(role)&&!q('#roomHostTools')){
       const footer=q('.meeting-footer'),more=q('#roomMore'),exit=q('#roomExitButton');if(footer){
-        const button=document.createElement('button');button.id='roomHostTools';button.type='button';button.className='meeting-control zoom-host-tools-control';button.setAttribute('aria-label','Host Tools');button.textContent='Host Tools';
+        const button=document.createElement('button');button.id='roomHostTools';button.type='button';button.className='meeting-control zoom-host-tools-control';button.setAttribute('aria-label','Host Tools');button.innerHTML='<span class="ds-control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6z"/><path d="M8.5 12h7M12 8.5v7"/></svg></span><span class="ds-control-label">Host Tools</span>';
         const anchor=more?.isConnected?more:(exit?.isConnected?exit:null);anchor?.parentElement?.insertBefore(button,anchor)||footer.append(button);
       }
     }
