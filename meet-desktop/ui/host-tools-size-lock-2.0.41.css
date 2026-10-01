@@ -1,0 +1,15 @@
+/* 2.0.43 compatibility layer.
+   The old 2.0.41 size lock forced Host Tools to 248px and re-centered
+   Participants. Final Zoom-reference geometry now owns both surfaces. */
+.ds-ref-host-tools-panel,
+.ds-ref-host-tools-panel.detached{
+  box-sizing:border-box!important;
+  width:360px!important;
+  min-width:340px!important;
+  max-width:min(360px,calc(100vw - 24px))!important;
+}
+.ds-ref-host-tools-panel header{height:48px!important}
+.ds-ref-host-tools-panel section{padding:14px 16px!important}
+.ds-ref-host-tools-panel label,
+.ds-ref-host-nav{height:42px!important;font-size:13px!important}
+.ds-ref-host-tools-panel header strong{font-size:14px!important}

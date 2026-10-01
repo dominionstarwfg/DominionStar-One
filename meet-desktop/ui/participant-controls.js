@@ -3,9 +3,9 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const media=()=>window.DominionMediaController||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  let menu=null,prompt=null,renameDialog=null,busy=false,spotlightParticipantId='';
+  let menu=null,prompt=null,renameDialog=null,busy=false,spotlightParticipantIds=[],localMediaUnsub=null;const remoteMedia=new Map();
   const esc=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const localRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');
+  const localRole=()=>{const direct=String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');if(['host','cohost'].includes(direct))return direct;const self=q('#participantRoster [data-participant-self="1"]');return String(self?.dataset.participantRole||direct||'participant').toLowerCase().replace('-','');};
   const canManage=()=>['host','cohost'].includes(localRole());
   const inMeeting=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
 
@@ -64,8 +64,9 @@
       return;
     }
     if(type==='host:spotlight'){
-      spotlightParticipantId=String(detail.payload?.participantId||'');
-      window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:spotlightParticipantId}}));
+      const incoming=Array.isArray(detail.payload?.participantIds)?detail.payload.participantIds:[detail.payload?.participantId];
+      spotlightParticipantIds=[...new Set(incoming.map(value=>String(value||'')).filter(Boolean))].slice(0,4);
+      window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantIds:[...spotlightParticipantIds],participantId:spotlightParticipantIds[0]||''}}));
       return;
     }
     if(type==='host:view-layout'){
@@ -103,39 +104,89 @@
 
   function closeMenu(){menu?.remove();menu=null;}
   async function openParticipantMenu(button){
-    closeMenu();const row=button.closest('[data-participant-id]');if(!row||!canManage())return;
-    const id=String(row.dataset.participantId||''),role=String(row.dataset.participantRole||'participant'),name=String(row.dataset.participantName||'Participant');
-    if(!id||role==='host')return;
+    closeMenu();const row=button.closest('[data-participant-id]');if(!row)return;
+    const id=String(row.dataset.participantId||''),role=String(row.dataset.participantRole||'participant'),name=String(row.dataset.participantName||'Participant'),self=row.dataset.participantSelf==='1';
+    if(!id)return;
     menu=document.createElement('div');menu.className='participant-control-menu';
     const add=(label,handler,danger=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(danger)b.className='danger';b.onclick=()=>{closeMenu();void handler();};menu.append(b);};
+    if(self){
+      add('Rename',()=>renameParticipant(id,name));
+      add('Copy display name',async()=>{try{await navigator.clipboard.writeText(name);toast('Display name copied');}catch{toast('Unable to copy display name');}});
+    }else{
+      if(!canManage()||role==='host'){closeMenu();return;}
     add('Mute',()=>send(id,'host:mute'));
     add('Ask to Unmute',()=>send(id,'host:ask-unmute'));
     add('Stop Video',()=>send(id,'host:stop-video'));
     add('Ask to Start Video',()=>send(id,'host:ask-start-video'));
-    add(spotlightParticipantId===id?'Remove Spotlight':'Spotlight for Everyone',async()=>{
-      const next=spotlightParticipantId===id?'':id;spotlightParticipantId=next;
-      window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantId:next}}));
-      const list=await peers();await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'host:spotlight',{participantId:next,at:new Date().toISOString()})));
-    });
+    {
+      const alreadySpotlighted=spotlightParticipantIds.includes(id);
+      const spotlightLabel=alreadySpotlighted?'Remove Spotlight':spotlightParticipantIds.length?'Add Spotlight':'Spotlight for Everyone';
+      add(spotlightLabel,async()=>{
+        let next=alreadySpotlighted?spotlightParticipantIds.filter(value=>value!==id):[...spotlightParticipantIds,id];
+        next=[...new Set(next)].slice(0,4);
+        spotlightParticipantIds=next;
+        window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantIds:[...next],participantId:next[0]||''}}));
+        const list=await peers();
+        await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'host:spotlight',{participantIds:[...next],participantId:next[0]||'',at:new Date().toISOString()})));
+        toast(next.length>1?`${next.length} participants spotlighted`:next.length===1?'Participant spotlighted':'Spotlight removed');
+      });
+    }
     if(row.dataset.raisedHand==='1')add('Lower Hand',()=>send(id,'host:lower-hand'));
     add('Rename',()=>renameParticipant(id,name));
+    if(localRole()==='host'&&role!=='host'&&typeof meeting.transferHost==='function')add('Make Host',async()=>{await meeting.transferHost(id);toast(`${name} is now the host`);window.dispatchEvent(new CustomEvent('dominion:host-transferred',{detail:{participantId:id,name}}));});
     if(localRole()==='host'&&row.dataset.recordEligible==='1'&&role!=='cohost'){
       add(row.dataset.recordingAllowed==='1'?'Forbid Record':'Allow Record',async()=>{await meeting.setRecordingPermission(id,row.dataset.recordingAllowed!=='1');});
     }
     if(localRole()==='host'&&role!=='cohost')add('Make Co-host',async()=>{await meeting.setCohost(id,true);});
     if(localRole()==='host'&&role==='cohost')add('Remove Co-host',async()=>{await meeting.setCohost(id,false);});
-    add('Remove',async()=>{await meeting.removeParticipant(id);},true);
+    if(localRole()==='host'||role!=='cohost')add('Remove',async()=>{await meeting.removeParticipant(id);},true);
+    }
     document.body.append(menu);const r=button.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-230,r.right-210))}px`;menu.style.top=`${Math.max(10,Math.min(innerHeight-menu.offsetHeight-10,r.bottom+6))}px`;
     menu.setAttribute('aria-label',`Controls for ${name}`);
   }
+
+  function setMediaIcon(node,on,kind){
+    if(!node)return;
+    const known=typeof on==='boolean';
+    node.classList.toggle('on',known&&on);
+    node.classList.toggle('off',known&&!on);
+    node.classList.toggle('unknown',!known);
+    node.setAttribute('aria-label',kind==='mic'?(known?(on?'Microphone on':'Microphone muted'):'Microphone status unknown'):(known?(on?'Video on':'Video off'):'Video status unknown'));
+    node.title=node.getAttribute('aria-label');
+  }
+  function bindMediaAction(node,row,kind){
+    if(!node)return;const id=String(row.dataset.participantId||''),self=row.dataset.participantSelf==='1';
+    const interactive=self||canManage();node.style.cursor=interactive?'pointer':'default';node.tabIndex=interactive?0:-1;node.setAttribute('role',interactive?'button':'img');
+    const activate=()=>{
+      if(!interactive)return;
+      if(self){q(kind==='mic'?'#roomMic':'#roomCamera')?.click();return;}
+      const on=node.classList.contains('on');
+      if(kind==='mic')void send(id,on?'host:mute':'host:ask-unmute');
+      else void send(id,on?'host:stop-video':'host:ask-start-video');
+    };
+    node.onclick=event=>{event.stopPropagation();activate();};
+    node.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();activate();}};
+  }
+  function syncRowMedia(row){
+    const id=String(row.dataset.participantId||''),self=row.dataset.participantSelf==='1';
+    let state=null;
+    if(self){
+      const snap=media()?.snapshot?.();state=snap?{micOn:Boolean(snap.micOn),cameraOn:Boolean(snap.cameraOn)}:null;
+    }else state=remoteMedia.get(id)||null;
+    const micNode=row.querySelector('[data-participant-mic]'),videoNode=row.querySelector('[data-participant-video]');
+    setMediaIcon(micNode,state?.micOn,'mic');setMediaIcon(videoNode,state?.cameraOn,'video');
+    bindMediaAction(micNode,row,'mic');bindMediaAction(videoNode,row,'video');
+  }
+  function syncAllMedia(){for(const row of qa('#participantRoster [data-participant-id]'))syncRowMedia(row);}
 
   function syncRoster(){
     if(!inMeeting())return;
     for(const row of qa('#participantRoster [data-participant-id]')){
       let button=row.querySelector('[data-participant-more]');
       const role=String(row.dataset.participantRole||'participant');
-      if(!canManage()||role==='host'){button?.remove();continue;}
-      if(!button){button=document.createElement('button');button.type='button';button.dataset.participantMore='1';button.className='mini-btn participant-more';button.textContent='More';button.onclick=event=>{event.stopPropagation();void openParticipantMenu(button);};row.querySelector('.participant-actions')?.append(button)||row.append(button);}
+      const self=row.dataset.participantSelf==='1';
+      if(!self&&(!canManage()||role==='host')){button?.remove();syncRowMedia(row);continue;}
+      if(!button){button=document.createElement('button');button.type='button';button.dataset.participantMore='1';button.className='mini-btn participant-more';button.textContent='More';button.setAttribute('aria-label',`More controls for ${String(row.dataset.participantName||'participant')}`);row.querySelector('.participant-actions')?.append(button)||row.append(button);}if(button&&!button.dataset.dsParticipantMenuBound){button.dataset.dsParticipantMenuBound='1';button.onclick=event=>{event.stopPropagation();void openParticipantMenu(button);};}syncRowMedia(row);
     }
   }
 
@@ -156,8 +207,17 @@
     qa('#participantBulkActions button').forEach(b=>b.disabled=busy);
   }
 
-  function sync(){if(!inMeeting()){closeMenu();return;}syncRoster();syncPanelActions();}
+  function sync(){if(!inMeeting()){closeMenu();return;}const side=q('#meetingOverlay .room-side');if(!side||side.hidden){closeMenu();return;}syncRoster();syncPanelActions();syncAllMedia();}
   document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();},true);
-  const timer=setInterval(sync,800);sync();
-  window.DominionParticipantControls=Object.freeze({version:'1.3.0',sync,sendAll,dispose:()=>{clearInterval(timer);closeMenu();prompt?.remove();renameDialog?.remove();}});
+  document.addEventListener('click',event=>{if(menu&&event.target.closest?.('#roomParticipants,#roomChat,#roomHostTools,#roomMore,.room-side-head>button,.ds-participants-traffic'))closeMenu();},true);
+  window.addEventListener('dominion:meeting-ended',closeMenu,true);
+  window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
+  localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
+  let syncFrame=0;
+  const requestSync=()=>{if(syncFrame)return;syncFrame=requestAnimationFrame(()=>{syncFrame=0;sync();});};
+  window.addEventListener('dominion:meeting-snapshot',requestSync,true);
+  window.addEventListener('dominion:participant-presence',requestSync,true);
+  window.addEventListener('dominion:active-speakers',requestSync,true);
+  const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(!document.hidden&&inMeeting()&&side&&!side.hidden)requestSync();},6000);sync();
+  window.DominionParticipantControls=Object.freeze({version:'2.0.45-event-driven-self-menu-stable-participants',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
 })();

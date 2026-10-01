@@ -91,7 +91,7 @@
   function detailHeader(detail,title,copy){detail.innerHTML='';const header=document.createElement('header');header.className='av-detail-head';const back=document.createElement('button');back.type='button';back.className='secondary-button av-back';back.textContent='‹ Back';const text=document.createElement('div');const h=document.createElement('h3');h.textContent=title;const p=document.createElement('p');p.textContent=copy;text.append(h,p);header.append(back,text);detail.append(header);back.onclick=()=>showSettingsList();}
   function showSettingsList(){stopSettingsPreview();const dialog=$('#settingsDialog');if(!dialog)return;dialog.classList.remove('av-video-settings-open');dialog.querySelector('.settings-list').hidden=false;dialog.querySelector('.settings-note').hidden=false;const detail=dialog.querySelector('#avSettingsDetail');if(detail)detail.hidden=true;}
   function addSelect(detail,labelText,attr){const label=document.createElement('label');label.className='av-field';const span=document.createElement('span');span.textContent=labelText;const select=document.createElement('select');select.setAttribute(attr,'1');label.append(span,select);detail.append(label);return select;}
-  function addToggle(detail,labelText,checked,onChange){const label=document.createElement('label');label.className='av-toggle-row';const span=document.createElement('span');span.textContent=labelText;const input=document.createElement('input');input.type='checkbox';input.checked=Boolean(checked);input.onchange=()=>onChange(input.checked);label.append(span,input);detail.append(label);return input;}
+  function addToggle(detail,labelText,checked,onChange){const label=document.createElement('label');label.className='av-toggle-row';const span=document.createElement('span');span.className='av-toggle-label';span.textContent=labelText;const input=document.createElement('input');input.type='checkbox';input.checked=Boolean(checked);input.setAttribute('role','switch');input.setAttribute('aria-label',labelText);const slider=document.createElement('span');slider.className='av-switch';slider.setAttribute('aria-hidden','true');input.onchange=()=>onChange(input.checked);label.append(span,input,slider);detail.append(label);return input;}
   function addBackgroundPicker(detail,fx,video,media){
     const snap=fx.snapshot();const wrap=document.createElement('section');wrap.className='av-backgrounds';const title=document.createElement('div');title.className='av-backgrounds-head';title.innerHTML='<strong>Virtual background</strong><small>Applied to the outgoing camera feed</small>';wrap.append(title);
     const grid=document.createElement('div');grid.className='av-background-grid';
@@ -265,7 +265,12 @@
 
   function installMeetingQuickMenus(media){
     const mic=$('#roomMic'),camera=$('#roomCamera');if(!mic||!camera||mic.dataset.avQuickInstalled)return;mic.dataset.avQuickInstalled='1';
-    for(const [button,kind] of [[mic,'audio'],[camera,'video']]){const caret=document.createElement('button');caret.type='button';caret.className='av-device-caret attached-device-caret';caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.innerHTML='<span aria-hidden="true">⌃</span>';button.classList.add('has-device-caret');button.insertAdjacentElement('afterend',caret);caret.onclick=event=>{event.stopPropagation();void openQuickMenu(media,kind,caret);};}
+    for(const [button,kind] of [[mic,'audio'],[camera,'video']]){
+      let caret=button.nextElementSibling?.classList?.contains('av-device-caret')?button.nextElementSibling:null;
+      if(!caret){caret=document.createElement('button');caret.type='button';caret.className='av-device-caret attached-device-caret';button.insertAdjacentElement('afterend',caret);}
+      caret.dataset.kind=kind;caret.dataset.dsRuntimeCaretSlot='0';caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.innerHTML='<span aria-hidden="true">⌃</span>';caret.disabled=false;
+      button.classList.add('has-device-caret');caret.onclick=event=>{event.stopPropagation();void openQuickMenu(media,kind,caret);};
+    }
   }
 
   waitForMedia().then(media=>{

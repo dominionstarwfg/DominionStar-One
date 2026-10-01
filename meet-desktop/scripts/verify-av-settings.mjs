@@ -49,7 +49,14 @@ assert(enhancements.includes('avGroup(detail,\'Camera\'')&&enhancements.includes
 assert(enhancements.includes('Test Microphone')&&enhancements.includes('Test Speaker')&&enhancements.includes('Test Speaker & Microphone…'),'Audio settings and the quick menu must expose real device tests.');
 assert(enhancements.includes('Echo cancellation')&&enhancements.includes('Noise suppression')&&enhancements.includes('Automatically adjust microphone volume')&&enhancements.includes('Original sound for musicians'),'Audio settings must expose Zoom-style microphone processing controls.');
 assert(enhancements.includes('media.setAudioProcessing')&&enhancements.includes('media.testMicrophoneStream'),'Audio controls must call the clean media authority rather than maintain independent microphone state.');
-assert(media.includes("echoCancellation:state.originalSound?false:state.echoCancellation")&&media.includes("noiseSuppression:state.originalSound?false:state.noiseSuppression")&&media.includes("autoGainControl:state.originalSound?false:state.autoGainControl"),'Microphone capture constraints must reflect the saved processing policy.');
+assert(
+  media.includes("const original=state.originalSound;") &&
+  media.includes("echoCancellation:original?false:state.echoCancellation") &&
+  media.includes("noiseSuppression:original?false:state.noiseSuppression") &&
+  media.includes("autoGainControl:original?false:state.autoGainControl") &&
+  media.includes("autoGainControl:readPref('autoGainControl','false')!=='false'"),
+  'Microphone capture constraints must reflect the saved gentle processing policy: echo/noise processing may remain enabled while automatic gain defaults off, and Original Sound bypasses processing.'
+);
 assert(media.includes("replaceKind('audio',state.microphoneId,true)"),'Changing live audio processing must force the microphone track to reacquire with the new constraints.');
 assert(media.includes("const existing=live('audio')[0];if(existing){const clone=existing.clone()"),'Microphone testing must reuse the live audio source when available instead of opening a competing device capture.');
 assert(media.includes('async testCameraStream')&&media.includes("const existing=live('video')[0]")&&media.includes('return new MediaStream([clone])'),'Video Settings must own a private camera-preview path that reuses/clones the live camera when available.');

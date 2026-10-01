@@ -135,21 +135,27 @@
   }
   function mediaStatusNode(row,id){
     let wrap=row.querySelector('.ds-participant-media');if(!wrap){wrap=document.createElement('span');wrap.className='ds-participant-media';const actions=row.querySelector('.participant-actions')||document.createElement('span');if(!actions.isConnected){actions.className='participant-actions ds-participant-actions';row.append(actions);}actions.prepend(wrap);}
-    const state=statusFor(id);wrap.innerHTML=`<span class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
+    const state=statusFor(id);wrap.innerHTML=`<span data-participant-mic class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span data-participant-video class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
     return wrap;
   }
 
   function ensureSelfMore(row){
-    if(String(row.dataset.participantId||'')!==String(localParticipantId||''))return;
+    const id=String(row.dataset.participantId||'');
+    if(id!==String(localParticipantId||'')&&row.dataset.participantSelf!=='1')return;
     const actions=row.querySelector('.participant-actions');if(!actions)return;
-    let button=actions.querySelector('[data-ds-self-more]');if(button)return;
-    button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';button.textContent='•••';button.setAttribute('aria-label','More options for yourself');
+    const duplicates=[...actions.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')];
+    for(const node of duplicates)node.remove();
+    const button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';button.textContent='•••';button.setAttribute('aria-label','More options for yourself');
     button.onclick=event=>{event.stopPropagation();openSelfParticipantMenu(button,row);};actions.append(button);
   }
   function openSelfParticipantMenu(button,row){
     closeTransientMenus();const id=String(row.dataset.participantId||'');selfMenu=document.createElement('div');selfMenu.className='ds-command-menu ds-self-participant-menu';document.body.append(selfMenu);
-    const rename=document.createElement('button');rename.type='button';rename.className='ds-command-item';rename.innerHTML='<span></span><strong>Rename</strong>';rename.onclick=()=>{closeSelfMenu();openRenamePrompt(id,String(row.dataset.participantName||''));};selfMenu.append(rename);
-    const copy=document.createElement('button');copy.type='button';copy.className='ds-command-item';copy.innerHTML='<span></span><strong>Copy display name</strong>';copy.onclick=async()=>{closeSelfMenu();try{await navigator.clipboard.writeText(String(row.dataset.participantName||''));}catch{}};selfMenu.append(copy);
+    const mediaState=window.DominionMediaController?.snapshot?.()||{};
+    const addSelfAction=(label,handler)=>{const item=document.createElement('button');item.type='button';item.className='ds-command-item';item.innerHTML=`<span></span><strong>${label}</strong>`;item.onclick=()=>{closeSelfMenu();void handler();};selfMenu.append(item);};
+    addSelfAction(mediaState.micOn?'Mute':'Unmute',()=>window.DominionMediaController?.setMicrophone?.(!mediaState.micOn));
+    addSelfAction(mediaState.cameraOn?'Stop Video':'Start Video',()=>window.DominionMediaController?.setCamera?.(!mediaState.cameraOn));
+    addSelfAction('Rename',()=>openRenamePrompt(id,String(row.dataset.participantName||'')));
+    addSelfAction('Copy display name',async()=>{try{await navigator.clipboard.writeText(String(row.dataset.participantName||''));}catch{}});
     positionMenu(selfMenu,button,{width:220,above:false});
   }
   function openRenamePrompt(id,currentName){
@@ -157,6 +163,24 @@
     const form=dialog.querySelector('form'),input=dialog.querySelector('input'),status=dialog.querySelector('.ds-dialog-status');input.value=currentName;status.textContent='';
     form.onsubmit=async event=>{event.preventDefault();const next=String(input.value||'').trim();if(!next)return;try{await meeting?.renameParticipant?.(id,next);dialog.close();}catch(error){status.textContent=String(error?.message||error||'Rename failed.');}};
     if(!dialog.open)dialog.showModal();setTimeout(()=>{input.focus();input.select();},20);
+  }
+
+  function normalizeParticipantIdentity(row,id){
+    const copy=row.querySelector('.person-copy');if(!copy)return;
+    const name=String(row.dataset.participantName||'Participant').trim()||'Participant';
+    const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
+    const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
+    for(const node of copy.querySelectorAll('.participant-you,.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-adaptive-role,.ds-canonical-role,.ds-canonical-self'))node.remove();
+    copy.querySelector('small')?.remove();
+    let strong=copy.querySelector('strong');
+    if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
+    strong.textContent=name;
+    if(role==='host'||role==='cohost'){
+      const badge=document.createElement('span');badge.className='ds-canonical-role';badge.textContent=role==='host'?'Host':'Co-host';strong.append(badge);
+    }
+    if(self){
+      const selfLabel=document.createElement('span');selfLabel.className='ds-canonical-self';selfLabel.textContent='(me)';strong.append(selfLabel);
+    }
   }
 
   function decorateParticipantRows(){
@@ -167,10 +191,15 @@
       row.classList.add('ds-modern-participant-row');
       let actions=row.querySelector('.participant-actions');if(!actions){actions=document.createElement('span');actions.className='participant-actions ds-participant-actions';row.append(actions);}else actions.classList.add('ds-participant-actions');
       mediaStatusNode(row,id);
-      const more=row.querySelector('[data-participant-more]');if(more){more.textContent='•••';more.classList.add('ds-participant-more');more.setAttribute('aria-label',`More options for ${String(row.dataset.participantName||'participant')}`);actions.append(more);}
-      ensureSelfMore(row);
-      const copy=row.querySelector('.person-copy'),role=String(row.dataset.participantRole||'participant').toLowerCase();
-      if(copy){let badge=copy.querySelector('.ds-role-chip');if(!badge){badge=document.createElement('span');badge.className='ds-role-chip';copy.querySelector('strong')?.append(badge);}badge.textContent=role==='host'?'Host':role==='cohost'?'Co-host':'';badge.hidden=!['host','cohost'].includes(role);const legacy=copy.querySelector('small');if(legacy)legacy.textContent=id===localParticipantId?'You':role==='host'?'Meeting host':role==='cohost'?'Co-host':'Participant';}
+      const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
+      if(self)ensureSelfMore(row);
+      else{
+        const moreButtons=[...actions.querySelectorAll('[data-participant-more],.ds-host-row-more,[data-ds-self-more]')];
+        const more=moreButtons.find(node=>node.matches('[data-participant-more]'))||moreButtons[0]||null;
+        for(const node of moreButtons)if(node!==more)node.remove();
+        if(more){more.textContent='•••';more.classList.add('ds-participant-more');more.setAttribute('aria-label',`More options for ${String(row.dataset.participantName||'participant')}`);more.onclick=event=>{event.stopPropagation();void window.DominionParticipantControls?.openParticipantMenu?.(more);};actions.append(more);}
+      }
+      normalizeParticipantIdentity(row,id);
     }
   }
 
@@ -190,17 +219,15 @@
   }
 
   function setReactionIcon(){
-    const icon=q('#roomReactions .ds-control-icon');if(!icon||icon.dataset.dsReactionIcon==='1')return;icon.dataset.dsReactionIcon='1';icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="12" r="7.5"/><path d="M7.8 10h.01M13.2 10h.01M7.6 14c.9 1.2 1.8 1.7 2.9 1.7 1.2 0 2.2-.5 3.1-1.7"/><path d="M18.2 3.8v3.4M16.5 5.5h3.4M18 15.7c1.9.2 3 1.1 3 2.4 0 1.6-1.8 2.6-4.7 2.7"/></svg>';
+    const icon=q('#roomReactions .ds-control-icon');if(!icon||icon.dataset.dsReactionIcon==='1')return;icon.dataset.dsReactionIcon='1';icon.innerHTML='<span class="reaction-emoji-glyph" aria-hidden="true">😊</span>';
   }
   function installReactionAuthority(){
-    const button=q('#roomReactions');if(!button)return;setReactionIcon();if(button.dataset.dsPhysicalAuthority==='1')return;button.dataset.dsPhysicalAuthority='1';button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');
-    button.onclick=event=>{event.preventDefault();event.stopPropagation();openReactionTray(button);};
+    const button=q('#roomReactions');if(!button)return;setReactionIcon();
+    // Final React ownership belongs to DominionMeetingFeatures + RuntimeStability.
+    // This compatibility layer may observe reaction animations, but it must not
+    // install a second button handler or create a second chooser.
+    button.setAttribute('aria-haspopup','menu');
     const layer=q('#meetingReactionLayer');if(layer&&!reactionObserver){reactionObserver=new MutationObserver(records=>{for(const record of records){for(const node of record.addedNodes){if(!(node instanceof HTMLElement)||!node.classList.contains('meeting-reaction-bubble')||node.dataset.dsUpgraded==='1')continue;upgradeReactionBubble(node);}}});reactionObserver.observe(layer,{childList:true});}
-  }
-  function openReactionTray(anchor){
-    closeTransientMenus();reactionMenu=document.createElement('div');reactionMenu.className='ds-reaction-tray';reactionMenu.setAttribute('role','menu');
-    for(const emoji of REACTIONS){const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label',`React ${emoji}`);button.onclick=event=>{event.stopPropagation();closeReactionMenu();void features()?.sendReaction?.(emoji);};reactionMenu.append(button);}
-    const divider=document.createElement('span');divider.className='ds-reaction-divider';reactionMenu.append(divider);const hand=document.createElement('button');hand.type='button';hand.className='ds-raise-hand';const raised=Boolean(features()?.snapshot?.().handRaised);hand.textContent=raised?'✋ Lower Hand':'✋ Raise Hand';hand.onclick=event=>{event.stopPropagation();closeReactionMenu();void features()?.toggleRaiseHand?.();};reactionMenu.append(hand);document.body.append(reactionMenu);anchor.setAttribute('aria-expanded','true');positionMenu(reactionMenu,anchor,{width:430});
   }
   function upgradeReactionBubble(node){
     node.dataset.dsUpgraded='1';const emoji=String(node.querySelector('b')?.textContent||''),name=String(node.querySelector('span')?.textContent||'Participant');if(!emoji)return;

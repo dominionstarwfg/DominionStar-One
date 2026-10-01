@@ -2,3 +2,4 @@
 .waiting-overlay[data-waiting-state="host"] .waiting-pulse{background:rgba(229,184,66,.12);color:var(--gold)}
 .waiting-overlay[data-waiting-state="admission"] .waiting-pulse{background:rgba(55,132,218,.14);color:#6fb2ff}
 .waiting-overlay[data-waiting-state="closed"] .waiting-pulse{background:rgba(217,75,89,.12);color:#ff7f8d}
+.preview-avatar.has-photo,.stage-avatar.has-photo,.person-badge.has-photo,.remote-peer-fallback.has-photo{overflow:hidden;background:#101820!important;padding:0!important}.preview-avatar .ds-meeting-avatar-photo,.stage-avatar .ds-meeting-avatar-photo,.person-badge .ds-meeting-avatar-photo,.remote-peer-fallback .ds-meeting-avatar-photo{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}.person-badge.ds-profile-photo-edit{cursor:pointer;outline:1px solid rgba(76,149,255,.28);outline-offset:1px}.person-badge.ds-profile-photo-edit:hover{outline-color:rgba(76,149,255,.72)}

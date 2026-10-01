@@ -1,0 +1,118 @@
+name: DominionStar Meet Stable-Signed Physical Mac QA 2.0.41
+
+# This lane exists specifically for real macOS Screen Recording/TCC testing.
+# Hosted functional/visual QA may use ad-hoc signing, but its artifact MUST NOT
+# be handed to a physical-Mac tester as a permission-persistence candidate.
+# macOS TCC binds Screen Recording grants to code identity. A stable signing
+# identity is therefore mandatory before this workflow emits an artifact.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOMINIONSTAR_VERSION: '2.0.41'
+
+jobs:
+  stable-signed-physical-mac:
+    runs-on: macos-14
+    env:
+      CSC_LINK: ${{ secrets.DOMINIONSTAR_MAC_CERTIFICATE }}
+      CSC_KEY_PASSWORD: ${{ secrets.DOMINIONSTAR_MAC_CERTIFICATE_PASSWORD }}
+      CSC_NAME: ${{ secrets.DOMINIONSTAR_MAC_SIGNING_IDENTITY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'true'
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Refuse an unsigned or ad-hoc physical build
+        shell: bash
+        run: |
+          test -n "$CSC_LINK" || { echo 'Missing DOMINIONSTAR_MAC_CERTIFICATE'; exit 1; }
+          test -n "$CSC_KEY_PASSWORD" || { echo 'Missing DOMINIONSTAR_MAC_CERTIFICATE_PASSWORD'; exit 1; }
+          test -n "$CSC_NAME" || { echo 'Missing DOMINIONSTAR_MAC_SIGNING_IDENTITY'; exit 1; }
+          test "$CSC_NAME" != '-' || { echo 'Ad-hoc identity is forbidden for physical TCC testing'; exit 1; }
+
+      - name: Install clean dependencies
+        working-directory: meet-desktop
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Run source certification
+        working-directory: meet-desktop
+        run: |
+          test "$(node -p "require('./package.json').version")" = "$DOMINIONSTAR_VERSION"
+          node scripts/verify-runtime-share-authority-2.0.41.mjs
+          node scripts/verify-share-authority-2.0.41.mjs
+          node scripts/verify-physical-acceptance-2.0.41.mjs
+          node scripts/verify-physical-parity-2.0.41.mjs
+
+      - name: Build universal app with stable identity
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never -c.mac.identity="$CSC_NAME"
+
+      - name: Locate and verify signed app identity
+        id: signed
+        shell: bash
+        run: |
+          APP_PATH="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP_PATH"
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign -dvvv "$APP_PATH" 2> codesign-details.txt
+          codesign -dr - "$APP_PATH" 2> designated-requirement.txt
+          cat codesign-details.txt
+          cat designated-requirement.txt
+          ! grep -qi 'Signature=adhoc' codesign-details.txt
+          ! grep -qi 'TeamIdentifier=not set' codesign-details.txt
+          grep -q 'Identifier=com.dominionstar.desktop' codesign-details.txt
+          grep -q 'designated =>' designated-requirement.txt
+
+      - name: Install signed candidate into Applications for packaged checks
+        shell: bash
+        run: |
+          sudo rm -rf "/Applications/DominionStar Meet.app"
+          sudo ditto "${{ steps.signed.outputs.path }}" "/Applications/DominionStar Meet.app"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx "$DOMINIONSTAR_VERSION"
+          codesign --verify --deep --strict --verbose=2 "/Applications/DominionStar Meet.app"
+
+      - name: Run packaged share/presenter certification
+        working-directory: meet-desktop
+        run: |
+          node scripts/verify-packaged-physical-mac-2.0.21.mjs "/Applications/DominionStar Meet.app"
+          node scripts/verify-packaged-presenter-toolbar-roundtrip-2.0.22.mjs "/Applications/DominionStar Meet.app"
+          node scripts/verify-packaged-mac-presenter-window-2.0.41.mjs "/Applications/DominionStar Meet.app"
+          node scripts/verify-packaged-reference-command-routing-2.0.41.mjs "/Applications/DominionStar Meet.app"
+
+      - name: Create stable-signed physical QA package
+        shell: bash
+        run: |
+          mkdir -p physical-mac-signed-2.0.41
+          ZIP="physical-mac-signed-2.0.41/DominionStar-Meet-2.0.41-STABLE-SIGNED-Physical-Mac-QA.zip"
+          ditto -c -k --sequesterRsrc --keepParent "/Applications/DominionStar Meet.app" "$ZIP"
+          shasum -a 256 "$ZIP" | tee physical-mac-signed-2.0.41/SHA256.txt
+          cp codesign-details.txt physical-mac-signed-2.0.41/
+          cp designated-requirement.txt physical-mac-signed-2.0.41/
+          printf 'commit=%s\nversion=2.0.41\nsigning=stable-non-adhoc-required\nphysical_mac_tcc=still-requires-real-user-test\nrelease=false\n' "$GITHUB_SHA" > physical-mac-signed-2.0.41/BUILD-PROVENANCE.txt
+
+      - name: Upload stable-signed physical Mac QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-meet-2.0.41-stable-signed-physical-mac-qa
+          path: physical-mac-signed-2.0.41/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove QA installation
+        if: always()
+        run: sudo rm -rf "/Applications/DominionStar Meet.app"

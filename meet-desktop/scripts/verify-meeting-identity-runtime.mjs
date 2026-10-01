@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {createMeetingService} from '../src/meeting-service.mjs';
 
 const calls=[];
@@ -214,4 +215,17 @@ assert.equal(personalUpdateCall.args.p_passcode,'731');
 assert(!calls.some(call=>call.args?.p_passcode==='12345678'),'Invalid 8-digit passcodes must never reach the database RPC layer.');
 assert(!calls.some(call=>call.args?.p_room_code==='123456789012'),'Invalid 12-digit Meeting IDs must never reach the database RPC layer.');
 
-console.log('DOMINIONSTAR_MEETING_IDENTITY_RUNTIME_OK stable-personal-room editable-3-to-7-passcode generated-11-digit recurring-reuse personal-schedule exact-input-validation');
+// Lock the desktop UI to the same Personal Room identity. Selecting
+// "Use Personal Meeting ID" must start the reusable Personal Room and Copy
+// invite must derive its link from that stable roomCode, never a generated
+// instant room or transient participant/session id.
+const personalRoomUi=fs.readFileSync(new URL('../ui/personal-room.js',import.meta.url),'utf8');
+assert(personalRoomUi.includes('Use Personal Meeting ID'),'New Meeting must expose the Personal Meeting ID choice.');
+assert(personalRoomUi.includes('meeting.startPersonalRoom()'),'Selecting Personal Meeting ID must start the reusable Personal Room instead of creating a generated room.');
+assert(personalRoomUi.includes("toggle.checked=state.room?Boolean(state.room.useForInstant!==false):true"),'New Meeting must immediately display Personal Meeting ID intent while its saved room is loading.');
+assert(personalRoomUi.includes('Loading your Personal Meeting ID…')&&personalRoomUi.includes('if(button)button.disabled=true'),'Personal Meeting ID loading must hold Start instead of flashing a generated identity.');
+assert(personalRoomUi.includes("if(!toggle?.checked)return")&&personalRoomUi.includes('const personal=state.room||await load()'),'A selected Personal Meeting ID must never fall through to generated-room creation while the room is unresolved.');
+assert(personalRoomUi.includes('meetingId=${encodeURIComponent(String(state.room.roomCode||\'\'))}'),'The copied Personal Room invite must derive its Meeting ID from the stable Personal Room roomCode.');
+assert(!personalRoomUi.includes('meetingId=${encodeURIComponent(String(state.hostStart?.roomCode'),'The Personal Room invite must not derive its Meeting ID from a transient started occurrence.');
+
+console.log('DOMINIONSTAR_MEETING_IDENTITY_RUNTIME_OK stable-personal-room persistent-personal-invite immediate-personal-intent no-random-fallback editable-3-to-7-passcode generated-11-digit recurring-reuse personal-schedule exact-input-validation');

@@ -1,0 +1,36 @@
+name: DominionStar Meet Desktop OAuth Return 2.0.29
+
+on:
+  pull_request:
+    paths:
+      - 'meet-desktop/package.json'
+      - 'meet-desktop/src/auth-service.mjs'
+      - 'meet-desktop/scripts/verify-auth.mjs'
+      - 'meet-desktop/scripts/verify-desktop-oauth-return-2.0.29.mjs'
+      - '.github/workflows/desktop-oauth-return-2.0.29.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  oauth-return:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify desktop OAuth return authority
+        working-directory: meet-desktop
+        run: |
+          node --check src/auth-service.mjs
+          node --check scripts/verify-auth.mjs
+          node --check scripts/verify-desktop-oauth-return-2.0.29.mjs
+          node scripts/verify-desktop-oauth-return-2.0.29.mjs
+          node scripts/verify-auth.mjs

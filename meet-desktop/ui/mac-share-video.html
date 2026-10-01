@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DominionStar Meet – Presenter Video</title>
+  <link rel="stylesheet" href="./mac-share-video.css">
+</head>
+<body>
+  <main id="dock" class="video-dock" aria-label="DominionStar Meet presenter video">
+    <section class="video-stage">
+      <video id="cameraPreview" class="camera-preview" autoplay muted playsinline hidden></video>
+      <div id="cameraPending" class="camera-pending" hidden><span>Camera on</span></div>
+      <div id="cameraFallback" class="camera-fallback">
+        <img id="profileImage" alt="">
+        <span id="profileInitials">DS</span>
+      </div>
+      <div class="video-view-controls" aria-label="Video panel layout">
+        <button id="videoViewSpeaker" type="button" class="active" aria-label="Speaker view" title="Speaker view"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="5" width="12" height="10" rx="2"/></svg></button>
+        <button id="videoViewGallery" type="button" aria-label="Gallery view" title="Gallery view"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="6" height="5" rx="1"/><rect x="11" y="4" width="6" height="5" rx="1"/><rect x="3" y="11" width="6" height="5" rx="1"/><rect x="11" y="11" width="6" height="5" rx="1"/></svg></button>
+        <button id="videoViewHide" type="button" aria-label="Hide video panel" title="Hide video panel"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12"/></svg></button>
+      </div>
+      <button id="videoMoreButton" class="video-more-button" type="button" aria-label="Video options" aria-expanded="false">•••</button>
+      <div id="videoMoreMenu" class="video-more-menu" hidden>
+        <button id="videoMenuAudio" type="button">Unmute</button>
+        <button id="videoMenuCamera" type="button">Stop Video</button>
+        <div class="video-menu-separator" aria-hidden="true"></div>
+        <button id="videoMenuSpeaker" type="button">Speaker View</button>
+        <button id="videoMenuGallery" type="button">Gallery View</button>
+        <button id="videoMenuHide" type="button">Hide Video Panel</button>
+      </div>
+      <div class="participant-name"><span id="micState" class="mic-state" aria-hidden="true"><i></i><i></i><i></i></span><strong id="displayName">You</strong></div>
+    </section>
+  </main>
+  <script src="./mac-share-video.js"></script>
+</body>
+</html>

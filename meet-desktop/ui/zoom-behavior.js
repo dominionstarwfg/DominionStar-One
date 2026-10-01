@@ -156,7 +156,10 @@
     if(!select){
       select=document.createElement('select');select.id='meetingChatPolicy';select.className='meeting-chat-policy';select.setAttribute('aria-label','Participant chat permissions');
       select.innerHTML='<option value="everyone">Participants can chat: Everyone</option><option value="host_cohost">Participants can chat: Host & Co-hosts</option><option value="disabled">Participants cannot chat</option>';
-      header.insertBefore(select,header.querySelector('[data-chat-close]'));
+      const close=header.querySelector('[data-chat-close]');
+      const actions=header.querySelector('.zoom-chat-header-actions');
+      const anchor=actions?.parentNode===header?actions:(close?.parentNode===header?close:null);
+      header.insertBefore(select,anchor);
       select.onchange=async()=>{
         const ctx=await context();if(!ctx.roomId||!meeting?.setChatPolicy)return;
         select.disabled=true;

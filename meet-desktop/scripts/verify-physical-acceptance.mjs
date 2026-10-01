@@ -6,10 +6,12 @@ const js=read('ui/zoom-physical-acceptance.js');
 const css=read('ui/zoom-physical-acceptance.css');
 const bootstrap=read('ui/auth-password.js');
 const presenter=read('ui/presenter-toolbar.js');
+const macPresenter=read('ui/mac-presenter-toolbar.js');
 
 // Parse the last-loaded production authority before any packaged build starts.
 new Function(js);
 new Function(presenter);
+new Function(macPresenter);
 
 assert(bootstrap.includes('zoom-physical-acceptance.css')&&bootstrap.includes('zoom-physical-acceptance.js'),'Physical acceptance authority must load after the production polish layer.');
 assert(js.includes("button.dataset.dsPhysicalAuthority='1'")&&js.includes('installViewAuthority')&&js.includes('installHostToolsAuthority')&&js.includes('installMoreAuthority'),'View, Host Tools and More must have explicit visible-control authority.');
@@ -37,4 +39,16 @@ assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-gr
 assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
 assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance module version must be explicit.');
 
-console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat clickable-reactions six-second-float real-source-share-recheck readable-settings');
+// Physical-Mac active-share control authority. Layout/show-meeting remain native
+// floating-window operations, while every live meeting/media command must try
+// the capture-owning meeting renderer before falling back to the native queue.
+assert(macPresenter.includes("const NATIVE_ONLY_COMMANDS=new Set(['layout-speaker','layout-gallery','layout-hide','show-meeting'])"),'Mac presenter native-only command boundary must remain explicit.');
+assert(macPresenter.includes("if(NATIVE_ONLY_COMMANDS.has(normalized))return await sendNative(normalized);"),'Mac layout/show-meeting controls must stay on native window authority.');
+const rendererFirst=macPresenter.indexOf('try{return await sendRenderer(normalized);}');
+const nativeFallback=macPresenter.indexOf('if(nativeBridge?.command)return sendNative(normalized);');
+assert(rendererFirst>=0&&nativeFallback>rendererFirst,'Mac Stop/Audio/Video/Pause/Chat/Participants/Annotate must execute in the meeting renderer before native fallback.');
+assert(macPresenter.includes("q('#stopShare')?.addEventListener('click'")&&macPresenter.includes("try{await send('stop');}"),'Mac Stop Share must use the direct-first presenter command authority.');
+assert(macPresenter.includes('const accepted=result=>Boolean(result)')&&macPresenter.includes('result.direct===true')&&macPresenter.includes('result.acknowledged===true'),'Mac presenter controls must require execution/acknowledgement rather than treating a one-way send as success.');
+assert(macPresenter.includes("version:'2.0.41-direct-renderer-first-controls'"),'Mac presenter direct-first control version must remain explicit.');
+
+console.log('DOMINIONSTAR_PHYSICAL_ACCEPTANCE_OK working-view working-host-tools working-more participant-media participant-ellipsis modern-chat clickable-reactions six-second-float real-source-share-recheck readable-settings mac-direct-first-presenter-controls');
