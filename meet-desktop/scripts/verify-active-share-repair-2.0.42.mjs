@@ -6,13 +6,14 @@ const toolbar=read('ui/mac-presenter-toolbar.js');
 const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
 const screenshotReferenceCss=read('ui/zoom-screenshot-reference-2.0.41.css');
 const integration=read('ui/share-integration.js');
-const mirror=read('src/mac-share-video-mirror.mjs');
+const macVideo=read('ui/mac-share-video.js');
 const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
 const participantsReference=read('ui/zoom-participants-reference-2.0.41.js');
 const pkg=JSON.parse(read('package.json'));
 
 new Function(toolbar);
 new Function(integration);
+new Function(macVideo);
 
 assert.equal(pkg.version,'2.0.44','Active-share grouped repair must remain present in the current certified 2.0.44 package.');
 assert(toolbar.includes("version:'2.0.45-stateful-share-chrome'"),'Mac presenter toolbar must identify the current stateful share-chrome authority.');
@@ -27,9 +28,9 @@ assert(integration.includes('desktop?.sharePicker?.cancel?.()'),'A completed Sto
 assert(integration.includes('window.DominionShareRuntimeAuthority2041?.close?.()'),'Stop Share must close the in-renderer approved chooser.');
 assert(integration.includes('shareWasActive&&!active')&&integration.includes('window.DominionActiveShareHomeParity2041?.restoreMeeting?.()'),'The authoritative active-to-inactive transition must explicitly restore the active meeting surface.');
 
-assert(mirror.includes('window.DominionMediaController||null')&&mirror.includes('controller?.stream?.()'),'Floating participant video must read the authoritative camera stream, not only one DOM video element.');
-assert(mirror.includes("typeof ImageCapture==='function'")&&mirror.includes('new ImageCapture(track).grabFrame()'),'Camera mirror must retain a frame-capture fallback when no live DOM video surface is paintable.');
-assert(mirror.includes("candidates.find(item=>item.id==='localMeetingVideo')||candidates[0]"),'Camera mirror must accept any live element bound to the authoritative camera track.');
+assert(macVideo.includes("navigator.mediaDevices.getUserMedia({audio:false,video})")&&macVideo.includes("if(cameraId)video.deviceId={ideal:cameraId}"),'Floating participant video must acquire a low-rate preview from the selected authoritative camera device.');
+assert(macVideo.includes("dock.dataset.videoOwner='presenter-device-preview'"),'Floating participant video must identify the presenter-owned device preview authority.');
+assert(integration.includes("const syncMacCameraFramePump=()=>{};")&&!integration.includes("canvas.toBlob(resolve,'image/jpeg'")&&!integration.includes("new Uint8Array(await blob.arrayBuffer())"),'The meeting renderer must publish camera state only and must not encode JPEG preview frames during active screen share.');
 assert(screenshotReference.includes('data-ds-ref-critical-meeting-geometry')&&screenshotReference.includes('grid-template-rows:47px minmax(0,1fr) 56px!important')&&screenshotReference.includes('max-height:56px!important'),'Final screenshot authority must synchronously hard-lock the packaged meeting toolbar to the 56px Zoom-reference geometry.');
 assert(screenshotReference.includes('function claimFinalMeetingAuthority(){')&&screenshotReference.includes("overlay.classList.remove('ds-exec-lock')")&&screenshotReference.includes("qa('#meetingOverlay .ds-exec-icon,#meetingOverlay .ds-exec-label,#meetingOverlay .ds-exec-encrypted,#meetingOverlay .ds-exec-divider')"),'Final Zoom-reference sync must synchronously strip stale executive geometry before any packaged interaction measurement.');
 assert(screenshotReferenceCss.includes('#meetingOverlay #participantRoster .person-row{min-height:52px!important')&&screenshotReferenceCss.includes('#meetingOverlay #participantRoster .person-copy strong{font-size:13px!important')&&screenshotReferenceCss.includes('.ds-participant-more{width:28px!important;height:28px!important;min-width:28px!important'),'The actually loaded final screenshot stylesheet must preserve readable Participants rows and ellipsis hit targets.');
