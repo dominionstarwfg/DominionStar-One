@@ -7,6 +7,8 @@ const css=read('ui/zoom-physical-acceptance.css');
 const bootstrap=read('ui/auth-password.js');
 const presenter=read('ui/presenter-toolbar.js');
 const macPresenter=read('ui/mac-presenter-toolbar.js');
+const runtime=read('ui/runtime-stability.js');
+const features=read('ui/meeting-features.js');
 
 // Parse the last-loaded production authority before any packaged build starts.
 new Function(js);
@@ -27,7 +29,10 @@ assert(js.includes("payload={kind:'media-state'")&&js.includes("meeting.sendSign
 assert(css.includes('.ds-modern-participant-row')&&css.includes('.ds-media-state.off')&&css.includes('.ds-role-chip'),'Participant roster must have modern role and media-state presentation.');
 assert(css.includes('#meetingChatPanel')&&css.includes('.meeting-chat-message.own p')&&css.includes('font-size:14px!important'),'Chat must use readable modern message typography and distinguish own messages.');
 assert(js.includes("const REACTIONS=['👏','👍','❤️','😂','😮','🎉']"),'Standard reaction set must match the six common Zoom meeting reactions.');
-assert(js.includes('openReactionTray')&&js.includes("features()?.sendReaction?.(emoji)"),'Every reaction button must invoke the real reaction sender.');
+assert(js.includes('Final React ownership belongs to DominionMeetingFeatures + RuntimeStability.'),'Physical acceptance layer must explicitly defer reaction control ownership to the canonical runtime/features authority.');
+assert(runtime.includes("window.DominionMeetingFeatures?.openReactions?.(reactions)"),'Runtime stability must route the Reactions control to the canonical reaction tray.');
+assert(features.includes("b.onclick=()=>{closeReactionMenu();void sendReaction(emoji);}"),'Every canonical reaction button must invoke the real reaction sender.');
+assert(features.includes('async function sendReaction(emoji)')&&features.includes("await broadcast('reaction',payload)"),'Canonical reaction sender must publish reactions through the live meeting transport.');
 assert(js.includes('upgradeReactionBubble')&&js.includes('setTimeout(()=>replacement.remove(),6300)'),'Reaction animation must persist for roughly six seconds rather than disappearing after the legacy three-second timer.');
 assert(css.includes('animation:dsPhysicalReactionRise 6.2s')&&css.includes('flex-direction:column')&&css.includes('calc(-88vh + 120px)'),'Reaction must rise substantially up the left side with the participant name beneath the emoji.');
 assert(css.includes('.ds-reaction-tray{position:fixed;z-index:2800'),'Reaction tray must remain clickable above meeting layers.');
