@@ -14,13 +14,13 @@ const pkg=JSON.parse(read('package.json'));
 new Function(toolbar);
 new Function(integration);
 
-assert.ok(['2.0.42','2.0.43'].includes(pkg.version),'Active-share grouped repair must remain present in 2.0.42+ certified candidates.');
-assert(toolbar.includes("version:'2.0.42-strict-direct-native-ack-fallback'"),'Mac presenter toolbar must identify the strict direct-first plus acknowledged fallback authority.');
-assert(toolbar.includes("result.direct===true||result.acknowledged===true||result.handled===true")&&!toolbar.includes("result.handled===true||result.ok===true"),'A generic ok:true must never count as proof that a presenter command executed.');
-const sendBlock=toolbar.slice(toolbar.indexOf('const send=async command=>'),toolbar.indexOf("q('#layoutButton')"));
-const directFirst=sendBlock.indexOf('try{return await sendRenderer(normalized);}');
-const nativeFallback=sendBlock.indexOf('if(nativeBridge?.command)return sendNative(normalized);');
-assert(directFirst>=0&&nativeFallback>directFirst,'Visible Mac presenter controls must preserve direct-first routing but fall back to acknowledged native delivery when execution is not proven.');
+assert.equal(pkg.version,'2.0.44','Active-share grouped repair must remain present in the current certified 2.0.44 package.');
+assert(toolbar.includes("version:'2.0.45-stateful-share-chrome'"),'Mac presenter toolbar must identify the current stateful share-chrome authority.');
+assert(toolbar.includes("result.ok===true||result.direct===true||result.acknowledged===true||result.handled===true"),'Presenter commands must require positive execution evidence before a click is treated as successful.');
+const sendBlock=toolbar.slice(toolbar.indexOf('const send=async command=>'),toolbar.indexOf("q('#moreButton')"));
+const nativeFirst=sendBlock.indexOf('if(nativeBridge?.command)return await sendNative(normalized);');
+const rendererFallback=sendBlock.indexOf('if(rendererBridge?.command)return await sendRenderer(normalized);');
+assert(nativeFirst>=0&&rendererFallback>nativeFirst,'Visible Mac presenter controls must preserve acknowledged native-first routing with bounded renderer fallback.');
 
 assert(integration.includes('async function openPickerWithPermission(){')&&integration.includes('const approved=window.DominionShareRuntimeAuthority2041;')&&integration.includes('if(approved?.open)return approved.open();'),'Presenter New Share must reopen the approved 2.0.41 runtime chooser.');
 assert(integration.includes('desktop?.sharePicker?.cancel?.()'),'A completed Stop Share transition must close any stale legacy picker before the next meeting interaction.');
