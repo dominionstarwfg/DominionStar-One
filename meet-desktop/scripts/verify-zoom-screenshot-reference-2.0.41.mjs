@@ -142,7 +142,10 @@ has(macOverlay,"ipcMain.on('mac-share:capture-stopped'",'Native presenter overla
 has(macOverlay,'function allowSystemCapture(win)','Presenter chrome must explicitly allow ordinary macOS screenshot capture.');
 has(macOverlay,'win.setContentProtection(false)','Presenter chrome must remain visible to normal screenshots while recursive-share avoidance is handled by the share composition/exclusion authority.');
 lacks(macOverlay,'setContentProtection(true)','Presenter chrome must not use OS content protection because that hides details from ordinary screenshots.');
-has(macOverlay,'border:4px solid #2ed573','Entire-display sharing must have a local green sharing boundary.');
+has(macOverlay,"const BORDER_THICKNESS=4;",'Entire-display sharing must retain the certified 4px local boundary thickness.');
+has(macOverlay,"const BORDER_ACTIVE_COLOR='#2ed573';",'Entire-display sharing must retain the certified green active-share boundary color.');
+has(macOverlay,'border:${BORDER_THICKNESS}px solid ${BORDER_ACTIVE_COLOR}','Entire-display sharing must render the active boundary from the certified perimeter constants.');
+has(macOverlay,'body[data-share-state="paused"]::before{border-color:${BORDER_PAUSED_COLOR}}','Paused sharing must switch the same perimeter to the paused boundary color.');
 has(macOverlay,"includes('/ui/index.html')",'Native presenter commands must resolve the canonical meeting renderer rather than auxiliary windows.');
 has(macOverlay,'presenter_command_ack_timeout','Native presenter commands must fail if the meeting renderer does not acknowledge delivery.');
 has(macOverlay,"const presenterPreloadPath=path.join(here,'presenter-preload.cjs')",'Floating presenter surfaces must use the isolated presenter preload.');
