@@ -1,6 +1,7 @@
 import {app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, session, shell, systemPreferences, screen} from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import readline from 'node:readline';
 import { createDesktopAuth } from './auth-service.mjs';
 import { createMeetingService } from './meeting-service.mjs';
 import { createShareService } from './share-service.mjs';
@@ -22,6 +23,7 @@ const preloadPath=path.join(__dirname,'preload.cjs');
 const qaFixtureRequested=process.argv.includes('--qa-interaction-fixtures')||process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
 const qaInteractionFixtures=app.isPackaged&&app.getVersion().includes('-')&&qaFixtureRequested;
 let mainWindow=null;
+let qaInteractionBridgeInstalled=false;
 let desktopAuth=null;
 let meetingService=null;
 let shareService=null;
@@ -116,6 +118,44 @@ function installLocalPermissionPolicy(desktopSession){
     const source=requestingOrigin||webContents?.getURL()||'';
     return localRendererUrl(source)&&allowed.has(permission);
   });
+}
+
+function installQaInteractionBridge(){
+  if(qaInteractionBridgeInstalled||!app.isPackaged||!qaFixtureRequested)return;
+  qaInteractionBridgeInstalled=true;
+  const reply=(payload={})=>{try{process.stdout.write(`DOMINIONSTAR_QA_RPC ${JSON.stringify(payload)}\n`);}catch{}};
+  const interfaceReader=readline.createInterface({input:process.stdin,crlfDelay:Infinity});
+  interfaceReader.on('line',async line=>{
+    let request=null;
+    try{request=JSON.parse(String(line||''));}catch{return;}
+    const id=Number(request?.id)||0;if(!id)return;
+    try{
+      const win=mainWindow;
+      if(!win||win.isDestroyed()||!win.webContents||win.webContents.isDestroyed())throw new Error('main_window_unavailable');
+      const method=String(request.method||'');
+      if(method==='evaluate'){
+        if(win.webContents.isLoadingMainFrame())throw new Error('main_window_loading');
+        const value=await win.webContents.executeJavaScript(String(request.expression||''),true);
+        reply({id,ok:true,value:value===undefined?null:value});return;
+      }
+      if(method==='input'){
+        const raw=request.event||{},type=String(raw.type||'');
+        const typeMap={mouseMoved:'mouseMove',mousePressed:'mouseDown',mouseReleased:'mouseUp'};
+        const mapped=typeMap[type]||type;
+        if(!['mouseMove','mouseDown','mouseUp'].includes(mapped))throw new Error('unsupported_input_type');
+        const event={type:mapped,x:Math.round(Number(raw.x)||0),y:Math.round(Number(raw.y)||0)};
+        if(mapped!=='mouseMove'){event.button=String(raw.button||'left');event.clickCount=Math.max(1,Number(raw.clickCount)||1);}
+        if(mapped==='mouseMove'){event.movementX=Math.round(Number(raw.movementX)||0);event.movementY=Math.round(Number(raw.movementY)||0);}
+        win.webContents.sendInputEvent(event);
+        reply({id,ok:true,value:true});return;
+      }
+      if(method==='state'){
+        reply({id,ok:true,value:{url:win.webContents.getURL(),loading:win.webContents.isLoadingMainFrame(),crashed:Boolean(win.webContents.isCrashed?.()),destroyed:win.webContents.isDestroyed()}});return;
+      }
+      throw new Error('unsupported_qa_method');
+    }catch(error){reply({id,ok:false,error:String(error?.message||error||'qa_rpc_failed')});}
+  });
+  interfaceReader.on('error',()=>{});
 }
 
 function createMainWindow(){
@@ -229,6 +269,7 @@ app.whenReady().then(async()=>{
   meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
   shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,screen,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
+  installQaInteractionBridge();
   const sendPowerEvent=(type)=>{
     if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('app:power-event',{type,at:Date.now()});
   };

@@ -153,19 +153,20 @@ assert.ok(!bridge.includes("observer.observe(document.body,{childList:true,subtr
 assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must remain available for live meeting state.');
 
 
-/* PACKAGED_RUNTIME_MAIN_RENDERER_RECONNECT_LOCK */
+/* PACKAGED_RUNTIME_MAIN_WINDOW_RPC_LOCK */
 const packagedRuntime=read('scripts/verify-packaged-runtime-stability-2.0.22.mjs');
 const mainSource=read('src/main.mjs');
 assert.ok(
-  packagedRuntime.includes('/json/version')&&
-  packagedRuntime.includes("Target.setDiscoverTargets")&&
-  packagedRuntime.includes("Target.getTargets")&&
-  packagedRuntime.includes("Target.attachToTarget")&&
-  packagedRuntime.includes("flatten:true")&&
-  packagedRuntime.includes("/\\/index\\.html(?:[?#]|$)/i")&&
-  packagedRuntime.includes("sessionId=''")&&
-  packagedRuntime.includes('async function attachIndex()'),
-  'Packaged runtime stability must keep a stable browser-level DevTools connection and attach a replaceable session specifically to the DominionStar index renderer.'
+  mainSource.includes('function installQaInteractionBridge(){')&&
+  mainSource.includes("win.webContents.executeJavaScript")&&
+  mainSource.includes("win.webContents.sendInputEvent")&&
+  mainSource.includes("DOMINIONSTAR_QA_RPC")&&
+  mainSource.includes("app.isPackaged||!qaFixtureRequested")&&
+  packagedRuntime.includes("DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'")&&
+  packagedRuntime.includes("rpc('evaluate'")&&
+  packagedRuntime.includes("rpc('input'")&&
+  !packagedRuntime.includes('--remote-debugging-port='),
+  'Packaged runtime stability must exercise the real packaged mainWindow through the QA-only Electron webContents RPC bridge instead of a fragile DevTools renderer socket.'
 );
-assert.ok(mainSource.includes("[DOMINIONSTAR_RENDERER_GONE]")&&packagedRuntime.includes('DOMINIONSTAR_RENDERER_GONE'),'A real renderer crash must remain fail-closed even when CDP reconnection is supported.');
+assert.ok(mainSource.includes("[DOMINIONSTAR_RENDERER_GONE]")&&packagedRuntime.includes('DOMINIONSTAR_RENDERER_GONE'),'A real renderer crash must remain fail-closed during QA RPC automation.');
 console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');

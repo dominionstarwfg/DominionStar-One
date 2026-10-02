@@ -5,102 +5,61 @@ import {spawn} from 'node:child_process';
 const appPath=process.argv[2];
 if(!appPath)throw new Error('Usage: node verify-packaged-runtime-stability-2.0.22.mjs <DominionStar Meet.app>');
 const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
-const port=10920+Math.floor(Math.random()*100);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-let stderr='';
-const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
+let stderr='',stdoutLog='',stdoutBuffer='',rpcId=0;
+const rpcPending=new Map();
+const child=spawn(executable,[],{
+  env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},
+  stdio:['pipe','pipe','pipe']
+});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
+child.stdout.on('data',chunk=>{
+  const text=String(chunk);stdoutLog+=text;stdoutBuffer+=text;
+  while(stdoutBuffer.includes('\n')){
+    const cut=stdoutBuffer.indexOf('\n'),line=stdoutBuffer.slice(0,cut).trim();stdoutBuffer=stdoutBuffer.slice(cut+1);
+    if(!line.startsWith('DOMINIONSTAR_QA_RPC '))continue;
+    let message=null;try{message=JSON.parse(line.slice('DOMINIONSTAR_QA_RPC '.length));}catch{continue;}
+    const waiter=rpcPending.get(Number(message?.id)||0);if(!waiter)continue;
+    rpcPending.delete(Number(message.id));clearTimeout(waiter.timer);
+    message.ok?waiter.resolve(message.value):waiter.reject(new Error(String(message.error||'qa_rpc_failed')));
+  }
+});
 
-async function browserEndpoint(){
-  const deadline=Date.now()+15000;
-  while(Date.now()<deadline){
-    if(child.exitCode!==null)throw new Error(`Packaged app exited before runtime-stability gate.\n${stderr}`);
-    try{
-      const response=await fetch(`http://127.0.0.1:${port}/json/version`,{signal:AbortSignal.timeout(700)});
-      if(response.ok){
-        const info=await response.json();
-        if(info?.webSocketDebuggerUrl)return info.webSocketDebuggerUrl;
-      }
-    }catch{}
-    await sleep(150);
-  }
-  throw new Error('Unable to attach to the packaged DominionStar browser DevTools endpoint.');
-}
-function connect(url){return new Promise((resolve,reject)=>{const socket=new WebSocket(url);const timer=setTimeout(()=>reject(new Error('Runtime-stability browser CDP connection timeout.')),3000);socket.addEventListener('open',()=>{clearTimeout(timer);resolve(socket);},{once:true});socket.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('Runtime-stability browser CDP connection failed.'));},{once:true});});}
-let socket=null,nextId=0,sessionId='',targetId='';const pending=new Map(),WS_OPEN=1;
-function rejectPending(reason='CDP browser connection replaced'){for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error(reason));}pending.clear();}
-function bindSocket(next){
-  socket=next;
-  next.addEventListener('message',event=>{
-    const message=JSON.parse(String(event.data));
-    if(message.id){
-      const waiter=pending.get(message.id);if(!waiter)return;
-      pending.delete(message.id);clearTimeout(waiter.timer);
-      message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);
-      return;
-    }
-    if(message.method==='Target.targetDestroyed'&&message.params?.targetId===targetId){targetId='';sessionId='';}
-    if(message.method==='Target.detachedFromTarget'&&message.params?.sessionId===sessionId){targetId='';sessionId='';}
+function rpc(method,payload={},timeout=4500){
+  return new Promise((resolve,reject)=>{
+    if(child.exitCode!==null)return reject(new Error(`Packaged app exited before QA RPC ${method}.\n${stderr}`));
+    const id=++rpcId,timer=setTimeout(()=>{rpcPending.delete(id);reject(new Error(`QA RPC timeout ${method}`));},timeout);
+    rpcPending.set(id,{resolve,reject,timer});
+    try{child.stdin.write(JSON.stringify({id,method,...payload})+'\n');}
+    catch(error){clearTimeout(timer);rpcPending.delete(id);reject(error);}
   });
-  next.addEventListener('close',()=>{if(socket===next){socket=null;targetId='';sessionId='';rejectPending('CDP browser connection closed.');}},{once:true});
-}
-function cdp(method,params={},session=sessionId){return new Promise((resolve,reject)=>{
-  if(!socket||socket.readyState!==WS_OPEN)return reject(new Error('CDP browser connection is not open.'));
-  const id=++nextId,timer=setTimeout(()=>{pending.delete(id);reject(new Error(`CDP timeout ${method}`));},4500);
-  pending.set(id,{resolve,reject,timer});
-  const envelope={id,method,params};if(session)envelope.sessionId=session;
-  try{socket.send(JSON.stringify(envelope));}catch(error){clearTimeout(timer);pending.delete(id);reject(error);}
-});}
-const browserCdp=(method,params={})=>cdp(method,params,'');
-async function ensureBrowser(){
-  if(socket?.readyState===WS_OPEN)return;
-  bindSocket(await connect(await browserEndpoint()));
-  await browserCdp('Target.setDiscoverTargets',{discover:true});
-}
-async function findIndexTarget(timeout=15000){
-  const deadline=Date.now()+timeout;
-  while(Date.now()<deadline){
-    if(child.exitCode!==null)throw new Error(`Packaged app exited before index renderer was available.\n${stderr}`);
-    await ensureBrowser();
-    const result=await browserCdp('Target.getTargets');
-    const pages=(result?.targetInfos||[]).filter(item=>item.type==='page'&&String(item.url||'').startsWith('file://'));
-    const page=pages.find(item=>/\/index\.html(?:[?#]|$)/i.test(String(item.url||'')))||pages.find(item=>/DominionStar Meet/i.test(String(item.title||'')));
-    if(page?.targetId)return page;
-    await sleep(120);
-  }
-  throw new Error('Unable to locate the packaged DominionStar index renderer target.');
-}
-async function attachIndex(){
-  await ensureBrowser();
-  const page=await findIndexTarget();
-  if(sessionId){try{await browserCdp('Target.detachFromTarget',{sessionId});}catch{}}
-  const attached=await browserCdp('Target.attachToTarget',{targetId:page.targetId,flatten:true});
-  targetId=page.targetId;sessionId=String(attached?.sessionId||'');
-  if(!sessionId)throw new Error('CDP did not return a session for the DominionStar index renderer.');
-  await cdp('Runtime.enable',{},sessionId);
-  return page;
 }
 async function evaluate(expression,retry=true){
-  try{
-    if(!sessionId)await attachIndex();
-    const result=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true},sessionId);
-    if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Renderer evaluation failed.');
-    return result.result?.value;
-  }catch(error){
-    if(!retry)throw error;
+  try{return await rpc('evaluate',{expression},5000);}
+  catch(error){
     if(/DOMINIONSTAR_RENDERER_GONE/.test(stderr))throw new Error(`Renderer crashed during packaged runtime gate.\n${stderr}`);
-    targetId='';sessionId='';
-    await attachIndex();
+    if(!retry)throw error;
+    await sleep(120);
     return evaluate(expression,false);
   }
 }
-async function waitFor(expression,label,timeout=10000){const deadline=Date.now()+timeout;while(Date.now()<deadline){try{if(await evaluate(`Boolean(${expression})`))return;}catch(error){if(/Renderer crashed/.test(String(error?.message||error)))throw error;}await sleep(80);}throw new Error(`Timed out waiting for ${label}.`);}
-
+async function waitFor(expression,label,timeout=12000){
+  const deadline=Date.now()+timeout;let lastError='';
+  while(Date.now()<deadline){
+    try{if(await evaluate(`Boolean(${expression})`))return;}catch(error){lastError=String(error?.message||error);if(/Renderer crashed/.test(lastError))throw error;}
+    await sleep(90);
+  }
+  let state=null;try{state=await rpc('state',{},1500);}catch{}
+  throw new Error(`Timed out waiting for ${label}. lastError=${lastError||'none'} state=${JSON.stringify(state)}`);
+}
+async function cdp(method,params={}){
+  if(method!=='Input.dispatchMouseEvent')throw new Error(`Unsupported packaged QA command ${method}`);
+  return rpc('input',{event:params});
+}
 
 let failure=null;
 try{
-  await ensureBrowser();
-  await attachIndex();
+  await waitFor("document.readyState==='complete'",'packaged main renderer');
   try{
     await waitFor("document.readyState==='complete'&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&document.querySelector('#meetingOverlay')",'stable runtime controllers');
   }catch(error){
@@ -178,5 +137,5 @@ try{
 
   assert.doesNotMatch(stderr,/DOMINIONSTAR_RENDERER_GONE|Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected a renderer crash or uncaught renderer error.');
   console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants compact-right-default accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip approved-runtime-share responsive-event-loop floating-panels-draggable-full-stage');
-}catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
+}catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());if(stdoutLog.trim())console.error(stdoutLog.trim());}finally{for(const [,waiter] of rpcPending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}rpcPending.clear();try{child.stdin.end();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
