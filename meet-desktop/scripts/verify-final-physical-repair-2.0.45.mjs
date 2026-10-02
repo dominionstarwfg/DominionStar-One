@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const assert=(c,m)=>{if(!c)throw new Error(m)};
-const participant=read('ui/zoom-physical-acceptance.js'),participantController=read('ui/participant-controls.js'),participantCss=read('ui/participant-controls.css'),overlay=read('src/mac-share-presenter-overlay.mjs'),videoHtml=read('ui/mac-share-video.html'),videoJs=read('ui/mac-share-video.js'),annotationHtml=read('ui/mac-annotation-toolbar.html'),annotationCanvas=read('ui/mac-annotation-canvas.js'),worker=read('ui/share-capture-worker.js'),share=read('ui/share-controller.js');
+const participant=read('ui/zoom-physical-acceptance.js'),participantController=read('ui/participant-controls.js'),participantCss=read('ui/participant-controls.css'),runtime=read('ui/runtime-stability.js'),overlay=read('src/mac-share-presenter-overlay.mjs'),videoHtml=read('ui/mac-share-video.html'),videoJs=read('ui/mac-share-video.js'),annotationHtml=read('ui/mac-annotation-toolbar.html'),annotationCanvas=read('ui/mac-annotation-canvas.js'),worker=read('ui/share-capture-worker.js'),share=read('ui/share-controller.js');
 assert(participant.includes('const MIC_OFF=MIC_ON;'),'double microphone slash source remains');
 assert(participant.includes('const VIDEO_OFF=VIDEO_ON;'),'double video slash source remains');
 assert(participantCss.includes('.ds-media-state.off::after')&&participantCss.includes('rotate(-45deg)'),'canonical participant slash missing');
-assert(participantController.includes("className='ds-panel-traffic'")&&participantController.includes('setParticipants(false)'),'participant window close chrome missing');
+assert(runtime.includes("dataset.dsRuntimeParticipantChrome='1'")&&runtime.includes('class="ds-traffic-close"')&&runtime.includes('setParticipants(false)')&&!participantController.includes("className='ds-panel-traffic'"),'participant window single-owner close chrome missing');
 assert(overlay.includes('toolbarRevealZoneContains(point)')&&overlay.includes('y=Math.round(area.y+12)'),'presenter reveal zone/clearance missing');
 assert(videoHtml.includes('videoQuickAudio')&&videoHtml.includes('videoQuickCamera')&&videoJs.includes('armMenuClose'),'presenter video direct controls/menu cleanup missing');
 assert(annotationHtml.includes('annotate-select')&&annotationCanvas.includes("cmd==='annotate-select'")&&overlay.includes('setAnnotationPointerPassthrough(true)'),'annotation pointer return path missing');
