@@ -573,14 +573,16 @@ assert(
 /* PHYSICAL_MAC_2_0_50_REFERENCE_GEOMETRY_LOCK */
 assert(
   macPresenter.includes('const width=Math.min(770,Math.max(680,area.width-28));')&&
-  macPresenter.includes("let width=videoLayout==='gallery'?340:212,height=videoLayout==='gallery'?220:124;")&&
-  macPresenter.includes('const width=46,height=Math.min(526,Math.max(430,area.height-180));')&&
-  macPresenter.includes('screen.getCursorScreenPoint()')&&
+  macPresenter.includes("let width=videoLayout==='gallery'?360:268,height=videoLayout==='gallery'?225:166;")&&
+  macPresenter.includes('const width=66,height=Math.min(526,Math.max(430,area.height-180));')&&
+  macPresenter.includes('function toolbarRevealZoneContains(point)')&&
+  macPresenter.includes('if(moved<3||!toolbarRevealZoneContains(point))return;')&&
+  macPresenter.includes('y=Math.round(area.y+12)')&&
   macToolbarCss.includes('width:760px;max-width:calc(100% - 8px);height:58px')&&
   macToolbarCss.includes('.toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}')&&
   macToolbar.includes('const AUTO_HIDE_MS=2400;')&&
   shareAnnotation.includes("state.active&&state.mode==='laser'"),
-  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, global mouse-motion reveal, 210x120-class presenter video, 46px annotation rail, and live laser pointer.'
+  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, localized toolbar reveal zone with top clearance, professional presenter-video scale, readable 66px annotation rail, and live laser pointer.'
 );
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_44_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui dedicated-presenter-camera-preview simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown enlarged-profile-scale single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
