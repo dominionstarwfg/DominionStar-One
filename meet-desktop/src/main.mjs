@@ -126,6 +126,9 @@ function createMainWindow(){
   mainWindow.webContents.once('did-finish-load',()=>{
     const pending=pendingJoinUrls[0]||'';if(pending)mainWindow?.webContents.send('app:join-url',pending);
   });
+  mainWindow.webContents.on('render-process-gone',(_event,details={})=>{
+    console.error('[DOMINIONSTAR_RENDERER_GONE]',JSON.stringify({reason:String(details.reason||'unknown'),exitCode:Number(details.exitCode||0)}));
+  });
   mainWindow.on('focus',()=>{try{mainWindow?.flashFrame(false);}catch{}});
   void mainWindow.loadFile(path.join(uiDir,'index.html'));
   mainWindow.on('closed',()=>{try{shareService?.shutdown?.();}catch{}mainWindow=null;});

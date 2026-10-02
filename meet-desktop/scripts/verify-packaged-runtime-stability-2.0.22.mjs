@@ -11,17 +11,57 @@ let stderr='';
 const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
 
-async function target(){const deadline=Date.now()+15000;while(Date.now()<deadline){if(child.exitCode!==null)throw new Error(`Packaged app exited before runtime-stability gate.\n${stderr}`);try{const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(700)});if(response.ok){const targets=await response.json();const page=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://'));if(page?.webSocketDebuggerUrl)return page;}}catch{}await sleep(150);}throw new Error('Unable to attach to packaged renderer for runtime-stability gate.');}
+async function target(){
+  const deadline=Date.now()+15000;
+  while(Date.now()<deadline){
+    if(child.exitCode!==null)throw new Error(`Packaged app exited before runtime-stability gate.\n${stderr}`);
+    try{
+      const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(700)});
+      if(response.ok){
+        const targets=await response.json();
+        const pages=targets.filter(item=>item.type==='page'&&String(item.url||'').startsWith('file://'));
+        const page=pages.find(item=>/\/index\.html(?:[?#]|$)/i.test(String(item.url||'')))||pages.find(item=>/DominionStar Meet/i.test(String(item.title||'')))||pages[0];
+        if(page?.webSocketDebuggerUrl)return page;
+      }
+    }catch{}
+    await sleep(150);
+  }
+  throw new Error('Unable to attach to the packaged DominionStar index renderer for runtime-stability gate.');
+}
 function connect(url){return new Promise((resolve,reject)=>{const socket=new WebSocket(url);const timer=setTimeout(()=>reject(new Error('Runtime-stability CDP connection timeout.')),3000);socket.addEventListener('open',()=>{clearTimeout(timer);resolve(socket);},{once:true});socket.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('Runtime-stability CDP connection failed.'));},{once:true});});}
-let socket=null,nextId=0;const pending=new Map();
-function cdp(method,params={}){return new Promise((resolve,reject)=>{const id=++nextId,timer=setTimeout(()=>{pending.delete(id);reject(new Error(`CDP timeout ${method}`));},4500);pending.set(id,{resolve,reject,timer});socket.send(JSON.stringify({id,method,params}));});}
-async function evaluate(expression){const result=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Renderer evaluation failed.');return result.result?.value;}
-async function waitFor(expression,label,timeout=10000){const deadline=Date.now()+timeout;while(Date.now()<deadline){try{if(await evaluate(`Boolean(${expression})`))return;}catch{}await sleep(80);}throw new Error(`Timed out waiting for ${label}.`);}
+let socket=null,nextId=0;const pending=new Map(),WS_OPEN=1;
+function rejectPending(reason='CDP connection replaced'){for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error(reason));}pending.clear();}
+function bindSocket(next){
+  socket=next;
+  socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
+  socket.addEventListener('close',()=>rejectPending('CDP renderer target closed.'),{once:true});
+}
+async function reconnect(){
+  try{socket?.close();}catch{}
+  rejectPending();
+  const page=await target(),next=await connect(page.webSocketDebuggerUrl);
+  bindSocket(next);
+  await cdp('Runtime.enable');
+  return page;
+}
+function cdp(method,params={}){return new Promise((resolve,reject)=>{if(!socket||socket.readyState!==WS_OPEN)return reject(new Error('CDP renderer connection is not open.'));const id=++nextId,timer=setTimeout(()=>{pending.delete(id);reject(new Error(`CDP timeout ${method}`));},4500);pending.set(id,{resolve,reject,timer});try{socket.send(JSON.stringify({id,method,params}));}catch(error){clearTimeout(timer);pending.delete(id);reject(error);}});}
+async function evaluate(expression,retry=true){
+  try{
+    const result=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
+    if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Renderer evaluation failed.');
+    return result.result?.value;
+  }catch(error){
+    if(!retry)throw error;
+    if(/DOMINIONSTAR_RENDERER_GONE/.test(stderr))throw new Error(`Renderer crashed during packaged runtime gate.\n${stderr}`);
+    await reconnect();
+    return evaluate(expression,false);
+  }
+}
+async function waitFor(expression,label,timeout=10000){const deadline=Date.now()+timeout;while(Date.now()<deadline){try{if(await evaluate(`Boolean(${expression})`))return;}catch(error){if(/Renderer crashed/.test(String(error?.message||error)))throw error;}await sleep(80);}throw new Error(`Timed out waiting for ${label}.`);}
 
 let failure=null;
 try{
-  const page=await target();socket=await connect(page.webSocketDebuggerUrl);
-  socket.addEventListener('message',event=>{const message=JSON.parse(String(event.data));if(!message.id)return;const waiter=pending.get(message.id);if(!waiter)return;pending.delete(message.id);clearTimeout(waiter.timer);message.error?waiter.reject(new Error(message.error.message||'CDP error')):waiter.resolve(message.result);});
+  const page=await target();bindSocket(await connect(page.webSocketDebuggerUrl));
   await cdp('Runtime.enable');
   try{
     await waitFor("document.readyState==='complete'&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&document.querySelector('#meetingOverlay')",'stable runtime controllers');
@@ -98,7 +138,7 @@ try{
   const responsiveness=await evaluate(`new Promise(resolve=>{const started=performance.now();setTimeout(()=>resolve(Math.round(performance.now()-started)),80);})`);
   assert.ok(responsiveness<500,`Renderer event loop is still starved; 80 ms timer took ${responsiveness} ms.`);
 
-  assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected an uncaught renderer error.');
+  assert.doesNotMatch(stderr,/DOMINIONSTAR_RENDERER_GONE|Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected a renderer crash or uncaught renderer error.');
   console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants compact-right-default accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip approved-runtime-share responsive-event-loop floating-panels-draggable-full-stage');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
