@@ -1,0 +1,23 @@
+import fs from 'node:fs';
+const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+const pkg=JSON.parse(read('package.json'));
+const runtime=read('ui/runtime-stability.js');
+const runtimeCss=read('ui/runtime-stability.css');
+const controls=read('ui/participant-controls.js');
+const reference=read('ui/zoom-participants-reference-2.0.41.js');
+
+assert(pkg.version==='2.0.48','package version is not 2.0.48');
+assert(runtime.includes("const baseWidth=panel===chat?330:360;"),'participants are not using the fixed readable 360px geometry');
+assert(!runtime.includes("panel.classList.contains('ds-panel-wide')?430"),'legacy participant wide mode still owns geometry');
+assert(runtime.includes("dataset.dsRuntimeParticipantChrome='1'"),'runtime is not the sole participant chrome owner');
+assert(runtime.includes('class="ds-traffic-close"')&&runtime.includes('class="ds-traffic-minimize"')&&runtime.includes('class="ds-traffic-restore"'),'runtime traffic lights are incomplete');
+assert(runtime.includes('aria-label="Close participants"')&&runtime.includes('aria-label="Minimize participants"')&&runtime.includes('aria-label="Restore participants"'),'runtime traffic controls are not accessible');
+assert(!controls.includes("className='ds-panel-traffic'"),'participant-controls still creates competing participant chrome');
+assert(!reference.includes("className='ds-participants-traffic'"),'reference layer still creates competing traffic controls');
+assert(!reference.includes("className='ds-participants-popout'"),'reference layer still creates the rejected expand arrow');
+assert(!reference.includes("side.classList.toggle('ds-panel-wide')"),'reference layer can still enter the rejected wide state');
+assert(reference.includes('width:360px!important;min-width:min(360px,calc(100% - 24px))!important'),'reference participant width is still cramped');
+assert(runtimeCss.includes('.ds-traffic-close')&&runtimeCss.includes('.ds-traffic-minimize')&&runtimeCss.includes('.ds-traffic-restore'),'all three traffic lights are not visibly styled');
+assert(runtimeCss.includes('.ds-participants-popout')&&runtimeCss.includes('.ds-participants-traffic{display:none!important}'),'legacy participant chrome is not forcibly retired');
+console.log('PASS participant panel contract 2.0.48');
