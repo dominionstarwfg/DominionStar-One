@@ -127,15 +127,15 @@ if(process.platform==='darwin'){
   function positionVideo(){
     if(!isAlive(videoWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    let width=videoLayout==='gallery'?340:212,height=videoLayout==='gallery'?220:124;
-    if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(196,Math.min(278,current.width||212));height=Math.max(112,Math.min(166,current.height||124));}catch{}}
+    let width=videoLayout==='gallery'?360:268,height=videoLayout==='gallery'?225:166;
+    if(videoLayout==='speaker'){try{const current=videoWindow.getBounds();width=Math.max(240,Math.min(360,current.width||268));height=Math.max(145,Math.min(225,Math.round(width*9/16)));}catch{}}
     const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+74);
     try{videoWindow.setBounds({x,y,width,height},false);}catch{}
   }
   function positionAnnotation(){
     if(!isAlive(annotationWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=46,height=Math.min(526,Math.max(430,area.height-180));
+    const width=66,height=Math.min(526,Math.max(430,area.height-180));
     const x=Math.round(area.x+8),y=Math.round(area.y+Math.max(82,(area.height-height)/2));
     try{annotationWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -248,7 +248,7 @@ if(process.platform==='darwin'){
   }
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
-    const win=new BrowserWindow({width:212,height:124,minWidth:196,minHeight:112,maxWidth:340,maxHeight:220,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
+    const win=new BrowserWindow({width:268,height:166,minWidth:240,minHeight:145,maxWidth:420,maxHeight:280,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
     videoWindow=win;allowSystemCapture(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
@@ -281,12 +281,12 @@ if(process.platform==='darwin'){
   async function prepareAnnotation(){
     if(isAlive(annotationWindow))return annotationWindow;
     const win=new BrowserWindow({
-      width:46,height:500,minWidth:46,maxWidth:46,minHeight:430,maxHeight:526,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
-      resizable:false,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
+      width:66,height:500,minWidth:66,maxWidth:66,minHeight:430,maxHeight:526,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      resizable:false,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-annotation-v2044'}
     });
     annotationWindow=win;allowSystemCapture(win);
-    try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
+    try{win.setAlwaysOnTop(true,'screen-saver',3);}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(annotationWindow===win)annotationWindow=null;});
     positionAnnotation();
@@ -465,7 +465,7 @@ if(process.platform==='darwin'){
       if(!isAlive(canvas))return {ok:false,sent:false,acknowledged:false,error:'annotation_canvas_unavailable'};
       if(normalized==='annotate-select')setAnnotationPointerPassthrough(true);
       else if(/^annotate-(?:pen|highlight|laser|erase|shape-)/.test(normalized))setAnnotationPointerPassthrough(false);
-      try{canvas.webContents.send('mac-annotation:command',{command:normalized});return {ok:true,sent:true,acknowledged:true,pointerPassthrough:annotationPointerPassthrough};}
+      try{canvas.webContents.send('mac-annotation:command',{command:normalized});if(isAlive(annotationWindow)){try{annotationWindow.setAlwaysOnTop(true,'screen-saver',3);annotationWindow.showInactive?.();annotationWindow.moveTop?.();}catch{}}return {ok:true,sent:true,acknowledged:true,pointerPassthrough:annotationPointerPassthrough};}
       catch(error){return {ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'annotation_command_failed')};}
     }
     const panelCommand=['participants','chat'].includes(normalized);

@@ -86,6 +86,7 @@ jobs:
           node scripts/verify-active-share-repair-2.0.42.mjs
           node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
           node scripts/verify-final-physical-repair-2.0.45.mjs
+          node scripts/verify-physical-rejection-repair-2.0.46.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop

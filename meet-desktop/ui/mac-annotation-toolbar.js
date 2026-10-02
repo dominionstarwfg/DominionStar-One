@@ -21,5 +21,5 @@
     }finally{button.classList.remove('pending');}
   });
   document.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();void bridge?.command?.('annotate-close');}});
-  window.DominionMacAnnotationPalette=Object.freeze({version:'2.0.45-native-canvas-palette',commands:buttons.map(button=>button.dataset.command)});
+  window.DominionMacAnnotationPalette=Object.freeze({version:'2.0.46-native-canvas-palette',commands:buttons.map(button=>button.dataset.command)});
 })();

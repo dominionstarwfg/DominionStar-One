@@ -630,3 +630,28 @@ body>.meeting-reaction-menu,
 #meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret[data-kind="video"]{margin-right:0!important}
 #meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret:hover,
 #meetingOverlay .ds-runtime-toolbar-left .av-device-caret.attached-device-caret[aria-expanded="true"]{background:#2b2c2f!important}
+
+
+/* 2.0.46 physical rejection repair: one readable participant surface. */
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"]{
+  min-width:min(360px,calc(100% - 20px))!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-panel-traffic{
+  display:flex!important;visibility:visible!important;opacity:1!important;z-index:20!important;pointer-events:auto!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-participants-popout{display:none!important}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head>div{
+  padding-left:58px!important;padding-right:12px!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-copy{
+  min-width:0!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;
+  justify-content:center!important;gap:1px!important;overflow:hidden!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-copy strong{
+  display:block!important;width:100%!important;min-width:0!important;overflow:hidden!important;
+  text-overflow:ellipsis!important;white-space:nowrap!important;font-size:12.5px!important;line-height:1.2!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-copy small{
+  display:block!important;width:100%!important;color:#aeb0b4!important;font-size:9.5px!important;line-height:1.2!important;
+  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}

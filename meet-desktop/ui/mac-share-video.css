@@ -47,3 +47,33 @@
 .video-self-controls svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .video-self-controls button::before,.video-self-controls button::after{content:none}
 .video-self-controls button.is-off::after{content:"";display:block;position:absolute;left:4px;right:4px;top:50%;height:2px;border-radius:999px;background:#ff5368;transform:translateY(-50%) rotate(-45deg);pointer-events:none}
+
+
+/* 2.0.46 presenter-video polish: larger tile, quiet chrome, hover intelligence. */
+.video-stage{
+  border-radius:12px!important;border-color:rgba(255,255,255,.20)!important;
+  box-shadow:0 14px 34px rgba(0,0,0,.50)!important;
+}
+.video-stage:has(.mic-state.speaking){
+  border-color:#31d158!important;
+  box-shadow:0 0 0 1px rgba(49,209,88,.62),0 14px 34px rgba(0,0,0,.50)!important;
+}
+.video-view-controls,.video-self-controls,.video-more-button{
+  opacity:0!important;transform:translateY(-3px)!important;
+  transition:opacity .14s ease,transform .14s ease,background .14s ease!important;
+}
+.video-stage:hover .video-view-controls,
+.video-stage:hover .video-self-controls,
+.video-stage:hover .video-more-button,
+.video-view-controls:focus-within,
+.video-self-controls:focus-within,
+.video-more-button[aria-expanded="true"]{
+  opacity:1!important;transform:none!important;
+}
+.video-self-controls{top:8px!important;right:43px!important;background:rgba(13,13,14,.82)!important;backdrop-filter:blur(10px)}
+.video-view-controls{top:8px!important;left:8px!important;background:rgba(13,13,14,.82)!important;backdrop-filter:blur(10px)}
+.video-more-button{top:8px!important;right:8px!important;background:rgba(13,13,14,.82)!important}
+.participant-name{
+  left:8px!important;bottom:7px!important;max-width:calc(100% - 16px)!important;padding:4px 7px!important;
+  border-radius:6px!important;background:rgba(0,0,0,.68)!important;backdrop-filter:blur(8px)!important;
+}

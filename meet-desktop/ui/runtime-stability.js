@@ -5,6 +5,7 @@
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
+  const desktopSurface=Boolean(window.dominionDesktop)||isMac;
   const disposed=new Set();
   const htmlDescriptor=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
   let frame=0;
@@ -372,10 +373,10 @@
     const participants=panel.matches('.room-side');
     const header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
     if(!header)return;
-    if(participants&&isMac){
+    if(participants&&desktopSurface){
       for(const legacy of [...header.querySelectorAll('.ds-participants-traffic')])legacy.remove();
     }
-    if(participants&&isMac&&!header.querySelector('.ds-panel-traffic')){
+    if(participants&&desktopSurface&&!header.querySelector('.ds-panel-traffic')){
       const traffic=document.createElement('div');traffic.className='ds-panel-traffic';
       traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Collapse panel"></button><button type="button" class="zoom" aria-label="Expand panel"></button>';
       header.prepend(traffic);
@@ -447,12 +448,12 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel.classList.contains('ds-panel-wide')?390:(panel===chat?330:318);
+      const baseWidth=panel.classList.contains('ds-panel-wide')?430:(panel===chat?330:380);
       const participantCount=participantRows().length;
       const participantBaseHeight=Math.min(438,Math.max(390,102+(Math.max(1,participantCount)*42)+(participantCount>=7?46:0)));
       const baseHeight=panel===chat?440:participantBaseHeight;
       const minPanelHeight=panel===chat?300:300;
-      const width=Math.min(baseWidth,Math.max(300,bodyWidth-24));
+      const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
       panel.dataset.dsRuntimeMode='floating';
       panel.dataset.dsAdaptiveMode='floating';

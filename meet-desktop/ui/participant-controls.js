@@ -4,6 +4,7 @@
   const media=()=>window.DominionMediaController||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
+  const desktopSurface=Boolean(window.dominionDesktop)||isMac;
   let menu=null,prompt=null,renameDialog=null,profileCard=null,busy=false,spotlightParticipantIds=[],localMediaUnsub=null;const remoteMedia=new Map();
   const esc=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const localRole=()=>{const direct=String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');if(['host','cohost'].includes(direct))return direct;const self=q('#participantRoster [data-participant-self="1"]');return String(self?.dataset.participantRole||direct||'participant').toLowerCase().replace('-','');};
@@ -242,7 +243,7 @@
   function ensurePanelChrome(){
     const overlay=q('#meetingOverlay'),side=overlay?.querySelector('.room-side'),head=side?.querySelector('.room-side-head');if(!side||!head)return;
     const closePanel=()=>{if(window.DominionRuntimeStability?.setParticipants)window.DominionRuntimeStability.setParticipants(false);else{side.hidden=true;overlay?.classList.add('participants-hidden');q('#roomParticipants')?.setAttribute('aria-pressed','false');}};
-    if(isMac){
+    if(desktopSurface){
       let traffic=head.querySelector('.ds-panel-traffic');
       if(!traffic){traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.setAttribute('aria-label','Participant window controls');traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Collapse panel"></button><button type="button" class="zoom" aria-label="Expand panel"></button>';head.prepend(traffic);}
       if(traffic.dataset.dsParticipantChromeBound!=='1'){
