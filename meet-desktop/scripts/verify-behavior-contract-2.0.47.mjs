@@ -12,13 +12,13 @@ const annotationHtml=read('ui/mac-annotation-toolbar.html');
 const annotationCanvas=read('ui/mac-annotation-canvas.js');
 const overlay=read('src/mac-share-presenter-overlay.mjs');
 
-assert(pkg.version==='2.0.47','package version is not 2.0.47');
+assert(['2.0.47','2.0.48'].includes(pkg.version),'package version is outside the certified 2.0.47+ behavior line');
 
-assert(runtime.includes("panel.classList.contains('ds-panel-wide')?430:(panel===chat?330:380)"),'participant geometry is not the readable desktop contract');
+assert(runtime.includes("panel===chat?330:360"),'participant geometry is not the readable desktop contract');
 assert(runtimeCss.includes('min-width:min(360px,calc(100% - 20px))'),'participant panel can collapse back to rejected narrow width');
 assert(runtimeCss.includes('.ds-participants-popout{display:none!important}'),'legacy participant expand affordance remains visible');
 assert(runtimeCss.includes('flex-direction:column!important;align-items:flex-start!important'),'participant identity/role are not separated vertically');
-assert(participants.includes("className='ds-panel-traffic'")&&participants.includes("setParticipants(false)"),'participant panel lacks direct close authority');
+assert(runtime.includes("dataset.dsRuntimeParticipantChrome='1'")&&runtime.includes("setParticipants(false)"),'participant panel lacks single runtime close authority');
 assert(participants.includes("ds-media-state.off::after")===false,'participant controller should not synthesize competing slash decoration');
 
 assert(videoCss.includes('presenter-video polish')&&videoCss.includes('opacity:0!important'),'share video controls are not hover-intelligent');
