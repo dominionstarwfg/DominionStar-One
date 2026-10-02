@@ -86,13 +86,13 @@ has(refJs,'data-advanced','Host tools is missing Advanced navigation.');
 has(refJs,"label=document.createElement('span')",'Final toolbar sync must recreate a missing visible label instead of leaving an SVG-only control.');
 has(refJs,"label.className='ds-control-label'",'Recreated toolbar labels must use the certified control-label class.');
 has(refJs,'ds-ref-meeting-more-grid','Meeting More grid is missing.');
-for(const label of ['Record','Show captions','Breakout rooms','Polls/quizzes','Docs','Whiteboards','Apps','Meeting info','Transfer to room','Settings'])has(refJs,`'${label}'`,`Meeting More is missing ${label}.`);
-for(const label of ['Breakout rooms','Polls/quizzes','Docs','Whiteboards','Apps','Transfer to room']){
-  const marker=`addMoreItem(grid,'${label}'`;
-  const start=refJs.indexOf(marker);assert.ok(start>=0,`Meeting More is missing ${label}.`);
-  has(refJs.slice(start,start+420),'{disabled:true}',`${label} must remain physically disabled until its backend/product capability is certified.`);
-}
-has(refJs,'Drag to pin or remove from toolbar','Meeting More footer reference is missing.');
+for(const label of ['Record','Show captions','Polls','Whiteboard','Apps','Aurora Assist','Meeting info','Settings'])has(refJs,`'${label}'`,`Meeting More is missing functional ${label}.`);
+for(const label of ['Breakout rooms','Polls/quizzes','Docs','Whiteboards','Transfer to room'])assert.ok(!refJs.includes(`addMoreItem(grid,'${label}'`),`Meeting More must not expose dead prototype action ${label}.`);
+has(refJs,"window.DominionMeetingTools?.openPolls?.()",'Polls must route to the live meeting-tools implementation.');
+has(refJs,"window.DominionMeetingTools?.openWhiteboard?.()",'Whiteboard must route to the live meeting-tools implementation.');
+has(refJs,"window.DominionMeetingTools?.openApps?.()",'Apps must route to the live meeting-tools implementation.');
+has(refJs,"window.DominionAuroraMeet?.open?.()",'Aurora Assist must route to the privacy-first local command assistant.');
+has(refJs,'Meeting tools','Meeting More footer must describe the functional tool collection.');
 
 // Pre-share screenshot contract.
 has(pickerHtml,'data-tab="screens">Screens','Pre-share must expose Screens.');

@@ -230,7 +230,9 @@ assert(
   macPresenter.includes('win.setContentProtection(false)')&&
   macPresenter.includes('allowSystemCapture(toolbarWindow)')&&
   macPresenter.includes('allowSystemCapture(videoWindow)')&&
-  macPresenter.includes('allowSystemCapture(win);try{win.showInactive?.();win.moveTop?.();}catch{}')&&
+  macPresenter.includes("loadFile(path.join(uiDir,'mac-annotation-canvas.html'))")&&
+  macPresenter.includes('allowSystemCapture(canvas)')&&
+  macPresenter.includes('allowSystemCapture(palette)')&&
   shareService.includes("const protect=platform==='darwin'?false:Boolean(enabled);"),
   'Visible presenter surfaces must remain capturable in ordinary macOS screenshots throughout an active share.'
 );

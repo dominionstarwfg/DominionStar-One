@@ -215,7 +215,7 @@ assert.ok(
 );
 /* AV_CARET_MUTATION_OBSERVER_STARVATION_LOCK */
 assert.ok(
-  avSettings.includes("version:'1.0.2-bounded-caret-observer'")&&
+  avSettings.includes("version:'1.1.0-full-hd-local-effects'")&&
   avSettings.includes('let quickMenuSyncTimer=0;')&&
   avSettings.includes('const scheduleQuickMenuInstall=()=>')&&
   avSettings.includes('const observer=new MutationObserver(scheduleQuickMenuInstall)')&&
