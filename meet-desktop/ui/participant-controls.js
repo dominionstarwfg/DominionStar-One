@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const media=()=>window.DominionMediaController||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  let menu=null,prompt=null,renameDialog=null,busy=false,spotlightParticipantIds=[],localMediaUnsub=null;const remoteMedia=new Map();
+  let menu=null,prompt=null,renameDialog=null,profileCard=null,busy=false,spotlightParticipantIds=[],localMediaUnsub=null;const remoteMedia=new Map();
   const esc=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const localRole=()=>{const direct=String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');if(['host','cohost'].includes(direct))return direct;const self=q('#participantRoster [data-participant-self="1"]');return String(self?.dataset.participantRole||direct||'participant').toLowerCase().replace('-','');};
   const canManage=()=>['host','cohost'].includes(localRole());
@@ -114,6 +114,23 @@
     form.onsubmit=async event=>{event.preventDefault();const name=String(input.value||'').trim();if(!name){status.textContent='Enter a name.';return;}const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{await meeting.renameParticipant(id,name);dialog.close();toast('Participant renamed');}catch(error){status.textContent=String(error?.message||error||'Rename failed.');}finally{buttons.forEach(b=>b.disabled=false);}};
   }
 
+  function closeProfileCard(){profileCard?.remove();profileCard=null;}
+  function openParticipantProfile(row){
+    closeProfileCard();if(!row?.isConnected)return;
+    const id=String(row.dataset.participantId||''),name=String(row.dataset.participantName||'Participant'),role=String(row.dataset.participantRole||'participant'),self=row.dataset.participantSelf==='1';
+    profileCard=document.createElement('section');profileCard.className='participant-profile-card';profileCard.setAttribute('role','dialog');profileCard.setAttribute('aria-label',`Participant profile for ${name}`);
+    const avatar=row.querySelector('.person-badge')?.cloneNode(true)||document.createElement('span');avatar.classList.add('participant-profile-avatar');
+    const head=document.createElement('div');head.className='participant-profile-head';head.append(avatar);
+    const copy=document.createElement('div');copy.className='participant-profile-copy';const strong=document.createElement('strong');strong.textContent=name;const small=document.createElement('small');small.textContent=role==='host'?'Host':role==='cohost'?'Co-host':'Participant';copy.append(strong,small);head.append(copy);
+    const close=document.createElement('button');close.type='button';close.className='participant-profile-close';close.textContent='×';close.setAttribute('aria-label','Close participant profile');close.onclick=closeProfileCard;head.append(close);profileCard.append(head);
+    const actions=document.createElement('div');actions.className='participant-profile-actions';
+    if(!self){
+      const chat=document.createElement('button');chat.type='button';chat.textContent='Chat';chat.onclick=()=>{closeProfileCard();window.DominionMeetingFeatures?.toggleChat?.(true);setTimeout(()=>{const select=q('#meetingChatRecipient');if(select&&[...select.options].some(option=>option.value===id)){select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));}q('#meetingChatInput')?.focus();},0);};actions.append(chat);
+    }
+    const more=row.querySelector('[data-participant-more]');if(more){const moreAction=document.createElement('button');moreAction.type='button';moreAction.textContent='More';moreAction.onclick=()=>{closeProfileCard();void openParticipantMenu(more);};actions.append(moreAction);}
+    profileCard.append(actions);document.body.append(profileCard);
+    const r=row.getBoundingClientRect(),width=236;profileCard.style.left=`${Math.max(10,Math.min(innerWidth-width-10,r.left-width-10))}px`;profileCard.style.top=`${Math.max(10,Math.min(innerHeight-profileCard.offsetHeight-10,r.top))}px`;
+  }
   function closeMenu(){menu?.remove();menu=null;}
   async function openParticipantMenu(button){
     closeMenu();const row=button.closest('[data-participant-id]');if(!row)return;
@@ -198,7 +215,9 @@
       const role=String(row.dataset.participantRole||'participant');
       const self=row.dataset.participantSelf==='1';
       if(!self&&(!canManage()||role==='host')){button?.remove();syncRowMedia(row);continue;}
-      if(!button){button=document.createElement('button');button.type='button';button.dataset.participantMore='1';button.className='mini-btn participant-more';button.textContent='More';button.setAttribute('aria-label',`More controls for ${String(row.dataset.participantName||'participant')}`);row.querySelector('.participant-actions')?.append(button)||row.append(button);}if(button&&!button.dataset.dsParticipantMenuBound){button.dataset.dsParticipantMenuBound='1';button.onclick=event=>{event.stopPropagation();void openParticipantMenu(button);};}syncRowMedia(row);
+      if(!button){button=document.createElement('button');button.type='button';button.dataset.participantMore='1';button.className='mini-btn participant-more';button.textContent='More';button.setAttribute('aria-label',`More controls for ${String(row.dataset.participantName||'participant')}`);row.querySelector('.participant-actions')?.append(button)||row.append(button);}if(button&&!button.dataset.dsParticipantMenuBound){button.dataset.dsParticipantMenuBound='1';button.onclick=event=>{event.stopPropagation();void openParticipantMenu(button);};}
+      if(row.dataset.dsParticipantProfileBound!=='1'){row.dataset.dsParticipantProfileBound='1';row.tabIndex=0;row.setAttribute('role','button');const open=event=>{if(event.target?.closest?.('button,[role="button"],input,select,textarea'))return;openParticipantProfile(row);};row.addEventListener('click',open);row.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&!event.target?.closest?.('button')){event.preventDefault();openParticipantProfile(row);}});}
+      syncRowMedia(row);
     }
   }
 
@@ -220,9 +239,9 @@
   }
 
   function sync(){if(!inMeeting()){closeMenu();return;}const side=q('#meetingOverlay .room-side');if(!side||side.hidden){closeMenu();return;}syncRoster();syncPanelActions();syncAllMedia();}
-  document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();},true);
+  document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();if(profileCard&&!profileCard.contains(event.target)&&!event.target.closest?.('#participantRoster [data-participant-id]'))closeProfileCard();},true);
   document.addEventListener('click',event=>{if(menu&&event.target.closest?.('#roomParticipants,#roomChat,#roomHostTools,#roomMore,.room-side-head>button,.ds-participants-traffic'))closeMenu();},true);
-  window.addEventListener('dominion:meeting-ended',closeMenu,true);
+  window.addEventListener('dominion:meeting-ended',()=>{closeMenu();closeProfileCard();},true);
   window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
   let syncFrame=0;
@@ -231,5 +250,5 @@
   window.addEventListener('dominion:participant-presence',requestSync,true);
   window.addEventListener('dominion:active-speakers',requestSync,true);
   const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(!document.hidden&&inMeeting()&&side&&!side.hidden)requestSync();},6000);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.45-event-driven-self-menu-stable-participants',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();prompt?.remove();renameDialog?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'2.0.46-stable-person-card-participants',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();closeProfileCard();prompt?.remove();renameDialog?.remove();}});
 })();

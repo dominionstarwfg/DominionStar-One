@@ -9,9 +9,9 @@
 
   const ICONS=Object.freeze({
     micOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path></svg>',
-    micOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9v2.5a3 3 0 0 0 4.9 2.3M15 10V6a3 3 0 0 0-5.6-1.5M5.5 11.5a6.5 6.5 0 0 0 10.7 5M12 18v3M9 21h6M4 4l16 16"></path></svg>',
+    micOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path><path class="ds-single-status-slash" d="M4 4 20 20"></path></svg>',
     videoOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"></rect><path d="m16 10 5-3v10l-5-3z"></path></svg>',
-    videoOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5A3 3 0 0 1 6 6h8a2 2 0 0 1 2 2v6.5M15 18H6a3 3 0 0 1-3-3V9M16 10l5-3v10l-3.5-2.1M4 4l16 16"></path></svg>'
+    videoOff:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"></rect><path d="m16 10 5-3v10l-5-3z"></path><path class="ds-single-status-slash" d="M4 4 20 20"></path></svg>'
   });
 
   function ensureStyle(){
@@ -71,6 +71,7 @@
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-state{display:flex!important;align-items:center!important;gap:8px!important;margin:0!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon{width:18px!important;height:18px!important;display:grid!important;place-items:center!important;color:#d5d5d7!important;font-size:0!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon svg{width:18px!important;height:18px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon svg .ds-single-status-slash{stroke:#ff5365!important;stroke-width:2.15!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon.off{color:#ff5365!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon.on{color:#dfe0e2!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon.unknown{color:#8f9094!important}
@@ -236,6 +237,6 @@
   const observer=new MutationObserver(schedule);const observedRoot=q('#meetingOverlay')||document.body;observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-name','data-participant-self']});
   const timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
 
-  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.49-mac-header-seven-row-reference',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.50-stable-person-card-single-slash',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();

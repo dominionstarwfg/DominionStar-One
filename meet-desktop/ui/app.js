@@ -196,6 +196,24 @@
   }
   function renderQueue(items){$('#waitingCount').textContent=items.length?`(${items.length})`:'';$('#waitingQueue').innerHTML=items.map(p=>`<div class="queue-card" data-wait="${p.participantId}"><span class="person-badge">${initials(p.displayName)}</span><span class="person-copy"><strong>${esc(p.displayName)}</strong><small>Ready to join</small></span><span class="queue-actions"><button class="mini-btn admit" data-decision="admit">Admit</button><button class="mini-btn decline" data-decision="decline">Decline</button></span></div>`).join('')||'<p class="auth-status">No one is waiting.</p>';$$('[data-wait] [data-decision]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await meeting.decide(b.closest('[data-wait]').dataset.wait,b.dataset.decision);await refreshQueue();await refreshSnapshot();}catch(e){notice('Waiting-room action failed',errorText(e));}finally{b.disabled=false;}});}
   function speakerRank(id){const index=activeSpeakerIds.indexOf(String(id||''));return index<0?999:index;}
+  function participantRoleLabel(role){return role==='host'?'Host':role==='cohost'?'Co-host':'Participant';}
+  function ensureParticipantRow(roster,participant){
+    const id=String(participant?.participantId||'');if(!id)return null;
+    let row=roster.querySelector(`[data-participant-id="${CSS.escape(id)}"]`);
+    if(!row){
+      row=document.createElement('div');row.className='person-row';row.dataset.participantId=id;
+      row.innerHTML='<span class="person-badge"></span><span class="person-copy"><strong><span class="participant-name-text"></span><em class="participant-you" hidden>(You)</em></strong><small></small></span><span class="participant-media-state" aria-label="Participant media status"><span class="participant-media-icon participant-mic unknown" data-participant-mic title="Microphone status"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg></span><span class="participant-media-icon participant-video unknown" data-participant-video title="Video status"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg></span></span><span class="participant-actions"></span>';
+      roster.append(row);
+    }
+    const role=String(participant.role||'participant'),name=String(participant.displayName||'Participant'),self=Boolean(participant.memberId&&participant.memberId===authState.user?.id);
+    row.dataset.participantRole=role;row.dataset.participantName=name;row.dataset.recordingAllowed=participant.recordingAllowed?'1':'0';row.dataset.recordEligible=participant.memberId?'1':'0';row.dataset.participantSelf=self?'1':'0';
+    const badge=row.querySelector('.person-badge');if(badge&&!badge.querySelector('img')&&badge.textContent!==initials(name))badge.textContent=initials(name);
+    const nameNode=row.querySelector('.participant-name-text');if(nameNode&&nameNode.textContent!==name)nameNode.textContent=name;
+    const you=row.querySelector('.participant-you');if(you)you.hidden=!self;
+    const roleNode=row.querySelector('.person-copy small');const roleText=participantRoleLabel(role);if(roleNode&&roleNode.textContent!==roleText)roleNode.textContent=roleText;
+    row.setAttribute('aria-label',`${name}, ${roleText}`);
+    return row;
+  }
   function reorderRosterBySpeaker(){
     const roster=$('#participantRoster');if(!roster)return;
     const rows=[...roster.querySelectorAll('[data-participant-id]')];
@@ -207,22 +225,29 @@
       }
       return String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''));
     });
-    for(const row of rows){
+    rows.forEach((row,index)=>{
       const speaking=speakerRank(row.dataset.participantId)<999;
       row.classList.toggle('participant-speaking',speaking);
       let badge=row.querySelector('.participant-speaking-badge');
       if(speaking&&!badge){badge=document.createElement('span');badge.className='participant-speaking-badge';badge.textContent='Speaking';row.querySelector('.person-copy')?.append(badge);}
       if(!speaking&&badge)badge.remove();
-      roster.append(row);
-    }
+      const current=roster.children[index];if(current!==row)roster.insertBefore(row,current||null);
+    });
   }
   function renderRoster(people){
+    const roster=$('#participantRoster');if(!roster)return;
+    const list=[...(people||[])],ids=new Set(list.map(p=>String(p.participantId||'')).filter(Boolean));
+    for(const row of [...roster.querySelectorAll('[data-participant-id]')])if(!ids.has(String(row.dataset.participantId||'')))row.remove();
+    roster.querySelector('.auth-status[data-empty-participants]')?.remove();
+    if(!list.length){
+      const empty=document.createElement('p');empty.className='auth-status';empty.dataset.emptyParticipants='1';empty.textContent='No participants yet.';roster.append(empty);return;
+    }
     const roleRank=role=>role==='host'?0:role==='cohost'?1:2;
-    const sorted=[...(people||[])].sort((a,b)=>roleRank(String(a.role||'participant'))-roleRank(String(b.role||'participant'))||String(a.displayName||'').localeCompare(String(b.displayName||'')));
-    $('#participantRoster').innerHTML=sorted.map(p=>{
-      const role=String(p.role||'participant'),name=String(p.displayName||'Participant'),self=Boolean(p.memberId&&p.memberId===authState.user?.id);
-      return `<div class="person-row" data-participant-id="${esc(p.participantId)}" data-participant-role="${esc(role)}" data-participant-name="${esc(name)}" data-recording-allowed="${p.recordingAllowed?'1':'0'}" data-record-eligible="${p.memberId?'1':'0'}" data-participant-self="${self?'1':'0'}"><span class="person-badge">${initials(name)}</span><span class="person-copy"><strong>${esc(name)}${self?' <em class="participant-you">(You)</em>':''}</strong><small>${role==='host'?'Host':role==='cohost'?'Co-host':'Participant'}</small></span><span class="participant-media-state" aria-label="Participant media status"><span class="participant-media-icon participant-mic unknown" data-participant-mic title="Microphone status"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg></span><span class="participant-media-icon participant-video unknown" data-participant-video title="Video status"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg></span></span><span class="participant-actions"></span></div>`;
-    }).join('')||'<p class="auth-status">No participants yet.</p>';
+    const sorted=list.sort((a,b)=>roleRank(String(a.role||'participant'))-roleRank(String(b.role||'participant'))||String(a.displayName||'').localeCompare(String(b.displayName||'')));
+    sorted.forEach((participant,index)=>{
+      const row=ensureParticipantRow(roster,participant);if(!row)return;
+      const current=[...roster.querySelectorAll('[data-participant-id]')][index];if(current!==row)roster.insertBefore(row,current||null);
+    });
     reorderRosterBySpeaker();
     window.DominionParticipantControls?.sync?.();
     window.DominionZoomBehavior?.sync?.();
