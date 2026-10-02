@@ -6,15 +6,12 @@
   const nativeMacCapture=macLike&&Boolean(captureBridge?.start);
   let macCapturePeer=null,macCaptureUnsubs=[],macCaptureSignalGeneration=0,macWorkerActive=false;
   const state={_liveStream:null,frozenStream:null,freezeCanvas:null,paused:false,busy:false,sourceName:'',options:{},annotationCanvas:null,compositeCanvas:null,compositeStream:null,compositeVideo:null,compositeRaf:0};
-  // Physical-Mac liveness authority: a raw display stream held directly on
-  // window remains responsive under ScreenCaptureKit, while the old closure-
-  // owned stream path repeatedly starved the renderer after activation.
-  // Preserve the public state.liveStream API through an accessor so every
-  // existing controller/transport call remains unchanged.
+  // ScreenCaptureKit stays isolated in its worker renderer. The meeting
+  // renderer receives only a local WebRTC copy for participant transport.
   Object.defineProperty(state,'liveStream',{
     configurable:false,enumerable:false,
-    get(){return nativeMacCapture?null:state._liveStream;},
-    set(value){if(!nativeMacCapture)state._liveStream=value||null;}
+    get(){return state._liveStream;},
+    set(value){state._liveStream=value||null;}
   });
   const listeners=new Set();
   let displayRequestGeneration=0;
@@ -61,55 +58,32 @@
   function disposeMacCaptureClient({stopWorker=false}={}){
     const peer=macCapturePeer;macCapturePeer=null;macCaptureSignalGeneration=0;
     for(const off of macCaptureUnsubs.splice(0)){try{off?.();}catch{}}
-    try{peer?.close?.();}catch{}
-    if(stopWorker&&captureBridge?.stop){
-      try{const pending=captureBridge.stop();void Promise.resolve(pending).catch(()=>{});}catch{}
-    }
+    try{peer?.close?.();}catch{}stopTracks(state._liveStream);state._liveStream=null;
+    if(stopWorker&&captureBridge?.stop){try{const pending=captureBridge.stop();void Promise.resolve(pending).catch(()=>{});}catch{}}
   }
 
   async function acquireMacWorkerDisplay(options={},generation){
     if(!captureBridge?.start)throw new Error('Dedicated Mac screen-capture worker is unavailable.');
     disposeMacCaptureClient({stopWorker:false});
-
-    // Do not pre-stop/hide the capture worker before every start. The worker's
-    // begin() path already advances its generation and atomically cleans up any
-    // existing capture track. A stop -> hidden -> show transition immediately
-    // before capture start can destabilize Chromium's macOS compositor and
-    // starve the independent meeting/control renderer.
-    //
-    // Critical macOS boundary: the ScreenCaptureKit-owned video track must
-    // never be looped back into the meeting/control renderer. The worker owns
-    // capture and later share transport; this renderer receives only logical
-    // share lifecycle state so its event loop stays available for controls.
-    //
-    // Start uses an asynchronous request/result channel. The main process
-    // forwards the request to the isolated worker and later returns readiness
-    // as a correlated event, avoiding a nested cross-renderer invoke while
-    // preserving one acknowledged start transaction for this controller.
+    const pc=new RTCPeerConnection({iceServers:[]}),stream=new MediaStream(),pendingCandidates=[];macCapturePeer=pc;state.liveStream=stream;
+    const valid=()=>macCapturePeer===pc&&generation===displayRequestGeneration;
+    const flush=async()=>{if(!pc.remoteDescription)return;for(const c of pendingCandidates.splice(0)){try{await pc.addIceCandidate(c);}catch{}}};
+    const candidate=async payload=>{const g=Number(payload?.generation||0)||0;if(!valid()||!payload?.candidate)return;if(macCaptureSignalGeneration&&g!==macCaptureSignalGeneration)return;if(!macCaptureSignalGeneration)macCaptureSignalGeneration=g;if(!pc.remoteDescription){pendingCandidates.push(payload.candidate);return}try{await pc.addIceCandidate(payload.candidate)}catch{}};
     macCaptureUnsubs=[
-      captureBridge.onError?.(payload=>{
-        if(macWorkerActive&&!state.busy)void stop();
-      }),
-      captureBridge.onStopped?.(()=>{
-        if(macWorkerActive&&!state.busy){macWorkerActive=false;void stop();}
-      })
+      captureBridge.onOffer?.(payload=>{void (async()=>{const g=Number(payload?.generation||0)||0;if(!valid()||!payload?.sdp)return;if(macCaptureSignalGeneration&&g!==macCaptureSignalGeneration)return;macCaptureSignalGeneration=g;await pc.setRemoteDescription(payload.sdp);await flush();const answer=await pc.createAnswer();if(!valid())return;await pc.setLocalDescription(answer);await captureBridge.answer({generation:g,sdp:pc.localDescription})})().catch(error=>{if(valid())console.error('[DominionStar Meet] Mac capture bridge answer failed.',error)})}),
+      captureBridge.onCandidate?.(payload=>{void candidate(payload||{})}),
+      captureBridge.onError?.(payload=>{if(macWorkerActive&&!state.busy){console.error('[DominionStar Meet] Mac capture worker error.',payload);void stop()}}),
+      captureBridge.onStopped?.(()=>{if(macWorkerActive&&!state.busy){macWorkerActive=false;void stop()}})
     ].filter(Boolean);
-
-    const started=await captureBridge.start({
-      shareAudio:Boolean(options.shareAudio),
-      optimizeVideo:Boolean(options.optimizeVideo),
-      qaSynthetic:Boolean(options.__qaSyntheticWorker),
-      qaLifecycleOnly:Boolean(options.__qaLifecycleOnlyWorker)
-    });
-    if(!started?.ok){disposeMacCaptureClient({stopWorker:false});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.');}
-    if(options?.__qaReturnBeforeWorkerActivate){
-      console.error('QA_CAPTURE_RETURN_BEFORE_WORKER_ACTIVATE');
-      return {stream:null,track:{label:String(started?.label||'Shared content'),readyState:'live'}};
-    }
-    macCaptureSignalGeneration=Number(started?.generation||0)||0;
-    macWorkerActive=true;
-    if(generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw new DOMException('Screen share request was replaced.','AbortError');}
-    return {stream:null,track:{label:String(started?.label||'Shared content'),readyState:'live'}};
+    pc.onicecandidate=event=>{if(!valid()||!event.candidate)return;const c=event.candidate.toJSON?.()||event.candidate;void Promise.resolve(captureBridge.candidate({generation:macCaptureSignalGeneration,candidate:c})).catch(()=>{})};
+    pc.ontrack=event=>{if(!valid())return;const track=event.track;if(track&&!stream.getTracks().some(item=>item.id===track.id))stream.addTrack(track);if(track)track.addEventListener('ended',()=>{if(valid())emit()},{once:true});emit()};
+    pc.onconnectionstatechange=()=>{if(valid()&&pc.connectionState==='failed'&&macWorkerActive&&!state.busy)void stop()};
+    const started=await captureBridge.start({shareAudio:Boolean(options.shareAudio),optimizeVideo:Boolean(options.optimizeVideo),qaSynthetic:Boolean(options.__qaSyntheticWorker),qaLifecycleOnly:Boolean(options.__qaLifecycleOnlyWorker)});
+    if(!started?.ok){disposeMacCaptureClient({stopWorker:false});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.')}
+    const g=Number(started?.generation||0)||0;if(macCaptureSignalGeneration&&g&&g!==macCaptureSignalGeneration){disposeMacCaptureClient({stopWorker:true});throw new Error('Mac capture bridge generation mismatch.')}if(!macCaptureSignalGeneration)macCaptureSignalGeneration=g;
+    if(options?.__qaReturnBeforeWorkerActivate){console.error('QA_CAPTURE_RETURN_BEFORE_WORKER_ACTIVATE');return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}}}
+    macWorkerActive=true;if(generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw new DOMException('Screen share request was replaced.','AbortError')}
+    return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}};
   }
 
   async function acquireDisplay(options={}){
@@ -136,7 +110,7 @@
   }
 
   async function start({name='',options={}}={}){
-    if(state.busy||state.liveStream)return snapshot();
+    if(state.busy||(nativeMacCapture?macWorkerActive:Boolean(state.liveStream)))return snapshot();
     if(!nativeMacCapture&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
     if(options?.__qaLifecycleOnlyWorker)window.__DOMINION_QA_TRACE_SHARE_TRANSACTION=true;
     qaShareTrace('QA_SHARE_START_ENTER');
@@ -199,21 +173,16 @@
   }
 
   async function replaceSource({name='',options={}}={}){
-    if(state.busy||!state.liveStream)return snapshot();
-    if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
-    state.busy=true;emit();
-    const previousLive=state.liveStream,previousFrozen=state.frozenStream;
+    if(state.busy||!(nativeMacCapture?macWorkerActive:Boolean(state.liveStream)))return snapshot();
+    if(!nativeMacCapture&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
+    state.busy=true;emit();const previousLive=state.liveStream,previousFrozen=state.frozenStream;
     try{
-      const {stream,track}=await acquireDisplay(options);
-      stopComposite();
-      state.annotationCanvas=null;
-      state.liveStream=stream;state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
-      state.sourceName=String(name||track.label||'Shared content');state.options={...options};
-      track.addEventListener('ended',()=>{if(!state.busy&&state.liveStream===stream)void stop();},{once:true});
-      stopTracks(previousFrozen);stopTracks(previousLive);
-      try{await bridge?.captureState?.({sourceName:state.sourceName,displayId:String(state.options?.displayId||''),paused:false});}catch{}
-      return snapshot();
-    }finally{state.busy=false;emit();}
+      const {stream,track}=await acquireDisplay(options);stopComposite();state.annotationCanvas=null;if(!nativeMacCapture)state.liveStream=stream;
+      state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.sourceName=String(name||track.label||'Shared content');state.options={...options};
+      if(!nativeMacCapture&&track?.addEventListener)track.addEventListener('ended',()=>{if(!state.busy&&state.liveStream===stream)void stop()},{once:true});
+      stopTracks(previousFrozen);if(!nativeMacCapture)stopTracks(previousLive);
+      try{await bridge?.captureState?.({sourceName:state.sourceName,displayId:String(state.options?.displayId||''),paused:false})}catch{}return snapshot();
+    }finally{state.busy=false;emit()}
   }
 
   async function captureFreezeFrame(videoElement){
@@ -251,21 +220,16 @@
     }catch(error){console.warn('[DominionStar Meet] Presenter state publish failed.',error);}
   }
 
+  async function waitForShareVideoTrack(timeoutMs=1600){const started=Date.now();while(Date.now()-started<timeoutMs){const track=state.liveStream?.getVideoTracks?.()[0];if(track&&track.readyState==='live')return track;await new Promise(resolve=>setTimeout(resolve,40))}return state.liveStream?.getVideoTracks?.()[0]||null}
   async function pause(videoElement){
-    if(nativeMacCapture){
-      if(!macWorkerActive||state.paused)return snapshot();
-      state.paused=true;emit();publishPauseState(true);return snapshot();
-    }
-    if(!state.liveStream||state.paused)return snapshot();
-    const canvas=await captureFreezeFrame(videoElement);
-    const frozen=canvas.captureStream(1);
-    for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone());}catch{}}
+    if(nativeMacCapture&&!macWorkerActive)return snapshot();if(state.paused)return snapshot();if(!state.liveStream?.getVideoTracks?.()[0])await waitForShareVideoTrack();
+    if(!state.liveStream?.getVideoTracks?.()[0])throw new Error('Shared video is still connecting. Try Pause again.');
+    const canvas=await captureFreezeFrame(videoElement),frozen=canvas.captureStream(1);for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone())}catch{}}
     state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();publishPauseState(true);return snapshot();
   }
-
-  async function resume(){if(nativeMacCapture){if(!macWorkerActive||!state.paused)return snapshot();state.paused=false;emit();publishPauseState(false);return snapshot();}if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot();}
-  async function togglePause(videoElement){return state.paused?resume():pause(videoElement);}
-  function outputStream(){if(nativeMacCapture)return null;return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream();}
+  async function resume(){if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot()}
+  async function togglePause(videoElement){return state.paused?resume():pause(videoElement)}
+  function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream()}
   function setAnnotationCanvas(canvas){
     const next=canvas||null;
     if(state.annotationCanvas===next){

@@ -40,3 +40,10 @@
 .video-view-controls button:hover,.video-view-controls button.active{background:rgba(255,255,255,.16);color:#fff}
 .video-stage:hover .video-view-controls,.video-view-controls:focus-within{opacity:1;transform:none}
 .video-stage:not(:hover) .video-more-button[aria-expanded="false"]{opacity:0}
+
+.video-self-controls{position:absolute;right:42px;top:7px;z-index:12;display:flex;gap:4px;padding:2px;border:1px solid rgba(255,255,255,.14);border-radius:7px;background:rgba(0,0,0,.72);-webkit-app-region:no-drag}
+.video-self-controls button{position:relative;width:27px;height:25px;padding:0;border:0;border-radius:5px;background:transparent;color:#fff;display:grid;place-items:center;cursor:pointer}
+.video-self-controls button:hover{background:rgba(255,255,255,.14)}.video-self-controls button:disabled{opacity:.48;cursor:wait}
+.video-self-controls svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.video-self-controls button::before,.video-self-controls button::after{content:none}
+.video-self-controls button.is-off::after{content:"";display:block;position:absolute;left:4px;right:4px;top:50%;height:2px;border-radius:999px;background:#ff5368;transform:translateY(-50%) rotate(-45deg);pointer-events:none}

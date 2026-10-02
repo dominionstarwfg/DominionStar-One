@@ -18,6 +18,7 @@ if(process.platform==='darwin'){
   let shareActive=false;
   let toolbarReady=false,toolbarAutoHidden=false;
   let toolbarMenuOpen=false;
+  let annotationPointerPassthrough=false;
   let cursorWatchTimer=0,lastCursorPoint=null;
   let preparing=null;
   let presenterDeliverySeq=0;
@@ -74,6 +75,13 @@ if(process.platform==='darwin'){
   }
   function closeFailedWindow(win){if(!isAlive(win))return;try{win.setClosable?.(true);win.close();}catch{try{win.destroy?.();}catch{}}}
   function stopCursorWatch(){if(cursorWatchTimer){clearInterval(cursorWatchTimer);cursorWatchTimer=0;}lastCursorPoint=null;}
+  function toolbarRevealZoneContains(point){
+    if(!point)return false;
+    const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
+    const width=Math.min(770,Math.max(680,area.width-28)),left=Math.round(area.x+(area.width-width)/2),right=left+width;
+    const top=Math.round(area.y),bottom=Math.round(area.y+64);
+    return point.x>=left&&point.x<=right&&point.y>=top&&point.y<=bottom;
+  }
   function startCursorWatch(){
     if(cursorWatchTimer)return;
     try{lastCursorPoint=screen.getCursorScreenPoint();}catch{lastCursorPoint=null;}
@@ -82,16 +90,16 @@ if(process.platform==='darwin'){
       let point=null;try{point=screen.getCursorScreenPoint();}catch{return;}
       if(!lastCursorPoint){lastCursorPoint=point;return;}
       const moved=Math.abs(point.x-lastCursorPoint.x)+Math.abs(point.y-lastCursorPoint.y);lastCursorPoint=point;
-      if(moved<4)return;
+      if(moved<3||!toolbarRevealZoneContains(point))return;
       toolbarAutoHidden=false;shareState={...shareState,forceRevealAt:Date.now()};positionToolbar();publishState();
-    },140);
+    },120);
   }
   function positionToolbar(){
     if(!isAlive(toolbarWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
     const width=Math.min(770,Math.max(680,area.width-28));
     const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);
-    const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+2);
+    const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+12);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
   }
   function positionBorder(){
@@ -145,6 +153,12 @@ if(process.platform==='darwin'){
     if(!isAlive(annotationWindow))return;
     try{annotationWindow.hide();}catch{}
     if(qaPresenterTrace)console.error(`QA_MAC_ANNOTATION_VISIBILITY visible=${annotationWindow.isVisible?.()?1:0}`);
+  }
+  function setAnnotationPointerPassthrough(enabled){
+    annotationPointerPassthrough=Boolean(enabled);
+    if(!isAlive(annotationCanvasWindow))return annotationPointerPassthrough;
+    try{annotationCanvasWindow.setIgnoreMouseEvents(annotationPointerPassthrough,{forward:true});}catch{}
+    return annotationPointerPassthrough;
   }
   function showAnnotationPalette(){
     if(!shareActive)return;
@@ -402,7 +416,7 @@ if(process.platform==='darwin'){
   });
   function resetPresenterSession(reason='reset'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
-    shareActive=false;videoLayout='speaker';toolbarMenuOpen=false;toolbarAutoHidden=false;stopCursorWatch();
+    shareActive=false;videoLayout='speaker';toolbarMenuOpen=false;toolbarAutoHidden=false;setAnnotationPointerPassthrough(false);stopCursorWatch();
     shareState={paused:false,micOn:false,cameraOn:false,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false};
     publishState();hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
@@ -440,16 +454,18 @@ if(process.platform==='darwin'){
     if(normalized==='annotate'){
       const open=String(shareState.companion||'')==='annotate'&&isAlive(annotationCanvasWindow)&&Boolean(annotationCanvasWindow.isVisible?.());
       if(open){shareState={...shareState,companion:'',companionOpen:false};hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};}
-      shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();showAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:true};
+      shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(false);hideMeeting();showAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:true};
     }
     if(normalized==='annotate-close'){
-      shareState={...shareState,companion:'',companionOpen:false};hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};
+      shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};
     }
     if(normalized.startsWith('annotate-')){
       shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();
       const canvas=await prepareAnnotationCanvas();await prepareAnnotation();showAnnotationPalette();
       if(!isAlive(canvas))return {ok:false,sent:false,acknowledged:false,error:'annotation_canvas_unavailable'};
-      try{canvas.webContents.send('mac-annotation:command',{command:normalized});return {ok:true,sent:true,acknowledged:true};}
+      if(normalized==='annotate-select')setAnnotationPointerPassthrough(true);
+      else if(/^annotate-(?:pen|highlight|laser|erase|shape-)/.test(normalized))setAnnotationPointerPassthrough(false);
+      try{canvas.webContents.send('mac-annotation:command',{command:normalized});return {ok:true,sent:true,acknowledged:true,pointerPassthrough:annotationPointerPassthrough};}
       catch(error){return {ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'annotation_command_failed')};}
     }
     const panelCommand=['participants','chat'].includes(normalized);

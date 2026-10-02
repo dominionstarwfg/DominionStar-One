@@ -3,6 +3,7 @@
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const media=()=>window.DominionMediaController||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
   let menu=null,prompt=null,renameDialog=null,profileCard=null,busy=false,spotlightParticipantIds=[],localMediaUnsub=null;const remoteMedia=new Map();
   const esc=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const localRole=()=>{const direct=String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace('-','');if(['host','cohost'].includes(direct))return direct;const self=q('#participantRoster [data-participant-self="1"]');return String(self?.dataset.participantRole||direct||'participant').toLowerCase().replace('-','');};
@@ -238,9 +239,29 @@
     qa('#participantBulkActions button').forEach(b=>b.disabled=busy);
   }
 
-  function sync(){if(!inMeeting()){closeMenu();return;}const side=q('#meetingOverlay .room-side');if(!side||side.hidden){closeMenu();return;}syncRoster();syncPanelActions();syncAllMedia();}
+  function ensurePanelChrome(){
+    const overlay=q('#meetingOverlay'),side=overlay?.querySelector('.room-side'),head=side?.querySelector('.room-side-head');if(!side||!head)return;
+    const closePanel=()=>{if(window.DominionRuntimeStability?.setParticipants)window.DominionRuntimeStability.setParticipants(false);else{side.hidden=true;overlay?.classList.add('participants-hidden');q('#roomParticipants')?.setAttribute('aria-pressed','false');}};
+    if(isMac){
+      let traffic=head.querySelector('.ds-panel-traffic');
+      if(!traffic){traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.setAttribute('aria-label','Participant window controls');traffic.innerHTML='<button type="button" class="close" aria-label="Close participants"></button><button type="button" class="min" aria-label="Minimize participants"></button><button type="button" class="zoom" aria-label="Expand participants"></button>';head.prepend(traffic);}
+      if(traffic.dataset.dsParticipantChromeBound!=='1'){
+        traffic.dataset.dsParticipantChromeBound='1';
+        traffic.querySelector('.close')?.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();closePanel();});
+        traffic.querySelector('.min')?.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();side.classList.toggle('ds-panel-minimized');side.classList.remove('ds-panel-wide');window.DominionRuntimeStability?.layoutSideSurface?.();});
+        traffic.querySelector('.zoom')?.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();side.classList.remove('ds-panel-minimized');side.classList.toggle('ds-panel-wide');window.DominionRuntimeStability?.layoutSideSurface?.();});
+      }
+      const legacy=head.querySelector(':scope > button[aria-label="Close participants"]');if(legacy)legacy.hidden=true;
+    }else{
+      let close=head.querySelector(':scope > button[aria-label="Close participants"]');
+      if(!close){close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label','Close participants');head.append(close);}
+      if(close.dataset.dsParticipantCloseBound!=='1'){close.dataset.dsParticipantCloseBound='1';close.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();closePanel();});}
+    }
+  }
+
+  function sync(){if(!inMeeting()){closeMenu();return;}const side=q('#meetingOverlay .room-side');if(!side){closeMenu();return;}ensurePanelChrome();if(side.hidden){closeMenu();return;}syncRoster();syncPanelActions();syncAllMedia();}
   document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();if(profileCard&&!profileCard.contains(event.target)&&!event.target.closest?.('#participantRoster [data-participant-id]'))closeProfileCard();},true);
-  document.addEventListener('click',event=>{if(menu&&event.target.closest?.('#roomParticipants,#roomChat,#roomHostTools,#roomMore,.room-side-head>button,.ds-participants-traffic'))closeMenu();},true);
+  document.addEventListener('click',event=>{if(menu&&event.target.closest?.('#roomParticipants,#roomChat,#roomHostTools,#roomMore,.room-side-head>button,.ds-participants-traffic,.ds-panel-traffic'))closeMenu();},true);
   window.addEventListener('dominion:meeting-ended',()=>{closeMenu();closeProfileCard();},true);
   window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;

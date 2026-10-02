@@ -124,9 +124,9 @@
   }
 
   const MIC_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>';
-  const MIC_OFF='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 9.5 5.78M12 18v3M9 21h6M4 4l16 16"/></svg>';
+  const MIC_OFF=MIC_ON;
   const VIDEO_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg>';
-  const VIDEO_OFF='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v7M4 4l16 16"/></svg>';
+  const VIDEO_OFF=VIDEO_ON;
 
   async function refreshLocalParticipantId(){try{const ctx=await meeting?.context?.();localParticipantId=String(ctx?.participantId||localParticipantId||'');}catch{}return localParticipantId;}
   function statusFor(id){

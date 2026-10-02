@@ -134,11 +134,11 @@
   }
 
   const menu=q('#videoMoreMenu'),menuButton=q('#videoMoreButton');
-  function closeMenu(){if(menu)menu.hidden=true;if(menuButton)menuButton.setAttribute('aria-expanded','false');}
-  function toggleMenu(){
-    if(!menu||!menuButton)return;
-    menu.hidden=!menu.hidden;menuButton.setAttribute('aria-expanded',String(!menu.hidden));
-  }
+  let menuCloseTimer=0;
+  const clearMenuCloseTimer=()=>{if(menuCloseTimer){clearTimeout(menuCloseTimer);menuCloseTimer=0;}};
+  function closeMenu(){clearMenuCloseTimer();if(menu)menu.hidden=true;if(menuButton)menuButton.setAttribute('aria-expanded','false');}
+  function armMenuClose(){clearMenuCloseTimer();if(menu&&!menu.hidden)menuCloseTimer=setTimeout(closeMenu,2800);}
+  function toggleMenu(){if(!menu||!menuButton)return;menu.hidden=!menu.hidden;menuButton.setAttribute('aria-expanded',String(!menu.hidden));if(menu.hidden)clearMenuCloseTimer();else armMenuClose();}
   async function presenterCommand(command){
     try{
       const result=await bridge?.command?.(String(command||''));
@@ -146,6 +146,11 @@
       return true;
     }catch(error){console.error('[DominionStar Meet] Presenter video command failed.',error);return false;}
   }
+  const quickAudio=q('#videoQuickAudio'),quickCamera=q('#videoQuickCamera');
+  async function runQuickControl(button,command){if(!button||button.disabled)return;button.disabled=true;try{await presenterCommand(command);}finally{button.disabled=false;}}
+  quickAudio?.addEventListener('click',event=>{event.stopPropagation();void runQuickControl(quickAudio,micOn?'audio-off':'audio-on');});
+  quickCamera?.addEventListener('click',event=>{event.stopPropagation();void runQuickControl(quickCamera,cameraOn?'video-off':'video-on');});
+  menu?.addEventListener('pointerenter',clearMenuCloseTimer);menu?.addEventListener('pointerleave',armMenuClose);
   menuButton?.addEventListener('click',event=>{event.stopPropagation();toggleMenu();});
   q('#videoMenuAudio')?.addEventListener('click',async()=>{closeMenu();await presenterCommand(micOn?'audio-off':'audio-on');});
   q('#videoMenuCamera')?.addEventListener('click',async()=>{closeMenu();await presenterCommand(cameraOn?'video-off':'video-on');});
@@ -200,6 +205,9 @@
     const audioAction=q('#videoMenuAudio'),cameraAction=q('#videoMenuCamera');
     if(audioAction)audioAction.textContent=micOn?'Mute':'Unmute';
     if(cameraAction)cameraAction.textContent=cameraOn?'Stop Video':'Start Video';
+    const quickAudio=q('#videoQuickAudio'),quickCamera=q('#videoQuickCamera');
+    if(quickAudio){quickAudio.classList.toggle('is-off',!micOn);quickAudio.setAttribute('aria-label',micOn?'Mute':'Unmute');quickAudio.title=micOn?'Mute':'Unmute';}
+    if(quickCamera){quickCamera.classList.toggle('is-off',!cameraOn);quickCamera.setAttribute('aria-label',cameraOn?'Stop Video':'Start Video');quickCamera.title=cameraOn?'Stop Video':'Start Video';}
 
     if(cameraChanged||deviceChanged)syncPreview();
     else render();

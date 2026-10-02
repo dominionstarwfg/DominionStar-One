@@ -2,7 +2,7 @@
   'use strict';
   const bridge=window.dominionDesktop?.macShare||null;
   const buttons=[...document.querySelectorAll('[data-command]')];
-  const modeCommands=new Set(['annotate-pen','annotate-highlight','annotate-laser','annotate-erase','annotate-shape-line','annotate-shape-arrow','annotate-shape-rect','annotate-shape-ellipse']);
+  const modeCommands=new Set(['annotate-select','annotate-pen','annotate-highlight','annotate-laser','annotate-erase','annotate-shape-line','annotate-shape-arrow','annotate-shape-rect','annotate-shape-ellipse']);
   const widthCommands=new Set(['annotate-width-thin','annotate-width-medium','annotate-width-thick','annotate-width-heavy']);
   const colorCommands=new Set(['annotate-color-red','annotate-color-blue','annotate-color-green','annotate-color-white']);
   const setExclusive=(set,button)=>{for(const node of buttons)if(set.has(String(node.dataset.command||'')))node.classList.toggle('active',node===button);};
@@ -20,5 +20,6 @@
       button.classList.add('error');setTimeout(()=>button.classList.remove('error'),900);
     }finally{button.classList.remove('pending');}
   });
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();void bridge?.command?.('annotate-close');}});
   window.DominionMacAnnotationPalette=Object.freeze({version:'2.0.45-native-canvas-palette',commands:buttons.map(button=>button.dataset.command)});
 })();
