@@ -9,6 +9,10 @@
 
   function supported(){return typeof HTMLCanvasElement!=='undefined'&&typeof document!=='undefined';}
   function faceDetectionSupported(){return typeof window.FaceDetector==='function';}
+  function ensureLocalSubjectEstimate(sw,sh){
+    if(faceDetectionSupported()||state.lastFace)return;
+    state.lastFace={x:sw*.35,y:sh*.13,width:sw*.30,height:sh*.25,estimated:true};
+  }
   async function loadBackgroundImage(dataUrl){
     if(!dataUrl){state.backgroundImage=null;return false;}
     const image=new Image();
@@ -100,6 +104,7 @@
       const sw=v.videoWidth||1280,sh=v.videoHeight||720;
       if(c.width!==1280||c.height!==720){c.width=1280;c.height=720;}
       void detectFace();
+      if((state.backgroundBlur||state.virtualBackground!=='none'||state.touchUp||state.portraitLight)&&!state.faceDetector)ensureLocalSubjectEstimate(sw,sh);
       const {sx,sy,cropW,cropH}=cropForFrame(sw,sh);
       const appearanceActive=state.touchUp||state.portraitLight;
       const virtualActive=state.virtualBackground!=='none';
@@ -193,7 +198,7 @@
       emit();return api.snapshot();
     },
     stop(){stopOutput();state.sourceTrack=null;state.lastFace=null;emit();},
-    snapshot(){return {autoFrame:state.enabled,strength:state.strength,backgroundBlur:state.backgroundBlur,blurStrength:state.blurStrength,denoise:state.denoise,denoiseStrength:state.denoiseStrength,virtualBackground:state.virtualBackground,backgroundPersistence:state.backgroundPersistence,customBackgroundLoaded:Boolean(state.backgroundImage||state.backgroundData),touchUp:state.touchUp,touchUpLevel:state.touchUpLevel,portraitLight:state.portraitLight,portraitLevel:state.portraitLevel,faceDetectionSupported:faceDetectionSupported(),processing:Boolean(state.stream),performanceMode:state.performanceMode,renderAvgMs:Number(state.renderAvgMs.toFixed(1))};},
+    snapshot(){return {autoFrame:state.enabled,strength:state.strength,backgroundBlur:state.backgroundBlur,blurStrength:state.blurStrength,denoise:state.denoise,denoiseStrength:state.denoiseStrength,virtualBackground:state.virtualBackground,backgroundPersistence:state.backgroundPersistence,customBackgroundLoaded:Boolean(state.backgroundImage||state.backgroundData),touchUp:state.touchUp,touchUpLevel:state.touchUpLevel,portraitLight:state.portraitLight,portraitLevel:state.portraitLevel,faceDetectionSupported:faceDetectionSupported(),backgroundEffectsSupported:true,subjectTrackingMode:faceDetectionSupported()?'face':'center-local',processing:Boolean(state.stream),performanceMode:state.performanceMode,renderAvgMs:Number(state.renderAvgMs.toFixed(1))};},
     onChange(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn);}
   });
   if(state.virtualBackground==='custom'&&state.backgroundData)void loadBackgroundImage(state.backgroundData);

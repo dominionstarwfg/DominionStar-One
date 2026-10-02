@@ -68,7 +68,7 @@
   }
   async function applyQuality(media){
     write('quality',state.quality);const track=currentVideoTrack(media);if(!track?.applyConstraints)return false;
-    const map={360:[640,360,24],540:[960,540,30],720:[1280,720,30]};const [width,height,fps]=map[state.quality]||map[720];
+    const map={360:[640,360,24],540:[960,540,30],720:[1280,720,30],1080:[1920,1080,30]};const [width,height,fps]=map[state.quality]||map[720];
     try{await track.applyConstraints({width:{ideal:width},height:{ideal:height},frameRate:{ideal:fps,max:fps}});return true;}catch{return false;}
   }
   async function applyLowLight(media){
@@ -103,8 +103,7 @@
     const upload=document.createElement('label');upload.className='av-background-card upload';upload.innerHTML='<span class="av-bg-swatch custom">+</span><strong>Custom image</strong><input type="file" accept="image/png,image/jpeg,image/webp" hidden>';
     const input=upload.querySelector('input');input.onchange=()=>{const file=input.files?.[0];if(!file)return;if(file.size>1024*1024){input.value='';const note=wrap.querySelector('.av-background-status');if(note)note.textContent='Custom background must be 1 MB or smaller.';return;}const reader=new FileReader();reader.onload=async()=>{const result=await fx.setVirtualBackground('custom',String(reader.result||''));const note=wrap.querySelector('.av-background-status');if(!result?.ok){if(note)note.textContent='Could not use that image.';return;}video.srcObject=await previewStream(media);void video.play().catch(()=>{});wrap.querySelectorAll('.av-background-card').forEach(n=>n.classList.remove('selected'));upload.classList.add('selected');if(note)note.textContent='Custom background ready.';};reader.readAsDataURL(file);};grid.append(upload);wrap.append(grid);
     const persist=addSelect(wrap,'Keep virtual background for','data-av-background-persistence');persist.append(new Option('All meetings','all'),new Option('Current meeting only','current'));persist.value=snap.backgroundPersistence||'all';persist.onchange=()=>fx.setBackgroundPersistence(persist.value);
-    const status=document.createElement('p');status.className='av-background-status';status.textContent=snap.faceDetectionSupported?'Background processing is available on this desktop.':'Virtual backgrounds require on-device face detection support on this desktop.';wrap.append(status);
-    if(!snap.faceDetectionSupported)grid.querySelectorAll('button,label.upload').forEach(node=>{node.classList.add('disabled');if(node.tagName==='BUTTON')node.disabled=true;const file=node.querySelector?.('input');if(file)file.disabled=true;});
+    const status=document.createElement('p');status.className='av-background-status';status.textContent=snap.faceDetectionSupported?'On-device person tracking is active.':'On-device compatibility mode is active. Background edges are approximate and improve when you stay centered.';wrap.append(status);
     detail.append(wrap);
   }
 
@@ -175,12 +174,12 @@
 
     const basic=avGroup(detail,'Video','Core camera behavior');
     const qualityRow=document.createElement('div');qualityRow.className='av-zoom-inline-options';basic.append(qualityRow);
-    const qualityLabel=document.createElement('label');qualityLabel.className='av-field compact';qualityLabel.innerHTML='<span>Video quality</span><select data-av-quality><option value="720">HD · 720p</option><option value="540">Balanced · 540p</option><option value="360">Data saver · 360p</option></select>';qualityRow.append(qualityLabel);
+    const qualityLabel=document.createElement('label');qualityLabel.className='av-field compact';qualityLabel.innerHTML='<span>Video quality</span><select data-av-quality><option value="1080">Full HD · 1080p</option><option value="720">HD · 720p</option><option value="540">Balanced · 540p</option><option value="360">Data saver · 360p</option></select>';qualityRow.append(qualityLabel);
     const quality=qualityLabel.querySelector('select');quality.value=state.quality;
     addToggle(basic,'Original ratio',state.originalRatio,value=>{state.originalRatio=value;applyOriginalRatio();});
     addToggle(basic,'Mirror my video',media.snapshot().mirror,value=>{media.setMirror(value);applyMirror(media);});
 
-    const appearance=avGroup(detail,'Appearance','Match the familiar Zoom-style video controls.');
+    const appearance=avGroup(detail,'Appearance','Improve how you look using local camera processing.');
     const touch=addToggle(appearance,'Touch up my appearance',state.touchUp,value=>{state.touchUp=value;applyAppearance();});
     const touchRange=addRange(appearance,'Touch up intensity',state.touchUpLevel,0,100,value=>{state.touchUpLevel=value;applyAppearance();});touchRange.disabled=!touch.checked;touch.onchange=()=>{state.touchUp=touch.checked;touchRange.disabled=!touch.checked;applyAppearance();};
     const low=addToggle(appearance,'Adjust for low light',state.lowLight,value=>{state.lowLight=value;void applyLowLight(media);});
@@ -199,12 +198,11 @@
       autoFrame.onchange=async()=>{fx.setAutoFrame(autoFrame.checked);strength.disabled=!autoFrame.checked||!fx.snapshot().faceDetectionSupported;video.srcObject=await previewStream(media);void video.play().catch(()=>{});};
 
       const blur=addToggle(effectsGroup,'Blur my background',Boolean(fxSnap.backgroundBlur),async value=>{fx.setBackgroundBlur(Boolean(value));video.srcObject=await previewStream(media);void video.play().catch(()=>{});});
-      blur.disabled=!fxSnap.faceDetectionSupported;
-      const blurStrength=addRange(effectsGroup,'Background blur strength',Number(fxSnap.blurStrength)||55,0,100,value=>fx.setBlurStrength(value));blurStrength.disabled=!fxSnap.faceDetectionSupported||!fxSnap.backgroundBlur;
-      blur.onchange=async()=>{fx.setBackgroundBlur(blur.checked);blurStrength.disabled=!blur.checked||!fx.snapshot().faceDetectionSupported;video.srcObject=await previewStream(media);void video.play().catch(()=>{});};
+      const blurStrength=addRange(effectsGroup,'Background blur strength',Number(fxSnap.blurStrength)||55,0,100,value=>fx.setBlurStrength(value));blurStrength.disabled=!fxSnap.backgroundBlur;
+      blur.onchange=async()=>{fx.setBackgroundBlur(blur.checked);blurStrength.disabled=!blur.checked;video.srcObject=await previewStream(media,settingsPreviewRaw);void video.play().catch(()=>{});};
 
       addBackgroundPicker(effectsGroup,fx,video,media);
-      if(!fxSnap.faceDetectionSupported){const note=document.createElement('p');note.className='av-effects-note';note.textContent='Auto framing and person-aware background effects require on-device face detection support on this desktop.';effectsGroup.append(note);}
+      if(!fxSnap.faceDetectionSupported){const note=document.createElement('p');note.className='av-effects-note';note.textContent='Auto framing requires on-device face tracking. Blur and virtual backgrounds remain available in local centered-subject compatibility mode.';effectsGroup.append(note);}
     }
 
     const advanced=document.createElement('details');advanced.className='av-advanced-panel';const summary=document.createElement('summary');summary.textContent='Advanced';advanced.append(summary);detail.append(advanced);
@@ -251,7 +249,7 @@
       const original=document.createElement('button');original.type='button';original.textContent=`${state.originalRatio?'✓ ':''}Original ratio`;original.onclick=()=>{state.originalRatio=!state.originalRatio;applyOriginalRatio();closeMenu();};menu.append(original);
       const low=document.createElement('button');low.type='button';low.textContent=`${state.lowLight?'✓ ':''}Adjust for low light`;low.onclick=()=>{state.lowLight=!state.lowLight;void applyLowLight(media);closeMenu();};menu.append(low);
       const fx=effects(),fxSnap=fx?.snapshot?.()||{};
-      if(fx&&fxSnap.faceDetectionSupported){
+      if(fx){
         const blur=document.createElement('button');blur.type='button';blur.textContent=`${fxSnap.backgroundBlur?'✓ ':''}Blur my background`;blur.onclick=()=>{fx.setBackgroundBlur(!fx.snapshot().backgroundBlur);closeMenu();};menu.append(blur);
         const backgrounds=document.createElement('button');backgrounds.type='button';backgrounds.textContent='Backgrounds & Effects…';backgrounds.onclick=()=>{closeMenu();const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();void openVideoSettings(media);};menu.append(backgrounds);
       }
@@ -302,6 +300,6 @@
     installMeetingQuickMenus(media);
     document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('.av-device-caret'))closeMenu();},true);
     window.addEventListener('resize',closeMenu);
-    window.DominionAVSettings=Object.freeze({version:'1.0.2-bounded-caret-observer',openAudio:()=>openAudioSettings(media),openVideo:()=>openVideoSettings(media),bindToolbar:()=>installMeetingQuickMenus(media),openQuick:(kind,anchor)=>openQuickMenu(media,String(kind||''),anchor),applyLowLight:()=>applyLowLight(media),applyQuality:()=>applyQuality(media),snapshot:()=>({...state,...media.snapshot()})});
+    window.DominionAVSettings=Object.freeze({version:'1.1.0-full-hd-local-effects',openAudio:()=>openAudioSettings(media),openVideo:()=>openVideoSettings(media),bindToolbar:()=>installMeetingQuickMenus(media),openQuick:(kind,anchor)=>openQuickMenu(media,String(kind||''),anchor),applyLowLight:()=>applyLowLight(media),applyQuality:()=>applyQuality(media),snapshot:()=>({...state,...media.snapshot()})});
   });
 })();
