@@ -20,11 +20,11 @@
     style.dataset.dsZoomParticipantsReference2041='1';
     style.textContent=`
       #meetingOverlay .room-side.ds-participants-reference{
-        position:absolute!important;width:318px!important;min-width:300px!important;max-width:min(342px,calc(100% - 24px))!important;
-        height:452px!important;min-height:360px!important;max-height:calc(100% - 24px)!important;
+        position:absolute!important;width:360px!important;min-width:min(360px,calc(100% - 24px))!important;max-width:min(360px,calc(100% - 24px))!important;
+        height:360px!important;min-height:320px!important;max-height:calc(100% - 24px)!important;
         left:auto!important;right:24px!important;top:18px!important;bottom:auto!important;transform:none!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
-        background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:both!important;z-index:3200!important;color:#f5f5f6!important
+        background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:none!important;z-index:3200!important;color:#f5f5f6!important
       }
       #meetingOverlay .room-side.ds-participants-reference[hidden]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.dragging{transform:none!important;box-shadow:0 22px 64px rgba(0,0,0,.62)!important}
@@ -104,20 +104,14 @@
 
   function ensureHeader(side){
     let head=side.querySelector('.room-side-head');
-    if(!head){head=document.createElement('header');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small></small></div><button type="button" class="ds-participants-popout" aria-label="Expand participants" title="Expand participants">↗</button><button type="button" aria-label="Close participants">×</button>';side.prepend(head);}
-    const close=head.querySelector(':scope > button[aria-label="Close participants"]');if(close&&close.dataset.dsParticipantRefClose!=='1'){close.dataset.dsParticipantRefClose='1';close.onclick=()=>q('#roomParticipants')?.click();}
-    let popout=head.querySelector('.ds-participants-popout');if(!popout){popout=document.createElement('button');popout.type='button';popout.className='ds-participants-popout';popout.setAttribute('aria-label','Expand participants');popout.title='Expand participants';popout.textContent='↗';head.insertBefore(popout,close||null);}
-    if(popout.dataset.dsParticipantPopoutBound!=='1'){popout.dataset.dsParticipantPopoutBound='1';popout.onclick=event=>{event.stopPropagation();side.classList.toggle('ds-panel-wide');window.DominionRuntimeStability?.layoutSideSurface?.();};}
-    if((runtimeMac||Boolean(window.dominionDesktop))&&!head.querySelector('.ds-participants-traffic')){
-      side.classList.add('ds-participants-mac');const traffic=document.createElement('div');traffic.className='ds-participants-traffic';
-      traffic.innerHTML='<button type="button" class="close" aria-label="Close participants"></button><button type="button" class="min" aria-label="Collapse participants"></button><button type="button" class="max" aria-label="Expand participants"></button>';head.prepend(traffic);
-      traffic.querySelector('.close').onclick=event=>{event.stopPropagation();q('#roomParticipants')?.click();};
-      traffic.querySelector('.min').onclick=event=>{event.stopPropagation();side.classList.add('ds-panel-collapsed');};
-      traffic.querySelector('.max').onclick=event=>{event.stopPropagation();side.classList.remove('ds-panel-collapsed');side.classList.toggle('ds-panel-wide');window.DominionRuntimeStability?.layoutSideSurface?.();saveGeometry(side);};
-    }
+    if(!head){head=document.createElement('header');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small></small></div><button type="button" aria-label="Close participants">×</button>';side.prepend(head);}
+    for(const stale of [...head.querySelectorAll('.ds-participants-popout,.ds-participants-traffic')])stale.remove();
+    side.classList.remove('ds-panel-wide','ds-panel-collapsed');
+    if(runtimeMac||Boolean(window.dominionDesktop))side.classList.add('ds-participants-mac');
+    const close=head.querySelector(':scope > button[aria-label="Close participants"]');
+    if(close&&close.dataset.dsParticipantRefClose!=='1'){close.dataset.dsParticipantRefClose='1';close.onclick=()=>q('#roomParticipants')?.click();}
     return head;
   }
-
   function cleanupLegacySearch(side,primary){
     for(const input of [...side.querySelectorAll('input[type="search"]')]){
       if(input===primary)continue;
@@ -240,3 +234,5 @@
   window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.50-stable-person-card-single-slash',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();
+
+/* 2.0.48 reference layer never owns desktop window chrome. */
