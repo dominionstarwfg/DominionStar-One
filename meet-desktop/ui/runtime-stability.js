@@ -374,15 +374,19 @@
     const header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
     if(!header)return;
     if(participants&&desktopSurface){
-      for(const legacy of [...header.querySelectorAll('.ds-participants-traffic')])legacy.remove();
-    }
-    if(participants&&desktopSurface&&!header.querySelector('.ds-panel-traffic')){
-      const traffic=document.createElement('div');traffic.className='ds-panel-traffic';
-      traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Collapse panel"></button><button type="button" class="zoom" aria-label="Expand panel"></button>';
-      header.prepend(traffic);
-      traffic.querySelector('.close').onclick=event=>{event.preventDefault();event.stopPropagation();setParticipants(false);};
-      traffic.querySelector('.min').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.toggle('ds-panel-minimized');panel.classList.remove('ds-panel-wide');layoutSideSurface();};
-      traffic.querySelector('.zoom').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.classList.toggle('ds-panel-wide');layoutSideSurface();};
+      for(const legacy of [...header.querySelectorAll('.ds-participants-traffic,.ds-participants-popout')])legacy.remove();
+      panel.classList.remove('ds-panel-wide','ds-panel-collapsed');
+      let traffic=header.querySelector('.ds-panel-traffic');
+      if(!traffic||traffic.dataset.dsRuntimeParticipantChrome!=='1'){
+        traffic?.remove();
+        traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.dataset.dsRuntimeParticipantChrome='1';
+        traffic.setAttribute('aria-label','Participant window controls');
+        traffic.innerHTML='<button type="button" class="ds-traffic-close" aria-label="Close participants"></button><button type="button" class="ds-traffic-minimize" aria-label="Minimize participants"></button><button type="button" class="ds-traffic-restore" aria-label="Restore participants"></button>';
+        header.prepend(traffic);
+        traffic.querySelector('.ds-traffic-close').onclick=event=>{event.preventDefault();event.stopPropagation();setParticipants(false);};
+        traffic.querySelector('.ds-traffic-minimize').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.add('ds-panel-minimized');layoutSideSurface();};
+        traffic.querySelector('.ds-traffic-restore').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
+      }
     }
     let close=participants?header.querySelector('button[aria-label="Close participants"]'):header.querySelector('[data-chat-close]');
     if(!close){
@@ -448,11 +452,11 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel.classList.contains('ds-panel-wide')?430:(panel===chat?330:380);
+      const baseWidth=panel===chat?330:360;
       const participantCount=participantRows().length;
-      const participantBaseHeight=Math.min(438,Math.max(390,102+(Math.max(1,participantCount)*42)+(participantCount>=7?46:0)));
+      const participantBaseHeight=Math.min(430,Math.max(320,110+(Math.max(1,participantCount)*46)+(participantCount>=7?40:0)));
       const baseHeight=panel===chat?440:participantBaseHeight;
-      const minPanelHeight=panel===chat?300:300;
+      const minPanelHeight=panel===chat?300:320;
       const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
       panel.dataset.dsRuntimeMode='floating';
