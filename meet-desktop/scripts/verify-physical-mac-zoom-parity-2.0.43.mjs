@@ -88,28 +88,34 @@ assert(
   shareController.includes("const captureBridge=window.dominionDesktop?.shareCapture||null;") &&
   shareController.includes('return acquireMacWorkerDisplay(options,generation);') &&
   shareController.includes("throw new Error('Dedicated Mac screen-capture worker is unavailable.')") &&
-  shareController.includes('macWorkerActive=true;') &&
-  shareController.includes('const nativeMacCapture=macLike&&Boolean(captureBridge?.start);') &&
-  shareController.includes('if(nativeMacCapture)return null;') &&
-  !shareController.includes('const pc=new RTCPeerConnection({iceServers:[]});') &&
+  shareController.includes('const pc=new RTCPeerConnection({iceServers:[]});') &&
+  shareController.includes('captureBridge.onOffer?.(') &&
+  shareController.includes('pc.ontrack=') &&
+  shareController.includes('captureBridge.answer({generation:g,sdp:pc.localDescription})') &&
+  shareController.includes('captureBridge.candidate({generation:macCaptureSignalGeneration,candidate:c})') &&
   captureWorker.includes('navigator.mediaDevices.getUserMedia({') &&
   captureWorker.includes("chromeMediaSource:'desktop'") &&
   captureWorker.includes('chromeMediaSourceId:sourceId') &&
   !captureWorker.includes('navigator.mediaDevices.getDisplayMedia(') &&
-  !shareService.includes('win.webContents.session.setDisplayMediaRequestHandler') &&
-  shareService.includes("sourceId:String(pendingSelection?.source?.id||payload?.sourceId||'')") &&
-  !captureWorker.includes('RTCPeerConnection') &&
-  !captureWorker.includes('createOffer(') &&
-  !captureWorker.includes('addTrack(') &&
-  captureWorker.includes("transport:'lifecycle-only'") &&
+  captureWorker.includes('const pc=new RTCPeerConnection({iceServers:[]});') &&
+  captureWorker.includes('for(const track of stream.getTracks())pc.addTrack(track,stream);') &&
+  captureWorker.includes('const offer=await pc.createOffer();') &&
+  captureWorker.includes("transport:'isolated-local-webrtc'") &&
+  capturePreload.includes("offer:payload=>ipcRenderer.send('share-capture:offer'") &&
+  capturePreload.includes("candidate:payload=>ipcRenderer.send('share-capture:worker-ice'") &&
+  capturePreload.includes("onAnswer:callback=>listen('share-capture:answer'") &&
+  capturePreload.includes("onCandidate:callback=>listen('share-capture:client-ice'") &&
   preload.includes('shareCapture:Object.freeze({') &&
-  preload.includes("ipcRenderer.send('share-capture:start-request'") &&
-  preload.includes("ipcRenderer.on('share-capture:start-result'") &&
-  preload.includes('start:payload=>startCaptureWorker(payload||{})') &&
+  preload.includes("answer:payload=>invoke('share-capture:answer'") &&
+  preload.includes("candidate:payload=>invoke('share-capture:client-ice'") &&
+  preload.includes("onOffer:callback=>listen('share-capture:offer'") &&
+  preload.includes("onCandidate:callback=>listen('share-capture:worker-ice'") &&
   shareService.includes("ipcMain.on('share-capture:start-request'") &&
   shareService.includes("event.reply('share-capture:start-result'") &&
+  shareService.includes("ipcMain.on('share-capture:offer'") &&
+  shareService.includes("ipcMain.handle('share-capture:answer'") &&
   !shareService.includes("ipcMain.handle('share-capture:start'"),
-  'macOS display capture must remain owned by the dedicated capture renderer and use the event-driven start/result boundary without looping the live screen track back into the meeting/control renderer.'
+  'macOS display capture must remain owned by the isolated capture renderer while the meeting renderer receives only a local WebRTC copy for participant transport and responsive Pause/annotation controls.'
 );
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
