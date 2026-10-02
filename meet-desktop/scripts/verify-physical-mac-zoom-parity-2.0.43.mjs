@@ -318,7 +318,7 @@ assert(
   runtime.includes("window.DominionAVSettings?.bindToolbar?.();")&&
   runtimeCss.includes('explicit Audio/Video device-caret visibility lock')&&
   runtimeCss.includes('[data-kind="audio"]')&&runtimeCss.includes('[data-kind="video"]')&&
-  avSettings.includes("version:'1.0.1-runtime-caret-authority'")&&
+  avSettings.includes("version:'1.0.2-bounded-caret-observer'")&&
   avSettings.includes("bindToolbar:()=>installMeetingQuickMenus(media)")&&
   avSettings.includes("settings.textContent=kind==='audio'?'Audio Settings…':'Video Settings…'")&&
   avSettings.includes("caret.setAttribute('aria-haspopup','menu')")&&

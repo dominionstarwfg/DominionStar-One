@@ -273,10 +273,18 @@
       if(!caret&&button.nextElementSibling?.classList?.contains('av-device-caret'))caret=button.nextElementSibling;
       if(!caret){caret=document.createElement('button');caret.type='button';caret.className='av-device-caret attached-device-caret';button.insertAdjacentElement('afterend',caret);}
       caret.classList.add('attached-device-caret');caret.dataset.kind=kind;caret.dataset.dsRuntimeCaretSlot='1';caret.dataset.avQuickBound='1';
-      caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.setAttribute('aria-haspopup','menu');caret.setAttribute('aria-expanded','false');
-      caret.innerHTML='<span aria-hidden="true">⌃</span>';caret.disabled=false;
+      caret.setAttribute('aria-label',`${kind==='audio'?'Audio':'Video'} options`);caret.setAttribute('aria-haspopup','menu');
+      if(!caret.hasAttribute('aria-expanded'))caret.setAttribute('aria-expanded','false');
+      const icon=caret.firstElementChild;
+      if(caret.childElementCount!==1||icon?.tagName!=='SPAN'||icon.getAttribute('aria-hidden')!=='true'||icon.textContent!=='⌃'){
+        const span=document.createElement('span');span.setAttribute('aria-hidden','true');span.textContent='⌃';caret.replaceChildren(span);
+      }
+      caret.disabled=false;
       button.dataset.avQuickInstalled='1';button.classList.add('has-device-caret');
-      caret.onclick=event=>{event.preventDefault();event.stopPropagation();void openQuickMenu(media,kind,caret);};
+      if(caret.dataset.avQuickClickBound!=='1'){
+        caret.dataset.avQuickClickBound='1';
+        caret.onclick=event=>{event.preventDefault();event.stopPropagation();void openQuickMenu(media,kind,caret);};
+      }
     }
     return true;
   }
@@ -284,9 +292,16 @@
   waitForMedia().then(media=>{
     if(!media)return;installSettings(media);applyMirror(media);applyOriginalRatio();applyAppearance();
     media.onChange(()=>{applyMirror(media);applyOriginalRatio();applyAppearance();if(state.lowLight)void applyLowLight(media);});
-    const observer=new MutationObserver(()=>installMeetingQuickMenus(media));observer.observe(document.body,{childList:true,subtree:true});installMeetingQuickMenus(media);
+    let quickMenuSyncTimer=0;
+    const scheduleQuickMenuInstall=()=>{
+      if(quickMenuSyncTimer)return;
+      quickMenuSyncTimer=setTimeout(()=>{quickMenuSyncTimer=0;installMeetingQuickMenus(media);},32);
+    };
+    const observer=new MutationObserver(scheduleQuickMenuInstall);
+    observer.observe(document.body,{childList:true,subtree:true});
+    installMeetingQuickMenus(media);
     document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('.av-device-caret'))closeMenu();},true);
     window.addEventListener('resize',closeMenu);
-    window.DominionAVSettings=Object.freeze({version:'1.0.1-runtime-caret-authority',openAudio:()=>openAudioSettings(media),openVideo:()=>openVideoSettings(media),bindToolbar:()=>installMeetingQuickMenus(media),openQuick:(kind,anchor)=>openQuickMenu(media,String(kind||''),anchor),applyLowLight:()=>applyLowLight(media),applyQuality:()=>applyQuality(media),snapshot:()=>({...state,...media.snapshot()})});
+    window.DominionAVSettings=Object.freeze({version:'1.0.2-bounded-caret-observer',openAudio:()=>openAudioSettings(media),openVideo:()=>openVideoSettings(media),bindToolbar:()=>installMeetingQuickMenus(media),openQuick:(kind,anchor)=>openQuickMenu(media,String(kind||''),anchor),applyLowLight:()=>applyLowLight(media),applyQuality:()=>applyQuality(media),snapshot:()=>({...state,...media.snapshot()})});
   });
 })();

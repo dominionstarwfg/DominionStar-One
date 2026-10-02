@@ -213,4 +213,15 @@ assert.ok(
   scheduleSource.includes('const observer=new MutationObserver(scheduleObservedRefresh)'),
   'Startup DOM observers must be bounded and coalesced so Personal Room and Schedule cannot create a MutationObserver/microtask starvation loop during packaged renderer boot.'
 );
+/* AV_CARET_MUTATION_OBSERVER_STARVATION_LOCK */
+assert.ok(
+  avSettings.includes("version:'1.0.2-bounded-caret-observer'")&&
+  avSettings.includes('let quickMenuSyncTimer=0;')&&
+  avSettings.includes('const scheduleQuickMenuInstall=()=>')&&
+  avSettings.includes('const observer=new MutationObserver(scheduleQuickMenuInstall)')&&
+  avSettings.includes("caret.replaceChildren(span);")&&
+  !avSettings.includes("const observer=new MutationObserver(()=>installMeetingQuickMenus(media))")&&
+  !avSettings.includes("caret.innerHTML='<span aria-hidden=\"true\">⌃</span>'"),
+  'Audio/Video quick-menu observation must be bounded and idempotent so caret rendering cannot create a self-feeding MutationObserver loop that starves the packaged renderer.'
+);
 console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
