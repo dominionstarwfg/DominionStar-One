@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./personal-room.css">
   <link rel="stylesheet" href="./participant-panel-stability.css">
   <link rel="stylesheet" href="./host-tools-size-lock-2.0.41.css">
+  <link rel="stylesheet" href="./hubs.css">
 </head>
 <body>
   <section id="bootScreen" class="boot-screen" aria-live="polite">
@@ -39,6 +40,7 @@
       <nav class="side-nav">
         <button class="nav-button active" data-section="home" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg><span>Home</span></button>
         <button class="nav-button" data-section="meetings" aria-label="Meetings"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Meetings</span></button>
+        <button class="nav-button" data-section="hubs" aria-label="Hubs"><svg viewBox="0 0 24 24"><path d="M4 5h7v6H4zM13 5h7v10h-7zM4 13h7v6H4zM13 17h7v2h-7z"/></svg><span>Hubs</span></button>
       </nav>
       <button class="nav-button settings-nav" data-open="settings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06-2.12 2.12-.06-.06a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.09 1.65V21h-3v-.09a1.8 1.8 0 0 0-1.09-1.65 1.8 1.8 0 0 0-1.98.36l-.06.06-2.12-2.12.06-.06A1.8 1.8 0 0 0 6.6 15a1.8 1.8 0 0 0-1.65-1.09H5v-3h.09A1.8 1.8 0 0 0 6.74 9.8a1.8 1.8 0 0 0-.36-1.98l-.06-.06 2.12-2.12.06.06a1.8 1.8 0 0 0 1.98.36A1.8 1.8 0 0 0 11.57 4.4V4h3v.4a1.8 1.8 0 0 0 1.09 1.65 1.8 1.8 0 0 0 1.98-.36l.06-.06 2.12 2.12-.06.06a1.8 1.8 0 0 0-.36 1.98 1.8 1.8 0 0 0 1.65 1.09H21v3h-.09A1.8 1.8 0 0 0 19.4 15z"/></svg><span>Settings</span></button>
     </aside>
@@ -72,6 +74,24 @@
         </section>
       </main>
 
+      <main class="content hubs-section" id="hubsSection" hidden>
+        <section class="hubs-head">
+          <div><p class="eyebrow">HUBS</p><h1>Meeting Hubs</h1><p>Your local recordings, notes, and meeting assets in one place.</p></div>
+          <span class="hubs-local-badge">Stored on this Mac</span>
+        </section>
+        <section class="hubs-grid">
+          <article class="hubs-panel hubs-recordings-panel">
+            <header><div><h2>Recordings</h2><p>Recordings created in DominionStar Meet stay local unless you choose to share them.</p></div><span id="hubsRecordingCount">0</span></header>
+            <div id="hubsRecordingList" class="hubs-recording-list"><p class="hubs-empty">No local recordings yet.</p></div>
+          </article>
+          <article class="hubs-panel hubs-notes-panel">
+            <header><div><h2>My Notes</h2><p>Private notes stored locally on this desktop.</p></div></header>
+            <textarea id="hubsNotes" placeholder="Write private meeting notes…"></textarea>
+            <footer><span id="hubsNotesStatus">Local only</span><button id="hubsSaveNotes" type="button">Save notes</button></footer>
+          </article>
+        </section>
+      </main>
+
       <main class="content meetings-section" id="meetingsSection" hidden>
         <section class="meetings-head"><div><p class="eyebrow">MEETINGS</p><h1>Meetings <span id="scheduledMeetingCount">0</span></h1><p>Your Personal Room and scheduled meetings.</p></div><button class="primary-button" type="button" data-open="schedule">Schedule a meeting</button></section>
         <section id="scheduledMeetingList" class="scheduled-meeting-list" aria-live="polite"></section>
@@ -92,6 +112,7 @@
   <script src="./browser-bridge.js"></script>
   <script src="./auth-password.js"></script>
   <script src="./app.js"></script>
+  <script src="./hubs.js"></script>
   <script src="./video-effects.js"></script>
   <script src="./av-settings.js"></script>
   <script src="./meeting-parity.js"></script>
