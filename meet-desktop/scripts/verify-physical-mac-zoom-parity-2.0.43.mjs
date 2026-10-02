@@ -88,7 +88,7 @@ assert(
   shareController.includes("const captureBridge=window.dominionDesktop?.shareCapture||null;") &&
   shareController.includes('return acquireMacWorkerDisplay(options,generation);') &&
   shareController.includes("throw new Error('Dedicated Mac screen-capture worker is unavailable.')") &&
-  shareController.includes('const pc=new RTCPeerConnection({iceServers:[]});') &&
+  shareController.includes('const pc=new RTCPeerConnection({iceServers:[]}),stream=new MediaStream()') &&
   shareController.includes('captureBridge.onOffer?.(') &&
   shareController.includes('pc.ontrack=') &&
   shareController.includes('captureBridge.answer({generation:g,sdp:pc.localDescription})') &&
