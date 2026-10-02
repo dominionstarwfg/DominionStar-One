@@ -244,7 +244,7 @@
     const closePanel=()=>{if(window.DominionRuntimeStability?.setParticipants)window.DominionRuntimeStability.setParticipants(false);else{side.hidden=true;overlay?.classList.add('participants-hidden');q('#roomParticipants')?.setAttribute('aria-pressed','false');}};
     if(isMac){
       let traffic=head.querySelector('.ds-panel-traffic');
-      if(!traffic){traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.setAttribute('aria-label','Participant window controls');traffic.innerHTML='<button type="button" class="close" aria-label="Close participants"></button><button type="button" class="min" aria-label="Minimize participants"></button><button type="button" class="zoom" aria-label="Expand participants"></button>';head.prepend(traffic);}
+      if(!traffic){traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.setAttribute('aria-label','Participant window controls');traffic.innerHTML='<button type="button" class="close" aria-label="Close panel"></button><button type="button" class="min" aria-label="Collapse panel"></button><button type="button" class="zoom" aria-label="Expand panel"></button>';head.prepend(traffic);}
       if(traffic.dataset.dsParticipantChromeBound!=='1'){
         traffic.dataset.dsParticipantChromeBound='1';
         traffic.querySelector('.close')?.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();closePanel();});
