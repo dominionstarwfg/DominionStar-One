@@ -555,14 +555,13 @@ assert(
 
 /* PHYSICAL_MAC_SCREENSHOT_2026_10_01_IDENTITY_AND_MENU_LOCK */
 assert(
-  physical.includes("nameNode.className='ds-canonical-name'")&&
-  physical.includes("badge.textContent=role==='host'?'(Host)':'(Co-host)'")&&
-  physical.includes("selfLabel.textContent='(me)'")&&
-  screenshotReferenceCss.includes('2.0.44+ physical Mac participant identity lock')&&
-  screenshotReferenceCss.includes('.ds-canonical-name{min-width:0!important;flex:1 1 auto!important')&&
-  screenshotReferenceCss.includes('.ds-canonical-role{display:inline!important;flex:0 0 auto!important')&&
-  screenshotReferenceCss.includes('.ds-canonical-self{display:inline!important;flex:0 0 auto!important'),
-  'Participants must keep the name independently truncatable while Host/Co-host and (me) remain visible inline.'
+  physical.includes("strong.textContent=name;strong.title=name;")&&
+  physical.includes("if(role==='host')labels.push('Host')")&&
+  physical.includes("if(self)labels.push('You')")&&
+  physical.includes("small.textContent=labels.length?labels.join(' • '):'Participant';")&&
+  runtimeCss.includes('flex-direction:column!important;align-items:flex-start!important')&&
+  runtimeCss.includes('.person-copy small{'),
+  'Participants must preserve the full name on the primary line and keep Host/Co-host and You metadata readable on a separate secondary line.'
 );
 assert(
   macToolbarCss.includes('2.0.44+ physical Mac presenter menu collision lock')&&
