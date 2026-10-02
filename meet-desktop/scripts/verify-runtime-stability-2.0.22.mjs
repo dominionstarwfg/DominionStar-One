@@ -174,9 +174,9 @@ assert.ok(
   mainSource.includes("const qaInteractionFixtures=app.isPackaged&&qaFixtureRequested;")&&
   mainSource.includes("const value=await win.webContents.executeJavaScript(String(request.expression||''),true);")&&
   !mainSource.includes("if(win.webContents.isLoadingMainFrame())throw new Error('main_window_loading');")&&
-  mainSource.includes("readyState=String(await win.webContents.executeJavaScript('document.readyState',true)")&&
+  mainSource.includes("if(!qaRendererDomReady)throw new Error('renderer_not_dom_ready');")&&
   mainSource.includes("allowDirectQa:app.getVersion().includes('-')"),
-  'Explicit packaged QA mode must use the renderer document readiness itself rather than Electron isLoadingMainFrame, while the production meeting service keeps direct-QA fallback restricted to prerelease builds.'
+  'Explicit packaged QA mode must wait for Electron dom-ready before renderer evaluation, while the production meeting service keeps direct-QA fallback restricted to prerelease builds.'
 );
 /* PACKAGED_QA_DOM_READY_HANDSHAKE_LOCK */
 assert.ok(
