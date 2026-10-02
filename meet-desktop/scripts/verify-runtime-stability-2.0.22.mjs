@@ -156,6 +156,16 @@ assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must r
 /* PACKAGED_RUNTIME_MAIN_RENDERER_RECONNECT_LOCK */
 const packagedRuntime=read('scripts/verify-packaged-runtime-stability-2.0.22.mjs');
 const mainSource=read('src/main.mjs');
-assert.ok(packagedRuntime.includes("/\\/index\\.html(?:[?#]|$)/i")&&packagedRuntime.includes('async function reconnect()')&&packagedRuntime.includes("bindSocket(await connect(page.webSocketDebuggerUrl))"),'Packaged runtime stability must bind specifically to the DominionStar index renderer and reconnect if that target is replaced.');
+assert.ok(
+  packagedRuntime.includes('/json/version')&&
+  packagedRuntime.includes("Target.setDiscoverTargets")&&
+  packagedRuntime.includes("Target.getTargets")&&
+  packagedRuntime.includes("Target.attachToTarget")&&
+  packagedRuntime.includes("flatten:true")&&
+  packagedRuntime.includes("/\\/index\\.html(?:[?#]|$)/i")&&
+  packagedRuntime.includes("sessionId=''")&&
+  packagedRuntime.includes('async function attachIndex()'),
+  'Packaged runtime stability must keep a stable browser-level DevTools connection and attach a replaceable session specifically to the DominionStar index renderer.'
+);
 assert.ok(mainSource.includes("[DOMINIONSTAR_RENDERER_GONE]")&&packagedRuntime.includes('DOMINIONSTAR_RENDERER_GONE'),'A real renderer crash must remain fail-closed even when CDP reconnection is supported.');
 console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
