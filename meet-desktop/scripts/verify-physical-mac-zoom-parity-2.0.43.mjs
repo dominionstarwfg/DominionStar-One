@@ -388,8 +388,10 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('.annotation-palette{width:46px') &&
+  macAnnotationCss.includes('.annotation-palette{width:66px') &&
   macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
+  macAnnotationCss.includes('.tool-grid button small,.palette-actions button small{display:block') &&
+  macAnnotationHtml.includes('data-command="annotate-select"') &&
   macAnnotationJs.includes("version:'2.0.46-native-canvas-palette'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-canvas-v2044'") &&
@@ -403,7 +405,7 @@ assert(
   macAnnotationCanvasJs.includes("canvas.addEventListener('pointermove',move") &&
   presenterPreload.includes("onAnnotationCommand:callback=>listen('mac-annotation:command'") &&
   macPresenter.includes("canvas.webContents.send('mac-annotation:command'"),
-  'Annotate must use one readable 46px native palette controlling a full-display native drawing surface so Pen and Laser receive pointer input on the physically shared Mac display.'
+  'Annotate must use one readable 66px labeled native palette with Select/Mouse return, controlling a full-display native drawing surface so Pen, Laser, Eraser, and pointer mode remain reachable on the physically shared Mac display.'
 );
 assert(
   screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
