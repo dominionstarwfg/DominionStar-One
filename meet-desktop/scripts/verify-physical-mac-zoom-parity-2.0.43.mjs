@@ -63,7 +63,7 @@ const avSettings=read('ui/av-settings.js');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
 
-assert.ok(['2.0.46','2.0.47'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
+assert.ok(['2.0.46','2.0.47','2.0.48'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
 assert(
   preferences.includes("const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));") &&
   preferences.includes('if(macLike)return;') &&
@@ -154,7 +154,7 @@ assert(
   'Heavy reference reconciliation must prime once per meeting instead of repainting on every generic runtime pass.'
 );
 assert(
-  runtime.includes("const baseWidth=panel.classList.contains('ds-panel-wide')?430:(panel===chat?330:380);") &&
+  runtime.includes("const baseWidth=panel===chat?330:360;") &&
   runtime.includes("const participantCount=participantRows().length;") &&
   runtime.includes("const participantBaseHeight=Math.min(438,Math.max(390,102+(Math.max(1,participantCount)*42)+(participantCount>=7?46:0)));") &&
   runtime.includes("const minPanelHeight=panel===chat?300:300;") &&
@@ -177,7 +177,7 @@ assert(
   'Final floating-panel drag authority must use one Pointer Events pipeline only and resolve the live panel header dynamically.'
 );
 assert(runtime.includes("const columns=count<=2?1:count<=6?2:3;")&&runtime.includes("const desiredWidth=columns*tileWidth")&&runtime.includes("dock.dataset.dsRuntimeColumns=String(columns)")&&runtime.includes("body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important')"),'Participant video dock must grow rows/columns automatically as visible participant tiles increase.');
-assert(runtimeCss.includes('#meetingOverlay .ds-panel-traffic{display:flex!important}')&&runtime.includes("aria-label=\"Collapse panel\"")&&runtime.includes("aria-label=\"Expand panel\"")&&runtimeCss.includes('button[aria-label="Close participants"]')&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),'Mac Participants/Chat must expose working traffic-light close/collapse/expand controls plus accessible close controls.');
+assert(runtimeCss.includes('.ds-traffic-close')&&runtimeCss.includes('.ds-traffic-minimize')&&runtimeCss.includes('.ds-traffic-restore')&&runtime.includes("aria-label=\"Close participants\"")&&runtime.includes("aria-label=\"Minimize participants\"")&&runtime.includes("aria-label=\"Restore participants\"")&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),'Mac Participants must expose one runtime-owned close/minimize/restore traffic-light set, while Chat keeps its accessible close control.');
 assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;')&&!runtimeCss.includes('left:18px!important;\n  right:auto!important;\n  top:auto!important;\n  bottom:94px!important;')&&!polishCss.includes('.meeting-reaction-menu{left:18px!important'),'Reaction chooser position must belong to the runtime anchor calculation, not a hard-pinned stylesheet.');
 
 assert(adaptive.includes("if(window.DominionRuntimeStability?.layoutSideSurface){\n      side.dataset.dsAdaptiveInitialized='1';\n      window.DominionRuntimeStability.layoutSideSurface();")&&adaptive.includes('return;\n    }\n    installParticipantPanelDrag();'),'Adaptive Participants must stop immediately when final runtime geometry authority is available.');
@@ -364,13 +364,13 @@ assert(
   'Share-toolbar Participants and Chat must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
 );
 assert(
-  participantsReference.includes('width:318px!important;min-width:300px!important')&&
-  participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div{padding-left:0!important')&&
+  participantsReference.includes('width:360px!important;min-width:min(360px,calc(100% - 24px))!important')&&
+  participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div{padding-left:60px!important;padding-right:60px!important')&&
   screenshotReference.includes('data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more')&&
   participantsReference.includes('if(more)more.hidden=!manager;')&&
   screenshotReference.includes('function openParticipantBulkMenu(anchor)')&&
   screenshotReference.includes('function openParticipantInvite(anchor)'),
-  'Participants must preserve the 318px compact floating reference with centered title, traffic controls, canonical rows, functional Invite/Mute all actions, and host-aware More management.'
+  'Participants must preserve one readable fixed floating reference with centered title, runtime-owned traffic controls, canonical rows, functional Invite/Mute all actions, and host-aware More management.'
 );
 
 assert(
