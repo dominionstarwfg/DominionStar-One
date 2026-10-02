@@ -201,8 +201,8 @@ assert(
 );
 assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:70px;bottom:60px;width:330px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
 
-assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("copy.querySelector('small')?.remove()")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must collapse duplicate role labels and duplicate ellipsis controls to one canonical representation.');
-assert(physical.includes("className='ds-canonical-role'")&&physical.includes("className='ds-canonical-self'"),'Participant identity must render one role badge and one self marker.');
+assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("strong.textContent=name;strong.title=name;")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must preserve the full canonical name and collapse duplicate ellipsis controls to one representation.');
+assert(physical.includes("labels.push('Host')")&&physical.includes("labels.push('You')")&&physical.includes("labels.join(' • ')"),'Participant role and self identity must render on the secondary metadata line instead of consuming the primary name line.');
 assert(
   parity.includes('reaction-emoji-glyph') &&
   parity.includes('😊') &&
