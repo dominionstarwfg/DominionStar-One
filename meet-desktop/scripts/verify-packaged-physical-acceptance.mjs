@@ -88,10 +88,11 @@ try{
   assert.equal(participantRow.draggable,true,'Participants floating surface must have a drag authority.');
   assert.equal(participantRow.close,true,'Participants must expose a visible direct Close control.');
   assert.equal(participantRow.traffic,3,'Mac Participants must expose exactly three functional traffic-light controls for close, collapse and expand.');
-  const canonicalSelf=await evaluate(`(()=>{const row=document.querySelector('#participantRoster [data-participant-self="1"]'),strong=row.querySelector('.person-copy strong'),actions=row.querySelector('.participant-actions');return {name:String(strong?.childNodes?.[0]?.textContent||'').trim(),roles:row.querySelectorAll('.ds-canonical-role').length,selfLabels:row.querySelectorAll('.ds-canonical-self').length,more:actions?.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more').length||0};})()`);
-  assert.equal(canonicalSelf.name,'QA Host','Participant name must not retain duplicated inline Host/me text.');
-  assert.equal(canonicalSelf.roles,1,'Host role must render exactly once.');
-  assert.equal(canonicalSelf.selfLabels,1,'Self marker must render exactly once.');
+  const canonicalSelf=await evaluate(`(()=>{const row=document.querySelector('#participantRoster [data-participant-self="1"]'),strong=row.querySelector('.person-copy strong'),small=row.querySelector('.person-copy small'),actions=row.querySelector('.participant-actions');return {name:String(strong?.textContent||'').trim(),meta:String(small?.textContent||'').trim(),legacyRoles:row.querySelectorAll('.ds-canonical-role').length,legacySelf:row.querySelectorAll('.ds-canonical-self').length,more:actions?.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more').length||0};})()`);
+  assert.equal(canonicalSelf.name,'QA Host','Participant primary line must preserve the full name without inline Host/me duplication.');
+  assert.equal(canonicalSelf.meta,'Host • You','Host and self state must render exactly once on the secondary metadata line.');
+  assert.equal(canonicalSelf.legacyRoles,0,'Legacy inline Host role badges must be absent.');
+  assert.equal(canonicalSelf.legacySelf,0,'Legacy inline self markers must be absent.');
   assert.equal(canonicalSelf.more,1,'Participant row must expose exactly one ellipsis control.');
   await evaluate(`document.querySelector('#roomParticipants').click()`);
 
