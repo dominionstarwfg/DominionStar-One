@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
     onShowMeeting:callback=>listen('mac-share:show-meeting',callback),
-    onVideoFrame:callback=>listen('mac-share:video-frame',callback)
+    onVideoFrame:callback=>listen('mac-share:video-frame',callback),
+    onAnnotationCommand:callback=>listen('mac-annotation:command',callback)
   })
 }));

@@ -20,5 +20,5 @@
       button.classList.add('error');setTimeout(()=>button.classList.remove('error'),900);
     }finally{button.classList.remove('pending');}
   });
-  window.DominionMacAnnotationPalette=Object.freeze({version:'2.0.44-professional-palette',commands:buttons.map(button=>button.dataset.command)});
+  window.DominionMacAnnotationPalette=Object.freeze({version:'2.0.45-native-canvas-palette',commands:buttons.map(button=>button.dataset.command)});
 })();

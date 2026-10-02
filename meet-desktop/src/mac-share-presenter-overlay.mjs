@@ -14,6 +14,7 @@ if(process.platform==='darwin'){
   let borderWindows=[]; // four thin edge windows driven by one geometry authority
   let videoWindow=null;
   let annotationWindow=null;
+  let annotationCanvasWindow=null;
   let shareActive=false;
   let toolbarReady=false,toolbarAutoHidden=false;
   let toolbarMenuOpen=false;
@@ -35,7 +36,7 @@ if(process.platform==='darwin'){
   const mainWindow=()=>{
     const windows=BrowserWindow.getAllWindows().filter(isAlive);
     return windows.find(win=>String(win.webContents?.getURL?.()||'').includes('/ui/index.html'))
-      ||windows.find(win=>win!==toolbarWindow&&!isBorderWindow(win)&&win!==videoWindow&&win!==annotationWindow&&!String(win.webContents?.getURL?.()||'').includes('mac-presenter-toolbar.html')&&!String(win.webContents?.getURL?.()||'').includes('mac-share-video.html')&&!String(win.webContents?.getURL?.()||'').includes('mac-annotation-toolbar.html')&&win.isVisible?.())
+      ||windows.find(win=>win!==toolbarWindow&&!isBorderWindow(win)&&win!==videoWindow&&win!==annotationWindow&&win!==annotationCanvasWindow&&!String(win.webContents?.getURL?.()||'').includes('mac-presenter-toolbar.html')&&!String(win.webContents?.getURL?.()||'').includes('mac-share-video.html')&&!String(win.webContents?.getURL?.()||'').includes('mac-annotation-toolbar.html')&&!String(win.webContents?.getURL?.()||'').includes('mac-annotation-canvas.html')&&win.isVisible?.())
       ||null;
   };
   const displayForMain=()=>{const main=mainWindow();try{return main?screen.getDisplayMatching(main.getBounds()):screen.getPrimaryDisplay();}catch{return screen.getPrimaryDisplay();}};
@@ -130,6 +131,16 @@ if(process.platform==='darwin'){
     const x=Math.round(area.x+8),y=Math.round(area.y+Math.max(82,(area.height-height)/2));
     try{annotationWindow.setBounds({x,y,width,height},false);}catch{}
   }
+  function positionAnnotationCanvas(){
+    if(!isAlive(annotationCanvasWindow))return;
+    const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.bounds||display.workArea;
+    try{annotationCanvasWindow.setBounds({x:Math.round(area.x),y:Math.round(area.y),width:Math.max(2,Math.round(area.width)),height:Math.max(2,Math.round(area.height))},false);}catch{}
+  }
+  function hideAnnotationCanvas({clearLaser=true}={}){
+    if(!isAlive(annotationCanvasWindow))return;
+    if(clearLaser){try{annotationCanvasWindow.webContents.send('mac-annotation:command',{command:'annotate-laser-clear'});}catch{}}
+    try{annotationCanvasWindow.hide();}catch{}
+  }
   function hideAnnotationPalette(){
     if(!isAlive(annotationWindow))return;
     try{annotationWindow.hide();}catch{}
@@ -137,7 +148,12 @@ if(process.platform==='darwin'){
   }
   function showAnnotationPalette(){
     if(!shareActive)return;
-    void prepareAnnotation().then(win=>{if(!shareActive||String(shareState.companion||'')!=='annotate'||!isAlive(win))return;positionAnnotation();allowSystemCapture(win);try{win.showInactive?.();win.moveTop?.();}catch{}});
+    void Promise.all([prepareAnnotation(),prepareAnnotationCanvas()]).then(([palette,canvas])=>{
+      if(!shareActive||String(shareState.companion||'')!=='annotate'||!isAlive(palette)||!isAlive(canvas))return;
+      positionAnnotationCanvas();positionAnnotation();allowSystemCapture(canvas);allowSystemCapture(palette);
+      try{canvas.showInactive?.();canvas.moveTop?.();}catch{}
+      try{toolbarWindow?.moveTop?.();videoWindow?.moveTop?.();palette.showInactive?.();palette.moveTop?.();}catch{}
+    });
   }
   function setVideoLayout(mode='speaker'){
     videoLayout=['speaker','gallery','hide'].includes(String(mode))?String(mode):'speaker';
@@ -226,6 +242,28 @@ if(process.platform==='darwin'){
     catch(error){console.error('[DominionStar Meet] macOS presenter video dock failed to prepare.',error);closeFailedWindow(win);if(videoWindow===win)videoWindow=null;return null;}
   }
 
+  async function prepareAnnotationCanvas(){
+    if(isAlive(annotationCanvasWindow))return annotationCanvasWindow;
+    const win=new BrowserWindow({
+      width:800,height:600,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      resizable:false,movable:false,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:false,acceptFirstMouse:true,roundedCorners:false,
+      webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-annotation-canvas-v2044'}
+    });
+    annotationCanvasWindow=win;allowSystemCapture(win);
+    try{win.setAlwaysOnTop(true,'floating',0);}catch{try{win.setAlwaysOnTop(true);}catch{}}
+    try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
+    win.on('closed',()=>{if(annotationCanvasWindow===win)annotationCanvasWindow=null;});
+    positionAnnotationCanvas();
+    try{
+      await boundedLoad('mac_annotation_canvas_load',()=>win.loadFile(path.join(uiDir,'mac-annotation-canvas.html')));
+      if(!isAlive(win)||annotationCanvasWindow!==win)return null;
+      return win;
+    }catch(error){
+      console.error('[DominionStar Meet] macOS annotation canvas failed to prepare.',error);
+      closeFailedWindow(win);if(annotationCanvasWindow===win)annotationCanvasWindow=null;return null;
+    }
+  }
+
   async function prepareAnnotation(){
     if(isAlive(annotationWindow))return annotationWindow;
     const win=new BrowserWindow({
@@ -302,7 +340,7 @@ if(process.platform==='darwin'){
       if(isDisplayShare())showBorder();else hideBorder();
     });
   }
-  function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:84},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideAnnotationPalette();hideBorder();}
+  function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:84},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideAnnotationCanvas();hideAnnotationPalette();hideBorder();}
 
   function removeQueuedPresenterDelivery(deliveryId){const id=Number(deliveryId||0)||0;if(!id)return false;const index=presenterCommandQueue.findIndex(item=>Number(item?.deliveryId||0)===id);if(index<0)return false;presenterCommandQueue.splice(index,1);return true;}
   function settlePresenterDelivery(deliveryId,result){const pending=presenterDeliveries.get(deliveryId);if(!pending)return false;presenterDeliveries.delete(deliveryId);clearTimeout(pending.timer);pending.resolve(result);return true;}
@@ -374,8 +412,8 @@ if(process.platform==='darwin'){
   function destroyPresenterSession(reason='meeting-ended'){
     resetPresenterSession(reason);
     preparing=null;
-    const windows=[toolbarWindow,...borderWindows,videoWindow,annotationWindow];
-    toolbarWindow=null;toolbarReady=false;borderWindows=[];videoWindow=null;annotationWindow=null;
+    const windows=[toolbarWindow,...borderWindows,videoWindow,annotationWindow,annotationCanvasWindow];
+    toolbarWindow=null;toolbarReady=false;borderWindows=[];videoWindow=null;annotationWindow=null;annotationCanvasWindow=null;
     for(const win of windows){
       if(!isAlive(win))continue;
       try{win.setClosable?.(true);}catch{}
@@ -399,6 +437,21 @@ if(process.platform==='darwin'){
     if(normalized==='layout-hide')return {...setVideoLayout('hide'),sent:true,acknowledged:true};
     if(normalized==='layout-speaker')return {...setVideoLayout('speaker'),sent:true,acknowledged:true};
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
+    if(normalized==='annotate'){
+      const open=String(shareState.companion||'')==='annotate'&&isAlive(annotationCanvasWindow)&&Boolean(annotationCanvasWindow.isVisible?.());
+      if(open){shareState={...shareState,companion:'',companionOpen:false};hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};}
+      shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();showAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:true};
+    }
+    if(normalized==='annotate-close'){
+      shareState={...shareState,companion:'',companionOpen:false};hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};
+    }
+    if(normalized.startsWith('annotate-')){
+      shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();
+      const canvas=await prepareAnnotationCanvas();await prepareAnnotation();showAnnotationPalette();
+      if(!isAlive(canvas))return {ok:false,sent:false,acknowledged:false,error:'annotation_canvas_unavailable'};
+      try{canvas.webContents.send('mac-annotation:command',{command:normalized});return {ok:true,sent:true,acknowledged:true};}
+      catch(error){return {ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'annotation_command_failed')};}
+    }
     const panelCommand=['participants','chat'].includes(normalized);
     if(normalized==='annotate'||normalized.startsWith('annotate-'))hideMeeting();
     const closingAnnotationToggle=normalized==='annotate'&&isAlive(annotationWindow)&&Boolean(annotationWindow.isVisible?.());
@@ -415,7 +468,7 @@ if(process.platform==='darwin'){
   ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();if(toolbarAutoHidden){try{lastCursorPoint=screen.getCursorScreenPoint();}catch{lastCursorPoint=null;}}return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?28:84};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
 
-  screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();positionAnnotation();}});
+  screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();positionAnnotation();positionAnnotationCanvas();}});
   app.on('before-quit',()=>{destroyPresenterSession('app-quitting');});
 
   globalThis.__dominionMacSharePresenterOverlay=Object.freeze({showMeeting,hideMeeting,showOverlays,hideOverlays,prepare,reset:()=>resetPresenterSession('external-reset'),destroy:()=>destroyPresenterSession('external-destroy'),state:()=>({shareActive,prepared:Boolean(toolbarReady&&isAlive(toolbarWindow)&&bordersReady()&&isAlive(videoWindow)),videoLayout,shareState:{...shareState}})});
