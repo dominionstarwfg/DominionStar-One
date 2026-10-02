@@ -28,7 +28,7 @@ const runtimeStability=read('ui/runtime-stability.js');
 const has=(s,n,m)=>assert.ok(s.includes(n),m);
 const lacks=(s,n,m)=>assert.ok(!s.includes(n),m);
 
-assert.equal(pkg.version,'2.0.45','Screenshot reference authority must remain certified in the current 2.0.45 production package.');
+assert.equal(pkg.version,'2.0.46','Screenshot reference authority must remain certified in the current 2.0.46 production package.');
 has(auth,"zoom-screenshot-reference-2.0.41.css",'Screenshot reference CSS is not loaded.');
 has(auth,"zoom-screenshot-reference-2.0.41.js",'Screenshot reference JS is not loaded.');
 has(auth,'script.onload=loadScreenshotReference','Screenshot reference must load after runtime stability completes.');

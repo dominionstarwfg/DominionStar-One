@@ -63,7 +63,7 @@ const avSettings=read('ui/av-settings.js');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
 
-assert.equal(pkg.version,'2.0.45','Physical Mac runtime-control repair must ship as 2.0.45.');
+assert.equal(pkg.version,'2.0.46','Physical Mac runtime-control repair must ship as 2.0.46.');
 assert(
   preferences.includes("const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));") &&
   preferences.includes('if(macLike)return;') &&
@@ -390,7 +390,7 @@ assert(
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
   macAnnotationCss.includes('.annotation-palette{width:46px') &&
   macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
-  macAnnotationJs.includes("version:'2.0.45-native-canvas-palette'") &&
+  macAnnotationJs.includes("version:'2.0.46-native-canvas-palette'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-canvas-v2044'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
