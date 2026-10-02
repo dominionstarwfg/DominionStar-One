@@ -175,7 +175,7 @@ assert.ok(
   mainSource.includes("const value=await win.webContents.executeJavaScript(String(request.expression||''),true);")&&
   !mainSource.includes("if(win.webContents.isLoadingMainFrame())throw new Error('main_window_loading');")&&
   mainSource.includes("readyState=String(await win.webContents.executeJavaScript('document.readyState',true)")&&
-  mainSource.includes("allowDirectQa:qaInteractionFixtures||app.getVersion().includes('-')"),
-  'Explicit packaged QA mode must use the renderer document readiness itself rather than Electron isLoadingMainFrame, and must activate fixture/direct-QA services only when the CI QA flag is explicitly present.'
+  mainSource.includes("allowDirectQa:app.getVersion().includes('-')"),
+  'Explicit packaged QA mode must use the renderer document readiness itself rather than Electron isLoadingMainFrame, while the production meeting service keeps direct-QA fallback restricted to prerelease builds.'
 );
 console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');

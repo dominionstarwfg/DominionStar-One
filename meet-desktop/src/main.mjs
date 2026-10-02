@@ -266,7 +266,7 @@ app.whenReady().then(async()=>{
   installLocalPermissionPolicy(session.defaultSession);
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
   await desktopAuth.initialize();
-  meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:qaInteractionFixtures||app.getVersion().includes('-')});
+  meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
   shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,screen,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
   installQaInteractionBridge();
