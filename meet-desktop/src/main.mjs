@@ -24,6 +24,8 @@ const qaFixtureRequested=process.argv.includes('--qa-interaction-fixtures')||pro
 const qaInteractionFixtures=app.isPackaged&&qaFixtureRequested;
 let mainWindow=null;
 let qaInteractionBridgeInstalled=false;
+let qaRendererDomReady=false;
+let qaRendererDidFinishLoad=false;
 let desktopAuth=null;
 let meetingService=null;
 let shareService=null;
@@ -134,6 +136,7 @@ function installQaInteractionBridge(){
       if(!win||win.isDestroyed()||!win.webContents||win.webContents.isDestroyed())throw new Error('main_window_unavailable');
       const method=String(request.method||'');
       if(method==='evaluate'){
+        if(!qaRendererDomReady)throw new Error('renderer_not_dom_ready');
         const value=await win.webContents.executeJavaScript(String(request.expression||''),true);
         reply({id,ok:true,value:value===undefined?null:value});return;
       }
@@ -149,8 +152,7 @@ function installQaInteractionBridge(){
         reply({id,ok:true,value:true});return;
       }
       if(method==='state'){
-        let readyState='';try{readyState=String(await win.webContents.executeJavaScript('document.readyState',true)||'');}catch{}
-        reply({id,ok:true,value:{url:win.webContents.getURL(),loading:win.webContents.isLoadingMainFrame(),readyState,crashed:Boolean(win.webContents.isCrashed?.()),destroyed:win.webContents.isDestroyed(),qaInteractionFixtures}});return;
+        reply({id,ok:true,value:{url:win.webContents.getURL(),loading:win.webContents.isLoadingMainFrame(),domReady:qaRendererDomReady,didFinishLoad:qaRendererDidFinishLoad,crashed:Boolean(win.webContents.isCrashed?.()),destroyed:win.webContents.isDestroyed(),qaInteractionFixtures}});return;
       }
       throw new Error('unsupported_qa_method');
     }catch(error){reply({id,ok:false,error:String(error?.message||error||'qa_rpc_failed')});}
@@ -159,11 +161,15 @@ function installQaInteractionBridge(){
 }
 
 function createMainWindow(){
+  qaRendererDomReady=false;qaRendererDidFinishLoad=false;
   mainWindow=new BrowserWindow({width:1280,height:820,minWidth:960,minHeight:640,show:false,transparent:process.platform==='darwin',backgroundColor:process.platform==='darwin'?'#00000000':'#07111f',title:'DominionStar Meet',titleBarStyle:process.platform==='darwin'?'hiddenInset':'default',trafficLightPosition:process.platform==='darwin'?{x:18,y:18}:undefined,webPreferences:{preload:preloadPath,contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged,backgroundThrottling:false}});
   mainWindow.webContents.setWindowOpenHandler(({url})=>{if(/^https:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
   mainWindow.webContents.on('will-navigate',(event,url)=>{if(url.startsWith('file://'))return;event.preventDefault();if(/^https:\/\//i.test(url))void shell.openExternal(url);});
   mainWindow.once('ready-to-show',()=>mainWindow?.show());
+  mainWindow.webContents.on('did-start-navigation',(_event,_url,isInPlace,isMainFrame)=>{if(isMainFrame&&!isInPlace){qaRendererDomReady=false;qaRendererDidFinishLoad=false;}});
+  mainWindow.webContents.once('dom-ready',()=>{qaRendererDomReady=true;});
   mainWindow.webContents.once('did-finish-load',()=>{
+    qaRendererDidFinishLoad=true;
     const pending=pendingJoinUrls[0]||'';if(pending)mainWindow?.webContents.send('app:join-url',pending);
   });
   mainWindow.webContents.on('render-process-gone',(_event,details={})=>{

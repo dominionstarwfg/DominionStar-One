@@ -43,6 +43,18 @@ async function evaluate(expression,retry=true){
     return evaluate(expression,false);
   }
 }
+async function waitForMainRenderer(timeout=15000){
+  const deadline=Date.now()+timeout;let lastState=null,lastError='';
+  while(Date.now()<deadline){
+    try{
+      lastState=await rpc('state',{},1800);
+      if(lastState?.crashed)throw new Error('renderer_crashed');
+      if(lastState?.domReady&&/\/index\.html(?:[?#]|$)/i.test(String(lastState?.url||'')))return lastState;
+    }catch(error){lastError=String(error?.message||error);}
+    await sleep(90);
+  }
+  throw new Error(`Timed out waiting for packaged main renderer DOM readiness. lastError=${lastError||'none'} state=${JSON.stringify(lastState)}`);
+}
 async function waitFor(expression,label,timeout=12000){
   const deadline=Date.now()+timeout;let lastError='';
   while(Date.now()<deadline){
@@ -59,7 +71,8 @@ async function cdp(method,params={}){
 
 let failure=null;
 try{
-  await waitFor("document.readyState==='complete'",'packaged main renderer');
+  await waitForMainRenderer();
+  await waitFor("document.readyState==='interactive'||document.readyState==='complete'",'packaged renderer document readiness');
   try{
     await waitFor("document.readyState==='complete'&&window.DominionRuntimeStability&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&document.querySelector('#meetingOverlay')",'stable runtime controllers');
   }catch(error){

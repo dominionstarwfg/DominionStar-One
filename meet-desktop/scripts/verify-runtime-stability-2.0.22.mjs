@@ -178,4 +178,15 @@ assert.ok(
   mainSource.includes("allowDirectQa:app.getVersion().includes('-')"),
   'Explicit packaged QA mode must use the renderer document readiness itself rather than Electron isLoadingMainFrame, while the production meeting service keeps direct-QA fallback restricted to prerelease builds.'
 );
+/* PACKAGED_QA_DOM_READY_HANDSHAKE_LOCK */
+assert.ok(
+  mainSource.includes('let qaRendererDomReady=false;')&&
+  mainSource.includes("mainWindow.webContents.once('dom-ready',()=>{qaRendererDomReady=true;});")&&
+  mainSource.includes("if(!qaRendererDomReady)throw new Error('renderer_not_dom_ready');")&&
+  mainSource.includes('domReady:qaRendererDomReady')&&
+  packagedRuntime.includes('async function waitForMainRenderer(timeout=15000)')&&
+  packagedRuntime.includes("lastState?.domReady&&/\\/index\\.html(?:[?#]|$)/i.test")&&
+  packagedRuntime.includes("document.readyState==='interactive'||document.readyState==='complete'"),
+  'Packaged QA must establish main-process DOM readiness before renderer evaluation so executeJavaScript cannot deadlock during the initial file load.'
+);
 console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
