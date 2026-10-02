@@ -48,6 +48,9 @@ const macVideoCss=read('ui/mac-share-video.css');
 const macAnnotationHtml=read('ui/mac-annotation-toolbar.html');
 const macAnnotationJs=read('ui/mac-annotation-toolbar.js');
 const macAnnotationCss=read('ui/mac-annotation-toolbar.css');
+const macAnnotationCanvasHtml=read('ui/mac-annotation-canvas.html');
+const macAnnotationCanvasJs=read('ui/mac-annotation-canvas.js');
+const macAnnotationCanvasCss=read('ui/mac-annotation-canvas.css');
 const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
 const screenshotReferenceCss=read('ui/zoom-screenshot-reference-2.0.41.css');
 const shareCss=read('ui/share.css');
@@ -58,7 +61,7 @@ const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 const avSettings=read('ui/av-settings.js');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,integration,screenshotReference])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
 
 assert.equal(pkg.version,'2.0.44','Physical Mac runtime-control repair must ship as 2.0.44.');
 assert(
@@ -381,12 +384,20 @@ assert(
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
   macAnnotationCss.includes('.annotation-palette{width:46px') &&
   macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
-  macAnnotationJs.includes("version:'2.0.44-professional-palette'") &&
+  macAnnotationJs.includes("version:'2.0.45-native-canvas-palette'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
+  macPresenter.includes("partition:'dominion-presenter-annotation-canvas-v2044'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
-  macPresenter.includes("String(shareState.companion||'')!=='annotate'") &&
-  integration.includes("if(command.startsWith('annotate-'))"),
-  'Annotate must use one readable independent vertical left-side native palette while the drawing engine remains authoritative in the meeting renderer.'
+  macPresenter.includes("path.join(uiDir,'mac-annotation-canvas.html')") &&
+  macAnnotationCanvasHtml.includes('id="annotationCanvas"') &&
+  macAnnotationCanvasCss.includes('.mode-pen #annotationCanvas') &&
+  macAnnotationCanvasCss.includes('.mode-laser #annotationCanvas{cursor:none') &&
+  macAnnotationCanvasJs.includes("version:'2.0.45-native-display-canvas'") &&
+  macAnnotationCanvasJs.includes("if(state.mode==='laser'){laser(p)") &&
+  macAnnotationCanvasJs.includes("canvas.addEventListener('pointermove',move") &&
+  presenterPreload.includes("onAnnotationCommand:callback=>listen('mac-annotation:command'") &&
+  macPresenter.includes("canvas.webContents.send('mac-annotation:command'"),
+  'Annotate must use one readable 46px native palette controlling a full-display native drawing surface so Pen and Laser receive pointer input on the physically shared Mac display.'
 );
 assert(
   screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
