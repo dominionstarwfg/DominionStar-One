@@ -156,13 +156,14 @@ assert(
 assert(
   runtime.includes("const baseWidth=panel===chat?330:360;") &&
   runtime.includes("const participantCount=participantRows().length;") &&
-  runtime.includes("const participantBaseHeight=Math.min(438,Math.max(390,102+(Math.max(1,participantCount)*42)+(participantCount>=7?46:0)));") &&
-  runtime.includes("const minPanelHeight=panel===chat?300:300;") &&
+  runtime.includes("const participantBaseHeight=Math.min(430,Math.max(320,110+(Math.max(1,participantCount)*46)+(participantCount>=7?40:0)));") &&
+  runtime.includes("const minPanelHeight=panel===chat?300:320;") &&
+  !runtime.includes("panel.classList.contains('ds-panel-wide')?430") &&
   runtime.includes("panel.style.setProperty('right','24px','important');") &&
   runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important');") &&
   runtime.includes("Math.max(minPanelHeight,bodyHeight-28)") &&
   runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),
-  'Floating Participants must preserve the readable 380px default width with a bounded 430px expanded state and 390px-class compact roster height, while Chat remains independently movable with header-safe offsets.'
+  'Floating Participants must preserve one readable 360px desktop width with bounded roster height and no rejected wide mode, while Chat remains independently movable with header-safe offsets.'
 );
 assert(runtime.includes("panel.style.setProperty('left',`${pr.left-br.left}px`,'important');")&&runtime.includes("panel.style.setProperty('right','auto','important');")&&runtime.includes("panel.style.setProperty('width',`${pr.width}px`,'important');"),'Final drag authority must capture explicit panel geometry before movement rather than depending on a legacy handler.');
 assert(
