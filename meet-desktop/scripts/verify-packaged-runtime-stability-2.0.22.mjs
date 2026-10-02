@@ -148,6 +148,13 @@ try{
   const responsiveness=await evaluate(`new Promise(resolve=>{const started=performance.now();setTimeout(()=>resolve(Math.round(performance.now()-started)),80);})`);
   assert.ok(responsiveness<500,`Renderer event loop is still starved; 80 ms timer took ${responsiveness} ms.`);
 
+  const finalLoadDeadline=Date.now()+8000;let finalLoadState=null;
+  while(Date.now()<finalLoadDeadline){
+    try{finalLoadState=await rpc('state',{},1800);}catch{}
+    if(finalLoadState?.didFinishLoad&&!finalLoadState?.loading)break;
+    await sleep(120);
+  }
+  assert.equal(Boolean(finalLoadState?.didFinishLoad&&!finalLoadState?.loading),true,`Packaged index.html never completed its normal load lifecycle. state=${JSON.stringify(finalLoadState)}`);
   assert.doesNotMatch(stderr,/DOMINIONSTAR_RENDERER_GONE|Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Runtime-stability gate detected a renderer crash or uncaught renderer error.');
   console.log('DOMINIONSTAR_PACKAGED_RUNTIME_STABILITY_2_0_22_OK full-window immediate-participants compact-right-default accessible-smooth-stage-settle immediate-chat last-click-wins no-delayed-panel-flip approved-runtime-share responsive-event-loop floating-panels-draggable-full-stage');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());if(stdoutLog.trim())console.error(stdoutLog.trim());}finally{for(const [,waiter] of rpcPending){clearTimeout(waiter.timer);waiter.reject(new Error('runtime-stability shutdown'));}rpcPending.clear();try{child.stdin.end();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(250);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}

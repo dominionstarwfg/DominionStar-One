@@ -158,7 +158,9 @@ const packagedRuntime=read('scripts/verify-packaged-runtime-stability-2.0.22.mjs
 const mainSource=read('src/main.mjs');
 assert.ok(
   mainSource.includes('function installQaInteractionBridge(){')&&
-  mainSource.includes("win.webContents.executeJavaScript")&&
+  mainSource.includes("async function qaEvaluateInMainWorld(win,expression)")&&
+  mainSource.includes("win.webContents.debugger")&&
+  mainSource.includes("Runtime.evaluate")&&
   mainSource.includes("win.webContents.sendInputEvent")&&
   mainSource.includes("DOMINIONSTAR_QA_RPC")&&
   mainSource.includes("app.isPackaged||!qaFixtureRequested")&&
@@ -166,13 +168,13 @@ assert.ok(
   packagedRuntime.includes("rpc('evaluate'")&&
   packagedRuntime.includes("rpc('input'")&&
   !packagedRuntime.includes('--remote-debugging-port='),
-  'Packaged runtime stability must exercise the real packaged mainWindow through the QA-only Electron webContents RPC bridge instead of a fragile DevTools renderer socket.'
+  'Packaged runtime stability must exercise the real packaged mainWindow through a QA-only Electron bridge using the window-owned debugger for evaluation and sendInputEvent for physical pointer input, without any remote-debugging port.'
 );
 assert.ok(mainSource.includes("[DOMINIONSTAR_RENDERER_GONE]")&&packagedRuntime.includes('DOMINIONSTAR_RENDERER_GONE'),'A real renderer crash must remain fail-closed during QA RPC automation.');
 /* PACKAGED_QA_READY_STATE_AUTHORITY_LOCK */
 assert.ok(
   mainSource.includes("const qaInteractionFixtures=app.isPackaged&&qaFixtureRequested;")&&
-  mainSource.includes("const value=await win.webContents.executeJavaScript(String(request.expression||''),true);")&&
+  mainSource.includes("const value=await qaEvaluateInMainWorld(win,String(request.expression||''));")&&
   !mainSource.includes("if(win.webContents.isLoadingMainFrame())throw new Error('main_window_loading');")&&
   mainSource.includes("if(!qaRendererDomReady)throw new Error('renderer_not_dom_ready');")&&
   mainSource.includes("allowDirectQa:app.getVersion().includes('-')"),
@@ -188,5 +190,15 @@ assert.ok(
   packagedRuntime.includes("lastState?.domReady&&/\\/index\\.html(?:[?#]|$)/i.test")&&
   packagedRuntime.includes("document.readyState==='interactive'||document.readyState==='complete'"),
   'Packaged QA must establish main-process DOM readiness before renderer evaluation so executeJavaScript cannot deadlock during the initial file load.'
+);
+/* PACKAGED_QA_INTERNAL_DEBUGGER_AND_REQUEST_TRACE_LOCK */
+assert.ok(
+  mainSource.includes('function installQaRequestTrace(win)')&&
+  mainSource.includes('qaPendingRequests.set')&&
+  mainSource.includes('pendingRequests=[...qaPendingRequests.values()]')&&
+  mainSource.includes("dbg.attach('1.3')")&&
+  mainSource.includes("dbg.sendCommand('Runtime.evaluate'")&&
+  packagedRuntime.includes('Packaged index.html never completed its normal load lifecycle.'),
+  'QA must diagnose any unfinished packaged page load while evaluating the real renderer through the window-owned Electron debugger.'
 );
 console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');
