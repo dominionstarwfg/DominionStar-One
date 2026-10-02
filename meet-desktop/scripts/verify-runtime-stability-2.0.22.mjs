@@ -201,4 +201,16 @@ assert.ok(
   packagedRuntime.includes('Packaged index.html never completed its normal load lifecycle.'),
   'QA must diagnose any unfinished packaged page load while evaluating the real renderer through the window-owned Electron debugger.'
 );
+/* STARTUP_MUTATION_OBSERVER_STARVATION_LOCK */
+const personalRoomSource=read('ui/personal-room.js');
+const scheduleSource=read('ui/schedule-controller.js');
+assert.ok(
+  personalRoomSource.includes('let homeRefreshTimer=0,homeRefreshRunning=false,homeRefreshPending=false;')&&
+  personalRoomSource.includes('const observer=new MutationObserver(()=>scheduleHomeRefresh(32))')&&
+  !personalRoomSource.includes('MutationObserver(()=>queueMicrotask(requestHomeRefresh))')&&
+  scheduleSource.includes("refreshPromise:null")&&
+  scheduleSource.includes('const scheduleObservedRefresh=()=>')&&
+  scheduleSource.includes('const observer=new MutationObserver(scheduleObservedRefresh)'),
+  'Startup DOM observers must be bounded and coalesced so Personal Room and Schedule cannot create a MutationObserver/microtask starvation loop during packaged renderer boot.'
+);
 console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');

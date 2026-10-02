@@ -138,8 +138,23 @@
   }
 
   const requestHomeRefresh=()=>{ensureSettingsRow();configureNewMeeting();decorateHostPrejoin();interceptHostCancel();watchMeetingEntry();if(signedIn()&&!state.room&&!state.loading&&Date.now()>=state.nextRetryAt)void load();};
-  const observer=new MutationObserver(()=>queueMicrotask(requestHomeRefresh));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  window.addEventListener('dominion:meeting-ended',()=>{state.nextRetryAt=0;queueMicrotask(requestHomeRefresh);},{passive:true});
+  let homeRefreshTimer=0,homeRefreshRunning=false,homeRefreshPending=false;
+  const scheduleHomeRefresh=(delay=32)=>{
+    homeRefreshPending=true;
+    if(homeRefreshTimer||homeRefreshRunning)return;
+    homeRefreshTimer=setTimeout(()=>{
+      homeRefreshTimer=0;
+      if(homeRefreshRunning)return;
+      homeRefreshRunning=true;homeRefreshPending=false;
+      try{requestHomeRefresh();}
+      finally{
+        homeRefreshRunning=false;
+        if(homeRefreshPending)scheduleHomeRefresh(32);
+      }
+    },Math.max(0,Number(delay)||0));
+  };
+  const observer=new MutationObserver(()=>scheduleHomeRefresh(32));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  window.addEventListener('dominion:meeting-ended',()=>{state.nextRetryAt=0;scheduleHomeRefresh(0);},{passive:true});
   if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',loadPhysicalIntelligence,{once:true});else setTimeout(loadPhysicalIntelligence,0);
   ensureEditDialog();render();void load();
   window.DominionPersonalRoom=Object.freeze({load,room:()=>state.room,openEditor,start:startPersonal,beginHostPrejoin});

@@ -3,7 +3,7 @@
   if(window.DominionScheduleController)return;
   const desktop=window.dominionDesktop||{},meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  const state={items:[],busy:false,loaded:false,error:''};
+  const state={items:[],busy:false,loaded:false,error:'',refreshPromise:null};
   const esc=value=>String(value??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const digits=value=>String(value||'').replace(/\D/g,'');
   const formatId=value=>{const d=digits(value);return d.length>6?`${d.slice(0,3)} ${d.slice(3,6)} ${d.slice(6)}`:d.length>3?`${d.slice(0,3)} ${d.slice(3)}`:d;};
@@ -41,7 +41,14 @@
   }
 
   async function refresh(){
-    if(!meeting?.listSchedules)return;try{const result=await meeting.listSchedules();state.items=Array.isArray(result)?result:[];state.loaded=true;state.error='';render();}catch(error){state.error=String(error?.message||error||'Unable to load scheduled meetings.');state.loaded=true;render();}
+    if(!meeting?.listSchedules)return null;
+    if(state.refreshPromise)return state.refreshPromise;
+    state.refreshPromise=(async()=>{
+      try{const result=await meeting.listSchedules();state.items=Array.isArray(result)?result:[];state.loaded=true;state.error='';render();return state.items;}
+      catch(error){state.error=String(error?.message||error||'Unable to load scheduled meetings.');state.loaded=true;render();return null;}
+      finally{state.refreshPromise=null;}
+    })();
+    return state.refreshPromise;
   }
   function renderHome(items){
     const card=q('.upcoming-card');if(!card)return;let host=card.querySelector('.scheduled-home-list');if(!host){host=document.createElement('div');host.className='scheduled-home-list';card.append(host);}const empty=card.querySelector('.empty-state'),upcoming=upcomingItems().slice(0,3);
@@ -76,7 +83,16 @@
   async function remove(item){try{await meeting.cancelSchedule(item.scheduleId);await refresh();}catch(error){state.error=String(error?.message||error);render();}}
 
   function install(){ensureScheduleOptions();const form=q('#scheduleForm');if(form&&!form.dataset.dsScheduleBound){form.dataset.dsScheduleBound='1';form.addEventListener('submit',event=>void schedule(event));}document.addEventListener('click',event=>{if(event.target.closest?.('[data-open="schedule"]'))defaultSchedule();});q('#scheduleDuration')?.addEventListener('input',event=>{event.target.value=String(Math.max(15,Math.min(480,Number(event.target.value)||60)));});void refresh();}
-  const observer=new MutationObserver(()=>{ensureScheduleOptions();if(q('#appShell')&&!q('#appShell').hidden&&!state.loaded)void refresh();});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  install();setInterval(()=>{if(q('#appShell')&&!q('#appShell').hidden)void refresh();},15000);
+  let observerRefreshTimer=0;
+  const scheduleObservedRefresh=()=>{
+    if(observerRefreshTimer)return;
+    observerRefreshTimer=setTimeout(()=>{
+      observerRefreshTimer=0;
+      ensureScheduleOptions();
+      if(q('#appShell')&&!q('#appShell').hidden&&!state.loaded&&!state.refreshPromise)void refresh();
+    },32);
+  };
+  const observer=new MutationObserver(scheduleObservedRefresh);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  install();setInterval(()=>{if(q('#appShell')&&!q('#appShell').hidden&&!state.refreshPromise)void refresh();},15000);
   window.DominionScheduleController=Object.freeze({render,refresh,read:()=>activeItems(),startById:id=>{const item=activeItems().find(value=>String(value.scheduleId)===String(id));if(item)void start(item);return Boolean(item);}});
 })();
