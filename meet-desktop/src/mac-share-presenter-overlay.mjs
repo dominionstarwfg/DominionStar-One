@@ -454,7 +454,7 @@ if(process.platform==='darwin'){
     if(normalized==='annotate'){
       const open=String(shareState.companion||'')==='annotate'&&isAlive(annotationCanvasWindow)&&Boolean(annotationCanvasWindow.isVisible?.());
       if(open){shareState={...shareState,companion:'',companionOpen:false};hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};}
-      shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(false);hideMeeting();showAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:true};
+      shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(true);hideMeeting();showAnnotationPalette();try{annotationCanvasWindow?.webContents?.send('mac-annotation:command',{command:'annotate-select'});}catch{}publishState();return {ok:true,sent:true,acknowledged:true,active:true,pointerPassthrough:true};
     }
     if(normalized==='annotate-close'){
       shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};

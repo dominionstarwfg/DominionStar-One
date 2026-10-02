@@ -9,7 +9,7 @@ const overlay=read('src/mac-share-presenter-overlay.mjs');
 const videoCss=read('ui/mac-share-video.css');
 const annotationCss=read('ui/mac-annotation-toolbar.css');
 const pkg=JSON.parse(read('package.json'));
-assert(pkg.version==='2.0.46','package version is not 2.0.46');
+assert(['2.0.46','2.0.47'].includes(pkg.version),'package version is outside the certified 2.0.46+ repair line');
 assert(runtime.includes('const desktopSurface=Boolean(window.dominionDesktop)||isMac;'),'desktop participant authority missing');
 assert(runtime.includes("panel.classList.contains('ds-panel-wide')?430:(panel===chat?330:380)"),'participant default width not repaired');
 assert(runtimeCss.includes('.ds-participants-popout{display:none!important}'),'legacy participant expansion arrow still owns the header');

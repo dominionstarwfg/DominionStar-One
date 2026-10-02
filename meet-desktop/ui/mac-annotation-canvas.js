@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const canvas=document.getElementById('annotationCanvas'),ctx=canvas.getContext('2d',{alpha:true,desynchronized:true})||canvas.getContext('2d');
-const state={mode:'pen',color:'#ff3b30',width:1,drawing:false,last:null,start:null,base:null,laserBase:null,history:[]};
+const state={mode:'select',color:'#ff3b30',width:1,drawing:false,last:null,start:null,base:null,laserBase:null,history:[]};
 const shapes=new Set(['line','arrow','rect','ellipse']);
 function snapshot(){const copy=document.createElement('canvas');copy.width=canvas.width;copy.height=canvas.height;copy.getContext('2d').drawImage(canvas,0,0);return copy}
 function restore(copy){if(!copy)return;ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(copy,0,0,canvas.width,canvas.height);ctx.restore()}
@@ -19,5 +19,5 @@ function up(e){if(!state.drawing)return;if(shapes.has(state.mode)){const p=pt(e)
 canvas.addEventListener('pointerdown',down);canvas.addEventListener('pointermove',move,{passive:false});canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);canvas.addEventListener('pointerleave',()=>{if(state.mode==='laser')clearLaser()});
 window.addEventListener('resize',resize);
 function command(raw){const cmd=String(raw?.command||raw||'').replace(/^toolbar:/,'');if(cmd==='annotate-select')setMode('select');else if(cmd==='annotate-pen')setMode('pen');else if(cmd==='annotate-highlight')setMode('highlight');else if(cmd==='annotate-laser')setMode('laser');else if(cmd==='annotate-erase')setMode('erase');else if(cmd==='annotate-shape-line')setMode('line');else if(cmd==='annotate-shape-arrow')setMode('arrow');else if(cmd==='annotate-shape-rect')setMode('rect');else if(cmd==='annotate-shape-ellipse')setMode('ellipse');else if(cmd==='annotate-width-thin')state.width=.65;else if(cmd==='annotate-width-medium')state.width=1;else if(cmd==='annotate-width-thick')state.width=1.45;else if(cmd==='annotate-width-heavy')state.width=2;else if(cmd==='annotate-color-red')state.color='#ff3b30';else if(cmd==='annotate-color-blue')state.color='#2d8cff';else if(cmd==='annotate-color-green')state.color='#28c76f';else if(cmd==='annotate-color-white')state.color='#ffffff';else if(cmd==='annotate-undo'){clearLaser();const prev=state.history.pop();if(prev)restore(prev)}else if(cmd==='annotate-clear'){clearLaser();push();ctx.clearRect(0,0,canvas.width,canvas.height)}else if(cmd==='annotate-laser-clear')clearLaser()}
-window.dominionDesktop?.macShare?.onAnnotationCommand?.(command);resize();setMode('pen');window.DominionNativeAnnotationCanvas=Object.freeze({version:'2.0.45-native-display-canvas',command});
+window.dominionDesktop?.macShare?.onAnnotationCommand?.(command);resize();setMode('select');window.DominionNativeAnnotationCanvas=Object.freeze({version:'2.0.47-native-display-canvas-select-default',command});
 })();

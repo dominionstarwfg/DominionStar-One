@@ -87,6 +87,7 @@ jobs:
           node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
           node scripts/verify-final-physical-repair-2.0.45.mjs
           node scripts/verify-physical-rejection-repair-2.0.46.mjs
+          node scripts/verify-behavior-contract-2.0.47.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop
