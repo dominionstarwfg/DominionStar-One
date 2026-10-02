@@ -21,7 +21,7 @@ const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const uiDir=path.join(__dirname,'..','ui');
 const preloadPath=path.join(__dirname,'preload.cjs');
 const qaFixtureRequested=process.argv.includes('--qa-interaction-fixtures')||process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
-const qaInteractionFixtures=app.isPackaged&&app.getVersion().includes('-')&&qaFixtureRequested;
+const qaInteractionFixtures=app.isPackaged&&qaFixtureRequested;
 let mainWindow=null;
 let qaInteractionBridgeInstalled=false;
 let desktopAuth=null;
@@ -134,7 +134,6 @@ function installQaInteractionBridge(){
       if(!win||win.isDestroyed()||!win.webContents||win.webContents.isDestroyed())throw new Error('main_window_unavailable');
       const method=String(request.method||'');
       if(method==='evaluate'){
-        if(win.webContents.isLoadingMainFrame())throw new Error('main_window_loading');
         const value=await win.webContents.executeJavaScript(String(request.expression||''),true);
         reply({id,ok:true,value:value===undefined?null:value});return;
       }
@@ -150,7 +149,8 @@ function installQaInteractionBridge(){
         reply({id,ok:true,value:true});return;
       }
       if(method==='state'){
-        reply({id,ok:true,value:{url:win.webContents.getURL(),loading:win.webContents.isLoadingMainFrame(),crashed:Boolean(win.webContents.isCrashed?.()),destroyed:win.webContents.isDestroyed()}});return;
+        let readyState='';try{readyState=String(await win.webContents.executeJavaScript('document.readyState',true)||'');}catch{}
+        reply({id,ok:true,value:{url:win.webContents.getURL(),loading:win.webContents.isLoadingMainFrame(),readyState,crashed:Boolean(win.webContents.isCrashed?.()),destroyed:win.webContents.isDestroyed(),qaInteractionFixtures}});return;
       }
       throw new Error('unsupported_qa_method');
     }catch(error){reply({id,ok:false,error:String(error?.message||error||'qa_rpc_failed')});}
@@ -266,7 +266,7 @@ app.whenReady().then(async()=>{
   installLocalPermissionPolicy(session.defaultSession);
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
   await desktopAuth.initialize();
-  meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
+  meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:qaInteractionFixtures||app.getVersion().includes('-')});
   shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,screen,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
   installQaInteractionBridge();
