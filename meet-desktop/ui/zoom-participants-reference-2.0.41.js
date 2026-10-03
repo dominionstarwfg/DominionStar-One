@@ -131,9 +131,23 @@
 
   function ensureSearch(side){
     let wrap=side.querySelector('.ds-participant-search-wrap');
-    if(!wrap){wrap=document.createElement('div');wrap.className='ds-participant-search-wrap';wrap.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="zoom-participant-search ds-participant-search-primary" type="search" autocomplete="off" placeholder="Search" aria-label="Search participants">';ensureHeader(side).insertAdjacentElement('afterend',wrap);wrap.querySelector('input').addEventListener('input',event=>filterRows(event.currentTarget.value));}
+    if(!wrap){
+      wrap=document.createElement('div');wrap.className='ds-participant-search-wrap';
+      wrap.innerHTML='<svg class="ds-participant-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="zoom-participant-search ds-participant-search-primary" type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants"><button type="button" class="ds-participant-search-clear" aria-label="Clear participant search" title="Clear search" hidden>×</button>';
+      ensureHeader(side).insertAdjacentElement('afterend',wrap);
+      const input=wrap.querySelector('input'),clear=wrap.querySelector('.ds-participant-search-clear');
+      input.addEventListener('input',event=>{filterRows(event.currentTarget.value);syncSearchClear(wrap);});
+      input.addEventListener('keydown',event=>{if(event.key==='Escape'&&input.value){event.preventDefault();input.value='';filterRows('');syncSearchClear(wrap);input.focus();}});
+      clear.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();input.value='';filterRows('');syncSearchClear(wrap);input.focus();});
+    }
     const input=wrap.querySelector('.ds-participant-search-primary');if(input)input.removeAttribute('style');
+    wrap.hidden=false;if(input)input.hidden=false;syncSearchClear(wrap);
     cleanupLegacySearch(side,input);return input;
+  }
+
+  function syncSearchClear(wrap){
+    const input=wrap?.querySelector('.ds-participant-search-primary'),clear=wrap?.querySelector('.ds-participant-search-clear');
+    if(clear)clear.hidden=!String(input?.value||'').length;
   }
 
   function cleanupLegacyActionBars(side){
@@ -147,7 +161,13 @@
 
   function filterRows(value){
     const term=String(value||'').trim().toLocaleLowerCase();let visible=0;
-    for(const row of participantRows()){const name=String(row.dataset.participantName||row.textContent||'').toLocaleLowerCase();row.hidden=Boolean(term&&!name.includes(term));if(!row.hidden)visible++;}
+    for(const row of participantRows()){
+      const name=String(row.dataset.participantName||'').toLocaleLowerCase();
+      const role=String(row.dataset.participantRole||'participant').replace(/[-_]/g,' ').toLocaleLowerCase();
+      const self=row.dataset.participantSelf==='1'?'me you self':'';
+      const haystack=`${name} ${role} ${self}`;
+      row.hidden=Boolean(term&&!haystack.includes(term));if(!row.hidden)visible++;
+    }
     const roster=q('#participantRoster');if(!roster)return;let empty=roster.querySelector('.ds-participant-search-empty');
     if(term&&visible===0){if(!empty){empty=document.createElement('div');empty.className='ds-participant-search-empty';empty.textContent='No participants found';roster.append(empty);}}else empty?.remove();
   }
@@ -226,9 +246,9 @@
     syncFrame=0;ensureStyle();if(!meetingOpen())return;const side=sidePanel();if(!side)return;
     side.classList.add('ds-participants-reference');ensureHeader(side);if(side.hidden)return;const search=ensureSearch(side);cleanupLegacyActionBars(side);applyGeometry(side);
     const rows=participantRows(),head=side.querySelector('.room-side-head strong');if(head)head.textContent=`Participants (${rows.length||1})`;
-    const searchWrap=side.querySelector('.ds-participant-search-wrap');if(searchWrap)searchWrap.hidden=rows.length<7;
-    if(search)search.hidden=rows.length<7;
-    sortRows();syncParticipantMediaIcons();syncToolbarAvIcons();syncShareState();syncFooter(side);if(search&&!search.hidden)filterRows(search.value);
+    const searchWrap=side.querySelector('.ds-participant-search-wrap');if(searchWrap)searchWrap.hidden=false;
+    if(search)search.hidden=false;
+    sortRows();syncParticipantMediaIcons();syncToolbarAvIcons();syncShareState();syncFooter(side);if(search)filterRows(search.value);
   }
   function schedule(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
 
@@ -239,7 +259,7 @@
   const observer=new MutationObserver(schedule);const observedRoot=q('#meetingOverlay')||document.body;observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-name','data-participant-self']});
   const timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
 
-  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.50-stable-person-card-single-slash',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.51-intelligent-participant-search',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();
 
