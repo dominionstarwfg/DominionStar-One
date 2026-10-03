@@ -38,8 +38,11 @@
        #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button[aria-label="Close participants"]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:block!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head:has(.ds-panel-traffic)>div{padding-left:60px!important;padding-right:60px!important;text-align:center!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;gap:7px!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>button{width:11px!important;min-width:11px!important;height:11px!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{position:absolute!important;left:10px!important;top:0!important;width:auto!important;height:38px!important;margin:0!important;padding:0!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:7px!important;z-index:20!important;pointer-events:auto!important;transform:none!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>button{position:static!important;display:block!important;flex:0 0 11px!important;width:11px!important;min-width:11px!important;max-width:11px!important;height:11px!important;min-height:11px!important;max-height:11px!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;transform:none!important;opacity:1!important;visibility:visible!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>.ds-traffic-close{order:1!important;background:#ff5f57!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>.ds-traffic-minimize{order:2!important;background:#febc2e!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>.ds-traffic-restore{order:3!important;background:#28c840!important}
       .ds-participants-traffic{position:absolute;left:10px;top:0;height:38px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
       .ds-participants-traffic .close{background:#ff5f57}.ds-participants-traffic .min{background:#febc2e}.ds-participants-traffic .max{background:#28c840}
