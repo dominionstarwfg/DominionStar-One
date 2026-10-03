@@ -369,8 +369,12 @@
       const trafficSets=[...header.querySelectorAll('.ds-panel-traffic')];
       let traffic=trafficSets.find(node=>node.dataset.dsRuntimeParticipantChrome==='1')||trafficSets[0]||null;
       for(const duplicate of trafficSets){if(duplicate!==traffic)duplicate.remove();}
+      if(traffic&&traffic.tagName!=='SPAN'){
+        const replacement=document.createElement('span');replacement.className='ds-panel-traffic';replacement.innerHTML=traffic.innerHTML;
+        traffic.replaceWith(replacement);traffic=replacement;
+      }
       if(!traffic){
-        traffic=document.createElement('div');traffic.className='ds-panel-traffic';header.prepend(traffic);
+        traffic=document.createElement('span');traffic.className='ds-panel-traffic';header.prepend(traffic);
       }
       traffic.dataset.dsRuntimeParticipantChrome='1';
       traffic.setAttribute('aria-label','Participant window controls');
