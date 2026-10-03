@@ -151,9 +151,19 @@
     return node;
   }
 
+  function participantIsSelf(row,id){
+    const pid=String(id||row?.dataset?.participantId||'');
+    if((pid&&pid===String(localParticipantId||''))||row?.dataset?.participantSelf==='1')return true;
+    if(localParticipantId)return false;
+    const role=String(row?.dataset?.participantRole||'participant').toLowerCase().replace('-','');
+    if(!['host','cohost'].includes(role)||role!==localRole())return false;
+    const sameRole=qa('#participantRoster [data-participant-id]').filter(node=>String(node.dataset.participantRole||'participant').toLowerCase().replace('-','')===role);
+    return sameRole.length===1&&sameRole[0]===row;
+  }
+
   function ensureSelfMore(row){
     const id=String(row.dataset.participantId||'');
-    if(id!==String(localParticipantId||'')&&row.dataset.participantSelf!=='1')return;
+    if(!participantIsSelf(row,id))return;
     const actions=row.querySelector('.participant-actions');if(!actions)return;
     const duplicates=[...actions.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')];
     for(const node of duplicates)node.remove();
@@ -181,7 +191,7 @@
     const copy=row.querySelector('.person-copy');if(!copy)return;
     const name=String(row.dataset.participantName||'Participant').trim()||'Participant';
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
-    const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
+    const self=participantIsSelf(row,id);
     for(const node of copy.querySelectorAll('.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-adaptive-role,.ds-canonical-role,.ds-canonical-self'))node.remove();
     let strong=copy.querySelector('strong');
     if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
@@ -206,7 +216,7 @@
       let actions=row.querySelector('.participant-actions');if(!actions){actions=document.createElement('span');actions.className='participant-actions ds-participant-actions';row.append(actions);}else actions.classList.add('ds-participant-actions');
       mediaStatusNode(row,id);
       participantShareStateNode(row,id);
-      const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
+      const self=participantIsSelf(row,id);
       if(self)ensureSelfMore(row);
       else{
         const moreButtons=[...actions.querySelectorAll('[data-participant-more],.ds-host-row-more,[data-ds-self-more]')];
