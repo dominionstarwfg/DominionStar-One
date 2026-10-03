@@ -733,7 +733,9 @@ body>.meeting-reaction-menu,
   width:auto!important;
   height:38px!important;
   display:flex!important;
+  flex-direction:row!important;
   align-items:center!important;
+  justify-content:flex-start!important;
   gap:7px!important;
   z-index:60!important;
   opacity:1!important;
