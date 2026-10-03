@@ -137,7 +137,9 @@
   }
   function mediaStatusNode(row,id){
     let wrap=row.querySelector('.ds-participant-media');if(!wrap){wrap=document.createElement('span');wrap.className='ds-participant-media';const actions=row.querySelector('.participant-actions')||document.createElement('span');if(!actions.isConnected){actions.className='participant-actions ds-participant-actions';row.append(actions);}actions.prepend(wrap);}
-    const state=statusFor(id);wrap.innerHTML=`<span data-participant-mic class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span data-participant-video class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
+    const existing=[...wrap.querySelectorAll('.ds-media-state')],existingMicOn=Boolean(wrap.querySelector('[data-participant-mic].on')||existing[0]?.classList.contains('on')),existingCameraOn=Boolean(wrap.querySelector('[data-participant-video].on')||existing[1]?.classList.contains('on'));
+    const state=statusFor(id),micOn=state.known?state.micOn:existingMicOn,cameraOn=state.known?state.cameraOn:existingCameraOn;
+    wrap.innerHTML=`<span data-participant-mic class="ds-media-state ${state.known?'':'unknown'} ${micOn?'on':'off'}" title="${state.known?(micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${micOn?MIC_ON:MIC_OFF}</span><span data-participant-video class="ds-media-state ${state.known?'':'unknown'} ${cameraOn?'on':'off'}" title="${state.known?(cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(cameraOn?'Video on':'Video off'):'Video status syncing'}">${cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
     return wrap;
   }
   const SHARE_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="13" rx="2"/><path d="M8 12h8M13 9l3 3-3 3"/></svg>';
@@ -152,8 +154,8 @@
   }
 
   function participantIsSelf(row,id){
-    const pid=String(id||row?.dataset?.participantId||'');
-    if((pid&&pid===String(localParticipantId||''))||row?.dataset?.participantSelf==='1')return true;
+    const pid=String(id||row?.dataset?.participantId||''),small=String(row?.querySelector?.('.person-copy small')?.textContent||'').toLowerCase();
+    if((pid&&pid===String(localParticipantId||''))||row?.dataset?.participantSelf==='1'||/\byou\b|\bme\b/.test(small))return true;
     if(localParticipantId)return false;
     const role=String(row?.dataset?.participantRole||'participant').toLowerCase().replace('-','');
     if(!['host','cohost'].includes(role)||role!==localRole())return false;
@@ -191,7 +193,7 @@
     const copy=row.querySelector('.person-copy');if(!copy)return;
     const name=String(row.dataset.participantName||'Participant').trim()||'Participant';
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
-    const self=participantIsSelf(row,id);
+    const self=participantIsSelf(row,id);row.dataset.participantSelf=self?'1':'0';row.dataset.dsAdaptiveSelf=self?'1':'0';
     for(const node of copy.querySelectorAll('.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-adaptive-role,.ds-canonical-role,.ds-canonical-self'))node.remove();
     let strong=copy.querySelector('strong');
     if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
