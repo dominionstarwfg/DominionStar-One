@@ -18,6 +18,7 @@ if(process.platform==='darwin'){
   let shareActive=false;
   let toolbarReady=false,toolbarAutoHidden=false;
   let toolbarMenuOpen=false;
+  let nativeAnnotationOpen=false;
   let annotationPointerPassthrough=false;
   let cursorWatchTimer=0,lastCursorPoint=null;
   let preparing=null;
@@ -401,13 +402,21 @@ if(process.platform==='darwin'){
   ipcMain.on('mac-share:state',(_event,state={})=>{
     if(!shareActive)return;
     const priorCount=Array.isArray(shareState.participants)?shareState.participants.length:0,priorDisplay=String(shareState.displayId||'');
-    shareState={...shareState,...state};
+    const incoming={...state},incomingCompanion=String(incoming.companion||'');
+    if(nativeAnnotationOpen){
+      if(['participants','chat'].includes(incomingCompanion)){
+        nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();
+      }else{
+        delete incoming.companion;delete incoming.companionOpen;
+      }
+    }
+    shareState={...shareState,...incoming};
     const nextCount=Array.isArray(shareState.participants)?shareState.participants.length:0,nextDisplay=String(shareState.displayId||'');
     if(priorCount!==nextCount||priorDisplay!==nextDisplay)positionVideo({preservePosition:priorDisplay===nextDisplay});
     publishState();
     const companion=String(shareState.companion||'');
     const main=mainWindow();
-    if(companion==='annotate'){
+    if(nativeAnnotationOpen||companion==='annotate'){
       if(isAlive(main)){try{main.setIgnoreMouseEvents(false);}catch{}}
       showAnnotationPalette();
     }else{
@@ -433,7 +442,7 @@ if(process.platform==='darwin'){
   });
   function resetPresenterSession(reason='reset'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
-    shareActive=false;videoLayout='strip';toolbarMenuOpen=false;toolbarAutoHidden=false;setAnnotationPointerPassthrough(false);stopCursorWatch();
+    shareActive=false;videoLayout='strip';toolbarMenuOpen=false;toolbarAutoHidden=false;nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);stopCursorWatch();
     shareState={paused:false,micOn:false,cameraOn:false,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false,participants:[]};
     publishState();hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
@@ -471,14 +480,14 @@ if(process.platform==='darwin'){
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
     if(normalized==='annotate'){
       const open=String(shareState.companion||'')==='annotate'&&isAlive(annotationCanvasWindow)&&Boolean(annotationCanvasWindow.isVisible?.());
-      if(open){shareState={...shareState,companion:'',companionOpen:false};hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};}
-      shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(true);hideMeeting();showAnnotationPalette();try{annotationCanvasWindow?.webContents?.send('mac-annotation:command',{command:'annotate-select'});}catch{}publishState();return {ok:true,sent:true,acknowledged:true,active:true,pointerPassthrough:true};
+      if(open){nativeAnnotationOpen=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};}
+      nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(true);hideMeeting();showAnnotationPalette();try{annotationCanvasWindow?.webContents?.send('mac-annotation:command',{command:'annotate-select'});}catch{}publishState();return {ok:true,sent:true,acknowledged:true,active:true,pointerPassthrough:true};
     }
     if(normalized==='annotate-close'){
-      shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};
+      nativeAnnotationOpen=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};
     }
     if(normalized.startsWith('annotate-')){
-      shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();
+      nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();
       const canvas=await prepareAnnotationCanvas();await prepareAnnotation();showAnnotationPalette();
       if(!isAlive(canvas))return {ok:false,sent:false,acknowledged:false,error:'annotation_canvas_unavailable'};
       if(normalized==='annotate-select')setAnnotationPointerPassthrough(true);
@@ -487,6 +496,7 @@ if(process.platform==='darwin'){
       catch(error){return {ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'annotation_command_failed')};}
     }
     const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);
+    if(panelCommand&&nativeAnnotationOpen){nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();shareState={...shareState,companion:'',companionOpen:false};}
     if(normalized==='annotate'||normalized.startsWith('annotate-'))hideMeeting();
     const closingAnnotationToggle=normalized==='annotate'&&isAlive(annotationWindow)&&Boolean(annotationWindow.isVisible?.());
     const delivered=await deliverPresenterCommandWithRetry(main,normalized);
