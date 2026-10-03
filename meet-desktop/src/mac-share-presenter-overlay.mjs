@@ -479,7 +479,7 @@ if(process.platform==='darwin'){
       try{canvas.webContents.send('mac-annotation:command',{command:normalized});if(isAlive(annotationWindow)){try{annotationWindow.setAlwaysOnTop(true,'screen-saver',3);annotationWindow.showInactive?.();annotationWindow.moveTop?.();}catch{}}return {ok:true,sent:true,acknowledged:true,pointerPassthrough:annotationPointerPassthrough};}
       catch(error){return {ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'annotation_command_failed')};}
     }
-    const panelCommand=['participants','chat'].includes(normalized);
+    const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);
     if(normalized==='annotate'||normalized.startsWith('annotate-'))hideMeeting();
     const closingAnnotationToggle=normalized==='annotate'&&isAlive(annotationWindow)&&Boolean(annotationWindow.isVisible?.());
     const delivered=await deliverPresenterCommandWithRetry(main,normalized);
