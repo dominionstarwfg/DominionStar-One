@@ -167,11 +167,10 @@
 
   function participantPriority(row){
     const small=String(row.querySelector('.person-copy small')?.textContent||'').toLowerCase();
-    const self=/\byou\b|\bme\b/.test(small)||row.dataset.dsAdaptiveSelf==='1';
+    const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\byou\b|\bme\b/.test(small);
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
     const raised=row.dataset.raisedHand==='1'||Boolean(row.querySelector('.raised-hand-indicator'));
-    const mic=row.querySelector('.ds-participant-media .ds-media-state');
-    const micOn=Boolean(mic?.classList.contains('on'));
+    const micOn=Boolean(row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on'));
     return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5;
   }
 
