@@ -369,7 +369,7 @@ assert(
 );
 assert(
   participantsReference.includes('width:318px!important;min-width:min(318px,calc(100% - 24px))!important')&&
-  participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div{padding-left:60px!important;padding-right:60px!important')&&
+  participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div:not(.ds-panel-traffic){padding-left:60px!important;padding-right:60px!important')&&
   screenshotReference.includes('data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more')&&
   participantsReference.includes('if(more)more.hidden=!manager;')&&
   screenshotReference.includes('function openParticipantBulkMenu(anchor)')&&
