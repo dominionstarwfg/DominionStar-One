@@ -354,7 +354,7 @@ assert(
 
 /* PHYSICAL_MAC_SHARE_COMPANION_AND_COMPACT_ANNOTATION_LOCK */
 assert(
-  macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized);")&&
+  macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);")&&
   macPresenter.includes("if(panelCommand&&delivered?.ok)showMeeting();")&&
   macPresenter.indexOf("const delivered=await deliverPresenterCommandWithRetry(main,normalized);")<
     macPresenter.indexOf("if(panelCommand&&delivered?.ok)showMeeting();")&&
@@ -362,8 +362,10 @@ assert(
   activeShareHome.includes("if(shareActive()&&(kind==='participants'||kind==='chat'))restoreShareCompanion();")&&
   integration.includes("['participants','chat'].includes(previous)")&&
   integration.includes("desktop?.macShare?.showMeeting?.()")&&
+  integration.includes("if(action==='chat')")&&
+  integration.includes("if(action==='rename')")&&
   shareCss.includes('2.0.44+ native Mac floating Participants/Chat companion lock'),
-  'Share-toolbar Participants and Chat must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
+  'Share-toolbar Participants/Chat and video-tile Chat/Rename must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
 );
 assert(
   participantsReference.includes('width:318px!important;min-width:min(318px,calc(100% - 24px))!important')&&
