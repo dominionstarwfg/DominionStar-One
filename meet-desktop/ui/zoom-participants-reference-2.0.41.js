@@ -38,7 +38,7 @@
        #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button[aria-label="Close participants"]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:block!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head:has(.ds-panel-traffic)>div{padding-left:60px!important;padding-right:60px!important;text-align:center!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;gap:7px!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:7px!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>button{width:11px!important;min-width:11px!important;height:11px!important}
       .ds-participants-traffic{position:absolute;left:10px;top:0;height:38px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
@@ -126,9 +126,9 @@
   function cleanupLegacySearch(side,primary){
     for(const input of [...side.querySelectorAll('input[type="search"]')]){
       if(input===primary)continue;
-      input.dataset.dsLegacyParticipantSearch='1';input.hidden=true;
+      input.dataset.dsLegacyParticipantSearch='1';if(!input.hidden)input.hidden=true;
       const parent=input.parentElement;
-      if(parent&&parent!==side&&!parent.matches('section')&&parent.children.length<=2){parent.dataset.dsLegacyParticipantSearch='1';parent.hidden=true;}
+      if(parent&&parent!==side&&!parent.matches('section')&&parent.children.length<=2){parent.dataset.dsLegacyParticipantSearch='1';if(!parent.hidden)parent.hidden=true;}
     }
   }
 
@@ -143,9 +143,9 @@
       clear.addEventListener('click',()=>{input.value='';clear.hidden=true;filterRows('');input.focus();});
     }
     const input=wrap.querySelector('.ds-participant-search-primary'),clear=wrap.querySelector('.ds-participant-search-clear');
-    if(input){input.hidden=false;input.removeAttribute('style');}
-    if(clear)clear.hidden=!input?.value;
-    wrap.hidden=false;
+    if(input){if(input.hidden)input.hidden=false;input.removeAttribute('style');}
+    if(clear){const shouldHide=!input?.value;if(clear.hidden!==shouldHide)clear.hidden=shouldHide;}
+    if(wrap.hidden)wrap.hidden=false;
     cleanupLegacySearch(side,input);return input;
   }
 
@@ -153,9 +153,9 @@
     for(const child of [...side.children]){
       if(child.matches('.room-side-head,.ds-participant-search-wrap,.ds-ref-participants-footer,section'))continue;
       const text=String(child.textContent||'').replace(/\s+/g,' ').trim();
-      if(child.querySelector('button')&&(/\bInvite\b/i.test(text)||/\bMute All\b/i.test(text)||/\bMute all\b/i.test(text))){child.dataset.dsLegacyParticipantActions='1';child.hidden=true;}
+      if(child.querySelector('button')&&(/\bInvite\b/i.test(text)||/\bMute All\b/i.test(text)||/\bMute all\b/i.test(text))){child.dataset.dsLegacyParticipantActions='1';if(!child.hidden)child.hidden=true;}
     }
-    const bulk=q('#participantBulkActions');if(bulk)bulk.hidden=true;
+    const bulk=q('#participantBulkActions');if(bulk&&!bulk.hidden)bulk.hidden=true;
   }
 
   function filterRows(value){
@@ -165,7 +165,7 @@
       const role=String(row.dataset.participantRole||'').replace(/[-_]/g,' ').toLocaleLowerCase();
       const self=row.dataset.participantSelf==='1'?'me you self':'';
       const haystack=`${name} ${role} ${self}`;
-      row.hidden=Boolean(term&&!haystack.includes(term));if(!row.hidden)visible++;
+      const shouldHide=Boolean(term&&!haystack.includes(term));if(row.hidden!==shouldHide)row.hidden=shouldHide;if(!shouldHide)visible++;
     }
     const roster=q('#participantRoster');if(!roster)return;let empty=roster.querySelector('.ds-participant-search-empty');
     if(term&&visible===0){if(!empty){empty=document.createElement('div');empty.className='ds-participant-search-empty';empty.textContent='No participants found';roster.append(empty);}}else empty?.remove();
@@ -231,7 +231,7 @@
   }
 
   function syncFooter(side){
-    const footer=side.querySelector('.ds-ref-participants-footer');if(!footer)return;footer.hidden=false;footer.removeAttribute('data-ds-legacy-participant-actions');
+    const footer=side.querySelector('.ds-ref-participants-footer');if(!footer)return;if(footer.hidden)footer.hidden=false;footer.removeAttribute('data-ds-legacy-participant-actions');
     const action=footer.querySelector('[data-ref-mute-all]'),more=footer.querySelector('[data-ref-participant-more]');if(!action)return;
     const manager=['host','cohost'].includes(localRole()),desired=manager?'Mute all':'Unmute me';if(action.textContent!==desired&&!['Muted','No one to mute','Host only'].includes(action.textContent))action.textContent=desired;
     if(more)more.hidden=!manager;
@@ -244,9 +244,9 @@
   function sync(){
     syncFrame=0;ensureStyle();if(!meetingOpen())return;const side=sidePanel();if(!side)return;
     side.classList.add('ds-participants-reference');ensureHeader(side);if(side.hidden)return;const search=ensureSearch(side);cleanupLegacyActionBars(side);applyGeometry(side);
-    const rows=participantRows(),head=side.querySelector('.room-side-head strong');if(head)head.textContent=`Participants (${rows.length||1})`;
-    const searchWrap=side.querySelector('.ds-participant-search-wrap');if(searchWrap)searchWrap.hidden=false;
-    if(search)search.hidden=false;
+    const rows=participantRows(),head=side.querySelector('.room-side-head strong'),titleText=`Participants (${rows.length||1})`;if(head&&head.textContent!==titleText)head.textContent=titleText;
+    const searchWrap=side.querySelector('.ds-participant-search-wrap');if(searchWrap?.hidden)searchWrap.hidden=false;
+    if(search?.hidden)search.hidden=false;
     sortRows();syncParticipantMediaIcons();syncToolbarAvIcons();syncShareState();syncFooter(side);if(search)filterRows(search.value);
   }
   function schedule(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
@@ -255,10 +255,13 @@
   document.addEventListener('pointerup',()=>{const side=sidePanel();if(side?.dataset.dsAdaptiveUserPositioned==='1')saveGeometry(side);},true);
   window.addEventListener('resize',schedule,true);window.addEventListener('dominion:remote-media-state',schedule,true);window.addEventListener('dominion:share-state',schedule,true);window.addEventListener('dominion:meeting-ui-ready',schedule,true);window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();},true);
   window.dominionDesktop?.environment?.().then(info=>{if(info?.platform==='darwin'&&!runtimeMac){runtimeMac=true;schedule();}}).catch(()=>{});
-  const observer=new MutationObserver(schedule);const observedRoot=q('#meetingOverlay')||document.body;observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-name','data-participant-self']});
+  const rosterObserver=new MutationObserver(schedule),roster=q('#participantRoster');
+  if(roster)rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']});
+  const sideVisibilityObserver=new MutationObserver(schedule),observedSide=sidePanel();
+  if(observedSide)sideVisibilityObserver.observe(observedSide,{attributes:true,attributeFilter:['hidden']});
   const timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
 
-  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.51-always-search-participants',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.52-idempotent-participants',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);rosterObserver.disconnect();sideVisibilityObserver.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();
 
