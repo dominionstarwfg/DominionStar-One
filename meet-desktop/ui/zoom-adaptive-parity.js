@@ -56,11 +56,14 @@
   function sortParticipants(){
     const roster=q('#participantRoster');if(!roster)return;
     const rows=participantRows(),entries=rows.map(classify);
-    const sorted=[...entries].sort((a,b)=>a.bucket-b.bucket||(a.bucket===3?a.raisedAt-b.raisedAt:0)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
-    if(sorted.some((entry,index)=>entry.row!==rows[index])){
-      const fragment=document.createDocumentFragment();for(const entry of sorted)fragment.append(entry.row);roster.append(fragment);
+    if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();
+    else{
+      const sorted=[...entries].sort((a,b)=>a.bucket-b.bucket||(a.bucket===3?a.raisedAt-b.raisedAt:0)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+      if(sorted.some((entry,index)=>entry.row!==rows[index])){
+        const fragment=document.createDocumentFragment();for(const entry of sorted)fragment.append(entry.row);roster.append(fragment);
+      }
     }
-    for(const entry of sorted){
+    for(const entry of entries){
       const copy=entry.row.querySelector('.person-copy');if(!copy)continue;
       let suffix=copy.querySelector('.ds-adaptive-role');
       const canonical=Boolean(copy.querySelector('.ds-canonical-role,.ds-canonical-self'));
