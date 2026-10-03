@@ -63,7 +63,7 @@ const avSettings=read('ui/av-settings.js');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
 
-assert.ok(['2.0.46','2.0.47','2.0.48'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
+assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
 assert(
   preferences.includes("const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));") &&
   preferences.includes('if(macLike)return;') &&
@@ -154,16 +154,16 @@ assert(
   'Heavy reference reconciliation must prime once per meeting instead of repainting on every generic runtime pass.'
 );
 assert(
-  runtime.includes("const baseWidth=panel===chat?330:360;") &&
+  runtime.includes("const baseWidth=panel===chat?330:318;") &&
   runtime.includes("const participantCount=participantRows().length;") &&
-  runtime.includes("const participantBaseHeight=Math.min(430,Math.max(320,110+(Math.max(1,participantCount)*46)+(participantCount>=7?40:0)));") &&
-  runtime.includes("const minPanelHeight=panel===chat?300:320;") &&
+  runtime.includes("const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));") &&
+  runtime.includes("const minPanelHeight=panel===chat?300:390;") &&
   !runtime.includes("panel.classList.contains('ds-panel-wide')?430") &&
   runtime.includes("panel.style.setProperty('right','24px','important');") &&
   runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important');") &&
   runtime.includes("Math.max(minPanelHeight,bodyHeight-28)") &&
   runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),
-  'Floating Participants must preserve one readable 360px desktop width with bounded roster height and no rejected wide mode, while Chat remains independently movable with header-safe offsets.'
+  'Floating Participants must preserve the compact 318px reference width with a 390px-class roster height and no rejected wide mode, while Chat remains independently movable with header-safe offsets.'
 );
 assert(runtime.includes("panel.style.setProperty('left',`${pr.left-br.left}px`,'important');")&&runtime.includes("panel.style.setProperty('right','auto','important');")&&runtime.includes("panel.style.setProperty('width',`${pr.width}px`,'important');"),'Final drag authority must capture explicit panel geometry before movement rather than depending on a legacy handler.');
 assert(
@@ -365,7 +365,7 @@ assert(
   'Share-toolbar Participants and Chat must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
 );
 assert(
-  participantsReference.includes('width:360px!important;min-width:min(360px,calc(100% - 24px))!important')&&
+  participantsReference.includes('width:318px!important;min-width:min(318px,calc(100% - 24px))!important')&&
   participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div{padding-left:60px!important;padding-right:60px!important')&&
   screenshotReference.includes('data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more')&&
   participantsReference.includes('if(more)more.hidden=!manager;')&&
@@ -556,13 +556,11 @@ assert(
 
 /* PHYSICAL_MAC_SCREENSHOT_2026_10_01_IDENTITY_AND_MENU_LOCK */
 assert(
-  physical.includes("strong.textContent=name;strong.title=name;")&&
-  physical.includes("if(role==='host')labels.push('Host')")&&
-  physical.includes("if(self)labels.push('You')")&&
-  physical.includes("small.textContent=labels.length?labels.join(' • '):'Participant';")&&
-  runtimeCss.includes('flex-direction:column!important;align-items:flex-start!important')&&
-  runtimeCss.includes('.person-copy small{'),
-  'Participants must preserve the full name on the primary line and keep Host/Co-host and You metadata readable on a separate secondary line.'
+  app.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Host)')")&&
+  app.includes("role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'')")&&
+  participantsReference.includes('.participant-you{font-style:normal!important;font-size:11px!important')&&
+  participantsReference.includes('.person-copy{min-width:0!important;display:flex!important;flex-direction:row!important'),
+  'Participants must keep the full name and role/me metadata on one compact readable row, matching the desktop reference.'
 );
 assert(
   macToolbarCss.includes('2.0.44+ physical Mac presenter menu collision lock')&&
