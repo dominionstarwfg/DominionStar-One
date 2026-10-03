@@ -182,17 +182,19 @@
     const name=String(row.dataset.participantName||'Participant').trim()||'Participant';
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
     const self=String(id)===String(localParticipantId||'')||row.dataset.participantSelf==='1';
-    for(const node of copy.querySelectorAll('.participant-you,.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-adaptive-role,.ds-canonical-role,.ds-canonical-self'))node.remove();
+    for(const node of copy.querySelectorAll('.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-adaptive-role,.ds-canonical-role,.ds-canonical-self'))node.remove();
     let strong=copy.querySelector('strong');
     if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
-    strong.textContent=name;strong.title=name;
+    let nameNode=strong.querySelector('.participant-name-text');
+    if(!nameNode){nameNode=document.createElement('span');nameNode.className='participant-name-text';strong.prepend(nameNode);}
+    nameNode.textContent=name;strong.title=name;
+    let inline=strong.querySelector('.participant-you');
+    if(!inline){inline=document.createElement('em');inline.className='participant-you';strong.append(inline);}
+    const inlineRole=role==='host'?(self?'(Host, me)':'(Host)'):role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'');
+    inline.textContent=inlineRole;inline.hidden=!inlineRole;
     let small=copy.querySelector('small');
     if(!small){small=document.createElement('small');copy.append(small);}
-    const labels=[];
-    if(role==='host')labels.push('Host');else if(role==='cohost')labels.push('Co-host');
-    if(self)labels.push('You');
-    small.textContent=labels.length?labels.join(' • '):'Participant';
-    small.hidden=false;
+    small.textContent='';small.hidden=true;
   }
 
   function decorateParticipantRows(){
