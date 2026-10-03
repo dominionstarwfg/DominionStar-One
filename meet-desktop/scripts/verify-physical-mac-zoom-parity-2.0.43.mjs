@@ -581,7 +581,7 @@ assert(
   macPresenter.includes('const participantCount=Math.max(1,Math.min(5,Array.isArray(shareState.participants)?shareState.participants.length:1));')&&
   macPresenter.includes('let width=252,height=166;')&&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);")&&
-  macPresenter.includes('const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
+  macPresenter.includes('let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
   macPresenter.includes('const width=66,height=Math.min(526,Math.max(430,area.height-180));')&&
   macPresenter.includes('function toolbarRevealZoneContains(point)')&&
   macPresenter.includes('if(moved<3||!toolbarRevealZoneContains(point))return;')&&
