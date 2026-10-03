@@ -43,10 +43,13 @@
       .ds-participants-traffic{position:absolute;left:10px;top:0;height:38px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
       .ds-participants-traffic .close{background:#ff5f57}.ds-participants-traffic .min{background:#febc2e}.ds-participants-traffic .max{background:#28c840}
-      .ds-participant-search-wrap{flex:0 0 auto;padding:8px 10px 7px;background:#2b2b2d;position:relative}
+      .ds-participant-search-wrap{flex:0 0 auto;padding:8px 10px 7px;background:#2b2b2d;position:relative;border-bottom:1px solid #414245}
        .ds-participant-search-wrap[hidden],#meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary[hidden]{display:none!important}
       .ds-participant-search-wrap svg{position:absolute;left:20px;top:17px;width:15px;height:15px;fill:none;stroke:#d4d4d6;stroke-width:2;pointer-events:none}
-      #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary{display:block!important;width:100%!important;height:32px!important;margin:0!important;padding:0 10px 0 32px!important;border:1px solid #737477!important;border-radius:7px!important;outline:none!important;background:#202023!important;color:#f5f5f6!important;font:500 11px/32px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;box-shadow:none!important}
+      .ds-participant-search-clear{position:absolute;right:17px;top:12px;width:24px;height:24px;border:0;border-radius:50%;background:transparent;color:#cfcfd2;font-size:16px;line-height:24px;display:grid;place-items:center;cursor:pointer}
+      .ds-participant-search-clear:hover{background:#3b3b3f;color:#fff}
+      .ds-participant-search-clear[hidden]{display:none!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary{display:block!important;width:100%!important;height:32px!important;margin:0!important;padding:0 32px 0 32px!important;border:1px solid #737477!important;border-radius:7px!important;outline:none!important;background:#202023!important;color:#f5f5f6!important;font:500 11px/32px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;box-shadow:none!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary:focus{border-color:#36a8ff!important;box-shadow:0 0 0 1px #36a8ff!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-participant-search-primary::placeholder{color:#c6c6c8!important;opacity:1!important}
       #meetingOverlay .room-side.ds-participants-reference [data-ds-legacy-participant-search="1"],#meetingOverlay .room-side.ds-participants-reference [data-ds-legacy-participant-actions="1"]{display:none!important}
@@ -131,8 +134,18 @@
 
   function ensureSearch(side){
     let wrap=side.querySelector('.ds-participant-search-wrap');
-    if(!wrap){wrap=document.createElement('div');wrap.className='ds-participant-search-wrap';wrap.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="zoom-participant-search ds-participant-search-primary" type="search" autocomplete="off" placeholder="Search" aria-label="Search participants">';ensureHeader(side).insertAdjacentElement('afterend',wrap);wrap.querySelector('input').addEventListener('input',event=>filterRows(event.currentTarget.value));}
-    const input=wrap.querySelector('.ds-participant-search-primary');if(input)input.removeAttribute('style');
+    if(!wrap){
+      wrap=document.createElement('div');wrap.className='ds-participant-search-wrap';
+      wrap.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="zoom-participant-search ds-participant-search-primary" type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants"><button type="button" class="ds-participant-search-clear" aria-label="Clear participant search" title="Clear search" hidden>×</button>';
+      ensureHeader(side).insertAdjacentElement('afterend',wrap);
+      const input=wrap.querySelector('input'),clear=wrap.querySelector('.ds-participant-search-clear');
+      input.addEventListener('input',event=>{clear.hidden=!event.currentTarget.value;filterRows(event.currentTarget.value);});
+      clear.addEventListener('click',()=>{input.value='';clear.hidden=true;filterRows('');input.focus();});
+    }
+    const input=wrap.querySelector('.ds-participant-search-primary'),clear=wrap.querySelector('.ds-participant-search-clear');
+    if(input){input.hidden=false;input.removeAttribute('style');}
+    if(clear)clear.hidden=!input?.value;
+    wrap.hidden=false;
     cleanupLegacySearch(side,input);return input;
   }
 
@@ -147,7 +160,13 @@
 
   function filterRows(value){
     const term=String(value||'').trim().toLocaleLowerCase();let visible=0;
-    for(const row of participantRows()){const name=String(row.dataset.participantName||row.textContent||'').toLocaleLowerCase();row.hidden=Boolean(term&&!name.includes(term));if(!row.hidden)visible++;}
+    for(const row of participantRows()){
+      const name=String(row.dataset.participantName||'').toLocaleLowerCase();
+      const role=String(row.dataset.participantRole||'').replace(/[-_]/g,' ').toLocaleLowerCase();
+      const self=row.dataset.participantSelf==='1'?'me you self':'';
+      const haystack=`${name} ${role} ${self}`;
+      row.hidden=Boolean(term&&!haystack.includes(term));if(!row.hidden)visible++;
+    }
     const roster=q('#participantRoster');if(!roster)return;let empty=roster.querySelector('.ds-participant-search-empty');
     if(term&&visible===0){if(!empty){empty=document.createElement('div');empty.className='ds-participant-search-empty';empty.textContent='No participants found';roster.append(empty);}}else empty?.remove();
   }
@@ -226,9 +245,9 @@
     syncFrame=0;ensureStyle();if(!meetingOpen())return;const side=sidePanel();if(!side)return;
     side.classList.add('ds-participants-reference');ensureHeader(side);if(side.hidden)return;const search=ensureSearch(side);cleanupLegacyActionBars(side);applyGeometry(side);
     const rows=participantRows(),head=side.querySelector('.room-side-head strong');if(head)head.textContent=`Participants (${rows.length||1})`;
-    const searchWrap=side.querySelector('.ds-participant-search-wrap');if(searchWrap)searchWrap.hidden=rows.length<7;
-    if(search)search.hidden=rows.length<7;
-    sortRows();syncParticipantMediaIcons();syncToolbarAvIcons();syncShareState();syncFooter(side);if(search&&!search.hidden)filterRows(search.value);
+    const searchWrap=side.querySelector('.ds-participant-search-wrap');if(searchWrap)searchWrap.hidden=false;
+    if(search)search.hidden=false;
+    sortRows();syncParticipantMediaIcons();syncToolbarAvIcons();syncShareState();syncFooter(side);if(search)filterRows(search.value);
   }
   function schedule(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
 
@@ -239,7 +258,7 @@
   const observer=new MutationObserver(schedule);const observedRoot=q('#meetingOverlay')||document.body;observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-name','data-participant-self']});
   const timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
 
-  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.50-stable-person-card-single-slash',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.51-always-search-participants',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();
 
