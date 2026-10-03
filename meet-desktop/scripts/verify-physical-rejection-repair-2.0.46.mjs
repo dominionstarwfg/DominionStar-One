@@ -17,9 +17,9 @@ assert(runtimeCss.includes('.ds-participants-popout')&&runtimeCss.includes('disp
 assert(participantReference.includes('.person-copy{min-width:0!important;display:flex!important;flex-direction:row!important'),'participant identity is not using the approved compact inline row');
 assert(participant.includes('if(desktopSurface){'),'participant chrome still depends only on navigator Mac detection');
 assert(physical.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Host)')")&&physical.includes("role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'')")&&physical.includes("inline.textContent=inlineRole;inline.hidden=!inlineRole;")&&physical.includes("small.textContent='';small.hidden=true;"),'participant role/self metadata is not using the approved inline identity contract');
-assert(overlay.includes('width:268,height:166,minWidth:240,minHeight:145,maxWidth:420,maxHeight:280'),'presenter video window size not repaired');
-assert(videoCss.includes('presenter-video polish')&&videoCss.includes('opacity:0!important'),'presenter video hover chrome missing');
+assert(overlay.includes('width:252,height:166,minWidth:230,minHeight:145,maxWidth:420,maxHeight:720')&&overlay.includes('Math.min(5,Array.isArray(shareState.participants)?shareState.participants.length:1)')&&overlay.includes("if(videoLayout==='strip')height=Math.min(area.height-92"),'approved dynamic presenter participant-strip geometry is missing');
+assert(videoCss.includes('.video-tile:hover .video-tile-actions')&&videoCss.includes('opacity:0')&&videoCss.includes('.video-primary-action')&&videoCss.includes('.video-more-action'),'approved presenter video hover chrome is missing');
 assert(overlay.includes("win.setAlwaysOnTop(true,'screen-saver',3)"),'annotation palette is not above the canvas');
 assert(overlay.includes('const width=66,height=Math.min(526'),'annotation palette window width not repaired');
 assert(annotationCss.includes('.annotation-palette{width:66px')&&annotationCss.includes('.tool-grid button small,.palette-actions button small{display:block'),'annotation tools are not visibly identifiable');
-console.log('PASS physical rejection repair 2.0.46');
+console.log('PASS physical rejection repair 2.0.50 approved-participant-strip');
