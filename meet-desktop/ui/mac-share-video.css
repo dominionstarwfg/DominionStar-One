@@ -18,10 +18,23 @@ button{font:inherit}
 .video-dock-head button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 
 .video-stack{
-  flex:1 1 auto;min-height:0;padding:2px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;
-  scrollbar-color:#5c5d61 transparent;overscroll-behavior:contain;-webkit-app-region:no-drag
+  flex:1 1 auto;min-height:0;padding:2px;overflow-y:hidden;overflow-x:hidden;scrollbar-width:none;
+  overscroll-behavior:contain;-webkit-app-region:no-drag
 }
-.video-stack::-webkit-scrollbar{width:6px}.video-stack::-webkit-scrollbar-thumb{background:#5c5d61;border-radius:999px}
+.video-stack.has-overflow{overflow-y:auto;scroll-behavior:smooth}
+.video-stack::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+.video-scroll-nav{
+  position:absolute;left:50%;z-index:20;width:34px;height:22px;transform:translateX(-50%);
+  border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(20,20,22,.86);color:#f3f3f4;
+  display:grid;place-items:center;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,.34);backdrop-filter:blur(8px);
+  -webkit-app-region:no-drag;transition:opacity .12s ease,background .12s ease
+}
+.video-scroll-nav:hover:not(:disabled){background:#343539}
+.video-scroll-nav:disabled{opacity:.24;cursor:default}
+.video-scroll-nav[hidden]{display:none!important}
+.video-scroll-nav svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.video-scroll-up{top:34px}
+.video-scroll-down{bottom:7px}
 .video-tile{
   position:relative;width:100%;height:132px;margin:0 0 2px;overflow:hidden;border:1px solid rgba(255,255,255,.10);
   border-radius:7px;background:#111;box-shadow:inset 0 0 0 1px rgba(0,0,0,.24)
