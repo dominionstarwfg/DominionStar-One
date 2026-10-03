@@ -124,7 +124,7 @@ if(process.platform==='darwin'){
     setTimeout(()=>{if(shareActive&&bordersReady())positionBorder();},80);
   }
   function hideBorder(){for(const win of borderWindows){if(!isAlive(win))continue;try{if(process.platform==='darwin'&&win.isSimpleFullScreen?.())win.setSimpleFullScreen(false);}catch{}try{win.hide();}catch{}}}
-  function positionVideo(){
+  function positionVideo({preservePosition=false}={}){
     if(!isAlive(videoWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
     const participantCount=Math.max(1,Math.min(5,Array.isArray(shareState.participants)?shareState.participants.length:1));
@@ -132,7 +132,10 @@ if(process.platform==='darwin'){
     if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);
     else if(videoLayout==='gallery'){width=360;const visible=Math.min(4,participantCount),rows=Math.ceil(visible/2);height=Math.min(area.height-92,34+(rows*112)+Math.max(0,rows-1)*4);}
     else if(videoLayout==='speaker'){width=268;height=166;}
-    const x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);
+    let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);
+    if(preservePosition){
+      try{const current=videoWindow.getBounds();x=Math.max(area.x+8,Math.min(current.x,area.x+area.width-width-8));y=Math.max(area.y+48,Math.min(current.y,area.y+area.height-height-8));}catch{}
+    }
     try{videoWindow.setBounds({x,y,width,height},false);}catch{}
   }
   function positionAnnotation(){
@@ -176,7 +179,7 @@ if(process.platform==='darwin'){
     videoLayout=['speaker','strip','gallery','hide'].includes(String(mode))?String(mode):'strip';
     if(!isAlive(videoWindow))return {ok:false,layout:videoLayout};
     if(videoLayout==='hide'){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout};}
-    positionVideo();allowSystemCapture(videoWindow);try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}return {ok:true,layout:videoLayout};
+    positionVideo({preservePosition:true});allowSystemCapture(videoWindow);try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}return {ok:true,layout:videoLayout};
   }
   function syncBorderState(){
     if(!bordersReady())return;
@@ -251,7 +254,7 @@ if(process.platform==='darwin'){
   }
   async function prepareVideo(){
     if(isAlive(videoWindow))return videoWindow;
-    const win=new BrowserWindow({width:268,height:166,minWidth:240,minHeight:145,maxWidth:420,maxHeight:280,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2044'}});
+    const win=new BrowserWindow({width:252,height:166,minWidth:230,minHeight:145,maxWidth:420,maxHeight:720,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:true,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-video-v2050'}});
     videoWindow=win;allowSystemCapture(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
@@ -397,7 +400,11 @@ if(process.platform==='darwin'){
   });
   ipcMain.on('mac-share:state',(_event,state={})=>{
     if(!shareActive)return;
-    shareState={...shareState,...state};positionVideo();publishState();
+    const priorCount=Array.isArray(shareState.participants)?shareState.participants.length:0,priorDisplay=String(shareState.displayId||'');
+    shareState={...shareState,...state};
+    const nextCount=Array.isArray(shareState.participants)?shareState.participants.length:0,nextDisplay=String(shareState.displayId||'');
+    if(priorCount!==nextCount||priorDisplay!==nextDisplay)positionVideo({preservePosition:priorDisplay===nextDisplay});
+    publishState();
     const companion=String(shareState.companion||'');
     const main=mainWindow();
     if(companion==='annotate'){
