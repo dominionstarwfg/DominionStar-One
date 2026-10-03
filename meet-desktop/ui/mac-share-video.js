@@ -75,6 +75,19 @@
     const list=[...participants];if(pinnedId){const index=list.findIndex(item=>item.participantId===pinnedId);if(index>0){const [p]=list.splice(index,1);list.unshift(p);}}
     return list;
   }
+  function syncStripNavigation(){
+    const stack=q('#videoStack'),up=q('#videoScrollUp'),down=q('#videoScrollDown');if(!stack||!up||!down)return;
+    const active=videoLayout==='strip'&&participants.length>5;
+    stack.classList.toggle('has-overflow',active);up.hidden=!active;down.hidden=!active;
+    if(!active){stack.scrollTop=0;up.disabled=true;down.disabled=true;return;}
+    const max=Math.max(0,stack.scrollHeight-stack.clientHeight);
+    up.disabled=stack.scrollTop<=2;down.disabled=stack.scrollTop>=max-2;
+  }
+  function scrollStrip(direction){
+    const stack=q('#videoStack');if(!stack||videoLayout!=='strip'||participants.length<=5)return;
+    const first=stack.querySelector('.video-tile'),step=Math.max(1,Math.round((first?.getBoundingClientRect().height||132)+2));
+    stack.scrollBy({top:direction*step,behavior:'smooth'});setTimeout(syncStripNavigation,180);
+  }
   function mutedIcon(){
     return '<span class="video-muted-mark" aria-label="Muted"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path><path class="single-slash" d="M4 4 20 20"></path></svg></span>';
   }
@@ -107,7 +120,7 @@
       tile.querySelector('[data-video-more]').addEventListener('click',event=>{event.stopPropagation();openMenu(person,tile);});
       stack.append(tile);
     }
-    syncSpeaking();attachLocalPreview();
+    syncSpeaking();attachLocalPreview();syncStripNavigation();
     if(activeMenuId&&!participants.some(item=>item.participantId===activeMenuId))closeMenu();
   }
   function syncSpeaking(){
@@ -168,12 +181,15 @@
   function setLayoutActive(layout){
     videoLayout=['speaker','strip','gallery'].includes(String(layout))?String(layout):'strip';const dock=q('#dock');if(dock)dock.dataset.layout=videoLayout;
     for(const button of document.querySelectorAll('.video-dock-head [data-layout]'))button.classList.toggle('active',button.dataset.layout===videoLayout);
-    lastSignature='';renderParticipants(true);
+    lastSignature='';renderParticipants(true);requestAnimationFrame(syncStripNavigation);
   }
   q('#videoViewSpeaker')?.addEventListener('click',()=>void presenterCommand('layout-speaker'));
   q('#videoViewStrip')?.addEventListener('click',()=>void presenterCommand('layout-strip'));
   q('#videoViewGallery')?.addEventListener('click',()=>void presenterCommand('layout-gallery'));
   q('#videoViewHide')?.addEventListener('click',()=>void presenterCommand('layout-hide'));
+  q('#videoScrollUp')?.addEventListener('click',()=>scrollStrip(-1));
+  q('#videoScrollDown')?.addEventListener('click',()=>scrollStrip(1));
+  q('#videoStack')?.addEventListener('scroll',syncStripNavigation,{passive:true});
 
   document.addEventListener('pointerdown',event=>{if(!event.target?.closest?.('#videoActionMenu,[data-video-more]'))closeMenu();},true);
   window.addEventListener('blur',closeMenu);document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
