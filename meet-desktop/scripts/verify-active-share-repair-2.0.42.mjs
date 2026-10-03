@@ -15,7 +15,7 @@ new Function(toolbar);
 new Function(integration);
 new Function(macVideo);
 
-assert.ok(['2.0.46','2.0.47','2.0.48'].includes(pkg.version),'Active-share grouped repair must remain present across the current 2.0.46+ production repair line.');
+assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49'].includes(pkg.version),'Active-share grouped repair must remain present across the current 2.0.46+ production repair line.');
 assert(toolbar.includes("version:'2.0.45-stateful-share-chrome'"),'Mac presenter toolbar must identify the current stateful share-chrome authority.');
 assert(toolbar.includes("result.ok===true||result.direct===true||result.acknowledged===true||result.handled===true"),'Presenter commands must require positive execution evidence before a click is treated as successful.');
 const sendBlock=toolbar.slice(toolbar.indexOf('const send=async command=>'),toolbar.indexOf("q('#moreButton')"));
