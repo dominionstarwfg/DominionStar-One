@@ -12,10 +12,10 @@ const annotationHtml=read('ui/mac-annotation-toolbar.html');
 const annotationCanvas=read('ui/mac-annotation-canvas.js');
 const overlay=read('src/mac-share-presenter-overlay.mjs');
 
-assert(['2.0.47','2.0.48'].includes(pkg.version),'package version is outside the certified 2.0.47+ behavior line');
+assert(['2.0.47','2.0.48','2.0.49'].includes(pkg.version),'package version is outside the certified 2.0.47+ behavior line');
 
-assert(runtime.includes("panel===chat?330:360"),'participant geometry is not the readable desktop contract');
-assert(runtimeCss.includes('min-width:min(360px,calc(100% - 20px))'),'participant panel can collapse back to rejected narrow width');
+assert(runtime.includes("panel===chat?330:318"),'participant geometry is not the readable desktop contract');
+assert(runtimeCss.includes('min-width:min(318px,calc(100% - 24px))'),'participant panel can collapse back to rejected narrow width');
 assert(runtimeCss.includes('.ds-participants-popout{display:none!important}'),'legacy participant expand affordance remains visible');
 assert(runtimeCss.includes('flex-direction:column!important;align-items:flex-start!important'),'participant identity/role are not separated vertically');
 assert(runtime.includes("dataset.dsRuntimeParticipantChrome='1'")&&runtime.includes("setParticipants(false)"),'participant panel lacks single runtime close authority');
