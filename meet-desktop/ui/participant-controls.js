@@ -116,6 +116,29 @@
     form.onsubmit=async event=>{event.preventDefault();const name=String(input.value||'').trim();if(!name){status.textContent='Enter a name.';return;}const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{await meeting.renameParticipant(id,name);dialog.close();toast('Participant renamed');}catch(error){status.textContent=String(error?.message||error||'Rename failed.');}finally{buttons.forEach(b=>b.disabled=false);}};
   }
 
+  function openParticipantChat(id){
+    const target=String(id||'');if(!target)return false;
+    window.DominionMeetingFeatures?.toggleChat?.(true);
+    setTimeout(()=>{
+      const select=q('#meetingChatRecipient');
+      if(select&&[...select.options].some(option=>String(option.value)===target)){select.value=target;select.dispatchEvent(new Event('change',{bubbles:true}));}
+      q('#meetingChatInput')?.focus();
+    },0);
+    return true;
+  }
+
+  async function toggleSpotlightParticipant(id){
+    const target=String(id||'');if(!target)return {ok:false,participantIds:[...spotlightParticipantIds]};
+    const already=spotlightParticipantIds.includes(target);
+    let next=already?spotlightParticipantIds.filter(value=>value!==target):[...spotlightParticipantIds,target];
+    next=[...new Set(next)].slice(0,4);spotlightParticipantIds=next;
+    window.dispatchEvent(new CustomEvent('dominion:spotlight-change',{detail:{participantIds:[...next],participantId:next[0]||''}}));
+    const list=await peers();
+    await Promise.allSettled(list.map(p=>meeting.sendSignal(p.participantId,'host:spotlight',{participantIds:[...next],participantId:next[0]||'',at:new Date().toISOString()})));
+    toast(next.length>1?`${next.length} participants spotlighted`:next.length===1?'Participant spotlighted':'Spotlight removed');
+    return {ok:true,participantIds:[...next],spotlighted:next.includes(target)};
+  }
+
   function closeProfileCard(){profileCard?.remove();profileCard=null;}
   function openParticipantProfile(row){
     closeProfileCard();if(!row?.isConnected)return;
@@ -267,5 +290,5 @@
   window.addEventListener('dominion:participant-presence',requestSync,true);
   window.addEventListener('dominion:active-speakers',requestSync,true);
   const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(!document.hidden&&inMeeting()&&side&&!side.hidden)requestSync();},6000);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.48-single-owner-participants',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();closeProfileCard();prompt?.remove();renameDialog?.remove();}});
+  window.DominionParticipantControls=Object.freeze({version:'2.0.50-approved-share-actions',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,openParticipantChat,toggleSpotlightParticipant,renameParticipant,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();closeProfileCard();prompt?.remove();renameDialog?.remove();}});
 })();

@@ -12,7 +12,7 @@ const annotationHtml=read('ui/mac-annotation-toolbar.html');
 const annotationCanvas=read('ui/mac-annotation-canvas.js');
 const overlay=read('src/mac-share-presenter-overlay.mjs');
 
-assert(['2.0.47','2.0.48','2.0.49'].includes(pkg.version),'package version is outside the certified 2.0.47+ behavior line');
+assert(['2.0.47','2.0.48','2.0.49','2.0.50'].includes(pkg.version),'package version is outside the certified 2.0.47+ behavior line');
 
 assert(runtime.includes("panel===chat?330:318"),'participant geometry is not the readable desktop contract');
 assert(runtimeCss.includes('min-width:min(318px,calc(100% - 24px))'),'participant panel can collapse back to rejected narrow width');
@@ -21,9 +21,9 @@ assert(runtimeCss.includes('flex-direction:column!important;align-items:flex-sta
 assert(runtime.includes("dataset.dsRuntimeParticipantChrome='1'")&&runtime.includes("setParticipants(false)"),'participant panel lacks single runtime close authority');
 assert(participants.includes("ds-media-state.off::after")===false,'participant controller should not synthesize competing slash decoration');
 
-assert(videoCss.includes('presenter-video polish')&&videoCss.includes('opacity:0!important'),'share video controls are not hover-intelligent');
+assert(videoCss.includes('.video-tile:hover .video-tile-actions')&&videoCss.includes('opacity:0')&&videoCss.includes('pointer-events:none')&&videoCss.includes('pointer-events:auto'),'share video tile controls are not hover-intelligent');
 assert(videoJs.includes("document.addEventListener('pointerdown'")&&videoJs.includes('closeMenu()'),'share video menu lacks outside-click dismissal');
-assert(videoJs.includes("quickAudio?.addEventListener('click'")&&videoJs.includes("quickCamera?.addEventListener('click'"),'share video tile lacks direct mic/camera controls');
+assert(videoJs.includes('async function runPrimary(person)')&&videoJs.includes("person.self){await presenterCommand(person.micOn?'audio-off':'audio-on')")&&videoJs.includes("addMenuItem(person.cameraOn?'Stop Video':'Start Video'"),'share video tile must expose direct mute/unmute and a working camera action in the ellipsis menu');
 
 assert(annotationHtml.includes('data-command="annotate-select" class="active"'),'annotation does not open with Select active');
 assert(!annotationHtml.includes('data-command="annotate-pen" class="active"'),'annotation still opens visually in Pen mode');
@@ -39,4 +39,4 @@ assert(overlay.includes('toolbarRevealZoneContains(point)'),'share toolbar lacks
 assert(overlay.includes('if(moved<3||!toolbarRevealZoneContains(point))return;'),'share toolbar wakes from unrelated mouse movement');
 assert(overlay.includes('y=Math.round(area.y+12)'),'share toolbar has no top-edge clearance');
 
-console.log('PASS behavior contract 2.0.47');
+console.log('PASS behavior contract 2.0.50 approved-share-tile-hover');

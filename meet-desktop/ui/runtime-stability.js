@@ -371,18 +371,26 @@
   function ensurePanelClose(panel){
     if(!panel)return;
     const participants=panel.matches('.room-side');
-    const header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
+    let header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
     if(!header)return;
     if(participants&&desktopSurface){
-      for(const legacy of [...header.querySelectorAll('.ds-participants-traffic,.ds-participants-popout')])legacy.remove();
+      const participantHeaders=[...panel.querySelectorAll(':scope > .room-side-head')];
+      header=participantHeaders[0]||header;
+      for(const duplicateHeader of participantHeaders.slice(1))duplicateHeader.remove();
+      for(const stray of [...panel.querySelectorAll('.ds-panel-traffic')]){if(!header.contains(stray))stray.remove();}
+      for(const legacy of [...panel.querySelectorAll('.ds-participants-traffic,.ds-participants-popout')])legacy.remove();
       panel.classList.remove('ds-panel-wide','ds-panel-collapsed');
-      let traffic=header.querySelector('.ds-panel-traffic[data-ds-runtime-participant-chrome="1"]');
+      const trafficSets=[...header.querySelectorAll('.ds-panel-traffic')];
+      let traffic=trafficSets.find(node=>node.dataset.dsRuntimeParticipantChrome==='1')||trafficSets[0]||null;
+      for(const duplicate of trafficSets){if(duplicate!==traffic)duplicate.remove();}
       if(!traffic){
-        header.querySelector('.ds-panel-traffic')?.remove();
-        traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.dataset.dsRuntimeParticipantChrome='1';
-        traffic.setAttribute('aria-label','Participant window controls');
+        traffic=document.createElement('div');traffic.className='ds-panel-traffic';header.prepend(traffic);
+      }
+      traffic.dataset.dsRuntimeParticipantChrome='1';
+      traffic.setAttribute('aria-label','Participant window controls');
+      if(traffic.querySelectorAll(':scope > button').length!==3||!traffic.querySelector('.ds-traffic-close')||!traffic.querySelector('.ds-traffic-minimize')||!traffic.querySelector('.ds-traffic-restore')){
         traffic.innerHTML='<button type="button" class="ds-traffic-close" aria-label="Close participants"></button><button type="button" class="ds-traffic-minimize" aria-label="Minimize participants"></button><button type="button" class="ds-traffic-restore" aria-label="Restore participants"></button>';
-        header.prepend(traffic);
+        delete traffic.dataset.dsRuntimeBound;
       }
       if(traffic.dataset.dsRuntimeBound!=='1'){
         traffic.dataset.dsRuntimeBound='1';

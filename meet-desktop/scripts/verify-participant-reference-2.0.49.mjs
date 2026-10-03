@@ -9,7 +9,7 @@ const runtimeCss=read('ui/runtime-stability.css');
 const reference=read('ui/zoom-participants-reference-2.0.41.js');
 const controls=read('ui/participant-controls.js');
 
-assert(pkg.version==='2.0.49','package version is not 2.0.49');
+assert(['2.0.49','2.0.50'].includes(pkg.version),'package version is outside the certified 2.0.49+ participant reference line');
 assert(app.includes('data-ds-runtime-participant-chrome="1"'),'participant traffic chrome is not structural in the base meeting DOM');
 assert(app.includes('class="ds-traffic-close"')&&app.includes('class="ds-traffic-minimize"')&&app.includes('class="ds-traffic-restore"'),'base meeting DOM is missing the complete red/yellow/green traffic set');
 assert(app.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Host)')"),'host/me identity is not inline');
