@@ -9,6 +9,8 @@ const participants=read('ui/zoom-participants-reference-2.0.41.js');
 const video=read('ui/mac-share-video.js');
 const videoCss=read('ui/mac-share-video.css');
 const presenter=read('src/mac-share-presenter-overlay.mjs');
+const adaptive=read('ui/zoom-adaptive-parity.js');
+const participantControls=read('ui/participant-controls.js');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -22,6 +24,11 @@ assert(participants.includes("if(head&&head.textContent!==titleText)head.textCon
 assert(participants.includes("if(row.hidden!==shouldHide)row.hidden=shouldHide"),'Participant search filtering still rewrites hidden state every sync.');
 assert(participants.includes("rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']}"),'Participant observer still watches its own search/filter hidden mutations.');
 assert(!participants.includes("observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden'"),'Broad self-observing participant MutationObserver is still active.');
+assert(runtime.includes("const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\\byou\\b|\\bme\\b/.test(small)"),'Canonical participant priority must recognize explicit self state and You/me labels.');
+assert(runtime.includes("row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on')"),'Canonical participant priority must detect live microphone state without selector ambiguity.');
+assert(participants.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}'),'Participant reference must delegate roster ordering to runtime stability.');
+assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();'),'Adaptive parity must delegate roster ordering to runtime stability.');
+assert(participantControls.includes('if(desktopSurface){footer?.remove();return;}'),'Desktop participant controls must not recreate the legacy bulk-action strip.');
 
 assert(runtime.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Runtime traffic controls must use a dedicated non-title element.');
 assert(participants.includes('<span class="ds-panel-traffic"')&&participants.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Participant reference traffic controls must be structurally isolated from title div styling.');
@@ -49,4 +56,4 @@ assert(preloadSource.includes("onVideoFrame:callback=>listen('mac-share:video-fr
 const shareIntegrationSource=read('ui/share-integration.js');
 assert(shareIntegrationSource.includes("#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile"),'Presenter frame pump must include the local/self dock tile and remote tiles.');
 
-console.log('PASS runtime cleanup 2.0.52 single-ownership idempotent-participants stable-video-strip annotation-authority');
+console.log('PASS runtime cleanup 2.0.52 single-order-authority single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
