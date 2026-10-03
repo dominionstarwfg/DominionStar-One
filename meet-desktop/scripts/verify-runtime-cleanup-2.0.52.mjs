@@ -23,6 +23,8 @@ assert(participants.includes("if(row.hidden!==shouldHide)row.hidden=shouldHide")
 assert(participants.includes("rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']}"),'Participant observer still watches its own search/filter hidden mutations.');
 assert(!participants.includes("observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden'"),'Broad self-observing participant MutationObserver is still active.');
 
+assert(runtime.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Runtime traffic controls must use a dedicated non-title element.');
+assert(participants.includes('<span class="ds-panel-traffic"')&&participants.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Participant reference traffic controls must be structurally isolated from title div styling.');
 assert(runtimeCss.includes('flex-direction:row!important;'),'Traffic-light horizontal row lock is missing from runtime CSS.');
 assert(participants.includes('.ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;display:flex!important;flex-direction:row!important'),'Approved participant traffic-light row lock is missing.');
 
