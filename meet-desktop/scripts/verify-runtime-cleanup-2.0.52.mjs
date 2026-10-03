@@ -1,0 +1,41 @@
+import fs from 'node:fs';
+const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+
+const pkg=JSON.parse(read('package.json'));
+const runtime=read('ui/runtime-stability.js');
+const runtimeCss=read('ui/runtime-stability.css');
+const participants=read('ui/zoom-participants-reference-2.0.41.js');
+const video=read('ui/mac-share-video.js');
+const videoCss=read('ui/mac-share-video.css');
+const presenter=read('src/mac-share-presenter-overlay.mjs');
+
+assert(pkg.version==='2.0.52','package version is not 2.0.52');
+
+assert(!runtime.includes("search.hidden=count<7"),'Runtime stability still hides participant search below seven people.');
+assert(!runtime.includes("search.className='zoom-participant-search'"),'Runtime stability still creates a second participant search authority.');
+assert(runtime.includes('Participants search has one owner: DominionZoomParticipantsReference2041.'),'Single participant-search ownership marker is missing.');
+assert(runtime.includes("if(title&&title.textContent!==titleText)title.textContent=titleText"),'Runtime participant title is not idempotent.');
+
+assert(participants.includes("version:'2.0.52-idempotent-participants'"),'Idempotent participant authority version is missing.');
+assert(participants.includes("if(head&&head.textContent!==titleText)head.textContent=titleText"),'Participant title still rewrites every sync.');
+assert(participants.includes("if(row.hidden!==shouldHide)row.hidden=shouldHide"),'Participant search filtering still rewrites hidden state every sync.');
+assert(participants.includes("rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']}"),'Participant observer still watches its own search/filter hidden mutations.');
+assert(!participants.includes("observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden'"),'Broad self-observing participant MutationObserver is still active.');
+
+assert(runtimeCss.includes('flex-direction:row!important;'),'Traffic-light horizontal row lock is missing from runtime CSS.');
+assert(participants.includes('.ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;display:flex!important;flex-direction:row!important'),'Approved participant traffic-light row lock is missing.');
+
+assert(video.includes("const changed=next!==videoLayout"),'Share video layout does not suppress unchanged layout updates.');
+assert(!video.includes("lastSignature='';renderParticipants(true);\n  }\n  q('#videoViewSpeaker')"),'Share video layout still forces a full tile rebuild.');
+assert(video.includes("const layoutChanged=setLayoutActive(videoLayout);if(layoutChanged)lastSignature=''"),'Share video state does not gate rerendering by actual layout change.');
+assert(video.includes("stack.classList.toggle('is-scrollable',list.length>5)"),'Video panel does not defer internal scrolling until more than five tiles.');
+assert(videoCss.includes('.video-stack.is-scrollable{overflow-y:auto'), 'Video panel scroll mode is missing.');
+assert(videoCss.includes('overflow-y:hidden;overflow-x:hidden;scrollbar-width:none'), 'Video panel exposes a scrollbar before it is needed.');
+
+assert(presenter.includes('let nativeAnnotationOpen=false;'),'Native annotation authority flag is missing.');
+assert(presenter.includes('if(nativeAnnotationOpen){'),'Presenter state does not protect native annotation from renderer heartbeats.');
+assert(presenter.includes("delete incoming.companion;delete incoming.companionOpen;"),'Renderer heartbeat can still overwrite native annotation companion state.');
+assert(presenter.includes("nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate'"),'Native annotation open state is not authoritative.');
+
+console.log('PASS runtime cleanup 2.0.52 single-ownership idempotent-participants stable-video-strip annotation-authority');
