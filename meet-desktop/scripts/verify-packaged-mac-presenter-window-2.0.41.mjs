@@ -30,7 +30,20 @@ try{
   const prepared=await main.eval(`window.dominionDesktop.macShare.prepare()`,12000);assert.equal(prepared?.ok,true,'Native macOS presenter surfaces did not prepare.');
   toolbar=new Cdp((await target(url=>url.includes('mac-presenter-toolbar.html'),'floating presenter toolbar')).webSocketDebuggerUrl);await toolbar.connect();await toolbar.wait("document.readyState==='complete'&&document.querySelector('#stopShare')&&window.DominionMacPresenterToolbar?.transport==='presenter-direct-first'",'direct-first presenter bridge');
   video=new Cdp((await target(url=>url.includes('mac-share-video.html'),'floating participant video dock')).webSocketDebuggerUrl);await video.connect();await video.wait("document.readyState==='complete'&&document.querySelector('#dock')",'floating participant video dock');
-  const surface=await toolbar.eval(`(()=>({brand:document.querySelector('.brand span')?.textContent||'',stop:document.querySelector('#stopShare')?.textContent||'',transport:window.DominionMacPresenterToolbar?.transport||'',commands:[...document.querySelectorAll('[data-command]')].map(n=>n.dataset.command)}))()`);assert.equal(surface.brand,'DominionStar');assert.match(surface.stop,/Stop share/i);assert.equal(surface.transport,'presenter-direct-first');for(const command of ['audio','video','participants','chat','pause','annotate','show-meeting'])assert.ok(surface.commands.includes(command),`Missing ${command} on native toolbar.`);if(proofPath)await toolbar.screenshot(proofPath);
+  const surface=await toolbar.eval(`(()=>({brand:document.querySelector('.brand span')?.textContent||'',stop:document.querySelector('#stopShare')?.textContent||'',transport:window.DominionMacPresenterToolbar?.transport||'',commands:[...document.querySelectorAll('[data-command]')].map(n=>n.dataset.command)}))()`);assert.equal(surface.brand,'DominionStar');assert.match(surface.stop,/Stop share/i);assert.equal(surface.transport,'presenter-direct-first');for(const command of ['audio','video','participants','chat','pause','annotate','show-meeting'])assert.ok(surface.commands.includes(command),`Missing ${command} on native toolbar.`);
+  const videoSurface=await video.eval(`(()=>{const dock=document.querySelector('#dock'),self=document.querySelector('.video-tile[data-self="1"]'),more=self?.querySelector('[data-video-more]'),primary=self?.querySelector('[data-video-primary]');more?.click();const menu=document.querySelector('#videoActionMenu');return {layout:dock?.dataset.layout||'',layoutButtons:document.querySelectorAll('.video-dock-head [data-layout]').length,tiles:document.querySelectorAll('.video-tile').length,self:Boolean(self),primary:String(primary?.textContent||'').trim(),more:Boolean(more),menuOpen:Boolean(menu&&!menu.hidden),menuLabels:[...(menu?.querySelectorAll('button')||[])].map(node=>String(node.textContent||'').trim()),singleMuteSlashes:self?.querySelectorAll('.video-muted-mark .single-slash').length||0,legacySelfControls:document.querySelectorAll('.video-self-controls').length};})()`);
+  assert.equal(videoSurface.layout,'strip','Share video panel must default to the approved compact participant strip.');
+  assert.equal(videoSurface.layoutButtons,4,'Share video panel must expose speaker, strip, gallery and hide controls.');
+  assert.ok(videoSurface.tiles>=1&&videoSurface.self,'Share video panel must render the local participant as a real tile.');
+  assert.ok(['Mute','Unmute'].includes(videoSurface.primary),'Share video tile must expose direct mute/unmute without opening the ellipsis menu.');
+  assert.equal(videoSurface.more,true,'Share video tile must expose a dedicated ellipsis control.');
+  assert.equal(videoSurface.menuOpen,true,'Share video ellipsis must open an actionable menu.');
+  for(const label of ['Stop Video','Participant Strip','Hide Video Panel'])assert.ok(videoSurface.menuLabels.includes(label),`Share video menu is missing ${label}.`);
+  assert.equal(videoSurface.singleMuteSlashes,1,'Muted share-video state must use exactly one clean slash.');
+  assert.equal(videoSurface.legacySelfControls,0,'Rejected duplicate share-video self-control chrome must not return.');
+  await video.eval(`document.body.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));!document.querySelector('#videoActionMenu').hidden`);
+  const menuClosed=await video.eval(`document.querySelector('#videoActionMenu').hidden`);assert.equal(menuClosed,true,'Share video menu must close on an outside click.');
+  if(proofPath)await toolbar.screenshot(proofPath);
   await waitLog('QA_MAC_DIRECT_RENDERER_READY','direct renderer command fixture');
 
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND pause','Pause direct delivery');
@@ -41,7 +54,7 @@ try{
   await toolbar.eval(`document.querySelector('[data-command="annotate"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND annotate','Annotate direct delivery');
   await toolbar.eval(`document.querySelector('#stopShare').click()`);await waitLog('QA_MAC_DIRECT_COMMAND stop','Stop Share direct delivery');
 
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_41_OK native-toolbar native-video-dock presenter-direct-first direct-command-delivery audio video pause participants chat annotate stop native-layout-fallback-preserved physical-visible-tcc-required');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_50_OK native-toolbar approved-video-strip direct-mute ellipsis-action-menu single-slash outside-click-close presenter-direct-first direct-command-delivery audio video pause participants chat annotate stop physical-visible-tcc-required');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{video?.close();toolbar?.close();main?.close();if(child.exitCode===null){try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}}
 if(failure)throw failure;
