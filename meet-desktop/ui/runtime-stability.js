@@ -209,28 +209,14 @@
     canonicalizeParticipantRows();
     const count=participantRows().length;
     side.dataset.dsRuntimeCount=String(count);
-    const title=side.querySelector('.room-side-head strong');if(title)title.textContent=`Participants (${count})`;
-    const subtitle=side.querySelector('.room-side-head small');if(subtitle)subtitle.textContent=count===1?'1 person in this meeting':`${count} people in this meeting`;
-    let search=side.querySelector('.zoom-participant-search');
-    if(!search){
-      const head=side.querySelector('.room-side-head');
-      if(head){
-        search=document.createElement('div');
-        search.className='zoom-participant-search';
-        search.innerHTML='<input type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants">';
-        head.insertAdjacentElement('afterend',search);
-        const input=search.querySelector('input');
-        input?.addEventListener('input',()=>{
-          const needle=String(input.value||'').trim().toLowerCase();
-          for(const row of participantRows()){
-            const name=String(row.dataset.participantName||row.textContent||'').toLowerCase();
-            row.hidden=Boolean(needle&&!name.includes(needle));
-          }
-        });
-      }
-    }
-    if(search)search.hidden=count<7;
-    const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
+    const title=side.querySelector('.room-side-head strong'),titleText=`Participants (${count})`;
+    if(title&&title.textContent!==titleText)title.textContent=titleText;
+    const subtitle=side.querySelector('.room-side-head small'),subtitleText=count===1?'1 person in this meeting':`${count} people in this meeting`;
+    if(subtitle&&subtitle.textContent!==subtitleText)subtitle.textContent=subtitleText;
+    // Participants search has one owner: DominionZoomParticipantsReference2041.
+    // Runtime stability must never create, hide, or filter that surface.
+    const waiting=q('#waitingQueueSection'),waitingHidden=!hasWaitingPeople();
+    if(waiting&&waiting.hidden!==waitingHidden)waiting.hidden=waitingHidden;
     sortParticipants();
     const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1';
     if(dirty){
