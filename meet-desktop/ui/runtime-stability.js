@@ -387,6 +387,20 @@
         traffic.querySelector('.ds-traffic-minimize').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.add('ds-panel-minimized');layoutSideSurface();};
         traffic.querySelector('.ds-traffic-restore').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
       }
+      let headerAction=header.querySelector('.ds-participant-header-action');
+      if(!headerAction){
+        headerAction=document.createElement('button');
+        headerAction.type='button';
+        headerAction.className='ds-participant-header-action';
+        headerAction.setAttribute('aria-label','Return participants to default position');
+        headerAction.title='Return to default position';
+        headerAction.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h9v9M17 7l-6 6M6 11v7h7"/></svg>';
+        header.append(headerAction);
+      }
+      if(headerAction.dataset.dsRuntimeBound!=='1'){
+        headerAction.dataset.dsRuntimeBound='1';
+        headerAction.onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
+      }
     }
     let close=participants?header.querySelector('button[aria-label="Close participants"]'):header.querySelector('[data-chat-close]');
     if(!close){
@@ -452,11 +466,11 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel===chat?330:360;
+      const baseWidth=panel===chat?330:318;
       const participantCount=participantRows().length;
-      const participantBaseHeight=Math.min(430,Math.max(320,110+(Math.max(1,participantCount)*46)+(participantCount>=7?40:0)));
+      const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));
       const baseHeight=panel===chat?440:participantBaseHeight;
-      const minPanelHeight=panel===chat?300:320;
+      const minPanelHeight=panel===chat?300:390;
       const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
       panel.dataset.dsRuntimeMode='floating';
