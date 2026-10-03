@@ -249,6 +249,9 @@
   function syncPanelActions(){
     const side=q('.room-side');if(!side)return;
     let footer=q('#participantBulkActions');
+    // Desktop uses one approved participant footer owned by the participant-reference layer.
+    // Do not recreate the legacy five-button bulk strip or it races the reference footer.
+    if(desktopSurface){footer?.remove();return;}
     if(!canManage()){footer?.remove();return;}
     if(!footer){
       footer=document.createElement('div');footer.id='participantBulkActions';footer.className='participant-bulk-actions';
