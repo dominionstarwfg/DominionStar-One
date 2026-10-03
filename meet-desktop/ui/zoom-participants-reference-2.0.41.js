@@ -103,7 +103,12 @@
   function meetingOpen(){const overlay=q('#meetingOverlay');return Boolean(overlay&&!overlay.hidden);}
   function sidePanel(){return q('#meetingOverlay .room-side');}
   function participantRows(){return qa('#participantRoster [data-participant-id]');}
-  function localRole(){return String(q('#roomRole')?.textContent||'participant').toLowerCase().replace('-','');}
+  function localRole(){
+    const self=q('#participantRoster [data-participant-self="1"]');
+    const rowRole=String(self?.dataset.participantRole||'').trim().toLowerCase().replaceAll('-','');
+    if(['host','cohost'].includes(rowRole))return rowRole;
+    return String(q('#roomRole')?.textContent||rowRole||'participant').trim().toLowerCase().replaceAll('-','');
+  }
 
   function ensureHeader(side){
     let head=side.querySelector('.room-side-head');
