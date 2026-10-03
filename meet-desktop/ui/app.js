@@ -209,9 +209,12 @@
     row.dataset.participantRole=role;row.dataset.participantName=name;row.dataset.recordingAllowed=participant.recordingAllowed?'1':'0';row.dataset.recordEligible=participant.memberId?'1':'0';row.dataset.participantSelf=self?'1':'0';
     const badge=row.querySelector('.person-badge');if(badge&&!badge.querySelector('img')&&badge.textContent!==initials(name))badge.textContent=initials(name);
     const nameNode=row.querySelector('.participant-name-text');if(nameNode&&nameNode.textContent!==name)nameNode.textContent=name;
-    const you=row.querySelector('.participant-you');if(you)you.hidden=!self;
-    const roleNode=row.querySelector('.person-copy small');const roleText=participantRoleLabel(role);if(roleNode&&roleNode.textContent!==roleText)roleNode.textContent=roleText;
-    row.setAttribute('aria-label',`${name}, ${roleText}`);
+    const you=row.querySelector('.participant-you');
+    const roleText=participantRoleLabel(role);
+    const inlineRole=role==='host'?(self?'(Host, me)':'(Host)'):role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'');
+    if(you){you.textContent=inlineRole;you.hidden=!inlineRole;}
+    const roleNode=row.querySelector('.person-copy small');if(roleNode){roleNode.textContent=roleText;roleNode.hidden=true;}
+    row.setAttribute('aria-label',`${name}, ${roleText}${self?', me':''}`);
     return row;
   }
   function reorderRosterBySpeaker(){
