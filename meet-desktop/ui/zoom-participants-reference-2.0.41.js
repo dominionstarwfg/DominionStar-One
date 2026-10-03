@@ -104,7 +104,7 @@
 
   function ensureHeader(side){
     let head=side.querySelector('.room-side-head');
-    if(!head){head=document.createElement('header');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small></small></div><button type="button" aria-label="Close participants">×</button>';side.prepend(head);}
+    if(!head){head=document.createElement('header');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small></small></div><div class="ds-panel-traffic" data-ds-runtime-participant-chrome="1" aria-label="Participant window controls"><button type="button" class="ds-traffic-close" aria-label="Close participants"></button><button type="button" class="ds-traffic-minimize" aria-label="Minimize participants"></button><button type="button" class="ds-traffic-restore" aria-label="Restore participants"></button></div><button type="button" class="ds-participant-header-action" aria-label="Return participants to default position" title="Return to default position"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h9v9M17 7l-6 6M6 11v7h7"/></svg></button><button type="button" aria-label="Close participants" hidden>×</button>';side.prepend(head);}
     for(const stale of [...head.querySelectorAll('.ds-participants-popout,.ds-participants-traffic')])stale.remove();
     side.classList.remove('ds-panel-wide','ds-panel-collapsed');
     if(runtimeMac||Boolean(window.dominionDesktop))side.classList.add('ds-participants-mac');
