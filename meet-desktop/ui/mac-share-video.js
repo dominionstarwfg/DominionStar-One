@@ -87,7 +87,7 @@
     const list=orderedParticipants(),signature=JSON.stringify({layout:videoLayout,pinnedId,list:list.map(p=>[p.participantId,p.name,p.role,p.self,p.micOn,p.cameraOn,p.avatar])});
     if(!force&&signature===lastSignature){syncSpeaking();attachLocalPreview();return;}
     lastSignature=signature;
-    const stack=q('#videoStack');if(!stack)return;stack.textContent='';
+    const stack=q('#videoStack');if(!stack)return;stack.classList.toggle('is-scrollable',list.length>5);stack.textContent='';
     for(const person of list){
       const tile=document.createElement('article');tile.className='video-tile';tile.dataset.participantId=person.participantId;tile.dataset.self=person.self?'1':'0';
       const frame=remoteFrames.get(person.participantId)||'';
@@ -166,9 +166,11 @@
   }
 
   function setLayoutActive(layout){
-    videoLayout=['speaker','strip','gallery'].includes(String(layout))?String(layout):'strip';const dock=q('#dock');if(dock)dock.dataset.layout=videoLayout;
+    const next=['speaker','strip','gallery'].includes(String(layout))?String(layout):'strip';
+    const changed=next!==videoLayout;videoLayout=next;
+    const dock=q('#dock');if(dock&&dock.dataset.layout!==videoLayout)dock.dataset.layout=videoLayout;
     for(const button of document.querySelectorAll('.video-dock-head [data-layout]'))button.classList.toggle('active',button.dataset.layout===videoLayout);
-    lastSignature='';renderParticipants(true);
+    return changed;
   }
   q('#videoViewSpeaker')?.addEventListener('click',()=>void presenterCommand('layout-speaker'));
   q('#videoViewStrip')?.addEventListener('click',()=>void presenterCommand('layout-strip'));
@@ -190,8 +192,9 @@
     cameraOn=nextCameraOn;micOn=nextMicOn;cameraId=nextCameraId;mirrored=nextMirror;speaking=Boolean(micOn&&state?.speaking);
     if(state?.videoLayout&&state.videoLayout!=='hide')videoLayout=String(state.videoLayout);
     participants=normalizedParticipants(state?.participants);
-    setLayoutActive(videoLayout);renderParticipants();
-    if(cameraChanged||deviceChanged)syncPreview();else if(mirrorChanged)attachLocalPreview();else attachLocalPreview();
+    const layoutChanged=setLayoutActive(videoLayout);if(layoutChanged)lastSignature='';
+    renderParticipants(layoutChanged);
+    if(cameraChanged||deviceChanged)syncPreview();else attachLocalPreview();
   });
   bridge?.onVideoFrame?.(applyRemoteFrame);
 
