@@ -100,10 +100,17 @@
     };
     const publishMacRemoteFrames=()=>{
       if(!sameRendererPresenter||!share.snapshot().active||!macPresenter?.videoFrame||!frameContext)return;
-      const remoteTiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile')];
+      const participantState=presenterParticipants();
+      const selfId=String(participantState.find(item=>item.self)?.participantId||'local-self');
+      const stateById=new Map(participantState.map(item=>[String(item.participantId||''),item]));
+      const tiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile')];
       const seen=new Set();
-      for(const tile of remoteTiles){
-        const id=String(tile.dataset.participantId||tile.dataset.peerId||'');if(!id||seen.has(id)||tile.dataset.cameraOn!=='1')continue;seen.add(id);
+      for(const tile of tiles){
+        const self=tile.classList.contains('local-video-dock-tile')||tile.dataset.participantSelf==='1';
+        const id=self?selfId:String(tile.dataset.participantId||tile.dataset.peerId||'');
+        const person=stateById.get(id)||null;
+        const cameraOn=self?Boolean(person?.cameraOn):tile.dataset.cameraOn==='1';
+        if(!id||seen.has(id)||!cameraOn)continue;seen.add(id);
         const video=tile.querySelector('video');if(!video||video.readyState<2||!video.videoWidth||!video.videoHeight)continue;
         try{
           frameContext.fillStyle='#111';frameContext.fillRect(0,0,frameCanvas.width,frameCanvas.height);
