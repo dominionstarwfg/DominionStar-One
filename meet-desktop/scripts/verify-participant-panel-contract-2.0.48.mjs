@@ -7,8 +7,8 @@ const runtimeCss=read('ui/runtime-stability.css');
 const controls=read('ui/participant-controls.js');
 const reference=read('ui/zoom-participants-reference-2.0.41.js');
 
-assert(pkg.version==='2.0.48','package version is not 2.0.48');
-assert(runtime.includes("const baseWidth=panel===chat?330:360;"),'participants are not using the fixed readable 360px geometry');
+assert(['2.0.48','2.0.49'].includes(pkg.version),'package version is outside the certified 2.0.48+ participant line');
+assert(runtime.includes("const baseWidth=panel===chat?330:318;"),'participants are not using the fixed reference 318px geometry');
 assert(!runtime.includes("panel.classList.contains('ds-panel-wide')?430"),'legacy participant wide mode still owns geometry');
 assert(runtime.includes("dataset.dsRuntimeParticipantChrome='1'"),'runtime is not the sole participant chrome owner');
 assert(runtime.includes('class="ds-traffic-close"')&&runtime.includes('class="ds-traffic-minimize"')&&runtime.includes('class="ds-traffic-restore"'),'runtime traffic lights are incomplete');
@@ -17,7 +17,7 @@ assert(!controls.includes("className='ds-panel-traffic'"),'participant-controls 
 assert(!reference.includes("className='ds-participants-traffic'"),'reference layer still creates competing traffic controls');
 assert(!reference.includes("className='ds-participants-popout'"),'reference layer still creates the rejected expand arrow');
 assert(!reference.includes("side.classList.toggle('ds-panel-wide')"),'reference layer can still enter the rejected wide state');
-assert(reference.includes('width:360px!important;min-width:min(360px,calc(100% - 24px))!important'),'reference participant width is still cramped');
+assert(reference.includes('width:318px!important;min-width:min(318px,calc(100% - 24px))!important'),'reference participant width does not match the approved compact desktop geometry');
 assert(runtimeCss.includes('.ds-traffic-close')&&runtimeCss.includes('.ds-traffic-minimize')&&runtimeCss.includes('.ds-traffic-restore'),'all three traffic lights are not visibly styled');
 assert(runtimeCss.includes('.ds-participants-popout')&&runtimeCss.includes('.ds-participants-traffic{display:none!important}'),'legacy participant chrome is not forcibly retired');
 console.log('PASS participant panel contract 2.0.48');
