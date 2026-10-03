@@ -12,7 +12,7 @@
   display:flex!important;align-items:center!important;justify-content:center!important;
   border-bottom:1px solid rgba(255,255,255,.13)!important;cursor:move!important;user-select:none!important;
 }
-#meetingOverlay .room-side-head>div{min-width:0!important;text-align:center!important}
+#meetingOverlay .room-side-head>div:not(.ds-panel-traffic):not(.ds-participants-traffic){min-width:0!important;text-align:center!important}
 #meetingOverlay .room-side-head strong{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 #meetingOverlay .room-side-head .ds-panel-traffic{
   position:absolute!important;left:10px!important;right:auto!important;top:0!important;bottom:auto!important;
