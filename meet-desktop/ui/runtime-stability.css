@@ -693,6 +693,15 @@ body>.meeting-reaction-menu,
 #meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-close{background:#ff5f57!important}
 #meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-minimize{background:#febc2e!important}
 #meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-restore{background:#28c840!important}
+#meetingOverlay .room-side .ds-panel-traffic{
+  left:10px!important;right:auto!important;top:0!important;bottom:auto!important;
+  width:50px!important;min-width:50px!important;max-width:50px!important;height:38px!important;
+  display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-start!important;
+  gap:7px!important;margin:0!important;padding:0!important;transform:none!important;
+}
+#meetingOverlay .room-side .ds-panel-traffic>button{
+  flex:0 0 12px!important;position:static!important;transform:none!important;
+}
 #meetingOverlay .room-side:has(.ds-panel-traffic) .room-side-head>button[aria-label="Close participants"]{display:none!important}
 
 
