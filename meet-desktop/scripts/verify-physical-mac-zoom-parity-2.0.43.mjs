@@ -292,21 +292,21 @@ assert(
   'Mac companion geometry must avoid the presenter video/toolbar and Annotate must not resize the entire meeting BrowserWindow.'
 );
 assert(
-  macVideoHtml.includes('id="videoMoreButton"') &&
-  macVideoCss.includes('opacity:.88') &&
-  macVideoHtml.includes('id="videoMoreMenu"') &&
-  macVideoHtml.includes('id="videoMenuAudio"') &&
-  macVideoHtml.includes('id="videoMenuCamera"') &&
-  macVideoHtml.includes('id="videoMenuSpeaker"') &&
-  macVideoHtml.includes('id="videoMenuGallery"') &&
-  macVideoHtml.includes('id="videoMenuHide"') &&
-  macVideoJs.includes("micOn?'audio-off':'audio-on'") &&
-  macVideoJs.includes("cameraOn?'video-off':'video-on'") &&
+  macVideoHtml.includes('id="videoStack"') &&
+  macVideoHtml.includes('id="videoActionMenu"') &&
+  macVideoHtml.includes('id="videoViewStrip"') &&
+  macVideoCss.includes('.video-tile:hover .video-tile-actions') &&
+  macVideoCss.includes('.video-primary-action') &&
+  macVideoCss.includes('.video-more-action') &&
+  macVideoJs.includes('async function runPrimary(person)') &&
+  macVideoJs.includes('const participantCommand=(action,id)=>presenterCommand') &&
+  macVideoJs.includes("person.micOn?'audio-off':'audio-on'") &&
+  macVideoJs.includes("person.cameraOn?'video-off':'video-on'") &&
   macVideoJs.includes("presenterCommand('layout-speaker')") &&
+  macVideoJs.includes("presenterCommand('layout-strip')") &&
   macVideoJs.includes("presenterCommand('layout-gallery')") &&
-  macVideoJs.includes("presenterCommand('layout-hide')") &&
-  macVideoCss.includes('.video-stage:hover .video-more-button'),
-  'The floating presenter video must expose hover quick controls wired through acknowledged presenter commands.'
+  macVideoJs.includes("presenterCommand('layout-hide')"),
+  'The floating presenter video must expose approved per-tile hover mute/ellipsis controls wired through acknowledged presenter commands.'
 );
 assert(
   main.includes("transparent:process.platform==='darwin'") &&
