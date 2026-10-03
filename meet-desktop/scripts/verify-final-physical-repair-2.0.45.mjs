@@ -7,10 +7,10 @@ assert(participant.includes('const VIDEO_OFF=VIDEO_ON;'),'double video slash sou
 assert(participantCss.includes('.ds-media-state.off::after')&&participantCss.includes('rotate(-45deg)'),'canonical participant slash missing');
 assert(runtime.includes("dataset.dsRuntimeParticipantChrome='1'")&&runtime.includes('class="ds-traffic-close"')&&runtime.includes('setParticipants(false)')&&!participantController.includes("className='ds-panel-traffic'"),'participant window single-owner close chrome missing');
 assert(overlay.includes('toolbarRevealZoneContains(point)')&&overlay.includes('y=Math.round(area.y+12)'),'presenter reveal zone/clearance missing');
-assert(videoHtml.includes('videoQuickAudio')&&videoHtml.includes('videoQuickCamera')&&videoJs.includes('armMenuClose'),'presenter video direct controls/menu cleanup missing');
+assert(videoHtml.includes('id="videoStack"')&&videoHtml.includes('id="videoActionMenu"')&&videoJs.includes('data-video-primary')&&videoJs.includes('data-video-more')&&videoJs.includes('async function runPrimary(person)')&&videoJs.includes("document.addEventListener('pointerdown'")&&videoJs.includes("window.addEventListener('blur',closeMenu)")&&videoJs.includes("if(event.key==='Escape')closeMenu()"),'approved presenter per-tile direct controls and menu cleanup are missing');
 assert(annotationHtml.includes('annotate-select')&&annotationCanvas.includes("cmd==='annotate-select'")&&overlay.includes('setAnnotationPointerPassthrough(true)'),'annotation pointer return path missing');
 assert(worker.includes('new RTCPeerConnection')&&worker.includes('bridge.offer')&&worker.includes('bridge.onAnswer')&&worker.includes('bridge.onCandidate'),'capture worker transport missing');
 assert(share.includes('captureBridge.onOffer')&&share.includes('pc.ontrack')&&share.includes('captureBridge.answer'),'capture bridge receiver missing');
 assert(!share.includes('function outputStream(){if(nativeMacCapture)return null;'),'native share output still disconnected');
 assert(share.includes('waitForShareVideoTrack')&&share.includes('captureFreezeFrame(videoElement)'),'Pause is not tied to real share frames');
-console.log('PASS final physical repair 2.0.45');
+console.log('PASS final physical repair 2.0.50 approved-share-strip');
