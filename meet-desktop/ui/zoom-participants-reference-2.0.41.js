@@ -128,11 +128,17 @@
     return head;
   }
   function cleanupLegacySearch(side,primary){
+    for(const node of [...side.querySelectorAll('.zoom-participant-search')]){
+      if(node===primary||node.contains?.(primary)||primary?.contains?.(node))continue;
+      const parent=node.parentElement;
+      if(node.matches('input[type="search"]')&&parent&&parent!==side&&!parent.matches('section')&&parent.children.length<=2){parent.remove();continue;}
+      node.remove();
+    }
     for(const input of [...side.querySelectorAll('input[type="search"]')]){
       if(input===primary)continue;
-      input.dataset.dsLegacyParticipantSearch='1';if(!input.hidden)input.hidden=true;
       const parent=input.parentElement;
-      if(parent&&parent!==side&&!parent.matches('section')&&parent.children.length<=2){parent.dataset.dsLegacyParticipantSearch='1';if(!parent.hidden)parent.hidden=true;}
+      if(parent&&parent!==side&&!parent.matches('section')&&parent.children.length<=2)parent.remove();
+      else input.remove();
     }
   }
 
