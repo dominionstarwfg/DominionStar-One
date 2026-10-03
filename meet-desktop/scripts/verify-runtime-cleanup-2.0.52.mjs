@@ -11,6 +11,7 @@ const videoCss=read('ui/mac-share-video.css');
 const presenter=read('src/mac-share-presenter-overlay.mjs');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const participantControls=read('ui/participant-controls.js');
+const physicalAcceptance=read('ui/zoom-physical-acceptance.js');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -29,6 +30,9 @@ assert(runtime.includes("row.querySelector('.ds-participant-media .ds-media-stat
 assert(participants.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}'),'Participant reference must delegate roster ordering to runtime stability.');
 assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();'),'Adaptive parity must delegate roster ordering to runtime stability.');
 assert(participantControls.includes('if(desktopSurface){footer?.remove();return;}'),'Desktop participant controls must not recreate the legacy bulk-action strip.');
+assert(physicalAcceptance.includes("row.dataset.participantSelf=self?'1':'0';row.dataset.dsAdaptiveSelf=self?'1':'0'"),'Participant normalization must persist self identity before hiding legacy subtitle text.');
+assert(physicalAcceptance.includes("existingMicOn=Boolean(wrap.querySelector('[data-participant-mic].on')||existing[0]?.classList.contains('on'))"),'Participant normalization must preserve last-known microphone state while transport status is unknown.');
+assert(physicalAcceptance.includes("/\\byou\\b|\\bme\\b/.test(small)"),'Participant self detection must recognize You/me before subtitle normalization.');
 
 assert(runtime.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Runtime traffic controls must use a dedicated non-title element.');
 assert(participants.includes('<span class="ds-panel-traffic"')&&participants.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Participant reference traffic controls must be structurally isolated from title div styling.');
