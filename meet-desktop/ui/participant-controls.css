@@ -33,7 +33,7 @@
 #meetingOverlay .room-side-head .ds-panel-traffic>.close{background:#ff5f57!important}
 #meetingOverlay .room-side-head .ds-panel-traffic>.min{background:#febc2e!important}
 #meetingOverlay .room-side-head .ds-panel-traffic>.zoom{background:#28c840!important}
-#meetingOverlay .room-side-head:has(.ds-panel-traffic)>div{flex:1 1 auto!important}
+#meetingOverlay .room-side-head:has(.ds-panel-traffic)>div:not(.ds-panel-traffic){flex:1 1 auto!important}
 #meetingOverlay .room-side-head:has(.ds-panel-traffic)>button[aria-label="Close participants"]{display:none!important}
 #meetingOverlay .room-side.ds-panel-minimized{height:48px!important;min-height:48px!important;overflow:hidden!important;resize:none!important}
 #meetingOverlay .room-side.ds-panel-minimized>:not(.room-side-head){display:none!important}
