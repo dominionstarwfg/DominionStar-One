@@ -166,6 +166,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
     videoFrame:payload=>{ipcRenderer.send('mac-share:video-frame',payload||{});return true;},
+    onVideoFrame:callback=>listen('mac-share:video-frame',callback),
     onShowMeeting:callback=>listen('mac-share:show-meeting',callback)
   })
 }));
