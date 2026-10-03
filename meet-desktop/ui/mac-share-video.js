@@ -102,7 +102,7 @@
   }
   function applyRemoteFrame(payload={}){
     const id=String(payload.participantId||''),dataUrl=String(payload.dataUrl||'');
-    if(!id||!/^data:image\\/(?:jpeg|webp|png);base64,/i.test(dataUrl))return;
+    if(!id||!['data:image/jpeg;base64,','data:image/webp;base64,','data:image/png;base64,'].some(prefix=>dataUrl.startsWith(prefix)))return;
     remoteFrames.set(id,dataUrl);const person=participants.find(item=>item.participantId===id);if(!person?.cameraOn)return;
     const tile=q(`.video-tile[data-participant-id="${CSS.escape(id)}"]`),img=tile?.querySelector('.remote-frame'),fallback=tile?.querySelector('.video-fallback');
     if(img){if(img.src!==dataUrl)img.src=dataUrl;img.style.transform=person.self&&mirrored?'scaleX(-1)':'none';img.hidden=false;if(fallback)fallback.hidden=true;}
