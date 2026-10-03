@@ -3,3 +3,32 @@
 .waiting-overlay[data-waiting-state="admission"] .waiting-pulse{background:rgba(55,132,218,.14);color:#6fb2ff}
 .waiting-overlay[data-waiting-state="closed"] .waiting-pulse{background:rgba(217,75,89,.12);color:#ff7f8d}
 .preview-avatar.has-photo,.stage-avatar.has-photo,.person-badge.has-photo,.remote-peer-fallback.has-photo{overflow:hidden;background:#101820!important;padding:0!important}.preview-avatar .ds-meeting-avatar-photo,.stage-avatar .ds-meeting-avatar-photo,.person-badge .ds-meeting-avatar-photo,.remote-peer-fallback .ds-meeting-avatar-photo{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}.person-badge.ds-profile-photo-edit{cursor:pointer;outline:1px solid rgba(76,149,255,.28);outline-offset:1px}.person-badge.ds-profile-photo-edit:hover{outline-color:rgba(76,149,255,.72)}
+
+/* 2.0.51 first-frame Participants chrome authority.
+   The panel must be born with correct Mac geometry before late runtime polish loads. */
+#meetingOverlay .room-side{padding:0!important;overflow:hidden}
+#meetingOverlay .room-side-head{
+  position:relative!important;height:38px!important;min-height:38px!important;padding:0 54px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  border-bottom:1px solid rgba(255,255,255,.13)!important;cursor:move!important;user-select:none!important;
+}
+#meetingOverlay .room-side-head>div{min-width:0!important;text-align:center!important}
+#meetingOverlay .room-side-head strong{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#meetingOverlay .room-side-head .ds-panel-traffic{
+  position:absolute!important;left:10px!important;right:auto!important;top:0!important;bottom:auto!important;
+  width:50px!important;min-width:50px!important;max-width:50px!important;height:38px!important;
+  margin:0!important;padding:0!important;display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+  align-items:center!important;justify-content:flex-start!important;gap:7px!important;pointer-events:auto!important;transform:none!important;
+}
+#meetingOverlay .room-side-head .ds-panel-traffic>button{
+  position:static!important;display:block!important;flex:0 0 12px!important;width:12px!important;min-width:12px!important;max-width:12px!important;
+  height:12px!important;min-height:12px!important;max-height:12px!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.22)!important;transform:none!important
+}
+#meetingOverlay .room-side-head .ds-traffic-close{background:#ff5f57!important}
+#meetingOverlay .room-side-head .ds-traffic-minimize{background:#febc2e!important}
+#meetingOverlay .room-side-head .ds-traffic-restore{background:#28c840!important}
+#meetingOverlay .room-side-head .ds-participant-header-action{
+  position:absolute!important;right:7px!important;top:6px!important;width:26px!important;height:26px!important;margin:0!important;padding:0!important
+}
+#meetingOverlay .room-side-head>button[aria-label="Close participants"]{display:none!important}
