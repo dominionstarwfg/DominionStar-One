@@ -371,10 +371,14 @@
   function ensurePanelClose(panel){
     if(!panel)return;
     const participants=panel.matches('.room-side');
-    const header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
+    let header=participants?panel.querySelector('.room-side-head'):panel.querySelector('header');
     if(!header)return;
     if(participants&&desktopSurface){
-      for(const legacy of [...header.querySelectorAll('.ds-participants-traffic,.ds-participants-popout')])legacy.remove();
+      const participantHeaders=[...panel.querySelectorAll(':scope > .room-side-head')];
+      header=participantHeaders[0]||header;
+      for(const duplicateHeader of participantHeaders.slice(1))duplicateHeader.remove();
+      for(const stray of [...panel.querySelectorAll('.ds-panel-traffic')]){if(!header.contains(stray))stray.remove();}
+      for(const legacy of [...panel.querySelectorAll('.ds-participants-traffic,.ds-participants-popout')])legacy.remove();
       panel.classList.remove('ds-panel-wide','ds-panel-collapsed');
       const trafficSets=[...header.querySelectorAll('.ds-panel-traffic')];
       let traffic=trafficSets.find(node=>node.dataset.dsRuntimeParticipantChrome==='1')||trafficSets[0]||null;
