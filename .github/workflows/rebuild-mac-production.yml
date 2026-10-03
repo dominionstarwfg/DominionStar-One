@@ -2,7 +2,7 @@ name: DominionStar Meet Mac Production Build
 
 on:
   push:
-    branches: [main, participants-search-2.0.51]
+    branches: [main]
     paths:
       - 'meet-desktop/**'
       - '.github/workflows/rebuild-mac-production.yml'
