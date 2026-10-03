@@ -89,6 +89,7 @@ jobs:
           node scripts/verify-physical-rejection-repair-2.0.46.mjs
           node scripts/verify-behavior-contract-2.0.47.mjs
           node scripts/verify-participant-panel-contract-2.0.48.mjs
+          node scripts/verify-participant-reference-2.0.49.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop
