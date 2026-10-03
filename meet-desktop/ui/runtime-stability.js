@@ -246,6 +246,7 @@
       side.dataset.dsAdaptiveMode='floating';
       side.dataset.dsRuntimePanel='participants';
       syncParticipantsSurface();
+      window.DominionZoomParticipantsReference2041?.sync?.();
     }
     layoutSideSurface();
     return show;
