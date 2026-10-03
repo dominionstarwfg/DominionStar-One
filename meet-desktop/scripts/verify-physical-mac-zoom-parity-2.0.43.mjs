@@ -538,25 +538,27 @@ assert(
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
 assert(preload.includes("if(process.platform==='darwin')ipcRenderer.send('mac-share:state',state||{});return invoke('share:capture-state',state);"),'Mac share state must reach both native overlay and companion-window authorities.');
 assert(presenterPreload.includes("environment:()=>invoke('app:get-environment')"),'Mac presenter surfaces must be able to detect certified QA runtime without loading the full meeting preload.');
-assert(main.includes('qaPresenterFixtures:qaFixtureRequested')&&macVideoJs.includes('environment?.qaPresenterFixtures||environment?.qaInteractionFixtures'),'Packaged presenter QA must use an explicit fixture request without weakening production fixture gating.');
+assert(main.includes('qaPresenterFixtures:qaFixtureRequested')&&!macVideoJs.includes('qaPresenterFixtures')&&!macVideoJs.includes('qaInteractionFixtures'),'Packaged presenter QA must stay explicitly gated while the mirrored presenter video surface remains independent of camera fixtures.');
 assert(
   integration.includes("cameraId:String(mediaState.cameraId||'')")&&
   integration.includes("mirror:mediaState.mirror!==false")&&
   integration.includes('const presenterParticipants=()=>')&&
-  integration.includes("remote-peer-tile:not(.local-video-dock-tile)")&&
+  integration.includes("const selfId=String(participantState.find(item=>item.self)?.participantId||'local-self')")&&
+  integration.includes("#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile")&&
   integration.includes("frameCanvas.toDataURL('image/jpeg',.52)")&&
   !integration.includes("canvas.toBlob(resolve,'image/jpeg'")&&
   !integration.includes("new Uint8Array(await blob.arrayBuffer())"),
-  'The capture-owning renderer must publish local camera state plus bounded mirrors of existing remote WebRTC tiles, without reviving the old local-camera JPEG preview pipeline.'
+  'The capture-owning renderer must publish local camera state plus bounded mirrors of the existing local and remote meeting video tiles without creating another camera authority.'
 );
 assert(
-  macVideoJs.includes("navigator.mediaDevices.getUserMedia({audio:false,video})")&&
-  macVideoJs.includes("if(cameraId)video.deviceId={ideal:cameraId}")&&
-  macVideoJs.includes("person.self?'<video autoplay muted playsinline hidden></video>'")&&
-  macVideoJs.includes("if(live){if(video.srcObject!==previewStream)video.srcObject=previewStream")&&
-  macVideoJs.includes("else{video.hidden=true")&&
-  macVideoJs.includes("if(fallback)fallback.hidden=false"),
-  'The approved share participant strip must own the selected local camera preview and reserve profile/initial fallback for camera-off or unavailable-video state.'
+  !macVideoJs.includes('getUserMedia')&&
+  !macVideoJs.includes('previewStream')&&
+  !macVideoJs.includes("stack.textContent=''")&&
+  macVideoJs.includes('bridge?.onVideoFrame?.(applyRemoteFrame)')&&
+  macVideoJs.includes('<img class="remote-frame" alt="" hidden>')&&
+  macVideoJs.includes('function createTile(person,stack)')&&
+  macVideoJs.includes('function updateTile(tile,person)'),
+  'The approved share participant strip must mirror the meeting-owned local/remote video frames into persistent keyed tiles and reserve profile/initial fallback for camera-off or unavailable-video state.'
 );
 
 /* PHYSICAL_MAC_SCREENSHOT_2026_10_01_IDENTITY_AND_MENU_LOCK */
