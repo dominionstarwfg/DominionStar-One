@@ -820,3 +820,24 @@ body>.meeting-reaction-menu,
   width:100%!important;min-width:0!important;height:34px!important;padding:0 10px!important;
   border-radius:17px!important;font-size:11px!important;
 }
+
+
+/* 2.0.51 final Participants chrome authority — must be last in cascade. */
+#meetingOverlay .room-side .room-side-head .ds-panel-traffic{
+  position:absolute!important;
+  left:10px!important;right:auto!important;top:0!important;bottom:auto!important;
+  width:50px!important;min-width:50px!important;max-width:50px!important;height:38px!important;
+  margin:0!important;padding:0!important;
+  display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+  align-items:center!important;justify-content:flex-start!important;gap:7px!important;
+  z-index:80!important;pointer-events:auto!important;transform:none!important;
+}
+#meetingOverlay .room-side .room-side-head .ds-panel-traffic>button{
+  position:static!important;display:block!important;flex:0 0 12px!important;
+  width:12px!important;min-width:12px!important;max-width:12px!important;
+  height:12px!important;min-height:12px!important;max-height:12px!important;
+  margin:0!important;padding:0!important;transform:none!important;
+}
+#meetingOverlay .room-side .room-side-head .ds-panel-traffic>.ds-traffic-close{order:1!important;background:#ff5f57!important}
+#meetingOverlay .room-side .room-side-head .ds-panel-traffic>.ds-traffic-minimize{order:2!important;background:#febc2e!important}
+#meetingOverlay .room-side .room-side-head .ds-panel-traffic>.ds-traffic-restore{order:3!important;background:#28c840!important}
