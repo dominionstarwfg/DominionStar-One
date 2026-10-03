@@ -433,24 +433,23 @@ assert(
   macToolbar.includes("audioButton.dataset.voiceLevel=String(voiceBucket)") &&
   macToolbar.includes("audioButton?.classList.toggle('is-speaking',speaking)") &&
   macToolbarCss.includes('[data-command="audio"].is-speaking .mic-live-meter') &&
-  macVideoHtml.includes('id="micState" class="mic-state"') &&
-  macVideoJs.includes("mic.dataset.voiceLevel=String(voiceBucket)") &&
-  macVideoJs.includes("mic.classList.toggle('speaking',speaking)") &&
-  macVideoCss.includes('.mic-state[data-voice-level="3"]'),
-  'Real microphone RMS must propagate from the authoritative meeting track into visible activity meters on both native Mac presenter surfaces.'
+  macVideoJs.includes("speaking=Boolean(micOn&&state?.speaking)") &&
+  macVideoJs.includes("tile.classList.toggle('speaking',tile.dataset.self==='1'&&speaking)") &&
+  macVideoCss.includes('.video-tile.speaking{border-color:#31d158'),
+  'Real microphone RMS must propagate from the authoritative meeting track into the native toolbar meter and the approved green speaking border on the share-video tile.'
 );
 assert(preload.includes('const accepted=result?.handled===true;')&&!preload.includes('const accepted=result?.handled!==false;'),'Presenter preload must reject undefined/stale listener results instead of falsely acknowledging dead toolbar commands.');
 assert(macToolbar.includes("if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';")&&macToolbar.includes("if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';")&&integration.includes("command==='audio-on'||command==='audio-off'")&&integration.includes("command==='video-on'||command==='video-off'"),'Presenter Audio/Video commands must be explicit idempotent targets so delivery retries cannot toggle state twice.');
 assert(presenterPreload.includes("setToolbarHidden:hidden=>invoke('mac-share:toolbar-hidden'")&&macPresenter.includes("ipcMain.handle('mac-share:toolbar-hidden'")&&macToolbar.includes("setNativeHidden(true)")&&macToolbar.includes("control.disabled=true")&&macToolbar.includes("applyAcknowledgedAvState")&&macToolbarCss.includes(".toolbar.auto-hidden .control-strip{transform:translateY(-66px);opacity:0;pointer-events:none}")&&macToolbarCss.includes(".toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}")&&macPresenter.includes("toolbarAutoHidden?28:84")&&!macToolbarCss.includes(".toolbar:hover .control-strip"),'Idle presenter controls must collapse to the 28px native reveal zone while the green sharing strip remains visible; AV commands must stay serialized and hover must not override the hidden state.');
-assert(macPresenter.includes('focusable:true,alwaysOnTop:true')&&macVideoJs.includes("window.addEventListener('blur',()=>closeMenu())"),'Floating video options must close through normal focus loss instead of requiring the ellipsis button again.');
+assert(macPresenter.includes('focusable:true,alwaysOnTop:true')&&macVideoJs.includes("window.addEventListener('blur',closeMenu)"),'Floating video options must close through normal focus loss instead of requiring the ellipsis button again.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}")&&!integration.includes("await share.stop();applyLayout();return {handled:true,command};"),'Stop Share must use one local-first state transition and rely on the synchronous share-state listener to restore meeting chrome.');
 assert(
   integration.includes('if(sameRendererPresenter&&state.active){')&&
   integration.includes('return;')&&
   integration.includes('function publishMacPresenterState(){')&&
   integration.includes('if(sameRendererPresenter)publishMacPresenterState();else applyLayout();')&&
-  integration.includes('media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter)return;applyLayout();});'),
-  'Active Mac sharing must bypass meeting share-layout reconciliation and publish only command-specific presenter state.'
+  integration.includes('media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter){publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});'),
+  'Active Mac sharing must bypass meeting share-layout reconciliation while publishing presenter state and bounded remote-tile mirror updates.'
 );
 assert(macToolbarHtml.includes('id="layoutButton"')&&macToolbarHtml.includes('data-command="show-meeting"><span class="glyph"')&&!macToolbarHtml.includes('<button type="button" data-command="show-meeting">Show meeting</button>'),'Presenter strip must expose Layout and Show meeting as primary reference controls without duplicate secondary entries.');
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
@@ -543,18 +542,21 @@ assert(main.includes('qaPresenterFixtures:qaFixtureRequested')&&macVideoJs.inclu
 assert(
   integration.includes("cameraId:String(mediaState.cameraId||'')")&&
   integration.includes("mirror:mediaState.mirror!==false")&&
-  integration.includes("const syncMacCameraFramePump=()=>{};")&&
+  integration.includes('const presenterParticipants=()=>')&&
+  integration.includes("remote-peer-tile:not(.local-video-dock-tile)")&&
+  integration.includes("frameCanvas.toDataURL('image/jpeg',.52)")&&
   !integration.includes("canvas.toBlob(resolve,'image/jpeg'")&&
   !integration.includes("new Uint8Array(await blob.arrayBuffer())"),
-  'The capture-owning renderer must publish camera state only; it must not encode presenter-preview frames while screen sharing.'
+  'The capture-owning renderer must publish local camera state plus bounded mirrors of existing remote WebRTC tiles, without reviving the old local-camera JPEG preview pipeline.'
 );
 assert(
-  macVideoHtml.includes('<video id="cameraPreview" class="camera-preview" autoplay muted playsinline hidden></video>')&&
   macVideoJs.includes("navigator.mediaDevices.getUserMedia({audio:false,video})")&&
   macVideoJs.includes("if(cameraId)video.deviceId={ideal:cameraId}")&&
-  macVideoJs.includes("fallback.hidden=Boolean(cameraOn)")&&
-  macVideoJs.includes("dock.dataset.videoOwner='presenter-device-preview'"),
-  'The floating Mac presenter dock must own a low-rate live preview of the selected camera and reserve profile fallback strictly for camera-off state.'
+  macVideoJs.includes("person.self?'<video autoplay muted playsinline hidden></video>'")&&
+  macVideoJs.includes("if(live){if(video.srcObject!==previewStream)video.srcObject=previewStream")&&
+  macVideoJs.includes("else{video.hidden=true")&&
+  macVideoJs.includes("if(fallback)fallback.hidden=false"),
+  'The approved share participant strip must own the selected local camera preview and reserve profile/initial fallback for camera-off or unavailable-video state.'
 );
 
 /* PHYSICAL_MAC_SCREENSHOT_2026_10_01_IDENTITY_AND_MENU_LOCK */
