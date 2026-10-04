@@ -378,6 +378,18 @@ if(process.platform==='darwin'){
     wakeMain(main);let result=await deliverPresenterCommand(main,command);if(result?.ok)return result;
     await wait(120);wakeMain(main);result=await deliverPresenterCommand(main,command);return result;
   }
+  async function deliverPresenterCommandDirectFirst(main,command){
+    wakeMain(main);
+    try{
+      const payload=JSON.stringify({command:String(command||'')}).replace(/</g,'\\u003c');
+      const directPromise=main.webContents.executeJavaScript(`(async()=>{const fn=window.__DominionPresenterDispatch;if(typeof fn!=='function')return {handled:false,reason:'dispatcher-missing'};return await fn(${payload});})()`,true);
+      const direct=await Promise.race([directPromise,new Promise(resolve=>setTimeout(()=>resolve({handled:false,reason:'direct-timeout'}),900))]);
+      if(direct?.handled===true)return {ok:true,sent:true,acknowledged:true,direct:true,handled:true,result:direct};
+    }catch(error){
+      if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_DIRECT_ERROR command=${String(command||'')} error=${String(error?.message||error||'direct_failed')}`);
+    }
+    return deliverPresenterCommandWithRetry(main,command);
+  }
 
   ipcMain.handle('mac-share:prepare',()=>prepare());
   ipcMain.handle('mac-share:reveal',()=>{showOverlays();return {ok:true};});
@@ -499,7 +511,7 @@ if(process.platform==='darwin'){
     if(panelCommand&&nativeAnnotationOpen){nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();shareState={...shareState,companion:'',companionOpen:false};}
     if(normalized==='annotate'||normalized.startsWith('annotate-'))hideMeeting();
     const closingAnnotationToggle=normalized==='annotate'&&isAlive(annotationWindow)&&Boolean(annotationWindow.isVisible?.());
-    const delivered=await deliverPresenterCommandWithRetry(main,normalized);
+    const delivered=await deliverPresenterCommandDirectFirst(main,normalized);
     if(panelCommand&&delivered?.ok)showMeeting();
     if((normalized==='annotate-close'||closingAnnotationToggle)&&delivered?.ok){
       shareState={...shareState,companion:'',companionOpen:false};
