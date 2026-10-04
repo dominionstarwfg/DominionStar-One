@@ -465,6 +465,13 @@ assert(
   !macToolbarHtml.includes('data-command="new-share"'),
   'Presenter strip must match the approved compact control contract: Mute, Video, Pause Share, Participants, Chat, More, Stop Share.'
 );
+assert(
+  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=2;}")&&
+  macPresenter.includes("if(shareActive&&!qaKeepPresenterHidden&&shouldShowVideoWindow())")&&
+  macPresenter.includes("if(!shouldShowVideoWindow()){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout,visible:false};")&&
+  macPresenter.includes("if(isAlive(videoWindow)){if(shouldShowVideoWindow())videoWindow.showInactive?.();else videoWindow.hide();}"),
+  'Approved share filmstrip must stay hidden for one participant and become eligible only at two or more participants across every native presenter entry point.'
+);
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
 assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
 assert(
