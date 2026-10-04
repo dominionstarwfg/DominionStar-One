@@ -612,7 +612,7 @@ assert(
 /* PHYSICAL_MAC_2_0_50_REFERENCE_GEOMETRY_LOCK */
 assert(
   macPresenter.includes('const width=Math.min(590,Math.max(548,area.width-28));')&&
-  macPresenter.includes('const participantCount=Math.max(1,Math.min(5,Array.isArray(shareState.participants)?shareState.participants.length:1));')&&
+  macPresenter.includes('const participantCount=Math.max(2,Math.min(5,presenterParticipantCount()||2));')&&
   macPresenter.includes('let width=252,height=166;')&&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);")&&
   macPresenter.includes('let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
