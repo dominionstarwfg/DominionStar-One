@@ -39,7 +39,7 @@ assert(!participants.includes("observer.observe(observedRoot,{subtree:true,child
 assert(runtime.includes("const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\\byou\\b|\\bme\\b/.test(small)"),'Canonical participant priority must recognize explicit self state and You/me labels.');
 assert(runtime.includes("row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on')"),'Canonical participant priority must detect live microphone state without selector ambiguity.');
 assert(participants.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}'),'Participant reference must delegate roster ordering to runtime stability.');
-assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();'),'Adaptive parity must delegate roster ordering to runtime stability.');
+assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}'),'Non-desktop adaptive fallback must hand participant ordering to runtime stability and return immediately.');
 assert(!adaptive.includes("search.hidden=count<=1"),'Adaptive parity must not hide the participant search for one-person meetings.');
 assert(!adaptiveCss.includes('[data-ds-adaptive-count="1"] .zoom-participant-search'),'Adaptive CSS must not hide the participant search for one-person meetings.');
 assert(adaptive.includes('Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.'),'Adaptive parity single-search ownership marker is missing.');
