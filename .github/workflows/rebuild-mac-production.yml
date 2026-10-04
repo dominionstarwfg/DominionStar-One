@@ -60,6 +60,7 @@ jobs:
           node --check ui/zoom-contract-bridge.js
           node --check ui/physical-mac-repair.js
           node --check ui/runtime-stability.js
+          node --check ui/physical-diagnostics.js
           node --check scripts/verify-packaged-reaction-flow-2.0.22.mjs
           node scripts/verify-release-standard.mjs
           node scripts/verify-foundation.mjs
