@@ -112,6 +112,10 @@
   }
 
   function ensureParticipantSearch(){
+    // Desktop participant search has one owner: DominionZoomParticipantsReference2041.
+    // Creating a second .zoom-participant-search here races the reference layer,
+    // which removes legacy searches and recreates its canonical surface.
+    if(window.dominionDesktop)return;
     const side=q('.room-side'),head=side?.querySelector('.room-side-head');if(!side||!head)return;
     let wrap=side.querySelector('.zoom-participant-search');
     if(!wrap){
