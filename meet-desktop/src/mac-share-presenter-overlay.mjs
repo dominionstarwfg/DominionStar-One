@@ -98,7 +98,7 @@ if(process.platform==='darwin'){
   function positionToolbar(){
     if(!isAlive(toolbarWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=Math.min(770,Math.max(680,area.width-28));
+    const width=Math.min(590,Math.max(548,area.width-28));
     const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);
     const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+12);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
@@ -202,7 +202,7 @@ if(process.platform==='darwin'){
     if(isAlive(toolbarWindow))closeFailedWindow(toolbarWindow);
     toolbarWindow=null;toolbarReady=false;
     const win=new BrowserWindow({
-      width:770,height:84,minWidth:680,minHeight:28,maxHeight:300,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:590,height:84,minWidth:548,minHeight:28,maxWidth:650,maxHeight:300,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,
       focusable:false,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-toolbar-v2044'}
