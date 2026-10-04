@@ -48,7 +48,6 @@ assert(physicalAcceptance.includes("window.removeEventListener('dominion:meeting
 assert(!macVideo.includes('getUserMedia'),'Native presenter video must never acquire a second camera.');
 assert(macVideo.includes('realParticipants=out.filter(item=>item.participantId!==\'local-self\')'),'Presenter video must remove synthetic self when a real participant exists.');
 assert(macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=2;}"),'Mac presenter filmstrip must be hidden for one participant and start at two.');
-assert(shareIntegration.includes('presenterParticipants().length<2'){/* sentinel */});
 assert(shareIntegration.includes('presenterParticipants().length<2){stopMacRemoteFramePump();return;}'),'Presenter frame pump must stop when fewer than two participants exist.');
 assert(shareIntegration.includes('setInterval(publishMacRemoteFrames,180)'),'Presenter frame pump cadence must remain bounded.');
 assert(shareIntegration.includes('localImageCapture=new ImageCapture(localTrack)'),'Local presenter video must mirror the already-owned camera track.');
