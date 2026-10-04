@@ -96,6 +96,7 @@
       },Math.max(0,Number(delay)||0));
     };
     const localPresenterMirror=document.createElement('video');
+    let localImageCapture=null,localImageCaptureTrackId='',localFrameCaptureBusy=false;
     localPresenterMirror.autoplay=true;localPresenterMirror.playsInline=true;localPresenterMirror.muted=true;
     localPresenterMirror.setAttribute('aria-hidden','true');
     localPresenterMirror.style.cssText='position:fixed;left:-10000px;top:-10000px;width:2px;height:2px;opacity:.001;pointer-events:none';
@@ -161,8 +162,27 @@
         }catch{return false;}
       };
       // Local presenter video mirrors the authoritative DominionMediaController
-      // stream directly. It no longer depends on the hidden meeting filmstrip.
-      if(selfPerson?.cameraOn&&syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
+      // stream directly. Prefer ImageCapture from the already-owned camera track
+      // so the native filmstrip never depends on an offscreen <video> reaching
+      // HAVE_CURRENT_DATA. This does not acquire a second camera stream.
+      if(selfPerson?.cameraOn){
+        const localTrack=media.stream()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null;
+        if(localTrack&&typeof ImageCapture==='function'&&!localFrameCaptureBusy){
+          if(!localImageCapture||localImageCaptureTrackId!==localTrack.id){try{localImageCapture=new ImageCapture(localTrack);localImageCaptureTrackId=localTrack.id;}catch{localImageCapture=null;localImageCaptureTrackId='';}}
+          if(localImageCapture){
+            localFrameCaptureBusy=true;
+            void localImageCapture.grabFrame().then(bitmap=>{
+              try{
+                frameContext.fillStyle='#111';frameContext.fillRect(0,0,frameCanvas.width,frameCanvas.height);
+                const sourceRatio=bitmap.width/bitmap.height,targetRatio=frameCanvas.width/frameCanvas.height;let sx=0,sy=0,sw=bitmap.width,sh=bitmap.height;
+                if(sourceRatio>targetRatio){sw=Math.round(bitmap.height*targetRatio);sx=Math.round((bitmap.width-sw)/2);}else if(sourceRatio<targetRatio){sh=Math.round(bitmap.width/targetRatio);sy=Math.round((bitmap.height-sh)/2);}
+                frameContext.drawImage(bitmap,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
+                const dataUrl=frameCanvas.toDataURL('image/jpeg',.58);macPresenter.videoFrame({participantId:selfId,dataUrl,at:Date.now()});
+              }catch{}finally{try{bitmap.close?.();}catch{}}
+            }).catch(()=>{if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);}).finally(()=>{localFrameCaptureBusy=false;});
+          }else if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
+        }else if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
+      }
       const tiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile')];
       for(const tile of tiles){
         const id=String(tile.dataset.participantId||tile.dataset.peerId||''),person=stateById.get(id)||null;
@@ -420,7 +440,9 @@
             if(target)await share.pause(sharedVideo);
             else await share.resume();
           }
-          return finish({handled:true,command,target,paused:Boolean(share.snapshot().paused)});
+          const actualPaused=Boolean(share.snapshot().paused);
+          if(actualPaused!==target)return finish({handled:false,command,target,paused:actualPaused,error:'pause_state_not_reached'});
+          return finish({handled:true,command,target,paused:actualPaused});
         }
         if(command==='stop'){clearCompanion();await share.stop();return finish({handled:true,command});}
         if(command==='audio'||command==='audio-on'||command==='audio-off'){
@@ -434,7 +456,9 @@
           await media.setCamera(target);
           if(sameRendererPresenter){scheduleMacVideoDockSync(0);publishMacPresenterState();syncMacCameraFramePump();}
           else applyLayout();
-          return finish({handled:true,command,target,actual:Boolean(media.snapshot().cameraOn),videoLive:Boolean(media.snapshot().videoLive)});
+          const videoState=media.snapshot(),actualCamera=Boolean(videoState.cameraOn),videoLive=Boolean(videoState.videoLive);
+          if(actualCamera!==target||(target&&!videoLive))return finish({handled:false,command,target,actual:actualCamera,videoLive,error:'camera_state_not_reached'});
+          return finish({handled:true,command,target,actual:actualCamera,videoLive});
         }
         if(command.startsWith('participant:')){
           const parts=command.split(':'),action=String(parts[1]||''),id=decodeURIComponent(parts.slice(2).join(':')||'');
