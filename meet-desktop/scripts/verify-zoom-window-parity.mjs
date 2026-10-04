@@ -43,6 +43,6 @@ assert(repair.includes("if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hi
 assert(approved.includes('#meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage)'),'Approved reference layer must own the normal unpositioned video-filmstrip geometry.');
 assert(approved.includes('right:14px !important;')&&approved.includes('grid-template-columns:176px !important;'),'Normal desktop video filmstrip must default to a right-side vertical column.');
 assert(approved.includes('@media(max-width:680px)'),'Top-style compact reflow must be reserved for genuinely narrow windows.');
-assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.21'"),'Carried-forward adaptive authorities must remain identifiable.');
+assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.53-desktop-read-only'")&&adaptive.includes("const desktopCanonical=Boolean(window.dominionDesktop);"),'Adaptive authority must remain identifiable and read-only on desktop.');
 
 console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp single-search-authority empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
