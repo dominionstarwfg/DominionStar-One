@@ -114,8 +114,8 @@ assert.ok(!motion.includes('dsRuntimePanelIn{from{opacity:.72;transform:'),'Pane
 assert.ok(motion.includes('.meeting-control:active{transform:scale(.97)}'),'Controls must provide immediate tactile click feedback.');
 assert.ok(motion.includes('@media(prefers-reduced-motion:reduce)'),'Motion must respect reduced-motion preferences.');
 
-assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,subtree:true})"),'Expected legacy physical observer signature changed; review the stability isolation contract.');
-assert.ok(physical.includes('wrap.innerHTML='),'Expected legacy media-status mutation changed; review the stability isolation contract.');
+assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,subtree:false})"),'Participant observer must remain shallow so row decoration cannot self-trigger through descendant mutations.');
+assert.ok(!physical.includes('wrap.innerHTML=`<span data-participant-mic'),'Participant media state must update persistent nodes instead of rebuilding the row subtree.');
 assert.ok(runtime.includes('DominionZoomPhysicalAcceptance'),'Final runtime must explicitly isolate the physical acceptance loop.');
 
 // Share Screen has one click owner. Physical compatibility may expose explicit
