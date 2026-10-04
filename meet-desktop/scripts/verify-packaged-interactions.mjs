@@ -267,14 +267,20 @@ try{
   // search bar must remain visible and the row must not jump vertically while
   // background reconcilers run. This catches the real flashing captured by the
   // user's before/after screenshots.
+  await evaluate(`(()=>{const panel=document.querySelector('.room-side'),wrap=panel?.querySelector('.ds-participant-search-wrap'),row=panel?.querySelector('#participantRoster [data-participant-id]');window.__qaStableParticipantSurface={wrap,row};return Boolean(wrap&&row);})()`);
   const onePersonSearchSamples=[];
-  for(let i=0;i<12;i++){
-    onePersonSearchSamples.push(await evaluate(`(()=>{const panel=document.querySelector('.room-side'),wrap=panel?.querySelector('.ds-participant-search-wrap'),search=panel?.querySelector('.ds-participant-search-primary'),row=panel?.querySelector('#participantRoster [data-participant-id]');const visible=node=>Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');return {wrapVisible:visible(wrap),searchVisible:visible(search),rowTop:row?Math.round(row.getBoundingClientRect().top*10)/10:null,rowId:String(row?.dataset.participantId||''),rowCount:panel?.querySelectorAll('#participantRoster [data-participant-id]').length||0};})()`));
+  // Seven seconds crosses the old 650ms adaptive poll repeatedly and also
+  // crosses the former six-second participant reconciliation timer.
+  for(let i=0;i<28;i++){
+    onePersonSearchSamples.push(await evaluate(`(()=>{const panel=document.querySelector('.room-side'),wrap=panel?.querySelector('.ds-participant-search-wrap'),search=panel?.querySelector('.ds-participant-search-primary'),row=panel?.querySelector('#participantRoster [data-participant-id]'),role=row?.querySelector('strong .participant-you'),stable=window.__qaStableParticipantSurface||{};const visible=node=>Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');return {wrapVisible:visible(wrap),searchVisible:visible(search),sameWrap:wrap===stable.wrap,sameRow:row===stable.row,rowTop:row?Math.round(row.getBoundingClientRect().top*10)/10:null,rowId:String(row?.dataset.participantId||''),rowCount:panel?.querySelectorAll('#participantRoster [data-participant-id]').length||0,adaptiveRoles:panel?.querySelectorAll('.ds-adaptive-role').length||0,canonicalRole:String(role?.textContent||''),canonicalRoleVisible:visible(role)};})()`));
     await sleep(250);
   }
   console.error('QA_ONE_PERSON_SEARCH_STABILITY '+JSON.stringify(onePersonSearchSamples));
   assert.ok(onePersonSearchSamples.every(s=>s.rowCount===1),'One-person search stability fixture must contain exactly one participant.');
   assert.ok(onePersonSearchSamples.every(s=>s.wrapVisible&&s.searchVisible),'One-person Participants search bar disappeared during background reconciliation.');
+  assert.ok(onePersonSearchSamples.every(s=>s.sameWrap&&s.sameRow),'One-person Participants DOM nodes were replaced while the panel was idle.');
+  assert.ok(onePersonSearchSamples.every(s=>s.adaptiveRoles===0),'Adaptive participant role renderer re-entered the desktop panel.');
+  assert.ok(onePersonSearchSamples.every(s=>s.canonicalRoleVisible&&/\\(Host, me\\)|\\(Co-host, me\\)|\\(me\\)/.test(s.canonicalRole)),'Canonical inline participant role switched to a competing row presentation.');
   const onePersonRowTops=onePersonSearchSamples.map(s=>s.rowTop).filter(Number.isFinite);
   assert.ok(onePersonRowTops.length===onePersonSearchSamples.length,'One-person participant row disappeared during stability sampling.');
   assert.ok(Math.max(...onePersonRowTops)-Math.min(...onePersonRowTops)<=1,'One-person participant row moved vertically while the panel was idle; search/chrome ownership is still unstable.');
@@ -352,7 +358,7 @@ try{
   assert.equal(shareDock.sideBySide,false,'Side-by-side video must not replace the default floating share dock unless explicitly selected.');
   assert.equal(shareDock.orientation,'vertical','Default share-time video panel must start as a vertical right-side dock.');mark('adaptive-dock');
 
-  console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence approved-toolbar-stable participants-floating one-person-search-stable chat-floating reactions more in-app-diagnostic-export zoom-right-filmstrip adaptive-full-stage-dock');
+  console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence approved-toolbar-stable participants-floating one-person-search-stable persistent-panel-dom canonical-role-stable chat-floating reactions more in-app-diagnostic-export zoom-right-filmstrip adaptive-full-stage-dock');
 }catch(error){
   failure=error;
   console.error(error?.stack||String(error));
