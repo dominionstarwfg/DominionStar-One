@@ -84,7 +84,8 @@
       return presenterLocalParticipantId;
     };
     void refreshPresenterLocalParticipantId();
-    window.addEventListener('dominion:meeting-snapshot',()=>{void refreshPresenterLocalParticipantId();});
+    window.addEventListener('dominion:meeting-snapshot',()=>{void refreshPresenterLocalParticipantId().then(()=>{if(sameRendererPresenter&&share.snapshot().active)publishMacPresenterState();});});
+    window.addEventListener('dominion:remote-media-state',()=>{if(sameRendererPresenter&&share.snapshot().active)publishMacPresenterState();});
     const scheduleMacVideoDockSync=(delay=40)=>{
       if(!sameRendererPresenter)return;
       clearTimeout(macDockSyncTimer);
@@ -172,7 +173,7 @@
     const stopMacRemoteFramePump=()=>{if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}};
     const syncMacCameraFramePump=()=>{
       if(!sameRendererPresenter||!share.snapshot().active){stopMacRemoteFramePump();return;}
-      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(()=>{publishMacRemoteFrames();publishMacPresenterState();},360);
+      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(publishMacRemoteFrames,120);
       publishMacRemoteFrames();
     };
     let lastVoiceSentAt=0,lastVoiceSpeaking=false,lastVoiceLevel=0;
