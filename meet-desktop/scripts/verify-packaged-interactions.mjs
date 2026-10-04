@@ -262,6 +262,23 @@ try{
   assert.equal(participantReferenceState.footerButtons,3,'Participants footer must contain exactly Invite, Mute all, and More.');
   assert.ok(participantReferenceState.footerSpread<=8,'Participants footer buttons must remain visually balanced.');
   assert.equal(participantReferenceState.hasUtility,true,'Participants header utility action is missing.');
+
+  // Physical-Mac regression gate: with exactly one participant the canonical
+  // search bar must remain visible and the row must not jump vertically while
+  // background reconcilers run. This catches the real flashing captured by the
+  // user's before/after screenshots.
+  const onePersonSearchSamples=[];
+  for(let i=0;i<12;i++){
+    onePersonSearchSamples.push(await evaluate(`(()=>{const panel=document.querySelector('.room-side'),wrap=panel?.querySelector('.ds-participant-search-wrap'),search=panel?.querySelector('.ds-participant-search-primary'),row=panel?.querySelector('#participantRoster [data-participant-id]');const visible=node=>Boolean(node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');return {wrapVisible:visible(wrap),searchVisible:visible(search),rowTop:row?Math.round(row.getBoundingClientRect().top*10)/10:null,rowId:String(row?.dataset.participantId||''),rowCount:panel?.querySelectorAll('#participantRoster [data-participant-id]').length||0};})()`));
+    await sleep(250);
+  }
+  console.error('QA_ONE_PERSON_SEARCH_STABILITY '+JSON.stringify(onePersonSearchSamples));
+  assert.ok(onePersonSearchSamples.every(s=>s.rowCount===1),'One-person search stability fixture must contain exactly one participant.');
+  assert.ok(onePersonSearchSamples.every(s=>s.wrapVisible&&s.searchVisible),'One-person Participants search bar disappeared during background reconciliation.');
+  const onePersonRowTops=onePersonSearchSamples.map(s=>s.rowTop).filter(Number.isFinite);
+  assert.ok(onePersonRowTops.length===onePersonSearchSamples.length,'One-person participant row disappeared during stability sampling.');
+  assert.ok(Math.max(...onePersonRowTops)-Math.min(...onePersonRowTops)<=1,'One-person participant row moved vertically while the panel was idle; search/chrome ownership is still unstable.');
+
   assert.ok(participantPanelGeometry.rightGap>=18&&participantPanelGeometry.rightGap<=36,'Participants must open as an inset floating surface rather than an edge-attached sidebar.');
   assert.ok(Math.abs(participantPanelGeometry.stageRightGap)<=2,'Floating Participants must not reserve the right edge or shrink the live stage.');
   assert.ok(Math.abs(participantPanelGeometry.stageWidth-participantPanelGeometry.bodyWidth)<=2,'The live stage must remain full width underneath floating Participants.');
@@ -335,7 +352,7 @@ try{
   assert.equal(shareDock.sideBySide,false,'Side-by-side video must not replace the default floating share dock unless explicitly selected.');
   assert.equal(shareDock.orientation,'vertical','Default share-time video panel must start as a vertical right-side dock.');mark('adaptive-dock');
 
-  console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence approved-toolbar-stable participants-floating chat-floating reactions more in-app-diagnostic-export zoom-right-filmstrip adaptive-full-stage-dock');
+  console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence approved-toolbar-stable participants-floating one-person-search-stable chat-floating reactions more in-app-diagnostic-export zoom-right-filmstrip adaptive-full-stage-dock');
 }catch(error){
   failure=error;
   console.error(error?.stack||String(error));
