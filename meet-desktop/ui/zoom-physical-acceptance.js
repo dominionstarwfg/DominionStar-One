@@ -182,10 +182,20 @@
     const id=String(row.dataset.participantId||'');
     if(!participantIsSelf(row,id))return;
     const actions=row.querySelector('.participant-actions');if(!actions)return;
-    const duplicates=[...actions.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')];
-    for(const node of duplicates)node.remove();
-    const button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';button.textContent='•••';button.setAttribute('aria-label','More options for yourself');
-    button.onclick=event=>{event.stopPropagation();openSelfParticipantMenu(button,row);};actions.append(button);
+    const candidates=[...actions.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')];
+    let button=candidates.find(node=>node.dataset.dsSelfMore==='1')||candidates[0]||null;
+    for(const node of candidates)if(node!==button)node.remove();
+    if(!button){
+      button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';actions.append(button);
+    }
+    button.dataset.dsSelfMore='1';button.classList.add('participant-more','ds-participant-more');
+    if(button.textContent!=='•••')button.textContent='•••';
+    if(button.getAttribute('aria-label')!=='More options for yourself')button.setAttribute('aria-label','More options for yourself');
+    if(button.dataset.dsSelfMoreBound!=='1'){
+      button.dataset.dsSelfMoreBound='1';
+      button.addEventListener('click',event=>{event.stopPropagation();openSelfParticipantMenu(button,row);});
+    }
+    if(button.parentElement!==actions)actions.append(button);
   }
   function openSelfParticipantMenu(button,row){
     closeTransientMenus();const id=String(row.dataset.participantId||'');selfMenu=document.createElement('div');selfMenu.className='ds-command-menu ds-self-participant-menu';document.body.append(selfMenu);
