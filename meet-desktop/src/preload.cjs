@@ -5,6 +5,7 @@ const presenterCommandCallbacks=new Set();
 let presenterListenerGeneration=0;
 let presenterPollTimer=null;
 let presenterPollBusy=false;
+const PRESENTER_FALLBACK_POLL_MS=250;
 const presenterDeliveryTasks=new Map();
 const captureStartWaiters=new Map();
 let captureStartRequestSeq=0;
@@ -82,7 +83,7 @@ const pollPresenterCommand=async()=>{
 };
 const ensurePresenterPoll=()=>{
   if(process.platform!=='darwin'||presenterPollTimer)return;
-  presenterPollTimer=setInterval(()=>{void pollPresenterCommand();},80);
+  presenterPollTimer=setInterval(()=>{void pollPresenterCommand();},PRESENTER_FALLBACK_POLL_MS);
 };
 const stopPresenterPoll=()=>{if(presenterPollTimer){clearInterval(presenterPollTimer);presenterPollTimer=null;}presenterPollBusy=false;};
 
