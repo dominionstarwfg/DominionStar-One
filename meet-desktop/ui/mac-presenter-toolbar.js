@@ -43,10 +43,9 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // Physical Mac QA proved the direct renderer IPC can report a healthy
-      // toolbar while real capture leaves the controls inert. The native macOS
-      // presenter bridge owns delivery during an active share because it wakes
-      // the meeting renderer, retries once, and requires an explicit ACK.
+      // The native macOS bridge now executes the meeting renderer dispatcher
+      // directly first and falls back to acknowledged queue delivery only if
+      // direct execution is unavailable.
       if(nativeBridge?.command)return await sendNative(normalized);
       if(rendererBridge?.command)return await sendRenderer(normalized);
       throw new Error('presenter_transport_unavailable');
@@ -90,7 +89,7 @@
     const paused=Boolean(state?.paused),micOn=Boolean(state?.micOn),cameraOn=Boolean(state?.cameraOn);
     const pause=q('#pauseLabel'),pauseGlyph=q('#pauseGlyph'),toolbar=q('#toolbar'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand');
     toolbar?.classList.toggle('is-paused',paused);
-    if(pause)pause.textContent=paused?'Resume':'Pause';
+    if(pause)pause.textContent=paused?'Resume':'Pause Share';
     if(pauseGlyph)pauseGlyph.innerHTML=paused?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5 18 12 8 18.5z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>';
     if(audio)audio.textContent=micOn?'Mute':'Unmute';if(video)video.textContent=cameraOn?'Stop Video':'Start Video';
     const audioButton=q('[data-command="audio"]'),videoButton=q('[data-command="video"]');
