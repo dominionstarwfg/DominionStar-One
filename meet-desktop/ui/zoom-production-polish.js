@@ -1,6 +1,7 @@
 (()=>{
   if(window.DominionZoomProductionPolish)return;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const backgroundEnabled=!Boolean(window.dominionDesktop);
   let participantMenu=null,participantLayoutMenu=null,chatPolicyMenu=null;
   const LEGACY_PANEL_KEY='ds_zoom_participant_panel_geometry_v1';
   try{localStorage.removeItem(LEGACY_PANEL_KEY);}catch{}
@@ -241,14 +242,17 @@
     if(event.target.closest?.('#roomHostTools,.room-side-head>button,[data-chat-close]'))closePanelMenus();
     if(event.target.closest?.('#roomMore'))cleanMoreMenu();
   });
-  window.addEventListener('dominion:meeting-ui-ready',requestSync);
   window.addEventListener('dominion:meeting-ended',closePanelMenus);
-  window.addEventListener('dominion:participant-presence',requestSync);
-  window.addEventListener('dominion:meeting-snapshot',requestSync);
-  const overlay=document.querySelector('#meetingOverlay');
-  const observer=new MutationObserver(requestSync);
-  if(overlay)observer.observe(overlay,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  const timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);
-  sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.6.0-event-driven',sync:requestSync,dockParticipantPanel,popOutParticipantPanel,participantPanelMode,dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}});
+  let observer=null,timer=0;
+  if(backgroundEnabled){
+    window.addEventListener('dominion:meeting-ui-ready',requestSync);
+    window.addEventListener('dominion:participant-presence',requestSync);
+    window.addEventListener('dominion:meeting-snapshot',requestSync);
+    const overlay=document.querySelector('#meetingOverlay');
+    observer=new MutationObserver(requestSync);
+    if(overlay)observer.observe(overlay,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+    timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);
+    sync();
+  }
+  window.DominionZoomProductionPolish=Object.freeze({version:'2.0.53-manual-desktop-polish',sync:requestSync,dockParticipantPanel,popOutParticipantPanel,participantPanelMode,dispose:()=>{if(timer)clearInterval(timer);observer?.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}});
 })();
