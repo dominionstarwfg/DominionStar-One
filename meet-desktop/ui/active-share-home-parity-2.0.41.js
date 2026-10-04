@@ -2,6 +2,7 @@
   'use strict';
   if(window.DominionActiveShareHomeParity2041)return;
   const desktop=window.dominionDesktop||{};
+  const desktopCanonical=Boolean(desktop?.isDesktop);
   const q=s=>document.querySelector(s);
   let syncFrame=0,lastActive=false;
 
@@ -75,9 +76,12 @@
   });
   window.addEventListener('dominion:share-state',schedule,true);
   window.addEventListener('dominion:meeting-ended',()=>{lastActive=false;document.body.classList.remove('ds-active-share-workspace');patchHome(false);},true);
-  const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','hidden'],childList:true});
-  const timer=setInterval(schedule,650);
-  window.DominionActiveShareHomeParity2041=Object.freeze({version:'2.0.41',sync,restoreMeeting,dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  let observer=null,timer=0;
+  if(!desktopCanonical){
+    observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','hidden'],childList:true});
+    timer=setInterval(schedule,650);
+  }
+  window.DominionActiveShareHomeParity2041=Object.freeze({version:'2.0.53-event-driven-desktop',sync,restoreMeeting,dispose:()=>{if(timer)clearInterval(timer);observer?.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   loadParticipantsReference();
   sync();
 })();
