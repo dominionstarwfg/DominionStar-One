@@ -77,13 +77,20 @@
     if(!footer||!stage)return;
     let presenterCommitted=false;
     let macRemoteFrameTimer=0;
+    let presenterLocalParticipantId='';
+    const refreshPresenterLocalParticipantId=async()=>{
+      try{const ctx=await desktop?.meeting?.context?.();presenterLocalParticipantId=String(ctx?.participantId||presenterLocalParticipantId||'');}catch{}
+      return presenterLocalParticipantId;
+    };
+    void refreshPresenterLocalParticipantId();
+    window.addEventListener('dominion:meeting-snapshot',()=>{void refreshPresenterLocalParticipantId();});
     const frameCanvas=document.createElement('canvas');frameCanvas.width=192;frameCanvas.height=108;
     const frameContext=frameCanvas.getContext('2d',{alpha:false,desynchronized:true});
     const presenterParticipants=()=>{
       const mediaState=media.snapshot(),rows=[...overlay.querySelectorAll('#participantRoster [data-participant-id]')],seen=new Set(),list=[];
       for(const row of rows){
         const id=String(row.dataset.participantId||'');if(!id||seen.has(id))continue;seen.add(id);
-        const self=row.dataset.participantSelf==='1',tile=self?null:overlay.querySelector(`#participantVideoDock .remote-peer-tile[data-participant-id="${CSS.escape(id)}"],#remoteTileStrip .remote-peer-tile[data-peer-id="${CSS.escape(id)}"]`);
+        const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||Boolean(presenterLocalParticipantId&&id===presenterLocalParticipantId),tile=self?null:overlay.querySelector(`#participantVideoDock .remote-peer-tile[data-participant-id="${CSS.escape(id)}"],#remoteTileStrip .remote-peer-tile[data-peer-id="${CSS.escape(id)}"]`);
         const role=String(row.dataset.participantRole||'participant').toLowerCase();
         const name=String(row.dataset.participantName||row.querySelector('.participant-name-text')?.textContent||row.querySelector('strong')?.textContent||'Participant').trim();
         const avatar=String(row.querySelector('.person-badge img')?.src||'');
@@ -92,9 +99,17 @@
         list.push({participantId:id,name,role,self,micOn,cameraOn,avatar});
       }
       if(!list.some(item=>item.self)){
-        const selfRow=overlay.querySelector('#participantRoster [data-participant-self="1"]');
-        const id=String(selfRow?.dataset.participantId||'local-self'),name=String(selfRow?.dataset.participantName||'You').trim()||'You',role=String(selfRow?.dataset.participantRole||'participant').toLowerCase();
-        list.unshift({participantId:id,name,role,self:true,micOn:Boolean(mediaState.micOn),cameraOn:Boolean(mediaState.cameraOn),avatar:String(selfRow?.querySelector('.person-badge img')?.src||'')});
+        const selfRow=presenterLocalParticipantId
+          ?overlay.querySelector(`#participantRoster [data-participant-id="${CSS.escape(presenterLocalParticipantId)}"]`)
+          :overlay.querySelector('#participantRoster [data-participant-self="1"],#participantRoster [data-ds-adaptive-self="1"]');
+        if(selfRow){
+          const id=String(selfRow.dataset.participantId||presenterLocalParticipantId||'local-self'),name=String(selfRow.dataset.participantName||'You').trim()||'You',role=String(selfRow.dataset.participantRole||'participant').toLowerCase();
+          const existing=list.find(item=>item.participantId===id);
+          if(existing){existing.self=true;existing.micOn=Boolean(mediaState.micOn);existing.cameraOn=Boolean(mediaState.cameraOn);}
+          else list.unshift({participantId:id,name,role,self:true,micOn:Boolean(mediaState.micOn),cameraOn:Boolean(mediaState.cameraOn),avatar:String(selfRow.querySelector('.person-badge img')?.src||'')});
+        }else if(list.length===0){
+          list.unshift({participantId:'local-self',name:'You',role:'participant',self:true,micOn:Boolean(mediaState.micOn),cameraOn:Boolean(mediaState.cameraOn),avatar:''});
+        }
       }
       return list.slice(0,12);
     };
