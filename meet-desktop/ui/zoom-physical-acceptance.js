@@ -2,6 +2,7 @@
   if(window.DominionZoomPhysicalAcceptance)return;
 
   const desktop=window.dominionDesktop||{};
+  const desktopCanonical=Boolean(desktop?.isDesktop);
   const meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -361,22 +362,31 @@
     installViewAuthority();installHostToolsAuthority();installMoreAuthority();installParticipantAuthority();installReactionAuthority();installReactionBubbleObserver();installShareAuthority();decorateParticipantRows();setReactionIcon();
   }
 
-  window.addEventListener('dominion:meeting-signal',event=>{
+  const onMeetingSignal=event=>{
+    if(desktopCanonical&&window.DominionRuntimeStability)return;
     const detail=event.detail||{},payload=detail.payload||{};if(detail.type!=='reaction'||payload.kind!=='media-state')return;const id=String(detail.fromParticipantId||payload.participantId||'');if(!id)return;remoteMediaState.set(id,{micOn:Boolean(payload.micOn),cameraOn:Boolean(payload.cameraOn),at:payload.at||Date.now()});decorateParticipantRows();
-  },true);
-  window.addEventListener('dominion:remote-share-state',event=>{
+  };
+  const onRemoteShareState=event=>{
+    if(desktopCanonical&&window.DominionRuntimeStability)return;
     const id=String(event.detail?.participantId||'');if(!id)return;if(event.detail?.active)sharingParticipantIds.add(id);else sharingParticipantIds.delete(id);decorateParticipantRows();
-  },true);
-  window.addEventListener('dominion:meeting-snapshot',()=>{void refreshLocalParticipantId().then(()=>{decorateParticipantRows();scheduleMediaBroadcast(140);});});
-  window.addEventListener('dominion:meeting-ended',()=>{sharingParticipantIds.clear();remoteMediaState.clear();decorateParticipantRows();},true);
-  window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
-  document.addEventListener('pointerdown',event=>{
+  };
+  const onMeetingSnapshot=()=>{if(desktopCanonical&&window.DominionRuntimeStability)return;void refreshLocalParticipantId().then(()=>{decorateParticipantRows();scheduleMediaBroadcast(140);});};
+  const onMeetingEnded=()=>{sharingParticipantIds.clear();remoteMediaState.clear();if(!(desktopCanonical&&window.DominionRuntimeStability))decorateParticipantRows();};
+  const onMeetingReady=()=>{if(!desktopCanonical)setTimeout(sync,0);};
+  const onPointerDown=event=>{
     if(commandMenu&&!commandMenu.contains(event.target)&&!event.target.closest?.('#roomMore,#roomHostTools,#meetingViewButton'))closeCommandMenu();
     if(reactionMenu&&!reactionMenu.contains(event.target)&&!event.target.closest?.('#roomReactions'))closeReactionMenu();
     if(selfMenu&&!selfMenu.contains(event.target)&&!event.target.closest?.('[data-ds-self-more]'))closeSelfMenu();
-  },true);
-  window.addEventListener('resize',()=>{closeTransientMenus();},{passive:true});
+  };
+  const onResize=()=>{closeTransientMenus();};
+  window.addEventListener('dominion:meeting-signal',onMeetingSignal,true);
+  window.addEventListener('dominion:remote-share-state',onRemoteShareState,true);
+  window.addEventListener('dominion:meeting-snapshot',onMeetingSnapshot);
+  window.addEventListener('dominion:meeting-ended',onMeetingEnded,true);
+  window.addEventListener('dominion:meeting-ui-ready',onMeetingReady);
+  document.addEventListener('pointerdown',onPointerDown,true);
+  window.addEventListener('resize',onResize,{passive:true});
 
-  const timer=setInterval(sync,700);sync();
-  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.11-physical-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{clearInterval(timer);clearTimeout(mediaBroadcastTimer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
+  const timer=desktopCanonical?0:setInterval(sync,700);if(!desktopCanonical)sync();
+  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.53-manual-desktop-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{if(timer)clearInterval(timer);clearTimeout(mediaBroadcastTimer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();window.removeEventListener('dominion:meeting-signal',onMeetingSignal,true);window.removeEventListener('dominion:remote-share-state',onRemoteShareState,true);window.removeEventListener('dominion:meeting-snapshot',onMeetingSnapshot);window.removeEventListener('dominion:meeting-ended',onMeetingEnded,true);window.removeEventListener('dominion:meeting-ui-ready',onMeetingReady);document.removeEventListener('pointerdown',onPointerDown,true);window.removeEventListener('resize',onResize);closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
 })();
