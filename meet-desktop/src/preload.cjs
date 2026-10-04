@@ -115,6 +115,10 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     onChanged:callback=>listen('auth:changed',callback),onError:callback=>listen('auth:error',callback)
   }),
   notifications:Object.freeze({showMeeting:(title,body)=>invoke('notifications:meeting',{title,body}),setWaitingCount:(count,attention=false)=>invoke('notifications:set-waiting-count',{count,attention})}),
+  diagnostics:Object.freeze({
+    system:()=>invoke('diagnostics:system-metrics'),
+    export:report=>invoke('diagnostics:export',{report:report&&typeof report==='object'?report:{}})
+  }),
   media:Object.freeze({
     permissions:()=>invoke('media:get-permissions'),request:kinds=>invoke('media:request-permissions',{kinds:Array.isArray(kinds)?kinds:[]}),requestScreen:()=>invoke('media:request-screen'),openPrivacy:kind=>invoke('media:open-privacy',{kind})
   }),
