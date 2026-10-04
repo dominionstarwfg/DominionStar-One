@@ -556,12 +556,14 @@ assert(
   integration.includes("cameraId:String(mediaState.cameraId||'')")&&
   integration.includes("mirror:mediaState.mirror!==false")&&
   integration.includes('const presenterParticipants=()=>')&&
-  integration.includes("const selfId=String(participantState.find(item=>item.self)?.participantId||'local-self')")&&
-  integration.includes("#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile")&&
-  integration.includes("frameCanvas.toDataURL('image/jpeg',.52)")&&
+  integration.includes("const localTrack=media.stream()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null")&&
+  integration.includes("localImageCapture=new ImageCapture(localTrack)")&&
+  integration.includes("#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile")&&
+  integration.includes("frameCanvas.toDataURL('image/jpeg',.58)")&&
+  !integration.includes("getUserMedia")&&
   !integration.includes("canvas.toBlob(resolve,'image/jpeg'")&&
   !integration.includes("new Uint8Array(await blob.arrayBuffer())"),
-  'The capture-owning renderer must publish local camera state plus bounded mirrors of the existing local and remote meeting video tiles without creating another camera authority.'
+  'The capture-owning renderer must publish the already-owned local camera track plus bounded remote meeting mirrors without creating another camera authority.'
 );
 assert(
   !macVideoJs.includes('getUserMedia')&&
