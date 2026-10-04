@@ -1,11 +1,11 @@
 (()=>{
 'use strict';
 const bridge=window.dominionShareCapture;if(!bridge)return;
-let captureStream=null,generation=0,peer=null,pendingRemoteCandidates=[];
+let captureStream=null,syntheticCanvas=null,generation=0,peer=null,pendingRemoteCandidates=[];
 const candidateValue=value=>value?.toJSON?.()||value||null;
 function stopTracks(stream){for(const track of stream?.getTracks?.()||[]){try{track.stop();}catch{}}}
 function closePeer(){const current=peer;peer=null;pendingRemoteCandidates=[];try{current?.close?.();}catch{}}
-function cleanup(notify=false,reason='stopped',activeGeneration=generation){closePeer();stopTracks(captureStream);captureStream=null;if(notify)bridge.stopped({generation:activeGeneration,reason})}
+function cleanup(notify=false,reason='stopped',activeGeneration=generation){closePeer();stopTracks(captureStream);captureStream=null;syntheticCanvas=null;if(notify)bridge.stopped({generation:activeGeneration,reason})}
 async function flushRemoteCandidates(){if(!peer?.remoteDescription)return;for(const candidate of pendingRemoteCandidates.splice(0)){try{await peer.addIceCandidate(candidate)}catch{}}}
 async function acceptAnswer(payload={}){const g=Number(payload?.generation||0)||0;if(!peer||g!==generation||!payload?.sdp)return;try{await peer.setRemoteDescription(payload.sdp);await flushRemoteCandidates()}catch(error){if(g===generation)bridge.error({generation:g,error:String(error?.message||error||'capture_answer_failed')})}}
 async function acceptRemoteCandidate(payload={}){const g=Number(payload?.generation||0)||0;if(!peer||g!==generation||!payload?.candidate)return;if(!peer.remoteDescription){pendingRemoteCandidates.push(payload.candidate);return}try{await peer.addIceCandidate(payload.candidate)}catch{}}
@@ -15,7 +15,7 @@ async function begin(payload={}){
  try{
   if(payload?.qaMessageOnly){console.error('QA_CAPTURE_WORKER_MESSAGE_ONLY_RECEIVED');return}
   if(payload?.qaLifecycleOnly){bridge.started({generation:current,video:true,audio:false,label:'QA Lifecycle Share',lifecycleOnly:true});return}
-  if(payload?.qaSynthetic)stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+  if(payload?.qaSynthetic){syntheticCanvas=document.createElement('canvas');syntheticCanvas.width=640;syntheticCanvas.height=360;const ctx=syntheticCanvas.getContext('2d');ctx.fillStyle='#07111f';ctx.fillRect(0,0,640,360);ctx.fillStyle='#f5c542';ctx.font='600 28px system-ui';ctx.fillText('DominionStar QA Share',34,64);stream=syntheticCanvas.captureStream(15);}
   else{const sourceId=String(payload?.sourceId||'');if(!sourceId)throw new Error('Selected desktop source is unavailable.');const frameRate=payload?.optimizeVideo?30:15;stream=await navigator.mediaDevices.getUserMedia({audio:payload?.shareAudio?{mandatory:{chromeMediaSource:'desktop'}}:false,video:{mandatory:{chromeMediaSource:'desktop',chromeMediaSourceId:sourceId,maxFrameRate:frameRate}}})}
   if(current!==generation){stopTracks(stream);return}
   const videoTrack=stream.getVideoTracks()[0];if(!videoTrack)throw new Error('No display video track was returned by macOS.');captureStream=stream;
