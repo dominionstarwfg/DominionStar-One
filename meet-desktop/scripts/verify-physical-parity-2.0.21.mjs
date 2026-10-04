@@ -132,7 +132,7 @@ requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-spea
 
 // Participant management remains readable/draggable; video filmstrip is separate.
 requireText(adaptive,'Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.','One-person participant search must remain under the single canonical reference owner.');
-requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
+requireText(adaptive,"if(window.dominionDesktop)return;",'Desktop adaptive parity must remain read-only so it cannot mutate participant/search/waiting-room chrome.');
 requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep self first.');
 requireText(adaptive,"else if(role==='host')bucket=1",'Participant ordering does not prioritize host.');
 requireText(adaptive,"else if(role==='cohost')bucket=2",'Participant ordering does not prioritize co-host.');
