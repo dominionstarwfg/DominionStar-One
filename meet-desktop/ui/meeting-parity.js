@@ -285,6 +285,11 @@
     const panelAllowed=readVideoPanelVisible()&&(!share||window.DominionPreferences?.read?.('shareVideoDock')!==false);
     if(!panelAllowed){dock.hidden=true;syncShareLayout();return;}
     if(share){
+      // Screen sharing must explicitly activate/synchronize the local camera tile
+      // before collecting visible presenter tiles. Otherwise a tile that was
+      // hidden in speaker view stays hidden for the entire share session and the
+      // native presenter window has no live local frame to mirror.
+      syncLocalDockTile(false);syncDockTileActions();
       const shareTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden);
       syncVideoPanelMode(dock,shareTiles);dock.dataset.count=String(Math.min(shareTiles.length,9));dock.classList.toggle('dock-empty',shareTiles.length===0);dock.hidden=shareTiles.length===0;syncShareLayout();return;
     }
