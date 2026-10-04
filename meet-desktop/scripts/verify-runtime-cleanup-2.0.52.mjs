@@ -10,6 +10,7 @@ const video=read('ui/mac-share-video.js');
 const videoCss=read('ui/mac-share-video.css');
 const presenter=read('src/mac-share-presenter-overlay.mjs');
 const adaptive=read('ui/zoom-adaptive-parity.js');
+const adaptiveCss=read('ui/zoom-adaptive-parity.css');
 const participantControls=read('ui/participant-controls.js');
 const physicalAcceptance=read('ui/zoom-physical-acceptance.js');
 const productionPolish=read('ui/zoom-production-polish.js');
@@ -40,6 +41,7 @@ assert(runtime.includes("row.querySelector('.ds-participant-media .ds-media-stat
 assert(participants.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}'),'Participant reference must delegate roster ordering to runtime stability.');
 assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();'),'Adaptive parity must delegate roster ordering to runtime stability.');
 assert(!adaptive.includes("search.hidden=count<=1"),'Adaptive parity must not hide the participant search for one-person meetings.');
+assert(!adaptiveCss.includes('[data-ds-adaptive-count="1"] .zoom-participant-search'),'Adaptive CSS must not hide the participant search for one-person meetings.');
 assert(adaptive.includes('Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.'),'Adaptive parity single-search ownership marker is missing.');
 assert(productionPolish.includes('if(window.dominionDesktop)return;'),'Production polish must not create a second participant search in the desktop app.');
 assert(adaptive.includes("if(window.dominionDesktop){\n      window.DominionRuntimeStability?.syncParticipantsSurface?.();\n      return;"),'Adaptive parity must not decorate or reorder participant rows in the desktop app.');
