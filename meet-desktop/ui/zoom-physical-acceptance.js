@@ -118,6 +118,7 @@
       const captions=q('#roomCaptions');if(captions)addCommand(menu,captions.getAttribute('aria-pressed')==='true'?'Hide captions':'Show captions',()=>captions.click());
       addCommand(menu,'Meeting settings',()=>{const dialog=q('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();});
       addDivider(menu);
+      addCommand(menu,'Export diagnostic report',()=>void window.DominionPhysicalDiagnostics?.exportReport?.());
       addCommand(menu,'Reset participant video panel',()=>parity()?.resetVideoDock?.());
       const dock=q('#participantVideoDock');if(dock&&!dock.hidden)addCommand(menu,'Hide participant video',()=>{dock.hidden=true;});
     };
