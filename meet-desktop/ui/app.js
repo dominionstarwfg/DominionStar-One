@@ -218,24 +218,17 @@
     return row;
   }
   function reorderRosterBySpeaker(){
+    // Runtime stability owns participant ordering. The snapshot renderer may
+    // decorate speaking state, but it must never move roster rows or it will
+    // fight the canonical sorter on every 1.2s snapshot refresh.
     const roster=$('#participantRoster');if(!roster)return;
-    const rows=[...roster.querySelectorAll('[data-participant-id]')];
-    rows.sort((a,b)=>{
-      const ar=a.dataset.participantRole||'participant',br=b.dataset.participantRole||'participant';
-      const roleRank=role=>role==='host'?0:role==='cohost'?1:2,rr=roleRank(ar)-roleRank(br);if(rr)return rr;
-      if(ar==='participant'&&br==='participant'){
-        const sr=speakerRank(a.dataset.participantId)-speakerRank(b.dataset.participantId);if(sr)return sr;
-      }
-      return String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''));
-    });
-    rows.forEach((row,index)=>{
+    for(const row of roster.querySelectorAll('[data-participant-id]')){
       const speaking=speakerRank(row.dataset.participantId)<999;
       row.classList.toggle('participant-speaking',speaking);
       let badge=row.querySelector('.participant-speaking-badge');
       if(speaking&&!badge){badge=document.createElement('span');badge.className='participant-speaking-badge';badge.textContent='Speaking';row.querySelector('.person-copy')?.append(badge);}
       if(!speaking&&badge)badge.remove();
-      const current=roster.children[index];if(current!==row)roster.insertBefore(row,current||null);
-    });
+    }
   }
   function renderRoster(people){
     const roster=$('#participantRoster');if(!roster)return;
@@ -245,15 +238,14 @@
     if(!list.length){
       const empty=document.createElement('p');empty.className='auth-status';empty.dataset.emptyParticipants='1';empty.textContent='No participants yet.';roster.append(empty);return;
     }
-    const roleRank=role=>role==='host'?0:role==='cohost'?1:2;
-    const sorted=list.sort((a,b)=>roleRank(String(a.role||'participant'))-roleRank(String(b.role||'participant'))||String(a.displayName||'').localeCompare(String(b.displayName||'')));
-    sorted.forEach((participant,index)=>{
-      const row=ensureParticipantRow(roster,participant);if(!row)return;
-      const current=[...roster.querySelectorAll('[data-participant-id]')][index];if(current!==row)roster.insertBefore(row,current||null);
-    });
+    // Preserve existing row identity/order here. Canonical ordering belongs to
+    // DominionRuntimeStability; moving rows in both layers causes visible
+    // flashing as each snapshot and runtime reconciliation undo each other.
+    for(const participant of list)ensureParticipantRow(roster,participant);
     reorderRosterBySpeaker();
     window.DominionParticipantControls?.sync?.();
-    window.DominionZoomBehavior?.sync?.();
+    if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();
+    else window.DominionZoomBehavior?.sync?.();
   }
   async function stopMeetingPresentation(){
     const integration=window.DominionShareIntegration,controller=window.DominionShareController;
