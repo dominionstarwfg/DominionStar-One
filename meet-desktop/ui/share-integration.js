@@ -134,10 +134,10 @@
         if(selfRow){
           const id=String(selfRow.dataset.participantId||presenterLocalParticipantId||'local-self'),name=String(selfRow.dataset.participantName||'You').trim()||'You',role=String(selfRow.dataset.participantRole||'participant').toLowerCase();
           const existing=list.find(item=>item.participantId===id);
-          if(existing){existing.self=true;existing.micOn=Boolean(mediaState.micOn);existing.cameraOn=Boolean(mediaState.cameraOn);}
-          else list.unshift({participantId:id,name,role,self:true,micOn:Boolean(mediaState.micOn),cameraOn:Boolean(mediaState.cameraOn),avatar:String(selfRow.querySelector('.person-badge img')?.src||'')});
+          if(existing){existing.self=true;existing.micOn=Boolean(mediaState.micOn);existing.cameraOn=effectiveLocalCameraOn();}
+          else list.unshift({participantId:id,name,role,self:true,micOn:Boolean(mediaState.micOn),cameraOn:effectiveLocalCameraOn(),avatar:String(selfRow.querySelector('.person-badge img')?.src||'')});
         }else if(list.length===0){
-          list.unshift({participantId:'local-self',name:'You',role:'participant',self:true,micOn:Boolean(mediaState.micOn),cameraOn:Boolean(mediaState.cameraOn),avatar:''});
+          list.unshift({participantId:'local-self',name:'You',role:'participant',self:true,micOn:Boolean(mediaState.micOn),cameraOn:effectiveLocalCameraOn(),avatar:''});
         }
       }
       return list.slice(0,12);
