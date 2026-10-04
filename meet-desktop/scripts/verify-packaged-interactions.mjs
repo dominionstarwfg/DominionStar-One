@@ -234,7 +234,11 @@ try{
   // the same JavaScript call stack as the button click.
   await evaluate(`document.querySelector('#roomMore').click();true`);
   await waitFor("document.querySelector('.meeting-more-menu')",'production More menu',2500);
-  assert.equal(await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu');const text=menu?.textContent||'';const recorder=window.DominionPhysicalDiagnostics;const ok=text.includes('Settings')&&text.includes('Export diagnostic report')&&recorder?.version==='1.0.0-physical-recorder'&&typeof recorder?.exportReport==='function';menu?.remove();return ok;})()`),true,'Production More menu must expose the live in-app diagnostic export without requiring Terminal.');
+  const diagnosticSurface=await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu');const text=menu?.textContent||'';const recorder=window.DominionPhysicalDiagnostics;const result={hasSettings:text.includes('Settings'),hasExport:text.includes('Export diagnostic report'),recorderVersion:String(recorder?.version||''),hasExportApi:typeof recorder?.exportReport==='function'};menu?.remove();return result;})()`);
+  assert.equal(diagnosticSurface.hasSettings,true,'Production More menu is missing Settings.');
+  assert.equal(diagnosticSurface.hasExport,true,'Production More menu is missing Export diagnostic report.');
+  assert.equal(diagnosticSurface.recorderVersion,'1.0.0-physical-recorder','Packaged physical recorder did not load.');
+  assert.equal(diagnosticSurface.hasExportApi,true,'Packaged physical recorder export API is unavailable.');
   mark('share-integration-wired');
   await sleep(200);
   await waitFor("document.querySelector('#roomParticipants')&&document.querySelector('#roomMore')&&document.querySelector('#roomSettings')&&document.querySelector('#roomChat')&&document.querySelector('#roomReactions')&&document.querySelector('#roomRaiseHand')","meeting controls",7000);mark('meeting-controls');
