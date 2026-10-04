@@ -55,13 +55,17 @@
 
   function sortParticipants(){
     const roster=q('#participantRoster');if(!roster)return;
+    // Desktop Participants has one presentation owner. The adaptive layer must
+    // never create/remove role suffixes or move rows in the installed app.
+    if(window.dominionDesktop){
+      window.DominionRuntimeStability?.syncParticipantsSurface?.();
+      return;
+    }
     const rows=participantRows(),entries=rows.map(classify);
-    if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();
-    else{
-      const sorted=[...entries].sort((a,b)=>a.bucket-b.bucket||(a.bucket===3?a.raisedAt-b.raisedAt:0)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
-      if(sorted.some((entry,index)=>entry.row!==rows[index])){
-        const fragment=document.createDocumentFragment();for(const entry of sorted)fragment.append(entry.row);roster.append(fragment);
-      }
+    if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}
+    const sorted=[...entries].sort((a,b)=>a.bucket-b.bucket||(a.bucket===3?a.raisedAt-b.raisedAt:0)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+    if(sorted.some((entry,index)=>entry.row!==rows[index])){
+      const fragment=document.createDocumentFragment();for(const entry of sorted)fragment.append(entry.row);roster.append(fragment);
     }
     for(const entry of entries){
       const copy=entry.row.querySelector('.person-copy');if(!copy)continue;
@@ -69,8 +73,8 @@
       const canonical=Boolean(copy.querySelector('.ds-canonical-role,.ds-canonical-self'));
       if(canonical){suffix?.remove();continue;}
       if(!suffix){suffix=document.createElement('span');suffix.className='ds-adaptive-role';copy.querySelector('strong')?.insertAdjacentElement('afterend',suffix);}
-      suffix.textContent=entry.self&&entry.role==='host'?'(Host, me)':entry.self?'(me)':entry.role==='host'?'(Host)':entry.role==='cohost'?'(Co-host)':'';
-      suffix.hidden=!suffix.textContent;
+      const label=entry.self&&entry.role==='host'?'(Host, me)':entry.self?'(me)':entry.role==='host'?'(Host)':entry.role==='cohost'?'(Co-host)':'';
+      if(suffix.textContent!==label)suffix.textContent=label;if(suffix.hidden===Boolean(label))suffix.hidden=!label;
     }
   }
 
@@ -145,20 +149,23 @@
   function syncParticipants(){
     if(!meetingOpen())return;
     const side=q('.room-side'),roster=q('#participantRoster');if(!side||!roster)return;
-    const rows=participantRows(),count=rows.length;
-    side.dataset.dsAdaptiveCount=String(count);
-    const heading=side.querySelector('.room-side-head strong')||side.querySelector('section h3');
-    if(heading)heading.textContent=`Participants (${count})`;
+    // The installed desktop app uses DominionZoomParticipantsReference2041 +
+    // DominionRuntimeStability as the only participant surface authorities.
+    // Adaptive parity stays completely read-only for this panel so its global
+    // observer/650ms timer cannot cause split-second search/row switching.
+    if(window.dominionDesktop)return;
+    const rows=participantRows(),count=rows.length,countText=String(count);
+    if(side.dataset.dsAdaptiveCount!==countText)side.dataset.dsAdaptiveCount=countText;
+    const heading=side.querySelector('.room-side-head strong')||side.querySelector('section h3'),title=`Participants (${count})`;
+    if(heading&&heading.textContent!==title)heading.textContent=title;
 
     // Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.
-    // Do not hide/show it here: competing hidden-state writers cause the one-person panel to flash.
-    const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
+    const waiting=q('#waitingQueueSection'),waitingHidden=!hasWaitingPeople();if(waiting&&waiting.hidden!==waitingHidden)waiting.hidden=waitingHidden;
 
     sortParticipants();
     if(window.DominionRuntimeStability?.layoutSideSurface){
-      side.dataset.dsAdaptiveInitialized='1';
+      if(side.dataset.dsAdaptiveInitialized!=='1')side.dataset.dsAdaptiveInitialized='1';
       window.DominionRuntimeStability.layoutSideSurface();
-      for(const row of rows)row.querySelector('.ds-role-chip')?.setAttribute('aria-hidden','true');
       return;
     }
     installParticipantPanelDrag();
@@ -171,7 +178,7 @@
       if(body&&(rect.right>body.right||rect.bottom>body.bottom||rect.left<body.left||rect.top<body.top))centerParticipantPanel(side,count);
     }
 
-    for(const row of rows)row.querySelector('.ds-role-chip')?.setAttribute('aria-hidden','true');
+    for(const row of rows){const chip=row.querySelector('.ds-role-chip');if(chip&&chip.getAttribute('aria-hidden')!=='true')chip.setAttribute('aria-hidden','true');}
   }
 
   function ensureChatNavigation(panel){
@@ -244,7 +251,7 @@
   function sync(){if(syncing)return;syncing=true;try{const open=syncMeetingEntry();syncPrejoin();if(open){syncParticipants();syncChat();installVideoDockDrag();}}finally{syncing=false;}}
 
   document.addEventListener('click',event=>{
-    if(event.target.closest?.('#roomParticipants'))requestAnimationFrame(()=>{const side=q('.room-side');if(side&&!side.hidden){side.dataset.dsAdaptiveInitialized='';delete side.dataset.dsAdaptiveUserPositioned;syncParticipants();}});
+    if(event.target.closest?.('#roomParticipants')&&!window.dominionDesktop)requestAnimationFrame(()=>{const side=q('.room-side');if(side&&!side.hidden){side.dataset.dsAdaptiveInitialized='';delete side.dataset.dsAdaptiveUserPositioned;syncParticipants();}});
     if(event.target.closest?.('#roomChat'))requestAnimationFrame(syncChat);
     if(event.target.closest?.('.zoom-participant-layout-menu button')){const side=q('.room-side');if(side){side.dataset.dsAdaptiveInitialized='1';side.dataset.dsAdaptiveMode=side.dataset.zoomPanelMode==='popout'?'floating':'docked';}}
   });
