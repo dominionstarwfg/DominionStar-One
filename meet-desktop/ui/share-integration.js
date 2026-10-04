@@ -94,6 +94,25 @@
         try{window.DominionMeetingParity?.syncVideoDock?.();}catch{}
       },Math.max(0,Number(delay)||0));
     };
+    const localPresenterMirror=document.createElement('video');
+    localPresenterMirror.autoplay=true;localPresenterMirror.playsInline=true;localPresenterMirror.muted=true;
+    localPresenterMirror.setAttribute('aria-hidden','true');
+    localPresenterMirror.style.cssText='position:fixed;left:-10000px;top:-10000px;width:2px;height:2px;opacity:.001;pointer-events:none';
+    document.body.append(localPresenterMirror);
+    const effectiveLocalCameraOn=()=>{
+      const snap=media.snapshot(),stream=media.stream();
+      return Boolean(snap.cameraOn&&snap.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'&&track.enabled!==false));
+    };
+    const syncLocalPresenterMirror=()=>{
+      if(!sameRendererPresenter||!share.snapshot().active||!effectiveLocalCameraOn()){
+        if(localPresenterMirror.srcObject)localPresenterMirror.srcObject=null;
+        return false;
+      }
+      const stream=media.stream();
+      if(localPresenterMirror.srcObject!==stream)localPresenterMirror.srcObject=stream;
+      void localPresenterMirror.play().catch(()=>{});
+      return true;
+    };
     const frameCanvas=document.createElement('canvas');frameCanvas.width=192;frameCanvas.height=108;
     const frameContext=frameCanvas.getContext('2d',{alpha:false,desynchronized:true});
     const presenterParticipants=()=>{
@@ -105,7 +124,7 @@
         const name=String(row.dataset.participantName||row.querySelector('.participant-name-text')?.textContent||row.querySelector('strong')?.textContent||'Participant').trim();
         const avatar=String(row.querySelector('.person-badge img')?.src||'');
         const micOn=self?Boolean(mediaState.micOn):tile?tile.dataset.micOn==='1':Boolean(row.querySelector('[data-participant-mic].on'))
-        const cameraOn=self?Boolean(mediaState.cameraOn):tile?tile.dataset.cameraOn==='1':Boolean(row.querySelector('[data-participant-video].on'))
+        const cameraOn=self?effectiveLocalCameraOn():tile?tile.dataset.cameraOn==='1':Boolean(row.querySelector('[data-participant-video].on'))
         list.push({participantId:id,name,role,self,micOn,cameraOn,avatar});
       }
       if(!list.some(item=>item.self)){
@@ -126,24 +145,28 @@
     const publishMacRemoteFrames=()=>{
       if(!sameRendererPresenter||!share.snapshot().active||!macPresenter?.videoFrame||!frameContext)return;
       const participantState=presenterParticipants();
-      const selfId=String(participantState.find(item=>item.self)?.participantId||'local-self');
+      const selfPerson=participantState.find(item=>item.self)||null;
+      const selfId=String(selfPerson?.participantId||presenterLocalParticipantId||'local-self');
       const stateById=new Map(participantState.map(item=>[String(item.participantId||''),item]));
-      const tiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile')];
       const seen=new Set();
-      for(const tile of tiles){
-        const self=tile.classList.contains('local-video-dock-tile')||tile.dataset.participantSelf==='1';
-        const id=self?selfId:String(tile.dataset.participantId||tile.dataset.peerId||'');
-        const person=stateById.get(id)||null;
-        const cameraOn=self?Boolean(person?.cameraOn):tile.dataset.cameraOn==='1';
-        if(!id||seen.has(id)||!cameraOn)continue;seen.add(id);
-        const video=tile.querySelector('video');if(!video||video.readyState<2||!video.videoWidth||!video.videoHeight)continue;
+      const sendVideoFrame=(video,id)=>{
+        if(!video||!id||seen.has(id)||video.readyState<2||!video.videoWidth||!video.videoHeight)return false;
         try{
           frameContext.fillStyle='#111';frameContext.fillRect(0,0,frameCanvas.width,frameCanvas.height);
           const sourceRatio=video.videoWidth/video.videoHeight,targetRatio=frameCanvas.width/frameCanvas.height;let sx=0,sy=0,sw=video.videoWidth,sh=video.videoHeight;
           if(sourceRatio>targetRatio){sw=Math.round(video.videoHeight*targetRatio);sx=Math.round((video.videoWidth-sw)/2);}else if(sourceRatio<targetRatio){sh=Math.round(video.videoWidth/targetRatio);sy=Math.round((video.videoHeight-sh)/2);}
           frameContext.drawImage(video,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
-          const dataUrl=frameCanvas.toDataURL('image/jpeg',.52);macPresenter.videoFrame({participantId:id,dataUrl,at:Date.now()});
-        }catch{}
+          const dataUrl=frameCanvas.toDataURL('image/jpeg',.58);macPresenter.videoFrame({participantId:id,dataUrl,at:Date.now()});seen.add(id);return true;
+        }catch{return false;}
+      };
+      // Local presenter video mirrors the authoritative DominionMediaController
+      // stream directly. It no longer depends on the hidden meeting filmstrip.
+      if(selfPerson?.cameraOn&&syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
+      const tiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile')];
+      for(const tile of tiles){
+        const id=String(tile.dataset.participantId||tile.dataset.peerId||''),person=stateById.get(id)||null;
+        if(!id||seen.has(id)||!(person?.cameraOn||tile.dataset.cameraOn==='1'))continue;
+        sendVideoFrame(tile.querySelector('video'),id);
       }
     };
     const stopMacRemoteFramePump=()=>{if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}};
@@ -201,7 +224,7 @@
       const state=share.snapshot(),mediaState=media.snapshot(),featureState=window.DominionMeetingFeatures?.snapshot?.()||{};
       try{
         const pending=bridge?.captureState?.({
-          paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,
+          paused:state.paused,micOn:mediaState.micOn,cameraOn:effectiveLocalCameraOn(),
           cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,
           sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),
           optimizeVideo:Boolean(state.options?.optimizeVideo),
@@ -266,7 +289,7 @@
       // mirror live camera frames.
       if(sameRendererPresenter&&state.active)scheduleMacVideoDockSync(40);
       else window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind),participants:presenterParticipants()});
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:effectiveLocalCameraOn(),cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind),participants:presenterParticipants()});
       syncMacCameraFramePump();
     }
 
@@ -369,7 +392,7 @@
       if(shareWasActive&&!active){stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}
       shareWasActive=active;
     });
-    media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter){publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});
+    media.onChange(()=>{if(!share.snapshot().active){if(localPresenterMirror.srcObject)localPresenterMirror.srcObject=null;return;}if(sameRendererPresenter){syncLocalPresenterMirror();publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});
 
     const companionObserver=new MutationObserver(()=>{
       if(!share.snapshot().active||!companionKind)return;
