@@ -410,10 +410,17 @@
       window.dispatchEvent(new CustomEvent('dominion:presenter-command-dispatch',{detail:{command,qaCommandId}}));
       const finish=result=>{try{window.DominionPhysicalDiagnostics?.record?.('presenter-command-result',{command,qaCommandId,...(result||{})});}catch{}return result;};
       try{
-        // Pause/Resume already emits the authoritative share state, and that
-        // listener updates the inline presenter toolbar synchronously. Do not
-        // run a second DOM/layout transaction in the promise continuation.
-        if(command==='pause'){await share.togglePause(sharedVideo);return finish({handled:true,command,paused:Boolean(share.snapshot().paused)});}
+        // Pause/Resume uses explicit target commands so direct execution plus
+        // an acknowledged fallback can never toggle twice and cancel itself.
+        if(command==='pause'||command==='pause-share'||command==='resume-share'){
+          const current=Boolean(share.snapshot().paused);
+          const target=command==='pause-share'?true:command==='resume-share'?false:!current;
+          if(target!==current){
+            if(target)await share.pause(sharedVideo);
+            else await share.resume();
+          }
+          return finish({handled:true,command,target,paused:Boolean(share.snapshot().paused)});
+        }
         if(command==='stop'){clearCompanion();await share.stop();return finish({handled:true,command});}
         if(command==='audio'||command==='audio-on'||command==='audio-off'){
           const target=command==='audio-on'?true:command==='audio-off'?false:!media.snapshot().micOn;
