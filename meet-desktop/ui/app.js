@@ -279,10 +279,12 @@
     returningHome=true;
     stopPolling();
     try{
-      // Local camera/microphone ownership ends immediately with the meeting.
-      // Do not leave hardware tracks alive while native share teardown finishes.
+      // Tear down transport and hardware ownership deterministically instead
+      // of waiting for lifecycle polling to notice that the room disappeared.
+      const transportStop=Promise.resolve(window.DominionWebRTCController?.stop?.()).catch(()=>{});
       media.stop();
       attachPreview();
+      await Promise.race([transportStop,new Promise(resolve=>setTimeout(resolve,1200))]);
       await stopMeetingPresentation();
       try{await Promise.race([Promise.resolve(desktop?.app?.meetingEnded?.()),new Promise(resolve=>setTimeout(resolve,1500))]);}
       catch(error){console.warn('[DominionStar Meet] Native meeting-end teardown failed.',error);}
