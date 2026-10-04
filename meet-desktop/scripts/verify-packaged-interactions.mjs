@@ -281,7 +281,7 @@ try{
   assert.ok(onePersonSearchSamples.every(s=>s.referenceClass),'Participants panel lost the approved reference class while idle.');
   assert.ok(onePersonSearchSamples.every(s=>s.sameWrap&&s.sameRow),'One-person Participants DOM nodes were replaced while the panel was idle.');
   assert.ok(onePersonSearchSamples.every(s=>s.adaptiveRoles===0),'Adaptive participant role renderer re-entered the desktop panel.');
-  assert.ok(onePersonSearchSamples.every(s=>s.canonicalRoleVisible&&/\\(Host, me\\)|\\(Co-host, me\\)|\\(me\\)/.test(s.canonicalRole)),'Canonical inline participant role switched to a competing row presentation.');
+  assert.ok(onePersonSearchSamples.every(s=>s.canonicalRoleVisible&&['(Host, me)','(Co-host, me)','(me)'].includes(s.canonicalRole)),'Canonical inline participant role switched to a competing row presentation.');
   const onePersonRowTops=onePersonSearchSamples.map(s=>s.rowTop).filter(Number.isFinite);
   assert.ok(onePersonRowTops.length===onePersonSearchSamples.length,'One-person participant row disappeared during stability sampling.');
   assert.ok(Math.max(...onePersonRowTops)-Math.min(...onePersonRowTops)<=1,'One-person participant row moved vertically while the panel was idle; search/chrome ownership is still unstable.');
