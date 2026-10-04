@@ -93,6 +93,7 @@ jobs:
           node scripts/verify-participant-reference-2.0.49.mjs
           node scripts/verify-participant-search-2.0.51.mjs
           node scripts/verify-runtime-cleanup-2.0.52.mjs
+          node scripts/verify-ui-authority-contract-2.0.53.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop
