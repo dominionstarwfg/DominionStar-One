@@ -84,7 +84,7 @@
       return presenterLocalParticipantId;
     };
     void refreshPresenterLocalParticipantId();
-    window.addEventListener('dominion:meeting-snapshot',()=>{void refreshPresenterLocalParticipantId().then(()=>{if(sameRendererPresenter&&share.snapshot().active)publishMacPresenterState();});});
+    window.addEventListener('dominion:meeting-snapshot',()=>{void refreshPresenterLocalParticipantId().then(()=>{if(sameRendererPresenter&&share.snapshot().active){publishMacPresenterState();syncMacCameraFramePump();}});});
     window.addEventListener('dominion:remote-media-state',()=>{if(sameRendererPresenter&&share.snapshot().active)publishMacPresenterState();});
     const scheduleMacVideoDockSync=(delay=40)=>{
       if(!sameRendererPresenter)return;
@@ -146,7 +146,7 @@
     };
     const publishMacRemoteFrames=()=>{
       if(!sameRendererPresenter||!share.snapshot().active||!macPresenter?.videoFrame||!frameContext)return;
-      const participantState=presenterParticipants();
+      const participantState=presenterParticipants();if(participantState.length<2)return;
       const selfPerson=participantState.find(item=>item.self)||null;
       const selfId=String(selfPerson?.participantId||presenterLocalParticipantId||'local-self');
       const stateById=new Map(participantState.map(item=>[String(item.participantId||''),item]));
@@ -192,8 +192,8 @@
     };
     const stopMacRemoteFramePump=()=>{if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}};
     const syncMacCameraFramePump=()=>{
-      if(!sameRendererPresenter||!share.snapshot().active){stopMacRemoteFramePump();return;}
-      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(publishMacRemoteFrames,120);
+      if(!sameRendererPresenter||!share.snapshot().active||presenterParticipants().length<2){stopMacRemoteFramePump();return;}
+      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(publishMacRemoteFrames,180);
       publishMacRemoteFrames();
     };
     let lastVoiceSentAt=0,lastVoiceSpeaking=false,lastVoiceLevel=0;
