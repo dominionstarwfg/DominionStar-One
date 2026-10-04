@@ -234,7 +234,7 @@ try{
   // the same JavaScript call stack as the button click.
   await evaluate(`document.querySelector('#roomMore').click();true`);
   await waitFor("document.querySelector('.meeting-more-menu')",'production More menu',2500);
-  assert.equal(await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu');const text=menu?.textContent||'';menu?.remove();return !text.includes('Diagnostics')&&text.includes('Settings');})()`),true,'Production More menu must contain the approved Settings control without Diagnostics.');
+  assert.equal(await evaluate(`(()=>{const menu=document.querySelector('.meeting-more-menu');const text=menu?.textContent||'';const recorder=window.DominionPhysicalDiagnostics;const ok=text.includes('Settings')&&text.includes('Export diagnostic report')&&recorder?.version==='1.0.0-physical-recorder'&&typeof recorder?.exportReport==='function';menu?.remove();return ok;})()`),true,'Production More menu must expose the live in-app diagnostic export without requiring Terminal.');
   mark('share-integration-wired');
   await sleep(200);
   await waitFor("document.querySelector('#roomParticipants')&&document.querySelector('#roomMore')&&document.querySelector('#roomSettings')&&document.querySelector('#roomChat')&&document.querySelector('#roomReactions')&&document.querySelector('#roomRaiseHand')","meeting controls",7000);mark('meeting-controls');
@@ -331,7 +331,7 @@ try{
   assert.equal(shareDock.sideBySide,false,'Side-by-side video must not replace the default floating share dock unless explicitly selected.');
   assert.equal(shareDock.orientation,'vertical','Default share-time video panel must start as a vertical right-side dock.');mark('adaptive-dock');
 
-  console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence approved-toolbar-stable participants-floating chat-floating reactions more zoom-right-filmstrip adaptive-full-stage-dock');
+  console.log('DOMINIONSTAR_PACKAGED_INTERACTIONS_OK home-dialogs settings personal-room schedule recurrence approved-toolbar-stable participants-floating chat-floating reactions more in-app-diagnostic-export zoom-right-filmstrip adaptive-full-stage-dock');
 }catch(error){
   failure=error;
   console.error(error?.stack||String(error));
