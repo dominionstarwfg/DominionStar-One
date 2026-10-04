@@ -15,6 +15,9 @@ const physicalAcceptance=read('ui/zoom-physical-acceptance.js');
 const appSource=read('ui/app.js');
 const meetingParity=read('ui/meeting-parity.js');
 const shareController=read('ui/share-controller.js');
+const diagnosticsSource=read('ui/physical-diagnostics.js');
+const mainSource=read('src/main.mjs');
+const indexSource=read('ui/index.html');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -34,7 +37,7 @@ assert(participants.includes('if(window.DominionRuntimeStability?.syncParticipan
 assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();'),'Adaptive parity must delegate roster ordering to runtime stability.');
 assert(participantControls.includes('if(desktopSurface){footer?.remove();return;}'),'Desktop participant controls must not recreate the legacy bulk-action strip.');
 assert(physicalAcceptance.includes("row.dataset.participantSelf=self?'1':'0';row.dataset.dsAdaptiveSelf=self?'1':'0'"),'Participant normalization must persist self identity before hiding legacy subtitle text.');
-assert(physicalAcceptance.includes("existingMicOn=Boolean(wrap.querySelector('[data-participant-mic].on')||existing[0]?.classList.contains('on'))"),'Participant normalization must preserve last-known microphone state while transport status is unknown.');
+assert(physicalAcceptance.includes("const existingMicOn=mic.classList.contains('on'),existingCameraOn=video.classList.contains('on');"),'Participant normalization must preserve last-known media state while transport status is unknown.');
 assert(physicalAcceptance.includes("/\\byou\\b|\\bme\\b/.test(small)"),'Participant self detection must recognize You/me before subtitle normalization.');
 assert(!appSource.includes("rows.sort((a,b)=>{\\n      const ar=a.dataset.participantRole"),'Snapshot renderer must not sort/move participant rows independently of runtime stability.');
 assert(appSource.includes('for(const participant of list)ensureParticipantRow(roster,participant);'),'Snapshot renderer must preserve keyed participant rows without positional reinsertion.');
@@ -45,6 +48,16 @@ assert(shareIntegrationSource.includes('else if(list.length===0){'),'Presenter p
 assert(presenterVideoSource.includes('if(!out.some(item=>item.self)&&out.length===1){out[0].self=true'),'Presenter video must reuse the single real participant as self instead of adding a duplicate.');
 assert(presenterVideoSource.includes('if(fallbackInitials)fallbackInitials.hidden=true;'),'Presenter avatar and initials must be mutually exclusive.');
 assert(shareController.includes("const probe=document.createElement('video')"),'Native Mac Pause must be able to freeze the worker stream without a visible share preview.');
+assert(diagnosticsSource.includes("version:'1.0.0-physical-recorder'"),'Physical behavior recorder is missing.');
+assert(diagnosticsSource.includes("rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,characterData:true})"),'Diagnostic recorder must observe participant DOM mutations without mutating the roster.');
+assert(diagnosticsSource.includes('mutationDelta')&&diagnosticsSource.includes('processMetrics:lastMetrics'),'Diagnostic recorder must capture mutation bursts and process metrics.');
+assert(diagnosticsSource.includes("window.addEventListener('dominion:presenter-command-dispatch'"),'Diagnostic recorder must capture presenter command dispatches.');
+assert(diagnosticsSource.includes('exportReport'),'Diagnostic recorder export API is missing.');
+assert(preloadSource.includes("diagnostics:Object.freeze({")&&preloadSource.includes("system:()=>invoke('diagnostics:system-metrics')")&&preloadSource.includes("export:report=>invoke('diagnostics:export'"),'Preload diagnostic bridge is incomplete.');
+assert(mainSource.includes("ipcMain.handle('diagnostics:system-metrics'")&&mainSource.includes("ipcMain.handle('diagnostics:export'"),'Native diagnostic metrics/export handlers are missing.');
+assert(indexSource.includes('<script src="./physical-diagnostics.js"></script>'),'Physical diagnostic recorder is not loaded by the packaged renderer.');
+assert(physicalAcceptance.includes("addCommand(menu,'Export diagnostic report'"),'Meeting More menu does not expose diagnostic export.');
+assert(shareIntegrationSource.includes("'presenter-command-result'"),'Presenter command outcomes are not recorded in the diagnostic timeline.');
 
 assert(runtime.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Runtime traffic controls must use a dedicated non-title element.');
 assert(participants.includes('<span class="ds-panel-traffic"')&&participants.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Participant reference traffic controls must be structurally isolated from title div styling.');
@@ -72,4 +85,4 @@ assert(preloadSource.includes("onVideoFrame:callback=>listen('mac-share:video-fr
 const shareIntegrationSource=read('ui/share-integration.js');
 assert(shareIntegrationSource.includes("#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile"),'Presenter frame pump must include the local/self dock tile and remote tiles.');
 
-console.log('PASS runtime cleanup 2.0.52 single-order-authority no-roster-render-loop no-duplicate-self live-share-camera native-pause single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
+console.log('PASS runtime cleanup 2.0.52 single-order-authority no-roster-render-loop no-duplicate-self live-share-camera native-pause in-app-physical-recorder presenter-command-outcomes single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
