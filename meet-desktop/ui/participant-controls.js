@@ -292,6 +292,6 @@
   window.addEventListener('dominion:meeting-snapshot',requestSync,true);
   window.addEventListener('dominion:participant-presence',requestSync,true);
   window.addEventListener('dominion:active-speakers',requestSync,true);
-  const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(!document.hidden&&inMeeting()&&side&&!side.hidden)requestSync();},6000);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.50-approved-share-actions',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,openParticipantChat,toggleSpotlightParticipant,renameParticipant,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();closeProfileCard();prompt?.remove();renameDialog?.remove();}});
+  const timer=desktopSurface?0:setInterval(()=>{const side=q('#meetingOverlay .room-side');if(!document.hidden&&inMeeting()&&side&&!side.hidden)requestSync();},6000);sync();
+  window.DominionParticipantControls=Object.freeze({version:'2.0.53-event-driven-desktop-actions',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,openParticipantChat,toggleSpotlightParticipant,renameParticipant,closeMenu,syncAllMedia,dispose:()=>{if(timer)clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();closeProfileCard();prompt?.remove();renameDialog?.remove();}});
 })();
