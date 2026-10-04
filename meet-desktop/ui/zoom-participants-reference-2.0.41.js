@@ -6,6 +6,7 @@
   const GEOMETRY_KEY='ds_zoom_participants_geometry_2_0_41';
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
   let runtimeMac=isMac||/Mac/i.test(String(window.dominionDesktop?.platform||'')),syncFrame=0,activeSpeakerIds=[];
+  const backgroundEnabled=!Boolean(window.dominionDesktop);
 
   const ICONS=Object.freeze({
     micOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path></svg>',
@@ -151,7 +152,7 @@
     let wrap=side.querySelector('.ds-participant-search-wrap');
     if(!wrap){
       wrap=document.createElement('div');wrap.className='ds-participant-search-wrap';
-      wrap.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="zoom-participant-search ds-participant-search-primary" type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants"><button type="button" class="ds-participant-search-clear" aria-label="Clear participant search" title="Clear search" hidden>×</button>';
+      wrap.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="ds-participant-search-primary" type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants"><button type="button" class="ds-participant-search-clear" aria-label="Clear participant search" title="Clear search" hidden>×</button>';
       ensureHeader(side).insertAdjacentElement('afterend',wrap);
       const input=wrap.querySelector('input'),clear=wrap.querySelector('.ds-participant-search-clear');
       input.addEventListener('input',event=>{clear.hidden=!event.currentTarget.value;filterRows(event.currentTarget.value);});
@@ -277,13 +278,17 @@
   document.addEventListener('pointerup',()=>{const side=sidePanel();if(side?.dataset.dsAdaptiveUserPositioned==='1')saveGeometry(side);},true);
   window.addEventListener('resize',schedule,true);window.addEventListener('dominion:remote-media-state',schedule,true);window.addEventListener('dominion:share-state',schedule,true);window.addEventListener('dominion:meeting-ui-ready',schedule,true);window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();},true);
   window.dominionDesktop?.environment?.().then(info=>{if(info?.platform==='darwin'&&!runtimeMac){runtimeMac=true;schedule();}}).catch(()=>{});
-  const rosterObserver=new MutationObserver(schedule),roster=q('#participantRoster');
-  if(roster)rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']});
-  const sideVisibilityObserver=new MutationObserver(schedule),observedSide=sidePanel();
-  if(observedSide)sideVisibilityObserver.observe(observedSide,{attributes:true,attributeFilter:['hidden']});
-  const timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
+  let rosterObserver=null,sideVisibilityObserver=null,timer=0;
+  if(backgroundEnabled){
+    const roster=q('#participantRoster');
+    rosterObserver=new MutationObserver(schedule);
+    if(roster)rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']});
+    const observedSide=sidePanel();sideVisibilityObserver=new MutationObserver(schedule);
+    if(observedSide)sideVisibilityObserver.observe(observedSide,{attributes:true,attributeFilter:['hidden']});
+    timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
+  }
 
-  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.52-idempotent-participants',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);rosterObserver.disconnect();sideVisibilityObserver.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.53-canonical-manual-desktop',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{if(timer)clearInterval(timer);rosterObserver?.disconnect();sideVisibilityObserver?.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();
 
