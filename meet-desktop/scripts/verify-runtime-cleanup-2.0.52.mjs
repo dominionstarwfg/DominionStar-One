@@ -15,6 +15,9 @@ const physicalAcceptance=read('ui/zoom-physical-acceptance.js');
 const appSource=read('ui/app.js');
 const meetingParity=read('ui/meeting-parity.js');
 const shareController=read('ui/share-controller.js');
+const presenterVideoSource=read('ui/mac-share-video.js');
+const preloadSource=read('src/preload.cjs');
+const shareIntegrationSource=read('ui/share-integration.js');
 const diagnosticsSource=read('ui/physical-diagnostics.js');
 const mainSource=read('src/main.mjs');
 const indexSource=read('ui/index.html');
@@ -76,13 +79,10 @@ assert(presenter.includes('if(nativeAnnotationOpen){'),'Presenter state does not
 assert(presenter.includes("delete incoming.companion;delete incoming.companionOpen;"),'Renderer heartbeat can still overwrite native annotation companion state.');
 assert(presenter.includes("nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate'"),'Native annotation open state is not authoritative.');
 
-const presenterVideoSource=read('ui/mac-share-video.js');
 assert(!presenterVideoSource.includes('getUserMedia'),'Floating presenter video must not acquire a second camera stream.');
 assert(!presenterVideoSource.includes("stack.textContent=''"),'Floating presenter video must reconcile keyed tiles instead of destroying the stack.');
 assert(presenterVideoSource.includes('bridge?.onVideoFrame?.(applyRemoteFrame)'),'Floating presenter video must subscribe to mirrored meeting frames.');
-const preloadSource=read('src/preload.cjs');
 assert(preloadSource.includes("onVideoFrame:callback=>listen('mac-share:video-frame',callback)"),'Presenter preload must expose receive-side video frame subscription.');
-const shareIntegrationSource=read('ui/share-integration.js');
 assert(shareIntegrationSource.includes("#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile"),'Presenter frame pump must include the local/self dock tile and remote tiles.');
 
 console.log('PASS runtime cleanup 2.0.52 single-order-authority no-roster-render-loop no-duplicate-self live-share-camera native-pause in-app-physical-recorder presenter-command-outcomes single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
