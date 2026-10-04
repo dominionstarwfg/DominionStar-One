@@ -136,10 +136,24 @@
     const state=remoteMediaState.get(String(id));return state?{...state,known:true}:{micOn:false,cameraOn:false,known:false};
   }
   function mediaStatusNode(row,id){
-    let wrap=row.querySelector('.ds-participant-media');if(!wrap){wrap=document.createElement('span');wrap.className='ds-participant-media';const actions=row.querySelector('.participant-actions')||document.createElement('span');if(!actions.isConnected){actions.className='participant-actions ds-participant-actions';row.append(actions);}actions.prepend(wrap);}
-    const existing=[...wrap.querySelectorAll('.ds-media-state')],existingMicOn=Boolean(wrap.querySelector('[data-participant-mic].on')||existing[0]?.classList.contains('on')),existingCameraOn=Boolean(wrap.querySelector('[data-participant-video].on')||existing[1]?.classList.contains('on'));
+    let wrap=row.querySelector('.ds-participant-media');
+    if(!wrap){
+      wrap=document.createElement('span');wrap.className='ds-participant-media';
+      const actions=row.querySelector('.participant-actions')||document.createElement('span');
+      if(!actions.isConnected){actions.className='participant-actions ds-participant-actions';row.append(actions);}
+      actions.prepend(wrap);
+    }
+    let mic=wrap.querySelector('[data-participant-mic]'),video=wrap.querySelector('[data-participant-video]');
+    if(!mic){mic=document.createElement('span');mic.dataset.participantMic='';mic.className='ds-media-state unknown off';mic.innerHTML=MIC_OFF;wrap.append(mic);}
+    if(!video){video=document.createElement('span');video.dataset.participantVideo='';video.className='ds-media-state unknown off';video.innerHTML=VIDEO_OFF;wrap.append(video);}
+    const existingMicOn=mic.classList.contains('on'),existingCameraOn=video.classList.contains('on');
     const state=statusFor(id),micOn=state.known?state.micOn:existingMicOn,cameraOn=state.known?state.cameraOn:existingCameraOn;
-    wrap.innerHTML=`<span data-participant-mic class="ds-media-state ${state.known?'':'unknown'} ${micOn?'on':'off'}" title="${state.known?(micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${micOn?MIC_ON:MIC_OFF}</span><span data-participant-video class="ds-media-state ${state.known?'':'unknown'} ${cameraOn?'on':'off'}" title="${state.known?(cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(cameraOn?'Video on':'Video off'):'Video status syncing'}">${cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
+    const micTitle=state.known?(micOn?'Microphone on':'Microphone muted'):'Audio status syncing';
+    const videoTitle=state.known?(cameraOn?'Video on':'Video off'):'Video status syncing';
+    mic.classList.toggle('unknown',!state.known);mic.classList.toggle('on',micOn);mic.classList.toggle('off',!micOn);
+    video.classList.toggle('unknown',!state.known);video.classList.toggle('on',cameraOn);video.classList.toggle('off',!cameraOn);
+    if(mic.title!==micTitle)mic.title=micTitle;if(mic.getAttribute('aria-label')!==micTitle)mic.setAttribute('aria-label',micTitle);
+    if(video.title!==videoTitle)video.title=videoTitle;if(video.getAttribute('aria-label')!==videoTitle)video.setAttribute('aria-label',videoTitle);
     return wrap;
   }
   const SHARE_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="13" rx="2"/><path d="M8 12h8M13 9l3 3-3 3"/></svg>';
@@ -148,7 +162,7 @@
     let node=row.querySelector('.ds-participant-share-state');
     if(!active){node?.remove();return null;}
     if(!node){node=document.createElement('span');node.className='ds-participant-share-state';node.setAttribute('title','Sharing screen');node.setAttribute('aria-label','Sharing screen');}
-    node.innerHTML=SHARE_ON;
+    if(!node.firstElementChild)node.innerHTML=SHARE_ON;
     const actions=row.querySelector('.participant-actions');if(actions&&node.parentElement!==actions)actions.prepend(node);
     return node;
   }
@@ -199,14 +213,14 @@
     if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
     let nameNode=strong.querySelector('.participant-name-text');
     if(!nameNode){nameNode=document.createElement('span');nameNode.className='participant-name-text';strong.prepend(nameNode);}
-    nameNode.textContent=name;strong.title=name;
+    if(nameNode.textContent!==name)nameNode.textContent=name;if(strong.title!==name)strong.title=name;
     let inline=strong.querySelector('.participant-you');
     if(!inline){inline=document.createElement('em');inline.className='participant-you';strong.append(inline);}
     const inlineRole=role==='host'?(self?'(Host, me)':'(Host)'):role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'');
-    inline.textContent=inlineRole;inline.hidden=!inlineRole;
+    if(inline.textContent!==inlineRole)inline.textContent=inlineRole;if(inline.hidden===Boolean(inlineRole))inline.hidden=!inlineRole;
     let small=copy.querySelector('small');
     if(!small){small=document.createElement('small');copy.append(small);}
-    small.textContent='';small.hidden=true;
+    if(small.textContent)small.textContent='';if(!small.hidden)small.hidden=true;
   }
 
   function decorateParticipantRows(){
@@ -240,7 +254,7 @@
   function scheduleMediaBroadcast(delay=100){clearTimeout(mediaBroadcastTimer);mediaBroadcastTimer=setTimeout(()=>void broadcastLocalMediaState(),delay);}
 
   function installParticipantAuthority(){
-    const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(()=>requestAnimationFrame(decorateParticipantRows));participantObserver.observe(roster,{childList:true,subtree:true});}
+    const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(()=>requestAnimationFrame(decorateParticipantRows));participantObserver.observe(roster,{childList:true,subtree:false});}
     void refreshLocalParticipantId().then(()=>decorateParticipantRows());
     if(!mediaUnsub&&media()?.onChange){mediaUnsub=media().onChange(()=>{decorateParticipantRows();scheduleMediaBroadcast(80);});}
     if(!shareUnsub&&window.DominionShareController?.onChange){
