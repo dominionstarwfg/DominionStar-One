@@ -29,6 +29,11 @@
       if(explicitSelf)selfParticipantId=id;
       out.push({participantId:id,name:String(raw?.name||'Participant').trim()||'Participant',role:String(raw?.role||'participant').toLowerCase(),self,micOn:Boolean(raw?.micOn),cameraOn:Boolean(raw?.cameraOn),avatar:String(raw?.avatar||'')});
     }
+    const realParticipants=out.filter(item=>item.participantId!=='local-self');
+    if(realParticipants.length&&out.some(item=>item.participantId==='local-self')){
+      const syntheticIndex=out.findIndex(item=>item.participantId==='local-self');
+      if(syntheticIndex>=0)out.splice(syntheticIndex,1);
+    }
     if(!out.some(item=>item.self)&&selfParticipantId){
       const known=out.find(item=>item.participantId===selfParticipantId);if(known)known.self=true;
     }
