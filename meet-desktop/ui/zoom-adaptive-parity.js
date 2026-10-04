@@ -150,7 +150,8 @@
     const heading=side.querySelector('.room-side-head strong')||side.querySelector('section h3');
     if(heading)heading.textContent=`Participants (${count})`;
 
-    const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<=1;
+    // Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.
+    // Do not hide/show it here: competing hidden-state writers cause the one-person panel to flash.
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
 
     sortParticipants();
