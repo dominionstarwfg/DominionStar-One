@@ -593,19 +593,20 @@ assert(
   'Participants must keep the full name and role/me metadata on one compact readable row, matching the desktop reference.'
 );
 assert(
-  macToolbarCss.includes('2.0.44+ physical Mac presenter menu collision lock')&&
-  macToolbarCss.includes('.toolbar.menu-open .popup-menu{top:86px}')&&
+  macToolbarCss.includes('.toolbar.menu-open .popup-menu{top:58px}')&&
   macPresenter.includes('const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);'),
-  'Presenter More must open below the compact green share-status strip with enough native window height to expose every command.'
+  'Presenter More must open directly below the approved compact control strip while expanding the native presenter window enough to expose every command.'
 );
 
 assert(
   integration.includes('const effectiveLocalCameraOn=()=>')&&
   integration.includes("snap.cameraOn&&snap.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'&&track.enabled!==false)")&&
-  integration.includes('const localPresenterMirror=document.createElement(\'video\')')&&
-  integration.includes('localPresenterMirror.srcObject=stream')&&
-  macVideoCss.includes('.video-fallback span[hidden]{display:none!important}'),
-  'Presenter video must use the authoritative live camera track and must never show avatar plus initials at the same time.'
+  integration.includes("const localTrack=media.stream()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null")&&
+  integration.includes("localImageCapture=new ImageCapture(localTrack)")&&
+  macVideoCss.includes('.video-fallback img[hidden]{display:none!important}')&&
+  macVideoCss.includes('.video-fallback span[hidden]{display:none!important}')&&
+  macVideoJs.includes('if(fallbackInitials)fallbackInitials.hidden=true;'),
+  'Presenter video must use the authoritative existing live camera track and must never show avatar plus initials at the same time.'
 );
 
 /* PHYSICAL_MAC_2_0_50_REFERENCE_GEOMETRY_LOCK */
