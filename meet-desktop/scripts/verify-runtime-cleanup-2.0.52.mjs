@@ -12,6 +12,7 @@ const presenter=read('src/mac-share-presenter-overlay.mjs');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const participantControls=read('ui/participant-controls.js');
 const physicalAcceptance=read('ui/zoom-physical-acceptance.js');
+const productionPolish=read('ui/zoom-production-polish.js');
 const appSource=read('ui/app.js');
 const meetingParity=read('ui/meeting-parity.js');
 const shareController=read('ui/share-controller.js');
@@ -38,6 +39,9 @@ assert(runtime.includes("const self=row.dataset.participantSelf==='1'||row.datas
 assert(runtime.includes("row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on')"),'Canonical participant priority must detect live microphone state without selector ambiguity.');
 assert(participants.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}'),'Participant reference must delegate roster ordering to runtime stability.');
 assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();'),'Adaptive parity must delegate roster ordering to runtime stability.');
+assert(!adaptive.includes("search.hidden=count<=1"),'Adaptive parity must not hide the participant search for one-person meetings.');
+assert(adaptive.includes('Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.'),'Adaptive parity single-search ownership marker is missing.');
+assert(productionPolish.includes('if(window.dominionDesktop)return;'),'Production polish must not create a second participant search in the desktop app.');
 assert(participantControls.includes('if(desktopSurface){footer?.remove();return;}'),'Desktop participant controls must not recreate the legacy bulk-action strip.');
 assert(physicalAcceptance.includes("row.dataset.participantSelf=self?'1':'0';row.dataset.dsAdaptiveSelf=self?'1':'0'"),'Participant normalization must persist self identity before hiding legacy subtitle text.');
 assert(physicalAcceptance.includes("const existingMicOn=mic.classList.contains('on'),existingCameraOn=video.classList.contains('on');"),'Participant normalization must preserve last-known media state while transport status is unknown.');
@@ -85,4 +89,4 @@ assert(presenterVideoSource.includes('bridge?.onVideoFrame?.(applyRemoteFrame)')
 assert(preloadSource.includes("onVideoFrame:callback=>listen('mac-share:video-frame',callback)"),'Presenter preload must expose receive-side video frame subscription.');
 assert(shareIntegrationSource.includes("#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile"),'Presenter frame pump must include the local/self dock tile and remote tiles.');
 
-console.log('PASS runtime cleanup 2.0.52 single-order-authority no-roster-render-loop no-duplicate-self live-share-camera native-pause in-app-physical-recorder presenter-command-outcomes single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
+console.log('PASS runtime cleanup 2.0.52 single-order-authority one-person-search-stable no-roster-render-loop no-duplicate-self live-share-camera native-pause in-app-physical-recorder presenter-command-outcomes single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
