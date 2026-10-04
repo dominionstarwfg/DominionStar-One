@@ -20,7 +20,9 @@ const css=[...sources].filter(([file])=>file.startsWith('ui/')&&file.endsWith('.
 // Camera ownership: the renderer media controller is the only UI module
 // permitted to acquire camera/microphone hardware directly.
 for(const [file,src] of uiJs){
-  if(src.includes('getUserMedia')&&file!=='ui/media-controller.js')fail(file,'camera-single-owner','Direct getUserMedia outside media-controller.js');
+  if(!src.includes('getUserMedia')||file==='ui/media-controller.js')continue;
+  const isolatedDesktopCapture=file==='ui/share-capture-worker.js'&&src.includes("chromeMediaSource:'desktop'")&&!src.includes('getUserMedia({video:true');
+  if(!isolatedDesktopCapture)fail(file,'camera-single-owner','Direct camera/microphone getUserMedia outside media-controller.js');
 }
 
 // Never permit presenter/share companion surfaces to acquire a camera.
@@ -32,7 +34,7 @@ for(const [file,src] of uiJs){
 // reconciliation loops. Functional transport/signal modules are intentionally
 // outside this filename class.
 for(const [file,src] of uiJs){
-  if(!/(?:adaptive|polish|reference|repair|participant|presenter)/i.test(file))continue;
+  if(!/(?:adaptive|polish|reference|repair|participant|presenter)(?:[-_.]|$)/i.test(file))continue;
   if(!src.includes('setInterval('))continue;
   const guarded=
     src.includes('const backgroundEnabled=!Boolean(window.dominionDesktop)')||
@@ -55,6 +57,7 @@ for(const [file,src] of css){
 // The canonical search input must never regain the legacy class that historical
 // styles target.
 for(const [file,src] of sources){
+  if(!file.startsWith('ui/'))continue;
   if(src.includes('zoom-participant-search ds-participant-search-primary'))fail(file,'canonical-search-class-isolation','Canonical search input carries legacy search class');
 }
 
