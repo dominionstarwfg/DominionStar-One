@@ -217,7 +217,16 @@
   function sync(){
     syncFrame=0;
     if(!meetingOpen()){closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();return;}
-    normalizeCarets();ensureHostTools();ensureMoreAuthority();ensureParticipantLayoutControl();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
+    normalizeCarets();ensureHostTools();ensureMoreAuthority();
+    if(window.dominionDesktop){
+      // Desktop participant chrome is owned by the approved reference/runtime
+      // pair. Production polish must not add/remove/reflow any participant
+      // search, footer, layout controls, or panel geometry.
+      closeParticipantMenu();closeParticipantLayoutMenu();
+    }else{
+      ensureParticipantLayoutControl();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();
+    }
+    normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
   }
   function requestSync(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
   function closePanelMenus(){closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}
@@ -227,7 +236,7 @@
     if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();
   },true);
   document.addEventListener('click',event=>{
-    if(event.target.closest?.('#roomParticipants')){closePanelMenus();requestAnimationFrame(()=>{ensureParticipantLayoutControl();normalizeParticipantPanel();});}
+    if(event.target.closest?.('#roomParticipants')){closePanelMenus();if(!window.dominionDesktop)requestAnimationFrame(()=>{ensureParticipantLayoutControl();normalizeParticipantPanel();});}
     if(event.target.closest?.('#roomChat')){closePanelMenus();requestAnimationFrame(normalizeChatPanel);}
     if(event.target.closest?.('#roomHostTools,.room-side-head>button,[data-chat-close]'))closePanelMenus();
     if(event.target.closest?.('#roomMore'))cleanMoreMenu();
