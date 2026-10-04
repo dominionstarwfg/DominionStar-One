@@ -385,16 +385,17 @@
       const qaCommandId=Number(rawCommand?.qaCommandId||0)||0;
       if(qaCommandId>0)console.error(`QA_PRESENTER_RENDERER_DISPATCH id=${qaCommandId} command=${command}`);
       window.dispatchEvent(new CustomEvent('dominion:presenter-command-dispatch',{detail:{command,qaCommandId}}));
+      const finish=result=>{try{window.DominionPhysicalDiagnostics?.record?.('presenter-command-result',{command,qaCommandId,...(result||{})});}catch{}return result;};
       try{
         // Pause/Resume already emits the authoritative share state, and that
         // listener updates the inline presenter toolbar synchronously. Do not
         // run a second DOM/layout transaction in the promise continuation.
-        if(command==='pause'){await share.togglePause(sharedVideo);return {handled:true,command};}
-        if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}
+        if(command==='pause'){await share.togglePause(sharedVideo);return finish({handled:true,command,paused:Boolean(share.snapshot().paused)});}
+        if(command==='stop'){clearCompanion();await share.stop();return finish({handled:true,command});}
         if(command==='audio'||command==='audio-on'||command==='audio-off'){
           const target=command==='audio-on'?true:command==='audio-off'?false:!media.snapshot().micOn;
           console.info('[DominionStar Meet] presenter AV intent',{kind:'microphone',target,command});
-          await media.setMicrophone(target);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command,target};
+          await media.setMicrophone(target);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return finish({handled:true,command,target,actual:Boolean(media.snapshot().micOn)});
         }
         if(command==='video'||command==='video-on'||command==='video-off'){
           const target=command==='video-on'?true:command==='video-off'?false:!media.snapshot().cameraOn;
@@ -402,7 +403,7 @@
           await media.setCamera(target);
           if(sameRendererPresenter){scheduleMacVideoDockSync(0);publishMacPresenterState();syncMacCameraFramePump();}
           else applyLayout();
-          return {handled:true,command,target};
+          return finish({handled:true,command,target,actual:Boolean(media.snapshot().cameraOn),videoLive:Boolean(media.snapshot().videoLive)});
         }
         if(command.startsWith('participant:')){
           const parts=command.split(':'),action=String(parts[1]||''),id=decodeURIComponent(parts.slice(2).join(':')||'');
@@ -467,7 +468,7 @@
         if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='show-meeting'){clearCompanion();window.focus();return {handled:true,command};}
         return {handled:false,command};
-      }catch(error){toast(error?.message||'Share control failed.','error');return {handled:false,command,error:String(error?.message||error||'share_control_failed')};}
+      }catch(error){toast(error?.message||'Share control failed.','error');return finish({handled:false,command,error:String(error?.message||error||'share_control_failed')});}
     }
     window.__DominionPresenterDispatch=dispatchPresenterCommand;
     bridge?.onPresenterCommand?.(rawCommand=>dispatchPresenterCommand(rawCommand));
