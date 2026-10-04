@@ -12,6 +12,9 @@ const presenter=read('src/mac-share-presenter-overlay.mjs');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const participantControls=read('ui/participant-controls.js');
 const physicalAcceptance=read('ui/zoom-physical-acceptance.js');
+const appSource=read('ui/app.js');
+const meetingParity=read('ui/meeting-parity.js');
+const shareController=read('ui/share-controller.js');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -33,6 +36,15 @@ assert(participantControls.includes('if(desktopSurface){footer?.remove();return;
 assert(physicalAcceptance.includes("row.dataset.participantSelf=self?'1':'0';row.dataset.dsAdaptiveSelf=self?'1':'0'"),'Participant normalization must persist self identity before hiding legacy subtitle text.');
 assert(physicalAcceptance.includes("existingMicOn=Boolean(wrap.querySelector('[data-participant-mic].on')||existing[0]?.classList.contains('on'))"),'Participant normalization must preserve last-known microphone state while transport status is unknown.');
 assert(physicalAcceptance.includes("/\\byou\\b|\\bme\\b/.test(small)"),'Participant self detection must recognize You/me before subtitle normalization.');
+assert(!appSource.includes("rows.sort((a,b)=>{\\n      const ar=a.dataset.participantRole"),'Snapshot renderer must not sort/move participant rows independently of runtime stability.');
+assert(appSource.includes('for(const participant of list)ensureParticipantRow(roster,participant);'),'Snapshot renderer must preserve keyed participant rows without positional reinsertion.');
+assert(physicalAcceptance.includes("participantObserver.observe(roster,{childList:true,subtree:false})"),'Participant decorator observer must not observe its own subtree mutations.');
+assert(!physicalAcceptance.includes("wrap.innerHTML=`<span data-participant-mic"),'Participant decorator must not rebuild media HTML on every sync.');
+assert(meetingParity.includes('syncLocalDockTile(false);syncDockTileActions();'),'Share-active video dock must synchronize the local camera tile before collecting visible tiles.');
+assert(shareIntegrationSource.includes('else if(list.length===0){'),'Presenter participant state must not fabricate a duplicate self tile when real participant rows exist.');
+assert(presenterVideoSource.includes('if(!out.some(item=>item.self)&&out.length===1){out[0].self=true'),'Presenter video must reuse the single real participant as self instead of adding a duplicate.');
+assert(presenterVideoSource.includes('if(fallbackInitials)fallbackInitials.hidden=true;'),'Presenter avatar and initials must be mutually exclusive.');
+assert(shareController.includes("const probe=document.createElement('video')"),'Native Mac Pause must be able to freeze the worker stream without a visible share preview.');
 
 assert(runtime.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Runtime traffic controls must use a dedicated non-title element.');
 assert(participants.includes('<span class="ds-panel-traffic"')&&participants.includes("document.createElement('span');traffic.className='ds-panel-traffic'"),'Participant reference traffic controls must be structurally isolated from title div styling.');
@@ -60,4 +72,4 @@ assert(preloadSource.includes("onVideoFrame:callback=>listen('mac-share:video-fr
 const shareIntegrationSource=read('ui/share-integration.js');
 assert(shareIntegrationSource.includes("#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile"),'Presenter frame pump must include the local/self dock tile and remote tiles.');
 
-console.log('PASS runtime cleanup 2.0.52 single-order-authority single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
+console.log('PASS runtime cleanup 2.0.52 single-order-authority no-roster-render-loop no-duplicate-self live-share-camera native-pause single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
