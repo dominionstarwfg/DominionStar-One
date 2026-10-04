@@ -72,6 +72,7 @@
     const control=event.currentTarget;if(control.disabled||control.getAttribute('aria-busy')==='true')return;let command=String(control.dataset.command||'');
     if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';
     if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';
+    if(command==='pause')command=Boolean(lastState?.paused)?'resume-share':'pause-share';
     if(command==='annotate'&&String(lastState?.companion||'')==='annotate')command='annotate-close';
     closeMenus();control.disabled=true;control.classList.add('command-pending');control.setAttribute('aria-busy','true');
     try{await send(command);applyAcknowledgedAvState(command);}
