@@ -31,10 +31,10 @@ assert(!runtime.includes("search.className='zoom-participant-search'"),'Runtime 
 assert(runtime.includes('Participants search has one owner: DominionZoomParticipantsReference2041.'),'Single participant-search ownership marker is missing.');
 assert(runtime.includes("if(title&&title.textContent!==titleText)title.textContent=titleText"),'Runtime participant title is not idempotent.');
 
-assert(participants.includes("version:'2.0.52-idempotent-participants'"),'Idempotent participant authority version is missing.');
+assert(participants.includes("version:'2.0.53-canonical-manual-desktop'")&&participants.includes("const backgroundEnabled=!Boolean(window.dominionDesktop);"),'Participant reference must be canonical and non-polling on desktop.');
 assert(participants.includes("if(head&&head.textContent!==titleText)head.textContent=titleText"),'Participant title still rewrites every sync.');
 assert(participants.includes("if(row.hidden!==shouldHide)row.hidden=shouldHide"),'Participant search filtering still rewrites hidden state every sync.');
-assert(participants.includes("rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']}"),'Participant observer still watches its own search/filter hidden mutations.');
+assert(participants.includes("if(backgroundEnabled){")&&participants.includes("rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']}"),'Participant observer must exist only behind the non-desktop background guard.');
 assert(!participants.includes("observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden'"),'Broad self-observing participant MutationObserver is still active.');
 assert(runtime.includes("const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\\byou\\b|\\bme\\b/.test(small)"),'Canonical participant priority must recognize explicit self state and You/me labels.');
 assert(runtime.includes("row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on')"),'Canonical participant priority must detect live microphone state without selector ambiguity.');
