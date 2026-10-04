@@ -131,7 +131,7 @@ requireText(parity,"['gallery',sharing()?'Side-by-side: Gallery':'Gallery']",'Vi
 requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']",'View menu is missing Multi-speaker.');
 
 // Participant management remains readable/draggable; video filmstrip is separate.
-requireText(adaptive,"search.hidden=count<=1",'One-person participant panel still exposes unnecessary search.');
+requireText(adaptive,'Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.','One-person participant search must remain under the single canonical reference owner.');
 requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
 requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep self first.');
 requireText(adaptive,"else if(role==='host')bucket=1",'Participant ordering does not prioritize host.');
