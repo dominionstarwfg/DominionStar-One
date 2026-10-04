@@ -4,7 +4,7 @@
   const q=s=>document.querySelector(s);
   let cameraOn=true,micOn=false,mirrored=true;
   let videoLayout='strip',participants=[],identity={name:'You',avatar:''},lastSignature='';
-  let speaking=false,pinnedId='',activeMenuId='';
+  let speaking=false,pinnedId='',activeMenuId='',selfParticipantId='';
   const remoteFrames=new Map();
 
   const initials=name=>String(name||'Participant').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'DS';
@@ -25,10 +25,16 @@
     const out=[],seen=new Set();
     for(const raw of Array.isArray(input)?input:[]){
       const id=String(raw?.participantId||'');if(!id||seen.has(id))continue;seen.add(id);
-      out.push({participantId:id,name:String(raw?.name||'Participant').trim()||'Participant',role:String(raw?.role||'participant').toLowerCase(),self:Boolean(raw?.self),micOn:Boolean(raw?.micOn),cameraOn:Boolean(raw?.cameraOn),avatar:String(raw?.avatar||'')});
+      const explicitSelf=Boolean(raw?.self),self=explicitSelf||Boolean(selfParticipantId&&id===selfParticipantId);
+      if(explicitSelf)selfParticipantId=id;
+      out.push({participantId:id,name:String(raw?.name||'Participant').trim()||'Participant',role:String(raw?.role||'participant').toLowerCase(),self,micOn:Boolean(raw?.micOn),cameraOn:Boolean(raw?.cameraOn),avatar:String(raw?.avatar||'')});
     }
-    if(!out.some(item=>item.self))out.unshift({participantId:'local-self',name:identity.name,role:'participant',self:true,micOn,cameraOn,avatar:identity.avatar});
-    const self=out.find(item=>item.self);if(self){self.micOn=micOn;self.cameraOn=cameraOn;if(!self.name||self.name==='You')self.name=identity.name;if(!self.avatar)self.avatar=identity.avatar;}
+    if(!out.some(item=>item.self)&&selfParticipantId){
+      const known=out.find(item=>item.participantId===selfParticipantId);if(known)known.self=true;
+    }
+    if(!out.some(item=>item.self)&&out.length===1){out[0].self=true;selfParticipantId=out[0].participantId;}
+    if(!out.length){selfParticipantId='local-self';out.push({participantId:selfParticipantId,name:identity.name,role:'participant',self:true,micOn,cameraOn,avatar:identity.avatar});}
+    const self=out.find(item=>item.self);if(self){selfParticipantId=self.participantId;self.micOn=micOn;self.cameraOn=cameraOn;if(!self.name||self.name==='You')self.name=identity.name;if(!self.avatar)self.avatar=identity.avatar;}
     return out;
   }
   function orderedParticipants(){
@@ -71,10 +77,16 @@
     const live=Boolean(person.cameraOn&&frame);
     if(img){if(live&&img.src!==frame)img.src=frame;img.hidden=!live;img.style.transform=person.self&&mirrored?'scaleX(-1)':'none';}
     if(fallback)fallback.hidden=live;
-    if(fallbackInitials){fallbackInitials.textContent=initials(person.name);fallbackInitials.hidden=Boolean(person.avatar&&fallbackAvatar&&!fallbackAvatar.hidden);}
+    if(fallbackInitials)fallbackInitials.textContent=initials(person.name);
     if(fallbackAvatar){
-      if(person.avatar){if(fallbackAvatar.src!==person.avatar)fallbackAvatar.src=person.avatar;fallbackAvatar.hidden=false;}
-      else{fallbackAvatar.hidden=true;if(fallbackInitials)fallbackInitials.hidden=false;}
+      if(person.avatar){
+        if(fallbackInitials)fallbackInitials.hidden=true;
+        fallbackAvatar.hidden=false;
+        if(fallbackAvatar.src!==person.avatar)fallbackAvatar.src=person.avatar;
+      }else{
+        fallbackAvatar.hidden=true;
+        if(fallbackInitials)fallbackInitials.hidden=false;
+      }
     }
     const primary=tile.querySelector('[data-video-primary]');if(primary)primary.textContent=primaryLabel(person);
     const more=tile.querySelector('[data-video-more]');if(more)more.setAttribute('aria-label',`More options for ${person.name}`);
