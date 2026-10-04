@@ -190,6 +190,20 @@
     if(!track)throw new Error('Unable to freeze the shared frame.');
     const drawSource=async()=>{
       if(Number(videoElement?.videoWidth)>1&&Number(videoElement?.videoHeight)>1)return {source:videoElement,width:Number(videoElement.videoWidth),height:Number(videoElement.videoHeight),close:null};
+      // Native Mac presenter mode intentionally detaches the visible share
+      // preview to avoid recursive capture. Build a short-lived offscreen video
+      // from the real worker stream so Pause still has a deterministic frame.
+      if(state.liveStream){
+        const probe=document.createElement('video');probe.muted=true;probe.playsInline=true;probe.autoplay=true;probe.srcObject=state.liveStream;
+        try{
+          await Promise.race([
+            new Promise(resolve=>{if(probe.readyState>=2&&probe.videoWidth>1)return resolve();probe.onloadeddata=()=>resolve();}),
+            new Promise(resolve=>setTimeout(resolve,700))
+          ]);
+          await probe.play().catch(()=>{});
+          if(Number(probe.videoWidth)>1&&Number(probe.videoHeight)>1)return {source:probe,width:Number(probe.videoWidth),height:Number(probe.videoHeight),close:()=>{probe.pause?.();probe.srcObject=null;probe.remove?.();}};
+        }catch{}finally{if(!(Number(probe.videoWidth)>1&&Number(probe.videoHeight)>1)){probe.pause?.();probe.srcObject=null;probe.remove?.();}}
+      }
       if(typeof ImageCapture==='function'){
         try{
           const bitmap=await new ImageCapture(track).grabFrame();
