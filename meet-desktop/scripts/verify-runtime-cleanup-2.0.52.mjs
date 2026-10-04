@@ -42,6 +42,11 @@ assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSu
 assert(!adaptive.includes("search.hidden=count<=1"),'Adaptive parity must not hide the participant search for one-person meetings.');
 assert(adaptive.includes('Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.'),'Adaptive parity single-search ownership marker is missing.');
 assert(productionPolish.includes('if(window.dominionDesktop)return;'),'Production polish must not create a second participant search in the desktop app.');
+assert(adaptive.includes("if(window.dominionDesktop){\n      window.DominionRuntimeStability?.syncParticipantsSurface?.();\n      return;"),'Adaptive parity must not decorate or reorder participant rows in the desktop app.');
+assert(adaptive.includes("if(window.dominionDesktop)return;\n    const rows=participantRows()"),'Adaptive participant reconciliation must be a complete desktop no-op.');
+assert(!adaptive.includes("if(window.dominionDesktop){\n      const rows=participantRows()"),'Adaptive desktop participant row decoration must remain absent.');
+assert(productionPolish.includes("if(window.dominionDesktop){\n      // Desktop participant chrome is owned by the approved reference/runtime"),'Production polish must skip all desktop participant chrome reconciliation.');
+assert(productionPolish.includes("if(event.target.closest?.('#roomParticipants')){closePanelMenus();if(!window.dominionDesktop)"),'Production polish participant click hook must not reflow the desktop panel.');
 assert(participantControls.includes('if(desktopSurface){footer?.remove();return;}'),'Desktop participant controls must not recreate the legacy bulk-action strip.');
 assert(physicalAcceptance.includes("row.dataset.participantSelf=self?'1':'0';row.dataset.dsAdaptiveSelf=self?'1':'0'"),'Participant normalization must persist self identity before hiding legacy subtitle text.');
 assert(physicalAcceptance.includes("const existingMicOn=mic.classList.contains('on'),existingCameraOn=video.classList.contains('on');"),'Participant normalization must preserve last-known media state while transport status is unknown.');
@@ -54,6 +59,12 @@ assert(meetingParity.includes('syncLocalDockTile(false);syncDockTileActions();')
 assert(shareIntegrationSource.includes('else if(list.length===0){'),'Presenter participant state must not fabricate a duplicate self tile when real participant rows exist.');
 assert(presenterVideoSource.includes('if(!out.some(item=>item.self)&&out.length===1){out[0].self=true'),'Presenter video must reuse the single real participant as self instead of adding a duplicate.');
 assert(presenterVideoSource.includes('if(fallbackInitials)fallbackInitials.hidden=true;'),'Presenter avatar and initials must be mutually exclusive.');
+assert(videoCss.includes('.video-fallback span[hidden]{display:none!important}'),'Presenter initials hidden state must override fallback display styling.');
+assert(shareIntegrationSource.includes("const localPresenterMirror=document.createElement('video')"),'Local presenter camera mirror must consume the authoritative meeting stream directly.');
+assert(shareIntegrationSource.includes('if(localPresenterMirror.srcObject!==stream)localPresenterMirror.srcObject=stream'),'Local presenter camera mirror must reuse the existing media stream without a second camera acquisition.');
+assert(shareIntegrationSource.includes("snap.cameraOn&&snap.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'&&track.enabled!==false)"),'Presenter camera state must require an enabled live video track.');
+assert(presenter.includes('async function deliverPresenterCommandDirectFirst(main,command)'),'Native presenter controls must use direct renderer execution before queue fallback.');
+assert(presenter.includes('window.__DominionPresenterDispatch'),'Native presenter direct execution must target the authoritative renderer dispatcher.');
 assert(shareController.includes("const probe=document.createElement('video')"),'Native Mac Pause must be able to freeze the worker stream without a visible share preview.');
 assert(diagnosticsSource.includes("version:'1.0.0-physical-recorder'"),'Physical behavior recorder is missing.');
 assert(diagnosticsSource.includes("rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,characterData:true})"),'Diagnostic recorder must observe participant DOM mutations without mutating the roster.');
@@ -89,4 +100,4 @@ assert(presenterVideoSource.includes('bridge?.onVideoFrame?.(applyRemoteFrame)')
 assert(preloadSource.includes("onVideoFrame:callback=>listen('mac-share:video-frame',callback)"),'Presenter preload must expose receive-side video frame subscription.');
 assert(shareIntegrationSource.includes("#participantVideoDock .remote-peer-tile,#remoteTileStrip .remote-peer-tile"),'Presenter frame pump must include the local/self dock tile and remote tiles.');
 
-console.log('PASS runtime cleanup 2.0.52 single-order-authority one-person-search-stable no-roster-render-loop no-duplicate-self live-share-camera native-pause in-app-physical-recorder presenter-command-outcomes single-search-authority no-legacy-bulk persistent-video-tiles single-camera annotation-authority');
+console.log('PASS runtime cleanup 2.0.52 single-desktop-participant-presenter one-person-search-stable no-adaptive-row-writer no-polish-row-writer no-roster-render-loop no-duplicate-self direct-live-camera-mirror truthful-camera-state native-direct-first-controls native-pause avatar-initials-exclusive in-app-physical-recorder presenter-command-outcomes single-search-authority persistent-video-tiles single-camera annotation-authority');
