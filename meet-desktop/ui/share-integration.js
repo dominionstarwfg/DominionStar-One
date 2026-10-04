@@ -77,6 +77,7 @@
     if(!footer||!stage)return;
     let presenterCommitted=false;
     let macRemoteFrameTimer=0;
+    let macDockSyncTimer=0;
     let presenterLocalParticipantId='';
     const refreshPresenterLocalParticipantId=async()=>{
       try{const ctx=await desktop?.meeting?.context?.();presenterLocalParticipantId=String(ctx?.participantId||presenterLocalParticipantId||'');}catch{}
@@ -84,6 +85,15 @@
     };
     void refreshPresenterLocalParticipantId();
     window.addEventListener('dominion:meeting-snapshot',()=>{void refreshPresenterLocalParticipantId();});
+    const scheduleMacVideoDockSync=(delay=40)=>{
+      if(!sameRendererPresenter)return;
+      clearTimeout(macDockSyncTimer);
+      macDockSyncTimer=setTimeout(()=>{
+        macDockSyncTimer=0;
+        if(!share.snapshot().active)return;
+        try{window.DominionMeetingParity?.syncVideoDock?.();}catch{}
+      },Math.max(0,Number(delay)||0));
+    };
     const frameCanvas=document.createElement('canvas');frameCanvas.width=192;frameCanvas.height=108;
     const frameContext=frameCanvas.getContext('2d',{alpha:false,desynchronized:true});
     const presenterParticipants=()=>{
@@ -249,12 +259,13 @@
         // is active can stall Chromium's renderer on physical Mac.
         if(sameRendererPresenter){if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;}
         else{const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;}
-      }else{document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
-      // On macOS, do not rebuild/rebind the Zoom-style video dock inside the
-      // same transaction that flips Share to active. The existing dock remains
-      // visually present, but media rebinding is deferred to normal meeting
-      // updates so presenter controls stay responsive.
-      if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
+      }else{clearTimeout(macDockSyncTimer);macDockSyncTimer=0;document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
+      // On macOS, defer the video-dock reconciliation out of the share-state
+      // transaction, but do not skip it. Skipping it leaves a previously hidden
+      // local tile hidden for the entire share session, so the presenter cannot
+      // mirror live camera frames.
+      if(sameRendererPresenter&&state.active)scheduleMacVideoDockSync(40);
+      else window.DominionMeetingParity?.syncVideoDock?.();
       const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind),participants:presenterParticipants()});
       syncMacCameraFramePump();
     }
@@ -388,7 +399,10 @@
         if(command==='video'||command==='video-on'||command==='video-off'){
           const target=command==='video-on'?true:command==='video-off'?false:!media.snapshot().cameraOn;
           console.info('[DominionStar Meet] presenter AV intent',{kind:'camera',target,command});
-          await media.setCamera(target);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command,target};
+          await media.setCamera(target);
+          if(sameRendererPresenter){scheduleMacVideoDockSync(0);publishMacPresenterState();syncMacCameraFramePump();}
+          else applyLayout();
+          return {handled:true,command,target};
         }
         if(command.startsWith('participant:')){
           const parts=command.split(':'),action=String(parts[1]||''),id=decodeURIComponent(parts.slice(2).join(':')||'');
