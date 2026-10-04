@@ -181,8 +181,8 @@ if(process.platform==='darwin'){
   function setVideoLayout(mode='strip'){
     videoLayout=['speaker','strip','gallery','hide'].includes(String(mode))?String(mode):'strip';
     if(!isAlive(videoWindow))return {ok:false,layout:videoLayout};
-    if(videoLayout==='hide'){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout};}
-    positionVideo({preservePosition:true});allowSystemCapture(videoWindow);try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}return {ok:true,layout:videoLayout};
+    if(!shouldShowVideoWindow()){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout,visible:false};}
+    positionVideo({preservePosition:true});allowSystemCapture(videoWindow);try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}return {ok:true,layout:videoLayout,visible:true};
   }
   function syncBorderState(){
     if(!bordersReady())return;
@@ -261,7 +261,7 @@ if(process.platform==='darwin'){
     videoWindow=win;allowSystemCapture(win);try{win.setAlwaysOnTop(true,'floating');}catch{try{win.setAlwaysOnTop(true);}catch{}}
     try{win.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true,skipTransformProcessType:true});}catch{}
     win.on('closed',()=>{if(videoWindow===win)videoWindow=null;});positionVideo();
-    try{await boundedLoad('mac_share_video_load',()=>win.loadFile(path.join(uiDir,'mac-share-video.html')));if(!isAlive(win)||videoWindow!==win)return null;publishState();if(shareActive&&!qaKeepPresenterHidden&&videoLayout!=='hide'){positionVideo();win.showInactive?.();win.moveTop?.();}return win;}
+    try{await boundedLoad('mac_share_video_load',()=>win.loadFile(path.join(uiDir,'mac-share-video.html')));if(!isAlive(win)||videoWindow!==win)return null;publishState();if(shareActive&&!qaKeepPresenterHidden&&shouldShowVideoWindow()){positionVideo();win.showInactive?.();win.moveTop?.();}else try{win.hide();}catch{}return win;}
     catch(error){console.error('[DominionStar Meet] macOS presenter video dock failed to prepare.',error);closeFailedWindow(win);if(videoWindow===win)videoWindow=null;return null;}
   }
 
