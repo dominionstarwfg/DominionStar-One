@@ -6,7 +6,8 @@ const pkg=JSON.parse(read('package.json'));
 const bootstrap=read('src/bootstrap.mjs');
 const relaunch=read('src/relaunch-service.mjs');
 const html=read('ui/index.html');
-const participantPanelStability=read('ui/participant-panel-stability.css');
+const runtimeCss=read('ui/runtime-stability.css');
+const runtimeBootstrap=read('ui/runtime-bootstrap.js');
 
 assert.equal(pkg.main,'src/bootstrap.mjs','Packaged desktop must start through the canonical macOS install bootstrap.');
 const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
@@ -30,8 +31,8 @@ assert(bootstrap.includes("existsAndRunning")&&bootstrap.includes("app.quit()"),
 assert(bootstrap.includes('const version=app.getVersion()')&&!bootstrap.includes('open this 2.0.22 build'),'Installer/relaunch guidance must use the actual packaged build identity, never a stale hard-coded version.');
 assert(relaunch.includes('const execPath=process.execPath')&&relaunch.includes('const args=process.argv.slice(1)'),'Permission recovery relaunch must capture the exact running executable and arguments.');
 assert(relaunch.includes('app.relaunch({execPath,args})'),'Permission recovery must relaunch the exact installed DominionStar executable.');
-assert(html.includes('href="./participant-panel-stability.css"'),'Meeting shell must load the first-frame participant-panel stability guard.');
-assert(participantPanelStability.includes('left:auto!important')&&participantPanelStability.includes('right:24px!important')&&participantPanelStability.includes('transform:none!important'),'Participants panel must begin on the approved right edge before runtime reconciliation.');
-assert(!participantPanelStability.includes('left:50%!important')&&!participantPanelStability.includes('translateX(-50%)'),'Rejected centered Participants geometry must never return on the first frame.');
+assert(html.includes('src="./runtime-bootstrap.js"')&&runtimeBootstrap.includes("version:'2.0.53-clean-bootstrap'"),'Meeting shell must load the canonical runtime bootstrap before legacy compatibility can participate.');
+assert(runtimeCss.includes('#meetingOverlay .room-side[data-ds-runtime-mode="floating"]')&&runtimeCss.includes('right:14px!important'),'Canonical runtime CSS must own the approved first visible right-edge Participants geometry.');
+assert(!runtimeCss.includes('left:50%!important')&&!runtimeCss.includes('translateX(-50%)'),'Rejected centered Participants geometry must never return in the canonical runtime stylesheet.');
 
 console.log('DOMINIONSTAR_MAC_INSTALL_AUTHORITY_OK canonical-install exact-app-path duplicate-name-rejected single-instance dynamic-version fail-closed-existsAndRunning exact-binary-relaunch first-frame-participant-compact-right');
