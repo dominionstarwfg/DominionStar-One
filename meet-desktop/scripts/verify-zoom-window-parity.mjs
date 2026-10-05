@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
-const runtimeCss=read('ui/runtime-stability.css');
 const participants=read('ui/zoom-participants-reference-2.0.41.js');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const bootstrap=read('ui/runtime-bootstrap.js');
