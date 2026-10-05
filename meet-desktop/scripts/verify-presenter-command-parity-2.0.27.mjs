@@ -27,11 +27,11 @@ assert.ok(shareService.includes("else if(['participants','chat','annotate'].incl
 assert.ok(shareController.includes('navigator.mediaDevices.getDisplayMedia'),'Certified display capture authority must remain intact.');
 assert.ok(shareIntegration.includes("if(command==='pause'||command==='pause-share'||command==='resume-share')")&&shareIntegration.includes("if(target)await share.pause(sharedVideo)")&&shareIntegration.includes("else await share.resume()")&&shareIntegration.includes("if(actualPaused!==target)return finish({handled:false"),'Certified Pause/Resume authority must remain explicit, idempotent, and state-acknowledged.');
 assert.ok(
-  shareIntegration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}") &&
-  shareIntegration.includes("share.onChange(state=>{") &&
-  shareIntegration.includes("if(!window.__DOMINION_QA_SKIP_SHARE_LAYOUT)applyLayout();") &&
-  shareIntegration.includes("DominionActiveShareHomeParity2041?.restoreMeeting?.()"),
-  'Certified Stop Share authority must terminate capture locally, restore layout through the single share-state listener, and return to the same meeting.'
+  shareIntegration.includes("if(command==='stop'){clearCompanion();await share.stop();return finish({handled:true,command});}") &&
+  shareIntegration.includes("function cleanupStoppedShareSurfaces(){") &&
+  shareIntegration.includes("DominionActiveShareHomeParity2041?.restoreMeeting?.()") &&
+  shareIntegration.includes("if(shareWasActive&&!active){stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}"),
+  'Certified Stop Share authority must terminate capture locally, restore the current meeting through the share-state transition, and clean presenter surfaces deterministically.'
 );
 assert.ok(shareIntegration.includes("if(command==='audio'||command==='audio-on'||command==='audio-off')")&&shareIntegration.includes("await media.setMicrophone(target)"),'Certified microphone authority must remain intact through explicit idempotent targets.');
 assert.ok(shareIntegration.includes("if(command==='video'||command==='video-on'||command==='video-off')")&&shareIntegration.includes("await media.setCamera(target)"),'Certified camera authority must remain intact through explicit idempotent targets.');
