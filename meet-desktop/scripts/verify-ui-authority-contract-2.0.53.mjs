@@ -19,6 +19,9 @@ const presenterToolbarJs=read('ui/mac-presenter-toolbar.js');
 const presenterParity=read('ui/presenter-command-parity-2.0.27.js');
 const preload=read('src/preload.cjs');
 const pkg=JSON.parse(read('package.json'));
+const appSource=read('ui/app.js');
+const shareService=read('src/share-service.mjs');
+const captions=read('ui/meeting-captions.js');
 const workflow=fs.readFileSync(new URL('../../.github/workflows/rebuild-mac-production.yml',import.meta.url),'utf8');
 
 // Participants: one search/structure owner. The canonical input deliberately
@@ -68,6 +71,14 @@ assert(presenterToolbarJs.includes('presenter_command_not_acknowledged'),'Presen
 assert(!presenterParity.includes('setInterval('),'Presenter command compatibility install must use bounded retries, not polling intervals.');
 assert(preload.includes('const PRESENTER_FALLBACK_POLL_MS=250;'),'Presenter fallback IPC poll must remain explicitly bounded.');
 assert(!preload.includes('setInterval(()=>{void pollPresenterCommand();},80)'),'80ms presenter fallback polling is prohibited.');
+
+// Meeting end must deterministically release every long-lived runtime owner.
+assert(appSource.includes("window.DominionWebRTCController?.stop?.()"),'Meeting end must explicitly stop WebRTC instead of waiting for lifecycle polling.');
+assert(appSource.includes('media.stop();')&&appSource.includes('await stopMeetingPresentation();'),'Meeting end must release local media and active presentation state.');
+assert(appSource.includes("desktop?.app?.meetingEnded?.()"),'Renderer meeting-end flow must invoke native teardown.');
+assert(shareService.includes('function shutdown()')&&shareService.includes("globalThis.__dominionMacSharePresenterOverlay?.destroy?.()"),'Native meeting-end teardown must destroy presenter windows.');
+assert(captions.includes("window.addEventListener('dominion:meeting-ended',resetMeetingState)"),'Caption state must reset immediately when a meeting ends.');
+assert(!captions.includes('setInterval(()=>{if(inMeeting())'),'Captions must not rely on periodic UI cleanup after meeting end.');
 
 // The authority contract is itself a mandatory release gate.
 assert(pkg.scripts?.verify?.includes('verify-ui-authority-contract-2.0.53.mjs'),'npm verify must include the UI authority contract.');
