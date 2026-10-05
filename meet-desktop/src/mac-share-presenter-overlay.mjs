@@ -376,8 +376,13 @@ if(process.platform==='darwin'){
       try{main.webContents.send('share:presenter-command',payload);}catch(error){clearTimeout(timer);presenterDeliveries.delete(deliveryId);removeQueuedPresenterDelivery(deliveryId);resolve({ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'presenter_command_failed'),deliveryId});}
     });
   }
+  function presenterRetrySafe(command){
+    const value=String(command||'');
+    return /^(?:audio-(?:on|off)|video-(?:on|off)|pause-share|resume-share|participants|chat|stop|layout-(?:hide|speaker|strip|gallery))$/.test(value)
+      || /^participant:(?:mute|ask-unmute|stop-video|ask-video):/.test(value);
+  }
   async function deliverPresenterCommandWithRetry(main,command){
-    wakeMain(main);let result=await deliverPresenterCommand(main,command);if(result?.ok)return result;
+    wakeMain(main);let result=await deliverPresenterCommand(main,command);if(result?.ok||!presenterRetrySafe(command))return result;
     await wait(120);wakeMain(main);result=await deliverPresenterCommand(main,command);return result;
   }
   async function deliverPresenterCommandDirectFirst(main,command){
@@ -387,6 +392,7 @@ if(process.platform==='darwin'){
       const directPromise=main.webContents.executeJavaScript(`(async()=>{const fn=window.__DominionPresenterDispatch;if(typeof fn!=='function')return {handled:false,reason:'dispatcher-missing'};return await fn(${payload});})()`,true);
       const direct=await Promise.race([directPromise,new Promise(resolve=>setTimeout(()=>resolve({handled:false,reason:'direct-timeout'}),900))]);
       if(direct?.handled===true)return {ok:true,sent:true,acknowledged:true,direct:true,handled:true,result:direct};
+      if(direct?.reason==='direct-timeout'&&!presenterRetrySafe(command))return {ok:false,sent:true,acknowledged:false,error:'presenter_direct_timeout_no_retry'};
     }catch(error){
       if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_DIRECT_ERROR command=${String(command||'')} error=${String(error?.message||error||'direct_failed')}`);
     }
