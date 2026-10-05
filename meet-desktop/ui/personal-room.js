@@ -132,11 +132,6 @@
   function watchMeetingEntry(){if(q('#meetingOverlay')&&!q('#meetingOverlay').hidden&&document.body.dataset.persistentHostStart)clearHostStart();}
   function render(){ensureSettingsRow();renderCard();configureNewMeeting();if(state.room){const small=q('.action-card.new-meeting small');if(small)small.textContent=state.room.useForInstant!==false?'Start your Personal Room':'Start instantly';}}
 
-  function loadPhysicalIntelligence(){
-    if(q('script[data-ds-physical-intelligence-2041]')||window.DominionPhysicalIntelligence2041)return;
-    const script=document.createElement('script');script.src='./physical-intelligence-2.0.41.js';script.dataset.dsPhysicalIntelligence2041='1';document.body.append(script);
-  }
-
   const requestHomeRefresh=()=>{ensureSettingsRow();configureNewMeeting();decorateHostPrejoin();interceptHostCancel();watchMeetingEntry();if(signedIn()&&!state.room&&!state.loading&&Date.now()>=state.nextRetryAt)void load();};
   let homeRefreshTimer=0,homeRefreshRunning=false,homeRefreshPending=false;
   const scheduleHomeRefresh=(delay=32)=>{
@@ -155,7 +150,6 @@
   };
   const observer=new MutationObserver(()=>scheduleHomeRefresh(32));observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   window.addEventListener('dominion:meeting-ended',()=>{state.nextRetryAt=0;scheduleHomeRefresh(0);},{passive:true});
-  if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',loadPhysicalIntelligence,{once:true});else setTimeout(loadPhysicalIntelligence,0);
   ensureEditDialog();render();void load();
   window.DominionPersonalRoom=Object.freeze({load,room:()=>state.room,openEditor,start:startPersonal,beginHostPrejoin});
 })();
