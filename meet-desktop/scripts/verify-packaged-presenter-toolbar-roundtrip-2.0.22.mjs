@@ -162,6 +162,10 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
   window.DominionMediaController.setMirror(true);
   const mediaState=window.DominionMediaController.snapshot();
   if(!mediaState.videoLive||!mediaState.cameraOn)throw new Error('Synthetic live camera did not initialize.');
+  const qaRoster=document.querySelector('#participantRoster');
+  if(qaRoster){
+    qaRoster.innerHTML='<div class="person-row" data-participant-id="qa-self" data-participant-self="1" data-participant-role="host" data-participant-name="QA Self"><span class="person-copy"><strong><span class="participant-name-text">QA Self</span></strong><small></small></span><span data-participant-mic class="on"></span><span data-participant-video class="on"></span></div><div class="person-row" data-participant-id="qa-peer" data-participant-role="participant" data-participant-name="QA Peer"><span class="person-copy"><strong><span class="participant-name-text">QA Peer</span></strong><small></small></span><span data-participant-mic></span><span data-participant-video></span></div>';
+  }
   setTimeout(()=>{
     void (async()=>{
       try{
@@ -371,21 +375,21 @@ try{
 
   const videoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'floating presenter video panel');
   video=new Cdp(videoTarget.webSocketDebuggerUrl);await video.connect();
-  await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'&&!document.querySelector('#cameraPreview')?.hidden&&document.querySelector('#cameraPreview')?.srcObject?.getVideoTracks?.()[0]?.readyState==='live'",'live camera preview in presenter video',9000);
-  const liveVideo=await video.eval("(()=>({live:document.querySelector('#dock').dataset.livePreview,previewHidden:document.querySelector('#cameraPreview').hidden,fallbackHidden:document.querySelector('#cameraFallback').hidden,trackState:document.querySelector('#cameraPreview').srcObject?.getVideoTracks?.()[0]?.readyState||''}))()");
-  assert.equal(liveVideo.live,'1');
-  assert.equal(liveVideo.previewHidden,false);
+  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('.remote-frame');return Boolean(tile&&frame&&!frame.hidden&&/^data:image\\/jpeg/i.test(frame.src||''));})()",'live self camera frame in presenter video',9000);
+  const liveVideo=await video.eval("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('.remote-frame');const fallback=tile?.querySelector('.video-fallback');return {self:Boolean(tile),frameHidden:frame?.hidden!==false,fallbackHidden:fallback?.hidden!==false,frameSrc:String(frame?.src||'')};})()");
+  assert.equal(liveVideo.self,true);
+  assert.equal(liveVideo.frameHidden,false);
   assert.equal(liveVideo.fallbackHidden,true);
-  assert.equal(liveVideo.trackState,'live','Presenter video must own a live preview track while camera state is on.');
+  assert.match(liveVideo.frameSrc,/^data:image\/jpeg/i,'Presenter video must mirror the already-owned live camera as a JPEG frame without acquiring a second camera stream.');
   stage('presenter-video-live');
 
-  await video.wait("document.querySelector('#videoMoreButton')&&document.querySelector('#videoMoreMenu')",'presenter video quick-controls shell',5000);
-  await video.click('#videoMoreButton');
-  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===false",'presenter video quick-controls open',4000);
-  const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoMoreMenu button')].map(button=>button.textContent.trim())");
-  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Speaker View','Gallery View','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
-  await video.eval("window.dispatchEvent(new MouseEvent('mouseleave'))");
-  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===true",'presenter video quick-controls dismiss when pointer leaves floating video surface',4000);
+  await video.wait("document.querySelector('.video-tile[data-self=\"1\"] [data-video-more]')&&document.querySelector('#videoActionMenu')",'presenter video per-tile controls shell',5000);
+  await video.click('.video-tile[data-self="1"] [data-video-more]');
+  await video.wait("document.querySelector('#videoActionMenu')?.hidden===false",'presenter video per-tile controls open',4000);
+  const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoActionMenu button')].map(button=>button.textContent.trim())");
+  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Speaker View','Participant Strip','Gallery View','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
+  await video.eval("document.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))");
+  await video.wait("document.querySelector('#videoActionMenu')?.hidden===true",'presenter video per-tile controls dismiss',4000);
   stage('presenter-video-hover-controls');
 
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
