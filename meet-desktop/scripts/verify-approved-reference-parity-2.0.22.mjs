@@ -71,7 +71,7 @@ assert.ok(!share.includes("if(nativeSystemPicker&&status!=='granted')"),'No perm
 assert.ok(controller.includes("error.code='share_start_timeout'")&&controller.includes('},5000);'),'Share transaction must fail visibly within five seconds.');
 
 for(const workflow of [production,qa]){
-  assert.ok(workflow.includes('verify-approved-reference-parity-2.0.22.mjs'),'Workflow is missing the approved-reference source gate.');
+  assert.ok(pkg.scripts.verify.includes('verify-approved-reference-parity-2.0.22.mjs')&&workflow.includes('npm run verify'),'Canonical npm verification is missing the approved-reference source gate.');
   assert.ok(workflow.includes('verify-packaged-approved-reference-2.0.22.mjs'),'Workflow is missing the packaged approved-reference gate.');
 }
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
