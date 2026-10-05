@@ -7,7 +7,7 @@ const screenshotReference=read('ui/zoom-screenshot-reference-2.0.41.js');
 const screenshotReferenceCss=read('ui/zoom-screenshot-reference-2.0.41.css');
 const integration=read('ui/share-integration.js');
 const macVideo=read('ui/mac-share-video.js');
-const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
+const indexHtml=read('ui/index.html');
 const participantsReference=read('ui/zoom-participants-reference-2.0.41.js');
 const pkg=JSON.parse(read('package.json'));
 
@@ -36,10 +36,8 @@ assert(screenshotReference.includes('data-ds-ref-critical-meeting-geometry')&&sc
 assert(screenshotReference.includes('function claimFinalMeetingAuthority(){')&&screenshotReference.includes("overlay.classList.remove('ds-exec-lock')")&&screenshotReference.includes("qa('#meetingOverlay .ds-exec-icon,#meetingOverlay .ds-exec-label,#meetingOverlay .ds-exec-encrypted,#meetingOverlay .ds-exec-divider')"),'Final Zoom-reference sync must synchronously strip stale executive geometry before any packaged interaction measurement.');
 assert(screenshotReferenceCss.includes('#meetingOverlay #participantRoster .person-row{min-height:42px!important;height:42px!important')&&screenshotReferenceCss.includes('#meetingOverlay #participantRoster .person-badge{width:30px!important;height:30px!important')&&screenshotReferenceCss.includes('#meetingOverlay #participantRoster .person-copy strong{font-size:13px!important')&&screenshotReferenceCss.includes('.ds-participant-more{width:28px!important;height:28px!important;min-width:28px!important'),'The loaded final screenshot stylesheet must preserve compact readable Participants rows, avatars, names, and ellipsis hit targets.');
 
-new Function(featureReady);
-assert(featureReady.includes('function finalReferenceReady(){return Boolean(window.DominionZoomScreenshotReference?.sync);}')&&featureReady.includes("o.classList.remove('ds-exec-lock')"),'Legacy 2.0.41 meeting chrome must yield its geometry class when the final Zoom-reference authority is available.');
-assert(featureReady.includes("o.querySelectorAll('.ds-exec-icon,.ds-exec-label,.ds-exec-encrypted,.ds-exec-divider')")&&featureReady.includes("o.querySelectorAll('.ds-exec-control')"),'Final-reference handoff must remove stale executive toolbar decoration that can widen or shift controls.');
-assert(featureReady.includes('window.DominionZoomScreenshotReference?.requestSync?.()'),'Legacy-to-final handoff must immediately reassert final Zoom-reference geometry after cleanup.');
+assert(!indexHtml.includes('meeting-feature-ready-2.0.41.js'),'Transient legacy meeting chrome must not load in production.');
+assert(screenshotReference.includes("overlay.classList.remove('ds-exec-lock')")&&screenshotReference.includes("qa('#meetingOverlay .ds-exec-icon,#meetingOverlay .ds-exec-label,#meetingOverlay .ds-exec-encrypted,#meetingOverlay .ds-exec-divider')"),'Final reference must retain defensive cleanup for stale executive chrome without loading a competing compatibility layer.');
 assert(participantsReference.includes('min-height:42px!important;height:42px!important')&&participantsReference.includes('white-space:nowrap!important;font-size:12px!important;font-weight:600!important;color:#f3f3f4!important}')&&participantsReference.includes('width:28px!important;height:28px!important;min-width:28px!important'),'Final Participants reference must keep the approved compact row, readable name, and ellipsis hit-target scale under packaged physical acceptance.');
 
 console.log('DOMINIONSTAR_ACTIVE_SHARE_REPAIR_2_0_52_OK acknowledged-toolbar canonical-new-share clean-stop approved-participant-strip single-camera-local-remote-mirror persistent-tiles direct-mute ellipsis single-slash stable-final-toolbar-handoff readable-participant-scale');
