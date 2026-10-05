@@ -7,6 +7,9 @@ const root=fileURLToPath(new URL('..',import.meta.url));
 const uiDir=path.join(root,'ui');
 const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const bootstrap=fs.readFileSync(path.join(uiDir,'runtime-bootstrap.js'),'utf8');
+const workflowsDir=path.join(root,'..','.github','workflows');
+const productionWorkflow=fs.readFileSync(path.join(workflowsDir,'rebuild-mac-production.yml'),'utf8');
+const qaWorkflow=fs.readFileSync(path.join(workflowsDir,'rebuild-mac-qa-certify.yml'),'utf8');
 
 const files=fs.readdirSync(uiDir).sort();
 const forbidden=[
@@ -53,7 +56,13 @@ assert(!fs.readFileSync(path.join(uiDir,'runtime-stability.js'),'utf8').includes
 const buildFiles=Array.isArray(pkg.build?.files)?pkg.build.files:[];
 assert.deepEqual(buildFiles,['src/**/*','ui/**/*','package.json'],'Production package must contain runtime source only; tests, audit docs, and repository history stay outside the app bundle.');
 
+const workflowFiles=fs.readdirSync(workflowsDir).filter(file=>/\.ya?ml$/i.test(file)).sort();
+assert.deepEqual(workflowFiles,['rebuild-foundation-verify.yml','rebuild-mac-production.yml','rebuild-mac-qa-certify.yml'],'Only canonical foundation, QA, and production workflows may remain.');
+assert(productionWorkflow.includes('run: npm run verify'),'Production must use the canonical source-certification entrypoint.');
+assert(qaWorkflow.includes('run: npm run verify'),'QA must use the same canonical source-certification entrypoint as production.');
+assert(!qaWorkflow.includes('node scripts/verify-foundation.mjs')&&!qaWorkflow.includes('node scripts/verify-runtime-stability-2.0.22.mjs'),'QA workflow must not duplicate the source-certification command list.');
+
 const verify=String(pkg.scripts?.verify||'');
 assert(verify.includes('verify-clean-runtime-2.0.54.mjs'),'The clean-runtime gate must certify itself through npm verify.');
 
-console.log('DOMINIONSTAR_CLEAN_RUNTIME_2_0_54_OK no-obsolete-repair-files minimal-bootstrap runtime-only-package single-certification-entrypoint');
+console.log('DOMINIONSTAR_CLEAN_RUNTIME_2_0_54_OK no-obsolete-repair-files minimal-bootstrap runtime-only-package canonical-workflows shared-source-certification');
