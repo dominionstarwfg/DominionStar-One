@@ -21,6 +21,7 @@ const preload=read('src/preload.cjs');
 const pkg=JSON.parse(read('package.json'));
 const appSource=read('ui/app.js');
 const shareService=read('src/share-service.mjs');
+const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const captions=read('ui/meeting-captions.js');
 const workflow=fs.readFileSync(new URL('../../.github/workflows/rebuild-mac-production.yml',import.meta.url),'utf8');
 
@@ -73,6 +74,12 @@ assert(presenterToolbarJs.includes('presenter_command_not_acknowledged'),'Presen
 assert(!presenterParity.includes('setInterval('),'Presenter command compatibility install must use bounded retries, not polling intervals.');
 assert(preload.includes('const PRESENTER_FALLBACK_POLL_MS=250;'),'Presenter fallback IPC poll must remain explicitly bounded.');
 assert(!preload.includes('setInterval(()=>{void pollPresenterCommand();},80)'),'80ms presenter fallback polling is prohibited.');
+
+// macOS screenshots must include presenter surfaces; self-capture exclusion must
+// not rely on content-protection blackouts.
+assert(shareService.includes("const protect=platform==='darwin'?false:Boolean(enabled);"),'macOS meeting/presenter windows must not use content protection that blanks screenshots.');
+assert(macOverlay.includes('function allowSystemCapture(win)')&&macOverlay.includes('win.setContentProtection(false)'),'Native presenter surfaces must explicitly remain capturable by macOS screenshots.');
+assert(shareService.includes('try{main.setIgnoreMouseEvents(false);}catch{}')&&shareService.includes('protectMeetingChrome(main,false)'),'Share teardown must restore normal main-window interaction and capture state.');
 
 // Meeting end must deterministically release every long-lived runtime owner.
 assert(appSource.includes("window.DominionWebRTCController?.stop?.()"),'Meeting end must explicitly stop WebRTC instead of waiting for lifecycle polling.');
