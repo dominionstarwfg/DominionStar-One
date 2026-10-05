@@ -17,6 +17,11 @@ const fail=(file,rule,detail='')=>failures.push({file,rule,detail});
 const uiJs=[...sources].filter(([file])=>file.startsWith('ui/')&&/\.(?:js|mjs|cjs)$/.test(file));
 const css=[...sources].filter(([file])=>file.startsWith('ui/')&&file.endsWith('.css'));
 
+const authSource=sources.get('ui/auth-password.js')||'';
+const runtimeBootstrap=sources.get('ui/runtime-bootstrap.js')||'';
+if(/runtime-stability|zoom-production-polish|zoom-physical-acceptance|video-effects\.js|av-settings\.js/.test(authSource))fail('ui/auth-password.js','auth-runtime-separation','Authentication module must not load or own meeting runtime modules.');
+if(!runtimeBootstrap.includes("version:'2.0.53-clean-bootstrap'"))fail('ui/runtime-bootstrap.js','runtime-bootstrap-authority','Dedicated runtime bootstrap is missing or unidentified.');
+
 // Camera ownership: the renderer media controller is the only UI module
 // permitted to acquire camera/microphone hardware directly.
 for(const [file,src] of uiJs){
