@@ -184,10 +184,11 @@ has(macToolbarJs,"state?.paused",'Native presenter toolbar must reflect real Pau
 has(macToolbarJs,"state?.micOn",'Native presenter toolbar must reflect real microphone state.');
 has(macToolbarJs,"state?.cameraOn",'Native presenter toolbar must reflect real camera state.');
 
-for(const rel of ['src/mac-share-presenter-overlay.mjs','src/presenter-preload.cjs','ui/mac-presenter-toolbar.js','ui/active-share-home-parity-2.0.41.js'])syntax(rel);
+for(const rel of ['src/mac-share-presenter-overlay.mjs','src/presenter-preload.cjs','ui/mac-presenter-toolbar.js'])syntax(rel);
+assert.equal(fs.existsSync(url('ui/active-share-home-parity-2.0.41.js')),false,'Retired active-share home compatibility module must stay deleted.');
 
 // Privacy rule.
-for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,presenterPreload,macToolbarHtml,macToolbarCss,macToolbarJs,activeShareHome]){
+for(const source of [refJs,refCss,pickerHtml,pickerJs,pickerCss,macOverlay,presenterPreload,macToolbarHtml,macToolbarCss,macToolbarJs]){
   lacks(source,'Screenshot 2026-09-03','User screenshots must never be embedded in app source.');
   lacks(source,'private-user-images.githubusercontent.com','User image uploads must never be linked into the product.');
 }
