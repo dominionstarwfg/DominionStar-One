@@ -4,9 +4,6 @@ import assert from 'node:assert/strict';
 const read=rel=>fs.readFileSync(new URL('../'+rel,import.meta.url),'utf8');
 const participantRef=read('ui/zoom-participants-reference-2.0.41.js');
 const participantControls=read('ui/participant-controls.js');
-const adaptive=read('ui/zoom-adaptive-parity.js');
-const adaptiveCss=read('ui/zoom-adaptive-parity.css');
-const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 const productionPolish=read('ui/zoom-production-polish.js');
 const approvedReference=read('ui/approved-reference-parity.js');
 const physicalAcceptance=read('ui/zoom-physical-acceptance.js');
@@ -44,17 +41,13 @@ assert(participantRef.includes('class="ds-participant-search-primary"'),'Canonic
 assert(!participantRef.includes('class="zoom-participant-search ds-participant-search-primary"'),'Canonical Participants search must not inherit the legacy zoom-participant-search class.');
 assert(participantRef.includes('const backgroundEnabled=!Boolean(window.dominionDesktop);'),'Participants reference must be manual/event-driven on desktop.');
 assert(participantRef.includes('if(backgroundEnabled){'),'Participants reference desktop background guard is missing.');
-assert(!adaptiveCss.includes('[data-ds-adaptive-count="1"] .zoom-participant-search'),'Adaptive CSS must never hide search for one-person meetings.');
-assert(!adaptive.includes('search.hidden=count<=1'),'Adaptive JS must never hide the participant search for one-person meetings.');
 assert(runtime.includes('Participants search has one owner: DominionZoomParticipantsReference2041.'),'Runtime must explicitly defer participant-search ownership.');
 assert(participantControls.includes('const timer=desktopSurface?0:setInterval'),'Participant controls must not run a six-second desktop reconciliation timer.');
 
-// Legacy parity layers may remain callable for a deliberate one-shot pass, but
-// they may not autonomously reconcile desktop meeting surfaces.
-assert(adaptive.includes('const desktopCanonical=Boolean(window.dominionDesktop);'),'Adaptive desktop authority guard is missing.');
-assert(adaptive.includes('if(desktopCanonical)return;'),'Adaptive desktop sync must stop before participant/chat/video-dock mutation.');
-assert(adaptive.includes('if(!desktopCanonical){')&&adaptive.includes('timer=setInterval(sync,650);'),'Adaptive background observer/timer must be non-desktop only.');
-assert(activeShareHome.includes('const desktopCanonical=Boolean(desktop?.isDesktop);')&&activeShareHome.includes('if(!desktopCanonical){'),'Active-share helper must be event-driven on desktop.');
+// Retired compatibility layers are deleted, not merely left dormant.
+for(const retired of ['ui/active-share-home-parity-2.0.41.js','ui/physical-mac-repair.js','ui/physical-mac-repair.css','ui/runtime-layout-fix.css','ui/zoom-adaptive-parity.js','ui/zoom-adaptive-parity.css','ui/zoom-production-polish.css']){
+  assert(!fs.existsSync(new URL('../'+retired,import.meta.url)),`Retired compatibility file must stay deleted: ${retired}`);
+}
 assert(productionPolish.includes('const backgroundEnabled=!Boolean(window.dominionDesktop);')&&productionPolish.includes('if(backgroundEnabled){'),'Production polish must not autonomously reconcile desktop chrome.');
 assert(approvedReference.includes('const backgroundEnabled=!Boolean(window.dominionDesktop);')&&approvedReference.includes('if(backgroundEnabled){'),'Approved reference compatibility layer must not poll desktop chrome.');
 assert(physicalAcceptance.includes('const desktopCanonical=Boolean(desktop?.isDesktop);'),'Physical acceptance desktop guard is missing.');
