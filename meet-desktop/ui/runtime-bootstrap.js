@@ -51,6 +51,8 @@
     // Load only helpers still used by the canonical runtime. Historical
     // repair/adaptive visual layers are intentionally not loaded on desktop.
     await Promise.all([
+      loadScript('./zoom-production-polish.js','dsZoomProductionPolish'),
+      loadScript('./zoom-physical-acceptance.js','dsZoomPhysicalAcceptance'),
       loadScript('./zoom-reaction-parity.js','dsZoomReactionParity'),
       loadScript('./zoom-contract-bridge.js','dsZoomContractBridge'),
       loadScript('./presenter-command-parity-2.0.27.js','dsPresenterCommandParity227')
