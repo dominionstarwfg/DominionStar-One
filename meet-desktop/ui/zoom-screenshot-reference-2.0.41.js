@@ -122,7 +122,7 @@
     const count=qa('#participantRoster [data-participant-id]').length||1;
     const head=side.querySelector('.room-side-head');if(head){const strong=head.querySelector('strong');if(strong)strong.textContent=`Participants (${count})`;}
     let footer=side.querySelector('.ds-ref-participants-footer');if(footer)return;
-    footer=document.createElement('div');footer.className='ds-ref-participants-footer';
+    footer=document.createElement('div');footer.className='ds-ref-participants-footer';footer.dataset.dsCanonicalParticipantFooter='1';
     footer.innerHTML='<button type="button" data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more aria-label="More participant controls">More</button>';
     side.append(footer);
     footer.querySelector('[data-ref-invite]').onclick=event=>openParticipantInvite(event.currentTarget);
