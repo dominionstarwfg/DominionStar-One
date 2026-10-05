@@ -11,7 +11,7 @@ const webrtc=read('ui/webrtc-controller.js');
 
 const home=read('ui/index.html');
 assert(home.includes('<link rel="stylesheet" href="./av-settings.css">')&&home.indexOf('./video-effects.js')<home.indexOf('./av-settings.js'),'Desktop shell must load AV settings and video effects directly, with video effects first so persisted appearance state reaches the outgoing camera deterministically.');
-assert(runtimeBootstrap.includes("version:'2.0.53-clean-bootstrap'"),'Desktop runtime compatibility loading must be owned by runtime-bootstrap.js.');
+assert(runtimeBootstrap.includes("version:'2.0.54-minimal-runtime-bootstrap'")&&runtimeBootstrap.includes("loadScript('./physical-intelligence-2.0.41.js'")&&!runtimeBootstrap.includes("loadScript('./zoom-adaptive-parity.js'")&&!runtimeBootstrap.includes("loadScript('./active-share-home-parity-2.0.41.js'"),'Desktop runtime bootstrap must own only the minimal functional compatibility set.');
 assert(!auth.includes('runtime-stability.js')&&!auth.includes('zoom-production-polish')&&!auth.includes('video-effects.js')&&!auth.includes('av-settings.js'),'Authentication must not own meeting runtime, video effects, or AV module loading.');
 assert(enhancements.includes('window.DominionMediaController'),'AV settings must build on the clean media authority, not the legacy meeting engine.');
 assert(!enhancements.includes('DominionStarMeetingEngine')&&!enhancements.includes('getDisplayMedia'),'AV settings must not import legacy engine or screen-share authority.');
