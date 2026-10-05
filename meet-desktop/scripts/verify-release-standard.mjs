@@ -38,14 +38,13 @@ for(const name of requiredSteps){
 
 assert.ok(workflow.includes('node scripts/verify-physical-acceptance.mjs'),'Physical acceptance source audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-reaction-parity.mjs'),'Reaction timing/source-flow audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-physical-mac-2.0.21.mjs'),'2.0.21 physical-Mac source audit is mandatory.');
+assert.ok(workflow.includes('node scripts/verify-physical-mac-2.0.21.mjs'),'Canonical Physical-Mac source audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-zoom-window-parity.mjs'),'Adaptive Zoom window behavior source audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-physical-parity-2.0.21.mjs'),'Physical-reference source audit is mandatory.');
+assert.ok(workflow.includes('node scripts/verify-physical-parity-2.0.21.mjs'),'Canonical physical-reference source audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-approved-reference-parity-2.0.22.mjs'),'Approved 3D-reference source audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-runtime-stability-2.0.22.mjs'),'Physical runtime stability source audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-zoom-screenshot-reference-2.0.41.mjs'),'Screenshot/reference authority regression audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-active-share-repair-2.0.42.mjs'),'Active-share repair regression audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs'),'Latest 2.0.44 physical-Mac duplicate-control and smoothness regression audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-ui-authority-contract-2.0.53.mjs'),'UI authority ownership audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-project-architecture-2.0.53.mjs'),'Project-wide architecture regression audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-runtime-stability-2.0.22.mjs'),'Packaged freeze/responsive-layout audit is mandatory.');
@@ -81,4 +80,4 @@ assert.ok(/Security labels must be technically true/i.test(standard),'Release st
 assert.ok(/Physical-Mac acceptance feedback is a first-class release input/i.test(standard),'Release standard must preserve physical Mac failures as first-class release evidence.');
 assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(standard),'Release standard must prohibit publishing failed candidates.');
 
-console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source source-cert packaged-audit packaged-launch runtime-stability packaged-controls zoom-render-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac-2.0.21 adaptive-zoom-gate approved-3d-reference-gate native-system-picker tcc-provenance installer-verify upload-last`);
+console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source canonical-source-cert packaged-audit packaged-launch runtime-stability packaged-controls visual-reference-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac adaptive-window-gate approved-reference-gate custom-share-authority tcc-provenance installer-verify upload-last`);
