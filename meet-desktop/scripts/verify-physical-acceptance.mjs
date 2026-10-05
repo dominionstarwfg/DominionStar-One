@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const js=read('ui/zoom-physical-acceptance.js');
-const css=read('ui/zoom-physical-acceptance.css');
-const bootstrap=read('ui/auth-password.js');
+const runtimeBootstrap=read('ui/runtime-bootstrap.js');
 const presenter=read('ui/presenter-toolbar.js');
 const macPresenter=read('ui/mac-presenter-toolbar.js');
 const shareIntegration=read('ui/share-integration.js');
@@ -17,19 +16,16 @@ new Function(js);
 new Function(presenter);
 new Function(macPresenter);
 
-assert(bootstrap.includes('zoom-physical-acceptance.css')&&bootstrap.includes('zoom-physical-acceptance.js'),'Physical acceptance authority must load after the production polish layer.');
+assert(runtimeBootstrap.includes("loadScript('./zoom-physical-acceptance.js'")&&!runtimeBootstrap.includes("loadStyle('./zoom-physical-acceptance.css'"),'Physical acceptance may load only as a one-shot behavior helper; its retired stylesheet must stay out of desktop startup.');
 assert(js.includes("button.dataset.dsPhysicalAuthority='1'")&&js.includes('installViewAuthority')&&js.includes('installHostToolsAuthority')&&js.includes('installMoreAuthority'),'View, Host Tools and More must have explicit visible-control authority.');
 assert(js.includes("parity()?.applyViewMode?.('speaker')")&&js.includes("parity()?.applyViewMode?.('gallery')")&&js.includes("parity()?.applyViewMode?.('multi')"),'View menu actions must invoke real meeting layout behavior.');
 assert(js.includes("meeting?.setSecurity?.(ctx.roomId")&&js.includes("parity()?.toggleParticipants?.(true)"),'Host Tools must invoke real host/security actions without proxy-clicking the hidden legacy Security control.');
 assert(!js.includes("q('#roomSecurity').click"),'Physical Host Tools must never proxy-click the hidden legacy Security control.');
-assert(css.includes('z-index:2600')&&css.includes('.ds-command-menu'),'Command menus must render above the meeting toolbar and video stage.');
 assert(js.includes("placeholder")===false||true); // keep parser stable when minifiers change literals
 assert(js.includes('zoom-participant-search')===false||js.includes('decorateParticipantRows'),'Participants authority must decorate the searchable roster rather than replacing meeting membership logic.');
 assert(js.includes('ds-participant-media')&&js.includes('MIC_ON')&&js.includes('VIDEO_OFF'),'Participant rows must expose microphone and camera state affordances.');
 assert(js.includes("button.textContent='•••'")&&js.includes('data-participant-more'),'Participant management must use a per-row ellipsis instead of the legacy text More button.');
 assert(js.includes("payload={kind:'media-state'")&&js.includes("meeting.sendSignal(p.participantId,'reaction',payload)"),'Media state must propagate to host/co-host roster surfaces using the already-routed meeting signal transport.');
-assert(css.includes('.ds-modern-participant-row')&&css.includes('.ds-media-state.off')&&css.includes('.ds-role-chip'),'Participant roster must have modern role and media-state presentation.');
-assert(css.includes('#meetingChatPanel')&&css.includes('.meeting-chat-message.own p')&&css.includes('font-size:14px!important'),'Chat must use readable modern message typography and distinguish own messages.');
 assert(js.includes("const REACTIONS=['👏','👍','❤️','😂','😮','🎉']"),'Standard reaction set must match the six common Zoom meeting reactions.');
 assert(js.includes('Final React ownership belongs to DominionMeetingFeatures + RuntimeStability.'),'Physical acceptance layer must explicitly defer reaction control ownership to the canonical runtime/features authority.');
 assert(runtime.includes("window.DominionMeetingFeatures?.openReactions?.(reactions)"),'Runtime stability must route the Reactions control to the canonical reaction tray.');
