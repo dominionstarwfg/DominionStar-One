@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const workflow=fs.readFileSync(new URL('../../.github/workflows/rebuild-mac-production.yml',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 const standard=fs.readFileSync(new URL('../RELEASE_STANDARD.md',import.meta.url),'utf8');
+const verify=String(pkg.scripts?.verify||'');
 
 const requiredSteps=[
   'Clean generated state',
@@ -36,17 +37,20 @@ for(const name of requiredSteps){
   previous=index;
 }
 
-assert.ok(workflow.includes('node scripts/verify-physical-acceptance.mjs'),'Physical acceptance source audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-reaction-parity.mjs'),'Reaction timing/source-flow audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-physical-mac-2.0.21.mjs'),'Canonical Physical-Mac source audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-zoom-window-parity.mjs'),'Adaptive Zoom window behavior source audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-physical-parity-2.0.21.mjs'),'Canonical physical-reference source audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-approved-reference-parity-2.0.22.mjs'),'Approved 3D-reference source audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-runtime-stability-2.0.22.mjs'),'Physical runtime stability source audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-zoom-screenshot-reference-2.0.41.mjs'),'Screenshot/reference authority regression audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-active-share-repair-2.0.42.mjs'),'Active-share repair regression audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-ui-authority-contract-2.0.53.mjs'),'UI authority ownership audit is mandatory.');
-assert.ok(workflow.includes('node scripts/verify-project-architecture-2.0.53.mjs'),'Project-wide architecture regression audit is mandatory.');
+assert.ok(workflow.includes('npm run verify'),'Production workflow must invoke the single source-certification entrypoint.');
+for(const script of [
+  'verify-physical-acceptance.mjs',
+  'verify-reaction-parity.mjs',
+  'verify-physical-mac-2.0.21.mjs',
+  'verify-zoom-window-parity.mjs',
+  'verify-physical-parity-2.0.21.mjs',
+  'verify-approved-reference-parity-2.0.22.mjs',
+  'verify-runtime-stability-2.0.22.mjs',
+  'verify-zoom-screenshot-reference-2.0.41.mjs',
+  'verify-active-share-repair-2.0.42.mjs',
+  'verify-ui-authority-contract-2.0.53.mjs',
+  'verify-project-architecture-2.0.53.mjs'
+])assert.ok(verify.includes(script),`npm verify is missing mandatory source gate: ${script}`);
 assert.ok(workflow.includes('node scripts/verify-packaged-runtime-stability-2.0.22.mjs'),'Packaged freeze/responsive-layout audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-interactions.mjs'),'Packaged interaction audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-zoom-visual.mjs'),'Rendered Zoom-parity audit is mandatory.');
