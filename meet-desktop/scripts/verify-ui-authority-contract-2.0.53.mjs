@@ -79,6 +79,8 @@ assert(!preload.includes('setInterval(()=>{void pollPresenterCommand();},80)'),'
 // not rely on content-protection blackouts.
 assert(shareService.includes("const protect=platform==='darwin'?false:Boolean(enabled);"),'macOS meeting/presenter windows must not use content protection that blanks screenshots.');
 assert(macOverlay.includes('function allowSystemCapture(win)')&&macOverlay.includes('win.setContentProtection(false)'),'Native presenter surfaces must explicitly remain capturable by macOS screenshots.');
+assert(macOverlay.includes('function presenterRetrySafe(command)')&&macOverlay.includes("presenter_direct_timeout_no_retry"),'Native presenter delivery must distinguish retry-safe target-state commands from non-idempotent actions.');
+assert(macOverlay.includes("if(result?.ok||!presenterRetrySafe(command))return result;"),'Non-idempotent presenter queue delivery must never be retried automatically.');
 assert(shareService.includes('try{main.setIgnoreMouseEvents(false);}catch{}')&&shareService.includes('protectMeetingChrome(main,false)'),'Share teardown must restore normal main-window interaction and capture state.');
 
 // Meeting end must deterministically release every long-lived runtime owner.
