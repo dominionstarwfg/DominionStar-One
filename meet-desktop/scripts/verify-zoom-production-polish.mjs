@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
-const bootstrap=read('ui/auth-password.js');
+const bootstrap=read('ui/runtime-bootstrap.js');
+const auth=read('ui/auth-password.js');
 const css=read('ui/zoom-production-polish.css');
 const js=read('ui/zoom-production-polish.js');
 
-assert(bootstrap.includes("zoom-production-polish.css")&&bootstrap.includes("zoom-production-polish.js"),'Desktop bootstrap must load the production Zoom polish layer.');
+assert(bootstrap.includes("./zoom-production-polish.css")&&bootstrap.includes("./zoom-production-polish.js"),'Dedicated runtime bootstrap must load the production polish compatibility layer.');
+assert(!auth.includes('zoom-production-polish'),'Authentication must not load production meeting polish.');
 assert(css.includes('--ds-meeting-toolbar-h:84px'),'Production toolbar must use readable Zoom-scale height.');
 assert(css.includes('.ds-control-icon{width:29px')&&css.includes('.ds-control-label{font-size:12px'),'Primary meeting icons and labels must not ship at the undersized QA scale.');
 assert(css.includes('.meeting-footer>#roomMic{order:1!important')&&css.includes('#roomExitButton{order:99!important'),'Audio must anchor the left side and End must anchor the right side of the meeting toolbar.');
