@@ -25,7 +25,7 @@ assert.ok(parity.includes('position:absolute!important'),'Share companion panels
 // command-routing correction, not another screen-capture rewrite.
 assert.ok(shareService.includes("else if(['participants','chat','annotate'].includes(normalized)&&shareActive)"),'Expected legacy exact-command mutation boundary changed unexpectedly.');
 assert.ok(shareController.includes('navigator.mediaDevices.getDisplayMedia'),'Certified display capture authority must remain intact.');
-assert.ok(shareIntegration.includes("if(command==='pause'){await share.togglePause(sharedVideo)"),'Certified Pause/Resume authority must remain intact.');
+assert.ok(shareIntegration.includes("if(command==='pause'||command==='pause-share'||command==='resume-share')")&&shareIntegration.includes("if(target)await share.pause(sharedVideo)")&&shareIntegration.includes("else await share.resume()")&&shareIntegration.includes("if(actualPaused!==target)return finish({handled:false"),'Certified Pause/Resume authority must remain explicit, idempotent, and state-acknowledged.');
 assert.ok(
   shareIntegration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}") &&
   shareIntegration.includes("share.onChange(state=>{") &&
