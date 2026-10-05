@@ -47,7 +47,7 @@ jobs:
         id: meta
         working-directory: meet-desktop
         shell: bash
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
 
       - name: Verify physical Mac source contract
         working-directory: meet-desktop
