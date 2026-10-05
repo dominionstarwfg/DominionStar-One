@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
-const approvedCss=read('ui/approved-reference-parity.css');
+const runtimeCss=read('ui/runtime-stability.css');
 const participants=read('ui/zoom-participants-reference-2.0.41.js');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const bootstrap=read('ui/runtime-bootstrap.js');
@@ -33,7 +33,7 @@ assert(runtime.includes('participantPriority(row)')&&runtime.includes("return se
 
 // Native share filmstrip starts at two participants; one participant has no side tile.
 assert(macOverlay.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=2;}"),'Native share filmstrip must start at two participants.');
-assert(approvedCss.includes('right:14px !important;'),'Approved desktop filmstrip/reference geometry must preserve the right-side default.');
+assert(runtimeCss.includes('right:14px!important;'),'Canonical runtime must preserve the right-side filmstrip default.');
 
 // Retired adaptive/physical repair authorities may not return to startup.
 for(const retired of ['zoom-adaptive-parity.js','zoom-adaptive-parity.css','physical-mac-repair.js','physical-mac-repair.css','active-share-home-parity-2.0.41.js']){
