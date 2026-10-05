@@ -53,7 +53,7 @@
   }
 
   function retireBackgroundReconcilers(){
-    for(const name of ['DominionZoomAdaptiveParity','DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance','DominionZoomParticipantsReference2041'])disposeLoop(name);
+    for(const name of ['DominionZoomProductionPolish','DominionApprovedReferenceParity','DominionZoomBehavior','DominionZoomPhysicalAcceptance','DominionZoomParticipantsReference2041'])disposeLoop(name);
   }
 
   function primePhysicalControls(){
