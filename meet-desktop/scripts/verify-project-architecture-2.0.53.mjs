@@ -63,6 +63,10 @@ const behavior=sources.get('ui/zoom-behavior.js')||'';
 if(behavior.includes('setInterval(')){
   fail('ui/zoom-behavior.js','behavior-event-driven-only','Behavior compatibility still uses periodic reconciliation');
 }
+const app=sources.get('ui/app.js')||'';
+if(!behavior.includes("'dominion:meeting-entered'")||!app.includes("new CustomEvent('dominion:meeting-entered'")){
+  fail('ui/zoom-behavior.js','behavior-explicit-enter-lifecycle','Meeting behavior must initialize from an explicit meeting-entered lifecycle event');
+}
 
 // Canonical Participants selectors are protected API. Historical styling may
 // still carry generic compatibility rules, but it may not directly target the
