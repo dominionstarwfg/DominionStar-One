@@ -62,7 +62,7 @@ assert(css.includes('.participant-video-dock.user-resized .participant-video-doc
 assert(css.includes('.participant-video-dock.minimized'),'Participant video dock must support Zoom-style minimization.');
 assert(css.includes('@media(max-width:760px)'),'Meeting layout must adapt for compact desktop windows.');
 
-assert(zoomBehavior.includes("version:'1.4.0'"),'Zoom behavior guard version is missing.');
+assert(zoomBehavior.includes("version:'2.0.54-event-driven'")&&zoomBehavior.includes("'dominion:meeting-entered'")&&!zoomBehavior.includes('setInterval('),'Meeting behavior guard must use the 2.0.54 event-driven lifecycle authority without periodic reconciliation.');
 assert(zoomBehavior.includes('Assign Host & Leave')&&zoomBehavior.includes('End Meeting for All'),'Host exit must expose Zoom-style handoff versus end-for-all choices.');
 assert(zoomBehavior.includes('showHostHandoffChoices')&&zoomBehavior.includes('meeting.transferHostAndLeave(participant.participantId)'),'Host leave must offer a real participant chooser and call the atomic transfer authority.');
 assert(!zoomBehavior.includes("meeting.leave(ctx.participantId,ctx.joinToken)"),'Host UI must never bypass the backend host-transfer safeguard with a plain leave call.');
