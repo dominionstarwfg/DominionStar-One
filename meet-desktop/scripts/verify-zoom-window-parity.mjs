@@ -34,7 +34,7 @@ assert(
   'Participant search must have one always-visible owner and runtime stability must not recreate or hide it.'
 );
 assert(runtime.includes("const waiting=q('#waitingQueueSection'),waitingHidden=!hasWaitingPeople();")&&runtime.includes("if(waiting&&waiting.hidden!==waitingHidden)waiting.hidden=waitingHidden;"),'Empty Waiting Room chrome must stay hidden without self-triggering redundant mutations.');
-assert(runtime.includes('participantPriority(row)')&&runtime.includes("return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5"),'Final participant roster does not encode You → Host → Co-host → raised → unmuted → others priority.');
+assert(runtime.includes('participantPriority(row)')&&runtime.includes("if(role==='host')return 0;")&&runtime.includes("if(role==='cohost')return 100;")&&runtime.includes("if(speaking<999)return 200+speaking;")&&runtime.includes("if(raised)return 500;")&&runtime.includes("if(micOn)return 600;"),'Final participant roster must encode Host → Co-host → active speakers → self → raised → unmuted → others priority.');
 assert(runtimeCss.includes("panel.style")===false||runtimeCss.includes('#meetingOverlay .room-side'),'Final runtime stylesheet must own the participant surface.');
 assert(css.includes('#participantVideoDock .dock-grip{display:none !important;}'),'Legacy video-dock grip affordance must be removed.');
 assert(css.includes('#participantVideoDock .participant-video-dock-head')&&css.includes('cursor:default !important'),'Movable participant-video surface must use the normal arrow cursor.');
