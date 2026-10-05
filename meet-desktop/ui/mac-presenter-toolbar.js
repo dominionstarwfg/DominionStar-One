@@ -23,7 +23,7 @@
   // A mere "sent:true" is not proof that the meeting renderer actually ran
   // the command. Require direct execution, explicit acknowledgement, handled,
   // or ok:true before the toolbar treats a click as successful.
-  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.ok===true||result.direct===true||result.acknowledged===true||result.handled===true);
+  const accepted=result=>Boolean(result)&&result.sent!==false&&result.ok!==false&&(result.ok===true||result.direct===true||result.acknowledged===true||result.handled===true);
 
   async function sendNative(command){
     if(!nativeBridge?.command)throw new Error('mac_presenter_transport_unavailable');
