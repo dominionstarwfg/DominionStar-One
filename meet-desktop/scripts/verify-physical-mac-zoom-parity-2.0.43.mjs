@@ -194,7 +194,7 @@ assert(
   runtimeCss.includes('#meetingChatPanel[data-ds-runtime-mode="floating"]') &&
   runtimeCss.includes('cursor:grab!important') &&
   runtimeCss.includes('right:14px!important') &&
-  runtime.includes("layoutSideSurface?.")===false,
+  runtime.includes('function layoutSideSurface(){'),
   'Participants and Chat must remain visibly floating, draggable, closable, and preserve user-positioned geometry across reopen.'
 );
 assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:70px;bottom:60px;width:360px;min-width:340px;max-width:min(360px,calc(100vw - 24px))')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
