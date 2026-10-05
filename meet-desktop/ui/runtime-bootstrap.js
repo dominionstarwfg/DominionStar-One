@@ -39,7 +39,6 @@
   const styles=[
     ['./zoom-production-polish.css','dsZoomProductionPolish'],
     ['./zoom-physical-acceptance.css','dsZoomPhysicalAcceptance'],
-    ['./rejected-build-repair-2.0.40.css','dsRejectedBuildRepair2040'],
     ['./physical-mac-repair.css','dsPhysicalMacRepair'],
     ['./zoom-adaptive-parity.css','dsZoomAdaptiveParity'],
     ['./approved-reference-parity.css','dsApprovedReferenceParity'],
