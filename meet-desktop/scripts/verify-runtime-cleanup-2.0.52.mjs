@@ -9,8 +9,6 @@ const participants=read('ui/zoom-participants-reference-2.0.41.js');
 const video=read('ui/mac-share-video.js');
 const videoCss=read('ui/mac-share-video.css');
 const presenter=read('src/mac-share-presenter-overlay.mjs');
-const adaptive=read('ui/zoom-adaptive-parity.js');
-const adaptiveCss=read('ui/zoom-adaptive-parity.css');
 const participantControls=read('ui/participant-controls.js');
 const physicalAcceptance=read('ui/zoom-physical-acceptance.js');
 const productionPolish=read('ui/zoom-production-polish.js');
@@ -23,6 +21,7 @@ const shareIntegrationSource=read('ui/share-integration.js');
 const diagnosticsSource=read('ui/physical-diagnostics.js');
 const mainSource=read('src/main.mjs');
 const indexSource=read('ui/index.html');
+const runtimeBootstrap=read('ui/runtime-bootstrap.js');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -39,14 +38,11 @@ assert(!participants.includes("observer.observe(observedRoot,{subtree:true,child
 assert(runtime.includes("const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\\byou\\b|\\bme\\b/.test(small)"),'Canonical participant priority must recognize explicit self state and You/me labels.');
 assert(runtime.includes("row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on')"),'Canonical participant priority must detect live microphone state without selector ambiguity.');
 assert(participants.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}'),'Participant reference must delegate roster ordering to runtime stability.');
-assert(adaptive.includes('if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}'),'Non-desktop adaptive fallback must hand participant ordering to runtime stability and return immediately.');
-assert(!adaptive.includes("search.hidden=count<=1"),'Adaptive parity must not hide the participant search for one-person meetings.');
-assert(!adaptiveCss.includes('[data-ds-adaptive-count="1"] .zoom-participant-search'),'Adaptive CSS must not hide the participant search for one-person meetings.');
-assert(adaptive.includes('Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.'),'Adaptive parity single-search ownership marker is missing.');
 assert(productionPolish.includes('if(window.dominionDesktop)return;'),'Production polish must not create a second participant search in the desktop app.');
-assert(adaptive.includes("if(window.dominionDesktop){\n      window.DominionRuntimeStability?.syncParticipantsSurface?.();\n      return;"),'Adaptive parity must not decorate or reorder participant rows in the desktop app.');
-assert(adaptive.includes("if(window.dominionDesktop)return;\n    const rows=participantRows()"),'Adaptive participant reconciliation must be a complete desktop no-op.');
-assert(!adaptive.includes("if(window.dominionDesktop){\n      const rows=participantRows()"),'Adaptive desktop participant row decoration must remain absent.');
+for(const retired of ['ui/zoom-adaptive-parity.js','ui/zoom-adaptive-parity.css','ui/active-share-home-parity-2.0.41.js','ui/physical-mac-repair.js','ui/physical-mac-repair.css','ui/runtime-layout-fix.css']){
+  assert(!fs.existsSync(new URL('../'+retired,import.meta.url)),`Retired runtime file must stay deleted: ${retired}`);
+}
+assert(!runtimeBootstrap.includes('zoom-adaptive-parity')&&!runtimeBootstrap.includes('physical-mac-repair')&&!runtimeBootstrap.includes('active-share-home-parity')&&!runtimeBootstrap.includes('runtime-layout-fix'),'Minimal runtime bootstrap must not reference retired repair layers.');
 assert(productionPolish.includes("if(window.dominionDesktop){\n      // Desktop participant chrome is owned by the approved reference/runtime"),'Production polish must skip all desktop participant chrome reconciliation.');
 assert(productionPolish.includes("if(event.target.closest?.('#roomParticipants')){closePanelMenus();if(!window.dominionDesktop)"),'Production polish participant click hook must not reflow the desktop panel.');
 assert(participantControls.includes('if(desktopSurface){footer?.remove();return;}'),'Desktop participant controls must not recreate the legacy bulk-action strip.');
