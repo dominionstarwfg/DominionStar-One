@@ -154,11 +154,13 @@
       wrap=document.createElement('div');wrap.className='ds-participant-search-wrap';
       wrap.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="ds-participant-search-primary" type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants"><button type="button" class="ds-participant-search-clear" aria-label="Clear participant search" title="Clear search" hidden>×</button>';
       ensureHeader(side).insertAdjacentElement('afterend',wrap);
-      const input=wrap.querySelector('input'),clear=wrap.querySelector('.ds-participant-search-clear');
+    }
+    const input=wrap.querySelector('.ds-participant-search-primary'),clear=wrap.querySelector('.ds-participant-search-clear');
+    if(wrap.dataset.dsParticipantSearchBound!=='1'&&input&&clear){
+      wrap.dataset.dsParticipantSearchBound='1';
       input.addEventListener('input',event=>{clear.hidden=!event.currentTarget.value;filterRows(event.currentTarget.value);});
       clear.addEventListener('click',()=>{input.value='';clear.hidden=true;filterRows('');input.focus();});
     }
-    const input=wrap.querySelector('.ds-participant-search-primary'),clear=wrap.querySelector('.ds-participant-search-clear');
     if(input){if(input.hidden)input.hidden=false;input.removeAttribute('style');}
     if(clear){const shouldHide=!input?.value;if(clear.hidden!==shouldHide)clear.hidden=shouldHide;}
     if(wrap.hidden)wrap.hidden=false;
