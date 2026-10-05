@@ -21,7 +21,6 @@ const appSource=read('ui/app.js');
 const shareService=read('src/share-service.mjs');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const captions=read('ui/meeting-captions.js');
-const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
 const workflow=fs.readFileSync(new URL('../../.github/workflows/rebuild-mac-production.yml',import.meta.url),'utf8');
 
 // Desktop startup must not load retired visual authority layers.
@@ -104,8 +103,7 @@ assert(appSource.includes("desktop?.app?.meetingEnded?.()"),'Renderer meeting-en
 assert(shareService.includes('function shutdown()')&&shareService.includes("globalThis.__dominionMacSharePresenterOverlay?.destroy?.()"),'Native meeting-end teardown must destroy presenter windows.');
 assert(captions.includes("window.addEventListener('dominion:meeting-ended',resetMeetingState)"),'Caption state must reset immediately when a meeting ends.');
 assert(!captions.includes('setInterval(()=>{if(inMeeting())'),'Captions must not rely on periodic UI cleanup after meeting end.');
-assert(featureReady.includes("version:'2.0.53-retiring-legacy-executive'")&&featureReady.includes('function retireLegacyWatchers()'),'Legacy meeting chrome must expose deterministic retirement.');
-assert(featureReady.includes('retireLegacyWatchers();')&&featureReady.includes("window.removeEventListener('dominion:meeting-snapshot',schedule)"),'Legacy meeting chrome observers/listeners must retire after final-reference handoff.');
+assert(!fs.existsSync(new URL('../ui/meeting-feature-ready-2.0.41.js',import.meta.url)),'Retired legacy meeting chrome module must stay deleted.');
 
 // The authority contract is itself a mandatory release gate.
 assert(pkg.scripts?.verify?.includes('verify-ui-authority-contract-2.0.53.mjs'),'npm verify must include the UI authority contract.');
