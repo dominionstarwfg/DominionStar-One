@@ -45,6 +45,16 @@ for(const [file,src] of uiJs){
   if(!guarded)fail(file,'no-autonomous-desktop-visual-polling','setInterval exists without an explicit desktop retirement guard');
 }
 
+// Canonical Participants selectors are protected API. Historical styling may
+// still carry generic compatibility rules, but it may not directly target the
+// final ds-* authority selectors from an unrelated module.
+const protectedParticipantTokens=['.ds-participants-reference','.ds-participant-search-primary','.ds-ref-participants-footer','.ds-traffic-close','.ds-traffic-minimize','.ds-traffic-restore'];
+const protectedParticipantOwners=new Set(['ui/zoom-participants-reference-2.0.41.js','ui/runtime-stability.css','ui/zoom-screenshot-reference-2.0.41.css']);
+for(const [file,src] of sources){
+  if(protectedParticipantOwners.has(file)||file.startsWith('scripts/'))continue;
+  for(const token of protectedParticipantTokens)if(src.includes(token))fail(file,'protected-participant-selector',`Non-owner targets canonical selector ${token}`);
+}
+
 // The exact one-person search regression is forbidden anywhere in CSS.
 for(const [file,src] of css){
   const compact=src.replace(/\s+/g,' ');
