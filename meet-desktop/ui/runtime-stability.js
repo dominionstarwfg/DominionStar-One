@@ -19,6 +19,7 @@
   let physicalPrimed=false;
   let legacyPrimed=false;
   let shareOpening=false;
+  let activeSpeakerIds=[];
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
@@ -165,18 +166,39 @@
     return [...queue.children].some(node=>node.matches?.('[data-wait],[data-participant-id],[data-waiting-id],.waiting-person,.queue-card'));
   }
 
+  function speakerRank(id){
+    const index=activeSpeakerIds.indexOf(String(id||''));
+    return index<0?999:index;
+  }
+
   function participantPriority(row){
     const small=String(row.querySelector('.person-copy small')?.textContent||'').toLowerCase();
     const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\byou\b|\bme\b/.test(small);
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
     const raised=row.dataset.raisedHand==='1'||Boolean(row.querySelector('.raised-hand-indicator'));
     const micOn=Boolean(row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on'));
-    return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5;
+    const speaking=speakerRank(row.dataset.participantId);
+    if(role==='host')return 0;
+    if(role==='cohost')return 100;
+    if(speaking<999)return 200+speaking;
+    if(self)return 400;
+    if(raised)return 500;
+    if(micOn)return 600;
+    return 700;
   }
 
   function sortParticipants(){
     const roster=q('#participantRoster');if(!roster)return;
     const rows=participantRows();
+    for(const row of rows){
+      const speaking=speakerRank(row.dataset.participantId)<999;
+      row.classList.toggle('participant-speaking',speaking);
+      let badge=row.querySelector('.participant-speaking-badge');
+      if(speaking&&!badge){
+        badge=document.createElement('span');badge.className='participant-speaking-badge';badge.textContent='Speaking';
+        row.querySelector('.person-copy small')?.append(badge);
+      }else if(!speaking&&badge)badge.remove();
+    }
     const sorted=[...rows].sort((a,b)=>participantPriority(a)-participantPriority(b)||String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''),undefined,{numeric:true,sensitivity:'base'}));
     if(sorted.some((row,index)=>row!==rows[index])){
       const fragment=document.createDocumentFragment();for(const row of sorted)fragment.append(row);roster.append(fragment);
@@ -727,10 +749,11 @@
   window.addEventListener('dominion:meeting-snapshot',schedule);
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
+  window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();});
   window.addEventListener('dominion:meeting-signal',scheduleMeetingSignal);
-  window.addEventListener('dominion:meeting-ended',()=>{closeMeetingTransients();physicalPrimed=false;legacyPrimed=false;shareOpening=false;const overlay=q('#meetingOverlay');overlay?.removeAttribute('data-ds-runtime-reference-primed');if(meetingSignalTimer){clearTimeout(meetingSignalTimer);meetingSignalTimer=0;}schedule();});
+  window.addEventListener('dominion:meeting-ended',()=>{closeMeetingTransients();physicalPrimed=false;legacyPrimed=false;shareOpening=false;activeSpeakerIds=[];const overlay=q('#meetingOverlay');overlay?.removeAttribute('data-ds-runtime-reference-primed');if(meetingSignalTimer){clearTimeout(meetingSignalTimer);meetingSignalTimer=0;}schedule();});
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.53-canonical-chat-inset',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.54-active-speaker-authority',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();
