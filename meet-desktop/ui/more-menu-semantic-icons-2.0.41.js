@@ -88,10 +88,12 @@
     });
   }
 
-  const observer=new MutationObserver(apply);
-  observer.observe(document.documentElement,{subtree:true,childList:true});
-  document.addEventListener('click',event=>{if(event.target?.closest?.('#roomMore'))requestAnimationFrame(apply);},true);
-  window.addEventListener('dominion:meeting-ui-ready',apply,true);
-  window.DominionMoreMenuSemanticIcons=Object.freeze({apply,dispose:()=>observer.disconnect()});
+  let frame=0;
+  const schedule=()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;apply();});};
+  const onClick=event=>{if(event.target?.closest?.('#roomMore'))schedule();};
+  document.addEventListener('click',onClick,true);
+  window.addEventListener('dominion:meeting-ui-ready',schedule,true);
+  window.addEventListener('dominion:runtime-bootstrap-ready',schedule,true);
+  window.DominionMoreMenuSemanticIcons=Object.freeze({version:'2.0.53-event-driven',apply,sync:schedule,dispose:()=>{document.removeEventListener('click',onClick,true);window.removeEventListener('dominion:meeting-ui-ready',schedule,true);window.removeEventListener('dominion:runtime-bootstrap-ready',schedule,true);if(frame)cancelAnimationFrame(frame);}});
   apply();
 })();
