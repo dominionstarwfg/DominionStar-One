@@ -62,6 +62,16 @@ assert(!shareIntegration.includes('navigator.mediaDevices.getUserMedia'),'Share 
 // Presenter controls must match the approved compact sharing guide.
 for(const required of ['data-command="audio"','data-command="video"','data-command="pause"','data-command="participants"','data-command="chat"','id="moreButton"','id="stopShare"'])assert(presenterToolbar.includes(required),`Approved presenter toolbar is missing ${required}`);
 for(const forbidden of ['id="layoutButton"','data-command="show-meeting"','data-command="new-share"','id="brandLogo"'])assert(!presenterToolbar.includes(forbidden),`Presenter toolbar reintroduced non-approved top-level control: ${forbidden}`);
+const declaredPresenterCommands=[...presenterToolbar.matchAll(/data-command="([^"]+)"/g)].map(match=>match[1]).sort();
+assert.deepEqual(declaredPresenterCommands,['annotate','audio','chat','layout-gallery','layout-hide','layout-speaker','participants','pause','record','video'],'Presenter toolbar command inventory drifted from the approved compact surface.');
+for(const command of ['audio','video','pause','participants','chat','annotate','layout-speaker','layout-gallery','layout-hide','record']){
+  const routed=command==='audio'?shareIntegration.includes("command==='audio'||command==='audio-on'||command==='audio-off'")
+    :command==='video'?shareIntegration.includes("command==='video'||command==='video-on'||command==='video-off'")
+    :command==='pause'?shareIntegration.includes("command==='pause'||command==='pause-share'||command==='resume-share'")
+    :shareIntegration.includes(`command==='${command}'`);
+  assert(routed,`Presenter command has no renderer execution path: ${command}`);
+}
+assert(presenterToolbarJs.includes("await send('stop')"),'Stop Share must have a real acknowledged presenter execution path.');
 assert(presenterToolbar.includes('<button type="button" data-command="pause"')&&presenterToolbar.indexOf('data-command="pause"')<presenterToolbar.indexOf('data-command="participants"'),'Pause Share must remain before Participants in the approved toolbar.');
 assert(presenterToolbar.indexOf('data-command="chat"')<presenterToolbar.indexOf('id="moreButton"')&&presenterToolbar.indexOf('id="moreButton"')<presenterToolbar.indexOf('id="stopShare"'),'Approved presenter toolbar order changed.');
 
