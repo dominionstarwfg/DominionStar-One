@@ -22,7 +22,6 @@ assert(main.includes("appendSwitch('disable-renderer-backgrounding')")&&main.inc
 const media=read('ui/media-controller.js');
 const participantsReference=read('ui/zoom-participants-reference-2.0.41.js');
 const indexHtml=read('ui/index.html');
-const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
 const profileFallback=read('ui/profile-photo-fallback.js');
 const shareService=read('src/share-service.mjs');
 const shareController=read('ui/share-controller.js');
@@ -58,7 +57,7 @@ const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 const avSettings=read('ui/av-settings.js');
 
-for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
+for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
 
 assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51','2.0.52'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
 assert(
@@ -206,8 +205,6 @@ assert(
   parity.includes('😊') &&
   physical.includes('reaction-emoji-glyph') &&
   physical.includes('😊') &&
-  featureReady.includes('reaction-emoji-glyph') &&
-  featureReady.includes('😊') &&
   parityCss.includes('.reaction-emoji-glyph'),
   'Reactions must remain an obvious emoji-style control through base, physical-acceptance and final-handoff reconciliation.'
 );
@@ -221,7 +218,7 @@ assert(media.includes('warmVideoTimer=setTimeout(releaseWarmVideo,1800)'),'Camer
 
 assert(!indexHtml.includes('<script src="./share-integration.js"></script>')&&media.includes("script.src='./share-integration.js'")&&media.includes("script.dataset.dsShareIntegration='1'"),'Share integration must have one bootstrap authority owned by MediaController, with no competing static loader.');
 assert(shareRuntimeAuthority.includes('async function waitForShareIntegration(timeoutMs=3000)')&&shareRuntimeAuthority.includes('if(!await waitForShareIntegration())'),'The final Share chooser must wait for the single Share integration bootstrap before source enumeration or commit.');
-assert(featureReady.includes('#stageAvatar{width:196px!important;height:196px!important;border-radius:50%!important')&&read('ui/meeting-parity.css').includes('.stage-avatar{width:clamp(210px,20vmin,240px);height:clamp(210px,20vmin,240px);border-radius:50%}'),'Camera-off stage profile photos must remain prominently scaled after final reference handoff.');
+assert(read('ui/meeting-parity.css').includes('.stage-avatar{width:clamp(210px,20vmin,240px);height:clamp(210px,20vmin,240px);border-radius:50%}'),'Camera-off stage profile photos must remain prominently scaled by the final meeting stylesheet.');
 assert(screenshotCss.includes('#prejoinOverlay #prejoinAvatar[hidden]{display:none!important}')&&read('ui/meeting-parity.css').includes('#prejoinAvatar.preview-avatar{width:196px;height:196px;border-radius:50%'),'Prejoin must hide its avatar over live video and use the enlarged camera-off profile scale.');
 assert(screenshotCss.includes('#meetingOverlay .meeting-footer{height:64px!important;min-height:64px!important')&&screenshotCss.includes('#meetingOverlay .meeting-control{min-width:68px!important;height:58px!important')&&screenshotCss.includes('.meeting-control .ds-control-icon{width:24px!important;height:24px!important')&&screenshotCss.includes('.meeting-control .ds-control-label{font-size:11px!important'),'Final meeting toolbar must preserve readable control targets and icon/label scale instead of reverting to the undersized reference dimensions.');
 assert(profileFallback.includes('width:64px;height:64px;border-radius:50%')&&!profileFallback.includes('width:58px;height:58px'),'Participant camera-off profile photos must preserve the compact 64px filmstrip scale and must not regress to the undersized 58px fallback.');
@@ -243,8 +240,8 @@ assert(
   shareService.includes("const protect=platform==='darwin'?false:Boolean(enabled);"),
   'Visible presenter surfaces must remain capturable in ordinary macOS screenshots throughout an active share.'
 );
-assert(featureReady.includes('box-shadow:none!important')&&read('ui/meeting-parity.css').includes('box-shadow:none!important'),'Mic/video off state must use one clean slash without the old doubled halo stripe.');
-assert(!featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'Final meeting reconciliation must not restore the rejected legacy reaction glyph.');
+assert(read('ui/meeting-parity.css').includes('box-shadow:none!important')&&screenshotReferenceCss.includes('box-shadow:none!important'),'Mic/video off state must use one clean slash without the old doubled halo stripe.');
+assert(!parity.includes('M18.8 3.1v3.6M17 4.9h3.6')&&!screenshotJs.includes('M18.8 3.1v3.6M17 4.9h3.6'),'Canonical meeting layers must not restore the rejected legacy reaction glyph.');
 assert(shareService.includes("return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)}"),'Presenter command service must expose execution proof instead of a bare production ok response.');
 const macToolbar=read('ui/mac-presenter-toolbar.js');
 const macToolbarCss=read('ui/mac-presenter-toolbar.css');
@@ -410,8 +407,7 @@ assert(
 assert(
   screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
   screenshotReferenceCss.includes("body.ds-local-speaking #meetingOverlay:not(.ds-exec-lock) #roomMic:not(.is-off)>.ds-control-icon") &&
-  featureReady.includes("#roomMic .ds-exec-icon::after") &&
-  featureReady.includes("content:none!important;display:none!important") &&
+  screenshotReferenceCss.includes("content:none!important;display:none!important") &&
   app.includes("node?.classList.toggle('is-off',!s.micOn)") &&
   app.includes("node?.classList.toggle('is-off',!s.cameraOn)"),
   'Local Audio/Video controls must have one authoritative off slash, no slash while live, and green microphone speaking feedback only from the real media state.'
