@@ -16,7 +16,7 @@ const presenter=read('ui/presenter-toolbar.html');
 const presenterJs=read('ui/presenter-toolbar.js');
 const approved=read('ui/approved-reference-parity.js');
 const meetingCss=read('ui/meeting.css');
-const approvedCss=read('ui/approved-reference-parity.css');
+const runtimeCss=read('ui/runtime-stability.css');
 const physicalIntelligence=read('ui/physical-intelligence-2.0.41.js');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const macVideo=read('ui/mac-share-video.js');
@@ -90,6 +90,6 @@ assert.match(runtime,/panel\.dataset\.dsRuntimeMode='floating'/);
 assert.match(runtime,/installFloatingSurfaceDrag\(panel\)/);
 assert.match(runtimeCss,/width:var\(--ds-runtime-vw,100vw\)!important/);
 assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/);
-assert.match(approvedCss,/right:14px !important;/);
+assert.match(runtimeCss,/right:14px!important;/);
 
 console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_54_OK carried-forward-on=${pkg.version} minimal-bootstrap custom-only-preshare bounded-share-start direct-presenter-controls permission-intelligence profile-first-identity two-person-native-filmstrip floating-panels full-stage`);
