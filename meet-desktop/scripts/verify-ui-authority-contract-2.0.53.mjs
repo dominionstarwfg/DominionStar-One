@@ -26,6 +26,8 @@ const workflow=fs.readFileSync(new URL('../../.github/workflows/rebuild-mac-prod
 
 // Participants: one search/structure owner. The canonical input deliberately
 // does not carry the legacy class that historical CSS used to hide.
+assert(appSource.includes('class="ds-participant-search-wrap"')&&appSource.includes('class="ds-participant-search-primary"'),'Base meeting DOM must contain the canonical Participants search before the panel can become visible.');
+assert(participantRef.includes("wrap.dataset.dsParticipantSearchBound!=='1'"),'Participant reference must bind the base search exactly once instead of recreating it.');
 assert(participantRef.includes('class="ds-participant-search-primary"'),'Canonical Participants search input is missing.');
 assert(!participantRef.includes('class="zoom-participant-search ds-participant-search-primary"'),'Canonical Participants search must not inherit the legacy zoom-participant-search class.');
 assert(participantRef.includes('const backgroundEnabled=!Boolean(window.dominionDesktop);'),'Participants reference must be manual/event-driven on desktop.');
