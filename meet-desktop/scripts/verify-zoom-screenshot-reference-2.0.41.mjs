@@ -28,7 +28,8 @@ const has=(s,n,m)=>assert.ok(s.includes(n),m);
 const lacks=(s,n,m)=>assert.ok(!s.includes(n),m);
 
 assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51','2.0.52'].includes(pkg.version),'Screenshot reference authority must remain certified across the current 2.0.46+ production repair line.');
-has(runtimeBootstrap,"loadStyle('./zoom-screenshot-reference-2.0.41.css'",'Screenshot reference CSS must load from the canonical runtime bootstrap.');
+has(runtimeBootstrap,"['./zoom-screenshot-reference-2.0.41.css','dsZoomScreenshotReference2041']", 'Screenshot reference CSS must be registered in the canonical runtime style registry.');
+has(runtimeBootstrap,"styles.map(([href,key])=>loadStyle(href,key))",'Canonical runtime bootstrap must load the registered style set through one style authority.');
 has(runtimeBootstrap,"loadScript('./runtime-stability.js'",'Runtime Stability must load before the visual reference authority.');
 has(runtimeBootstrap,"loadScript('./zoom-screenshot-reference-2.0.41.js'",'Screenshot reference JS must load from the canonical runtime bootstrap.');
 assert.ok(runtimeBootstrap.indexOf("loadScript('./runtime-stability.js'")<runtimeBootstrap.indexOf("loadScript('./zoom-screenshot-reference-2.0.41.js'"),'Runtime Stability must load before screenshot/reference synchronization.');
