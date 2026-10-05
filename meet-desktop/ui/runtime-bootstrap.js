@@ -70,6 +70,7 @@
     await loadScript('./zoom-adaptive-parity.js','dsZoomAdaptiveParity');
     await loadScript('./approved-reference-parity.js','dsApprovedReferenceParity');
     await loadScript('./zoom-screenshot-reference-2.0.41.js','dsZoomScreenshotReference2041');
+    await loadScript('./zoom-participants-reference-2.0.41.js','dsZoomParticipantsReference2041');
     await loadScript('./active-share-home-parity-2.0.41.js','dsActiveShareHome2041');
 
     window.dispatchEvent(new CustomEvent('dominion:runtime-bootstrap-ready'));
