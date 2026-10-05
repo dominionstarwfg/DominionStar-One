@@ -17,7 +17,7 @@ assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&
 assert.ok(runtime.includes("const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');")&&runtime.includes("return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5;")&&runtime.includes('function sortParticipants()'),'Canonical runtime must own deterministic self/host/co-host participant ordering.');
 assert.ok(app.includes('participant-media-state'),'Roster must reserve a stable media-state zone.');
 assert.ok(app.includes('participant-actions'),'Roster must reserve a stable actions zone.');
-assert.ok(app.includes('data-participant-self'),'Roster must identify the local user without name guessing.');
+assert.ok(app.includes("row.dataset.participantSelf=self?'1':'0'")&&app.includes("activeRoom?.participantId&&String(participant.participantId||'')===String(activeRoom.participantId)"),'Roster must identify the local user from authoritative participant identity without name guessing.');
 assert.ok(app.includes('participant-you'),'Roster must visibly mark the local user.');
 assert.ok(app.includes('data-participant-mic')&&app.includes('data-participant-video'),'Roster must include mic/video status controls.');
 assert.ok(app.includes('<svg viewBox="0 0 24 24" aria-hidden="true">'),'Roster media indicators must use vector icons.');
