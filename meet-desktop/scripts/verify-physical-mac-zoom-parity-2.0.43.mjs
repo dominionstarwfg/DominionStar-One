@@ -5,7 +5,6 @@ const read=rel=>fs.readFileSync(new URL(`../${rel}`,import.meta.url),'utf8');
 const pkg=JSON.parse(read('package.json'));
 const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
-const panelStability=read('ui/participant-panel-stability.css');
 const adaptive=read('ui/zoom-adaptive-parity.js');
 const polish=read('ui/zoom-production-polish.js');
 const polishCss=read('ui/zoom-production-polish.css');
@@ -194,11 +193,11 @@ assert(
   runtimeCss.includes('.room-side[data-ds-runtime-mode="floating"]') &&
   runtimeCss.includes('#meetingChatPanel[data-ds-runtime-mode="floating"]') &&
   runtimeCss.includes('cursor:grab!important') &&
-  panelStability.includes('right:24px!important') &&
-  panelStability.includes('top:18px!important'),
+  runtimeCss.includes('right:14px!important') &&
+  runtime.includes("layoutSideSurface?.")===false,
   'Participants and Chat must remain visibly floating, draggable, closable, and preserve user-positioned geometry across reopen.'
 );
-assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:70px;bottom:60px;width:330px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
+assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:70px;bottom:60px;width:360px;min-width:340px;max-width:min(360px,calc(100vw - 24px))')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
 
 assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("if(nameNode.textContent!==name)nameNode.textContent=name;if(strong.title!==name)strong.title=name;")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must preserve the full canonical name without rewriting unchanged text and must collapse duplicate ellipsis controls to one representation.');
 assert(physical.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Host)')")&&physical.includes("role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'')")&&physical.includes("if(inline.textContent!==inlineRole)inline.textContent=inlineRole")&&physical.includes("inline.hidden=!inlineRole"),'Participant role and self identity must remain inline with the canonical name without unnecessary DOM rewrites.');
