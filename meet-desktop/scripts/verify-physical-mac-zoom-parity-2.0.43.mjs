@@ -21,10 +21,7 @@ const main=read('src/main.mjs');
 assert(main.includes("appendSwitch('disable-renderer-backgrounding')")&&main.includes("appendSwitch('disable-background-timer-throttling')")&&main.includes("appendSwitch('disable-backgrounding-occluded-windows')"),'Mac presenter mode must disable Chromium occlusion/background scheduling so the meeting control renderer remains responsive during active share.');
 
 const media=read('ui/media-controller.js');
-const legacyParticipants=read('ui/participants-center-lock-2.0.41.js');
 const participantsReference=read('ui/zoom-participants-reference-2.0.41.js');
-const legacyHostTools=read('ui/host-tools-separation-lock-2.0.41.js');
-const legacyHostToolsCss=read('ui/host-tools-size-lock-2.0.41.css');
 const indexHtml=read('ui/index.html');
 const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
 const profileFallback=read('ui/profile-photo-fallback.js');
@@ -120,9 +117,9 @@ assert(
 );
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
-assert(legacyParticipants.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must never re-center or poll the live panel.');
-assert(legacyHostTools.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyHostTools.includes('centerParticipantsOnce')&&!legacyHostTools.includes("host.style.setProperty('width','248px'"),'Legacy Host Tools compatibility must not own Participants or Host Tools geometry.');
-assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.includes('.room-side:has(.ds-ref-host-tools-panel)'),'Legacy Host Tools stylesheet must not shrink Host Tools or move Participants.');
+assert(!indexHtml.includes('participants-center-lock-2.0.41.js')&&!indexHtml.includes('host-tools-separation-lock-2.0.41.js'),'Obsolete participant/Host Tools compatibility observers must not load in production.');
+assert(!indexHtml.includes('participant-panel-stability.css')&&!indexHtml.includes('host-tools-size-lock-2.0.41.css'),'Obsolete participant/Host Tools patch styles must not load in production.');
+assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed')&&screenshotCss.includes('width:360px;min-width:340px;max-width:min(360px,calc(100vw - 24px))'),'Canonical screenshot/reference CSS must own final Host Tools geometry.');
 assert(
   runtime.includes("panel.style.setProperty('left','auto','important')") &&
   runtime.includes("panel.style.setProperty('right','24px','important')") &&
