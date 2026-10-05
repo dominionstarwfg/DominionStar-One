@@ -16,7 +16,6 @@ const presenter=read('ui/presenter-toolbar.html');
 const presenterJs=read('ui/presenter-toolbar.js');
 const approved=read('ui/approved-reference-parity.js');
 const meetingCss=read('ui/meeting.css');
-const runtimeCss=read('ui/runtime-stability.css');
 const physicalIntelligence=read('ui/physical-intelligence-2.0.41.js');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const macVideo=read('ui/mac-share-video.js');
