@@ -37,13 +37,7 @@
   }
 
   const styles=[
-    ['./zoom-production-polish.css','dsZoomProductionPolish'],
-    ['./zoom-physical-acceptance.css','dsZoomPhysicalAcceptance'],
-    ['./physical-mac-repair.css','dsPhysicalMacRepair'],
-    ['./zoom-adaptive-parity.css','dsZoomAdaptiveParity'],
-    ['./approved-reference-parity.css','dsApprovedReferenceParity'],
     ['./runtime-stability.css','dsRuntimeStability'],
-    ['./runtime-layout-fix.css','dsRuntimeLayoutFix'],
     ['./runtime-motion.css','dsRuntimeMotion'],
     ['./zoom-screenshot-reference-2.0.41.css','dsZoomScreenshotReference2041'],
     ['./executive-home-2.0.41.css','dsExecutiveHome2041'],
@@ -54,25 +48,17 @@
     await Promise.all(styles.map(([href,key])=>loadStyle(href,key)));
     await loadScript('./runtime-stability.js','dsRuntimeStability');
 
-    // Independent compatibility surfaces load after the canonical runtime so
-    // none of them can become the first desktop authority.
+    // Load only helpers still used by the canonical runtime. Historical
+    // repair/adaptive visual layers are intentionally not loaded on desktop.
     await Promise.all([
-      loadScript('./zoom-production-polish.js','dsZoomProductionPolish'),
-      loadScript('./zoom-physical-acceptance.js','dsZoomPhysicalAcceptance'),
       loadScript('./zoom-reaction-parity.js','dsZoomReactionParity'),
       loadScript('./zoom-contract-bridge.js','dsZoomContractBridge'),
       loadScript('./presenter-command-parity-2.0.27.js','dsPresenterCommandParity227')
     ]);
 
-    // Preserve the historical dependency order for the remaining reference
-    // compatibility chain, but keep ownership in RuntimeStability.
-    await loadScript('./physical-mac-repair.js','dsPhysicalMacRepair');
-    await loadScript('./physical-intelligence-2.0.41.js','dsPhysicalIntelligence2041');
-    await loadScript('./zoom-adaptive-parity.js','dsZoomAdaptiveParity');
     await loadScript('./approved-reference-parity.js','dsApprovedReferenceParity');
     await loadScript('./zoom-screenshot-reference-2.0.41.js','dsZoomScreenshotReference2041');
     await loadScript('./zoom-participants-reference-2.0.41.js','dsZoomParticipantsReference2041');
-    await loadScript('./active-share-home-parity-2.0.41.js','dsActiveShareHome2041');
 
     window.dispatchEvent(new CustomEvent('dominion:runtime-bootstrap-ready'));
     return true;
@@ -82,5 +68,5 @@
     return false;
   });
 
-  window.DominionRuntimeBootstrap=Object.freeze({version:'2.0.53-clean-bootstrap',ready,loadStyle,loadScript});
+  window.DominionRuntimeBootstrap=Object.freeze({version:'2.0.54-minimal-runtime-bootstrap',ready,loadStyle,loadScript});
 })();
