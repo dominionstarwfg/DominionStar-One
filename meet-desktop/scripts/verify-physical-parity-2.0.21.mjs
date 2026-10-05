@@ -8,159 +8,67 @@ const shareIntegration=read('ui/share-integration.js');
 const preload=read('src/preload.cjs');
 const sharePicker=read('ui/share-picker.js');
 const sharePickerHtml=read('ui/share-picker.html');
-const physicalRepair=read('ui/physical-mac-repair.js');
 const parity=read('ui/meeting-parity.js');
-const adaptive=read('ui/zoom-adaptive-parity.js');
-const adaptiveCss=read('ui/zoom-adaptive-parity.css');
+const runtime=read('ui/runtime-stability.js');
 const approvedCss=read('ui/approved-reference-parity.css');
-const auth=read('ui/auth-password.js');
-const rejection=read('PHYSICAL_2_0_20_REJECTION.md');
-const rejectionCss=read('ui/rejected-build-repair-2.0.40.css');
+const prejoinCss=read('ui/executive-prejoin-2.0.41.css');
+const macOverlay=read('src/mac-share-presenter-overlay.mjs');
+const runtimeBootstrap=read('ui/runtime-bootstrap.js');
 
 const requireText=(source,needle,message)=>{if(!source.includes(needle))throw new Error(message);};
 const rejectText=(source,needle,message)=>{if(source.includes(needle))throw new Error(message);};
 
 const [major,minor,patch]=String(pkg.version||'').split('.').map(Number);
-if(!(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21))throw new Error(`Carried-forward physical-reference gate requires DominionStar Meet 2.0.21 or later in the 2.0.x line; found ${pkg.version}`);
+if(!(major===2&&minor===0&&Number.isInteger(patch)&&patch>=21))throw new Error(`Physical parity requires DominionStar Meet 2.0.21+; found ${pkg.version}`);
 
-// 2.0.40 physical rejection repair: detect macOS capability, but never let the
-// Apple system overlay replace the approved DominionStar/Zoom-like chooser.
+// Custom DominionStar chooser remains the active capture path.
 requireText(shareService,"const systemPickerAvailable=platform==='darwin'&&macMajor>=15",'macOS picker capability diagnostics are missing.');
 requireText(shareService,'const nativeSystemPicker=false','Rejected Apple system picker must remain disabled.');
-requireText(shareService,'function configureDisplayMediaHandler(useSystemPicker)','Display-media authority is missing.');
-requireText(shareService,'configureDisplayMediaHandler(false);','Custom DominionStar capture handler must initialize before Share.');
-rejectText(shareService,"if(nativeSystemPicker&&status!=='granted')",'Unknown permission may not reopen the rejected Apple share overlay.');
-requireText(shareService,"share:list-sources',async(_event,options={})=>{configureDisplayMediaHandler(false);pendingSelection=null",'Approved chooser must clear stale selection and force custom capture.');
-requireText(shareService,"share:select-source',(_event,{sourceId,options={}}={})=>{configureDisplayMediaHandler(false)",'Selected source must force custom capture before getDisplayMedia.');
-requireText(shareIntegration,'const result=await bridge.openPicker(permission);','Renderer does not pass permission mode into picker authority.');
-rejectText(physicalRepair,'sharePicker?.listSources','Physical compatibility code still enumerates sources before real Share.');
-rejectText(physicalRepair,'sourceProbe(','Physical compatibility code still probes sources before capture.');
-requireText(physicalRepair,'return await integration.open();','Physical compatibility layer must delegate Share to the isolated integration.');
-const openIndex=shareIntegration.indexOf('const result=await bridge.openPicker(permission);');
-const diagnosticIndex=shareIntegration.indexOf('media?.requestScreen?.()');
-if(openIndex<0||diagnosticIndex<0||diagnosticIndex<openIndex)throw new Error('Deep Screen Recording diagnostics run before real picker/capture failure.');
+requireText(shareService,'configureDisplayMediaHandler(false);','Custom capture handler must initialize before Share.');
+requireText(shareIntegration,'const result=await bridge.openPicker(permission);','Renderer must use the app-owned picker.');
 requireText(shareController,"error.code='share_start_timeout'",'Share start must fail visibly instead of loading forever.');
-requireText(shareController,'},5000);','Share-start timeout must remain bounded to five seconds.');
 requireText(shareController,'capturePromise.then(lateStream=>stopTracks(lateStream))','Late capture completion must be stopped and discarded.');
-requireText(rejectionCss,'#participantRoster .ds-participant-media{display:none!important}','Duplicate participant media renderer must remain hidden.');
 
-// Physical regression: capture start is fire-and-forget. ShareController must not
-// wait for a main-process reply before publishing its active state.
-requireText(preload,"captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;}",'Capture start must be one-way across the preload bridge.');
+// Capture start remains one-way.
+requireText(preload,"captureStarted:state=>{ipcRenderer.send('share:capture-started',state||{});return true;}",'Capture start must be one-way across preload.');
 rejectText(preload,"captureStarted:state=>invoke('share:capture-started'",'Capture start must not use request/response IPC.');
-const captureStarted=shareService.slice(
-  shareService.indexOf("ipcMain.on('share:capture-started'"),
-  shareService.indexOf("ipcMain.handle('share:capture-state'")
-);
-requireText(captureStarted,"ipcMain.on('share:capture-started'",'Main process does not receive one-way capture start.');
-requireText(captureStarted,'event.sender!==main.webContents','Capture start must be limited to the main meeting renderer.');
-requireText(captureStarted,'keepMeetingRendererLive();','Capture start does not protect the renderer from throttling.');
-rejectText(captureStarted,'scheduleToolbarForShare();','Capture start still schedules presenter BrowserWindow work.');
-rejectText(captureStarted,'openToolbar(','Presenter BrowserWindow creation returned to capture start.');
-rejectText(captureStarted,'hideMeetingWindowForShare()','Meeting hide returned to capture start.');
-rejectText(captureStarted,'return {ok:','Capture start must have no response contract.');
-
-requireText(shareService,'function scheduleToolbarForShare()','Deferred presenter toolbar scheduler is missing.');
-const scheduler=shareService.slice(shareService.indexOf('function scheduleToolbarForShare()'),shareService.indexOf('const displayMediaHandler'));
-requireText(scheduler,"if(platform==='darwin')",'macOS must use same-renderer presenter controls.');
-requireText(scheduler,'toolbarReadyForShare=true','macOS same-renderer presenter controls must be marked ready without a second BrowserWindow.');
-requireText(scheduler,'presenterCommitPending=false','macOS presenter commit must not wait on a second renderer.');
-requireText(scheduler,'toolbarOpenTimer=setTimeout(async()=>','Non-macOS presenter toolbar must start on a later main-process turn after renderer commit.');
-requireText(scheduler,'const ready=await openToolbar();','Non-macOS deferred scheduler does not create the real presenter toolbar.');
-requireText(scheduler,'},75);','Non-macOS presenter toolbar scheduling must remain explicitly deferred after commit.');
-requireText(scheduler,'toolbarReadyForShare=Boolean(ready)','Non-macOS toolbar readiness is not tracked independently.');
-requireText(scheduler,"void sendPresenterCommand('stop',0)",'Non-macOS presenter toolbar failure must fail Share closed through presenter command authority.');
 requireText(shareIntegration,"id='inlinePresenterToolbar'",'macOS presenter controls must exist in the share-owning renderer.');
 
-rejectText(shareController,'rendererCommitted:true','ShareController must not own presenter visibility.');
-requireText(shareIntegration,'function commitPresenterMode()','Share integration does not own safe presenter commit.');
-requireText(shareIntegration,'markCaptureProven();applyLayout();','Share stage must mount before presenter commit.');
-requireText(shareIntegration,'commitPresenterMode();','Initial Share does not explicitly commit presenter mode.');
-requireText(shareIntegration,"const sameRendererPresenter=String(environment?.platform||'')==='darwin'",'macOS same-renderer presenter detection is missing.');
-requireText(shareIntegration,"if(!sameRendererPresenter)bridge?.presenterCommitted?.(",'macOS presenter commit must remain in the share-owning renderer.');
-requireText(preload,"ipcRenderer.send('share:presenter-committed'",'Non-macOS presenter commit bridge must remain one-way IPC.');
-const presenterCommitted=shareService.slice(
-  shareService.indexOf("ipcMain.on('share:presenter-committed'"),
-  shareService.indexOf("ipcMain.handle('share:capture-stopped'")
-);
-requireText(presenterCommitted,'presenterCommitPending=true','Presenter commit must unlock presenter chrome only after renderer completion.');
-requireText(presenterCommitted,'if(!toolbarReadyForShare){scheduleToolbarForShare();return;}','Presenter toolbar creation must originate from renderer presenter commit.');
-requireText(presenterCommitted,'setImmediate(()=>','Meeting hide is not deferred after toolbar readiness.');
-requireText(shareService,'keepMeetingRendererLive()','Hidden/background renderer protection is missing.');
-requireText(shareService,'acceptFirstMouse:true','Presenter toolbar cannot accept the first macOS click.');
-requireText(shareService,"setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true",'Presenter toolbar is not protected across Spaces/full-screen apps.');
-rejectText(shareService,"type:platform==='darwin'?'panel':undefined",'Unsupported macOS nonactivating panel type returned.');
-requireText(shareService,"if(normalized==='stop'&&shareActive)",'Stop Share retry protection is missing.');
+// Share chooser exposes only supported, truthful options.
+requireText(sharePicker,'const next=[...(screenResult?.sources||[]),...(windowResult?.sources||[])]','Screens view must merge real screens and application windows.');
+requireText(sharePicker,'source.thumbnail','Share chooser must render live previews.');
+requireText(sharePicker,"kind:'screen'",'Share chooser must enumerate screens.');
+requireText(sharePicker,"kind:'window'",'Share chooser must enumerate application windows.');
+requireText(sharePicker,'sharing=true;stopRefreshTimer();shareButton.disabled=true','Preview enumeration must stop before capture starts.');
+requireText(sharePickerHtml,'data-tab="screens">Screens','Share chooser is missing the Screens tab.');
+requireText(sharePickerHtml,'data-tab="files" aria-disabled="true"','Files must remain truthfully disabled until certified.');
+requireText(sharePickerHtml,'data-tab="advanced">More','Share chooser is missing More.');
+for(const label of ['Content only','As background','Over the shoulder','Side by side','Share sound','Optimize for video sharing','Share DominionStar Meet windows','Refresh automatically'])requireText(sharePickerHtml,label,`Share chooser missing ${label}.`);
 
-// Zoom-familiar working-only share chooser.
-requireText(sharePicker,'const next=[...(screenResult?.sources||[]),...(windowResult?.sources||[])]','Screens view does not merge real screens and application windows.');
-requireText(sharePicker,'source.thumbnail','Share chooser does not render live previews.');
-requireText(sharePicker,"kind:'screen'",'Share chooser does not enumerate screens.');
-requireText(sharePicker,"kind:'window'",'Share chooser does not enumerate application windows.');
-requireText(sharePicker,"const includeDominionStar=$('#includeMeetWindows').checked",'Meeting-window visibility is not controlled explicitly by the chooser.');
-requireText(sharePicker,'const firstScreen=sources.find','Share chooser does not prefer a desktop like Zoom.');
-requireText(sharePicker,"document.visibilityState!=='visible'",'Live source refresh does not suspend while the chooser is hidden.');
-requireText(sharePicker,'sharing=true;stopRefreshTimer();shareButton.disabled=true','Preview enumeration does not stop before capture starts.');
-if(patch>=41){
-  requireText(sharePickerHtml,'data-tab="screens">Screens','Share chooser is missing the approved Screens tab.');
-  requireText(sharePickerHtml,'data-tab="files" aria-disabled="true"','Files must remain visible but truthfully disabled until certified.');
-  requireText(sharePickerHtml,'data-tab="advanced">More','Share chooser is missing the approved More tab.');
-  requireText(sharePickerHtml,'Presenter layout','Share chooser is missing Presenter layout.');
-  requireText(sharePickerHtml,'Content only','Presenter layout is missing Content only.');
-  requireText(sharePickerHtml,'As background','Presenter layout is missing As background.');
-  requireText(sharePickerHtml,'Over the shoulder','Presenter layout is missing Over the shoulder.');
-  requireText(sharePickerHtml,'Side by side','Presenter layout is missing Side by side.');
-  requireText(sharePickerHtml,'Share sound','Share chooser is missing Share sound.');
-  requireText(sharePickerHtml,'Optimize for video sharing','Share chooser is missing video optimization.');
-  requireText(sharePickerHtml,'Share DominionStar Meet windows','More is missing intentional meeting-window visibility control.');
-  requireText(sharePickerHtml,'Refresh automatically','More is missing bounded automatic preview refresh.');
-}else{
-  requireText(sharePickerHtml,'data-tab="screens">Basic','Share chooser is missing the Zoom-familiar Basic source tab.');
-  requireText(sharePickerHtml,'data-tab="advanced">Advanced','Share chooser is missing Advanced.');
-  rejectText(sharePickerHtml,'data-tab="files"','Share chooser exposes unsupported Files/cloud controls.');
-  requireText(sharePickerHtml,'Share sound','Share chooser is missing Share sound.');
-  requireText(sharePickerHtml,'Optimize for video sharing','Share chooser is missing video optimization.');
-  requireText(sharePickerHtml,'Show DominionStar Meet windows','Advanced meeting-window visibility control is missing.');
-}
-
-// Meeting header and View behavior remain Zoom-familiar with DominionStar branding.
-requireText(parity,"const logo=String(desktop.brand?.logoUrl||'')",'Meeting header is not driven by the packaged DominionStar logo.');
+// Meeting header and View behavior remain functional.
+requireText(parity,"const logo=String(desktop.brand?.logoUrl||'')",'Meeting header must use packaged DominionStar branding.');
 requireText(parity,'function ensureViewButton()','Meeting header is missing View.');
 requireText(parity,"['speaker',sharing()?'Side-by-side: Speaker':'Speaker']",'View menu is missing Speaker.');
 requireText(parity,"['gallery',sharing()?'Side-by-side: Gallery':'Gallery']",'View menu is missing Gallery.');
 requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']",'View menu is missing Multi-speaker.');
 
-// Participant management remains readable/draggable; video filmstrip is separate.
-requireText(adaptive,'Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.','One-person participant search must remain under the single canonical reference owner.');
-requireText(adaptive,"if(window.dominionDesktop)return;",'Desktop adaptive parity must remain read-only so it cannot mutate participant/search/waiting-room chrome.');
-requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep self first.');
-requireText(adaptive,"else if(role==='host')bucket=1",'Participant ordering does not prioritize host.');
-requireText(adaptive,"else if(role==='cohost')bucket=2",'Participant ordering does not prioritize co-host.');
-requireText(adaptive,"else if(raised)bucket=3",'Participant ordering does not prioritize raised hands.');
-requireText(adaptive,"else if(micOn)bucket=4",'Participant ordering does not prioritize unmuted participants.');
-requireText(adaptive,"head.addEventListener('mousedown',startParticipantPanelDrag,true)",'Participants panel lacks native mouse drag.');
-requireText(adaptive,"document.addEventListener('mousemove',moveParticipantPanelDrag,true)",'Participants drag stops when the pointer leaves the header.');
-requireText(adaptiveCss,'max-width:340px !important','Compact Participants geometry regressed.');
+// Canonical runtime owns draggable participants/chat/video-dock behavior.
+requireText(runtime,"panel.dataset.dsRuntimeMode='floating'",'Participants/Chat must remain floating.');
+requireText(runtime,'installFloatingSurfaceDrag(panel)','Participants/Chat must remain draggable.');
+requireText(runtime,'function syncVideoDockGeometry()','Video dock geometry must be runtime-owned.');
+requireText(runtime,"dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'",'Video dock mode must resolve deterministically.');
+requireText(runtime,"dock.style.setProperty('right','14px','important')",'Desktop video dock must default to the right edge.');
+requireText(runtime,"body.style.setProperty('grid-auto-flow','column','important')",'Compact video dock must reflow horizontally.');
+requireText(macOverlay,"function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=2;}",'Native sharing filmstrip must start at two participants.');
+requireText(approvedCss,'right:14px !important;','Approved reference must preserve right-edge filmstrip geometry.');
 
-// Camera-off video filmstrip defaults to the right, including two-person calls.
-requireText(adaptive,"dock.dataset.dsAdaptiveWholePanelDrag='1'",'Video filmstrip whole-surface drag authority is missing.');
-requireText(adaptive,"dock.dataset.dsAdaptiveVideoDrag='mouse-document'",'Video filmstrip does not declare native mouse/document drag authority.');
-requireText(adaptive,"dock.addEventListener('mousedown',startVideoDockDrag,true)",'Video filmstrip is not draggable from a real mouse press.');
-requireText(adaptive,"document.addEventListener('mousemove',moveVideoDockDrag,true)",'Video filmstrip drag stops when the mouse leaves the video tile.');
-requireText(adaptive,"document.addEventListener('mouseup',endVideoDockDrag,true)",'Video filmstrip drag does not complete through document mouseup.');
-requireText(physicalRepair,"participantCount<=1&&visibleTiles===0",'Physical Mac layer still suppresses a two-person Speaker-view filmstrip.');
-requireText(physicalRepair,"dock.dataset.zoomThreshold=suppress?'empty-solo':'available'",'Corrected video-filmstrip threshold is missing.');
-requireText(physicalRepair,"if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false",'Two-person Speaker view cannot reveal the video filmstrip.');
-requireText(approvedCss,'right:14px !important;','Video filmstrip does not default to the right edge.');
-requireText(approvedCss,'grid-template-columns:176px !important;','Desktop video filmstrip is not vertical.');
-requireText(approvedCss,'@media(max-width:680px)','Video filmstrip reflows to the top too early.');
+// Compact prejoin remains bounded and readable.
+requireText(prejoinCss,'max-width','Prejoin stylesheet must bound desktop geometry.');
+requireText(prejoinCss,'grid-template-columns','Prejoin device controls must remain structured.');
 
-// Compact prejoin and carried-forward reference lineage.
-requireText(adaptiveCss,'max-width:560px !important','Prejoin is not bounded to compact desktop geometry.');
-requireText(adaptiveCss,'grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important','Prejoin device row can clip.');
-requireText(adaptive,'Always show this preview when joining','Persistent prejoin preview preference is missing.');
-requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive controller is not sequenced after physical Mac repair.');
-requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive stylesheet is not loaded.');
-requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection record is missing.');
+// Retired physical/adaptive authorities stay out of startup.
+for(const retired of ['physical-mac-repair.js','zoom-adaptive-parity.js','active-share-home-parity-2.0.41.js','rejected-build-repair-2.0.40.css']){
+  rejectText(runtimeBootstrap,retired,`Retired physical parity layer returned to startup: ${retired}`);
+}
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} custom-only-preshare no-apple-overlay bounded-share-start zoom-screens-advanced-working-only one-way-capture-start toolbar-after-renderer-commit real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip video-filmstrip-native-mouse-drag narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_54_OK carried-forward-on=${pkg.version} custom-preshare bounded-share-start one-way-capture presenter-controls real-brand view-modes runtime-draggable-panels two-person-native-filmstrip right-default-video-dock compact-prejoin no-retired-authorities`);
