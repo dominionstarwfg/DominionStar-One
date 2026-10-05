@@ -10,7 +10,7 @@ const sharePicker=read('ui/share-picker.js');
 const sharePickerHtml=read('ui/share-picker.html');
 const parity=read('ui/meeting-parity.js');
 const runtime=read('ui/runtime-stability.js');
-const approvedCss=read('ui/approved-reference-parity.css');
+const runtimeCss=read('ui/runtime-stability.css');
 const prejoinCss=read('ui/executive-prejoin-2.0.41.css');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const runtimeBootstrap=read('ui/runtime-bootstrap.js');
@@ -60,7 +60,7 @@ requireText(runtime,"dock.dataset.dsRuntimeDockMode=userPositioned?'user':compac
 requireText(runtime,"dock.style.setProperty('right','14px','important')",'Desktop video dock must default to the right edge.');
 requireText(runtime,"body.style.setProperty('grid-auto-flow','column','important')",'Compact video dock must reflow horizontally.');
 requireText(macOverlay,"function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=2;}",'Native sharing filmstrip must start at two participants.');
-requireText(approvedCss,'right:14px !important;','Approved reference must preserve right-edge filmstrip geometry.');
+requireText(runtimeCss,'right:14px!important;','Canonical runtime must preserve right-edge filmstrip geometry.');
 
 // Compact prejoin remains bounded and readable.
 requireText(prejoinCss,'max-width','Prejoin stylesheet must bound desktop geometry.');
