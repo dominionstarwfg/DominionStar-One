@@ -19,12 +19,22 @@ const presenterToolbarJs=read('ui/mac-presenter-toolbar.js');
 const presenterParity=read('ui/presenter-command-parity-2.0.27.js');
 const preload=read('src/preload.cjs');
 const pkg=JSON.parse(read('package.json'));
+const runtimeBootstrap=read('ui/runtime-bootstrap.js');
 const appSource=read('ui/app.js');
 const shareService=read('src/share-service.mjs');
 const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const captions=read('ui/meeting-captions.js');
 const featureReady=read('ui/meeting-feature-ready-2.0.41.js');
 const workflow=fs.readFileSync(new URL('../../.github/workflows/rebuild-mac-production.yml',import.meta.url),'utf8');
+
+// Desktop startup must not load retired visual authority layers.
+for(const retiredStyle of ['zoom-production-polish.css','zoom-physical-acceptance.css','physical-mac-repair.css','zoom-adaptive-parity.css','approved-reference-parity.css','runtime-layout-fix.css']){
+  assert(!runtimeBootstrap.includes(`loadStyle('./${retiredStyle}'`),`Retired visual layer must not load at desktop startup: ${retiredStyle}`);
+}
+for(const retiredScript of ['physical-mac-repair.js','zoom-adaptive-parity.js','active-share-home-parity-2.0.41.js']){
+  assert(!runtimeBootstrap.includes(`loadScript('./${retiredScript}'`),`Retired compatibility authority must not load at desktop startup: ${retiredScript}`);
+}
+assert(runtimeBootstrap.includes("version:'2.0.54-minimal-runtime-bootstrap'"),'Minimal runtime bootstrap version contract is missing.');
 
 // Participants: one search/structure owner. The canonical input deliberately
 // does not carry the legacy class that historical CSS used to hide.
