@@ -56,6 +56,7 @@
       loadScript('./presenter-command-parity-2.0.27.js','dsPresenterCommandParity227')
     ]);
 
+    await loadScript('./physical-intelligence-2.0.41.js','dsPhysicalIntelligence2041');
     await loadScript('./approved-reference-parity.js','dsApprovedReferenceParity');
     await loadScript('./zoom-screenshot-reference-2.0.41.js','dsZoomScreenshotReference2041');
     await loadScript('./zoom-participants-reference-2.0.41.js','dsZoomParticipantsReference2041');
