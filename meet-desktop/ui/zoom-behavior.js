@@ -251,7 +251,7 @@
     if(chatPatched&&!q('#meetingChatPanel')?.hidden){updateUnread(true);void refreshChatRecipients();}
   }
 
-  const syncEvents=['dominion:meeting-ui-ready','dominion:participant-presence','dominion:waiting-room-update'];
+  const syncEvents=['dominion:meeting-ui-ready','dominion:meeting-entered','dominion:participant-presence','dominion:waiting-room-update'];
   const scheduleSync=()=>queueMicrotask(sync);
   for(const name of syncEvents)window.addEventListener(name,scheduleSync,true);
   sync();
