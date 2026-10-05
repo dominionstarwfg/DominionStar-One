@@ -67,6 +67,7 @@
     // Preserve the historical dependency order for the remaining reference
     // compatibility chain, but keep ownership in RuntimeStability.
     await loadScript('./physical-mac-repair.js','dsPhysicalMacRepair');
+    await loadScript('./physical-intelligence-2.0.41.js','dsPhysicalIntelligence2041');
     await loadScript('./zoom-adaptive-parity.js','dsZoomAdaptiveParity');
     await loadScript('./approved-reference-parity.js','dsApprovedReferenceParity');
     await loadScript('./zoom-screenshot-reference-2.0.41.js','dsZoomScreenshotReference2041');
