@@ -120,7 +120,7 @@ assert(
 );
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
-assert(legacyParticipants.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must never re-center or poll the live panel.');
+assert(legacyParticipants.includes("version:'2.0.54-one-shot-compatibility'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('new MutationObserver(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must remain one-shot and must never poll, observe, or autonomously re-center the live panel.');
 assert(legacyHostTools.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyHostTools.includes('centerParticipantsOnce')&&!legacyHostTools.includes("host.style.setProperty('width','248px'"),'Legacy Host Tools compatibility must not own Participants or Host Tools geometry.');
 assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.includes('.room-side:has(.ds-ref-host-tools-panel)'),'Legacy Host Tools stylesheet must not shrink Host Tools or move Participants.');
 assert(
