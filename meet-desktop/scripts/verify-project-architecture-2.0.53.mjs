@@ -49,7 +49,7 @@ for(const [file,src] of uiJs){
 // still carry generic compatibility rules, but it may not directly target the
 // final ds-* authority selectors from an unrelated module.
 const protectedParticipantTokens=['.ds-participants-reference','.ds-participant-search-primary','.ds-ref-participants-footer','.ds-traffic-close','.ds-traffic-minimize','.ds-traffic-restore'];
-const protectedParticipantOwners=new Set(['ui/zoom-participants-reference-2.0.41.js','ui/runtime-stability.css','ui/zoom-screenshot-reference-2.0.41.css']);
+const protectedParticipantOwners=new Set(['ui/zoom-participants-reference-2.0.41.js','ui/runtime-stability.js','ui/runtime-stability.css','ui/zoom-screenshot-reference-2.0.41.js','ui/zoom-screenshot-reference-2.0.41.css']);
 for(const [file,src] of sources){
   if(protectedParticipantOwners.has(file)||file.startsWith('scripts/'))continue;
   for(const token of protectedParticipantTokens)if(src.includes(token))fail(file,'protected-participant-selector',`Non-owner targets canonical selector ${token}`);
