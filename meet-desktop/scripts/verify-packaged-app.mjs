@@ -64,7 +64,7 @@ for(const bridge of ['personalRoom:','updatePersonalRoom:','startPersonalRoom:',
 assert(main.includes("'meeting:personal-room'")&&main.includes("'meeting:schedule'")&&main.includes("'meeting:start-schedule'"),'Packaged main process must own Personal Room and schedule IPC.');
 assert(media.includes("deviceId:id?{ideal:id}:undefined"),'Packaged camera authority must use resilient soft device preference.');
 assert(media.includes("const candidates=unique([preferredId,...catalog.map(item=>item.id)])"),'Packaged camera authority must fall back to another available device.');
-assert(authPassword.includes("script.src='./video-effects.js'"),'Packaged renderer must load the isolated video effects processor.');
+assert(html.includes('<script src="./video-effects.js"></script>'),'Packaged renderer must load the isolated video effects processor from the canonical document entrypoint.');
 assert(videoEffects.includes('new FaceDetector')&&videoEffects.includes('canvas.captureStream?.(30)')&&videoEffects.includes('cropForFrame'),'Packaged auto framing must create a real processed camera stream.');
 assert(videoEffects.includes('state.backgroundBlur')&&videoEffects.includes('compositePerson')&&videoEffects.includes('createRadialGradient')&&videoEffects.includes('blurPx'),'Packaged background blur must preserve a feathered foreground person region and blur the outgoing background.');
 assert(videoEffects.includes('setAppearance')&&videoEffects.includes('state.touchUp')&&videoEffects.includes('state.portraitLight'),'Packaged touch-up and portrait lighting must be part of the outgoing processed camera path.');
