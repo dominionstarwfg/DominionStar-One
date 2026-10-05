@@ -47,7 +47,7 @@ assert(participantControls.includes('const timer=desktopSurface?0:setInterval'),
 for(const retired of ['ui/active-share-home-parity-2.0.41.js','ui/physical-mac-repair.js','ui/physical-mac-repair.css','ui/runtime-layout-fix.css','ui/zoom-adaptive-parity.js','ui/zoom-adaptive-parity.css','ui/zoom-production-polish.css']){
   assert(!fs.existsSync(new URL('../'+retired,import.meta.url)),`Retired compatibility file must stay deleted: ${retired}`);
 }
-assert(productionPolish.includes('const backgroundEnabled=!Boolean(window.dominionDesktop);')&&productionPolish.includes('if(backgroundEnabled){'),'Production polish must not autonomously reconcile desktop chrome.');
+assert(productionPolish.includes("version:'2.0.54-chat-helper'")&&!productionPolish.includes('MutationObserver')&&!productionPolish.includes('setInterval(')&&!productionPolish.includes('#participantRoster')&&!productionPolish.includes('#roomParticipants')&&!productionPolish.includes('ds-participant-search'),'Production polish must remain a chat-only event-driven helper with no Participants authority.');
 assert(approvedReference.includes('const backgroundEnabled=!Boolean(window.dominionDesktop);')&&approvedReference.includes('if(backgroundEnabled){'),'Approved reference compatibility layer must not poll desktop chrome.');
 assert(physicalAcceptance.includes('const desktopCanonical=Boolean(desktop?.isDesktop);'),'Physical acceptance desktop guard is missing.');
 assert(physicalAcceptance.includes('const timer=desktopCanonical?0:setInterval'),'Physical acceptance must not run its 700ms desktop timer.');
