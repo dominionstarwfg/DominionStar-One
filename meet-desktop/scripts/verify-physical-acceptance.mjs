@@ -9,6 +9,10 @@ const macPresenter=read('ui/mac-presenter-toolbar.js');
 const shareIntegration=read('ui/share-integration.js');
 const macPresenterHtml=read('ui/mac-presenter-toolbar.html');
 const runtime=read('ui/runtime-stability.js');
+const runtimeCss=read('ui/runtime-stability.css');
+const featuresCss=read('ui/meeting-features.css');
+const pickerCss=read('ui/share-picker.css');
+const avCss=read('ui/av-settings.css');
 const features=read('ui/meeting-features.js');
 
 // Parse the last-loaded production authority before any packaged build starts.
@@ -18,6 +22,7 @@ new Function(macPresenter);
 
 assert(runtimeBootstrap.includes("loadScript('./zoom-physical-acceptance.js'")&&!runtimeBootstrap.includes("loadStyle('./zoom-physical-acceptance.css'"),'Physical acceptance may load only as a one-shot behavior helper; its retired stylesheet must stay out of desktop startup.');
 assert(js.includes("button.dataset.dsPhysicalAuthority='1'")&&js.includes('installViewAuthority')&&js.includes('installHostToolsAuthority')&&js.includes('installMoreAuthority'),'View, Host Tools and More must have explicit visible-control authority.');
+assert(runtimeCss.includes('.ds-command-menu')&&runtimeCss.includes('z-index:2600'),'Visible command-menu styling must live in the canonical runtime stylesheet.');
 assert(js.includes("parity()?.applyViewMode?.('speaker')")&&js.includes("parity()?.applyViewMode?.('gallery')")&&js.includes("parity()?.applyViewMode?.('multi')"),'View menu actions must invoke real meeting layout behavior.');
 assert(js.includes("meeting?.setSecurity?.(ctx.roomId")&&js.includes("parity()?.toggleParticipants?.(true)"),'Host Tools must invoke real host/security actions without proxy-clicking the hidden legacy Security control.');
 assert(!js.includes("q('#roomSecurity').click"),'Physical Host Tools must never proxy-click the hidden legacy Security control.');
@@ -32,15 +37,15 @@ assert(runtime.includes("window.DominionMeetingFeatures?.openReactions?.(reactio
 assert(features.includes("b.onclick=()=>{closeReactionMenu();void sendReaction(emoji);}"),'Every canonical reaction button must invoke the real reaction sender.');
 assert(features.includes('async function sendReaction(emoji)')&&features.includes("await broadcast('reaction',payload)"),'Canonical reaction sender must publish reactions through the live meeting transport.');
 assert(js.includes('upgradeReactionBubble')&&js.includes('setTimeout(()=>replacement.remove(),6300)'),'Reaction animation must persist for roughly six seconds rather than disappearing after the legacy three-second timer.');
-assert(css.includes('animation:dsPhysicalReactionRise 6.2s')&&css.includes('flex-direction:column')&&css.includes('calc(-88vh + 120px)'),'Reaction must rise substantially up the left side with the participant name beneath the emoji.');
-assert(css.includes('.ds-reaction-tray{position:fixed;z-index:2800'),'Reaction tray must remain clickable above meeting layers.');
+assert(featuresCss.includes('animation:dsPhysicalReactionRise 6.2s')&&featuresCss.includes('flex-direction:column')&&featuresCss.includes('calc(-88vh + 120px)'),'Reaction styling must live with meeting features and rise substantially up the left side.');
+assert(featuresCss.includes('.ds-reaction-tray{position:fixed;z-index:2800'),'Reaction tray must remain clickable above meeting layers.');
 assert(js.includes('openSmartSharePicker')&&js.includes('sharePicker?.listSources?.({kind,includeDominionStar:false})'),'Share permission authority must test actual desktop sources instead of relying only on stale TCC status.');
 assert(js.includes('desktop.sharePicker.choose(selectedShareId,options)'),'Share picker must feed the selected real source into the existing capture pipeline.');
 assert(js.includes("sessionStorage.setItem('ds_screen_settings_opened','1')")&&js.includes('Recheck'),'Permission recovery must remember that Settings was opened and provide an active recheck path instead of looping blindly.');
 assert(!macPresenterHtml.includes('data-command="new-share"')&&macPresenterHtml.includes('data-command="pause"')&&macPresenterHtml.includes('id="moreButton"')&&macPresenterHtml.includes('id="stopShare"'),'Floating macOS share toolbar must match the approved compact presenter contract without a primary New Share control.');
 assert(shareIntegration.includes("if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}"),'New Share must route through the certified picker/permission authority in the meeting renderer.');
-assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-grid'),'Screen sharing must expose a production source picker instead of another permission-only dialog.');
-assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
+assert(pickerCss.includes('.ds-smart-share-picker')&&pickerCss.includes('.ds-share-source-grid'),'Screen sharing must expose a production source picker from the dedicated share-picker stylesheet.');
+assert(avCss.includes('.av-detail-head p{font-size:12.5px!important')&&avCss.includes('.av-toggle-row{font-size:13px!important')&&avCss.includes('.av-quick-menu button{font-size:13px!important'),'A/V readability authority must live in av-settings.css.');
 assert(js.includes("version:'2.0.53-manual-desktop-acceptance'")&&js.includes("const desktopCanonical=Boolean(desktop?.isDesktop);")&&js.includes("const timer=desktopCanonical?0:setInterval")&&js.includes("window.removeEventListener('dominion:meeting-signal',onMeetingSignal,true)"),'Physical acceptance must be a fully-retirable manual compatibility layer on desktop.');
 
 // Physical-Mac active-share control authority. Layout/show-meeting remain native
