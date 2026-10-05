@@ -402,7 +402,6 @@
     function cleanupStoppedShareSurfaces(){
       try{window.DominionShareRuntimeAuthority2041?.close?.();}catch{}
       try{const pending=desktop?.sharePicker?.cancel?.();void Promise.resolve(pending).catch(()=>{});}catch{}
-      try{window.DominionActiveShareHomeParity2041?.restoreMeeting?.();}catch{}
     }
     share.onChange(state=>{
       // Physical-Mac diagnostic isolation: prove whether capture itself or the
