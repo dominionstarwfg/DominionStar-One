@@ -13,8 +13,8 @@
   let lastMutationTotals={total:0,childList:0,attributes:0,text:0};
 
   const state={
-    version:'1.0.0-physical-recorder',
-    startedAt:Date.now(),
+    version:'2.0.54-on-demand-physical-recorder',
+    startedAt:0,
     samples:[],
     events:[],
     orderChanges:[],
@@ -219,7 +219,8 @@
         userAgent:String(navigator.userAgent||'')
       },
       recording:{
-        startedAt:state.startedAt,
+        active:Boolean(timer),
+      startedAt:state.startedAt,
         durationMs:Math.max(0,now()-state.startedAt),
         mutationTotals:{...state.mutations},
         orderChanges:[...state.orderChanges],
@@ -244,19 +245,19 @@
     return result;
   }
 
-  window.addEventListener('dominion:meeting-ui-ready',()=>{attachRosterObserver();record('meeting-ui-ready',{});},true);
-  window.addEventListener('dominion:meeting-snapshot',event=>record('meeting-snapshot',{participants:Array.isArray(event.detail?.participants)?event.detail.participants.length:undefined}),true);
-  window.addEventListener('dominion:active-speakers',event=>record('active-speakers',{participantIds:Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[]}),true);
-  window.addEventListener('dominion:presenter-command-dispatch',event=>record('presenter-command-dispatch',{command:String(event.detail?.command||''),qaCommandId:Number(event.detail?.qaCommandId||0)}),true);
-  window.addEventListener('dominion:meeting-ended',()=>record('meeting-ended',{}),true);
+  window.addEventListener('dominion:meeting-ui-ready',()=>{if(timer){attachRosterObserver();record('meeting-ui-ready',{});}},true);
+  window.addEventListener('dominion:meeting-snapshot',event=>{if(timer)record('meeting-snapshot',{participants:Array.isArray(event.detail?.participants)?event.detail.participants.length:undefined});},true);
+  window.addEventListener('dominion:active-speakers',event=>{if(timer)record('active-speakers',{participantIds:Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[]});},true);
+  window.addEventListener('dominion:presenter-command-dispatch',event=>{if(timer)record('presenter-command-dispatch',{command:String(event.detail?.command||''),qaCommandId:Number(event.detail?.qaCommandId||0)});},true);
+  window.addEventListener('dominion:meeting-ended',()=>{if(timer)record('meeting-ended',{});},true);
   window.addEventListener('error',event=>record('window-error',{message:String(event.message||''),filename:String(event.filename||''),line:Number(event.lineno)||0,column:Number(event.colno)||0}),true);
   window.addEventListener('unhandledrejection',event=>record('unhandled-rejection',{error:safeError(event.reason)}),true);
   document.addEventListener('click',event=>{
     const control=event.target?.closest?.('#roomMic,#roomCamera,#roomShare,#roomParticipants,#roomChat,#roomReactions,#roomMore,[data-inline-command]');
-    if(control)record('meeting-control-click',{id:String(control.id||''),command:String(control.dataset?.inlineCommand||''),label:cleanText(control.textContent)});
+    if(timer&&control)record('meeting-control-click',{id:String(control.id||''),command:String(control.dataset?.inlineCommand||''),label:cleanText(control.textContent)});
   },true);
 
-  start();
+  // Diagnostics are opt-in. Production must remain idle until start() is explicitly requested.
   window.DominionPhysicalDiagnostics=Object.freeze({
     version:state.version,
     start,stop,record,exportReport,
