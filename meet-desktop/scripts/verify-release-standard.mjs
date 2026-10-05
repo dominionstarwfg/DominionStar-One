@@ -49,7 +49,8 @@ for(const script of [
   'verify-zoom-screenshot-reference-2.0.41.mjs',
   'verify-active-share-repair-2.0.42.mjs',
   'verify-ui-authority-contract-2.0.53.mjs',
-  'verify-project-architecture-2.0.53.mjs'
+  'verify-project-architecture-2.0.53.mjs',
+  'verify-clean-runtime-2.0.54.mjs'
 ])assert.ok(verify.includes(script),`npm verify is missing mandatory source gate: ${script}`);
 assert.ok(workflow.includes('node scripts/verify-packaged-runtime-stability-2.0.22.mjs'),'Packaged freeze/responsive-layout audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-interactions.mjs'),'Packaged interaction audit is mandatory.');
