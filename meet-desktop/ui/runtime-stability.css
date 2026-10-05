@@ -813,3 +813,12 @@ body>.meeting-reaction-menu,
   width:100%!important;min-width:0!important;height:34px!important;padding:0 10px!important;
   border-radius:17px!important;font-size:11px!important;
 }
+
+
+/* DS 2.0.54 canonical command-menu styles */
+/* Every visible command menu must sit above the meeting toolbar, panels and video. */
+.ds-command-menu{position:fixed;z-index:2600;width:272px;max-height:min(520px,calc(100vh - 120px));overflow:auto;padding:7px;border:1px solid #4b4b4b;border-radius:10px;background:rgba(34,34,34,.985);box-shadow:0 24px 70px rgba(0,0,0,.62);backdrop-filter:blur(20px);color:var(--ds-accept-text)}
+.ds-command-menu-heading{padding:8px 10px 10px;color:#bdbdbd;font-size:12px;font-weight:700;letter-spacing:.02em}.ds-command-item{width:100%;min-height:42px;display:grid;grid-template-columns:20px 1fr;align-items:center;gap:4px;border:0;border-radius:7px;background:transparent;color:#f4f4f4;padding:7px 10px;text-align:left;cursor:pointer}.ds-command-item:hover,.ds-command-item:focus-visible{background:#363636;outline:none}.ds-command-item>span{color:#52a5ff;font-size:13px}.ds-command-item strong{font-size:13px;font-weight:550}.ds-command-item.danger strong{color:#ff6b78}.ds-command-item:disabled{opacity:.45;cursor:not-allowed}.ds-command-divider{height:1px;background:#454545;margin:6px 5px}
+#roomHostTools,#roomMore,#meetingViewButton{position:relative;z-index:2}
+
+.ds-modern-dialog{padding:0;border:1px solid #4b4b4b;border-radius:12px;background:#202020;color:#f5f5f5;box-shadow:0 28px 90px rgba(0,0,0,.7)}.ds-modern-dialog::backdrop{background:rgba(0,0,0,.62)}.ds-modern-dialog form{width:360px;padding:18px;display:grid;gap:14px}.ds-modern-dialog header{display:flex;justify-content:space-between;align-items:center}.ds-modern-dialog header strong{font-size:17px}.ds-modern-dialog header button{border:0;background:transparent;color:#eee;font-size:22px}.ds-modern-dialog label{display:grid;gap:7px}.ds-modern-dialog label span{font-size:12px;color:#c5c5c5}.ds-modern-dialog input{height:40px;border:1px solid #4b4b4b;border-radius:8px;background:#2a2a2a;color:#fff;padding:0 11px;font-size:13px}.ds-dialog-status{min-height:18px;margin:0;color:#ff8089;font-size:11px}.ds-modern-dialog footer{display:flex;justify-content:flex-end;gap:8px}.ds-modern-dialog footer button{height:38px;padding:0 14px;border:1px solid #4a4a4a;border-radius:8px;background:#2b2b2b;color:#fff;font-size:12px}.ds-modern-dialog footer button.primary{background:#2d8cff;border-color:#2d8cff}
