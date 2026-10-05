@@ -25,7 +25,7 @@ assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&
 
 // Minimal startup: Runtime Stability owns desktop geometry; retired layout stacks stay unloaded.
 assert.ok(runtimeBootstrap.includes("version:'2.0.54-minimal-runtime-bootstrap'"),'Minimal runtime bootstrap is required.');
-assert.ok(runtimeBootstrap.includes("loadStyle('./runtime-stability.css'")&&runtimeBootstrap.includes("loadStyle('./runtime-motion.css'"),'Runtime stability and motion styles must load from runtime bootstrap.');
+assert.ok(runtimeBootstrap.includes("['./runtime-stability.css','dsRuntimeStability']")&&runtimeBootstrap.includes("['./runtime-motion.css','dsRuntimeMotion']")&&runtimeBootstrap.includes("Promise.all(styles.map(([href,key])=>loadStyle(href,key)))"),'Runtime stability and motion styles must load through the canonical bootstrap style registry.');
 assert.ok(runtimeBootstrap.includes("loadScript('./runtime-stability.js'"),'Runtime Stability controller must load first.');
 for(const retired of ['runtime-layout-fix.css','zoom-adaptive-parity.css','zoom-adaptive-parity.js','physical-mac-repair.css','physical-mac-repair.js','active-share-home-parity-2.0.41.js']){
   assert.ok(!runtimeBootstrap.includes(retired),`Retired runtime layer must stay unloaded: ${retired}`);
