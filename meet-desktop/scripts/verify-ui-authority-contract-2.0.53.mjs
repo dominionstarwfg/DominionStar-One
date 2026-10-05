@@ -107,6 +107,6 @@ assert(!fs.existsSync(new URL('../ui/meeting-feature-ready-2.0.41.js',import.met
 
 // The authority contract is itself a mandatory release gate.
 assert(pkg.scripts?.verify?.includes('verify-ui-authority-contract-2.0.53.mjs'),'npm verify must include the UI authority contract.');
-assert(workflow.includes('node scripts/verify-ui-authority-contract-2.0.53.mjs'),'Production workflow must execute the UI authority contract before packaging.');
+assert(pkg.scripts?.verify?.includes('verify-ui-authority-contract-2.0.53.mjs')&&workflow.includes('npm run verify'),'Production workflow must execute the UI authority contract through the canonical npm verification entrypoint before packaging.');
 
 console.log('DOMINIONSTAR_UI_AUTHORITY_CONTRACT_2_0_53_OK single-search-owner manual-desktop-legacy-layers no-one-person-filmstrip single-camera-owner bounded-frame-pump approved-presenter-toolbar state-ack-controls bounded-presenter-fallback release-gated');
