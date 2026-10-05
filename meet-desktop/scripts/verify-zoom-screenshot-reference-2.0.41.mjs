@@ -7,7 +7,7 @@ const url=rel=>new URL(`../${rel}`,import.meta.url);
 const read=rel=>fs.readFileSync(url(rel),'utf8');
 const syntax=rel=>execFileSync(process.execPath,['--check',fileURLToPath(url(rel))],{stdio:'pipe'});
 const pkg=JSON.parse(read('package.json'));
-const auth=read('ui/auth-password.js');
+const runtimeBootstrap=read('ui/runtime-bootstrap.js');
 const refJs=read('ui/zoom-screenshot-reference-2.0.41.js');
 const refCss=read('ui/zoom-screenshot-reference-2.0.41.css');
 const pickerHtml=read('ui/share-picker.html');
@@ -22,19 +22,17 @@ const macOverlay=read('src/mac-share-presenter-overlay.mjs');
 const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 const macToolbarCss=read('ui/mac-presenter-toolbar.css');
 const macToolbarJs=read('ui/mac-presenter-toolbar.js');
-const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
 const runtimeStability=read('ui/runtime-stability.js');
 
 const has=(s,n,m)=>assert.ok(s.includes(n),m);
 const lacks=(s,n,m)=>assert.ok(!s.includes(n),m);
 
 assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51','2.0.52'].includes(pkg.version),'Screenshot reference authority must remain certified across the current 2.0.46+ production repair line.');
-has(auth,"zoom-screenshot-reference-2.0.41.css",'Screenshot reference CSS is not loaded.');
-has(auth,"zoom-screenshot-reference-2.0.41.js",'Screenshot reference JS is not loaded.');
-has(auth,'script.onload=loadScreenshotReference','Screenshot reference must load after runtime stability completes.');
-has(auth,'if(window.DominionRuntimeStability)loadScreenshotReference()','Existing runtime stability must hand off to the screenshot reference authority.');
-has(auth,'active-share-home-parity-2.0.41.js','Active-share Home awareness must load after the screenshot authority.');
-has(auth,'script.onload=loadActiveShareHome','Active-share Home awareness must wait for the screenshot authority.');
+has(runtimeBootstrap,"loadStyle('./zoom-screenshot-reference-2.0.41.css'",'Screenshot reference CSS must load from the canonical runtime bootstrap.');
+has(runtimeBootstrap,"loadScript('./runtime-stability.js'",'Runtime Stability must load before the visual reference authority.');
+has(runtimeBootstrap,"loadScript('./zoom-screenshot-reference-2.0.41.js'",'Screenshot reference JS must load from the canonical runtime bootstrap.');
+assert.ok(runtimeBootstrap.indexOf("loadScript('./runtime-stability.js'")<runtimeBootstrap.indexOf("loadScript('./zoom-screenshot-reference-2.0.41.js'"),'Runtime Stability must load before screenshot/reference synchronization.');
+lacks(runtimeBootstrap,'active-share-home-parity-2.0.41.js','Deleted active-share compatibility layer must not return to startup.');
 
 // Home screenshot contract.
 has(refCss,'grid-template-columns:82px minmax(0,1fr)','Home must use the narrow Zoom-style app rail.');
@@ -46,11 +44,6 @@ lacks(refJs,'setInterval(','Final screenshot/reference authority must be event-d
 has(runtimeStability,'window.DominionZoomScreenshotReference?.sync?.()','Runtime Stability must commit final screenshot/reference geometry in the same synchronous meeting-layout transaction.');
 has(refJs,"if(label&&label.textContent!==text)label.textContent=text",'Toolbar label synchronization must be idempotent and avoid background DOM churn.');
 has(refJs,"#meetingOverlay #roomReactions .ds-control-label{font-size:10px!important",'Final inline toolbar authority must lock the React label at the approved compact reference size.');
-has(activeShareHome,'Back to meeting','An active shared meeting must replace New Meeting with Back to meeting on Home.');
-has(activeShareHome,"data-action=\"back-to-meeting\"",'Back to meeting must be a real command surface.');
-has(activeShareHome,'desktop.macShare?.onShowMeeting','The native presenter Show meeting command must restore the existing meeting.');
-has(activeShareHome,"node.disabled=true",'Join and Share Screen must not start competing flows while the active shared meeting is on Home.');
-
 // Prejoin screenshot contract.
 has(refCss,'width:548px!important','Prejoin must remain a compact Zoom-scale dialog.');
 has(refJs,'Always show this preview when joining','Prejoin preference row is missing.');
