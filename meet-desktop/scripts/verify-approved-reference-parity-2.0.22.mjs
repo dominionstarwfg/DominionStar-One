@@ -11,6 +11,7 @@ const referenceCss=read('../ui/zoom-screenshot-reference-2.0.41.css');
 const features=read('../ui/meeting-features.js');
 const share=read('../src/share-service.mjs');
 const controller=read('../ui/share-controller.js');
+const macOverlay=read('../src/mac-share-presenter-overlay.mjs');
 const production=read('../../.github/workflows/rebuild-mac-production.yml');
 const qa=read('../../.github/workflows/rebuild-mac-qa-certify.yml');
 
@@ -55,8 +56,8 @@ assert.ok(js.includes('stopImmediatePropagation();openChatTargetMenu(newChat)'),
 
 // Filmstrip reference remains a helper marker; final visual scale comes from the final reference stylesheet/runtime.
 assert.ok(js.includes("setData(dock,'approvedFilmstrip','1')"),'Approved floating video filmstrip marker is missing.');
-assert.ok(referenceCss.includes('#meetingOverlay #participantVideoDock')&&referenceCss.includes('right:14px!important'),'Final reference stylesheet must preserve the right-side video filmstrip.');
-assert.ok(referenceCss.includes('.remote-peer-tile.active-speaker'),'Video filmstrip must visually mark the active speaker.');
+assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'")&&runtime.includes("dock.style.setProperty('right','14px','important')"),'Canonical runtime must preserve the right-side participant video filmstrip on normal desktop geometry.');
+assert.ok(macOverlay.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=2;}"),'Native presenter filmstrip must remain hidden for solo meetings and start at two participants.');
 
 // Truthful security language only.
 assert.ok(js.includes("aria-label','Encrypted media transport'")&&js.includes("<span>Encrypted</span>"),'Header must expose truthful encrypted transport status.');
