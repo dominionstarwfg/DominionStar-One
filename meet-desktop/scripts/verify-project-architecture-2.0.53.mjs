@@ -45,6 +45,25 @@ for(const [file,src] of uiJs){
   if(!guarded)fail(file,'no-autonomous-desktop-visual-polling','setInterval exists without an explicit desktop retirement guard');
 }
 
+// Production diagnostics must remain fully idle until explicitly started.
+const diagnostics=sources.get('ui/physical-diagnostics.js')||'';
+if(/\n\s*start\(\);\s*\n\s*window\.DominionPhysicalDiagnostics/.test(diagnostics)){
+  fail('ui/physical-diagnostics.js','diagnostics-opt-in-only','Physical diagnostics auto-start in production');
+}
+if(diagnostics.includes("meeting-ui-ready',()=>{attachRosterObserver()")){
+  fail('ui/physical-diagnostics.js','diagnostics-no-idle-observer','Diagnostics attach the roster observer while idle');
+}
+
+// Compatibility layers may not own continuous participant or behavior reconciliation.
+const participantCenter=sources.get('ui/participants-center-lock-2.0.41.js')||'';
+if(participantCenter.includes('new MutationObserver(')){
+  fail('ui/participants-center-lock-2.0.41.js','participant-compatibility-no-subtree-observer','Legacy participant compatibility still observes the meeting subtree');
+}
+const behavior=sources.get('ui/zoom-behavior.js')||'';
+if(behavior.includes('setInterval(')){
+  fail('ui/zoom-behavior.js','behavior-event-driven-only','Behavior compatibility still uses periodic reconciliation');
+}
+
 // Canonical Participants selectors are protected API. Historical styling may
 // still carry generic compatibility rules, but it may not directly target the
 // final ds-* authority selectors from an unrelated module.
@@ -101,7 +120,7 @@ if(failures.length){
   for(const item of failures)console.error(`ARCHITECTURE_VIOLATION file=${item.file} rule=${item.rule} detail=${item.detail}`);
   assert.fail(`Project architecture audit found ${failures.length} violation(s).`);
 }
-console.log('DOMINIONSTAR_PROJECT_ARCHITECTURE_2_0_53_OK');
+console.log('DOMINIONSTAR_PROJECT_ARCHITECTURE_2_0_54_OK');
 console.log('ARCHITECTURE_INTERVAL_FILES '+JSON.stringify(intervalFiles));
 console.log('ARCHITECTURE_OBSERVER_FILES '+JSON.stringify(observerFiles));
 console.log('ARCHITECTURE_DIRECT_CAMERA_FILES '+JSON.stringify(directCameraFiles));
