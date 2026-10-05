@@ -68,7 +68,7 @@ assert(presenterToolbar.indexOf('data-command="chat"')<presenterToolbar.indexOf(
 // A visual button change is not success: media state must confirm the command.
 assert(shareIntegration.includes("error:'pause_state_not_reached'"),'Pause/Resume must fail closed when the requested share state is not reached.');
 assert(shareIntegration.includes("error:'camera_state_not_reached'"),'Video on/off must fail closed when the requested camera state is not reached.');
-assert(presenterToolbarJs.includes('presenter_command_not_acknowledged'),'Presenter toolbar must require positive command acknowledgement.');
+assert(presenterToolbarJs.includes('presenter_command_not_acknowledged')&&presenterToolbarJs.includes('result.ok!==false'),'Presenter toolbar must reject negative acknowledgements even when transport delivery itself was acknowledged.');
 
 // No permanent high-frequency fallback loops in presenter command infrastructure.
 assert(!presenterParity.includes('setInterval('),'Presenter command compatibility install must use bounded retries, not polling intervals.');
