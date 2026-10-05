@@ -31,7 +31,7 @@ assert(bootstrap.includes("existsAndRunning")&&bootstrap.includes("app.quit()"),
 assert(bootstrap.includes('const version=app.getVersion()')&&!bootstrap.includes('open this 2.0.22 build'),'Installer/relaunch guidance must use the actual packaged build identity, never a stale hard-coded version.');
 assert(relaunch.includes('const execPath=process.execPath')&&relaunch.includes('const args=process.argv.slice(1)'),'Permission recovery relaunch must capture the exact running executable and arguments.');
 assert(relaunch.includes('app.relaunch({execPath,args})'),'Permission recovery must relaunch the exact installed DominionStar executable.');
-assert(html.includes('src="./runtime-bootstrap.js"')&&runtimeBootstrap.includes("version:'2.0.53-clean-bootstrap'"),'Meeting shell must load the canonical runtime bootstrap before legacy compatibility can participate.');
+assert(html.includes('src="./runtime-bootstrap.js"')&&runtimeBootstrap.includes("version:'2.0.54-minimal-runtime-bootstrap'")&&!runtimeBootstrap.includes("loadScript('./zoom-adaptive-parity.js'")&&!runtimeBootstrap.includes("loadScript('./active-share-home-parity-2.0.41.js'"),'Meeting shell must load the minimal canonical runtime bootstrap before any compatibility helper can participate.');
 assert(runtimeCss.includes('#meetingOverlay .room-side[data-ds-runtime-mode="floating"]')&&runtimeCss.includes('right:14px!important'),'Canonical runtime CSS must own the approved first visible right-edge Participants geometry.');
 assert(!runtimeCss.includes('left:50%!important')&&!runtimeCss.includes('translateX(-50%)'),'Rejected centered Participants geometry must never return in the canonical runtime stylesheet.');
 
