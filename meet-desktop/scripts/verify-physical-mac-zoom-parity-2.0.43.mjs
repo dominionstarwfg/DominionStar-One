@@ -454,6 +454,9 @@ assert(
   integration.includes('return;')&&
   integration.includes('function publishMacPresenterState(){')&&
   integration.includes('if(sameRendererPresenter)publishMacPresenterState();else applyLayout();')&&
+  integration.includes("if(sameRendererPresenter&&active){")&&
+  integration.includes("publishMacPresenterState();")&&
+  integration.includes("syncMacCameraFramePump();")&&
   integration.includes("media.onChange(()=>{if(!share.snapshot().active){if(localPresenterMirror.srcObject)localPresenterMirror.srcObject=null;return;}if(sameRendererPresenter){syncLocalPresenterMirror();publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});"),
   'Active Mac sharing must bypass meeting share-layout reconciliation while publishing presenter state and bounded remote-tile mirror updates.'
 );
