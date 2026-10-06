@@ -146,6 +146,10 @@
     };
     const publishMacRemoteFrames=()=>{
       if(!sameRendererPresenter||!share.snapshot().active||!macPresenter?.videoFrame||!frameContext)return;
+      // Keep native presenter participant identity/state synchronized before
+      // delivering frames so the video surface never drops a valid camera frame
+      // for an ID it has not learned yet.
+      publishMacPresenterState();
       const participantState=presenterParticipants();if(participantState.length<2)return;
       const selfPerson=participantState.find(item=>item.self)||null;
       const selfId=String(selfPerson?.participantId||presenterLocalParticipantId||'local-self');
