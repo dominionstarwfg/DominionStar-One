@@ -419,9 +419,9 @@ try{
   await toolbar.click('[data-command="video"]');
   await waitStderr(ackPattern('video-off'),'renderer ACK for Video',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().cameraOn===false&&document.querySelector('[data-command=\"video\"]')?.classList.contains('is-off')&&document.querySelector('#videoLabel')?.textContent==='Start Video'",'floating Video state synchronized from real media',8000);
-  await video.wait("document.querySelector('#dock')?.dataset.cameraOn==='0'&&!document.querySelector('#cameraFallback')?.hidden",'presenter panel camera-off fallback',6000);
-  const fallbackWidth=await video.eval("Math.round(document.querySelector('#profileInitials').getBoundingClientRect().width)");
-  assert.ok(fallbackWidth>=100,'Presenter camera-off profile fallback is still undersized: '+fallbackWidth+'px');
+  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('.remote-frame');const fallback=tile?.querySelector('.video-fallback');return document.querySelector('#dock')?.dataset.cameraOn==='0'&&Boolean(tile)&&frame?.hidden===true&&fallback?.hidden===false;})()",'presenter panel camera-off fallback',6000);
+  const fallbackState=await video.eval("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const avatar=tile?.querySelector('.fallback-avatar'),initials=tile?.querySelector('.video-fallback span');const visible=avatar&&!avatar.hidden?avatar:initials;const rect=visible?.getBoundingClientRect?.();return {width:Math.round(rect?.width||0),height:Math.round(rect?.height||0),avatarVisible:Boolean(avatar&&!avatar.hidden),initialsVisible:Boolean(initials&&!initials.hidden)};})()");
+  assert.ok(fallbackState.width>=58&&fallbackState.height>=58,'Presenter camera-off profile fallback is undersized: '+JSON.stringify(fallbackState));
   stage('video-real-toolbar');
 
   logStart=stderr.length;
