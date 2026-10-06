@@ -451,8 +451,9 @@ if(process.platform==='darwin'){
     const main=mainWindow();
     if(!shareActive||!isAlive(main)||event.sender!==main.webContents||!isAlive(videoWindow))return;
     const participantId=String(payload?.participantId||''),dataUrl=String(payload?.dataUrl||'');
-    if(!participantId||!/^data:image\/(?:jpeg|webp|png);base64,/i.test(dataUrl)||dataUrl.length>220000)return;
-    try{videoWindow.webContents.send('mac-share:video-frame',{participantId,dataUrl,at:Number(payload?.at)||Date.now()});}catch{}
+    if(!participantId||!/^data:image\/(?:jpeg|webp|png);base64,/i.test(dataUrl)||dataUrl.length>220000){if(qaPresenterTrace)console.error(`QA_MAC_FRAME_REJECT participant=${participantId||'none'} bytes=${dataUrl.length}`);return;}
+    if(qaPresenterTrace)console.error(`QA_MAC_FRAME_FORWARD participant=${participantId} bytes=${dataUrl.length}`);
+    try{videoWindow.webContents.send('mac-share:video-frame',{participantId,dataUrl,at:Number(payload?.at)||Date.now()});}catch(error){if(qaPresenterTrace)console.error(`QA_MAC_FRAME_FORWARD_FAILED ${String(error?.message||error||'unknown')}`);}
   });
   ipcMain.on('mac-share:voice-level',(_event,payload={})=>{
     if(!shareActive)return;
