@@ -534,11 +534,11 @@ if(process.platform==='darwin'){
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
     if(normalized==='annotate'){
       const open=String(shareState.companion||'')==='annotate'&&isAlive(annotationCanvasWindow)&&Boolean(annotationCanvasWindow.isVisible?.());
-      if(open){nativeAnnotationOpen=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};}
-      nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(true);hideMeeting();showAnnotationPalette();try{annotationCanvasWindow?.webContents?.send('mac-annotation:command',{command:'annotate-select'});}catch{}publishState();return {ok:true,sent:true,acknowledged:true,active:true,pointerPassthrough:true};
+      if(open){nativeAnnotationOpen=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate-close accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:false};}
+      nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(true);hideMeeting();showAnnotationPalette();try{annotationCanvasWindow?.webContents?.send('mac-annotation:command',{command:'annotate-select'});}catch{}publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:true,pointerPassthrough:true};
     }
     if(normalized==='annotate-close'){
-      nativeAnnotationOpen=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};
+      nativeAnnotationOpen=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate-close accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:false};
     }
     if(normalized.startsWith('annotate-')){
       nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();
@@ -546,7 +546,7 @@ if(process.platform==='darwin'){
       if(!isAlive(canvas))return {ok:false,sent:false,acknowledged:false,error:'annotation_canvas_unavailable'};
       if(normalized==='annotate-select')setAnnotationPointerPassthrough(true);
       else if(/^annotate-(?:pen|highlight|laser|erase|shape-)/.test(normalized))setAnnotationPointerPassthrough(false);
-      try{canvas.webContents.send('mac-annotation:command',{command:normalized});if(isAlive(annotationWindow)){try{annotationWindow.setAlwaysOnTop(true,'screen-saver',3);annotationWindow.showInactive?.();annotationWindow.moveTop?.();}catch{}}return {ok:true,sent:true,acknowledged:true,pointerPassthrough:annotationPointerPassthrough};}
+      try{canvas.webContents.send('mac-annotation:command',{command:normalized});if(isAlive(annotationWindow)){try{annotationWindow.setAlwaysOnTop(true,'screen-saver',3);annotationWindow.showInactive?.();annotationWindow.moveTop?.();}catch{}}if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=${normalized} accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,pointerPassthrough:annotationPointerPassthrough};}
       catch(error){return {ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'annotation_command_failed')};}
     }
     const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);
