@@ -194,9 +194,14 @@
   bridge?.onState?.(state=>{
     cameraOn=state?.cameraOn!==false;micOn=state?.micOn!==false;mirrored=state?.mirror!==false;speaking=Boolean(micOn&&state?.speaking);
     if(state?.videoLayout&&state.videoLayout!=='hide')videoLayout=String(state.videoLayout);
+    for(const frame of Array.isArray(state?.videoFrames)?state.videoFrames:[]){
+      const id=String(frame?.participantId||''),dataUrl=String(frame?.dataUrl||'');
+      if(id&&['data:image/jpeg;base64,','data:image/webp;base64,','data:image/png;base64,'].some(prefix=>dataUrl.startsWith(prefix)))remoteFrames.set(id,dataUrl);
+    }
     participants=normalizedParticipants(state?.participants);
     const layoutChanged=setLayoutActive(videoLayout);if(layoutChanged)lastSignature='';
     renderParticipants(layoutChanged);
+    if(window.__DOMINION_QA_PRESENTER_TRACE&&Array.isArray(state?.videoFrames)&&state.videoFrames.length)console.error(`QA_MAC_VIDEO_STATE_FRAMES count=${state.videoFrames.length} participants=${participants.map(item=>item.participantId).join(',')}`);
   });
   bridge?.onVideoFrame?.(applyRemoteFrame);
   void boot();
