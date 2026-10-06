@@ -355,9 +355,11 @@ assert(
 /* PHYSICAL_MAC_SHARE_COMPANION_AND_COMPACT_ANNOTATION_LOCK */
 assert(
   macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);")&&
-  macPresenter.includes("if(panelCommand&&delivered?.ok)showMeeting();")&&
-  macPresenter.indexOf("const delivered=await deliverPresenterCommandWithRetry(main,normalized);")<
-    macPresenter.indexOf("if(panelCommand&&delivered?.ok)showMeeting();")&&
+  macPresenter.includes("const revealPanelMeeting=panelCommand&&!shareState.meetingVisible;")&&
+  macPresenter.includes("if(revealPanelMeeting)showMeeting();")&&
+  macPresenter.indexOf("if(revealPanelMeeting)showMeeting();")<
+    macPresenter.indexOf("const delivered=await deliverPresenterCommandDirectFirst(main,normalized);")&&
+  macPresenter.includes("if(panelCommand&&!delivered?.ok&&revealPanelMeeting)hideMeeting();")&&
   activeShareHome.includes('function restoreShareCompanion(){')&&
   activeShareHome.includes("if(shareActive()&&(kind==='participants'||kind==='chat'))restoreShareCompanion();")&&
   integration.includes("['participants','chat'].includes(previous)")&&
