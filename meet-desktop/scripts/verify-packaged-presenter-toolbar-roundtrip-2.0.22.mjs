@@ -466,6 +466,8 @@ try{
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='chat'",'Chat companion state returned to toolbar',8000);
   stage('chat-real-toolbar');
 
+  await toolbar.click('#moreButton');
+  await toolbar.wait("document.querySelector('#moreMenu')?.hidden===false",'More menu opened before Annotate',3000);
   logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
   await waitStderr(ackPattern('annotate'),'renderer ACK for Annotate',8000,logStart);
@@ -497,6 +499,8 @@ try{
   annotationMain.close();
   stage('annotation-professional-palette');
 
+  await toolbar.click('#moreButton');
+  await toolbar.wait("document.querySelector('#moreMenu')?.hidden===false",'More menu opened before closing Annotate',3000);
   logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
   await waitStderr(ackPattern('annotate-close'),'renderer ACK for explicit Annotate close',8000,logStart);
