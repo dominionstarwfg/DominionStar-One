@@ -468,9 +468,10 @@ if(process.platform==='darwin'){
     }catch(error){if(qaPresenterTrace)console.error(`QA_MAC_FRAME_FORWARD_FAILED ${String(error?.message||error||'unknown')}`);}
   });
   ipcMain.on('mac-share:voice-level',(_event,payload={})=>{
-    if(!shareActive)return;
+    if(!shareActive){if(qaPresenterTrace)console.error('QA_MAC_VOICE_DROP inactive-share');return;}
     const level=Math.max(0,Math.min(1,Number(payload?.level)||0));
     const speaking=Boolean(payload?.speaking&&level>0);
+    if(qaPresenterTrace)console.error(`QA_MAC_VOICE_RECEIVE level=${level.toFixed(3)} speaking=${speaking?1:0}`);
     shareState={...shareState,voiceLevel:level,speaking};
     publishState();
   });
