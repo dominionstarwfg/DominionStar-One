@@ -101,16 +101,18 @@ class Cdp{
     // right-side video dock) must not be forced through toolbar geometry.
     const hasToolbar=await this.eval("Boolean(document.querySelector('#toolbar'))");
     if(hasToolbar){
-      const reveal=await this.eval("(async()=>{const result=await window.dominionDesktop?.macShare?.setToolbarHidden?.(false);document.querySelector('#toolbar')?.classList.remove('auto-hidden');return result||null;})()");
+      const reveal=await this.eval("(async()=>{window.dispatchEvent(new PointerEvent('pointermove',{bubbles:true}));const result=await window.dominionDesktop?.macShare?.setToolbarHidden?.(false);document.querySelector('#toolbar')?.classList.remove('auto-hidden');return result||null;})()");
       if(!reveal?.ok||Number(reveal?.height||0)<70)throw new Error('Native presenter window did not expand before click: '+JSON.stringify(reveal));
+      await this.wait("window.innerHeight>=70&&!document.querySelector('#toolbar')?.classList.contains('auto-hidden')",'presenter toolbar renderer resized before click',2500);
+      await sleep(210);
     }
     const point=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
     // Hover-first controls intentionally do not accept pointer events until the
     // pointer enters their tile. Move first, allow the hover state to settle,
     // then verify the intended control owns the click point.
     await this.call('Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y,button:'none'});
-    await sleep(70);
-    const hit=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,node=document.elementFromPoint(x,y);return {x,y,contains:Boolean(node&&(node===el||el.contains(node))),hit:node?.getAttribute?.("data-command")||node?.getAttribute?.("data-video-more")||node?.id||node?.tagName||"",target:el.getAttribute("data-command")||el.getAttribute("data-video-more")||el.id||el.tagName||""};})()');
+    await sleep(hasToolbar?40:90);
+    const hit=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,node=document.elementFromPoint(x,y),owner=node?.closest?.("[data-command],[data-video-more],button");return {x,y,contains:Boolean(node&&(node===el||el.contains(node))),hit:node?.getAttribute?.("data-command")||node?.getAttribute?.("data-video-more")||node?.id||node?.tagName||"",owner:owner?.getAttribute?.("data-command")||owner?.getAttribute?.("data-video-more")||owner?.id||owner?.tagName||"",target:el.getAttribute("data-command")||el.getAttribute("data-video-more")||el.id||el.tagName||"",innerHeight:window.innerHeight};})()');
     if(!hit.contains)throw new Error('Presenter click hit-test mismatch for '+selector+': '+JSON.stringify(hit));
     await this.call('Input.dispatchMouseEvent',{type:'mousePressed',x:hit.x,y:hit.y,button:'left',clickCount:1});
     await this.call('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
