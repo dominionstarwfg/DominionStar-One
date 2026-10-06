@@ -558,7 +558,15 @@ assert(
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
 assert(preload.includes("if(process.platform==='darwin')ipcRenderer.send('mac-share:state',state||{});return invoke('share:capture-state',state);"),'Mac share state must reach both native overlay and companion-window authorities.');
 assert(presenterPreload.includes("environment:()=>invoke('app:get-environment')"),'Mac presenter surfaces must be able to detect certified QA runtime without loading the full meeting preload.');
-assert(main.includes('qaPresenterFixtures:qaFixtureRequested')&&!macVideoJs.includes('qaPresenterFixtures')&&!macVideoJs.includes('qaInteractionFixtures'),'Packaged presenter QA must stay explicitly gated while the mirrored presenter video surface remains independent of camera fixtures.');
+assert(
+  main.includes('qaPresenterFixtures:qaFixtureRequested')&&
+  macVideoJs.includes('qaPresenterFixtures')&&
+  !macVideoJs.includes('getUserMedia(')&&
+  !macVideoJs.includes('ImageCapture(')&&
+  !macVideoJs.includes('qaSynthetic')&&
+  !macVideoJs.includes('qaInteractionFixtures'),
+  'Packaged presenter QA may expose QA-only tracing, but the native video surface must remain independent of synthetic camera fixtures and alternate camera ownership.'
+);
 assert(
   integration.includes("cameraId:String(mediaState.cameraId||'')")&&
   integration.includes("mirror:mediaState.mirror!==false")&&
