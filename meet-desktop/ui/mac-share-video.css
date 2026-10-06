@@ -16,6 +16,12 @@ button{font:inherit}
 }
 .video-dock-head button:hover,.video-dock-head button.active{background:#343539;color:#fff}
 .video-dock-head button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.video-mic-meter{margin-left:auto;height:18px;min-width:24px;padding:0 5px;border-radius:5px;display:flex;align-items:center;justify-content:center;gap:2px;background:rgba(255,255,255,.06)}
+.video-mic-meter i{display:block;width:2px;height:4px;border-radius:999px;background:#8b8d92;transition:height .08s ease,background .08s ease}
+.video-mic-meter.speaking i{background:#31d158}
+.video-mic-meter[data-voice-level="1"] i:nth-child(1){height:7px}
+.video-mic-meter[data-voice-level="2"] i:nth-child(1),.video-mic-meter[data-voice-level="2"] i:nth-child(2){height:10px}
+.video-mic-meter[data-voice-level="3"] i{height:13px}
 
 .video-stack{
   flex:1 1 auto;min-height:0;padding:2px;overflow-y:hidden;overflow-x:hidden;scrollbar-width:none;
