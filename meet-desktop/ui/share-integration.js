@@ -324,9 +324,14 @@
       const state=share.snapshot();
       if(!state.active||presenterCommitted)return false;
       presenterCommitted=true;
-      // macOS presenter controls live in this renderer. Crossing into the main
-      // process here caused the active capture renderer to stall on physical Mac.
-      if(!sameRendererPresenter)bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
+      // Native macOS presenter mode becomes authoritative here. Seed presenter
+      // state and camera-frame transport immediately so initial video delivery
+      // cannot depend on a later share-listener or media-listener turn.
+      if(sameRendererPresenter){
+        publishMacPresenterState();
+        syncLocalPresenterMirror();
+        syncMacCameraFramePump();
+      }else bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
       return true;
     }
 
