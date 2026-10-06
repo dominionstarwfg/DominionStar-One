@@ -249,6 +249,13 @@
       }
     }
 
+    function lockNativeAnnotationRenderer(){
+      if(!sameRendererPresenter||!share.snapshot().active)return;
+      document.body.classList.add('ds-native-mac-presenter-share');
+      const tools=document.querySelector('.share-annotation-tools');
+      if(tools)tools.style.setProperty('display','none','important');
+    }
+
     function publishMacPresenterState(){
       if(!sameRendererPresenter||!share.snapshot().active)return;
       const state=share.snapshot(),mediaState=media.snapshot(),featureState=window.DominionMeetingFeatures?.snapshot?.()||{};
@@ -511,16 +518,20 @@
         if(command==='annotate'){
           window.DominionRuntimeStability?.setParticipants?.(false);
           window.DominionRuntimeStability?.setChat?.(false);
+          lockNativeAnnotationRenderer();
           const active=Boolean(window.DominionShareAnnotation?.toggle?.());
+          lockNativeAnnotationRenderer();
           setCompanion(active?'annotate':'');
           if(!sameRendererPresenter)applyLayout();
           return {handled:true,command};
         }
         if(command.startsWith('annotate-')){
+          lockNativeAnnotationRenderer();
           const annotation=window.DominionShareAnnotation;
           const action=command.slice('annotate-'.length);
           if(action==='close'){annotation?.deactivate?.();clearCompanion();return {handled:true,command};}
           if(!annotation?.snapshot?.().active)annotation?.activate?.();
+          lockNativeAnnotationRenderer();
           if(['pen','highlight','laser','erase'].includes(action))annotation?.setMode?.(action);
           else if(action.startsWith('shape-'))annotation?.setMode?.(action.slice('shape-'.length));
           else if(action.startsWith('width-'))annotation?.setWidth?.(action.slice('width-'.length));
