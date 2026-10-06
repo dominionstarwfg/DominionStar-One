@@ -352,6 +352,14 @@ assert(
   'Participants footer controls must remain functional: in-panel Invite, deterministic Mute-all feedback, and host-only More management.'
 );
 
+assert(
+  macPresenter.includes("if(nativeAnnotationOpen){")&&
+  macPresenter.includes("delete incoming.companion;delete incoming.companionOpen;")&&
+  macPresenter.includes("Explicit presenter panel commands close annotation before dispatch.")&&
+  !macPresenter.includes("if(['participants','chat'].includes(incomingCompanion)){\n        nativeAnnotationOpen=false"),
+  'Native annotation must remain authoritative over stale renderer companion publications until an explicit presenter panel command replaces it.'
+);
+
 /* PHYSICAL_MAC_SHARE_COMPANION_AND_COMPACT_ANNOTATION_LOCK */
 assert(
   macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);")&&
