@@ -420,6 +420,7 @@ assert(
   macAnnotationCanvasCss.includes('.mode-pen #annotationCanvas') &&
   macAnnotationCanvasCss.includes('.mode-laser #annotationCanvas{cursor:none') &&
   macAnnotationCanvasJs.includes("version:'2.0.47-native-display-canvas-select-default'") &&
+  macAnnotationCanvasJs.includes("snapshot:()=>({mode:state.mode,width:state.width,color:state.color,historyDepth:state.history.length})") &&
   macAnnotationCanvasJs.includes("if(state.mode==='laser'){laser(p)") &&
   macAnnotationCanvasJs.includes("canvas.addEventListener('pointermove',move") &&
   presenterPreload.includes("onAnnotationCommand:callback=>listen('mac-annotation:command'") &&
