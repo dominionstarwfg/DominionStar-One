@@ -550,11 +550,13 @@ if(process.platform==='darwin'){
       catch(error){return {ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'annotation_command_failed')};}
     }
     const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);
+    const revealPanelMeeting=panelCommand&&!shareState.meetingVisible;
     if(panelCommand&&nativeAnnotationOpen){nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();shareState={...shareState,companion:'',companionOpen:false};}
+    if(revealPanelMeeting)showMeeting();
     if(normalized==='annotate'||normalized.startsWith('annotate-'))hideMeeting();
     const closingAnnotationToggle=normalized==='annotate'&&isAlive(annotationWindow)&&Boolean(annotationWindow.isVisible?.());
     const delivered=await deliverPresenterCommandDirectFirst(main,normalized);
-    if(panelCommand&&delivered?.ok)showMeeting();
+    if(panelCommand&&!delivered?.ok&&revealPanelMeeting)hideMeeting();
     if((normalized==='annotate-close'||closingAnnotationToggle)&&delivered?.ok){
       shareState={...shareState,companion:'',companionOpen:false};
       hideAnnotationPalette();
