@@ -236,12 +236,26 @@
 
   async function waitForShareVideoTrack(timeoutMs=1600){const started=Date.now();while(Date.now()-started<timeoutMs){const track=state.liveStream?.getVideoTracks?.()[0];if(track&&track.readyState==='live')return track;await new Promise(resolve=>setTimeout(resolve,40))}return state.liveStream?.getVideoTracks?.()[0]||null}
   async function pause(videoElement){
-    if(nativeMacCapture&&!macWorkerActive)return snapshot();if(state.paused)return snapshot();if(!state.liveStream?.getVideoTracks?.()[0])await waitForShareVideoTrack();
+    if(nativeMacCapture){
+      if(!macWorkerActive||state.paused)return snapshot();
+      const result=await captureBridge?.setPaused?.(true);
+      if(!result?.ok||result?.paused!==true)throw new Error(result?.error||'Native share pause did not complete.');
+      state.paused=true;emit();publishPauseState(true);return snapshot();
+    }
+    if(state.paused)return snapshot();if(!state.liveStream?.getVideoTracks?.()[0])await waitForShareVideoTrack();
     if(!state.liveStream?.getVideoTracks?.()[0])throw new Error('Shared video is still connecting. Try Pause again.');
     const canvas=await captureFreezeFrame(videoElement),frozen=canvas.captureStream(1);for(const audioTrack of state.liveStream.getAudioTracks?.()||[]){try{frozen.addTrack(audioTrack.clone())}catch{}}
     state.freezeCanvas=canvas;state.frozenStream=frozen;state.paused=true;if(state.annotationCanvas)startComposite();emit();publishPauseState(true);return snapshot();
   }
-  async function resume(){if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot()}
+  async function resume(){
+    if(nativeMacCapture){
+      if(!macWorkerActive||!state.paused)return snapshot();
+      const result=await captureBridge?.setPaused?.(false);
+      if(!result?.ok||result?.paused!==false)throw new Error(result?.error||'Native share resume did not complete.');
+      state.paused=false;emit();publishPauseState(false);return snapshot();
+    }
+    if(!state.liveStream||!state.paused)return snapshot();stopTracks(state.frozenStream);state.frozenStream=null;state.freezeCanvas=null;state.paused=false;if(state.annotationCanvas)startComposite();emit();publishPauseState(false);return snapshot();
+  }
   async function togglePause(videoElement){return state.paused?resume():pause(videoElement)}
   function outputStream(){return state.annotationCanvas&&state.compositeStream?state.compositeStream:baseOutputStream()}
   function setAnnotationCanvas(canvas){
