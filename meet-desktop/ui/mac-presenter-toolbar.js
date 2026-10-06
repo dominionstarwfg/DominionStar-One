@@ -12,6 +12,7 @@
   const toolbar=q('#toolbar'),layoutMenu=q('#layoutMenu'),moreMenu=q('#moreMenu');
   let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,nativeHidden=false,lastForceRevealAt=0,lastState={paused:false,micOn:false,cameraOn:true};
   const AUTO_HIDE_MS=2400;
+  let qaPresenterTrace=false;void desktop.environment?.().then(env=>{qaPresenterTrace=Boolean(env?.qaPresenterFixtures);}).catch(()=>{});
 
   const logo=q('#brandLogo');if(logo&&desktop.brand?.logoUrl)logo.src=desktop.brand.logoUrl;
   const menusOpen=()=>Boolean(!layoutMenu?.hidden||!moreMenu?.hidden);
@@ -95,6 +96,7 @@
     if(audio)audio.textContent=micOn?'Mute':'Unmute';if(video)video.textContent=cameraOn?'Stop Video':'Start Video';
     const audioButton=q('[data-command="audio"]'),videoButton=q('[data-command="video"]');
     const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0));
+    if(qaPresenterTrace&&(voiceLevel>0||state?.speaking))console.error(`QA_MAC_TOOLBAR_VOICE level=${voiceLevel.toFixed(3)} speaking=${state?.speaking?1:0} mic=${micOn?1:0}`);
     const speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0);
     const voiceBucket=!speaking?0:voiceLevel>.55?3:voiceLevel>.22?2:1;
     audioButton?.classList.toggle('is-off',!micOn);audioButton?.classList.toggle('is-speaking',speaking);videoButton?.classList.toggle('is-off',!cameraOn);
