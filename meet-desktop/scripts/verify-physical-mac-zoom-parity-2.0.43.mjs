@@ -406,6 +406,8 @@ assert(
   macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))') &&
   macAnnotationCss.includes('.tool-grid button small,.palette-actions button small{display:block') &&
   shareCss.includes('body.ds-native-mac-presenter-share .share-annotation-tools{display:none!important}') &&
+  integration.includes('function lockNativeAnnotationRenderer(){') &&
+  integration.includes("tools.style.setProperty('display','none','important')") &&
   macAnnotationHtml.includes('data-command="annotate-select"') &&
   macAnnotationJs.includes("version:'2.0.47-native-canvas-palette'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
