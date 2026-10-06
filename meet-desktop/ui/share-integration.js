@@ -150,7 +150,7 @@
       // delivering frames so the video surface never drops a valid camera frame
       // for an ID it has not learned yet.
       publishMacPresenterState();
-      const participantState=presenterParticipants();if(participantState.length<2)return;
+      const participantState=presenterParticipants();
       const selfPerson=participantState.find(item=>item.self)||null;
       const selfId=String(selfPerson?.participantId||presenterLocalParticipantId||'local-self');
       const stateById=new Map(participantState.map(item=>[String(item.participantId||''),item]));
@@ -196,7 +196,7 @@
     };
     const stopMacRemoteFramePump=()=>{if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}};
     const syncMacCameraFramePump=()=>{
-      if(!sameRendererPresenter||!share.snapshot().active||presenterParticipants().length<2){stopMacRemoteFramePump();return;}
+      if(!sameRendererPresenter||!share.snapshot().active){stopMacRemoteFramePump();return;}
       if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(publishMacRemoteFrames,180);
       publishMacRemoteFrames();
     };
