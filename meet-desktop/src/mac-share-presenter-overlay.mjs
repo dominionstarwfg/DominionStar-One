@@ -429,11 +429,12 @@ if(process.platform==='darwin'){
     const priorCount=Array.isArray(shareState.participants)?shareState.participants.length:0,priorDisplay=String(shareState.displayId||'');
     const incoming={...state},incomingCompanion=String(incoming.companion||'');
     if(nativeAnnotationOpen){
-      if(['participants','chat'].includes(incomingCompanion)){
-        nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();
-      }else{
-        delete incoming.companion;delete incoming.companionOpen;
-      }
+      // Native annotation is the active presenter companion authority. The
+      // meeting renderer may still publish its previous Chat/Participants
+      // companion for a short time; never let that stale state roll annotation
+      // back. Explicit presenter panel commands close annotation before dispatch.
+      delete incoming.companion;delete incoming.companionOpen;
+      if(qaPresenterTrace&&incomingCompanion&&incomingCompanion!=='annotate')console.error(`QA_MAC_ANNOTATION_IGNORE_STALE_COMPANION incoming=${incomingCompanion}`);
     }
     shareState={...shareState,...incoming};
     const nextCount=Array.isArray(shareState.participants)?shareState.participants.length:0,nextDisplay=String(shareState.displayId||'');
