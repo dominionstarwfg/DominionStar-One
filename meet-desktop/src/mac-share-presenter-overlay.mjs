@@ -31,6 +31,7 @@ if(process.platform==='darwin'){
   const qaKeepPresenterHidden=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1';
   const qaDeferPresenterShow=qaPresenterTrace&&process.env.DOMINIONSTAR_QA_DEFER_MAC_PRESENTER_SHOW==='1';
   let shareState={paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false,participants:[]};
+  let voiceHoldTimer=0,lastVoiceSpeakingAt=0;const VOICE_HOLD_MS=320;
 
   const isAlive=win=>Boolean(win&&!win.isDestroyed());
   const bordersReady=()=>borderWindows.length===1&&borderWindows.every(isAlive);
@@ -472,12 +473,30 @@ if(process.platform==='darwin'){
     const level=Math.max(0,Math.min(1,Number(payload?.level)||0));
     const speaking=Boolean(payload?.speaking&&level>0);
     if(qaPresenterTrace)console.error(`QA_MAC_VOICE_RECEIVE level=${level.toFixed(3)} speaking=${speaking?1:0}`);
-    shareState={...shareState,voiceLevel:level,speaking};
+    if(speaking){
+      lastVoiceSpeakingAt=Date.now();
+      if(voiceHoldTimer){clearTimeout(voiceHoldTimer);voiceHoldTimer=0;}
+      shareState={...shareState,voiceLevel:level,speaking:true};
+      publishState();
+      return;
+    }
+    const remaining=Math.max(0,VOICE_HOLD_MS-(Date.now()-lastVoiceSpeakingAt));
+    if(lastVoiceSpeakingAt&&remaining>0){
+      if(voiceHoldTimer)clearTimeout(voiceHoldTimer);
+      voiceHoldTimer=setTimeout(()=>{
+        voiceHoldTimer=0;
+        if(!shareActive)return;
+        shareState={...shareState,voiceLevel:0,speaking:false};
+        publishState();
+      },remaining);
+      return;
+    }
+    shareState={...shareState,voiceLevel:0,speaking:false};
     publishState();
   });
   function resetPresenterSession(reason='reset'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
-    shareActive=false;videoLayout='strip';toolbarMenuOpen=false;toolbarAutoHidden=false;nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);stopCursorWatch();
+    shareActive=false;videoLayout='strip';toolbarMenuOpen=false;toolbarAutoHidden=false;nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);stopCursorWatch();if(voiceHoldTimer){clearTimeout(voiceHoldTimer);voiceHoldTimer=0;}lastVoiceSpeakingAt=0;
     shareState={paused:false,micOn:false,cameraOn:false,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false,participants:[]};
     publishState();hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
