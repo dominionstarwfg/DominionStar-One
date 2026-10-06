@@ -257,6 +257,11 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
         const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true}});
         window.DominionShareIntegration.commitPresenterMode();
+        const activeRoster=document.querySelector('#participantRoster');
+        if(activeRoster){
+          activeRoster.innerHTML='<div class="person-row" data-participant-id="qa-self" data-participant-self="1" data-participant-role="host" data-participant-name="QA Self"><span class="person-copy"><strong><span class="participant-name-text">QA Self</span></strong><small></small></span><span data-participant-mic class="on"></span><span data-participant-video class="on"></span></div><div class="person-row" data-participant-id="qa-peer" data-participant-role="participant" data-participant-name="QA Peer"><span class="person-copy"><strong><span class="participant-name-text">QA Peer</span></strong><small></small></span><span data-participant-mic></span><span data-participant-video></span></div>';
+          window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{qa:true}}));
+        }
         console.error('QA_REAL_PRESENTER_SHARE_READY active='+(shareState.active?1:0));
       }catch(error){console.error((skipShareLayout?'QA_RAW_DISPLAY_FAILURE ':'QA_REAL_PRESENTER_SHARE_FAILURE ')+String(error?.stack||error));}
     })();
