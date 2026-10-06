@@ -120,9 +120,9 @@
   function applyRemoteFrame(payload={}){
     const id=String(payload.participantId||''),dataUrl=String(payload.dataUrl||'');
     if(!id||!['data:image/jpeg;base64,','data:image/webp;base64,','data:image/png;base64,'].some(prefix=>dataUrl.startsWith(prefix)))return;
-    remoteFrames.set(id,dataUrl);const person=participants.find(item=>item.participantId===id);if(!person?.cameraOn)return;
+    remoteFrames.set(id,dataUrl);const person=participants.find(item=>item.participantId===id);if(!person?.cameraOn){if(window.__DOMINION_QA_PRESENTER_TRACE)console.error(`QA_MAC_VIDEO_FRAME_DEFER participant=${id} known=${person?1:0} camera=${person?.cameraOn?1:0} participants=${participants.map(item=>item.participantId).join(',')}`);return;}
     const tile=q(`.video-tile[data-participant-id="${CSS.escape(id)}"]`),img=tile?.querySelector('.remote-frame'),fallback=tile?.querySelector('.video-fallback');
-    if(img){if(img.src!==dataUrl)img.src=dataUrl;img.style.transform=person.self&&mirrored?'scaleX(-1)':'none';img.hidden=false;if(fallback)fallback.hidden=true;}
+    if(img){if(img.src!==dataUrl)img.src=dataUrl;img.style.transform=person.self&&mirrored?'scaleX(-1)':'none';img.hidden=false;if(fallback)fallback.hidden=true;if(window.__DOMINION_QA_PRESENTER_TRACE)console.error(`QA_MAC_VIDEO_FRAME_APPLIED participant=${id} self=${person.self?1:0}`);}else if(window.__DOMINION_QA_PRESENTER_TRACE)console.error(`QA_MAC_VIDEO_FRAME_NO_TILE participant=${id}`);
   }
 
   async function presenterCommand(command){
@@ -187,6 +187,7 @@
   window.addEventListener('pagehide',closeMenu,{once:true});
 
   async function boot(){
+    const env=await window.dominionDesktop?.environment?.().catch(()=>null);window.__DOMINION_QA_PRESENTER_TRACE=Boolean(env?.qaPresenterFixtures);
     await loadIdentity();participants=normalizedParticipants(participants);renderParticipants(true);
   }
 
