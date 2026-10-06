@@ -424,6 +424,13 @@
       // starvation. Production never sets this flag.
       if(!window.__DOMINION_QA_SKIP_SHARE_LAYOUT)applyLayout();
       const active=Boolean(state?.active);
+      if(sameRendererPresenter&&active){
+        // applyLayout intentionally returns early in native presenter mode.
+        // Publish the authoritative share state separately so Pause/Resume and
+        // other share-only transitions immediately reach the floating surfaces.
+        publishMacPresenterState();
+        syncMacCameraFramePump();
+      }
       if(shareWasActive&&!active){stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}
       shareWasActive=active;
     });
