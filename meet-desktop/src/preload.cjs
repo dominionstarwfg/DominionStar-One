@@ -171,7 +171,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
     videoFrame:payload=>{ipcRenderer.send('mac-share:video-frame',payload||{});return true;},
-    onVideoFrame:callback=>listen('mac-share:video-frame',callback),
+    onVideoFrame:callback=>listen('mac-share:video-frame',payload=>{if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1')console.error(`QA_MAC_FRAME_RECEIVED participant=${String(payload?.participantId||'')} bytes=${String(payload?.dataUrl||'').length}`);callback(payload);}),
     onShowMeeting:callback=>listen('mac-share:show-meeting',callback)
   })
 }));
