@@ -181,7 +181,11 @@ requireText(integration,'function commitPresenterMode()','Share Integration must
 requireText(integration,'markCaptureProven();applyLayout();','Shared-stage layout must mount before presenter commit.');
 requireText(integration,'commitPresenterMode();','Initial share must explicitly enter presenter mode after layout.');
 requireText(integration,"const sameRendererPresenter=String(environment?.platform||'')==='darwin'",'macOS same-renderer presenter detection is missing.');
-requireText(integration,"if(!sameRendererPresenter)bridge?.presenterCommitted?.(",'macOS presenter commit must stay inside the share-owning renderer while non-macOS keeps one-way main-process commit.');
+requireText(integration,"if(sameRendererPresenter){",'macOS presenter commit must stay inside the share-owning renderer.');
+requireText(integration,'publishMacPresenterState();','macOS presenter commit must publish current presenter state locally.');
+requireText(integration,'syncLocalPresenterMirror();','macOS presenter commit must synchronize the already-owned local camera mirror.');
+requireText(integration,'syncMacCameraFramePump();','macOS presenter commit must start camera-frame transport locally.');
+requireText(integration,"else bridge?.presenterCommitted?.(",'Non-macOS presenter commit must keep the one-way main-process bridge.');
 requireText(preload,"presenterCommitted:state=>{ipcRenderer.send('share:presenter-committed',state||{});return true;}",'Non-macOS presenter commit bridge must remain one-way IPC.');
 const presenterCommitted=service.slice(
   service.indexOf("ipcMain.on('share:presenter-committed'"),
