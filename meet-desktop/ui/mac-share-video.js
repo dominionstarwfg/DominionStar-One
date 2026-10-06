@@ -192,7 +192,7 @@
   }
 
   bridge?.onState?.(state=>{
-    cameraOn=state?.cameraOn!==false;micOn=state?.micOn!==false;mirrored=state?.mirror!==false;const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0));speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0);const voiceBucket=!speaking?0:voiceLevel>.55?3:voiceLevel>.22?2:1;const micState=q('#micState');if(micState){micState.dataset.voiceLevel=String(voiceBucket);micState.classList.toggle('speaking',speaking);}if(window.__DOMINION_QA_PRESENTER_TRACE&&voiceLevel>0)console.error(`QA_MAC_VIDEO_VOICE level=${voiceLevel.toFixed(3)} speaking=${speaking?1:0} mic=${micOn?1:0}`);
+    cameraOn=state?.cameraOn!==false;micOn=state?.micOn!==false;mirrored=state?.mirror!==false;const dock=q('#dock');if(dock)dock.dataset.cameraOn=cameraOn?'1':'0';const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0));speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0);const voiceBucket=!speaking?0:voiceLevel>.55?3:voiceLevel>.22?2:1;const micState=q('#micState');if(micState){micState.dataset.voiceLevel=String(voiceBucket);micState.classList.toggle('speaking',speaking);}if(window.__DOMINION_QA_PRESENTER_TRACE&&voiceLevel>0)console.error(`QA_MAC_VIDEO_VOICE level=${voiceLevel.toFixed(3)} speaking=${speaking?1:0} mic=${micOn?1:0}`);
     if(state?.videoLayout&&state.videoLayout!=='hide')videoLayout=String(state.videoLayout);
     let frameChanged=false;
     for(const frame of Array.isArray(state?.videoFrames)?state.videoFrames:[]){
