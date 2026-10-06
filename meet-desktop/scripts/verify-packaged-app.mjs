@@ -193,7 +193,7 @@ assert(zoomBehavior.includes("policy==='host_cohost'")&&zoomBehavior.includes('C
 assert(zoomBehavior.includes("DominionMeetingNotifications?.chat?.(name||'Participant')"),'Packaged Zoom-style incoming chat must honor the shared notification authority.');
 assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Packaged private-chat recipient sync must avoid redundant DOM rewrites.');
 assert(!zoomBehavior.includes('new MutationObserver('),'Packaged Zoom behavior must not install a DOM-wide mutation observer.');
-assert(zoomBehavior.includes('const syncTimer=setInterval(sync,900)')&&zoomBehavior.includes('if(!isMeetingOpen())return;'),'Packaged Zoom behavior synchronization must be bounded and meeting-state driven.');
+assert(!zoomBehavior.includes('setInterval(')&&zoomBehavior.includes("const syncEvents=['dominion:meeting-ui-ready','dominion:meeting-entered','dominion:participant-presence','dominion:waiting-room-update']")&&zoomBehavior.includes('if(!isMeetingOpen())return;'),'Packaged meeting behavior synchronization must be event-driven, bounded, and gated by live meeting state.');
 assert(zoomBehavior.includes("input.maxLength=7")&&zoomBehavior.includes("input.pattern='[0-9]{3,7}'"),'Packaged new/join passcode controls must match the 3–7 digit authority.');
 assert(zoomCss.includes('.zoom-leave-dialog')&&zoomCss.includes('.zoom-admit-all')&&zoomCss.includes('.meeting-chat-recipient'),'Packaged Zoom behavior styling must be present.');
 assert(participantControls.includes("type==='host:mute'")&&participantControls.includes("type==='host:stop-video'"),'Packaged participant controls must support verified forced mute and stop-video.');
