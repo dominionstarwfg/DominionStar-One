@@ -426,7 +426,7 @@ try{
 
   logStart=stderr.length;
   await toolbar.click('[data-command="pause"]');
-  await waitStderr(ackPattern('pause'),'renderer ACK for Pause',8000,logStart);
+  await waitStderr(ackPattern('pause-share'),'renderer ACK for Pause',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===true&&document.querySelector('#pauseLabel')?.textContent==='Resume'&&document.querySelector('#toolbar')?.classList.contains('is-paused')&&document.querySelector('#pauseGlyph path')?.getAttribute('d')==='M8 5.5 18 12 8 18.5z'",'Pause state returned to floating toolbar with amber share state and Resume/play glyph',8000);
   const pausedChrome=await toolbar.eval("(()=>{const strip=getComputedStyle(document.querySelector('.share-strip'));return {paused:document.querySelector('#toolbar')?.classList.contains('is-paused'),label:document.querySelector('#shareStateLabel')?.textContent||'',background:strip.backgroundColor};})()");
   assert.equal(pausedChrome.paused,true,'Paused presenter toolbar did not expose its paused visual state.');
@@ -435,7 +435,7 @@ try{
 
   logStart=stderr.length;
   await toolbar.click('[data-command="pause"]');
-  await waitStderr(ackPattern('pause'),'renderer ACK for Resume',8000,logStart);
+  await waitStderr(ackPattern('resume-share'),'renderer ACK for Resume',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===false&&document.querySelector('#pauseLabel')?.textContent==='Pause'&&!document.querySelector('#toolbar')?.classList.contains('is-paused')&&document.querySelector('#pauseGlyph path')?.getAttribute('d')==='M8 5v14M16 5v14'",'Resume state returned to floating toolbar with active-share chrome restored',8000);
   stage('resume-real-toolbar');
 
