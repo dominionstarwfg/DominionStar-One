@@ -463,6 +463,16 @@ assert(
   'Active Mac sharing must bypass meeting share-layout reconciliation while publishing presenter state and bounded remote-tile mirror updates.'
 );
 assert(
+  macToolbarCss.includes('.toolbar-drag-handle{')&&
+  macToolbarCss.includes('pointer-events:none')&&
+  macToolbarCss.includes('.control-strip{')&&
+  macToolbarCss.includes('-webkit-app-region:drag')&&
+  macToolbarCss.includes('.control-strip>button,.menu-wrap>button{')&&
+  macToolbarCss.includes('-webkit-app-region:no-drag'),
+  'Presenter drag chrome must remain draggable without intercepting control-button clicks.'
+);
+
+assert(
   macToolbarHtml.includes('data-command="audio"')&&
   macToolbarHtml.includes('data-command="video"')&&
   macToolbarHtml.includes('data-command="pause"')&&
