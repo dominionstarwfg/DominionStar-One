@@ -24,6 +24,7 @@ if(process.platform==='darwin'){
   let preparing=null;
   let presenterDeliverySeq=0;
   let videoLayout='strip';
+  const latestVideoFrames=new Map();
   const presenterDeliveries=new Map();
   const presenterCommandQueue=[];
   const qaPresenterTrace=process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
@@ -194,7 +195,7 @@ if(process.platform==='darwin'){
   }
   function publishState(){
     if(toolbarReady&&isAlive(toolbarWindow))toolbarWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout});
-    if(isAlive(videoWindow))videoWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout});
+    if(isAlive(videoWindow))videoWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout,videoFrames:[...latestVideoFrames.entries()].map(([participantId,frame])=>({participantId,...frame}))});
     if(isAlive(annotationWindow))annotationWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout});
     syncBorderState();
   }
@@ -452,8 +453,16 @@ if(process.platform==='darwin'){
     if(!shareActive||!isAlive(main)||event.sender!==main.webContents||!isAlive(videoWindow))return;
     const participantId=String(payload?.participantId||''),dataUrl=String(payload?.dataUrl||'');
     if(!participantId||!/^data:image\/(?:jpeg|webp|png);base64,/i.test(dataUrl)||dataUrl.length>220000){if(qaPresenterTrace)console.error(`QA_MAC_FRAME_REJECT participant=${participantId||'none'} bytes=${dataUrl.length}`);return;}
+    const at=Number(payload?.at)||Date.now();
+    latestVideoFrames.set(participantId,{dataUrl,at});
+    if(latestVideoFrames.size>8){
+      const oldest=[...latestVideoFrames.entries()].sort((a,b)=>(a[1]?.at||0)-(b[1]?.at||0))[0]?.[0];
+      if(oldest)latestVideoFrames.delete(oldest);
+    }
     if(qaPresenterTrace)console.error(`QA_MAC_FRAME_FORWARD participant=${participantId} bytes=${dataUrl.length}`);
-    try{videoWindow.webContents.send('mac-share:video-frame',{participantId,dataUrl,at:Number(payload?.at)||Date.now()});}catch(error){if(qaPresenterTrace)console.error(`QA_MAC_FRAME_FORWARD_FAILED ${String(error?.message||error||'unknown')}`);}
+    try{
+      videoWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout,videoFrames:[...latestVideoFrames.entries()].map(([id,frame])=>({participantId:id,...frame}))});
+    }catch(error){if(qaPresenterTrace)console.error(`QA_MAC_FRAME_FORWARD_FAILED ${String(error?.message||error||'unknown')}`);}
   });
   ipcMain.on('mac-share:voice-level',(_event,payload={})=>{
     if(!shareActive)return;
