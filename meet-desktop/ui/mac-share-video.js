@@ -192,7 +192,7 @@
   }
 
   bridge?.onState?.(state=>{
-    cameraOn=state?.cameraOn!==false;micOn=state?.micOn!==false;mirrored=state?.mirror!==false;speaking=Boolean(micOn&&state?.speaking);
+    cameraOn=state?.cameraOn!==false;micOn=state?.micOn!==false;mirrored=state?.mirror!==false;speaking=Boolean(micOn&&state?.speaking);if(window.__DOMINION_QA_PRESENTER_TRACE&&(Number(state?.voiceLevel)||0)>0)console.error(`QA_MAC_VIDEO_VOICE level=${Math.max(0,Math.min(1,Number(state?.voiceLevel)||0)).toFixed(3)} speaking=${speaking?1:0} mic=${micOn?1:0}`);
     if(state?.videoLayout&&state.videoLayout!=='hide')videoLayout=String(state.videoLayout);
     let frameChanged=false;
     for(const frame of Array.isArray(state?.videoFrames)?state.videoFrames:[]){
