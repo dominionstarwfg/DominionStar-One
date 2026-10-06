@@ -481,9 +481,8 @@ try{
   assert.ok(annotationGeometry.width>=176&&annotationGeometry.width<=192,'Annotation palette is not the approved professional width: '+annotationGeometry.width+'px');
   assert.equal(annotationGeometry.flex,'column','Annotation palette is not vertically arranged.');
   assert.ok(Math.abs(Number(annotationGeometry.x)-Number(annotationGeometry.availLeft))<=28,'Annotation palette is not positioned on the left edge of the shared display.');
-  const annotationMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for annotation engine');
-  const annotationMain=new Cdp(annotationMainTarget.webSocketDebuggerUrl);await annotationMain.connect();
-  await annotationMain.wait("document.body.classList.contains('ds-native-mac-presenter-share')&&document.querySelector('.share-annotation-tools')&&getComputedStyle(document.querySelector('.share-annotation-tools')).display==='none'",'legacy horizontal annotation tools suppressed',5000);
+  const annotationMain=main;
+  await annotationMain.wait("document.body.classList.contains('ds-native-mac-presenter-share')&&document.querySelector('.share-annotation-tools')&&getComputedStyle(document.querySelector('.share-annotation-tools')).display==='none'",'legacy horizontal annotation tools suppressed on active meeting renderer',5000);
   logStart=stderr.length;
   await annotation.click('[data-command="annotate-laser"]');
   await waitStderr(ackPattern('annotate-laser'),'renderer ACK for native Laser tool',8000,logStart);
@@ -496,7 +495,6 @@ try{
   await annotation.click('[data-command="annotate-shape-rect"]');
   await waitStderr(ackPattern('annotate-shape-rect'),'renderer ACK for native rectangle tool',8000,logStart);
   await annotationMain.wait("window.DominionShareAnnotation?.snapshot?.().mode==='rect'",'native annotation shape controls authoritative drawing mode',5000);
-  annotationMain.close();
   stage('annotation-professional-palette');
 
   await toolbar.click('#moreButton');
