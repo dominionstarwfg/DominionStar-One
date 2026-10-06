@@ -212,7 +212,10 @@
       const changed=speaking!==lastVoiceSpeaking||Math.abs(level-lastVoiceLevel)>=.08;
       if(!changed&&now-lastVoiceSentAt<90)return;
       lastVoiceSentAt=now;lastVoiceSpeaking=speaking;lastVoiceLevel=level;
-      try{macPresenter?.voiceLevel?.({level,speaking});}catch{}
+      try{
+        if(qaPresenterTrace)console.error(`QA_MAC_VOICE_SEND level=${level.toFixed(3)} speaking=${speaking?1:0} active=${share.snapshot().active?1:0}`);
+        bridge?.voiceLevel?.({level,speaking});
+      }catch{}
     };
     window.addEventListener('dominion:local-voice-level',forwardVoiceLevel);
 
