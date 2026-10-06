@@ -355,9 +355,13 @@ assert(
 assert(
   macPresenter.includes("if(nativeAnnotationOpen){")&&
   macPresenter.includes("delete incoming.companion;delete incoming.companionOpen;")&&
+  macPresenter.includes("else if(nativeCompanionBarrier){")&&
+  macPresenter.includes("QA_MAC_ANNOTATION_BARRIER_DROP incoming=")&&
+  macPresenter.includes("if(panelCommand)nativeCompanionBarrier=false;")&&
+  macPresenter.includes("nativeAnnotationOpen=false;nativeCompanionBarrier=true;shareState={...shareState,companion:'',companionOpen:false}")&&
   macPresenter.includes("Explicit presenter panel commands close annotation before dispatch.")&&
   !macPresenter.includes("if(['participants','chat'].includes(incomingCompanion)){\n        nativeAnnotationOpen=false"),
-  'Native annotation must remain authoritative over stale renderer companion publications until an explicit presenter panel command replaces it.'
+  'Native annotation must remain authoritative over stale renderer companion publications, and closing it must not resurrect the prior Chat/Participants companion before an explicit new panel command.'
 );
 
 /* PHYSICAL_MAC_SHARE_COMPANION_AND_COMPACT_ANNOTATION_LOCK */
