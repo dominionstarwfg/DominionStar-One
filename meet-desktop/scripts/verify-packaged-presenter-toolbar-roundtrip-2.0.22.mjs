@@ -503,14 +503,9 @@ try{
   annotation.close();
   stage('annotate-close-real-toolbar');
 
-  logStart=stderr.length;
-  await toolbar.click('[data-command="new-share"]');
-  await waitStderr(ackPattern('new-share'),'renderer ACK for New Share',8000,logStart);
-  const pickerTarget=await waitTarget(item=>String(item.url||'').includes('/ui/share-picker.html'),'New Share picker from floating toolbar',8000);
-  const picker=new Cdp(pickerTarget.webSocketDebuggerUrl);await picker.connect();
-  await picker.wait("document.querySelector('#cancelTop')",'New Share picker controls',5000);
-  await picker.click('#cancelTop');picker.close();
-  stage('new-share-real-toolbar');
+  const compactNewShare=await toolbar.eval("Boolean(document.querySelector('[data-command=\"new-share\"]'))");
+  assert.equal(compactNewShare,false,'Approved compact presenter toolbar must not expose a direct New Share control.');
+  stage('compact-toolbar-new-share-omitted');
 
   logStart=stderr.length;
   await toolbar.click('#stopShare');
