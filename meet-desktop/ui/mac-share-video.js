@@ -194,14 +194,16 @@
   bridge?.onState?.(state=>{
     cameraOn=state?.cameraOn!==false;micOn=state?.micOn!==false;mirrored=state?.mirror!==false;speaking=Boolean(micOn&&state?.speaking);
     if(state?.videoLayout&&state.videoLayout!=='hide')videoLayout=String(state.videoLayout);
+    let frameChanged=false;
     for(const frame of Array.isArray(state?.videoFrames)?state.videoFrames:[]){
       const id=String(frame?.participantId||''),dataUrl=String(frame?.dataUrl||'');
-      if(id&&['data:image/jpeg;base64,','data:image/webp;base64,','data:image/png;base64,'].some(prefix=>dataUrl.startsWith(prefix)))remoteFrames.set(id,dataUrl);
+      if(!id||!['data:image/jpeg;base64,','data:image/webp;base64,','data:image/png;base64,'].some(prefix=>dataUrl.startsWith(prefix)))continue;
+      if(remoteFrames.get(id)!==dataUrl){remoteFrames.set(id,dataUrl);frameChanged=true;}
     }
     participants=normalizedParticipants(state?.participants);
     const layoutChanged=setLayoutActive(videoLayout);if(layoutChanged)lastSignature='';
-    renderParticipants(layoutChanged);
-    if(window.__DOMINION_QA_PRESENTER_TRACE&&Array.isArray(state?.videoFrames)&&state.videoFrames.length)console.error(`QA_MAC_VIDEO_STATE_FRAMES count=${state.videoFrames.length} participants=${participants.map(item=>item.participantId).join(',')}`);
+    renderParticipants(layoutChanged||frameChanged);
+    if(window.__DOMINION_QA_PRESENTER_TRACE&&Array.isArray(state?.videoFrames)&&state.videoFrames.length)console.error(`QA_MAC_VIDEO_STATE_FRAMES count=${state.videoFrames.length} participants=${participants.map(item=>item.participantId).join(',')} changed=${frameChanged?1:0}`);
   });
   bridge?.onVideoFrame?.(applyRemoteFrame);
   void boot();
