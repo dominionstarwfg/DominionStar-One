@@ -19,6 +19,7 @@ if(process.platform==='darwin'){
   let toolbarReady=false,toolbarAutoHidden=false;
   let toolbarMenuOpen=false;
   let nativeAnnotationOpen=false;
+  let nativeCompanionBarrier=false;
   let annotationPointerPassthrough=false;
   let cursorWatchTimer=0,lastCursorPoint=null;
   let preparing=null;
@@ -435,6 +436,15 @@ if(process.platform==='darwin'){
       // back. Explicit presenter panel commands close annotation before dispatch.
       delete incoming.companion;delete incoming.companionOpen;
       if(qaPresenterTrace&&incomingCompanion&&incomingCompanion!=='annotate')console.error(`QA_MAC_ANNOTATION_IGNORE_STALE_COMPANION incoming=${incomingCompanion}`);
+    }else if(nativeCompanionBarrier){
+      // Closing native annotation must not resurrect the renderer companion
+      // that was active before annotation opened. Hold the native empty state
+      // until the renderer itself reports empty or the user explicitly opens
+      // a new Participants/Chat companion.
+      if(incomingCompanion){
+        delete incoming.companion;delete incoming.companionOpen;
+        if(qaPresenterTrace)console.error(`QA_MAC_ANNOTATION_BARRIER_DROP incoming=${incomingCompanion}`);
+      }else nativeCompanionBarrier=false;
     }
     shareState={...shareState,...incoming};
     const nextCount=Array.isArray(shareState.participants)?shareState.participants.length:0,nextDisplay=String(shareState.displayId||'');
@@ -497,7 +507,7 @@ if(process.platform==='darwin'){
   });
   function resetPresenterSession(reason='reset'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
-    shareActive=false;videoLayout='strip';toolbarMenuOpen=false;toolbarAutoHidden=false;nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);stopCursorWatch();if(voiceHoldTimer){clearTimeout(voiceHoldTimer);voiceHoldTimer=0;}lastVoiceSpeakingAt=0;
+    shareActive=false;videoLayout='strip';toolbarMenuOpen=false;toolbarAutoHidden=false;nativeAnnotationOpen=false;nativeCompanionBarrier=false;setAnnotationPointerPassthrough(false);stopCursorWatch();if(voiceHoldTimer){clearTimeout(voiceHoldTimer);voiceHoldTimer=0;}lastVoiceSpeakingAt=0;
     shareState={paused:false,micOn:false,cameraOn:false,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false,participants:[]};
     publishState();hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
@@ -535,14 +545,14 @@ if(process.platform==='darwin'){
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
     if(normalized==='annotate'){
       const open=String(shareState.companion||'')==='annotate'&&isAlive(annotationCanvasWindow)&&Boolean(annotationCanvasWindow.isVisible?.());
-      if(open){nativeAnnotationOpen=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate-close accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:false};}
-      nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(true);hideMeeting();showAnnotationPalette();try{annotationCanvasWindow?.webContents?.send('mac-annotation:command',{command:'annotate-select'});}catch{}publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:true,pointerPassthrough:true};
+      if(open){nativeAnnotationOpen=false;nativeCompanionBarrier=true;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate-close accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:false};}
+      nativeAnnotationOpen=true;nativeCompanionBarrier=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(true);hideMeeting();showAnnotationPalette();try{annotationCanvasWindow?.webContents?.send('mac-annotation:command',{command:'annotate-select'});}catch{}publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:true,pointerPassthrough:true};
     }
     if(normalized==='annotate-close'){
-      nativeAnnotationOpen=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate-close accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:false};
+      nativeAnnotationOpen=false;nativeCompanionBarrier=true;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_ACK delivery=0 command=annotate-close accepted=1 native=1`);return {ok:true,sent:true,acknowledged:true,active:false};
     }
     if(normalized.startsWith('annotate-')){
-      nativeAnnotationOpen=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();
+      nativeAnnotationOpen=true;nativeCompanionBarrier=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();
       const canvas=await prepareAnnotationCanvas();await prepareAnnotation();showAnnotationPalette();
       if(!isAlive(canvas))return {ok:false,sent:false,acknowledged:false,error:'annotation_canvas_unavailable'};
       if(normalized==='annotate-select')setAnnotationPointerPassthrough(true);
@@ -551,6 +561,7 @@ if(process.platform==='darwin'){
       catch(error){return {ok:false,sent:false,acknowledged:false,error:String(error?.message||error||'annotation_command_failed')};}
     }
     const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);
+    if(panelCommand)nativeCompanionBarrier=false;
     const revealPanelMeeting=panelCommand&&!shareState.meetingVisible;
     if(panelCommand&&nativeAnnotationOpen){nativeAnnotationOpen=false;setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();shareState={...shareState,companion:'',companionOpen:false};}
     if(revealPanelMeeting)showMeeting();
