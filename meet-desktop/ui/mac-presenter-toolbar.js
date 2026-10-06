@@ -70,7 +70,8 @@
     if(videoLabel)videoLabel.textContent=lastState.cameraOn?'Stop Video':'Start Video';
   };
   document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',async event=>{
-    const control=event.currentTarget;if(control.disabled||control.getAttribute('aria-busy')==='true')return;let command=String(control.dataset.command||'');
+    const control=event.currentTarget;if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_CLICK command=${String(control?.dataset?.command||'')} disabled=${control?.disabled?1:0} busy=${control?.getAttribute('aria-busy')==='true'?1:0}`);
+    if(control.disabled||control.getAttribute('aria-busy')==='true')return;let command=String(control.dataset.command||'');
     if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';
     if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';
     if(command==='pause')command=Boolean(lastState?.paused)?'resume-share':'pause-share';
