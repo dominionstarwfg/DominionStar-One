@@ -96,12 +96,13 @@ class Cdp{
     throw new Error('Timed out waiting for '+label+(last?': '+last:'')+'.\n'+stderr);
   }
   async click(selector){
-    // Exercise the same reveal path as a real pointer entering the presenter
-    // surface. Removing CSS alone does not expand the native BrowserWindow
-    // after auto-hide has collapsed it to the 28px reveal strip.
-    await this.eval("window.dispatchEvent(new PointerEvent('pointermove',{bubbles:true})); true");
-    await this.wait("window.innerHeight>=70&&!document.querySelector('#toolbar')?.classList.contains('auto-hidden')",'presenter toolbar native reveal before click',2500);
-    const point=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
+    // Explicitly await the native 84px presenter window before hit-testing.
+    // Renderer CSS state alone cannot prove the frameless BrowserWindow has
+    // expanded from its 28px idle reveal strip.
+    const reveal=await this.eval("(async()=>{const result=await window.dominionDesktop?.macShare?.setToolbarHidden?.(false);document.querySelector('#toolbar')?.classList.remove('auto-hidden');return result||null;})()");
+    if(!reveal?.ok||Number(reveal?.height||0)<70)throw new Error('Native presenter window did not expand before click: '+JSON.stringify(reveal));
+    const point=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();const x=r.left+r.width/2,y=r.top+r.height/2,hit=document.elementFromPoint(x,y);return {x,y,hit:hit?.closest?.("[data-command]")?.getAttribute?.("data-command")||hit?.id||hit?.tagName||"",target:el.getAttribute("data-command")||el.id||""};})()');
+    if(point.hit!==point.target)throw new Error('Presenter click hit-test mismatch for '+selector+': '+JSON.stringify(point));
     await this.call('Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y,button:'none'});
     await this.call('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
     await this.call('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
