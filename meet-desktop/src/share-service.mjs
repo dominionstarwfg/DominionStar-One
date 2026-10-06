@@ -509,6 +509,19 @@ export function createShareService({BrowserWindow,desktopCapturer,desktopSession
       if(!settleCaptureWorkerStart(failure))reply(failure);
     }
   });
+  ipcMain.handle('share-capture:set-paused',async(event,payload={})=>{
+    const main=getMainWindow?.();
+    if(!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false,error:'capture_client_unavailable'};
+    if(!captureWorkerAlive())return {ok:false,error:'capture_worker_unavailable'};
+    const paused=Boolean(payload?.paused);
+    try{
+      const result=await captureWorkerWindow.webContents.executeJavaScript(`window.DominionShareCaptureWorker?.setPaused(${paused?'true':'false'})`,true);
+      if(result&&typeof result==='object')return result;
+      return {ok:false,error:'capture_worker_pause_unavailable',paused};
+    }catch(error){
+      return {ok:false,error:String(error?.message||error||'capture_worker_pause_failed'),paused};
+    }
+  });
   ipcMain.handle('share-capture:stop',(event)=>{
     const main=getMainWindow?.();
     if(!main||main.isDestroyed()||event.sender!==main.webContents)return {ok:false};
