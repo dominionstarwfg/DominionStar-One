@@ -426,7 +426,7 @@ assert(
   preload.includes("voiceLevel:payload=>") &&
   preload.includes("ipcRenderer.send('mac-share:voice-level'") &&
   integration.includes("window.addEventListener('dominion:local-voice-level',forwardVoiceLevel)") &&
-  integration.includes("macPresenter?.voiceLevel?.({level,speaking})") &&
+  integration.includes("bridge?.voiceLevel?.({level,speaking})") &&
   macPresenter.includes("ipcMain.on('mac-share:voice-level'") &&
   macPresenter.includes('voiceLevel:level,speaking') &&
   macToolbarHtml.includes('class="mic-live-meter"') &&
