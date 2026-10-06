@@ -72,6 +72,7 @@
     const media=window.DominionMediaController,share=window.DominionShareController;
     const environment=await desktop?.environment?.().catch(()=>null);
     const sameRendererPresenter=String(environment?.platform||'')==='darwin';
+    const qaPresenterTrace=Boolean(environment?.qaPresenterFixtures);
     const qaKeepMacPresenterHidden=Boolean(environment?.qaKeepMacPresenterHidden);
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
@@ -152,6 +153,7 @@
       publishMacPresenterState();
       const participantState=presenterParticipants();
       const selfPerson=participantState.find(item=>item.self)||null;
+      if(qaPresenterTrace)console.error(`QA_MAC_FRAME_PUMP participants=${participantState.length} self=${String(selfPerson?.participantId||'')} camera=${selfPerson?.cameraOn?1:0} active=${share.snapshot().active?1:0}`);
       const selfId=String(selfPerson?.participantId||presenterLocalParticipantId||'local-self');
       const stateById=new Map(participantState.map(item=>[String(item.participantId||''),item]));
       const seen=new Set();
@@ -181,9 +183,9 @@
                 const sourceRatio=bitmap.width/bitmap.height,targetRatio=frameCanvas.width/frameCanvas.height;let sx=0,sy=0,sw=bitmap.width,sh=bitmap.height;
                 if(sourceRatio>targetRatio){sw=Math.round(bitmap.height*targetRatio);sx=Math.round((bitmap.width-sw)/2);}else if(sourceRatio<targetRatio){sh=Math.round(bitmap.width/targetRatio);sy=Math.round((bitmap.height-sh)/2);}
                 frameContext.drawImage(bitmap,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
-                const dataUrl=frameCanvas.toDataURL('image/jpeg',.58);macPresenter.videoFrame({participantId:selfId,dataUrl,at:Date.now()});
+                const dataUrl=frameCanvas.toDataURL('image/jpeg',.58);if(qaPresenterTrace)console.error(`QA_MAC_FRAME_GENERATED participant=${selfId} bytes=${dataUrl.length}`);macPresenter.videoFrame({participantId:selfId,dataUrl,at:Date.now()});
               }catch{}finally{try{bitmap.close?.();}catch{}}
-            }).catch(()=>{if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);}).finally(()=>{localFrameCaptureBusy=false;});
+            }).catch(error=>{if(qaPresenterTrace)console.error(`QA_MAC_FRAME_GRAB_FAILED ${String(error?.message||error||'unknown')}`);if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);}).finally(()=>{localFrameCaptureBusy=false;});
           }else if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
         }else if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
       }
