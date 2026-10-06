@@ -433,8 +433,13 @@ assert(
   macToolbar.includes("audioButton.dataset.voiceLevel=String(voiceBucket)") &&
   macToolbar.includes("audioButton?.classList.toggle('is-speaking',speaking)") &&
   macToolbarCss.includes('[data-command="audio"].is-speaking .mic-live-meter') &&
-  macVideoJs.includes("speaking=Boolean(micOn&&state?.speaking)") &&
+  macVideoJs.includes("const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0))") &&
+  macVideoJs.includes("speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0)") &&
+  macVideoJs.includes("micState.dataset.voiceLevel=String(voiceBucket)") &&
+  macVideoJs.includes("micState.classList.toggle('speaking',speaking)") &&
   macVideoJs.includes("tile.classList.toggle('speaking',tile.dataset.self==='1'&&speaking)") &&
+  macVideoHtml.includes('id="micState" class="video-mic-meter"') &&
+  macVideoCss.includes('.video-mic-meter.speaking i{background:#31d158}') &&
   macVideoCss.includes('.video-tile.speaking{border-color:#31d158'),
   'Real microphone RMS must propagate from the authoritative meeting track into the native toolbar meter and the approved green speaking border on the share-video tile.'
 );
