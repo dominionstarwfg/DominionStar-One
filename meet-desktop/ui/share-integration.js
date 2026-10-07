@@ -77,6 +77,7 @@
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
+    let lastPresenterStateSignature='';
     let macRemoteFrameTimer=0;
     let macDockSyncTimer=0;
     let presenterLocalParticipantId='';
@@ -116,8 +117,10 @@
       void localPresenterMirror.play().catch(()=>{});
       return true;
     };
-    const frameCanvas=document.createElement('canvas');frameCanvas.width=192;frameCanvas.height=108;
-    const frameContext=frameCanvas.getContext('2d',{alpha:false,desynchronized:true});
+    const frameCanvas=document.createElement('canvas');frameCanvas.width=504;frameCanvas.height=264;
+    const frameContext=frameCanvas.getContext('2d',{alpha:false,desynchronized:true,colorSpace:'srgb'});
+    if(frameContext){frameContext.imageSmoothingEnabled=true;frameContext.imageSmoothingQuality='high';}
+    const encodePresenterFrame=()=>frameCanvas.toDataURL('image/webp',.84);
     const presenterParticipants=()=>{
       const mediaState=media.snapshot(),rows=[...overlay.querySelectorAll('#participantRoster [data-participant-id]')],seen=new Set(),list=[];
       for(const row of rows){
@@ -164,7 +167,7 @@
           const sourceRatio=video.videoWidth/video.videoHeight,targetRatio=frameCanvas.width/frameCanvas.height;let sx=0,sy=0,sw=video.videoWidth,sh=video.videoHeight;
           if(sourceRatio>targetRatio){sw=Math.round(video.videoHeight*targetRatio);sx=Math.round((video.videoWidth-sw)/2);}else if(sourceRatio<targetRatio){sh=Math.round(video.videoWidth/targetRatio);sy=Math.round((video.videoHeight-sh)/2);}
           frameContext.drawImage(video,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
-          const dataUrl=frameCanvas.toDataURL('image/jpeg',.58);macPresenter.videoFrame({participantId:id,dataUrl,at:Date.now()});seen.add(id);return true;
+          const dataUrl=encodePresenterFrame();macPresenter.videoFrame({participantId:id,dataUrl,at:Date.now()});seen.add(id);return true;
         }catch{return false;}
       };
       // Local presenter video mirrors the authoritative DominionMediaController
@@ -183,7 +186,7 @@
                 const sourceRatio=bitmap.width/bitmap.height,targetRatio=frameCanvas.width/frameCanvas.height;let sx=0,sy=0,sw=bitmap.width,sh=bitmap.height;
                 if(sourceRatio>targetRatio){sw=Math.round(bitmap.height*targetRatio);sx=Math.round((bitmap.width-sw)/2);}else if(sourceRatio<targetRatio){sh=Math.round(bitmap.width/targetRatio);sy=Math.round((bitmap.height-sh)/2);}
                 frameContext.drawImage(bitmap,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
-                const dataUrl=frameCanvas.toDataURL('image/jpeg',.58);if(qaPresenterTrace)console.error(`QA_MAC_FRAME_GENERATED participant=${selfId} bytes=${dataUrl.length}`);macPresenter.videoFrame({participantId:selfId,dataUrl,at:Date.now()});
+                const dataUrl=encodePresenterFrame();if(qaPresenterTrace)console.error(`QA_MAC_FRAME_GENERATED participant=${selfId} bytes=${dataUrl.length}`);macPresenter.videoFrame({participantId:selfId,dataUrl,at:Date.now()});
               }catch{}finally{try{bitmap.close?.();}catch{}}
             }).catch(error=>{if(qaPresenterTrace)console.error(`QA_MAC_FRAME_GRAB_FAILED ${String(error?.message||error||'unknown')}`);if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);}).finally(()=>{localFrameCaptureBusy=false;});
           }else if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
@@ -199,7 +202,7 @@
     const stopMacRemoteFramePump=()=>{if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}};
     const syncMacCameraFramePump=()=>{
       if(!sameRendererPresenter||!share.snapshot().active){stopMacRemoteFramePump();return;}
-      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(publishMacRemoteFrames,180);
+      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(publishMacRemoteFrames,66);
       publishMacRemoteFrames();
     };
     let lastVoiceSentAt=0,lastVoiceSpeaking=false,lastVoiceLevel=0;
@@ -260,7 +263,7 @@
       if(!sameRendererPresenter||!share.snapshot().active)return;
       const state=share.snapshot(),mediaState=media.snapshot(),featureState=window.DominionMeetingFeatures?.snapshot?.()||{};
       try{
-        const pending=bridge?.captureState?.({
+        const payload={
           paused:state.paused,micOn:mediaState.micOn,cameraOn:effectiveLocalCameraOn(),
           cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,
           sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),
@@ -268,7 +271,11 @@
           handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),
           recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,
           companionOpen:Boolean(companionKind),participants:presenterParticipants()
-        });
+        };
+        const signature=JSON.stringify(payload);
+        if(signature===lastPresenterStateSignature)return;
+        lastPresenterStateSignature=signature;
+        const pending=bridge?.captureState?.(payload);
         void Promise.resolve(pending).catch(()=>{});
       }catch{}
     }
@@ -438,7 +445,7 @@
         publishMacPresenterState();
         syncMacCameraFramePump();
       }
-      if(shareWasActive&&!active){stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}
+      if(shareWasActive&&!active){lastPresenterStateSignature='';stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}
       shareWasActive=active;
     });
     media.onChange(()=>{if(!share.snapshot().active){if(localPresenterMirror.srcObject)localPresenterMirror.srcObject=null;return;}if(sameRendererPresenter){syncLocalPresenterMirror();publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});
