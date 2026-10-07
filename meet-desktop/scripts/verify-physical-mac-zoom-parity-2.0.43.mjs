@@ -35,14 +35,14 @@ const captureWorker=read('ui/share-capture-worker.js');
 const capturePreload=read('src/share-capture-preload.cjs');
 const macPresenter=read('src/mac-share-presenter-overlay.mjs');
 assert(
-  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=1;}") &&
+  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}") &&
   macPresenter.includes('QA_MAC_PRESTART_STATE_CACHED participants=') &&
   macPresenter.includes('function raisePersistentPresenterSurfaces(){') &&
   macPresenter.includes("shareState={...shareState,...state};") &&
   screenshotJs.includes("const activeMacShare=()=>{") &&
   screenshotJs.includes("document.body.classList.contains('ds-native-mac-presenter-share')||activeMacShare()") &&
   screenshotJs.includes("if(nativeMacPresenter||activeMacShare()){toolbar.hidden=true"),
-  'Approved Mac share behavior requires self-only presenter video, cached pre-start media state, persistent presenter z-order, and zero renderer share-layout fallback while the native share is active.'
+  'Approved Mac share behavior requires persistent presenter video from share start, cached pre-start media state, stable presenter z-order, and zero renderer share-layout fallback while the native share is active.'
 );
 assert(shareService.includes("partition:'dominion-share-capture-v2044'"),'Dedicated Mac capture worker must retain its isolated storage partition.');
 const toolbarPartition=macPresenter.match(/partition:'(dominion-presenter-toolbar-[^']+)'/)?.[1],videoPartition=macPresenter.match(/partition:'(dominion-presenter-video-[^']+)'/)?.[1];
