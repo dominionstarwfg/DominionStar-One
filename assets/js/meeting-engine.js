@@ -226,7 +226,7 @@
         await ensurePeer(id,shouldOffer).catch(()=>{});
       }
       for(const id of [...state.v2ParticipantIds])if(!current.has(id)){state.v2ParticipantIds.delete(id);if(state.peers.has(id))removePeer(id);}
-      if(members.length)emit('presence',{members});
+      if(members.length)emit('presence',{members:[...state.remoteMeta.values()].filter(member=>member?.participantId&&!participantIsDeparted(member.participantId))});
     }catch{}
   }
   async function pollV2Join(){
@@ -956,6 +956,7 @@
     const filtered=(members||[]).filter(member=>member?.participantId && !participantIsDeparted(member.participantId));
     const current = new Set(filtered.map(member => member.participantId));
     for (const existingId of [...state.peers.keys()]) {
+      if(state.v2Enabled&&state.v2ParticipantIds.has(existingId))continue;
       if (current.has(existingId)) {
         clearTimeout(state.presenceMissingTimers.get(existingId));
         state.presenceMissingTimers.delete(existingId);
@@ -1039,22 +1040,46 @@
     state.displayName = String(displayName || session?.user?.user_metadata?.full_name || session?.user?.email || 'Guest').slice(0,80);
     state.userId = session?.user?.id || '';
     state.hostUserId=String(hostUserId||(isHost?state.userId:'')||'');
-    // Each live connection needs a fresh identity. Reusing a room-scoped id lets
-    // stale presence collide with a reopened browser tab or desktop app.
-    state.instanceId = randomId('device');
-    sessionStorage.setItem(`ds-meet-instance:${state.roomId}`, state.instanceId);
-    state.participantId = `${state.userId || 'guest'}:${state.instanceId}`;
     state.isHost = Boolean(isHost);
     state.role = state.isHost ? 'host' : 'attendee';
     state.contractLevel = String(contractLevel || 'TA').slice(0,20);
     state.avatarUrl = String(avatarUrl || '').slice(0,1000);
-    state.joinToken=randomId('join');
     state.roomPasscode=normalizeMeetingPasscode(passcode);
+
+    // Keep a device-local instance id for legacy browser presence, but when a
+    // desktop-compatible 10/11 digit room is joined as a guest, use the server
+    // issued V2 participant id + join token as the canonical identity.
+    state.instanceId = randomId('device');
+    sessionStorage.setItem(`ds-meet-instance:${state.roomId}`, state.instanceId);
+    state.v2Enabled=false;state.v2Joined=false;state.v2RoomId='';state.v2RoomCode='';state.v2SignalCursor=0;state.v2ParticipantIds.clear();
+    let v2Join=null;
+    const v2RoomCode=String(state.roomId||'').replace(/\D/g,'');
+    if(!state.isHost&&/^\d{10,11}$/.test(v2RoomCode)&&v2Transport()){
+      try{
+        v2Join=await v2Transport().requestJoin({roomCode:v2RoomCode,passcode:state.roomPasscode,displayName:state.displayName});
+      }catch(error){
+        window.DominionRuntime?.events?.publish?.({type:'desktop.interop.join.fallback',source:'meeting-engine',meetingId:state.roomId,actorId:'browser',severity:'warning',payload:{message:error?.message||String(error)}});
+      }
+    }
+    if(v2Join?.participantId&&v2Join?.joinToken){
+      state.v2Enabled=true;
+      state.v2RoomId=String(v2Join.roomId||'');
+      state.v2RoomCode=v2RoomCode;
+      state.participantId=String(v2Join.participantId);
+      state.joinToken=String(v2Join.joinToken);
+      if(String(v2Join.state||'')==='admitted'){
+        try{await v2Transport().markJoined(state.participantId,state.joinToken);state.v2Joined=true;}catch{}
+      }else state.v2Joined=String(v2Join.state||'')==='joined';
+      state.admitted=state.v2Joined;
+    }else{
+      state.participantId = `${state.userId || 'guest'}:${state.instanceId}`;
+      state.joinToken=randomId('join');
+      state.admitted = state.isHost;
+    }
     state.joinPasscodeProof=await createPasscodeProof(state.roomId,state.roomPasscode,state.joinToken);
-    state.admitted = state.isHost;
     state.waitingRoomEnabled=Boolean(waitingRoomEnabled);
-    state.waitingRoomKnown=state.isHost||state.waitingRoomEnabled;
-    await loadRtcConfig();
+    state.waitingRoomKnown=state.isHost||state.waitingRoomEnabled||Boolean(state.v2Enabled&&!state.v2Joined);
+    if(state.v2Joined)await loadV2Ice(false);else await loadRtcConfig();
 
     state.channel = meetingRealtimeClient().channel(`dominionstar-meet-${state.roomId}`, {config:{broadcast:{self:false,ack:true},presence:{key:state.participantId}}});
     ['meet-join-request','meet-admitted','meet-admission-confirmed','meet-denied','meet-ready','meet-offer','meet-answer','meet-ice','meet-left','meet-ended','meet-chat','meet-spotlight','meet-active-speaker','meet-reaction','meet-media-state','meet-speaking-state','meet-media-resync-request','meet-screen-state','meet-remote-control-request','meet-remote-control-response','meet-remote-control-input','meet-remote-control-stop','meet-role-change','meet-role-change-confirmed','meet-moderation','meet-moderation-ack','meet-control','meet-control-ack','meet-control-response','meet-state-heartbeat','meet-security-state','meet-transcript','meet-transcription-state']
@@ -1095,6 +1120,7 @@
         });
       }catch(error){finish(reject,error);}
     });
+    startV2Loops();
     return snapshot();
   };
 
