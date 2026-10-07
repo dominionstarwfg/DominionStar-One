@@ -497,7 +497,7 @@ if(process.platform==='darwin'){
     }
     if(qaPresenterTrace)console.error(`QA_MAC_FRAME_FORWARD participant=${participantId} bytes=${dataUrl.length}`);
     try{
-      videoWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout,videoFrames:[...latestVideoFrames.entries()].map(([id,frame])=>({participantId:id,...frame}))});
+      videoWindow.webContents.send('mac-share:video-frame',{participantId,dataUrl,at});
     }catch(error){if(qaPresenterTrace)console.error(`QA_MAC_FRAME_FORWARD_FAILED ${String(error?.message||error||'unknown')}`);}
   });
   ipcMain.on('mac-share:voice-level',(_event,payload={})=>{
