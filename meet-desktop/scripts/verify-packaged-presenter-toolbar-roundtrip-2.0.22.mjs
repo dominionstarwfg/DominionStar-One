@@ -435,6 +435,13 @@ try{
   assert.equal(liveVideo.fallbackHidden,true);
   assert.match(liveVideo.frameSrc,/^data:image\/jpeg/i,'Presenter video must mirror the already-owned live camera as a JPEG frame without acquiring a second camera stream.');
   stage('presenter-video-live');
+  const assertPresenterVideoVisible=async label=>{
+    const state=await video.eval("(()=>({visibility:document.visibilityState,self:Boolean(document.querySelector('.video-tile[data-self=\"1\"]')),dockHidden:document.querySelector('#dock')?.hidden===true}))()");
+    assert.equal(state.visibility,'visible',label+' hid the presenter video BrowserWindow.');
+    assert.equal(state.self,true,label+' removed the self video tile.');
+    assert.equal(state.dockHidden,false,label+' hid the presenter video dock.');
+    stage(label);
+  };
 
   await video.wait("document.querySelector('.video-tile[data-self=\"1\"] [data-video-more]')&&document.querySelector('#videoActionMenu')",'presenter video per-tile controls shell',5000);
   await video.click('.video-tile[data-self="1"] [data-video-more]');
@@ -480,32 +487,38 @@ try{
   assert.equal(pausedChrome.paused,true,'Paused presenter toolbar did not expose its paused visual state.');
   assert.match(pausedChrome.label,/paused/i,'Paused presenter status strip did not announce paused sharing.');
   stage('pause-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-pause');
 
   logStart=stderr.length;
   await toolbar.click('[data-command="pause"]');
   await waitStderr(ackPattern('resume-share'),'renderer ACK for Resume',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===false&&document.querySelector('#pauseLabel')?.textContent==='Pause Share'&&!document.querySelector('#toolbar')?.classList.contains('is-paused')&&document.querySelector('#pauseGlyph path')?.getAttribute('d')==='M8 5v14M16 5v14'",'Resume state returned to floating toolbar with active-share chrome restored',8000);
   stage('resume-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-resume');
 
   logStart=stderr.length;
   await toolbar.click('[data-command="participants"]');
   await waitStderr(ackPattern('participants'),'renderer ACK for Participants',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='participants'",'Participants companion state returned to toolbar',8000);
   stage('participants-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-participants');
 
   logStart=stderr.length;
   await toolbar.click('[data-command="chat"]');
   await waitStderr(ackPattern('chat'),'renderer ACK for Chat',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='chat'",'Chat companion state returned to toolbar',8000);
   stage('chat-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-chat');
 
   await toolbar.click('#moreButton');
   await toolbar.wait("document.querySelector('#moreMenu')?.hidden===false",'More menu opened before Annotate',3000);
+  await assertPresenterVideoVisible('video-persistent-with-more-open');
   logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
   await waitStderr(ackPattern('annotate'),'renderer ACK for Annotate',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='annotate'",'Annotate companion state returned to toolbar',8000);
   stage('annotate-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-annotate-open');
 
   const annotationTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-annotation-toolbar.html'),'left-side native annotation palette',8000);
   const annotation=new Cdp(annotationTarget.webSocketDebuggerUrl);await annotation.connect();
@@ -549,10 +562,18 @@ try{
   await waitStderr('QA_MAC_ANNOTATION_VISIBILITY visible=0','native annotation BrowserWindow hidden after Annotate closes',5000,logStart);
   annotation.close();
   stage('annotate-close-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-annotate-close');
 
   const compactNewShare=await toolbar.eval("Boolean(document.querySelector('[data-command=\"new-share\"]'))");
   assert.equal(compactNewShare,false,'Approved compact presenter toolbar must not expose a direct New Share control.');
   stage('compact-toolbar-new-share-omitted');
+
+  const flashMainTarget=await waitTarget(item=>String(item.id||'')===String(mainTarget.id||''),'meeting renderer for full-session legacy share flash audit');
+  const flashMain=new Cdp(flashMainTarget.webSocketDebuggerUrl);await flashMain.connect();
+  const flashAudit=await flashMain.eval("(()=>{const state=window.__DOMINION_QA_LEGACY_SHARE_FLASH||{count:-1,events:[]};window.__DOMINION_QA_LEGACY_SHARE_FLASH_OBSERVER?.disconnect?.();return state;})()");
+  flashMain.close();
+  assert.equal(flashAudit.count,0,'Legacy share chrome/layout flashed during the presenter command sequence: '+JSON.stringify(flashAudit.events||[]));
+  stage('no-legacy-share-flashes-full-sequence');
 
   logStart=stderr.length;
   await toolbar.click('#stopShare');
