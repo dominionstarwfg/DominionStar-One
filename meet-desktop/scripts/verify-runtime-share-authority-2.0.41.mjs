@@ -75,8 +75,8 @@ assert(intelligence.includes('left:auto!important')&&intelligence.includes('widt
 assert(!intelligence.includes('#homeSection')&&!intelligence.includes('.home-grid')&&!intelligence.includes('.action-card'),'Physical intelligence repair must not alter the locked Home surface.');
 
 assert(shareService.includes('function parkMacMeetingWindow({preCapture=false}={})')&&shareService.includes('parkMacMeetingWindow({preCapture:true})'),'The main macOS meeting window must be parked before source-selected starts getDisplayMedia.');
-assert(shareService.includes('main.setOpacity?.(0.02)')&&shareService.includes('main.setIgnoreMouseEvents(true)'),'The capture-owning renderer must remain scheduled at near-zero opacity rather than being hidden or minimized.');
-assert(shareService.includes('protectMeetingChrome(main,true)')&&shareService.includes('main.webContents?.setBackgroundThrottling?.(false)'),'Presenter mode must exclude DominionStar meeting chrome from the shared desktop while keeping its renderer alive.');
+assert(shareService.includes('main.setOpacity?.(0.001)')&&shareService.includes('main.setIgnoreMouseEvents(true)'),'The capture-owning renderer must remain scheduled at near-zero opacity rather than being hidden or minimized.');
+assert(shareService.includes('protectMeetingChrome(main,true)')&&shareService.includes('keepMeetingRendererLive()'),'Presenter mode must exclude DominionStar meeting chrome from the shared desktop while keeping its renderer alive.');
 assert(shareService.includes('captureStartWatchdog=setTimeout')&&shareService.includes('restoreMainWindowAfterShare()'),'Failed physical capture startup must restore the main meeting window automatically.');
 assert(shareService.includes("new Promise(resolve=>setTimeout(()=>resolve({handled:false,reason:'direct-timeout'}),700))"),'Generic presenter fallback must be bounded and may not hang the toolbar indefinitely.');
 
