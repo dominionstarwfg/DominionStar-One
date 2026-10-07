@@ -89,7 +89,7 @@
   function reconcileAuthoritativeShareClass(){
     const overlay=q('#meetingOverlay'),integration=window.DominionShareIntegration;
     if(!overlay||!integration?.state)return;
-    const nativeMacPresenter=document.body.classList.contains('ds-native-mac-presenter-share');
+    const nativeMacPresenter=document.body.classList.contains('ds-native-mac-presenter-share')||activeMacShare();
     let active=false;
     try{active=Boolean(integration.state()?.active)&&!nativeMacPresenter;}catch{return;}
     overlay.classList.toggle('share-active',active);
