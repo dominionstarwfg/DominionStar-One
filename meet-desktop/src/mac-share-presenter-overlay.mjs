@@ -82,8 +82,8 @@ if(process.platform==='darwin'){
   function toolbarRevealZoneContains(point){
     if(!point)return false;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=Math.min(770,Math.max(680,area.width-28)),left=Math.round(area.x+(area.width-width)/2),right=left+width;
-    const top=Math.round(area.y),bottom=Math.round(area.y+64);
+    const width=Math.min(780,Math.max(560,area.width-28)),left=Math.round(area.x+(area.width-width)/2),right=left+width;
+    const top=Math.round(area.y),bottom=Math.round(area.y+72);
     return point.x>=left&&point.x<=right&&point.y>=top&&point.y<=bottom;
   }
   function startCursorWatch(){
@@ -101,8 +101,8 @@ if(process.platform==='darwin'){
   function positionToolbar(){
     if(!isAlive(toolbarWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=Math.min(590,Math.max(548,area.width-28));
-    const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);
+    const width=Math.min(780,Math.max(560,area.width-28));
+    const height=toolbarMenuOpen?330:(toolbarAutoHidden?30:88);
     const x=Math.round(area.x+(area.width-width)/2),y=Math.round(area.y+12);
     try{toolbarWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -378,7 +378,7 @@ if(process.platform==='darwin'){
       if(isDisplayShare())showBorder();else hideBorder();
     });
   }
-  function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:84},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideAnnotationCanvas();hideAnnotationPalette();hideBorder();}
+  function hideOverlays(){toolbarMenuOpen=false;if(isAlive(toolbarWindow)){try{toolbarWindow.setBounds({...toolbarWindow.getBounds(),height:88},false);}catch{}toolbarWindow.hide();}if(isAlive(videoWindow))videoWindow.hide();hideAnnotationCanvas();hideAnnotationPalette();hideBorder();}
 
   function removeQueuedPresenterDelivery(deliveryId){const id=Number(deliveryId||0)||0;if(!id)return false;const index=presenterCommandQueue.findIndex(item=>Number(item?.deliveryId||0)===id);if(index<0)return false;presenterCommandQueue.splice(index,1);return true;}
   function settlePresenterDelivery(deliveryId,result){const pending=presenterDeliveries.get(deliveryId);if(!pending)return false;presenterDeliveries.delete(deliveryId);clearTimeout(pending.timer);pending.resolve(result);return true;}
@@ -596,8 +596,8 @@ if(process.platform==='darwin'){
     }
     return delivered;
   });
-  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);if(toolbarMenuOpen)toolbarAutoHidden=false;positionToolbar();return {ok:true,height:toolbarMenuOpen?300:(toolbarAutoHidden?28:84)};});
-  ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();if(toolbarAutoHidden){try{lastCursorPoint=screen.getCursorScreenPoint();}catch{lastCursorPoint=null;}}return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?28:84};});
+  ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);if(toolbarMenuOpen)toolbarAutoHidden=false;positionToolbar();return {ok:true,height:toolbarMenuOpen?330:(toolbarAutoHidden?30:88)};});
+  ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();if(toolbarAutoHidden){try{lastCursorPoint=screen.getCursorScreenPoint();}catch{lastCursorPoint=null;}}return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?30:88};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
 
   screen.on('display-metrics-changed',()=>{if(shareActive){positionToolbar();positionBorder();positionVideo();positionAnnotation();positionAnnotationCanvas();}});
