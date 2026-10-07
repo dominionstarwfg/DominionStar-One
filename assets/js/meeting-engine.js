@@ -82,7 +82,14 @@
     monitoredAudioTracks: new WeakSet(),
     transcriptionActive: false,
     transcriptionLanguage: 'auto',
-    pendingRoleChanges: new Map()
+    pendingRoleChanges: new Map(),
+    v2Enabled: false,
+    v2Joined: false,
+    v2RoomId: '',
+    v2RoomCode: '',
+    v2SignalCursor: 0,
+    v2ParticipantIds: new Set(),
+    v2Timers: {signals:0,snapshot:0,join:0,presence:0}
   };
 
   const domainEventMap = {
@@ -168,6 +175,85 @@
     }catch(_){return accountClient;}
   };
   const meetingRealtimeClient = () => state.realtimeClient || state.client;
+  const v2Transport=()=>window.DominionBrowserV2Transport||null;
+  const clearV2Timers=()=>{
+    for(const key of Object.keys(state.v2Timers||{})){clearInterval(state.v2Timers[key]);clearTimeout(state.v2Timers[key]);state.v2Timers[key]=0;}
+  };
+  const v2SignalEvent=signal=>{
+    const type=String(signal?.type||'');
+    if(type==='offer')return ['meet-offer',{...signal.payload,description:signal.payload?.sdp,from:String(signal.fromParticipantId||'')}];
+    if(type==='answer')return ['meet-answer',{...signal.payload,description:signal.payload?.sdp,from:String(signal.fromParticipantId||'')}];
+    if(type==='ice')return ['meet-ice',{...signal.payload,from:String(signal.fromParticipantId||'')}];
+    if(type==='bye')return ['meet-left',{...signal.payload,from:String(signal.fromParticipantId||'')}];
+    return null;
+  };
+  async function loadV2Ice(force=false){
+    if(!state.v2Enabled||!state.v2Joined)return false;
+    const transport=v2Transport();if(!transport)return false;
+    try{
+      const config=await transport.iceConfig(force,7200),servers=Array.isArray(config?.iceServers)?config.iceServers:[];
+      if(!servers.length)return false;
+      rtcConfig={iceServers:servers,iceCandidatePoolSize:4,bundlePolicy:'max-bundle'};
+      rtcRelayConfigured=servers.some(server=>(Array.isArray(server.urls)?server.urls:[server.urls]).some(url=>/^turns?:/i.test(String(url||''))));
+      return true;
+    }catch{return false;}
+  }
+  async function pullV2Signals(){
+    if(!state.v2Enabled||!state.v2Joined)return;
+    const transport=v2Transport();if(!transport)return;
+    try{
+      const result=await transport.pullSignals(state.v2SignalCursor,100);
+      for(const signal of result?.signals||[]){
+        const mapped=v2SignalEvent(signal);if(!mapped)continue;
+        await handleSignal(mapped[0],mapped[1]);
+      }
+      state.v2SignalCursor=Math.max(state.v2SignalCursor,Number(result?.lastId)||0);
+    }catch{}
+  }
+  async function syncV2Snapshot(){
+    if(!state.v2Enabled||!state.v2Joined||!state.v2RoomId)return;
+    const transport=v2Transport();if(!transport)return;
+    try{
+      const snapshot=await transport.snapshot(state.v2RoomId),members=[];
+      const current=new Set();
+      for(const participant of snapshot?.participants||[]){
+        const id=String(participant?.participantId||'');if(!id||id===state.participantId)continue;
+        current.add(id);state.v2ParticipantIds.add(id);
+        const previous=state.remoteMeta.get(id)||{};
+        const merged={...previous,...participant,participantId:id,displayName:String(participant.displayName||previous.displayName||'Participant'),admitted:true,isHost:String(participant.role||'').toLowerCase()==='host',role:String(participant.role||previous.role||'attendee').toLowerCase()};
+        state.remoteMeta.set(id,merged);members.push(merged);
+        const shouldOffer=String(state.participantId).localeCompare(id)<0;
+        await ensurePeer(id,shouldOffer).catch(()=>{});
+      }
+      for(const id of [...state.v2ParticipantIds])if(!current.has(id)){state.v2ParticipantIds.delete(id);if(state.peers.has(id))removePeer(id);}
+      if(members.length)emit('presence',{members});
+    }catch{}
+  }
+  async function pollV2Join(){
+    if(!state.v2Enabled||state.v2Joined)return;
+    const transport=v2Transport();if(!transport)return;
+    try{
+      const status=await transport.joinStatus(state.participantId,state.joinToken),next=String(status?.state||'');
+      if(['waiting','waiting_host'].includes(next))return;
+      if(next==='denied'||next==='removed'){emit('denied',{reason:next});return;}
+      if(next==='admitted')await transport.markJoined(state.participantId,state.joinToken);
+      if(next==='admitted'||next==='joined'){
+        state.v2Joined=true;state.admitted=true;
+        await loadV2Ice(false);
+        await transport.touchPresence(state.participantId,state.joinToken).catch(()=>{});
+        await syncV2Snapshot();await pullV2Signals();
+        emit('admitted',{from:'v2-host',participantId:state.participantId,v2:true});
+      }
+    }catch{}
+  }
+  function startV2Loops(){
+    clearV2Timers();if(!state.v2Enabled)return;
+    state.v2Timers.join=setInterval(()=>void pollV2Join(),800);
+    state.v2Timers.signals=setInterval(()=>void pullV2Signals(),350);
+    state.v2Timers.snapshot=setInterval(()=>void syncV2Snapshot(),900);
+    state.v2Timers.presence=setInterval(()=>{if(state.v2Joined)void v2Transport()?.touchPresence?.(state.participantId,state.joinToken).catch(()=>{});},5000);
+    void pollV2Join();if(state.v2Joined){void syncV2Snapshot();void pullV2Signals();}
+  }
 
   let rtcConfig = {
     iceServers: [
