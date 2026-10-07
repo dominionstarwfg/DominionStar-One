@@ -162,12 +162,22 @@ jobs:
         working-directory: meet-desktop
         run: node scripts/verify-packaged-physical-acceptance.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Create physical Mac QA artifact
+      - name: Create physical Mac QA installers
         shell: bash
         run: |
           mkdir -p qa-artifact
-          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-${{ steps.meta.outputs.version }}-Physical-Mac-QA.zip
-          shasum -a 256 qa-artifact/DominionStar-Meet-${{ steps.meta.outputs.version }}-Physical-Mac-QA.zip | tee qa-artifact/SHA256.txt
+          APP="${{ steps.app.outputs.path }}"
+          ZIP="qa-artifact/DominionStar-Meet-${{ steps.meta.outputs.version }}-Physical-Mac-QA.zip"
+          DMG="qa-artifact/DominionStar-Meet-${{ steps.meta.outputs.version }}-Physical-Mac-QA.dmg"
+          STAGE="$RUNNER_TEMP/dominionstar-physical-dmg-root"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+          ditto "$APP" "$STAGE/DominionStar Meet.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "DominionStar Meet" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+          shasum -a 256 "$ZIP" "$DMG" | tee qa-artifact/SHA256.txt
+          du -h "$ZIP" "$DMG"
 
       - name: Upload physical Mac QA artifact
         uses: actions/upload-artifact@v4
