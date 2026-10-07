@@ -6,6 +6,7 @@
   let videoLayout='strip',participants=[],identity={name:'You',avatar:''},lastSignature='';
   let speaking=false,pinnedId='',activeMenuId='',selfParticipantId='';
   const remoteFrames=new Map();
+  const frameDecodeSeq=new Map(),paintedFrames=new Map();
 
   const initials=name=>String(name||'Participant').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'DS';
   const escapeHtml=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -54,10 +55,37 @@
     if(!canManage())return 'Chat';
     return person.micOn?'Mute':'Ask to unmute';
   }
+  function paintRemoteFrame(tile,person,dataUrl){
+    const id=String(person?.participantId||''),canvas=tile?.querySelector('canvas.remote-frame'),fallback=tile?.querySelector('.video-fallback');
+    if(!id||!canvas||!dataUrl)return false;
+    if(paintedFrames.get(id)===dataUrl){
+      canvas.hidden=false;if(fallback)fallback.hidden=true;canvas.style.transform=person.self&&mirrored?'scaleX(-1)':'none';return true;
+    }
+    const seq=(frameDecodeSeq.get(id)||0)+1;frameDecodeSeq.set(id,seq);
+    const decoder=new Image();decoder.decoding='async';
+    decoder.onload=()=>{
+      if(frameDecodeSeq.get(id)!==seq||!tile.isConnected)return;
+      const cssWidth=Math.max(1,canvas.clientWidth||tile.clientWidth||252),cssHeight=Math.max(1,canvas.clientHeight||tile.clientHeight||132);
+      const dpr=Math.min(2,Math.max(1,Number(window.devicePixelRatio)||1));
+      const width=Math.max(1,Math.round(cssWidth*dpr)),height=Math.max(1,Math.round(cssHeight*dpr));
+      if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;
+      const context=canvas.getContext('2d',{alpha:false,desynchronized:true,colorSpace:'srgb'});if(!context)return;
+      context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.fillStyle='#111';context.fillRect(0,0,width,height);
+      const sourceWidth=decoder.naturalWidth||width,sourceHeight=decoder.naturalHeight||height,sourceRatio=sourceWidth/sourceHeight,targetRatio=width/height;
+      let sx=0,sy=0,sw=sourceWidth,sh=sourceHeight;
+      if(sourceRatio>targetRatio){sw=Math.round(sourceHeight*targetRatio);sx=Math.round((sourceWidth-sw)/2);}
+      else if(sourceRatio<targetRatio){sh=Math.round(sourceWidth/targetRatio);sy=Math.round((sourceHeight-sh)/2);}
+      context.drawImage(decoder,sx,sy,sw,sh,0,0,width,height);
+      paintedFrames.set(id,dataUrl);canvas.dataset.frameReady='1';canvas.dataset.frameAt=String(Date.now());canvas.hidden=false;
+      canvas.style.transform=person.self&&mirrored?'scaleX(-1)':'none';if(fallback)fallback.hidden=true;
+    };
+    decoder.onerror=()=>{};
+    decoder.src=dataUrl;return true;
+  }
   function createTile(person,stack){
     const tile=document.createElement('article');tile.className='video-tile';tile.dataset.participantId=person.participantId;
     tile.innerHTML=`
-      <img class="remote-frame" alt="" hidden>
+      <canvas class="remote-frame" aria-label="Live participant video" hidden></canvas>
       <div class="video-fallback"><img class="fallback-avatar" alt="" hidden><span></span></div>
       <div class="video-tile-actions">
         <button type="button" class="video-primary-action" data-video-primary></button>
@@ -77,11 +105,15 @@
   }
   function updateTile(tile,person){
     tile.dataset.self=person.self?'1':'0';
-    const frame=remoteFrames.get(person.participantId)||'',img=tile.querySelector('.remote-frame'),fallback=tile.querySelector('.video-fallback');
+    const frame=remoteFrames.get(person.participantId)||'',canvas=tile.querySelector('canvas.remote-frame'),fallback=tile.querySelector('.video-fallback');
     const fallbackAvatar=tile.querySelector('.fallback-avatar'),fallbackInitials=tile.querySelector('.video-fallback span');
     const live=Boolean(person.cameraOn&&frame);
-    if(img){if(live&&img.src!==frame)img.src=frame;img.hidden=!live;img.style.transform=person.self&&mirrored?'scaleX(-1)':'none';}
-    if(fallback)fallback.hidden=live;
+    if(live)paintRemoteFrame(tile,person,frame);
+    else{
+      frameDecodeSeq.set(person.participantId,(frameDecodeSeq.get(person.participantId)||0)+1);
+      if(canvas){canvas.hidden=true;canvas.dataset.frameReady='0';canvas.style.transform=person.self&&mirrored?'scaleX(-1)':'none';}
+      if(fallback)fallback.hidden=false;
+    }
     if(fallbackInitials)fallbackInitials.textContent=initials(person.name);
     if(fallbackAvatar){
       if(person.avatar){
@@ -110,7 +142,7 @@
       if(!tile)tile=createTile(person,stack);
       updateTile(tile,person);stack.append(tile);
     }
-    for(const tile of [...stack.querySelectorAll('.video-tile')])if(!keep.has(String(tile.dataset.participantId||'')))tile.remove();
+    for(const tile of [...stack.querySelectorAll('.video-tile')])if(!keep.has(String(tile.dataset.participantId||''))){const id=String(tile.dataset.participantId||'');tile.remove();remoteFrames.delete(id);paintedFrames.delete(id);frameDecodeSeq.delete(id);}
     syncSpeaking();
     if(activeMenuId&&!participants.some(item=>item.participantId===activeMenuId))closeMenu();
   }
@@ -121,8 +153,9 @@
     const id=String(payload.participantId||''),dataUrl=String(payload.dataUrl||'');
     if(!id||!['data:image/jpeg;base64,','data:image/webp;base64,','data:image/png;base64,'].some(prefix=>dataUrl.startsWith(prefix)))return;
     remoteFrames.set(id,dataUrl);const person=participants.find(item=>item.participantId===id);if(!person?.cameraOn){if(window.__DOMINION_QA_PRESENTER_TRACE)console.error(`QA_MAC_VIDEO_FRAME_DEFER participant=${id} known=${person?1:0} camera=${person?.cameraOn?1:0} participants=${participants.map(item=>item.participantId).join(',')}`);return;}
-    const tile=q(`.video-tile[data-participant-id="${CSS.escape(id)}"]`),img=tile?.querySelector('.remote-frame'),fallback=tile?.querySelector('.video-fallback');
-    if(img){if(img.src!==dataUrl)img.src=dataUrl;img.style.transform=person.self&&mirrored?'scaleX(-1)':'none';img.hidden=false;if(fallback)fallback.hidden=true;if(window.__DOMINION_QA_PRESENTER_TRACE)console.error(`QA_MAC_VIDEO_FRAME_APPLIED participant=${id} self=${person.self?1:0}`);}else if(window.__DOMINION_QA_PRESENTER_TRACE)console.error(`QA_MAC_VIDEO_FRAME_NO_TILE participant=${id}`);
+    const tile=q(`.video-tile[data-participant-id="${CSS.escape(id)}"]`);
+    if(tile){paintRemoteFrame(tile,person,dataUrl);if(window.__DOMINION_QA_PRESENTER_TRACE)console.error(`QA_MAC_VIDEO_FRAME_APPLIED participant=${id} self=${person.self?1:0}`);}
+    else if(window.__DOMINION_QA_PRESENTER_TRACE)console.error(`QA_MAC_VIDEO_FRAME_NO_TILE participant=${id}`);
   }
 
   async function presenterCommand(command){
@@ -194,16 +227,18 @@
   bridge?.onState?.(state=>{
     cameraOn=state?.cameraOn!==false;micOn=state?.micOn!==false;mirrored=state?.mirror!==false;const dock=q('#dock');if(dock)dock.dataset.cameraOn=cameraOn?'1':'0';const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0));speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0);if(window.__DOMINION_QA_PRESENTER_TRACE&&voiceLevel>0)console.error(`QA_MAC_VIDEO_VOICE level=${voiceLevel.toFixed(3)} speaking=${speaking?1:0} mic=${micOn?1:0}`);
     if(state?.videoLayout&&state.videoLayout!=='hide')videoLayout=String(state.videoLayout);
-    let frameChanged=false;
+    const stateFrames=[];
     for(const frame of Array.isArray(state?.videoFrames)?state.videoFrames:[]){
       const id=String(frame?.participantId||''),dataUrl=String(frame?.dataUrl||'');
       if(!id||!['data:image/jpeg;base64,','data:image/webp;base64,','data:image/png;base64,'].some(prefix=>dataUrl.startsWith(prefix)))continue;
-      if(remoteFrames.get(id)!==dataUrl){remoteFrames.set(id,dataUrl);frameChanged=true;}
+      if(remoteFrames.get(id)!==dataUrl)remoteFrames.set(id,dataUrl);
+      stateFrames.push({participantId:id,dataUrl});
     }
     participants=normalizedParticipants(state?.participants);
     const layoutChanged=setLayoutActive(videoLayout);if(layoutChanged)lastSignature='';
-    renderParticipants(layoutChanged||frameChanged);
-    if(window.__DOMINION_QA_PRESENTER_TRACE&&Array.isArray(state?.videoFrames)&&state.videoFrames.length)console.error(`QA_MAC_VIDEO_STATE_FRAMES count=${state.videoFrames.length} participants=${participants.map(item=>item.participantId).join(',')} changed=${frameChanged?1:0}`);
+    renderParticipants(layoutChanged);
+    for(const frame of stateFrames){const person=participants.find(item=>item.participantId===frame.participantId),tile=q(`.video-tile[data-participant-id="${CSS.escape(frame.participantId)}"]`);if(person?.cameraOn&&tile)paintRemoteFrame(tile,person,frame.dataUrl);}
+    if(window.__DOMINION_QA_PRESENTER_TRACE&&stateFrames.length)console.error(`QA_MAC_VIDEO_STATE_FRAMES count=${stateFrames.length} participants=${participants.map(item=>item.participantId).join(',')}`);
   });
   bridge?.onVideoFrame?.(applyRemoteFrame);
   void boot();
