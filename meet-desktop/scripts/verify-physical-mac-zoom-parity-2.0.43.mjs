@@ -48,6 +48,14 @@ assert(shareService.includes("partition:'dominion-share-capture-v2044'"),'Dedica
 const toolbarPartition=macPresenter.match(/partition:'(dominion-presenter-toolbar-[^']+)'/)?.[1],videoPartition=macPresenter.match(/partition:'(dominion-presenter-video-[^']+)'/)?.[1];
 assert(toolbarPartition&&videoPartition&&toolbarPartition!==videoPartition,'Floating Mac presenter toolbar and video surfaces must run in distinct isolated storage partitions outside the meeting renderer.');
 assert(macPresenter.includes('QA_MAC_PRESENTER_PROCESS_BOUNDARY'),'Mac presenter runtime must expose process-boundary proof for physical QA.');
+assert(
+  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}") &&
+  macPresenter.includes("const participantCount=Math.max(1,Math.min(5,presenterParticipantCount()||1));") &&
+  macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)") &&
+  macPresenter.includes("if(isAlive(videoWindow)&&shouldShowVideoWindow()){") &&
+  !macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=1;}"),
+  'Approved macOS share video must exist from share start unless explicitly hidden, use true one-person geometry, cap visible strip sizing at five participants, and remain independent of late roster publication.'
+);
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
 const presenterPreload=read('src/presenter-preload.cjs');
