@@ -463,10 +463,10 @@ try{
   const voiceMain=new Cdp(voiceMainTarget.webSocketDebuggerUrl);await voiceMain.connect();
   assert.equal(await voiceMain.eval("(()=>{if(!window.DominionShareIntegration||!window.DominionShareController?.snapshot?.().active)return false;window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:.72,speaking:true}}));return true;})()"),true,'Meeting renderer must have the active share integration before microphone activity is published.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='3'&&document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone activity meter',5000);
-  await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='3'&&document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone activity meter',5000);
+  await video.wait("document.querySelector('.video-tile[data-self=\"1\"]')?.classList.contains('speaking')",'presenter video active-speaker border',5000);
   assert.equal(await voiceMain.eval("(()=>{window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:0,speaking:false}}));return true;})()"),true,'Meeting renderer must publish microphone idle state through the same production voice event path.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='0'&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone meter idle',5000);
-  await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='0'&&!document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone meter idle',5000);
+  await video.wait("!document.querySelector('.video-tile[data-self=\"1\"]')?.classList.contains('speaking')",'presenter video active-speaker border idle',5000);
   voiceMain.close();
   stage('live-microphone-meter-roundtrip');
 
@@ -523,10 +523,18 @@ try{
   const annotationTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-annotation-toolbar.html'),'left-side native annotation palette',8000);
   const annotation=new Cdp(annotationTarget.webSocketDebuggerUrl);await annotation.connect();
   await annotation.wait("window.DominionMacAnnotationPalette&&document.visibilityState==='visible'&&document.querySelector('[data-command=\"annotate-pen\"]')",'visible native annotation palette',5000);
-  const annotationGeometry=await annotation.eval("(()=>({x:window.screenX,availLeft:window.screen.availLeft||0,width:window.innerWidth,flex:getComputedStyle(document.querySelector('.annotation-palette')).flexDirection}))()");
-  assert.ok(annotationGeometry.width>=176&&annotationGeometry.width<=192,'Annotation palette is not the approved professional width: '+annotationGeometry.width+'px');
-  assert.equal(annotationGeometry.flex,'column','Annotation palette is not vertically arranged.');
+  const annotationGeometry=await annotation.eval("(()=>{const rail=document.querySelector('.annotation-palette')?.getBoundingClientRect();return {x:window.screenX,availLeft:window.screen.availLeft||0,windowWidth:window.innerWidth,railWidth:Math.round(rail?.width||0),display:getComputedStyle(document.querySelector('.annotation-palette')).display,close:Boolean(document.querySelector('[data-command=\"annotate-close\"]'))};})()");
+  assert.ok(annotationGeometry.windowWidth>=50&&annotationGeometry.windowWidth<=56,'Annotation BrowserWindow is not compact by default: '+annotationGeometry.windowWidth+'px');
+  assert.ok(annotationGeometry.railWidth>=50&&annotationGeometry.railWidth<=54,'Annotation rail is not the approved narrow width: '+annotationGeometry.railWidth+'px');
+  assert.equal(annotationGeometry.display,'flex','Annotation palette is not a vertical flex rail.');
+  assert.equal(annotationGeometry.close,true,'Annotation rail is missing its explicit Close control.');
   assert.ok(Math.abs(Number(annotationGeometry.x)-Number(annotationGeometry.availLeft))<=28,'Annotation palette is not positioned on the left edge of the shared display.');
+  await annotation.click('[data-flyout="style"]');
+  await annotation.wait("window.innerWidth>=176&&document.querySelector('[data-flyout-panel=\"style\"]')?.hidden===false",'annotation style flyout expansion',4000);
+  const expandedAnnotationWidth=await annotation.eval("window.innerWidth");
+  assert.ok(expandedAnnotationWidth>=176&&expandedAnnotationWidth<=192,'Annotation style flyout did not expand the native window correctly: '+expandedAnnotationWidth+'px');
+  await annotation.click('[data-close-flyout]');
+  await annotation.wait("window.innerWidth<=56",'annotation rail collapse after flyout',4000);
   const annotationMainTarget=await waitTarget(item=>String(item.id||'')===String(mainTarget.id||''),'active meeting renderer for annotation visibility guard');
   const annotationMain=new Cdp(annotationMainTarget.webSocketDebuggerUrl);await annotationMain.connect();
   await annotationMain.wait("(()=>{const tools=document.querySelector('.share-annotation-tools');return !tools||getComputedStyle(tools).display==='none';})()", 'legacy renderer annotation tools absent or suppressed',5000);
