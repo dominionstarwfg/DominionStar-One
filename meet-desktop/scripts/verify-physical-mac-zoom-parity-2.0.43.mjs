@@ -56,6 +56,23 @@ assert(
   !macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=1;}"),
   'Approved macOS share video must exist from share start unless explicitly hidden, use true one-person geometry, cap visible strip sizing at five participants, and remain independent of late roster publication.'
 );
+assert(
+  macToolbarCss.includes('width:552px') &&
+  macToolbarCss.includes('height:58px') &&
+  macToolbarCss.includes('height:24px;min-width:330px;max-width:520px') &&
+  macToolbarCss.includes('min-width:68px') &&
+  macToolbarCss.includes('width:21px;height:21px') &&
+  macToolbarCss.includes('background:#27c96b') &&
+  macToolbarCss.includes('.toolbar.auto-hidden .control-strip') &&
+  macToolbarHtml.includes('>Mute<') &&
+  macToolbarHtml.includes('>Stop Video<') &&
+  macToolbarHtml.includes('>Pause Share<') &&
+  macToolbarHtml.includes('>Participants<') &&
+  macToolbarHtml.includes('>Chat<') &&
+  macToolbarHtml.includes('>More<') &&
+  macToolbarHtml.includes('id="stopShareLabel">Stop Share<'),
+  'Native presenter toolbar must preserve the approved compact reference geometry, labels, green share strip and idle auto-hide behavior.'
+);
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
 const presenterPreload=read('src/presenter-preload.cjs');
