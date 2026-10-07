@@ -521,7 +521,7 @@ assert(
 assert(preload.includes('const accepted=result?.handled===true;')&&!preload.includes('const accepted=result?.handled!==false;'),'Presenter preload must reject undefined/stale listener results instead of falsely acknowledging dead toolbar commands.');
 assert(macToolbar.includes("if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';")&&macToolbar.includes("if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';")&&integration.includes("command==='audio-on'||command==='audio-off'")&&integration.includes("command==='video-on'||command==='video-off'"),'Presenter Audio/Video commands must be explicit idempotent targets so delivery retries cannot toggle state twice.');
 assert(macToolbar.includes("if(command==='pause')command=Boolean(lastState?.paused)?'resume-share':'pause-share';")&&integration.includes("command==='pause'||command==='pause-share'||command==='resume-share'")&&integration.includes("if(target)await share.pause(sharedVideo);")&&integration.includes("else await share.resume();"),'Presenter Pause/Resume must use explicit idempotent targets so delivery fallback cannot pause and immediately resume.');
-assert(presenterPreload.includes("setToolbarHidden:hidden=>invoke('mac-share:toolbar-hidden'")&&macPresenter.includes("ipcMain.handle('mac-share:toolbar-hidden'")&&macToolbar.includes("setNativeHidden(true)")&&macToolbar.includes("control.disabled=true")&&macToolbar.includes("applyAcknowledgedAvState")&&macToolbarCss.includes(".toolbar.auto-hidden .control-strip{transform:translateY(-70px);opacity:0;pointer-events:none}")&&macToolbarCss.includes(".toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}")&&macPresenter.includes("toolbarAutoHidden?28:84")&&!macToolbarCss.includes(".toolbar:hover .control-strip"),'Idle presenter controls must collapse to the 28px native reveal zone while the green sharing indicator remains visible; AV commands must stay serialized and hover must not override the hidden state.');
+assert(presenterPreload.includes("setToolbarHidden:hidden=>invoke('mac-share:toolbar-hidden'")&&macPresenter.includes("ipcMain.handle('mac-share:toolbar-hidden'")&&macToolbar.includes("setNativeHidden(true)")&&macToolbar.includes("control.disabled=true")&&macToolbar.includes("applyAcknowledgedAvState")&&macToolbarCss.includes(".toolbar.auto-hidden .control-strip{transform:translateY(-66px);opacity:0;pointer-events:none}")&&macToolbarCss.includes(".toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}")&&macPresenter.includes("toolbarAutoHidden?30:88")&&!macToolbarCss.includes(".toolbar:hover .control-strip"),'Idle presenter controls must collapse to the native status-strip zone while the green/amber sharing indicator remains visible; AV commands stay serialized and ordinary screen movement must not force the toolbar open.');
 assert(macPresenter.includes('focusable:true,alwaysOnTop:true')&&macVideoJs.includes("window.addEventListener('blur',closeMenu)"),'Floating video options must close through normal focus loss instead of requiring the ellipsis button again.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return finish({handled:true,command});}")&&!integration.includes("await share.stop();applyLayout();"),'Stop Share must use one local-first state transition, record the command outcome, and rely on the synchronous share-state listener to restore meeting chrome.');
 assert(
@@ -548,18 +548,20 @@ assert(
 assert(
   macToolbarHtml.includes('data-command="audio"')&&
   macToolbarHtml.includes('data-command="video"')&&
-  macToolbarHtml.includes('data-command="pause"')&&
   macToolbarHtml.includes('data-command="participants"')&&
   macToolbarHtml.includes('data-command="chat"')&&
+  macToolbarHtml.includes('data-command="new-share"')&&
+  macToolbarHtml.includes('data-command="pause"')&&
+  macToolbarHtml.includes('id="layoutButton"')&&
+  macToolbarHtml.includes('data-command="annotate"')&&
+  macToolbarHtml.includes('data-command="show-meeting"')&&
   macToolbarHtml.includes('id="moreButton"')&&
-  macToolbarHtml.includes('id="stopShare"')&&
-  !macToolbarHtml.includes('id="layoutButton"')&&
-  !macToolbarHtml.includes('data-command="show-meeting"')&&
-  !macToolbarHtml.includes('data-command="new-share"'),
-  'Presenter strip must match the approved compact control contract: Mute, Video, Pause Share, Participants, Chat, More, Stop Share.'
+  macToolbarHtml.indexOf('<section class="share-strip"')<macToolbarHtml.indexOf('id="stopShare"')&&
+  macToolbarHtml.indexOf('id="stopShare"')<macToolbarHtml.indexOf('</section>',macToolbarHtml.indexOf('<section class="share-strip"')),
+  'Presenter controls must match the Zoom-reference contract: Audio, Video, Participants, Chat, Share, Pause/Resume, Layout, Annotate, Show meeting, More, with Stop Share attached to the separate status strip.'
 );
 assert(
-  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=1;}")&&
+  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}")&&
   macPresenter.includes("if(shareActive&&!qaKeepPresenterHidden&&shouldShowVideoWindow())")&&
   macPresenter.includes("if(!shouldShowVideoWindow()){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout,visible:false};")&&
   macPresenter.includes("if(isAlive(videoWindow)){if(shouldShowVideoWindow())videoWindow.showInactive?.();else videoWindow.hide();}"),
@@ -694,9 +696,9 @@ assert(
   'Participants must keep the full name and role/me metadata on one compact readable row, matching the desktop reference.'
 );
 assert(
-  macToolbarCss.includes('.toolbar.menu-open .popup-menu{top:58px}')&&
-  macPresenter.includes('const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);'),
-  'Presenter More must open directly below the approved compact control strip while expanding the native presenter window enough to expose every command.'
+  macToolbarCss.includes('position:absolute;top:60px')&&
+  macPresenter.includes('const height=toolbarMenuOpen?330:(toolbarAutoHidden?30:88);'),
+  'Presenter Layout/More menus must open directly below the Zoom-reference control strip while the native presenter window expands only for the menu.'
 );
 
 assert(
@@ -712,8 +714,8 @@ assert(
 
 /* PHYSICAL_MAC_2_0_50_REFERENCE_GEOMETRY_LOCK */
 assert(
-  macPresenter.includes('const width=Math.min(590,Math.max(548,area.width-28));')&&
-  macPresenter.includes('const participantCount=Math.max(2,Math.min(5,presenterParticipantCount()||2));')&&
+  macPresenter.includes('const width=Math.min(780,Math.max(560,area.width-28));')&&
+  macPresenter.includes('const participantCount=Math.max(1,Math.min(5,presenterParticipantCount()||1));')&&
   macPresenter.includes('let width=252,height=166;')&&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);")&&
   macPresenter.includes('let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
@@ -721,11 +723,14 @@ assert(
   macPresenter.includes('function toolbarRevealZoneContains(point)')&&
   macPresenter.includes('if(moved<3||!toolbarRevealZoneContains(point))return;')&&
   macPresenter.includes('y=Math.round(area.y+12)')&&
-  macToolbarCss.includes('width:552px;max-width:calc(100% - 8px);height:58px')&&
+  macToolbarCss.includes('width:748px;max-width:calc(100% - 8px);height:60px')&&
+  macToolbarCss.includes('.share-strip{')&&
+  macToolbarCss.includes('top:60px')&&
+  macToolbarCss.includes('width:360px')&&
   macToolbarCss.includes('.toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}')&&
   macToolbar.includes('const AUTO_HIDE_MS=2400;')&&
   shareAnnotation.includes("state.active&&state.mode==='laser'"),
-  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, localized toolbar reveal zone with top clearance, approved five-tile participant-strip scale, readable 184px professional annotation palette, and live laser pointer.'
+  'Physical reference geometry must preserve the longer Zoom-reference toolbar, shorter persistent status strip below it, localized toolbar reveal zone, true one-to-five participant-strip sizing with internal scroll beyond five, left annotation palette, and live laser pointer.'
 );
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_50_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui approved-five-tile-share-strip simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
