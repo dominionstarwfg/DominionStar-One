@@ -114,8 +114,8 @@ try{
   })()`);await settle(300);
 
   // 03 MEETING.
-  proof.screens.meeting=await evaluate(`(()=>({toolbar:[...document.querySelectorAll('#meetingOverlay .meeting-footer .ds-control-label')].map(n=>n.textContent.trim()),head:Boolean(document.querySelector('.ds-ref-meeting-head-icons')),footerHeight:Math.round(document.querySelector('.meeting-footer').getBoundingClientRect().height)}))()`);
-  if(!proof.screens.meeting.head||proof.screens.meeting.footerHeight<50)throw new Error(`Meeting proof failed ${JSON.stringify(proof.screens.meeting)}`);
+  proof.screens.meeting=await evaluate(`(()=>({toolbar:[...document.querySelectorAll('#meetingOverlay .meeting-footer .ds-control-label')].map(n=>n.textContent.trim()),view:Boolean(document.querySelector('#meetingViewButton')),brand:Boolean(document.querySelector('.ds-meeting-brand')),encrypted:Boolean(document.querySelector('.ds-approved-encryption')),footerHeight:Math.round(document.querySelector('.meeting-footer').getBoundingClientRect().height)}))()`);
+  if(!proof.screens.meeting.view||!proof.screens.meeting.brand||!proof.screens.meeting.encrypted||proof.screens.meeting.footerHeight<50)throw new Error(`Meeting proof failed ${JSON.stringify(proof.screens.meeting)}`);
   await screenshot('03-meeting.png');
 
   // 04 PARTICIPANTS — one canonical media set only.
