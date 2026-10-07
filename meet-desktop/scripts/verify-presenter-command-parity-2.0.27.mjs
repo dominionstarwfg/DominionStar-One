@@ -30,7 +30,7 @@ assert.ok(
   shareIntegration.includes("if(command==='stop'){clearCompanion();await share.stop();return finish({handled:true,command});}") &&
   shareIntegration.includes("function cleanupStoppedShareSurfaces(){") &&
   shareIntegration.includes("DominionActiveShareHomeParity2041?.restoreMeeting?.()") &&
-  shareIntegration.includes("if(shareWasActive&&!active){stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}"),
+  shareIntegration.includes("if(shareWasActive&&!active){lastPresenterStateSignature='';stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}"),
   'Certified Stop Share authority must terminate capture locally, restore the current meeting through the share-state transition, and clean presenter surfaces deterministically.'
 );
 assert.ok(shareIntegration.includes("if(command==='audio'||command==='audio-on'||command==='audio-off')")&&shareIntegration.includes("await media.setMicrophone(target)"),'Certified microphone authority must remain intact through explicit idempotent targets.');
