@@ -564,9 +564,14 @@ try{
   stage('annotate-close-real-toolbar');
   await assertPresenterVideoVisible('video-persistent-after-annotate-close');
 
-  const compactNewShare=await toolbar.eval("Boolean(document.querySelector('[data-command=\"new-share\"]'))");
-  assert.equal(compactNewShare,false,'Approved compact presenter toolbar must not expose a direct New Share control.');
-  stage('compact-toolbar-new-share-omitted');
+  const zoomToolbarSurface=await toolbar.eval("(()=>({newShare:Boolean(document.querySelector('[data-command=\"new-share\"]')),layout:Boolean(document.querySelector('#layoutButton')),annotate:Boolean(document.querySelector('.control-strip>[data-command=\"annotate\"]')),showMeeting:Boolean(document.querySelector('.control-strip>[data-command=\"show-meeting\"]')),stopInStrip:Boolean(document.querySelector('.share-strip #stopShare')),stripTop:getComputedStyle(document.querySelector('.share-strip')).top}))()");
+  assert.equal(zoomToolbarSurface.newShare,true,'Zoom-reference presenter toolbar must expose Share as a primary control.');
+  assert.equal(zoomToolbarSurface.layout,true,'Zoom-reference presenter toolbar must expose Layout as a primary control.');
+  assert.equal(zoomToolbarSurface.annotate,true,'Zoom-reference presenter toolbar must expose Annotate as a primary control.');
+  assert.equal(zoomToolbarSurface.showMeeting,true,'Zoom-reference presenter toolbar must expose Show meeting as a primary control.');
+  assert.equal(zoomToolbarSurface.stopInStrip,true,'Stop Share must be attached to the status strip, not the black control bar.');
+  assert.equal(zoomToolbarSurface.stripTop,'60px','Visible sharing strip must sit below the black presenter toolbar.');
+  stage('zoom-reference-toolbar-surface');
 
   const flashMainTarget=await waitTarget(item=>String(item.id||'')===String(mainTarget.id||''),'meeting renderer for full-session legacy share flash audit');
   const flashMain=new Cdp(flashMainTarget.webSocketDebuggerUrl);await flashMain.connect();
