@@ -460,19 +460,21 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-undo"') &&
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
-  macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('.annotation-palette{width:184px') &&
-  macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))') &&
-  macAnnotationCss.includes('.tool-grid button small,.palette-actions button small{display:block') &&
+  macAnnotationHtml.includes('data-flyout="shapes"') &&
+  macAnnotationHtml.includes('data-flyout="style"') &&
+  macAnnotationCss.includes('.annotation-palette{') &&
+  macAnnotationCss.includes('width:52px') &&
+  macAnnotationCss.includes('.annotation-flyout{') &&
+  macAnnotationCss.includes('left:58px') &&
   shareCss.includes('body.ds-native-mac-presenter-share .share-annotation-tools{display:none!important}') &&
   integration.includes('function lockNativeAnnotationRenderer(){') &&
   integration.includes("tools.style.setProperty('display','none','important')") &&
   macAnnotationHtml.includes('data-command="annotate-select"') &&
-  macAnnotationJs.includes("version:'2.0.47-native-canvas-palette'") &&
-  macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
-  macPresenter.includes("partition:'dominion-presenter-annotation-canvas-v2044'") &&
-  macPresenter.includes("const width=184,height=Math.min(526,Math.max(430,area.height-180));") &&
-  macPresenter.includes("width:184,height:500,minWidth:184,maxWidth:184,minHeight:430,maxHeight:526") &&
+  macAnnotationJs.includes("version:'2.0.55-zoom-vertical-rail'") &&
+  presenterPreload.includes("setAnnotationFlyout:open=>invoke('mac-share:annotation-flyout'") &&
+  macPresenter.includes("const width=annotationFlyoutOpen?184:52") &&
+  macPresenter.includes("width:52,height:500,minWidth:52,maxWidth:184,minHeight:430,maxHeight:526") &&
+  macPresenter.includes("ipcMain.handle('mac-share:annotation-flyout'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-canvas.html')") &&
   macAnnotationCanvasHtml.includes('id="annotationCanvas"') &&
@@ -484,7 +486,7 @@ assert(
   macAnnotationCanvasJs.includes("canvas.addEventListener('pointermove',move") &&
   presenterPreload.includes("onAnnotationCommand:callback=>listen('mac-annotation:command'") &&
   macPresenter.includes("canvas.webContents.send('mac-annotation:command'"),
-  'Annotate must use one readable 184px professional vertical native palette with Select/Mouse return, controlling a full-display native drawing surface so Pen, Laser, Eraser, and pointer mode remain reachable on the physically shared Mac display.'
+  'Annotate must use a narrow Zoom-style left rail by default, expand only for Shapes/Style flyouts, expose an explicit Close control, and retain the full-display native drawing canvas for Pen, Highlighter, Laser, Shapes, Eraser, Undo, Clear, width and color.'
 );
 assert(
   screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
@@ -510,13 +512,11 @@ assert(
   macToolbarCss.includes('[data-command="audio"].is-speaking .mic-live-meter') &&
   macVideoJs.includes("const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0))") &&
   macVideoJs.includes("speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0)") &&
-  macVideoJs.includes("micState.dataset.voiceLevel=String(voiceBucket)") &&
-  macVideoJs.includes("micState.classList.toggle('speaking',speaking)") &&
   macVideoJs.includes("tile.classList.toggle('speaking',tile.dataset.self==='1'&&speaking)") &&
-  macVideoHtml.includes('id="micState" class="video-mic-meter"') &&
-  macVideoCss.includes('.video-mic-meter.speaking i{background:#31d158}') &&
+  !macVideoHtml.includes('id="micState"') &&
+  !macVideoCss.includes('.video-mic-meter') &&
   macVideoCss.includes('.video-tile.speaking{border-color:#31d158'),
-  'Real microphone RMS must propagate from the authoritative meeting track into the native toolbar meter and the approved green speaking border on the share-video tile.'
+  'Real microphone RMS must propagate from the authoritative meeting track into the native toolbar meter and the approved green speaking border on the share-video tile without adding non-reference controls to the video header.'
 );
 assert(preload.includes('const accepted=result?.handled===true;')&&!preload.includes('const accepted=result?.handled!==false;'),'Presenter preload must reject undefined/stale listener results instead of falsely acknowledging dead toolbar commands.');
 assert(macToolbar.includes("if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';")&&macToolbar.includes("if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';")&&integration.includes("command==='audio-on'||command==='audio-off'")&&integration.includes("command==='video-on'||command==='video-off'"),'Presenter Audio/Video commands must be explicit idempotent targets so delivery retries cannot toggle state twice.');
@@ -719,7 +719,7 @@ assert(
   macPresenter.includes('let width=252,height=166;')&&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);")&&
   macPresenter.includes('let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
-  macPresenter.includes('const width=184,height=Math.min(526,Math.max(430,area.height-180));')&&
+  macPresenter.includes('const width=annotationFlyoutOpen?184:52,height=Math.min(526,Math.max(430,area.height-180));')&&
   macPresenter.includes('function toolbarRevealZoneContains(point)')&&
   macPresenter.includes('if(moved<3||!toolbarRevealZoneContains(point))return;')&&
   macPresenter.includes('y=Math.round(area.y+12)')&&
