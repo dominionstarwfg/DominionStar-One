@@ -57,21 +57,29 @@ assert(
   'Approved macOS share video must exist from share start unless explicitly hidden, use true one-person geometry, cap visible strip sizing at five participants, and remain independent of late roster publication.'
 );
 assert(
-  macToolbarCss.includes('width:552px') &&
-  macToolbarCss.includes('height:58px') &&
-  macToolbarCss.includes('height:24px;min-width:330px;max-width:520px') &&
+  macToolbarCss.includes('width:748px') &&
+  macToolbarCss.includes('height:60px') &&
+  macToolbarCss.includes('top:60px') &&
+  macToolbarCss.includes('width:360px') &&
+  macToolbarCss.includes('height:26px') &&
   macToolbarCss.includes('min-width:68px') &&
   macToolbarCss.includes('width:21px;height:21px') &&
   macToolbarCss.includes('background:#27c96b') &&
+  macToolbarCss.includes('.toolbar.is-paused .share-strip{background:#f5b942') &&
   macToolbarCss.includes('.toolbar.auto-hidden .control-strip') &&
+  macToolbarCss.includes('.toolbar.auto-hidden .share-strip{top:0') &&
   macToolbarHtml.includes('>Mute<') &&
   macToolbarHtml.includes('>Stop Video<') &&
-  macToolbarHtml.includes('>Pause Share<') &&
   macToolbarHtml.includes('>Participants<') &&
   macToolbarHtml.includes('>Chat<') &&
+  macToolbarHtml.includes('>Share<') &&
+  macToolbarHtml.includes('>Pause Share<') &&
+  macToolbarHtml.includes('>Layout<') &&
+  macToolbarHtml.includes('>Annotate<') &&
+  macToolbarHtml.includes('>Show meeting<') &&
   macToolbarHtml.includes('>More<') &&
   macToolbarHtml.includes('id="stopShareLabel">Stop Share<'),
-  'Native presenter toolbar must preserve the approved compact reference geometry, labels, green share strip and idle auto-hide behavior.'
+  'Native presenter toolbar must preserve the Zoom-reference control order, longer toolbar geometry, shorter status strip below the controls, attached Stop Share, paused amber state and independent idle auto-hide.'
 );
 assert(
   participantsReference.includes('width:318px!important') &&
