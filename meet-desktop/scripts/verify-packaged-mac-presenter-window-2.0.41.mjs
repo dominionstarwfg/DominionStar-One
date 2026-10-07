@@ -5,7 +5,8 @@ import {spawn} from 'node:child_process';
 
 const appPath=process.argv[2];
 const proofPath=process.argv[3]?path.resolve(process.argv[3]):'';
-if(!appPath)throw new Error('Usage: node verify-packaged-mac-presenter-window-2.0.41.mjs <DominionStar Meet.app> [toolbar-proof.png]');
+const videoProofPath=process.argv[4]?path.resolve(process.argv[4]):'';
+if(!appPath)throw new Error('Usage: node verify-packaged-mac-presenter-window-2.0.41.mjs <DominionStar Meet.app> [toolbar-proof.png] [video-proof.png]');
 const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=12140+Math.floor(Math.random()*120);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -44,6 +45,7 @@ try{
   await video.eval(`document.body.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));!document.querySelector('#videoActionMenu').hidden`);
   const menuClosed=await video.eval(`document.querySelector('#videoActionMenu').hidden`);assert.equal(menuClosed,true,'Share video menu must close on an outside click.');
   if(proofPath)await toolbar.screenshot(proofPath);
+  if(videoProofPath)await video.screenshot(videoProofPath);
   await waitLog('QA_MAC_DIRECT_RENDERER_READY','direct renderer command fixture');
 
   await toolbar.eval(`document.querySelector('[data-command="pause"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND pause','Pause direct delivery');
