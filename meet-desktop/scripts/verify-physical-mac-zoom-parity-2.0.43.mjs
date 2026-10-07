@@ -39,9 +39,9 @@ assert(
   macPresenter.includes('QA_MAC_PRESTART_STATE_CACHED participants=') &&
   macPresenter.includes('function raisePersistentPresenterSurfaces(){') &&
   macPresenter.includes("shareState={...shareState,...state};") &&
-  screenshotReference.includes("const activeMacShare=()=>{") &&
-  screenshotReference.includes("document.body.classList.contains('ds-native-mac-presenter-share')||activeMacShare()") &&
-  screenshotReference.includes("if(nativeMacPresenter||activeMacShare()){toolbar.hidden=true"),
+  screenshotJs.includes("const activeMacShare=()=>{") &&
+  screenshotJs.includes("document.body.classList.contains('ds-native-mac-presenter-share')||activeMacShare()") &&
+  screenshotJs.includes("if(nativeMacPresenter||activeMacShare()){toolbar.hidden=true"),
   'Approved Mac share behavior requires self-only presenter video, cached pre-start media state, persistent presenter z-order, and zero renderer share-layout fallback while the native share is active.'
 );
 assert(shareService.includes("partition:'dominion-share-capture-v2044'"),'Dedicated Mac capture worker must retain its isolated storage partition.');
