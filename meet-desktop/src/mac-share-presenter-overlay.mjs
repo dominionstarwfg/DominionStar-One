@@ -129,7 +129,7 @@ if(process.platform==='darwin'){
   }
   function hideBorder(){for(const win of borderWindows){if(!isAlive(win))continue;try{if(process.platform==='darwin'&&win.isSimpleFullScreen?.())win.setSimpleFullScreen(false);}catch{}try{win.hide();}catch{}}}
   function presenterParticipantCount(){return Array.isArray(shareState.participants)?shareState.participants.length:0;}
-  function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=2;}
+  function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=1;}
   function positionVideo({preservePosition=false}={}){
     if(!isAlive(videoWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
@@ -426,7 +426,15 @@ if(process.platform==='darwin'){
     showOverlays();
   });
   ipcMain.on('mac-share:state',(_event,state={})=>{
-    if(!shareActive)return;
+    if(!shareActive){
+      // The meeting renderer can publish camera/participant state a few
+      // milliseconds before capture-started reaches the main process. Preserve
+      // that state so the video companion is ready on the first presenter
+      // frame instead of waiting for a later command such as Annotate.
+      shareState={...shareState,...state};
+      if(qaPresenterTrace)console.error(`QA_MAC_PRESTART_STATE_CACHED participants=${Array.isArray(shareState.participants)?shareState.participants.length:0} camera=${shareState.cameraOn?1:0}`);
+      return;
+    }
     const priorCount=Array.isArray(shareState.participants)?shareState.participants.length:0,priorDisplay=String(shareState.displayId||'');
     const incoming={...state},incomingCompanion=String(incoming.companion||'');
     if(nativeAnnotationOpen){
