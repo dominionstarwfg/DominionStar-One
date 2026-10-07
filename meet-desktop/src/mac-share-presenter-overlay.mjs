@@ -561,6 +561,7 @@ if(process.platform==='darwin'){
     const normalized=String(command||'').replace(/^toolbar:/,'');const main=mainWindow();if(!isAlive(main))return {ok:false,sent:false,acknowledged:false,error:'meeting_window_unavailable'};
     if(normalized==='show-meeting'){if(shareState.meetingVisible)hideMeeting();else showMeeting();return {ok:true,sent:true,acknowledged:true};}
     if(normalized==='layout-hide')return {...setVideoLayout('hide'),sent:true,acknowledged:true};
+    if(normalized==='hide-floating-controls'){toolbarMenuOpen=false;toolbarAutoHidden=true;positionToolbar();publishState();return {ok:true,sent:true,acknowledged:true,hidden:true};}
     if(normalized==='layout-speaker')return {...setVideoLayout('speaker'),sent:true,acknowledged:true};
     if(normalized==='layout-strip')return {...setVideoLayout('strip'),sent:true,acknowledged:true};
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
