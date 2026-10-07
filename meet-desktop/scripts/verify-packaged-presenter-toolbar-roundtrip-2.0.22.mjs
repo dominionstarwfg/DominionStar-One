@@ -533,7 +533,7 @@ try{
   await annotation.wait("window.innerWidth>=176&&document.querySelector('[data-flyout-panel=\"style\"]')?.hidden===false",'annotation style flyout expansion',4000);
   const expandedAnnotationWidth=await annotation.eval("window.innerWidth");
   assert.ok(expandedAnnotationWidth>=176&&expandedAnnotationWidth<=192,'Annotation style flyout did not expand the native window correctly: '+expandedAnnotationWidth+'px');
-  await annotation.click('[data-close-flyout]');
+  await annotation.click('[data-flyout-panel="style"]:not([hidden]) [data-close-flyout]');
   await annotation.wait("window.innerWidth<=56",'annotation rail collapse after flyout',4000);
   const annotationMainTarget=await waitTarget(item=>String(item.id||'')===String(mainTarget.id||''),'active meeting renderer for annotation visibility guard');
   const annotationMain=new Cdp(annotationMainTarget.webSocketDebuggerUrl);await annotationMain.connect();
