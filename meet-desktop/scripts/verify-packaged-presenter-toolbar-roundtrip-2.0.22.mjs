@@ -353,6 +353,13 @@ try{
   stage('full-app-shell-suppressed');
   stage('delayed-share-reconciliation-clean');
 
+  await waitStderr(/QA_MAC_PRESTART_STATE_CACHED participants=1 camera=1/,'cached solo-host presenter state before capture start',5000);
+  const preCommandVideoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'solo-host presenter video before any presenter command');
+  const preCommandVideo=new Cdp(preCommandVideoTarget.webSocketDebuggerUrl);await preCommandVideo.connect();
+  await preCommandVideo.wait("document.visibilityState==='visible'&&(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('.remote-frame');return Boolean(tile&&frame&&!frame.hidden&&/^data:image\\/jpeg/i.test(frame.src||''));})()",'solo-host live video visible before any presenter command',9000);
+  preCommandVideo.close();
+  stage('solo-host-video-visible-before-any-command');
+
   // Follow the physical user path after share activation. Hidden/occluded
   // renderer timers are not a reliable macOS liveness oracle: Chromium may
   // throttle those timers even while the real presenter IPC path remains
