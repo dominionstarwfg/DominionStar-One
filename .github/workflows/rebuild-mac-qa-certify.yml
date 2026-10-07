@@ -244,13 +244,22 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Create clean QA archive
+      - name: Create certified Mac installers
         shell: bash
         run: |
           mkdir -p qa-artifact
-          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
-          shasum -a 256 qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip | tee qa-artifact/SHA256.txt
-          du -h qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
+          APP="${{ steps.app.outputs.path }}"
+          ZIP="qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip"
+          DMG="qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.dmg"
+          STAGE="$RUNNER_TEMP/dominionstar-dmg-root"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+          ditto "$APP" "$STAGE/DominionStar Meet.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "DominionStar Meet" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+          shasum -a 256 "$ZIP" "$DMG" | tee qa-artifact/SHA256.txt
+          du -h "$ZIP" "$DMG"
 
       - name: Upload certified QA artifact
         uses: actions/upload-artifact@v4
