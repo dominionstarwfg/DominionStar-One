@@ -1,11 +1,22 @@
 (() => {
   'use strict';
 
+  // Release-critical Operation 2030 modules must not depend on Shared Screen
+  // menu DOM or on an onclick handler being installed first. Start the single
+  // deterministic bootstrap before any feature-specific early return below.
+  if (!document.querySelector('script[data-ds-operation-2030-bootstrap]')) {
+    const bootstrap = document.createElement('script');
+    bootstrap.src = '/assets/js/meet/operation-2030-bootstrap.js?v=1-certified-release';
+    bootstrap.dataset.dsOperation2030Bootstrap = '1';
+    document.head.append(bootstrap);
+  }
+
   const button = document.getElementById('shareViewerMoreBtn');
   const menu = document.getElementById('deviceMenu');
   const stage = document.getElementById('stage');
   const video = document.getElementById('stageVideo');
   const filmstrip = document.getElementById('filmstrip');
+  const meetingToolbar = document.getElementById('meetingToolbar');
   if (!button || !menu || !stage || !video) return;
 
   const originalOpen = button.onclick;
@@ -54,6 +65,37 @@
     return item;
   };
 
+  const waitForAnnotation = async () => {
+    if (window.DominionShareAnnotation?.open) return window.DominionShareAnnotation;
+    const script = document.querySelector('script[data-ds-share-annotation]');
+    if (!script) return null;
+    await Promise.race([
+      new Promise(resolve => {
+        script.addEventListener('load', resolve, { once: true });
+        script.addEventListener('error', resolve, { once: true });
+      }),
+      new Promise(resolve => setTimeout(resolve, 4000))
+    ]);
+    return window.DominionShareAnnotation || null;
+  };
+
+  const positionAnnotationToolbar = () => {
+    const annotationToolbar = document.querySelector('.ds-annotation-toolbar');
+    if (!annotationToolbar) return;
+    const localPresenter = document.body.classList.contains('local-presentation-active');
+    const normalToolbarVisible = !localPresenter && meetingToolbar && !meetingToolbar.hidden;
+    const occupiedHeight = normalToolbarVisible ? Math.ceil(meetingToolbar.getBoundingClientRect().height || 0) : 0;
+    annotationToolbar.style.bottom = `${Math.max(18, occupiedHeight + 18)}px`;
+  };
+
+  const openAnnotation = async () => {
+    const annotation = await waitForAnnotation();
+    if (!annotation?.open) return false;
+    const opened = await annotation.open();
+    if (opened) requestAnimationFrame(positionAnnotationToolbar);
+    return opened;
+  };
+
   const enhanceMenu = () => {
     const title = menu.querySelector('.menu-title');
     if (!title || title.textContent.trim() !== 'Shared Screen') return;
@@ -84,6 +126,9 @@
       if (filmstrip) filmstrip.hidden = !filmstrip.hidden;
     }));
 
+    const annotateAction = makeAction('Annotate', openAnnotation);
+    annotateAction.dataset.dsAnnotationAction = '1';
+    controls.append(annotateAction);
     body.prepend(controls);
   };
 
@@ -96,8 +141,82 @@
     if (!menu.hidden) enhanceMenu();
   }).observe(menu, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
 
+  const prewarmAnnotationSurface = () => {
+    const annotation = window.DominionShareAnnotation;
+    if (!document.body.classList.contains('presentation-active') || !annotation?.open) return;
+    Promise.resolve(annotation.open()).then(opened => {
+      if (opened) annotation.close();
+    }).catch(()=>{});
+  };
+
+  let presentationWasActive = document.body.classList.contains('presentation-active');
+  const watchPresentation = () => {
+    const active = document.body.classList.contains('presentation-active');
+    if (active && !presentationWasActive) prewarmAnnotationSurface();
+    presentationWasActive = active;
+    if (active) requestAnimationFrame(positionAnnotationToolbar);
+  };
+  new MutationObserver(watchPresentation).observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('resize',()=>requestAnimationFrame(positionAnnotationToolbar),{passive:true});
+
+  // Legacy per-feature loaders remain as compatibility fallbacks. The release
+  // bootstrap above owns deterministic loading and claims the same markers, so
+  // these blocks become no-ops on the certified path.
+  if (!document.querySelector('script[data-ds-share-annotation]')) {
+    const annotationScript = document.createElement('script');
+    annotationScript.src = '/assets/js/meet/share-annotation.js?v=1-operation-2030';
+    annotationScript.dataset.dsShareAnnotation = '1';
+    annotationScript.addEventListener('load',()=>{
+      presentationWasActive = document.body.classList.contains('presentation-active');
+      if (presentationWasActive) prewarmAnnotationSurface();
+    },{once:true});
+    document.head.append(annotationScript);
+  }
+
+  if (!document.querySelector('script[data-ds-share-spotlight]')) {
+    const spotlightScript = document.createElement('script');
+    spotlightScript.src = '/assets/js/meet/share-spotlight.js?v=1-operation-2030';
+    spotlightScript.dataset.dsShareSpotlight = '1';
+    document.head.append(spotlightScript);
+  }
+
+  if (!document.querySelector('script[data-ds-presentation-handoff]')) {
+    const handoffScript = document.createElement('script');
+    handoffScript.src = '/assets/js/meet/presentation-handoff.js?v=1-operation-2030';
+    handoffScript.dataset.dsPresentationHandoff = '1';
+    document.head.append(handoffScript);
+  }
+
+  if (!document.querySelector('script[data-ds-share-arbitration]')) {
+    const arbitrationScript = document.createElement('script');
+    arbitrationScript.src = '/assets/js/meet/share-arbitration.js?v=1-operation-2030';
+    arbitrationScript.dataset.dsShareArbitration = '1';
+    arbitrationScript.addEventListener('load',()=>{
+      if (document.querySelector('script[data-ds-share-arbitration-ui]')) return;
+      const uiScript=document.createElement('script');
+      uiScript.src='/assets/js/meet/share-arbitration-ui.js?v=1-operation-2030';
+      uiScript.dataset.dsShareArbitrationUi='1';
+      document.head.append(uiScript);
+    },{once:true});
+    document.head.append(arbitrationScript);
+  }
+
+  if (!document.querySelector('script[data-ds-meeting-identity-bridge]')) {
+    const identityScript = document.createElement('script');
+    identityScript.src = '/assets/js/meet/meeting-identity-bridge.js?v=1-operation-2030';
+    identityScript.dataset.dsMeetingIdentityBridge = '1';
+    document.head.append(identityScript);
+  }
+
+  if (!document.querySelector('script[data-ds-camera-reaction-polish]')) {
+    const polishScript = document.createElement('script');
+    polishScript.src = '/assets/js/meet/camera-reaction-polish.js?v=2-operation-2030-rebased';
+    polishScript.dataset.dsCameraReactionPolish = '1';
+    document.head.append(polishScript);
+  }
+
   window.DominionShareViewerControls = Object.freeze({
-    version: '1.0.0',
+    version: '2.0.0',
     applyView,
     snapshot: () => ({ ...view, fitPercent: fitPercent() })
   });
