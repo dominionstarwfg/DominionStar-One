@@ -53,7 +53,7 @@ try{
   await toolbar.eval(`document.querySelector('[data-command="video"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND video','Video direct delivery');
   await toolbar.eval(`document.querySelector('[data-command="participants"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND participants','Participants direct delivery');await waitLog('QA_MAC_DIRECT_COMPANION participants','Participants companion');
   await toolbar.eval(`document.querySelector('[data-command="chat"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND chat','Chat direct delivery');await waitLog('QA_MAC_DIRECT_COMPANION chat','Chat companion');
-  await toolbar.eval(`document.querySelector('[data-command="annotate"]').click()`);await waitLog('QA_MAC_DIRECT_COMMAND annotate','Annotate direct delivery');
+  await toolbar.eval(`document.querySelector('[data-command="annotate"]').click()`);await waitLog('QA_MAC_PRESENTER_ACK delivery=0 command=annotate accepted=1 native=1','Annotate native presenter acceptance');
   await toolbar.eval(`document.querySelector('#stopShare').click()`);await waitLog('QA_MAC_DIRECT_COMMAND stop','Stop Share direct delivery');
 
   console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_WINDOW_2_0_50_OK native-toolbar approved-video-strip direct-mute ellipsis-action-menu single-slash outside-click-close macShare-direct-first direct-command-delivery audio video pause participants chat annotate stop physical-visible-tcc-required');
