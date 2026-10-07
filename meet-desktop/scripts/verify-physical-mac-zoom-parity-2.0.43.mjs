@@ -34,6 +34,9 @@ const shareAnnotation=read('ui/share-annotation.js');
 const captureWorker=read('ui/share-capture-worker.js');
 const capturePreload=read('src/share-capture-preload.cjs');
 const macPresenter=read('src/mac-share-presenter-overlay.mjs');
+const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
+const macToolbarCss=read('ui/mac-presenter-toolbar.css');
+const macVideoCss=read('ui/mac-share-video.css');
 assert(
   macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}") &&
   macPresenter.includes('QA_MAC_PRESTART_STATE_CACHED participants=') &&
@@ -100,7 +103,6 @@ const integration=read('ui/share-integration.js');
 const preferences=read('ui/preferences.js');
 const macVideoJs=read('ui/mac-share-video.js');
 const macVideoHtml=read('ui/mac-share-video.html');
-const macVideoCss=read('ui/mac-share-video.css');
 const macAnnotationHtml=read('ui/mac-annotation-toolbar.html');
 const macAnnotationJs=read('ui/mac-annotation-toolbar.js');
 const macAnnotationCss=read('ui/mac-annotation-toolbar.css');
@@ -114,7 +116,6 @@ const parityCss=read('ui/meeting-parity.css');
 const webrtc=read('ui/webrtc-controller.js');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
-const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 const avSettings=read('ui/av-settings.js');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
@@ -306,7 +307,6 @@ assert(featureReady.includes('box-shadow:none!important')&&read('ui/meeting-pari
 assert(!featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'Final meeting reconciliation must not restore the rejected legacy reaction glyph.');
 assert(shareService.includes("return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)}"),'Presenter command service must expose execution proof instead of a bare production ok response.');
 const macToolbar=read('ui/mac-presenter-toolbar.js');
-const macToolbarCss=read('ui/mac-presenter-toolbar.css');
 assert(
   macToolbar.includes("toolbar?.classList.toggle('is-paused',paused)")&&
   macToolbar.includes("pauseGlyph.innerHTML=paused?")&&
