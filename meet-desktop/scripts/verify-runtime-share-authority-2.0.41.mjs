@@ -82,9 +82,9 @@ assert(shareService.includes("new Promise(resolve=>setTimeout(()=>resolve({handl
 
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-presenter-toolbar.html'))"),'macOS sharing must load the independent presenter toolbar.');
 assert(macOverlay.includes("loadFile(path.join(uiDir,'mac-share-video.html'))"),'macOS sharing must load the independent presenter video dock.');
-assert(macOverlay.includes('border:4px solid #2ed573'),'Entire-screen sharing must retain a visible green display border.');
-assert(macOverlay.includes("setAlwaysOnTop(true,'screen-saver',1)"),'The green display border must remain above Dock/menu surfaces on all four edges.');
-assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('area.y+78'),'Presenter video dock must default to the upper-right below the floating toolbar on the active display.');
+assert(macOverlay.includes("const BORDER_THICKNESS=4;")&&macOverlay.includes("const BORDER_ACTIVE_COLOR='#2ed573';")&&macOverlay.includes('border:${BORDER_THICKNESS}px solid ${BORDER_ACTIVE_COLOR}'),'Entire-screen sharing must retain the approved 4px green display border.');
+assert(macOverlay.includes("setAlwaysOnTop(true,'screen-saver',2)"),'The green display border must remain above Dock/menu surfaces on all four edges.');
+assert(macOverlay.includes('area.x+area.width-width-18')&&macOverlay.includes('area.y+76'),'Presenter video dock must default to the upper-right below the floating toolbar on the active display.');
 assert(macOverlay.includes('showInactive?.();videoWindow.moveTop?.()'),'Presenter video dock must remain visible above the shared desktop without stealing focus.');
 assert(macOverlay.includes('deliverPresenterCommandWithRetry')&&macOverlay.includes('wakeMain(main)'),'Native presenter actions must wake the capture-owning renderer and retry delivery instead of trusting one hosted-only acknowledgement.');
 assert(macOverlay.includes("normalized==='layout-hide'")&&macOverlay.includes("setVideoLayout('speaker')")&&macOverlay.includes("setVideoLayout('gallery')"),'Speaker, gallery, and hidden video-panel layouts must work locally on the Mac presenter surface.');
