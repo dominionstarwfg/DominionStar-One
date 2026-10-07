@@ -81,12 +81,12 @@ jobs:
       - name: Capture all main-window Zoom reference surfaces
         working-directory: meet-desktop
         run: node scripts/capture-zoom-screenshot-reference-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.54
-      - name: Prove and capture the real floating Mac presenter surface
+      - name: Prove and capture the real floating Mac presenter surfaces
         working-directory: meet-desktop
-        run: node scripts/verify-packaged-mac-presenter-window-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.54/11-mac-floating-presenter-toolbar.png
+        run: node scripts/verify-packaged-mac-presenter-window-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.54/11-mac-floating-presenter-toolbar.png ../zoom-reference-proof-2.0.54/12-mac-participant-video-panel.png
       - name: Verify screenshot evidence exists and is unobstructed
         run: |
-          for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-active-share-toolbar 10-active-share-idle 11-mac-floating-presenter-toolbar; do
+          for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-native-share-renderer-clean 10-native-share-renderer-stable 11-mac-floating-presenter-toolbar 12-mac-participant-video-panel; do
             test -s "zoom-reference-proof-2.0.54/${n}.png"
           done
           test -s zoom-reference-proof-2.0.54/visual-proof.json
