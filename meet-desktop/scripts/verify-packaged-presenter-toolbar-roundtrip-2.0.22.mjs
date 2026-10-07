@@ -376,7 +376,7 @@ try{
   await waitStderr(/QA_MAC_PRESTART_STATE_CACHED participants=1 camera=1/,'cached solo-host presenter state before capture start',5000);
   const preCommandVideoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'solo-host presenter video before any presenter command');
   const preCommandVideo=new Cdp(preCommandVideoTarget.webSocketDebuggerUrl);await preCommandVideo.connect();
-  await preCommandVideo.wait("document.visibilityState==='visible'&&(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('.remote-frame');return Boolean(tile&&frame&&!frame.hidden&&/^data:image\\/jpeg/i.test(frame.src||''));})()",'solo-host live video visible before any presenter command',9000);
+  await preCommandVideo.wait("document.visibilityState==='visible'&&(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('canvas.remote-frame');return Boolean(tile&&frame&&!frame.hidden&&frame.dataset.frameReady==='1'&&frame.width>0&&frame.height>0);})()",'solo-host live video visible before any presenter command',9000);
   preCommandVideo.close();
   stage('solo-host-video-visible-before-any-command');
 
@@ -428,12 +428,14 @@ try{
 
   const videoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'floating presenter video panel');
   video=new Cdp(videoTarget.webSocketDebuggerUrl);await video.connect();
-  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('.remote-frame');return Boolean(tile&&frame&&!frame.hidden&&/^data:image\\/jpeg/i.test(frame.src||''));})()",'live self camera frame in presenter video',9000);
-  const liveVideo=await video.eval("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('.remote-frame');const fallback=tile?.querySelector('.video-fallback');return {self:Boolean(tile),frameHidden:frame?.hidden!==false,fallbackHidden:fallback?.hidden!==false,frameSrc:String(frame?.src||'')};})()");
+  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('canvas.remote-frame');return Boolean(tile&&frame&&!frame.hidden&&frame.dataset.frameReady==='1'&&frame.width>0&&frame.height>0);})()",'live self camera frame in presenter video',9000);
+  const liveVideo=await video.eval("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('canvas.remote-frame');const fallback=tile?.querySelector('.video-fallback');return {self:Boolean(tile),frameHidden:frame?.hidden!==false,fallbackHidden:fallback?.hidden!==false,frameReady:frame?.dataset.frameReady==='1',frameWidth:Number(frame?.width||0),frameHeight:Number(frame?.height||0),frameAt:Number(frame?.dataset.frameAt||0)};})()");
   assert.equal(liveVideo.self,true);
   assert.equal(liveVideo.frameHidden,false);
   assert.equal(liveVideo.fallbackHidden,true);
-  assert.match(liveVideo.frameSrc,/^data:image\/jpeg/i,'Presenter video must mirror the already-owned live camera as a JPEG frame without acquiring a second camera stream.');
+  assert.equal(liveVideo.frameReady,true);
+  assert.ok(liveVideo.frameWidth>=230&&liveVideo.frameHeight>=120,'Presenter video canvas did not retain a high-resolution backing surface.');
+  assert.ok(liveVideo.frameAt>0,'Presenter video canvas never received a decoded live frame.');
   stage('presenter-video-live');
   const assertPresenterVideoVisible=async label=>{
     const state=await video.eval("(()=>({visibility:document.visibilityState,self:Boolean(document.querySelector('.video-tile[data-self=\"1\"]')),dockHidden:document.querySelector('#dock')?.hidden===true}))()");
