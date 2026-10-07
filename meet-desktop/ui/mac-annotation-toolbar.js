@@ -7,10 +7,11 @@
   const colorCommands=new Set(['annotate-color-red','annotate-color-blue','annotate-color-green','annotate-color-white']);
   const panels=[...document.querySelectorAll('[data-flyout-panel]')];
   const setExclusive=(set,button)=>{for(const node of buttons)if(set.has(String(node.dataset.command||'')))node.classList.toggle('active',node===button);};
-  const closeFlyouts=except=>{for(const panel of panels)if(panel!==except)panel.hidden=true;};
+  const syncFlyoutWindow=()=>{try{void bridge?.setAnnotationFlyout?.(panels.some(panel=>!panel.hidden));}catch{}};
+  const closeFlyouts=except=>{for(const panel of panels)if(panel!==except)panel.hidden=true;syncFlyoutWindow();};
   const toggleFlyout=name=>{
     const panel=document.querySelector('[data-flyout-panel="'+CSS.escape(String(name||''))+'"]');if(!panel)return;
-    const next=panel.hidden;closeFlyouts(panel);panel.hidden=!next;
+    const next=panel.hidden;closeFlyouts(panel);panel.hidden=!next;syncFlyoutWindow();
   };
   for(const trigger of document.querySelectorAll('[data-flyout]'))trigger.addEventListener('click',event=>{event.stopPropagation();toggleFlyout(trigger.dataset.flyout);});
   for(const closer of document.querySelectorAll('[data-close-flyout]'))closer.addEventListener('click',event=>{event.stopPropagation();closeFlyouts();});
@@ -31,5 +32,6 @@
   });
   document.addEventListener('pointerdown',event=>{if(!event.target.closest('.annotation-flyout,[data-flyout]'))closeFlyouts();},true);
   document.addEventListener('keydown',event=>{if(event.key==='Escape'){if(panels.some(panel=>!panel.hidden)){closeFlyouts();return;}event.preventDefault();void bridge?.command?.('annotate-close');}});
+  syncFlyoutWindow();
   window.DominionMacAnnotationPalette=Object.freeze({version:'2.0.55-zoom-vertical-rail',commands:buttons.map(button=>button.dataset.command),closeFlyouts});
 })();
