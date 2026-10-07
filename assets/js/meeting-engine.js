@@ -349,6 +349,14 @@
       window.DominionRuntime?.events?.publish?.({type:'waiting-room.event.blocked',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,severity:'warning',payload:{event}});
       return false;
     }
+    const v2Type=event==='meet-offer'?'offer':event==='meet-answer'?'answer':event==='meet-ice'?'ice':event==='meet-left'?'bye':'';
+    if(state.v2Enabled&&v2Type&&payload?.to){
+      const transport=v2Transport();
+      if(transport){
+        const body=v2Type==='offer'||v2Type==='answer'?{sdp:payload.description}:v2Type==='ice'?{candidate:payload.candidate}:{};
+        return transport.sendSignal(payload.to,v2Type,body);
+      }
+    }
     if (!state.channel) {
       window.DominionRuntime?.events?.publish?.({type:'realtime.send.skipped',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,severity:'warning',payload:{event,reason:'channel-unavailable'}});
       return false;
@@ -393,17 +401,13 @@
     const peer = new RTCPeerConnection(getRtcConfig());
     state.peers.set(remoteId, peer);
 
-    // Reserve independent presentation lanes when the peer is first created.
-    // Starting a share must not add a second video sender in the middle of a
-    // call: doing that renegotiates the camera connection and can briefly route
-    // the display track through the camera receiver.  A negotiated, empty
-    // transceiver lets share/stop use replaceTrack() only, preserving camera
-    // decoders and the participant dock exactly as Zoom-style clients do.
+    // Desktop and browser must reserve the same four m-lines in the same order:
+    // 0 audio, 1 camera, 2 screen video, 3 share audio.
     if(typeof peer.addTransceiver==='function'){
-      const screenVideoTransceiver=peer.addTransceiver('video',{direction:'sendonly'});
-      screenVideoTransceiver.sender.__dsKind='screen';
-      const screenAudioTransceiver=peer.addTransceiver('audio',{direction:'sendonly'});
-      screenAudioTransceiver.sender.__dsKind='screen-audio';
+      const audioLane=peer.addTransceiver('audio',{direction:'sendrecv'});audioLane.sender.__dsKind='audio';
+      const cameraLane=peer.addTransceiver('video',{direction:'sendrecv'});cameraLane.sender.__dsKind='camera';
+      const screenLane=peer.addTransceiver('video',{direction:'sendrecv'});screenLane.sender.__dsKind='screen';
+      const shareAudioLane=peer.addTransceiver('audio',{direction:'sendrecv'});shareAudioLane.sender.__dsKind='screen-audio';
     }
 
     await syncPeerTracks(peer);
@@ -423,7 +427,8 @@
       const announcedTrackId = state.remoteScreenTrackIds.get(remoteId);
       const announcedStreamId = state.remoteScreenStreamIds.get(remoteId);
       const announcedMid=state.remoteScreenMids.get(remoteId);
-      const isScreen = Boolean((announcedTrackId && track.id === announcedTrackId) || (announcedStreamId && supplied?.id === announcedStreamId) || (announcedMid&&trackMid===announcedMid));
+      const laneIndex=peer.getTransceivers().indexOf(transceiver);
+      const isScreen = Boolean(laneIndex===2||laneIndex===3||(announcedTrackId && track.id === announcedTrackId) || (announcedStreamId && supplied?.id === announcedStreamId) || (announcedMid&&trackMid===announcedMid));
       const targetMap = isScreen ? state.remoteScreenStreams : state.remoteStreams;
       let aggregate = targetMap.get(remoteId);
       if (!aggregate) {
@@ -433,7 +438,7 @@
       const incomingTracks = supplied?.getTracks?.() || [track];
       incomingTracks.forEach(item => {
         const itemMid=state.remoteTrackMids.get(`${remoteId}:${item.id}`)||trackMid;
-        const itemIsScreen = Boolean((announcedTrackId && item.id === announcedTrackId) || (announcedStreamId && supplied?.id === announcedStreamId) || (announcedMid&&itemMid===announcedMid));
+        const itemIsScreen = Boolean(laneIndex===2||laneIndex===3||(announcedTrackId && item.id === announcedTrackId) || (announcedStreamId && supplied?.id === announcedStreamId) || (announcedMid&&itemMid===announcedMid));
         if (itemIsScreen !== isScreen) return;
         if (!aggregate.getTracks().some(existing => existing.id === item.id)) aggregate.addTrack(item);
       });
