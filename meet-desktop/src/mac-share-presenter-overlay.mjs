@@ -19,6 +19,7 @@ if(process.platform==='darwin'){
   let toolbarReady=false,toolbarAutoHidden=false;
   let toolbarMenuOpen=false;
   let nativeAnnotationOpen=false;
+  let annotationFlyoutOpen=false;
   let nativeCompanionBarrier=false;
   let annotationPointerPassthrough=false;
   let cursorWatchTimer=0,lastCursorPoint=null;
@@ -147,7 +148,7 @@ if(process.platform==='darwin'){
   function positionAnnotation(){
     if(!isAlive(annotationWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=184,height=Math.min(526,Math.max(430,area.height-180));
+    const width=annotationFlyoutOpen?184:52,height=Math.min(526,Math.max(430,area.height-180));
     const x=Math.round(area.x+8),y=Math.round(area.y+Math.max(82,(area.height-height)/2));
     try{annotationWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -305,7 +306,7 @@ if(process.platform==='darwin'){
   async function prepareAnnotation(){
     if(isAlive(annotationWindow))return annotationWindow;
     const win=new BrowserWindow({
-      width:184,height:500,minWidth:184,maxWidth:184,minHeight:430,maxHeight:526,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:52,height:500,minWidth:52,maxWidth:184,minHeight:430,maxHeight:526,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:false,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-annotation-v2044'}
     });
@@ -527,7 +528,7 @@ if(process.platform==='darwin'){
   });
   function resetPresenterSession(reason='reset'){
     if(qaPresenterTrace)console.error(`QA_MAC_PRESENTER_RESET reason=${String(reason||'reset')}`);
-    shareActive=false;videoLayout='strip';toolbarMenuOpen=false;toolbarAutoHidden=false;nativeAnnotationOpen=false;nativeCompanionBarrier=false;setAnnotationPointerPassthrough(false);stopCursorWatch();if(voiceHoldTimer){clearTimeout(voiceHoldTimer);voiceHoldTimer=0;}lastVoiceSpeakingAt=0;
+    shareActive=false;videoLayout='strip';toolbarMenuOpen=false;toolbarAutoHidden=false;nativeAnnotationOpen=false;annotationFlyoutOpen=false;nativeCompanionBarrier=false;setAnnotationPointerPassthrough(false);stopCursorWatch();if(voiceHoldTimer){clearTimeout(voiceHoldTimer);voiceHoldTimer=0;}lastVoiceSpeakingAt=0;
     shareState={paused:false,micOn:false,cameraOn:false,cameraId:'',mirror:true,sourceName:'',displayId:'',shareAudio:false,optimizeVideo:false,handRaised:false,recording:false,recordingPaused:false,meetingVisible:false,voiceLevel:0,speaking:false,participants:[]};
     publishState();hideOverlays();presenterCommandQueue.length=0;
     for(const [deliveryId,pending] of presenterDeliveries){clearTimeout(pending.timer);pending.resolve({ok:false,sent:false,acknowledged:false,error:'presenter_reset',deliveryId});}
@@ -596,6 +597,7 @@ if(process.platform==='darwin'){
     }
     return delivered;
   });
+  ipcMain.handle('mac-share:annotation-flyout',(_event,{open=false}={})=>{annotationFlyoutOpen=Boolean(open);positionAnnotation();return {ok:true,open:annotationFlyoutOpen,width:annotationFlyoutOpen?184:52};});
   ipcMain.handle('mac-share:menu-state',(_event,{open=false}={})=>{toolbarMenuOpen=Boolean(open);if(toolbarMenuOpen)toolbarAutoHidden=false;positionToolbar();return {ok:true,height:toolbarMenuOpen?330:(toolbarAutoHidden?30:88)};});
   ipcMain.handle('mac-share:toolbar-hidden',(_event,{hidden=false}={})=>{toolbarAutoHidden=Boolean(hidden)&&!toolbarMenuOpen;positionToolbar();if(toolbarAutoHidden){try{lastCursorPoint=screen.getCursorScreenPoint();}catch{lastCursorPoint=null;}}return {ok:true,hidden:toolbarAutoHidden,height:toolbarAutoHidden?30:88};});
   ipcMain.handle('mac-share:show-meeting',()=>({ok:shareState.meetingVisible?hideMeeting():showMeeting()}));
