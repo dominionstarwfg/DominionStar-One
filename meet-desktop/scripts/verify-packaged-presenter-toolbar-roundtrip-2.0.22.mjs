@@ -549,11 +549,15 @@ try{
   await waitStderr(ackPattern('annotate-laser'),'native ACK for Laser tool',8000,logStart);
   await annotationCanvas.wait("window.DominionNativeAnnotationCanvas?.snapshot?.().mode==='laser'",'native annotation palette controls native canvas laser mode',5000);
 
+  await annotation.click('[data-flyout="style"]');
+  await annotation.wait("document.querySelector('[data-flyout-panel=\"style\"]')?.hidden===false&&window.innerWidth>=176",'style flyout reopened for width control',4000);
   logStart=stderr.length;
   await annotation.click('[data-command="annotate-width-thick"]');
   await waitStderr(ackPattern('annotate-width-thick'),'native ACK for annotation width',8000,logStart);
   await annotationCanvas.wait("Math.abs((window.DominionNativeAnnotationCanvas?.snapshot?.().width||0)-1.45)<0.02",'native annotation width controls native canvas stroke width',5000);
 
+  await annotation.click('[data-flyout="shapes"]');
+  await annotation.wait("document.querySelector('[data-flyout-panel=\"shapes\"]')?.hidden===false&&window.innerWidth>=176",'shape flyout opened for rectangle control',4000);
   logStart=stderr.length;
   await annotation.click('[data-command="annotate-shape-rect"]');
   await waitStderr(ackPattern('annotate-shape-rect'),'native ACK for rectangle tool',8000,logStart);
