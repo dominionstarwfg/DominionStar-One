@@ -73,6 +73,18 @@ assert(
   macToolbarHtml.includes('id="stopShareLabel">Stop Share<'),
   'Native presenter toolbar must preserve the approved compact reference geometry, labels, green share strip and idle auto-hide behavior.'
 );
+assert(
+  participantsReference.includes('width:318px!important') &&
+  participantsReference.includes('height:390px!important') &&
+  participantsReference.includes('height:42px!important') &&
+  participantsReference.includes('flex:0 0 56px!important;height:56px!important') &&
+  participantsReference.includes('grid-template-columns:1fr 1fr 1fr!important') &&
+  macVideoCss.includes('height:132px') &&
+  macVideoCss.includes('.video-stack.is-scrollable') &&
+  macVideoCss.includes('grid-template-columns:repeat(2,minmax(0,1fr))') &&
+  macVideoCss.includes('.video-tile:hover .video-tile-actions'),
+  'Approved Participants and share-video surfaces must retain their certified proportions, fixed footer, five-tile scroll behavior, gallery geometry and hover intelligence.'
+);
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
 const presenterPreload=read('src/presenter-preload.cjs');
