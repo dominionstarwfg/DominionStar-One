@@ -669,21 +669,31 @@ assert(
   integration.includes("const localTrack=media.stream()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null")&&
   integration.includes("localImageCapture=new ImageCapture(localTrack)")&&
   integration.includes("#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile")&&
-  integration.includes("frameCanvas.toDataURL('image/jpeg',.58)")&&
-  !integration.includes("getUserMedia")&&
-  !integration.includes("canvas.toBlob(resolve,'image/jpeg'")&&
-  !integration.includes("new Uint8Array(await blob.arrayBuffer())"),
-  'The capture-owning renderer must publish the already-owned local camera track plus bounded remote meeting mirrors without creating another camera authority.'
+  integration.includes("frameCanvas.width=504;frameCanvas.height=264")&&
+  integration.includes("frameContext.imageSmoothingQuality='high'")&&
+  integration.includes("frameCanvas.toDataURL('image/webp',.84)")&&
+  integration.includes("setInterval(publishMacRemoteFrames,66)")&&
+  integration.includes("if(signature===lastPresenterStateSignature)return")&&
+  !integration.includes("frameCanvas.toDataURL('image/jpeg',.58)")&&
+  !integration.includes("getUserMedia"),
+  'The capture-owning renderer must publish a higher-fidelity, high-smoothing camera mirror from the already-owned track, keep state broadcasts coalesced, and avoid creating another camera authority.'
 );
 assert(
   !macVideoJs.includes('getUserMedia')&&
   !macVideoJs.includes('previewStream')&&
   !macVideoJs.includes("stack.textContent=''")&&
   macVideoJs.includes('bridge?.onVideoFrame?.(applyRemoteFrame)')&&
-  macVideoJs.includes('<img class="remote-frame" alt="" hidden>')&&
+  macVideoJs.includes('<canvas class="remote-frame" aria-label="Live participant video" hidden></canvas>')&&
+  macVideoJs.includes('function paintRemoteFrame(tile,person,dataUrl)')&&
+  macVideoJs.includes("canvas.dataset.frameReady='1'")&&
+  macVideoJs.includes("context.imageSmoothingQuality='high'")&&
+  macVideoJs.includes('renderParticipants(layoutChanged);')&&
+  !macVideoJs.includes('renderParticipants(layoutChanged||frameChanged)')&&
   macVideoJs.includes('function createTile(person,stack)')&&
-  macVideoJs.includes('function updateTile(tile,person)'),
-  'The approved share participant strip must mirror the meeting-owned local/remote video frames into persistent keyed tiles and reserve profile/initial fallback for camera-off or unavailable-video state.'
+  macVideoJs.includes('function updateTile(tile,person)')&&
+  macPresenter.includes("videoWindow.webContents.send('mac-share:video-frame',{participantId,dataUrl,at})")&&
+  !macPresenter.includes("videoWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout,videoFrames:[...latestVideoFrames.entries()].map(([id,frame])=>({participantId:id,...frame}))})"),
+  'The approved share participant strip must keep persistent keyed canvas tiles, decode each camera frame before painting it, and transport frames independently from participant/layout state so camera motion cannot trigger tile reorder or blank repaint flashes.'
 );
 
 /* PHYSICAL_MAC_SCREENSHOT_2026_10_01_IDENTITY_AND_MENU_LOCK */
