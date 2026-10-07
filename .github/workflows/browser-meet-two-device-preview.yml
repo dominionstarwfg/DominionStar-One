@@ -5,6 +5,15 @@ on:
     branches: [main]
     paths:
       - 'meet-desktop/**'
+      - 'meet/**'
+      - 'meet-home/**'
+      - 'meet-login/**'
+      - 'assets/js/meeting-engine.js'
+      - 'assets/js/meet/**'
+      - 'assets/js/meet-next/**'
+      - 'assets/js/runtime/**'
+      - 'assets/css/meet/**'
+      - 'assets/css/meet-next/**'
       - 'member-dashboard/**'
       - 'assets/js/member-dashboard.js'
       - 'scripts/browser-two-client-meet-acceptance.mjs'
