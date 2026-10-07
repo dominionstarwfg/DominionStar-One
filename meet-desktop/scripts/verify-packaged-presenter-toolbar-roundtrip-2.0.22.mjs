@@ -340,6 +340,26 @@ try{
   assert.equal(rendererShareChrome.labelHidden,true,'Legacy renderer share-status label is visible during native Mac sharing.');
   assert.equal(rendererShareChrome.shareActive,false,'Meeting renderer entered legacy share-active layout during native Mac presenter mode.');
   stage('legacy-share-chrome-suppressed');
+  await main.eval(`(()=>{
+    window.__DOMINION_QA_LEGACY_SHARE_FLASH={count:0,events:[]};
+    const scan=()=>{
+      const inline=document.querySelector('#inlinePresenterToolbar');
+      const banner=document.querySelector('.ds-ref-share-banner');
+      const overlay=document.querySelector('#meetingOverlay');
+      const badInline=Boolean(inline&&inline.hidden===false&&getComputedStyle(inline).display!=='none'&&Number(getComputedStyle(inline).opacity||1)>.05);
+      const badBanner=Boolean(banner&&!banner.hidden&&getComputedStyle(banner).display!=='none');
+      const badLayout=Boolean(overlay?.classList.contains('share-active'));
+      if(!(badInline||badBanner||badLayout))return;
+      const state=window.__DOMINION_QA_LEGACY_SHARE_FLASH;
+      state.count+=1;
+      if(state.events.length<20)state.events.push({at:Date.now(),badInline,badBanner,badLayout});
+    };
+    scan();
+    const observer=new MutationObserver(scan);
+    observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','style','data-ds-share-companion']});
+    window.__DOMINION_QA_LEGACY_SHARE_FLASH_OBSERVER=observer;
+    return true;
+  })()`);
   await sleep(1500);
   const delayedRendererChrome=await main.eval("(()=>{const shell=document.querySelector('#meetingOverlay>.meeting-shell');const footer=document.querySelector('#meetingOverlay .meeting-footer');const appShell=document.querySelector('#appShell');const appStyle=appShell?getComputedStyle(appShell):null;return {native:document.body.classList.contains('ds-native-mac-presenter-share'),shareActive:document.querySelector('#meetingOverlay')?.classList.contains('share-active')===true,inlineHidden:document.querySelector('#inlinePresenterToolbar')?.hidden!==false,banner:Boolean(document.querySelector('.ds-ref-share-banner')),shellVisibility:shell?getComputedStyle(shell).visibility:'missing',footerDisplay:footer?getComputedStyle(footer).display:'missing',bodyBackground:getComputedStyle(document.body).backgroundColor,appShellVisibility:appStyle?.visibility||'missing',appShellOpacity:appStyle?.opacity||'missing'};})()");
   assert.equal(delayedRendererChrome.native,true,'Native Mac presenter visual authority disappeared after final-reference reconciliation.');
