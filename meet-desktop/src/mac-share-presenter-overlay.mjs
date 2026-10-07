@@ -166,6 +166,18 @@ if(process.platform==='darwin'){
     try{annotationWindow.hide();}catch{}
     if(qaPresenterTrace)console.error(`QA_MAC_ANNOTATION_VISIBILITY visible=${annotationWindow.isVisible?.()?1:0}`);
   }
+  function raisePersistentPresenterSurfaces(){
+    if(!shareActive)return false;
+    if(isAlive(videoWindow)&&shouldShowVideoWindow()){
+      positionVideo({preservePosition:true});allowSystemCapture(videoWindow);
+      try{videoWindow.showInactive?.();videoWindow.moveTop?.();}catch{}
+    }
+    if(toolbarReady&&isAlive(toolbarWindow)){
+      allowSystemCapture(toolbarWindow);
+      try{toolbarWindow.showInactive?.();toolbarWindow.moveTop?.();}catch{}
+    }
+    return true;
+  }
   function setAnnotationPointerPassthrough(enabled){
     annotationPointerPassthrough=Boolean(enabled);
     if(!isAlive(annotationCanvasWindow))return annotationPointerPassthrough;
@@ -324,7 +336,7 @@ if(process.platform==='darwin'){
     try{main.setIgnoreMouseEvents(false);}catch{}try{main.setOpacity?.(1);}catch{}
     try{main.webContents.send('mac-share:show-meeting',{visible:true});}catch{}
     try{main.show();main.focus();}catch{}
-    shareState={...shareState,meetingVisible:true};publishState();return true;
+    shareState={...shareState,meetingVisible:true};publishState();raisePersistentPresenterSurfaces();return true;
   }
   function hideMeeting(){
     const main=mainWindow();if(!isAlive(main))return false;wakeMain(main);
@@ -458,7 +470,7 @@ if(process.platform==='darwin'){
     const nextCount=Array.isArray(shareState.participants)?shareState.participants.length:0,nextDisplay=String(shareState.displayId||'');
     if(priorCount!==nextCount||priorDisplay!==nextDisplay)positionVideo({preservePosition:priorDisplay===nextDisplay});
     if(isAlive(videoWindow)){if(shouldShowVideoWindow())videoWindow.showInactive?.();else videoWindow.hide();}
-    publishState();
+    publishState();raisePersistentPresenterSurfaces();
     const companion=String(shareState.companion||'');
     const main=mainWindow();
     if(nativeAnnotationOpen||companion==='annotate'){
