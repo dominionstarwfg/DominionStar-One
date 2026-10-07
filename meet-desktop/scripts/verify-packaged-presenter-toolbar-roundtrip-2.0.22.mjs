@@ -179,8 +179,14 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
   if(!mediaState.videoLive||!mediaState.cameraOn)throw new Error('Synthetic live camera did not initialize.');
   const qaRoster=document.querySelector('#participantRoster');
   if(qaRoster){
-    qaRoster.innerHTML='<div class="person-row" data-participant-id="qa-self" data-participant-self="1" data-participant-role="host" data-participant-name="QA Self"><span class="person-copy"><strong><span class="participant-name-text">QA Self</span></strong><small></small></span><span data-participant-mic class="on"></span><span data-participant-video class="on"></span></div><div class="person-row" data-participant-id="qa-peer" data-participant-role="participant" data-participant-name="QA Peer"><span class="person-copy"><strong><span class="participant-name-text">QA Peer</span></strong><small></small></span><span data-participant-mic></span><span data-participant-video></span></div>';
+    qaRoster.innerHTML='<div class="person-row" data-participant-id="qa-self" data-participant-self="1" data-participant-role="host" data-participant-name="QA Self"><span class="person-copy"><strong><span class="participant-name-text">QA Self</span></strong><small></small></span><span data-participant-mic class="on"></span><span data-participant-video class="on"></span></div>';
   }
+  await window.dominionDesktop?.share?.captureState?.({
+    paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,
+    sourceName:'QA Prestart Presenter State',shareAudio:false,optimizeVideo:false,
+    handRaised:false,recording:false,recordingPaused:false,companion:'',companionOpen:false,
+    participants:[{participantId:'qa-self',name:'QA Self',role:'host',self:true,micOn:false,cameraOn:true,avatar:''}]
+  });
   setTimeout(()=>{
     void (async()=>{
       try{
@@ -272,7 +278,7 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
         const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true}});
         window.DominionShareIntegration.commitPresenterMode();
-        const qaRosterMarkup='<div class="person-row" data-participant-id="qa-self" data-participant-self="1" data-participant-role="host" data-participant-name="QA Self"><span class="person-copy"><strong><span class="participant-name-text">QA Self</span></strong><small></small></span><span data-participant-mic class="on"></span><span data-participant-video class="on"></span></div><div class="person-row" data-participant-id="qa-peer" data-participant-role="participant" data-participant-name="QA Peer"><span class="person-copy"><strong><span class="participant-name-text">QA Peer</span></strong><small></small></span><span data-participant-mic></span><span data-participant-video></span></div>';
+        const qaRosterMarkup='<div class="person-row" data-participant-id="qa-self" data-participant-self="1" data-participant-role="host" data-participant-name="QA Self"><span class="person-copy"><strong><span class="participant-name-text">QA Self</span></strong><small></small></span><span data-participant-mic class="on"></span><span data-participant-video class="on"></span></div>';
         const stabilizeQaRoster=()=>{const activeRoster=document.querySelector('#participantRoster');if(!activeRoster)return;const ids=[...activeRoster.querySelectorAll('[data-participant-id]')].map(node=>node.dataset.participantId).join(',');if(ids!=='qa-self,qa-peer')activeRoster.innerHTML=qaRosterMarkup;window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{qa:true}}));};
         stabilizeQaRoster();
         const qaRosterKeeper=setInterval(stabilizeQaRoster,60);
