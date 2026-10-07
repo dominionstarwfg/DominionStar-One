@@ -220,7 +220,7 @@
         const id=String(participant?.participantId||'');if(!id||id===state.participantId)continue;
         current.add(id);state.v2ParticipantIds.add(id);
         const previous=state.remoteMeta.get(id)||{};
-        const merged={...previous,...participant,participantId:id,displayName:String(participant.displayName||previous.displayName||'Participant'),admitted:true,isHost:String(participant.role||'').toLowerCase()==='host',role:String(participant.role||previous.role||'attendee').toLowerCase()};
+        const merged={...previous,...participant,participantId:id,displayName:String(participant.displayName||previous.displayName||'Participant'),admitted:true,isHost:String(participant.role||'').toLowerCase()==='host',role:String(participant.role||previous.role||'attendee').toLowerCase(),audio:participant.micOn!==false,video:participant.cameraOn!==false};
         state.remoteMeta.set(id,merged);members.push(merged);
         const shouldOffer=String(state.participantId).localeCompare(id)<0;
         await ensurePeer(id,shouldOffer).catch(()=>{});
@@ -1067,9 +1067,10 @@
       state.v2RoomCode=v2RoomCode;
       state.participantId=String(v2Join.participantId);
       state.joinToken=String(v2Join.joinToken);
-      if(String(v2Join.state||'')==='admitted'){
+      const initialV2State=String(v2Join.state||'');
+      if(!['waiting','waiting_host','joined'].includes(initialV2State)){
         try{await v2Transport().markJoined(state.participantId,state.joinToken);state.v2Joined=true;}catch{}
-      }else state.v2Joined=String(v2Join.state||'')==='joined';
+      }else state.v2Joined=initialV2State==='joined';
       state.admitted=state.v2Joined;
     }else{
       state.participantId = `${state.userId || 'guest'}:${state.instanceId}`;
