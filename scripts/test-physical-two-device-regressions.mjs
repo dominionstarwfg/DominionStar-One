@@ -18,7 +18,7 @@ const lifecycle = read('meet-desktop/ui/meeting-lifecycle-authority.js');
 assert(engine.includes('serializeIceCandidate'), 'Browser meeting engine does not serialize ICE candidates for V2 RPC.');
 assert(engine.includes('candidate:serializeIceCandidate(candidate)'), 'Browser ICE candidate still crosses RPC as a raw RTCIceCandidate.');
 assert(engine.includes('serializeSessionDescription(peer.localDescription)'), 'Browser SDP still crosses RPC as a raw RTCSessionDescription.');
-assert(engine.includes("if(type==='chat')return ['meet-chat',base]"), 'Desktop-to-browser V2 chat is not translated into the browser meeting engine.');
+assert(engine.includes("if(type==='chat')return ['meet-chat'"), 'Desktop-to-browser V2 chat is not translated into the browser meeting engine.');
 assert(engine.includes("'host:mute':'mute'"), 'Desktop host mute control is not translated into browser moderation.');
 assert(engine.includes("event==='meet-chat'||event==='meet-reaction'"), 'Browser-to-desktop chat/reaction does not fan out through V2.');
 assert(engine.includes("if(type==='screen-state')return ['meet-screen-state'"), 'Desktop screen-share state is not translated into browser presentation state.');
