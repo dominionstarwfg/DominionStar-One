@@ -257,8 +257,8 @@
         const shouldOffer=String(state.participantId).localeCompare(id)<0;
         await ensurePeer(id,shouldOffer).catch(()=>{});
       }
-      for(const id of [...state.v2ParticipantIds])if(!current.has(id)){state.v2ParticipantIds.delete(id);if(state.peers.has(id))removePeer(id);}
-      if(members.length)emit('presence',{members:[...state.remoteMeta.values()].filter(member=>member?.participantId&&!participantIsDeparted(member.participantId))});
+      for(const id of [...state.v2ParticipantIds])if(!current.has(id)){state.v2ParticipantIds.delete(id);removePeer(id);}
+      emit('presence',{members:[...state.remoteMeta.values()].filter(member=>member?.participantId&&!participantIsDeparted(member.participantId))});
     }catch{}
   }
   async function pollV2Join(){
@@ -568,7 +568,7 @@
 
   const discardPeerTransport = (participantId,{announceRecovery=false}={}) => {
     const peer=state.peers.get(participantId);
-    if(peer){peer.onconnectionstatechange=null;peer.ontrack=null;peer.onicecandidate=null;peer.onnegotiationneeded=null;try{peer.close();}catch(_){}}
+    if(peer){clearTimeout(peer.__dsHandshakeTimer);peer.__dsHandshakeTimer=0;peer.onconnectionstatechange=null;peer.ontrack=null;peer.onicecandidate=null;peer.onnegotiationneeded=null;try{peer.close();}catch(_){}}
     state.peers.delete(participantId);
     state.remoteStreams.delete(participantId);
     state.remoteScreenStreams.delete(participantId);
