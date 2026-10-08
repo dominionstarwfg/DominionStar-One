@@ -176,6 +176,21 @@
   };
   const meetingRealtimeClient = () => state.realtimeClient || state.client;
   const v2Transport=()=>window.DominionBrowserV2Transport||null;
+  const serializeSessionDescription=value=>{
+    if(!value)return value;
+    try{if(typeof value.toJSON==='function')return value.toJSON();}catch{}
+    return {type:String(value.type||''),sdp:String(value.sdp||'')};
+  };
+  const serializeIceCandidate=value=>{
+    if(!value)return value;
+    try{if(typeof value.toJSON==='function')return value.toJSON();}catch{}
+    return {
+      candidate:String(value.candidate||''),
+      sdpMid:value.sdpMid??null,
+      sdpMLineIndex:Number.isFinite(Number(value.sdpMLineIndex))?Number(value.sdpMLineIndex):null,
+      usernameFragment:value.usernameFragment??null
+    };
+  };
   const clearV2Timers=()=>{
     for(const key of Object.keys(state.v2Timers||{})){clearInterval(state.v2Timers[key]);clearTimeout(state.v2Timers[key]);state.v2Timers[key]=0;}
   };
@@ -326,7 +341,7 @@
       await syncPeerTracks(peer);
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
-      await send('meet-offer', {to:remoteId, description:peer.localDescription});
+      await send('meet-offer', {to:remoteId, description:serializeSessionDescription(peer.localDescription)});
     } finally {
       state.makingOffer.delete(remoteId);
     }
@@ -416,7 +431,7 @@
     await syncPeerTracks(peer);
 
     peer.onicecandidate = ({candidate}) => {
-      if (candidate) send('meet-ice', {to:remoteId, candidate});
+      if (candidate) send('meet-ice', {to:remoteId, candidate:serializeIceCandidate(candidate)});
     };
     peer.onnegotiationneeded = () => {
       // Adding/removing the dedicated screen-share track requires a fresh SDP offer.
@@ -793,7 +808,7 @@
       await syncPeerTracks(peer);
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
-      await send('meet-answer', {to:payload.from, description:peer.localDescription});
+      await send('meet-answer', {to:payload.from, description:serializeSessionDescription(peer.localDescription)});
       if(state.screenStream){
         const screenSender=peer.getSenders().find(item=>item.__dsKind==='screen');
         const screenMid=peer.getTransceivers().find(item=>item.sender===screenSender)?.mid;
