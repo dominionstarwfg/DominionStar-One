@@ -1884,6 +1884,11 @@
   ]);
 
   const cleanup = async () => {
+    clearV2Timers();
+    if(state.v2Enabled){
+      await within(v2Transport()?.leave?.(),900);
+      state.v2Enabled=false;state.v2Joined=false;state.v2RoomId='';state.v2RoomCode='';state.v2SignalCursor=0;state.v2ParticipantIds.clear();
+    }
     state.localStream?.getTracks().forEach(track=>track.stop());
     state.screenStream?.getTracks().forEach(track=>track.stop());
     state.peers.forEach(peer=>peer.close());
