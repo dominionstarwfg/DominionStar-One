@@ -203,7 +203,7 @@
     if(type==='answer')return ['meet-answer',{...base,description:signal.payload?.sdp}];
     if(type==='ice')return ['meet-ice',base];
     if(type==='bye')return ['meet-left',base];
-    if(type==='chat')return ['meet-chat',base];
+    if(type==='chat')return ['meet-chat',{...base,message:String(base.message??base.text??''),displayName:String(base.displayName||base.name||''),to:String(base.to||base.toParticipantId||'everyone'),sentAt:Number(base.sentAt)||Date.parse(String(base.at||''))||Date.now()}];
     if(type==='reaction')return ['meet-reaction',base];
     if(type==='screen-state')return ['meet-screen-state',{...base,participantId:from,active:Boolean(base.active),paused:Boolean(base.paused)}];
     const hostAction={
@@ -389,7 +389,9 @@
         const type=event==='meet-chat'?'chat':'reaction';
         const requested=String(payload?.to||payload?.toParticipantId||'');
         const targets=requested&&requested!=='everyone'?[requested]:[...state.v2ParticipantIds];
-        const body={...payload,displayName:state.displayName};
+        const body=type==='chat'
+          ?{...payload,text:String(payload.message??payload.text??''),name:state.displayName,at:new Date(Number(payload.sentAt)||Date.now()).toISOString(),private:Boolean(requested&&requested!=='everyone'),toParticipantId:requested&&requested!=='everyone'?requested:''}
+          :{...payload,displayName:state.displayName};
         const deliveries=await Promise.allSettled(targets.filter(id=>id&&id!==state.participantId).map(id=>transport.sendSignal(id,type,body)));
         if(deliveries.some(item=>item.status==='fulfilled'))return true;
       }
