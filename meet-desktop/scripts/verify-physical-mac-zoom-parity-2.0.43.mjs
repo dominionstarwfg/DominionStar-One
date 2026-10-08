@@ -85,17 +85,25 @@ assert(
   'Native presenter toolbar must preserve the Zoom-reference control order, longer toolbar geometry, shorter status strip below the controls, attached Stop Share, paused amber state and independent idle auto-hide.'
 );
 assert(
+  parity.includes("const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v2';")&&
+  parity.includes("const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';")&&
+  runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);")&&
+  runtime.includes("if(panel===participants){")&&
+  macToolbarCss.includes('.more-menu{left:auto;right:-34px;transform:none;width:236px;padding:8px}'),
+  'Physical layout defaults must reset stale dock/panel geometry, center Participants, keep the participant video dock right by default, and retain a readable presenter More menu.'
+);
+assert(
   participantsReference.includes('width:392px!important') &&
   participantsReference.includes('height:min(438px,calc(100% - 28px))!important') &&
   participantsReference.includes('height:48px!important') &&
-  participantsReference.includes('font-size:13px!important') &&
+  participantsReference.includes('font-size:14px!important') &&
   participantsReference.includes('flex:0 0 56px!important;height:56px!important') &&
   participantsReference.includes('grid-template-columns:1fr 1fr 1fr!important') &&
   macVideoCss.includes('height:132px') &&
   macVideoCss.includes('.video-stack.is-scrollable') &&
   macVideoCss.includes('grid-template-columns:repeat(2,minmax(0,1fr))') &&
   macVideoCss.includes('.video-tile:hover .video-tile-actions'),
-  'Approved Participants and share-video surfaces must retain the 2.0.55 certified 392px / 48px / 13px participant geometry, fixed footer, five-tile scroll behavior, gallery geometry and hover intelligence.'
+  'Approved Participants and share-video surfaces must retain the 2.0.55 certified 392px / 48px / 14px participant geometry, fixed footer, five-tile scroll behavior, gallery geometry and hover intelligence.'
 );
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
