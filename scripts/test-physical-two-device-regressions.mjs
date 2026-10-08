@@ -9,6 +9,7 @@ const physical = read('meet-desktop/ui/zoom-physical-acceptance.js');
 const participantControls = read('meet-desktop/ui/participant-controls.js');
 const desktopWebrtc = read('meet-desktop/ui/webrtc-controller.js');
 const parity = read('meet-desktop/ui/meeting-parity.js');
+const runtime = read('meet-desktop/ui/runtime-stability.js');
 const behavior = read('meet-desktop/ui/zoom-behavior.js');
 const reference = read('meet-desktop/ui/zoom-screenshot-reference-2.0.41.js');
 const participantReference = read('meet-desktop/ui/zoom-participants-reference-2.0.41.js');
@@ -19,6 +20,7 @@ const notifications = read('meet-desktop/ui/meeting-notifications.js');
 const browserUi = read('assets/js/meet-next/executive6.js');
 const browserIndex = read('meet/index.html');
 const presenterToolbar = read('meet-desktop/ui/mac-presenter-toolbar.html');
+const presenterToolbarCss = read('meet-desktop/ui/mac-presenter-toolbar.css');
 const presenterOverlay = read('meet-desktop/src/mac-share-presenter-overlay.mjs');
 const shareIntegration = read('meet-desktop/ui/share-integration.js');
 const shareCss = read('meet-desktop/ui/share.css');
@@ -79,6 +81,10 @@ assert(reference.includes('DominionMeetingLifecycleAuthority') && reference.incl
 assert(participantControls.includes("data-ds-canonical-participant-footer"), 'Loaded participant controls do not own a stable canonical footer.');
 assert(participantControls.includes("DominionMeetingLifecycleAuthority?.openInvite?.()"), 'Loaded participant footer Invite does not route to persistent lifecycle authority.');
 
+assert(parity.includes("const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v2';")&&parity.includes("const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';"), 'Old saved panel geometry can still override the approved right-dock/center-panel defaults.');
+assert(runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);")&&runtime.includes("if(panel===participants){"), 'Participants still default to the right-side video-dock lane instead of the middle meeting area.');
+assert(participantReference.includes('font-size:14px!important'), 'Participant names remain undersized in the late participant reference authority.');
+assert(presenterToolbarCss.includes('width:236px'), 'Presenter More menu remains squeezed below the toolbar.');
 assert(parity.includes('function dedupeVideoDockTiles()'), 'Participant video dock has no duplicate-participant guard.');
 assert(parity.includes('dedupeVideoDockTiles();const mode=readView()'), 'Participant video dock does not dedupe before layout.');
 
