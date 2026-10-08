@@ -20,6 +20,11 @@
   }
   const serverUrls=server=>(Array.isArray(server?.urls)?server.urls:[server?.urls]).filter(Boolean).map(String);
   const hasRelay=servers=>(servers||[]).some(server=>serverUrls(server).some(url=>/^turns?:/i.test(url))&&Boolean(server?.username)&&Boolean(server?.credential));
+  const serializeDescription=value=>{
+    if(!value)return value;
+    try{if(typeof value.toJSON==='function')return value.toJSON();}catch{}
+    return {type:String(value.type||''),sdp:String(value.sdp||'')};
+  };
 
   function ensureTransportStatus(){
     const head=q('.meeting-head');if(!head)return null;
@@ -232,7 +237,7 @@
   async function initiate(record,iceRestart=false){
     if(record.makingOffer||record.pc.signalingState!=='stable')return;
     prepareOfferer(record);await syncLocalTracks(record);record.makingOffer=true;
-    try{const offer=await record.pc.createOffer(iceRestart?{iceRestart:true}:undefined);await record.pc.setLocalDescription(offer);await meeting.sendSignal(record.id,'offer',{sdp:record.pc.localDescription});await signalShareState(record.id).catch(()=>{});}finally{record.makingOffer=false;}
+    try{const offer=await record.pc.createOffer(iceRestart?{iceRestart:true}:undefined);await record.pc.setLocalDescription(offer);await meeting.sendSignal(record.id,'offer',{sdp:serializeDescription(record.pc.localDescription)});await signalShareState(record.id).catch(()=>{});}finally{record.makingOffer=false;}
   }
   async function flushIce(record){if(!record.pc.remoteDescription)return;while(record.pendingIce.length){const candidate=record.pendingIce.shift();try{await record.pc.addIceCandidate(candidate);}catch{}}}
   function dispatchMeetingSignal(signal,remoteId){
@@ -251,7 +256,7 @@
     let record;try{record=ensurePeer(remoteId);}catch{return;}
     if(signal.type==='offer'){
       if(!payload.sdp)return;await record.pc.setRemoteDescription(payload.sdp);record.transceivers=record.pc.getTransceivers().slice(0,4);for(const lane of record.transceivers)if(lane?.direction==='recvonly')lane.direction='sendrecv';await syncLocalTracks(record);await flushIce(record);
-      const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:record.pc.localDescription});await signalShareState(remoteId).catch(()=>{});return;
+      const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:serializeDescription(record.pc.localDescription)});await signalShareState(remoteId).catch(()=>{});return;
     }
     if(signal.type==='answer'){if(payload.sdp){await record.pc.setRemoteDescription(payload.sdp);await flushIce(record);}return;}
     if(signal.type==='ice'&&payload.candidate){if(record.pc.remoteDescription)await record.pc.addIceCandidate(payload.candidate).catch(()=>{});else record.pendingIce.push(payload.candidate);}
