@@ -73,6 +73,13 @@ jobs:
           fi
           echo "DOMINIONSTAR_DASHBOARD_SINGLE_MEET_ENTRY_OK count=$COUNT"
 
+      - name: Verify browser V2 signaling keeps room identity
+        shell: bash
+        run: |
+          grep -Fq "roomId:state.roomId,from,to:state.participantId" assets/js/meeting-engine.js
+          grep -Fq "if (!payload || payload.roomId !== state.roomId" assets/js/meeting-engine.js
+          echo "DOMINIONSTAR_BROWSER_V2_SIGNAL_ROOM_IDENTITY_OK"
+
       - name: Install pinned Playwright runtime
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
 
