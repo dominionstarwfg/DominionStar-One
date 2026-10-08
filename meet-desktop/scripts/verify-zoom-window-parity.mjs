@@ -21,12 +21,12 @@ assert(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participants 
 assert(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating participant/chat surfaces must remain draggable.');
 assert(runtime.includes("clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10))"),'Floating panel geometry must clamp intelligently when the meeting window changes size.');
 assert(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must own participant-video dock geometry.');
-assert(runtime.includes('const compact=width<760'),'Participant video dock must have one explicit compact reflow threshold.');
-assert(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock runtime mode must resolve deterministically to user/top/right.');
-assert(runtime.includes("dock.style.setProperty('right','14px','important')"),'Wide meeting windows must return the default video dock to the right edge.');
-assert(runtime.includes("dock.style.setProperty('left','14px','important')")&&runtime.includes("dock.style.setProperty('right','14px','important')"),'Compact windows must reflow the video dock across the top.');
-assert(runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must become a horizontal filmstrip.');
-assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Wide dock must return to a vertical filmstrip.');
+assert(runtime.includes('const compact=width<760'),'Participant video dock may resize compactly without changing its default edge.');
+assert(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'"),'Dock runtime mode must resolve deterministically to user/right only.');
+assert(runtime.includes("dock.style.setProperty('right','14px','important')")||runtime.includes("dock.style.setProperty('right','8px','important')"),'Unpositioned video dock must retain the right edge.');
+assert(runtime.includes("dock.style.setProperty('left','auto','important')")&&runtime.includes("dock.style.setProperty('right','8px','important')"),'Compact windows must keep the video dock on the right rather than reflowing across the top.');
+assert(!runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must not become a horizontal top filmstrip.');
+assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Video dock must remain a vertical filmstrip by default.');
 assert(
   !runtime.includes("search.className='zoom-participant-search';") &&
   !runtime.includes("search.hidden=count<7") &&
@@ -42,7 +42,7 @@ assert(repair.includes("participantCount<=1&&visibleTiles===0")&&repair.includes
 assert(repair.includes("if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false"),'Two-person Speaker view must be allowed to reveal a real video filmstrip.');
 assert(approved.includes('#meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage)'),'Approved reference layer must own the normal unpositioned video-filmstrip geometry.');
 assert(approved.includes('right:14px !important;')&&approved.includes('grid-template-columns:176px !important;'),'Normal desktop video filmstrip must default to a right-side vertical column.');
-assert(approved.includes('@media(max-width:680px)'),'Top-style compact reflow must be reserved for genuinely narrow windows.');
+assert(approved.includes('@media(max-width:680px)')&&approved.includes('right:8px !important;'),'Narrow-window fallback must preserve the right-side dock default.');
 assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.53-desktop-read-only'")&&adaptive.includes("const desktopCanonical=Boolean(window.dominionDesktop);"),'Adaptive authority must remain identifiable and read-only on desktop.');
 
 console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp single-search-authority empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
