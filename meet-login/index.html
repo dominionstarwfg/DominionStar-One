@@ -205,7 +205,7 @@
         const $ = (id) => document.getElementById(id),
           params = new URLSearchParams(location.search),
           desktop = params.get("desktop") === "1",
-          destination = `/meet-home/${desktop ? "?desktop=1" : ""}`;
+          destination = 'https://dominionstarld.com/meet/';
         let client;
         const message = (text) => ($("message").textContent = text);
         const init = async () => (client = await window.DSAuth?.init?.());
