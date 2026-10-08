@@ -79,7 +79,7 @@ assert(parity.includes("lastMeta='',spotlightParticipantIds=[]"),'Meeting stage 
 assert(!read('ui/app.js').includes('data-cohost='),'Legacy inline participant authority buttons must not duplicate the Zoom-style More menu.');
 assert(parity.includes('Lock Meeting')&&parity.includes('Mute Participants on Entry')&&parity.includes('desktop.meeting.setSecurity'),'Security menu must use server-backed Lock Meeting and Mute-on-Entry controls.');
 assert(parity.includes("button.id='meetingViewButton'")&&parity.includes("['speaker','gallery','multi']"),'Meeting chrome must expose Speaker, Gallery, and Multi-speaker view choices.');
-assert(parity.includes("return stage.width<900||stage.height<560?'top':'right'"),'Unpinned participant video must automatically move to a horizontal top strip in a compact window and return right when space expands.');
+assert(parity.includes("function automaticDockAnchor(){return 'right';}"),'Unpinned participant video must stay on the right by default at every normal window size; only an explicit user drag may move it.');
 assert(parity.includes("if(!dock.classList.contains('user-positioned'))dock.dataset.anchor=automaticDockAnchor()"),'Automatic dock reflow must never override a user-positioned dock.');
 assert(parity.includes("dock.classList.toggle('gallery-stage'")&&parity.includes("dock.classList.toggle('multi-speaker-stage'"),'Gallery and Multi-speaker modes must use stage layouts rather than a fixed thumbnail dock.');
 assert(parity.includes("window.addEventListener('dominion:active-speakers'"),'Meeting layout must react to ranked active-speaker updates.');
