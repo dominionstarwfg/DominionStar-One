@@ -573,7 +573,7 @@
     const compact=width<760;
     const userPositioned=dock.classList.contains('user-positioned');
 
-    dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right';
+    dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right';
     dock.style.setProperty('position','absolute','important');
     dock.style.setProperty('bottom','auto','important');
     dock.style.setProperty('transform','none','important');
@@ -604,17 +604,18 @@
     dock.style.removeProperty('max-height');
 
     if(compact){
-      dock.style.setProperty('left','14px','important');
-      dock.style.setProperty('right','14px','important');
+      const compactWidth=Math.min(176,Math.max(142,width-16));
+      dock.style.setProperty('left','auto','important');
+      dock.style.setProperty('right','8px','important');
       dock.style.setProperty('top','10px','important');
-      dock.style.setProperty('width','auto','important');
-      dock.style.setProperty('max-width','calc(100% - 28px)','important');
-      dock.style.setProperty('max-height','190px','important');
+      dock.style.setProperty('width',`${compactWidth}px`,'important');
+      dock.style.setProperty('max-width','calc(100% - 16px)','important');
+      dock.style.setProperty('max-height','calc(100% - 20px)','important');
       if(body){
-        body.style.setProperty('grid-template-columns','repeat(auto-fit,minmax(142px,1fr))','important');
-        body.style.setProperty('grid-auto-flow','column','important');
-        body.style.setProperty('overflow-x','auto','important');
-        body.style.setProperty('overflow-y','hidden','important');
+        body.style.setProperty('grid-template-columns','1fr','important');
+        body.style.setProperty('grid-auto-flow','row','important');
+        body.style.setProperty('overflow-x','hidden','important');
+        body.style.setProperty('overflow-y','auto','important');
       }
     }else{
       const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
