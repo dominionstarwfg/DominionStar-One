@@ -68,6 +68,14 @@ fi
 # browser-native meeting surface, not the Electron workspace shell.
 grep -Fq 'DominionStar Meet' "$MEET_DIST/index.html"
 grep -Fq 'SECURE VIDEO MEETING' "$MEET_DIST/index.html"
+if grep -Fq 'Start, join, or schedule in one place.' "$MEET_DIST/index.html"; then
+  echo "ERROR: obsolete standalone Meet launcher was republished at /meet/." >&2
+  exit 44
+fi
+if grep -Fq '<h1>Meetings</h1>' "$MEET_DIST/index.html"; then
+  echo "ERROR: obsolete Meetings home is still present in browser Meet." >&2
+  exit 45
+fi
 if grep -Fq 'DESKTOP WORKSPACE' "$MEET_DIST/index.html"; then
   echo "ERROR: desktop workspace was published at /meet/." >&2
   exit 43
