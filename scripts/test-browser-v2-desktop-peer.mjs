@@ -83,8 +83,9 @@ context.window.window=context.window;
 vm.createContext(context);
 vm.runInContext(source,context,{filename:'meeting-engine.js'});
 const engine=context.window.DominionStarMeetingEngine;
-let screenState=null;
+let screenState=null,moderation=null;
 engine.on('screen-state',payload=>{screenState=payload;});
+engine.on('moderation',payload=>{moderation=payload;});
 
 await engine.init({roomId:'7443001370',displayName:'Browser Guest',isHost:false,waitingRoomEnabled:true,passcode:''});
 await wait(80);
@@ -109,5 +110,14 @@ if(!screenState?.active||screenState.participantId!=='z-desktop'){
   throw new Error('Desktop V2 screen-share state did not reach the browser meeting engine.');
 }
 
+pullQueue.push({id:2,type:'host:mute',fromParticipantId:'z-desktop',createdAt:new Date().toISOString(),payload:{}});
+await wait(450);
+if(moderation?.action!=='mute')throw new Error('Desktop host mute control did not translate through V2 browser moderation.');
+
+await engine.chat('physical-v2-chat','everyone');
+await wait(20);
+const chat=sent.find(item=>item.type==='chat'&&item.to==='z-desktop'&&item.payload?.message==='physical-v2-chat');
+if(!chat)throw new Error('Browser public chat did not fan out to the desktop participant through V2.');
+
 await engine.leave();
-console.log('PASS numeric browser-to-desktop V2 peer: serialized offer/ICE and desktop screen-share state delivery.');
+console.log('PASS numeric browser-to-desktop V2 peer: serialized offer/ICE, screen-share state, host control, and chat delivery.');
