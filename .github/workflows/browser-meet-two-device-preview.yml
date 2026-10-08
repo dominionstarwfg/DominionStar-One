@@ -25,6 +25,7 @@ on:
       - 'scripts/test-five-client-ui-contract.mjs'
       - 'scripts/test-desktop-browser-v2-interop.mjs'
       - 'scripts/test-physical-two-device-regressions.mjs'
+      - 'scripts/test-browser-v2-desktop-peer.mjs'
       - 'scripts/build-public-netlify.sh'
       - '.github/workflows/browser-meet-two-device-preview.yml'
   workflow_dispatch:
@@ -101,6 +102,9 @@ jobs:
 
       - name: Verify physical two-device regression contract
         run: node scripts/test-physical-two-device-regressions.mjs
+
+      - name: Exercise numeric browser desktop V2 peer
+        run: node scripts/test-browser-v2-desktop-peer.mjs
 
       - name: Exercise five-client meeting stability
         run: node scripts/test-five-client-meet-stability.mjs
