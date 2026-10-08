@@ -46,6 +46,8 @@ assert.ok(workflow.includes('node scripts/verify-runtime-stability-2.0.22.mjs'),
 assert.ok(workflow.includes('node scripts/verify-zoom-screenshot-reference-2.0.41.mjs'),'Screenshot/reference authority regression audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-active-share-repair-2.0.42.mjs'),'Active-share repair regression audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs'),'Latest 2.0.44 physical-Mac duplicate-control and smoothness regression audit is mandatory.');
+assert.ok(workflow.includes('node scripts/verify-ui-authority-contract-2.0.53.mjs'),'UI authority ownership audit is mandatory.');
+assert.ok(workflow.includes('node scripts/verify-project-architecture-2.0.53.mjs'),'Project-wide architecture regression audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-runtime-stability-2.0.22.mjs'),'Packaged freeze/responsive-layout audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-interactions.mjs'),'Packaged interaction audit is mandatory.');
 assert.ok(workflow.includes('node scripts/verify-packaged-zoom-visual.mjs'),'Rendered Zoom-parity audit is mandatory.');

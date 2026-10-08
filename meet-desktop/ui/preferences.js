@@ -57,9 +57,15 @@
   }
   function handleShortcut(event){if(!read('shortcuts')||!event.altKey||event.metaKey||event.ctrlKey||event.shiftKey||event.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;const key=event.key.toLowerCase();const map={a:'#roomMic',v:'#roomCamera',s:'#roomShare',h:'#roomChat'},selector=map[key];if(!selector)return;const button=q(selector);if(!button||button.disabled||button.offsetParent===null)return;event.preventDefault();button.click();}
 
+  const onPrejoinOpened=()=>{prejoinApplied=false;void applyPrejoinDefaults();};
+  const onPrejoinClosed=()=>{prejoinApplied=false;};
+  const onShareState=()=>applyShareDockPreference();
+  const onPreferenceChange=()=>applyShareDockPreference();
   window.addEventListener('keydown',handleShortcut,true);
-  const observer=new MutationObserver(()=>{if(!installed)installSettings();void applyPrejoinDefaults();applyShareDockPreference();});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
-  setInterval(()=>{if(!installed)installSettings();void applyPrejoinDefaults();applyShareDockPreference();},700);
-  applyGlobal();installSettings();
-  window.DominionPreferences=Object.freeze({read,write,snapshot,openMeetings,openSharing,openChat,openRecording,openAccessibility,openShortcuts,openAbout,applyPrejoinDefaults,applyShareDockPreference});
+  window.addEventListener('dominion:prejoin-opened',onPrejoinOpened,true);
+  window.addEventListener('dominion:prejoin-closed',onPrejoinClosed,true);
+  window.addEventListener('dominion:share-state',onShareState,true);
+  window.addEventListener('dominion:preference-change',onPreferenceChange,true);
+  applyGlobal();installSettings();void applyPrejoinDefaults();
+  window.DominionPreferences=Object.freeze({version:'2.0.53-event-driven',read,write,snapshot,openMeetings,openSharing,openChat,openRecording,openAccessibility,openShortcuts,openAbout,applyPrejoinDefaults,applyShareDockPreference,dispose:()=>{window.removeEventListener('keydown',handleShortcut,true);window.removeEventListener('dominion:prejoin-opened',onPrejoinOpened,true);window.removeEventListener('dominion:prejoin-closed',onPrejoinClosed,true);window.removeEventListener('dominion:share-state',onShareState,true);window.removeEventListener('dominion:preference-change',onPreferenceChange,true);}});
 })();
