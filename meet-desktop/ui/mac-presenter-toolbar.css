@@ -32,10 +32,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
   background:#202123;box-shadow:0 14px 36px rgba(0,0,0,.52);z-index:20
 }
 .popup-menu[hidden]{display:none}
-.popup-menu button{width:100%;height:35px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#eee;text-align:left;font:500 10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
+.popup-menu button{width:100%;height:38px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:#eee;text-align:left;font:500 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
 .popup-menu button:hover{background:#303236}
 .layout-menu{left:50%;transform:translateX(-50%)}
-.more-menu{left:auto;right:0;transform:none}
+.more-menu{left:auto;right:-34px;transform:none;width:236px;padding:8px}
 
 .share-strip{
   position:absolute;left:50%;top:60px;transform:translateX(-50%);
