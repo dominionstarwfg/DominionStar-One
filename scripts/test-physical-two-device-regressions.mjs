@@ -19,6 +19,7 @@ const lifecycle = read('meet-desktop/ui/meeting-lifecycle-authority.js');
 const notifications = read('meet-desktop/ui/meeting-notifications.js');
 const browserUi = read('assets/js/meet-next/executive6.js');
 const browserIndex = read('meet/index.html');
+const buildPublic = read('scripts/build-public-netlify.sh');
 const presenterToolbar = read('meet-desktop/ui/mac-presenter-toolbar.html');
 const presenterToolbarCss = read('meet-desktop/ui/mac-presenter-toolbar.css');
 const presenterOverlay = read('meet-desktop/src/mac-share-presenter-overlay.mjs');
@@ -48,6 +49,9 @@ assert(desktopWebrtc.includes('screenStreamId:active?String(stream?.id'), 'Deskt
 assert(desktopWebrtc.includes("screenMid:active&&lanes[2]?.mid!=null"), 'Desktop screen-state does not publish the negotiated screen m-line.');
 assert(browserUi.includes('ids.participantList.dataset.renderSignature!==renderSignature'), 'Browser participant roster still repaints on every snapshot and can blink/reorder.');
 assert(browserUi.includes("const validTiles=new Set(['self',...state.participants.keys()])"), 'Browser video dock does not prune ghost tiles before deciding visibility.');
+assert(!browserIndex.includes('<h1>Meetings</h1>')&&!browserIndex.includes('Start, join, or schedule in one place.'), 'Competing standalone Meet home launcher is still visible in the browser room client.');
+assert(!browserIndex.includes('id="meetDashboard" class="meet-dashboard"'), 'Browser /meet/ still publishes a second Meet home instead of a room-only client.');
+assert(buildPublic.includes('test ! -e "$DIST/meet-home"'), 'Public deploy does not explicitly forbid the retired meet-home surface.');
 assert(browserIndex.includes('data-browser-panel-control="close"')&&browserIndex.includes('data-browser-panel-control="minimize"')&&browserIndex.includes('data-browser-panel-control="restore"'), 'Browser participant panel lacks horizontal close/minimize/restore controls.');
 assert(reference.includes('ds-participant-count-badge'), 'Desktop Participants toolbar control does not expose a live count badge.');
 assert(css.includes('.ds-participant-count-badge'), 'Desktop participant count badge has no visual authority.');
