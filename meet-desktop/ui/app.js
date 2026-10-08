@@ -59,6 +59,15 @@
 
     $$('[data-close-new]').forEach(b=>b.onclick=()=>newMeeting.close());$$('[data-close-join]').forEach(b=>b.onclick=()=>dialogs.join.close());
     $('#newMeetingForm').onsubmit=prepareNewMeeting;$('#joinMeetingForm').onsubmit=prepareJoinMeeting;$('#closePrejoin').onclick=cancelPrejoin;$('#prejoinCancel').onclick=cancelPrejoin;$('#prejoinContinue').onclick=continueFromPrejoin;$('#cancelWaiting').onclick=cancelWaiting;$('#roomExitButton').onclick=exitRoom;
+    if(!window.__DOMINION_EXIT_GUARD_BOUND){
+      window.__DOMINION_EXIT_GUARD_BOUND=true;
+      window.addEventListener('click',event=>{
+        const exit=event.target?.closest?.('#roomExitButton');
+        if(!exit||$('#meetingOverlay')?.hidden)return;
+        event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+        void exitRoom();
+      },true);
+    }
     $('#prejoinMic').onclick=()=>toggleMic($('#prejoinMic'));$('#prejoinCamera').onclick=()=>toggleCamera($('#prejoinCamera'));$('#roomMic').onclick=()=>toggleMic($('#roomMic'));$('#roomCamera').onclick=()=>toggleCamera($('#roomCamera'));
     $('#cameraSelect').onchange=async e=>{await media.selectCamera(e.target.value);attachPreview();};$('#microphoneSelect').onchange=e=>media.selectMicrophone(e.target.value);$('#speakerSelect').onchange=e=>media.selectSpeaker(e.target.value,$('#localMeetingVideo'));const prejoinBackgrounds=$('#prejoinBackgrounds');if(prejoinBackgrounds)prejoinBackgrounds.onclick=()=>{const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();void window.DominionAVSettings?.openVideo?.();};
     const avatarInput=$('#profileAvatarInput'),avatarButton=$('#changeProfilePicture'),avatarStatus=$('#profileAvatarStatus');
@@ -178,7 +187,12 @@
         const joined=activePeople.filter(p=>!lastParticipantMap.has(String(p.participantId)));
         const left=[...lastParticipantMap.entries()].filter(([id])=>!current.has(id)).map(([,p])=>p);
         if(joined.length||left.length)window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{joined,left,participants:activePeople}}));
-      }else participantEventsInitialized=true;
+      }else{
+        participantEventsInitialized=true;
+        const selfId=String(activeRoom?.participantId||'');
+        const joined=activePeople.filter(p=>String(p.participantId||'')!==selfId);
+        if(joined.length)window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{joined,left:[],participants:activePeople}}));
+      }
       lastParticipantMap=current;
       const me=activePeople.find(p=>(p.memberId&&p.memberId===authState.user?.id)||String(p.participantId||'')===String(activeRoom?.participantId||''));
       if(me&&activeRoom.role!==me.role){activeRoom.role=me.role;$('#roomRole').textContent=me.role==='host'?'Host':me.role==='cohost'?'Co-host':'Participant';$('#waitingQueueSection').hidden=!['host','cohost'].includes(me.role);startPolling();}
