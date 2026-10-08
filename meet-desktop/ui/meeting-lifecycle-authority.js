@@ -121,5 +121,15 @@
     return true;
   }
 
-  window.DominionMeetingLifecycleAuthority=Object.freeze({version:'2.0.55-physical-two-device',openExit,openInvite});
+  if(!window.__DOMINION_CANONICAL_INVITE_GUARD_BOUND){
+    window.__DOMINION_CANONICAL_INVITE_GUARD_BOUND=true;
+    window.addEventListener('click',event=>{
+      const invite=event.target?.closest?.('[data-ds-invite],[data-ref-invite]');
+      if(!invite||q('#meetingOverlay')?.hidden)return;
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      void openInvite();
+    },true);
+  }
+
+  window.DominionMeetingLifecycleAuthority=Object.freeze({version:'2.0.55-two-device-regression-repair',openExit,openInvite});
 })();
