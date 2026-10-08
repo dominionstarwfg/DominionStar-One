@@ -256,6 +256,21 @@
     }
   }
 
+  function dedupeVideoDockTiles(){
+    const seen=new Map();
+    for(const tile of qa('#participantVideoDock .remote-peer-tile')){
+      const self=tile.classList.contains('local-video-dock-tile')||tile.dataset.participantSelf==='1';
+      const key=self?'__self__':String(tile.dataset.participantId||tile.dataset.peerId||'');
+      if(!key)continue;
+      const previous=seen.get(key);
+      if(!previous){seen.set(key,tile);continue;}
+      const previousLive=Boolean(previous.querySelector('video')?.srcObject&&previous.querySelector('video')?.hidden!==true);
+      const currentLive=Boolean(tile.querySelector('video')?.srcObject&&tile.querySelector('video')?.hidden!==true);
+      if(currentLive&&!previousLive){previous.remove();seen.set(key,tile);}
+      else tile.remove();
+    }
+  }
+
   function syncVideoPanelMode(dock,tiles=[]){
     const mode=readVideoPanelMode(),all=tiles.filter(tile=>!tile.hidden);
     dock.dataset.panelMode=mode;dock.dataset.panelParticipants=String(all.length);dock.classList.toggle('panel-scrollable',mode!=='speaker'&&all.length>5);
@@ -279,7 +294,7 @@
   function syncSpotlightTiles(){const tiles=qa('#participantVideoDock .remote-peer-tile');for(const tile of tiles){tile.classList.remove('spotlighted','spotlight-rank-1','spotlight-rank-2','spotlight-rank-3','spotlight-rank-4');}spotlightParticipantIds.forEach((id,index)=>{const tile=q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(id)}"]`);if(tile)tile.classList.add('spotlighted',`spotlight-rank-${index+1}`);});}
   function syncLocalDockTile(remotePromoted=false){const dock=ensureVideoDock(),tile=q('#localVideoDockTile');if(!dock||!tile)return;const snapshot=media()?.snapshot?.()||{},stream=media()?.stream?.()||null,hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView')),should=Boolean(!hideSelf&&(sharing()||remotePromoted));tile.hidden=!should;const video=tile.querySelector('video'),fallback=tile.querySelector('.remote-peer-fallback');if(should&&snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live')){if(video.srcObject!==stream)video.srcObject=stream;if(fallback)fallback.hidden=true;void video.play().catch(()=>{});}else{video.srcObject=null;if(fallback)fallback.hidden=!should;}}
   function syncVideoDock(){
-    const dock=ensureVideoDock();if(!dock)return;const mode=readView(),share=sharing(),multiSpotlight=spotlightParticipantIds.length>1&&!share;
+    const dock=ensureVideoDock();if(!dock)return;dedupeVideoDockTiles();const mode=readView(),share=sharing(),multiSpotlight=spotlightParticipantIds.length>1&&!share;
     syncSpotlightTiles();syncDockTileActions();
     dock.classList.toggle('gallery-stage',mode==='gallery'&&!share&&!multiSpotlight);dock.classList.toggle('multi-speaker-stage',(mode==='multi'||multiSpotlight)&&!share);
     const panelAllowed=readVideoPanelVisible()&&(!share||window.DominionPreferences?.read?.('shareVideoDock')!==false);
