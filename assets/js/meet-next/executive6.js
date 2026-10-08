@@ -419,7 +419,7 @@
         <button type="button" class="waiting-room-leave">Leave Meeting</button>
       </div>`;
       document.body.append(gate);
-      gate.querySelector('.waiting-room-leave').onclick=async()=>{try{await engine.leave({silent:true});}catch(_){} location.href='/meet-home/';};
+      gate.querySelector('.waiting-room-leave').onclick=async()=>{try{await engine.leave({silent:true});}catch(_){} location.href='https://dominionstarld.com/meet/';};
       const previewVideo=gate.querySelector('.waiting-room-preview-video');
       const previewFallback=gate.querySelector('.waiting-room-preview-fallback');
       const previewMic=gate.querySelector('.waiting-preview-mic');
@@ -2324,7 +2324,7 @@
     add('Statistics',async()=>showMeetingStatistics(),{icon:'activity',note:'Meeting and connection state'});
     add('System Health',async()=>showSystemHealth(),{icon:'shield',note:'Guardian monitoring and recovery'});
     if(window.DominionRemoteControl?.canRequest?.())add('Request Remote Control',async()=>window.DominionRemoteControl.requestCurrent(),{icon:'share',note:'Host or co-host controls the shared screen'});
-    add('Meet Home',async()=>{await Promise.race([engine.leave(),new Promise(resolve=>setTimeout(resolve,1800))]);location.href=new URLSearchParams(location.search).get('desktop')==='1'?'/meet-home/?desktop=1':'/meet-home/';},{icon:'home',note:'Leave this meeting and return home'});
+    add('Meet Home',async()=>{await Promise.race([engine.leave(),new Promise(resolve=>setTimeout(resolve,1800))]);location.href='https://dominionstarld.com/meet/';},{icon:'home',note:'Leave this meeting and return home'});
     add('Participants',async()=>openPanel(ids.participantsPanel),{icon:'users',note:'Open participant list'});
     ids.deviceMenu.hidden=false;state.activeMenu='general-more';
   }
@@ -2433,7 +2433,7 @@
   ids.stopShareBtn.onclick=()=>engine.stopScreenShare();
   ids.leaveBtn.onclick=()=>ids.leaveDialog.showModal();
   ids.leaveClose.onclick=ids.leaveCancelBtn.onclick=()=>ids.leaveDialog.close();
-  const leaveDestination=()=>new URLSearchParams(location.search).get('desktop')==='1'?'/meet-home/?desktop=1':'/meet-home/';
+  const leaveDestination=()=> 'https://dominionstarld.com/meet/';
   const leaveWithDeadline=options=>Promise.race([engine.leave(options),new Promise(resolve=>setTimeout(resolve,2600))]);
   ids.leaveOnlyBtn.onclick=async()=>{ stopMeetingTimer(); try{await leaveWithDeadline();}finally{location.replace(leaveDestination());} };
   ids.endAllBtn.onclick=async()=>{
@@ -2620,7 +2620,7 @@
   const query = new URLSearchParams(location.search);
   if(query.get('desktop')==='1'){
     const back=document.querySelector('.back-to-dashboard');
-    if(back){back.href='/meet-home/?desktop=1';back.textContent='← Meet Home';back.setAttribute('aria-label','Return to DominionStar Meet Home');}
+    if(back){back.href='https://dominionstarld.com/meet/';back.textContent='← Meet Home';back.setAttribute('aria-label','Return to DominionStar Meet Home');}
   }
   ids.roomId.value = formatMeetingId(query.get('room') || query.get('meeting') || '');
   if(ids.meetingPasscode)ids.meetingPasscode.value=String(query.get('passcode')||'').replace(/\D/g,'').slice(0,10);
@@ -2724,7 +2724,7 @@
     else if(action==='share') setTimeout(()=>$('shareScreenAction')?.click(),80);
     else if(action==='personal') setTimeout(()=>$('personalMeetingAction')?.click(),120);
     else if(action==='recurring') setTimeout(()=>$('recurringMeetingAction')?.click(),80);
-    else setMeetFlow('dashboard');
+    else setMeetFlow('join');
     setTimeout(()=>{const identity=$('accountIdentity');const dash=$('dashboardIdentity');if(identity&&!identity.hidden&&dash){dash.hidden=false;dash.innerHTML=identity.innerHTML}},700);
   });
 })();
