@@ -449,11 +449,29 @@
     });
   };
 
+  const armInitialPeerHandshake = (remoteId,peer) => {
+    if(!peer||!remoteId)return;
+    clearTimeout(peer.__dsHandshakeTimer);
+    const primary=String(state.participantId||'').localeCompare(String(remoteId))<0;
+    const attempt=Number(peer.__dsHandshakeAttempts||0);
+    const delay=primary?Math.min(11000,5200+(attempt*2200)):12000;
+    peer.__dsHandshakeTimer=setTimeout(async()=>{
+      if(state.peers.get(remoteId)!==peer||peer.connectionState==='connected'||state.endingMeeting||state.meetingEnded)return;
+      try{await pullV2Signals();}catch{}
+      if(primary&&peer.signalingState==='stable'){
+        peer.__dsHandshakeAttempts=attempt+1;
+        try{peer.restartIce?.();await renegotiatePeer(remoteId);}catch{}
+      }
+      if(state.peers.get(remoteId)===peer&&peer.connectionState!=='connected'&&Number(peer.__dsHandshakeAttempts||0)<4)armInitialPeerHandshake(remoteId,peer);
+    },delay);
+  };
+
   const ensurePeer = async (remoteId, shouldOffer=false) => {
     if (!remoteId || remoteId === state.participantId) return null;
     if (state.peers.has(remoteId)) return state.peers.get(remoteId);
 
     const peer = new RTCPeerConnection(getRtcConfig());
+    peer.__dsHandshakeAttempts=0;peer.__dsHandshakeTimer=0;
     state.peers.set(remoteId, peer);
 
     // Desktop and browser must reserve the same four m-lines in the same order:
@@ -506,6 +524,7 @@
     };
     peer.onconnectionstatechange = () => {
       emit('peer-state', {participantId:remoteId, state:peer.connectionState});
+      if(peer.connectionState==='connected'){clearTimeout(peer.__dsHandshakeTimer);peer.__dsHandshakeTimer=0;peer.__dsHandshakeAttempts=0;}
       clearTimeout(state.reconnectTimers.get(remoteId));
       if (peer.connectionState === 'failed' || peer.connectionState === 'disconnected') {
         // Both browsers observe the same outage. Give one deterministic side
@@ -527,6 +546,7 @@
     };
 
     if (shouldOffer) await renegotiatePeer(remoteId);
+    armInitialPeerHandshake(remoteId,peer);
     return peer;
   };
 
