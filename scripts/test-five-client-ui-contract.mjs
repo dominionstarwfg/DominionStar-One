@@ -33,7 +33,7 @@ assert(
   'Participant roster has regressed to interval-driven repainting/blinking.'
 );
 assert(
-  /\.participant-list\s*\{[^}]*overflow\s*:\s*auto/i.test(css),
+  /\.participant-list[^\{]*\{[^}]*overflow\s*:\s*auto/i.test(css),
   'Participant list is not internally scrollable.'
 );
 assert(
