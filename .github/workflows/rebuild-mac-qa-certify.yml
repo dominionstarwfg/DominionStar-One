@@ -257,17 +257,44 @@ jobs:
       - name: Create certified Mac installers
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p qa-artifact
           APP="${{ steps.app.outputs.path }}"
           ZIP="qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip"
           DMG="qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.dmg"
-          STAGE="$RUNNER_TEMP/dominionstar-dmg-root"
+          STAGE="$RUNNER_TEMP/dominionstar-dmg-root-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          TMP_DMG="$RUNNER_TEMP/DominionStar-Meet-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.dmg"
           rm -rf "$STAGE"
+          rm -f "$ZIP" "$DMG" "$TMP_DMG"
+
+          # A prior smoke/packaging process can leave the same volume name mounted
+          # briefly on hosted macOS runners. Clear only DominionStar's own stale
+          # mount before creating a new image.
+          if mount | grep -Fq ' on /Volumes/DominionStar Meet '; then
+            hdiutil detach "/Volumes/DominionStar Meet" -force || true
+            sleep 2
+          fi
+
           mkdir -p "$STAGE"
           ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
           ditto "$APP" "$STAGE/DominionStar Meet.app"
           ln -s /Applications "$STAGE/Applications"
-          hdiutil create -volname "DominionStar Meet" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+          sync
+          sleep 1
+
+          created=0
+          for attempt in 1 2 3; do
+            rm -f "$TMP_DMG"
+            if hdiutil create -volname "DominionStar Meet" -srcfolder "$STAGE" -ov -format UDZO "$TMP_DMG"; then
+              created=1
+              break
+            fi
+            echo "DMG creation attempt $attempt failed; clearing stale DominionStar disk-image state before retry." >&2
+            hdiutil detach "/Volumes/DominionStar Meet" -force 2>/dev/null || true
+            sleep $((attempt * 3))
+          done
+          test "$created" -eq 1
+          mv "$TMP_DMG" "$DMG"
           shasum -a 256 "$ZIP" "$DMG" | tee qa-artifact/SHA256.txt
           du -h "$ZIP" "$DMG"
 
