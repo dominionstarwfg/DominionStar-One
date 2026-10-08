@@ -47,7 +47,7 @@ assert(browserUi.includes("const validTiles=new Set(['self',...state.participant
 assert(browserIndex.includes('data-browser-panel-control="close"')&&browserIndex.includes('data-browser-panel-control="minimize"')&&browserIndex.includes('data-browser-panel-control="restore"'), 'Browser participant panel lacks horizontal close/minimize/restore controls.');
 assert(reference.includes('ds-participant-count-badge'), 'Desktop Participants toolbar control does not expose a live count badge.');
 assert(css.includes('.ds-participant-count-badge'), 'Desktop participant count badge has no visual authority.');
-assert(participantRef.includes('ds-traffic-close')&&participantRef.includes('ds-traffic-minimize')&&participantRef.includes('ds-traffic-restore'), 'Desktop participant traffic-light controls are incomplete.');
+assert(reference.includes('ds-traffic-close')&&reference.includes('ds-traffic-minimize')&&reference.includes('ds-traffic-restore'), 'Desktop participant traffic-light controls are incomplete.');
 assert(presenterToolbar.includes('data-command="polls"')&&presenterToolbar.includes('data-command="whiteboard"')&&presenterToolbar.includes('data-command="apps"'), 'Presenter More menu is missing meeting tools.');
 assert(shareIntegration.includes("if(command==='polls')")&&shareIntegration.includes("if(command==='whiteboard')")&&shareIntegration.includes("if(command==='apps')"), 'Presenter meeting tools are not routed into the live meeting.');
 assert(shareIntegration.includes('desktop?.share?.captureStopped?.()'), 'Stopped sharing does not explicitly tear down native presenter/perimeter chrome.');
