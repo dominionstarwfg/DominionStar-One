@@ -212,16 +212,16 @@ assert(
   'Heavy reference reconciliation must prime once per meeting instead of repainting on every generic runtime pass.'
 );
 assert(
-  runtime.includes("const baseWidth=panel===chat?330:318;") &&
+  runtime.includes("const baseWidth=panel===chat?330:392;") &&
   runtime.includes("const participantCount=participantRows().length;") &&
-  runtime.includes("const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));") &&
-  runtime.includes("const minPanelHeight=panel===chat?300:390;") &&
+  runtime.includes("const participantBaseHeight=Math.min(486,Math.max(438,112+(Math.max(1,participantCount)*48)+(participantCount>=7?40:0)));") &&
+  runtime.includes("const minPanelHeight=panel===chat?300:438;") &&
   !runtime.includes("panel.classList.contains('ds-panel-wide')?430") &&
   runtime.includes("panel.style.setProperty('right','24px','important');") &&
   runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important');") &&
   runtime.includes("Math.max(minPanelHeight,bodyHeight-28)") &&
   runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),
-  'Floating Participants must preserve the compact 318px reference width with a 390px-class roster height and no rejected wide mode, while Chat remains independently movable with header-safe offsets.'
+  'Floating Participants must preserve the approved 392px reference width with a 438px-class roster height and no rejected wide mode, while Chat remains independently movable with header-safe offsets.'
 );
 assert(runtime.includes("panel.style.setProperty('left',`${pr.left-br.left}px`,'important');")&&runtime.includes("panel.style.setProperty('right','auto','important');")&&runtime.includes("panel.style.setProperty('width',`${pr.width}px`,'important');"),'Final drag authority must capture explicit panel geometry before movement rather than depending on a legacy handler.');
 assert(
@@ -438,7 +438,7 @@ assert(
   'Share-toolbar Participants/Chat and video-tile Chat/Rename must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
 );
 assert(
-  participantsReference.includes('width:318px!important;min-width:min(318px,calc(100% - 24px))!important')&&
+  participantsReference.includes('width:392px!important;min-width:min(360px,calc(100% - 24px))!important')&&
   participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div:not(.ds-panel-traffic){padding-left:60px!important;padding-right:60px!important')&&
   screenshotReference.includes('data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more')&&
   participantsReference.includes('if(more)more.hidden=!manager;')&&
