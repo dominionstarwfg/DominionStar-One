@@ -2530,6 +2530,22 @@
   }
 
   document.addEventListener('click',async event=>{
+    const browserPanelControl=event.target.closest('[data-browser-panel-control]');
+    if(browserPanelControl){
+      event.preventDefault();event.stopPropagation();
+      const panel=browserPanelControl.closest('.participants-panel'),action=String(browserPanelControl.dataset.browserPanelControl||'');
+      if(panel){
+        if(action==='close'){panel.hidden=true;panel.classList.remove('is-panel-minimized');}
+        else if(action==='minimize'){panel.classList.toggle('is-panel-minimized');}
+        else if(action==='restore'){
+          panel.classList.remove('is-panel-minimized');
+          panel.dataset.positioned='';
+          panel.style.removeProperty('width');panel.style.removeProperty('height');panel.style.removeProperty('left');panel.style.removeProperty('top');panel.style.removeProperty('right');panel.style.removeProperty('bottom');
+          positionPanel(panel);
+        }
+      }
+      return;
+    }
     const close=event.target.closest('[data-close]');
     if (close) $(close.dataset.close).hidden=true;
     const admit=event.target.closest('[data-admit]');
