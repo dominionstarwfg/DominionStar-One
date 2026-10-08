@@ -275,7 +275,7 @@
       appShell.style.removeProperty('pointer-events');
     }
   }
-  async function exitRoom(){if(!activeRoom||returningHome)return;const button=$('#roomExitButton');button.disabled=true;try{if(activeRoom.role==='host')await meeting.end(activeRoom.roomId);else await meeting.leave(activeRoom.participantId,activeRoom.joinToken);await returnHome();}catch(e){notice('Meeting could not close',errorText(e));}finally{button.disabled=false;}}
+  async function exitRoom(){if(!activeRoom||returningHome)return;const button=$('#roomExitButton');button.disabled=true;try{const result=await window.DominionMeetingLifecycleAuthority?.openExit?.();if(result?.closed)await returnHome();else if(!window.DominionMeetingLifecycleAuthority)notice('Meeting controls are still loading','Try again in a moment.');}catch(e){notice('Meeting could not close',errorText(e));}finally{button.disabled=false;}}
   async function returnHome(){
     if(returningHome)return;
     returningHome=true;
