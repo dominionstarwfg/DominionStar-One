@@ -10,6 +10,7 @@ on:
       - 'meet/index.html'
       - 'scripts/test-desktop-browser-v2-interop.mjs'
       - 'scripts/test-physical-two-device-regressions.mjs'
+      - 'scripts/test-browser-v2-desktop-peer.mjs'
       - '.github/workflows/rebuild-mac-qa-certify.yml'
   workflow_dispatch:
 
@@ -110,6 +111,7 @@ jobs:
           node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
           node ../scripts/test-desktop-browser-v2-interop.mjs
           node ../scripts/test-physical-two-device-regressions.mjs
+          node ../scripts/test-browser-v2-desktop-peer.mjs
 
       - name: Build and sign universal QA app once
         working-directory: meet-desktop
