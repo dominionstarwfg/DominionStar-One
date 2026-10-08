@@ -253,7 +253,7 @@
     add('Ask All to Unmute','host:ask-unmute');
     add('Stop Video for All','host:stop-video');
     add('Ask All to Start Video','host:ask-start-video');
-    add('Lower All Hands','host:lower-hand');
+    const lowerAll=document.createElement('button');lowerAll.type='button';lowerAll.textContent='Lower All Hands';lowerAll.onclick=()=>{closeMenu();void sendAll('host:lower-hand');};menu.append(lowerAll);
     document.body.append(menu);
     const rect=anchor?.getBoundingClientRect?.()||{left:innerWidth-250,top:innerHeight-80,width:60};
     const width=230,left=Math.max(10,Math.min(innerWidth-width-10,rect.left+rect.width-width));
