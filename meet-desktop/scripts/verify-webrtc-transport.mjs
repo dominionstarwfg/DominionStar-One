@@ -16,7 +16,7 @@ for(const method of ['context:()=>','sendSignal:','pullSignals:','pruneSignals:'
 assert(!peer.includes('createClient(')&&!peer.includes('.from('),'Renderer WebRTC must not construct or query the database client directly.');
 
 assert(peer.includes('new RTCPeerConnection'),'WebRTC peer connection authority is missing.');
-assert(peer.includes("localeCompare(String(remoteId))<0"),'Peer offer ownership must be deterministic.');
+assert(peer.includes("function isInitiator(remoteId){return String(state.context?.participantId||'')<String(remoteId||'');}"),'Peer offer ownership must be deterministic and identical to the browser ordering rule.');
 assert.equal((peer.match(/addTransceiver\('/g)||[]).length,4,'Each peer must have exactly four independent media lanes: microphone, camera, screen video, and shared system audio.');
 assert.equal((peer.match(/addTransceiver\('audio'/g)||[]).length,2,'Microphone and shared-system-audio must use independent audio lanes.');
 assert.equal((peer.match(/addTransceiver\('video'/g)||[]).length,2,'Camera and screen must have independent video lanes.');
