@@ -405,7 +405,7 @@
 
 /* Zoom-default geometry: on a normal desktop meeting the video filmstrip lives
    vertically on the right. Only an explicitly user-positioned dock may override
-   this. The compact top reflow is reserved for genuinely narrow windows. */
+   this. Even genuinely narrow windows retain the right-side default; only an explicit user drag may move it. */
 #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage){
   left:auto !important;
   right:14px !important;
@@ -421,19 +421,19 @@
 
 @media(max-width:680px){
   #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage){
-    left:14px !important;
-    right:14px !important;
+    left:auto !important;
+    right:8px !important;
     top:10px !important;
     bottom:auto !important;
-    width:auto !important;
-    max-width:calc(100% - 28px) !important;
-    max-height:190px !important;
+    width:160px !important;
+    max-width:calc(100% - 16px) !important;
+    max-height:calc(100% - 20px) !important;
   }
   #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage) .participant-video-dock-body{
-    grid-template-columns:repeat(auto-fit,minmax(142px,1fr)) !important;
-    grid-auto-flow:column !important;
-    overflow-x:auto !important;
-    overflow-y:hidden !important;
+    grid-template-columns:1fr !important;
+    grid-auto-flow:row !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
   }
 }
 
