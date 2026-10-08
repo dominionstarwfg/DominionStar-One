@@ -9,6 +9,7 @@ on:
       - 'assets/js/meet/v2-desktop-interop.js'
       - 'meet/index.html'
       - 'scripts/test-desktop-browser-v2-interop.mjs'
+      - 'scripts/test-physical-two-device-regressions.mjs'
       - '.github/workflows/rebuild-mac-qa-certify.yml'
   workflow_dispatch:
 
@@ -55,6 +56,7 @@ jobs:
           node --check ui/schedule-controller.js
           node --check ui/preferences.js
           node --check ui/meeting-features.js
+          node --check ui/meeting-lifecycle-authority.js
           node --check ui/meeting-captions.js
           node --check ui/video-effects.js
           node --check ui/zoom-behavior.js
@@ -107,6 +109,7 @@ jobs:
           node scripts/verify-runtime-stability-2.0.22.mjs
           node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
           node ../scripts/test-desktop-browser-v2-interop.mjs
+          node ../scripts/test-physical-two-device-regressions.mjs
 
       - name: Build and sign universal QA app once
         working-directory: meet-desktop
