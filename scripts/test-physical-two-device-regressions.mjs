@@ -11,6 +11,7 @@ const desktopWebrtc = read('meet-desktop/ui/webrtc-controller.js');
 const parity = read('meet-desktop/ui/meeting-parity.js');
 const behavior = read('meet-desktop/ui/zoom-behavior.js');
 const reference = read('meet-desktop/ui/zoom-screenshot-reference-2.0.41.js');
+const participantReference = read('meet-desktop/ui/zoom-participants-reference-2.0.41.js');
 const css = read('meet-desktop/ui/zoom-screenshot-reference-2.0.41.css');
 const index = read('meet-desktop/ui/index.html');
 const lifecycle = read('meet-desktop/ui/meeting-lifecycle-authority.js');
@@ -48,7 +49,7 @@ assert(browserUi.includes("const validTiles=new Set(['self',...state.participant
 assert(browserIndex.includes('data-browser-panel-control="close"')&&browserIndex.includes('data-browser-panel-control="minimize"')&&browserIndex.includes('data-browser-panel-control="restore"'), 'Browser participant panel lacks horizontal close/minimize/restore controls.');
 assert(reference.includes('ds-participant-count-badge'), 'Desktop Participants toolbar control does not expose a live count badge.');
 assert(css.includes('.ds-participant-count-badge'), 'Desktop participant count badge has no visual authority.');
-assert(reference.includes('ds-traffic-close')&&reference.includes('ds-traffic-minimize')&&reference.includes('ds-traffic-restore'), 'Desktop participant traffic-light controls are incomplete.');
+assert(participantReference.includes('ds-traffic-close')&&participantReference.includes('ds-traffic-minimize')&&participantReference.includes('ds-traffic-restore'), 'Desktop participant traffic-light controls are incomplete.');
 assert(presenterToolbar.includes('data-command="polls"')&&presenterToolbar.includes('data-command="whiteboard"')&&presenterToolbar.includes('data-command="apps"'), 'Presenter More menu is missing meeting tools.');
 assert(shareIntegration.includes("if(command==='polls')")&&shareIntegration.includes("if(command==='whiteboard')")&&shareIntegration.includes("if(command==='apps')"), 'Presenter meeting tools are not routed into the live meeting.');
 assert(shareIntegration.includes('desktop?.share?.captureStopped?.()'), 'Stopped sharing does not explicitly tear down native presenter/perimeter chrome.');
