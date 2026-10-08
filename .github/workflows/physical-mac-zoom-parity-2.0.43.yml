@@ -23,7 +23,7 @@ jobs:
       CSC_FOR_PULL_REQUEST: 'true'
       DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
     steps:
-      - name: Checkout exact 2.0.44 candidate
+      - name: Checkout exact physical Mac candidate
         uses: actions/checkout@v4
         with:
           clean: true
@@ -43,10 +43,16 @@ jobs:
         working-directory: meet-desktop
         run: npm install --ignore-scripts --no-audit --no-fund
 
-      - name: Verify 2.0.44 source contract
+      - name: Resolve candidate version
+        id: meta
+        working-directory: meet-desktop
+        shell: bash
+        run: echo "version=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Verify physical Mac source contract
         working-directory: meet-desktop
         run: |
-          test "$(node -p "require('./package.json').version")" = "2.0.44"
+          node -e "const [a,b,c]=require('./package.json').version.split('.').map(Number); if(!(a>2||(a===2&&(b>0||(b===0&&c>=44))))) process.exit(1);"
           node --check src/preload.cjs
           node --check src/share-service.mjs
           node --check src/mac-share-presenter-overlay.mjs
@@ -156,17 +162,27 @@ jobs:
         working-directory: meet-desktop
         run: node scripts/verify-packaged-physical-acceptance.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Create physical Mac QA artifact
+      - name: Create physical Mac QA installers
         shell: bash
         run: |
           mkdir -p qa-artifact
-          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-2.0.44-Physical-Mac-QA.zip
-          shasum -a 256 qa-artifact/DominionStar-Meet-2.0.44-Physical-Mac-QA.zip | tee qa-artifact/SHA256.txt
+          APP="${{ steps.app.outputs.path }}"
+          ZIP="qa-artifact/DominionStar-Meet-${{ steps.meta.outputs.version }}-Physical-Mac-QA.zip"
+          DMG="qa-artifact/DominionStar-Meet-${{ steps.meta.outputs.version }}-Physical-Mac-QA.dmg"
+          STAGE="$RUNNER_TEMP/dominionstar-physical-dmg-root"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+          ditto "$APP" "$STAGE/DominionStar Meet.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "DominionStar Meet" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+          shasum -a 256 "$ZIP" "$DMG" | tee qa-artifact/SHA256.txt
+          du -h "$ZIP" "$DMG"
 
-      - name: Upload 2.0.44 QA artifact
+      - name: Upload physical Mac QA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-2.0.44-physical-mac-qa
+          name: dominionstar-meet-physical-mac-qa
           path: qa-artifact/*
           if-no-files-found: error
           retention-days: 14

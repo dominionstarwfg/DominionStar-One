@@ -41,11 +41,11 @@ assert(css.includes('.ds-reaction-tray{position:fixed;z-index:2800'),'Reaction t
 assert(js.includes('openSmartSharePicker')&&js.includes('sharePicker?.listSources?.({kind,includeDominionStar:false})'),'Share permission authority must test actual desktop sources instead of relying only on stale TCC status.');
 assert(js.includes('desktop.sharePicker.choose(selectedShareId,options)'),'Share picker must feed the selected real source into the existing capture pipeline.');
 assert(js.includes("sessionStorage.setItem('ds_screen_settings_opened','1')")&&js.includes('Recheck'),'Permission recovery must remember that Settings was opened and provide an active recheck path instead of looping blindly.');
-assert(macPresenterHtml.includes('data-command="new-share"'),'Floating macOS share toolbar must expose New Share through the canonical new-share command.');
+assert(!macPresenterHtml.includes('data-command="new-share"')&&macPresenterHtml.includes('data-command="pause"')&&macPresenterHtml.includes('id="moreButton"')&&macPresenterHtml.includes('id="stopShare"'),'Floating macOS share toolbar must match the approved compact presenter contract without a primary New Share control.');
 assert(shareIntegration.includes("if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}"),'New Share must route through the certified picker/permission authority in the meeting renderer.');
 assert(css.includes('.ds-smart-share-picker')&&css.includes('.ds-share-source-grid'),'Screen sharing must expose a production source picker instead of another permission-only dialog.');
 assert(css.includes('.av-detail-head p{font-size:12.5px!important')&&css.includes('.av-toggle-row{font-size:13px!important')&&css.includes('.av-quick-menu button{font-size:13px!important'),'A/V settings text must not regress to the previous 8–10px scale.');
-assert(js.includes("version:'2.0.11-physical-acceptance'"),'Physical acceptance module version must be explicit.');
+assert(js.includes("version:'2.0.53-manual-desktop-acceptance'")&&js.includes("const desktopCanonical=Boolean(desktop?.isDesktop);")&&js.includes("const timer=desktopCanonical?0:setInterval")&&js.includes("window.removeEventListener('dominion:meeting-signal',onMeetingSignal,true)"),'Physical acceptance must be a fully-retirable manual compatibility layer on desktop.');
 
 // Physical-Mac active-share control authority. Layout/show-meeting remain native
 // floating-window operations, while every live meeting/media command must try

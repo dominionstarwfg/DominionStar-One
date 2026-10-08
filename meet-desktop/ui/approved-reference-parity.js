@@ -3,6 +3,7 @@
   if(window.DominionApprovedReferenceParity)return;
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const backgroundEnabled=!Boolean(window.dominionDesktop);
   const TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomMore','roomExitButton'];
   const HOST_TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore','roomExitButton'];
   const remoteAvatars=new Map(),profileSentTo=new Set();
@@ -204,9 +205,12 @@
   window.addEventListener('dominion:meeting-ended',()=>{remoteAvatars.clear();profileSentTo.clear();lastOwnAvatar='';requestSync();});
   window.addEventListener('dominion:meeting-snapshot',requestSync);
   window.addEventListener('resize',requestSync);
-  observer=new MutationObserver(requestSync);
-  for(const root of [q('#meetingOverlay'),q('#prejoinOverlay'),q('#appShell')])if(root)observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);sync();
+  if(backgroundEnabled){
+    observer=new MutationObserver(requestSync);
+    for(const root of [q('#meetingOverlay'),q('#prejoinOverlay'),q('#appShell')])if(root)observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+    timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);
+    sync();
+  }
 
-  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.45-event-driven-profile-first',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,syncProfilePictures,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();remoteAvatars.clear();profileSentTo.clear();}});
+  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.53-manual-desktop-reference',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,syncProfilePictures,dispose:()=>{if(timer)clearInterval(timer);observer?.disconnect();closeChatTargetMenu();remoteAvatars.clear();profileSentTo.clear();}});
 })();

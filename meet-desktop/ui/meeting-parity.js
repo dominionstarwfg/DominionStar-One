@@ -256,6 +256,21 @@
     }
   }
 
+  function dedupeVideoDockTiles(){
+    const seen=new Map();
+    for(const tile of qa('#participantVideoDock .remote-peer-tile')){
+      const self=tile.classList.contains('local-video-dock-tile')||tile.dataset.participantSelf==='1';
+      const key=self?'__self__':String(tile.dataset.participantId||tile.dataset.peerId||'');
+      if(!key)continue;
+      const previous=seen.get(key);
+      if(!previous){seen.set(key,tile);continue;}
+      const previousLive=Boolean(previous.querySelector('video')?.srcObject&&previous.querySelector('video')?.hidden!==true);
+      const currentLive=Boolean(tile.querySelector('video')?.srcObject&&tile.querySelector('video')?.hidden!==true);
+      if(currentLive&&!previousLive){previous.remove();seen.set(key,tile);}
+      else tile.remove();
+    }
+  }
+
   function syncVideoPanelMode(dock,tiles=[]){
     const mode=readVideoPanelMode(),all=tiles.filter(tile=>!tile.hidden);
     dock.dataset.panelMode=mode;dock.dataset.panelParticipants=String(all.length);dock.classList.toggle('panel-scrollable',mode!=='speaker'&&all.length>5);
@@ -279,12 +294,17 @@
   function syncSpotlightTiles(){const tiles=qa('#participantVideoDock .remote-peer-tile');for(const tile of tiles){tile.classList.remove('spotlighted','spotlight-rank-1','spotlight-rank-2','spotlight-rank-3','spotlight-rank-4');}spotlightParticipantIds.forEach((id,index)=>{const tile=q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(id)}"]`);if(tile)tile.classList.add('spotlighted',`spotlight-rank-${index+1}`);});}
   function syncLocalDockTile(remotePromoted=false){const dock=ensureVideoDock(),tile=q('#localVideoDockTile');if(!dock||!tile)return;const snapshot=media()?.snapshot?.()||{},stream=media()?.stream?.()||null,hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView')),should=Boolean(!hideSelf&&(sharing()||remotePromoted));tile.hidden=!should;const video=tile.querySelector('video'),fallback=tile.querySelector('.remote-peer-fallback');if(should&&snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live')){if(video.srcObject!==stream)video.srcObject=stream;if(fallback)fallback.hidden=true;void video.play().catch(()=>{});}else{video.srcObject=null;if(fallback)fallback.hidden=!should;}}
   function syncVideoDock(){
-    const dock=ensureVideoDock();if(!dock)return;const mode=readView(),share=sharing(),multiSpotlight=spotlightParticipantIds.length>1&&!share;
+    const dock=ensureVideoDock();if(!dock)return;dedupeVideoDockTiles();const mode=readView(),share=sharing(),multiSpotlight=spotlightParticipantIds.length>1&&!share;
     syncSpotlightTiles();syncDockTileActions();
     dock.classList.toggle('gallery-stage',mode==='gallery'&&!share&&!multiSpotlight);dock.classList.toggle('multi-speaker-stage',(mode==='multi'||multiSpotlight)&&!share);
     const panelAllowed=readVideoPanelVisible()&&(!share||window.DominionPreferences?.read?.('shareVideoDock')!==false);
     if(!panelAllowed){dock.hidden=true;syncShareLayout();return;}
     if(share){
+      // Screen sharing must explicitly activate/synchronize the local camera tile
+      // before collecting visible presenter tiles. Otherwise a tile that was
+      // hidden in speaker view stays hidden for the entire share session and the
+      // native presenter window has no live local frame to mirror.
+      syncLocalDockTile(false);syncDockTileActions();
       const shareTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden);
       syncVideoPanelMode(dock,shareTiles);dock.dataset.count=String(Math.min(shareTiles.length,9));dock.classList.toggle('dock-empty',shareTiles.length===0);dock.hidden=shareTiles.length===0;syncShareLayout();return;
     }
@@ -323,7 +343,7 @@
     const lockButton=securityMenu.querySelector('[data-security-lock]');if(lockButton)lockButton.onclick=()=>void persist({locked:!locked,muteOnEntry});
     const muteButton=securityMenu.querySelector('[data-security-mute-entry]');if(muteButton)muteButton.onclick=()=>void persist({locked,muteOnEntry:!muteOnEntry});
   }
-  function openMore(anchor){closeMenus();moreMenu=menuAt(anchor,'meeting-more-menu');const dock=q('#participantVideoDock');const add=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{closeMenus();action();};moreMenu.append(b);};if(canManageView())add('Host tools',()=>void openSecurity(anchor));if(q('#roomRecord'))add(q('#roomRecordStop')&&!q('#roomRecordStop').hidden?'Stop recording':'Record',()=>q('#roomRecordStop')&&!q('#roomRecordStop').hidden?q('#roomRecordStop').click():q('#roomRecord')?.click());if(q('#roomCaptions'))add(q('#roomCaptions')?.getAttribute('aria-pressed')==='true'?'Hide captions':'Show captions',()=>q('#roomCaptions')?.click());add('Meeting settings',()=>{const d=q('#settingsDialog');if(d&&!d.open)d.showModal();});add('Reset participant video panel',resetVideoDock);if(dock&&!dock.hidden)add('Hide participant video',()=>{dock.hidden=true;});}
+  function openMore(anchor){closeMenus();moreMenu=menuAt(anchor,'meeting-more-menu');const dock=q('#participantVideoDock');const add=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{closeMenus();action();};moreMenu.append(b);};if(canManageView())add('Host tools',()=>void openSecurity(anchor));if(q('#roomRecord'))add(q('#roomRecordStop')&&!q('#roomRecordStop').hidden?'Stop recording':'Record',()=>q('#roomRecordStop')&&!q('#roomRecordStop').hidden?q('#roomRecordStop').click():q('#roomRecord')?.click());if(q('#roomCaptions'))add(q('#roomCaptions')?.getAttribute('aria-pressed')==='true'?'Hide captions':'Show captions',()=>q('#roomCaptions')?.click());add('Meeting settings',()=>{const d=q('#settingsDialog');if(d&&!d.open)d.showModal();});add('Export diagnostic report',()=>void window.DominionPhysicalDiagnostics?.exportReport?.());add('Reset participant video panel',resetVideoDock);if(dock&&!dock.hidden)add('Hide participant video',()=>{dock.hidden=true;});}
   function arrangeToolbar(){
     const footer=q('.meeting-footer');if(!footer)return;
     for(const id of ['roomSecurity','roomSettings','roomRecord','roomRecordStop']){const node=q('#'+id);if(node)node.hidden=true;}

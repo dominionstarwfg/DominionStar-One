@@ -218,3 +218,106 @@ body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon
 .ds-ref-invite-menu{position:absolute;z-index:3900;width:252px;padding:12px;border:1px solid #56575b;border-radius:10px;background:#252527;box-shadow:0 16px 42px rgba(0,0,0,.54);color:#f3f3f4}
 .ds-ref-invite-menu strong{display:block;font-size:12px;margin-bottom:7px}.ds-ref-invite-menu p{margin:0 0 10px;padding:8px;border-radius:7px;background:#1d1d1f;color:#d8d8da;font-size:10px;line-height:1.35;word-break:break-word}
 .ds-ref-invite-menu>div{display:flex;gap:7px}.ds-ref-invite-menu button{height:30px;padding:0 10px;border:0;border-radius:7px;background:#45464a;color:#fff;font-size:10px;cursor:pointer}.ds-ref-invite-menu button:first-child{background:#2d78df}
+
+
+/* 2.0.55 physical two-device participant authority.
+   Preserve readable identity width and exactly one mute/video slash. */
+#meetingOverlay .room-side{
+  width:392px!important;
+  max-width:min(420px,calc(100vw - 24px))!important;
+  min-width:min(360px,calc(100vw - 24px))!important;
+}
+#meetingOverlay #participantRoster{
+  padding-left:10px!important;
+  padding-right:10px!important;
+}
+#meetingOverlay #participantRoster .person-row{
+  min-height:48px!important;
+  height:48px!important;
+  padding:5px 8px!important;
+  gap:10px!important;
+}
+#meetingOverlay #participantRoster .person-copy{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  overflow:hidden!important;
+}
+#meetingOverlay #participantRoster .person-copy strong{
+  min-width:0!important;
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay #participantRoster .participant-name-text{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay #participantRoster .participant-you{
+  flex:0 0 auto!important;
+  overflow:visible!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay #participantRoster .participant-media-state{
+  flex:0 0 46px!important;
+  min-width:46px!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+}
+#meetingOverlay #participantRoster .participant-actions{
+  flex:0 0 30px!important;
+  min-width:30px!important;
+}
+#meetingOverlay #participantRoster .participant-media-icon{
+  position:relative!important;
+  width:18px!important;
+  height:18px!important;
+  overflow:visible!important;
+}
+#meetingOverlay #participantRoster .participant-media-icon::before{
+  content:none!important;
+  display:none!important;
+}
+#meetingOverlay #participantRoster .participant-media-icon:not(.off)::after{
+  content:none!important;
+  display:none!important;
+}
+#meetingOverlay #participantRoster .participant-media-icon.off::after{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  left:2px!important;
+  right:2px!important;
+  top:50%!important;
+  width:auto!important;
+  height:2px!important;
+  border-radius:999px!important;
+  background:#ff4055!important;
+  transform:translateY(-50%) rotate(-45deg)!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+.ds-ref-participants-footer{
+  gap:9px!important;
+  padding:8px 10px!important;
+}
+.ds-ref-participants-footer button{
+  flex:1 1 0!important;
+  min-width:0!important;
+  padding:0 12px!important;
+}
+.ds-ref-participants-footer button:last-child{
+  margin-left:0!important;
+}
+@media(max-width:760px){
+  #meetingOverlay .room-side{
+    width:calc(100vw - 20px)!important;
+    min-width:0!important;
+    max-width:calc(100vw - 20px)!important;
+  }
+}
