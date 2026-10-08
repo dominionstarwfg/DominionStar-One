@@ -189,11 +189,14 @@ assert(legacyParticipants.includes("version:'2.0.54-one-shot-compatibility'")&&!
 assert(legacyHostTools.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyHostTools.includes('centerParticipantsOnce')&&!legacyHostTools.includes("host.style.setProperty('width','248px'"),'Legacy Host Tools compatibility must not own Participants or Host Tools geometry.');
 assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.includes('.room-side:has(.ds-ref-host-tools-panel)'),'Legacy Host Tools stylesheet must not shrink Host Tools or move Participants.');
 assert(
-  runtime.includes("panel.style.setProperty('left','auto','important')") &&
-  runtime.includes("panel.style.setProperty('right','24px','important')") &&
-  runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important')") &&
-  runtime.includes("panel.style.setProperty('bottom','auto','important')"),
-  'Default Participants and Chat surfaces must open as inset floating windows with independent header-safe vertical offsets rather than edge-attached sidebars.'
+  runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);") &&
+  runtime.includes("if(panel===participants){") &&
+  runtime.includes("panel.style.setProperty('left',`${centeredLeft}px`,'important');") &&
+  runtime.includes("panel.style.setProperty('right','auto','important');") &&
+  runtime.includes("panel.style.setProperty('top','18px','important');") &&
+  runtime.includes("panel.style.setProperty('right','24px','important');") &&
+  runtime.includes("panel.style.setProperty('top','46px','important');"),
+  'Participants must open centered by default while Chat keeps an independent inset position, preserving the right-side lane for participant video.'
 );
 assert(runtime.includes('function ensurePanelClose(panel)')&&runtime.includes("aria-label','Close participants'")&&runtime.includes("aria-label','Close chat'"),'Participants and Chat must expose one explicit runtime-owned Close control.');
 assert(
