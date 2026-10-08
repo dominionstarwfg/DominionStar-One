@@ -21,6 +21,7 @@ on:
       - 'scripts/test-two-client-authority.mjs'
       - 'scripts/test-share-arbitration-two-client.mjs'
       - 'scripts/test-share-spotlight-two-client.mjs'
+      - 'scripts/test-five-client-meet-stability.mjs'
       - 'scripts/build-public-netlify.sh'
       - '.github/workflows/browser-meet-two-device-preview.yml'
   workflow_dispatch:
@@ -91,6 +92,9 @@ jobs:
 
       - name: Exercise two-client spotlight behavior
         run: node scripts/test-share-spotlight-two-client.mjs
+
+      - name: Exercise five-client meeting stability
+        run: node scripts/test-five-client-meet-stability.mjs
 
       - name: Install pinned Playwright runtime
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
