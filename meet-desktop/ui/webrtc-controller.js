@@ -241,8 +241,9 @@
   }
   async function signalShareState(remoteId,snapshot=window.DominionShareController?.snapshot?.()||{}){
     if(!remoteId||!meeting?.sendSignal)return false;
-    const active=Boolean(snapshot.active&&shareMedia()?.getVideoTracks?.().some(track=>track.readyState==='live'));
-    await meeting.sendSignal(remoteId,'screen-state',{active,paused:Boolean(snapshot.paused),displayName:localDisplayName(),sourceName:String(snapshot.sourceName||'')});
+    const stream=shareMedia(),screenTrack=stream?.getVideoTracks?.()[0]||null,record=state.peers.get(String(remoteId))||null,lanes=record?transceivers(record):[];
+    const active=Boolean(snapshot.active&&screenTrack?.readyState==='live');
+    await meeting.sendSignal(remoteId,'screen-state',{active,paused:Boolean(snapshot.paused),displayName:localDisplayName(),sourceName:String(snapshot.sourceName||''),screenTrackId:active?String(screenTrack?.id||''):'',screenStreamId:active?String(stream?.id||''):'',screenMid:active&&lanes[2]?.mid!=null?String(lanes[2].mid):''});
     return true;
   }
   async function broadcastShareState(snapshot=window.DominionShareController?.snapshot?.()||{}){
