@@ -19,7 +19,7 @@ const macToolbarJs=read('ui/mac-presenter-toolbar.js');
 const macVideo=read('ui/mac-share-video.html');
 const macVideoJs=read('ui/mac-share-video.js');
 
-assert.ok(['2.0.41','2.0.54'].includes(pkg.version),'Runtime share authority certification must remain valid for the approved 2.0.41 reference and current 2.0.54 production candidate.');
+assert.ok(['2.0.41','2.0.54','2.0.55'].includes(pkg.version),'Runtime share authority certification must remain valid for the approved 2.0.41 reference and current production repair line.');
 new Function(authority);
 new Function(intelligence);
 new Function(macToolbarJs);
