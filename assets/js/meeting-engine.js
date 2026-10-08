@@ -203,6 +203,16 @@
     if(type==='answer')return ['meet-answer',{...base,description:signal.payload?.sdp}];
     if(type==='ice')return ['meet-ice',base];
     if(type==='bye')return ['meet-left',base];
+    if(type==='chat')return ['meet-chat',base];
+    if(type==='reaction')return ['meet-reaction',base];
+    const hostAction={
+      'host:mute':'mute',
+      'host:ask-unmute':'request-unmute',
+      'host:stop-video':'camera-off',
+      'host:ask-start-video':'request-camera',
+      'host:lower-hand':'lower-hand'
+    }[type];
+    if(hostAction)return ['meet-moderation',{...base,targetParticipantId:state.participantId,action:hostAction,requestId:base.requestId||`${from}:${hostAction}:${sentAt}`}];
     return null;
   };
   async function loadV2Ice(force=false){
@@ -368,11 +378,30 @@
       return false;
     }
     const v2Type=event==='meet-offer'?'offer':event==='meet-answer'?'answer':event==='meet-ice'?'ice':event==='meet-left'?'bye':'';
-    if(state.v2Enabled&&v2Type&&payload?.to){
+    if(state.v2Enabled){
       const transport=v2Transport();
-      if(transport){
+      if(transport&&v2Type&&payload?.to){
         const body=v2Type==='offer'||v2Type==='answer'?{sdp:payload.description}:v2Type==='ice'?{candidate:payload.candidate}:{};
         return transport.sendSignal(payload.to,v2Type,body);
+      }
+      if(transport&&(event==='meet-chat'||event==='meet-reaction')){
+        const type=event==='meet-chat'?'chat':'reaction';
+        const requested=String(payload?.to||payload?.toParticipantId||'');
+        const targets=requested&&requested!=='everyone'?[requested]:[...state.v2ParticipantIds];
+        const body={...payload,displayName:state.displayName};
+        const deliveries=await Promise.allSettled(targets.filter(id=>id&&id!==state.participantId).map(id=>transport.sendSignal(id,type,body)));
+        if(deliveries.some(item=>item.status==='fulfilled'))return true;
+      }
+      if(transport&&event==='meet-moderation'){
+        const target=String(payload?.targetParticipantId||payload?.to||'');
+        const type={
+          'mute':'host:mute',
+          'request-unmute':'host:ask-unmute',
+          'camera-off':'host:stop-video',
+          'request-camera':'host:ask-start-video',
+          'lower-hand':'host:lower-hand'
+        }[String(payload?.action||'')];
+        if(target&&type)return transport.sendSignal(target,type,{...payload,displayName:state.displayName});
       }
     }
     if (!state.channel) {
