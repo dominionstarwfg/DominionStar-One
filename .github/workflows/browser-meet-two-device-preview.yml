@@ -18,6 +18,9 @@ on:
       - 'assets/js/member-dashboard.js'
       - 'scripts/browser-two-client-meet-acceptance.mjs'
       - 'scripts/run-browser-two-client-meet-acceptance.mjs'
+      - 'scripts/test-two-client-authority.mjs'
+      - 'scripts/test-share-arbitration-two-client.mjs'
+      - 'scripts/test-share-spotlight-two-client.mjs'
       - 'scripts/build-public-netlify.sh'
       - '.github/workflows/browser-meet-two-device-preview.yml'
   workflow_dispatch:
