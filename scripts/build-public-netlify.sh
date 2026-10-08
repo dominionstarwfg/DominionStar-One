@@ -82,6 +82,7 @@ if grep -Fq 'DESKTOP WORKSPACE' "$MEET_DIST/index.html"; then
 fi
 test ! -e "$DIST/meet-desktop"
 test ! -e "$DIST/rebuild-dist"
+test ! -e "$DIST/meet-home"
 
 echo "DOMINIONSTAR_PUBLIC_ROOT_OK"
 echo "DOMINIONSTAR_BROWSER_MEET_ROUTE_OK /meet/"
