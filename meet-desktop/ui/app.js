@@ -171,16 +171,18 @@
     try{
       const snapshot=await meeting.snapshot(activeRoom.roomId);if(snapshot.status==='ended')return returnHome();
       window.dispatchEvent(new CustomEvent('dominion:meeting-snapshot',{detail:snapshot}));
-      const people=snapshot.participants||[],current=new Map(people.map(p=>[String(p.participantId),p]));
+      const people=snapshot.participants||[];
+      const activePeople=people.filter(p=>['admitted','joined'].includes(String(p.state||'joined')));
+      const current=new Map(activePeople.map(p=>[String(p.participantId),p]));
       if(participantEventsInitialized){
-        const joined=people.filter(p=>!lastParticipantMap.has(String(p.participantId)));
+        const joined=activePeople.filter(p=>!lastParticipantMap.has(String(p.participantId)));
         const left=[...lastParticipantMap.entries()].filter(([id])=>!current.has(id)).map(([,p])=>p);
-        if(joined.length||left.length)window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{joined,left,participants:people}}));
+        if(joined.length||left.length)window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{joined,left,participants:activePeople}}));
       }else participantEventsInitialized=true;
       lastParticipantMap=current;
-      const me=people.find(p=>p.memberId===authState.user?.id);
-      if(me&&activeRoom.role!==me.role){activeRoom.role=me.role;$('#roomRole').textContent=me.role==='cohost'?'Co-host':'Participant';$('#waitingQueueSection').hidden=!['host','cohost'].includes(me.role);startPolling();}
-      renderRoster(people);
+      const me=activePeople.find(p=>(p.memberId&&p.memberId===authState.user?.id)||String(p.participantId||'')===String(activeRoom?.participantId||''));
+      if(me&&activeRoom.role!==me.role){activeRoom.role=me.role;$('#roomRole').textContent=me.role==='host'?'Host':me.role==='cohost'?'Co-host':'Participant';$('#waitingQueueSection').hidden=!['host','cohost'].includes(me.role);startPolling();}
+      renderRoster(activePeople);
     }catch{}
   }
   async function refreshQueue(){
