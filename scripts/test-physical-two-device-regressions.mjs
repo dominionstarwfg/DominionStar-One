@@ -15,6 +15,11 @@ const css = read('meet-desktop/ui/zoom-screenshot-reference-2.0.41.css');
 const index = read('meet-desktop/ui/index.html');
 const lifecycle = read('meet-desktop/ui/meeting-lifecycle-authority.js');
 const notifications = read('meet-desktop/ui/meeting-notifications.js');
+const browserUi = read('assets/js/meet-next/executive6.js');
+const browserIndex = read('meet/index.html');
+const presenterToolbar = read('meet-desktop/ui/mac-presenter-toolbar.html');
+const presenterOverlay = read('meet-desktop/src/mac-share-presenter-overlay.mjs');
+const shareIntegration = read('meet-desktop/ui/share-integration.js');
 
 assert(engine.includes('serializeIceCandidate'), 'Browser meeting engine does not serialize ICE candidates for V2 RPC.');
 assert(engine.includes('candidate:serializeIceCandidate(candidate)'), 'Browser ICE candidate still crosses RPC as a raw RTCIceCandidate.');
@@ -28,6 +33,24 @@ assert(desktopWebrtc.includes('broadcastShareState(snapshot)'), 'Desktop share c
 assert(desktopWebrtc.includes('serializeDescription(record.pc.localDescription)'), 'Desktop SDP is not serialized before crossing the meeting transport boundary.');
 assert(desktopWebrtc.includes('showRemoteCamera(id,stream)'), 'Desktop remote camera rendering path is missing.');
 assert(desktopWebrtc.includes('showRemoteShare(id,stream)'), 'Desktop remote screen-share rendering path is missing.');
+
+
+assert(desktopWebrtc.includes('function armInitialHandshake(record)'), 'Desktop peer can remain stuck in Connecting without an initial-handshake watchdog.');
+assert(engine.includes('armInitialPeerHandshake'), 'Browser peer can remain stuck in Connecting without an initial-handshake watchdog.');
+assert(!engine.includes("if(members.length)emit('presence'"), 'Browser V2 snapshot still suppresses the empty presence update and can leave a ghost participant.');
+assert(desktopWebrtc.includes('screenTrackId:active?String(screenTrack?.id'), 'Desktop screen-state does not publish screen track identity to browser viewers.');
+assert(desktopWebrtc.includes('screenStreamId:active?String(stream?.id'), 'Desktop screen-state does not publish screen stream identity to browser viewers.');
+assert(desktopWebrtc.includes("screenMid:active&&lanes[2]?.mid!=null"), 'Desktop screen-state does not publish the negotiated screen m-line.');
+assert(browserUi.includes('ids.participantList.dataset.renderSignature!==renderSignature'), 'Browser participant roster still repaints on every snapshot and can blink/reorder.');
+assert(browserUi.includes("const validTiles=new Set(['self',...state.participants.keys()])"), 'Browser video dock does not prune ghost tiles before deciding visibility.');
+assert(browserIndex.includes('data-browser-panel-control="close"')&&browserIndex.includes('data-browser-panel-control="minimize"')&&browserIndex.includes('data-browser-panel-control="restore"'), 'Browser participant panel lacks horizontal close/minimize/restore controls.');
+assert(reference.includes('ds-participant-count-badge'), 'Desktop Participants toolbar control does not expose a live count badge.');
+assert(css.includes('.ds-participant-count-badge'), 'Desktop participant count badge has no visual authority.');
+assert(participantRef.includes('ds-traffic-close')&&participantRef.includes('ds-traffic-minimize')&&participantRef.includes('ds-traffic-restore'), 'Desktop participant traffic-light controls are incomplete.');
+assert(presenterToolbar.includes('data-command="polls"')&&presenterToolbar.includes('data-command="whiteboard"')&&presenterToolbar.includes('data-command="apps"'), 'Presenter More menu is missing meeting tools.');
+assert(shareIntegration.includes("if(command==='polls')")&&shareIntegration.includes("if(command==='whiteboard')")&&shareIntegration.includes("if(command==='apps')"), 'Presenter meeting tools are not routed into the live meeting.');
+assert(shareIntegration.includes('desktop?.share?.captureStopped?.()'), 'Stopped sharing does not explicitly tear down native presenter/perimeter chrome.');
+assert(presenterOverlay.includes('if(shareActive)positionVideo({preservePosition:priorDisplay===nextDisplay});'), 'Native presenter video panel can retain stretched blank geometry instead of following participant count.');
 
 assert(!physical.includes("wrap.className='ds-participant-media'"), 'Physical participant renderer recreates the rejected duplicate media strip.');
 assert(physical.includes("row.querySelector('.participant-media-state')"), 'Physical participant renderer is not reusing the canonical media strip.');
@@ -59,4 +82,4 @@ assert(css.includes('width:392px!important'), 'Physical participant panel regres
 assert(css.includes('.participant-media-icon:not(.off)::after'), 'Participant media icon has no explicit live-state slash suppression.');
 assert(css.includes('.participant-media-icon.off::after'), 'Participant media icon lost the single muted slash authority.');
 
-console.log('PASS physical two-device regressions: serialized WebRTC, remote camera/share display paths, one media strip, guarded exit, persistent invite, join/leave sound, readable roster, and deduplicated video dock.');
+console.log('PASS physical two-device regressions: stalled-handshake recovery, deterministic desktop-browser share identity, stable roster, ghost-tile cleanup, participant counts/traffic controls, presenter meeting tools, native perimeter teardown, remote camera/share display paths, guarded exit, persistent invite, and sounds.');
