@@ -515,3 +515,18 @@ body.meeting-active .toolbar{
   overscroll-behavior:contain;
 }
 body.local-presentation-active .toolbar{display:none!important}
+
+/* 2.0.55 participant panel traffic-light authority */
+.participants-panel>header{position:relative!important;justify-content:center!important;padding:0 48px!important}
+.participants-panel>header>strong{display:block!important;text-align:center!important;white-space:nowrap!important}
+.participant-panel-traffic{position:absolute;left:12px;top:0;height:52px;display:flex;flex-direction:row;align-items:center;gap:8px;z-index:3}
+.participant-panel-traffic>button{position:relative;width:13px;height:13px;min-width:13px;padding:0;border:0;border-radius:50%;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.participant-panel-traffic .traffic-close{background:#ff5f57}
+.participant-panel-traffic .traffic-minimize{background:#febc2e}
+.participant-panel-traffic .traffic-restore{background:#28c840}
+.participant-panel-traffic>button::after{position:absolute;inset:0;display:grid;place-items:center;color:rgba(45,32,25,.82);font:800 9px/13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;opacity:0;transition:opacity .08s ease}
+.participant-panel-traffic:hover .traffic-close::after{content:"×";opacity:1}
+.participant-panel-traffic:hover .traffic-minimize::after{content:"−";opacity:1}
+.participant-panel-traffic:hover .traffic-restore::after{content:"↗";font-size:7px;opacity:1}
+.participants-panel.is-panel-minimized{height:52px!important;min-height:52px!important;resize:none!important;overflow:hidden!important}
+.participants-panel.is-panel-minimized>:not(header){display:none!important}
