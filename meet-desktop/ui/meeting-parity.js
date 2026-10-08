@@ -3,8 +3,8 @@
   const desktop=window.dominionDesktop||{};
   const media=()=>window.DominionMediaController||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1';
-  const PANEL_KEY='ds_zoom_participant_panel_geometry_v1';
+  const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v2';
+  const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';
   const SVG=Object.freeze({
     mic:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
     video:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg>',
@@ -22,6 +22,10 @@
   });
   let moreMenu=null,securityMenu=null,viewMenu=null,panelDrag=null,dockDrag=null,dockResize=null,shareSplitDrag=null,lastMeta='',spotlightParticipantIds=[],activeSpeakerIds=[],toolbarOrderKey='',parityFrame=0; const VIEW_KEY='ds_meet_view_mode',SHARE_SPLIT_KEY='ds_meet_share_split_ratio',VIDEO_PANEL_MODE_KEY='ds_meet_video_panel_mode_v2',VIDEO_PANEL_VISIBLE_KEY='ds_meet_video_panel_visible_v2';
   if(!document.querySelector('link[data-ds-meeting-parity]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-parity.css';link.dataset.dsMeetingParity='1';document.head.append(link);}
+  try{
+    localStorage.removeItem('ds_zoom_video_dock_geometry_v1');
+    localStorage.removeItem('ds_zoom_participant_panel_geometry_v1');
+  }catch{}
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
   const formatCode=value=>String(value||'').replace(/\D/g,'').replace(/(\d{3})(?=\d)/g,'$1 ').trim();
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
