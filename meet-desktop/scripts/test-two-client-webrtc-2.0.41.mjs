@@ -154,8 +154,35 @@ try{
   await host.evaluate(()=>window.__qaSetShare(false));
   await guest.waitForFunction(()=>!document.body.classList.contains('remote-share-active'),null,{timeout:15000});
 
+  // Reverse direction: the original physical failure was asymmetric on two
+  // devices, so both clients must prove they can become presenter and viewer.
+  await guest.evaluate(()=>window.__qaSetShare(true));
+  try{
+    await host.waitForFunction(()=>{
+      const video=document.querySelector('#remoteShareVideo');
+      return document.body.classList.contains('remote-share-active')&&Boolean(video?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'));
+    },null,{timeout:15000});
+  }catch(error){throw new Error(`host remote screen share did not become live: ${JSON.stringify(await runtimeDiagnostics(host))}`,{cause:error});}
+  try{
+    await host.waitForFunction(()=>{
+      const audio=document.querySelector('#remoteAudioBin audio[data-share-audio-peer]');
+      return Boolean(audio?.srcObject?.getAudioTracks?.().some(track=>track.readyState==='live'));
+    },null,{timeout:15000});
+  }catch(error){throw new Error(`host remote shared audio did not become live: ${JSON.stringify(await runtimeDiagnostics(host))}`,{cause:error});}
+  const reverseBanner=await host.locator('#remoteShareBanner strong').textContent();
+  assert.match(String(reverseBanner||''),/QA Guest is sharing/,'Host did not receive guest presenter identity on reverse remote share.');
+  await guest.evaluate(()=>window.__qaSetShare(false));
+  await host.waitForFunction(()=>!document.body.classList.contains('remote-share-active'),null,{timeout:15000});
+
+  // Remote camera elements must be autoplay-safe because remote audio is
+  // delivered through a dedicated audio element.
+  for(const [page,label] of [[host,'host'],[guest,'guest']]){
+    const playback=await page.evaluate(()=>{const video=document.querySelector('.remote-peer-tile video');return {muted:Boolean(video?.muted),autoplay:Boolean(video?.autoplay),playsInline:Boolean(video?.playsInline)};});
+    assert.deepEqual(playback,{muted:true,autoplay:true,playsInline:true},`${label} remote camera playback contract is unsafe.`);
+  }
+
   for(const [label,state] of [['host',hostState],['guest',guestState]])assert.deepEqual(state.pageErrors,[],`${label} renderer produced runtime errors:\n${state.pageErrors.join('\n')}`);
-  console.log('DOMINIONSTAR_TWO_CLIENT_WEBRTC_2_0_41_OK offer-answer-ice mic-camera screen-share share-audio presenter-identity stop-share deterministic-initiator');
+  console.log('DOMINIONSTAR_TWO_CLIENT_WEBRTC_2_0_55_OK offer-answer-ice bidirectional-mic-camera bidirectional-screen-share share-audio presenter-identity autoplay-safe-video stop-share deterministic-initiator');
 }finally{
   for(const page of [host,guest]){
     try{await page.evaluate(async()=>{document.querySelector('#meetingOverlay').hidden=true;await window.DominionWebRTCController?.stop?.();window.__qaStopTracks?.();});}catch{}
