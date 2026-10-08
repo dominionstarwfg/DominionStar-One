@@ -88,6 +88,15 @@
     void refreshPresenterLocalParticipantId();
     window.addEventListener('dominion:meeting-snapshot',()=>{void refreshPresenterLocalParticipantId().then(()=>{if(sameRendererPresenter&&share.snapshot().active){publishMacPresenterState();syncMacCameraFramePump();}});});
     window.addEventListener('dominion:remote-media-state',()=>{if(sameRendererPresenter&&share.snapshot().active)publishMacPresenterState();});
+    if(sameRendererPresenter&&macPresenter?.onShowMeeting){
+      macPresenter.onShowMeeting(payload=>{document.body.classList.toggle('ds-native-mac-show-meeting',Boolean(payload?.visible));});
+    }
+    const ensureNativeMeetingVisible=async()=>{
+      if(!sameRendererPresenter||!share.snapshot().active)return;
+      if(document.body.classList.contains('ds-native-mac-show-meeting'))return;
+      try{await macPresenter?.showMeeting?.();}catch{}
+      document.body.classList.add('ds-native-mac-show-meeting');
+    };
     const scheduleMacVideoDockSync=(delay=40)=>{
       if(!sameRendererPresenter)return;
       clearTimeout(macDockSyncTimer);
@@ -562,10 +571,10 @@
           return {handled:true,command};
         }
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
-        if(command==='polls'){window.DominionMeetingTools?.openPolls?.();return {handled:true,command};}
-        if(command==='whiteboard'){window.DominionMeetingTools?.openWhiteboard?.();return {handled:true,command};}
-        if(command==='apps'){window.DominionMeetingTools?.openApps?.();return {handled:true,command};}
-        if(command==='captions'){q('#roomCaptions')?.click();return {handled:true,command};}
+        if(command==='polls'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openPolls?.();return {handled:true,command};}
+        if(command==='whiteboard'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openWhiteboard?.();return {handled:true,command};}
+        if(command==='apps'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openApps?.();return {handled:true,command};}
+        if(command==='captions'){await ensureNativeMeetingVisible();q('#roomCaptions')?.click();return {handled:true,command};}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
         if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return {handled:true,command};}
