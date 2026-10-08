@@ -919,6 +919,11 @@
   }
 
   function updateFilmstripVisibility() {
+    const validTiles=new Set(['self',...state.participants.keys()]);
+    ids.filmstripTrack?.querySelectorAll?.('[data-tile]').forEach(tile=>{
+      const id=String(tile.dataset.tile||'');
+      if(!validTiles.has(id)){cleanupMediaBinding(id);tile.querySelectorAll('video').forEach(video=>{video.srcObject=null;});tile.remove();}
+    });
     const remoteCount = state.participants.size;
     const shouldShow = remoteCount > 0 || state.sharing;
     ids.selfTile.hidden = true;
