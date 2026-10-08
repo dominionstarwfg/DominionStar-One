@@ -202,7 +202,7 @@
     return record;
   }
   function ensurePeer(remoteId){return state.peers.get(remoteId)||createPeerRecord(remoteId);}
-  function isInitiator(remoteId){return String(state.context?.participantId||'').localeCompare(String(remoteId))<0;}
+  function isInitiator(remoteId){return String(state.context?.participantId||'')<String(remoteId||'');}
   function armInitialHandshake(record){
     clearTimeout(record?.handshakeTimer);if(!record||!state.running)return;
     const primary=isInitiator(record.id),attempt=Number(record.handshakeAttempts||0);
