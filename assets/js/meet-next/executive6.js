@@ -808,15 +808,32 @@
     const query = ids.participantSearch.value.trim().toLowerCase();
     const entries = [...state.participants.entries()].map(([id,p])=>({id,p,self:false}));
     entries.push({id:'self',p:{displayName:ids.selfName.textContent||ids.displayName.value||'You',role:state.isHost?'host':state.role,isHost:state.isHost,audio:state.audio,video:state.video},self:true});
+    const priority=item=>{
+      const role=String(item.p.role||(item.p.isHost?'host':'attendee')).toLowerCase().replace('-','');
+      const raised=item.self?Boolean(state.handRaised):Boolean(item.p.handRaised);
+      if(role==='host')return 0;
+      if(role==='cohost')return 100;
+      if(item.id===state.activeSpeakerId)return 200;
+      if(item.self)return 400;
+      if(raised)return 500;
+      if(item.p.audio!==false)return 600;
+      return 700;
+    };
     entries.sort((a,b)=>{
+      const rank=priority(a)-priority(b);if(rank)return rank;
       const aRaised=a.self?Boolean(state.handRaised):Boolean(a.p.handRaised),bRaised=b.self?Boolean(state.handRaised):Boolean(b.p.handRaised);
-      if(aRaised!==bRaised)return aRaised?-1:1;
       if(aRaised&&bRaised){const aAt=a.self?state.handRaisedAt:a.p.handRaisedAt,bAt=b.self?state.handRaisedAt:b.p.handRaisedAt;const queue=Number(aAt||0)-Number(bAt||0);if(queue)return queue;}
-      const rank=roleRank(a.p)-roleRank(b.p); if(rank)return rank;
-      if(a.p.audio!==false && b.p.audio!==false){if(a.id===state.activeSpeakerId)return -1;if(b.id===state.activeSpeakerId)return 1;}
       return String(a.p.displayName||'').localeCompare(String(b.p.displayName||''));
     });
-    ids.participantList.innerHTML=entries.filter(item=>!query||String(item.p.displayName||'').toLowerCase().includes(query)).map(item=>participantRow(item.id,item.p,item.self)).join('');
+    const visible=entries.filter(item=>!query||String(item.p.displayName||'').toLowerCase().includes(query));
+    const renderSignature=visible.map(item=>{
+      const p=item.p||{},connected=item.self||state.presenceMembers.has(item.id);
+      return [item.id,p.displayName||'',p.role||'',p.isHost?'1':'0',p.audio!==false?'1':'0',p.video!==false?'1':'0',p.speaking?'1':'0',Number(p.speakingLevel||0).toFixed(2),p.handRaised?'1':'0',p.handRaisedAt||0,connected?'1':'0',state.pendingParticipantControls.has(`${item.id}:audio`)?'1':'0',state.pendingParticipantControls.has(`${item.id}:video`)?'1':'0',item.self?'1':'0'].join(':');
+    }).join('|')+`|q:${query}`;
+    if(ids.participantList.dataset.renderSignature!==renderSignature){
+      ids.participantList.innerHTML=visible.map(item=>participantRow(item.id,item.p,item.self)).join('');
+      ids.participantList.dataset.renderSignature=renderSignature;
+    }
     syncChatRecipients();
 
     ids.waitingCount.textContent = state.waiting.size;
