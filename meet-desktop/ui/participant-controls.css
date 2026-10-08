@@ -33,8 +33,22 @@
 #meetingOverlay .room-side-head .ds-panel-traffic>.close{background:#ff5f57!important}
 #meetingOverlay .room-side-head .ds-panel-traffic>.min{background:#febc2e!important}
 #meetingOverlay .room-side-head .ds-panel-traffic>.zoom{background:#28c840!important}
-#meetingOverlay .room-side-head:has(.ds-panel-traffic)>div{flex:1 1 auto!important}
+#meetingOverlay .room-side-head:has(.ds-panel-traffic)>div:not(.ds-panel-traffic){flex:1 1 auto!important}
 #meetingOverlay .room-side-head:has(.ds-panel-traffic)>button[aria-label="Close participants"]{display:none!important}
 #meetingOverlay .room-side.ds-panel-minimized{height:48px!important;min-height:48px!important;overflow:hidden!important;resize:none!important}
 #meetingOverlay .room-side.ds-panel-minimized>:not(.room-side-head){display:none!important}
 #meetingOverlay .room-side.ds-panel-wide{width:min(410px,calc(100% - 24px))!important}
+
+
+/* Canonical desktop participant footer. One owner, no transient replacement. */
+#meetingOverlay .room-side .ds-ref-participants-footer{
+  position:absolute;left:0;right:0;bottom:0;z-index:12;
+  min-height:50px;padding:8px 10px;border-top:1px solid #3c3d41;
+  background:#242527;display:flex;align-items:center;gap:9px;
+}
+#meetingOverlay .room-side .ds-ref-participants-footer button{
+  flex:1 1 0;height:32px;min-width:0;padding:0 12px;border:0;border-radius:18px;
+  background:#424348;color:#f2f2f3;font-size:10px;font-weight:600;cursor:pointer;
+}
+#meetingOverlay .room-side .ds-ref-participants-footer button:hover{background:#505156}
+#meetingOverlay .room-side .ds-ref-participants-footer button:disabled{opacity:.55;cursor:wait}

@@ -1,13 +1,33 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;user-select:none}
-.annotation-palette{width:66px;height:100%;padding:5px;display:flex;flex-direction:column;gap:3px;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(28,29,31,.99);box-shadow:0 12px 28px rgba(0,0,0,.45);-webkit-app-region:drag}
-.palette-head{height:13px;display:flex;align-items:center;justify-content:center}.palette-head strong{display:none}.palette-grip{width:20px;height:2px;border-radius:999px;background:rgba(255,255,255,.34)}
-.tool-grid{display:grid;grid-template-columns:1fr;gap:2px}.tool-grid button,.palette-actions button{width:56px;height:42px;padding:2px 0;border:0;border-radius:6px;background:transparent;color:#ececef;display:grid;place-items:center;cursor:pointer;-webkit-app-region:no-drag;transition:background .12s ease,transform .12s ease}.tool-grid button:hover,.palette-actions button:hover{background:rgba(255,255,255,.10)}.tool-grid button.active{background:#3b82f6;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
-.tool-grid button:hover,.palette-actions button:hover,.shape-grid button:hover,.width-row button:hover{background:#3a3b3e}.tool-grid button.active,.shape-grid button.active,.width-row button.active{background:#215fa9;color:#fff}
-.tool-icon{width:19px;height:19px;display:grid;place-items:center}.tool-icon svg,.shape-grid svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}.laser-icon{color:#ff5b55}
-.tool-grid button small,.palette-actions button small{display:block;font-size:8px;line-height:1;color:#d7d8db}.section-label{display:none}.palette-section{padding-top:3px;border-top:1px solid rgba(255,255,255,.09)}
-.width-row,.shape-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;-webkit-app-region:no-drag}.width-row button,.shape-grid button{width:26px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;color:#eee;display:grid;place-items:center;cursor:pointer}
-.stroke{display:block;width:12px;border-radius:999px;background:currentColor}.s1{height:1px}.s2{height:2px}.s3{height:3px}.s4{height:4px}
-.palette-colors{display:grid;grid-template-columns:repeat(4,14px);justify-content:center;gap:2px;padding:2px 0;-webkit-app-region:no-drag}.palette-colors .swatch{width:14px;height:14px;padding:0;border:1px solid rgba(255,255,255,.26);border-radius:50%;cursor:pointer}.palette-colors .swatch.active{box-shadow:0 0 0 1px #fff}.red{background:#ff3b30}.blue{background:#2d8cff}.green{background:#28c76f}.white{background:#fff}
-.palette-actions{margin-top:auto;display:grid;grid-template-columns:1fr;gap:2px;padding-top:3px;border-top:1px solid rgba(255,255,255,.09)}.palette-actions button{height:38px}.palette-actions .done{color:#74dc96}
-button.pending{opacity:.55}.error{box-shadow:inset 0 0 0 1px #ff4e62}
+button{font:inherit}
+.annotation-shell{position:relative;width:100%;height:100%;pointer-events:none}
+.annotation-palette{
+  position:absolute;left:0;top:0;width:52px;height:100%;padding:6px 5px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  border:1px solid rgba(255,255,255,.16);border-radius:10px;background:rgba(28,29,31,.99);
+  box-shadow:0 12px 28px rgba(0,0,0,.45);-webkit-app-region:drag;pointer-events:auto
+}
+.tool{
+  width:40px;height:40px;flex:0 0 40px;padding:0;border:0;border-radius:7px;background:transparent;color:#ececef;
+  display:grid;place-items:center;cursor:pointer;-webkit-app-region:no-drag;transition:background .1s ease,color .1s ease,transform .1s ease
+}
+.tool:hover{background:#3a3b3e}.tool.active{background:#215fa9;color:#fff}.tool.pending{opacity:.55}.tool.error{box-shadow:inset 0 0 0 1px #ff4e62}
+.tool svg,.annotation-flyout svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.tool.laser{color:#ff5b55}.rail-spacer{flex:1 1 auto;min-height:4px}
+.style-trigger{position:relative}.color-dot{width:18px;height:18px;border-radius:50%;background:#ff3b30;border:2px solid rgba(255,255,255,.82)}
+.close-annotation{background:#d93f4c;color:#fff}.close-annotation:hover{background:#ec4b59}.close-annotation svg{stroke-width:2.1}
+
+.annotation-flyout{
+  position:absolute;left:58px;top:170px;width:118px;padding:7px;border:1px solid rgba(255,255,255,.16);border-radius:9px;
+  background:rgba(31,32,34,.99);box-shadow:0 14px 34px rgba(0,0,0,.48);pointer-events:auto;-webkit-app-region:no-drag
+}
+.annotation-flyout[hidden]{display:none}
+.annotation-flyout header{height:24px;display:flex;align-items:center;justify-content:space-between;padding:0 2px 4px;color:#dfe1e5;font-size:10px;font-weight:650}
+.annotation-flyout header button{width:22px;height:22px;padding:0;border:0;border-radius:5px;background:transparent;color:#cfd1d5;font-size:17px;cursor:pointer}
+.annotation-flyout header button:hover{background:#3a3b3e}
+.flyout-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
+.flyout-grid button,.width-row button{height:35px;padding:0;border:0;border-radius:6px;background:transparent;color:#eee;display:grid;place-items:center;cursor:pointer}
+.flyout-grid button:hover,.width-row button:hover{background:#3a3b3e}.flyout-grid button.active,.width-row button.active{background:#215fa9;color:#fff}
+.style-flyout{top:250px}.style-label{margin:4px 2px 5px;color:#aeb1b6;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.width-row{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}.stroke{display:block;width:16px;border-radius:999px;background:currentColor}.s1{height:1px}.s2{height:2px}.s3{height:3px}.s4{height:4px}
+.color-row{display:grid;grid-template-columns:repeat(4,22px);gap:4px;padding:2px 0 1px}.swatch{width:22px;height:22px;padding:0;border:1px solid rgba(255,255,255,.28);border-radius:50%;cursor:pointer}.swatch.active{box-shadow:0 0 0 2px #fff}.red{background:#ff3b30}.blue{background:#2d8cff}.green{background:#28c76f}.white{background:#fff}

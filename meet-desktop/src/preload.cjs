@@ -5,6 +5,7 @@ const presenterCommandCallbacks=new Set();
 let presenterListenerGeneration=0;
 let presenterPollTimer=null;
 let presenterPollBusy=false;
+const PRESENTER_FALLBACK_POLL_MS=250;
 const presenterDeliveryTasks=new Map();
 const captureStartWaiters=new Map();
 let captureStartRequestSeq=0;
@@ -82,7 +83,7 @@ const pollPresenterCommand=async()=>{
 };
 const ensurePresenterPoll=()=>{
   if(process.platform!=='darwin'||presenterPollTimer)return;
-  presenterPollTimer=setInterval(()=>{void pollPresenterCommand();},80);
+  presenterPollTimer=setInterval(()=>{void pollPresenterCommand();},PRESENTER_FALLBACK_POLL_MS);
 };
 const stopPresenterPoll=()=>{if(presenterPollTimer){clearInterval(presenterPollTimer);presenterPollTimer=null;}presenterPollBusy=false;};
 
@@ -115,6 +116,10 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     onChanged:callback=>listen('auth:changed',callback),onError:callback=>listen('auth:error',callback)
   }),
   notifications:Object.freeze({showMeeting:(title,body)=>invoke('notifications:meeting',{title,body}),setWaitingCount:(count,attention=false)=>invoke('notifications:set-waiting-count',{count,attention})}),
+  diagnostics:Object.freeze({
+    system:()=>invoke('diagnostics:system-metrics'),
+    export:report=>invoke('diagnostics:export',{report:report&&typeof report==='object'?report:{}})
+  }),
   media:Object.freeze({
     permissions:()=>invoke('media:get-permissions'),request:kinds=>invoke('media:request-permissions',{kinds:Array.isArray(kinds)?kinds:[]}),requestScreen:()=>invoke('media:request-screen'),openPrivacy:kind=>invoke('media:open-privacy',{kind})
   }),
@@ -143,6 +148,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     qaMessageOnly:()=>invoke('share-capture:qa-message-only'),
     qaDetachedLifecycle:()=>invoke('share-capture:qa-detached-lifecycle'),
     start:payload=>startCaptureWorker(payload||{}),
+    setPaused:paused=>invoke('share-capture:set-paused',{paused:Boolean(paused)}),
     stop:()=>invoke('share-capture:stop'),
     answer:payload=>invoke('share-capture:answer',payload||{}),
     candidate:payload=>invoke('share-capture:client-ice',payload||{}),
@@ -166,6 +172,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
     videoFrame:payload=>{ipcRenderer.send('mac-share:video-frame',payload||{});return true;},
+    onVideoFrame:callback=>listen('mac-share:video-frame',payload=>{if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1')console.error(`QA_MAC_FRAME_RECEIVED participant=${String(payload?.participantId||'')} bytes=${String(payload?.dataUrl||'').length}`);callback(payload);}),
     onShowMeeting:callback=>listen('mac-share:show-meeting',callback)
   })
 }));

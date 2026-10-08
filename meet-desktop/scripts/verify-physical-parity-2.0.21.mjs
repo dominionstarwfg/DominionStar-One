@@ -77,7 +77,11 @@ requireText(shareIntegration,'function commitPresenterMode()','Share integration
 requireText(shareIntegration,'markCaptureProven();applyLayout();','Share stage must mount before presenter commit.');
 requireText(shareIntegration,'commitPresenterMode();','Initial Share does not explicitly commit presenter mode.');
 requireText(shareIntegration,"const sameRendererPresenter=String(environment?.platform||'')==='darwin'",'macOS same-renderer presenter detection is missing.');
-requireText(shareIntegration,"if(!sameRendererPresenter)bridge?.presenterCommitted?.(",'macOS presenter commit must remain in the share-owning renderer.');
+requireText(shareIntegration,"if(sameRendererPresenter){",'macOS presenter commit must remain in the share-owning renderer.');
+requireText(shareIntegration,'publishMacPresenterState();','macOS presenter commit must publish presenter state locally.');
+requireText(shareIntegration,'syncLocalPresenterMirror();','macOS presenter commit must synchronize the already-owned camera mirror.');
+requireText(shareIntegration,'syncMacCameraFramePump();','macOS presenter commit must start presenter camera transport locally.');
+requireText(shareIntegration,"else bridge?.presenterCommitted?.(",'Non-macOS presenter commit must retain the one-way bridge.');
 requireText(preload,"ipcRenderer.send('share:presenter-committed'",'Non-macOS presenter commit bridge must remain one-way IPC.');
 const presenterCommitted=shareService.slice(
   shareService.indexOf("ipcMain.on('share:presenter-committed'"),
@@ -131,8 +135,8 @@ requireText(parity,"['gallery',sharing()?'Side-by-side: Gallery':'Gallery']",'Vi
 requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']",'View menu is missing Multi-speaker.');
 
 // Participant management remains readable/draggable; video filmstrip is separate.
-requireText(adaptive,"search.hidden=count<=1",'One-person participant panel still exposes unnecessary search.');
-requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
+requireText(adaptive,'Participant search visibility is owned exclusively by DominionZoomParticipantsReference2041.','One-person participant search must remain under the single canonical reference owner.');
+requireText(adaptive,"if(window.dominionDesktop)return;",'Desktop adaptive parity must remain read-only so it cannot mutate participant/search/waiting-room chrome.');
 requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep self first.');
 requireText(adaptive,"else if(role==='host')bucket=1",'Participant ordering does not prioritize host.');
 requireText(adaptive,"else if(role==='cohost')bucket=2",'Participant ordering does not prioritize co-host.');

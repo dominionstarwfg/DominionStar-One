@@ -114,8 +114,8 @@ try{
   })()`);await settle(300);
 
   // 03 MEETING.
-  proof.screens.meeting=await evaluate(`(()=>({toolbar:[...document.querySelectorAll('#meetingOverlay .meeting-footer .ds-control-label')].map(n=>n.textContent.trim()),head:Boolean(document.querySelector('.ds-ref-meeting-head-icons')),footerHeight:Math.round(document.querySelector('.meeting-footer').getBoundingClientRect().height)}))()`);
-  if(!proof.screens.meeting.head||proof.screens.meeting.footerHeight<50)throw new Error(`Meeting proof failed ${JSON.stringify(proof.screens.meeting)}`);
+  proof.screens.meeting=await evaluate(`(()=>({toolbar:[...document.querySelectorAll('#meetingOverlay .meeting-footer .ds-control-label')].map(n=>n.textContent.trim()),view:Boolean(document.querySelector('#meetingViewButton')),brand:Boolean(document.querySelector('.ds-meeting-brand')),encrypted:Boolean(document.querySelector('.ds-approved-encryption')),footerHeight:Math.round(document.querySelector('.meeting-footer').getBoundingClientRect().height)}))()`);
+  if(!proof.screens.meeting.view||!proof.screens.meeting.brand||!proof.screens.meeting.encrypted||proof.screens.meeting.footerHeight<50)throw new Error(`Meeting proof failed ${JSON.stringify(proof.screens.meeting)}`);
   await screenshot('03-meeting.png');
 
   // 04 PARTICIPANTS — one canonical media set only.
@@ -153,39 +153,37 @@ try{
   if(proof.screens.preshare.apple||!proof.screens.preshare.presenter||!proof.screens.preshare.tabs.includes('Screens'))throw new Error(`Preshare proof failed ${JSON.stringify(proof.screens.preshare)}`);
   await screenshot('08-preshare.png');
 
-  // Return to meeting page for active-share visual state. Functional capture is
-  // certified separately; this fixture proves only packaged presenter geometry.
+  // Return to meeting page and prove the native-mac share renderer stays clean.
+  // The actual floating presenter toolbar and video panel are captured separately
+  // from their real native presenter BrowserWindows below in the workflow.
   const meetingUrl=await evaluate(`new URL('./index.html',location.href).href`);await cdp('Page.navigate',{url:meetingUrl});
   await waitFor("document.readyState==='complete'&&window.DominionZoomScreenshotReference&&document.querySelector('#meetingOverlay')",'meeting page after preshare proof');
   await waitFor("document.querySelector('#bootScreen').hidden&&(document.querySelector('#appShell').hidden!==document.querySelector('#authGate').hidden)",'auth bootstrap after preshare proof');
   await settle(700);
   await evaluate(`(()=>{
     document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;
-    const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;overlay.classList.add('share-active');document.querySelector('#roomRole').textContent='Host';document.querySelector('#roomTitle').textContent='QA Member’s Personal Meeting Room';
+    const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;document.querySelector('#roomRole').textContent='Host';document.querySelector('#roomTitle').textContent='QA Member’s Personal Meeting Room';
     window.DominionMeetingParity?.install?.();window.DominionApprovedReferenceParity?.sync?.();window.DominionRuntimeStability?.sync?.();
-    let toolbar=document.querySelector('#inlinePresenterToolbar');if(!toolbar){toolbar=document.createElement('div');toolbar.id='inlinePresenterToolbar';toolbar.className='inline-presenter-toolbar';toolbar.innerHTML='<div class="inline-presenter-status"></div><div class="inline-presenter-actions"><button data-inline-command="audio">Audio</button><button data-inline-command="video">Video</button><button data-inline-command="participants">Participants</button><button data-inline-command="chat">Chat</button><button data-inline-command="pause">Pause</button><button data-inline-command="annotate">Annotate</button><button data-inline-command="new-share">Share</button><button class="stop" data-inline-command="stop">Stop Share</button></div>';overlay.append(toolbar);}
     const liveIntegration=window.DominionShareIntegration;
     if(liveIntegration){
       window.__DominionQaOriginalShareIntegration=liveIntegration;
       Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:{...liveIntegration,state:()=>({active:true})}});
     }
-    overlay.classList.add('share-active');
+    overlay.classList.add('share-active','ds-ref-presenter-visible');
     window.DominionZoomScreenshotReference.sync();
-    overlay.classList.add('ds-ref-presenter-visible');
-    let dock=document.querySelector('#participantVideoDock');if(dock){dock.hidden=false;let body=dock.querySelector('.participant-video-dock-body')||dock;body.innerHTML='<div class="remote-peer-tile" data-peer-id="qa"><div class="remote-peer-fallback">QM</div><div class="remote-peer-name">QA Member</div></div>';}
     return true;
   })()`);
-  await waitFor("Number(getComputedStyle(document.querySelector('#inlinePresenterToolbar')).opacity)>=.95",'active share presenter visible');await settle(40);
-  proof.screens.activeShare=await evaluate(`(()=>({toolbarVisible:getComputedStyle(document.querySelector('#inlinePresenterToolbar')).opacity,banner:Boolean(document.querySelector('.ds-ref-share-banner:not([hidden])')),labels:[...document.querySelectorAll('#inlinePresenterToolbar button')].map(n=>n.textContent.trim()),dock:Boolean(document.querySelector('#participantVideoDock')&&!document.querySelector('#participantVideoDock').hidden)}))()`);
-  if(Number(proof.screens.activeShare.toolbarVisible)<.9||!proof.screens.activeShare.banner||!proof.screens.activeShare.labels.includes('Layout'))throw new Error(`Active share proof failed ${JSON.stringify(proof.screens.activeShare)}`);
-  await screenshot('09-active-share-toolbar.png');
+  await waitFor("(()=>{const inline=document.querySelector('#inlinePresenterToolbar'),banner=document.querySelector('.ds-ref-share-banner'),overlay=document.querySelector('#meetingOverlay');return (!inline||inline.hidden||getComputedStyle(inline).display==='none'||Number(getComputedStyle(inline).opacity||0)<.05)&&(!banner||banner.hidden||getComputedStyle(banner).display==='none')&&!overlay.classList.contains('share-active');})()",'native Mac renderer share chrome suppressed');await settle(80);
+  proof.screens.activeShare=await evaluate(`(()=>{const inline=document.querySelector('#inlinePresenterToolbar'),banner=document.querySelector('.ds-ref-share-banner'),overlay=document.querySelector('#meetingOverlay');return {inlineSuppressed:!inline||inline.hidden||getComputedStyle(inline).display==='none'||Number(getComputedStyle(inline).opacity||0)<.05,bannerSuppressed:!banner||banner.hidden||getComputedStyle(banner).display==='none',legacyShareLayout:overlay.classList.contains('share-active')};})()`);
+  if(!proof.screens.activeShare.inlineSuppressed||!proof.screens.activeShare.bannerSuppressed||proof.screens.activeShare.legacyShareLayout)throw new Error(`Native share renderer proof failed ${JSON.stringify(proof.screens.activeShare)}`);
+  await screenshot('09-native-share-renderer-clean.png');
 
-  // 10 ACTIVE SHARE IDLE — allow the production 1.65s pointer-reveal timer to
-  // expire naturally, then assert that the toolbar no longer intercepts input.
-  await evaluate(`document.querySelector('#meetingOverlay').classList.remove('ds-ref-presenter-visible')`);await settle(1900);
-  proof.screens.activeShareIdle=await evaluate(`(()=>({opacity:getComputedStyle(document.querySelector('#inlinePresenterToolbar')).opacity,pointer:getComputedStyle(document.querySelector('#inlinePresenterToolbar')).pointerEvents,dock:Boolean(document.querySelector('#participantVideoDock')&&!document.querySelector('#participantVideoDock').hidden)}))()`);
-  if(Number(proof.screens.activeShareIdle.opacity)>.1||proof.screens.activeShareIdle.pointer!=='none')throw new Error(`Active share idle proof failed ${JSON.stringify(proof.screens.activeShareIdle)}`);
-  await screenshot('10-active-share-idle.png');
+  // 10 NATIVE SHARE RENDERER STABILITY — remain clean after the old presenter
+  // reveal/idle timers would have fired. No legacy toolbar/banner may flash back.
+  await settle(1900);
+  proof.screens.activeShareIdle=await evaluate(`(()=>{const inline=document.querySelector('#inlinePresenterToolbar'),banner=document.querySelector('.ds-ref-share-banner'),overlay=document.querySelector('#meetingOverlay');return {inlineSuppressed:!inline||inline.hidden||getComputedStyle(inline).display==='none'||Number(getComputedStyle(inline).opacity||0)<.05,bannerSuppressed:!banner||banner.hidden||getComputedStyle(banner).display==='none',legacyShareLayout:overlay.classList.contains('share-active')};})()`);
+  if(!proof.screens.activeShareIdle.inlineSuppressed||!proof.screens.activeShareIdle.bannerSuppressed||proof.screens.activeShareIdle.legacyShareLayout)throw new Error(`Native share renderer idle proof failed ${JSON.stringify(proof.screens.activeShareIdle)}`);
+  await screenshot('10-native-share-renderer-stable.png');
   await evaluate(`(()=>{const original=window.__DominionQaOriginalShareIntegration;if(original){Object.defineProperty(window,'DominionShareIntegration',{configurable:true,writable:true,value:original});delete window.__DominionQaOriginalShareIntegration;window.DominionZoomScreenshotReference?.sync?.();}return true;})()`);
 
   fs.writeFileSync(path.join(outputDir,'visual-proof.json'),JSON.stringify(proof,null,2));
