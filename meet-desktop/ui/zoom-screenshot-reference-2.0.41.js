@@ -109,16 +109,12 @@
     try{const area=document.createElement('textarea');area.value=value;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.append(area);area.select();const ok=document.execCommand?.('copy')!==false;area.remove();return Boolean(ok);}catch{return false;}
   }
   function flashFooterButton(button,text,reset,delay=1500){if(!button)return;clearTimeout(Number(button.dataset.dsFlashTimer)||0);button.textContent=text;button.dataset.dsFlashTimer=String(setTimeout(()=>{button.textContent=reset;},delay));}
-  function openParticipantInvite(anchor){
+  async function openParticipantInvite(anchor){
     closeParticipantInvite();closeParticipantBulk();
-    const side=q('#meetingOverlay .room-side');if(!side||side.hidden)return;
+    const authority=window.DominionMeetingLifecycleAuthority;
+    if(authority?.openInvite){await authority.openInvite();return anchor;}
     const info=String(q('#roomCodeLabel')?.textContent||'').trim();
-    participantInviteMenu=document.createElement('div');participantInviteMenu.className='ds-ref-invite-menu';
-    participantInviteMenu.innerHTML='<strong>Invite to meeting</strong><p data-invite-info></p><div><button type="button" data-copy>Copy invitation</button><button type="button" data-close>Close</button></div>';
-    side.append(participantInviteMenu);participantInviteMenu.style.right='8px';participantInviteMenu.style.bottom='52px';
-    participantInviteMenu.querySelector('[data-invite-info]').textContent=info||'Meeting information is not available yet.';
-    participantInviteMenu.querySelector('[data-copy]').onclick=async event=>{const ok=await copyParticipantInvite(info);flashFooterButton(event.currentTarget,ok?'Copied':'Copy failed','Copy invitation');};
-    participantInviteMenu.querySelector('[data-close]').onclick=closeParticipantInvite;
+    if(info)await copyParticipantInvite(info);
     return anchor;
   }
   function ensureParticipantsFooter(){
@@ -130,7 +126,7 @@
     footer=document.createElement('div');footer.className='ds-ref-participants-footer';footer.dataset.dsCanonicalParticipantFooter='1';
     footer.innerHTML='<button type="button" data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more aria-label="More participant controls">More</button>';
     side.append(footer);
-    footer.querySelector('[data-ref-invite]').onclick=event=>openParticipantInvite(event.currentTarget);
+    footer.querySelector('[data-ref-invite]').onclick=event=>void openParticipantInvite(event.currentTarget);
     footer.querySelector('[data-ref-mute-all]').onclick=async event=>{
       const button=event.currentTarget;
       const result=await participants()?.sendAll?.('host:mute');
