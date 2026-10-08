@@ -205,6 +205,7 @@
     if(type==='bye')return ['meet-left',base];
     if(type==='chat')return ['meet-chat',base];
     if(type==='reaction')return ['meet-reaction',base];
+    if(type==='screen-state')return ['meet-screen-state',{...base,participantId:from,active:Boolean(base.active),paused:Boolean(base.paused)}];
     const hostAction={
       'host:mute':'mute',
       'host:ask-unmute':'request-unmute',
