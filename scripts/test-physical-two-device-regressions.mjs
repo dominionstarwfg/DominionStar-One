@@ -7,6 +7,7 @@ const engine = read('assets/js/meeting-engine.js');
 const app = read('meet-desktop/ui/app.js');
 const physical = read('meet-desktop/ui/zoom-physical-acceptance.js');
 const participantControls = read('meet-desktop/ui/participant-controls.js');
+const desktopWebrtc = read('meet-desktop/ui/webrtc-controller.js');
 const parity = read('meet-desktop/ui/meeting-parity.js');
 const behavior = read('meet-desktop/ui/zoom-behavior.js');
 const reference = read('meet-desktop/ui/zoom-screenshot-reference-2.0.41.js');
@@ -20,6 +21,9 @@ assert(engine.includes('serializeSessionDescription(peer.localDescription)'), 'B
 assert(engine.includes("if(type==='chat')return ['meet-chat',base]"), 'Desktop-to-browser V2 chat is not translated into the browser meeting engine.');
 assert(engine.includes("'host:mute':'mute'"), 'Desktop host mute control is not translated into browser moderation.');
 assert(engine.includes("event==='meet-chat'||event==='meet-reaction'"), 'Browser-to-desktop chat/reaction does not fan out through V2.');
+assert(engine.includes("if(type==='screen-state')return ['meet-screen-state'"), 'Desktop screen-share state is not translated into browser presentation state.');
+assert(desktopWebrtc.includes("meeting.sendSignal(remoteId,'screen-state'"), 'Desktop WebRTC does not publish screen-share state to browser participants.');
+assert(desktopWebrtc.includes('broadcastShareState(snapshot)'), 'Desktop share changes do not fan out presentation state to connected peers.');
 
 assert(!physical.includes("wrap.className='ds-participant-media'"), 'Physical participant renderer recreates the rejected duplicate media strip.');
 assert(physical.includes("row.querySelector('.participant-media-state')"), 'Physical participant renderer is not reusing the canonical media strip.');
