@@ -190,19 +190,34 @@
   function createPeerRecord(remoteId){
     if(!validIceConfig())throw new Error('ice_configuration_unavailable');
     const pc=new RTCPeerConnection(iceConfiguration());
-    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,reconnectTimer:0,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown',remoteShareSignaled:false,remoteShareStream:null};
-    state.peers.set(remoteId,record);ensureTile(remoteId);
+    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,reconnectTimer:0,handshakeTimer:0,handshakeAttempts:0,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown',remoteShareSignaled:false,remoteShareStream:null};
+    state.peers.set(remoteId,record);ensureTile(remoteId);queueMicrotask(()=>armInitialHandshake(record));
     pc.onicecandidate=event=>{if(event.candidate)void meeting.sendSignal(remoteId,'ice',{candidate:event.candidate.toJSON?.()||event.candidate}).catch(()=>{});};
     pc.onicecandidateerror=()=>setTransportStatus('Network path retrying','warning');
     pc.ontrack=event=>handleRemoteTrack(record,event);
     pc.onconnectionstatechange=()=>{
       const status=pc.connectionState;setTileState(remoteId,status==='connected'?'Connected':status==='connecting'?'Connecting…':status);
-      if(status==='failed'||status==='closed'){showRecovery();void loadIceConfig(true).catch(()=>{});scheduleReconnect(record,0);}else if(status==='disconnected'){showRecovery();scheduleReconnect(record,RECONNECT_MS);}else if(status==='connected'){clearTimeout(record.reconnectTimer);record.reconnectTimer=0;if([...state.peers.values()].every(item=>item.pc.connectionState==='connected'))hideRecovery();}
+      if(status==='failed'||status==='closed'){clearTimeout(record.handshakeTimer);record.handshakeTimer=0;showRecovery();void loadIceConfig(true).catch(()=>{});scheduleReconnect(record,0);}else if(status==='disconnected'){showRecovery();scheduleReconnect(record,RECONNECT_MS);}else if(status==='connected'){clearTimeout(record.reconnectTimer);clearTimeout(record.handshakeTimer);record.reconnectTimer=0;record.handshakeTimer=0;record.handshakeAttempts=0;if([...state.peers.values()].every(item=>item.pc.connectionState==='connected'))hideRecovery();}
     };
     return record;
   }
   function ensurePeer(remoteId){return state.peers.get(remoteId)||createPeerRecord(remoteId);}
   function isInitiator(remoteId){return String(state.context?.participantId||'').localeCompare(String(remoteId))<0;}
+  function armInitialHandshake(record){
+    clearTimeout(record?.handshakeTimer);if(!record||!state.running)return;
+    const primary=isInitiator(record.id),attempt=Number(record.handshakeAttempts||0);
+    const delay=primary?Math.min(11000,5200+(attempt*2200)):12000;
+    record.handshakeTimer=setTimeout(async()=>{
+      if(!state.running||state.peers.get(record.id)!==record||record.pc.connectionState==='connected')return;
+      setTileState(record.id,'Connecting…');
+      try{await pullSignals();await syncLocalTracks(record);}catch{}
+      if(primary&&record.pc.signalingState==='stable'){
+        record.handshakeAttempts=attempt+1;
+        try{record.pc.restartIce?.();await initiate(record,true);}catch{}
+      }
+      if(state.peers.get(record.id)===record&&record.pc.connectionState!=='connected'&&Number(record.handshakeAttempts||0)<4)armInitialHandshake(record);
+    },delay);
+  }
   function prepareOfferer(record){
     if(record.transceivers.length)return;
     record.transceivers=[
@@ -321,7 +336,7 @@
     if(!state.running||record.reconnectTimer)return;record.reconnectTimer=setTimeout(()=>{record.reconnectTimer=0;const id=record.id;closePeer(id,false);if(state.participants.has(id)){try{const next=ensurePeer(id);if(isInitiator(id))void initiate(next).catch(()=>scheduleReconnect(next,RECONNECT_MS));}catch{setTransportStatus('Network path unavailable','error');}}},Math.max(0,delay));
   }
   function closePeer(id,remove=true){
-    const record=state.peers.get(id);if(!record)return;clearTimeout(record.reconnectTimer);try{record.pc.ontrack=null;record.pc.onicecandidate=null;record.pc.close();}catch{}try{record.audioContext?.close?.();}catch{}state.peers.delete(id);state.remoteMedia.delete(String(id));window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:String(id),micOn:false,cameraOn:false,disconnected:true}}));hideRemoteShare(id);if(remove)removeTile(id);
+    const record=state.peers.get(id);if(!record)return;clearTimeout(record.reconnectTimer);clearTimeout(record.handshakeTimer);try{record.pc.ontrack=null;record.pc.onicecandidate=null;record.pc.close();}catch{}try{record.audioContext?.close?.();}catch{}state.peers.delete(id);state.remoteMedia.delete(String(id));window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:String(id),micOn:false,cameraOn:false,disconnected:true}}));hideRemoteShare(id);if(remove)removeTile(id);
   }
   async function reconcileParticipants(){
     if(!state.context?.roomId)return;await touchPresence();const snapshot=await meeting.snapshot(state.context.roomId);const current=new Map();
