@@ -37,6 +37,7 @@ assert(desktopWebrtc.includes('showRemoteShare(id,stream)'), 'Desktop remote scr
 
 
 assert(desktopWebrtc.includes('function armInitialHandshake(record)'), 'Desktop peer can remain stuck in Connecting without an initial-handshake watchdog.');
+assert(desktopWebrtc.includes("function isInitiator(remoteId){return String(state.context?.participantId||'')<String(remoteId||'');}"), 'Desktop/browser offerer ordering can diverge and leave both peers waiting.');
 assert(engine.includes('armInitialPeerHandshake'), 'Browser peer can remain stuck in Connecting without an initial-handshake watchdog.');
 assert(!engine.includes("if(members.length)emit('presence'"), 'Browser V2 snapshot still suppresses the empty presence update and can leave a ghost participant.');
 assert(desktopWebrtc.includes('screenTrackId:active?String(screenTrack?.id'), 'Desktop screen-state does not publish screen track identity to browser viewers.');
