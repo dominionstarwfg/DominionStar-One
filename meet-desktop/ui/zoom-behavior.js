@@ -98,6 +98,8 @@
   function installLeaveGuard(){
     const button=q('#roomExitButton');if(!button||button.dataset.dsZoomLeaveGuard)return;
     button.dataset.dsZoomLeaveGuard='1';
+    button.setAttribute('aria-label',role()==='host'?'End or leave meeting':'Leave meeting');
+    if(window.DominionMeetingLifecycleAuthority)return;
     button.addEventListener('click',event=>{
       if(role()!=='host')return;
       event.preventDefault();event.stopImmediatePropagation();
