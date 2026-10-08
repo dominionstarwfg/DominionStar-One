@@ -553,6 +553,10 @@
           return {handled:true,command};
         }
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
+        if(command==='polls'){window.DominionMeetingTools?.openPolls?.();return {handled:true,command};}
+        if(command==='whiteboard'){window.DominionMeetingTools?.openWhiteboard?.();return {handled:true,command};}
+        if(command==='apps'){window.DominionMeetingTools?.openApps?.();return {handled:true,command};}
+        if(command==='captions'){q('#roomCaptions')?.click();return {handled:true,command};}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
         if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return {handled:true,command};}
