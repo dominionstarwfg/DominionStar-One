@@ -80,6 +80,15 @@ jobs:
           grep -Fq "if (!payload || payload.roomId !== state.roomId" assets/js/meeting-engine.js
           echo "DOMINIONSTAR_BROWSER_V2_SIGNAL_ROOM_IDENTITY_OK"
 
+      - name: Exercise real browser meeting engine with two clients
+        run: node scripts/test-two-client-authority.mjs
+
+      - name: Exercise two-client presentation arbitration
+        run: node scripts/test-share-arbitration-two-client.mjs
+
+      - name: Exercise two-client spotlight behavior
+        run: node scripts/test-share-spotlight-two-client.mjs
+
       - name: Install pinned Playwright runtime
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
 
