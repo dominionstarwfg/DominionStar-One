@@ -20,6 +20,7 @@ const browserIndex = read('meet/index.html');
 const presenterToolbar = read('meet-desktop/ui/mac-presenter-toolbar.html');
 const presenterOverlay = read('meet-desktop/src/mac-share-presenter-overlay.mjs');
 const shareIntegration = read('meet-desktop/ui/share-integration.js');
+const shareCss = read('meet-desktop/ui/share.css');
 
 assert(engine.includes('serializeIceCandidate'), 'Browser meeting engine does not serialize ICE candidates for V2 RPC.');
 assert(engine.includes('candidate:serializeIceCandidate(candidate)'), 'Browser ICE candidate still crosses RPC as a raw RTCIceCandidate.');
@@ -51,6 +52,7 @@ assert(presenterToolbar.includes('data-command="polls"')&&presenterToolbar.inclu
 assert(shareIntegration.includes("if(command==='polls')")&&shareIntegration.includes("if(command==='whiteboard')")&&shareIntegration.includes("if(command==='apps')"), 'Presenter meeting tools are not routed into the live meeting.');
 assert(shareIntegration.includes('desktop?.share?.captureStopped?.()'), 'Stopped sharing does not explicitly tear down native presenter/perimeter chrome.');
 assert(presenterOverlay.includes('if(shareActive)positionVideo({preservePosition:priorDisplay===nextDisplay});'), 'Native presenter video panel can retain stretched blank geometry instead of following participant count.');
+assert(shareCss.includes('body.ds-native-mac-presenter-share #remoteTileStrip')&&shareCss.includes('body.ds-native-mac-presenter-share #participantVideoDock'), 'Native sharing can expose a second renderer participant-video surface alongside the presenter panel.');
 
 assert(!physical.includes("wrap.className='ds-participant-media'"), 'Physical participant renderer recreates the rejected duplicate media strip.');
 assert(physical.includes("row.querySelector('.participant-media-state')"), 'Physical participant renderer is not reusing the canonical media strip.');
