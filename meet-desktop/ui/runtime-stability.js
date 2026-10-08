@@ -488,11 +488,11 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel===chat?330:318;
+      const baseWidth=panel===chat?330:392;
       const participantCount=participantRows().length;
-      const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));
+      const participantBaseHeight=Math.min(486,Math.max(438,112+(Math.max(1,participantCount)*48)+(participantCount>=7?40:0)));
       const baseHeight=panel===chat?440:participantBaseHeight;
-      const minPanelHeight=panel===chat?300:390;
+      const minPanelHeight=panel===chat?300:438;
       const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
       panel.dataset.dsRuntimeMode='floating';
