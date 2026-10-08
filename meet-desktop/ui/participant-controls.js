@@ -246,24 +246,38 @@
     }
   }
 
+  function openBulkParticipantMenu(anchor){
+    closeMenu();
+    menu=document.createElement('div');menu.className='participant-control-menu ds-participant-bulk-menu';
+    const add=(label,type)=>{const button=document.createElement('button');button.type='button';button.textContent=label;button.onclick=()=>{closeMenu();void sendAll(type);};menu.append(button);};
+    add('Ask All to Unmute','host:ask-unmute');
+    add('Stop Video for All','host:stop-video');
+    add('Ask All to Start Video','host:ask-start-video');
+    add('Lower All Hands','host:lower-hand');
+    document.body.append(menu);
+    const rect=anchor?.getBoundingClientRect?.()||{left:innerWidth-250,top:innerHeight-80,width:60};
+    const width=230,left=Math.max(10,Math.min(innerWidth-width-10,rect.left+rect.width-width));
+    menu.style.left=`${Math.round(left)}px`;menu.style.top='auto';menu.style.bottom=`${Math.max(10,Math.round(innerHeight-rect.top+7))}px`;
+  }
+
   function syncPanelActions(){
     const side=q('.room-side');if(!side)return;
-    let footer=q('#participantBulkActions');
-    // Desktop uses one approved participant footer owned by the participant-reference layer.
-    // Do not recreate the legacy five-button bulk strip or it races the reference footer.
-    if(desktopSurface){footer?.remove();return;}
+    let footer=side.querySelector('[data-ds-canonical-participant-footer="1"]');
+    q('#participantBulkActions')?.remove();
+    if(!desktopSurface){
+      if(!canManage()){footer?.remove();return;}
+      return;
+    }
     if(!canManage()){footer?.remove();return;}
     if(!footer){
-      footer=document.createElement('div');footer.id='participantBulkActions';footer.className='participant-bulk-actions';
-      footer.innerHTML='<button type="button" data-mute-all>Mute All</button><button type="button" data-ask-all>Ask All to Unmute</button><button type="button" data-stop-video-all>Stop Video for All</button><button type="button" data-ask-video-all>Ask All to Start Video</button><button type="button" data-lower-hands>Lower All Hands</button>';
+      footer=document.createElement('div');footer.className='ds-ref-participants-footer';footer.dataset.dsCanonicalParticipantFooter='1';
+      footer.innerHTML='<button type="button" data-ds-invite>Invite</button><button type="button" data-ds-mute-all>Mute all</button><button type="button" data-ds-participant-more>More</button>';
       side.append(footer);
-      footer.querySelector('[data-mute-all]').onclick=()=>void sendAll('host:mute');
-      footer.querySelector('[data-ask-all]').onclick=()=>void sendAll('host:ask-unmute');
-      footer.querySelector('[data-stop-video-all]').onclick=()=>void sendAll('host:stop-video');
-      footer.querySelector('[data-ask-video-all]').onclick=()=>void sendAll('host:ask-start-video');
-      footer.querySelector('[data-lower-hands]').onclick=()=>void sendAll('host:lower-hand');
+      footer.querySelector('[data-ds-invite]').onclick=event=>{event.preventDefault();event.stopPropagation();void window.DominionMeetingLifecycleAuthority?.openInvite?.();};
+      footer.querySelector('[data-ds-mute-all]').onclick=()=>void sendAll('host:mute');
+      footer.querySelector('[data-ds-participant-more]').onclick=event=>{event.preventDefault();event.stopPropagation();openBulkParticipantMenu(event.currentTarget);};
     }
-    qa('#participantBulkActions button').forEach(b=>b.disabled=busy);
+    footer.querySelectorAll('button').forEach(button=>button.disabled=busy);
   }
 
   function ensurePanelChrome(){
