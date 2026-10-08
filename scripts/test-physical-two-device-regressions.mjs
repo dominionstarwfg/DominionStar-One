@@ -6,6 +6,7 @@ const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'ut
 const engine = read('assets/js/meeting-engine.js');
 const app = read('meet-desktop/ui/app.js');
 const physical = read('meet-desktop/ui/zoom-physical-acceptance.js');
+const participantControls = read('meet-desktop/ui/participant-controls.js');
 const parity = read('meet-desktop/ui/meeting-parity.js');
 const behavior = read('meet-desktop/ui/zoom-behavior.js');
 const reference = read('meet-desktop/ui/zoom-screenshot-reference-2.0.41.js');
@@ -16,6 +17,9 @@ const lifecycle = read('meet-desktop/ui/meeting-lifecycle-authority.js');
 assert(engine.includes('serializeIceCandidate'), 'Browser meeting engine does not serialize ICE candidates for V2 RPC.');
 assert(engine.includes('candidate:serializeIceCandidate(candidate)'), 'Browser ICE candidate still crosses RPC as a raw RTCIceCandidate.');
 assert(engine.includes('serializeSessionDescription(peer.localDescription)'), 'Browser SDP still crosses RPC as a raw RTCSessionDescription.');
+assert(engine.includes("if(type==='chat')return ['meet-chat',base]"), 'Desktop-to-browser V2 chat is not translated into the browser meeting engine.');
+assert(engine.includes("'host:mute':'mute'"), 'Desktop host mute control is not translated into browser moderation.');
+assert(engine.includes("event==='meet-chat'||event==='meet-reaction'"), 'Browser-to-desktop chat/reaction does not fan out through V2.');
 
 assert(!physical.includes("wrap.className='ds-participant-media'"), 'Physical participant renderer recreates the rejected duplicate media strip.');
 assert(physical.includes("row.querySelector('.participant-media-state')"), 'Physical participant renderer is not reusing the canonical media strip.');
@@ -32,7 +36,9 @@ assert(lifecycle.includes("End Meeting for All"), 'Canonical exit dialog lost En
 assert(lifecycle.includes("Leave Meeting"), 'Canonical exit dialog lost Leave Meeting.');
 assert(lifecycle.includes("openInvite"), 'Canonical lifecycle authority lost persistent Invite.');
 assert(lifecycle.includes("Copy Invitation"), 'Invite dialog does not expose invitation copy.');
-assert(reference.includes('DominionMeetingLifecycleAuthority') && reference.includes('openInvite'), 'Participant footer Invite does not route to persistent lifecycle authority.');
+assert(reference.includes('DominionMeetingLifecycleAuthority') && reference.includes('openInvite'), 'Reference participant footer Invite does not route to persistent lifecycle authority.');
+assert(participantControls.includes("data-ds-canonical-participant-footer"), 'Loaded participant controls do not own a stable canonical footer.');
+assert(participantControls.includes("DominionMeetingLifecycleAuthority?.openInvite?.()"), 'Loaded participant footer Invite does not route to persistent lifecycle authority.');
 
 assert(parity.includes('function dedupeVideoDockTiles()'), 'Participant video dock has no duplicate-participant guard.');
 assert(parity.includes('dedupeVideoDockTiles();const mode=readView()'), 'Participant video dock does not dedupe before layout.');
