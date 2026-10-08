@@ -97,12 +97,12 @@ jobs:
           grep -Fq 'DominionStar Meet' meet-desktop/ui/index.html
           ! cmp -s index.html meet-desktop/ui/index.html
           echo DOMINIONSTAR_PUBLIC_AND_MEET_BOUNDARY_OK
-      - name: Assert legacy runtime is absent
+      - name: Assert deprecated desktop runtime is absent
         run: |
           test ! -e desktop
           test ! -e 'desktop 2'
           test ! -e meet
           test ! -e meet-home
           test ! -e meet-login
-          test ! -e assets/js/meeting-engine.js
+          # assets/js/meeting-engine.js is the intentional browser Meet runtime.
           echo DOMINIONSTAR_REBUILD_LEGACY_ABSENT_OK
