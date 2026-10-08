@@ -16,25 +16,23 @@
   <main id="app" class="app" data-phase="prejoin">
     <section id="prejoin" class="prejoin" data-flow="dashboard" aria-label="Join DominionStar Meet">
       <div class="brand"><img src="/assets/logo.jpeg" alt=""><span>DOMINIONSTAR MEET</span></div>
-      <section id="meetDashboard" class="meet-dashboard" aria-label="Meet dashboard">
-        <div class="meet-dashboard-heading">
-          <a class="back-to-dashboard" href="/member-dashboard/" aria-label="Back to DominionStar dashboard">← Back to Dashboard</a>
-          <div><p class="eyebrow">DOMINIONSTAR MEET</p><h1>Meetings</h1><p>Start, join, or schedule in one place.</p></div>
-          <div id="dashboardIdentity" class="dashboard-identity" hidden></div>
-        </div>
-        <div class="meet-action-grid">
-          <button type="button" id="newMeetingAction" class="meet-action-card primary-action"><span class="action-icon" data-action-icon="video-plus"></span><strong>New Meeting</strong><small>Start instantly</small></button>
-          <button type="button" id="shareScreenAction" class="meet-action-card share-action"><span class="action-icon" data-action-icon="share-screen"></span><strong>Share Screen</strong><small>Start and present</small></button>
-          <button type="button" id="personalMeetingAction" class="meet-action-card personal-action"><span class="action-icon" data-action-icon="personal-room"></span><strong>Personal Room</strong><small>Your permanent link</small></button>
-          <button type="button" id="joinMeetingAction" class="meet-action-card"><span class="action-icon" data-action-icon="join"></span><strong>Join</strong><small>Use meeting ID</small></button>
-          <button type="button" id="scheduleMeetingAction" class="meet-action-card"><span class="action-icon" data-action-icon="calendar"></span><strong>Schedule</strong><small>Choose date and time</small></button>
-          <button type="button" id="recurringMeetingAction" class="meet-action-card"><span class="action-icon" data-action-icon="repeat"></span><strong>Recurring</strong><small>Same link and passcode</small></button>
-        </div>
-        <section id="scheduledMeetingsSection" class="scheduled-meetings-section" hidden>
-          <header><div><strong>Scheduled meetings</strong><small>Recurring meetings keep the same meeting ID, link, and passcode.</small></div><button type="button" id="closeScheduledMeetings" class="icon-button" aria-label="Close scheduled meetings"><span data-icon="x"></span></button></header>
-          <div id="scheduledMeetingsList" class="scheduled-meetings-list"></div>
+      <!-- Browser Meet is room-only. The approved DominionStar Meet workspace
+           at https://dominionstarld.com/meet/ is the single canonical Meet home.
+           These hidden command targets preserve direct ?action= links without
+           publishing a second competing home/launcher. -->
+      <div id="meetCommandRouter" hidden aria-hidden="true">
+        <button type="button" id="newMeetingAction"></button>
+        <button type="button" id="shareScreenAction"></button>
+        <button type="button" id="personalMeetingAction"></button>
+        <button type="button" id="joinMeetingAction"></button>
+        <button type="button" id="scheduleMeetingAction"></button>
+        <button type="button" id="recurringMeetingAction"></button>
+        <div id="dashboardIdentity" hidden></div>
+        <section id="scheduledMeetingsSection" hidden>
+          <button type="button" id="closeScheduledMeetings"></button>
+          <div id="scheduledMeetingsList"></div>
         </section>
-      </section>
+      </div>
 
       <div class="preview-shell">
         <video id="prejoinVideo" autoplay muted playsinline></video>
