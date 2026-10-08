@@ -62,7 +62,7 @@ assert(css.includes('.participant-video-dock.user-resized .participant-video-doc
 assert(css.includes('.participant-video-dock.minimized'),'Participant video dock must support Zoom-style minimization.');
 assert(css.includes('@media(max-width:760px)'),'Meeting layout must adapt for compact desktop windows.');
 
-assert(zoomBehavior.includes("version:'1.4.0'"),'Zoom behavior guard version is missing.');
+assert(zoomBehavior.includes("version:'2.0.54-event-driven'")&&zoomBehavior.includes("'dominion:meeting-entered'")&&!zoomBehavior.includes('setInterval('),'Meeting behavior guard must use the 2.0.54 event-driven lifecycle authority without periodic reconciliation.');
 assert(zoomBehavior.includes('Assign Host & Leave')&&zoomBehavior.includes('End Meeting for All'),'Host exit must expose Zoom-style handoff versus end-for-all choices.');
 assert(zoomBehavior.includes('showHostHandoffChoices')&&zoomBehavior.includes('meeting.transferHostAndLeave(participant.participantId)'),'Host leave must offer a real participant chooser and call the atomic transfer authority.');
 assert(!zoomBehavior.includes("meeting.leave(ctx.participantId,ctx.joinToken)"),'Host UI must never bypass the backend host-transfer safeguard with a plain leave call.');
@@ -101,7 +101,7 @@ assert(zoomBehavior.includes("meeting.sendSignal(target,'chat',payload)"),'Priva
 assert(zoomBehavior.includes("interceptIncomingChat")&&zoomBehavior.includes("event.stopImmediatePropagation()"),'Upgraded chat must prevent duplicate rendering by the legacy broadcast handler.');
 assert(zoomBehavior.includes("select.dataset.recipientSignature!==signature"),'Chat recipient synchronization must avoid redundant DOM rewrites.');
 assert(!zoomBehavior.includes('new MutationObserver('),'Zoom behavior layer must not install a DOM-wide mutation observer.');
-assert(zoomBehavior.includes('const syncTimer=setInterval(sync,900)')&&zoomBehavior.includes('if(!isMeetingOpen())return;'),'Zoom behavior synchronization must be bounded and meeting-state driven.');
+assert(!zoomBehavior.includes('setInterval(')&&zoomBehavior.includes("const syncEvents=['dominion:meeting-ui-ready','dominion:meeting-entered','dominion:participant-presence','dominion:waiting-room-update']")&&zoomBehavior.includes('if(!isMeetingOpen())return;'),'Meeting behavior synchronization must be event-driven, bounded, and gated by live meeting state.');
 assert(zoomBehavior.includes("input.maxLength=7")&&zoomBehavior.includes("input.pattern='[0-9]{3,7}'"),'Join and new-meeting passcode fields must match the 3–7 digit meeting authority.');
 assert(zoomCss.includes('.zoom-leave-dialog')&&zoomCss.includes('.zoom-host-candidate')&&zoomCss.includes('.zoom-admit-all')&&zoomCss.includes('.meeting-chat-recipient'),'Zoom behavior upgrades must ship with dedicated desktop styling.');
 assert(participantControls.includes("type==='host:mute'")&&participantControls.includes("type==='host:stop-video'"),'Host/co-host controls must support forced mute and stop-video commands.');
@@ -128,7 +128,7 @@ assert(participantControls.includes("'Forbid Record':'Allow Record'")&&participa
 assert(features.includes('async function pauseRecording')&&features.includes('async function resumeRecording')&&features.includes('state.recorder.pause()')&&features.includes('state.recorder.resume()'),'Computer recording must expose Zoom-style Pause/Resume on the same recorder session.');
 assert(features.includes("stopRecording({reason:'revoked'})"),'Host permission revocation must stop active participant recording.');
 assert(features.includes("meetingRecordingIndicator')")&&featuresCss.includes('.meeting-recording-indicator.paused'),'Recording indicator must distinguish active and paused states.');
-assert(captions.includes("version:'1.3.0'")&&captions.includes("button.id='roomCaptions'")&&captions.includes("caret.id='roomCaptionsMenu'"),'Meeting toolbar must expose Show/Hide Captions with a Zoom-style options caret.');
+assert(captions.includes("version:'2.0.53-event-driven'")&&captions.includes("button.id='roomCaptions'")&&captions.includes("caret.id='roomCaptionsMenu'")&&captions.includes("window.addEventListener('dominion:meeting-ended',resetMeetingState)"),'Meeting toolbar must expose Show/Hide Captions with an options caret and deterministic meeting-end cleanup.');
 assert(captions.includes("state.history=state.history.filter(item=>Number(item.at||0)>=cutoff)")&&captions.includes('const cutoff=now()-180000'),'Live caption history must prune after three minutes.');
 assert(captions.includes("state.captionMode==='manual'")&&captions.includes('captionerParticipantId')&&captions.includes("meeting.publishCaption(ctx.participantId,text,name)"),'Manual caption text must be produced only by the assigned captioner through backend authority.');
 assert(captions.includes("const canManage=()=>state.role==='host'"),'Manual caption configuration must remain host-only, matching Zoom co-host restrictions.');

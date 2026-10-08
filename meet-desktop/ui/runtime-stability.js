@@ -19,6 +19,7 @@
   let physicalPrimed=false;
   let legacyPrimed=false;
   let shareOpening=false;
+  let activeSpeakerIds=[];
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
@@ -165,19 +166,39 @@
     return [...queue.children].some(node=>node.matches?.('[data-wait],[data-participant-id],[data-waiting-id],.waiting-person,.queue-card'));
   }
 
+  function speakerRank(id){
+    const index=activeSpeakerIds.indexOf(String(id||''));
+    return index<0?999:index;
+  }
+
   function participantPriority(row){
     const small=String(row.querySelector('.person-copy small')?.textContent||'').toLowerCase();
-    const self=/\byou\b|\bme\b/.test(small)||row.dataset.dsAdaptiveSelf==='1';
+    const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\byou\b|\bme\b/.test(small);
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
     const raised=row.dataset.raisedHand==='1'||Boolean(row.querySelector('.raised-hand-indicator'));
-    const mic=row.querySelector('.ds-participant-media .ds-media-state');
-    const micOn=Boolean(mic?.classList.contains('on'));
-    return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5;
+    const micOn=Boolean(row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on'));
+    const speaking=speakerRank(row.dataset.participantId);
+    if(role==='host')return 0;
+    if(role==='cohost')return 100;
+    if(speaking<999)return 200+speaking;
+    if(self)return 400;
+    if(raised)return 500;
+    if(micOn)return 600;
+    return 700;
   }
 
   function sortParticipants(){
     const roster=q('#participantRoster');if(!roster)return;
     const rows=participantRows();
+    for(const row of rows){
+      const speaking=speakerRank(row.dataset.participantId)<999;
+      row.classList.toggle('participant-speaking',speaking);
+      let badge=row.querySelector('.participant-speaking-badge');
+      if(speaking&&!badge){
+        badge=document.createElement('span');badge.className='participant-speaking-badge';badge.textContent='Speaking';
+        row.querySelector('.person-copy small')?.append(badge);
+      }else if(!speaking&&badge)badge.remove();
+    }
     const sorted=[...rows].sort((a,b)=>participantPriority(a)-participantPriority(b)||String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''),undefined,{numeric:true,sensitivity:'base'}));
     if(sorted.some((row,index)=>row!==rows[index])){
       const fragment=document.createDocumentFragment();for(const row of sorted)fragment.append(row);roster.append(fragment);
@@ -209,28 +230,14 @@
     canonicalizeParticipantRows();
     const count=participantRows().length;
     side.dataset.dsRuntimeCount=String(count);
-    const title=side.querySelector('.room-side-head strong');if(title)title.textContent=`Participants (${count})`;
-    const subtitle=side.querySelector('.room-side-head small');if(subtitle)subtitle.textContent=count===1?'1 person in this meeting':`${count} people in this meeting`;
-    let search=side.querySelector('.zoom-participant-search');
-    if(!search){
-      const head=side.querySelector('.room-side-head');
-      if(head){
-        search=document.createElement('div');
-        search.className='zoom-participant-search';
-        search.innerHTML='<input type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants">';
-        head.insertAdjacentElement('afterend',search);
-        const input=search.querySelector('input');
-        input?.addEventListener('input',()=>{
-          const needle=String(input.value||'').trim().toLowerCase();
-          for(const row of participantRows()){
-            const name=String(row.dataset.participantName||row.textContent||'').toLowerCase();
-            row.hidden=Boolean(needle&&!name.includes(needle));
-          }
-        });
-      }
-    }
-    if(search)search.hidden=count<7;
-    const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
+    const title=side.querySelector('.room-side-head strong'),titleText=`Participants (${count})`;
+    if(title&&title.textContent!==titleText)title.textContent=titleText;
+    const subtitle=side.querySelector('.room-side-head small'),subtitleText=count===1?'1 person in this meeting':`${count} people in this meeting`;
+    if(subtitle&&subtitle.textContent!==subtitleText)subtitle.textContent=subtitleText;
+    // Participants search has one owner: DominionZoomParticipantsReference2041.
+    // Runtime stability must never create, hide, or filter that surface.
+    const waiting=q('#waitingQueueSection'),waitingHidden=!hasWaitingPeople();
+    if(waiting&&waiting.hidden!==waitingHidden)waiting.hidden=waitingHidden;
     sortParticipants();
     const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1';
     if(dirty){
@@ -260,6 +267,7 @@
       side.dataset.dsAdaptiveMode='floating';
       side.dataset.dsRuntimePanel='participants';
       syncParticipantsSurface();
+      window.DominionZoomParticipantsReference2041?.sync?.();
     }
     layoutSideSurface();
     return show;
@@ -383,8 +391,12 @@
       const trafficSets=[...header.querySelectorAll('.ds-panel-traffic')];
       let traffic=trafficSets.find(node=>node.dataset.dsRuntimeParticipantChrome==='1')||trafficSets[0]||null;
       for(const duplicate of trafficSets){if(duplicate!==traffic)duplicate.remove();}
+      if(traffic&&traffic.tagName!=='SPAN'){
+        const replacement=document.createElement('span');replacement.className='ds-panel-traffic';replacement.innerHTML=traffic.innerHTML;
+        traffic.replaceWith(replacement);traffic=replacement;
+      }
       if(!traffic){
-        traffic=document.createElement('div');traffic.className='ds-panel-traffic';header.prepend(traffic);
+        traffic=document.createElement('span');traffic.className='ds-panel-traffic';header.prepend(traffic);
       }
       traffic.dataset.dsRuntimeParticipantChrome='1';
       traffic.setAttribute('aria-label','Participant window controls');
@@ -737,10 +749,11 @@
   window.addEventListener('dominion:meeting-snapshot',schedule);
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
+  window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();});
   window.addEventListener('dominion:meeting-signal',scheduleMeetingSignal);
-  window.addEventListener('dominion:meeting-ended',()=>{closeMeetingTransients();physicalPrimed=false;legacyPrimed=false;shareOpening=false;const overlay=q('#meetingOverlay');overlay?.removeAttribute('data-ds-runtime-reference-primed');if(meetingSignalTimer){clearTimeout(meetingSignalTimer);meetingSignalTimer=0;}schedule();});
+  window.addEventListener('dominion:meeting-ended',()=>{closeMeetingTransients();physicalPrimed=false;legacyPrimed=false;shareOpening=false;activeSpeakerIds=[];const overlay=q('#meetingOverlay');overlay?.removeAttribute('data-ds-runtime-reference-primed');if(meetingSignalTimer){clearTimeout(meetingSignalTimer);meetingSignalTimer=0;}schedule();});
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.53-canonical-chat-inset',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.54-active-speaker-authority',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();

@@ -28,14 +28,13 @@ assert(runtime.includes("dock.style.setProperty('left','14px','important')")&&ru
 assert(runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must become a horizontal filmstrip.');
 assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Wide dock must return to a vertical filmstrip.');
 assert(
-  runtime.includes("let search=side.querySelector('.zoom-participant-search');") &&
-  runtime.includes("search=document.createElement('div');") &&
-  runtime.includes("search.className='zoom-participant-search';") &&
-  runtime.includes("if(search)search.hidden=count<7;"),
-  'Participant search should be runtime-owned and appear only when useful.'
+  !runtime.includes("search.className='zoom-participant-search';") &&
+  !runtime.includes("search.hidden=count<7") &&
+  runtime.includes('Participants search has one owner: DominionZoomParticipantsReference2041.'),
+  'Participant search must have one always-visible owner and runtime stability must not recreate or hide it.'
 );
-assert(runtime.includes("const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople()"),'Empty Waiting Room chrome must stay hidden.');
-assert(runtime.includes('participantPriority(row)')&&runtime.includes("return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5"),'Final participant roster does not encode You → Host → Co-host → raised → unmuted → others priority.');
+assert(runtime.includes("const waiting=q('#waitingQueueSection'),waitingHidden=!hasWaitingPeople();")&&runtime.includes("if(waiting&&waiting.hidden!==waitingHidden)waiting.hidden=waitingHidden;"),'Empty Waiting Room chrome must stay hidden without self-triggering redundant mutations.');
+assert(runtime.includes('participantPriority(row)')&&runtime.includes("if(role==='host')return 0;")&&runtime.includes("if(role==='cohost')return 100;")&&runtime.includes("if(speaking<999)return 200+speaking;")&&runtime.includes("if(raised)return 500;")&&runtime.includes("if(micOn)return 600;"),'Final participant roster must encode Host → Co-host → active speakers → self → raised → unmuted → others priority.');
 assert(runtimeCss.includes("panel.style")===false||runtimeCss.includes('#meetingOverlay .room-side'),'Final runtime stylesheet must own the participant surface.');
 assert(css.includes('#participantVideoDock .dock-grip{display:none !important;}'),'Legacy video-dock grip affordance must be removed.');
 assert(css.includes('#participantVideoDock .participant-video-dock-head')&&css.includes('cursor:default !important'),'Movable participant-video surface must use the normal arrow cursor.');
@@ -44,6 +43,6 @@ assert(repair.includes("if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hi
 assert(approved.includes('#meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage)'),'Approved reference layer must own the normal unpositioned video-filmstrip geometry.');
 assert(approved.includes('right:14px !important;')&&approved.includes('grid-template-columns:176px !important;'),'Normal desktop video filmstrip must default to a right-side vertical column.');
 assert(approved.includes('@media(max-width:680px)'),'Top-style compact reflow must be reserved for genuinely narrow windows.');
-assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.21'"),'Carried-forward adaptive authorities must remain identifiable.');
+assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.53-desktop-read-only'")&&adaptive.includes("const desktopCanonical=Boolean(window.dominionDesktop);"),'Adaptive authority must remain identifiable and read-only on desktop.');
 
-console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
+console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp single-search-authority empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');

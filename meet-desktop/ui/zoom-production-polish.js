@@ -1,6 +1,7 @@
 (()=>{
   if(window.DominionZoomProductionPolish)return;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const backgroundEnabled=!Boolean(window.dominionDesktop);
   let participantMenu=null,participantLayoutMenu=null,chatPolicyMenu=null;
   const LEGACY_PANEL_KEY='ds_zoom_participant_panel_geometry_v1';
   try{localStorage.removeItem(LEGACY_PANEL_KEY);}catch{}
@@ -112,6 +113,10 @@
   }
 
   function ensureParticipantSearch(){
+    // Desktop participant search has one owner: DominionZoomParticipantsReference2041.
+    // Creating a second .zoom-participant-search here races the reference layer,
+    // which removes legacy searches and recreates its canonical surface.
+    if(window.dominionDesktop)return;
     const side=q('.room-side'),head=side?.querySelector('.room-side-head');if(!side||!head)return;
     let wrap=side.querySelector('.zoom-participant-search');
     if(!wrap){
@@ -140,7 +145,7 @@
   }
   function ensureParticipantFooter(){
     const side=q('.room-side');if(!side)return;const legacy=q('#participantBulkActions');setHidden(legacy,true);
-    const approved=side.querySelector('.ds-ref-participants-footer');if(approved){side.querySelector('.zoom-participant-footer')?.remove();return;}
+    const approved=side.querySelector('[data-ds-canonical-participant-footer="1"]');if(approved){side.querySelector('.zoom-participant-footer')?.remove();return;}
     let footer=side.querySelector('.zoom-participant-footer');
     if(!footer){
       footer=document.createElement('div');footer.className='zoom-participant-footer';
@@ -213,7 +218,16 @@
   function sync(){
     syncFrame=0;
     if(!meetingOpen()){closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();return;}
-    normalizeCarets();ensureHostTools();ensureMoreAuthority();ensureParticipantLayoutControl();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
+    normalizeCarets();ensureHostTools();ensureMoreAuthority();
+    if(window.dominionDesktop){
+      // Desktop participant chrome is owned by the approved reference/runtime
+      // pair. Production polish must not add/remove/reflow any participant
+      // search, footer, layout controls, or panel geometry.
+      closeParticipantMenu();closeParticipantLayoutMenu();
+    }else{
+      ensureParticipantLayoutControl();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();
+    }
+    normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
   }
   function requestSync(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
   function closePanelMenus(){closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}
@@ -223,19 +237,22 @@
     if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();
   },true);
   document.addEventListener('click',event=>{
-    if(event.target.closest?.('#roomParticipants')){closePanelMenus();requestAnimationFrame(()=>{ensureParticipantLayoutControl();normalizeParticipantPanel();});}
+    if(event.target.closest?.('#roomParticipants')){closePanelMenus();if(!window.dominionDesktop)requestAnimationFrame(()=>{ensureParticipantLayoutControl();normalizeParticipantPanel();});}
     if(event.target.closest?.('#roomChat')){closePanelMenus();requestAnimationFrame(normalizeChatPanel);}
     if(event.target.closest?.('#roomHostTools,.room-side-head>button,[data-chat-close]'))closePanelMenus();
     if(event.target.closest?.('#roomMore'))cleanMoreMenu();
   });
-  window.addEventListener('dominion:meeting-ui-ready',requestSync);
   window.addEventListener('dominion:meeting-ended',closePanelMenus);
-  window.addEventListener('dominion:participant-presence',requestSync);
-  window.addEventListener('dominion:meeting-snapshot',requestSync);
-  const overlay=document.querySelector('#meetingOverlay');
-  const observer=new MutationObserver(requestSync);
-  if(overlay)observer.observe(overlay,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  const timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);
-  sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.6.0-event-driven',sync:requestSync,dockParticipantPanel,popOutParticipantPanel,participantPanelMode,dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}});
+  let observer=null,timer=0;
+  if(backgroundEnabled){
+    window.addEventListener('dominion:meeting-ui-ready',requestSync);
+    window.addEventListener('dominion:participant-presence',requestSync);
+    window.addEventListener('dominion:meeting-snapshot',requestSync);
+    const overlay=document.querySelector('#meetingOverlay');
+    observer=new MutationObserver(requestSync);
+    if(overlay)observer.observe(overlay,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+    timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);
+    sync();
+  }
+  window.DominionZoomProductionPolish=Object.freeze({version:'2.0.53-manual-desktop-polish',sync:requestSync,dockParticipantPanel,popOutParticipantPanel,participantPanelMode,dispose:()=>{if(timer)clearInterval(timer);observer?.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}});
 })();

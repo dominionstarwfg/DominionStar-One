@@ -97,12 +97,10 @@ jobs:
           grep -Fq 'DominionStar Meet' meet-desktop/ui/index.html
           ! cmp -s index.html meet-desktop/ui/index.html
           echo DOMINIONSTAR_PUBLIC_AND_MEET_BOUNDARY_OK
-      - name: Assert legacy runtime is absent
+      - name: Assert deprecated desktop package roots are absent
         run: |
           test ! -e desktop
           test ! -e 'desktop 2'
-          test ! -e meet
-          test ! -e meet-home
-          test ! -e meet-login
-          test ! -e assets/js/meeting-engine.js
-          echo DOMINIONSTAR_REBUILD_LEGACY_ABSENT_OK
+          # Browser Meet source trees (meet/, meet-home/, meet-login/ and
+          # assets/js/meeting-engine.js) are intentional web runtime sources.
+          echo DOMINIONSTAR_REBUILD_DEPRECATED_DESKTOP_ROOTS_ABSENT_OK

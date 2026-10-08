@@ -30,10 +30,11 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     command:command=>invoke('mac-share:presenter-command',{command:String(command||'')}),
     setMenuOpen:open=>invoke('mac-share:menu-state',{open:Boolean(open)}),
     setToolbarHidden:hidden=>invoke('mac-share:toolbar-hidden',{hidden:Boolean(hidden)}),
+    setAnnotationFlyout:open=>invoke('mac-share:annotation-flyout',{open:Boolean(open)}),
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
     onShowMeeting:callback=>listen('mac-share:show-meeting',callback),
-    onVideoFrame:callback=>listen('mac-share:video-frame',callback),
+    onVideoFrame:callback=>listen('mac-share:video-frame',payload=>{if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1')console.error(`QA_MAC_PRESENTER_PRELOAD_FRAME participant=${String(payload?.participantId||'')} bytes=${String(payload?.dataUrl||'').length}`);callback(payload);}),
     onAnnotationCommand:callback=>listen('mac-annotation:command',callback)
   })
 }));

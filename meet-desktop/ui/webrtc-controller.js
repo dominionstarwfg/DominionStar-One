@@ -20,6 +20,11 @@
   }
   const serverUrls=server=>(Array.isArray(server?.urls)?server.urls:[server?.urls]).filter(Boolean).map(String);
   const hasRelay=servers=>(servers||[]).some(server=>serverUrls(server).some(url=>/^turns?:/i.test(url))&&Boolean(server?.username)&&Boolean(server?.credential));
+  const serializeDescription=value=>{
+    if(!value)return value;
+    try{if(typeof value.toJSON==='function')return value.toJSON();}catch{}
+    return {type:String(value.type||''),sdp:String(value.sdp||'')};
+  };
 
   function ensureTransportStatus(){
     const head=q('.meeting-head');if(!head)return null;
@@ -216,10 +221,23 @@
     const screenSender=lanes[2]?.sender;if(screenSender&&screen){try{const params=screenSender.getParameters();params.degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced';params.encodings=params.encodings?.length?params.encodings:[{}];params.encodings[0].maxBitrate=shareState.options?.optimizeVideo?4500000:2500000;await screenSender.setParameters(params);}catch{}}
     const shareAudioSender=lanes[3]?.sender;if(shareAudioSender&&shareAudio){try{const params=shareAudioSender.getParameters();params.encodings=params.encodings?.length?params.encodings:[{}];params.encodings[0].maxBitrate=128000;await shareAudioSender.setParameters(params);}catch{}}
   }
+  function localDisplayName(){
+    return String(q('#participantRoster [data-participant-self="1"]')?.dataset.participantName||q('#stageName')?.textContent||'Participant').trim()||'Participant';
+  }
+  async function signalShareState(remoteId,snapshot=window.DominionShareController?.snapshot?.()||{}){
+    if(!remoteId||!meeting?.sendSignal)return false;
+    const active=Boolean(snapshot.active&&shareMedia()?.getVideoTracks?.().some(track=>track.readyState==='live'));
+    await meeting.sendSignal(remoteId,'screen-state',{active,paused:Boolean(snapshot.paused),displayName:localDisplayName(),sourceName:String(snapshot.sourceName||'')});
+    return true;
+  }
+  async function broadcastShareState(snapshot=window.DominionShareController?.snapshot?.()||{}){
+    await Promise.allSettled([...state.peers.keys()].map(id=>signalShareState(id,snapshot)));
+  }
+
   async function initiate(record,iceRestart=false){
     if(record.makingOffer||record.pc.signalingState!=='stable')return;
     prepareOfferer(record);await syncLocalTracks(record);record.makingOffer=true;
-    try{const offer=await record.pc.createOffer(iceRestart?{iceRestart:true}:undefined);await record.pc.setLocalDescription(offer);await meeting.sendSignal(record.id,'offer',{sdp:record.pc.localDescription});}finally{record.makingOffer=false;}
+    try{const offer=await record.pc.createOffer(iceRestart?{iceRestart:true}:undefined);await record.pc.setLocalDescription(offer);await meeting.sendSignal(record.id,'offer',{sdp:serializeDescription(record.pc.localDescription)});await signalShareState(record.id).catch(()=>{});}finally{record.makingOffer=false;}
   }
   async function flushIce(record){if(!record.pc.remoteDescription)return;while(record.pendingIce.length){const candidate=record.pendingIce.shift();try{await record.pc.addIceCandidate(candidate);}catch{}}}
   function dispatchMeetingSignal(signal,remoteId){
@@ -229,10 +247,16 @@
     const remoteId=String(signal.fromParticipantId||'');if(!remoteId||remoteId===state.context?.participantId)return;
     if(signal.type==='chat'||signal.type==='reaction'||String(signal.type||'').startsWith('host:')){dispatchMeetingSignal(signal,remoteId);return;}
     if(signal.type==='bye'){closePeer(remoteId);return;}
-    let record;try{record=ensurePeer(remoteId);}catch{return;}const payload=signal.payload||{};
+    const payload=signal.payload||{};
+    if(signal.type==='screen-state'){
+      if(!payload.active)hideRemoteShare(remoteId);
+      else emitRemoteShareState(remoteId,true);
+      dispatchMeetingSignal(signal,remoteId);return;
+    }
+    let record;try{record=ensurePeer(remoteId);}catch{return;}
     if(signal.type==='offer'){
       if(!payload.sdp)return;await record.pc.setRemoteDescription(payload.sdp);record.transceivers=record.pc.getTransceivers().slice(0,4);for(const lane of record.transceivers)if(lane?.direction==='recvonly')lane.direction='sendrecv';await syncLocalTracks(record);await flushIce(record);
-      const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:record.pc.localDescription});return;
+      const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:serializeDescription(record.pc.localDescription)});await signalShareState(remoteId).catch(()=>{});return;
     }
     if(signal.type==='answer'){if(payload.sdp){await record.pc.setRemoteDescription(payload.sdp);await flushIce(record);}return;}
     if(signal.type==='ice'&&payload.candidate){if(record.pc.remoteDescription)await record.pc.addIceCandidate(payload.candidate).catch(()=>{});else record.pendingIce.push(payload.candidate);}
@@ -301,7 +325,7 @@
     try{await loadIceConfig(false);}catch{state.nextStartAttemptAt=Date.now()+ICE_RETRY_MS;setTransportStatus('Network relay unavailable','warning');return;}
     state.running=true;state.context=context;state.lastSignalId=0;state.nextStartAttemptAt=0;state.networkOnline=navigator.onLine!==false;state.recovering=false;state.systemSuspended=false;state.lastPresenceTouchAt=0;
     state.mediaUnsub=window.DominionMediaController?.onChange?.(()=>void syncAllSenders());
-    state.shareUnsub=window.DominionShareController?.onChange?.(()=>void syncAllSenders());
+    state.shareUnsub=window.DominionShareController?.onChange?.(snapshot=>void (async()=>{await syncAllSenders();await broadcastShareState(snapshot);})());
     state.effectsUnsub=window.DominionVideoEffects?.onChange?.(()=>void syncAllSenders());
     state.powerUnsub=desktop.power?.onChanged?.(event=>void handlePowerEvent(event));
     await touchPresence(true);await reconcileParticipants().catch(()=>{});await pullSignals();
