@@ -25,8 +25,10 @@ assert(
   'Participant count is no longer derived from the canonical roster plus self.'
 );
 assert(
-  ui.includes("ids.participantList.innerHTML=entries.filter"),
-  'Participant panel no longer renders from one canonical participant collection.'
+  ui.includes("const visible=entries.filter") &&
+  ui.includes("ids.participantList.dataset.renderSignature!==renderSignature") &&
+  ui.includes("ids.participantList.innerHTML=visible.map"),
+  'Participant panel must render from one canonical participant collection without repainting unchanged snapshots.'
 );
 assert(
   !/setInterval\s*\(\s*renderParticipants\b/.test(ui),
