@@ -565,8 +565,10 @@ assert(
   macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}")&&
   macPresenter.includes("if(shareActive&&!qaKeepPresenterHidden&&shouldShowVideoWindow())")&&
   macPresenter.includes("if(!shouldShowVideoWindow()){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout,visible:false};")&&
-  macPresenter.includes("if(isAlive(videoWindow)){if(shouldShowVideoWindow())videoWindow.showInactive?.();else videoWindow.hide();}"),
-  'Approved share filmstrip must show the local presenter tile for a solo host and remain eligible for every native presenter entry point unless the user explicitly hides it.'
+  macPresenter.includes("if(isAlive(videoWindow)){if(shouldShowVideoWindow()&&shareActive)videoWindow.showInactive?.();else videoWindow.hide();}")&&
+  shareCss.includes('body.ds-native-mac-presenter-share #remoteTileStrip')&&
+  shareCss.includes('body.ds-native-mac-presenter-share #participantVideoDock'),
+  'Approved native share must keep the solo-presenter video panel available while suppressing duplicate renderer video surfaces during active Mac sharing.'
 );
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
 assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
