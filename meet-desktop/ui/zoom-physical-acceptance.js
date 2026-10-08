@@ -138,16 +138,31 @@
     const state=remoteMediaState.get(String(id));return state?{...state,known:true}:{micOn:false,cameraOn:false,known:false};
   }
   function mediaStatusNode(row,id){
-    let wrap=row.querySelector('.ds-participant-media');
+    // One canonical media-status surface only. Older builds created a second
+    // ds-participant-media strip, which visually doubled mute slashes/icons.
+    for(const legacy of [...row.querySelectorAll('.ds-participant-media')])legacy.remove();
+    let wrap=row.querySelector('.participant-media-state');
     if(!wrap){
-      wrap=document.createElement('span');wrap.className='ds-participant-media';
-      const actions=row.querySelector('.participant-actions')||document.createElement('span');
-      if(!actions.isConnected){actions.className='participant-actions ds-participant-actions';row.append(actions);}
-      actions.prepend(wrap);
+      wrap=document.createElement('span');
+      wrap.className='participant-media-state';
+      wrap.setAttribute('aria-label','Participant media status');
+      const actions=row.querySelector('.participant-actions');
+      actions?.before(wrap)||row.append(wrap);
     }
     let mic=wrap.querySelector('[data-participant-mic]'),video=wrap.querySelector('[data-participant-video]');
-    if(!mic){mic=document.createElement('span');mic.dataset.participantMic='';mic.className='ds-media-state unknown off';mic.innerHTML=MIC_OFF;wrap.append(mic);}
-    if(!video){video=document.createElement('span');video.dataset.participantVideo='';video.className='ds-media-state unknown off';video.innerHTML=VIDEO_OFF;wrap.append(video);}
+    if(!mic){
+      mic=document.createElement('span');mic.dataset.participantMic='';
+      mic.className='participant-media-icon participant-mic unknown';
+      mic.innerHTML=MIC_ON;wrap.append(mic);
+    }
+    if(!video){
+      video=document.createElement('span');video.dataset.participantVideo='';
+      video.className='participant-media-icon participant-video unknown';
+      video.innerHTML=VIDEO_ON;wrap.append(video);
+    }
+    mic.classList.add('participant-media-icon','participant-mic');
+    video.classList.add('participant-media-icon','participant-video');
+    mic.classList.remove('ds-media-state');video.classList.remove('ds-media-state');
     const existingMicOn=mic.classList.contains('on'),existingCameraOn=video.classList.contains('on');
     const state=statusFor(id),micOn=state.known?state.micOn:existingMicOn,cameraOn=state.known?state.cameraOn:existingCameraOn;
     const micTitle=state.known?(micOn?'Microphone on':'Microphone muted'):'Audio status syncing';
