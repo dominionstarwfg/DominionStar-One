@@ -469,8 +469,11 @@ if(process.platform==='darwin'){
     }
     shareState={...shareState,...incoming};
     const nextCount=Array.isArray(shareState.participants)?shareState.participants.length:0,nextDisplay=String(shareState.displayId||'');
-    if(priorCount!==nextCount||priorDisplay!==nextDisplay)positionVideo({preservePosition:priorDisplay===nextDisplay});
-    if(isAlive(videoWindow)){if(shouldShowVideoWindow())videoWindow.showInactive?.();else videoWindow.hide();}
+    // The participant companion is count-sized, never a manually stretched
+    // placeholder surface. Reassert its smart geometry on every authoritative
+    // state update so one/two-person meetings cannot retain blank glass space.
+    if(shareActive)positionVideo({preservePosition:priorDisplay===nextDisplay});
+    if(isAlive(videoWindow)){if(shouldShowVideoWindow()&&shareActive)videoWindow.showInactive?.();else videoWindow.hide();}
     publishState();raisePersistentPresenterSurfaces();
     const companion=String(shareState.companion||'');
     const main=mainWindow();
