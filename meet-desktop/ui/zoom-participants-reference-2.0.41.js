@@ -195,7 +195,7 @@
       const mic=row.querySelector('[data-participant-mic]'),video=row.querySelector('[data-participant-video]');
       for(const [node,kind] of [[mic,'mic'],[video,'video']]){
         if(!node)continue;const state=iconState(node),signature=`${kind}:${state}`;if(node.dataset.dsSemanticState===signature)continue;
-        node.dataset.dsSemanticState=signature;node.innerHTML=kind==='mic'?(state==='off'?ICONS.micOff:ICONS.micOn):(state==='off'?ICONS.videoOff:ICONS.videoOn);
+        node.dataset.dsSemanticState=signature;node.innerHTML=kind==='mic'?ICONS.micOn:ICONS.videoOn;
       }
     }
   }
