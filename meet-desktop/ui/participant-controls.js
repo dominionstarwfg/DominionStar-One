@@ -274,6 +274,7 @@
       footer.innerHTML='<button type="button" data-ds-invite>Invite</button><button type="button" data-ds-mute-all>Mute all</button><button type="button" data-ds-participant-more>More</button>';
       side.append(footer);
       footer.querySelector('[data-ds-invite]').onclick=event=>{event.preventDefault();event.stopPropagation();void window.DominionMeetingLifecycleAuthority?.openInvite?.();};
+      footer.querySelector('[data-ds-mute-all]').setAttribute('aria-label','Mute All participants');
       footer.querySelector('[data-ds-mute-all]').onclick=()=>void sendAll('host:mute');
       footer.querySelector('[data-ds-participant-more]').onclick=event=>{event.preventDefault();event.stopPropagation();openBulkParticipantMenu(event.currentTarget);};
     }
