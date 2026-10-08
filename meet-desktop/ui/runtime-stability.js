@@ -518,9 +518,16 @@
         panel.style.setProperty('width',`${pw}px`,'important');
         panel.style.setProperty('height',`${ph}px`,'important');
       }else{
-        panel.style.setProperty('left','auto','important');
-        panel.style.setProperty('right','24px','important');
-        panel.style.setProperty('top',panel===chat?'46px':'18px','important');
+        const centeredLeft=Math.max(12,(bodyWidth-width)/2);
+        if(panel===participants){
+          panel.style.setProperty('left',`${centeredLeft}px`,'important');
+          panel.style.setProperty('right','auto','important');
+          panel.style.setProperty('top','18px','important');
+        }else{
+          panel.style.setProperty('left','auto','important');
+          panel.style.setProperty('right','24px','important');
+          panel.style.setProperty('top','46px','important');
+        }
         panel.style.setProperty('bottom','auto','important');
         panel.style.setProperty('height',`${Math.min(height,Math.max(minPanelHeight,bodyHeight-28))}px`,'important');
       }
