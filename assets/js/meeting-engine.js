@@ -180,11 +180,14 @@
     for(const key of Object.keys(state.v2Timers||{})){clearInterval(state.v2Timers[key]);clearTimeout(state.v2Timers[key]);state.v2Timers[key]=0;}
   };
   const v2SignalEvent=signal=>{
-    const type=String(signal?.type||'');
-    if(type==='offer')return ['meet-offer',{...signal.payload,description:signal.payload?.sdp,from:String(signal.fromParticipantId||'')}];
-    if(type==='answer')return ['meet-answer',{...signal.payload,description:signal.payload?.sdp,from:String(signal.fromParticipantId||'')}];
-    if(type==='ice')return ['meet-ice',{...signal.payload,from:String(signal.fromParticipantId||'')}];
-    if(type==='bye')return ['meet-left',{...signal.payload,from:String(signal.fromParticipantId||'')}];
+    const type=String(signal?.type||''),from=String(signal?.fromParticipantId||'');
+    const createdAt=String(signal?.createdAt||signal?.created_at||'');
+    const sentAt=createdAt?Date.parse(createdAt)||Date.now():Date.now();
+    const base={...(signal?.payload||{}),roomId:state.roomId,from,to:state.participantId,sentAt};
+    if(type==='offer')return ['meet-offer',{...base,description:signal.payload?.sdp}];
+    if(type==='answer')return ['meet-answer',{...base,description:signal.payload?.sdp}];
+    if(type==='ice')return ['meet-ice',base];
+    if(type==='bye')return ['meet-left',base];
     return null;
   };
   async function loadV2Ice(force=false){
