@@ -14,7 +14,7 @@ assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number
 assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=32))),'Adaptive video-dock authority introduced in 2.0.32 must remain enforced for every later candidate.');
 assert.ok(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must own dock geometry.');
 assert.ok(runtime.includes('const compact=width<760'),'Compact threshold must be explicit and singular.');
-assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock must resolve to user/top/right.');
+assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'"),'Dock must resolve to user/right only; compact mode may resize but not change the default edge.');
 assert.ok(runtime.includes("dock.style.setProperty('right','14px','important')"),'Wide windows must put default dock on the right.');
 assert.ok(runtime.includes("dock.style.setProperty('left','14px','important')")&&runtime.includes("dock.style.setProperty('right','14px','important')"),'Compact windows must span the top region.');
 assert.ok(runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must be horizontal.');
