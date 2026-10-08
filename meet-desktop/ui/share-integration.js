@@ -428,9 +428,18 @@
 
     let shareWasActive=Boolean(share.snapshot().active);
     function cleanupStoppedShareSurfaces(){
+      lastPresenterStateSignature='';
+      stopMacCameraFramePump();stopMacRemoteFramePump();
+      document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');
+      overlay.classList.remove('share-active','ds-ref-presenter-visible');
       try{window.DominionShareRuntimeAuthority2041?.close?.();}catch{}
       try{const pending=desktop?.sharePicker?.cancel?.();void Promise.resolve(pending).catch(()=>{});}catch{}
       try{window.DominionActiveShareHomeParity2041?.restoreMeeting?.();}catch{}
+      // The green perimeter/toolbar/video dock are separate native BrowserWindows.
+      // Explicitly notify the main process whenever renderer share state becomes
+      // inactive so a stopped, failed, or replaced capture can never leave stale
+      // presenter chrome on screen.
+      try{const stopped=desktop?.share?.captureStopped?.();void Promise.resolve(stopped).catch(()=>{});}catch{}
     }
     share.onChange(state=>{
       // Physical-Mac diagnostic isolation: prove whether capture itself or the
@@ -445,7 +454,7 @@
         publishMacPresenterState();
         syncMacCameraFramePump();
       }
-      if(shareWasActive&&!active){lastPresenterStateSignature='';stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}
+      if(!active&&(shareWasActive||document.body.classList.contains('ds-native-mac-presenter-share')||overlay.classList.contains('share-active')))cleanupStoppedShareSurfaces();
       shareWasActive=active;
     });
     media.onChange(()=>{if(!share.snapshot().active){if(localPresenterMirror.srcObject)localPresenterMirror.srcObject=null;return;}if(sameRendererPresenter){syncLocalPresenterMirror();publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});
