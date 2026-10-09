@@ -249,7 +249,7 @@ assert(
   !runtime.includes("surfaceDrag.source!==source"),
   'Final floating-panel drag authority must use one Pointer Events pipeline only and resolve the live panel header dynamically.'
 );
-assert(runtime.includes("const columns=count<=2?1:count<=6?2:3;")&&runtime.includes("const desiredWidth=columns*tileWidth")&&runtime.includes("dock.dataset.dsRuntimeColumns=String(columns)")&&runtime.includes("body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important')"),'Participant video dock must grow rows/columns automatically as visible participant tiles increase.');
+assert(runtime.includes("const panelMode=String(dock.dataset.panelMode||'strip');")&&runtime.includes("const columns=panelMode==='gallery'?2:1;")&&runtime.includes("const tileWidth=306,tileHeight=172,gap=7,padding=12,headerHeight=42;"),'Participant video dock must stay one vertical 306x172 stack by default and use two columns only in explicit gallery mode.');
 assert(runtimeCss.includes('.ds-traffic-close')&&runtimeCss.includes('.ds-traffic-minimize')&&runtimeCss.includes('.ds-traffic-restore')&&runtime.includes("aria-label=\"Close participants\"")&&runtime.includes("aria-label=\"Minimize participants\"")&&runtime.includes("aria-label=\"Restore participants\"")&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),'Mac Participants must expose one runtime-owned close/minimize/restore traffic-light set, while Chat keeps its accessible close control.');
 assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;')&&!runtimeCss.includes('left:18px!important;\n  right:auto!important;\n  top:auto!important;\n  bottom:94px!important;')&&!polishCss.includes('.meeting-reaction-menu{left:18px!important'),'Reaction chooser position must belong to the runtime anchor calculation, not a hard-pinned stylesheet.');
 
@@ -655,11 +655,11 @@ assert(
 assert(
   parityCss.includes('2.0.44+ compact right-side participant filmstrip reference')&&
   parityCss.includes('#participantVideoDock[data-orientation="vertical"]:not(.gallery-stage):not(.multi-speaker-stage)')&&
-  parityCss.includes('grid-template-columns:176px!important')&&
+  parityCss.includes('grid-template-columns:306px!important')&&
   parityCss.includes('max-height:515px!important')&&
   parityCss.includes('.remote-peer-tile.active-speaker')&&
   parityCss.includes('border-color:#35d07f!important'),
-  'Right-side participant video must remain a one-column five-visible filmstrip with internal scroll and green active-speaker outline.'
+  'Right-side participant video must remain a one-column five-visible 306x172 filmstrip with internal scroll and green active-speaker outline.'
 );
 assert(
   profileFallback.includes("width:64px;height:64px")&&
