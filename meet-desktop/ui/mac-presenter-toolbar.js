@@ -90,7 +90,7 @@
     lastState={...lastState,...state};
     const forcedAt=Math.max(0,Number(state?.forceRevealAt)||0);if(forcedAt>lastForceRevealAt){lastForceRevealAt=forcedAt;reveal();scheduleHide();}
     const paused=Boolean(state?.paused),micOn=Boolean(state?.micOn),cameraOn=Boolean(state?.cameraOn);
-    const pause=q('#pauseLabel'),pauseGlyph=q('#pauseGlyph'),toolbar=q('#toolbar'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand');
+    const pause=q('#pauseLabel'),pauseGlyph=q('#pauseGlyph'),toolbar=q('#toolbar'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand'),hostTools=q('#presenterHostTools');
     toolbar?.classList.toggle('is-paused',paused);
     if(pause)pause.textContent=paused?'Resume':'Pause Share';
     if(pauseGlyph)pauseGlyph.innerHTML=paused?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5 18 12 8 18.5z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>';
@@ -106,6 +106,7 @@
     if(label)label.textContent=paused?'Share paused':'You are screen sharing';
     if(source){const raw=String(state?.sourceName||'Shared content');source.textContent=/screen|desktop|display|entire/i.test(raw)?'Entire screen':raw;}
     if(audioFlag)audioFlag.hidden=!state?.shareAudio;if(optimize)optimize.hidden=!state?.optimizeVideo;
+    if(hostTools){const self=(state?.participants||[]).find(item=>item?.self),role=String(self?.role||'participant').toLowerCase();hostTools.hidden=!['host','cohost'].includes(role);}
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
