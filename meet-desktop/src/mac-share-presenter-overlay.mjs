@@ -471,11 +471,19 @@ if(process.platform==='darwin'){
     if(normalized==='layout-gallery')return {...setVideoLayout('gallery'),sent:true,acknowledged:true};
     if(normalized==='annotate'){
       const open=String(shareState.companion||'')==='annotate'&&isAlive(annotationCanvasWindow)&&Boolean(annotationCanvasWindow.isVisible?.());
-      if(open){nativeAnnotationActive=false;shareState={...shareState,companion:'',companionOpen:false};hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};}
+      if(open){
+        const rendererSync=await deliverPresenterCommandWithRetry(main,'annotate-close');
+        if(!rendererSync?.ok)return {...rendererSync,active:true,error:rendererSync?.error||'annotation_close_state_sync_failed'};
+        nativeAnnotationActive=false;shareState={...shareState,companion:'',companionOpen:false};hideAnnotationCanvas();hideAnnotationPalette();publishState();
+        return {ok:true,sent:true,acknowledged:true,active:false,rendererSynced:true};
+      }
       nativeAnnotationActive=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};setAnnotationPointerPassthrough(true);hideMeeting();showAnnotationPalette();try{annotationCanvasWindow?.webContents?.send('mac-annotation:command',{command:'annotate-select'});}catch{}publishState();return {ok:true,sent:true,acknowledged:true,active:true,pointerPassthrough:true};
     }
     if(normalized==='annotate-close'){
-      nativeAnnotationActive=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();return {ok:true,sent:true,acknowledged:true,active:false};
+      const rendererSync=await deliverPresenterCommandWithRetry(main,'annotate-close');
+      if(!rendererSync?.ok)return {...rendererSync,active:true,error:rendererSync?.error||'annotation_close_state_sync_failed'};
+      nativeAnnotationActive=false;shareState={...shareState,companion:'',companionOpen:false};setAnnotationPointerPassthrough(false);hideAnnotationCanvas();hideAnnotationPalette();publishState();
+      return {ok:true,sent:true,acknowledged:true,active:false,rendererSynced:true};
     }
     if(normalized.startsWith('annotate-')){
       nativeAnnotationActive=true;shareState={...shareState,meetingVisible:false,companion:'annotate',companionOpen:true};hideMeeting();
