@@ -25,6 +25,12 @@ const presenterToolbarCss = read('meet-desktop/ui/mac-presenter-toolbar.css');
 const presenterOverlay = read('meet-desktop/src/mac-share-presenter-overlay.mjs');
 const shareIntegration = read('meet-desktop/ui/share-integration.js');
 const shareCss = read('meet-desktop/ui/share.css');
+const meetingService = read('meet-desktop/src/meeting-service.mjs');
+const preload = read('meet-desktop/src/preload.cjs');
+const mainProcess = read('meet-desktop/src/main.mjs');
+const hostToolsCss = read('meet-desktop/ui/host-tools-size-lock-2.0.41.css');
+const meetingFeatures = read('meet-desktop/ui/meeting-features.js');
+const waitingRoomMigration = read('meet-desktop/sql/20261008_runtime_waiting_room_control.sql');
 
 assert(engine.includes('serializeIceCandidate'), 'Browser meeting engine does not serialize ICE candidates for V2 RPC.');
 assert(engine.includes('candidate:serializeIceCandidate(candidate)'), 'Browser ICE candidate still crosses RPC as a raw RTCIceCandidate.');
@@ -38,6 +44,9 @@ assert(desktopWebrtc.includes('broadcastShareState(snapshot)'), 'Desktop share c
 assert(desktopWebrtc.includes('serializeDescription(record.pc.localDescription)'), 'Desktop SDP is not serialized before crossing the meeting transport boundary.');
 assert(desktopWebrtc.includes('showRemoteCamera(id,stream)'), 'Desktop remote camera rendering path is missing.');
 assert(desktopWebrtc.includes('showRemoteShare(id,stream)'), 'Desktop remote screen-share rendering path is missing.');
+assert(engine.includes("if(type==='security-state')return ['meet-security-state'"), 'Desktop host security policy is not translated into the browser meeting engine.');
+assert(engine.includes("event==='meet-security-state'")&&engine.includes("transport.sendSignal(id,'security-state',body)"), 'Browser host security policy is not propagated to desktop V2 participants.');
+assert(desktopWebrtc.includes("signal.type==='security-state'"), 'Desktop participants do not receive synchronized browser/desktop host security state.');
 
 
 assert(desktopWebrtc.includes('function armInitialHandshake(record)'), 'Desktop peer can remain stuck in Connecting without an initial-handshake watchdog.');
@@ -89,8 +98,24 @@ assert(notifications.includes("window.addEventListener('dominion:participant-pre
 assert(notifications.includes("play('join')"), 'Participant join sound is missing.');
 assert(notifications.includes("play('leave')"), 'Participant leave sound is missing.');
 assert(reference.includes('DominionMeetingLifecycleAuthority') && reference.includes('openInvite'), 'Reference participant footer Invite does not route to persistent lifecycle authority.');
+assert(!reference.includes('Dynamic waiting-room switching is not exposed by the current room-security RPC'), 'Obsolete disabled Waiting Room shell is still present in the reference Host Tools path.');
+assert(reference.includes('DominionMeetingParity?.openSecurity?.'), 'Reference Host Tools does not delegate to the functional synchronized controller.');
+assert(physical.includes('parity()?.openSecurity?.'), 'Physical Host Tools authority still owns a separate limited menu.');
+assert(parity.includes('Enable Waiting Room')&&parity.includes('Share Screen')&&parity.includes('Rename Themselves')&&parity.includes('Unmute Themselves')&&parity.includes('Start Video')&&parity.includes('Mute on Entry')&&parity.includes('Suspend Participant Activities'), 'Desktop Host Tools is missing required Waiting Room or participant-permission controls.');
+assert(parity.includes('window.DominionMeetingSecurity=Object.freeze')&&parity.includes('SECURITY_DEFAULTS=Object.freeze'), 'Desktop security policy has no single synchronized authority.');
+assert(hostToolsCss.includes('width:360px!important')&&hostToolsCss.includes('min-height:42px!important')&&hostToolsCss.includes('font-size:14px!important'), 'Host Tools regressed to squeezed geometry instead of the approved readable scale.');
+assert(parity.includes("['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare'")&&parity.includes("'roomHostTools'")&&parity.includes("'roomMore','roomExitButton'"), 'Desktop host/participant toolbar order does not match the approved reference.');
 assert(participantControls.includes("data-ds-canonical-participant-footer"), 'Loaded participant controls do not own a stable canonical footer.');
 assert(participantControls.includes("DominionMeetingLifecycleAuthority?.openInvite?.()"), 'Loaded participant footer Invite does not route to persistent lifecycle authority.');
+assert(meetingService.includes("meet_v2_set_waiting_room")&&meetingService.includes('setWaitingRoom'), 'Desktop meeting service cannot toggle Waiting Room at runtime.');
+assert(preload.includes("setWaitingRoom:(roomId,enabled)")&&mainProcess.includes("meeting:set-waiting-room"), 'Waiting Room runtime control is not exposed through the narrow desktop IPC bridge.');
+assert(waitingRoomMigration.includes('create or replace function public.meet_v2_set_waiting_room')&&waitingRoomMigration.includes("state='admitted'")&&waitingRoomMigration.includes("state='waiting'"), 'Waiting Room migration does not safely admit existing waiting participants when the host disables the gate.');
+assert(browserUi.includes("state.client.rpc('meet_v2_set_waiting_room'")&&browserUi.includes("state.client.rpc('meet_v2_set_security'"), 'Browser host security does not persist into the same V2 room backend used by desktop clients.');
+assert(app.includes("DominionMeetingSecurity?.allows?.('unmute')")&&app.includes("DominionMeetingSecurity?.allows?.('video')"), 'Desktop participant microphone/video controls can bypass host permissions.');
+assert(shareIntegration.includes("DominionMeetingSecurity?.allows?.('share')"), 'Desktop participant screen sharing can bypass host permissions.');
+assert(meetingFeatures.includes("DominionMeetingSecurity?.allows?.('chat')"), 'Desktop participant chat can bypass host permissions.');
+assert(participantControls.includes("DominionMeetingSecurity?.allows?.('rename')"), 'Desktop participant self-rename can bypass host permissions.');
+assert(parity.includes("add('Audio Settings…'")&&parity.includes("add('Video Settings…'")&&reference.includes("'Audio settings'")&&reference.includes("'Video settings'"), 'Audio/Video settings are not reachable from every active meeting authority.');
 
 assert(parity.includes("const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v3';")&&parity.includes("localStorage.removeItem('ds_zoom_video_dock_geometry_v2')")&&parity.includes("const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';"), 'Old saved video-dock geometry can still override the approved smart right-dock default.');
 assert(runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);")&&runtime.includes("if(panel===participants){"), 'Participants still default to the right-side video-dock lane instead of the middle meeting area.');
@@ -103,4 +128,4 @@ assert(css.includes('width:392px!important'), 'Physical participant panel regres
 assert(css.includes('.participant-media-icon:not(.off)::after'), 'Participant media icon has no explicit live-state slash suppression.');
 assert(css.includes('.participant-media-icon.off::after'), 'Participant media icon lost the single muted slash authority.');
 
-console.log('PASS physical two-device regressions: stalled-handshake recovery, deterministic desktop-browser share identity, stable roster, ghost-tile cleanup, participant counts/traffic controls, presenter meeting tools, native perimeter teardown, remote camera/share display paths, guarded exit, persistent invite, and sounds.');
+console.log('PASS physical two-device regressions: stalled-handshake recovery, deterministic desktop-browser share identity, stable roster, smart video dock sizing, one share-video authority, functional Waiting Room/Host Tools, synchronized participant permissions, AV settings parity, guarded exit, persistent invite, and sounds.');
