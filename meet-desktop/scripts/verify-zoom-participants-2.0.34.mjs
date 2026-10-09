@@ -16,7 +16,7 @@ assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&
 assert.ok(app.includes('const roleRank=role=>role===\'host\'?0:role===\'cohost\'?1:2'),'Host and co-host ordering authority is missing.');
 assert.ok(app.includes('participant-media-state'),'Roster must reserve a stable media-state zone.');
 assert.ok(app.includes('participant-actions'),'Roster must reserve a stable actions zone.');
-assert.ok(app.includes('data-participant-self'),'Roster must identify the local user without name guessing.');
+assert.ok(app.includes("row.dataset.participantSelf=self?'1':'0'"),'Roster must identify the local user without name guessing.');
 assert.ok(app.includes('participant-you'),'Roster must visibly mark the local user.');
 assert.ok(app.includes('data-participant-mic')&&app.includes('data-participant-video'),'Roster must include mic/video status controls.');
 assert.ok(app.includes('<svg viewBox="0 0 24 24" aria-hidden="true">'),'Roster media indicators must use vector icons.');
