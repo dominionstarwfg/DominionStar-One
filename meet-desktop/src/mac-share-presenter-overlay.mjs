@@ -129,7 +129,15 @@ if(process.platform==='darwin'){
     setTimeout(()=>{if(shareActive&&bordersReady())positionBorder();},80);
   }
   function hideBorder(){for(const win of borderWindows){if(!isAlive(win))continue;try{if(process.platform==='darwin'&&win.isSimpleFullScreen?.())win.setSimpleFullScreen(false);}catch{}try{win.hide();}catch{}}}
-  function presenterParticipantCount(){return Array.isArray(shareState.participants)?shareState.participants.length:0;}
+  function presenterParticipantCount(){
+    if(!Array.isArray(shareState.participants))return 0;
+    const seen=new Set();
+    for(const person of shareState.participants){
+      const id=String(person?.participantId||'').trim();
+      if(id)seen.add(id);
+    }
+    return seen.size;
+  }
   function shouldShowVideoWindow(){return videoLayout!=='hide';}
   function positionVideo({preservePosition=false}={}){
     if(!isAlive(videoWindow))return;
