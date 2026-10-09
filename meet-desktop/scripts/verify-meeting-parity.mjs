@@ -43,8 +43,8 @@ assert(!parity.includes("add('Diagnostics'"),'Diagnostics must not be exposed in
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Video dock orientation must respond to dock position.');
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Remote active speaker must be promotable to the main stage.');
 assert(parity.includes("should=Boolean(!hideSelf&&(sharing()||remotePromoted))")&&parity.includes("snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live')"),'Local self tile must stay present in the floating dock while sharing even when camera is off, while Hide Self View suppresses only the local tile and live video is attached only when a usable camera track exists.');
-assert(parity.includes('dock.dataset.count=String(Math.min(count,9))'),'Dock layout must be driven by visible participant count.');
-assert(parity.includes('for(let i=1;i<=9;i++'),'Dock must expose count classes through nine visible tiles.');
+assert(parity.includes('dock.dataset.count=String(Math.min(count,5))'),'Dock layout must be capped to the approved five-visible-tile filmstrip.');
+assert(parity.includes('for(let i=1;i<=5;i++'),'Dock must expose count classes through five visible tiles before internal scrolling.');
 assert(parity.includes('desktop.meeting.context()')&&parity.includes('Passcode ${pass}'),'Meeting ID and passcode must remain visible from native meeting context.');
 assert(parity.includes("hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'"),'Home greeting must adapt to local time.');
 assert(preload.includes("brand:Object.freeze({logoUrl})"),'Desktop bridge must expose the packaged real DominionStar logo.');
