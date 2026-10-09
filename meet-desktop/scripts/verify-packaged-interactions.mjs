@@ -145,7 +145,8 @@ try{
   socket.addEventListener('close',()=>settlePending(new Error('CDP WebSocket closed.')));
   await cdp('Runtime.enable');
   await cdp('Debugger.enable');mark('runtime-enabled');
-  await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareIntegration&&window.DominionZoomAdaptiveParity&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&window.dominionDesktop?.meeting&&window.dominionDesktop?.share","desktop UI + final physical runtime + native share controllers");mark('controllers-loaded');
+  await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareIntegration&&window.DominionZoomAdaptiveParity&&window.DominionApprovedReferenceParity&&window.DominionWebRTCController&&window.DominionRuntimeStability&&window.dominionDesktop?.meeting&&window.dominionDesktop?.share","desktop UI + final physical runtime + native share controllers");mark('controllers-loaded');
+  assert.equal(await evaluate(`Boolean(window.DominionWebRTCController?.start&&window.DominionWebRTCController?.stop&&window.DominionWebRTCController?.snapshot&&window.DominionRuntimeStability?.sync)`),true,'Packaged renderer must expose the canonical live WebRTC and runtime-stability authorities.');mark('live-runtime-authority');
 
   await evaluate(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
