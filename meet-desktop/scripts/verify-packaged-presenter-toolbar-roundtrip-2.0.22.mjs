@@ -378,13 +378,13 @@ try{
   assert.equal(liveVideo.trackState,'live','Presenter video must own a live preview track while camera state is on.');
   stage('presenter-video-live');
 
-  await video.wait("document.querySelector('#videoMoreButton')&&document.querySelector('#videoMoreMenu')",'presenter video quick-controls shell',5000);
-  await video.click('#videoMoreButton');
-  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===false",'presenter video quick-controls open',4000);
-  const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoMoreMenu button')].map(button=>button.textContent.trim())");
-  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Speaker View','Gallery View','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
-  await video.eval("window.dispatchEvent(new MouseEvent('mouseleave'))");
-  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===true",'presenter video quick-controls dismiss when pointer leaves floating video surface',4000);
+  await video.wait("document.querySelector('.video-tile[data-self=\"1\"] [data-video-primary]')&&document.querySelector('.video-tile[data-self=\"1\"] [data-video-more]')&&document.querySelector('#videoActionMenu')",'presenter video hover-controls shell',5000);
+  await video.click('.video-tile[data-self="1"] [data-video-more]');
+  await video.wait("document.querySelector('#videoActionMenu')?.hidden===false",'presenter video quick-controls open',4000);
+  const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoActionMenu button')].map(button=>button.textContent.trim())");
+  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Speaker View','Participant Strip','Gallery View','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
+  await video.eval("document.body.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))");
+  await video.wait("document.querySelector('#videoActionMenu')?.hidden===true",'presenter video quick-controls dismiss on outside interaction',4000);
   stage('presenter-video-hover-controls');
 
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
@@ -398,10 +398,10 @@ try{
   const voiceMain=new Cdp(voiceMainTarget.webSocketDebuggerUrl);await voiceMain.connect();
   assert.equal(await voiceMain.eval("(()=>{if(!window.DominionShareIntegration||!window.DominionShareController?.snapshot?.().active)return false;window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:.72,speaking:true}}));return true;})()"),true,'Meeting renderer must have the active share integration before microphone activity is published.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='3'&&document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone activity meter',5000);
-  await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='3'&&document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone activity meter',5000);
+  await video.wait("document.querySelector('.video-tile[data-self=\"1\"]')?.classList.contains('speaking')",'presenter video green speaking state',5000);
   assert.equal(await voiceMain.eval("(()=>{window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:0,speaking:false}}));return true;})()"),true,'Meeting renderer must publish microphone idle state through the same production voice event path.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='0'&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone meter idle',5000);
-  await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='0'&&!document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone meter idle',5000);
+  await video.wait("!document.querySelector('.video-tile[data-self=\"1\"]')?.classList.contains('speaking')",'presenter video speaking state idle',5000);
   voiceMain.close();
   stage('live-microphone-meter-roundtrip');
 
