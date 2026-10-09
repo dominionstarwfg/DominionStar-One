@@ -56,9 +56,9 @@ assert(css.includes('.meeting-body{position:relative!important;display:block!imp
 assert(css.includes('.stage{position:absolute!important;inset:0!important'),'Meeting stage must consume the full available canvas.');
 assert(css.includes('.room-side{position:absolute!important'),'Participant management must overlay the stage instead of shrinking it.');
 assert(css.includes('.participant-video-dock[data-orientation="vertical"].count-2 .participant-video-dock-body,.participant-video-dock[data-orientation="vertical"].count-3'),'One to three participant videos must extend compactly rather than create a wide grid.');
-assert(css.includes('.count-4 .participant-video-dock-body')&&css.includes('grid-template-columns:repeat(2,176px)'),'Four to six participant videos must transition into an internal grid.');
-assert(css.includes('.count-7 .participant-video-dock-body')&&css.includes('grid-template-columns:repeat(3,150px)'),'Larger participant sets must transition into a compact three-column grid.');
-assert(css.includes('.participant-video-dock.user-resized .participant-video-dock-body')&&css.includes('repeat(auto-fit,minmax(118px,1fr))'),'User-resized participant dock must recompute its internal grid automatically.');
+assert(css.includes('.count-4 .participant-video-dock-body')&&css.includes('grid-template-columns:306px'),'Four to six participant videos must remain in the default one-column vertical stack.');
+assert(css.includes('.count-7 .participant-video-dock-body')&&css.includes('grid-template-columns:306px'),'Larger participant sets must remain one-column and use internal scrolling until Gallery is explicitly selected.');
+assert(parity.includes("const columns=panelMode==='gallery'?2:1;"),'Only explicit Gallery mode may transition the participant video dock into multiple columns.');
 assert(css.includes('.participant-video-dock.minimized'),'Participant video dock must support Zoom-style minimization.');
 assert(css.includes('@media(max-width:760px)'),'Meeting layout must adapt for compact desktop windows.');
 
