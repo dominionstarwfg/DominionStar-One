@@ -717,7 +717,9 @@
     }
     const share=event.target.closest?.('#roomShare');
     if(share&&meetingOpen()){
-      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();share.blur();openShareFromRuntime(share);return;
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();share.blur();
+      if(window.DominionMeetingSecurity?.allows?.('share')===false){window.DominionMeetingNotifications?.toast?.('Screen sharing unavailable','The host disabled participant screen sharing.');return;}
+      openShareFromRuntime(share);return;
     }
     const reactions=event.target.closest?.('#roomReactions');
     if(reactions&&meetingOpen()){
