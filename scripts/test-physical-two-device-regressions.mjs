@@ -66,7 +66,7 @@ assert(presenterOverlay.includes('if(shareActive)positionVideo({preservePosition
 assert(shareCss.includes('body.ds-native-mac-presenter-share #remoteTileStrip')&&shareCss.includes('body.ds-native-mac-presenter-share #participantVideoDock'), 'Native sharing can expose a second renderer participant-video surface alongside the presenter panel.');
 assert(shareIntegration.includes('The participant video dock is the single visible camera authority')&&shareIntegration.includes('if(cameraTile.srcObject)cameraTile.srcObject=null;')&&shareIntegration.includes('cameraTile.hidden=true;'), 'Remote-share viewing can still expose a detached local camera tile outside the participant video dock.');
 assert(runtime.includes("dock.style.setProperty('height',`${smartHeight}px`,'important')")&&runtime.includes("dock.style.removeProperty('height')"), 'Participant video dock can retain a stale oversized height instead of fitting visible tiles.');
-assert(macPresenter.includes('const seen=new Set();')&&macPresenter.includes('return seen.size;'), 'Native presenter video sizing still trusts duplicate/stale participant rows.');
+assert(presenterOverlay.includes('const seen=new Set();')&&presenterOverlay.includes('return seen.size;'), 'Native presenter video sizing still trusts duplicate/stale participant rows.');
 
 
 assert(!physical.includes("wrap.className='ds-participant-media'"), 'Physical participant renderer recreates the rejected duplicate media strip.');
