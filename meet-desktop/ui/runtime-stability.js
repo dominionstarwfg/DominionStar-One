@@ -477,9 +477,7 @@
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
       const baseWidth=panel===chat?330:318;
-      const participantCount=participantRows().length;
-      const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));
-      const baseHeight=panel===chat?440:participantBaseHeight;
+      const baseHeight=panel===chat?440:390;
       const minPanelHeight=panel===chat?300:390;
       const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
@@ -505,10 +503,19 @@
         panel.style.setProperty('bottom','auto','important');
         panel.style.setProperty('width',`${pw}px`,'important');
         panel.style.setProperty('height',`${ph}px`,'important');
+      }else if(panel===participants){
+        const ph=Math.min(390,Math.max(1,bodyHeight-20));
+        const pw=Math.min(318,Math.max(1,bodyWidth-20));
+        panel.style.setProperty('left',`${Math.max(10,(bodyWidth-pw)/2)}px`,'important');
+        panel.style.setProperty('right','auto','important');
+        panel.style.setProperty('top',`${Math.max(10,(bodyHeight-ph)/2)}px`,'important');
+        panel.style.setProperty('bottom','auto','important');
+        panel.style.setProperty('width',`${pw}px`,'important');
+        panel.style.setProperty('height',`${ph}px`,'important');
       }else{
         panel.style.setProperty('left','auto','important');
         panel.style.setProperty('right','24px','important');
-        panel.style.setProperty('top',panel===chat?'46px':'18px','important');
+        panel.style.setProperty('top','46px','important');
         panel.style.setProperty('bottom','auto','important');
         panel.style.setProperty('height',`${Math.min(height,Math.max(minPanelHeight,bodyHeight-28))}px`,'important');
       }
@@ -551,10 +558,9 @@
     const sr=stage.getBoundingClientRect();
     const width=Math.max(1,sr.width||stage.clientWidth||0);
     const height=Math.max(1,sr.height||stage.clientHeight||0);
-    const compact=width<760;
     const userPositioned=dock.classList.contains('user-positioned');
 
-    dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right';
+    dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right';
     dock.style.setProperty('position','absolute','important');
     dock.style.setProperty('bottom','auto','important');
     dock.style.setProperty('transform','none','important');
@@ -584,43 +590,27 @@
     dock.style.removeProperty('max-width');
     dock.style.removeProperty('max-height');
 
-    if(compact){
-      dock.style.setProperty('left','14px','important');
-      dock.style.setProperty('right','14px','important');
-      dock.style.setProperty('top','10px','important');
-      dock.style.setProperty('width','auto','important');
-      dock.style.setProperty('max-width','calc(100% - 28px)','important');
-      dock.style.setProperty('max-height','190px','important');
-      if(body){
-        body.style.setProperty('grid-template-columns','repeat(auto-fit,minmax(142px,1fr))','important');
-        body.style.setProperty('grid-auto-flow','column','important');
-        body.style.setProperty('overflow-x','auto','important');
-        body.style.setProperty('overflow-y','hidden','important');
-      }
-    }else{
-      const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
-      const count=Math.max(1,tiles.length);
-      const columns=count<=2?1:count<=6?2:3;
-      const rows=Math.min(3,Math.ceil(count/columns));
-      const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
-      const desiredWidth=columns*tileWidth+(columns-1)*gap+padding;
-      const desiredHeight=headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding;
-      dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
-      dock.dataset.dsRuntimeColumns=String(columns);
-      dock.style.setProperty('left','auto','important');
-      dock.style.setProperty('right','14px','important');
-      dock.style.setProperty('top','14px','important');
-      dock.style.setProperty('width',`${Math.min(desiredWidth,Math.max(176,width-28))}px`,'important');
-      dock.style.setProperty('height',`${Math.min(desiredHeight,Math.max(127,height-28))}px`,'important');
-      dock.style.setProperty('max-width','calc(100% - 28px)','important');
-      dock.style.setProperty('max-height','calc(100% - 28px)','important');
-      if(body){
-        body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important');
-        body.style.setProperty('grid-auto-flow','row','important');
-        body.style.setProperty('overflow-x','hidden','important');
-        body.style.setProperty('overflow-y',rows<Math.ceil(count/columns)?'auto':'hidden','important');
-        body.style.setProperty('align-content','start','important');
-      }
+    const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
+    const count=Math.max(1,tiles.length);
+    const visibleRows=Math.min(5,count);
+    const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
+    const desiredHeight=Math.min(548,headerHeight+(visibleRows*tileHeight)+Math.max(0,visibleRows-1)*gap+padding);
+    dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
+    dock.dataset.dsRuntimeColumns='1';
+    dock.style.setProperty('left','auto','important');
+    dock.style.setProperty('right','14px','important');
+    dock.style.setProperty('top','14px','important');
+    dock.style.setProperty('width','188px','important');
+    dock.style.setProperty('height',`${Math.min(desiredHeight,Math.max(127,height-28))}px`,'important');
+    dock.style.setProperty('max-width','188px','important');
+    dock.style.setProperty('max-height','calc(100% - 28px)','important');
+    if(body){
+      body.style.setProperty('grid-template-columns','176px','important');
+      body.style.setProperty('grid-auto-flow','row','important');
+      body.style.setProperty('grid-auto-rows','99px','important');
+      body.style.setProperty('overflow-x','hidden','important');
+      body.style.setProperty('overflow-y',count>5?'auto':'hidden','important');
+      body.style.setProperty('align-content','start','important');
     }
     return true;
   }
