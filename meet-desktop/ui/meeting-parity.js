@@ -397,36 +397,49 @@
   function menuAt(anchor,className){const menu=document.createElement('div');menu.className=className;document.body.append(menu);const r=anchor.getBoundingClientRect();menu.style.left=`${clamp(r.left,10,innerWidth-240)}px`;menu.style.bottom=`${Math.max(78,innerHeight-r.top+8)}px`;return menu;}
   async function openSecurity(anchor){
     closeMenus();securityMenu=menuAt(anchor,'meeting-more-menu security-menu ds-ref-host-tools-panel');
-    const meta=lastMeta||q('#roomCodeLabel')?.textContent||'Meeting protected';
+    const currentMenu=securityMenu,meta=lastMeta||q('#roomCodeLabel')?.textContent||'Meeting protected';
     const role=String(q('#roomRole')?.textContent||'').toLowerCase().replace('-',''),canManage=['host','cohost'].includes(role);
-    let snapshot=null,ctx=null;
-    try{ctx=await desktop.meeting?.context?.();if(ctx?.roomId&&desktop.meeting?.snapshot)snapshot=await desktop.meeting.snapshot(ctx.roomId);}catch{}
-    if(snapshot)applySecurityState({waitingRoom:Boolean(snapshot.waitingRoomEnabled),locked:Boolean(snapshot.meetingLocked),muteOnEntry:Boolean(snapshot.muteOnEntry)},false);
     const toggle=(label,key,value)=>`<button type="button" class="security-toggle-row" data-security-key="${key}" aria-pressed="${Boolean(value)}"><span>${label}</span><span class="security-switch" aria-hidden="true"><i></i></span></button>`;
-    securityMenu.innerHTML=`<div class="menu-heading"><strong>Host Tools</strong><small>${meta}</small></div>
-      ${canManage?`<div class="security-group"><small>Security</small>${toggle('Lock Meeting','locked',securityState.locked)}${toggle('Enable Waiting Room','waitingRoom',securityState.waitingRoom)}</div>
-      <div class="security-group"><small>Allow participants to</small>${toggle('Share Screen','allowShare',securityState.allowShare)}${toggle('Chat','allowChat',securityState.allowChat)}${toggle('Rename Themselves','allowRename',securityState.allowRename)}${toggle('Unmute Themselves','allowUnmute',securityState.allowUnmute)}${toggle('Start Video','allowVideo',securityState.allowVideo)}</div>
-      <div class="security-group"><small>Entry</small>${toggle('Mute on Entry','muteOnEntry',securityState.muteOnEntry)}</div>
-      <div class="security-group"><small>Management</small><button type="button" data-security-participants>Manage Participants</button><button type="button" data-security-mute-all>Mute All Participants</button><button type="button" class="danger-option" data-security-suspend>Suspend Participant Activities</button></div>`:`<button type="button" data-security-copy>Copy meeting information</button>`}
-      <p class="security-status" data-security-status></p>`;
-    const status=securityMenu.querySelector('[data-security-status]');
-    for(const button of securityMenu.querySelectorAll('[data-security-key]')){
-      button.onclick=async()=>{
-        const key=button.dataset.securityKey,value=!Boolean(securityState[key]);
-        button.disabled=true;const ok=await persistSecurityPatch({[key]:value});button.disabled=false;
-        if(!ok){if(status)status.textContent='Could not update this meeting setting.';return;}
-        void openSecurity(anchor);
+    const render=()=>{
+      if(!currentMenu?.isConnected)return;
+      currentMenu.innerHTML=`<div class="menu-heading"><strong>Host Tools</strong><small>${meta}</small></div>
+        ${canManage?`<div class="security-group"><small>Security</small>${toggle('Lock Meeting','locked',securityState.locked)}${toggle('Enable Waiting Room','waitingRoom',securityState.waitingRoom)}</div>
+        <div class="security-group"><small>Allow participants to</small>${toggle('Share Screen','allowShare',securityState.allowShare)}${toggle('Chat','allowChat',securityState.allowChat)}${toggle('Rename Themselves','allowRename',securityState.allowRename)}${toggle('Unmute Themselves','allowUnmute',securityState.allowUnmute)}${toggle('Start Video','allowVideo',securityState.allowVideo)}</div>
+        <div class="security-group"><small>Entry</small>${toggle('Mute on Entry','muteOnEntry',securityState.muteOnEntry)}</div>
+        <div class="security-group"><small>Management</small><button type="button" data-security-participants>Manage Participants</button><button type="button" data-security-mute-all>Mute All Participants</button><button type="button" class="danger-option" data-security-suspend>Suspend Participant Activities</button></div>`:`<button type="button" data-security-copy>Copy meeting information</button>`}
+        <p class="security-status" data-security-status aria-live="polite"></p>`;
+      const status=currentMenu.querySelector('[data-security-status]');
+      for(const button of currentMenu.querySelectorAll('[data-security-key]')){
+        button.onclick=async()=>{
+          const key=button.dataset.securityKey,value=!Boolean(securityState[key]);
+          button.disabled=true;if(status)status.textContent='Updating…';
+          const ok=await persistSecurityPatch({[key]:value});
+          if(!currentMenu?.isConnected)return;
+          if(!ok){button.disabled=false;if(status)status.textContent='Could not update this meeting setting.';return;}
+          render();
+        };
+      }
+      const participantsButton=currentMenu.querySelector('[data-security-participants]');if(participantsButton)participantsButton.onclick=()=>{toggleParticipants(true);closeMenus();};
+      const muteAll=currentMenu.querySelector('[data-security-mute-all]');if(muteAll)muteAll.onclick=async()=>{muteAll.disabled=true;await window.DominionParticipantControls?.sendAll?.('host:mute');if(muteAll.isConnected)muteAll.disabled=false;};
+      const suspend=currentMenu.querySelector('[data-security-suspend]');if(suspend)suspend.onclick=async()=>{
+        suspend.disabled=true;
+        await persistSecurityPatch({locked:true,allowShare:false,allowUnmute:false,allowVideo:false});
+        await Promise.allSettled([window.DominionParticipantControls?.sendAll?.('host:mute'),window.DominionParticipantControls?.sendAll?.('host:stop-video')]);
+        if(currentMenu?.isConnected)render();
       };
-    }
-    const participantsButton=securityMenu.querySelector('[data-security-participants]');if(participantsButton)participantsButton.onclick=()=>{toggleParticipants(true);closeMenus();};
-    const muteAll=securityMenu.querySelector('[data-security-mute-all]');if(muteAll)muteAll.onclick=async()=>{muteAll.disabled=true;await window.DominionParticipantControls?.sendAll?.('host:mute');muteAll.disabled=false;};
-    const suspend=securityMenu.querySelector('[data-security-suspend]');if(suspend)suspend.onclick=async()=>{
-      suspend.disabled=true;
-      await persistSecurityPatch({locked:true,allowShare:false,allowUnmute:false,allowVideo:false});
-      await Promise.allSettled([window.DominionParticipantControls?.sendAll?.('host:mute'),window.DominionParticipantControls?.sendAll?.('host:stop-video')]);
-      suspend.disabled=false;void openSecurity(anchor);
+      const copy=currentMenu.querySelector('[data-security-copy]');if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(meta);}catch{}closeMenus();};
     };
-    const copy=securityMenu.querySelector('[data-security-copy]');if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(meta);}catch{}closeMenus();};
+    // Render controls immediately. Never leave Host Tools blank while an IPC/server snapshot is loading.
+    render();
+    if(!canManage)return;
+    try{
+      const ctx=await Promise.race([desktop.meeting?.context?.(),new Promise(resolve=>setTimeout(()=>resolve(null),900))]);
+      if(!currentMenu?.isConnected||!ctx?.roomId||!desktop.meeting?.snapshot)return;
+      const snapshot=await Promise.race([desktop.meeting.snapshot(ctx.roomId).catch(()=>null),new Promise(resolve=>setTimeout(()=>resolve(null),900))]);
+      if(!currentMenu?.isConnected||!snapshot)return;
+      applySecurityState({waitingRoom:Boolean(snapshot.waitingRoomEnabled),locked:Boolean(snapshot.meetingLocked),muteOnEntry:Boolean(snapshot.muteOnEntry)},false);
+      render();
+    }catch{}
   }
   function openSettings(kind=''){
     const d=q('#settingsDialog');if(d&&!d.open)d.showModal();
