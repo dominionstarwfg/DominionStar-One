@@ -47,6 +47,9 @@ assert(!engine.includes("if(members.length)emit('presence'"), 'Browser V2 snapsh
 assert(desktopWebrtc.includes('screenTrackId:active?String(screenTrack?.id'), 'Desktop screen-state does not publish screen track identity to browser viewers.');
 assert(desktopWebrtc.includes('screenStreamId:active?String(stream?.id'), 'Desktop screen-state does not publish screen stream identity to browser viewers.');
 assert(desktopWebrtc.includes("screenMid:active&&lanes[2]?.mid!=null"), 'Desktop screen-state does not publish the negotiated screen m-line.');
+assert(desktopWebrtc.includes('remoteVideoCandidates:new Map()')&&desktopWebrtc.includes('function announcedScreenCandidate(record)')&&desktopWebrtc.includes('function bindRemoteScreenCandidate(record,candidate)'), 'Desktop receiver cannot reclassify a video track when screen metadata arrives after ontrack.');
+assert(desktopWebrtc.includes('shareRecord.remoteShareTrackId=String(payload.screenTrackId')&&desktopWebrtc.includes('shareRecord.remoteShareStreamId=String(payload.screenStreamId')&&desktopWebrtc.includes('shareRecord.remoteShareMid=payload.screenMid'), 'Desktop receiver does not retain announced screen track/stream/MID identity.');
+
 assert(browserUi.includes('ids.participantList.dataset.renderSignature!==renderSignature'), 'Browser participant roster still repaints on every snapshot and can blink/reorder.');
 assert(browserUi.includes("const validTiles=new Set(['self',...state.participants.keys()])"), 'Browser video dock does not prune ghost tiles before deciding visibility.');
 assert(!browserIndex.includes('<h1>Meetings</h1>')&&!browserIndex.includes('Start, join, or schedule in one place.'), 'Competing standalone Meet home launcher is still visible in the browser room client.');
@@ -61,6 +64,10 @@ assert(shareIntegration.includes("if(command==='polls')")&&shareIntegration.incl
 assert(shareIntegration.includes('desktop?.share?.captureStopped?.()'), 'Stopped sharing does not explicitly tear down native presenter/perimeter chrome.');
 assert(presenterOverlay.includes('if(shareActive)positionVideo({preservePosition:priorDisplay===nextDisplay});'), 'Native presenter video panel can retain stretched blank geometry instead of following participant count.');
 assert(shareCss.includes('body.ds-native-mac-presenter-share #remoteTileStrip')&&shareCss.includes('body.ds-native-mac-presenter-share #participantVideoDock'), 'Native sharing can expose a second renderer participant-video surface alongside the presenter panel.');
+assert(shareIntegration.includes('The participant video dock is the single visible camera authority')&&shareIntegration.includes('if(cameraTile.srcObject)cameraTile.srcObject=null;')&&shareIntegration.includes('cameraTile.hidden=true;'), 'Remote-share viewing can still expose a detached local camera tile outside the participant video dock.');
+assert(runtime.includes("dock.style.setProperty('height',`${smartHeight}px`,'important')")&&runtime.includes("dock.style.removeProperty('height')"), 'Participant video dock can retain a stale oversized height instead of fitting visible tiles.');
+assert(macPresenter.includes('const seen=new Set();')&&macPresenter.includes('return seen.size;'), 'Native presenter video sizing still trusts duplicate/stale participant rows.');
+
 
 assert(!physical.includes("wrap.className='ds-participant-media'"), 'Physical participant renderer recreates the rejected duplicate media strip.');
 assert(physical.includes("row.querySelector('.participant-media-state')"), 'Physical participant renderer is not reusing the canonical media strip.');
@@ -85,7 +92,7 @@ assert(reference.includes('DominionMeetingLifecycleAuthority') && reference.incl
 assert(participantControls.includes("data-ds-canonical-participant-footer"), 'Loaded participant controls do not own a stable canonical footer.');
 assert(participantControls.includes("DominionMeetingLifecycleAuthority?.openInvite?.()"), 'Loaded participant footer Invite does not route to persistent lifecycle authority.');
 
-assert(parity.includes("const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v2';")&&parity.includes("const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';"), 'Old saved panel geometry can still override the approved right-dock/center-panel defaults.');
+assert(parity.includes("const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v3';")&&parity.includes("localStorage.removeItem('ds_zoom_video_dock_geometry_v2')")&&parity.includes("const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';"), 'Old saved video-dock geometry can still override the approved smart right-dock default.');
 assert(runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);")&&runtime.includes("if(panel===participants){"), 'Participants still default to the right-side video-dock lane instead of the middle meeting area.');
 assert(participantReference.includes('font-size:14px!important'), 'Participant names remain undersized in the late participant reference authority.');
 assert(presenterToolbarCss.includes('width:236px'), 'Presenter More menu remains squeezed below the toolbar.');
