@@ -175,7 +175,7 @@ assert(participantControls.includes('Spotlight for Everyone')&&participantContro
 assert(!read('ui','app.js').includes('data-cohost='),'Packaged roster must not retain duplicate inline participant authority buttons.');
 assert(parity.includes('Lock Meeting')&&parity.includes('Mute Participants on Entry')&&preload.includes('setSecurity:')&&main.includes("'meeting:set-security'")&&meeting.includes('meet_v2_set_security'),'Packaged Security menu must use server-backed Lock Meeting and Mute-on-Entry authority.');
 assert(parity.includes("button.id='meetingViewButton'")&&parity.includes("['speaker','gallery','multi']"),'Packaged meeting must expose Speaker, Gallery, and Multi-speaker views.');
-assert(parity.includes("return stage.width<900||stage.height<560?'top':'right'")&&parity.includes("user-positioned"),'Packaged participant dock must auto-reflow for compact windows without overriding manual placement.');
+assert(parity.includes("function automaticDockAnchor(){return 'right';}")&&parity.includes("if(!dock.classList.contains('user-positioned'))dock.dataset.anchor='right';")&&parity.includes("user-positioned"),'Packaged participant dock must default to the approved right-side position without overriding explicit manual placement.');
 assert(parity.includes("const floatingPanel=active&&showPanel&&!sideBySide")&&parity.includes("DominionPreferences?.read?.('shareSideBySide')===true"),'Packaged screen sharing must default to the movable floating video panel while preserving optional side-by-side mode.');
 assert(features.includes('meetingChatRecipient')&&features.includes('In-meeting messages'),'Packaged Chat must render a polished recipient-aware in-meeting panel.');
 
