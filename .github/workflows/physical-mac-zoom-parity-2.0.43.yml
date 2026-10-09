@@ -160,7 +160,7 @@ jobs:
         run: |
           mkdir -p qa-artifact
           ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-Physical-Mac-QA.zip
-          shasum -a 256 qa-artifact/DominionStar-Meet-2.0.44-Physical-Mac-QA.zip | tee qa-artifact/SHA256.txt
+          shasum -a 256 qa-artifact/DominionStar-Meet-Physical-Mac-QA.zip | tee qa-artifact/SHA256.txt
 
       - name: Upload physical Mac QA artifact
         uses: actions/upload-artifact@v4
