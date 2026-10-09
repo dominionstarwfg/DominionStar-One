@@ -217,7 +217,7 @@ try{
 
   // Leaving must remove the peer and its media surface instead of leaving a ghost participant.
   activeIds.delete(ids[1]);
-  await guest.evaluate(({hostId})=>window.dominionDesktop.meeting.sendSignal(hostId,'bye',{at:new Date().toISOString()}),{hostId:ids[0]});
+  await guest.evaluate(()=>window.DominionWebRTCController.stop());
   await host.waitForFunction(guestId=>window.DominionWebRTCController?.snapshot?.().peerCount===0&&!document.querySelector(`.remote-peer-tile[data-peer-id="${CSS.escape(guestId)}"]`),ids[1],{timeout:6000});
 
   for(const [label,state] of [['host',hostState],['guest',guestState]])assert.deepEqual(state.pageErrors,[],`${label} renderer produced runtime errors:\n${state.pageErrors.join('\n')}`);
