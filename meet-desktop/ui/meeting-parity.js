@@ -446,7 +446,7 @@
     const footer=q('.meeting-footer');if(!footer)return;
     for(const id of ['roomSecurity','roomSettings','roomRecord','roomRecordStop']){const node=q('#'+id);if(node)node.hidden=true;}
     const caption=q('#roomCaptions')?.closest('.caption-control-cluster');if(caption)caption.hidden=true;
-    const desired=['roomMic','roomCamera','roomShare','roomParticipants','roomChat','roomReactions',...(canManageView()?['roomHostTools']:[]),'roomMore','roomExitButton'];
+    const desired=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare',...(canManageView()?['roomHostTools']:[]),'roomMore','roomExitButton'];
     const present=desired.filter(id=>q('#'+id));
     q('#roomHostTools')?.toggleAttribute('hidden',!canManageView());
     const key=present.join('|');
