@@ -402,7 +402,7 @@ if(process.platform==='darwin'){
   }
   function presenterRetrySafe(command){
     const value=String(command||'');
-    return /^(?:audio-(?:on|off)|video-(?:on|off)|pause-share|resume-share|participants|chat|stop|polls|whiteboard|apps|captions|record|show-meeting|layout-(?:hide|speaker|strip|gallery))$/.test(value)
+    return /^(?:audio-(?:on|off)|video-(?:on|off)|pause-share|resume-share|participants|chat|stop|polls|whiteboard|apps|host-tools|audio-settings|video-settings|captions|record|show-meeting|layout-(?:hide|speaker|strip|gallery))$/.test(value)
       || /^participant:(?:mute|ask-unmute|stop-video|ask-video):/.test(value);
   }
   async function deliverPresenterCommandWithRetry(main,command){
