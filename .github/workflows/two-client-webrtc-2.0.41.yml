@@ -31,10 +31,14 @@ jobs:
       - name: Verify exact candidate and QA script syntax
         run: |
           node --check meet-desktop/scripts/test-two-client-webrtc-2.0.41.mjs
+          node --check meet-desktop/scripts/test-meeting-lifecycle-communication-2.0.52.mjs
           node --check meet-desktop/ui/webrtc-controller.js
           node --check meet-desktop/ui/browser-bridge.js
           node --check meet-desktop/ui/meeting-features.js
           node --check meet-desktop/ui/participant-controls.js
+
+      - name: Run stateful meeting lifecycle communication acceptance
+        run: node meet-desktop/scripts/test-meeting-lifecycle-communication-2.0.52.mjs
 
       - name: Install pinned Playwright runtime
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
