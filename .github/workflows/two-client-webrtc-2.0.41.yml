@@ -1,4 +1,4 @@
-name: DominionStar Meet Two-Client WebRTC 2.0.44
+name: DominionStar Meet Two-Client WebRTC
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout exact 2.0.44 candidate
+      - name: Checkout exact candidate
         uses: actions/checkout@v4
         with:
           clean: true
@@ -30,7 +30,6 @@ jobs:
 
       - name: Verify exact candidate and QA script syntax
         run: |
-          test "$(node -p "require('./meet-desktop/package.json').version")" = '2.0.44'
           node --check meet-desktop/scripts/test-two-client-webrtc-2.0.41.mjs
           node --check meet-desktop/ui/webrtc-controller.js
           node --check meet-desktop/ui/browser-bridge.js
