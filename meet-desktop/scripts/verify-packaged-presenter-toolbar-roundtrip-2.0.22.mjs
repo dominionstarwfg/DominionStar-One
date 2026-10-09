@@ -410,7 +410,7 @@ try{
   await waitStderr(ackPattern('video-off'),'renderer ACK for Video',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().cameraOn===false&&document.querySelector('[data-command=\"video\"]')?.classList.contains('is-off')&&document.querySelector('#videoLabel')?.textContent==='Start Video'",'floating Video state synchronized from real media',8000);
   await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]'),preview=tile?.querySelector('video'),fallback=tile?.querySelector('.video-fallback');return Boolean(tile&&preview?.hidden&&!fallback?.hidden);})()", 'presenter panel camera-off fallback',6000);
-  const fallbackWidth=await video.eval("Math.round(document.querySelector('.video-tile[data-self="1"] .video-fallback')?.getBoundingClientRect().width||0)");
+  const fallbackWidth=await video.eval("Math.round(document.querySelector('.video-tile[data-self=\"1\"] .video-fallback')?.getBoundingClientRect().width||0)");
   assert.ok(fallbackWidth>=100,'Presenter camera-off profile fallback is still undersized: '+fallbackWidth+'px');
   stage('video-real-toolbar');
 
