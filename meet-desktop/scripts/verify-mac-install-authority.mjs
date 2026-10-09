@@ -31,7 +31,7 @@ assert(bootstrap.includes('const version=app.getVersion()')&&!bootstrap.includes
 assert(relaunch.includes('const execPath=process.execPath')&&relaunch.includes('const args=process.argv.slice(1)'),'Permission recovery relaunch must capture the exact running executable and arguments.');
 assert(relaunch.includes('app.relaunch({execPath,args})'),'Permission recovery must relaunch the exact installed DominionStar executable.');
 assert(html.includes('href="./participant-panel-stability.css"'),'Meeting shell must load the first-frame participant-panel stability guard.');
-assert(participantPanelStability.includes('left:auto!important')&&participantPanelStability.includes('right:24px!important')&&participantPanelStability.includes('transform:none!important'),'Participants panel must begin on the approved right edge before runtime reconciliation.');
-assert(!participantPanelStability.includes('left:50%!important')&&!participantPanelStability.includes('translateX(-50%)'),'Rejected centered Participants geometry must never return on the first frame.');
+assert(participantPanelStability.includes('left:50%!important')&&participantPanelStability.includes('top:50%!important')&&participantPanelStability.includes('transform:translate(-50%,-50%)!important'),'Participants panel must begin centered before runtime reconciliation.');
+assert(!participantPanelStability.includes('right:24px!important'),'First-frame Participants geometry must not regress to the rejected right-side default.');
 
-console.log('DOMINIONSTAR_MAC_INSTALL_AUTHORITY_OK canonical-install exact-app-path duplicate-name-rejected single-instance dynamic-version fail-closed-existsAndRunning exact-binary-relaunch first-frame-participant-compact-right');
+console.log('DOMINIONSTAR_MAC_INSTALL_AUTHORITY_OK canonical-install exact-app-path duplicate-name-rejected single-instance dynamic-version fail-closed-existsAndRunning exact-binary-relaunch first-frame-participant-centered');
