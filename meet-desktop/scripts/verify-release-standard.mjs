@@ -79,8 +79,6 @@ assert.ok(/Security labels must be technically true/i.test(standard),'Release st
 assert.ok(/Physical-Mac acceptance feedback is a first-class release input/i.test(standard),'Release standard must preserve physical Mac failures as first-class release evidence.');
 assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(standard),'Release standard must prohibit publishing failed candidates.');
 
-console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source source-cert packaged-audit packaged-launch runtime-stability packaged-controls zoom-render-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac-2.0.21 adaptive-zoom-gate approved-3d-reference-gate native-system-picker tcc-provenance installer-verify upload-last`);
-
 // PACKAGED_RUNTIME_WIRING: the packaged UI must execute the same canonical
 // transport/runtime authorities that communication and physical QA certify.
 {
@@ -97,5 +95,9 @@ console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-ver
   const finalSemanticIndex=shell.indexOf('src="./more-menu-semantic-icons-2.0.41.js"');
   assert(webrtcIndex>participantControlsIndex,'WebRTC controller must load after meeting/participant feature modules so it binds the live meeting shell.');
   assert(runtimeIndex>finalSemanticIndex,'Runtime stability must load last so it owns final live meeting reconciliation.');
-  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_WIRING_OK live-webrtc canonical-runtime');
+  const runtimeSource=readFileSync(new URL('../ui/runtime-stability.js',import.meta.url),'utf8');
+  assert(runtimeSource.includes("document.head.append(stabilityCss)"),'Runtime stability must move its stylesheet to the end of the live cascade.');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_WIRING_OK live-webrtc canonical-runtime final-css-owner');
 }
+
+console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source source-cert packaged-audit packaged-launch runtime-stability packaged-controls zoom-render-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac-2.0.21 adaptive-zoom-gate approved-3d-reference-gate native-system-picker tcc-provenance installer-verify packaged-runtime-wiring upload-last`);
