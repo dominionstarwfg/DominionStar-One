@@ -412,6 +412,11 @@
         }[String(payload?.action||'')];
         if(target&&type)return transport.sendSignal(target,type,{...payload,displayName:state.displayName});
       }
+      if(transport&&event==='meet-security-state'){
+        const body={settings:{...(payload?.settings||{})},displayName:state.displayName,at:new Date().toISOString()};
+        const deliveries=await Promise.allSettled([...state.v2ParticipantIds].filter(id=>id&&id!==state.participantId).map(id=>transport.sendSignal(id,'security-state',body)));
+        if(deliveries.some(item=>item.status==='fulfilled'))return true;
+      }
     }
     if (!state.channel) {
       window.DominionRuntime?.events?.publish?.({type:'realtime.send.skipped',source:'meeting-engine',meetingId:state.roomId,actorId:state.participantId,severity:'warning',payload:{event,reason:'channel-unavailable'}});
