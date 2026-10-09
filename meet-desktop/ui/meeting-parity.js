@@ -3,7 +3,7 @@
   const desktop=window.dominionDesktop||{};
   const media=()=>window.DominionMediaController||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v2';
+  const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v3';
   const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';
   const SVG=Object.freeze({
     mic:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
@@ -24,6 +24,7 @@
   if(!document.querySelector('link[data-ds-meeting-parity]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./meeting-parity.css';link.dataset.dsMeetingParity='1';document.head.append(link);}
   try{
     localStorage.removeItem('ds_zoom_video_dock_geometry_v1');
+    localStorage.removeItem('ds_zoom_video_dock_geometry_v2');
     localStorage.removeItem('ds_zoom_participant_panel_geometry_v1');
   }catch{}
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -208,8 +209,8 @@
   function startDockResize(event){if(event.button!==0)return;const dock=q('#participantVideoDock');if(!dock)return;const r=dock.getBoundingClientRect();dockResize={id:event.pointerId,x:event.clientX,y:event.clientY,w:r.width,h:r.height};event.currentTarget.setPointerCapture?.(event.pointerId);dock.classList.add('user-resized');event.preventDefault();event.stopPropagation();}
   function moveDockResize(event){if(!dockResize||event.pointerId!==dockResize.id)return;const dock=q('#participantVideoDock'),stage=dockStageRect();if(!dock||!stage)return;dock.style.width=`${clamp(dockResize.w+event.clientX-dockResize.x,150,Math.min(620,stage.width-16))}px`;dock.style.height=`${clamp(dockResize.h+event.clientY-dockResize.y,92,Math.min(620,stage.height-16))}px`;syncVideoDock();}
   function endDockResize(event){if(!dockResize||(event?.pointerId!=null&&event.pointerId!==dockResize.id))return;dockResize=null;saveVideoDock();syncVideoDock();}
-  function saveVideoDock(){const dock=q('#participantVideoDock'),stage=dockStageRect();if(!dock||!stage)return;try{const r=dock.getBoundingClientRect();localStorage.setItem(GEOMETRY_KEY,JSON.stringify({left:r.left-stage.left,top:r.top-stage.top,width:r.width,height:r.height,anchor:dock.dataset.anchor||'right',resized:dock.classList.contains('user-resized')}));}catch{}}
-  function restoreVideoDock(){const dock=q('#participantVideoDock'),stage=dockStageRect();if(!dock||!stage)return;try{const g=JSON.parse(localStorage.getItem(GEOMETRY_KEY)||'null');if(!g)return;dock.dataset.anchor=['left','right','top','bottom'].includes(g.anchor)?g.anchor:'right';if(g.resized){dock.classList.add('user-resized');dock.style.width=`${clamp(Number(g.width)||220,150,Math.min(620,stage.width-16))}px`;dock.style.height=`${clamp(Number(g.height)||130,92,Math.min(620,stage.height-16))}px`;}dock.classList.add('user-positioned');dock.style.left=`${clamp(Number(g.left)||8,8,Math.max(8,stage.width-(Number(g.width)||dock.offsetWidth)-8))}px`;dock.style.top=`${clamp(Number(g.top)||8,8,Math.max(8,stage.height-(Number(g.height)||dock.offsetHeight)-8))}px`;dock.style.right='auto';dock.style.bottom='auto';}catch{}}
+  function saveVideoDock(){const dock=q('#participantVideoDock'),stage=dockStageRect();if(!dock||!stage)return;try{const r=dock.getBoundingClientRect();localStorage.setItem(GEOMETRY_KEY,JSON.stringify({left:r.left-stage.left,top:r.top-stage.top,width:r.width,anchor:dock.dataset.anchor||'right',resizedWidth:dock.classList.contains('user-resized')}));}catch{}}
+  function restoreVideoDock(){const dock=q('#participantVideoDock'),stage=dockStageRect();if(!dock||!stage)return;try{const g=JSON.parse(localStorage.getItem(GEOMETRY_KEY)||'null');if(!g)return;dock.dataset.anchor=['left','right','top','bottom'].includes(g.anchor)?g.anchor:'right';if(g.resizedWidth){dock.classList.add('user-resized');dock.style.width=`${clamp(Number(g.width)||220,150,Math.min(620,stage.width-16))}px`;}dock.style.removeProperty('height');dock.classList.add('user-positioned');dock.style.left=`${clamp(Number(g.left)||8,8,Math.max(8,stage.width-(Number(g.width)||dock.offsetWidth)-8))}px`;dock.style.top=`${clamp(Number(g.top)||8,8,Math.max(8,stage.height-dock.offsetHeight-8))}px`;dock.style.right='auto';dock.style.bottom='auto';}catch{}}
   function resetVideoDock(){const dock=q('#participantVideoDock');if(!dock)return;try{localStorage.removeItem(GEOMETRY_KEY);}catch{}dock.classList.remove('user-positioned','user-resized','minimized');dock.removeAttribute('style');dock.dataset.anchor='right';syncVideoDock();}
   function automaticDockAnchor(){return 'right';}
   const dockTileSelf=tile=>Boolean(tile&&(tile.classList.contains('local-video-dock-tile')||tile.dataset.participantSelf==='1'));
