@@ -411,6 +411,7 @@
 
     button.addEventListener('click',event=>{
       event.currentTarget.blur();
+      if(!share.snapshot().active&&window.DominionMeetingSecurity?.allows?.('share')===false){toast('The host disabled participant screen sharing.','error');return;}
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return;}
       if(share.snapshot().active){toast('A share is already active. Use the floating presenter toolbar to pause, start a new share, or stop.');return;}
       queueMicrotask(()=>{void beginShare().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));});
