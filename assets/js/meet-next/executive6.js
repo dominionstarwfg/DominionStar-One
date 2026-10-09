@@ -1407,8 +1407,8 @@
 
   function positionPanel(panel) {
     if (panel.dataset.positioned === '1') return;
-    const width = Math.min(380, Math.max(320, innerWidth - 32));
-    const height = Math.min(560, Math.max(380, innerHeight - 180));
+    const width = Math.min(392, Math.max(320, innerWidth - 24));
+    const height = Math.min(486, Math.max(438, innerHeight - 120));
     Object.assign(panel.style, {
       position:'fixed', width:`${width}px`, height:`${height}px`,
       left:`${Math.max(16,(innerWidth-width)/2)}px`, top:`${Math.max(62,(innerHeight-height)/2)}px`,
