@@ -8,6 +8,7 @@ const parityCss=read('ui/meeting-parity.css');
 const hostTools=read('ui/zoom-screenshot-reference-2.0.41.js');
 const service=read('src/meeting-service.mjs');
 const av=read('ui/av-settings.js');
+const app=read('ui/app.js');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -22,6 +23,10 @@ assert(hostTools.includes("data-waiting ${state.waitingRoomEnabled?'checked':''}
 assert(!hostTools.includes('data-waiting disabled title="Dynamic waiting-room switching'),'disabled waiting-room placeholder remains');
 assert(hostTools.includes("setSecurityPatch({waitingRoomEnabled:wanted})"),'Host Tools waiting-room toggle has no backend action');
 assert(parity.includes("desktop.meeting.hostQueue(ctx.roomId)")&&parity.includes('data-host-admit-all'),'Host Tools lacks waiting queue access/admit-all path');
+assert(app.includes("waiting.id='waitingOverlay'")&&app.includes("You are in the Waiting Room. The host or co-host can admit you when ready."),'participant Waiting Room screen is missing');
+assert(app.includes("timers.waiting=setInterval(()=>void pollJoinStatus(),1000)"),'participant Waiting Room does not poll admission state');
+assert(app.includes("if(state.state==='admitted')")&&app.includes("await meeting.markJoined(activeRoom.participantId,activeRoom.joinToken)"),'participant does not automatically advance after admission');
+assert(app.includes("pendingMediaPreferences||{}")&&app.includes("cameraOn:prefs.cameraOn!==false")&&app.includes("micOn:state.muteOnEntry?false:Boolean(prefs.micOn)"),'participant media preferences are not restored after Waiting Room admission');
 
 assert(av.includes('async function openAudioSettings(media)'),'audio settings implementation missing');
 assert(av.includes('async function openVideoSettings(media)'),'video settings implementation missing');
