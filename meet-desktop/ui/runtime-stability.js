@@ -561,6 +561,7 @@
     const userPositioned=dock.classList.contains('user-positioned');
 
     dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right';
+    if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}
     dock.style.setProperty('position','absolute','important');
     dock.style.setProperty('bottom','auto','important');
     dock.style.setProperty('transform','none','important');
