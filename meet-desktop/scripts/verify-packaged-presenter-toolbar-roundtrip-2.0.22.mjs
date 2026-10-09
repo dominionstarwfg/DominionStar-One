@@ -483,6 +483,7 @@ try{
   annotationCanvas.close();
   stage('annotation-professional-palette');
 
+  logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
   await toolbar.wait("!window.DominionMacPresenterToolbar.state().companion",'Annotate close state returned to toolbar',8000);
   await waitStderr('QA_MAC_ANNOTATION_VISIBILITY visible=0','native annotation BrowserWindow hidden after Annotate closes',5000,logStart);
@@ -505,7 +506,7 @@ try{
   await waitStderr('QA_MAC_PRESENTER_DESTROY reason=capture-stopped remaining=0','native capture-stopped presenter hard destroy',10000,logStart);
   stage('stop-share-real-toolbar');
   assert.equal(child.exitCode,null,'Packaged app exited during physical presenter control loop.');
-  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_44_OK actual-floating-toolbar cdp-pointer-clicks renderer-acks audio video pause resume participants chat annotate new-share stop-share live-camera-panel dedicated-preview toolbar-state-roundtrip');
+  console.log('DOMINIONSTAR_PACKAGED_MAC_PRESENTER_CONTROL_LOOP_2_0_52_OK actual-floating-toolbar cdp-pointer-clicks renderer-acks audio video pause resume participants chat native-annotation-authority new-share stop-share live-camera-panel dedicated-preview toolbar-state-roundtrip');
 }catch(error){
   console.error('PRESENTER_STAGE_FAILURE',error);
   console.error(stderr);
