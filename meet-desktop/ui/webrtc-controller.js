@@ -298,7 +298,7 @@
   }
   async function handleSignal(signal){
     const remoteId=String(signal.fromParticipantId||'');if(!remoteId||remoteId===state.context?.participantId)return;
-    if(signal.type==='chat'||signal.type==='reaction'||String(signal.type||'').startsWith('host:')){dispatchMeetingSignal(signal,remoteId);return;}
+    if(signal.type==='chat'||signal.type==='reaction'||signal.type==='security-state'||String(signal.type||'').startsWith('host:')){dispatchMeetingSignal(signal,remoteId);return;}
     if(signal.type==='bye'){closePeer(remoteId);return;}
     const payload=signal.payload||{};
     if(signal.type==='screen-state'){
