@@ -586,7 +586,8 @@
 
     if(userPositioned){
       const dw=Math.min(Math.max(1,dock.offsetWidth||176),Math.max(1,width-16));
-      const columns=dw>=350?Math.min(2,count):1;
+      const panelMode=String(dock.dataset.panelMode||'strip');
+      const columns=panelMode==='gallery'&&dw>=620?2:1;
       const rows=Math.min(5,Math.ceil(count/columns));
       const smartHeight=Math.min(headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding,Math.max(127,height-16));
       const currentLeft=parseFloat(dock.style.left);
@@ -634,8 +635,9 @@
         body.style.setProperty('overflow-y',count>5?'auto':'hidden','important');
       }
     }else{
-      const columns=count<=2?1:count<=6?2:3;
-      const rows=Math.min(3,Math.ceil(count/columns));
+      const panelMode=String(dock.dataset.panelMode||'strip');
+      const columns=panelMode==='gallery'?2:1;
+      const rows=Math.min(5,Math.ceil(count/columns));
       const desiredWidth=columns*tileWidth+(columns-1)*gap+padding;
       const desiredHeight=headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding;
       dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
