@@ -811,3 +811,25 @@ body>.meeting-reaction-menu,
   width:100%!important;min-width:0!important;height:34px!important;padding:0 10px!important;
   border-radius:17px!important;font-size:11px!important;
 }
+
+
+/* 2.0.52 approved meeting-window lock: native Mac traffic geometry. */
+#meetingOverlay .room-side .ds-panel-traffic{
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-close{order:1!important}
+#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-minimize{order:2!important}
+#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-restore{order:3!important}
+#meetingOverlay .room-side .ds-panel-traffic>button{position:relative!important}
+#meetingOverlay .room-side .ds-panel-traffic>button::after{
+  position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;
+  color:rgba(55,30,18,.9)!important;font:700 9px/1 -apple-system,BlinkMacSystemFont,sans-serif!important;
+  opacity:0!important;transition:opacity .08s linear!important;pointer-events:none!important;
+}
+#meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-close::after{content:'×'!important;opacity:1!important}
+#meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-minimize::after{content:'−'!important;opacity:1!important}
+#meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-restore::after{content:'+'!important;opacity:1!important}
