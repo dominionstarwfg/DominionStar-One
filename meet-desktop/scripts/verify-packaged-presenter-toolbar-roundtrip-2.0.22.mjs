@@ -371,8 +371,8 @@ try{
 
   const videoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'floating presenter video panel');
   video=new Cdp(videoTarget.webSocketDebuggerUrl);await video.connect();
-  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self="1"]'),preview=tile?.querySelector('video'),fallback=tile?.querySelector('.video-fallback'),track=preview?.srcObject?.getVideoTracks?.()[0];return Boolean(tile&&preview&&!preview.hidden&&fallback?.hidden&&track?.readyState==='live');})()", 'live camera preview in presenter video',9000);
-  const liveVideo=await video.eval("(()=>{const tile=document.querySelector('.video-tile[data-self="1"]'),preview=tile?.querySelector('video'),fallback=tile?.querySelector('.video-fallback'),track=preview?.srcObject?.getVideoTracks?.()[0];return {previewHidden:Boolean(preview?.hidden),fallbackHidden:Boolean(fallback?.hidden),trackState:track?.readyState||''};})()");
+  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]'),preview=tile?.querySelector('video'),fallback=tile?.querySelector('.video-fallback'),track=preview?.srcObject?.getVideoTracks?.()[0];return Boolean(tile&&preview&&!preview.hidden&&fallback?.hidden&&track?.readyState==='live');})()", 'live camera preview in presenter video',9000);
+  const liveVideo=await video.eval("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]'),preview=tile?.querySelector('video'),fallback=tile?.querySelector('.video-fallback'),track=preview?.srcObject?.getVideoTracks?.()[0];return {previewHidden:Boolean(preview?.hidden),fallbackHidden:Boolean(fallback?.hidden),trackState:track?.readyState||''};})()");
   assert.equal(liveVideo.previewHidden,false);
   assert.equal(liveVideo.fallbackHidden,true);
   assert.equal(liveVideo.trackState,'live','Presenter video must own a live preview track while camera state is on.');
@@ -409,7 +409,7 @@ try{
   await toolbar.click('[data-command="video"]');
   await waitStderr(ackPattern('video-off'),'renderer ACK for Video',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().cameraOn===false&&document.querySelector('[data-command=\"video\"]')?.classList.contains('is-off')&&document.querySelector('#videoLabel')?.textContent==='Start Video'",'floating Video state synchronized from real media',8000);
-  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self="1"]'),preview=tile?.querySelector('video'),fallback=tile?.querySelector('.video-fallback');return Boolean(tile&&preview?.hidden&&!fallback?.hidden);})()", 'presenter panel camera-off fallback',6000);
+  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]'),preview=tile?.querySelector('video'),fallback=tile?.querySelector('.video-fallback');return Boolean(tile&&preview?.hidden&&!fallback?.hidden);})()", 'presenter panel camera-off fallback',6000);
   const fallbackWidth=await video.eval("Math.round(document.querySelector('.video-tile[data-self="1"] .video-fallback')?.getBoundingClientRect().width||0)");
   assert.ok(fallbackWidth>=100,'Presenter camera-off profile fallback is still undersized: '+fallbackWidth+'px');
   stage('video-real-toolbar');
