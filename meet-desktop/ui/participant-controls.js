@@ -164,7 +164,7 @@
     menu=document.createElement('div');menu.className='participant-control-menu';
     const add=(label,handler,danger=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(danger)b.className='danger';b.onclick=()=>{closeMenu();void handler();};menu.append(b);};
     if(self){
-      add('Rename',()=>renameParticipant(id,name));
+      if(window.DominionMeetingSecurity?.allows?.('rename')!==false)add('Rename',()=>renameParticipant(id,name));
       add('Copy display name',async()=>{try{await navigator.clipboard.writeText(name);toast('Display name copied');}catch{toast('Unable to copy display name');}});
     }else{
       if(!canManage()||role==='host'){closeMenu();return;}
