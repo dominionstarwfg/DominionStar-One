@@ -55,10 +55,10 @@ assert(av.includes("caret.className='av-device-caret attached-device-caret'")&&a
 assert(css.includes('.meeting-body{position:relative!important;display:block!important'),'Meeting body must not reserve a permanent participant sidebar column.');
 assert(css.includes('.stage{position:absolute!important;inset:0!important'),'Meeting stage must consume the full available canvas.');
 assert(css.includes('.room-side{position:absolute!important'),'Participant management must overlay the stage instead of shrinking it.');
-assert(css.includes('.participant-video-dock[data-orientation="vertical"].count-2 .participant-video-dock-body,.participant-video-dock[data-orientation="vertical"].count-3'),'One to three participant videos must extend compactly rather than create a wide grid.');
-assert(css.includes('.count-4 .participant-video-dock-body')&&css.includes('grid-template-columns:repeat(2,176px)'),'Four to six participant videos must transition into an internal grid.');
-assert(css.includes('.count-7 .participant-video-dock-body')&&css.includes('grid-template-columns:repeat(3,150px)'),'Larger participant sets must transition into a compact three-column grid.');
-assert(css.includes('.participant-video-dock.user-resized .participant-video-dock-body')&&css.includes('repeat(auto-fit,minmax(118px,1fr))'),'User-resized participant dock must recompute its internal grid automatically.');
+assert(css.includes('2.0.44+ compact right-side participant filmstrip reference'),'Meeting styling must carry the approved right-side filmstrip lock.');
+assert(css.includes('#participantVideoDock[data-orientation="vertical"]:not(.gallery-stage):not(.multi-speaker-stage)')&&css.includes('grid-template-columns:176px!important'),'Default participant video must remain one vertical column, never an automatic grid.');
+assert(css.includes('max-height:515px!important')&&css.includes('overflow-y:auto!important'),'Default filmstrip must show five tiles and scroll internally for additional participants.');
+assert(css.includes('.participant-video-dock.user-resized .participant-video-dock-body')&&css.includes('repeat(auto-fit,minmax(118px,1fr))'),'Only an explicitly user-resized participant dock may recompute its internal layout.');
 assert(css.includes('.participant-video-dock.minimized'),'Participant video dock must support Zoom-style minimization.');
 assert(css.includes('@media(max-width:760px)'),'Meeting layout must adapt for compact desktop windows.');
 
@@ -79,8 +79,8 @@ assert(parity.includes("lastMeta='',spotlightParticipantIds=[]"),'Meeting stage 
 assert(!read('ui/app.js').includes('data-cohost='),'Legacy inline participant authority buttons must not duplicate the Zoom-style More menu.');
 assert(parity.includes('Lock Meeting')&&parity.includes('Mute Participants on Entry')&&parity.includes('desktop.meeting.setSecurity'),'Security menu must use server-backed Lock Meeting and Mute-on-Entry controls.');
 assert(parity.includes("button.id='meetingViewButton'")&&parity.includes("['speaker','gallery','multi']"),'Meeting chrome must expose Speaker, Gallery, and Multi-speaker view choices.');
-assert(parity.includes("return stage.width<900||stage.height<560?'top':'right'"),'Unpinned participant video must automatically move to a horizontal top strip in a compact window and return right when space expands.');
-assert(parity.includes("if(!dock.classList.contains('user-positioned'))dock.dataset.anchor=automaticDockAnchor()"),'Automatic dock reflow must never override a user-positioned dock.');
+assert(parity.includes("function automaticDockAnchor(){return 'right';}"),'Unpinned participant video must default to the right side at every desktop size.');
+assert(parity.includes("if(!dock.classList.contains('user-positioned'))dock.dataset.anchor='right';"),'Default right-side placement must never override a user-positioned dock.');
 assert(parity.includes("dock.classList.toggle('gallery-stage'")&&parity.includes("dock.classList.toggle('multi-speaker-stage'"),'Gallery and Multi-speaker modes must use stage layouts rather than a fixed thumbnail dock.');
 assert(parity.includes("window.addEventListener('dominion:active-speakers'"),'Meeting layout must react to ranked active-speaker updates.');
 assert(parity.includes("sharing()?'Side-by-side: Speaker':'Speaker'")&&parity.includes("sharing()?'Side-by-side: Gallery':'Gallery'")&&parity.includes("sharing()?'Side-by-side: Multi-speaker':'Multi-speaker'"),'View menu must switch to Zoom-style side-by-side labels while shared content is active.');
