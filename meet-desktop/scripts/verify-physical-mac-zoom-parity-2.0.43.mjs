@@ -394,10 +394,11 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-close"') &&
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
   macAnnotationCss.includes('.annotation-palette{width:100%') &&
-  macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
+  macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))') &&
   macAnnotationCss.includes('.tool-grid button small,.palette-actions button small{display:block') &&
   macAnnotationHtml.includes('data-command="annotate-select"') &&
   macAnnotationJs.includes("version:'2.0.47-native-canvas-palette'") &&
+  macPresenter.includes("width:184,height:500,minWidth:184,maxWidth:184") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-canvas-v2044'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
