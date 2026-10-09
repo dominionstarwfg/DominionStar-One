@@ -574,6 +574,9 @@
         if(command==='polls'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openPolls?.();return {handled:true,command};}
         if(command==='whiteboard'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openWhiteboard?.();return {handled:true,command};}
         if(command==='apps'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openApps?.();return {handled:true,command};}
+        if(command==='host-tools'){await ensureNativeMeetingVisible();const host=q('#roomHostTools');if(host&&!host.hidden){window.DominionMeetingParity?.openSecurity?.(host);return {handled:true,command};}return {handled:false,command,error:'host_tools_unavailable'};}
+        if(command==='audio-settings'){await ensureNativeMeetingVisible();const d=q('#settingsDialog');if(d&&!d.open)d.showModal();void window.DominionAVSettings?.openAudio?.();return {handled:true,command};}
+        if(command==='video-settings'){await ensureNativeMeetingVisible();const d=q('#settingsDialog');if(d&&!d.open)d.showModal();void window.DominionAVSettings?.openVideo?.();return {handled:true,command};}
         if(command==='captions'){await ensureNativeMeetingVisible();q('#roomCaptions')?.click();return {handled:true,command};}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
