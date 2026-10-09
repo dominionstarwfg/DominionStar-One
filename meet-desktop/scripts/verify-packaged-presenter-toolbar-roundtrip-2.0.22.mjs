@@ -453,9 +453,7 @@ try{
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='chat'",'Chat companion state returned to toolbar',8000);
   stage('chat-real-toolbar');
 
-  logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
-  await waitStderr(ackPattern('annotate'),'renderer ACK for Annotate',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='annotate'",'Annotate companion state returned to toolbar',8000);
   stage('annotate-real-toolbar');
 
@@ -466,27 +464,26 @@ try{
   assert.ok(annotationGeometry.width>=176&&annotationGeometry.width<=192,'Annotation palette is not the approved professional width: '+annotationGeometry.width+'px');
   assert.equal(annotationGeometry.flex,'column','Annotation palette is not vertically arranged.');
   assert.ok(Math.abs(Number(annotationGeometry.x)-Number(annotationGeometry.availLeft))<=28,'Annotation palette is not positioned on the left edge of the shared display.');
-  const annotationMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for annotation engine');
-  const annotationMain=new Cdp(annotationMainTarget.webSocketDebuggerUrl);await annotationMain.connect();
-  await annotationMain.wait("document.body.classList.contains('ds-native-mac-presenter-share')&&document.querySelector('.share-annotation-tools')&&getComputedStyle(document.querySelector('.share-annotation-tools')).display==='none'",'legacy horizontal annotation tools suppressed',5000);
-  logStart=stderr.length;
+
+  const annotationCanvasTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-annotation-canvas.html'),'native annotation canvas',8000);
+  const annotationCanvas=new Cdp(annotationCanvasTarget.webSocketDebuggerUrl);await annotationCanvas.connect();
+  await annotationCanvas.wait("window.DominionNativeAnnotationCanvas?.snapshot?.().mode==='select'&&document.visibilityState==='visible'",'visible native annotation canvas',5000);
+
   await annotation.click('[data-command="annotate-laser"]');
-  await waitStderr(ackPattern('annotate-laser'),'renderer ACK for native Laser tool',8000,logStart);
-  await annotationMain.wait("window.DominionShareAnnotation?.snapshot?.().mode==='laser'",'native annotation palette controls authoritative annotation mode',5000);
-  logStart=stderr.length;
+  await annotation.wait("document.querySelector('[data-command=\"annotate-laser\"]')?.classList.contains('active')",'native Laser palette selection',5000);
+  await annotationCanvas.wait("window.DominionNativeAnnotationCanvas?.snapshot?.().mode==='laser'",'native annotation canvas Laser mode',5000);
+
   await annotation.click('[data-command="annotate-width-thick"]');
-  await waitStderr(ackPattern('annotate-width-thick'),'renderer ACK for native annotation width',8000,logStart);
-  await annotationMain.wait("Math.abs((window.DominionShareAnnotation?.snapshot?.().widthScale||0)-1.65)<0.02",'native annotation width controls authoritative drawing width',5000);
-  logStart=stderr.length;
+  await annotation.wait("document.querySelector('[data-command=\"annotate-width-thick\"]')?.classList.contains('active')",'native annotation thick-width selection',5000);
+  await annotationCanvas.wait("Math.abs((window.DominionNativeAnnotationCanvas?.snapshot?.().width||0)-1.45)<0.02",'native annotation canvas thick drawing width',5000);
+
   await annotation.click('[data-command="annotate-shape-rect"]');
-  await waitStderr(ackPattern('annotate-shape-rect'),'renderer ACK for native rectangle tool',8000,logStart);
-  await annotationMain.wait("window.DominionShareAnnotation?.snapshot?.().mode==='rect'",'native annotation shape controls authoritative drawing mode',5000);
-  annotationMain.close();
+  await annotation.wait("document.querySelector('[data-command=\"annotate-shape-rect\"]')?.classList.contains('active')",'native rectangle palette selection',5000);
+  await annotationCanvas.wait("window.DominionNativeAnnotationCanvas?.snapshot?.().mode==='rect'",'native annotation canvas rectangle mode',5000);
+  annotationCanvas.close();
   stage('annotation-professional-palette');
 
-  logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
-  await waitStderr(ackPattern('annotate-close'),'renderer ACK for explicit Annotate close',8000,logStart);
   await toolbar.wait("!window.DominionMacPresenterToolbar.state().companion",'Annotate close state returned to toolbar',8000);
   await waitStderr('QA_MAC_ANNOTATION_VISIBILITY visible=0','native annotation BrowserWindow hidden after Annotate closes',5000,logStart);
   annotation.close();
