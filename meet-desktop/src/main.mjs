@@ -318,6 +318,7 @@ ipcMain.handle('meeting:rename-participant',(_event,{participantId,displayName})
 ipcMain.handle('meeting:set-recording-permission',(_event,{participantId,enabled})=>meetingService?.setRecordingPermission(participantId,enabled));
 ipcMain.handle('meeting:set-recording-state',(_event,{participantId,active,paused})=>meetingService?.setRecordingState(participantId,active,paused));
 ipcMain.handle('meeting:set-security',(_event,{roomId,options})=>meetingService?.setSecurity(roomId,options));
+ipcMain.handle('meeting:set-waiting-room',(_event,{roomId,enabled})=>meetingService?.setWaitingRoom(roomId,enabled));
 ipMainHandleChatPolicy();
 ipMainHandleCaptions();
 ipcMain.handle('meeting:transfer-host-and-leave',(_event,{participantId})=>meetingService?.transferHostAndLeave(participantId));
