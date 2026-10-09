@@ -209,6 +209,7 @@
       return ['meet-reaction',{...base,symbol,displayName:String(base.displayName||base.name||'')}];
     }
     if(type==='screen-state')return ['meet-screen-state',{...base,participantId:from,active:Boolean(base.active),paused:Boolean(base.paused)}];
+    if(type==='security-state')return ['meet-security-state',{...base,settings:{...(base.settings||{})}}];
     const hostAction={
       'host:mute':'mute',
       'host:ask-unmute':'request-unmute',
