@@ -31,8 +31,9 @@ assert(app.includes("const joined=activePeople.filter(p=>String(p.participantId|
 // Two-device media delivery must tolerate asynchronous track/state arrival.
 assert(webrtc.includes('remoteShareSignaled:false'),'Remote share signaling latch is missing.');
 assert(webrtc.includes('remoteShareStream:null'),'Remote share stream latch is missing.');
-assert(webrtc.includes('else if(shareRecord?.remoteShareStream)'), 'Remote screen-state must recover when the track arrived first.');
+assert(webrtc.includes('function announcedScreenCandidate(record)')&&webrtc.includes('function bindRemoteScreenCandidate(record,candidate)'), 'Remote screen-state must recover when track metadata and ontrack arrive out of order.');
 assert(webrtc.includes('record.remoteShareStream=stream;'),'Remote share track must be retained until signaling catches up.');
+assert(webrtc.includes('remoteShareTrackId')&&webrtc.includes('remoteShareStreamId')&&webrtc.includes('remoteShareMid'),'Remote share identity metadata is not retained for physical desktop/browser reclassification.');
 assert(webrtc.includes('const lanes=transceivers(record),index=lanes.indexOf(event.transceiver)'), 'Remote track routing must use the stable peer transceiver contract.');
 assert(webrtc.includes('video.muted=true;video.autoplay=true;video.playsInline=true'),'Remote camera/share video must be autoplay-safe.');
 
