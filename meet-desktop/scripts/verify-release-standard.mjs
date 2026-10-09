@@ -80,3 +80,22 @@ assert.ok(/Physical-Mac acceptance feedback is a first-class release input/i.tes
 assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(standard),'Release standard must prohibit publishing failed candidates.');
 
 console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source source-cert packaged-audit packaged-launch runtime-stability packaged-controls zoom-render-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac-2.0.21 adaptive-zoom-gate approved-3d-reference-gate native-system-picker tcc-provenance installer-verify upload-last`);
+
+// PACKAGED_RUNTIME_WIRING: the packaged UI must execute the same canonical
+// transport/runtime authorities that communication and physical QA certify.
+{
+  const shell=readFileSync(new URL('../ui/index.html',import.meta.url),'utf8');
+  for(const required of [
+    'href="./webrtc.css"',
+    'href="./runtime-stability.css"',
+    'src="./webrtc-controller.js"',
+    'src="./runtime-stability.js"'
+  ]) assert(shell.includes(required),`Packaged meeting shell is missing canonical runtime asset: ${required}`);
+  const webrtcIndex=shell.indexOf('src="./webrtc-controller.js"');
+  const participantControlsIndex=shell.indexOf('src="./participant-controls.js"');
+  const runtimeIndex=shell.indexOf('src="./runtime-stability.js"');
+  const finalSemanticIndex=shell.indexOf('src="./more-menu-semantic-icons-2.0.41.js"');
+  assert(webrtcIndex>participantControlsIndex,'WebRTC controller must load after meeting/participant feature modules so it binds the live meeting shell.');
+  assert(runtimeIndex>finalSemanticIndex,'Runtime stability must load last so it owns final live meeting reconciliation.');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_WIRING_OK live-webrtc canonical-runtime');
+}
