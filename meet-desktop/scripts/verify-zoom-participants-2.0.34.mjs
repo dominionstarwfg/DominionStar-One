@@ -9,6 +9,7 @@ const webrtc=read('ui/webrtc-controller.js');
 const css=read('ui/zoom-production-polish.css');
 const participantReference=read('ui/zoom-participants-reference-2.0.41.js');
 const physical=read('ui/zoom-physical-acceptance.js');
+const runtime=read('ui/runtime-stability.js');
 
 const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.').map(Number);
 assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
@@ -46,7 +47,7 @@ for(const required of ["add('Mute'","add('Ask to Unmute'","add('Stop Video'","ad
 assert.ok(controls.includes("add('Make Co-host'")&&controls.includes("add('Remove Co-host'"),'Host-only co-host authority must remain intact.');
 assert.ok(controls.includes("add('Make Host'")&&controls.includes("meeting.transferHost(id)"),'Current host must be able to transfer host authority to a signed-in participant.');
 assert.ok(participantReference.includes('max-height:331px!important')&&participantReference.includes('min-height:42px!important;height:42px!important')&&participantReference.includes('overflow-y:auto!important')&&participantReference.includes('overscroll-behavior:contain!important'),'Participants panel must cap the roster at seven compact rows and scroll internally beyond that point.');
-assert.ok(participantReference.includes('runtimeMac=isMac||')&&participantReference.includes('.ds-participants-traffic')&&participantReference.includes("traffic.querySelector('.close').onclick")&&participantReference.includes("traffic.querySelector('.min').onclick")&&participantReference.includes("traffic.querySelector('.max').onclick"),'Mac Participants must expose working traffic-light close/collapse/expand controls.');
+assert.ok(runtime.includes("traffic.querySelector('.ds-traffic-close').onclick")&&runtime.includes("traffic.querySelector('.ds-traffic-minimize').onclick")&&runtime.includes("traffic.querySelector('.ds-traffic-restore').onclick")&&runtime.includes("setParticipants(false)")&&runtime.includes("panel.classList.add('ds-panel-minimized')")&&runtime.includes("panel.classList.remove('ds-panel-minimized')"),'Mac Participants must expose working runtime-owned traffic-light close/collapse/expand controls.');
 assert.ok(participantReference.includes("window.addEventListener('dominion:active-speakers'")&&participantReference.includes("row.classList.toggle('participant-speaking'")&&participantReference.includes("if(speaking)return speakerRank"),'Active speakers must move to the top of the participant roster and receive a visible speaking state.');
 assert.ok(participantReference.includes("icon.innerHTML=kind==='mic'?ICONS.micOn:ICONS.videoOn"),'Main meeting AV icons must use slash-free base SVGs so the OFF state draws exactly one strike.');
 assert.ok(physical.includes("openParticipantMenu?.(more)"),'Normalized participant ellipsis controls must stay bound to the canonical More menu authority.');
