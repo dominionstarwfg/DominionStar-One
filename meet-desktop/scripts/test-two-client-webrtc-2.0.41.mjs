@@ -26,7 +26,7 @@ const participants=()=>ids.map(id=>({participantId:id,displayName:names.get(id),
 
 const pageServer=http.createServer((_req,res)=>{
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
-  res.end('<!doctype html><html><body><header class="meeting-head"></header><main id="meetingOverlay"><section class="stage"></section><aside class="room-side"><div id="participantRoster"></div></aside><footer class="meeting-footer"><button id="roomMic">Unmute</button><button id="roomCamera">Stop Video</button><button id="roomParticipants">Participants</button><button id="roomExitButton">Leave</button></footer></main><dialog id="foundationDialog"><h2 id="foundationTitle"></h2><p id="foundationCopy"></p></dialog></body></html>');
+  res.end('<!doctype html><html><body><header class="meeting-head"></header><main id="meetingOverlay"><div class="meeting-body"><section class="stage"><span id="stageName">QA Participant</span></section><aside class="room-side"><div id="participantRoster"></div></aside></div><span id="roomRole">Participant</span><footer class="meeting-footer"><button id="roomMic">Unmute</button><button id="roomCamera">Stop Video</button><button id="roomParticipants">Participants</button><button id="roomExitButton">Leave</button></footer></main><dialog id="foundationDialog"><h2 id="foundationTitle"></h2><p id="foundationCopy"></p></dialog></body></html>');
 });
 await new Promise((resolve,reject)=>{pageServer.once('error',reject);pageServer.listen(0,'127.0.0.1',resolve);});
 const serverAddress=pageServer.address();
@@ -49,6 +49,8 @@ async function configurePage(page,id){
     const localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:{width:320,height:180,frameRate:15}});
     let micOn=true,cameraOn=true;
     window.__qaSignalEvents=[];
+    const roleNode=document.querySelector('#roomRole');if(roleNode)roleNode.textContent=id.endsWith('101')?'Host':'Participant';
+    const nameNode=document.querySelector('#stageName');if(nameNode)nameNode.textContent=id.endsWith('101')?'QA Host':'QA Guest';
     window.addEventListener('dominion:meeting-signal',event=>window.__qaSignalEvents.push(event.detail));
     let shareStream=null;
     window.__qaOwnedStreams=[localStream];
