@@ -142,6 +142,11 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
 
   const audioContext=new AudioContext();
   const audioDestination=audioContext.createMediaStreamDestination();
+  const qaVoiceOscillator=audioContext.createOscillator(),qaVoiceGain=audioContext.createGain();
+  qaVoiceOscillator.frequency.value=220;qaVoiceGain.gain.value=0;
+  qaVoiceOscillator.connect(qaVoiceGain);qaVoiceGain.connect(audioDestination);qaVoiceOscillator.start();
+  void audioContext.resume().catch(()=>{});
+  window.__DOMINION_QA_VOICE_GAIN=qaVoiceGain;
   Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async constraints=>{
     const tracks=[];
     if(constraints?.video){const track=cameraMaster.getVideoTracks()[0]?.clone();if(track)tracks.push(track);}
@@ -403,10 +408,10 @@ try{
 
   const voiceMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for microphone-level bridge');
   const voiceMain=new Cdp(voiceMainTarget.webSocketDebuggerUrl);await voiceMain.connect();
-  assert.equal(await voiceMain.eval("(()=>{if(!window.DominionShareIntegration||!window.DominionShareController?.snapshot?.().active)return false;window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:.72,speaking:true}}));return true;})()"),true,'Meeting renderer must have the active share integration before microphone activity is published.');
+  assert.equal(await voiceMain.eval("(()=>{if(!window.DominionShareIntegration||!window.DominionShareController?.snapshot?.().active||!window.__DOMINION_QA_VOICE_GAIN)return false;window.__DOMINION_QA_VOICE_GAIN.gain.value=.22;return true;})()"),true,'Meeting renderer must have the active share integration and a controllable real microphone fixture.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='3'&&document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone activity meter',5000);
   await video.wait("document.querySelector('.video-tile[data-self=\"1\"]')?.classList.contains('speaking')",'presenter video green speaking state',5000);
-  assert.equal(await voiceMain.eval("(()=>{window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:0,speaking:false}}));return true;})()"),true,'Meeting renderer must publish microphone idle state through the same production voice event path.');
+  assert.equal(await voiceMain.eval("(()=>{window.__DOMINION_QA_VOICE_GAIN.gain.value=0;return true;})()"),true,'Meeting renderer must be able to return the real microphone fixture to silence.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='0'&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone meter idle',5000);
   await video.wait("!document.querySelector('.video-tile[data-self=\"1\"]')?.classList.contains('speaking')",'presenter video speaking state idle',5000);
   voiceMain.close();
