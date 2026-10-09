@@ -24,8 +24,8 @@ assert(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must 
 assert(!runtime.includes('const compact=width<760'),'Participant video dock must not jump anchors automatically at a compact threshold.');
 assert(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'"),'Dock runtime mode must resolve deterministically to explicit user position or approved right-side default.');
 assert(runtime.includes("if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}"),'Default participant video dock must remain right and vertical.');
-assert(runtime.includes("dock.style.setProperty('right','14px','important')"),'Wide meeting windows must return the default video dock to the right edge.');
-assert(runtime.includes("dock.style.setProperty('left','14px','important')")&&runtime.includes("dock.style.setProperty('right','14px','important')"),'Compact windows must reflow the video dock across the top.');
+assert(runtime.includes("dock.style.setProperty('right','14px','important')"),'Default meeting windows must keep the participant video dock on the right edge.');
+assert(!runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Default participant video must not regress to an automatic horizontal top strip.');
 assert(runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must become a horizontal filmstrip.');
 assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Wide dock must return to a vertical filmstrip.');
 assert(
@@ -47,4 +47,4 @@ assert(approved.includes('right:14px !important;')&&approved.includes('grid-temp
 assert(approved.includes('grid-template-columns:176px!important')&&approved.includes('max-height:515px!important'),'Approved filmstrip styling must preserve one-column right-side geometry with five visible tiles.');
 assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.21'"),'Carried-forward adaptive authorities must remain identifiable.');
 
-console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
+console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock no-automatic-top-reflow');
