@@ -95,9 +95,14 @@
   // Without this subscription the track state could change while stale red
   // slash classes and profile fallbacks remained on screen.
   media.onChange?.(()=>{try{attachPreview();}catch{}});
-  async function toggleMic(button){button.disabled=true;const wasOn=media.snapshot().micOn;try{await media.setMicrophone(!wasOn);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().micOn?'mic-on':'mic-off');}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}}
+  async function toggleMic(button){
+    const wasOn=media.snapshot().micOn,target=!wasOn;
+    if(button?.id==='roomMic'&&target&&window.DominionMeetingSecurity?.allows?.('unmute')===false){notice('Unmute unavailable','The host disabled participant unmuting.');return;}
+    button.disabled=true;try{await media.setMicrophone(target);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().micOn?'mic-on':'mic-off');}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}
+  }
   async function toggleCamera(button){
     const before=media.snapshot(),target=!before.cameraOn;
+    if(button?.id==='roomCamera'&&target&&window.DominionMeetingSecurity?.allows?.('video')===false){notice('Video unavailable','The host disabled participant video.');return;}
     button?.classList.add('media-intent-active');
     const operation=media.setCamera(target);
     syncMediaLabels();
@@ -169,7 +174,7 @@
   }
   async function cancelWaiting(){const room=activeRoom;clearTimer('waiting');$('#cancelWaiting').disabled=true;try{if(room?.participantId&&room?.joinToken)await meeting.leave(room.participantId,room.joinToken);}catch(e){console.warn('Waiting-room cleanup failed',e);}finally{$('#waitingOverlay').hidden=true;$('#appShell').hidden=false;$('#cancelWaiting').disabled=false;activeRoom=null;pendingMediaPreferences=null;document.body.dataset.shareAfterJoin='';showSection('home');}}
 
-  function enterRoom(){$('#prejoinOverlay').hidden=true;window.dispatchEvent(new CustomEvent('dominion:prejoin-closed'));$('#waitingOverlay').hidden=true;$('#appShell').hidden=true;$('#meetingOverlay').hidden=false;$('#roomTitle').textContent=activeRoom.title||'DominionStar Meeting';$('#roomCodeLabel').textContent=`Meeting ID ${roomCode(activeRoom.roomCode)}${activeRoom.passcode?`  •  Passcode ${activeRoom.passcode}`:''}`;$('#roomRole').textContent=activeRoom.role==='host'?'Host':activeRoom.role==='cohost'?'Co-host':'Participant';$('#stageName').textContent=authState.user?.name||'DominionStar Member';$('#stageAvatar').textContent=initials(authState.user?.name);$('#roomExitButton').textContent=activeRoom.role==='host'?'End':'Leave';$('#waitingQueueSection').hidden=!['host','cohost'].includes(activeRoom.role);attachPreview();startPolling();window.dispatchEvent(new CustomEvent('dominion:meeting-entered',{detail:{roomId:activeRoom.roomId||null,participantId:activeRoom.participantId||null,role:activeRoom.role||'participant'}}));if(document.body.dataset.shareAfterJoin==='1'){document.body.dataset.shareAfterJoin='';setTimeout(()=>$('#roomShare')?.click(),650);}}
+  function enterRoom(){$('#prejoinOverlay').hidden=true;window.dispatchEvent(new CustomEvent('dominion:prejoin-closed'));$('#waitingOverlay').hidden=true;$('#appShell').hidden=true;$('#meetingOverlay').hidden=false;$('#roomTitle').textContent=activeRoom.title||'DominionStar Meeting';$('#roomCodeLabel').textContent=`Meeting ID ${roomCode(activeRoom.roomCode)}${activeRoom.passcode?`  •  Passcode ${activeRoom.passcode}`:''}`;$('#roomRole').textContent=activeRoom.role==='host'?'Host':activeRoom.role==='cohost'?'Co-host':'Participant';$('#stageName').textContent=authState.user?.name||'DominionStar Member';$('#stageAvatar').textContent=initials(authState.user?.name);$('#roomExitButton').textContent=activeRoom.role==='host'?'End':'Leave';$('#waitingQueueSection').hidden=!['host','cohost'].includes(activeRoom.role)||activeRoom.waitingRoomEnabled===false;attachPreview();startPolling();window.dispatchEvent(new CustomEvent('dominion:meeting-entered',{detail:{roomId:activeRoom.roomId||null,participantId:activeRoom.participantId||null,role:activeRoom.role||'participant'}}));if(document.body.dataset.shareAfterJoin==='1'){document.body.dataset.shareAfterJoin='';setTimeout(()=>$('#roomShare')?.click(),650);}}
   function startPolling(){
     stopPolling();lastWaitingMap=new Map();waitingEventsInitialized=false;lastParticipantMap=new Map();participantEventsInitialized=false;
     void refreshSnapshot();timers.snapshot=setInterval(()=>void refreshSnapshot(),1200);
@@ -179,6 +184,10 @@
     if(!activeRoom?.roomId)return;
     try{
       const snapshot=await meeting.snapshot(activeRoom.roomId);if(snapshot.status==='ended')return returnHome();
+      activeRoom.waitingRoomEnabled=Boolean(snapshot.waitingRoomEnabled);
+      activeRoom.meetingLocked=Boolean(snapshot.meetingLocked);
+      activeRoom.muteOnEntry=Boolean(snapshot.muteOnEntry);
+      $('#waitingQueueSection').hidden=!['host','cohost'].includes(activeRoom.role)||!activeRoom.waitingRoomEnabled;
       window.dispatchEvent(new CustomEvent('dominion:meeting-snapshot',{detail:snapshot}));
       const people=snapshot.participants||[];
       const activePeople=people.filter(p=>['admitted','joined'].includes(String(p.state||'joined')));
@@ -195,7 +204,7 @@
       }
       lastParticipantMap=current;
       const me=activePeople.find(p=>(p.memberId&&p.memberId===authState.user?.id)||String(p.participantId||'')===String(activeRoom?.participantId||''));
-      if(me&&activeRoom.role!==me.role){activeRoom.role=me.role;$('#roomRole').textContent=me.role==='host'?'Host':me.role==='cohost'?'Co-host':'Participant';$('#waitingQueueSection').hidden=!['host','cohost'].includes(me.role);startPolling();}
+      if(me&&activeRoom.role!==me.role){activeRoom.role=me.role;$('#roomRole').textContent=me.role==='host'?'Host':me.role==='cohost'?'Co-host':'Participant';$('#waitingQueueSection').hidden=!['host','cohost'].includes(me.role)||activeRoom.waitingRoomEnabled===false;startPolling();}
       renderRoster(activePeople);
     }catch{}
   }
