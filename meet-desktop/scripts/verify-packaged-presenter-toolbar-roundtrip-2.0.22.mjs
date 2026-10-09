@@ -399,6 +399,9 @@ try{
   stage('presenter-video-live');
 
   await video.wait("document.querySelector('.video-tile[data-self=\"1\"] [data-video-primary]')&&document.querySelector('.video-tile[data-self=\"1\"] [data-video-more]')&&document.querySelector('#videoActionMenu')",'presenter video hover-controls shell',5000);
+  const selfTilePoint=await video.eval("(()=>{const el=document.querySelector('.video-tile[data-self=\"1\"]');if(!el)throw new Error('Missing self video tile');const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+Math.min(18,r.height/2)};})()");
+  await video.call('Input.dispatchMouseEvent',{type:'mouseMoved',x:selfTilePoint.x,y:selfTilePoint.y,button:'none'});
+  await video.wait("(()=>{const el=document.querySelector('.video-tile[data-self=\"1\"] [data-video-more]');if(!el)return false;const s=getComputedStyle(el.closest('.video-tile-actions'));return s.pointerEvents!=='none'&&Number.parseFloat(s.opacity||'0')>.5;})()",'presenter video hover controls reveal',2500);
   await video.click('.video-tile[data-self="1"] [data-video-more]');
   await video.wait("document.querySelector('#videoActionMenu')?.hidden===false",'presenter video quick-controls open',4000);
   const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoActionMenu button')].map(button=>button.textContent.trim())");
