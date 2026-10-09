@@ -64,7 +64,7 @@ const avSettings=read('ui/av-settings.js');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
 
-assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
+assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51','2.0.52'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
 assert(
   preferences.includes("const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));") &&
   preferences.includes('if(macLike)return;') &&
