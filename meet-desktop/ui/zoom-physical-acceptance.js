@@ -92,18 +92,9 @@
   }
 
   async function openHostTools(button){
-    const menu=createCommandMenu(button,'Host Tools');
-    let ctx={},snapshot={};
-    try{ctx=await meeting?.context?.()||{};if(ctx.roomId&&meeting?.snapshot)snapshot=await meeting.snapshot(ctx.roomId)||{};}catch{}
-    if(commandMenu!==menu)return;
-    const locked=Boolean(snapshot.meetingLocked),muteOnEntry=Boolean(snapshot.muteOnEntry);
-    addCommand(menu,'Open Participants',()=>parity()?.toggleParticipants?.(true));
-    addCommand(menu,'Copy meeting information',async()=>{const text=String(q('#roomCodeLabel')?.textContent||'').trim();if(text)await navigator.clipboard.writeText(text);});
-    addDivider(menu);
-    addCommand(menu,locked?'Unlock Meeting':'Lock Meeting',()=>meeting?.setSecurity?.(ctx.roomId,{locked:!locked,muteOnEntry}),{selected:locked,disabled:!ctx.roomId});
-    addCommand(menu,'Mute Participants on Entry',()=>meeting?.setSecurity?.(ctx.roomId,{locked,muteOnEntry:!muteOnEntry}),{selected:muteOnEntry,disabled:!ctx.roomId});
-    requestAnimationFrame(()=>positionMenu(menu,button));
+    return parity()?.openSecurity?.(button||q('#roomHostTools'));
   }
+
   function installHostToolsAuthority(){
     const button=q('#roomHostTools');if(!button||button.dataset.dsPhysicalAuthority==='1')return;
     button.dataset.dsPhysicalAuthority='1';button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');
