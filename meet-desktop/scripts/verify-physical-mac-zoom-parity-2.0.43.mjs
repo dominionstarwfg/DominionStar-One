@@ -724,8 +724,8 @@ assert(
 );
 assert(
   macToolbarCss.includes('position:absolute;top:60px')&&
-  macPresenter.includes('const height=toolbarMenuOpen?330:(toolbarAutoHidden?30:88);'),
-  'Presenter Layout/More menus must open directly below the Zoom-reference control strip while the native presenter window expands only for the menu.'
+  macPresenter.includes('const height=toolbarMenuOpen?468:(toolbarAutoHidden?30:88);')&&macPresenter.includes('maxHeight:500'),
+  'Presenter Layout/More menus must open directly below the approved control strip with enough native window height for the full functional menu.'
 );
 
 assert(
