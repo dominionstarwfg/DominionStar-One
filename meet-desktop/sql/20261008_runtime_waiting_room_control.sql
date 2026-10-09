@@ -63,4 +63,6 @@ begin
 end
 $function$;
 
+revoke execute on function public.meet_v2_set_waiting_room(uuid,boolean) from public;
+revoke execute on function public.meet_v2_set_waiting_room(uuid,boolean) from anon;
 grant execute on function public.meet_v2_set_waiting_room(uuid,boolean) to authenticated;
