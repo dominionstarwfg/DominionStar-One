@@ -92,7 +92,8 @@ assert(
   shareController.includes('const pc=new RTCPeerConnection({iceServers:[]}),stream=new MediaStream()') &&
   shareController.includes('captureBridge.onOffer?.(') &&
   shareController.includes('pc.ontrack=') &&
-  shareController.includes('captureBridge.answer({generation:g,sdp:pc.localDescription})') &&
+  shareController.includes("captureBridge.answer({generation:g,sdp:{type:pc.localDescription?.type||'answer',sdp:String(pc.localDescription?.sdp||'')}})") &&
+  captureWorker.includes("bridge.offer({generation:current,sdp:{type:pc.localDescription?.type||'offer',sdp:String(pc.localDescription?.sdp||'')}})") &&
   shareController.includes('captureBridge.candidate({generation:macCaptureSignalGeneration,candidate:c})') &&
   captureWorker.includes('navigator.mediaDevices.getUserMedia({') &&
   captureWorker.includes("chromeMediaSource:'desktop'") &&
