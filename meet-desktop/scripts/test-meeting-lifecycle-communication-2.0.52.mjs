@@ -10,7 +10,7 @@ const activeSnapshotParticipants=()=>[...participants.values()].filter(p=>['admi
 
 function requireHost(actor){const p=participants.get(actorParticipant[actor]);if(p?.role!=='host')throw new Error('host_authority_required');}
 function requireHostOrCohost(actor){const p=participants.get(actorParticipant[actor]);if(!['host','cohost'].includes(p?.role))throw new Error('host_or_cohost_required');}
-function participantByArgs(args){const p=participants.get(String(args.p_participant_id||''));if(!p)throw new Error('participant_not_found');return p;}
+function participantByArgs(args){const id=String(args.p_participant_id||args.p_target_participant_id||'');const p=participants.get(id);if(!p)throw new Error('participant_not_found');return p;}
 
 function makeAuth(actor){
   return {
