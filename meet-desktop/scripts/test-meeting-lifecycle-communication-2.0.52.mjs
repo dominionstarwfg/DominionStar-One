@@ -63,7 +63,7 @@ function makeAuth(actor){
         case 'meet_v2_set_waiting_room': {
           requireHostOrCohost(actor);room.waitingRoomEnabled=Boolean(args.p_enabled);let admittedCount=0;
           if(!room.waitingRoomEnabled)for(const p of participants.values())if(p.state==='waiting'){p.state='admitted';admittedCount+=1;}
-          return {roomId:room.roomId,waitingRoomEnabled:room.waitingRoomEnabled,admittedCount};
+          return {roomId:room.roomId,waitingRoomEnabled:room.waitingRoomEnabled,admittedFromWaiting:admittedCount};
         }
         case 'meet_v2_leave_room': {
           const p=participantByArgs(args);if(String(args.p_join_token)!==p.joinToken)throw new Error('invalid_join_token');p.state='left';return {participantId:p.participantId,state:'left'};
