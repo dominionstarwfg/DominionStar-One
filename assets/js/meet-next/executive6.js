@@ -1751,6 +1751,7 @@
     const p=state.participants.get(payload.from)||{};
     state.participants.set(payload.from,{...p,...payload,...payload.meta,avatarUrl:payload.avatarUrl||payload.meta?.avatarUrl||p.avatarUrl||''});
     renderParticipants();
+    if(state.isHost||state.role==='cohost')void engine.updateSecurity?.(securityPayload());
     playTone('join');toast(`${payload.displayName||payload.meta?.displayName||'Guest'} joined the meeting`);
   });
   engine.on('presence',({members})=>{
@@ -2224,8 +2225,10 @@
     state.waitingRoomEnabled=Boolean(enabled);
     ids.deviceMenu.querySelectorAll('.toggle-option').forEach(el=>{const label=el.querySelector('span')?.textContent.trim();if(label==='Enable Waiting Room'||label==='Waiting Room')el.setAttribute('aria-checked',String(state.waitingRoomEnabled));});
     await engine.updateSecurity?.(securityPayload());
-    if(state.client&&state.session?.user&&engine.snapshot().roomId){
-      try{await state.client.from('meet_rooms').update({waiting_room_enabled:state.waitingRoomEnabled,updated_at:new Date().toISOString()}).eq('room_id',engine.snapshot().roomId).eq('owner_id',state.session.user.id);}catch(_){}
+    const roomId=engine.snapshot().roomId;
+    if(state.client&&roomId){
+      try{await state.client.rpc('meet_v2_set_waiting_room',{p_room_id:roomId,p_enabled:state.waitingRoomEnabled});}catch(_){}
+      if(state.session?.user)try{await state.client.from('meet_rooms').update({waiting_room_enabled:state.waitingRoomEnabled,updated_at:new Date().toISOString()}).eq('room_id',roomId).eq('owner_id',state.session.user.id);}catch(_){}
     }
     renderParticipants();
   }
@@ -2235,6 +2238,10 @@
     const targetLabel=({locked:'Lock Meeting',allowShare:'Share screen',allowChat:'Chat',allowRename:'Rename themselves',allowUnmute:'Unmute themselves',allowVideo:'Start video',muteOnEntry:'Mute on entry'}[key]||key);
     ids.deviceMenu.querySelectorAll('.toggle-option').forEach(el=>{if(el.textContent.trim().startsWith(targetLabel))el.setAttribute('aria-checked',String(state.security[key]));});
     await engine.updateSecurity?.(securityPayload());
+    const roomId=engine.snapshot().roomId;
+    if(state.client&&roomId&&(key==='locked'||key==='muteOnEntry')){
+      try{await state.client.rpc('meet_v2_set_security',{p_room_id:roomId,p_locked:Boolean(state.security.locked),p_mute_on_entry:Boolean(state.security.muteOnEntry)});}catch(_){}
+    }
     applySecuritySettings(state.security);
     // State is reflected directly by the animated switch, matching native meeting controls.
   }
