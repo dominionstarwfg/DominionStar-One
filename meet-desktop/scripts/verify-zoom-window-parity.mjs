@@ -9,6 +9,7 @@ const css=read('ui/zoom-adaptive-parity.css');
 const approved=read('ui/approved-reference-parity.css');
 const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
+const meetingCss=read('ui/meeting-parity.css');
 
 // Pop Out / Merge remain available, while the final physical-Mac behavior keeps
 // Participants and Chat as floating, draggable surfaces at every meeting width.
@@ -44,7 +45,7 @@ assert(repair.includes("participantCount<=1&&visibleTiles===0")&&repair.includes
 assert(repair.includes("if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false"),'Two-person Speaker view must be allowed to reveal a real video filmstrip.');
 assert(approved.includes('#meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage)'),'Approved reference layer must own the normal unpositioned video-filmstrip geometry.');
 assert(approved.includes('right:14px !important;')&&approved.includes('grid-template-columns:176px !important;'),'Normal desktop video filmstrip must default to a right-side vertical column.');
-assert(approved.includes('grid-template-columns:176px!important')&&approved.includes('max-height:515px!important'),'Approved filmstrip styling must preserve one-column right-side geometry with five visible tiles.');
+assert(meetingCss.includes('grid-template-columns:176px!important')&&meetingCss.includes('max-height:515px!important'),'Canonical meeting filmstrip styling must preserve one-column right-side geometry with five visible tiles.');
 assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.21'"),'Carried-forward adaptive authorities must remain identifiable.');
 
 console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock no-automatic-top-reflow');
