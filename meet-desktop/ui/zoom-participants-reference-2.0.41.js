@@ -22,7 +22,7 @@
       #meetingOverlay .room-side.ds-participants-reference{
         position:absolute!important;width:318px!important;min-width:min(318px,calc(100% - 24px))!important;max-width:min(318px,calc(100% - 24px))!important;
         height:390px!important;min-height:min(390px,calc(100% - 24px))!important;max-height:calc(100% - 24px)!important;
-        left:auto!important;right:24px!important;top:18px!important;bottom:auto!important;transform:none!important;
+        left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
         background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:none!important;z-index:3200!important;color:#f5f5f6!important
       }
@@ -38,7 +38,7 @@
        #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button[aria-label="Close participants"]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:block!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head:has(.ds-panel-traffic)>div{padding-left:60px!important;padding-right:60px!important;text-align:center!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;gap:7px!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:7px!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>button{width:11px!important;min-width:11px!important;height:11px!important}
       .ds-participants-traffic{position:absolute;left:10px;top:0;height:38px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
