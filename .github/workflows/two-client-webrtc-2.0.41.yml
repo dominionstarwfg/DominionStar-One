@@ -33,6 +33,8 @@ jobs:
           node --check meet-desktop/scripts/test-two-client-webrtc-2.0.41.mjs
           node --check meet-desktop/ui/webrtc-controller.js
           node --check meet-desktop/ui/browser-bridge.js
+          node --check meet-desktop/ui/meeting-features.js
+          node --check meet-desktop/ui/participant-controls.js
 
       - name: Install pinned Playwright runtime
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
@@ -40,5 +42,5 @@ jobs:
       - name: Install Chromium for runtime proof
         run: npx playwright install --with-deps chromium
 
-      - name: Run real two-client WebRTC controller acceptance for desktop/browser transport
+      - name: Run real two-client meeting communication acceptance
         run: node meet-desktop/scripts/test-two-client-webrtc-2.0.41.mjs
