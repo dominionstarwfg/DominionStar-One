@@ -13,12 +13,12 @@ const [versionMajor,versionMinor,versionPatch]=String(pkg.version||'').split('.'
 assert.ok(Number.isInteger(versionMajor)&&Number.isInteger(versionMinor)&&Number.isInteger(versionPatch),'Desktop package version must be semantic x.y.z.');
 assert.ok(versionMajor>2||(versionMajor===2&&(versionMinor>0||(versionMinor===0&&versionPatch>=32))),'Adaptive video-dock authority introduced in 2.0.32 must remain enforced for every later candidate.');
 assert.ok(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must own dock geometry.');
-assert.ok(runtime.includes('const compact=width<760'),'Compact threshold must be explicit and singular.');
-assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock must resolve to user/top/right.');
-assert.ok(runtime.includes("dock.style.setProperty('right','14px','important')"),'Wide windows must put default dock on the right.');
-assert.ok(runtime.includes("dock.style.setProperty('left','14px','important')")&&runtime.includes("dock.style.setProperty('right','14px','important')"),'Compact windows must span the top region.');
-assert.ok(runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must be horizontal.');
-assert.ok(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Wide dock must be vertical.');
+assert.ok(!runtime.includes('const compact=width<760'),'Default participant video must not change anchor automatically at a compact threshold.');
+assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'"),'Dock must resolve only to explicit user position or the approved right default.');
+assert.ok(runtime.includes("if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}"),'Unmoved participant video must stay right and vertical.');
+assert.ok(runtime.includes("dock.style.setProperty('right','14px','important')"),'Default dock must stay on the right.');
+assert.ok(runtime.includes("body.style.setProperty('grid-template-columns','176px','important')"),'Default dock must remain a one-column 176px filmstrip.');
+assert.ok(runtime.includes("body.style.setProperty('overflow-y',count>5?'auto':'hidden','important')"),'Default dock must scroll vertically only after five visible tiles.');
 assert.ok(runtime.includes('const currentLeft=parseFloat(dock.style.left)')&&runtime.includes('const currentTop=parseFloat(dock.style.top)'),'User position must be read before resize clamping.');
 assert.ok(runtime.includes('clamp(Number.isFinite(currentLeft)?currentLeft'),'Dragged dock must be clamped after resize.');
 assert.ok(runtime.includes("window.addEventListener('resize',schedule,{passive:true})"),'Resize must remain event-driven.');
@@ -39,4 +39,4 @@ assert.ok(approved.includes('max-height:527px !important')&&approved.includes('m
 assert.ok(approved.includes('width:176px !important')&&approved.includes('height:99px !important')&&approved.includes('max-width:176px !important')&&approved.includes('max-height:99px !important'),'Floating participant tiles must use one stable 16:9 size.');
 assert.ok(approved.includes('.participant-video-dock-modes')&&approved.includes('.participant-video-scroll-controls'),'The panel must keep compact native-looking layout controls and internal up/down scroll controls inside the floating surface.');
 
-console.log('DOMINIONSTAR_ADAPTIVE_VIDEO_DOCK_2_0_32_OK wide-right compact-top restore-right user-clamp event-driven no-polling self-first smart-hover role-aware self-name camera-off-fallback equal-tiles five-visible internal-scroll speaker-strip-gallery-hide');
+console.log('DOMINIONSTAR_ADAPTIVE_VIDEO_DOCK_2_0_32_OK default-right vertical-filmstrip five-visible user-clamp event-driven no-polling self-first smart-hover role-aware self-name camera-off-fallback equal-tiles five-visible internal-scroll speaker-strip-gallery-hide');
