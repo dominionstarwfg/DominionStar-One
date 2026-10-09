@@ -393,7 +393,7 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('.annotation-palette{width:66px') &&
+  macAnnotationCss.includes('.annotation-palette{width:100%') &&
   macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
   macAnnotationCss.includes('.tool-grid button small,.palette-actions button small{display:block') &&
   macAnnotationHtml.includes('data-command="annotate-select"') &&
@@ -410,7 +410,7 @@ assert(
   macAnnotationCanvasJs.includes("canvas.addEventListener('pointermove',move") &&
   presenterPreload.includes("onAnnotationCommand:callback=>listen('mac-annotation:command'") &&
   macPresenter.includes("canvas.webContents.send('mac-annotation:command'"),
-  'Annotate must use one readable 66px labeled native palette with Select/Mouse return, controlling a full-display native drawing surface so Pen, Laser, Eraser, and pointer mode remain reachable on the physically shared Mac display.'
+  'Annotate must use one readable 184px labeled native palette with Select/Mouse return, controlling a full-display native drawing surface so Pen, Laser, Eraser, and pointer mode remain reachable on the physically shared Mac display.'
 );
 assert(
   screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
@@ -583,7 +583,7 @@ assert(
   macPresenter.includes('let width=252,height=166;')&&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);")&&
   macPresenter.includes('let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
-  macPresenter.includes('const width=66,height=Math.min(526,Math.max(430,area.height-180));')&&
+  macPresenter.includes('const width=184,height=Math.min(526,Math.max(430,area.height-180));')&&
   macPresenter.includes('function toolbarRevealZoneContains(point)')&&
   macPresenter.includes('if(moved<3||!toolbarRevealZoneContains(point))return;')&&
   macPresenter.includes('y=Math.round(area.y+12)')&&
@@ -591,7 +591,7 @@ assert(
   macToolbarCss.includes('.toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}')&&
   macToolbar.includes('const AUTO_HIDE_MS=2400;')&&
   shareAnnotation.includes("state.active&&state.mode==='laser'"),
-  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, localized toolbar reveal zone with top clearance, approved five-tile participant-strip scale, readable 66px annotation rail, and live laser pointer.'
+  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, localized toolbar reveal zone with top clearance, approved five-tile participant-strip scale, readable 184px annotation rail, and live laser pointer.'
 );
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_50_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui approved-five-tile-share-strip simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
