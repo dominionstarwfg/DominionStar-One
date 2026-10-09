@@ -56,7 +56,8 @@ begin
   return jsonb_build_object(
     'roomId', v_room.id,
     'waitingRoomEnabled', v_room.waiting_room_enabled,
-    'admittedFromWaiting', v_admitted
+    'admittedFromWaiting', v_admitted,
+    'admittedCount', v_admitted
   );
 end
 $function$;
