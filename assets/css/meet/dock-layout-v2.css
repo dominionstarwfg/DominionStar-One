@@ -1,7 +1,7 @@
 /* Participant dock v2: one geometry contract, loaded after all legacy styles. */
 #filmstrip.ds-dock-v2 {
-  --ds-dock-width: 236px;
-  --ds-dock-tile-height: 126px;
+  --ds-dock-width: 318px;
+  --ds-dock-tile-height: 172px;
   --ds-dock-gap: 7px;
   position: fixed !important;
   left: auto !important;
@@ -9,7 +9,7 @@
   top: 70px !important;
   bottom: auto !important;
   width: var(--ds-dock-width) !important;
-  max-width: min(32vw, var(--ds-dock-width)) !important;
+  max-width: min(42vw, var(--ds-dock-width)) !important;
   height: auto !important;
   max-height: calc(100dvh - 164px) !important;
   min-height: 0 !important;
@@ -96,7 +96,7 @@
 body.presentation-active #filmstrip.ds-dock-v2 {
   right: 16px !important;
   width: var(--ds-dock-width) !important;
-  max-width: min(32vw, var(--ds-dock-width)) !important;
+  max-width: min(42vw, var(--ds-dock-width)) !important;
 }
 body.presentation-active #filmstrip.ds-dock-v2.ds-user-positioned { right: auto !important; }
 
@@ -120,11 +120,11 @@ body.presentation-active #stageVideo {
 }
 @media (max-width: 900px) {
   #filmstrip.ds-dock-v2 {
-    --ds-dock-width: 188px;
-    --ds-dock-tile-height: 101px;
+    --ds-dock-width: 224px;
+    --ds-dock-tile-height: 119px;
     right: 8px !important;
     top: 62px !important;
-    max-width: 40vw !important;
+    max-width: 46vw !important;
   }
   #filmstrip.ds-dock-v2.ds-user-positioned { right: auto !important; }
 }
