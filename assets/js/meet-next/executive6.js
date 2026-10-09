@@ -57,10 +57,10 @@
     participants:new Map(), waiting:new Map(), unread:0, activeMenu:null, activeSpeakerId:null, spotlightParticipantId:null,
     speakerClaims:new Map(), speakerElectionTimer:null, activeSpeakerSince:0, securityKnown:false, lastHeartbeatByParticipant:new Map(), pendingAdmissions:new Map(),
     absentHostAlertTimer:null, absentHostAlertSent:false,
-    waitingRoomEnabled:false, passcode:'', inviteLink:'', presenceMembers:new Map(), dock:{x:null,y:null}, sharingParticipantId:null, sharePaused:false, client:null, session:null, profile:null, meetingStartedAt:0, meetingTimer:null, speakingMonitor:null, audioAnalysisContext:null, speakingReleaseTimer:null, preferences:{joinMuted:false,joinCameraOff:false,mirror:true,background:'none',brightness:100,touchAppearance:0,quality:'720',cameraId:'',microphoneId:'',speakerId:''}, security:{locked:false,allowShare:true,allowChat:true,allowRename:true,allowUnmute:true,allowVideo:true,muteOnEntry:false}, awaitingAdmission:false, mediaStarted:false, pendingModeration:new Map(), pendingParticipantControls:new Map(), activeUnmuteRequest:null, activeCameraRequest:null, mediaBindings:new Map(), missingMediaSince:new Map(), recoveringRemoteMedia:new Set(), departedParticipants:new Map(), reconcileTimer:null, lastHostSeenAt:0, lastMediaResyncAt:new Map(), lastPeerRepairAt:new Map(), screenRecoveryTimers:new Map()
+    waitingRoomEnabled:false, passcode:'', inviteLink:'', presenceMembers:new Map(), dock:{x:null,y:null}, sharingParticipantId:null, sharePaused:false, client:null, session:null, profile:null, meetingStartedAt:0, meetingTimer:null, speakingMonitor:null, audioAnalysisContext:null, speakingReleaseTimer:null, preferences:{joinMuted:false,joinCameraOff:false,mirror:true,background:'none',brightness:100,touchAppearance:0,quality:'720',cameraId:'',microphoneId:'',speakerId:'',echoCancellation:true,noiseSuppression:true,autoGainControl:false}, security:{locked:false,allowShare:true,allowChat:true,allowRename:true,allowUnmute:true,allowVideo:true,muteOnEntry:false}, awaitingAdmission:false, mediaStarted:false, pendingModeration:new Map(), pendingParticipantControls:new Map(), activeUnmuteRequest:null, activeCameraRequest:null, mediaBindings:new Map(), missingMediaSince:new Map(), recoveringRemoteMedia:new Set(), departedParticipants:new Map(), reconcileTimer:null, lastHostSeenAt:0, lastMediaResyncAt:new Map(), lastPeerRepairAt:new Map(), screenRecoveryTimers:new Map()
   };
 
-  const ids = ['prejoin','meeting','prejoinVideo','prejoinFallback','joinForm','joinStatus','displayName','displayNameField','accountIdentity','alwaysJoinMuted','alwaysJoinCameraOff','roomId','meetingPasscode','preMic','preCam','preSettings','roomLabel','connectionState','stageVideo','stageFallback','stageName','speakerNameplate','speakerName','selfTile','selfVideo','selfName','selfMicState','filmstrip','filmstripTrack','dockUp','dockDown','participantsPanel','participantCount','participantBadge','waitingSection','waitingCount','waitingRoom','participantList','participantSearch','chatPanel','chatRecipient','chatMessages','chatForm','chatInput','chatBadge','deviceMenu','toastLayer','reactionLayer','micBtn','micMenuBtn','camBtn','camMenuBtn','participantsBtn','chatBtn','shareBtn','reactionBtn','raiseHandBtn','transcribeBtn','hostToolsBtn','moreBtn','leaveBtn','settingsDialog','cameraSelect','microphoneSelect','speakerSelect','mirrorToggle','qualitySelect','backgroundSelect','brightnessRange','touchAppearanceRange','networkIndicator','speakerMicIndicator','profilePhotoInput','profilePhotoPreview','inviteBtn','inviteDialog','inviteMeetingLink','inviteMeetingId','invitePasscode','copyInviteBtn','copyLinkBtn','closeInviteBtn','muteAllBtn','participantMoreBtn','leaveDialog','leaveCopy','leaveOnlyBtn','endAllBtn','leaveCancelBtn','leaveClose','shareStatusBar','shareStatusText','shareViewerMoreBtn','sharePresenterControls','pauseShareBtn','newShareBtn','stopShareBtn'].reduce((o,k)=>(o[k]=$(k),o),{});
+  const ids = ['prejoin','meeting','prejoinVideo','prejoinFallback','joinForm','joinStatus','displayName','displayNameField','accountIdentity','alwaysJoinMuted','alwaysJoinCameraOff','roomId','meetingPasscode','preMic','preCam','preSettings','roomLabel','connectionState','stageVideo','stageFallback','stageName','speakerNameplate','speakerName','selfTile','selfVideo','selfName','selfMicState','filmstrip','filmstripTrack','dockUp','dockDown','participantsPanel','participantCount','participantBadge','waitingSection','waitingCount','waitingRoom','participantList','participantSearch','chatPanel','chatRecipient','chatMessages','chatForm','chatInput','chatBadge','deviceMenu','toastLayer','reactionLayer','micBtn','micMenuBtn','camBtn','camMenuBtn','participantsBtn','chatBtn','shareBtn','reactionBtn','raiseHandBtn','transcribeBtn','hostToolsBtn','moreBtn','leaveBtn','settingsDialog','cameraSelect','microphoneSelect','speakerSelect','mirrorToggle','qualitySelect','backgroundSelect','brightnessRange','touchAppearanceRange','echoCancellationToggle','noiseSuppressionToggle','autoGainToggle','networkIndicator','speakerMicIndicator','profilePhotoInput','profilePhotoPreview','inviteBtn','inviteDialog','inviteMeetingLink','inviteMeetingId','invitePasscode','copyInviteBtn','copyLinkBtn','closeInviteBtn','muteAllBtn','participantMoreBtn','leaveDialog','leaveCopy','leaveOnlyBtn','endAllBtn','leaveCancelBtn','leaveClose','shareStatusBar','shareStatusText','shareViewerMoreBtn','sharePresenterControls','pauseShareBtn','newShareBtn','stopShareBtn'].reduce((o,k)=>(o[k]=$(k),o),{});
 
   const escapeHtml = value => String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const initials = name => String(name || 'Guest').split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
@@ -362,6 +362,9 @@
         cameraId:String(ids.cameraSelect?.value||state.preferences.cameraId||''),
         microphoneId:String(ids.microphoneSelect?.value||state.preferences.microphoneId||''),
         speakerId:String(ids.speakerSelect?.value||state.preferences.speakerId||''),
+        echoCancellation:Boolean(ids.echoCancellationToggle?.checked),
+        noiseSuppression:Boolean(ids.noiseSuppressionToggle?.checked),
+        autoGainControl:Boolean(ids.autoGainToggle?.checked),
         updatedAt:new Date().toISOString()
       };
       state.preferences={...state.preferences,...payload};
@@ -378,6 +381,9 @@
     ids.brightnessRange.value=String(state.preferences.brightness||100);
     if(ids.touchAppearanceRange) ids.touchAppearanceRange.value=String(state.preferences.touchAppearance||0);
     if(ids.qualitySelect) ids.qualitySelect.value=String(state.preferences.quality||'720');
+    if(ids.echoCancellationToggle)ids.echoCancellationToggle.checked=state.preferences.echoCancellation!==false;
+    if(ids.noiseSuppressionToggle)ids.noiseSuppressionToggle.checked=state.preferences.noiseSuppression!==false;
+    if(ids.autoGainToggle)ids.autoGainToggle.checked=Boolean(state.preferences.autoGainControl);
   }
   function enforcePersistentJoinMediaPreferences(){
     // These account-level choices are authoritative at the publication boundary.
@@ -684,7 +690,9 @@
 
   async function replaceMedia(kind, deviceId) {
     if (!deviceId) return;
-    const constraints = kind === 'video' ? {video:{deviceId:{exact:deviceId}},audio:false} : {audio:{deviceId:{exact:deviceId}},video:false};
+    const constraints = kind === 'video'
+      ? {video:{deviceId:{exact:deviceId}},audio:false}
+      : {audio:{deviceId:{exact:deviceId},echoCancellation:ids.echoCancellationToggle?.checked!==false,noiseSuppression:ids.noiseSuppressionToggle?.checked!==false,autoGainControl:Boolean(ids.autoGainToggle?.checked),channelCount:1},video:false};
     const fresh = kind === 'video' ? await acquireUserMediaStable(constraints) : await navigator.mediaDevices.getUserMedia(constraints);
     const old = state.stream || new MediaStream();
     const keep = old.getTracks().filter(track => track.kind !== kind);
@@ -2603,6 +2611,16 @@
   ids.mirrorToggle.onchange=()=>{applyEffects();saveAccountPreferences();};
   ids.backgroundSelect.onchange=()=>{applyEffects();saveAccountPreferences();};
   ids.qualitySelect.onchange=async()=>{await applyVideoQuality(true);saveAccountPreferences();};
+  const refreshAudioProcessing=async()=>{
+    writeLocalPreferences();
+    if(state.mediaStarted&&ids.microphoneSelect?.value){
+      try{await replaceMedia('audio',ids.microphoneSelect.value);}catch(error){toast(error.message||'Could not apply microphone processing',{force:true,type:'error'});}
+    }
+    saveAccountPreferences();
+  };
+  if(ids.echoCancellationToggle)ids.echoCancellationToggle.onchange=()=>void refreshAudioProcessing();
+  if(ids.noiseSuppressionToggle)ids.noiseSuppressionToggle.onchange=()=>void refreshAudioProcessing();
+  if(ids.autoGainToggle)ids.autoGainToggle.onchange=()=>void refreshAudioProcessing();
 
   // RC9.4: floating participant dock positioning is owned exclusively by
   // assets/js/meet/operational-fidelity-rc8-1.js. Keeping a single position
