@@ -329,12 +329,11 @@
         if(sameRendererPresenter){if(sharedVideo.srcObject)sharedVideo.srcObject=null;}
         else if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
         label.innerHTML=`<strong>${state.paused?'Paused':state.annotating?'Annotating':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
-        // Zoom-style macOS presenter mode already keeps the participant/video
-        // dock available. Do not duplicate the local camera into a second
-        // presenter video element; duplicating the camera pipeline while share
-        // is active can stall Chromium's renderer on physical Mac.
-        if(sameRendererPresenter){if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;}
-        else{const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;}
+        // The participant video dock is the single visible camera authority
+        // during every share session, including when viewing another participant's
+        // share. Never create a detached local camera tile beside the smart dock.
+        if(cameraTile.srcObject)cameraTile.srcObject=null;
+        cameraTile.hidden=true;
       }else{clearTimeout(macDockSyncTimer);macDockSyncTimer=0;document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
       // On macOS, defer the video-dock reconciliation out of the share-state
       // transaction, but do not skip it. Skipping it leaves a previously hidden
