@@ -3,6 +3,8 @@
   if(window.DominionRuntimeStability)return;
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const stabilityCss=[...document.querySelectorAll('link[rel="stylesheet"]')].find(node=>String(node.getAttribute('href')||'').endsWith('/runtime-stability.css')||String(node.getAttribute('href')||'')==='./runtime-stability.css');
+  if(stabilityCss&&stabilityCss.parentElement===document.head)document.head.append(stabilityCss);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
   const desktopSurface=Boolean(window.dominionDesktop)||isMac;
