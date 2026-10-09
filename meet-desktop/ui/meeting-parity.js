@@ -286,7 +286,7 @@
     if(!panelAllowed){dock.hidden=true;syncShareLayout();return;}
     if(share){
       const shareTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden);
-      syncVideoPanelMode(dock,shareTiles);dock.dataset.count=String(Math.min(shareTiles.length,9));dock.classList.toggle('dock-empty',shareTiles.length===0);dock.hidden=shareTiles.length===0;syncShareLayout();return;
+      syncVideoPanelMode(dock,shareTiles);dock.dataset.count=String(Math.min(shareTiles.length,5));dock.classList.toggle('dock-empty',shareTiles.length===0);dock.hidden=shareTiles.length===0;syncShareLayout();return;
     }
     const promoted=mode==='speaker'?syncActiveSpeakerStage():(()=>{const s=ensureActiveSpeakerStage();if(s){s.hidden=true;s.srcObject=null;}q('#meetingOverlay')?.classList.remove('remote-speaker-stage');qa('.remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'));return false;})();
     const localShouldAlways=mode!=='speaker'&&!share;
@@ -296,8 +296,8 @@
     syncDockTileActions();
     const tiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')),count=tiles.length;
     syncVideoPanelMode(dock,tiles);
-    dock.dataset.count=String(Math.min(count,9));dock.classList.toggle('dock-empty',count===0);dock.hidden=count===0;
-    for(let i=1;i<=9;i++)dock.classList.toggle(`count-${i}`,Math.min(count,9)===i);
+    dock.dataset.count=String(Math.min(count,5));dock.classList.toggle('dock-empty',count===0);dock.hidden=count===0;
+    for(let i=1;i<=5;i++)dock.classList.toggle(`count-${i}`,Math.min(count,5)===i);
     if((mode==='gallery'||mode==='multi'||multiSpotlight)&&!share){dock.dataset.orientation='grid';dock.style.left='';dock.style.top='';dock.style.right='';dock.style.bottom='';return;}
     if(!dock.classList.contains('user-positioned'))dock.dataset.anchor=automaticDockAnchor();
     const anchor=dock.dataset.anchor||'right';dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical';
@@ -312,10 +312,19 @@
     const role=String(q('#roomRole')?.textContent||'').toLowerCase().replace('-',''),canManage=['host','cohost'].includes(role);
     let snapshot=null,ctx=null;
     try{ctx=await desktop.meeting?.context?.();if(ctx?.roomId&&desktop.meeting?.snapshot)snapshot=await desktop.meeting.snapshot(ctx.roomId);}catch{}
-    const locked=Boolean(snapshot?.meetingLocked),muteOnEntry=Boolean(snapshot?.muteOnEntry);
-    securityMenu.innerHTML=`<div class="menu-heading"><strong>Security</strong><small>${meta}</small></div><button type="button" data-security-copy>Copy meeting information</button><button type="button" data-security-participants>Open Participants</button>${canManage?`<div class="security-separator"></div><button type="button" data-security-lock aria-pressed="${locked}">${locked?'✓ ':''}Lock Meeting</button><button type="button" data-security-mute-entry aria-pressed="${muteOnEntry}">${muteOnEntry?'✓ ':''}Mute Participants on Entry</button>`:''}`;
+    const locked=Boolean(snapshot?.meetingLocked),muteOnEntry=Boolean(snapshot?.muteOnEntry),waitingEnabled=snapshot?.waitingRoomEnabled!==false;
+    let waiting=[];
+    if(canManage&&ctx?.roomId&&desktop.meeting?.hostQueue){
+      try{waiting=((await desktop.meeting.hostQueue(ctx.roomId))?.waiting||[]).filter(p=>p?.participantId);}catch{waiting=[];}
+    }
+    const waitingCount=waiting.length;
+    securityMenu.innerHTML=`<div class="menu-heading"><strong>${canManage?'Host Tools':'Security'}</strong><small>${meta}</small></div><button type="button" data-security-copy>Copy meeting information</button><button type="button" data-security-participants>Open Participants</button>${canManage?`<div class="security-separator"></div><div class="host-tools-section"><div class="host-tools-section-head"><strong>Waiting Room</strong><small>${waitingEnabled?'On':'Off'} · ${waitingCount} waiting</small></div><button type="button" data-host-waiting>Open Waiting Room${waitingCount?` (${waitingCount})`:''}</button>${waitingCount>0?'<button type="button" data-host-admit-all>Admit All Waiting</button>':''}</div><div class="security-separator"></div><button type="button" data-security-lock aria-pressed="${locked}">${locked?'✓ ':''}Lock Meeting</button><button type="button" data-security-mute-entry aria-pressed="${muteOnEntry}">${muteOnEntry?'✓ ':''}Mute Participants on Entry</button>`:''}`;
     securityMenu.querySelector('[data-security-copy]').onclick=async()=>{try{await navigator.clipboard.writeText(meta);}catch{}closeMenus();};
     securityMenu.querySelector('[data-security-participants]').onclick=()=>{toggleParticipants(true);closeMenus();};
+    const waitingButton=securityMenu.querySelector('[data-host-waiting]');
+    if(waitingButton)waitingButton.onclick=()=>{toggleParticipants(true);const section=q('#waitingQueueSection');if(section){section.hidden=false;queueMicrotask(()=>section.scrollIntoView?.({block:'nearest'}));}closeMenus();};
+    const admitAllButton=securityMenu.querySelector('[data-host-admit-all]');
+    if(admitAllButton)admitAllButton.onclick=async()=>{admitAllButton.disabled=true;admitAllButton.textContent='Admitting…';await Promise.allSettled(waiting.map(p=>desktop.meeting?.decide?.(p.participantId,'admit')));closeMenus();setTimeout(()=>void openSecurity(anchor),120);};
     const persist=async next=>{
       if(!ctx?.roomId||!desktop.meeting?.setSecurity)return;
       try{await desktop.meeting.setSecurity(ctx.roomId,next);closeMenus();void openSecurity(anchor);}catch{}
