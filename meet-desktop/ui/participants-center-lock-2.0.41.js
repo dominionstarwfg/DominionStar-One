@@ -29,20 +29,16 @@
     frame=0;
     syncEncryption();
     cleanLegacyParticipantDecorations();
-    window.DominionRuntimeStability?.layoutSideSurface?.();
   }
 
   function schedule(){if(frame)return;frame=requestAnimationFrame(sync);}
 
   window.addEventListener('dominion:meeting-ui-ready',schedule,true);
-  const observer=new MutationObserver(schedule);
-  const observed=q('#meetingOverlay');if(observed)observer.observe(observed,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-self']});
-
   window.DominionParticipantsCenterLock2041=Object.freeze({
-    version:'2.0.43-compatibility-no-geometry',
+    version:'2.0.54-one-shot-compatibility',
     sync,
     center:()=>window.DominionRuntimeStability?.layoutSideSurface?.(),
-    dispose:()=>{observer.disconnect();window.removeEventListener('dominion:meeting-ui-ready',schedule,true);if(frame)cancelAnimationFrame(frame);}
+    dispose:()=>{window.removeEventListener('dominion:meeting-ui-ready',schedule,true);if(frame)cancelAnimationFrame(frame);}
   });
   sync();
 })();

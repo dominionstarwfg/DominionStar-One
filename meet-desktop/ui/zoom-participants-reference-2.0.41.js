@@ -6,6 +6,7 @@
   const GEOMETRY_KEY='ds_zoom_participants_geometry_2_0_41';
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
   let runtimeMac=isMac||/Mac/i.test(String(window.dominionDesktop?.platform||'')),syncFrame=0,activeSpeakerIds=[];
+  const backgroundEnabled=!Boolean(window.dominionDesktop);
 
   const ICONS=Object.freeze({
     micOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path></svg>',
@@ -20,8 +21,8 @@
     style.dataset.dsZoomParticipantsReference2041='1';
     style.textContent=`
       #meetingOverlay .room-side.ds-participants-reference{
-        position:absolute!important;width:318px!important;min-width:min(318px,calc(100% - 24px))!important;max-width:min(318px,calc(100% - 24px))!important;
-        height:390px!important;min-height:min(390px,calc(100% - 24px))!important;max-height:calc(100% - 24px)!important;
+        position:absolute!important;width:392px!important;min-width:min(360px,calc(100% - 24px))!important;max-width:min(420px,calc(100% - 24px))!important;
+        height:min(438px,calc(100% - 28px))!important;min-height:min(390px,calc(100% - 28px))!important;max-height:calc(100% - 28px)!important;
         left:auto!important;right:24px!important;top:18px!important;bottom:auto!important;transform:none!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
         background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:none!important;z-index:3200!important;color:#f5f5f6!important
@@ -29,7 +30,7 @@
       #meetingOverlay .room-side.ds-participants-reference[hidden]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.dragging{transform:none!important;box-shadow:0 22px 64px rgba(0,0,0,.62)!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head{position:relative!important;flex:0 0 38px!important;height:38px!important;min-height:38px!important;padding:0 40px!important;display:flex!important;align-items:center!important;justify-content:center!important;border:0!important;border-bottom:1px solid #46474a!important;border-radius:10px 10px 0 0!important;background:#353537!important;cursor:move!important;user-select:none!important}
-      #meetingOverlay .room-side.ds-participants-reference .room-side-head>div{text-align:center!important;min-width:0!important}
+      #meetingOverlay .room-side.ds-participants-reference .room-side-head>div:not(.ds-panel-traffic){text-align:center!important;min-width:0!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head strong{font-size:13px!important;font-weight:650!important;letter-spacing:0!important;color:#f5f5f6!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head small{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference .room-side-head>button{position:absolute!important;right:9px!important;top:8px!important;width:26px!important;height:26px!important;border:0!important;background:transparent!important;color:#e4e4e5!important;font-size:18px!important;line-height:1!important;cursor:pointer!important}
@@ -37,9 +38,9 @@
        #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>.ds-participants-popout{right:9px!important}
        #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button[aria-label="Close participants"]{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference.ds-participants-mac .room-side-head>button{display:block!important}
-      #meetingOverlay .room-side.ds-participants-reference .room-side-head:has(.ds-panel-traffic)>div{padding-left:60px!important;padding-right:60px!important;text-align:center!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{left:10px!important;top:0!important;height:38px!important;gap:7px!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>button{width:11px!important;min-width:11px!important;height:11px!important}
+      #meetingOverlay .room-side.ds-participants-reference .room-side-head:has(.ds-panel-traffic)>div:not(.ds-panel-traffic){padding-left:60px!important;padding-right:60px!important;text-align:center!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic{position:absolute!important;left:10px!important;top:0!important;height:38px!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>button{position:relative!important;width:13px!important;min-width:13px!important;height:13px!important;padding:0!important;border:0!important;border-radius:50%!important;display:block!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)!important}#meetingOverlay .room-side.ds-participants-reference .ds-traffic-close{background:#ff5f57!important}#meetingOverlay .room-side.ds-participants-reference .ds-traffic-minimize{background:#febc2e!important}#meetingOverlay .room-side.ds-participants-reference .ds-traffic-restore{background:#28c840!important}#meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic>button::after{position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;color:rgba(35,25,25,.82)!important;font:800 9px/13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;opacity:0!important;transition:opacity .08s ease!important}#meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic:hover>.ds-traffic-close::after{content:"×"!important;opacity:1!important}#meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic:hover>.ds-traffic-minimize::after{content:"−"!important;opacity:1!important}#meetingOverlay .room-side.ds-participants-reference .ds-panel-traffic:hover>.ds-traffic-restore::after{content:"↗"!important;opacity:1!important;font-size:7px!important}
       .ds-participants-traffic{position:absolute;left:10px;top:0;height:38px;display:flex!important;align-items:center;gap:8px;z-index:8;pointer-events:auto;opacity:1!important;visibility:visible!important}
       .ds-participants-traffic button{width:12px;height:12px;border:0;border-radius:50%;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);cursor:pointer}
       .ds-participants-traffic .close{background:#ff5f57}.ds-participants-traffic .min{background:#febc2e}.ds-participants-traffic .max{background:#28c840}
@@ -57,8 +58,8 @@
       #meetingOverlay .room-side.ds-participants-reference>section:not(#waitingQueueSection){display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
       #meetingOverlay .room-side.ds-participants-reference section>h3{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference #waitingQueueSection{flex:0 0 auto!important;max-height:150px!important;overflow:auto!important;border-bottom:1px solid #414245!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:331px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 8px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row{min-height:42px!important;height:42px!important;margin:0!important;padding:5px 8px!important;border:0!important;border-radius:7px!important;background:transparent!important;display:grid!important;grid-template-columns:30px minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:8px!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster{flex:1 1 auto!important;min-height:0!important;max-height:379px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding:3px 10px 6px!important;margin:0!important;scrollbar-width:thin!important;scrollbar-color:#626367 transparent!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row{min-height:48px!important;height:48px!important;margin:0!important;padding:5px 8px!important;border:0!important;border-radius:7px!important;background:transparent!important;display:grid!important;grid-template-columns:30px minmax(0,1fr) 46px 30px!important;align-items:center!important;column-gap:10px!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row:hover{background:#3a3a3d!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking{background:#303b34!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-row.participant-speaking .person-copy strong{color:#55d98a!important}
@@ -67,24 +68,24 @@
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge{width:30px!important;height:30px!important;border-radius:50%!important;margin:0!important;overflow:hidden!important;display:grid!important;place-items:center!important;background:#59616d!important;color:#fff!important;font-size:11px!important;font-weight:700!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy{min-width:0!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:4px!important;overflow:hidden!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy strong{min-width:0!important;display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:12px!important;font-weight:600!important;color:#f3f3f4!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy strong{min-width:0!important;display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:14px!important;font-weight:600!important;color:#f3f3f4!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy small{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-you{font-style:normal!important;color:#dedee0!important;font-weight:500!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-adaptive-role{display:inline!important;flex:none!important;font-size:11px!important;color:#dedee0!important;font-weight:500!important;white-space:nowrap!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-state{display:flex!important;align-items:center!important;gap:7px!important;margin:0!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon{width:17px!important;height:17px!important;display:grid!important;place-items:center!important;color:#d5d5d7!important;font-size:0!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-state{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;margin:0!important;flex:0 0 46px!important;min-width:46px!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon{position:relative!important;width:18px!important;height:18px!important;display:grid!important;place-items:center!important;color:#d5d5d7!important;font-size:0!important;overflow:visible!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon svg{width:17px!important;height:17px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon svg .ds-single-status-slash{stroke:#ff5365!important;stroke-width:2.15!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon.off{color:#ff5365!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon.on{color:#dfe0e2!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon.unknown{color:#8f9094!important}
       .ds-participant-share-state{width:19px;height:19px;display:grid;place-items:center;color:#26d26f;flex:none}.ds-participant-share-state svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;min-width:24px!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;flex:0 0 30px!important;min-width:30px!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-more,#meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-participant-more{width:28px!important;height:28px!important;min-width:28px!important;padding:0!important;border:0!important;border-radius:5px!important;background:transparent!important;color:#d7d7d9!important;font-size:0!important;display:grid!important;place-items:center!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-more:before,#meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-participant-more:before{content:'•••';font-size:11px!important;letter-spacing:1px!important;line-height:1!important}
       #participantBulkActions{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 56px!important;height:56px!important;padding:10px 14px!important;margin:0!important;border-top:1px solid #454649!important;border-radius:0 0 10px 10px!important;background:#333335!important;display:grid!important;grid-template-columns:1fr 1fr 1fr!important;align-items:center!important;gap:10px!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button{height:34px!important;min-width:0!important;padding:0 12px!important;border:0!important;border-radius:18px!important;background:#55565a!important;color:#fff!important;font-size:11px!important;font-weight:600!important;cursor:pointer!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button{width:100%!important;max-width:none!important;height:34px!important;min-width:0!important;margin:0!important;padding:0 12px!important;border:0!important;border-radius:18px!important;background:#55565a!important;color:#fff!important;font-size:11px!important;font-weight:600!important;cursor:pointer!important;justify-self:stretch!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button:hover{background:#65666a!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button:last-child{margin-left:0!important;min-width:0!important}
       #meetingOverlay .meeting-footer #roomMic.ds-av-off .ds-control-icon,#meetingOverlay .meeting-footer #roomCamera.ds-av-off .ds-control-icon{color:#ff5365!important}
@@ -103,17 +104,26 @@
   function meetingOpen(){const overlay=q('#meetingOverlay');return Boolean(overlay&&!overlay.hidden);}
   function sidePanel(){return q('#meetingOverlay .room-side');}
   function participantRows(){return qa('#participantRoster [data-participant-id]');}
-  function localRole(){return String(q('#roomRole')?.textContent||'participant').toLowerCase().replace('-','');}
+  function localRole(){
+    const self=q('#participantRoster [data-participant-self="1"]');
+    const rowRole=String(self?.dataset.participantRole||'').trim().toLowerCase().replaceAll('-','');
+    if(['host','cohost'].includes(rowRole))return rowRole;
+    return String(q('#roomRole')?.textContent||rowRole||'participant').trim().toLowerCase().replaceAll('-','');
+  }
 
   function ensureHeader(side){
     let head=side.querySelector('.room-side-head');
-    if(!head){head=document.createElement('header');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small></small></div><div class="ds-panel-traffic" data-ds-runtime-participant-chrome="1" aria-label="Participant window controls"><button type="button" class="ds-traffic-close" aria-label="Close participants"></button><button type="button" class="ds-traffic-minimize" aria-label="Minimize participants"></button><button type="button" class="ds-traffic-restore" aria-label="Restore participants"></button></div><button type="button" class="ds-participant-header-action" aria-label="Return participants to default position" title="Return to default position"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h9v9M17 7l-6 6M6 11v7h7"/></svg></button><button type="button" aria-label="Close participants" hidden>×</button>';side.prepend(head);}
+    if(!head){head=document.createElement('header');head.className='room-side-head';head.innerHTML='<div><strong>Participants</strong><small></small></div><span class="ds-panel-traffic" data-ds-runtime-participant-chrome="1" aria-label="Participant window controls"><button type="button" class="ds-traffic-close" aria-label="Close participants"></button><button type="button" class="ds-traffic-minimize" aria-label="Minimize participants"></button><button type="button" class="ds-traffic-restore" aria-label="Restore participants"></button></span><button type="button" class="ds-participant-header-action" aria-label="Return participants to default position" title="Return to default position"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h9v9M17 7l-6 6M6 11v7h7"/></svg></button><button type="button" aria-label="Close participants" hidden>×</button>';side.prepend(head);}
     for(const stale of [...head.querySelectorAll('.ds-participants-popout,.ds-participants-traffic')])stale.remove();
     const trafficSets=[...head.querySelectorAll(':scope > .ds-panel-traffic')];
     let traffic=trafficSets.find(node=>node.dataset.dsRuntimeParticipantChrome==='1')||trafficSets[0]||null;
     for(const duplicate of trafficSets){if(duplicate!==traffic)duplicate.remove();}
+    if(traffic&&traffic.tagName!=='SPAN'){
+      const replacement=document.createElement('span');replacement.className='ds-panel-traffic';replacement.innerHTML=traffic.innerHTML;
+      traffic.replaceWith(replacement);traffic=replacement;
+    }
     if(!traffic){
-      traffic=document.createElement('div');traffic.className='ds-panel-traffic';traffic.dataset.dsRuntimeParticipantChrome='1';traffic.setAttribute('aria-label','Participant window controls');
+      traffic=document.createElement('span');traffic.className='ds-panel-traffic';traffic.dataset.dsRuntimeParticipantChrome='1';traffic.setAttribute('aria-label','Participant window controls');
       traffic.innerHTML='<button type="button" class="ds-traffic-close" aria-label="Close participants"></button><button type="button" class="ds-traffic-minimize" aria-label="Minimize participants"></button><button type="button" class="ds-traffic-restore" aria-label="Restore participants"></button>';
       head.prepend(traffic);
     }
@@ -124,11 +134,17 @@
     return head;
   }
   function cleanupLegacySearch(side,primary){
+    for(const node of [...side.querySelectorAll('.zoom-participant-search')]){
+      if(node===primary||node.contains?.(primary)||primary?.contains?.(node))continue;
+      const parent=node.parentElement;
+      if(node.matches('input[type="search"]')&&parent&&parent!==side&&!parent.matches('section')&&parent.children.length<=2){parent.remove();continue;}
+      node.remove();
+    }
     for(const input of [...side.querySelectorAll('input[type="search"]')]){
       if(input===primary)continue;
-      input.dataset.dsLegacyParticipantSearch='1';input.hidden=true;
       const parent=input.parentElement;
-      if(parent&&parent!==side&&!parent.matches('section')&&parent.children.length<=2){parent.dataset.dsLegacyParticipantSearch='1';parent.hidden=true;}
+      if(parent&&parent!==side&&!parent.matches('section')&&parent.children.length<=2)parent.remove();
+      else input.remove();
     }
   }
 
@@ -136,16 +152,18 @@
     let wrap=side.querySelector('.ds-participant-search-wrap');
     if(!wrap){
       wrap=document.createElement('div');wrap.className='ds-participant-search-wrap';
-      wrap.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="zoom-participant-search ds-participant-search-primary" type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants"><button type="button" class="ds-participant-search-clear" aria-label="Clear participant search" title="Clear search" hidden>×</button>';
+      wrap.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="ds-participant-search-primary" type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants"><button type="button" class="ds-participant-search-clear" aria-label="Clear participant search" title="Clear search" hidden>×</button>';
       ensureHeader(side).insertAdjacentElement('afterend',wrap);
-      const input=wrap.querySelector('input'),clear=wrap.querySelector('.ds-participant-search-clear');
+    }
+    const input=wrap.querySelector('.ds-participant-search-primary'),clear=wrap.querySelector('.ds-participant-search-clear');
+    if(wrap.dataset.dsParticipantSearchBound!=='1'&&input&&clear){
+      wrap.dataset.dsParticipantSearchBound='1';
       input.addEventListener('input',event=>{clear.hidden=!event.currentTarget.value;filterRows(event.currentTarget.value);});
       clear.addEventListener('click',()=>{input.value='';clear.hidden=true;filterRows('');input.focus();});
     }
-    const input=wrap.querySelector('.ds-participant-search-primary'),clear=wrap.querySelector('.ds-participant-search-clear');
-    if(input){input.hidden=false;input.removeAttribute('style');}
-    if(clear)clear.hidden=!input?.value;
-    wrap.hidden=false;
+    if(input){if(input.hidden)input.hidden=false;input.removeAttribute('style');}
+    if(clear){const shouldHide=!input?.value;if(clear.hidden!==shouldHide)clear.hidden=shouldHide;}
+    if(wrap.hidden)wrap.hidden=false;
     cleanupLegacySearch(side,input);return input;
   }
 
@@ -153,9 +171,9 @@
     for(const child of [...side.children]){
       if(child.matches('.room-side-head,.ds-participant-search-wrap,.ds-ref-participants-footer,section'))continue;
       const text=String(child.textContent||'').replace(/\s+/g,' ').trim();
-      if(child.querySelector('button')&&(/\bInvite\b/i.test(text)||/\bMute All\b/i.test(text)||/\bMute all\b/i.test(text))){child.dataset.dsLegacyParticipantActions='1';child.hidden=true;}
+      if(child.querySelector('button')&&(/\bInvite\b/i.test(text)||/\bMute All\b/i.test(text)||/\bMute all\b/i.test(text))){child.dataset.dsLegacyParticipantActions='1';if(!child.hidden)child.hidden=true;}
     }
-    const bulk=q('#participantBulkActions');if(bulk)bulk.hidden=true;
+    const bulk=q('#participantBulkActions');if(bulk&&!bulk.hidden)bulk.hidden=true;
   }
 
   function filterRows(value){
@@ -165,7 +183,7 @@
       const role=String(row.dataset.participantRole||'').replace(/[-_]/g,' ').toLocaleLowerCase();
       const self=row.dataset.participantSelf==='1'?'me you self':'';
       const haystack=`${name} ${role} ${self}`;
-      row.hidden=Boolean(term&&!haystack.includes(term));if(!row.hidden)visible++;
+      const shouldHide=Boolean(term&&!haystack.includes(term));if(row.hidden!==shouldHide)row.hidden=shouldHide;if(!shouldHide)visible++;
     }
     const roster=q('#participantRoster');if(!roster)return;let empty=roster.querySelector('.ds-participant-search-empty');
     if(term&&visible===0){if(!empty){empty=document.createElement('div');empty.className='ds-participant-search-empty';empty.textContent='No participants found';roster.append(empty);}}else empty?.remove();
@@ -177,7 +195,7 @@
       const mic=row.querySelector('[data-participant-mic]'),video=row.querySelector('[data-participant-video]');
       for(const [node,kind] of [[mic,'mic'],[video,'video']]){
         if(!node)continue;const state=iconState(node),signature=`${kind}:${state}`;if(node.dataset.dsSemanticState===signature)continue;
-        node.dataset.dsSemanticState=signature;node.innerHTML=kind==='mic'?(state==='off'?ICONS.micOff:ICONS.micOn):(state==='off'?ICONS.videoOff:ICONS.videoOn);
+        node.dataset.dsSemanticState=signature;node.innerHTML=kind==='mic'?ICONS.micOn:ICONS.videoOn;
       }
     }
   }
@@ -195,12 +213,19 @@
     }
   }
 
-  function micIsOn(row){return Boolean(row.querySelector('[data-participant-mic].on'));}
+  function participantPriority(row){
+    const small=String(row.querySelector('.person-copy small')?.textContent||'').toLowerCase();
+    const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\byou\b|\bme\b/.test(small);
+    const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
+    const raised=row.dataset.raisedHand==='1'||Boolean(row.querySelector('.raised-hand-indicator'));
+    const micOn=Boolean(row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on'));
+    return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5;
+  }
   function sortRows(){
     const roster=q('#participantRoster');if(!roster)return;const rows=participantRows(),speakerRank=id=>{const index=activeSpeakerIds.indexOf(String(id||''));return index<0?999:index;};
-    const rank=row=>{const speaking=speakerRank(row.dataset.participantId)<999,self=row.dataset.participantSelf==='1',role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');if(speaking)return speakerRank(row.dataset.participantId);if(self)return 20;if(role==='host')return 21;if(role==='cohost')return 22;if(micIsOn(row))return 23;return 24;};
     for(const row of rows)row.classList.toggle('participant-speaking',speakerRank(row.dataset.participantId)<999);
-    const sorted=[...rows].sort((a,b)=>rank(a)-rank(b)||String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''),undefined,{numeric:true,sensitivity:'base'}));
+    if(window.DominionRuntimeStability?.syncParticipantsSurface){window.DominionRuntimeStability.syncParticipantsSurface();return;}
+    const sorted=[...rows].sort((a,b)=>participantPriority(a)-participantPriority(b)||String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''),undefined,{numeric:true,sensitivity:'base'}));
     if(sorted.some((row,index)=>row!==rows[index])){const fragment=document.createDocumentFragment();sorted.forEach(row=>fragment.append(row));roster.append(fragment);}
   }
 
@@ -231,7 +256,7 @@
   }
 
   function syncFooter(side){
-    const footer=side.querySelector('.ds-ref-participants-footer');if(!footer)return;footer.hidden=false;footer.removeAttribute('data-ds-legacy-participant-actions');
+    const footer=side.querySelector('.ds-ref-participants-footer');if(!footer)return;if(footer.hidden)footer.hidden=false;footer.removeAttribute('data-ds-legacy-participant-actions');
     const action=footer.querySelector('[data-ref-mute-all]'),more=footer.querySelector('[data-ref-participant-more]');if(!action)return;
     const manager=['host','cohost'].includes(localRole()),desired=manager?'Mute all':'Unmute me';if(action.textContent!==desired&&!['Muted','No one to mute','Host only'].includes(action.textContent))action.textContent=desired;
     if(more)more.hidden=!manager;
@@ -244,9 +269,9 @@
   function sync(){
     syncFrame=0;ensureStyle();if(!meetingOpen())return;const side=sidePanel();if(!side)return;
     side.classList.add('ds-participants-reference');ensureHeader(side);if(side.hidden)return;const search=ensureSearch(side);cleanupLegacyActionBars(side);applyGeometry(side);
-    const rows=participantRows(),head=side.querySelector('.room-side-head strong');if(head)head.textContent=`Participants (${rows.length||1})`;
-    const searchWrap=side.querySelector('.ds-participant-search-wrap');if(searchWrap)searchWrap.hidden=false;
-    if(search)search.hidden=false;
+    const rows=participantRows(),head=side.querySelector('.room-side-head strong'),titleText=`Participants (${rows.length||1})`;if(head&&head.textContent!==titleText)head.textContent=titleText;
+    const searchWrap=side.querySelector('.ds-participant-search-wrap');if(searchWrap?.hidden)searchWrap.hidden=false;
+    if(search?.hidden)search.hidden=false;
     sortRows();syncParticipantMediaIcons();syncToolbarAvIcons();syncShareState();syncFooter(side);if(search)filterRows(search.value);
   }
   function schedule(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
@@ -255,10 +280,17 @@
   document.addEventListener('pointerup',()=>{const side=sidePanel();if(side?.dataset.dsAdaptiveUserPositioned==='1')saveGeometry(side);},true);
   window.addEventListener('resize',schedule,true);window.addEventListener('dominion:remote-media-state',schedule,true);window.addEventListener('dominion:share-state',schedule,true);window.addEventListener('dominion:meeting-ui-ready',schedule,true);window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();},true);
   window.dominionDesktop?.environment?.().then(info=>{if(info?.platform==='darwin'&&!runtimeMac){runtimeMac=true;schedule();}}).catch(()=>{});
-  const observer=new MutationObserver(schedule);const observedRoot=q('#meetingOverlay')||document.body;observer.observe(observedRoot,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','data-participant-role','data-participant-name','data-participant-self']});
-  const timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
+  let rosterObserver=null,sideVisibilityObserver=null,timer=0;
+  if(backgroundEnabled){
+    const roster=q('#participantRoster');
+    rosterObserver=new MutationObserver(schedule);
+    if(roster)rosterObserver.observe(roster,{subtree:true,childList:true,attributes:true,attributeFilter:['data-participant-role','data-participant-name','data-participant-self','class']});
+    const observedSide=sidePanel();sideVisibilityObserver=new MutationObserver(schedule);
+    if(observedSide)sideVisibilityObserver.observe(observedSide,{attributes:true,attributeFilter:['hidden']});
+    timer=setInterval(()=>{const side=sidePanel();if(!document.hidden&&meetingOpen()&&side&&!side.hidden)schedule();},6000);
+  }
 
-  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.51-always-search-participants',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
+  window.DominionZoomParticipantsReference2041=Object.freeze({version:'2.0.53-canonical-manual-desktop',sync,saveGeometry,resetGeometry:()=>{try{localStorage.removeItem(GEOMETRY_KEY);}catch{}const side=sidePanel();if(side){delete side.dataset.dsParticipantsRefGeometry;delete side.dataset.dsAdaptiveUserPositioned;schedule();}},dispose:()=>{if(timer)clearInterval(timer);rosterObserver?.disconnect();sideVisibilityObserver?.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);}});
   sync();
 })();
 

@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="$ROOT/public-dist"
-MEET_SOURCE="$ROOT/meet-desktop/ui"
 MEET_DIST="$DIST/meet"
 
 # Production domain boundary:
@@ -20,7 +19,9 @@ required_paths=(
   "institute/index.html"
   "academy/index.html"
   "member-login/index.html"
-  "meet-desktop/ui/index.html"
+  "meet/index.html"
+  "meet/release-contract.json"
+  "assets/js/meeting-engine.js"
 )
 
 for rel in "${required_paths[@]}"; do
@@ -49,10 +50,12 @@ rsync -a "$ROOT/" "$DIST/" \
   --exclude '*.md' \
   --exclude '*.zip'
 
-# Browser Meet is an isolated route, never the public root.
-rm -rf "$MEET_DIST"
-mkdir -p "$MEET_DIST"
-rsync -a --delete "$MEET_SOURCE/" "$MEET_DIST/"
+# Browser Meet is an isolated browser-native route copied from the certified
+# browser source tree above. Never overwrite it with desktop Electron UI.
+test -s "$MEET_DIST/index.html"
+test -s "$MEET_DIST/release-contract.json"
+grep -Fq 'id="joinForm"' "$MEET_DIST/index.html"
+grep -Fq '/assets/js/meeting-engine.js' "$MEET_DIST/index.html"
 
 # The public homepage must be the public DominionStar site, never Meet.
 grep -Fq 'DominionStar | Financial Education & Career Development' "$DIST/index.html"
@@ -61,10 +64,25 @@ if grep -Fq 'DominionStar Meet' "$DIST/index.html"; then
   exit 42
 fi
 
-# Browser Meet must exist only at its dedicated route.
+# Browser Meet must exist only at its dedicated route and must remain the
+# browser-native meeting surface, not the Electron workspace shell.
 grep -Fq 'DominionStar Meet' "$MEET_DIST/index.html"
+grep -Fq 'SECURE VIDEO MEETING' "$MEET_DIST/index.html"
+if grep -Fq 'Start, join, or schedule in one place.' "$MEET_DIST/index.html"; then
+  echo "ERROR: obsolete standalone Meet launcher was republished at /meet/." >&2
+  exit 44
+fi
+if grep -Fq '<h1>Meetings</h1>' "$MEET_DIST/index.html"; then
+  echo "ERROR: obsolete Meetings home is still present in browser Meet." >&2
+  exit 45
+fi
+if grep -Fq 'DESKTOP WORKSPACE' "$MEET_DIST/index.html"; then
+  echo "ERROR: desktop workspace was published at /meet/." >&2
+  exit 43
+fi
 test ! -e "$DIST/meet-desktop"
 test ! -e "$DIST/rebuild-dist"
+test ! -e "$DIST/meet-home"
 
 echo "DOMINIONSTAR_PUBLIC_ROOT_OK"
 echo "DOMINIONSTAR_BROWSER_MEET_ROUTE_OK /meet/"

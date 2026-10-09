@@ -172,7 +172,7 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
   border-bottom:1px solid #383838!important;
   cursor:default!important;
 }
-#meetingOverlay .room-side-head>div{
+#meetingOverlay .room-side-head>div:not(.ds-panel-traffic){
   min-width:0!important;
   flex:1 1 auto!important;
   display:flex!important;
@@ -506,7 +506,7 @@ body>.meeting-reaction-menu,
 
 /* Final floating-surface chrome: Mac traffic controls own close/collapse/expand. */
 #meetingOverlay .ds-panel-traffic{display:flex!important}
-#meetingOverlay .room-side-head:has(.ds-panel-traffic)>div,
+#meetingOverlay .room-side-head:has(.ds-panel-traffic)>div:not(.ds-panel-traffic),
 #meetingOverlay #meetingChatPanel>header:has(.ds-panel-traffic)>div:first-of-type{padding-left:54px!important}
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"],
 #meetingOverlay #meetingChatPanel[data-ds-runtime-mode="floating"]{
@@ -574,7 +574,7 @@ body>.meeting-reaction-menu,
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head{
   min-height:38px!important;height:38px!important;padding:0 9px 0 12px!important;
 }
-#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head>div{
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head>div:not(.ds-panel-traffic){
   min-width:0!important;flex:1 1 auto!important;padding-left:54px!important;text-align:center!important;
 }
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head strong{
@@ -640,7 +640,7 @@ body>.meeting-reaction-menu,
   display:flex!important;visibility:visible!important;opacity:1!important;z-index:20!important;pointer-events:auto!important;
 }
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"] .ds-participants-popout{display:none!important}
-#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head>div{
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"] .room-side-head>div:not(.ds-panel-traffic){
   padding-left:58px!important;padding-right:12px!important;
 }
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"] #participantRoster .person-copy{
@@ -673,7 +673,7 @@ body>.meeting-reaction-menu,
 #meetingOverlay .room-side .ds-participants-popout,
 #meetingOverlay .room-side .ds-participants-traffic{display:none!important}
 #meetingOverlay .room-side .room-side-head{padding:0 68px!important}
-#meetingOverlay .room-side .room-side-head>div{padding:0!important;text-align:center!important}
+#meetingOverlay .room-side .room-side-head>div:not(.ds-panel-traffic){padding:0!important;text-align:center!important}
 #meetingOverlay .room-side .ds-panel-traffic{
   position:absolute!important;
   left:12px!important;top:0!important;height:38px!important;
@@ -715,7 +715,7 @@ body>.meeting-reaction-menu,
   padding:0 42px 0 54px!important;
   justify-content:center!important;
 }
-#meetingOverlay .room-side .room-side-head>div{
+#meetingOverlay .room-side .room-side-head>div:not(.ds-panel-traffic){
   min-width:0!important;
   padding:0!important;
   text-align:center!important;
@@ -733,7 +733,9 @@ body>.meeting-reaction-menu,
   width:auto!important;
   height:38px!important;
   display:flex!important;
+  flex-direction:row!important;
   align-items:center!important;
+  justify-content:flex-start!important;
   gap:7px!important;
   z-index:60!important;
   opacity:1!important;

@@ -5,6 +5,12 @@ on:
     branches: [main]
     paths:
       - 'meet-desktop/**'
+      - 'assets/js/meeting-engine.js'
+      - 'assets/js/meet/v2-desktop-interop.js'
+      - 'meet/index.html'
+      - 'scripts/test-desktop-browser-v2-interop.mjs'
+      - 'scripts/test-physical-two-device-regressions.mjs'
+      - 'scripts/test-browser-v2-desktop-peer.mjs'
       - '.github/workflows/rebuild-mac-qa-certify.yml'
   workflow_dispatch:
 
@@ -51,6 +57,7 @@ jobs:
           node --check ui/schedule-controller.js
           node --check ui/preferences.js
           node --check ui/meeting-features.js
+          node --check ui/meeting-lifecycle-authority.js
           node --check ui/meeting-captions.js
           node --check ui/video-effects.js
           node --check ui/zoom-behavior.js
@@ -102,6 +109,9 @@ jobs:
           node scripts/verify-approved-reference-parity-2.0.22.mjs
           node scripts/verify-runtime-stability-2.0.22.mjs
           node scripts/verify-physical-mac-zoom-parity-2.0.43.mjs
+          node ../scripts/test-desktop-browser-v2-interop.mjs
+          node ../scripts/test-physical-two-device-regressions.mjs
+          node ../scripts/test-browser-v2-desktop-peer.mjs
 
       - name: Build and sign universal QA app once
         working-directory: meet-desktop
@@ -244,13 +254,49 @@ jobs:
           DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
         run: node scripts/verify-packaged-approved-reference-2.0.22.mjs "../${{ steps.app.outputs.path }}"
 
-      - name: Create clean QA archive
+      - name: Create certified Mac installers
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p qa-artifact
-          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
-          shasum -a 256 qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip | tee qa-artifact/SHA256.txt
-          du -h qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip
+          APP="${{ steps.app.outputs.path }}"
+          ZIP="qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.zip"
+          DMG="qa-artifact/DominionStar-Meet-CLEAN-REBUILD-QA-Mac-universal.dmg"
+          STAGE="$RUNNER_TEMP/dominionstar-dmg-root-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          TMP_DMG="$RUNNER_TEMP/DominionStar-Meet-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.dmg"
+          rm -rf "$STAGE"
+          rm -f "$ZIP" "$DMG" "$TMP_DMG"
+
+          # A prior smoke/packaging process can leave the same volume name mounted
+          # briefly on hosted macOS runners. Clear only DominionStar's own stale
+          # mount before creating a new image.
+          if mount | grep -Fq ' on /Volumes/DominionStar Meet '; then
+            hdiutil detach "/Volumes/DominionStar Meet" -force || true
+            sleep 2
+          fi
+
+          mkdir -p "$STAGE"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+          ditto "$APP" "$STAGE/DominionStar Meet.app"
+          ln -s /Applications "$STAGE/Applications"
+          sync
+          sleep 1
+
+          created=0
+          for attempt in 1 2 3; do
+            rm -f "$TMP_DMG"
+            if hdiutil create -volname "DominionStar Meet" -srcfolder "$STAGE" -ov -format UDZO "$TMP_DMG"; then
+              created=1
+              break
+            fi
+            echo "DMG creation attempt $attempt failed; clearing stale DominionStar disk-image state before retry." >&2
+            hdiutil detach "/Volumes/DominionStar Meet" -force 2>/dev/null || true
+            sleep $((attempt * 3))
+          done
+          test "$created" -eq 1
+          mv "$TMP_DMG" "$DMG"
+          shasum -a 256 "$ZIP" "$DMG" | tee qa-artifact/SHA256.txt
+          du -h "$ZIP" "$DMG"
 
       - name: Upload certified QA artifact
         uses: actions/upload-artifact@v4

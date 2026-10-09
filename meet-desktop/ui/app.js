@@ -55,10 +55,19 @@
 
     const waiting=document.createElement('section');waiting.id='waitingOverlay';waiting.className='waiting-overlay';waiting.hidden=true;waiting.innerHTML=`<div class="waiting-card"><div class="waiting-pulse">✦</div><p class="eyebrow">WAITING ROOM</p><h2 id="waitingTitle">Waiting for the host</h2><p id="waitingCopy">The host has been notified that you are ready to join.</p><button id="cancelWaiting" class="secondary-button" type="button">Cancel</button></div>`;document.body.append(waiting);
 
-    const room=document.createElement('section');room.id='meetingOverlay';room.className='meeting-overlay participants-hidden';room.hidden=true;room.innerHTML=`<div class="meeting-shell"><header class="meeting-head"><div><h2 id="roomTitle">DominionStar Meeting</h2><span id="roomCodeLabel" class="room-code"></span></div><span id="roomRole" class="status-pill">Participant</span></header><div class="meeting-body"><main class="stage"><video id="localMeetingVideo" autoplay playsinline muted></video><div id="stageFallback" class="stage-card"><div id="stageAvatar" class="stage-avatar">DS</div><h3 id="stageName">DominionStar Member</h3></div></main><aside class="room-side" hidden><header class="room-side-head"><div><strong>Participants</strong><small></small></div><div class="ds-panel-traffic" data-ds-runtime-participant-chrome="1" aria-label="Participant window controls"><button type="button" class="ds-traffic-close" aria-label="Close participants"></button><button type="button" class="ds-traffic-minimize" aria-label="Minimize participants"></button><button type="button" class="ds-traffic-restore" aria-label="Restore participants"></button></div><button type="button" class="ds-participant-header-action" aria-label="Return participants to default position" title="Return to default position"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h9v9M17 7l-6 6M6 11v7h7"/></svg></button><button type="button" aria-label="Close participants" hidden>×</button></header><section id="waitingQueueSection" hidden><h3>Waiting Room <span id="waitingCount"></span></h3><div id="waitingQueue"></div></section><section><h3>Participants</h3><div id="participantRoster"></div></section></aside></div><footer class="meeting-footer"><button id="roomMic" class="meeting-control" type="button" aria-label="Unmute">Unmute</button><button id="roomCamera" class="meeting-control" type="button" aria-label="Stop Video">Stop Video</button><button id="roomParticipants" class="meeting-control" type="button" aria-label="Participants" aria-pressed="false">Participants</button><button id="roomExitButton" class="meeting-control danger" type="button" aria-label="Leave meeting">Leave</button></footer></div>`;document.body.append(room);window.dispatchEvent(new CustomEvent('dominion:meeting-ui-ready'));
+    const room=document.createElement('section');room.id='meetingOverlay';room.className='meeting-overlay participants-hidden';room.hidden=true;room.innerHTML=`<div class="meeting-shell"><header class="meeting-head"><div><h2 id="roomTitle">DominionStar Meeting</h2><span id="roomCodeLabel" class="room-code"></span></div><span id="roomRole" class="status-pill">Participant</span></header><div class="meeting-body"><main class="stage"><video id="localMeetingVideo" autoplay playsinline muted></video><div id="stageFallback" class="stage-card"><div id="stageAvatar" class="stage-avatar">DS</div><h3 id="stageName">DominionStar Member</h3></div></main><aside class="room-side" hidden><header class="room-side-head"><div><strong>Participants</strong><small></small></div><div class="ds-panel-traffic" data-ds-runtime-participant-chrome="1" aria-label="Participant window controls"><button type="button" class="ds-traffic-close" aria-label="Close participants"></button><button type="button" class="ds-traffic-minimize" aria-label="Minimize participants"></button><button type="button" class="ds-traffic-restore" aria-label="Restore participants"></button></div><button type="button" class="ds-participant-header-action" aria-label="Return participants to default position" title="Return to default position"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h9v9M17 7l-6 6M6 11v7h7"/></svg></button><button type="button" aria-label="Close participants" hidden>×</button></header><div class="ds-participant-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg><input class="ds-participant-search-primary" type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants"><button type="button" class="ds-participant-search-clear" aria-label="Clear participant search" title="Clear search" hidden>×</button></div><section id="waitingQueueSection" hidden><h3>Waiting Room <span id="waitingCount"></span></h3><div id="waitingQueue"></div></section><section><h3>Participants</h3><div id="participantRoster"></div></section></aside></div><footer class="meeting-footer"><button id="roomMic" class="meeting-control" type="button" aria-label="Unmute">Unmute</button><button id="roomCamera" class="meeting-control" type="button" aria-label="Stop Video">Stop Video</button><button id="roomParticipants" class="meeting-control" type="button" aria-label="Participants" aria-pressed="false">Participants</button><button id="roomExitButton" class="meeting-control danger" type="button" aria-label="Leave meeting">Leave</button></footer></div>`;document.body.append(room);window.dispatchEvent(new CustomEvent('dominion:meeting-ui-ready'));
 
     $$('[data-close-new]').forEach(b=>b.onclick=()=>newMeeting.close());$$('[data-close-join]').forEach(b=>b.onclick=()=>dialogs.join.close());
     $('#newMeetingForm').onsubmit=prepareNewMeeting;$('#joinMeetingForm').onsubmit=prepareJoinMeeting;$('#closePrejoin').onclick=cancelPrejoin;$('#prejoinCancel').onclick=cancelPrejoin;$('#prejoinContinue').onclick=continueFromPrejoin;$('#cancelWaiting').onclick=cancelWaiting;$('#roomExitButton').onclick=exitRoom;
+    if(!window.__DOMINION_EXIT_GUARD_BOUND){
+      window.__DOMINION_EXIT_GUARD_BOUND=true;
+      window.addEventListener('click',event=>{
+        const exit=event.target?.closest?.('#roomExitButton');
+        if(!exit||$('#meetingOverlay')?.hidden)return;
+        event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+        void exitRoom();
+      },true);
+    }
     $('#prejoinMic').onclick=()=>toggleMic($('#prejoinMic'));$('#prejoinCamera').onclick=()=>toggleCamera($('#prejoinCamera'));$('#roomMic').onclick=()=>toggleMic($('#roomMic'));$('#roomCamera').onclick=()=>toggleCamera($('#roomCamera'));
     $('#cameraSelect').onchange=async e=>{await media.selectCamera(e.target.value);attachPreview();};$('#microphoneSelect').onchange=e=>media.selectMicrophone(e.target.value);$('#speakerSelect').onchange=e=>media.selectSpeaker(e.target.value,$('#localMeetingVideo'));const prejoinBackgrounds=$('#prejoinBackgrounds');if(prejoinBackgrounds)prejoinBackgrounds.onclick=()=>{const dialog=$('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();void window.DominionAVSettings?.openVideo?.();};
     const avatarInput=$('#profileAvatarInput'),avatarButton=$('#changeProfilePicture'),avatarStatus=$('#profileAvatarStatus');
@@ -86,9 +95,14 @@
   // Without this subscription the track state could change while stale red
   // slash classes and profile fallbacks remained on screen.
   media.onChange?.(()=>{try{attachPreview();}catch{}});
-  async function toggleMic(button){button.disabled=true;const wasOn=media.snapshot().micOn;try{await media.setMicrophone(!wasOn);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().micOn?'mic-on':'mic-off');}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}}
+  async function toggleMic(button){
+    const wasOn=media.snapshot().micOn,target=!wasOn;
+    if(button?.id==='roomMic'&&target&&window.DominionMeetingSecurity?.allows?.('unmute')===false){notice('Unmute unavailable','The host disabled participant unmuting.');return;}
+    button.disabled=true;try{await media.setMicrophone(target);attachPreview();window.DominionMeetingNotifications?.play?.(media.snapshot().micOn?'mic-on':'mic-off');}catch(e){notice('Microphone unavailable',errorText(e));}finally{button.disabled=false;}
+  }
   async function toggleCamera(button){
     const before=media.snapshot(),target=!before.cameraOn;
+    if(button?.id==='roomCamera'&&target&&window.DominionMeetingSecurity?.allows?.('video')===false){notice('Video unavailable','The host disabled participant video.');return;}
     button?.classList.add('media-intent-active');
     const operation=media.setCamera(target);
     syncMediaLabels();
@@ -111,7 +125,7 @@
   }
   async function openPrejoin(mode){
     if(window.DominionPreferences?.read?.('showJoinPreview')===false){await joinUsingSavedDefaults(mode);return;}
-    $('#appShell').hidden=true;$('#prejoinOverlay').hidden=false;$('#prejoinTitle').textContent=mode==='host'?(activeRoom?.title||'DominionStar Meeting'):'Join DominionStar Meeting';$('#prejoinContinue').textContent=mode==='host'?'Start':'Join';$('#prejoinOverlay').dataset.mode=mode;$('#prejoinAvatar').textContent=initials(authState.user?.name||pendingJoin?.displayName);const error=$('#prejoinError');error.hidden=true;try{await media.startPreview({cameraOn:true,micOn:false});await fillDevices();attachPreview();}catch(e){error.textContent=errorText(e);error.hidden=false;media.stop();attachPreview();}}
+    $('#appShell').hidden=true;$('#prejoinOverlay').hidden=false;$('#prejoinTitle').textContent=mode==='host'?(activeRoom?.title||'DominionStar Meeting'):'Join DominionStar Meeting';$('#prejoinContinue').textContent=mode==='host'?'Start':'Join';$('#prejoinOverlay').dataset.mode=mode;$('#prejoinAvatar').textContent=initials(authState.user?.name||pendingJoin?.displayName);const error=$('#prejoinError');error.hidden=true;try{await media.startPreview({cameraOn:true,micOn:false});await fillDevices();attachPreview();}catch(e){error.textContent=errorText(e);error.hidden=false;media.stop();attachPreview();}window.dispatchEvent(new CustomEvent('dominion:prejoin-opened',{detail:{mode}}));}
   async function prepareNewMeeting(event){event.preventDefault();if(!meeting)return notice('Desktop meeting engine required','Start meetings from the installed desktop rebuild.');const button=$('#startMeetingButton'),error=$('#newMeetingError');button.disabled=true;error.hidden=true;try{activeRoom=await meeting.create({title:$('#newMeetingTitle').value,passcode:$('#newMeetingPasscode').value,waitingRoomEnabled:$('#newMeetingWaiting').checked,externalGuestsAllowed:$('#newMeetingGuests').checked});activeRoom.role='host';dialogs.newMeeting.close();$('#newMeetingPasscode').value=randomPasscode();await openPrejoin('host');}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
   async function prepareJoinMeeting(event){
     event.preventDefault();
@@ -122,8 +136,8 @@
     pendingJoin={roomCode:parsed.roomCode,passcode,displayName:$('#joinDisplayName').value||authState.user?.name};
     dialogs.join.close();await openPrejoin('participant');
   }
-  function cancelPrejoin(){media.stop();$('#prejoinOverlay').hidden=true;$('#appShell').hidden=false;if($('#prejoinOverlay').dataset.mode==='host'&&activeRoom?.roomId)void meeting.end(activeRoom.roomId).catch(()=>{});activeRoom=null;pendingJoin=null;pendingMediaPreferences=null;document.body.dataset.shareAfterJoin='';}
-  async function continueFromPrejoin(){const button=$('#prejoinContinue'),error=$('#prejoinError');button.disabled=true;error.hidden=true;try{if($('#prejoinOverlay').dataset.mode==='host'){enterRoom();return;}pendingMediaPreferences=media.snapshot();const response=await meeting.requestJoin(pendingJoin);activeRoom=response;pendingJoin=null;$('#prejoinOverlay').hidden=true;if(['waiting_host','waiting'].includes(response.state))showWaiting(response);else{if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);activeRoom.state='joined';if(response.muteOnEntry)await media.setMicrophone(false).catch(()=>{});enterRoom();}}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
+  function cancelPrejoin(){media.stop();$('#prejoinOverlay').hidden=true;window.dispatchEvent(new CustomEvent('dominion:prejoin-closed'));$('#appShell').hidden=false;if($('#prejoinOverlay').dataset.mode==='host'&&activeRoom?.roomId)void meeting.end(activeRoom.roomId).catch(()=>{});activeRoom=null;pendingJoin=null;pendingMediaPreferences=null;document.body.dataset.shareAfterJoin='';}
+  async function continueFromPrejoin(){const button=$('#prejoinContinue'),error=$('#prejoinError');button.disabled=true;error.hidden=true;try{if($('#prejoinOverlay').dataset.mode==='host'){enterRoom();return;}pendingMediaPreferences=media.snapshot();const response=await meeting.requestJoin(pendingJoin);activeRoom=response;pendingJoin=null;$('#prejoinOverlay').hidden=true;window.dispatchEvent(new CustomEvent('dominion:prejoin-closed'));if(['waiting_host','waiting'].includes(response.state))showWaiting(response);else{if(response.state!=='joined')await meeting.markJoined(response.participantId,response.joinToken);activeRoom.state='joined';if(response.muteOnEntry)await media.setMicrophone(false).catch(()=>{});enterRoom();}}catch(e){error.textContent=errorText(e);error.hidden=false;}finally{button.disabled=false;}}
 
   function renderWaitingState(state=activeRoom){
     const hostWait=state?.state==='waiting_host'||state?.waitReason==='host'||state?.hostStarted===false;
@@ -160,7 +174,7 @@
   }
   async function cancelWaiting(){const room=activeRoom;clearTimer('waiting');$('#cancelWaiting').disabled=true;try{if(room?.participantId&&room?.joinToken)await meeting.leave(room.participantId,room.joinToken);}catch(e){console.warn('Waiting-room cleanup failed',e);}finally{$('#waitingOverlay').hidden=true;$('#appShell').hidden=false;$('#cancelWaiting').disabled=false;activeRoom=null;pendingMediaPreferences=null;document.body.dataset.shareAfterJoin='';showSection('home');}}
 
-  function enterRoom(){$('#prejoinOverlay').hidden=true;$('#waitingOverlay').hidden=true;$('#appShell').hidden=true;$('#meetingOverlay').hidden=false;$('#roomTitle').textContent=activeRoom.title||'DominionStar Meeting';$('#roomCodeLabel').textContent=`Meeting ID ${roomCode(activeRoom.roomCode)}${activeRoom.passcode?`  •  Passcode ${activeRoom.passcode}`:''}`;$('#roomRole').textContent=activeRoom.role==='host'?'Host':activeRoom.role==='cohost'?'Co-host':'Participant';$('#stageName').textContent=authState.user?.name||'DominionStar Member';$('#stageAvatar').textContent=initials(authState.user?.name);$('#roomExitButton').textContent=activeRoom.role==='host'?'End':'Leave';$('#waitingQueueSection').hidden=!['host','cohost'].includes(activeRoom.role);attachPreview();startPolling();if(document.body.dataset.shareAfterJoin==='1'){document.body.dataset.shareAfterJoin='';setTimeout(()=>$('#roomShare')?.click(),650);}}
+  function enterRoom(){$('#prejoinOverlay').hidden=true;window.dispatchEvent(new CustomEvent('dominion:prejoin-closed'));$('#waitingOverlay').hidden=true;$('#appShell').hidden=true;$('#meetingOverlay').hidden=false;$('#roomTitle').textContent=activeRoom.title||'DominionStar Meeting';$('#roomCodeLabel').textContent=`Meeting ID ${roomCode(activeRoom.roomCode)}${activeRoom.passcode?`  •  Passcode ${activeRoom.passcode}`:''}`;$('#roomRole').textContent=activeRoom.role==='host'?'Host':activeRoom.role==='cohost'?'Co-host':'Participant';$('#stageName').textContent=authState.user?.name||'DominionStar Member';$('#stageAvatar').textContent=initials(authState.user?.name);$('#roomExitButton').textContent=activeRoom.role==='host'?'End':'Leave';$('#waitingQueueSection').hidden=!['host','cohost'].includes(activeRoom.role)||activeRoom.waitingRoomEnabled===false;attachPreview();startPolling();window.dispatchEvent(new CustomEvent('dominion:meeting-entered',{detail:{roomId:activeRoom.roomId||null,participantId:activeRoom.participantId||null,role:activeRoom.role||'participant'}}));if(document.body.dataset.shareAfterJoin==='1'){document.body.dataset.shareAfterJoin='';setTimeout(()=>$('#roomShare')?.click(),650);}}
   function startPolling(){
     stopPolling();lastWaitingMap=new Map();waitingEventsInitialized=false;lastParticipantMap=new Map();participantEventsInitialized=false;
     void refreshSnapshot();timers.snapshot=setInterval(()=>void refreshSnapshot(),1200);
@@ -170,17 +184,28 @@
     if(!activeRoom?.roomId)return;
     try{
       const snapshot=await meeting.snapshot(activeRoom.roomId);if(snapshot.status==='ended')return returnHome();
+      activeRoom.waitingRoomEnabled=Boolean(snapshot.waitingRoomEnabled);
+      activeRoom.meetingLocked=Boolean(snapshot.meetingLocked);
+      activeRoom.muteOnEntry=Boolean(snapshot.muteOnEntry);
+      $('#waitingQueueSection').hidden=!['host','cohost'].includes(activeRoom.role)||!activeRoom.waitingRoomEnabled;
       window.dispatchEvent(new CustomEvent('dominion:meeting-snapshot',{detail:snapshot}));
-      const people=snapshot.participants||[],current=new Map(people.map(p=>[String(p.participantId),p]));
+      const people=snapshot.participants||[];
+      const activePeople=people.filter(p=>['admitted','joined'].includes(String(p.state||'joined')));
+      const current=new Map(activePeople.map(p=>[String(p.participantId),p]));
       if(participantEventsInitialized){
-        const joined=people.filter(p=>!lastParticipantMap.has(String(p.participantId)));
+        const joined=activePeople.filter(p=>!lastParticipantMap.has(String(p.participantId)));
         const left=[...lastParticipantMap.entries()].filter(([id])=>!current.has(id)).map(([,p])=>p);
-        if(joined.length||left.length)window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{joined,left,participants:people}}));
-      }else participantEventsInitialized=true;
+        if(joined.length||left.length)window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{joined,left,participants:activePeople}}));
+      }else{
+        participantEventsInitialized=true;
+        const selfId=String(activeRoom?.participantId||'');
+        const joined=activePeople.filter(p=>String(p.participantId||'')!==selfId);
+        if(joined.length)window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{joined,left:[],participants:activePeople}}));
+      }
       lastParticipantMap=current;
-      const me=people.find(p=>p.memberId===authState.user?.id);
-      if(me&&activeRoom.role!==me.role){activeRoom.role=me.role;$('#roomRole').textContent=me.role==='cohost'?'Co-host':'Participant';$('#waitingQueueSection').hidden=!['host','cohost'].includes(me.role);startPolling();}
-      renderRoster(people);
+      const me=activePeople.find(p=>(p.memberId&&p.memberId===authState.user?.id)||String(p.participantId||'')===String(activeRoom?.participantId||''));
+      if(me&&activeRoom.role!==me.role){activeRoom.role=me.role;$('#roomRole').textContent=me.role==='host'?'Host':me.role==='cohost'?'Co-host':'Participant';$('#waitingQueueSection').hidden=!['host','cohost'].includes(me.role)||activeRoom.waitingRoomEnabled===false;startPolling();}
+      renderRoster(activePeople);
     }catch{}
   }
   async function refreshQueue(){
@@ -218,24 +243,17 @@
     return row;
   }
   function reorderRosterBySpeaker(){
+    // Runtime stability owns participant ordering. The snapshot renderer may
+    // decorate speaking state, but it must never move roster rows or it will
+    // fight the canonical sorter on every 1.2s snapshot refresh.
     const roster=$('#participantRoster');if(!roster)return;
-    const rows=[...roster.querySelectorAll('[data-participant-id]')];
-    rows.sort((a,b)=>{
-      const ar=a.dataset.participantRole||'participant',br=b.dataset.participantRole||'participant';
-      const roleRank=role=>role==='host'?0:role==='cohost'?1:2,rr=roleRank(ar)-roleRank(br);if(rr)return rr;
-      if(ar==='participant'&&br==='participant'){
-        const sr=speakerRank(a.dataset.participantId)-speakerRank(b.dataset.participantId);if(sr)return sr;
-      }
-      return String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''));
-    });
-    rows.forEach((row,index)=>{
+    for(const row of roster.querySelectorAll('[data-participant-id]')){
       const speaking=speakerRank(row.dataset.participantId)<999;
       row.classList.toggle('participant-speaking',speaking);
       let badge=row.querySelector('.participant-speaking-badge');
       if(speaking&&!badge){badge=document.createElement('span');badge.className='participant-speaking-badge';badge.textContent='Speaking';row.querySelector('.person-copy')?.append(badge);}
       if(!speaking&&badge)badge.remove();
-      const current=roster.children[index];if(current!==row)roster.insertBefore(row,current||null);
-    });
+    }
   }
   function renderRoster(people){
     const roster=$('#participantRoster');if(!roster)return;
@@ -245,15 +263,14 @@
     if(!list.length){
       const empty=document.createElement('p');empty.className='auth-status';empty.dataset.emptyParticipants='1';empty.textContent='No participants yet.';roster.append(empty);return;
     }
-    const roleRank=role=>role==='host'?0:role==='cohost'?1:2;
-    const sorted=list.sort((a,b)=>roleRank(String(a.role||'participant'))-roleRank(String(b.role||'participant'))||String(a.displayName||'').localeCompare(String(b.displayName||'')));
-    sorted.forEach((participant,index)=>{
-      const row=ensureParticipantRow(roster,participant);if(!row)return;
-      const current=[...roster.querySelectorAll('[data-participant-id]')][index];if(current!==row)roster.insertBefore(row,current||null);
-    });
+    // Preserve existing row identity/order here. Canonical ordering belongs to
+    // DominionRuntimeStability; moving rows in both layers causes visible
+    // flashing as each snapshot and runtime reconciliation undo each other.
+    for(const participant of list)ensureParticipantRow(roster,participant);
     reorderRosterBySpeaker();
     window.DominionParticipantControls?.sync?.();
-    window.DominionZoomBehavior?.sync?.();
+    if(window.DominionRuntimeStability?.syncParticipantsSurface)window.DominionRuntimeStability.syncParticipantsSurface();
+    else window.DominionZoomBehavior?.sync?.();
   }
   async function stopMeetingPresentation(){
     const integration=window.DominionShareIntegration,controller=window.DominionShareController;
@@ -281,16 +298,18 @@
       appShell.style.removeProperty('pointer-events');
     }
   }
-  async function exitRoom(){if(!activeRoom||returningHome)return;const button=$('#roomExitButton');button.disabled=true;try{if(activeRoom.role==='host')await meeting.end(activeRoom.roomId);else await meeting.leave(activeRoom.participantId,activeRoom.joinToken);await returnHome();}catch(e){notice('Meeting could not close',errorText(e));}finally{button.disabled=false;}}
+  async function exitRoom(){if(!activeRoom||returningHome)return;const button=$('#roomExitButton');button.disabled=true;try{const result=await window.DominionMeetingLifecycleAuthority?.openExit?.();if(result?.closed)await returnHome();else if(!window.DominionMeetingLifecycleAuthority)notice('Meeting controls are still loading','Try again in a moment.');}catch(e){notice('Meeting could not close',errorText(e));}finally{button.disabled=false;}}
   async function returnHome(){
     if(returningHome)return;
     returningHome=true;
     stopPolling();
     try{
-      // Local camera/microphone ownership ends immediately with the meeting.
-      // Do not leave hardware tracks alive while native share teardown finishes.
+      // Tear down transport and hardware ownership deterministically instead
+      // of waiting for lifecycle polling to notice that the room disappeared.
+      const transportStop=Promise.resolve(window.DominionWebRTCController?.stop?.()).catch(()=>{});
       media.stop();
       attachPreview();
+      await Promise.race([transportStop,new Promise(resolve=>setTimeout(resolve,1200))]);
       await stopMeetingPresentation();
       try{await Promise.race([Promise.resolve(desktop?.app?.meetingEnded?.()),new Promise(resolve=>setTimeout(resolve,1500))]);}
       catch(error){console.warn('[DominionStar Meet] Native meeting-end teardown failed.',error);}

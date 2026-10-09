@@ -98,6 +98,8 @@
   function installLeaveGuard(){
     const button=q('#roomExitButton');if(!button||button.dataset.dsZoomLeaveGuard)return;
     button.dataset.dsZoomLeaveGuard='1';
+    button.setAttribute('aria-label',role()==='host'?'End or leave meeting':'Leave meeting');
+    if(window.DominionMeetingLifecycleAuthority)return;
     button.addEventListener('click',event=>{
       if(role()!=='host')return;
       event.preventDefault();event.stopImmediatePropagation();
@@ -251,7 +253,13 @@
     if(chatPatched&&!q('#meetingChatPanel')?.hidden){updateUnread(true);void refreshChatRecipients();}
   }
 
-  const syncTimer=setInterval(sync,900);
+  const syncEvents=['dominion:meeting-ui-ready','dominion:meeting-entered','dominion:participant-presence','dominion:waiting-room-update'];
+  const scheduleSync=()=>queueMicrotask(sync);
+  for(const name of syncEvents)window.addEventListener(name,scheduleSync,true);
   sync();
-  window.DominionZoomBehavior=Object.freeze({version:'1.4.0',sync,admitAll,refreshChatRecipients,showHostHandoffChoices,dispose:()=>clearInterval(syncTimer)});
+  window.DominionZoomBehavior=Object.freeze({
+    version:'2.0.54-event-driven',
+    sync,admitAll,refreshChatRecipients,showHostHandoffChoices,
+    dispose:()=>{for(const name of syncEvents)window.removeEventListener(name,scheduleSync,true);}
+  });
 })();

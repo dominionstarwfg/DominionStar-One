@@ -11,34 +11,43 @@
     <div class="toolbar-drag-handle" aria-label="Drag presenter controls" title="Drag presenter controls"><span></span></div>
     <div class="toolbar-reveal" aria-hidden="true"><span></span></div>
     <section class="control-strip">
-      <div class="brand" aria-label="DominionStar" title="DominionStar"><img id="brandLogo" alt="DominionStar"><span>DominionStar</span></div>
-      <button type="button" data-command="audio"><span class="glyph audio-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg><span class="mic-live-meter" aria-hidden="true"><i></i><i></i><i></i></span></span><span id="audioLabel">Audio</span></button>
-      <button type="button" data-command="video"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg></span><span id="videoLabel">Video</span></button>
+      <button type="button" data-command="audio"><span class="glyph audio-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg><span class="mic-live-meter" aria-hidden="true"><i></i><i></i><i></i></span></span><span id="audioLabel">Mute</span></button>
+      <button type="button" data-command="video"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg></span><span id="videoLabel">Stop Video</span></button>
       <button type="button" data-command="participants"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20a6 6 0 0 1 12 0M14 19a4.8 4.8 0 0 1 7 0"/></svg></span><span>Participants</span></button>
       <button type="button" data-command="chat"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg></span><span>Chat</span></button>
-      <button type="button" data-command="new-share"><span class="glyph share-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="m8 11 4-4 4 4M12 7v8M8 21h8"/></svg></span><span>Share</span></button>
-      <button type="button" data-command="pause"><span class="glyph" id="pauseGlyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></span><span id="pauseLabel">Pause</span></button>
+      <button type="button" data-command="new-share" class="share-control"><span class="glyph share-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M12 15V9M9.5 11.5 12 9l2.5 2.5"/></svg></span><span>Share</span></button>
+      <button type="button" data-command="pause"><span class="glyph" id="pauseGlyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></span><span id="pauseLabel">Pause Share</span></button>
       <div class="menu-wrap">
-        <button id="layoutButton" type="button"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="8" height="14" rx="2"/><rect x="13" y="5" width="8" height="6" rx="2"/><rect x="13" y="13" width="8" height="6" rx="2"/></svg></span><span>Layout</span></button>
+        <button id="layoutButton" type="button"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M9 5v14M9 11h11"/></svg></span><span>Layout</span></button>
         <div id="layoutMenu" class="popup-menu layout-menu" hidden>
-          <button type="button" data-command="layout-speaker">Speaker video</button>
-          <button type="button" data-command="layout-gallery">Gallery video</button>
-          <button type="button" data-command="layout-hide">Hide participant video</button>
+          <button type="button" data-command="layout-speaker">Speaker</button>
+          <button type="button" data-command="layout-strip">Participant strip</button>
+          <button type="button" data-command="layout-gallery">Gallery</button>
+          <button type="button" data-command="layout-hide">Hide video panel</button>
         </div>
       </div>
-      <button type="button" data-command="annotate"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 19 4.2-1 10-10-3.2-3.2-10 10L4 19zM13.8 6l3.2 3.2M3 21h18"/></svg></span><span>Annotate</span></button>
-      <button type="button" data-command="show-meeting"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 9h8M8 13h5"/></svg></span><span>Show meeting</span></button>
+      <button type="button" data-command="annotate"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 18 1.2-4.5L15.8 2.9l5.3 5.3L10.5 18.8 6 20z"/><path d="m13.8 4.9 5.3 5.3"/></svg></span><span>Annotate</span></button>
+      <button type="button" data-command="show-meeting"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg></span><span>Show meeting</span></button>
       <div class="menu-wrap">
         <button id="moreButton" type="button"><span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span><span>More</span></button>
         <div id="moreMenu" class="popup-menu more-menu" hidden>
+          <button type="button" data-command="polls">Polls</button>
+          <button type="button" data-command="whiteboard">Whiteboard</button>
+          <button type="button" data-command="apps">Apps</button>
+          <button type="button" data-command="host-tools" id="presenterHostTools">Host Tools</button>
+          <button type="button" data-command="audio-settings">Audio Settings</button>
+          <button type="button" data-command="video-settings">Video Settings</button>
+          <button type="button" data-command="captions">Captions</button>
           <button type="button" data-command="record" id="recordCommand">Record meeting</button>
+          <button type="button" data-command="layout-hide">Hide video panel</button>
+          <button type="button" data-command="hide-floating-controls">Hide floating meeting controls</button>
         </div>
       </div>
     </section>
     <section class="share-strip" aria-live="polite">
       <span class="share-copy"><span class="live-dot"></span><strong id="shareStateLabel">You are screen sharing</strong><small id="shareSourceLabel">Shared content</small></span>
-      <span id="shareAudioFlag" class="flag" hidden>Sound</span><span id="shareOptimizeFlag" class="flag" hidden>Optimized</span>
-      <button id="stopShare" class="stop-share" type="button"><span class="stop-share-icon" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" rx="1"/></svg></span><span id="stopShareLabel">Stop Share</span></button>
+      <span class="share-flags"><span id="shareAudioFlag" class="flag" hidden>Sound</span><span id="shareOptimizeFlag" class="flag" hidden>Optimized</span></span>
+      <button id="stopShare" class="stop-share-control" type="button"><span class="stop-share-icon" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" rx="1"/></svg></span><span id="stopShareLabel">Stop Share</span></button>
     </section>
   </main>
   <script src="./mac-presenter-toolbar.js"></script>

@@ -131,6 +131,14 @@ body.ds-native-mac-presenter-share .share-stage-label,
 body.ds-native-mac-presenter-share .ds-ref-share-banner{
   display:none!important
 }
+/* Native presenter video is the single visible participant-video authority.
+   Keep renderer video nodes alive for frame transport but visually suppress
+   their duplicate strip/dock, including when Show meeting is open. */
+body.ds-native-mac-presenter-share #remoteTileStrip,
+body.ds-native-mac-presenter-share #participantVideoDock{
+  opacity:0!important;pointer-events:none!important
+}
+
 
 /* Annotation canvas stays independent from the presenter toolbar. On regular
    renderer presentation the tools are a left-side vertical palette. */
@@ -178,7 +186,7 @@ body.ds-native-mac-presenter-share[data-ds-share-companion="annotate"] .share-an
 }
 /* The native Mac annotation palette owns visible tools; keep only the canvas in
    this transparent renderer. */
-body.ds-native-mac-presenter-share[data-ds-share-companion="annotate"] .share-annotation-tools{display:none!important}
+body.ds-native-mac-presenter-share .share-annotation-tools{display:none!important}
 
 
 /* 2.0.44+ native Mac floating Participants/Chat companion lock */

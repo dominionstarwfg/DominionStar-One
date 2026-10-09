@@ -73,7 +73,7 @@ assert.ok(js.includes('stopImmediatePropagation();openChatTargetMenu(newChat)'),
 
 assert.ok(adaptive.includes("dock.dataset.dsAdaptiveWholePanelDrag='1'"),'Video panel must retain whole-surface drag authority.');
 assert.ok(js.includes("setData(dock,'approvedFilmstrip','1')"),'Approved floating video filmstrip authority is missing.');
-assert.ok(css.includes('.participant-video-dock-head{\n  height:34px !important;')&&css.includes('.participant-video-dock-modes')&&css.includes('[data-panel-mode="strip"]'),'Video filmstrip must expose the compact layout-control bar required for speaker/strip/gallery/hide behavior.');
+assert.ok(css.includes('.participant-video-dock-head{\n  height:42px !important;')&&css.includes('.participant-video-dock-modes')&&css.includes('[data-panel-mode="strip"]'),'Video filmstrip must expose the readable 42px layout-control bar required for speaker/strip/gallery/hide behavior.');
 assert.ok(css.includes('.remote-peer-tile.active-speaker'),'Video filmstrip must visually mark the active speaker.');
 assert.ok(css.includes('.dock-grip{\n  display:none !important;'),'Grip affordance must stay removed.');
 
@@ -103,6 +103,6 @@ for(const workflow of [production,qa]){
   assert.ok(workflow.includes('verify-packaged-approved-reference-2.0.22.mjs'),'Workflow is missing the packaged approved-reference gate.');
 }
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
-assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
+assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create certified Mac installers'),'Certified QA ZIP/DMG creation must remain behind approved-reference parity.');
 
 console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip custom-only-preshare no-apple-overlay bounded-share-start duplicate-participant-media-suppressed release-gated');

@@ -141,9 +141,6 @@
   min-width:280px !important;
   max-width:340px !important;
 }
-#meetingOverlay .room-side[data-ds-adaptive-count="1"] .zoom-participant-search{
-  display:none !important;
-}
 #meetingOverlay .room-side .zoom-participant-search[hidden]{display:none !important;}
 #meetingOverlay #waitingQueueSection[hidden]{display:none !important;}
 #meetingOverlay .room-side-head{

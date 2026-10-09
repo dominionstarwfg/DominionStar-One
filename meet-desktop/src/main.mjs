@@ -2,6 +2,7 @@ import {app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import readline from 'node:readline';
+import { writeFile } from 'node:fs/promises';
 import { createDesktopAuth } from './auth-service.mjs';
 import { createMeetingService } from './meeting-service.mjs';
 import { createShareService } from './share-service.mjs';
@@ -227,6 +228,36 @@ function focusOrCreateMainWindow(){
 }
 
 ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaPresenterFixtures:qaFixtureRequested,qaKeepMacPresenterHidden:process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1',installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('diagnostics:system-metrics',()=>{
+  try{
+    return app.getAppMetrics().map(item=>({
+      pid:Number(item.pid)||0,
+      type:String(item.type||''),
+      cpu:Number(item.cpu?.percentCPUUsage)||0,
+      idleWakeups:Number(item.cpu?.idleWakeupsPerSecond)||0,
+      memory:{
+        workingSetSize:Number(item.memory?.workingSetSize)||0,
+        peakWorkingSetSize:Number(item.memory?.peakWorkingSetSize)||0,
+        privateBytes:Number(item.memory?.privateBytes)||0
+      }
+    }));
+  }catch{return [];}
+});
+ipcMain.handle('diagnostics:export',async(_event,{report}={})=>{
+  try{
+    const payload=report&&typeof report==='object'?report:{};
+    const raw=JSON.stringify(payload,null,2);
+    if(Buffer.byteLength(raw,'utf8')>20*1024*1024)throw new Error('diagnostic_report_too_large');
+    const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+    const filePath=path.join(app.getPath('downloads'),`DominionStar-Meet-Diagnostic-${stamp}.json`);
+    await writeFile(filePath,raw,'utf8');
+    try{shell.showItemInFolder(filePath);}catch{}
+    return {ok:true,path:filePath,fileName:path.basename(filePath),bytes:Buffer.byteLength(raw,'utf8')};
+  }catch(error){
+    return {ok:false,error:String(error?.message||error||'diagnostic_export_failed')};
+  }
+});
+
 ipcMain.handle('app:meeting-ended',()=>{
   try{shareService?.shutdown?.();}catch(error){console.error('[DominionStar Meet] Meeting-end native cleanup failed.',error);}
   focusOrCreateMainWindow();
@@ -287,6 +318,7 @@ ipcMain.handle('meeting:rename-participant',(_event,{participantId,displayName})
 ipcMain.handle('meeting:set-recording-permission',(_event,{participantId,enabled})=>meetingService?.setRecordingPermission(participantId,enabled));
 ipcMain.handle('meeting:set-recording-state',(_event,{participantId,active,paused})=>meetingService?.setRecordingState(participantId,active,paused));
 ipcMain.handle('meeting:set-security',(_event,{roomId,options})=>meetingService?.setSecurity(roomId,options));
+ipcMain.handle('meeting:set-waiting-room',(_event,{roomId,enabled})=>meetingService?.setWaitingRoom(roomId,enabled));
 ipMainHandleChatPolicy();
 ipMainHandleCaptions();
 ipcMain.handle('meeting:transfer-host-and-leave',(_event,{participantId})=>meetingService?.transferHostAndLeave(participantId));

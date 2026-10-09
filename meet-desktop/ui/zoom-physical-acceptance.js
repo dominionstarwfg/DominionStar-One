@@ -2,6 +2,7 @@
   if(window.DominionZoomPhysicalAcceptance)return;
 
   const desktop=window.dominionDesktop||{};
+  const desktopCanonical=Boolean(desktop?.isDesktop);
   const meeting=desktop.meeting||null;
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -91,18 +92,9 @@
   }
 
   async function openHostTools(button){
-    const menu=createCommandMenu(button,'Host Tools');
-    let ctx={},snapshot={};
-    try{ctx=await meeting?.context?.()||{};if(ctx.roomId&&meeting?.snapshot)snapshot=await meeting.snapshot(ctx.roomId)||{};}catch{}
-    if(commandMenu!==menu)return;
-    const locked=Boolean(snapshot.meetingLocked),muteOnEntry=Boolean(snapshot.muteOnEntry);
-    addCommand(menu,'Open Participants',()=>parity()?.toggleParticipants?.(true));
-    addCommand(menu,'Copy meeting information',async()=>{const text=String(q('#roomCodeLabel')?.textContent||'').trim();if(text)await navigator.clipboard.writeText(text);});
-    addDivider(menu);
-    addCommand(menu,locked?'Unlock Meeting':'Lock Meeting',()=>meeting?.setSecurity?.(ctx.roomId,{locked:!locked,muteOnEntry}),{selected:locked,disabled:!ctx.roomId});
-    addCommand(menu,'Mute Participants on Entry',()=>meeting?.setSecurity?.(ctx.roomId,{locked,muteOnEntry:!muteOnEntry}),{selected:muteOnEntry,disabled:!ctx.roomId});
-    requestAnimationFrame(()=>positionMenu(menu,button));
+    return parity()?.openSecurity?.(button||q('#roomHostTools'));
   }
+
   function installHostToolsAuthority(){
     const button=q('#roomHostTools');if(!button||button.dataset.dsPhysicalAuthority==='1')return;
     button.dataset.dsPhysicalAuthority='1';button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');
@@ -118,6 +110,7 @@
       const captions=q('#roomCaptions');if(captions)addCommand(menu,captions.getAttribute('aria-pressed')==='true'?'Hide captions':'Show captions',()=>captions.click());
       addCommand(menu,'Meeting settings',()=>{const dialog=q('#settingsDialog');if(dialog&&!dialog.open)dialog.showModal();});
       addDivider(menu);
+      addCommand(menu,'Export diagnostic report',()=>void window.DominionPhysicalDiagnostics?.exportReport?.());
       addCommand(menu,'Reset participant video panel',()=>parity()?.resetVideoDock?.());
       const dock=q('#participantVideoDock');if(dock&&!dock.hidden)addCommand(menu,'Hide participant video',()=>{dock.hidden=true;});
     };
@@ -136,8 +129,39 @@
     const state=remoteMediaState.get(String(id));return state?{...state,known:true}:{micOn:false,cameraOn:false,known:false};
   }
   function mediaStatusNode(row,id){
-    let wrap=row.querySelector('.ds-participant-media');if(!wrap){wrap=document.createElement('span');wrap.className='ds-participant-media';const actions=row.querySelector('.participant-actions')||document.createElement('span');if(!actions.isConnected){actions.className='participant-actions ds-participant-actions';row.append(actions);}actions.prepend(wrap);}
-    const state=statusFor(id);wrap.innerHTML=`<span data-participant-mic class="ds-media-state ${state.known?'':'unknown'} ${state.micOn?'on':'off'}" title="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}" aria-label="${state.known?(state.micOn?'Microphone on':'Microphone muted'):'Audio status syncing'}">${state.micOn?MIC_ON:MIC_OFF}</span><span data-participant-video class="ds-media-state ${state.known?'':'unknown'} ${state.cameraOn?'on':'off'}" title="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}" aria-label="${state.known?(state.cameraOn?'Video on':'Video off'):'Video status syncing'}">${state.cameraOn?VIDEO_ON:VIDEO_OFF}</span>`;
+    // One canonical media-status surface only. Older builds created a second
+    // ds-participant-media strip, which visually doubled mute slashes/icons.
+    for(const legacy of [...row.querySelectorAll('.ds-participant-media')])legacy.remove();
+    let wrap=row.querySelector('.participant-media-state');
+    if(!wrap){
+      wrap=document.createElement('span');
+      wrap.className='participant-media-state';
+      wrap.setAttribute('aria-label','Participant media status');
+      const actions=row.querySelector('.participant-actions');
+      actions?.before(wrap)||row.append(wrap);
+    }
+    let mic=wrap.querySelector('[data-participant-mic]'),video=wrap.querySelector('[data-participant-video]');
+    if(!mic){
+      mic=document.createElement('span');mic.dataset.participantMic='';
+      mic.className='participant-media-icon participant-mic unknown';
+      mic.innerHTML=MIC_ON;wrap.append(mic);
+    }
+    if(!video){
+      video=document.createElement('span');video.dataset.participantVideo='';
+      video.className='participant-media-icon participant-video unknown';
+      video.innerHTML=VIDEO_ON;wrap.append(video);
+    }
+    mic.classList.add('participant-media-icon','participant-mic');
+    video.classList.add('participant-media-icon','participant-video');
+    mic.classList.remove('ds-media-state');video.classList.remove('ds-media-state');
+    const existingMicOn=mic.classList.contains('on'),existingCameraOn=video.classList.contains('on');
+    const state=statusFor(id),micOn=state.known?state.micOn:existingMicOn,cameraOn=state.known?state.cameraOn:existingCameraOn;
+    const micTitle=state.known?(micOn?'Microphone on':'Microphone muted'):'Audio status syncing';
+    const videoTitle=state.known?(cameraOn?'Video on':'Video off'):'Video status syncing';
+    mic.classList.toggle('unknown',!state.known);mic.classList.toggle('on',micOn);mic.classList.toggle('off',!micOn);
+    video.classList.toggle('unknown',!state.known);video.classList.toggle('on',cameraOn);video.classList.toggle('off',!cameraOn);
+    if(mic.title!==micTitle)mic.title=micTitle;if(mic.getAttribute('aria-label')!==micTitle)mic.setAttribute('aria-label',micTitle);
+    if(video.title!==videoTitle)video.title=videoTitle;if(video.getAttribute('aria-label')!==videoTitle)video.setAttribute('aria-label',videoTitle);
     return wrap;
   }
   const SHARE_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="13" rx="2"/><path d="M8 12h8M13 9l3 3-3 3"/></svg>';
@@ -146,14 +170,14 @@
     let node=row.querySelector('.ds-participant-share-state');
     if(!active){node?.remove();return null;}
     if(!node){node=document.createElement('span');node.className='ds-participant-share-state';node.setAttribute('title','Sharing screen');node.setAttribute('aria-label','Sharing screen');}
-    node.innerHTML=SHARE_ON;
+    if(!node.firstElementChild)node.innerHTML=SHARE_ON;
     const actions=row.querySelector('.participant-actions');if(actions&&node.parentElement!==actions)actions.prepend(node);
     return node;
   }
 
   function participantIsSelf(row,id){
-    const pid=String(id||row?.dataset?.participantId||'');
-    if((pid&&pid===String(localParticipantId||''))||row?.dataset?.participantSelf==='1')return true;
+    const pid=String(id||row?.dataset?.participantId||''),small=String(row?.querySelector?.('.person-copy small')?.textContent||'').toLowerCase();
+    if((pid&&pid===String(localParticipantId||''))||row?.dataset?.participantSelf==='1'||/\byou\b|\bme\b/.test(small))return true;
     if(localParticipantId)return false;
     const role=String(row?.dataset?.participantRole||'participant').toLowerCase().replace('-','');
     if(!['host','cohost'].includes(role)||role!==localRole())return false;
@@ -165,10 +189,20 @@
     const id=String(row.dataset.participantId||'');
     if(!participantIsSelf(row,id))return;
     const actions=row.querySelector('.participant-actions');if(!actions)return;
-    const duplicates=[...actions.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')];
-    for(const node of duplicates)node.remove();
-    const button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';button.textContent='•••';button.setAttribute('aria-label','More options for yourself');
-    button.onclick=event=>{event.stopPropagation();openSelfParticipantMenu(button,row);};actions.append(button);
+    const candidates=[...actions.querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')];
+    let button=candidates.find(node=>node.dataset.dsSelfMore==='1')||candidates[0]||null;
+    for(const node of candidates)if(node!==button)node.remove();
+    if(!button){
+      button=document.createElement('button');button.type='button';button.dataset.dsSelfMore='1';button.className='participant-more ds-participant-more';actions.append(button);
+    }
+    button.dataset.dsSelfMore='1';button.classList.add('participant-more','ds-participant-more');
+    if(button.textContent!=='•••')button.textContent='•••';
+    if(button.getAttribute('aria-label')!=='More options for yourself')button.setAttribute('aria-label','More options for yourself');
+    if(button.dataset.dsSelfMoreBound!=='1'){
+      button.dataset.dsSelfMoreBound='1';
+      button.addEventListener('click',event=>{event.stopPropagation();openSelfParticipantMenu(button,row);});
+    }
+    if(button.parentElement!==actions)actions.append(button);
   }
   function openSelfParticipantMenu(button,row){
     closeTransientMenus();const id=String(row.dataset.participantId||'');selfMenu=document.createElement('div');selfMenu.className='ds-command-menu ds-self-participant-menu';document.body.append(selfMenu);
@@ -191,20 +225,20 @@
     const copy=row.querySelector('.person-copy');if(!copy)return;
     const name=String(row.dataset.participantName||'Participant').trim()||'Participant';
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
-    const self=participantIsSelf(row,id);
+    const self=participantIsSelf(row,id);row.dataset.participantSelf=self?'1':'0';row.dataset.dsAdaptiveSelf=self?'1':'0';
     for(const node of copy.querySelectorAll('.ds-role-chip,.ds-participant-role-badge,.ds-participant-self-label,.ds-adaptive-role,.ds-canonical-role,.ds-canonical-self'))node.remove();
     let strong=copy.querySelector('strong');
     if(!strong){strong=document.createElement('strong');copy.prepend(strong);}
     let nameNode=strong.querySelector('.participant-name-text');
     if(!nameNode){nameNode=document.createElement('span');nameNode.className='participant-name-text';strong.prepend(nameNode);}
-    nameNode.textContent=name;strong.title=name;
+    if(nameNode.textContent!==name)nameNode.textContent=name;if(strong.title!==name)strong.title=name;
     let inline=strong.querySelector('.participant-you');
     if(!inline){inline=document.createElement('em');inline.className='participant-you';strong.append(inline);}
     const inlineRole=role==='host'?(self?'(Host, me)':'(Host)'):role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'');
-    inline.textContent=inlineRole;inline.hidden=!inlineRole;
+    if(inline.textContent!==inlineRole)inline.textContent=inlineRole;if(inline.hidden===Boolean(inlineRole))inline.hidden=!inlineRole;
     let small=copy.querySelector('small');
     if(!small){small=document.createElement('small');copy.append(small);}
-    small.textContent='';small.hidden=true;
+    if(small.textContent)small.textContent='';if(!small.hidden)small.hidden=true;
   }
 
   function decorateParticipantRows(){
@@ -238,7 +272,7 @@
   function scheduleMediaBroadcast(delay=100){clearTimeout(mediaBroadcastTimer);mediaBroadcastTimer=setTimeout(()=>void broadcastLocalMediaState(),delay);}
 
   function installParticipantAuthority(){
-    const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(()=>requestAnimationFrame(decorateParticipantRows));participantObserver.observe(roster,{childList:true,subtree:true});}
+    const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(()=>requestAnimationFrame(decorateParticipantRows));participantObserver.observe(roster,{childList:true,subtree:false});}
     void refreshLocalParticipantId().then(()=>decorateParticipantRows());
     if(!mediaUnsub&&media()?.onChange){mediaUnsub=media().onChange(()=>{decorateParticipantRows();scheduleMediaBroadcast(80);});}
     if(!shareUnsub&&window.DominionShareController?.onChange){
@@ -334,22 +368,31 @@
     installViewAuthority();installHostToolsAuthority();installMoreAuthority();installParticipantAuthority();installReactionAuthority();installReactionBubbleObserver();installShareAuthority();decorateParticipantRows();setReactionIcon();
   }
 
-  window.addEventListener('dominion:meeting-signal',event=>{
+  const onMeetingSignal=event=>{
+    if(desktopCanonical&&window.DominionRuntimeStability)return;
     const detail=event.detail||{},payload=detail.payload||{};if(detail.type!=='reaction'||payload.kind!=='media-state')return;const id=String(detail.fromParticipantId||payload.participantId||'');if(!id)return;remoteMediaState.set(id,{micOn:Boolean(payload.micOn),cameraOn:Boolean(payload.cameraOn),at:payload.at||Date.now()});decorateParticipantRows();
-  },true);
-  window.addEventListener('dominion:remote-share-state',event=>{
+  };
+  const onRemoteShareState=event=>{
+    if(desktopCanonical&&window.DominionRuntimeStability)return;
     const id=String(event.detail?.participantId||'');if(!id)return;if(event.detail?.active)sharingParticipantIds.add(id);else sharingParticipantIds.delete(id);decorateParticipantRows();
-  },true);
-  window.addEventListener('dominion:meeting-snapshot',()=>{void refreshLocalParticipantId().then(()=>{decorateParticipantRows();scheduleMediaBroadcast(140);});});
-  window.addEventListener('dominion:meeting-ended',()=>{sharingParticipantIds.clear();remoteMediaState.clear();decorateParticipantRows();},true);
-  window.addEventListener('dominion:meeting-ui-ready',()=>setTimeout(sync,0));
-  document.addEventListener('pointerdown',event=>{
+  };
+  const onMeetingSnapshot=()=>{if(desktopCanonical&&window.DominionRuntimeStability)return;void refreshLocalParticipantId().then(()=>{decorateParticipantRows();scheduleMediaBroadcast(140);});};
+  const onMeetingEnded=()=>{sharingParticipantIds.clear();remoteMediaState.clear();if(!(desktopCanonical&&window.DominionRuntimeStability))decorateParticipantRows();};
+  const onMeetingReady=()=>{if(!desktopCanonical)setTimeout(sync,0);};
+  const onPointerDown=event=>{
     if(commandMenu&&!commandMenu.contains(event.target)&&!event.target.closest?.('#roomMore,#roomHostTools,#meetingViewButton'))closeCommandMenu();
     if(reactionMenu&&!reactionMenu.contains(event.target)&&!event.target.closest?.('#roomReactions'))closeReactionMenu();
     if(selfMenu&&!selfMenu.contains(event.target)&&!event.target.closest?.('[data-ds-self-more]'))closeSelfMenu();
-  },true);
-  window.addEventListener('resize',()=>{closeTransientMenus();},{passive:true});
+  };
+  const onResize=()=>{closeTransientMenus();};
+  window.addEventListener('dominion:meeting-signal',onMeetingSignal,true);
+  window.addEventListener('dominion:remote-share-state',onRemoteShareState,true);
+  window.addEventListener('dominion:meeting-snapshot',onMeetingSnapshot);
+  window.addEventListener('dominion:meeting-ended',onMeetingEnded,true);
+  window.addEventListener('dominion:meeting-ui-ready',onMeetingReady);
+  document.addEventListener('pointerdown',onPointerDown,true);
+  window.addEventListener('resize',onResize,{passive:true});
 
-  const timer=setInterval(sync,700);sync();
-  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.11-physical-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{clearInterval(timer);clearTimeout(mediaBroadcastTimer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
+  const timer=desktopCanonical?0:setInterval(sync,700);if(!desktopCanonical)sync();
+  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.53-manual-desktop-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{if(timer)clearInterval(timer);clearTimeout(mediaBroadcastTimer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();window.removeEventListener('dominion:meeting-signal',onMeetingSignal,true);window.removeEventListener('dominion:remote-share-state',onRemoteShareState,true);window.removeEventListener('dominion:meeting-snapshot',onMeetingSnapshot);window.removeEventListener('dominion:meeting-ended',onMeetingEnded,true);window.removeEventListener('dominion:meeting-ui-ready',onMeetingReady);document.removeEventListener('pointerdown',onPointerDown,true);window.removeEventListener('resize',onResize);closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
 })();

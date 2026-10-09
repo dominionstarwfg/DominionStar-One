@@ -7,62 +7,71 @@
   <link rel="stylesheet" href="./mac-annotation-toolbar.css">
 </head>
 <body>
-  <main class="annotation-palette" aria-label="Annotation tools">
-    <header class="palette-head"><strong>Draw</strong><span class="palette-grip" aria-hidden="true"></span></header>
+  <main class="annotation-shell" aria-label="Annotation tools">
+    <nav class="annotation-palette" aria-label="Annotation toolbar">
+      <button type="button" data-command="annotate-select" class="tool active" aria-label="Select pointer" title="Select / pointer">
+        <svg viewBox="0 0 24 24"><path d="M5 3.8 18.5 12l-6.1 1.2 3.1 5.3-2.7 1.5-3-5.2-4 4.4z"/></svg>
+      </button>
+      <button type="button" data-command="annotate-pen" class="tool" aria-label="Pen" title="Pen">
+        <svg viewBox="0 0 24 24"><path d="m4 20 4.4-1.1L19 8.3 15.7 5 5.1 15.6 4 20Z"/><path d="m13.9 6.8 3.3 3.3"/></svg>
+      </button>
+      <button type="button" data-command="annotate-highlight" class="tool" aria-label="Highlighter" title="Highlighter">
+        <svg viewBox="0 0 24 24"><path d="m7 15 7.8-7.8 3 3L10 18H7v-3Z"/><path d="M5 20h14"/></svg>
+      </button>
+      <button type="button" data-command="annotate-laser" class="tool laser" aria-label="Laser pointer" title="Laser pointer">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+      </button>
 
-    <section class="tool-grid primary-tools" aria-label="Drawing tools">
-      <button type="button" data-command="annotate-select" class="active" aria-label="Select pointer" title="Select / pointer">
-        <span class="tool-icon"><svg viewBox="0 0 24 24"><path d="M5 3.8 18.5 12l-6.1 1.2 3.1 5.3-2.7 1.5-3-5.2-4 4.4z"/></svg></span><small>Select</small>
+      <button type="button" class="tool flyout-trigger" data-flyout="shapes" aria-label="Shapes" title="Shapes">
+        <svg viewBox="0 0 24 24"><rect x="4" y="5" width="9" height="8" rx="1"/><circle cx="16.5" cy="15.5" r="4"/></svg>
       </button>
-      <button type="button" data-command="annotate-pen" aria-label="Pen" title="Pen">
-        <span class="tool-icon"><svg viewBox="0 0 24 24"><path d="m4 20 4.4-1.1L19 8.3 15.7 5 5.1 15.6 4 20Z"/><path d="m13.9 6.8 3.3 3.3"/></svg></span><small>Pen</small>
+      <button type="button" data-command="annotate-erase" class="tool" aria-label="Eraser" title="Eraser">
+        <svg viewBox="0 0 24 24"><path d="m5 15 8.8-8.8a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L10 20H7.8L5 17.2A1.6 1.6 0 0 1 5 15Z"/><path d="m11.5 8.5 4 4M10 20h9"/></svg>
       </button>
-      <button type="button" data-command="annotate-highlight" aria-label="Highlight" title="Highlight">
-        <span class="tool-icon"><svg viewBox="0 0 24 24"><path d="m7 15 7.8-7.8 3 3L10 18H7v-3Z"/><path d="M5 20h14"/></svg></span><small>Highlight</small>
+      <button type="button" class="tool flyout-trigger style-trigger" data-flyout="style" aria-label="Color and line width" title="Color and line width">
+        <span class="color-dot"></span>
       </button>
-      <button type="button" data-command="annotate-laser" aria-label="Laser" title="Laser">
-        <span class="tool-icon laser-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span><small>Laser</small>
+
+      <button type="button" data-command="annotate-undo" class="tool" aria-label="Undo" title="Undo">
+        <svg viewBox="0 0 24 24"><path d="M9 8H4V3"/><path d="M4.5 8.2A8 8 0 1 1 6.2 18"/></svg>
       </button>
-      <button type="button" data-command="annotate-erase" aria-label="Erase" title="Erase">
-        <span class="tool-icon"><svg viewBox="0 0 24 24"><path d="m5 15 8.8-8.8a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L10 20H7.8L5 17.2A1.6 1.6 0 0 1 5 15Z"/><path d="m11.5 8.5 4 4M10 20h9"/></svg></span><small>Erase</small>
+      <button type="button" data-command="annotate-clear" class="tool" aria-label="Clear all" title="Clear all">
+        <svg viewBox="0 0 24 24"><path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12"/><path d="M11 10v6M13 10v6"/></svg>
       </button>
+
+      <span class="rail-spacer"></span>
+      <button type="button" data-command="annotate-close" class="tool close-annotation" aria-label="Close annotation" title="Close annotation">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </nav>
+
+    <section class="annotation-flyout shapes-flyout" data-flyout-panel="shapes" hidden aria-label="Shape tools">
+      <header><span>Shapes</span><button type="button" data-close-flyout aria-label="Close shapes">×</button></header>
+      <div class="flyout-grid">
+        <button type="button" data-command="annotate-shape-line" aria-label="Line"><svg viewBox="0 0 24 24"><path d="M5 19 19 5"/></svg></button>
+        <button type="button" data-command="annotate-shape-arrow" aria-label="Arrow"><svg viewBox="0 0 24 24"><path d="M5 19 19 5M12 5h7v7"/></svg></button>
+        <button type="button" data-command="annotate-shape-rect" aria-label="Rectangle"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="1"/></svg></button>
+        <button type="button" data-command="annotate-shape-ellipse" aria-label="Ellipse"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="7" ry="5"/></svg></button>
+      </div>
     </section>
 
-    <section class="palette-section">
-      <div class="section-label">Line width</div>
-      <div class="width-row" aria-label="Line width">
+    <section class="annotation-flyout style-flyout" data-flyout-panel="style" hidden aria-label="Annotation style">
+      <header><span>Style</span><button type="button" data-close-flyout aria-label="Close style">×</button></header>
+      <div class="style-label">Line width</div>
+      <div class="width-row">
         <button type="button" data-command="annotate-width-thin" aria-label="Thin"><i class="stroke s1"></i></button>
         <button type="button" data-command="annotate-width-medium" class="active" aria-label="Medium"><i class="stroke s2"></i></button>
         <button type="button" data-command="annotate-width-thick" aria-label="Thick"><i class="stroke s3"></i></button>
         <button type="button" data-command="annotate-width-heavy" aria-label="Heavy"><i class="stroke s4"></i></button>
       </div>
-    </section>
-
-    <section class="palette-section">
-      <div class="section-label">Shapes</div>
-      <div class="shape-grid" aria-label="Shapes">
-        <button type="button" data-command="annotate-shape-line" aria-label="Line" title="Line"><svg viewBox="0 0 24 24"><path d="M5 19 19 5"/></svg></button>
-        <button type="button" data-command="annotate-shape-arrow" aria-label="Arrow" title="Arrow"><svg viewBox="0 0 24 24"><path d="M5 19 19 5M12 5h7v7"/></svg></button>
-        <button type="button" data-command="annotate-shape-rect" aria-label="Rectangle" title="Rectangle"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="1"/></svg></button>
-        <button type="button" data-command="annotate-shape-ellipse" aria-label="Ellipse" title="Ellipse"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="7" ry="5"/></svg></button>
-      </div>
-    </section>
-
-    <section class="palette-section color-section">
-      <div class="section-label">Color</div>
-      <div class="palette-colors" aria-label="Annotation colors">
+      <div class="style-label">Color</div>
+      <div class="color-row">
         <button type="button" data-command="annotate-color-red" class="swatch red active" aria-label="Red"></button>
         <button type="button" data-command="annotate-color-blue" class="swatch blue" aria-label="Blue"></button>
         <button type="button" data-command="annotate-color-green" class="swatch green" aria-label="Green"></button>
         <button type="button" data-command="annotate-color-white" class="swatch white" aria-label="White"></button>
       </div>
     </section>
-
-    <footer class="palette-actions">
-      <button type="button" data-command="annotate-undo" aria-label="Undo"><span class="tool-icon"><svg viewBox="0 0 24 24"><path d="M9 8H4V3"/><path d="M4.5 8.2A8 8 0 1 1 6.2 18"/></svg></span><small>Undo</small></button>
-      <button type="button" data-command="annotate-clear" aria-label="Clear"><span class="tool-icon"><svg viewBox="0 0 24 24"><path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12"/><path d="M11 10v6M13 10v6"/></svg></span><small>Clear</small></button>
-      <button type="button" data-command="annotate-close" class="done" aria-label="Done"><span class="tool-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4.2 4.2L19 6.5"/></svg></span><small>Done</small></button>
-    </footer>
   </main>
   <script src="./mac-annotation-toolbar.js"></script>
 </body>

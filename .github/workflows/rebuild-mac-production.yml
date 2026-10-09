@@ -2,7 +2,7 @@ name: DominionStar Meet Mac Production Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, runtime-cleanup-2.0.52]
     paths:
       - 'meet-desktop/**'
       - '.github/workflows/rebuild-mac-production.yml'
@@ -60,6 +60,7 @@ jobs:
           node --check ui/zoom-contract-bridge.js
           node --check ui/physical-mac-repair.js
           node --check ui/runtime-stability.js
+          node --check ui/physical-diagnostics.js
           node --check scripts/verify-packaged-reaction-flow-2.0.22.mjs
           node scripts/verify-release-standard.mjs
           node scripts/verify-foundation.mjs
@@ -91,6 +92,9 @@ jobs:
           node scripts/verify-participant-panel-contract-2.0.48.mjs
           node scripts/verify-participant-reference-2.0.49.mjs
           node scripts/verify-participant-search-2.0.51.mjs
+          node scripts/verify-runtime-cleanup-2.0.52.mjs
+          node scripts/verify-ui-authority-contract-2.0.53.mjs
+          node scripts/verify-project-architecture-2.0.53.mjs
 
       - name: Build universal production app
         working-directory: meet-desktop

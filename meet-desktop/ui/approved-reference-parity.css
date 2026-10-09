@@ -117,7 +117,7 @@
 #meetingOverlay #meetingChatPanel .ds-adaptive-chat-nav{
   min-height:48px !important;
   padding:7px 10px !important;
-  gap:8px !important;
+  gap:7px !important;
 }
 #meetingOverlay #meetingChatPanel .ds-adaptive-chat-nav button{
   height:33px !important;
@@ -161,7 +161,7 @@
 }
 .ds-approved-chat-target-menu button{
   width:100% !important;
-  min-height:34px !important;
+  min-height:42px !important;
   border:0 !important;
   border-radius:7px !important;
   padding:0 10px !important;
@@ -191,7 +191,7 @@
   overflow:visible !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-head{
-  height:34px !important;
+  height:42px !important;
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
@@ -210,9 +210,9 @@
   gap:3px !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-modes button{
-  width:29px !important;
-  height:27px !important;
-  min-width:29px !important;
+  width:34px !important;
+  height:32px !important;
+  min-width:34px !important;
   padding:0 !important;
   border:0 !important;
   border-radius:5px !important;
@@ -231,8 +231,8 @@
   box-shadow:inset 0 -2px 0 #2d8cff !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-modes svg{
-  width:17px !important;
-  height:17px !important;
+  width:18px !important;
+  height:18px !important;
   fill:none !important;
   stroke:currentColor !important;
   stroke-width:1.8 !important;
@@ -240,8 +240,8 @@
   stroke-linejoin:round !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-body{
-  gap:8px !important;
-  padding:0 !important;
+  gap:7px !important;
+  padding:0 6px !important;
   background:transparent !important;
   overflow-x:hidden !important;
   overflow-y:auto !important;
@@ -255,12 +255,12 @@
 }
 #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile{
   position:relative !important;
-  width:176px !important;
-  height:99px !important;
-  min-width:176px !important;
-  max-width:176px !important;
-  min-height:99px !important;
-  max-height:99px !important;
+  width:306px !important;
+  height:172px !important;
+  min-width:306px !important;
+  max-width:306px !important;
+  min-height:172px !important;
+  max-height:172px !important;
   aspect-ratio:16/9 !important;
   scroll-snap-align:start !important;
   border:1px solid rgba(255,255,255,.16) !important;
@@ -317,7 +317,7 @@
 #participantVideoDock[data-approved-filmstrip="1"] .participant-video-hover-actions button{
   width:auto !important;
   min-width:0 !important;
-  height:27px !important;
+  height:32px !important;
   padding:0 9px !important;
   border:1px solid rgba(255,255,255,.16) !important;
   border-radius:6px !important;
@@ -342,25 +342,25 @@
   letter-spacing:.08em !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"][data-panel-mode="strip"] .participant-video-dock-body{
-  grid-template-columns:176px !important;
+  grid-template-columns:306px !important;
   grid-auto-flow:row !important;
-  max-height:527px !important;
+  max-height:888px !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"][data-panel-mode="speaker"] .participant-video-dock-body{
-  grid-template-columns:176px !important;
-  max-height:99px !important;
+  grid-template-columns:306px !important;
+  max-height:172px !important;
   overflow:hidden !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"][data-panel-mode="speaker"] .remote-peer-tile.panel-single-hidden{
   display:none !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"][data-panel-mode="gallery"]{
-  width:360px !important;
+  width:631px !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"][data-panel-mode="gallery"] .participant-video-dock-body{
-  grid-template-columns:repeat(2,176px) !important;
+  grid-template-columns:repeat(2,306px) !important;
   grid-auto-flow:row !important;
-  max-height:313px !important;
+  max-height:530px !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"][data-panel-mode="gallery"] .remote-peer-tile.panel-page-start{
   grid-column:1 !important;
@@ -405,35 +405,44 @@
 
 /* Zoom-default geometry: on a normal desktop meeting the video filmstrip lives
    vertically on the right. Only an explicitly user-positioned dock may override
-   this. The compact top reflow is reserved for genuinely narrow windows. */
+   this. Even genuinely narrow windows retain the right-side default; only an explicit user drag may move it. */
 #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage){
   left:auto !important;
   right:14px !important;
   top:14px !important;
   bottom:auto !important;
-  width:auto !important;
+  width:318px !important;
+  max-width:calc(100% - 28px) !important;
   max-height:calc(100% - 28px) !important;
 }
 #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage) .participant-video-dock-body{
-  grid-template-columns:176px !important;
+  grid-template-columns:306px !important;
   grid-auto-flow:row !important;
 }
 
 @media(max-width:680px){
   #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage){
-    left:14px !important;
-    right:14px !important;
+    left:auto !important;
+    right:8px !important;
     top:10px !important;
     bottom:auto !important;
-    width:auto !important;
-    max-width:calc(100% - 28px) !important;
-    max-height:190px !important;
+    width:224px !important;
+    max-width:calc(100% - 16px) !important;
+    max-height:calc(100% - 20px) !important;
   }
   #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage) .participant-video-dock-body{
-    grid-template-columns:repeat(auto-fit,minmax(142px,1fr)) !important;
-    grid-auto-flow:column !important;
-    overflow-x:auto !important;
-    overflow-y:hidden !important;
+    grid-template-columns:212px !important;
+    grid-auto-flow:row !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+  }
+  #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage) .remote-peer-tile{
+    width:212px !important;
+    min-width:212px !important;
+    max-width:212px !important;
+    height:119px !important;
+    min-height:119px !important;
+    max-height:119px !important;
   }
 }
 

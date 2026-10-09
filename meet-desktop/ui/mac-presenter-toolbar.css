@@ -1,23 +1,16 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#f5f5f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;user-select:none}
-.toolbar{position:relative;width:100%;height:84px;overflow:visible;-webkit-app-region:drag}
+.toolbar{position:relative;width:100%;height:88px;overflow:visible;-webkit-app-region:drag}
 .control-strip{
-  width:760px;max-width:calc(100% - 8px);height:58px;margin:0 auto;padding:2px 4px;
+  width:748px;max-width:calc(100% - 8px);height:60px;margin:0 auto;padding:2px 4px;
   display:flex;align-items:center;justify-content:center;gap:0;
-  border:1px solid #34363a;border-radius:8px;background:rgba(22,23,25,.985);
+  border:1px solid #34363a;border-radius:8px;background:rgba(22,23,25,.992);
   box-shadow:0 10px 30px rgba(0,0,0,.44);
-  transition:transform .18s cubic-bezier(.2,.8,.2,1),opacity .14s ease;
+  transition:transform .16s cubic-bezier(.2,.8,.2,1),opacity .12s ease;
   -webkit-app-region:drag
 }
-.brand{
-  width:60px;min-width:60px;height:52px;padding:3px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  border-right:1px solid #33353a;color:#f0f0f1;-webkit-app-region:drag
-}
-.brand img{width:23px;height:23px;border-radius:6px;object-fit:cover;background:#111;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
-.brand span{display:block;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;font-weight:600;line-height:1;color:#e7e7e8}
 .control-strip>button,.menu-wrap>button{
-  height:52px;min-width:66px;padding:3px 5px;border:0;border-radius:6px;background:transparent;color:#f2f2f3;
+  height:56px;min-width:68px;padding:3px 5px;border:0;border-radius:6px;background:transparent;color:#f2f2f3;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   font:500 9px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;-webkit-app-region:no-drag;
   transition:background .1s ease,opacity .1s ease,box-shadow .1s ease
@@ -25,28 +18,31 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 .control-strip button:hover{background:#303135}
 .control-strip button:active{background:#3a3b3e}
 .control-strip button.command-pending{opacity:.58}
-.control-strip button.command-error,.toolbar.command-error .stop-share{box-shadow:inset 0 0 0 1px #ff5668}
+.control-strip button.command-error,.toolbar.command-error .stop-share-control{box-shadow:inset 0 0 0 1px #ff5668}
 .glyph{height:22px;width:24px;display:grid;place-items:center;color:#f6f6f7;line-height:1}
 .glyph svg{width:21px;height:21px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .glyph svg circle{fill:none}
 .control-strip button.is-off .glyph{position:relative;color:#f6f6f7}
 .control-strip button.is-off .glyph::after{content:"";position:absolute;left:1px;right:1px;top:50%;height:2px;border-radius:999px;background:#ff5368;transform:translateY(-50%) rotate(-45deg);box-shadow:none;pointer-events:none}
-.share-glyph{color:#2bd978}
+.share-glyph{color:#21d56e}
+.share-control:hover .share-glyph{color:#35e781}
 .menu-wrap{position:relative;-webkit-app-region:no-drag}
 .popup-menu{
-  position:absolute;top:86px;left:50%;transform:translateX(-50%);width:184px;padding:6px;border:1px solid #44464a;border-radius:9px;
+  position:absolute;top:60px;left:50%;transform:translateX(-50%);width:190px;padding:6px;border:1px solid #44464a;border-radius:9px;
   background:#202123;box-shadow:0 14px 36px rgba(0,0,0,.52);z-index:20
 }
 .popup-menu[hidden]{display:none}
-.popup-menu button{width:100%;height:35px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#eee;text-align:left;font:500 10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
+.popup-menu button{width:100%;height:38px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:#eee;text-align:left;font:500 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
 .popup-menu button:hover{background:#303236}
-.more-menu{left:auto;right:0;transform:none}
+.layout-menu{left:50%;transform:translateX(-50%)}
+.more-menu{left:auto;right:-34px;transform:none;width:236px;padding:8px}
+
 .share-strip{
-  position:absolute;left:50%;top:58px;transform:translateX(-50%);
-  height:24px;min-width:330px;max-width:620px;padding:0 0 0 12px;border-radius:0 0 5px 5px;
-  background:#27c96b;color:#06150c;display:flex;align-items:center;justify-content:center;gap:8px;
+  position:absolute;left:50%;top:60px;transform:translateX(-50%);
+  width:360px;max-width:calc(100% - 14px);height:26px;padding:0 0 0 12px;border-radius:0 0 6px 6px;
+  background:#27c96b;color:#06150c;display:flex;align-items:center;justify-content:flex-start;gap:7px;
   box-shadow:0 5px 14px rgba(0,0,0,.28);font-size:9px;font-weight:650;
-  transition:top .18s cubic-bezier(.2,.8,.2,1),opacity .12s ease;-webkit-app-region:drag
+  transition:top .16s cubic-bezier(.2,.8,.2,1),opacity .12s ease,background .12s ease;-webkit-app-region:drag
 }
 .toolbar.is-paused .share-strip{background:#f5b942;color:#2b2104}
 .toolbar.is-paused .share-copy small{color:#5a4307}
@@ -54,36 +50,41 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 .toolbar.is-paused .toolbar-reveal{background:#f5b942}
 .toolbar.is-paused .toolbar-reveal span{background:rgba(84,61,2,.72)}
 .toolbar.is-paused [data-command="pause"] .glyph{color:#f5c85a}
-.share-copy{min-width:0;display:flex;align-items:center;gap:6px}
+.share-copy{min-width:0;flex:1 1 auto;display:flex;align-items:center;gap:6px;overflow:hidden}
 .share-copy strong{white-space:nowrap}
-.share-copy small{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0d3b22;font-size:7.5px;font-weight:600}
+.share-copy small{max-width:98px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0d3b22;font-size:7.5px;font-weight:600}
+.share-flags{display:flex;align-items:center;gap:4px;flex:0 0 auto}
 .live-dot{width:7px;height:7px;border-radius:50%;background:#075a2b;box-shadow:0 0 0 2px rgba(255,255,255,.18)}
 .flag{padding:2px 5px;border-radius:999px;background:rgba(0,0,0,.12);font-size:7.5px}
 .flag[hidden]{display:none}
-.stop-share{
-  height:24px;padding:0 13px;border:0;border-radius:0 0 5px 0;background:#e44a55;color:#fff;
-  display:inline-flex;align-items:center;justify-content:center;gap:5px;
-  font:700 9px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;-webkit-app-region:no-drag
+
+.stop-share-control{
+  align-self:stretch;min-width:94px;height:26px;margin:0;padding:0 10px;border:0;border-radius:0 0 6px 0;background:#d93f4c;color:#fff;
+  display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;
+  font:700 9px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;-webkit-app-region:no-drag
 }
-.stop-share-icon{width:12px;height:12px;display:grid;place-items:center;flex:0 0 12px}
-.stop-share-icon svg{width:11px;height:11px;display:block;fill:currentColor;stroke:none}
-.stop-share:hover{background:#f05a65}
-.stop-share:disabled{opacity:.78;cursor:default}
-.toolbar-drag-handle{position:absolute;left:50%;top:2px;z-index:25;width:72px;height:8px;transform:translateX(-50%);display:flex;align-items:flex-start;justify-content:center;-webkit-app-region:drag;cursor:grab;opacity:.42}
-.toolbar-drag-handle span{display:block;width:34px;height:3px;border-radius:999px;background:rgba(255,255,255,.52);box-shadow:0 1px 3px rgba(0,0,0,.42)}
-.toolbar-drag-handle:active{cursor:grabbing}
-.toolbar-reveal{position:absolute;left:50%;top:1px;z-index:30;width:156px;height:10px;transform:translateX(-50%);border-radius:0 0 7px 7px;background:#27c96b;box-shadow:0 2px 8px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .12s ease;-webkit-app-region:no-drag}
-.toolbar-reveal span{position:absolute;left:50%;top:3px;width:34px;height:3px;transform:translateX(-50%);border-radius:999px;background:rgba(0,55,24,.72)}
+.stop-share-control:hover{background:#ec4b59}
+.stop-share-control:disabled{opacity:.78;cursor:default}
+.stop-share-icon{width:11px;height:11px;display:grid;place-items:center;flex:0 0 11px}
+.stop-share-icon svg{width:10px;height:10px;display:block;fill:currentColor;stroke:none}
+
+.toolbar-drag-handle{position:absolute;left:50%;top:2px;z-index:25;width:72px;height:7px;transform:translateX(-50%);display:flex;align-items:flex-start;justify-content:center;-webkit-app-region:drag;cursor:grab;opacity:0;pointer-events:none}
+.toolbar-drag-handle span{display:block;width:34px;height:3px;border-radius:999px;background:rgba(255,255,255,.34)}
+.toolbar-reveal{position:absolute;left:50%;top:0;z-index:30;width:148px;height:8px;transform:translateX(-50%);border-radius:0 0 7px 7px;background:#27c96b;box-shadow:0 2px 8px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .12s ease;-webkit-app-region:no-drag}
+.toolbar-reveal span{position:absolute;left:50%;top:2px;width:32px;height:3px;transform:translateX(-50%);border-radius:999px;background:rgba(0,55,24,.72)}
+
 .toolbar.auto-hidden .control-strip{transform:translateY(-66px);opacity:0;pointer-events:none}
 .toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}
 .toolbar.auto-hidden .toolbar-drag-handle{opacity:0;pointer-events:none}
 .toolbar.auto-hidden .toolbar-reveal{opacity:1;pointer-events:auto}
 .toolbar.menu-open .control-strip{transform:translateY(0);opacity:1}
-.toolbar.menu-open .share-strip{top:58px}
-@media(max-width:840px){
-  .brand{width:58px;min-width:58px}.brand span{font-size:7.4px}
-  .control-strip>button,.menu-wrap>button{min-width:58px;padding-left:3px;padding-right:3px;font-size:8.3px}
+.toolbar.menu-open .share-strip{top:60px}
+
+@media(max-width:780px){
+  .control-strip{width:calc(100% - 8px)}
+  .control-strip>button,.menu-wrap>button{min-width:58px;padding-left:3px;padding-right:3px;font-size:8px}
   .share-copy small{display:none}
+  .share-strip{width:min(360px,calc(100% - 12px))}
 }
 
 .audio-glyph{position:relative}
@@ -105,7 +106,3 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 [data-command="audio"][data-voice-level="3"] .mic-live-meter i:nth-child(2){height:12px}
 [data-command="audio"][data-voice-level="3"] .mic-live-meter i:nth-child(3){height:18px}
 [data-command="audio"].is-off .mic-live-meter{opacity:.16;filter:none}
-
-
-/* 2.0.44+ physical Mac presenter menu collision lock */
-.toolbar.menu-open .popup-menu{top:86px}

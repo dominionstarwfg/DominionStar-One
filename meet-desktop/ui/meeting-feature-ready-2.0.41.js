@@ -104,6 +104,14 @@ if(l.textContent!==txt)l.textContent=txt;
 function syncControls(){for(const [id,key,label] of controls)control(id,key,label);}
 
 function finalReferenceReady(){return Boolean(window.DominionZoomScreenshotReference?.sync);}
+let retired=false;
+function retireLegacyWatchers(){
+if(retired)return;retired=true;observer?.disconnect();observer=null;observed=null;
+window.removeEventListener('dominion:meeting-ui-ready',hydrate);
+window.removeEventListener('dominion:meeting-snapshot',schedule);
+window.removeEventListener('resize',schedule);
+if(frame){cancelAnimationFrame(frame);frame=0;}
+}
 function handoffToFinalReference(o){
 if(!o)return false;
 ensureBrandIdentity();
@@ -111,6 +119,7 @@ o.classList.remove('ds-exec-lock');
 for(const node of o.querySelectorAll('.ds-exec-icon,.ds-exec-label,.ds-exec-encrypted,.ds-exec-divider'))node.remove();
 for(const node of o.querySelectorAll('.ds-exec-control'))node.classList.remove('ds-exec-control');
 window.DominionZoomScreenshotReference?.requestSync?.();
+retireLegacyWatchers();
 return true;
 }
 function sync(){
@@ -120,10 +129,10 @@ o.classList.add('ds-exec-lock');brand();syncControls();
 requestAnimationFrame(()=>{if(finalReferenceReady()){handoffToFinalReference(o);return;}brand();syncControls();});
 return true;
 }
-function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;sync();});}
-function observe(){const o=q('#meetingOverlay');if(!o||o===observed)return;observer?.disconnect();observed=o;observer=new MutationObserver(rs=>{if(rs.some(r=>r.type==='childList'||(r.type==='attributes'&&['hidden','class','aria-label','aria-pressed'].includes(r.attributeName))))schedule();});observer.observe(o,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-label','aria-pressed']});}
-function hydrate(){try{window.DominionMeetingFeatures?.toggleChat?.(false);}catch(e){console.warn('[DominionStar Meet] Meeting feature hydration failed.',e);}observe();schedule();setTimeout(schedule,80);setTimeout(schedule,320);}
+function schedule(){if(retired||frame)return;frame=requestAnimationFrame(()=>{frame=0;sync();});}
+function observe(){if(retired||finalReferenceReady()){const o=q('#meetingOverlay');if(o)handoffToFinalReference(o);return;}const o=q('#meetingOverlay');if(!o||o===observed)return;observer?.disconnect();observed=o;observer=new MutationObserver(rs=>{if(rs.some(r=>r.type==='childList'||(r.type==='attributes'&&['hidden','class','aria-label','aria-pressed'].includes(r.attributeName))))schedule();});observer.observe(o,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-label','aria-pressed']});}
+function hydrate(){if(retired)return;try{window.DominionMeetingFeatures?.toggleChat?.(false);}catch(e){console.warn('[DominionStar Meet] Meeting feature hydration failed.',e);}observe();schedule();if(!retired){setTimeout(schedule,80);setTimeout(schedule,320);}}
 window.addEventListener('dominion:meeting-ui-ready',hydrate);window.addEventListener('dominion:meeting-snapshot',schedule);window.addEventListener('resize',schedule,{passive:true});
-window.DominionMeetingFeatureReady2041=Object.freeze({version:'2.0.41-locked-executive',executiveLocked:true,hydrate,sync:()=>{observe();return sync();},enforceReactionLabel:()=>{control('roomReactions','react','Reactions');return Boolean(q('#roomReactions'));},dispose(){window.removeEventListener('dominion:meeting-ui-ready',hydrate);window.removeEventListener('dominion:meeting-snapshot',schedule);window.removeEventListener('resize',schedule);observer?.disconnect();if(frame)cancelAnimationFrame(frame);}});
+window.DominionMeetingFeatureReady2041=Object.freeze({version:'2.0.53-retiring-legacy-executive',executiveLocked:true,hydrate,sync:()=>{observe();return sync();},enforceReactionLabel:()=>{control('roomReactions','react','Reactions');return Boolean(q('#roomReactions'));},dispose(){retireLegacyWatchers();}});
 styles();if(q('#meetingOverlay'))hydrate();
 })();

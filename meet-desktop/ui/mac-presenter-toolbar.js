@@ -12,6 +12,7 @@
   const toolbar=q('#toolbar'),layoutMenu=q('#layoutMenu'),moreMenu=q('#moreMenu');
   let hideTimer=0,lastPointerAt=Date.now(),menuOpen=false,nativeHidden=false,lastForceRevealAt=0,lastState={paused:false,micOn:false,cameraOn:true};
   const AUTO_HIDE_MS=2400;
+  let qaPresenterTrace=false;void desktop.environment?.().then(env=>{qaPresenterTrace=Boolean(env?.qaPresenterFixtures);}).catch(()=>{});
 
   const logo=q('#brandLogo');if(logo&&desktop.brand?.logoUrl)logo.src=desktop.brand.logoUrl;
   const menusOpen=()=>Boolean(!layoutMenu?.hidden||!moreMenu?.hidden);
@@ -23,7 +24,7 @@
   // A mere "sent:true" is not proof that the meeting renderer actually ran
   // the command. Require direct execution, explicit acknowledgement, handled,
   // or ok:true before the toolbar treats a click as successful.
-  const accepted=result=>Boolean(result)&&result.sent!==false&&(result.ok===true||result.direct===true||result.acknowledged===true||result.handled===true);
+  const accepted=result=>Boolean(result)&&result.sent!==false&&result.ok!==false&&(result.ok===true||result.direct===true||result.acknowledged===true||result.handled===true);
 
   async function sendNative(command){
     if(!nativeBridge?.command)throw new Error('mac_presenter_transport_unavailable');
@@ -43,10 +44,9 @@
   const send=async command=>{
     reveal();const normalized=String(command||'');
     try{
-      // Physical Mac QA proved the direct renderer IPC can report a healthy
-      // toolbar while real capture leaves the controls inert. The native macOS
-      // presenter bridge owns delivery during an active share because it wakes
-      // the meeting renderer, retries once, and requires an explicit ACK.
+      // The native macOS bridge now executes the meeting renderer dispatcher
+      // directly first and falls back to acknowledged queue delivery only if
+      // direct execution is unavailable.
       if(nativeBridge?.command)return await sendNative(normalized);
       if(rendererBridge?.command)return await sendRenderer(normalized);
       throw new Error('presenter_transport_unavailable');
@@ -70,9 +70,11 @@
     if(videoLabel)videoLabel.textContent=lastState.cameraOn?'Stop Video':'Start Video';
   };
   document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',async event=>{
-    const control=event.currentTarget;if(control.disabled||control.getAttribute('aria-busy')==='true')return;let command=String(control.dataset.command||'');
+    const control=event.currentTarget;if(qaPresenterTrace)console.error(`QA_MAC_TOOLBAR_CLICK command=${String(control?.dataset?.command||'')} disabled=${control?.disabled?1:0} busy=${control?.getAttribute('aria-busy')==='true'?1:0}`);
+    if(control.disabled||control.getAttribute('aria-busy')==='true')return;let command=String(control.dataset.command||'');
     if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';
     if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';
+    if(command==='pause')command=Boolean(lastState?.paused)?'resume-share':'pause-share';
     if(command==='annotate'&&String(lastState?.companion||'')==='annotate')command='annotate-close';
     closeMenus();control.disabled=true;control.classList.add('command-pending');control.setAttribute('aria-busy','true');
     try{await send(command);applyAcknowledgedAvState(command);}
@@ -88,13 +90,14 @@
     lastState={...lastState,...state};
     const forcedAt=Math.max(0,Number(state?.forceRevealAt)||0);if(forcedAt>lastForceRevealAt){lastForceRevealAt=forcedAt;reveal();scheduleHide();}
     const paused=Boolean(state?.paused),micOn=Boolean(state?.micOn),cameraOn=Boolean(state?.cameraOn);
-    const pause=q('#pauseLabel'),pauseGlyph=q('#pauseGlyph'),toolbar=q('#toolbar'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand');
+    const pause=q('#pauseLabel'),pauseGlyph=q('#pauseGlyph'),toolbar=q('#toolbar'),audio=q('#audioLabel'),video=q('#videoLabel'),label=q('#shareStateLabel'),source=q('#shareSourceLabel'),audioFlag=q('#shareAudioFlag'),optimize=q('#shareOptimizeFlag'),record=q('#recordCommand'),hostTools=q('#presenterHostTools');
     toolbar?.classList.toggle('is-paused',paused);
-    if(pause)pause.textContent=paused?'Resume':'Pause';
+    if(pause)pause.textContent=paused?'Resume':'Pause Share';
     if(pauseGlyph)pauseGlyph.innerHTML=paused?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5 18 12 8 18.5z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>';
     if(audio)audio.textContent=micOn?'Mute':'Unmute';if(video)video.textContent=cameraOn?'Stop Video':'Start Video';
     const audioButton=q('[data-command="audio"]'),videoButton=q('[data-command="video"]');
     const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0));
+    if(qaPresenterTrace&&(voiceLevel>0||state?.speaking))console.error(`QA_MAC_TOOLBAR_VOICE level=${voiceLevel.toFixed(3)} speaking=${state?.speaking?1:0} mic=${micOn?1:0}`);
     const speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0);
     const voiceBucket=!speaking?0:voiceLevel>.55?3:voiceLevel>.22?2:1;
     audioButton?.classList.toggle('is-off',!micOn);audioButton?.classList.toggle('is-speaking',speaking);videoButton?.classList.toggle('is-off',!cameraOn);
@@ -103,9 +106,10 @@
     if(label)label.textContent=paused?'Share paused':'You are screen sharing';
     if(source){const raw=String(state?.sourceName||'Shared content');source.textContent=/screen|desktop|display|entire/i.test(raw)?'Entire screen':raw;}
     if(audioFlag)audioFlag.hidden=!state?.shareAudio;if(optimize)optimize.hidden=!state?.optimizeVideo;
+    if(hostTools){const self=(state?.participants||[]).find(item=>item?.self),role=String(self?.role||'participant').toLowerCase();hostTools.hidden=!['host','cohost'].includes(role);}
     if(record)record.textContent=state?.recording?(state?.recordingPaused?'Resume recording':'Pause recording'):'Record meeting';
   });
 
-  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.45-stateful-share-chrome',transport:rendererBridge?.command?'presenter-direct':nativeBridge?.command?'macShare-fallback':'unavailable',state:()=>({...lastState})});
+  window.DominionMacPresenterToolbar=Object.freeze({version:'2.0.45-stateful-share-chrome',transport:nativeBridge?.command?'macShare-direct-first':rendererBridge?.command?'presenter-fallback':'unavailable',state:()=>({...lastState})});
   reveal();scheduleHide();
 })();

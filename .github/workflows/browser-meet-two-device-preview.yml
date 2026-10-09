@@ -1,0 +1,123 @@
+name: DominionStar Browser Meet Two-Device Preview
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'meet-desktop/**'
+      - 'meet/**'
+      - 'meet-home/**'
+      - 'meet-login/**'
+      - 'assets/js/meeting-engine.js'
+      - 'assets/js/meet/**'
+      - 'assets/js/meet-next/**'
+      - 'assets/js/runtime/**'
+      - 'assets/css/meet/**'
+      - 'assets/css/meet-next/**'
+      - 'member-dashboard/**'
+      - 'assets/js/member-dashboard.js'
+      - 'scripts/browser-two-client-meet-acceptance.mjs'
+      - 'scripts/run-browser-two-client-meet-acceptance.mjs'
+      - 'scripts/test-two-client-authority.mjs'
+      - 'scripts/test-share-arbitration-two-client.mjs'
+      - 'scripts/test-share-spotlight-two-client.mjs'
+      - 'scripts/test-five-client-meet-stability.mjs'
+      - 'scripts/test-five-client-ui-contract.mjs'
+      - 'scripts/test-desktop-browser-v2-interop.mjs'
+      - 'scripts/test-physical-two-device-regressions.mjs'
+      - 'scripts/test-browser-v2-desktop-peer.mjs'
+      - 'scripts/build-public-netlify.sh'
+      - '.github/workflows/browser-meet-two-device-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-two-device-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DOMINIONSTAR_PREVIEW_URL: https://deploy-preview-${{ github.event.pull_request.number }}--melodious-buttercream-a99450.netlify.app
+    steps:
+      - name: Checkout browser Meet candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Wait for Netlify deploy preview
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "workflow_dispatch requires DOMINIONSTAR_PREVIEW_URL to be supplied by the PR context." >&2
+            exit 2
+          fi
+          echo "Testing $DOMINIONSTAR_PREVIEW_URL"
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 10 "$DOMINIONSTAR_PREVIEW_URL/meet/" >/tmp/ds-meet.html; then
+              grep -Fq 'DominionStar Meet' /tmp/ds-meet.html
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Netlify deploy preview did not become ready." >&2
+          exit 1
+
+      - name: Verify one canonical Meet entry on Agent Dashboard
+        shell: bash
+        run: |
+          DASHBOARD="member-dashboard/index.html"
+          test -f "$DASHBOARD"
+          COUNT="$(grep -o 'href="/meet/"' "$DASHBOARD" | wc -l | tr -d ' ')"
+          test "$COUNT" = "1"
+          if grep -Eq 'href="/meet-home/|href="/meet-login/' "$DASHBOARD"; then
+            echo "Legacy Meet route is still published on the Agent Dashboard." >&2
+            exit 1
+          fi
+          echo "DOMINIONSTAR_DASHBOARD_SINGLE_MEET_ENTRY_OK count=$COUNT"
+
+      - name: Verify browser V2 signaling keeps room identity
+        shell: bash
+        run: |
+          grep -Fq "roomId:state.roomId,from,to:state.participantId" assets/js/meeting-engine.js
+          grep -Fq "if (!payload || payload.roomId !== state.roomId" assets/js/meeting-engine.js
+          echo "DOMINIONSTAR_BROWSER_V2_SIGNAL_ROOM_IDENTITY_OK"
+
+      - name: Exercise real browser meeting engine with two clients
+        run: node scripts/test-two-client-authority.mjs
+
+      - name: Exercise two-client presentation arbitration
+        run: node scripts/test-share-arbitration-two-client.mjs
+
+      - name: Exercise two-client spotlight behavior
+        run: node scripts/test-share-spotlight-two-client.mjs
+
+      - name: Verify desktop browser V2 interoperability
+        run: node scripts/test-desktop-browser-v2-interop.mjs
+
+      - name: Verify physical two-device regression contract
+        run: node scripts/test-physical-two-device-regressions.mjs
+
+      - name: Exercise numeric browser desktop V2 peer
+        run: node scripts/test-browser-v2-desktop-peer.mjs
+
+      - name: Exercise five-client meeting stability
+        run: node scripts/test-five-client-meet-stability.mjs
+
+      - name: Verify five-client participant UI contract
+        run: node scripts/test-five-client-ui-contract.mjs
+
+      - name: Install pinned Playwright runtime
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Exercise deployed browser Meet with two clients
+        run: node scripts/run-browser-two-client-meet-acceptance.mjs

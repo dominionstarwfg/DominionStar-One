@@ -48,12 +48,6 @@
     X-Content-Type-Options = "nosniff"
 
 [[headers]]
-  for = "/meet-home/*"
-  [headers.values]
-    Cache-Control = "no-store"
-    X-Content-Type-Options = "nosniff"
-
-[[headers]]
   for = "/meet-login/*"
   [headers.values]
     Cache-Control = "no-store"

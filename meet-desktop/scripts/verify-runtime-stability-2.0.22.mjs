@@ -95,7 +95,7 @@ assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participan
 assert.ok(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating Participants/Chat must be draggable from their title surface.');
 assert.ok(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must centralize participant-video dock geometry.');
 assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();'),'Video dock geometry must commit in the same event-driven runtime pass as side surfaces.');
-assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock mode must be deterministic and inspectable.');
+assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'"),'Dock mode must be deterministic and inspectable as user/right only.');
 assert.ok(runtime.includes("if(userPositioned){"),'User-positioned video docks must have an explicit preservation path.');
 assert.ok(runtime.includes("const left=clamp(Number.isFinite(currentLeft)?currentLeft"),'User-positioned video dock must clamp after window resize.');
 assert.ok(runtime.includes("stage.style.setProperty('right','0px','important')"),'Floating panels must leave the meeting stage at full width.');
@@ -114,8 +114,8 @@ assert.ok(!motion.includes('dsRuntimePanelIn{from{opacity:.72;transform:'),'Pane
 assert.ok(motion.includes('.meeting-control:active{transform:scale(.97)}'),'Controls must provide immediate tactile click feedback.');
 assert.ok(motion.includes('@media(prefers-reduced-motion:reduce)'),'Motion must respect reduced-motion preferences.');
 
-assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,subtree:true})"),'Expected legacy physical observer signature changed; review the stability isolation contract.');
-assert.ok(physical.includes('wrap.innerHTML='),'Expected legacy media-status mutation changed; review the stability isolation contract.');
+assert.ok(physical.includes("participantObserver.observe(roster,{childList:true,subtree:false})"),'Participant observer must remain shallow so row decoration cannot self-trigger through descendant mutations.');
+assert.ok(!physical.includes('wrap.innerHTML=`<span data-participant-mic'),'Participant media state must update persistent nodes instead of rebuilding the row subtree.');
 assert.ok(runtime.includes('DominionZoomPhysicalAcceptance'),'Final runtime must explicitly isolate the physical acceptance loop.');
 
 // Share Screen has one click owner. Physical compatibility may expose explicit

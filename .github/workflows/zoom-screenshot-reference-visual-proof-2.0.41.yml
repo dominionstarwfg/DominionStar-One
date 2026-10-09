@@ -2,7 +2,7 @@ name: DominionStar Meet Visual Reference Proof 2.0.41
 
 on:
   pull_request:
-    branches: [fix/rejected-installer-participants-share-2.0.40]
+    branches: [main]
     paths:
       - 'meet-desktop/ui/zoom-screenshot-reference-2.0.41.css'
       - 'meet-desktop/ui/zoom-screenshot-reference-2.0.41.js'
@@ -45,10 +45,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Resolve candidate version
+        id: meta
+        working-directory: meet-desktop
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Verify narrow screenshot reference before building
         working-directory: meet-desktop
         run: |
-          test "$(node -p "require('./package.json').version")" = '2.0.41'
           node --check scripts/capture-zoom-screenshot-reference-2.0.41.mjs
           node --check scripts/verify-packaged-mac-presenter-window-2.0.41.mjs
           node --check scripts/verify-runtime-share-authority-2.0.41.mjs
@@ -77,25 +85,25 @@ jobs:
           sudo ditto "${{ steps.app.outputs.path }}" "/Applications/DominionStar Meet.app"
           test -d "/Applications/DominionStar Meet.app"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx '2.0.41'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "/Applications/DominionStar Meet.app/Contents/Info.plist" | grep -Fx "${{ steps.meta.outputs.version }}"
       - name: Capture all main-window Zoom reference surfaces
         working-directory: meet-desktop
-        run: node scripts/capture-zoom-screenshot-reference-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.41
-      - name: Prove and capture the real floating Mac presenter surface
+        run: node scripts/capture-zoom-screenshot-reference-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-${{ steps.meta.outputs.version }}
+      - name: Prove and capture the real floating Mac presenter surfaces
         working-directory: meet-desktop
-        run: node scripts/verify-packaged-mac-presenter-window-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-2.0.41/11-mac-floating-presenter-toolbar.png
+        run: node scripts/verify-packaged-mac-presenter-window-2.0.41.mjs "/Applications/DominionStar Meet.app" ../zoom-reference-proof-${{ steps.meta.outputs.version }}/11-mac-floating-presenter-toolbar.png ../zoom-reference-proof-${{ steps.meta.outputs.version }}/12-mac-participant-video-panel.png
       - name: Verify screenshot evidence exists and is unobstructed
         run: |
-          for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-active-share-toolbar 10-active-share-idle 11-mac-floating-presenter-toolbar; do
-            test -s "zoom-reference-proof-2.0.41/${n}.png"
+          for n in 01-home 02-prejoin 03-meeting 04-participants 05-participants-more 06-host-tools 07-more 08-preshare 09-native-share-renderer-clean 10-native-share-renderer-stable 11-mac-floating-presenter-toolbar 12-mac-participant-video-panel; do
+            test -s "zoom-reference-proof-${{ steps.meta.outputs.version }}/${n}.png"
           done
-          test -s zoom-reference-proof-2.0.41/visual-proof.json
-          cat zoom-reference-proof-2.0.41/visual-proof.json
+          test -s zoom-reference-proof-${{ steps.meta.outputs.version }}/visual-proof.json
+          cat zoom-reference-proof-${{ steps.meta.outputs.version }}/visual-proof.json
       - name: Upload visual evidence only
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-2.0.41-zoom-reference-visual-proof
-          path: zoom-reference-proof-2.0.41/*
+          name: dominionstar-meet-${{ steps.meta.outputs.version }}-approved-reference-visual-proof
+          path: zoom-reference-proof-${{ steps.meta.outputs.version }}/*
           if-no-files-found: error
           retention-days: 14
       - name: Remove QA installation

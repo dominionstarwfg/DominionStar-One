@@ -400,6 +400,19 @@ context.on('page', page => {
 });
 
 await context.addInitScript(() => {
+  // Netlify injects a Deploy Preview Drawer iframe that can sit above the app
+  // and intercept pointer events. It is preview chrome, not DominionStar Meet.
+  // Keep deployed UI acceptance scoped to the application itself.
+  const suppressNetlifyPreviewChrome = () => {
+    for (const node of document.querySelectorAll('[data-netlify-deploy-id], iframe[title="Netlify Drawer"]')) {
+      node.style.setProperty('display', 'none', 'important');
+      node.style.setProperty('pointer-events', 'none', 'important');
+    }
+  };
+  try {
+    new MutationObserver(suppressNetlifyPreviewChrome).observe(document, { childList: true, subtree: true });
+    document.addEventListener('DOMContentLoaded', suppressNetlifyPreviewChrome, { once: true });
+  } catch {}
   window.__DS_COPIED_TEXT__ = '';
   window.__DS_MAKE_TEST_STREAM__ = label => {
     const canvas = document.createElement('canvas');

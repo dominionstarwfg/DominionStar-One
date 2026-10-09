@@ -34,10 +34,77 @@ const shareAnnotation=read('ui/share-annotation.js');
 const captureWorker=read('ui/share-capture-worker.js');
 const capturePreload=read('src/share-capture-preload.cjs');
 const macPresenter=read('src/mac-share-presenter-overlay.mjs');
+const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
+const macToolbarCss=read('ui/mac-presenter-toolbar.css');
+const macVideoCss=read('ui/mac-share-video.css');
+assert(
+  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}") &&
+  macPresenter.includes('QA_MAC_PRESTART_STATE_CACHED participants=') &&
+  macPresenter.includes('function raisePersistentPresenterSurfaces(){') &&
+  macPresenter.includes("shareState={...shareState,...state};") &&
+  screenshotJs.includes("const activeMacShare=()=>{") &&
+  screenshotJs.includes("document.body.classList.contains('ds-native-mac-presenter-share')||activeMacShare()") &&
+  screenshotJs.includes("if(nativeMacPresenter||activeMacShare()){toolbar.hidden=true"),
+  'Approved Mac share behavior requires persistent presenter video from share start, cached pre-start media state, stable presenter z-order, and zero renderer share-layout fallback while the native share is active.'
+);
 assert(shareService.includes("partition:'dominion-share-capture-v2044'"),'Dedicated Mac capture worker must retain its isolated storage partition.');
 const toolbarPartition=macPresenter.match(/partition:'(dominion-presenter-toolbar-[^']+)'/)?.[1],videoPartition=macPresenter.match(/partition:'(dominion-presenter-video-[^']+)'/)?.[1];
 assert(toolbarPartition&&videoPartition&&toolbarPartition!==videoPartition,'Floating Mac presenter toolbar and video surfaces must run in distinct isolated storage partitions outside the meeting renderer.');
 assert(macPresenter.includes('QA_MAC_PRESENTER_PROCESS_BOUNDARY'),'Mac presenter runtime must expose process-boundary proof for physical QA.');
+assert(
+  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}") &&
+  macPresenter.includes("const participantCount=Math.max(1,Math.min(5,presenterParticipantCount()||1));") &&macPresenter.includes('const seen=new Set();')&&macPresenter.includes('return seen.size;') &&
+  macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)") &&
+  macPresenter.includes("if(isAlive(videoWindow)&&shouldShowVideoWindow()){") &&
+  !macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=1;}"),
+  'Approved macOS share video must exist from share start unless explicitly hidden, use true one-person geometry, cap visible strip sizing at five participants, and remain independent of late roster publication.'
+);
+assert(
+  macToolbarCss.includes('width:748px') &&
+  macToolbarCss.includes('height:60px') &&
+  macToolbarCss.includes('top:60px') &&
+  macToolbarCss.includes('width:360px') &&
+  macToolbarCss.includes('height:26px') &&
+  macToolbarCss.includes('min-width:68px') &&
+  macToolbarCss.includes('width:21px;height:21px') &&
+  macToolbarCss.includes('background:#27c96b') &&
+  macToolbarCss.includes('.toolbar.is-paused .share-strip{background:#f5b942') &&
+  macToolbarCss.includes('.toolbar.auto-hidden .control-strip') &&
+  macToolbarCss.includes('.toolbar.auto-hidden .share-strip{top:0') &&
+  macToolbarHtml.includes('>Mute<') &&
+  macToolbarHtml.includes('>Stop Video<') &&
+  macToolbarHtml.includes('>Participants<') &&
+  macToolbarHtml.includes('>Chat<') &&
+  macToolbarHtml.includes('>Share<') &&
+  macToolbarHtml.includes('>Pause Share<') &&
+  macToolbarHtml.includes('>Layout<') &&
+  macToolbarHtml.includes('>Annotate<') &&
+  macToolbarHtml.includes('>Show meeting<') &&
+  macToolbarHtml.includes('>More<') &&
+  macToolbarHtml.includes('id="stopShareLabel">Stop Share<'),
+  'Native presenter toolbar must preserve the Zoom-reference control order, longer toolbar geometry, shorter status strip below the controls, attached Stop Share, paused amber state and independent idle auto-hide.'
+);
+assert(
+  parity.includes("const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v3';")&&parity.includes("localStorage.removeItem('ds_zoom_video_dock_geometry_v2')")&&
+  parity.includes("const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';")&&
+  runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);")&&
+  runtime.includes("if(panel===participants){")&&
+  macToolbarCss.includes('.more-menu{left:auto;right:-34px;transform:none;width:236px;padding:8px}'),
+  'Physical layout defaults must reset stale dock/panel geometry, center Participants, keep the participant video dock right by default, and retain a readable presenter More menu.'
+);
+assert(
+  participantsReference.includes('width:392px!important') &&
+  participantsReference.includes('height:min(438px,calc(100% - 28px))!important') &&
+  participantsReference.includes('height:48px!important') &&
+  participantsReference.includes('font-size:14px!important') &&
+  participantsReference.includes('flex:0 0 56px!important;height:56px!important') &&
+  participantsReference.includes('grid-template-columns:1fr 1fr 1fr!important') &&
+  macVideoCss.includes('height:132px') &&
+  macVideoCss.includes('.video-stack.is-scrollable') &&
+  macVideoCss.includes('grid-template-columns:repeat(2,minmax(0,1fr))') &&
+  macVideoCss.includes('.video-tile:hover .video-tile-actions'),
+  'Approved Participants and share-video surfaces must retain the 2.0.55 certified 392px / 48px / 14px participant geometry, fixed footer, five-tile scroll behavior, gallery geometry and hover intelligence.'
+);
 const bootstrap=read('src/bootstrap.mjs');
 const preload=read('src/preload.cjs');
 const presenterPreload=read('src/presenter-preload.cjs');
@@ -45,7 +112,6 @@ const integration=read('ui/share-integration.js');
 const preferences=read('ui/preferences.js');
 const macVideoJs=read('ui/mac-share-video.js');
 const macVideoHtml=read('ui/mac-share-video.html');
-const macVideoCss=read('ui/mac-share-video.css');
 const macAnnotationHtml=read('ui/mac-annotation-toolbar.html');
 const macAnnotationJs=read('ui/mac-annotation-toolbar.js');
 const macAnnotationCss=read('ui/mac-annotation-toolbar.css');
@@ -59,12 +125,11 @@ const parityCss=read('ui/meeting-parity.css');
 const webrtc=read('ui/webrtc-controller.js');
 const shareRuntimeAuthority=read('ui/share-runtime-authority-2.0.41.js');
 const activeShareHome=read('ui/active-share-home-parity-2.0.41.js');
-const macToolbarHtml=read('ui/mac-presenter-toolbar.html');
 const avSettings=read('ui/av-settings.js');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
 
-assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
+const [major,minor,patch]=String(pkg.version||'').split('.').map(Number); assert.ok(Number.isInteger(major)&&Number.isInteger(minor)&&Number.isInteger(patch)&&(major>2||(major===2&&(minor>0||(minor===0&&patch>=46)))),'Physical Mac runtime-control repair must remain certified for every 2.0.46+ candidate.');
 assert(
   preferences.includes("const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));") &&
   preferences.includes('if(macLike)return;') &&
@@ -120,15 +185,18 @@ assert(
 );
 
 assert(runtime.includes("side.dataset.zoomPanelMode='runtime'")&&runtime.includes("panel.dataset.zoomPanelMode='runtime'"),'Participants and Chat must use one runtime panel authority.');
-assert(legacyParticipants.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must never re-center or poll the live panel.');
+assert(legacyParticipants.includes("version:'2.0.54-one-shot-compatibility'")&&!legacyParticipants.includes('setInterval(')&&!legacyParticipants.includes('new MutationObserver(')&&!legacyParticipants.includes('function centerPanel('),'Legacy Participants compatibility must remain one-shot and must never poll, observe, or autonomously re-center the live panel.');
 assert(legacyHostTools.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyHostTools.includes('centerParticipantsOnce')&&!legacyHostTools.includes("host.style.setProperty('width','248px'"),'Legacy Host Tools compatibility must not own Participants or Host Tools geometry.');
 assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.includes('.room-side:has(.ds-ref-host-tools-panel)'),'Legacy Host Tools stylesheet must not shrink Host Tools or move Participants.');
 assert(
-  runtime.includes("panel.style.setProperty('left','auto','important')") &&
-  runtime.includes("panel.style.setProperty('right','24px','important')") &&
-  runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important')") &&
-  runtime.includes("panel.style.setProperty('bottom','auto','important')"),
-  'Default Participants and Chat surfaces must open as inset floating windows with independent header-safe vertical offsets rather than edge-attached sidebars.'
+  runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);") &&
+  runtime.includes("if(panel===participants){") &&
+  runtime.includes("panel.style.setProperty('left',`${centeredLeft}px`,'important');") &&
+  runtime.includes("panel.style.setProperty('right','auto','important');") &&
+  runtime.includes("panel.style.setProperty('top','18px','important');") &&
+  runtime.includes("panel.style.setProperty('right','24px','important');") &&
+  runtime.includes("panel.style.setProperty('top','46px','important');"),
+  'Participants must open centered by default while Chat keeps an independent inset position, preserving the right-side lane for participant video.'
 );
 assert(runtime.includes('function ensurePanelClose(panel)')&&runtime.includes("aria-label','Close participants'")&&runtime.includes("aria-label','Close chat'"),'Participants and Chat must expose one explicit runtime-owned Close control.');
 assert(
@@ -155,16 +223,19 @@ assert(
   'Heavy reference reconciliation must prime once per meeting instead of repainting on every generic runtime pass.'
 );
 assert(
-  runtime.includes("const baseWidth=panel===chat?330:318;") &&
+  runtime.includes("const baseWidth=panel===chat?330:392;") &&
   runtime.includes("const participantCount=participantRows().length;") &&
-  runtime.includes("const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));") &&
-  runtime.includes("const minPanelHeight=panel===chat?300:390;") &&
+  runtime.includes("const participantBaseHeight=Math.min(486,Math.max(438,112+(Math.max(1,participantCount)*48)+(participantCount>=7?40:0)));") &&
+  runtime.includes("const minPanelHeight=panel===chat?300:438;") &&
   !runtime.includes("panel.classList.contains('ds-panel-wide')?430") &&
+  runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);") &&
+  runtime.includes("if(panel===participants){") &&
+  runtime.includes("panel.style.setProperty('left',`${centeredLeft}px`,'important');") &&
   runtime.includes("panel.style.setProperty('right','24px','important');") &&
-  runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important');") &&
+  runtime.includes("panel.style.setProperty('top','46px','important');") &&
   runtime.includes("Math.max(minPanelHeight,bodyHeight-28)") &&
   runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),
-  'Floating Participants must preserve the compact 318px reference width with a 390px-class roster height and no rejected wide mode, while Chat remains independently movable with header-safe offsets.'
+  'Floating Participants must preserve the approved 392px / 438px geometry centered by default, while Chat remains independently movable with its header-safe inset.'
 );
 assert(runtime.includes("panel.style.setProperty('left',`${pr.left-br.left}px`,'important');")&&runtime.includes("panel.style.setProperty('right','auto','important');")&&runtime.includes("panel.style.setProperty('width',`${pr.width}px`,'important');"),'Final drag authority must capture explicit panel geometry before movement rather than depending on a legacy handler.');
 assert(
@@ -178,11 +249,11 @@ assert(
   !runtime.includes("surfaceDrag.source!==source"),
   'Final floating-panel drag authority must use one Pointer Events pipeline only and resolve the live panel header dynamically.'
 );
-assert(runtime.includes("const columns=count<=2?1:count<=6?2:3;")&&runtime.includes("const desiredWidth=columns*tileWidth")&&runtime.includes("dock.dataset.dsRuntimeColumns=String(columns)")&&runtime.includes("body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important')"),'Participant video dock must grow rows/columns automatically as visible participant tiles increase.');
+assert(runtime.includes("const panelMode=String(dock.dataset.panelMode||'strip');")&&runtime.includes("const columns=panelMode==='gallery'?2:1;")&&runtime.includes("const tileWidth=306,tileHeight=172,gap=7,padding=12,headerHeight=42;"),'Participant video dock must stay one vertical 306x172 stack by default and use two columns only in explicit gallery mode.');
 assert(runtimeCss.includes('.ds-traffic-close')&&runtimeCss.includes('.ds-traffic-minimize')&&runtimeCss.includes('.ds-traffic-restore')&&runtime.includes("aria-label=\"Close participants\"")&&runtime.includes("aria-label=\"Minimize participants\"")&&runtime.includes("aria-label=\"Restore participants\"")&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),'Mac Participants must expose one runtime-owned close/minimize/restore traffic-light set, while Chat keeps its accessible close control.');
 assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;')&&!runtimeCss.includes('left:18px!important;\n  right:auto!important;\n  top:auto!important;\n  bottom:94px!important;')&&!polishCss.includes('.meeting-reaction-menu{left:18px!important'),'Reaction chooser position must belong to the runtime anchor calculation, not a hard-pinned stylesheet.');
 
-assert(adaptive.includes("if(window.DominionRuntimeStability?.layoutSideSurface){\n      side.dataset.dsAdaptiveInitialized='1';\n      window.DominionRuntimeStability.layoutSideSurface();")&&adaptive.includes('return;\n    }\n    installParticipantPanelDrag();'),'Adaptive Participants must stop immediately when final runtime geometry authority is available.');
+assert(adaptive.includes("if(window.dominionDesktop)return;")&&!adaptive.includes("search.hidden=count<=1")&&!adaptive.includes("side.querySelector('.zoom-participant-search')"),'Adaptive Participants must be completely read-only in the desktop app so it cannot compete with final participant geometry/search authority.');
 assert(polish.includes('if(window.DominionRuntimeStability?.layoutSideSurface){window.DominionRuntimeStability.layoutSideSurface();return;}')&&polish.includes("menu.dataset.dsAnchorStable='1'"),'Production polish must stop rewriting panel and reaction geometry.');
 assert(polish.includes("mode==='runtime'?'runtime':'docked'")&&polish.includes("participantPanelMode(side)==='docked'&&!event.target.closest('button')"),'Legacy participant pointer interception must recognize runtime-owned panels and stand down before final drag authority.');
 assert(participantsReference.includes("if(window.DominionRuntimeStability?.layoutSideSurface)return;")&&runtime.includes("'DominionZoomParticipantsReference2041'")&&runtime.includes('window.DominionZoomParticipantsReference2041?.sync?.();'),'Participant reference may prime visual structure once but must defer geometry and retire its background reconciliation under the final runtime.');
@@ -203,8 +274,8 @@ assert(
 );
 assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:70px;bottom:60px;width:330px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
 
-assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("nameNode.textContent=name;strong.title=name;")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must preserve the full canonical name and collapse duplicate ellipsis controls to one representation.');
-assert(physical.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Host)')")&&physical.includes("role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'')")&&physical.includes("inline.textContent=inlineRole;inline.hidden=!inlineRole;"),'Participant role and self identity must remain inline with the canonical name, matching the approved compact reference.');
+assert(physical.includes('function normalizeParticipantIdentity(row,id)')&&physical.includes("if(nameNode.textContent!==name)nameNode.textContent=name;if(strong.title!==name)strong.title=name;")&&physical.includes("querySelectorAll('[data-participant-more],[data-ds-self-more],.ds-host-row-more')"),'Participant rows must preserve the full canonical name without rewriting unchanged text and must collapse duplicate ellipsis controls to one representation.');
+assert(physical.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Host)')")&&physical.includes("role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'')")&&physical.includes("if(inline.textContent!==inlineRole)inline.textContent=inlineRole")&&physical.includes("inline.hidden=!inlineRole"),'Participant role and self identity must remain inline with the canonical name without unnecessary DOM rewrites.');
 assert(
   parity.includes('reaction-emoji-glyph') &&
   parity.includes('😊') &&
@@ -251,7 +322,6 @@ assert(featureReady.includes('box-shadow:none!important')&&read('ui/meeting-pari
 assert(!featureReady.includes('M18.8 3.1v3.6M17 4.9h3.6'),'Final meeting reconciliation must not restore the rejected legacy reaction glyph.');
 assert(shareService.includes("return {ok:Boolean(sent),qaCommandId:Number(delivery?.qaCommandId||0),sent:Boolean(sent),direct:Boolean(delivery?.direct),handled:Boolean(delivery?.direct)}"),'Presenter command service must expose execution proof instead of a bare production ok response.');
 const macToolbar=read('ui/mac-presenter-toolbar.js');
-const macToolbarCss=read('ui/mac-presenter-toolbar.css');
 assert(
   macToolbar.includes("toolbar?.classList.toggle('is-paused',paused)")&&
   macToolbar.includes("pauseGlyph.innerHTML=paused?")&&
@@ -260,7 +330,7 @@ assert(
   macToolbarCss.includes('.toolbar.is-paused .toolbar-reveal{background:#f5b942'),
   'Paused native sharing must switch the presenter strip/reveal state to amber and change Pause into a true Resume/play control.'
 );
-assert(macToolbar.includes("if(nativeBridge?.command)return await sendNative(normalized);")&&macToolbar.includes("result.ok===true"),'Physical-Mac presenter controls must use the acknowledged native delivery path first, with renderer dispatch only as fallback.');
+assert(macToolbar.includes("if(nativeBridge?.command)return await sendNative(normalized);")&&macToolbar.includes("result.ok===true")&&macPresenter.includes('async function deliverPresenterCommandDirectFirst(main,command)')&&macPresenter.includes('window.__DominionPresenterDispatch'),'Physical-Mac presenter controls must route through direct renderer execution first inside the native bridge, with acknowledged queue delivery only as fallback.');
 assert(
   shareService.includes('function closeLegacyMacPresenterWindows(){') &&
   shareService.includes("url.includes('/ui/presenter-toolbar.html')") &&
@@ -273,7 +343,7 @@ assert(
   integration.includes("inlinePresenter.hidden=true;") &&
   integration.includes("label.hidden=true;") &&
   integration.includes("sharedVideo.hidden=true;") &&
-  integration.includes("cameraTile.hidden=true;") &&
+  integration.includes("cameraTile.hidden=true;") &&integration.includes('The participant video dock is the single visible camera authority') &&
   integration.includes("document.body.classList.add('ds-native-mac-presenter-share')") &&
   integration.includes("overlay.classList.remove('share-active','ds-ref-presenter-visible')"),
   'Active Mac sharing must hard-hide every renderer-owned share toolbar/status/video surface so only native presenter chrome is visible.'
@@ -352,12 +422,26 @@ assert(
   'Participants footer controls must remain functional: in-panel Invite, deterministic Mute-all feedback, and host-only More management.'
 );
 
+assert(
+  macPresenter.includes("if(nativeAnnotationOpen){")&&
+  macPresenter.includes("delete incoming.companion;delete incoming.companionOpen;")&&
+  macPresenter.includes("else if(nativeCompanionBarrier){")&&
+  macPresenter.includes("QA_MAC_ANNOTATION_BARRIER_DROP incoming=")&&
+  macPresenter.includes("if(panelCommand)nativeCompanionBarrier=false;")&&
+  macPresenter.includes("nativeAnnotationOpen=false;nativeCompanionBarrier=true;shareState={...shareState,companion:'',companionOpen:false}")&&
+  macPresenter.includes("Explicit presenter panel commands close annotation before dispatch.")&&
+  !macPresenter.includes("if(['participants','chat'].includes(incomingCompanion)){\n        nativeAnnotationOpen=false"),
+  'Native annotation must remain authoritative over stale renderer companion publications, and closing it must not resurrect the prior Chat/Participants companion before an explicit new panel command.'
+);
+
 /* PHYSICAL_MAC_SHARE_COMPANION_AND_COMPACT_ANNOTATION_LOCK */
 assert(
   macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);")&&
-  macPresenter.includes("if(panelCommand&&delivered?.ok)showMeeting();")&&
-  macPresenter.indexOf("const delivered=await deliverPresenterCommandWithRetry(main,normalized);")<
-    macPresenter.indexOf("if(panelCommand&&delivered?.ok)showMeeting();")&&
+  macPresenter.includes("const revealPanelMeeting=panelCommand&&!shareState.meetingVisible;")&&
+  macPresenter.includes("if(revealPanelMeeting)showMeeting();")&&
+  macPresenter.indexOf("if(revealPanelMeeting)showMeeting();")<
+    macPresenter.indexOf("const delivered=await deliverPresenterCommandDirectFirst(main,normalized);")&&
+  macPresenter.includes("if(panelCommand&&!delivered?.ok&&revealPanelMeeting)hideMeeting();")&&
   activeShareHome.includes('function restoreShareCompanion(){')&&
   activeShareHome.includes("if(shareActive()&&(kind==='participants'||kind==='chat'))restoreShareCompanion();")&&
   integration.includes("['participants','chat'].includes(previous)")&&
@@ -368,8 +452,8 @@ assert(
   'Share-toolbar Participants/Chat and video-tile Chat/Rename must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
 );
 assert(
-  participantsReference.includes('width:318px!important;min-width:min(318px,calc(100% - 24px))!important')&&
-  participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div{padding-left:60px!important;padding-right:60px!important')&&
+  participantsReference.includes('width:392px!important;min-width:min(360px,calc(100% - 24px))!important')&&
+  participantsReference.includes('.room-side-head:has(.ds-panel-traffic)>div:not(.ds-panel-traffic){padding-left:60px!important;padding-right:60px!important')&&
   screenshotReference.includes('data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more')&&
   participantsReference.includes('if(more)more.hidden=!manager;')&&
   screenshotReference.includes('function openParticipantBulkMenu(anchor)')&&
@@ -391,25 +475,33 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-undo"') &&
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
-  macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('.annotation-palette{width:66px') &&
-  macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
-  macAnnotationCss.includes('.tool-grid button small,.palette-actions button small{display:block') &&
+  macAnnotationHtml.includes('data-flyout="shapes"') &&
+  macAnnotationHtml.includes('data-flyout="style"') &&
+  macAnnotationCss.includes('.annotation-palette{') &&
+  macAnnotationCss.includes('width:52px') &&
+  macAnnotationCss.includes('.annotation-flyout{') &&
+  macAnnotationCss.includes('left:58px') &&
+  shareCss.includes('body.ds-native-mac-presenter-share .share-annotation-tools{display:none!important}') &&
+  integration.includes('function lockNativeAnnotationRenderer(){') &&
+  integration.includes("tools.style.setProperty('display','none','important')") &&
   macAnnotationHtml.includes('data-command="annotate-select"') &&
-  macAnnotationJs.includes("version:'2.0.47-native-canvas-palette'") &&
-  macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
-  macPresenter.includes("partition:'dominion-presenter-annotation-canvas-v2044'") &&
+  macAnnotationJs.includes("version:'2.0.55-zoom-vertical-rail'") &&
+  presenterPreload.includes("setAnnotationFlyout:open=>invoke('mac-share:annotation-flyout'") &&
+  macPresenter.includes("const width=annotationFlyoutOpen?184:52") &&
+  macPresenter.includes("width:52,height:500,minWidth:52,maxWidth:184,minHeight:430,maxHeight:526") &&
+  macPresenter.includes("ipcMain.handle('mac-share:annotation-flyout'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-canvas.html')") &&
   macAnnotationCanvasHtml.includes('id="annotationCanvas"') &&
   macAnnotationCanvasCss.includes('.mode-pen #annotationCanvas') &&
   macAnnotationCanvasCss.includes('.mode-laser #annotationCanvas{cursor:none') &&
   macAnnotationCanvasJs.includes("version:'2.0.47-native-display-canvas-select-default'") &&
+  macAnnotationCanvasJs.includes("snapshot:()=>({mode:state.mode,width:state.width,color:state.color,historyDepth:state.history.length})") &&
   macAnnotationCanvasJs.includes("if(state.mode==='laser'){laser(p)") &&
   macAnnotationCanvasJs.includes("canvas.addEventListener('pointermove',move") &&
   presenterPreload.includes("onAnnotationCommand:callback=>listen('mac-annotation:command'") &&
   macPresenter.includes("canvas.webContents.send('mac-annotation:command'"),
-  'Annotate must use one readable 66px labeled native palette with Select/Mouse return, controlling a full-display native drawing surface so Pen, Laser, Eraser, and pointer mode remain reachable on the physically shared Mac display.'
+  'Annotate must use a narrow Zoom-style left rail by default, expand only for Shapes/Style flyouts, expose an explicit Close control, and retain the full-display native drawing canvas for Pen, Highlighter, Laser, Shapes, Eraser, Undo, Clear, width and color.'
 );
 assert(
   screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
@@ -433,25 +525,65 @@ assert(
   macToolbar.includes("audioButton.dataset.voiceLevel=String(voiceBucket)") &&
   macToolbar.includes("audioButton?.classList.toggle('is-speaking',speaking)") &&
   macToolbarCss.includes('[data-command="audio"].is-speaking .mic-live-meter') &&
-  macVideoJs.includes("speaking=Boolean(micOn&&state?.speaking)") &&
+  macVideoJs.includes("const voiceLevel=Math.max(0,Math.min(1,Number(state?.voiceLevel)||0))") &&
+  macVideoJs.includes("speaking=Boolean(micOn&&state?.speaking&&voiceLevel>0)") &&
   macVideoJs.includes("tile.classList.toggle('speaking',tile.dataset.self==='1'&&speaking)") &&
+  !macVideoHtml.includes('id="micState"') &&
+  !macVideoCss.includes('.video-mic-meter') &&
   macVideoCss.includes('.video-tile.speaking{border-color:#31d158'),
-  'Real microphone RMS must propagate from the authoritative meeting track into the native toolbar meter and the approved green speaking border on the share-video tile.'
+  'Real microphone RMS must propagate from the authoritative meeting track into the native toolbar meter and the approved green speaking border on the share-video tile without adding non-reference controls to the video header.'
 );
 assert(preload.includes('const accepted=result?.handled===true;')&&!preload.includes('const accepted=result?.handled!==false;'),'Presenter preload must reject undefined/stale listener results instead of falsely acknowledging dead toolbar commands.');
 assert(macToolbar.includes("if(command==='audio')command=Boolean(lastState?.micOn)?'audio-off':'audio-on';")&&macToolbar.includes("if(command==='video')command=Boolean(lastState?.cameraOn)?'video-off':'video-on';")&&integration.includes("command==='audio-on'||command==='audio-off'")&&integration.includes("command==='video-on'||command==='video-off'"),'Presenter Audio/Video commands must be explicit idempotent targets so delivery retries cannot toggle state twice.');
-assert(presenterPreload.includes("setToolbarHidden:hidden=>invoke('mac-share:toolbar-hidden'")&&macPresenter.includes("ipcMain.handle('mac-share:toolbar-hidden'")&&macToolbar.includes("setNativeHidden(true)")&&macToolbar.includes("control.disabled=true")&&macToolbar.includes("applyAcknowledgedAvState")&&macToolbarCss.includes(".toolbar.auto-hidden .control-strip{transform:translateY(-66px);opacity:0;pointer-events:none}")&&macToolbarCss.includes(".toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}")&&macPresenter.includes("toolbarAutoHidden?28:84")&&!macToolbarCss.includes(".toolbar:hover .control-strip"),'Idle presenter controls must collapse to the 28px native reveal zone while the green sharing strip remains visible; AV commands must stay serialized and hover must not override the hidden state.');
+assert(macToolbar.includes("if(command==='pause')command=Boolean(lastState?.paused)?'resume-share':'pause-share';")&&integration.includes("command==='pause'||command==='pause-share'||command==='resume-share'")&&integration.includes("if(target)await share.pause(sharedVideo);")&&integration.includes("else await share.resume();"),'Presenter Pause/Resume must use explicit idempotent targets so delivery fallback cannot pause and immediately resume.');
+assert(presenterPreload.includes("setToolbarHidden:hidden=>invoke('mac-share:toolbar-hidden'")&&macPresenter.includes("ipcMain.handle('mac-share:toolbar-hidden'")&&macToolbar.includes("setNativeHidden(true)")&&macToolbar.includes("control.disabled=true")&&macToolbar.includes("applyAcknowledgedAvState")&&macToolbarCss.includes(".toolbar.auto-hidden .control-strip{transform:translateY(-66px);opacity:0;pointer-events:none}")&&macToolbarCss.includes(".toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}")&&macPresenter.includes("toolbarAutoHidden?30:88")&&!macToolbarCss.includes(".toolbar:hover .control-strip"),'Idle presenter controls must collapse to the native status-strip zone while the green/amber sharing indicator remains visible; AV commands stay serialized and ordinary screen movement must not force the toolbar open.');
 assert(macPresenter.includes('focusable:true,alwaysOnTop:true')&&macVideoJs.includes("window.addEventListener('blur',closeMenu)"),'Floating video options must close through normal focus loss instead of requiring the ellipsis button again.');
-assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}")&&!integration.includes("await share.stop();applyLayout();return {handled:true,command};"),'Stop Share must use one local-first state transition and rely on the synchronous share-state listener to restore meeting chrome.');
+assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return finish({handled:true,command});}")&&!integration.includes("await share.stop();applyLayout();"),'Stop Share must use one local-first state transition, record the command outcome, and rely on the synchronous share-state listener to restore meeting chrome.');
 assert(
   integration.includes('if(sameRendererPresenter&&state.active){')&&
   integration.includes('return;')&&
   integration.includes('function publishMacPresenterState(){')&&
   integration.includes('if(sameRendererPresenter)publishMacPresenterState();else applyLayout();')&&
-  integration.includes('media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter){publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});'),
+  integration.includes("if(sameRendererPresenter&&active){")&&
+  integration.includes("publishMacPresenterState();")&&
+  integration.includes("syncMacCameraFramePump();")&&
+  integration.includes("media.onChange(()=>{if(!share.snapshot().active){if(localPresenterMirror.srcObject)localPresenterMirror.srcObject=null;return;}if(sameRendererPresenter){syncLocalPresenterMirror();publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});"),
   'Active Mac sharing must bypass meeting share-layout reconciliation while publishing presenter state and bounded remote-tile mirror updates.'
 );
-assert(macToolbarHtml.includes('id="layoutButton"')&&macToolbarHtml.includes('data-command="show-meeting"><span class="glyph"')&&!macToolbarHtml.includes('<button type="button" data-command="show-meeting">Show meeting</button>'),'Presenter strip must expose Layout and Show meeting as primary reference controls without duplicate secondary entries.');
+assert(
+  macToolbarCss.includes('.toolbar-drag-handle{')&&
+  macToolbarCss.includes('pointer-events:none')&&
+  macToolbarCss.includes('.control-strip{')&&
+  macToolbarCss.includes('-webkit-app-region:drag')&&
+  macToolbarCss.includes('.control-strip>button,.menu-wrap>button{')&&
+  macToolbarCss.includes('-webkit-app-region:no-drag'),
+  'Presenter drag chrome must remain draggable without intercepting control-button clicks.'
+);
+
+assert(
+  macToolbarHtml.includes('data-command="audio"')&&
+  macToolbarHtml.includes('data-command="video"')&&
+  macToolbarHtml.includes('data-command="participants"')&&
+  macToolbarHtml.includes('data-command="chat"')&&
+  macToolbarHtml.includes('data-command="new-share"')&&
+  macToolbarHtml.includes('data-command="pause"')&&
+  macToolbarHtml.includes('id="layoutButton"')&&
+  macToolbarHtml.includes('data-command="annotate"')&&
+  macToolbarHtml.includes('data-command="show-meeting"')&&
+  macToolbarHtml.includes('id="moreButton"')&&
+  macToolbarHtml.indexOf('<section class="share-strip"')<macToolbarHtml.indexOf('id="stopShare"')&&
+  macToolbarHtml.indexOf('id="stopShare"')<macToolbarHtml.indexOf('</section>',macToolbarHtml.indexOf('<section class="share-strip"')),
+  'Presenter controls must match the Zoom-reference contract: Audio, Video, Participants, Chat, Share, Pause/Resume, Layout, Annotate, Show meeting, More, with Stop Share attached to the separate status strip.'
+);
+assert(
+  macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}")&&
+  macPresenter.includes("if(shareActive&&!qaKeepPresenterHidden&&shouldShowVideoWindow())")&&
+  macPresenter.includes("if(!shouldShowVideoWindow()){try{videoWindow.hide();}catch{}return {ok:true,layout:videoLayout,visible:false};")&&
+  macPresenter.includes("if(isAlive(videoWindow)){if(shouldShowVideoWindow()&&shareActive)videoWindow.showInactive?.();else videoWindow.hide();}")&&
+  shareCss.includes('body.ds-native-mac-presenter-share #remoteTileStrip')&&
+  shareCss.includes('body.ds-native-mac-presenter-share #participantVideoDock'),
+  'Approved native share must keep the solo-presenter video panel available while suppressing duplicate renderer video surfaces during active Mac sharing.'
+);
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
 assert(shareService.includes("displayId:String(source.display_id||'')")&&shareController.includes("displayId:String(state.options?.displayId||'')"),'The selected physical display identity must flow from source selection into presenter state.');
 assert(
@@ -523,11 +655,11 @@ assert(
 assert(
   parityCss.includes('2.0.44+ compact right-side participant filmstrip reference')&&
   parityCss.includes('#participantVideoDock[data-orientation="vertical"]:not(.gallery-stage):not(.multi-speaker-stage)')&&
-  parityCss.includes('grid-template-columns:176px!important')&&
+  parityCss.includes('grid-template-columns:306px!important')&&
   parityCss.includes('max-height:515px!important')&&
   parityCss.includes('.remote-peer-tile.active-speaker')&&
   parityCss.includes('border-color:#35d07f!important'),
-  'Right-side participant video must remain a one-column five-visible filmstrip with internal scroll and green active-speaker outline.'
+  'Right-side participant video must remain a one-column five-visible 306x172 filmstrip with internal scroll and green active-speaker outline.'
 );
 assert(
   profileFallback.includes("width:64px;height:64px")&&
@@ -538,25 +670,47 @@ assert(
 assert(app.includes("media.onChange?.(()=>{try{attachPreview();}catch{}});"),'All media mutations must repaint meeting AV state, including presenter-toolbar commands.');
 assert(preload.includes("if(process.platform==='darwin')ipcRenderer.send('mac-share:state',state||{});return invoke('share:capture-state',state);"),'Mac share state must reach both native overlay and companion-window authorities.');
 assert(presenterPreload.includes("environment:()=>invoke('app:get-environment')"),'Mac presenter surfaces must be able to detect certified QA runtime without loading the full meeting preload.');
-assert(main.includes('qaPresenterFixtures:qaFixtureRequested')&&macVideoJs.includes('environment?.qaPresenterFixtures||environment?.qaInteractionFixtures'),'Packaged presenter QA must use an explicit fixture request without weakening production fixture gating.');
+assert(
+  main.includes('qaPresenterFixtures:qaFixtureRequested')&&
+  macVideoJs.includes('qaPresenterFixtures')&&
+  !macVideoJs.includes('getUserMedia(')&&
+  !macVideoJs.includes('ImageCapture(')&&
+  !macVideoJs.includes('qaSynthetic')&&
+  !macVideoJs.includes('qaInteractionFixtures'),
+  'Packaged presenter QA may expose QA-only tracing, but the native video surface must remain independent of synthetic camera fixtures and alternate camera ownership.'
+);
 assert(
   integration.includes("cameraId:String(mediaState.cameraId||'')")&&
   integration.includes("mirror:mediaState.mirror!==false")&&
   integration.includes('const presenterParticipants=()=>')&&
-  integration.includes("remote-peer-tile:not(.local-video-dock-tile)")&&
-  integration.includes("frameCanvas.toDataURL('image/jpeg',.52)")&&
-  !integration.includes("canvas.toBlob(resolve,'image/jpeg'")&&
-  !integration.includes("new Uint8Array(await blob.arrayBuffer())"),
-  'The capture-owning renderer must publish local camera state plus bounded mirrors of existing remote WebRTC tiles, without reviving the old local-camera JPEG preview pipeline.'
+  integration.includes("const localTrack=media.stream()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null")&&
+  integration.includes("localImageCapture=new ImageCapture(localTrack)")&&
+  integration.includes("#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile")&&
+  integration.includes("frameCanvas.width=504;frameCanvas.height=264")&&
+  integration.includes("frameContext.imageSmoothingQuality='high'")&&
+  integration.includes("frameCanvas.toDataURL('image/webp',.84)")&&
+  integration.includes("setInterval(publishMacRemoteFrames,66)")&&
+  integration.includes("if(signature===lastPresenterStateSignature)return")&&
+  !integration.includes("frameCanvas.toDataURL('image/jpeg',.58)")&&
+  !integration.includes("getUserMedia"),
+  'The capture-owning renderer must publish a higher-fidelity, high-smoothing camera mirror from the already-owned track, keep state broadcasts coalesced, and avoid creating another camera authority.'
 );
 assert(
-  macVideoJs.includes("navigator.mediaDevices.getUserMedia({audio:false,video})")&&
-  macVideoJs.includes("if(cameraId)video.deviceId={ideal:cameraId}")&&
-  macVideoJs.includes("person.self?'<video autoplay muted playsinline hidden></video>'")&&
-  macVideoJs.includes("if(live){if(video.srcObject!==previewStream)video.srcObject=previewStream")&&
-  macVideoJs.includes("else{video.hidden=true")&&
-  macVideoJs.includes("if(fallback)fallback.hidden=false"),
-  'The approved share participant strip must own the selected local camera preview and reserve profile/initial fallback for camera-off or unavailable-video state.'
+  !macVideoJs.includes('getUserMedia')&&
+  !macVideoJs.includes('previewStream')&&
+  !macVideoJs.includes("stack.textContent=''")&&
+  macVideoJs.includes('bridge?.onVideoFrame?.(applyRemoteFrame)')&&
+  macVideoJs.includes('<canvas class="remote-frame" aria-label="Live participant video" hidden></canvas>')&&
+  macVideoJs.includes('function paintRemoteFrame(tile,person,dataUrl)')&&
+  macVideoJs.includes("canvas.dataset.frameReady='1'")&&
+  macVideoJs.includes("context.imageSmoothingQuality='high'")&&
+  macVideoJs.includes('renderParticipants(layoutChanged);')&&
+  !macVideoJs.includes('renderParticipants(layoutChanged||frameChanged)')&&
+  macVideoJs.includes('function createTile(person,stack)')&&
+  macVideoJs.includes('function updateTile(tile,person)')&&
+  macPresenter.includes("videoWindow.webContents.send('mac-share:video-frame',{participantId,dataUrl,at})")&&
+  !macPresenter.includes("videoWindow.webContents.send('share:toolbar-state',{...shareState,videoLayout,videoFrames:[...latestVideoFrames.entries()].map(([id,frame])=>({participantId:id,...frame}))})"),
+  'The approved share participant strip must keep persistent keyed canvas tiles, decode each camera frame before painting it, and transport frames independently from participant/layout state so camera motion cannot trigger tile reorder or blank repaint flashes.'
 );
 
 /* PHYSICAL_MAC_SCREENSHOT_2026_10_01_IDENTITY_AND_MENU_LOCK */
@@ -569,28 +723,41 @@ assert(
   'Participants must keep the full name and role/me metadata on one compact readable row, matching the desktop reference.'
 );
 assert(
-  macToolbarCss.includes('2.0.44+ physical Mac presenter menu collision lock')&&
-  macToolbarCss.includes('.toolbar.menu-open .popup-menu{top:86px}')&&
-  macPresenter.includes('const height=toolbarMenuOpen?300:(toolbarAutoHidden?28:84);'),
-  'Presenter More must open below the compact green share-status strip with enough native window height to expose every command.'
+  macToolbarCss.includes('position:absolute;top:60px')&&
+  macPresenter.includes('const height=toolbarMenuOpen?468:(toolbarAutoHidden?30:88);')&&macPresenter.includes('maxHeight:500'),
+  'Presenter Layout/More menus must open directly below the approved control strip with enough native window height for the full functional menu.'
+);
+
+assert(
+  integration.includes('const effectiveLocalCameraOn=()=>')&&
+  integration.includes("snap.cameraOn&&snap.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'&&track.enabled!==false)")&&
+  integration.includes("const localTrack=media.stream()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null")&&
+  integration.includes("localImageCapture=new ImageCapture(localTrack)")&&
+  macVideoCss.includes('.video-fallback img[hidden]{display:none!important}')&&
+  macVideoCss.includes('.video-fallback span[hidden]{display:none!important}')&&
+  macVideoJs.includes('if(fallbackInitials)fallbackInitials.hidden=true;'),
+  'Presenter video must use the authoritative existing live camera track and must never show avatar plus initials at the same time.'
 );
 
 /* PHYSICAL_MAC_2_0_50_REFERENCE_GEOMETRY_LOCK */
 assert(
-  macPresenter.includes('const width=Math.min(770,Math.max(680,area.width-28));')&&
-  macPresenter.includes('const participantCount=Math.max(1,Math.min(5,Array.isArray(shareState.participants)?shareState.participants.length:1));')&&
+  macPresenter.includes('const width=Math.min(780,Math.max(560,area.width-28));')&&
+  macPresenter.includes('const participantCount=Math.max(1,Math.min(5,presenterParticipantCount()||1));')&&macPresenter.includes('const seen=new Set();')&&macPresenter.includes('return seen.size;')&&
   macPresenter.includes('let width=252,height=166;')&&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);")&&
   macPresenter.includes('let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
-  macPresenter.includes('const width=66,height=Math.min(526,Math.max(430,area.height-180));')&&
+  macPresenter.includes('const width=annotationFlyoutOpen?184:52,height=Math.min(526,Math.max(430,area.height-180));')&&
   macPresenter.includes('function toolbarRevealZoneContains(point)')&&
   macPresenter.includes('if(moved<3||!toolbarRevealZoneContains(point))return;')&&
   macPresenter.includes('y=Math.round(area.y+12)')&&
-  macToolbarCss.includes('width:760px;max-width:calc(100% - 8px);height:58px')&&
+  macToolbarCss.includes('width:748px;max-width:calc(100% - 8px);height:60px')&&
+  macToolbarCss.includes('.share-strip{')&&
+  macToolbarCss.includes('top:60px')&&
+  macToolbarCss.includes('width:360px')&&
   macToolbarCss.includes('.toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}')&&
   macToolbar.includes('const AUTO_HIDE_MS=2400;')&&
   shareAnnotation.includes("state.active&&state.mode==='laser'"),
-  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, localized toolbar reveal zone with top clearance, approved five-tile participant-strip scale, readable 66px annotation rail, and live laser pointer.'
+  'Physical reference geometry must preserve the longer Zoom-reference toolbar, shorter persistent status strip below it, localized toolbar reveal zone, true one-to-five participant-strip sizing with internal scroll beyond five, left annotation palette, and live laser pointer.'
 );
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_50_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui approved-five-tile-share-strip simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');

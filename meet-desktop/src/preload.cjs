@@ -5,6 +5,7 @@ const presenterCommandCallbacks=new Set();
 let presenterListenerGeneration=0;
 let presenterPollTimer=null;
 let presenterPollBusy=false;
+const PRESENTER_FALLBACK_POLL_MS=250;
 const presenterDeliveryTasks=new Map();
 const captureStartWaiters=new Map();
 let captureStartRequestSeq=0;
@@ -82,7 +83,7 @@ const pollPresenterCommand=async()=>{
 };
 const ensurePresenterPoll=()=>{
   if(process.platform!=='darwin'||presenterPollTimer)return;
-  presenterPollTimer=setInterval(()=>{void pollPresenterCommand();},80);
+  presenterPollTimer=setInterval(()=>{void pollPresenterCommand();},PRESENTER_FALLBACK_POLL_MS);
 };
 const stopPresenterPoll=()=>{if(presenterPollTimer){clearInterval(presenterPollTimer);presenterPollTimer=null;}presenterPollBusy=false;};
 
@@ -115,6 +116,10 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     onChanged:callback=>listen('auth:changed',callback),onError:callback=>listen('auth:error',callback)
   }),
   notifications:Object.freeze({showMeeting:(title,body)=>invoke('notifications:meeting',{title,body}),setWaitingCount:(count,attention=false)=>invoke('notifications:set-waiting-count',{count,attention})}),
+  diagnostics:Object.freeze({
+    system:()=>invoke('diagnostics:system-metrics'),
+    export:report=>invoke('diagnostics:export',{report:report&&typeof report==='object'?report:{}})
+  }),
   media:Object.freeze({
     permissions:()=>invoke('media:get-permissions'),request:kinds=>invoke('media:request-permissions',{kinds:Array.isArray(kinds)?kinds:[]}),requestScreen:()=>invoke('media:request-screen'),openPrivacy:kind=>invoke('media:open-privacy',{kind})
   }),
@@ -124,7 +129,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     schedule:input=>invoke('meeting:schedule',input),listSchedules:()=>invoke('meeting:list-schedules'),cancelSchedule:scheduleId=>invoke('meeting:cancel-schedule',{scheduleId}),startSchedule:scheduleId=>invoke('meeting:start-schedule',{scheduleId}),updateRoomPasscode:(roomId,passcode)=>invoke('meeting:update-room-passcode',{roomId,passcode}),
     requestJoin:input=>invoke('meeting:request-join',input),joinStatus:(participantId,joinToken)=>invoke('meeting:join-status',{participantId,joinToken}),markJoined:(participantId,joinToken)=>invoke('meeting:mark-joined',{participantId,joinToken}),
     leave:(participantId,joinToken)=>invoke('meeting:leave',{participantId,joinToken}),hostQueue:roomId=>invoke('meeting:host-queue',{roomId}),decide:(participantId,decision)=>invoke('meeting:decide',{participantId,decision}),
-    snapshot:roomId=>invoke('meeting:snapshot',{roomId}),touchPresence:(participantId,joinToken)=>invoke('meeting:touch-presence',{participantId,joinToken}),setCohost:(participantId,enabled)=>invoke('meeting:set-cohost',{participantId,enabled}),removeParticipant:participantId=>invoke('meeting:remove-participant',{participantId}),renameParticipant:(participantId,displayName)=>invoke('meeting:rename-participant',{participantId,displayName}),setRecordingPermission:(participantId,enabled)=>invoke('meeting:set-recording-permission',{participantId,enabled}),setRecordingState:(participantId,active,paused=false)=>invoke('meeting:set-recording-state',{participantId,active,paused}),setSecurity:(roomId,options)=>invoke('meeting:set-security',{roomId,options}),setChatPolicy:(roomId,policy)=>invoke('meeting:set-chat-policy',{roomId,policy}),setCaptionState:(roomId,options)=>invoke('meeting:set-caption-state',{roomId,options}),publishCaption:(participantId,text,speakerName)=>invoke('meeting:publish-caption',{participantId,text,speakerName}),transcript:roomId=>invoke('meeting:get-transcript',{roomId}),transferHostAndLeave:participantId=>invoke('meeting:transfer-host-and-leave',{participantId}),end:roomId=>invoke('meeting:end',{roomId}),
+    snapshot:roomId=>invoke('meeting:snapshot',{roomId}),touchPresence:(participantId,joinToken)=>invoke('meeting:touch-presence',{participantId,joinToken}),setCohost:(participantId,enabled)=>invoke('meeting:set-cohost',{participantId,enabled}),removeParticipant:participantId=>invoke('meeting:remove-participant',{participantId}),renameParticipant:(participantId,displayName)=>invoke('meeting:rename-participant',{participantId,displayName}),setRecordingPermission:(participantId,enabled)=>invoke('meeting:set-recording-permission',{participantId,enabled}),setRecordingState:(participantId,active,paused=false)=>invoke('meeting:set-recording-state',{participantId,active,paused}),setSecurity:(roomId,options)=>invoke('meeting:set-security',{roomId,options}),setWaitingRoom:(roomId,enabled)=>invoke('meeting:set-waiting-room',{roomId,enabled}),setChatPolicy:(roomId,policy)=>invoke('meeting:set-chat-policy',{roomId,policy}),setCaptionState:(roomId,options)=>invoke('meeting:set-caption-state',{roomId,options}),publishCaption:(participantId,text,speakerName)=>invoke('meeting:publish-caption',{participantId,text,speakerName}),transcript:roomId=>invoke('meeting:get-transcript',{roomId}),transferHostAndLeave:participantId=>invoke('meeting:transfer-host-and-leave',{participantId}),end:roomId=>invoke('meeting:end',{roomId}),
     context:()=>invoke('meeting:context'),sendSignal:(toParticipantId,type,payload)=>invoke('meeting:signal-send',{toParticipantId,type,payload}),pullSignals:(afterId=0,limit=100)=>invoke('meeting:signal-pull',{afterId,limit}),pruneSignals:roomId=>invoke('meeting:signal-prune',{roomId}),
     iceConfig:(force=false,ttl=7200)=>invoke('meeting:ice-config',{force:Boolean(force),ttl:Number(ttl)||7200})
   }),
@@ -143,6 +148,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     qaMessageOnly:()=>invoke('share-capture:qa-message-only'),
     qaDetachedLifecycle:()=>invoke('share-capture:qa-detached-lifecycle'),
     start:payload=>startCaptureWorker(payload||{}),
+    setPaused:paused=>invoke('share-capture:set-paused',{paused:Boolean(paused)}),
     stop:()=>invoke('share-capture:stop'),
     answer:payload=>invoke('share-capture:answer',payload||{}),
     candidate:payload=>invoke('share-capture:client-ice',payload||{}),
@@ -166,6 +172,7 @@ contextBridge.exposeInMainWorld('dominionDesktop',Object.freeze({
     showMeeting:()=>invoke('mac-share:show-meeting'),
     onState:callback=>listen('share:toolbar-state',callback),
     videoFrame:payload=>{ipcRenderer.send('mac-share:video-frame',payload||{});return true;},
+    onVideoFrame:callback=>listen('mac-share:video-frame',payload=>{if(process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1')console.error(`QA_MAC_FRAME_RECEIVED participant=${String(payload?.participantId||'')} bytes=${String(payload?.dataUrl||'').length}`);callback(payload);}),
     onShowMeeting:callback=>listen('mac-share:show-meeting',callback)
   })
 }));

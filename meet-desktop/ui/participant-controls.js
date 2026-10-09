@@ -164,7 +164,7 @@
     menu=document.createElement('div');menu.className='participant-control-menu';
     const add=(label,handler,danger=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(danger)b.className='danger';b.onclick=()=>{closeMenu();void handler();};menu.append(b);};
     if(self){
-      add('Rename',()=>renameParticipant(id,name));
+      if(window.DominionMeetingSecurity?.allows?.('rename')!==false)add('Rename',()=>renameParticipant(id,name));
       add('Copy display name',async()=>{try{await navigator.clipboard.writeText(name);toast('Display name copied');}catch{toast('Unable to copy display name');}});
     }else{
       if(!canManage()||role==='host'){closeMenu();return;}
@@ -246,21 +246,39 @@
     }
   }
 
+  function openBulkParticipantMenu(anchor){
+    closeMenu();
+    menu=document.createElement('div');menu.className='participant-control-menu ds-participant-bulk-menu';
+    const add=(label,type)=>{const button=document.createElement('button');button.type='button';button.textContent=label;button.onclick=()=>{closeMenu();void sendAll(type);};menu.append(button);};
+    add('Ask All to Unmute','host:ask-unmute');
+    add('Stop Video for All','host:stop-video');
+    add('Ask All to Start Video','host:ask-start-video');
+    const lowerAll=document.createElement('button');lowerAll.type='button';lowerAll.textContent='Lower All Hands';lowerAll.onclick=()=>{closeMenu();void sendAll('host:lower-hand');};menu.append(lowerAll);
+    document.body.append(menu);
+    const rect=anchor?.getBoundingClientRect?.()||{left:innerWidth-250,top:innerHeight-80,width:60};
+    const width=230,left=Math.max(10,Math.min(innerWidth-width-10,rect.left+rect.width-width));
+    menu.style.left=`${Math.round(left)}px`;menu.style.top='auto';menu.style.bottom=`${Math.max(10,Math.round(innerHeight-rect.top+7))}px`;
+  }
+
   function syncPanelActions(){
     const side=q('.room-side');if(!side)return;
-    let footer=q('#participantBulkActions');
+    let footer=side.querySelector('[data-ds-canonical-participant-footer="1"]');
+    q('#participantBulkActions')?.remove();
+    if(!desktopSurface){
+      if(!canManage()){footer?.remove();return;}
+      return;
+    }
     if(!canManage()){footer?.remove();return;}
     if(!footer){
-      footer=document.createElement('div');footer.id='participantBulkActions';footer.className='participant-bulk-actions';
-      footer.innerHTML='<button type="button" data-mute-all>Mute All</button><button type="button" data-ask-all>Ask All to Unmute</button><button type="button" data-stop-video-all>Stop Video for All</button><button type="button" data-ask-video-all>Ask All to Start Video</button><button type="button" data-lower-hands>Lower All Hands</button>';
+      footer=document.createElement('div');footer.className='ds-ref-participants-footer';footer.dataset.dsCanonicalParticipantFooter='1';
+      footer.innerHTML='<button type="button" data-ds-invite>Invite</button><button type="button" data-ds-mute-all>Mute all</button><button type="button" data-ds-participant-more>More</button>';
       side.append(footer);
-      footer.querySelector('[data-mute-all]').onclick=()=>void sendAll('host:mute');
-      footer.querySelector('[data-ask-all]').onclick=()=>void sendAll('host:ask-unmute');
-      footer.querySelector('[data-stop-video-all]').onclick=()=>void sendAll('host:stop-video');
-      footer.querySelector('[data-ask-video-all]').onclick=()=>void sendAll('host:ask-start-video');
-      footer.querySelector('[data-lower-hands]').onclick=()=>void sendAll('host:lower-hand');
+      footer.querySelector('[data-ds-invite]').onclick=event=>{event.preventDefault();event.stopPropagation();void window.DominionMeetingLifecycleAuthority?.openInvite?.();};
+      footer.querySelector('[data-ds-mute-all]').setAttribute('aria-label','Mute All participants');
+      footer.querySelector('[data-ds-mute-all]').onclick=()=>void sendAll('host:mute');
+      footer.querySelector('[data-ds-participant-more]').onclick=event=>{event.preventDefault();event.stopPropagation();openBulkParticipantMenu(event.currentTarget);};
     }
-    qa('#participantBulkActions button').forEach(b=>b.disabled=busy);
+    footer.querySelectorAll('button').forEach(button=>button.disabled=busy);
   }
 
   function ensurePanelChrome(){
@@ -289,6 +307,6 @@
   window.addEventListener('dominion:meeting-snapshot',requestSync,true);
   window.addEventListener('dominion:participant-presence',requestSync,true);
   window.addEventListener('dominion:active-speakers',requestSync,true);
-  const timer=setInterval(()=>{const side=q('#meetingOverlay .room-side');if(!document.hidden&&inMeeting()&&side&&!side.hidden)requestSync();},6000);sync();
-  window.DominionParticipantControls=Object.freeze({version:'2.0.50-approved-share-actions',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,openParticipantChat,toggleSpotlightParticipant,renameParticipant,closeMenu,syncAllMedia,dispose:()=>{clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();closeProfileCard();prompt?.remove();renameDialog?.remove();}});
+  const timer=desktopSurface?0:setInterval(()=>{const side=q('#meetingOverlay .room-side');if(!document.hidden&&inMeeting()&&side&&!side.hidden)requestSync();},6000);sync();
+  window.DominionParticipantControls=Object.freeze({version:'2.0.53-event-driven-desktop-actions',sync:requestSync,sendAll,sendParticipant:send,openParticipantMenu,openParticipantChat,toggleSpotlightParticipant,renameParticipant,closeMenu,syncAllMedia,dispose:()=>{if(timer)clearInterval(timer);if(syncFrame)cancelAnimationFrame(syncFrame);localMediaUnsub?.();localMediaUnsub=null;closeMenu();closeProfileCard();prompt?.remove();renameDialog?.remove();}});
 })();

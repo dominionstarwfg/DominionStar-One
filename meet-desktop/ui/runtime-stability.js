@@ -19,6 +19,7 @@
   let physicalPrimed=false;
   let legacyPrimed=false;
   let shareOpening=false;
+  let activeSpeakerIds=[];
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
@@ -165,19 +166,39 @@
     return [...queue.children].some(node=>node.matches?.('[data-wait],[data-participant-id],[data-waiting-id],.waiting-person,.queue-card'));
   }
 
+  function speakerRank(id){
+    const index=activeSpeakerIds.indexOf(String(id||''));
+    return index<0?999:index;
+  }
+
   function participantPriority(row){
     const small=String(row.querySelector('.person-copy small')?.textContent||'').toLowerCase();
-    const self=/\byou\b|\bme\b/.test(small)||row.dataset.dsAdaptiveSelf==='1';
+    const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||/\byou\b|\bme\b/.test(small);
     const role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');
     const raised=row.dataset.raisedHand==='1'||Boolean(row.querySelector('.raised-hand-indicator'));
-    const mic=row.querySelector('.ds-participant-media .ds-media-state');
-    const micOn=Boolean(mic?.classList.contains('on'));
-    return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5;
+    const micOn=Boolean(row.querySelector('.ds-participant-media .ds-media-state.on,[data-participant-mic].on'));
+    const speaking=speakerRank(row.dataset.participantId);
+    if(role==='host')return 0;
+    if(role==='cohost')return 100;
+    if(speaking<999)return 200+speaking;
+    if(self)return 400;
+    if(raised)return 500;
+    if(micOn)return 600;
+    return 700;
   }
 
   function sortParticipants(){
     const roster=q('#participantRoster');if(!roster)return;
     const rows=participantRows();
+    for(const row of rows){
+      const speaking=speakerRank(row.dataset.participantId)<999;
+      row.classList.toggle('participant-speaking',speaking);
+      let badge=row.querySelector('.participant-speaking-badge');
+      if(speaking&&!badge){
+        badge=document.createElement('span');badge.className='participant-speaking-badge';badge.textContent='Speaking';
+        row.querySelector('.person-copy small')?.append(badge);
+      }else if(!speaking&&badge)badge.remove();
+    }
     const sorted=[...rows].sort((a,b)=>participantPriority(a)-participantPriority(b)||String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''),undefined,{numeric:true,sensitivity:'base'}));
     if(sorted.some((row,index)=>row!==rows[index])){
       const fragment=document.createDocumentFragment();for(const row of sorted)fragment.append(row);roster.append(fragment);
@@ -209,28 +230,14 @@
     canonicalizeParticipantRows();
     const count=participantRows().length;
     side.dataset.dsRuntimeCount=String(count);
-    const title=side.querySelector('.room-side-head strong');if(title)title.textContent=`Participants (${count})`;
-    const subtitle=side.querySelector('.room-side-head small');if(subtitle)subtitle.textContent=count===1?'1 person in this meeting':`${count} people in this meeting`;
-    let search=side.querySelector('.zoom-participant-search');
-    if(!search){
-      const head=side.querySelector('.room-side-head');
-      if(head){
-        search=document.createElement('div');
-        search.className='zoom-participant-search';
-        search.innerHTML='<input type="search" autocomplete="off" spellcheck="false" placeholder="Search participants" aria-label="Search participants">';
-        head.insertAdjacentElement('afterend',search);
-        const input=search.querySelector('input');
-        input?.addEventListener('input',()=>{
-          const needle=String(input.value||'').trim().toLowerCase();
-          for(const row of participantRows()){
-            const name=String(row.dataset.participantName||row.textContent||'').toLowerCase();
-            row.hidden=Boolean(needle&&!name.includes(needle));
-          }
-        });
-      }
-    }
-    if(search)search.hidden=count<7;
-    const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
+    const title=side.querySelector('.room-side-head strong'),titleText=`Participants (${count})`;
+    if(title&&title.textContent!==titleText)title.textContent=titleText;
+    const subtitle=side.querySelector('.room-side-head small'),subtitleText=count===1?'1 person in this meeting':`${count} people in this meeting`;
+    if(subtitle&&subtitle.textContent!==subtitleText)subtitle.textContent=subtitleText;
+    // Participants search has one owner: DominionZoomParticipantsReference2041.
+    // Runtime stability must never create, hide, or filter that surface.
+    const waiting=q('#waitingQueueSection'),waitingHidden=!hasWaitingPeople();
+    if(waiting&&waiting.hidden!==waitingHidden)waiting.hidden=waitingHidden;
     sortParticipants();
     const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1';
     if(dirty){
@@ -260,6 +267,7 @@
       side.dataset.dsAdaptiveMode='floating';
       side.dataset.dsRuntimePanel='participants';
       syncParticipantsSurface();
+      window.DominionZoomParticipantsReference2041?.sync?.();
     }
     layoutSideSurface();
     return show;
@@ -383,8 +391,12 @@
       const trafficSets=[...header.querySelectorAll('.ds-panel-traffic')];
       let traffic=trafficSets.find(node=>node.dataset.dsRuntimeParticipantChrome==='1')||trafficSets[0]||null;
       for(const duplicate of trafficSets){if(duplicate!==traffic)duplicate.remove();}
+      if(traffic&&traffic.tagName!=='SPAN'){
+        const replacement=document.createElement('span');replacement.className='ds-panel-traffic';replacement.innerHTML=traffic.innerHTML;
+        traffic.replaceWith(replacement);traffic=replacement;
+      }
       if(!traffic){
-        traffic=document.createElement('div');traffic.className='ds-panel-traffic';header.prepend(traffic);
+        traffic=document.createElement('span');traffic.className='ds-panel-traffic';header.prepend(traffic);
       }
       traffic.dataset.dsRuntimeParticipantChrome='1';
       traffic.setAttribute('aria-label','Participant window controls');
@@ -476,11 +488,11 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel===chat?330:318;
+      const baseWidth=panel===chat?330:392;
       const participantCount=participantRows().length;
-      const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));
+      const participantBaseHeight=Math.min(486,Math.max(438,112+(Math.max(1,participantCount)*48)+(participantCount>=7?40:0)));
       const baseHeight=panel===chat?440:participantBaseHeight;
-      const minPanelHeight=panel===chat?300:390;
+      const minPanelHeight=panel===chat?300:438;
       const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
       panel.dataset.dsRuntimeMode='floating';
@@ -506,9 +518,16 @@
         panel.style.setProperty('width',`${pw}px`,'important');
         panel.style.setProperty('height',`${ph}px`,'important');
       }else{
-        panel.style.setProperty('left','auto','important');
-        panel.style.setProperty('right','24px','important');
-        panel.style.setProperty('top',panel===chat?'46px':'18px','important');
+        const centeredLeft=Math.max(12,(bodyWidth-width)/2);
+        if(panel===participants){
+          panel.style.setProperty('left',`${centeredLeft}px`,'important');
+          panel.style.setProperty('right','auto','important');
+          panel.style.setProperty('top','18px','important');
+        }else{
+          panel.style.setProperty('left','auto','important');
+          panel.style.setProperty('right','24px','important');
+          panel.style.setProperty('top','46px','important');
+        }
         panel.style.setProperty('bottom','auto','important');
         panel.style.setProperty('height',`${Math.min(height,Math.max(minPanelHeight,bodyHeight-28))}px`,'important');
       }
@@ -554,26 +573,39 @@
     const compact=width<760;
     const userPositioned=dock.classList.contains('user-positioned');
 
-    dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right';
+    dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right';
     dock.style.setProperty('position','absolute','important');
     dock.style.setProperty('bottom','auto','important');
     dock.style.setProperty('transform','none','important');
     dock.style.setProperty('z-index','205','important');
 
     const body=dock.querySelector('.participant-video-dock-body');
+    const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
+    const count=Math.max(1,tiles.length);
+    const tileWidth=306,tileHeight=172,gap=7,padding=12,headerHeight=42;
 
     if(userPositioned){
       const dw=Math.min(Math.max(1,dock.offsetWidth||176),Math.max(1,width-16));
-      const dh=Math.min(Math.max(1,dock.offsetHeight||120),Math.max(1,height-16));
+      const panelMode=String(dock.dataset.panelMode||'strip');
+      const columns=panelMode==='gallery'&&dw>=620?2:1;
+      const rows=Math.min(5,Math.ceil(count/columns));
+      const smartHeight=Math.min(headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding,Math.max(127,height-16));
       const currentLeft=parseFloat(dock.style.left);
       const currentTop=parseFloat(dock.style.top);
       const left=clamp(Number.isFinite(currentLeft)?currentLeft:Math.max(8,width-dw-14),8,Math.max(8,width-dw-8));
-      const top=clamp(Number.isFinite(currentTop)?currentTop:14,8,Math.max(8,height-dh-8));
+      const top=clamp(Number.isFinite(currentTop)?currentTop:14,8,Math.max(8,height-smartHeight-8));
       dock.style.setProperty('left',`${left}px`,'important');
       dock.style.setProperty('top',`${top}px`,'important');
       dock.style.setProperty('right','auto','important');
+      dock.style.setProperty('height',`${smartHeight}px`,'important');
       dock.style.setProperty('max-width','calc(100% - 16px)','important');
       dock.style.setProperty('max-height','calc(100% - 16px)','important');
+      if(body){
+        body.style.setProperty('grid-template-columns',`repeat(${columns},minmax(0,1fr))`,'important');
+        body.style.setProperty('grid-auto-flow','row','important');
+        body.style.setProperty('overflow-x','hidden','important');
+        body.style.setProperty('overflow-y',rows<Math.ceil(count/columns)?'auto':'hidden','important');
+      }
       return true;
     }
 
@@ -581,28 +613,31 @@
     dock.style.removeProperty('top');
     dock.style.removeProperty('right');
     dock.style.removeProperty('width');
+    dock.style.removeProperty('height');
     dock.style.removeProperty('max-width');
     dock.style.removeProperty('max-height');
 
     if(compact){
-      dock.style.setProperty('left','14px','important');
-      dock.style.setProperty('right','14px','important');
+      const compactWidth=Math.min(224,Math.max(188,width-16));
+      const compactRows=Math.min(5,count);
+      const compactTileHeight=119;const compactHeight=Math.min(headerHeight+compactRows*compactTileHeight+Math.max(0,compactRows-1)*gap+padding,Math.max(173,height-20));
+      dock.style.setProperty('left','auto','important');
+      dock.style.setProperty('right','8px','important');
       dock.style.setProperty('top','10px','important');
-      dock.style.setProperty('width','auto','important');
-      dock.style.setProperty('max-width','calc(100% - 28px)','important');
-      dock.style.setProperty('max-height','190px','important');
+      dock.style.setProperty('width',`${compactWidth}px`,'important');
+      dock.style.setProperty('height',`${compactHeight}px`,'important');
+      dock.style.setProperty('max-width','calc(100% - 16px)','important');
+      dock.style.setProperty('max-height','calc(100% - 20px)','important');
       if(body){
-        body.style.setProperty('grid-template-columns','repeat(auto-fit,minmax(142px,1fr))','important');
-        body.style.setProperty('grid-auto-flow','column','important');
-        body.style.setProperty('overflow-x','auto','important');
-        body.style.setProperty('overflow-y','hidden','important');
+        body.style.setProperty('grid-template-columns','1fr','important');
+        body.style.setProperty('grid-auto-flow','row','important');
+        body.style.setProperty('overflow-x','hidden','important');
+        body.style.setProperty('overflow-y',count>5?'auto':'hidden','important');
       }
     }else{
-      const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
-      const count=Math.max(1,tiles.length);
-      const columns=count<=2?1:count<=6?2:3;
-      const rows=Math.min(3,Math.ceil(count/columns));
-      const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
+      const panelMode=String(dock.dataset.panelMode||'strip');
+      const columns=panelMode==='gallery'?2:1;
+      const rows=Math.min(5,Math.ceil(count/columns));
       const desiredWidth=columns*tileWidth+(columns-1)*gap+padding;
       const desiredHeight=headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding;
       dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
@@ -684,7 +719,9 @@
     }
     const share=event.target.closest?.('#roomShare');
     if(share&&meetingOpen()){
-      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();share.blur();openShareFromRuntime(share);return;
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();share.blur();
+      if(window.DominionMeetingSecurity?.allows?.('share')===false){window.DominionMeetingNotifications?.toast?.('Screen sharing unavailable','The host disabled participant screen sharing.');return;}
+      openShareFromRuntime(share);return;
     }
     const reactions=event.target.closest?.('#roomReactions');
     if(reactions&&meetingOpen()){
@@ -737,10 +774,11 @@
   window.addEventListener('dominion:meeting-snapshot',schedule);
   window.addEventListener('dominion:waiting-room-update',schedule);
   window.addEventListener('dominion:participant-presence',schedule);
+  window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.map(String):[];schedule();});
   window.addEventListener('dominion:meeting-signal',scheduleMeetingSignal);
-  window.addEventListener('dominion:meeting-ended',()=>{closeMeetingTransients();physicalPrimed=false;legacyPrimed=false;shareOpening=false;const overlay=q('#meetingOverlay');overlay?.removeAttribute('data-ds-runtime-reference-primed');if(meetingSignalTimer){clearTimeout(meetingSignalTimer);meetingSignalTimer=0;}schedule();});
+  window.addEventListener('dominion:meeting-ended',()=>{closeMeetingTransients();physicalPrimed=false;legacyPrimed=false;shareOpening=false;activeSpeakerIds=[];const overlay=q('#meetingOverlay');overlay?.removeAttribute('data-ds-runtime-reference-primed');if(meetingSignalTimer){clearTimeout(meetingSignalTimer);meetingSignalTimer=0;}schedule();});
 
   observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();setTimeout(()=>{observeMeetingVisibility();observeSideVisibility();installSnapshotDomGuards();schedule();},120);setTimeout(schedule,700);
 
-  window.DominionRuntimeStability=Object.freeze({version:'2.0.53-canonical-chat-inset',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
+  window.DominionRuntimeStability=Object.freeze({version:'2.0.54-active-speaker-authority',sync:syncDirect,schedule,setParticipants,setChat,closeChat,openShare:openShareFromRuntime,layoutSideSurface,syncVideoDockGeometry,syncParticipantsSurface,ensureToolbarZones,suppressLegacyReactionHand,retireBackgroundReconcilers,installSnapshotDomGuards});
 })();

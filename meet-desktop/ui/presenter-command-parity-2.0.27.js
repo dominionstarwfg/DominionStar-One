@@ -4,8 +4,7 @@
 
   const STYLE_ID='ds-presenter-command-parity-2-0-27';
   const TOOLBAR_PREFIX='toolbar:';
-  let installTimer=0;
-  let styleTimer=0;
+  let retryTimers=[];
 
   const normalizeCommand=raw=>{
     const command=String(raw?.command||raw||'').trim();
@@ -70,14 +69,11 @@
   function install(){
     const dispatcherReady=wrapPresenterDispatcher();
     const styleReady=ensureFloatingSharePanels();
-    if(dispatcherReady&&installTimer){clearInterval(installTimer);installTimer=0;}
-    if(styleReady&&styleTimer){clearInterval(styleTimer);styleTimer=0;}
     return {dispatcherReady,styleReady};
   }
 
-  installTimer=window.setInterval(()=>{wrapPresenterDispatcher();},40);
-  styleTimer=window.setInterval(()=>{ensureFloatingSharePanels();},80);
-  window.setTimeout(()=>{if(installTimer){clearInterval(installTimer);installTimer=0;}if(styleTimer){clearInterval(styleTimer);styleTimer=0;}install();},12000);
+  const retryDelays=[0,50,120,250,500,1000,2000,4000,8000];
+  retryTimers=retryDelays.map(delay=>window.setTimeout(()=>{const state=install();if(state.dispatcherReady&&state.styleReady){for(const timer of retryTimers){if(timer)clearTimeout(timer);}retryTimers=[];}},delay));
 
   window.addEventListener('dominion:meeting-ui-ready',install);
   window.addEventListener('dominion:meeting-ended',()=>{
@@ -85,10 +81,11 @@
   });
 
   window.DominionPresenterCommandParity=Object.freeze({
-    version:'2.0.27',
+    version:'2.0.53-bounded-install',
     normalizeCommand,
     install,
-    sync:install
+    sync:install,
+    dispose:()=>{for(const timer of retryTimers){if(timer)clearTimeout(timer);}retryTimers=[];}
   });
   install();
 })();

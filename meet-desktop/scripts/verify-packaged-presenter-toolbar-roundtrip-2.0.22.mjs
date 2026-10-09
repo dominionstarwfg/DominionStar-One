@@ -96,10 +96,25 @@ class Cdp{
     throw new Error('Timed out waiting for '+label+(last?': '+last:'')+'.\n'+stderr);
   }
   async click(selector){
-    await this.eval("document.querySelector('#toolbar')?.classList.remove('auto-hidden'); true");
+    // Only the presenter toolbar surface collapses its native BrowserWindow to
+    // the 28px idle reveal strip. Other presenter surfaces (for example the
+    // right-side video dock) must not be forced through toolbar geometry.
+    const hasToolbar=await this.eval("Boolean(document.querySelector('#toolbar'))");
+    if(hasToolbar){
+      const reveal=await this.eval("(async()=>{window.dispatchEvent(new PointerEvent('pointermove',{bubbles:true}));const result=await window.dominionDesktop?.macShare?.setToolbarHidden?.(false);document.querySelector('#toolbar')?.classList.remove('auto-hidden');return result||null;})()");
+      if(!reveal?.ok||Number(reveal?.height||0)<70)throw new Error('Native presenter window did not expand before click: '+JSON.stringify(reveal));
+      await this.wait("window.innerHeight>=70&&!document.querySelector('#toolbar')?.classList.contains('auto-hidden')",'presenter toolbar renderer resized before click',2500);
+      await sleep(210);
+    }
     const point=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
+    // Hover-first controls intentionally do not accept pointer events until the
+    // pointer enters their tile. Move first, allow the hover state to settle,
+    // then verify the intended control owns the click point.
     await this.call('Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y,button:'none'});
-    await this.call('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
+    await sleep(hasToolbar?40:90);
+    const hit=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,node=document.elementFromPoint(x,y),owner=node?.closest?.("[data-command],[data-video-more],button");return {x,y,contains:Boolean(node&&(node===el||el.contains(node))),hit:node?.getAttribute?.("data-command")||node?.getAttribute?.("data-video-more")||node?.id||node?.tagName||"",owner:owner?.getAttribute?.("data-command")||owner?.getAttribute?.("data-video-more")||owner?.id||owner?.tagName||"",target:el.getAttribute("data-command")||el.getAttribute("data-video-more")||el.id||el.tagName||"",innerHeight:window.innerHeight};})()');
+    if(!hit.contains)throw new Error('Presenter click hit-test mismatch for '+selector+': '+JSON.stringify(hit));
+    await this.call('Input.dispatchMouseEvent',{type:'mousePressed',x:hit.x,y:hit.y,button:'left',clickCount:1});
     await this.call('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
   }
   close(){try{this.socket?.close();}catch{}}
@@ -162,6 +177,16 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
   window.DominionMediaController.setMirror(true);
   const mediaState=window.DominionMediaController.snapshot();
   if(!mediaState.videoLive||!mediaState.cameraOn)throw new Error('Synthetic live camera did not initialize.');
+  const qaRoster=document.querySelector('#participantRoster');
+  if(qaRoster){
+    qaRoster.innerHTML='<div class="person-row" data-participant-id="qa-self" data-participant-self="1" data-participant-role="host" data-participant-name="QA Self"><span class="person-copy"><strong><span class="participant-name-text">QA Self</span></strong><small></small></span><span data-participant-mic class="on"></span><span data-participant-video class="on"></span></div>';
+  }
+  await window.dominionDesktop?.share?.captureState?.({
+    paused:false,micOn:false,cameraOn:true,cameraId:'',mirror:true,
+    sourceName:'QA Prestart Presenter State',shareAudio:false,optimizeVideo:false,
+    handRaised:false,recording:false,recordingPaused:false,companion:'',companionOpen:false,
+    participants:[{participantId:'qa-self',name:'QA Self',role:'host',self:true,micOn:false,cameraOn:true,avatar:''}]
+  });
   setTimeout(()=>{
     void (async()=>{
       try{
@@ -253,6 +278,11 @@ async function setupRenderer(skipShareLayout=false,diagnosticMode=''){
         console.error('QA_REAL_PRESENTER_SHARE_BEGIN');
         const shareState=await window.DominionShareController.start({name:'QA Synthetic Share',options:{shareAudio:false,optimizeVideo:false,__qaLifecycleOnlyWorker:true}});
         window.DominionShareIntegration.commitPresenterMode();
+        const qaRosterMarkup='<div class="person-row" data-participant-id="qa-self" data-participant-self="1" data-participant-role="host" data-participant-name="QA Self"><span class="person-copy"><strong><span class="participant-name-text">QA Self</span></strong><small></small></span><span data-participant-mic class="on"></span><span data-participant-video class="on"></span></div>';
+        const stabilizeQaRoster=()=>{const activeRoster=document.querySelector('#participantRoster');if(!activeRoster)return;const ids=[...activeRoster.querySelectorAll('[data-participant-id]')].map(node=>node.dataset.participantId).join(',');if(ids!=='qa-self,qa-peer')activeRoster.innerHTML=qaRosterMarkup;window.dispatchEvent(new CustomEvent('dominion:participant-presence',{detail:{qa:true}}));};
+        stabilizeQaRoster();
+        const qaRosterKeeper=setInterval(stabilizeQaRoster,60);
+        setTimeout(()=>clearInterval(qaRosterKeeper),2400);
         console.error('QA_REAL_PRESENTER_SHARE_READY active='+(shareState.active?1:0));
       }catch(error){console.error((skipShareLayout?'QA_RAW_DISPLAY_FAILURE ':'QA_REAL_PRESENTER_SHARE_FAILURE ')+String(error?.stack||error));}
     })();
@@ -310,6 +340,26 @@ try{
   assert.equal(rendererShareChrome.labelHidden,true,'Legacy renderer share-status label is visible during native Mac sharing.');
   assert.equal(rendererShareChrome.shareActive,false,'Meeting renderer entered legacy share-active layout during native Mac presenter mode.');
   stage('legacy-share-chrome-suppressed');
+  await main.eval(`(()=>{
+    window.__DOMINION_QA_LEGACY_SHARE_FLASH={count:0,events:[]};
+    const scan=()=>{
+      const inline=document.querySelector('#inlinePresenterToolbar');
+      const banner=document.querySelector('.ds-ref-share-banner');
+      const overlay=document.querySelector('#meetingOverlay');
+      const badInline=Boolean(inline&&inline.hidden===false&&getComputedStyle(inline).display!=='none'&&Number(getComputedStyle(inline).opacity||1)>.05);
+      const badBanner=Boolean(banner&&!banner.hidden&&getComputedStyle(banner).display!=='none');
+      const badLayout=Boolean(overlay?.classList.contains('share-active'));
+      if(!(badInline||badBanner||badLayout))return;
+      const state=window.__DOMINION_QA_LEGACY_SHARE_FLASH;
+      state.count+=1;
+      if(state.events.length<20)state.events.push({at:Date.now(),badInline,badBanner,badLayout});
+    };
+    scan();
+    const observer=new MutationObserver(scan);
+    observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','style','data-ds-share-companion']});
+    window.__DOMINION_QA_LEGACY_SHARE_FLASH_OBSERVER=observer;
+    return true;
+  })()`);
   await sleep(1500);
   const delayedRendererChrome=await main.eval("(()=>{const shell=document.querySelector('#meetingOverlay>.meeting-shell');const footer=document.querySelector('#meetingOverlay .meeting-footer');const appShell=document.querySelector('#appShell');const appStyle=appShell?getComputedStyle(appShell):null;return {native:document.body.classList.contains('ds-native-mac-presenter-share'),shareActive:document.querySelector('#meetingOverlay')?.classList.contains('share-active')===true,inlineHidden:document.querySelector('#inlinePresenterToolbar')?.hidden!==false,banner:Boolean(document.querySelector('.ds-ref-share-banner')),shellVisibility:shell?getComputedStyle(shell).visibility:'missing',footerDisplay:footer?getComputedStyle(footer).display:'missing',bodyBackground:getComputedStyle(document.body).backgroundColor,appShellVisibility:appStyle?.visibility||'missing',appShellOpacity:appStyle?.opacity||'missing'};})()");
   assert.equal(delayedRendererChrome.native,true,'Native Mac presenter visual authority disappeared after final-reference reconciliation.');
@@ -322,6 +372,13 @@ try{
   assert.ok(Number(delayedRendererChrome.appShellOpacity)===0,'DominionStar application workspace did not become visually transparent during native share.');
   stage('full-app-shell-suppressed');
   stage('delayed-share-reconciliation-clean');
+
+  await waitStderr(/QA_MAC_PRESTART_STATE_CACHED participants=1 camera=1/,'cached solo-host presenter state before capture start',5000);
+  const preCommandVideoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'solo-host presenter video before any presenter command');
+  const preCommandVideo=new Cdp(preCommandVideoTarget.webSocketDebuggerUrl);await preCommandVideo.connect();
+  await preCommandVideo.wait("document.visibilityState==='visible'&&(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('canvas.remote-frame');return Boolean(tile&&frame&&!frame.hidden&&frame.dataset.frameReady==='1'&&frame.width>0&&frame.height>0);})()",'solo-host live video visible before any presenter command',9000);
+  preCommandVideo.close();
+  stage('solo-host-video-visible-before-any-command');
 
   // Follow the physical user path after share activation. Hidden/occluded
   // renderer timers are not a reliable macOS liveness oracle: Chromium may
@@ -371,21 +428,30 @@ try{
 
   const videoTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-share-video.html'),'floating presenter video panel');
   video=new Cdp(videoTarget.webSocketDebuggerUrl);await video.connect();
-  await video.wait("document.querySelector('#dock')?.dataset.livePreview==='1'&&!document.querySelector('#cameraPreview')?.hidden&&document.querySelector('#cameraPreview')?.srcObject?.getVideoTracks?.()[0]?.readyState==='live'",'live camera preview in presenter video',9000);
-  const liveVideo=await video.eval("(()=>({live:document.querySelector('#dock').dataset.livePreview,previewHidden:document.querySelector('#cameraPreview').hidden,fallbackHidden:document.querySelector('#cameraFallback').hidden,trackState:document.querySelector('#cameraPreview').srcObject?.getVideoTracks?.()[0]?.readyState||''}))()");
-  assert.equal(liveVideo.live,'1');
-  assert.equal(liveVideo.previewHidden,false);
+  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('canvas.remote-frame');return Boolean(tile&&frame&&!frame.hidden&&frame.dataset.frameReady==='1'&&frame.width>0&&frame.height>0);})()",'live self camera frame in presenter video',9000);
+  const liveVideo=await video.eval("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('canvas.remote-frame');const fallback=tile?.querySelector('.video-fallback');return {self:Boolean(tile),frameHidden:frame?.hidden!==false,fallbackHidden:fallback?.hidden!==false,frameReady:frame?.dataset.frameReady==='1',frameWidth:Number(frame?.width||0),frameHeight:Number(frame?.height||0),frameAt:Number(frame?.dataset.frameAt||0)};})()");
+  assert.equal(liveVideo.self,true);
+  assert.equal(liveVideo.frameHidden,false);
   assert.equal(liveVideo.fallbackHidden,true);
-  assert.equal(liveVideo.trackState,'live','Presenter video must own a live preview track while camera state is on.');
+  assert.equal(liveVideo.frameReady,true);
+  assert.ok(liveVideo.frameWidth>=230&&liveVideo.frameHeight>=120,'Presenter video canvas did not retain a high-resolution backing surface.');
+  assert.ok(liveVideo.frameAt>0,'Presenter video canvas never received a decoded live frame.');
   stage('presenter-video-live');
+  const assertPresenterVideoVisible=async label=>{
+    const state=await video.eval("(()=>({visibility:document.visibilityState,self:Boolean(document.querySelector('.video-tile[data-self=\"1\"]')),dockHidden:document.querySelector('#dock')?.hidden===true}))()");
+    assert.equal(state.visibility,'visible',label+' hid the presenter video BrowserWindow.');
+    assert.equal(state.self,true,label+' removed the self video tile.');
+    assert.equal(state.dockHidden,false,label+' hid the presenter video dock.');
+    stage(label);
+  };
 
-  await video.wait("document.querySelector('#videoMoreButton')&&document.querySelector('#videoMoreMenu')",'presenter video quick-controls shell',5000);
-  await video.click('#videoMoreButton');
-  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===false",'presenter video quick-controls open',4000);
-  const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoMoreMenu button')].map(button=>button.textContent.trim())");
-  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Speaker View','Gallery View','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
-  await video.eval("window.dispatchEvent(new MouseEvent('mouseleave'))");
-  await video.wait("document.querySelector('#videoMoreMenu')?.hidden===true",'presenter video quick-controls dismiss when pointer leaves floating video surface',4000);
+  await video.wait("document.querySelector('.video-tile[data-self=\"1\"] [data-video-more]')&&document.querySelector('#videoActionMenu')",'presenter video per-tile controls shell',5000);
+  await video.click('.video-tile[data-self="1"] [data-video-more]');
+  await video.wait("document.querySelector('#videoActionMenu')?.hidden===false",'presenter video per-tile controls open',4000);
+  const videoMenuLabels=await video.eval("[...document.querySelectorAll('#videoActionMenu button')].map(button=>button.textContent.trim())");
+  assert.deepEqual(videoMenuLabels,['Unmute','Stop Video','Speaker View','Participant Strip','Gallery View','Hide Video Panel'],'Presenter video quick controls are incomplete or mislabeled.');
+  await video.eval("document.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))");
+  await video.wait("document.querySelector('#videoActionMenu')?.hidden===true",'presenter video per-tile controls dismiss',4000);
   stage('presenter-video-hover-controls');
 
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Unmute'",'initial muted toolbar state');
@@ -395,14 +461,14 @@ try{
   await toolbar.wait("window.DominionMacPresenterToolbar.state().micOn===true&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-off')&&document.querySelector('#audioLabel')?.textContent==='Mute'",'floating Audio state synchronized from real media',8000);
   stage('audio-real-toolbar');
 
-  const voiceMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for microphone-level bridge');
+  const voiceMainTarget=await waitTarget(item=>String(item.id||'')===String(mainTarget.id||''),'active meeting renderer for microphone-level bridge');
   const voiceMain=new Cdp(voiceMainTarget.webSocketDebuggerUrl);await voiceMain.connect();
   assert.equal(await voiceMain.eval("(()=>{if(!window.DominionShareIntegration||!window.DominionShareController?.snapshot?.().active)return false;window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:.72,speaking:true}}));return true;})()"),true,'Meeting renderer must have the active share integration before microphone activity is published.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='3'&&document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone activity meter',5000);
-  await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='3'&&document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone activity meter',5000);
+  await video.wait("document.querySelector('.video-tile[data-self=\"1\"]')?.classList.contains('speaking')",'presenter video active-speaker border',5000);
   assert.equal(await voiceMain.eval("(()=>{window.dispatchEvent(new CustomEvent('dominion:local-voice-level',{detail:{level:0,speaking:false}}));return true;})()"),true,'Meeting renderer must publish microphone idle state through the same production voice event path.');
   await toolbar.wait("document.querySelector('[data-command=\"audio\"]')?.dataset.voiceLevel==='0'&&!document.querySelector('[data-command=\"audio\"]')?.classList.contains('is-speaking')",'presenter toolbar microphone meter idle',5000);
-  await video.wait("document.querySelector('#micState')?.dataset.voiceLevel==='0'&&!document.querySelector('#micState')?.classList.contains('speaking')",'presenter video microphone meter idle',5000);
+  await video.wait("!document.querySelector('.video-tile[data-self=\"1\"]')?.classList.contains('speaking')",'presenter video active-speaker border idle',5000);
   voiceMain.close();
   stage('live-microphone-meter-roundtrip');
 
@@ -410,69 +476,99 @@ try{
   await toolbar.click('[data-command="video"]');
   await waitStderr(ackPattern('video-off'),'renderer ACK for Video',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().cameraOn===false&&document.querySelector('[data-command=\"video\"]')?.classList.contains('is-off')&&document.querySelector('#videoLabel')?.textContent==='Start Video'",'floating Video state synchronized from real media',8000);
-  await video.wait("document.querySelector('#dock')?.dataset.cameraOn==='0'&&!document.querySelector('#cameraFallback')?.hidden",'presenter panel camera-off fallback',6000);
-  const fallbackWidth=await video.eval("Math.round(document.querySelector('#profileInitials').getBoundingClientRect().width)");
-  assert.ok(fallbackWidth>=100,'Presenter camera-off profile fallback is still undersized: '+fallbackWidth+'px');
+  await video.wait("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const frame=tile?.querySelector('.remote-frame');const fallback=tile?.querySelector('.video-fallback');return document.querySelector('#dock')?.dataset.cameraOn==='0'&&Boolean(tile)&&frame?.hidden===true&&fallback?.hidden===false;})()",'presenter panel camera-off fallback',6000);
+  const fallbackState=await video.eval("(()=>{const tile=document.querySelector('.video-tile[data-self=\"1\"]');const avatar=tile?.querySelector('.fallback-avatar'),initials=tile?.querySelector('.video-fallback span');const visible=avatar&&!avatar.hidden?avatar:initials;const rect=visible?.getBoundingClientRect?.();return {width:Math.round(rect?.width||0),height:Math.round(rect?.height||0),avatarVisible:Boolean(avatar&&!avatar.hidden),initialsVisible:Boolean(initials&&!initials.hidden)};})()");
+  assert.ok(fallbackState.width>=58&&fallbackState.height>=58,'Presenter camera-off profile fallback is undersized: '+JSON.stringify(fallbackState));
   stage('video-real-toolbar');
 
   logStart=stderr.length;
   await toolbar.click('[data-command="pause"]');
-  await waitStderr(ackPattern('pause'),'renderer ACK for Pause',8000,logStart);
+  await waitStderr(ackPattern('pause-share'),'renderer ACK for Pause',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===true&&document.querySelector('#pauseLabel')?.textContent==='Resume'&&document.querySelector('#toolbar')?.classList.contains('is-paused')&&document.querySelector('#pauseGlyph path')?.getAttribute('d')==='M8 5.5 18 12 8 18.5z'",'Pause state returned to floating toolbar with amber share state and Resume/play glyph',8000);
   const pausedChrome=await toolbar.eval("(()=>{const strip=getComputedStyle(document.querySelector('.share-strip'));return {paused:document.querySelector('#toolbar')?.classList.contains('is-paused'),label:document.querySelector('#shareStateLabel')?.textContent||'',background:strip.backgroundColor};})()");
   assert.equal(pausedChrome.paused,true,'Paused presenter toolbar did not expose its paused visual state.');
   assert.match(pausedChrome.label,/paused/i,'Paused presenter status strip did not announce paused sharing.');
   stage('pause-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-pause');
 
   logStart=stderr.length;
   await toolbar.click('[data-command="pause"]');
-  await waitStderr(ackPattern('pause'),'renderer ACK for Resume',8000,logStart);
-  await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===false&&document.querySelector('#pauseLabel')?.textContent==='Pause'&&!document.querySelector('#toolbar')?.classList.contains('is-paused')&&document.querySelector('#pauseGlyph path')?.getAttribute('d')==='M8 5v14M16 5v14'",'Resume state returned to floating toolbar with active-share chrome restored',8000);
+  await waitStderr(ackPattern('resume-share'),'renderer ACK for Resume',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().paused===false&&document.querySelector('#pauseLabel')?.textContent==='Pause Share'&&!document.querySelector('#toolbar')?.classList.contains('is-paused')&&document.querySelector('#pauseGlyph path')?.getAttribute('d')==='M8 5v14M16 5v14'",'Resume state returned to floating toolbar with active-share chrome restored',8000);
   stage('resume-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-resume');
 
   logStart=stderr.length;
   await toolbar.click('[data-command="participants"]');
   await waitStderr(ackPattern('participants'),'renderer ACK for Participants',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='participants'",'Participants companion state returned to toolbar',8000);
   stage('participants-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-participants');
 
   logStart=stderr.length;
   await toolbar.click('[data-command="chat"]');
   await waitStderr(ackPattern('chat'),'renderer ACK for Chat',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='chat'",'Chat companion state returned to toolbar',8000);
   stage('chat-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-chat');
 
+  await toolbar.click('#moreButton');
+  await toolbar.wait("document.querySelector('#moreMenu')?.hidden===false",'More menu opened before Annotate',3000);
+  await assertPresenterVideoVisible('video-persistent-with-more-open');
   logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
   await waitStderr(ackPattern('annotate'),'renderer ACK for Annotate',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='annotate'",'Annotate companion state returned to toolbar',8000);
   stage('annotate-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-annotate-open');
 
   const annotationTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-annotation-toolbar.html'),'left-side native annotation palette',8000);
   const annotation=new Cdp(annotationTarget.webSocketDebuggerUrl);await annotation.connect();
   await annotation.wait("window.DominionMacAnnotationPalette&&document.visibilityState==='visible'&&document.querySelector('[data-command=\"annotate-pen\"]')",'visible native annotation palette',5000);
-  const annotationGeometry=await annotation.eval("(()=>({x:window.screenX,availLeft:window.screen.availLeft||0,width:window.innerWidth,flex:getComputedStyle(document.querySelector('.annotation-palette')).flexDirection}))()");
-  assert.ok(annotationGeometry.width>=176&&annotationGeometry.width<=192,'Annotation palette is not the approved professional width: '+annotationGeometry.width+'px');
-  assert.equal(annotationGeometry.flex,'column','Annotation palette is not vertically arranged.');
+  const annotationGeometry=await annotation.eval("(()=>{const rail=document.querySelector('.annotation-palette')?.getBoundingClientRect();return {x:window.screenX,availLeft:window.screen.availLeft||0,windowWidth:window.innerWidth,railWidth:Math.round(rail?.width||0),display:getComputedStyle(document.querySelector('.annotation-palette')).display,close:Boolean(document.querySelector('[data-command=\"annotate-close\"]'))};})()");
+  assert.ok(annotationGeometry.windowWidth>=50&&annotationGeometry.windowWidth<=56,'Annotation BrowserWindow is not compact by default: '+annotationGeometry.windowWidth+'px');
+  assert.ok(annotationGeometry.railWidth>=50&&annotationGeometry.railWidth<=54,'Annotation rail is not the approved narrow width: '+annotationGeometry.railWidth+'px');
+  assert.equal(annotationGeometry.display,'flex','Annotation palette is not a vertical flex rail.');
+  assert.equal(annotationGeometry.close,true,'Annotation rail is missing its explicit Close control.');
   assert.ok(Math.abs(Number(annotationGeometry.x)-Number(annotationGeometry.availLeft))<=28,'Annotation palette is not positioned on the left edge of the shared display.');
-  const annotationMainTarget=await waitTarget(item=>String(item.url||'').includes('/ui/index.html'),'meeting renderer for annotation engine');
+  await annotation.click('[data-flyout="style"]');
+  await annotation.wait("window.innerWidth>=176&&document.querySelector('[data-flyout-panel=\"style\"]')?.hidden===false",'annotation style flyout expansion',4000);
+  const expandedAnnotationWidth=await annotation.eval("window.innerWidth");
+  assert.ok(expandedAnnotationWidth>=176&&expandedAnnotationWidth<=192,'Annotation style flyout did not expand the native window correctly: '+expandedAnnotationWidth+'px');
+  await annotation.click('[data-flyout-panel="style"]:not([hidden]) [data-close-flyout]');
+  await annotation.wait("window.innerWidth<=56",'annotation rail collapse after flyout',4000);
+  const annotationMainTarget=await waitTarget(item=>String(item.id||'')===String(mainTarget.id||''),'active meeting renderer for annotation visibility guard');
   const annotationMain=new Cdp(annotationMainTarget.webSocketDebuggerUrl);await annotationMain.connect();
-  await annotationMain.wait("document.body.classList.contains('ds-native-mac-presenter-share')&&document.querySelector('.share-annotation-tools')&&getComputedStyle(document.querySelector('.share-annotation-tools')).display==='none'",'legacy horizontal annotation tools suppressed',5000);
+  await annotationMain.wait("(()=>{const tools=document.querySelector('.share-annotation-tools');return !tools||getComputedStyle(tools).display==='none';})()", 'legacy renderer annotation tools absent or suppressed',5000);
+  annotationMain.close();
+
+  const annotationCanvasTarget=await waitTarget(item=>String(item.url||'').includes('/ui/mac-annotation-canvas.html'),'native annotation canvas',8000);
+  const annotationCanvas=new Cdp(annotationCanvasTarget.webSocketDebuggerUrl);await annotationCanvas.connect();
+  await annotationCanvas.wait("window.DominionNativeAnnotationCanvas&&window.DominionNativeAnnotationCanvas.snapshot?.().mode==='select'",'native annotation canvas ready in pointer-select mode',5000);
+
   logStart=stderr.length;
   await annotation.click('[data-command="annotate-laser"]');
-  await waitStderr(ackPattern('annotate-laser'),'renderer ACK for native Laser tool',8000,logStart);
-  await annotationMain.wait("window.DominionShareAnnotation?.snapshot?.().mode==='laser'",'native annotation palette controls authoritative annotation mode',5000);
+  await waitStderr(ackPattern('annotate-laser'),'native ACK for Laser tool',8000,logStart);
+  await annotationCanvas.wait("window.DominionNativeAnnotationCanvas?.snapshot?.().mode==='laser'",'native annotation palette controls native canvas laser mode',5000);
+
+  await annotation.click('[data-flyout="style"]');
+  await annotation.wait("document.querySelector('[data-flyout-panel=\"style\"]')?.hidden===false&&window.innerWidth>=176",'style flyout reopened for width control',4000);
   logStart=stderr.length;
   await annotation.click('[data-command="annotate-width-thick"]');
-  await waitStderr(ackPattern('annotate-width-thick'),'renderer ACK for native annotation width',8000,logStart);
-  await annotationMain.wait("Math.abs((window.DominionShareAnnotation?.snapshot?.().widthScale||0)-1.65)<0.02",'native annotation width controls authoritative drawing width',5000);
+  await waitStderr(ackPattern('annotate-width-thick'),'native ACK for annotation width',8000,logStart);
+  await annotationCanvas.wait("Math.abs((window.DominionNativeAnnotationCanvas?.snapshot?.().width||0)-1.45)<0.02",'native annotation width controls native canvas stroke width',5000);
+
+  await annotation.click('[data-flyout="shapes"]');
+  await annotation.wait("document.querySelector('[data-flyout-panel=\"shapes\"]')?.hidden===false&&window.innerWidth>=176",'shape flyout opened for rectangle control',4000);
   logStart=stderr.length;
   await annotation.click('[data-command="annotate-shape-rect"]');
-  await waitStderr(ackPattern('annotate-shape-rect'),'renderer ACK for native rectangle tool',8000,logStart);
-  await annotationMain.wait("window.DominionShareAnnotation?.snapshot?.().mode==='rect'",'native annotation shape controls authoritative drawing mode',5000);
-  annotationMain.close();
+  await waitStderr(ackPattern('annotate-shape-rect'),'native ACK for rectangle tool',8000,logStart);
+  await annotationCanvas.wait("window.DominionNativeAnnotationCanvas?.snapshot?.().mode==='rect'",'native annotation shape controls native canvas drawing mode',5000);
+  annotationCanvas.close();
   stage('annotation-professional-palette');
 
+  await toolbar.click('#moreButton');
+  await toolbar.wait("document.querySelector('#moreMenu')?.hidden===false",'More menu opened before closing Annotate',3000);
   logStart=stderr.length;
   await toolbar.click('[data-command="annotate"]');
   await waitStderr(ackPattern('annotate-close'),'renderer ACK for explicit Annotate close',8000,logStart);
@@ -480,15 +576,23 @@ try{
   await waitStderr('QA_MAC_ANNOTATION_VISIBILITY visible=0','native annotation BrowserWindow hidden after Annotate closes',5000,logStart);
   annotation.close();
   stage('annotate-close-real-toolbar');
+  await assertPresenterVideoVisible('video-persistent-after-annotate-close');
 
-  logStart=stderr.length;
-  await toolbar.click('[data-command="new-share"]');
-  await waitStderr(ackPattern('new-share'),'renderer ACK for New Share',8000,logStart);
-  const pickerTarget=await waitTarget(item=>String(item.url||'').includes('/ui/share-picker.html'),'New Share picker from floating toolbar',8000);
-  const picker=new Cdp(pickerTarget.webSocketDebuggerUrl);await picker.connect();
-  await picker.wait("document.querySelector('#cancelTop')",'New Share picker controls',5000);
-  await picker.click('#cancelTop');picker.close();
-  stage('new-share-real-toolbar');
+  const zoomToolbarSurface=await toolbar.eval("(()=>({newShare:Boolean(document.querySelector('[data-command=\"new-share\"]')),layout:Boolean(document.querySelector('#layoutButton')),annotate:Boolean(document.querySelector('.control-strip>[data-command=\"annotate\"]')),showMeeting:Boolean(document.querySelector('.control-strip>[data-command=\"show-meeting\"]')),stopInStrip:Boolean(document.querySelector('.share-strip #stopShare')),stripTop:getComputedStyle(document.querySelector('.share-strip')).top}))()");
+  assert.equal(zoomToolbarSurface.newShare,true,'Zoom-reference presenter toolbar must expose Share as a primary control.');
+  assert.equal(zoomToolbarSurface.layout,true,'Zoom-reference presenter toolbar must expose Layout as a primary control.');
+  assert.equal(zoomToolbarSurface.annotate,true,'Zoom-reference presenter toolbar must expose Annotate as a primary control.');
+  assert.equal(zoomToolbarSurface.showMeeting,true,'Zoom-reference presenter toolbar must expose Show meeting as a primary control.');
+  assert.equal(zoomToolbarSurface.stopInStrip,true,'Stop Share must be attached to the status strip, not the black control bar.');
+  assert.equal(zoomToolbarSurface.stripTop,'60px','Visible sharing strip must sit below the black presenter toolbar.');
+  stage('zoom-reference-toolbar-surface');
+
+  const flashMainTarget=await waitTarget(item=>String(item.id||'')===String(mainTarget.id||''),'meeting renderer for full-session legacy share flash audit');
+  const flashMain=new Cdp(flashMainTarget.webSocketDebuggerUrl);await flashMain.connect();
+  const flashAudit=await flashMain.eval("(()=>{const state=window.__DOMINION_QA_LEGACY_SHARE_FLASH||{count:-1,events:[]};window.__DOMINION_QA_LEGACY_SHARE_FLASH_OBSERVER?.disconnect?.();return state;})()");
+  flashMain.close();
+  assert.equal(flashAudit.count,0,'Legacy share chrome/layout flashed during the presenter command sequence: '+JSON.stringify(flashAudit.events||[]));
+  stage('no-legacy-share-flashes-full-sequence');
 
   logStart=stderr.length;
   await toolbar.click('#stopShare');

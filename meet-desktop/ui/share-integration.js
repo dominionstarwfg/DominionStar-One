@@ -72,52 +72,146 @@
     const media=window.DominionMediaController,share=window.DominionShareController;
     const environment=await desktop?.environment?.().catch(()=>null);
     const sameRendererPresenter=String(environment?.platform||'')==='darwin';
+    const qaPresenterTrace=Boolean(environment?.qaPresenterFixtures);
     const qaKeepMacPresenterHidden=Boolean(environment?.qaKeepMacPresenterHidden);
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
+    let lastPresenterStateSignature='';
     let macRemoteFrameTimer=0;
-    const frameCanvas=document.createElement('canvas');frameCanvas.width=192;frameCanvas.height=108;
-    const frameContext=frameCanvas.getContext('2d',{alpha:false,desynchronized:true});
+    let macDockSyncTimer=0;
+    let presenterLocalParticipantId='';
+    const refreshPresenterLocalParticipantId=async()=>{
+      try{const ctx=await desktop?.meeting?.context?.();presenterLocalParticipantId=String(ctx?.participantId||presenterLocalParticipantId||'');}catch{}
+      return presenterLocalParticipantId;
+    };
+    void refreshPresenterLocalParticipantId();
+    window.addEventListener('dominion:meeting-snapshot',()=>{void refreshPresenterLocalParticipantId().then(()=>{if(sameRendererPresenter&&share.snapshot().active){publishMacPresenterState();syncMacCameraFramePump();}});});
+    window.addEventListener('dominion:remote-media-state',()=>{if(sameRendererPresenter&&share.snapshot().active)publishMacPresenterState();});
+    if(sameRendererPresenter&&macPresenter?.onShowMeeting){
+      macPresenter.onShowMeeting(payload=>{document.body.classList.toggle('ds-native-mac-show-meeting',Boolean(payload?.visible));});
+    }
+    const ensureNativeMeetingVisible=async()=>{
+      if(!sameRendererPresenter||!share.snapshot().active)return;
+      if(document.body.classList.contains('ds-native-mac-show-meeting'))return;
+      try{await macPresenter?.showMeeting?.();}catch{}
+      document.body.classList.add('ds-native-mac-show-meeting');
+    };
+    const scheduleMacVideoDockSync=(delay=40)=>{
+      if(!sameRendererPresenter)return;
+      clearTimeout(macDockSyncTimer);
+      macDockSyncTimer=setTimeout(()=>{
+        macDockSyncTimer=0;
+        if(!share.snapshot().active)return;
+        try{window.DominionMeetingParity?.syncVideoDock?.();}catch{}
+      },Math.max(0,Number(delay)||0));
+    };
+    const localPresenterMirror=document.createElement('video');
+    let localImageCapture=null,localImageCaptureTrackId='',localFrameCaptureBusy=false;
+    localPresenterMirror.autoplay=true;localPresenterMirror.playsInline=true;localPresenterMirror.muted=true;
+    localPresenterMirror.setAttribute('aria-hidden','true');
+    localPresenterMirror.style.cssText='position:fixed;left:-10000px;top:-10000px;width:2px;height:2px;opacity:.001;pointer-events:none';
+    document.body.append(localPresenterMirror);
+    const effectiveLocalCameraOn=()=>{
+      const snap=media.snapshot(),stream=media.stream();
+      return Boolean(snap.cameraOn&&snap.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'&&track.enabled!==false));
+    };
+    const syncLocalPresenterMirror=()=>{
+      if(!sameRendererPresenter||!share.snapshot().active||!effectiveLocalCameraOn()){
+        if(localPresenterMirror.srcObject)localPresenterMirror.srcObject=null;
+        return false;
+      }
+      const stream=media.stream();
+      if(localPresenterMirror.srcObject!==stream)localPresenterMirror.srcObject=stream;
+      void localPresenterMirror.play().catch(()=>{});
+      return true;
+    };
+    const frameCanvas=document.createElement('canvas');frameCanvas.width=504;frameCanvas.height=264;
+    const frameContext=frameCanvas.getContext('2d',{alpha:false,desynchronized:true,colorSpace:'srgb'});
+    if(frameContext){frameContext.imageSmoothingEnabled=true;frameContext.imageSmoothingQuality='high';}
+    const encodePresenterFrame=()=>frameCanvas.toDataURL('image/webp',.84);
     const presenterParticipants=()=>{
       const mediaState=media.snapshot(),rows=[...overlay.querySelectorAll('#participantRoster [data-participant-id]')],seen=new Set(),list=[];
       for(const row of rows){
         const id=String(row.dataset.participantId||'');if(!id||seen.has(id))continue;seen.add(id);
-        const self=row.dataset.participantSelf==='1',tile=self?null:overlay.querySelector(`#participantVideoDock .remote-peer-tile[data-participant-id="${CSS.escape(id)}"],#remoteTileStrip .remote-peer-tile[data-peer-id="${CSS.escape(id)}"]`);
+        const self=row.dataset.participantSelf==='1'||row.dataset.dsAdaptiveSelf==='1'||Boolean(presenterLocalParticipantId&&id===presenterLocalParticipantId),tile=self?null:overlay.querySelector(`#participantVideoDock .remote-peer-tile[data-participant-id="${CSS.escape(id)}"],#remoteTileStrip .remote-peer-tile[data-peer-id="${CSS.escape(id)}"]`);
         const role=String(row.dataset.participantRole||'participant').toLowerCase();
         const name=String(row.dataset.participantName||row.querySelector('.participant-name-text')?.textContent||row.querySelector('strong')?.textContent||'Participant').trim();
         const avatar=String(row.querySelector('.person-badge img')?.src||'');
         const micOn=self?Boolean(mediaState.micOn):tile?tile.dataset.micOn==='1':Boolean(row.querySelector('[data-participant-mic].on'))
-        const cameraOn=self?Boolean(mediaState.cameraOn):tile?tile.dataset.cameraOn==='1':Boolean(row.querySelector('[data-participant-video].on'))
+        const cameraOn=self?effectiveLocalCameraOn():tile?tile.dataset.cameraOn==='1':Boolean(row.querySelector('[data-participant-video].on'))
         list.push({participantId:id,name,role,self,micOn,cameraOn,avatar});
       }
       if(!list.some(item=>item.self)){
-        const selfRow=overlay.querySelector('#participantRoster [data-participant-self="1"]');
-        const id=String(selfRow?.dataset.participantId||'local-self'),name=String(selfRow?.dataset.participantName||'You').trim()||'You',role=String(selfRow?.dataset.participantRole||'participant').toLowerCase();
-        list.unshift({participantId:id,name,role,self:true,micOn:Boolean(mediaState.micOn),cameraOn:Boolean(mediaState.cameraOn),avatar:String(selfRow?.querySelector('.person-badge img')?.src||'')});
+        const selfRow=presenterLocalParticipantId
+          ?overlay.querySelector(`#participantRoster [data-participant-id="${CSS.escape(presenterLocalParticipantId)}"]`)
+          :overlay.querySelector('#participantRoster [data-participant-self="1"],#participantRoster [data-ds-adaptive-self="1"]');
+        if(selfRow){
+          const id=String(selfRow.dataset.participantId||presenterLocalParticipantId||'local-self'),name=String(selfRow.dataset.participantName||'You').trim()||'You',role=String(selfRow.dataset.participantRole||'participant').toLowerCase();
+          const existing=list.find(item=>item.participantId===id);
+          if(existing){existing.self=true;existing.micOn=Boolean(mediaState.micOn);existing.cameraOn=effectiveLocalCameraOn();}
+          else list.unshift({participantId:id,name,role,self:true,micOn:Boolean(mediaState.micOn),cameraOn:effectiveLocalCameraOn(),avatar:String(selfRow.querySelector('.person-badge img')?.src||'')});
+        }else if(list.length===0){
+          list.unshift({participantId:'local-self',name:'You',role:'participant',self:true,micOn:Boolean(mediaState.micOn),cameraOn:effectiveLocalCameraOn(),avatar:''});
+        }
       }
       return list.slice(0,12);
     };
     const publishMacRemoteFrames=()=>{
       if(!sameRendererPresenter||!share.snapshot().active||!macPresenter?.videoFrame||!frameContext)return;
-      const remoteTiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile')];
+      // Keep native presenter participant identity/state synchronized before
+      // delivering frames so the video surface never drops a valid camera frame
+      // for an ID it has not learned yet.
+      publishMacPresenterState();
+      const participantState=presenterParticipants();
+      const selfPerson=participantState.find(item=>item.self)||null;
+      if(qaPresenterTrace)console.error(`QA_MAC_FRAME_PUMP participants=${participantState.length} self=${String(selfPerson?.participantId||'')} camera=${selfPerson?.cameraOn?1:0} active=${share.snapshot().active?1:0}`);
+      const selfId=String(selfPerson?.participantId||presenterLocalParticipantId||'local-self');
+      const stateById=new Map(participantState.map(item=>[String(item.participantId||''),item]));
       const seen=new Set();
-      for(const tile of remoteTiles){
-        const id=String(tile.dataset.participantId||tile.dataset.peerId||'');if(!id||seen.has(id)||tile.dataset.cameraOn!=='1')continue;seen.add(id);
-        const video=tile.querySelector('video');if(!video||video.readyState<2||!video.videoWidth||!video.videoHeight)continue;
+      const sendVideoFrame=(video,id)=>{
+        if(!video||!id||seen.has(id)||video.readyState<2||!video.videoWidth||!video.videoHeight)return false;
         try{
           frameContext.fillStyle='#111';frameContext.fillRect(0,0,frameCanvas.width,frameCanvas.height);
           const sourceRatio=video.videoWidth/video.videoHeight,targetRatio=frameCanvas.width/frameCanvas.height;let sx=0,sy=0,sw=video.videoWidth,sh=video.videoHeight;
           if(sourceRatio>targetRatio){sw=Math.round(video.videoHeight*targetRatio);sx=Math.round((video.videoWidth-sw)/2);}else if(sourceRatio<targetRatio){sh=Math.round(video.videoWidth/targetRatio);sy=Math.round((video.videoHeight-sh)/2);}
           frameContext.drawImage(video,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
-          const dataUrl=frameCanvas.toDataURL('image/jpeg',.52);macPresenter.videoFrame({participantId:id,dataUrl,at:Date.now()});
-        }catch{}
+          const dataUrl=encodePresenterFrame();macPresenter.videoFrame({participantId:id,dataUrl,at:Date.now()});seen.add(id);return true;
+        }catch{return false;}
+      };
+      // Local presenter video mirrors the authoritative DominionMediaController
+      // stream directly. Prefer ImageCapture from the already-owned camera track
+      // so the native filmstrip never depends on an offscreen <video> reaching
+      // HAVE_CURRENT_DATA. This does not acquire a second camera stream.
+      if(selfPerson?.cameraOn){
+        const localTrack=media.stream()?.getVideoTracks?.().find(track=>track.readyState==='live'&&track.enabled!==false)||null;
+        if(localTrack&&typeof ImageCapture==='function'&&!localFrameCaptureBusy){
+          if(!localImageCapture||localImageCaptureTrackId!==localTrack.id){try{localImageCapture=new ImageCapture(localTrack);localImageCaptureTrackId=localTrack.id;}catch{localImageCapture=null;localImageCaptureTrackId='';}}
+          if(localImageCapture){
+            localFrameCaptureBusy=true;
+            void localImageCapture.grabFrame().then(bitmap=>{
+              try{
+                frameContext.fillStyle='#111';frameContext.fillRect(0,0,frameCanvas.width,frameCanvas.height);
+                const sourceRatio=bitmap.width/bitmap.height,targetRatio=frameCanvas.width/frameCanvas.height;let sx=0,sy=0,sw=bitmap.width,sh=bitmap.height;
+                if(sourceRatio>targetRatio){sw=Math.round(bitmap.height*targetRatio);sx=Math.round((bitmap.width-sw)/2);}else if(sourceRatio<targetRatio){sh=Math.round(bitmap.width/targetRatio);sy=Math.round((bitmap.height-sh)/2);}
+                frameContext.drawImage(bitmap,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
+                const dataUrl=encodePresenterFrame();if(qaPresenterTrace)console.error(`QA_MAC_FRAME_GENERATED participant=${selfId} bytes=${dataUrl.length}`);macPresenter.videoFrame({participantId:selfId,dataUrl,at:Date.now()});
+              }catch{}finally{try{bitmap.close?.();}catch{}}
+            }).catch(error=>{if(qaPresenterTrace)console.error(`QA_MAC_FRAME_GRAB_FAILED ${String(error?.message||error||'unknown')}`);if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);}).finally(()=>{localFrameCaptureBusy=false;});
+          }else if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
+        }else if(syncLocalPresenterMirror())sendVideoFrame(localPresenterMirror,selfId);
+      }
+      const tiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile')];
+      for(const tile of tiles){
+        const id=String(tile.dataset.participantId||tile.dataset.peerId||''),person=stateById.get(id)||null;
+        if(!id||seen.has(id)||!(person?.cameraOn||tile.dataset.cameraOn==='1'))continue;
+        sendVideoFrame(tile.querySelector('video'),id);
       }
     };
     const stopMacRemoteFramePump=()=>{if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}};
     const syncMacCameraFramePump=()=>{
       if(!sameRendererPresenter||!share.snapshot().active){stopMacRemoteFramePump();return;}
-      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(()=>{publishMacRemoteFrames();publishMacPresenterState();},360);
+      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(publishMacRemoteFrames,66);
       publishMacRemoteFrames();
     };
     let lastVoiceSentAt=0,lastVoiceSpeaking=false,lastVoiceLevel=0;
@@ -130,7 +224,10 @@
       const changed=speaking!==lastVoiceSpeaking||Math.abs(level-lastVoiceLevel)>=.08;
       if(!changed&&now-lastVoiceSentAt<90)return;
       lastVoiceSentAt=now;lastVoiceSpeaking=speaking;lastVoiceLevel=level;
-      try{bridge?.voiceLevel?.({level,speaking});}catch{}
+      try{
+        if(qaPresenterTrace)console.error(`QA_MAC_VOICE_SEND level=${level.toFixed(3)} speaking=${speaking?1:0} active=${share.snapshot().active?1:0}`);
+        bridge?.voiceLevel?.({level,speaking});
+      }catch{}
     };
     window.addEventListener('dominion:local-voice-level',forwardVoiceLevel);
 
@@ -164,19 +261,30 @@
       }
     }
 
+    function lockNativeAnnotationRenderer(){
+      if(!sameRendererPresenter||!share.snapshot().active)return;
+      document.body.classList.add('ds-native-mac-presenter-share');
+      const tools=document.querySelector('.share-annotation-tools');
+      if(tools)tools.style.setProperty('display','none','important');
+    }
+
     function publishMacPresenterState(){
       if(!sameRendererPresenter||!share.snapshot().active)return;
       const state=share.snapshot(),mediaState=media.snapshot(),featureState=window.DominionMeetingFeatures?.snapshot?.()||{};
       try{
-        const pending=bridge?.captureState?.({
-          paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,
+        const payload={
+          paused:state.paused,micOn:mediaState.micOn,cameraOn:effectiveLocalCameraOn(),
           cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,
           sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),
           optimizeVideo:Boolean(state.options?.optimizeVideo),
           handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),
           recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,
           companionOpen:Boolean(companionKind),participants:presenterParticipants()
-        });
+        };
+        const signature=JSON.stringify(payload);
+        if(signature===lastPresenterStateSignature)return;
+        lastPresenterStateSignature=signature;
+        const pending=bridge?.captureState?.(payload);
         void Promise.resolve(pending).catch(()=>{});
       }catch{}
     }
@@ -221,19 +329,19 @@
         if(sameRendererPresenter){if(sharedVideo.srcObject)sharedVideo.srcObject=null;}
         else if(sharedVideo.srcObject!==output)sharedVideo.srcObject=output;
         label.innerHTML=`<strong>${state.paused?'Paused':state.annotating?'Annotating':'Sharing'}</strong> · ${String(state.sourceName||'Shared content').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}`;
-        // Zoom-style macOS presenter mode already keeps the participant/video
-        // dock available. Do not duplicate the local camera into a second
-        // presenter video element; duplicating the camera pipeline while share
-        // is active can stall Chromium's renderer on physical Mac.
-        if(sameRendererPresenter){if(cameraTile.srcObject)cameraTile.srcObject=null;cameraTile.hidden=true;}
-        else{const local=media.stream();if(cameraTile.srcObject!==local)cameraTile.srcObject=local;cameraTile.hidden=!mediaState.videoLive;}
-      }else{document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
-      // On macOS, do not rebuild/rebind the Zoom-style video dock inside the
-      // same transaction that flips Share to active. The existing dock remains
-      // visually present, but media rebinding is deferred to normal meeting
-      // updates so presenter controls stay responsive.
-      if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
-      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind),participants:presenterParticipants()});
+        // The participant video dock is the single visible camera authority
+        // during every share session, including when viewing another participant's
+        // share. Never create a detached local camera tile beside the smart dock.
+        if(cameraTile.srcObject)cameraTile.srcObject=null;
+        cameraTile.hidden=true;
+      }else{clearTimeout(macDockSyncTimer);macDockSyncTimer=0;document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');sharedVideo.srcObject=null;cameraTile.srcObject=null;cameraTile.hidden=true;presenterCommitted=false;window.DominionShareAnnotation?.deactivate?.();clearCompanion();}
+      // On macOS, defer the video-dock reconciliation out of the share-state
+      // transaction, but do not skip it. Skipping it leaves a previously hidden
+      // local tile hidden for the entire share session, so the presenter cannot
+      // mirror live camera frames.
+      if(sameRendererPresenter&&state.active)scheduleMacVideoDockSync(40);
+      else window.DominionMeetingParity?.syncVideoDock?.();
+      const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:effectiveLocalCameraOn(),cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind),participants:presenterParticipants()});
       syncMacCameraFramePump();
     }
 
@@ -241,9 +349,14 @@
       const state=share.snapshot();
       if(!state.active||presenterCommitted)return false;
       presenterCommitted=true;
-      // macOS presenter controls live in this renderer. Crossing into the main
-      // process here caused the active capture renderer to stall on physical Mac.
-      if(!sameRendererPresenter)bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
+      // Native macOS presenter mode becomes authoritative here. Seed presenter
+      // state and camera-frame transport immediately so initial video delivery
+      // cannot depend on a later share-listener or media-listener turn.
+      if(sameRendererPresenter){
+        publishMacPresenterState();
+        syncLocalPresenterMirror();
+        syncMacCameraFramePump();
+      }else bridge?.presenterCommitted?.({sourceName:state.sourceName,paused:state.paused});
       return true;
     }
 
@@ -298,6 +411,7 @@
 
     button.addEventListener('click',event=>{
       event.currentTarget.blur();
+      if(!share.snapshot().active&&window.DominionMeetingSecurity?.allows?.('share')===false){toast('The host disabled participant screen sharing.','error');return;}
       if(!bridge){toast('Screen sharing runs in the installed DominionStar Meet app.');return;}
       if(share.snapshot().active){toast('A share is already active. Use the floating presenter toolbar to pause, start a new share, or stop.');return;}
       queueMicrotask(()=>{void beginShare().catch(error=>toast(error?.message||'Unable to open screen sharing.','error'));});
@@ -323,9 +437,18 @@
 
     let shareWasActive=Boolean(share.snapshot().active);
     function cleanupStoppedShareSurfaces(){
+      lastPresenterStateSignature='';
+      stopMacCameraFramePump();stopMacRemoteFramePump();
+      document.body.classList.remove('ds-native-mac-presenter-share','ds-native-mac-show-meeting');
+      overlay.classList.remove('share-active','ds-ref-presenter-visible');
       try{window.DominionShareRuntimeAuthority2041?.close?.();}catch{}
       try{const pending=desktop?.sharePicker?.cancel?.();void Promise.resolve(pending).catch(()=>{});}catch{}
       try{window.DominionActiveShareHomeParity2041?.restoreMeeting?.();}catch{}
+      // The green perimeter/toolbar/video dock are separate native BrowserWindows.
+      // Explicitly notify the main process whenever renderer share state becomes
+      // inactive so a stopped, failed, or replaced capture can never leave stale
+      // presenter chrome on screen.
+      try{const stopped=desktop?.share?.captureStopped?.();void Promise.resolve(stopped).catch(()=>{});}catch{}
     }
     share.onChange(state=>{
       // Physical-Mac diagnostic isolation: prove whether capture itself or the
@@ -333,10 +456,17 @@
       // starvation. Production never sets this flag.
       if(!window.__DOMINION_QA_SKIP_SHARE_LAYOUT)applyLayout();
       const active=Boolean(state?.active);
-      if(shareWasActive&&!active){stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}
+      if(sameRendererPresenter&&active){
+        // applyLayout intentionally returns early in native presenter mode.
+        // Publish the authoritative share state separately so Pause/Resume and
+        // other share-only transitions immediately reach the floating surfaces.
+        publishMacPresenterState();
+        syncMacCameraFramePump();
+      }
+      if(!active&&(shareWasActive||document.body.classList.contains('ds-native-mac-presenter-share')||overlay.classList.contains('share-active')))cleanupStoppedShareSurfaces();
       shareWasActive=active;
     });
-    media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter){publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});
+    media.onChange(()=>{if(!share.snapshot().active){if(localPresenterMirror.srcObject)localPresenterMirror.srcObject=null;return;}if(sameRendererPresenter){syncLocalPresenterMirror();publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});
 
     const companionObserver=new MutationObserver(()=>{
       if(!share.snapshot().active||!companionKind)return;
@@ -352,21 +482,36 @@
       const qaCommandId=Number(rawCommand?.qaCommandId||0)||0;
       if(qaCommandId>0)console.error(`QA_PRESENTER_RENDERER_DISPATCH id=${qaCommandId} command=${command}`);
       window.dispatchEvent(new CustomEvent('dominion:presenter-command-dispatch',{detail:{command,qaCommandId}}));
+      const finish=result=>{try{window.DominionPhysicalDiagnostics?.record?.('presenter-command-result',{command,qaCommandId,...(result||{})});}catch{}return result;};
       try{
-        // Pause/Resume already emits the authoritative share state, and that
-        // listener updates the inline presenter toolbar synchronously. Do not
-        // run a second DOM/layout transaction in the promise continuation.
-        if(command==='pause'){await share.togglePause(sharedVideo);return {handled:true,command};}
-        if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}
+        // Pause/Resume uses explicit target commands so direct execution plus
+        // an acknowledged fallback can never toggle twice and cancel itself.
+        if(command==='pause'||command==='pause-share'||command==='resume-share'){
+          const current=Boolean(share.snapshot().paused);
+          const target=command==='pause-share'?true:command==='resume-share'?false:!current;
+          if(target!==current){
+            if(target)await share.pause(sharedVideo);
+            else await share.resume();
+          }
+          const actualPaused=Boolean(share.snapshot().paused);
+          if(actualPaused!==target)return finish({handled:false,command,target,paused:actualPaused,error:'pause_state_not_reached'});
+          return finish({handled:true,command,target,paused:actualPaused});
+        }
+        if(command==='stop'){clearCompanion();await share.stop();return finish({handled:true,command});}
         if(command==='audio'||command==='audio-on'||command==='audio-off'){
           const target=command==='audio-on'?true:command==='audio-off'?false:!media.snapshot().micOn;
           console.info('[DominionStar Meet] presenter AV intent',{kind:'microphone',target,command});
-          await media.setMicrophone(target);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command,target};
+          await media.setMicrophone(target);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return finish({handled:true,command,target,actual:Boolean(media.snapshot().micOn)});
         }
         if(command==='video'||command==='video-on'||command==='video-off'){
           const target=command==='video-on'?true:command==='video-off'?false:!media.snapshot().cameraOn;
           console.info('[DominionStar Meet] presenter AV intent',{kind:'camera',target,command});
-          await media.setCamera(target);if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command,target};
+          await media.setCamera(target);
+          if(sameRendererPresenter){scheduleMacVideoDockSync(0);publishMacPresenterState();syncMacCameraFramePump();}
+          else applyLayout();
+          const videoState=media.snapshot(),actualCamera=Boolean(videoState.cameraOn),videoLive=Boolean(videoState.videoLive);
+          if(actualCamera!==target||(target&&!videoLive))return finish({handled:false,command,target,actual:actualCamera,videoLive,error:'camera_state_not_reached'});
+          return finish({handled:true,command,target,actual:actualCamera,videoLive});
         }
         if(command.startsWith('participant:')){
           const parts=command.split(':'),action=String(parts[1]||''),id=decodeURIComponent(parts.slice(2).join(':')||'');
@@ -398,16 +543,20 @@
         if(command==='annotate'){
           window.DominionRuntimeStability?.setParticipants?.(false);
           window.DominionRuntimeStability?.setChat?.(false);
+          lockNativeAnnotationRenderer();
           const active=Boolean(window.DominionShareAnnotation?.toggle?.());
+          lockNativeAnnotationRenderer();
           setCompanion(active?'annotate':'');
           if(!sameRendererPresenter)applyLayout();
           return {handled:true,command};
         }
         if(command.startsWith('annotate-')){
+          lockNativeAnnotationRenderer();
           const annotation=window.DominionShareAnnotation;
           const action=command.slice('annotate-'.length);
           if(action==='close'){annotation?.deactivate?.();clearCompanion();return {handled:true,command};}
           if(!annotation?.snapshot?.().active)annotation?.activate?.();
+          lockNativeAnnotationRenderer();
           if(['pen','highlight','laser','erase'].includes(action))annotation?.setMode?.(action);
           else if(action.startsWith('shape-'))annotation?.setMode?.(action.slice('shape-'.length));
           else if(action.startsWith('width-'))annotation?.setWidth?.(action.slice('width-'.length));
@@ -422,6 +571,13 @@
           return {handled:true,command};
         }
         if(command==='new-share'){await openPickerWithPermission();return {handled:true,command};}
+        if(command==='polls'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openPolls?.();return {handled:true,command};}
+        if(command==='whiteboard'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openWhiteboard?.();return {handled:true,command};}
+        if(command==='apps'){await ensureNativeMeetingVisible();window.DominionMeetingTools?.openApps?.();return {handled:true,command};}
+        if(command==='host-tools'){await ensureNativeMeetingVisible();const host=q('#roomHostTools');if(host&&!host.hidden){window.DominionMeetingParity?.openSecurity?.(host);return {handled:true,command};}return {handled:false,command,error:'host_tools_unavailable'};}
+        if(command==='audio-settings'){await ensureNativeMeetingVisible();const d=q('#settingsDialog');if(d&&!d.open)d.showModal();void window.DominionAVSettings?.openAudio?.();return {handled:true,command};}
+        if(command==='video-settings'){await ensureNativeMeetingVisible();const d=q('#settingsDialog');if(d&&!d.open)d.showModal();void window.DominionAVSettings?.openVideo?.();return {handled:true,command};}
+        if(command==='captions'){await ensureNativeMeetingVisible();q('#roomCaptions')?.click();return {handled:true,command};}
         if(command==='layout-speaker'){window.DominionMeetingFeatures?.setVideoLayout?.('speaker');return {handled:true,command};}
         if(command==='layout-gallery'){window.DominionMeetingFeatures?.setVideoLayout?.('gallery');return {handled:true,command};}
         if(command==='layout-hide'){window.DominionMeetingFeatures?.setVideoLayout?.('hide');return {handled:true,command};}
@@ -431,7 +587,7 @@
         if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='show-meeting'){clearCompanion();window.focus();return {handled:true,command};}
         return {handled:false,command};
-      }catch(error){toast(error?.message||'Share control failed.','error');return {handled:false,command,error:String(error?.message||error||'share_control_failed')};}
+      }catch(error){toast(error?.message||'Share control failed.','error');return finish({handled:false,command,error:String(error?.message||error||'share_control_failed')});}
     }
     window.__DominionPresenterDispatch=dispatchPresenterCommand;
     bridge?.onPresenterCommand?.(rawCommand=>dispatchPresenterCommand(rawCommand));
