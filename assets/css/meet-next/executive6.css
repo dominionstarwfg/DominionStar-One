@@ -281,8 +281,8 @@ body:not(.presentation-active) .reaction-layer{right:0}
 .waiting-room-pulse{display:flex;justify-content:center;gap:8px;margin:24px 0 4px}.waiting-room-pulse i{width:8px;height:8px;border-radius:50%;background:#2d8cff;animation:waitingPulse 1.25s infinite ease-in-out}.waiting-room-pulse i:nth-child(2){animation-delay:.16s}.waiting-room-pulse i:nth-child(3){animation-delay:.32s}@keyframes waitingPulse{0%,80%,100%{opacity:.28;transform:scale(.78)}40%{opacity:1;transform:scale(1.12)}}
 .meeting.waiting-room-active .stage,.meeting.waiting-room-active .meeting-topbar{visibility:hidden!important}.meeting.waiting-room-active .toolbar{z-index:75}.meeting.waiting-room-active .toolbar .tool-button:not(.leave),.meeting.waiting-room-active .toolbar .tool-arrow{opacity:.32}
 .device-menu .toggle-option{min-height:48px}.device-menu .menu-switch{width:44px;height:25px}.device-menu .menu-switch i{width:19px;height:19px}.device-menu .toggle-option[aria-checked="true"] .menu-switch i{transform:translateX(19px)}
-.filmstrip{width:244px!important;max-width:min(31vw,272px)!important;touch-action:none;cursor:grab}.filmstrip.is-dragging{cursor:grabbing!important;user-select:none;box-shadow:0 26px 80px #000d}.filmstrip .remote-tile{min-height:132px!important}.filmstrip-track{max-height:calc(5 * 132px + 4 * 7px)!important;gap:7px!important}.dock-grip{pointer-events:none;opacity:.7}
-@media(max-width:900px){.filmstrip{width:202px!important}.filmstrip .remote-tile{min-height:110px!important}.filmstrip-track{max-height:calc(5 * 110px + 4 * 6px)!important}}
+
+
 
 
 /* RC7.3 — immediate controls and true two-axis floating dock */
@@ -418,9 +418,9 @@ body:not(.presentation-active) .reaction-layer{right:0}
 
 
 /* RC8.4 — reliable unmute requests and wider Zoom-style dock controls */
-.filmstrip{width:278px!important;max-width:min(36vw,308px)!important}
-.filmstrip .remote-tile{min-height:148px!important}
-.filmstrip-track{max-height:calc(5 * 148px + 4 * 7px)!important}
+
+
+
 .tile-hover-actions{
   position:absolute;
   top:8px;
@@ -475,13 +475,13 @@ body:not(.presentation-active) .reaction-layer{right:0}
 .meet-unmute-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;margin-top:8px}
 .meet-unmute-actions button{min-width:112px;padding:10px 14px;border:0;border-radius:9px;background:#303640;color:#fff;font-weight:700;cursor:pointer}
 .meet-unmute-actions .primary-action{background:#2d8cff}
-@media(max-width:900px){.filmstrip{width:224px!important}.filmstrip .remote-tile{min-height:119px!important}.filmstrip-track{max-height:calc(5 * 119px + 4 * 6px)!important}.tile-hover-actions .tile-quick-mic{min-width:96px;padding:0 9px;font-size:11px}}
+
 
 
 /* RC8.5 — roomy dock actions and clean notification surface */
-.filmstrip{width:318px!important;max-width:min(42vw,344px)!important}
-.filmstrip .remote-tile{min-height:164px!important}
-.filmstrip-track{max-height:calc(5 * 164px + 4 * 7px)!important}
+
+
+
 .tile-hover-actions{left:auto!important;right:10px!important;max-width:calc(100% - 20px)!important}
 .tile-hover-actions .tile-quick-mic{min-width:148px!important;max-width:190px!important;padding:0 16px!important;font-size:13px!important;overflow:hidden;text-overflow:ellipsis}
 .tile-hover-actions .tile-menu{flex:0 0 38px!important;width:38px!important}
@@ -530,3 +530,5 @@ body.local-presentation-active .toolbar{display:none!important}
 .participant-panel-traffic:hover .traffic-restore::after{content:"↗";font-size:7px;opacity:1}
 .participants-panel.is-panel-minimized{height:52px!important;min-height:52px!important;resize:none!important;overflow:hidden!important}
 .participants-panel.is-panel-minimized>:not(header){display:none!important}
+
+/* Final participant-dock geometry is owned exclusively by /assets/css/meet/dock-layout-v2.css. */
