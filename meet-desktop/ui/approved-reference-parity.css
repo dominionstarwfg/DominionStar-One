@@ -241,7 +241,7 @@
 }
 #participantVideoDock[data-approved-filmstrip="1"] .participant-video-dock-body{
   gap:7px !important;
-  padding:0 !important;
+  padding:0 6px !important;
   background:transparent !important;
   overflow-x:hidden !important;
   overflow-y:auto !important;
@@ -355,7 +355,7 @@
   display:none !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"][data-panel-mode="gallery"]{
-  width:619px !important;
+  width:631px !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"][data-panel-mode="gallery"] .participant-video-dock-body{
   grid-template-columns:repeat(2,306px) !important;
@@ -411,7 +411,8 @@
   right:14px !important;
   top:14px !important;
   bottom:auto !important;
-  width:auto !important;
+  width:318px !important;
+  max-width:calc(100% - 28px) !important;
   max-height:calc(100% - 28px) !important;
 }
 #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage) .participant-video-dock-body{
@@ -425,15 +426,23 @@
     right:8px !important;
     top:10px !important;
     bottom:auto !important;
-    width:160px !important;
+    width:224px !important;
     max-width:calc(100% - 16px) !important;
     max-height:calc(100% - 20px) !important;
   }
   #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage) .participant-video-dock-body{
-    grid-template-columns:1fr !important;
+    grid-template-columns:212px !important;
     grid-auto-flow:row !important;
     overflow-x:hidden !important;
     overflow-y:auto !important;
+  }
+  #meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage) .remote-peer-tile{
+    width:212px !important;
+    min-width:212px !important;
+    max-width:212px !important;
+    height:119px !important;
+    min-height:119px !important;
+    max-height:119px !important;
   }
 }
 
