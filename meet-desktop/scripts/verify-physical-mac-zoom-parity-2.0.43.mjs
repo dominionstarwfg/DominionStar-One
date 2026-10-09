@@ -53,7 +53,7 @@ assert(toolbarPartition&&videoPartition&&toolbarPartition!==videoPartition,'Floa
 assert(macPresenter.includes('QA_MAC_PRESENTER_PROCESS_BOUNDARY'),'Mac presenter runtime must expose process-boundary proof for physical QA.');
 assert(
   macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide';}") &&
-  macPresenter.includes("const participantCount=Math.max(1,Math.min(5,presenterParticipantCount()||1));") &&
+  macPresenter.includes("const participantCount=Math.max(1,Math.min(5,presenterParticipantCount()||1));") &&macPresenter.includes('const seen=new Set();')&&macPresenter.includes('return seen.size;') &&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)") &&
   macPresenter.includes("if(isAlive(videoWindow)&&shouldShowVideoWindow()){") &&
   !macPresenter.includes("function shouldShowVideoWindow(){return videoLayout!=='hide'&&presenterParticipantCount()>=1;}"),
@@ -85,7 +85,7 @@ assert(
   'Native presenter toolbar must preserve the Zoom-reference control order, longer toolbar geometry, shorter status strip below the controls, attached Stop Share, paused amber state and independent idle auto-hide.'
 );
 assert(
-  parity.includes("const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v2';")&&
+  parity.includes("const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v3';")&&parity.includes("localStorage.removeItem('ds_zoom_video_dock_geometry_v2')")&&
   parity.includes("const PANEL_KEY='ds_zoom_participant_panel_geometry_v2';")&&
   runtime.includes("const centeredLeft=Math.max(12,(bodyWidth-width)/2);")&&
   runtime.includes("if(panel===participants){")&&
@@ -343,7 +343,7 @@ assert(
   integration.includes("inlinePresenter.hidden=true;") &&
   integration.includes("label.hidden=true;") &&
   integration.includes("sharedVideo.hidden=true;") &&
-  integration.includes("cameraTile.hidden=true;") &&
+  integration.includes("cameraTile.hidden=true;") &&integration.includes('The participant video dock is the single visible camera authority') &&
   integration.includes("document.body.classList.add('ds-native-mac-presenter-share')") &&
   integration.includes("overlay.classList.remove('share-active','ds-ref-presenter-visible')"),
   'Active Mac sharing must hard-hide every renderer-owned share toolbar/status/video surface so only native presenter chrome is visible.'
@@ -742,7 +742,7 @@ assert(
 /* PHYSICAL_MAC_2_0_50_REFERENCE_GEOMETRY_LOCK */
 assert(
   macPresenter.includes('const width=Math.min(780,Math.max(560,area.width-28));')&&
-  macPresenter.includes('const participantCount=Math.max(1,Math.min(5,presenterParticipantCount()||1));')&&
+  macPresenter.includes('const participantCount=Math.max(1,Math.min(5,presenterParticipantCount()||1));')&&macPresenter.includes('const seen=new Set();')&&macPresenter.includes('return seen.size;')&&
   macPresenter.includes('let width=252,height=166;')&&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);")&&
   macPresenter.includes('let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
