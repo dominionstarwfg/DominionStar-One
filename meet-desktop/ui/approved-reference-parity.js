@@ -5,7 +5,7 @@
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomMore','roomExitButton'];
   const HOST_TOOLBAR_ORDER=['roomMic','roomCamera','roomParticipants','roomChat','roomReactions','roomRaiseHand','roomShare','roomHostTools','roomMore','roomExitButton'];
-  const remoteAvatars=new Map(),profileSentTo=new Set();
+  const remoteAvatars=new Map();
   let chatTargetMenu=null;
   let observer=null;
   let timer=0;
@@ -33,7 +33,7 @@
   function ownProfile(){
     const name=String(q('#profileName')?.textContent||q('#profileDialogName')?.textContent||q('#stageName')?.textContent||'DominionStar Member').trim();
     const url=safeAvatar(q('#profileAvatar img')?.src||q('#profileDialogAvatar img')?.src||'');
-    if(url!==lastOwnAvatar){lastOwnAvatar=url;profileSentTo.clear();}
+    if(url!==lastOwnAvatar){lastOwnAvatar=url;}
     return {name,url};
   }
 
@@ -72,15 +72,9 @@
   }
 
   async function broadcastOwnProfile(snapshot){
-    const bridge=window.dominionDesktop?.meeting,own=ownProfile();
-    if(!bridge?.context||!bridge?.sendSignal||!own.url||own.url.length>4096)return;
-    let ctx=null;try{ctx=await bridge.context();}catch{return;}
-    const selfId=String(ctx?.participantId||'');
-    for(const participant of snapshot?.participants||[]){
-      const id=String(participant?.participantId||'');if(!id||id===selfId||profileSentTo.has(id))continue;
-      profileSentTo.add(id);
-      bridge.sendSignal(id,'profile',{avatarUrl:own.url,displayName:own.name}).catch(()=>profileSentTo.delete(id));
-    }
+    // Profile/avatar identity is server-backed and already arrives through the
+    // meeting snapshot. Do not create a second signaling protocol for it.
+    void snapshot;
   }
 
   function ensureTransportSecurityIndicator(){
@@ -201,12 +195,12 @@
   window.addEventListener('dominion:meeting-ui-ready',requestSync);
   window.addEventListener('dominion:meeting-snapshot',event=>{for(const participant of event.detail?.participants||[]){const id=String(participant?.participantId||''),url=safeAvatar(participant?.avatarUrl||'');if(id&&url)remoteAvatars.set(id,url);}void broadcastOwnProfile(event.detail);requestSync();});
   window.addEventListener('dominion:meeting-signal',event=>{const detail=event.detail||{};if(detail.type!=='profile')return;const id=String(detail.fromParticipantId||''),url=safeAvatar(detail.payload?.avatarUrl||'');if(id){if(url)remoteAvatars.set(id,url);else remoteAvatars.delete(id);requestSync();}});
-  window.addEventListener('dominion:meeting-ended',()=>{remoteAvatars.clear();profileSentTo.clear();lastOwnAvatar='';requestSync();});
+  window.addEventListener('dominion:meeting-ended',()=>{remoteAvatars.clear();lastOwnAvatar='';requestSync();});
   window.addEventListener('dominion:meeting-snapshot',requestSync);
   window.addEventListener('resize',requestSync);
   observer=new MutationObserver(requestSync);
   for(const root of [q('#meetingOverlay'),q('#prejoinOverlay'),q('#appShell')])if(root)observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);sync();
 
-  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.45-event-driven-profile-first',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,syncProfilePictures,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();remoteAvatars.clear();profileSentTo.clear();}});
+  window.DominionApprovedReferenceParity=Object.freeze({version:'2.0.45-event-driven-profile-first',toolbarOrder:[...TOOLBAR_ORDER],hostToolbarOrder:[...HOST_TOOLBAR_ORDER],sync,requestSync,arrangeToolbar,ensureRaiseHandControl,syncReactionLabel,syncToolbarRoleState,syncChatNavigation,syncVideoPanel,syncProfilePictures,dispose:()=>{clearInterval(timer);observer.disconnect();closeChatTargetMenu();remoteAvatars.clear();}});
 })();
