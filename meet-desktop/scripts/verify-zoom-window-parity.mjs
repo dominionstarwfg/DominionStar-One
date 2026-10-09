@@ -26,8 +26,8 @@ assert(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'r
 assert(runtime.includes("if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}"),'Default participant video dock must remain right and vertical.');
 assert(runtime.includes("dock.style.setProperty('right','14px','important')"),'Default meeting windows must keep the participant video dock on the right edge.');
 assert(!runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Default participant video must not regress to an automatic horizontal top strip.');
-assert(runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must become a horizontal filmstrip.');
-assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Wide dock must return to a vertical filmstrip.');
+assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Default participant video must remain a vertical filmstrip.');
+assert(runtime.includes("if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}"),'Only explicit user positioning may change the default right-side vertical dock.');
 assert(
   runtime.includes("let search=side.querySelector('.zoom-participant-search');") &&
   runtime.includes("search=document.createElement('div');") &&
