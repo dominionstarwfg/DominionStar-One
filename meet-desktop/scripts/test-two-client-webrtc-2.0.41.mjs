@@ -163,8 +163,13 @@ try{
   await host.evaluate(({guestId})=>window.dominionDesktop.meeting.sendSignal(guestId,'host:stop-video',{at:new Date().toISOString()}),{guestId:ids[1]});
   await guest.waitForFunction(()=>window.DominionMediaController.snapshot().cameraOn===false,null,{timeout:6000});
 
+  await host.evaluate(({guestId,hostId})=>window.dominionDesktop.meeting.sendSignal(guestId,'recording-state',{active:true,paused:false,name:'QA Host',participantId:hostId,at:new Date().toISOString()}),{guestId:ids[1],hostId:ids[0]});
+  await guest.waitForFunction(()=>document.querySelector('#meetingRecordingIndicator')?.hidden===false&&document.querySelector('#meetingRecordingOwner')?.textContent==='QA Host',null,{timeout:6000});
+  await host.evaluate(({guestId,hostId})=>window.dominionDesktop.meeting.sendSignal(guestId,'recording-state',{active:false,paused:false,name:'QA Host',participantId:hostId,at:new Date().toISOString()}),{guestId:ids[1],hostId:ids[0]});
+  await guest.waitForFunction(()=>document.querySelector('#meetingRecordingIndicator')?.hidden===true,null,{timeout:6000});
+
   const guestSignalTypes=await guest.evaluate(()=>window.__qaSignalEvents.map(item=>item.type));
-  for(const required of ['chat','host:mute','host:stop-video'])assert.ok(guestSignalTypes.includes(required),`Guest never received ${required} through the shared meeting signaling channel.`);
+  for(const required of ['chat','host:mute','host:stop-video','recording-state'])assert.ok(guestSignalTypes.includes(required),`Guest never received ${required} through the shared meeting signaling channel.`);
 
   await host.evaluate(()=>window.__qaSetShare(true));
   try{
@@ -186,7 +191,7 @@ try{
   await guest.waitForFunction(()=>!document.body.classList.contains('remote-share-active'),null,{timeout:15000});
 
   for(const [label,state] of [['host',hostState],['guest',guestState]])assert.deepEqual(state.pageErrors,[],`${label} renderer produced runtime errors:\n${state.pageErrors.join('\n')}`);
-  console.log('DOMINIONSTAR_TWO_CLIENT_WEBRTC_2_0_52_OK offer-answer-ice mic-camera chat reaction raise-hand host-mute host-stop-video screen-share share-audio presenter-identity stop-share deterministic-initiator');
+  console.log('DOMINIONSTAR_TWO_CLIENT_WEBRTC_2_0_52_OK offer-answer-ice mic-camera chat reaction raise-hand host-mute host-stop-video recording-state screen-share share-audio presenter-identity stop-share deterministic-initiator');
 }finally{
   for(const page of [host,guest]){
     try{await page.evaluate(async()=>{document.querySelector('#meetingOverlay').hidden=true;await window.DominionWebRTCController?.stop?.();window.__qaStopTracks?.();});}catch{}
