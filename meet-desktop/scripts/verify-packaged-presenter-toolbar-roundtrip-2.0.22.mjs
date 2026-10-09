@@ -96,7 +96,14 @@ class Cdp{
     throw new Error('Timed out waiting for '+label+(last?': '+last:'')+'.\n'+stderr);
   }
   async click(selector){
-    await this.eval("document.querySelector('#toolbar')?.classList.remove('auto-hidden'); true");
+    const hasPresenterToolbar=await this.eval("Boolean(document.querySelector('#toolbar'))");
+    if(hasPresenterToolbar){
+      // Exercise the same reveal path as a real pointer entering the collapsed
+      // native toolbar. Removing CSS alone is insufficient because macOS also
+      // shrinks the BrowserWindow to its 28px reveal strip.
+      await this.eval("window.dispatchEvent(new PointerEvent('pointerenter')); true");
+      await this.wait("window.innerHeight>=80&&!document.querySelector('#toolbar')?.classList.contains('auto-hidden')",'native presenter toolbar reveal before click',2500);
+    }
     const point=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
     await this.call('Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y,button:'none'});
     await this.call('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
