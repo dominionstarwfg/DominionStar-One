@@ -9,6 +9,8 @@ const participantControlsSource=fs.readFileSync(new URL('../ui/participant-contr
 const roomId='qa-two-client-webrtc-2-0-41';
 const ids=['00000000-0000-0000-0000-000000000101','00000000-0000-0000-0000-000000000202'];
 const names=new Map([[ids[0],'QA Host'],[ids[1],'QA Guest']]);
+const roles=new Map([[ids[0],'host'],[ids[1],'participant']]);
+const activeIds=new Set(ids);
 const queues=new Map(ids.map(id=>[id,[]]));
 let signalId=0;
 
@@ -22,7 +24,7 @@ const pullSignals=(to,afterId=0,limit=100)=>{
   const list=(queues.get(to)||[]).filter(item=>item.id>Number(afterId||0)).slice(0,Number(limit)||100);
   return {signals:list,lastId:list.length?list[list.length-1].id:Number(afterId||0)};
 };
-const participants=()=>ids.map(id=>({participantId:id,displayName:names.get(id),state:'joined',role:id===ids[0]?'host':'participant'}));
+const participants=()=>ids.filter(id=>activeIds.has(id)).map(id=>({participantId:id,displayName:names.get(id),state:'joined',role:roles.get(id)||'participant'}));
 
 const pageServer=http.createServer((_req,res)=>{
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
@@ -49,9 +51,13 @@ async function configurePage(page,id){
     const localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:{width:320,height:180,frameRate:15}});
     let micOn=true,cameraOn=true;
     window.__qaSignalEvents=[];
+    window.__qaSpotlightEvents=[];
+    window.__qaLayoutEvents=[];
     const roleNode=document.querySelector('#roomRole');if(roleNode)roleNode.textContent=id.endsWith('101')?'Host':'Participant';
     const nameNode=document.querySelector('#stageName');if(nameNode)nameNode.textContent=id.endsWith('101')?'QA Host':'QA Guest';
     window.addEventListener('dominion:meeting-signal',event=>window.__qaSignalEvents.push(event.detail));
+    window.addEventListener('dominion:spotlight-change',event=>window.__qaSpotlightEvents.push(event.detail));
+    window.addEventListener('dominion:host-view-layout',event=>window.__qaLayoutEvents.push(event.detail));
     let shareStream=null;
     window.__qaOwnedStreams=[localStream];
     window.__qaSetShare=async(active=true)=>{
@@ -168,8 +174,27 @@ try{
   await host.evaluate(({guestId,hostId})=>window.dominionDesktop.meeting.sendSignal(guestId,'recording-state',{active:false,paused:false,name:'QA Host',participantId:hostId,at:new Date().toISOString()}),{guestId:ids[1],hostId:ids[0]});
   await guest.waitForFunction(()=>document.querySelector('#meetingRecordingIndicator')?.hidden===true,null,{timeout:6000});
 
+  // Direct chat must work in the reverse direction too, not just host -> guest.
+  await guest.evaluate(({hostId})=>window.dominionDesktop.meeting.sendSignal(hostId,'chat',{text:'Guest to host direct communication proof',name:'QA Guest',at:new Date().toISOString(),private:true,toParticipantId:hostId,toName:'QA Host'}),{hostId:ids[0]});
+  await host.waitForFunction(()=>window.DominionMeetingFeatures?.snapshot?.().messageCount>=1,null,{timeout:6000});
+  assert.match(String(await host.locator('#meetingChatMessages').textContent()||''),/Guest to host direct communication proof/,'Host did not render the guest direct message delivered through meeting signaling.');
+
+  // Host-directed stage controls must propagate to the participant renderer.
+  await host.evaluate(({guestId})=>window.dominionDesktop.meeting.sendSignal(guestId,'host:spotlight',{participantIds:[guestId],at:new Date().toISOString()}),{guestId:ids[1]});
+  await guest.waitForFunction(guestId=>window.__qaSpotlightEvents.some(event=>event?.participantIds?.includes(guestId)),ids[1],{timeout:6000});
+  await host.evaluate(({guestId})=>window.dominionDesktop.meeting.sendSignal(guestId,'host:view-layout',{mode:'gallery',sharing:false,at:new Date().toISOString()}),{guestId:ids[1]});
+  await guest.waitForFunction(()=>window.__qaLayoutEvents.some(event=>event?.mode==='gallery'),null,{timeout:6000});
+
+  // Snapshot reconciliation is the authority for participant identity and role.
+  names.set(ids[1],'QA Guest Renamed');
+  roles.set(ids[1],'cohost');
+  await host.waitForFunction(guestId=>{
+    const tile=document.querySelector(`.remote-peer-tile[data-peer-id="${CSS.escape(guestId)}"]`);
+    return tile?.dataset.participantRole==='cohost'&&tile?.querySelector('strong')?.textContent==='QA Guest Renamed';
+  },ids[1],{timeout:7000});
+
   const guestSignalTypes=await guest.evaluate(()=>window.__qaSignalEvents.map(item=>item.type));
-  for(const required of ['chat','host:mute','host:stop-video','recording-state'])assert.ok(guestSignalTypes.includes(required),`Guest never received ${required} through the shared meeting signaling channel.`);
+  for(const required of ['chat','host:mute','host:stop-video','recording-state','host:spotlight','host:view-layout'])assert.ok(guestSignalTypes.includes(required),`Guest never received ${required} through the shared meeting signaling channel.`);
 
   await host.evaluate(()=>window.__qaSetShare(true));
   try{
@@ -190,8 +215,13 @@ try{
   await host.evaluate(()=>window.__qaSetShare(false));
   await guest.waitForFunction(()=>!document.body.classList.contains('remote-share-active'),null,{timeout:15000});
 
+  // Leaving must remove the peer and its media surface instead of leaving a ghost participant.
+  activeIds.delete(ids[1]);
+  await guest.evaluate(({hostId})=>window.dominionDesktop.meeting.sendSignal(hostId,'bye',{at:new Date().toISOString()}),{hostId:ids[0]});
+  await host.waitForFunction(guestId=>window.DominionWebRTCController?.snapshot?.().peerCount===0&&!document.querySelector(`.remote-peer-tile[data-peer-id="${CSS.escape(guestId)}"]`),ids[1],{timeout:6000});
+
   for(const [label,state] of [['host',hostState],['guest',guestState]])assert.deepEqual(state.pageErrors,[],`${label} renderer produced runtime errors:\n${state.pageErrors.join('\n')}`);
-  console.log('DOMINIONSTAR_TWO_CLIENT_WEBRTC_2_0_52_OK offer-answer-ice mic-camera chat reaction raise-hand host-mute host-stop-video recording-state screen-share share-audio presenter-identity stop-share deterministic-initiator');
+  console.log('DOMINIONSTAR_TWO_CLIENT_WEBRTC_2_0_52_OK offer-answer-ice mic-camera dm-bidirectional reaction raise-hand host-mute host-stop-video recording-state spotlight host-layout rename-role-sync screen-share share-audio presenter-identity stop-share participant-leave deterministic-initiator');
 }finally{
   for(const page of [host,guest]){
     try{await page.evaluate(async()=>{document.querySelector('#meetingOverlay').hidden=true;await window.DominionWebRTCController?.stop?.();window.__qaStopTracks?.();});}catch{}
