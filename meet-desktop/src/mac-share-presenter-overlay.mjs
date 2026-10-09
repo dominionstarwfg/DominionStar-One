@@ -141,7 +141,7 @@ if(process.platform==='darwin'){
   function positionAnnotation(){
     if(!isAlive(annotationWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
-    const width=66,height=Math.min(526,Math.max(430,area.height-180));
+    const width=184,height=Math.min(526,Math.max(430,area.height-180));
     const x=Math.round(area.x+8),y=Math.round(area.y+Math.max(82,(area.height-height)/2));
     try{annotationWindow.setBounds({x,y,width,height},false);}catch{}
   }
@@ -287,7 +287,7 @@ if(process.platform==='darwin'){
   async function prepareAnnotation(){
     if(isAlive(annotationWindow))return annotationWindow;
     const win=new BrowserWindow({
-      width:66,height:500,minWidth:66,maxWidth:66,minHeight:430,maxHeight:526,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
+      width:184,height:500,minWidth:184,maxWidth:184,minHeight:430,maxHeight:526,show:false,frame:false,transparent:true,backgroundColor:'#00000000',
       resizable:false,movable:true,fullscreenable:false,minimizable:false,maximizable:false,closable:false,focusable:true,alwaysOnTop:true,skipTaskbar:true,hasShadow:true,acceptFirstMouse:true,
       webPreferences:{preload:presenterPreloadPath,contextIsolation:true,nodeIntegration:false,sandbox:false,devTools:false,backgroundThrottling:false,partition:'dominion-presenter-annotation-v2044'}
     });
