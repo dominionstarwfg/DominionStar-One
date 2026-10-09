@@ -580,19 +580,31 @@
     dock.style.setProperty('z-index','205','important');
 
     const body=dock.querySelector('.participant-video-dock-body');
+    const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
+    const count=Math.max(1,tiles.length);
+    const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
 
     if(userPositioned){
       const dw=Math.min(Math.max(1,dock.offsetWidth||176),Math.max(1,width-16));
-      const dh=Math.min(Math.max(1,dock.offsetHeight||120),Math.max(1,height-16));
+      const columns=dw>=350?Math.min(2,count):1;
+      const rows=Math.min(5,Math.ceil(count/columns));
+      const smartHeight=Math.min(headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding,Math.max(127,height-16));
       const currentLeft=parseFloat(dock.style.left);
       const currentTop=parseFloat(dock.style.top);
       const left=clamp(Number.isFinite(currentLeft)?currentLeft:Math.max(8,width-dw-14),8,Math.max(8,width-dw-8));
-      const top=clamp(Number.isFinite(currentTop)?currentTop:14,8,Math.max(8,height-dh-8));
+      const top=clamp(Number.isFinite(currentTop)?currentTop:14,8,Math.max(8,height-smartHeight-8));
       dock.style.setProperty('left',`${left}px`,'important');
       dock.style.setProperty('top',`${top}px`,'important');
       dock.style.setProperty('right','auto','important');
+      dock.style.setProperty('height',`${smartHeight}px`,'important');
       dock.style.setProperty('max-width','calc(100% - 16px)','important');
       dock.style.setProperty('max-height','calc(100% - 16px)','important');
+      if(body){
+        body.style.setProperty('grid-template-columns',`repeat(${columns},minmax(0,1fr))`,'important');
+        body.style.setProperty('grid-auto-flow','row','important');
+        body.style.setProperty('overflow-x','hidden','important');
+        body.style.setProperty('overflow-y',rows<Math.ceil(count/columns)?'auto':'hidden','important');
+      }
       return true;
     }
 
@@ -600,29 +612,30 @@
     dock.style.removeProperty('top');
     dock.style.removeProperty('right');
     dock.style.removeProperty('width');
+    dock.style.removeProperty('height');
     dock.style.removeProperty('max-width');
     dock.style.removeProperty('max-height');
 
     if(compact){
       const compactWidth=Math.min(176,Math.max(142,width-16));
+      const compactRows=Math.min(5,count);
+      const compactHeight=Math.min(headerHeight+compactRows*tileHeight+Math.max(0,compactRows-1)*gap+padding,Math.max(127,height-20));
       dock.style.setProperty('left','auto','important');
       dock.style.setProperty('right','8px','important');
       dock.style.setProperty('top','10px','important');
       dock.style.setProperty('width',`${compactWidth}px`,'important');
+      dock.style.setProperty('height',`${compactHeight}px`,'important');
       dock.style.setProperty('max-width','calc(100% - 16px)','important');
       dock.style.setProperty('max-height','calc(100% - 20px)','important');
       if(body){
         body.style.setProperty('grid-template-columns','1fr','important');
         body.style.setProperty('grid-auto-flow','row','important');
         body.style.setProperty('overflow-x','hidden','important');
-        body.style.setProperty('overflow-y','auto','important');
+        body.style.setProperty('overflow-y',count>5?'auto':'hidden','important');
       }
     }else{
-      const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
-      const count=Math.max(1,tiles.length);
       const columns=count<=2?1:count<=6?2:3;
       const rows=Math.min(3,Math.ceil(count/columns));
-      const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
       const desiredWidth=columns*tileWidth+(columns-1)*gap+padding;
       const desiredHeight=headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding;
       dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
