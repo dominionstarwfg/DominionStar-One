@@ -99,13 +99,19 @@ class Cdp{
     const hasPresenterToolbar=await this.eval("Boolean(document.querySelector('#toolbar'))");
     if(hasPresenterToolbar){
       // Exercise the same reveal path as a real pointer entering the collapsed
-      // native toolbar. Removing CSS alone is insufficient because macOS also
-      // shrinks the BrowserWindow to its 28px reveal strip.
+      // native toolbar. CSS visibility is not enough: wait until the macOS
+      // BrowserWindow has physically expanded before hit-testing any control.
       await this.eval("window.dispatchEvent(new PointerEvent('pointerenter')); true");
       await this.wait("window.innerHeight>=80&&!document.querySelector('#toolbar')?.classList.contains('auto-hidden')",'native presenter toolbar reveal before click',2500);
     }
-    const point=await this.eval('(()=>{const el=document.querySelector('+JSON.stringify(selector)+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
+    const selectorJson=JSON.stringify(selector);
+    await this.wait('(()=>{const el=document.querySelector('+selectorJson+');if(!el||el.disabled||el.getAttribute("aria-busy")==="true")return false;const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,hit=document.elementFromPoint(x,y);return r.width>0&&r.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&Boolean(hit&&(hit===el||el.contains(hit)));})()','hit-testable control '+selector,2500);
+    let point=await this.eval('(()=>{const el=document.querySelector('+selectorJson+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
     await this.call('Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y,button:'none'});
+    await sleep(70);
+    // Pointer movement can reveal/reflow native presenter chrome. Re-measure
+    // after that transition so the press/release land on the current control.
+    point=await this.eval('(()=>{const el=document.querySelector('+selectorJson+');if(!el)throw new Error("Missing control");const r=el.getBoundingClientRect();const x=r.left+r.width/2,y=r.top+r.height/2,hit=document.elementFromPoint(x,y);if(!hit||!(hit===el||el.contains(hit)))throw new Error("Control lost hit-test ownership");return {x,y};})()');
     await this.call('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
     await this.call('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
   }
