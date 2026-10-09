@@ -25,7 +25,6 @@
   let shareSources={screen:[],window:[]};
   let shareKind='screen';
   let selectedShareId='';
-  let mediaBroadcastTimer=0;
   let participantObserver=null;
   let reactionObserver=null;
   let mediaUnsub=null;
@@ -229,13 +228,15 @@
   }
 
   async function broadcastLocalMediaState(){
-    clearTimeout(mediaBroadcastTimer);mediaBroadcastTimer=0;if(!inMeeting()||!meeting?.context||!meeting?.snapshot||!meeting?.sendSignal)return;
-    let ctx,snapshot;try{ctx=await meeting.context();if(!ctx?.roomId||!ctx?.participantId)return;localParticipantId=String(ctx.participantId);snapshot=await meeting.snapshot(ctx.roomId);}catch{return;}
-    const state=media()?.snapshot?.()||{},payload={kind:'media-state',micOn:Boolean(state.micOn),cameraOn:Boolean(state.cameraOn),participantId:localParticipantId,at:new Date().toISOString()};remoteMediaState.set(localParticipantId,payload);decorateParticipantRows();
-    const role=localRole();const targets=(snapshot?.participants||[]).filter(p=>String(p.participantId||'')&&String(p.participantId)!==localParticipantId&&['admitted','joined'].includes(String(p.state||'joined'))&&(['host','cohost'].includes(role)||['host','cohost'].includes(String(p.role||'').toLowerCase())));
-    await Promise.allSettled(targets.map(p=>meeting.sendSignal(p.participantId,'reaction',payload)));
+    // Compatibility layer only mirrors local state into its own roster cache.
+    // Remote state comes from DominionWebRTCController via dominion:remote-media-state.
+    if(!inMeeting()||!meeting?.context)return;
+    let ctx;try{ctx=await meeting.context();if(!ctx?.participantId)return;localParticipantId=String(ctx.participantId);}catch{return;}
+    const current=media()?.snapshot?.()||{};
+    remoteMediaState.set(localParticipantId,{micOn:Boolean(current.micOn),cameraOn:Boolean(current.cameraOn),at:Date.now()});
+    decorateParticipantRows();
   }
-  function scheduleMediaBroadcast(delay=100){clearTimeout(mediaBroadcastTimer);mediaBroadcastTimer=setTimeout(()=>void broadcastLocalMediaState(),delay);}
+  function scheduleMediaBroadcast(){void broadcastLocalMediaState();}
 
   function installParticipantAuthority(){
     const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(()=>requestAnimationFrame(decorateParticipantRows));participantObserver.observe(roster,{childList:true,subtree:true});}
@@ -334,8 +335,11 @@
     installViewAuthority();installHostToolsAuthority();installMoreAuthority();installParticipantAuthority();installReactionAuthority();installReactionBubbleObserver();installShareAuthority();decorateParticipantRows();setReactionIcon();
   }
 
-  window.addEventListener('dominion:meeting-signal',event=>{
-    const detail=event.detail||{},payload=detail.payload||{};if(detail.type!=='reaction'||payload.kind!=='media-state')return;const id=String(detail.fromParticipantId||payload.participantId||'');if(!id)return;remoteMediaState.set(id,{micOn:Boolean(payload.micOn),cameraOn:Boolean(payload.cameraOn),at:payload.at||Date.now()});decorateParticipantRows();
+  window.addEventListener('dominion:remote-media-state',event=>{
+    const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;
+    if(detail.disconnected)remoteMediaState.delete(id);
+    else remoteMediaState.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn),at:Date.now()});
+    decorateParticipantRows();
   },true);
   window.addEventListener('dominion:remote-share-state',event=>{
     const id=String(event.detail?.participantId||'');if(!id)return;if(event.detail?.active)sharingParticipantIds.add(id);else sharingParticipantIds.delete(id);decorateParticipantRows();
@@ -351,5 +355,5 @@
   window.addEventListener('resize',()=>{closeTransientMenus();},{passive:true});
 
   const timer=setInterval(sync,700);sync();
-  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.11-physical-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{clearInterval(timer);clearTimeout(mediaBroadcastTimer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
+  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.11-physical-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{clearInterval(timer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
 })();
