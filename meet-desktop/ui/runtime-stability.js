@@ -582,7 +582,7 @@
     const body=dock.querySelector('.participant-video-dock-body');
     const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
     const count=Math.max(1,tiles.length);
-    const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
+    const tileWidth=306,tileHeight=172,gap=7,padding=12,headerHeight=42;
 
     if(userPositioned){
       const dw=Math.min(Math.max(1,dock.offsetWidth||176),Math.max(1,width-16));
@@ -617,9 +617,9 @@
     dock.style.removeProperty('max-height');
 
     if(compact){
-      const compactWidth=Math.min(176,Math.max(142,width-16));
+      const compactWidth=Math.min(224,Math.max(188,width-16));
       const compactRows=Math.min(5,count);
-      const compactHeight=Math.min(headerHeight+compactRows*tileHeight+Math.max(0,compactRows-1)*gap+padding,Math.max(127,height-20));
+      const compactTileHeight=119;const compactHeight=Math.min(headerHeight+compactRows*compactTileHeight+Math.max(0,compactRows-1)*gap+padding,Math.max(173,height-20));
       dock.style.setProperty('left','auto','important');
       dock.style.setProperty('right','8px','important');
       dock.style.setProperty('top','10px','important');
