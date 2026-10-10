@@ -74,7 +74,8 @@ assert.ok(workflow.includes('reference_gate=approved-2.0.22'),'Production proven
 assert.ok(workflow.includes('runtime_stability_gate=physical-freeze-full-window-panels'),'Production provenance must identify the physical runtime stability gate.');
 assert.ok(workflow.includes('reaction_flow_gate=left-lanes-blossoms-bounded'),'Production provenance must identify the reaction-flow gate.');
 assert.ok(/Zoom desktop behavior is the primary UX reference/i.test(standard),'Release standard must preserve Zoom as the primary meeting UX reference.');
-assert.ok(/approved DominionStar Meet 3D illustration is a first-class visual reference/i.test(standard),'Release standard must require side-by-side approved 3D-reference review.');
+assert.ok(/single approved DominionStar Meet meeting-room illustration is \*\*“DOMINIONSTAR MEET — REFINED LIKE ZOOM \(FINAL\)”\*\*/i.test(standard),'Release standard must name the single approved meeting-room illustration.');
+assert.ok(/Do not substitute an older concept, alternate mockup, generated variation, or memory/i.test(standard),'Release standard must forbid alternate meeting-room visual references.');
 assert.ok(/Security labels must be technically true/i.test(standard),'Release standard must prohibit unverified E2EE labeling.');
 assert.ok(/Physical-Mac acceptance feedback is a first-class release input/i.test(standard),'Release standard must preserve physical Mac failures as first-class release evidence.');
 assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(standard),'Release standard must prohibit publishing failed candidates.');
@@ -98,4 +99,4 @@ assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(
   console.log('DOMINIONSTAR_PACKAGED_RUNTIME_WIRING_OK live-webrtc-via-media canonical-runtime final-css-owner');
 }
 
-console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source source-cert packaged-audit packaged-launch runtime-stability packaged-controls zoom-render-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac-2.0.21 adaptive-zoom-gate approved-3d-reference-gate native-system-picker tcc-provenance installer-verify packaged-runtime-wiring upload-last`);
+console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source source-cert packaged-audit packaged-launch runtime-stability packaged-controls zoom-render-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac-2.0.21 adaptive-zoom-gate single-approved-reference-gate native-system-picker tcc-provenance installer-verify packaged-runtime-wiring upload-last`);
