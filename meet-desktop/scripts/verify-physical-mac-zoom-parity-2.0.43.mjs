@@ -590,7 +590,10 @@ assert(
   participantsReference.includes('font-style:normal!important')&&
   participantsReference.includes('font-size:11px!important')&&
   participantsReference.includes('.participant-name-text{min-width:0!important;flex:1 1 auto!important')&&
-  participantsReference.includes('.person-copy{min-width:0!important;display:flex!important;flex-direction:row!important'),
+  participantsReference.includes('.person-copy{min-width:0!important;display:flex!important;flex-direction:row!important')&&
+  physical.includes("strong.style.setProperty('flex','1 1 auto','important')")&&
+  physical.includes("nameNode.style.setProperty('flex','1 1 auto','important')")&&
+  physical.includes("inline.style.setProperty('flex','0 0 auto','important')"),
   'Participants must keep the full name and role/me metadata on one compact readable row, matching the desktop reference.'
 );
 assert(
