@@ -51,7 +51,7 @@ try{
   assert.ok(Math.abs(desktopParticipants.centerDeltaX)<=2&&Math.abs(desktopParticipants.centerDeltaY)<=2,'Desktop Participants must open centered before user movement.');
   assert.ok(desktopParticipants.height>=382&&desktopParticipants.height<=400,'Desktop Participants must preserve the approved 390px-class height.');
   assert.ok(Math.abs(desktopParticipants.stageRightGap)<=2,'Desktop Participants must float over a full-width stage instead of shrinking it.');
-  assert.equal(desktopParticipants.searchHidden,true,'Search must remain hidden for a one-person roster.');
+  assert.equal(desktopParticipants.searchHidden,false,'Approved Participants Search must remain visible for a one-person roster.');
   assert.equal(desktopParticipants.waitingHidden,true,'Empty Waiting Room must not consume space.');
   assert.equal(desktopParticipants.heading,'Participants (1)');
 
@@ -65,11 +65,11 @@ try{
   assert.equal(constrainedParticipants.inside,true,'Floating Participants must remain inside the meeting body.');
   assert.ok(Math.abs(constrainedParticipants.stageRightGap)<=2,'Floating Participants must release reserved stage width.');
 
-  // Restore desktop width and validate intelligent roster order + search threshold.
+  // Restore desktop width and validate intelligent roster order + stable Search.
   await setViewport(1280,760);
   const ordering=await evaluate(`(()=>{const roster=document.querySelector('#participantRoster');const make=(id,name,role,small,micOn=false,raised=false)=>'<div class="person-row ds-modern-participant-row" data-participant-id="'+id+'" data-participant-name="'+name+'" data-participant-role="'+role+'"'+(raised?' data-raised-hand="1"':'')+'><span class="person-copy"><strong>'+name+'</strong><small>'+small+'</small></span><span class="participant-actions"><span class="ds-participant-media"><span class="ds-media-state '+(micOn?'on':'off')+'"></span><span class="ds-media-state off"></span></span></span>'+(raised?'<span class="raised-hand-indicator">✋</span>':'')+'</div>';roster.innerHTML=[make('muted','Muted Member','participant','Participant'),make('quiet','Quiet Member','participant','Participant'),make('raised','Raised Member','participant','Participant',false,true),make('co','Co Host','cohost','Co-host'),make('host','Meeting Host','host','Meeting host'),make('talk','Speaking Member','participant','Participant',true),make('self','Local Member','participant','You')].join('');window.DominionRuntimeStability.syncParticipantsSurface();const rows=[...roster.querySelectorAll('[data-participant-id]')];const search=document.querySelector('.room-side .zoom-participant-search');return {ids:rows.map(row=>row.dataset.participantId),searchVisible:Boolean(search&&!search.hidden&&getComputedStyle(search).display!=='none'),heading:document.querySelector('.room-side-head strong')?.textContent||''};})()`);
   assert.deepEqual(ordering.ids,['self','host','co','raised','talk','muted','quiet'],'Participant order must be You → Host → Co-host → raised hand → unmuted → muted.');
-  assert.equal(ordering.searchVisible,true,'Search must become available at the useful roster threshold.');
+  assert.equal(ordering.searchVisible,true,'Approved Participants Search must remain visible as the roster grows.');
   assert.equal(ordering.heading,'Participants (7)');
   await evaluate(`window.DominionRuntimeStability.setParticipants(false)`);
 
