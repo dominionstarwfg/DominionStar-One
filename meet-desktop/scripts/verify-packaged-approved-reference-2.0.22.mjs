@@ -100,11 +100,13 @@ try{
   // Single approved illustration: top bar fades away on idle and returns on activity.
   await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay');overlay.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,clientX:240,clientY:160,pointerId:91}));return overlay.dataset.dsRuntimeTopbarHidden;})()`);
   await waitFor("document.querySelector('#meetingOverlay')?.dataset.dsRuntimeTopbarHidden==='1'",'approved idle-hidden meeting top bar',4200);
+  await waitFor("parseFloat(getComputedStyle(document.querySelector('#meetingOverlay .meeting-head')).opacity)<0.1",'approved top bar fade-out completion',1200);
   const topbarHidden=await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay'),head=overlay.querySelector('.meeting-head'),s=getComputedStyle(head);return {state:overlay.dataset.dsRuntimeTopbarHidden,opacity:parseFloat(s.opacity),pointer:s.pointerEvents};})()`);
   assert.equal(topbarHidden.state,'1');
   assert.ok(topbarHidden.opacity<.1,`Approved idle top bar must fade out. ${JSON.stringify(topbarHidden)}`);
   assert.equal(topbarHidden.pointer,'none');
-  await evaluate(`document.querySelector('#meetingOverlay').dispatchEvent(new PointerEvent('pointermove',{bubbles:true,clientX:260,clientY:170,pointerId:92}))`);await sleep(80);
+  await evaluate(`document.querySelector('#meetingOverlay').dispatchEvent(new PointerEvent('pointermove',{bubbles:true,clientX:260,clientY:170,pointerId:92}))`);
+  await waitFor("document.querySelector('#meetingOverlay')?.dataset.dsRuntimeTopbarHidden==='0'&&parseFloat(getComputedStyle(document.querySelector('#meetingOverlay .meeting-head')).opacity)>0.9",'approved top bar fade-in completion',1200);
   const topbarVisible=await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay'),head=overlay.querySelector('.meeting-head'),s=getComputedStyle(head);return {state:overlay.dataset.dsRuntimeTopbarHidden,opacity:parseFloat(s.opacity)};})()`);
   assert.equal(topbarVisible.state,'0','Pointer activity must reveal the approved top bar.');
   assert.ok(topbarVisible.opacity>.9,`Approved top bar must fade back in. ${JSON.stringify(topbarVisible)}`);
