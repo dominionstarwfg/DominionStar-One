@@ -26,11 +26,12 @@ lacks(auth,'.getPublicUrl(','2.0.26 must not make member avatars public.');
 has(ui,'function syncLocalGalleryIdentity()','Local camera-off identity correction is missing.');
 has(ui,"if(sharing||!['gallery','multi'].includes(mode))return;",'Identity correction must be limited to non-sharing Gallery/Multi-speaker views.');
 has(ui,"Boolean(window.DominionPreferences?.read?.('hideSelfView'))",'Hide Self View authority must be preserved.');
-has(ui,'if(hideSelf){if(!tile.hidden)tile.hidden=true;syncDockCount(dock);return;}','Hide Self View must still remove the local tile.');
+has(ui,'window.DominionMeetingParity?.syncVideoDock?.();','Profile fallback must delegate local tile visibility/layout to the canonical meeting parity authority.');
+lacks(ui,'function syncDockCount(dock)','Profile fallback must not own video-dock count, visibility, orientation, or geometry.');
 has(ui,"const live=Boolean(snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'))",'Camera-live detection must require a real live video track.');
 has(ui,'if(tile.hidden)tile.hidden=false;','Gallery/Multi camera-off identity must restore the local tile.');
 has(ui,'if(video.srcObject)video.srcObject=null;video.hidden=true;','Camera-off local tile must stop painting stale camera video.');
-has(ui,'if(fallback)fallback.hidden=false;','Camera-off local tile must reveal the photo/initials fallback.');
+has(ui,"q('#localVideoDockTile .remote-peer-fallback')",'Camera-off local tile must retain a photo/initials fallback surface while MeetingParity owns its visibility.');
 has(ui,'if(video.srcObject!==stream)video.srcObject=stream;video.hidden=false','Camera-on recovery must restore the live local video surface.');
 has(ui,'if(fallback)fallback.hidden=true;','Camera-on recovery must hide the fallback surface.');
 has(ui,"qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'))",'Dock count must include the restored camera-off local tile.');
@@ -71,4 +72,4 @@ has(parity,'if(share){syncShareLayout();return;}','Meeting parity must retain th
 lacks(share,'syncLocalGalleryIdentity','Share service must remain independent from camera-off profile identity.');
 lacks(share,'member-avatars','Share service must remain independent from avatar storage.');
 
-console.log('DOMINIONSTAR_PROFILE_PHOTO_CAMERA_OFF_2_0_26_OK private-signed-avatars existing-room-enrichment gallery-multi-local-tile camera-off-photo-first initials-fallback camera-on-recovery late-media-binding hide-self-authoritative narrow-visibility-observer bounded-repaint share-stack-untouched');
+console.log('DOMINIONSTAR_PROFILE_PHOTO_CAMERA_OFF_2_0_26_OK private-signed-avatars existing-room-enrichment gallery-multi-local-tile camera-off-photo-first initials-fallback canonical-layout-delegation late-media-binding hide-self-parity-authoritative narrow-visibility-observer bounded-repaint share-stack-untouched');
