@@ -154,7 +154,7 @@ requireText(physicalRepair,"dock.dataset.zoomThreshold=suppress?'empty-solo':'av
 requireText(physicalRepair,"if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false",'Two-person Speaker view cannot reveal the video filmstrip.');
 requireText(approvedCss,'right:14px !important;','Video filmstrip does not default to the right edge.');
 requireText(approvedCss,'grid-template-columns:176px !important;','Desktop video filmstrip is not vertical.');
-requireText(approvedCss,'@media(max-width:680px)','Video filmstrip reflows to the top too early.');
+rejectText(approvedCss,'@media(max-width:680px)','Approved participant filmstrip must not automatically reflow to the top on narrow windows.');
 
 // Compact prejoin and carried-forward reference lineage.
 requireText(adaptiveCss,'max-width:560px !important','Prejoin is not bounded to compact desktop geometry.');
@@ -164,4 +164,4 @@ requireText(auth,"script.onload=loadAdaptiveParity",'Adaptive controller is not 
 requireText(auth,"adaptiveStyle.href='./zoom-adaptive-parity.css'",'Adaptive stylesheet is not loaded.');
 requireText(rejection,'Status: **REJECTED**','2.0.20 physical rejection record is missing.');
 
-console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} custom-only-preshare no-apple-overlay bounded-share-start zoom-screens-advanced-working-only one-way-capture-start toolbar-after-renderer-commit real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip video-filmstrip-native-mouse-drag narrow-only-top-reflow compact-prejoin physical-rejection-recorded`);
+console.log(`DOMINIONSTAR_PHYSICAL_PARITY_2_0_21_OK carried-forward-on=${pkg.version} custom-only-preshare no-apple-overlay bounded-share-start zoom-screens-advanced-working-only one-way-capture-start toolbar-after-renderer-commit real-brand view-modes adaptive-participants participant-native-mouse-drag two-person-right-filmstrip video-filmstrip-native-mouse-drag no-automatic-top-reflow compact-prejoin physical-rejection-recorded`);
