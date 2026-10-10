@@ -54,9 +54,8 @@
   function syncLocalGalleryIdentity(){
     const tile=q('#localVideoDockTile'),dock=q('#participantVideoDock');if(!tile||!dock)return;
     observeLocalVisibility(tile,dock);
-    // Profile fallback paints identity only. MeetingParity/RuntimeStability own
-    // tile visibility, camera state, dock count, orientation and geometry.
-    window.DominionMeetingParity?.syncVideoDock?.();
+    // Identity-only authority: MeetingParity/RuntimeStability own all tile
+    // visibility, media-state, count, orientation and dock geometry.
   }
 
   let boundMediaController=null,unbindMediaChange=null;
