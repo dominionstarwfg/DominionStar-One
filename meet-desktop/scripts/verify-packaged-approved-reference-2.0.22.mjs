@@ -185,8 +185,16 @@ try{
   assert.equal(video.tileCursor,'default');
   assert.notEqual(video.headDisplay,'none','Video filmstrip must keep the compact speaker/strip/gallery/hide control bar in the DOM.');
   assert.ok(video.headOpacity<0.1&&video.headVisibility==='hidden',`Video-panel controls must stay hidden until interaction. ${JSON.stringify(video)}`);
-  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:video.hoverX,y:video.hoverY});
-  await waitFor("parseFloat(getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).opacity)>0.9&&getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).visibility==='visible'",'video-panel hover controls',1500);
+  // Cross the panel boundary with a real pointer movement after final runtime
+  // geometry settles. Do not reuse the pre-sync rectangle: the runtime may
+  // normalize the right-side dock between the fixture snapshot and this step.
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:2,y:2});
+  await sleep(40);
+  const hoverPoint=await evaluate(`(()=>{window.DominionRuntimeStability.sync();const dock=document.querySelector('#participantVideoDock'),r=dock.getBoundingClientRect();return {hidden:Boolean(dock.hidden),marker:dock.dataset.dsRuntimeHoverIntelligence||'',x:Math.round(r.left+r.width/2),y:Math.round(r.top+Math.min(50,r.height/2)),left:Math.round(r.left),top:Math.round(r.top),width:Math.round(r.width),height:Math.round(r.height)};})()`);
+  assert.equal(hoverPoint.hidden,false,`Video panel must remain visible before real hover. ${JSON.stringify(hoverPoint)}`);
+  assert.equal(hoverPoint.marker,'1','Runtime hover intelligence must be installed on the live video panel.');
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:hoverPoint.x,y:hoverPoint.y});
+  await waitFor("parseFloat(getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).opacity)>0.9&&getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).visibility==='visible'",'video-panel hover controls',2000);
   const hoveredVideoChrome=await evaluate(`(()=>{const h=document.querySelector('#participantVideoDock .participant-video-dock-head'),s=getComputedStyle(h);return {opacity:parseFloat(s.opacity),visibility:s.visibility,pointer:s.pointerEvents};})()`);
   assert.ok(hoveredVideoChrome.opacity>0.9&&hoveredVideoChrome.visibility==='visible'&&hoveredVideoChrome.pointer==='auto',`Video-panel controls must reveal on real pointer hover. ${JSON.stringify(hoveredVideoChrome)}`);
   assert.equal(video.headCursor,'default','Video panel control bar must use the normal arrow cursor.');
