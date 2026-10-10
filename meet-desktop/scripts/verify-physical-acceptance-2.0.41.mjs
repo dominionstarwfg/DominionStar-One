@@ -28,7 +28,9 @@ assert(css.includes('z-index:2600')&&css.includes('.ds-command-menu'),'Command m
 assert(js.includes('zoom-participant-search')===false||js.includes('decorateParticipantRows'),'Participants authority must decorate the searchable roster rather than replacing meeting membership logic.');
 assert(js.includes('ds-participant-media')&&js.includes('MIC_ON')&&js.includes('VIDEO_OFF'),'Participant rows must expose microphone and camera state affordances.');
 assert(js.includes("button.textContent='•••'")&&js.includes('data-participant-more'),'Participant management must use a per-row ellipsis instead of the legacy text More button.');
-assert(js.includes("payload={kind:'media-state'")&&js.includes("meeting.sendSignal(p.participantId,'reaction',payload)"),'Media state must propagate to host/co-host roster surfaces using the already-routed meeting signal transport.');
+const webrtc=read('ui/webrtc-controller.js');
+assert(js.includes("window.addEventListener('dominion:remote-media-state'")&&js.includes('remoteMediaState.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn),at:Date.now()})'),'Physical participant rows must consume the canonical remote media-state event.');
+assert(webrtc.includes("window.dispatchEvent(new CustomEvent('dominion:remote-media-state'")&&webrtc.includes('setRemoteMediaState(record.id,{micOn:')&&webrtc.includes('setRemoteMediaState(id,{cameraOn:true})')&&webrtc.includes('setRemoteMediaState(id,{cameraOn:false})'),'WebRTC transport must publish live remote microphone and camera state into the physical participant roster authority.');
 assert(css.includes('.ds-modern-participant-row')&&css.includes('.ds-media-state.off')&&css.includes('.ds-role-chip'),'Participant roster must have modern role and media-state presentation.');
 assert(css.includes('#meetingChatPanel')&&css.includes('.meeting-chat-message.own p')&&css.includes('font-size:14px!important'),'Chat must use readable modern message typography and distinguish own messages.');
 
