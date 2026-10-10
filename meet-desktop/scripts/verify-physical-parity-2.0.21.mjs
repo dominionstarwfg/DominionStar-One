@@ -131,7 +131,8 @@ requireText(parity,"['gallery',sharing()?'Side-by-side: Gallery':'Gallery']",'Vi
 requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-speaker']",'View menu is missing Multi-speaker.');
 
 // Participant management remains readable/draggable; video filmstrip is separate.
-requireText(adaptive,"search.hidden=count<=1",'One-person participant panel still exposes unnecessary search.');
+requireText(adaptive,"search.hidden=false",'Approved participant search must remain visible and stable even in a one-person roster.');
+assert.ok(!adaptive.includes("search.hidden=count<=1"),'Legacy one-person participant-search hiding must not return.');
 requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
 requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep self first.');
 requireText(adaptive,"else if(role==='host')bucket=1",'Participant ordering does not prioritize host.');
