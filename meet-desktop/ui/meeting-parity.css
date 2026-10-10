@@ -252,3 +252,9 @@ body.ds-local-speaking .meeting-overlay.share-active .stage{
   font-size:8px!important;
   line-height:1.15!important;
 }
+
+.remote-active-speaker-fallback{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:#020812}
+.remote-active-speaker-fallback[hidden]{display:none!important}
+.remote-active-speaker-identity{text-align:center}
+.remote-active-speaker-identity .stage-avatar{width:clamp(210px,20vmin,240px);height:clamp(210px,20vmin,240px);border-radius:50%;font-size:34px}
+.remote-active-speaker-identity h3{margin:16px 0 0;font-size:18px;font-weight:700;color:#f5f7fa}
