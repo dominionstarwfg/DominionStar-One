@@ -7,6 +7,8 @@ const preload=read('src/preload.cjs');
 const peer=read('ui/webrtc-controller.js');
 const media=read('ui/media-controller.js');
 const css=read('ui/webrtc.css');
+const participantControls=read('ui/participant-controls.js');
+const signalMigration=read('sql/20261009_meet_signal_protocol_alignment.sql');
 
 for(const rpc of ['meet_v2_send_signal','meet_v2_pull_signals','meet_v2_prune_signals'])assert(service.includes(rpc),`Missing signaling RPC ${rpc}`);
 assert(service.includes("let current={roomId:'',roomCode:'',passcode:'',title:'',participantId:''"),'Meeting service must own current media context plus visible meeting credentials.');
@@ -14,6 +16,18 @@ assert(service.includes('const context=()=>Object.freeze({...current})'),'Meetin
 for(const channel of ['meeting:context','meeting:signal-send','meeting:signal-pull','meeting:signal-prune','meeting:ice-config'])assert(main.includes(channel),`Missing signaling/ICE IPC ${channel}`);
 for(const method of ['context:()=>','sendSignal:','pullSignals:','pruneSignals:','iceConfig:'])assert(preload.includes(method),`Missing narrow renderer transport method ${method}`);
 assert(!peer.includes('createClient(')&&!peer.includes('.from('),'Renderer WebRTC must not construct or query the database client directly.');
+for(const signalType of [
+  'offer','answer','ice','bye','chat','reaction','caption','caption-request','recording-state',
+  'poll:start','poll:vote','poll:end',
+  'host:mute','host:ask-unmute','host:stop-video','host:ask-start-video',
+  'host:lower-hand','host:spotlight','host:view-layout'
+]){
+  assert(signalMigration.includes(`'${signalType}'`),`Signal protocol migration is missing ${signalType}.`);
+}
+assert(signalMigration.includes("if p_signal_type like 'host:%'")&&signalMigration.includes("v_from_role not in ('host','cohost')")&&signalMigration.includes("raise exception 'host_authority_required'"),'Backend signaling must reject host:* commands from non-host/non-cohost senders.');
+assert(participantControls.includes('async function authorizedSender(fromParticipantId)')&&participantControls.includes("['host','cohost'].includes(String(sender?.role||'').toLowerCase())")&&participantControls.includes("if(!await authorizedSender(detail.fromParticipantId))return;"),'Participant renderer must ignore host:* commands unless the live sender is confirmed as host/cohost.');
+assert(peer.includes("const APPLICATION_SIGNAL_TYPES=new Set(['chat','reaction','caption','caption-request','recording-state','poll:start','poll:vote','poll:end'])"),'WebRTC signal dispatcher must route every non-media application signal consumed by the meeting shell.');
+assert(peer.includes("signalType.startsWith('host:')"),'WebRTC signal dispatcher must forward authorized host:* application commands to participant controls.');
 
 assert(peer.includes('new RTCPeerConnection'),'WebRTC peer connection authority is missing.');
 assert(peer.includes("localeCompare(String(remoteId))<0"),'Peer offer ownership must be deterministic.');
@@ -69,4 +83,4 @@ assert(css.includes('.transport-status[data-kind="relay"]')&&css.includes('.tran
 const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 assert.equal(ids[0].localeCompare(ids[1])<0,true,'Deterministic initiator policy sanity check failed.');
 assert.equal(ids[1].localeCompare(ids[0])<0,false,'Both peers must never initiate the same pair.');
-console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK four-lanes system-audio optimize-video remote-share-identity presenter-state-isolation deterministic-offer answerer-sendrecv four-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling');
+console.log('DOMINIONSTAR_WEBRTC_TRANSPORT_OK four-lanes system-audio optimize-video remote-share-identity presenter-state-isolation deterministic-offer answerer-sendrecv four-lanes audio-output remote-camera remote-share active-speaker reconnect online-offline-recovery sleep-wake-recovery media-repair presence-heartbeat ghost-peer-pruning turn-refresh track-resync turn-aware isolated-signaling protocol-aligned host-authority-guarded');
