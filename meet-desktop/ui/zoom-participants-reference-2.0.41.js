@@ -67,9 +67,10 @@
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge{width:30px!important;height:30px!important;border-radius:50%!important;margin:0!important;overflow:hidden!important;display:grid!important;place-items:center!important;background:#59616d!important;color:#fff!important;font-size:11px!important;font-weight:700!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-badge img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy{min-width:0!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:4px!important;overflow:hidden!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy strong{min-width:0!important;display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:12px!important;font-weight:600!important;color:#f3f3f4!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy strong{min-width:0!important;width:100%!important;display:flex!important;align-items:center!important;gap:4px!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important;font-size:12px!important;font-weight:600!important;color:#f3f3f4!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-name-text{min-width:0!important;flex:1 1 auto!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .person-copy small{display:none!important}
-      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-you{font-style:normal!important;color:#dedee0!important;font-weight:500!important}
+      #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-you{flex:0 0 auto!important;max-width:none!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important;font-style:normal!important;color:#dedee0!important;font-weight:500!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-adaptive-role{display:inline!important;flex:none!important;font-size:11px!important;color:#dedee0!important;font-weight:500!important;white-space:nowrap!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-state{display:flex!important;align-items:center!important;gap:7px!important;margin:0!important}
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-media-icon{width:17px!important;height:17px!important;display:grid!important;place-items:center!important;color:#d5d5d7!important;font-size:0!important}
@@ -84,7 +85,7 @@
       #meetingOverlay .room-side.ds-participants-reference #participantRoster .participant-more:before,#meetingOverlay .room-side.ds-participants-reference #participantRoster .ds-participant-more:before{content:'•••';font-size:11px!important;letter-spacing:1px!important;line-height:1!important}
       #participantBulkActions{display:none!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 56px!important;height:56px!important;padding:10px 14px!important;margin:0!important;border-top:1px solid #454649!important;border-radius:0 0 10px 10px!important;background:#333335!important;display:grid!important;grid-template-columns:1fr 1fr 1fr!important;align-items:center!important;gap:10px!important}
-      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button{height:34px!important;min-width:0!important;padding:0 12px!important;border:0!important;border-radius:18px!important;background:#55565a!important;color:#fff!important;font-size:11px!important;font-weight:600!important;cursor:pointer!important}
+      #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button{width:100%!important;justify-self:stretch!important;height:34px!important;min-width:0!important;padding:0 12px!important;border:0!important;border-radius:18px!important;background:#55565a!important;color:#fff!important;font-size:11px!important;font-weight:600!important;cursor:pointer!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button:hover{background:#65666a!important}
       #meetingOverlay .room-side.ds-participants-reference .ds-ref-participants-footer button:last-child{margin-left:0!important;min-width:0!important}
       #meetingOverlay .meeting-footer #roomMic.ds-av-off .ds-control-icon,#meetingOverlay .meeting-footer #roomCamera.ds-av-off .ds-control-icon{color:#ff5365!important}
@@ -232,6 +233,8 @@
 
   function syncFooter(side){
     const footer=side.querySelector('.ds-ref-participants-footer');if(!footer)return;footer.hidden=false;footer.removeAttribute('data-ds-legacy-participant-actions');
+    footer.style.setProperty('display','grid','important');footer.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important');footer.style.setProperty('gap','10px','important');
+    for(const button of footer.querySelectorAll(':scope > button')){button.style.setProperty('width','100%','important');button.style.setProperty('min-width','0','important');button.style.setProperty('margin-left','0','important');button.style.setProperty('justify-self','stretch','important');}
     const action=footer.querySelector('[data-ref-mute-all]'),more=footer.querySelector('[data-ref-participant-more]');if(!action)return;
     const manager=['host','cohost'].includes(localRole()),desired=manager?'Mute all':'Unmute me';if(action.textContent!==desired&&!['Muted','No one to mute','Host only'].includes(action.textContent))action.textContent=desired;
     if(more)more.hidden=!manager;
