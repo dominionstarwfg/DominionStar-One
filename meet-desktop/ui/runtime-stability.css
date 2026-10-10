@@ -919,6 +919,7 @@ body>.meeting-reaction-menu,
   backdrop-filter:blur(10px)!important;
 }
 #meetingOverlay #participantVideoDock:hover .participant-video-dock-head,
+#meetingOverlay #participantVideoDock.ds-video-chrome-hover .participant-video-dock-head,
 #meetingOverlay #participantVideoDock:focus-within .participant-video-dock-head,
 #meetingOverlay #participantVideoDock.dragging .participant-video-dock-head,
 #meetingOverlay #participantVideoDock.user-resized .participant-video-dock-head,
