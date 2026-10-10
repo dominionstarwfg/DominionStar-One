@@ -105,6 +105,16 @@ try{
   assert.ok(participantsImmediate.panelHeight>=388&&participantsImmediate.panelHeight<=390,'Participants must open at the approved 390px-class height.');
   assert.ok(Math.abs(participantsImmediate.stageRightGap)<=2,'Floating Participants must not reserve the right edge or shrink the stage.');
   assert.equal(participantsImmediate.count,'Participants (1)');
+  const participantChrome=await evaluate(`(()=>{const side=document.querySelector('.room-side'),traffic=side.querySelector('.ds-panel-traffic'),buttons=traffic?[...traffic.children]:[];const ts=traffic?getComputedStyle(traffic):null;return {traffic:Boolean(traffic),direction:ts?.flexDirection||'',count:buttons.length,order:buttons.map(b=>b.className),fills:buttons.map(b=>getComputedStyle(b).backgroundColor),dock:(()=>{const d=document.querySelector('#participantVideoDock');if(!d)return null;const r=d.getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect();return {anchor:d.dataset.anchor||'',orientation:d.dataset.orientation||'',rightGap:Math.round(stage.right-r.right),width:Math.round(r.width)};})()};})()`);
+  assert.equal(participantChrome.traffic,true,'Participants must expose the Mac traffic-light controls.');
+  assert.equal(participantChrome.direction,'row','Mac traffic lights must be horizontal, never stacked vertically.');
+  assert.equal(participantChrome.count,3,'Participants must expose exactly three Mac traffic-light controls.');
+  assert.ok(String(participantChrome.order[0]||'').includes('ds-traffic-close')&&String(participantChrome.order[1]||'').includes('ds-traffic-minimize')&&String(participantChrome.order[2]||'').includes('ds-traffic-restore'),'Mac traffic lights must remain red close, yellow minimize, green restore in native left-to-right order.');
+  if(participantChrome.dock){
+    assert.equal(participantChrome.dock.anchor,'right','Unmoved participant video dock must default to the right.');
+    assert.equal(participantChrome.dock.orientation,'vertical','Unmoved participant video dock must default to a vertical filmstrip.');
+    assert.ok(participantChrome.dock.width<=190,`Default participant video dock must remain compact. ${JSON.stringify(participantChrome.dock)}`);
+  }
   assert.equal(participantsImmediate.motionSheetLoaded,true,'Runtime motion stylesheet must be active in the packaged renderer.');
   if(participantsImmediate.reduceMotion)assert.equal(participantsImmediate.animation,'none','Reduce Motion must suppress the Participants entrance animation.');
   else assert.match(participantsImmediate.animation,/dsRuntimePanelIn/,'Participants must use the short runtime entrance motion.');
