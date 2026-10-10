@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const read=path=>fs.readFileSync(path,'utf8');
 const pkg=JSON.parse(read('package.json'));
 const runtime=read('ui/runtime-stability.js');
+const runtimeCss=read('ui/runtime-stability.css');
 const approved=read('ui/approved-reference-parity.css');
 const parity=read('ui/meeting-parity.js');
 const participantControls=read('ui/participant-controls.js');
@@ -38,5 +39,10 @@ assert.ok(parity.includes("index>0&&index%5===0")&&parity.includes("all.length>5
 assert.ok(approved.includes('max-height:527px !important')&&approved.includes('max-height:313px !important')&&approved.includes('scrollbar-width:none !important'),'Video panel must show no more than five equal tiles before internal scrolling, with no outside scrollbar.');
 assert.ok(approved.includes('width:176px !important')&&approved.includes('height:99px !important')&&approved.includes('max-width:176px !important')&&approved.includes('max-height:99px !important'),'Floating participant tiles must use one stable 16:9 size.');
 assert.ok(approved.includes('.participant-video-dock-modes')&&approved.includes('.participant-video-scroll-controls'),'The panel must keep compact native-looking layout controls and internal up/down scroll controls inside the floating surface.');
+assert.ok(runtimeCss.includes('2.0.52 approved-baseline smart video-panel chrome'),'Final runtime CSS must own smart video-panel chrome.');
+assert.ok(runtimeCss.includes('#meetingOverlay #participantVideoDock .participant-video-dock-head')&&runtimeCss.includes('opacity:0!important')&&runtimeCss.includes('visibility:hidden!important')&&runtimeCss.includes('pointer-events:none!important'),'Video-panel control bar must stay visually quiet by default.');
+assert.ok(runtimeCss.includes('#meetingOverlay #participantVideoDock:hover .participant-video-dock-head')&&runtimeCss.includes('#meetingOverlay #participantVideoDock:focus-within .participant-video-dock-head'),'Video-panel control bar must reveal for pointer or keyboard intent.');
+assert.ok(!runtime.includes('headerHeight=28'),'Hidden video-panel chrome must not reserve blank layout height.');
 
-console.log('DOMINIONSTAR_ADAPTIVE_VIDEO_DOCK_2_0_32_OK default-right vertical-filmstrip five-visible user-clamp event-driven no-polling self-first smart-hover role-aware self-name camera-off-fallback equal-tiles five-visible internal-scroll speaker-strip-gallery-hide');
+
+console.log('DOMINIONSTAR_ADAPTIVE_VIDEO_DOCK_2_0_32_OK default-right vertical-filmstrip five-visible user-clamp event-driven no-polling self-first smart-hover role-aware self-name camera-off-fallback equal-tiles five-visible internal-scroll speaker-strip-gallery-hide hover-overlay-no-layout-shift');
