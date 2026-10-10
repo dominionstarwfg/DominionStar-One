@@ -691,8 +691,8 @@
     const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
     const count=Math.max(1,tiles.length);
     const visibleRows=Math.min(5,count);
-    const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
-    const desiredHeight=Math.min(548,headerHeight+(visibleRows*tileHeight)+Math.max(0,visibleRows-1)*gap+padding);
+    const tileWidth=176,tileHeight=99,gap=5,padding=10;
+    const desiredHeight=Math.min(548,(visibleRows*tileHeight)+Math.max(0,visibleRows-1)*gap+padding);
     dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
     dock.dataset.dsRuntimeColumns='1';
     dock.style.setProperty('left','auto','important');
