@@ -74,6 +74,41 @@ try{
   assert.equal(reactions.buttons.length,6,'Reaction tray must contain six standard reactions only.');
   await evaluate(`document.querySelectorAll('.ds-reaction-tray,.meeting-reaction-menu').forEach(n=>n.remove())`);
 
+  // Single approved illustration: Participants opens centered at the approved
+  // default, can restore remembered user geometry, and resets back to center.
+  await evaluate(`window.DominionRuntimeStability.setParticipants(true)`);
+  await waitFor("document.querySelector('.room-side')&&!document.querySelector('.room-side').hidden",'approved Participants window');
+  const participantsDefault=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();return {width:Math.round(pr.width),height:Math.round(pr.height),centerDx:Math.round((pr.left+pr.width/2)-(br.left+br.width/2)),centerDy:Math.round((pr.top+pr.height/2)-(br.top+br.height/2)),handles:panel.querySelectorAll('.ds-runtime-resize-handle').length,trafficDirection:getComputedStyle(panel.querySelector('.ds-panel-traffic')).flexDirection};})()`);
+  assert.ok(Math.abs(participantsDefault.width-318)<=2,`Approved Participants default width must remain 318px. ${JSON.stringify(participantsDefault)}`);
+  assert.ok(Math.abs(participantsDefault.height-390)<=2,`Approved Participants default height must remain 390px. ${JSON.stringify(participantsDefault)}`);
+  assert.ok(Math.abs(participantsDefault.centerDx)<=3&&Math.abs(participantsDefault.centerDy)<=3,`Approved Participants must open centered. ${JSON.stringify(participantsDefault)}`);
+  assert.equal(participantsDefault.handles,8,'Approved floating Participants window must expose eight edge/corner resize hit areas.');
+  assert.equal(participantsDefault.trafficDirection,'row','Mac traffic lights must remain horizontal.');
+
+  const restoredGeometry=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),br=body.getBoundingClientRect();localStorage.setItem('ds_meet_floating_surface_geometry_v1',JSON.stringify({participants:{left:44,top:58,width:296,height:332}}));panel.dataset.dsRuntimeUserPositioned='0';window.DominionRuntimeStability.layoutSideSurface();const pr=panel.getBoundingClientRect();return {left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height),user:panel.dataset.dsRuntimeUserPositioned||''};})()`);
+  assert.ok(Math.abs(restoredGeometry.left-44)<=2&&Math.abs(restoredGeometry.top-58)<=2,`Participants must restore remembered position. ${JSON.stringify(restoredGeometry)}`);
+  assert.ok(Math.abs(restoredGeometry.width-296)<=2&&Math.abs(restoredGeometry.height-332)<=2,`Participants must restore remembered size. ${JSON.stringify(restoredGeometry)}`);
+  assert.equal(restoredGeometry.user,'1','Restored Participants geometry must enter explicit user-positioned mode.');
+
+  await evaluate(`document.querySelector('.room-side .ds-traffic-restore').click()`);await sleep(80);
+  const resetGeometry=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();const saved=JSON.parse(localStorage.getItem('ds_meet_floating_surface_geometry_v1')||'{}');return {width:Math.round(pr.width),height:Math.round(pr.height),centerDx:Math.round((pr.left+pr.width/2)-(br.left+br.width/2)),centerDy:Math.round((pr.top+pr.height/2)-(br.top+br.height/2)),saved:Boolean(saved.participants),user:panel.dataset.dsRuntimeUserPositioned||''};})()`);
+  assert.equal(resetGeometry.saved,false,'Restore control must clear remembered Participants geometry.');
+  assert.equal(resetGeometry.user,'0','Restore control must return Participants to default geometry mode.');
+  assert.ok(Math.abs(resetGeometry.width-318)<=2&&Math.abs(resetGeometry.height-390)<=2&&Math.abs(resetGeometry.centerDx)<=3&&Math.abs(resetGeometry.centerDy)<=3,`Restore control must return Participants to the approved centered 318x390 default. ${JSON.stringify(resetGeometry)}`);
+  await evaluate(`window.DominionRuntimeStability.setParticipants(false)`);
+
+  // Single approved illustration: top bar fades away on idle and returns on activity.
+  await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay');overlay.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,clientX:240,clientY:160,pointerId:91}));return overlay.dataset.dsRuntimeTopbarHidden;})()`);
+  await waitFor("document.querySelector('#meetingOverlay')?.dataset.dsRuntimeTopbarHidden==='1'",'approved idle-hidden meeting top bar',4200);
+  const topbarHidden=await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay'),head=overlay.querySelector('.meeting-head'),s=getComputedStyle(head);return {state:overlay.dataset.dsRuntimeTopbarHidden,opacity:parseFloat(s.opacity),pointer:s.pointerEvents};})()`);
+  assert.equal(topbarHidden.state,'1');
+  assert.ok(topbarHidden.opacity<.1,`Approved idle top bar must fade out. ${JSON.stringify(topbarHidden)}`);
+  assert.equal(topbarHidden.pointer,'none');
+  await evaluate(`document.querySelector('#meetingOverlay').dispatchEvent(new PointerEvent('pointermove',{bubbles:true,clientX:260,clientY:170,pointerId:92}))`);await sleep(80);
+  const topbarVisible=await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay'),head=overlay.querySelector('.meeting-head'),s=getComputedStyle(head);return {state:overlay.dataset.dsRuntimeTopbarHidden,opacity:parseFloat(s.opacity)};})()`);
+  assert.equal(topbarVisible.state,'0','Pointer activity must reveal the approved top bar.');
+  assert.ok(topbarVisible.opacity>.9,`Approved top bar must fade back in. ${JSON.stringify(topbarVisible)}`);
+
   // Final Chat authority: exercise the real toolbar click so the same one-shot
   // adaptive structure used by the user path mounts Everyone / New chat before
   // approved-reference wiring takes ownership of labels and direct messages.
@@ -115,6 +150,6 @@ try{
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption stable-host-toolbar host-tools dedicated-raise-hand real-react-label reactions-six-only clean-runtime-chat direct-messages no-formatting floating-filmstrip active-speaker whole-panel-drag no-grip no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption stable-host-toolbar host-tools dedicated-raise-hand real-react-label reactions-six-only clean-runtime-chat direct-messages no-formatting centered-participants remembered-panel-geometry edge-corner-resize horizontal-mac-traffic topbar-idle-fade floating-filmstrip active-speaker whole-panel-drag no-grip no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
