@@ -197,10 +197,14 @@
     let nameNode=strong.querySelector('.participant-name-text');
     if(!nameNode){nameNode=document.createElement('span');nameNode.className='participant-name-text';strong.prepend(nameNode);}
     nameNode.textContent=name;strong.title=name;
+    copy.style.setProperty('display','flex','important');copy.style.setProperty('align-items','center','important');copy.style.setProperty('min-width','0','important');copy.style.setProperty('overflow','hidden','important');
+    strong.style.setProperty('display','flex','important');strong.style.setProperty('align-items','center','important');strong.style.setProperty('gap','4px','important');strong.style.setProperty('flex','1 1 auto','important');strong.style.setProperty('width','100%','important');strong.style.setProperty('min-width','0','important');strong.style.setProperty('max-width','100%','important');strong.style.setProperty('overflow','visible','important');strong.style.setProperty('box-sizing','border-box','important');
+    nameNode.style.setProperty('display','block','important');nameNode.style.setProperty('min-width','0','important');nameNode.style.setProperty('flex','1 1 auto','important');nameNode.style.setProperty('overflow','hidden','important');nameNode.style.setProperty('text-overflow','ellipsis','important');nameNode.style.setProperty('white-space','nowrap','important');
     let inline=strong.querySelector('.participant-you');
     if(!inline){inline=document.createElement('em');inline.className='participant-you';strong.append(inline);}
     const inlineRole=role==='host'?(self?'(Host, me)':'(Host)'):role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'');
     inline.textContent=inlineRole;inline.hidden=!inlineRole;
+    inline.style.setProperty('display',inlineRole?'inline-block':'none','important');inline.style.setProperty('flex','0 0 auto','important');inline.style.setProperty('max-width','none','important');inline.style.setProperty('overflow','visible','important');inline.style.setProperty('white-space','nowrap','important');
     let small=copy.querySelector('small');
     if(!small){small=document.createElement('small');copy.append(small);}
     small.textContent='';small.hidden=true;
