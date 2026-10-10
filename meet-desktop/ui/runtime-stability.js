@@ -26,6 +26,7 @@
   let observedSideKey='';
   let dockBound=null;
   let dockDrag=null;
+  let videoHoverBound=null;
   let surfaceDrag=null;
   let surfaceResize=null;
   let topBarIdleTimer=0;
@@ -647,6 +648,22 @@
     dock.addEventListener('pointerup',end,true);dock.addEventListener('pointercancel',end,true);
   }
 
+  function installVideoDockHoverIntelligence(){
+    const dock=q('#participantVideoDock');if(!dock||dock===videoHoverBound)return;
+    videoHoverBound=dock;dock.dataset.dsRuntimeHoverIntelligence='1';
+    let inside=false;
+    const syncPoint=event=>{
+      if(!meetingOpen()||dock.hidden){inside=false;dock.classList.remove('ds-video-chrome-hover');return;}
+      const r=dock.getBoundingClientRect(),x=Number(event.clientX),y=Number(event.clientY);
+      const next=Number.isFinite(x)&&Number.isFinite(y)&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+      if(next===inside)return;inside=next;dock.classList.toggle('ds-video-chrome-hover',inside);
+    };
+    document.addEventListener('pointermove',syncPoint,true);
+    document.addEventListener('mousemove',syncPoint,true);
+    window.addEventListener('blur',()=>{inside=false;dock.classList.remove('ds-video-chrome-hover');});
+    document.addEventListener('mouseleave',()=>{inside=false;dock.classList.remove('ds-video-chrome-hover');},true);
+  }
+
   function syncVideoDockGeometry(){
     const overlay=q('#meetingOverlay'),stage=q('.stage'),dock=q('#participantVideoDock');
     if(!overlay||!stage||!dock||dock.hidden)return false;
@@ -721,7 +738,7 @@
       installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();
       if(!meetingOpen())return;
       primePhysicalControls();primeLegacyStructure();ensureToolbarZones();installMeetingTopBarAutoHide();
-      syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();
+      syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();installVideoDockHoverIntelligence();syncVideoDockGeometry();
       if(!q('#meetingOverlay')?.hasAttribute('data-ds-runtime-reference-primed')){
         window.DominionZoomScreenshotReference?.sync?.();
         q('#meetingOverlay')?.setAttribute('data-ds-runtime-reference-primed','1');
