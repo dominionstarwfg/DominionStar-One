@@ -33,8 +33,8 @@ assert(
   runtime.includes("let search=side.querySelector('.zoom-participant-search');") &&
   runtime.includes("search=document.createElement('div');") &&
   runtime.includes("search.className='zoom-participant-search';") &&
-  runtime.includes("if(search)search.hidden=count<7;"),
-  'Participant search should be runtime-owned and appear only when useful.'
+  runtime.includes("if(search)search.hidden=false;"),
+  'Participant search must be runtime-owned and remain stable at every roster size.'
 );
 assert(runtime.includes("const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople()"),'Empty Waiting Room chrome must stay hidden.');
 assert(runtime.includes('participantPriority(row)')&&runtime.includes("return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5"),'Final participant roster does not encode You → Host → Co-host → raised → unmuted → others priority.');
@@ -48,4 +48,4 @@ assert(approved.includes('right:14px !important;')&&approved.includes('grid-temp
 assert(meetingCss.includes('grid-template-columns:176px!important')&&meetingCss.includes('max-height:515px!important'),'Canonical meeting filmstrip styling must preserve one-column right-side geometry with five visible tiles.');
 assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.21'"),'Carried-forward adaptive authorities must remain identifiable.');
 
-console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock no-automatic-top-reflow');
+console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-always-stable empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock no-automatic-top-reflow');
