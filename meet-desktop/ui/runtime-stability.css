@@ -844,3 +844,56 @@ body>.meeting-reaction-menu,
   transform:translateX(-50%)!important;
   z-index:3980!important;
 }
+
+
+/* 2.0.52 approved-baseline participant identity allocation.
+   Keep the 318px window; give identity the space instead of squeezing it
+   behind oversized media/action columns. */
+#meetingOverlay .room-side #participantRoster .person-row{
+  grid-template-columns:30px minmax(0,1fr) min-content 24px!important;
+  column-gap:5px!important;
+}
+#meetingOverlay .room-side #participantRoster .person-copy{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+#meetingOverlay .room-side #participantRoster .person-copy strong{
+  display:flex!important;
+  align-items:center!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  gap:3px!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-name-text{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-you{
+  flex:0 0 auto!important;
+  max-width:none!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-media-state{
+  gap:4px!important;
+  min-width:0!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-media-icon{
+  width:16px!important;height:16px!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-actions{
+  gap:2px!important;min-width:24px!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-more,
+#meetingOverlay .room-side #participantRoster .ds-participant-more,
+#meetingOverlay .room-side #participantRoster [data-ds-self-more]{
+  width:24px!important;min-width:24px!important;height:24px!important;
+}
