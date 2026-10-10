@@ -17,8 +17,9 @@ const auditDir=path.resolve('.profile-photo-camera-off-2.0.26-audit');
 fs.rmSync(auditDir,{recursive:true,force:true});
 execFileSync(process.execPath,[asarBin,'extract',asarPath,auditDir]);
 const packedModule=fs.readFileSync(path.join(auditDir,'ui','profile-photo-fallback.js'),'utf8');
-assert.ok(packedModule.includes('function syncLocalGalleryIdentity()'),'Packaged app is missing local camera-off identity correction.');
-assert.ok(packedModule.includes("if(sharing||!['gallery','multi'].includes(mode))return;"),'Packaged identity correction must stay out of the share path.');
+assert.ok(packedModule.includes('function syncLocalGalleryIdentity()'),'Packaged app is missing local camera-off identity painting.');
+assert.ok(!packedModule.includes('function syncDockCount(dock)'),'Packaged profile-photo module must not own participant video-dock count or geometry.');
+assert.ok(!packedModule.includes('DominionMeetingParity?.syncVideoDock'),'Packaged profile-photo repaint must not re-enter layout authority.');
 
 const port=11400+Math.floor(Math.random()*160);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -87,7 +88,7 @@ try{
     window.DominionPreferences.write('hideSelfView',false);
     window.DominionMeetingParity.install();window.DominionMeetingParity.applyViewMode('gallery');
     window.DominionProfilePhotoFallback.applyForTesting({user:{name:'Local Member',avatarUrl:${JSON.stringify(photoUrl)}}});
-    window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();
+    window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();window.DominionMeetingParity.syncVideoDock();
     const tile=document.querySelector('#localVideoDockTile'),dock=document.querySelector('#participantVideoDock'),video=tile?.querySelector('video'),fallback=tile?.querySelector('.remote-peer-fallback');
     return {mode:overlay.dataset.viewMode,tileHidden:tile?.hidden,dockHidden:dock?.hidden,videoHidden:video?.hidden,fallbackHidden:fallback?.hidden,photo:Boolean(fallback?.querySelector('img.ds-profile-fallback-photo')),initialsHidden:fallback?.querySelector('span')?.hidden,count:Number(dock?.dataset.count||0),orientation:dock?.dataset.orientation||''};
   })()`);
@@ -101,27 +102,29 @@ try{
   assert.ok(gallery.count>=1,'Dock count must include the restored local camera-off tile.');
   assert.equal(gallery.orientation,'grid','Gallery identity correction must preserve grid orientation.');
 
-  // Simulate the exact regression: a later layout pass hides both tile and dock.
-  // The narrow hidden-attribute observer must restore identity on its bounded task.
-  await evaluate(`(()=>{const tile=document.querySelector('#localVideoDockTile'),dock=document.querySelector('#participantVideoDock');tile.hidden=true;dock.hidden=true;return true;})()`);
-  await sleep(120);
+  // Identity painting must never fight the canonical layout owner.
+  await evaluate(`(()=>{const tile=document.querySelector('#localVideoDockTile'),dock=document.querySelector('#participantVideoDock');tile.hidden=true;dock.hidden=true;window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();return true;})()`);
+  await sleep(80);
+  const identityOnly=await evaluate(`(()=>{const tile=document.querySelector('#localVideoDockTile'),dock=document.querySelector('#participantVideoDock');return {tileHidden:tile?.hidden,dockHidden:dock?.hidden};})()`);
+  assert.deepEqual(identityOnly,{tileHidden:true,dockHidden:true},'Profile-photo identity painting must not override hidden/layout state.');
+  await evaluate(`window.DominionMeetingParity.syncVideoDock()`);await sleep(45);
   const recovered=await evaluate(`(()=>{const tile=document.querySelector('#localVideoDockTile'),dock=document.querySelector('#participantVideoDock'),fallback=tile?.querySelector('.remote-peer-fallback');return {tileHidden:tile?.hidden,dockHidden:dock?.hidden,fallbackHidden:fallback?.hidden};})()`);
-  assert.deepEqual(recovered,{tileHidden:false,dockHidden:false,fallbackHidden:false},'Post-layout camera-off identity must recover after a later hidden-state mutation.');
+  assert.deepEqual(recovered,{tileHidden:false,dockHidden:false,fallbackHidden:false},'Canonical MeetingParity must restore the camera-off identity surface in Gallery.');
 
-  const multi=await evaluate(`(()=>{window.DominionMeetingParity.applyViewMode('multi');window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();const tile=document.querySelector('#localVideoDockTile'),fallback=tile?.querySelector('.remote-peer-fallback');return {mode:document.querySelector('#meetingOverlay').dataset.viewMode,tileHidden:tile?.hidden,fallbackHidden:fallback?.hidden};})()`);
+  const multi=await evaluate(`(()=>{window.DominionMeetingParity.applyViewMode('multi');window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();window.DominionMeetingParity.syncVideoDock();const tile=document.querySelector('#localVideoDockTile'),fallback=tile?.querySelector('.remote-peer-fallback');return {mode:document.querySelector('#meetingOverlay').dataset.viewMode,tileHidden:tile?.hidden,fallbackHidden:fallback?.hidden};})()`);
   assert.deepEqual(multi,{mode:'multi',tileHidden:false,fallbackHidden:false},'Multi-speaker must retain the same camera-off local identity behavior.');
 
   const initials=await evaluate(`(()=>{window.DominionProfilePhotoFallback.applyForTesting({user:{name:'Local Member',avatarUrl:''}});window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();const fallback=document.querySelector('#localVideoDockTile .remote-peer-fallback');return {photo:Boolean(fallback?.querySelector('img.ds-profile-fallback-photo')),text:fallback?.querySelector('span')?.textContent?.trim(),hidden:fallback?.querySelector('span')?.hidden};})()`);
   assert.deepEqual(initials,{photo:false,text:'LM',hidden:false},'No-photo local camera-off tile must fall back to initials.');
 
-  const hideSelf=await evaluate(`(()=>{window.DominionPreferences.write('hideSelfView',true);window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();return document.querySelector('#localVideoDockTile').hidden;})()`);
+  const hideSelf=await evaluate(`(()=>{window.DominionPreferences.write('hideSelfView',true);window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();window.DominionMeetingParity.syncVideoDock();return document.querySelector('#localVideoDockTile').hidden;})()`);
   assert.equal(hideSelf,true,'Hide Self View must remain authoritative over profile-photo display.');
 
   const shareGuard=await evaluate(`(()=>{window.DominionPreferences.write('hideSelfView',false);const overlay=document.querySelector('#meetingOverlay'),tile=document.querySelector('#localVideoDockTile');overlay.classList.add('share-active');tile.hidden=true;window.DominionProfilePhotoFallback.syncLocalGalleryIdentity();const hidden=tile.hidden;overlay.classList.remove('share-active');return hidden;})()`);
-  assert.equal(shareGuard,true,'2.0.26 profile identity correction must never mutate the active share layout.');
+  assert.equal(shareGuard,true,'Profile identity painting must never mutate the active share layout.');
 
   assert.doesNotMatch(stderr,/Uncaught\s+(?:RangeError|TypeError|ReferenceError|SyntaxError)/i,'Packaged 2.0.26 identity flow produced an uncaught renderer error.');
-  console.log('DOMINIONSTAR_PACKAGED_PROFILE_PHOTO_CAMERA_OFF_2_0_26_OK gallery-visible multi-visible photo-first initials-fallback post-layout-recovery hide-self-authoritative share-guarded');
+  console.log('DOMINIONSTAR_PACKAGED_PROFILE_PHOTO_CAMERA_OFF_2_0_26_OK identity-only canonical-layout-owner gallery-visible multi-visible photo-first initials-fallback post-layout-recovery hide-self-authoritative share-guarded');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}
 finally{
   for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('2.0.26 identity verifier shutdown'));}pending.clear();
