@@ -132,7 +132,7 @@ requireText(parity,"['multi',sharing()?'Side-by-side: Multi-speaker':'Multi-spea
 
 // Participant management remains readable/draggable; video filmstrip is separate.
 requireText(adaptive,"search.hidden=false",'Approved participant search must remain visible and stable even in a one-person roster.');
-assert.ok(!adaptive.includes("search.hidden=count<=1"),'Legacy one-person participant-search hiding must not return.');
+rejectText(adaptive,"search.hidden=count<=1",'Legacy one-person participant-search hiding must not return.');
 requireText(adaptive,"waiting.hidden=!hasWaitingPeople()",'Empty Waiting Room is not suppressed.');
 requireText(adaptive,"if(self)bucket=0",'Participant ordering does not keep self first.');
 requireText(adaptive,"else if(role==='host')bucket=1",'Participant ordering does not prioritize host.');
