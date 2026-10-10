@@ -43,8 +43,8 @@ assert(!parity.includes("add('Diagnostics'"),'Diagnostics must not be exposed in
 assert(parity.includes("dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical'"),'Video dock orientation must respond to dock position.');
 assert(parity.includes("tile.classList.add('stage-promoted')"),'Remote active speaker must be promotable to the main stage.');
 assert(parity.includes("should=Boolean(!hideSelf&&(sharing()||remotePromoted))")&&parity.includes("snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live')"),'Local self tile must stay present in the floating dock while sharing even when camera is off, while Hide Self View suppresses only the local tile and live video is attached only when a usable camera track exists.');
-assert(parity.includes('dock.dataset.count=String(Math.min(count,9))'),'Dock layout must be driven by visible participant count.');
-assert(parity.includes('for(let i=1;i<=9;i++'),'Dock must expose count classes through nine visible tiles.');
+assert(parity.includes('dock.dataset.count=String(Math.min(count,5))'),'Dock layout must be capped to the approved five-visible-tile filmstrip.');
+assert(parity.includes('for(let i=1;i<=5;i++'),'Dock must expose count classes through five visible tiles before internal scrolling.');
 assert(parity.includes('desktop.meeting.context()')&&parity.includes('Passcode ${pass}'),'Meeting ID and passcode must remain visible from native meeting context.');
 assert(parity.includes("hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'"),'Home greeting must adapt to local time.');
 assert(preload.includes("brand:Object.freeze({logoUrl})"),'Desktop bridge must expose the packaged real DominionStar logo.');
@@ -55,10 +55,10 @@ assert(av.includes("caret.className='av-device-caret attached-device-caret'")&&a
 assert(css.includes('.meeting-body{position:relative!important;display:block!important'),'Meeting body must not reserve a permanent participant sidebar column.');
 assert(css.includes('.stage{position:absolute!important;inset:0!important'),'Meeting stage must consume the full available canvas.');
 assert(css.includes('.room-side{position:absolute!important'),'Participant management must overlay the stage instead of shrinking it.');
-assert(css.includes('.participant-video-dock[data-orientation="vertical"].count-2 .participant-video-dock-body,.participant-video-dock[data-orientation="vertical"].count-3'),'One to three participant videos must extend compactly rather than create a wide grid.');
-assert(css.includes('.count-4 .participant-video-dock-body')&&css.includes('grid-template-columns:repeat(2,176px)'),'Four to six participant videos must transition into an internal grid.');
-assert(css.includes('.count-7 .participant-video-dock-body')&&css.includes('grid-template-columns:repeat(3,150px)'),'Larger participant sets must transition into a compact three-column grid.');
-assert(css.includes('.participant-video-dock.user-resized .participant-video-dock-body')&&css.includes('repeat(auto-fit,minmax(118px,1fr))'),'User-resized participant dock must recompute its internal grid automatically.');
+assert(css.includes('2.0.44+ compact right-side participant filmstrip reference'),'Meeting styling must carry the approved right-side filmstrip lock.');
+assert(css.includes('#participantVideoDock[data-orientation="vertical"]:not(.gallery-stage):not(.multi-speaker-stage)')&&css.includes('grid-template-columns:176px!important'),'Default participant video must remain one vertical column, never an automatic grid.');
+assert(css.includes('max-height:515px!important')&&css.includes('overflow-y:auto!important'),'Default filmstrip must show five tiles and scroll internally for additional participants.');
+assert(css.includes('.participant-video-dock.user-resized .participant-video-dock-body')&&css.includes('repeat(auto-fit,minmax(118px,1fr))'),'Only an explicitly user-resized participant dock may recompute its internal layout.');
 assert(css.includes('.participant-video-dock.minimized'),'Participant video dock must support Zoom-style minimization.');
 assert(css.includes('@media(max-width:760px)'),'Meeting layout must adapt for compact desktop windows.');
 
@@ -79,8 +79,9 @@ assert(parity.includes("lastMeta='',spotlightParticipantIds=[]"),'Meeting stage 
 assert(!read('ui/app.js').includes('data-cohost='),'Legacy inline participant authority buttons must not duplicate the Zoom-style More menu.');
 assert(parity.includes('Lock Meeting')&&parity.includes('Mute Participants on Entry')&&parity.includes('desktop.meeting.setSecurity'),'Security menu must use server-backed Lock Meeting and Mute-on-Entry controls.');
 assert(parity.includes("button.id='meetingViewButton'")&&parity.includes("['speaker','gallery','multi']"),'Meeting chrome must expose Speaker, Gallery, and Multi-speaker view choices.');
-assert(parity.includes("return stage.width<900||stage.height<560?'top':'right'"),'Unpinned participant video must automatically move to a horizontal top strip in a compact window and return right when space expands.');
-assert(parity.includes("if(!dock.classList.contains('user-positioned'))dock.dataset.anchor=automaticDockAnchor()"),'Automatic dock reflow must never override a user-positioned dock.');
+assert(parity.includes("function automaticDockAnchor(){return 'right';}"),'Unpinned participant video must default to the right side at every desktop size.');
+assert(parity.includes('function ensureActiveSpeakerFallback()')&&parity.includes('syncSpeakerFallbackIdentity(tile,fallbackStage)')&&parity.includes("hasLiveVideo=Boolean(source?.srcObject&&!source.hidden)"),'Speaker view must promote a sole remote participant to a camera-off speaker identity instead of dropping back to the local stage.');
+assert(parity.includes("if(!dock.classList.contains('user-positioned'))dock.dataset.anchor='right';"),'Default right-side placement must never override a user-positioned dock.');
 assert(parity.includes("dock.classList.toggle('gallery-stage'")&&parity.includes("dock.classList.toggle('multi-speaker-stage'"),'Gallery and Multi-speaker modes must use stage layouts rather than a fixed thumbnail dock.');
 assert(parity.includes("window.addEventListener('dominion:active-speakers'"),'Meeting layout must react to ranked active-speaker updates.');
 assert(parity.includes("sharing()?'Side-by-side: Speaker':'Speaker'")&&parity.includes("sharing()?'Side-by-side: Gallery':'Gallery'")&&parity.includes("sharing()?'Side-by-side: Multi-speaker':'Multi-speaker'"),'View menu must switch to Zoom-style side-by-side labels while shared content is active.');
@@ -141,7 +142,7 @@ assert(captions.includes("captionPosition")&&captions.includes("caption-popout")
 assert(captions.includes("captionFontSize")&&captions.includes("captionFontType")&&captions.includes("captionTheme"),'Caption display must honor personal font size, type, and color settings.');
 assert(captions.includes("aria-live','polite'")&&captions.includes("aria-label','Live captions'"),'Live caption overlay must expose polite accessibility semantics.');
 assert(participantControls.includes("filter(p=>String(p.role||'').toLowerCase()!=='host')"),'Bulk participant controls must never target the host.');
-assert(webrtc.includes("String(signal.type||'').startsWith('host:')"),'WebRTC signaling must dispatch host media-control messages to the verified participant-control layer.');
+assert(webrtc.includes("signalType.startsWith('host:')")&&webrtc.includes("APPLICATION_SIGNAL_TYPES.has(signalType)"),'WebRTC signaling must dispatch host controls and application messages through the verified meeting feature layers.');
 assert(participantCss.includes('.participant-control-menu')&&participantCss.includes('.participant-bulk-actions')&&participantCss.includes('.participant-control-prompt'),'Participant media controls must ship with dedicated desktop UI styling.');
 
 assert(participantControls.includes("type==='host:view-layout'")&&participantControls.includes('authorizedSender(detail.fromParticipantId)'),'Meeting-wide View changes must pass through verified host/co-host signal authority.');
@@ -150,4 +151,4 @@ assert(parity.includes("desktop.meeting.sendSignal(p.participantId,'host:view-la
 assert(parity.includes("window.addEventListener('dominion:host-view-layout'")&&parity.includes('applyViewMode(mode)'),'Authorized meeting-wide View changes must reuse the local adaptive View authority.');
 assert(parity.includes('spotlightParticipantIds[0]?q(`#participantVideoDock .remote-peer-tile[data-peer-id="${CSS.escape(spotlightParticipantIds[0])}"]`)'),'Side-by-side Speaker must prioritize the primary Spotlight before automatic active-speaker selection.');
 assert(css.includes('button[data-apply-view-everyone]'),'Host meeting-wide View action must have dedicated desktop styling.');
-console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants adaptive-video-dock count-aware-grid active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat unread-chat chat-policy participant-media-controls mute-all ask-unmute stop-video ask-start-video raise-hand lower-hand lower-all-hands zoom-standard-reactions reaction-10s identity-reactions captions manual-captioner transcript-separation caption-accessibility caption-popout request-captions host-only-caption-setup manual-captioner-choice recording-authority recording-consent late-join-recording recording-pause-resume revoke-stop bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share floating-share-video-panel draggable-divider hide-video-panel host-view-broadcast spotlight-side-by-side event-driven-share-safe');
+console.log('DOMINIONSTAR_MEETING_PARITY_OK zoom-full-stage separate-participants right-side-filmstrip five-visible-scroll active-speaker credentials real-logo responsive atomic-host-handoff admit-all private-chat unread-chat chat-policy participant-media-controls mute-all ask-unmute stop-video ask-start-video raise-hand lower-hand lower-all-hands zoom-standard-reactions reaction-10s identity-reactions captions manual-captioner transcript-separation caption-accessibility caption-popout request-captions host-only-caption-setup manual-captioner-choice recording-authority recording-consent late-join-recording recording-pause-resume revoke-stop bounded-sync adaptive-views gallery multi-speaker responsive-dock side-by-side-share floating-share-video-panel draggable-divider hide-video-panel host-view-broadcast spotlight-side-by-side event-driven-share-safe');

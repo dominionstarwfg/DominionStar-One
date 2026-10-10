@@ -74,9 +74,29 @@ assert.ok(workflow.includes('reference_gate=approved-2.0.22'),'Production proven
 assert.ok(workflow.includes('runtime_stability_gate=physical-freeze-full-window-panels'),'Production provenance must identify the physical runtime stability gate.');
 assert.ok(workflow.includes('reaction_flow_gate=left-lanes-blossoms-bounded'),'Production provenance must identify the reaction-flow gate.');
 assert.ok(/Zoom desktop behavior is the primary UX reference/i.test(standard),'Release standard must preserve Zoom as the primary meeting UX reference.');
-assert.ok(/approved DominionStar Meet 3D illustration is a first-class visual reference/i.test(standard),'Release standard must require side-by-side approved 3D-reference review.');
+assert.ok(/single approved DominionStar Meet meeting-room illustration is \*\*“DOMINIONSTAR MEET — REFINED LIKE ZOOM \(FINAL\)”\*\*/i.test(standard),'Release standard must name the single approved meeting-room illustration.');
+assert.ok(/Do not substitute an older concept, alternate mockup, generated variation, or memory/i.test(standard),'Release standard must forbid alternate meeting-room visual references.');
 assert.ok(/Security labels must be technically true/i.test(standard),'Release standard must prohibit unverified E2EE labeling.');
 assert.ok(/Physical-Mac acceptance feedback is a first-class release input/i.test(standard),'Release standard must preserve physical Mac failures as first-class release evidence.');
 assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(standard),'Release standard must prohibit publishing failed candidates.');
 
-console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source source-cert packaged-audit packaged-launch runtime-stability packaged-controls zoom-render-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac-2.0.21 adaptive-zoom-gate approved-3d-reference-gate native-system-picker tcc-provenance installer-verify upload-last`);
+// PACKAGED_RUNTIME_WIRING: the packaged UI must execute the same canonical
+// transport/runtime authorities that communication and physical QA certify.
+{
+  const shell=fs.readFileSync(new URL('../ui/index.html',import.meta.url),'utf8');
+  for(const required of [
+    'href="./runtime-stability.css"',
+    'src="./runtime-stability.js"'
+  ]) assert(shell.includes(required),`Packaged meeting shell is missing canonical runtime asset: ${required}`);
+  assert(!shell.includes('src="./webrtc-controller.js"')&&!shell.includes('href="./webrtc.css"'),'index.html must not duplicate WebRTC assets owned by media-controller.');
+  const runtimeIndex=shell.indexOf('src="./runtime-stability.js"');
+  const finalSemanticIndex=shell.indexOf('src="./more-menu-semantic-icons-2.0.41.js"');
+  assert(runtimeIndex>finalSemanticIndex,'Runtime stability must load last so it owns final live meeting reconciliation.');
+  const runtimeSource=fs.readFileSync(new URL('../ui/runtime-stability.js',import.meta.url),'utf8');
+  const mediaSource=fs.readFileSync(new URL('../ui/media-controller.js',import.meta.url),'utf8');
+  assert(mediaSource.includes("link.href='./webrtc.css'")&&mediaSource.includes("script.src='./webrtc-controller.js'"),'Media controller must own the single live WebRTC transport load path.');
+  assert(runtimeSource.includes('headStyleObserver.observe(document.head,{childList:true})'),'Runtime stability must retain final stylesheet ownership when late module styles are added.');
+  console.log('DOMINIONSTAR_PACKAGED_RUNTIME_WIRING_OK live-webrtc-via-media canonical-runtime final-css-owner');
+}
+
+console.log(`DOMINIONSTAR_RELEASE_STANDARD_OK version=${pkg.version} dynamic-version clean-source source-cert packaged-audit packaged-launch runtime-stability packaged-controls zoom-render-gate physical-acceptance reaction-10s-gate reaction-flow-gate physical-mac-2.0.21 adaptive-zoom-gate single-approved-reference-gate native-system-picker tcc-provenance installer-verify packaged-runtime-wiring upload-last`);

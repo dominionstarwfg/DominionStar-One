@@ -74,6 +74,58 @@ try{
   assert.equal(reactions.buttons.length,6,'Reaction tray must contain six standard reactions only.');
   await evaluate(`document.querySelectorAll('.ds-reaction-tray,.meeting-reaction-menu').forEach(n=>n.remove())`);
 
+  // Single approved illustration: Participants opens centered at the approved
+  // default, can restore remembered user geometry, and resets back to center.
+  await evaluate(`window.DominionRuntimeStability.setParticipants(true)`);
+  await waitFor("document.querySelector('.room-side')&&!document.querySelector('.room-side').hidden",'approved Participants window');
+  const participantsDefault=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();return {width:Math.round(pr.width),height:Math.round(pr.height),centerDx:Math.round((pr.left+pr.width/2)-(br.left+br.width/2)),centerDy:Math.round((pr.top+pr.height/2)-(br.top+br.height/2)),handles:panel.querySelectorAll('.ds-runtime-resize-handle').length,trafficDirection:getComputedStyle(panel.querySelector('.ds-panel-traffic')).flexDirection};})()`);
+  assert.ok(Math.abs(participantsDefault.width-318)<=2,`Approved Participants default width must remain 318px. ${JSON.stringify(participantsDefault)}`);
+  assert.ok(Math.abs(participantsDefault.height-390)<=2,`Approved Participants default height must remain 390px. ${JSON.stringify(participantsDefault)}`);
+  assert.ok(Math.abs(participantsDefault.centerDx)<=3&&Math.abs(participantsDefault.centerDy)<=3,`Approved Participants must open centered. ${JSON.stringify(participantsDefault)}`);
+  assert.equal(participantsDefault.handles,8,'Approved floating Participants window must expose eight edge/corner resize hit areas.');
+  assert.equal(participantsDefault.trafficDirection,'row','Mac traffic lights must remain horizontal.');
+  const participantSearch=await evaluate(`(()=>{const wrap=document.querySelector('.room-side .zoom-participant-search'),input=wrap?.querySelector('input');const s=wrap?getComputedStyle(wrap):null;return {exists:Boolean(wrap&&input),hidden:Boolean(wrap?.hidden),display:s?.display||'',placeholder:input?.getAttribute('placeholder')||''};})()`);
+  assert.equal(participantSearch.exists,true,'Approved Participants window must contain its search field.');
+  assert.equal(participantSearch.hidden,false,'Participants search must remain stable and visible even with a small roster.');
+  assert.notEqual(participantSearch.display,'none','Participants search must not disappear by roster count.');
+  assert.equal(participantSearch.placeholder,'Search participants');
+
+  await evaluate(`window.dispatchEvent(new CustomEvent('dominion:waiting-room-update',{detail:{items:[{participantId:'qa-waiting',displayName:'Jordan Lee'}],added:[{participantId:'qa-waiting',displayName:'Jordan Lee'}]}}))`);
+  await waitFor("document.querySelector('#meetingEventToast')&&!document.querySelector('#meetingEventToast').hidden",'approved top-center Waiting Room alert');
+  const waitingAlert=await evaluate(`(()=>{const node=document.querySelector('#meetingEventToast'),r=node.getBoundingClientRect();return {title:node.querySelector('strong')?.textContent?.trim()||'',body:node.querySelector('span')?.textContent?.trim()||'',centerDx:Math.round((r.left+r.width/2)-(innerWidth/2)),top:Math.round(r.top),leftStyle:getComputedStyle(node).left,rightStyle:getComputedStyle(node).right,transform:getComputedStyle(node).transform};})()`);
+  assert.equal(waitingAlert.title,'Waiting Room');
+  assert.match(waitingAlert.body,/Jordan Lee is waiting to join/);
+  assert.ok(Math.abs(waitingAlert.centerDx)<=2,`Waiting Room alert must be horizontally centered. ${JSON.stringify(waitingAlert)}`);
+  assert.ok(waitingAlert.top>=68&&waitingAlert.top<=76,`Waiting Room alert must remain in the approved top-center lane. ${JSON.stringify(waitingAlert)}`);
+  await evaluate(`window.DominionMeetingNotifications?.reset?.()`);
+
+
+  const restoredGeometry=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),br=body.getBoundingClientRect();localStorage.setItem('ds_meet_floating_surface_geometry_v1',JSON.stringify({participants:{left:44,top:58,width:296,height:332}}));panel.dataset.dsRuntimeUserPositioned='0';window.DominionRuntimeStability.layoutSideSurface();const pr=panel.getBoundingClientRect();return {left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height),user:panel.dataset.dsRuntimeUserPositioned||''};})()`);
+  assert.ok(Math.abs(restoredGeometry.left-44)<=2&&Math.abs(restoredGeometry.top-58)<=2,`Participants must restore remembered position. ${JSON.stringify(restoredGeometry)}`);
+  assert.ok(Math.abs(restoredGeometry.width-296)<=2&&Math.abs(restoredGeometry.height-332)<=2,`Participants must restore remembered size. ${JSON.stringify(restoredGeometry)}`);
+  assert.equal(restoredGeometry.user,'1','Restored Participants geometry must enter explicit user-positioned mode.');
+
+  await evaluate(`document.querySelector('.room-side .ds-traffic-restore').click()`);await sleep(80);
+  const resetGeometry=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();const saved=JSON.parse(localStorage.getItem('ds_meet_floating_surface_geometry_v1')||'{}');return {width:Math.round(pr.width),height:Math.round(pr.height),centerDx:Math.round((pr.left+pr.width/2)-(br.left+br.width/2)),centerDy:Math.round((pr.top+pr.height/2)-(br.top+br.height/2)),saved:Boolean(saved.participants),user:panel.dataset.dsRuntimeUserPositioned||''};})()`);
+  assert.equal(resetGeometry.saved,false,'Restore control must clear remembered Participants geometry.');
+  assert.equal(resetGeometry.user,'0','Restore control must return Participants to default geometry mode.');
+  assert.ok(Math.abs(resetGeometry.width-318)<=2&&Math.abs(resetGeometry.height-390)<=2&&Math.abs(resetGeometry.centerDx)<=3&&Math.abs(resetGeometry.centerDy)<=3,`Restore control must return Participants to the approved centered 318x390 default. ${JSON.stringify(resetGeometry)}`);
+  await evaluate(`window.DominionRuntimeStability.setParticipants(false)`);
+
+  // Single approved illustration: top bar fades away on idle and returns on activity.
+  await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay');overlay.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,clientX:240,clientY:160,pointerId:91}));return overlay.dataset.dsRuntimeTopbarHidden;})()`);
+  await waitFor("document.querySelector('#meetingOverlay')?.dataset.dsRuntimeTopbarHidden==='1'",'approved idle-hidden meeting top bar',4200);
+  await waitFor("parseFloat(getComputedStyle(document.querySelector('#meetingOverlay .meeting-head')).opacity)<0.1",'approved top bar fade-out completion',1200);
+  const topbarHidden=await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay'),head=overlay.querySelector('.meeting-head'),s=getComputedStyle(head);return {state:overlay.dataset.dsRuntimeTopbarHidden,opacity:parseFloat(s.opacity),pointer:s.pointerEvents};})()`);
+  assert.equal(topbarHidden.state,'1');
+  assert.ok(topbarHidden.opacity<.1,`Approved idle top bar must fade out. ${JSON.stringify(topbarHidden)}`);
+  assert.equal(topbarHidden.pointer,'none');
+  await evaluate(`document.querySelector('#meetingOverlay').dispatchEvent(new PointerEvent('pointermove',{bubbles:true,clientX:260,clientY:170,pointerId:92}))`);
+  await waitFor("document.querySelector('#meetingOverlay')?.dataset.dsRuntimeTopbarHidden==='0'&&parseFloat(getComputedStyle(document.querySelector('#meetingOverlay .meeting-head')).opacity)>0.9",'approved top bar fade-in completion',1200);
+  const topbarVisible=await evaluate(`(()=>{const overlay=document.querySelector('#meetingOverlay'),head=overlay.querySelector('.meeting-head'),s=getComputedStyle(head);return {state:overlay.dataset.dsRuntimeTopbarHidden,opacity:parseFloat(s.opacity)};})()`);
+  assert.equal(topbarVisible.state,'0','Pointer activity must reveal the approved top bar.');
+  assert.ok(topbarVisible.opacity>.9,`Approved top bar must fade back in. ${JSON.stringify(topbarVisible)}`);
+
   // Final Chat authority: exercise the real toolbar click so the same one-shot
   // adaptive structure used by the user path mounts Everyone / New chat before
   // approved-reference wiring takes ownership of labels and direct messages.
@@ -99,13 +151,44 @@ try{
   assert.equal(dm.value,'peer-1','New chat must still select a real direct-message recipient.');
   await evaluate(`window.DominionRuntimeStability.setChat(false)`);
 
+  // Approved meeting-state behavior: solo has no strip; with one remote participant,
+  // that participant owns the main speaker stage and self remains in the right-side strip.
+  const soloVideoState=await evaluate(`(()=>{const parity=window.DominionMeetingParity;parity.applyViewMode('speaker');const dock=document.querySelector('#participantVideoDock'),body=dock.querySelector('.participant-video-dock-body');let strip=document.querySelector('#remoteTileStrip');if(!strip){strip=document.createElement('div');strip.id='remoteTileStrip';strip.className='remote-tile-strip';body.append(strip);}for(const tile of [...strip.querySelectorAll('.remote-peer-tile')])tile.remove();const local=dock.querySelector('#localVideoDockTile');if(local)local.hidden=true;parity.syncVideoDock();const fallback=document.querySelector('#remoteActiveSpeakerFallback');return {dockHidden:Boolean(dock.hidden),localHidden:Boolean(local?.hidden),fallbackHidden:fallback?Boolean(fallback.hidden):true};})()`);
+  assert.equal(soloVideoState.dockHidden,true,'Approved one-person meeting must not show a participant video strip.');
+  assert.equal(soloVideoState.localHidden,true,'Approved one-person meeting must not create a redundant self strip tile.');
+  assert.equal(soloVideoState.fallbackHidden,true,'Approved one-person meeting must not show a remote speaker fallback.');
+
+  const remoteCameraOffState=await evaluate(`(()=>{const parity=window.DominionMeetingParity,dock=document.querySelector('#participantVideoDock'),body=dock.querySelector('.participant-video-dock-body');let strip=document.querySelector('#remoteTileStrip');if(!strip){strip=document.createElement('div');strip.id='remoteTileStrip';strip.className='remote-tile-strip';body.append(strip);}const tile=document.createElement('article');tile.className='remote-peer-tile';tile.dataset.peerId='peer-approved-camera';tile.dataset.participantName='Jordan Lee';tile.innerHTML='<video autoplay playsinline hidden></video><div class="remote-peer-fallback"><span>JL</span></div><footer><strong>Jordan Lee</strong><small>Connected</small></footer>';strip.append(tile);parity.applyViewMode('speaker');parity.syncVideoDock();const local=dock.querySelector('#localVideoDockTile'),fallback=document.querySelector('#remoteActiveSpeakerFallback'),active=document.querySelector('#remoteActiveSpeakerStage'),dr=dock.getBoundingClientRect(),sr=document.querySelector('.stage').getBoundingClientRect();return {dockHidden:Boolean(dock.hidden),orientation:dock.dataset.orientation||'',rightGap:Math.round(sr.right-dr.right),localHidden:Boolean(local?.hidden),remotePromoted:tile.classList.contains('stage-promoted'),fallbackHidden:Boolean(fallback?.hidden),fallbackName:fallback?.querySelector('h3')?.textContent?.trim()||'',fallbackInitials:fallback?.querySelector('.remote-active-speaker-avatar')?.textContent?.trim()||'',activeHidden:Boolean(active?.hidden)};})()`);
+  assert.equal(remoteCameraOffState.dockHidden,false,'Approved two-person meeting must show the right-side participant strip.');
+  assert.equal(remoteCameraOffState.orientation,'vertical','Approved two-person participant strip must default to the right-side vertical layout.');
+  assert.ok(Math.abs(remoteCameraOffState.rightGap-14)<=2,`Approved participant strip must stay on the right edge. ${JSON.stringify(remoteCameraOffState)}`);
+  assert.equal(remoteCameraOffState.localHidden,false,'When the remote participant owns the speaker stage, self view must remain available in the right strip.');
+  assert.equal(remoteCameraOffState.remotePromoted,true,'The sole remote participant must own the main speaker stage.');
+  assert.equal(remoteCameraOffState.fallbackHidden,false,'Remote camera-off state must show the participant profile/initials fallback on the main stage.');
+  assert.equal(remoteCameraOffState.fallbackName,'Jordan Lee');
+  assert.equal(remoteCameraOffState.fallbackInitials,'JL');
+  assert.equal(remoteCameraOffState.activeHidden,true,'Remote camera-off state must not show an empty video element over the fallback.');
+
+  const remoteCameraOnState=await evaluate(`(()=>{const parity=window.DominionMeetingParity,tile=document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]'),video=tile.querySelector('video'),stream=new MediaStream();video.srcObject=stream;video.hidden=false;parity.syncVideoDock();const fallback=document.querySelector('#remoteActiveSpeakerFallback'),active=document.querySelector('#remoteActiveSpeakerStage');return {fallbackHidden:Boolean(fallback?.hidden),activeHidden:Boolean(active?.hidden),sameStream:Boolean(active?.srcObject===stream),localHidden:Boolean(document.querySelector('#localVideoDockTile')?.hidden)};})()`);
+  assert.equal(remoteCameraOnState.fallbackHidden,true,'Remote camera-on state must replace the profile fallback with live video.');
+  assert.equal(remoteCameraOnState.activeHidden,false,'Remote camera-on state must show the live remote speaker stage.');
+  assert.equal(remoteCameraOnState.sameStream,true,'Main speaker stage must use the remote participant video stream.');
+  assert.equal(remoteCameraOnState.localHidden,false,'Self view must remain available in the right strip while the remote participant is on stage.');
+
+  await evaluate(`(()=>{document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]')?.remove();window.DominionMeetingParity.syncVideoDock();return true;})()`);
+
   // Final floating participant-video surface keeps whole-surface drag without a grip.
-  const video=await evaluate(`(()=>{window.DominionMeetingParity.applyViewMode('speaker');const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');let body=dock.querySelector('.participant-video-dock-body');if(!body){body=document.createElement('div');body.className='participant-video-dock-body';dock.append(body);}let tile=body.querySelector('.remote-peer-tile');if(!tile){tile=document.createElement('div');tile.className='remote-peer-tile active-speaker';tile.dataset.peerId='peer-visual';tile.innerHTML='<div class="remote-peer-name">Jordan Lee</div>';body.append(tile);}tile.classList.add('active-speaker');dock.hidden=false;window.DominionApprovedReferenceParity.syncVideoPanel();window.DominionRuntimeStability.sync();const head=dock.querySelector('.participant-video-dock-head'),grip=dock.querySelector('.dock-grip'),modes=dock.querySelectorAll('[data-dock-panel-mode]');return {marker:dock.dataset.approvedFilmstrip||'',wholeDrag:dock.dataset.dsRuntimeWholePanelDrag||'',cursor:getComputedStyle(dock).cursor,headDisplay:head?getComputedStyle(head).display:'none',headCursor:head?getComputedStyle(head).cursor:'',modeCount:modes.length,gripDisplay:grip?getComputedStyle(grip).display:'none',radius:parseFloat(getComputedStyle(tile).borderRadius)||0,tileCursor:getComputedStyle(tile).cursor,activeBorder:getComputedStyle(tile).borderTopColor};})()`);
+  const video=await evaluate(`(()=>{window.DominionMeetingParity.applyViewMode('speaker');const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');let body=dock.querySelector('.participant-video-dock-body');if(!body){body=document.createElement('div');body.className='participant-video-dock-body';dock.append(body);}let tile=body.querySelector('.remote-peer-tile');if(!tile){tile=document.createElement('div');tile.className='remote-peer-tile active-speaker';tile.dataset.peerId='peer-visual';tile.innerHTML='<div class="remote-peer-name">Jordan Lee</div>';body.append(tile);}tile.classList.add('active-speaker');dock.hidden=false;window.DominionApprovedReferenceParity.syncVideoPanel();window.DominionRuntimeStability.sync();const head=dock.querySelector('.participant-video-dock-head'),grip=dock.querySelector('.dock-grip'),modes=dock.querySelectorAll('[data-dock-panel-mode]'),dr=dock.getBoundingClientRect(),hs=head?getComputedStyle(head):null;return {marker:dock.dataset.approvedFilmstrip||'',wholeDrag:dock.dataset.dsRuntimeWholePanelDrag||'',cursor:getComputedStyle(dock).cursor,headDisplay:hs?.display||'none',headCursor:hs?.cursor||'',headOpacity:parseFloat(hs?.opacity||'0'),headVisibility:hs?.visibility||'',modeCount:modes.length,gripDisplay:grip?getComputedStyle(grip).display:'none',radius:parseFloat(getComputedStyle(tile).borderRadius)||0,tileCursor:getComputedStyle(tile).cursor,activeBorder:getComputedStyle(tile).borderTopColor,hoverX:Math.round(dr.left+dr.width/2),hoverY:Math.round(dr.top+Math.min(50,dr.height/2))};})()`);
   assert.equal(video.marker,'1');
   assert.equal(video.wholeDrag,'1','Video panel must remain draggable from the whole non-control surface.');
   assert.equal(video.cursor,'default');
   assert.equal(video.tileCursor,'default');
-  assert.notEqual(video.headDisplay,'none','Video filmstrip must expose the compact speaker/strip/gallery/hide control bar.');
+  assert.notEqual(video.headDisplay,'none','Video filmstrip must keep the compact speaker/strip/gallery/hide control bar in the DOM.');
+  assert.ok(video.headOpacity<0.1&&video.headVisibility==='hidden',`Video-panel controls must stay hidden until interaction. ${JSON.stringify(video)}`);
+  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:video.hoverX,y:video.hoverY});
+  await waitFor("parseFloat(getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).opacity)>0.9&&getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).visibility==='visible'",'video-panel hover controls',1500);
+  const hoveredVideoChrome=await evaluate(`(()=>{const h=document.querySelector('#participantVideoDock .participant-video-dock-head'),s=getComputedStyle(h);return {opacity:parseFloat(s.opacity),visibility:s.visibility,pointer:s.pointerEvents};})()`);
+  assert.ok(hoveredVideoChrome.opacity>0.9&&hoveredVideoChrome.visibility==='visible'&&hoveredVideoChrome.pointer==='auto',`Video-panel controls must reveal on real pointer hover. ${JSON.stringify(hoveredVideoChrome)}`);
   assert.equal(video.headCursor,'default','Video panel control bar must use the normal arrow cursor.');
   assert.ok(video.modeCount>=4,'Video panel control bar must expose speaker, strip, gallery, and hide controls.');
   assert.equal(video.gripDisplay,'none','Legacy visible drag grip must remain hidden.');
@@ -115,6 +198,6 @@ try{
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption stable-host-toolbar host-tools dedicated-raise-hand real-react-label reactions-six-only clean-runtime-chat direct-messages no-formatting floating-filmstrip active-speaker whole-panel-drag no-grip no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption stable-host-toolbar host-tools dedicated-raise-hand real-react-label reactions-six-only clean-runtime-chat direct-messages no-formatting centered-participants remembered-panel-geometry edge-corner-resize horizontal-mac-traffic stable-participant-search top-center-waiting-alert topbar-idle-fade solo-no-strip two-person-right-strip camera-off-main-fallback camera-on-main-video floating-filmstrip active-speaker smart-hover-chrome whole-panel-drag no-grip no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);

@@ -225,9 +225,11 @@
   function dispatchMeetingSignal(signal,remoteId){
     window.dispatchEvent(new CustomEvent('dominion:meeting-signal',{detail:{id:Number(signal.id)||0,type:String(signal.type||''),fromParticipantId:remoteId,fromDisplayName:participantName(remoteId),payload:signal.payload||{},createdAt:signal.createdAt||''}}));
   }
+  const APPLICATION_SIGNAL_TYPES=new Set(['chat','reaction','caption','caption-request','recording-state','poll:start','poll:vote','poll:end']);
   async function handleSignal(signal){
     const remoteId=String(signal.fromParticipantId||'');if(!remoteId||remoteId===state.context?.participantId)return;
-    if(signal.type==='chat'||signal.type==='reaction'||String(signal.type||'').startsWith('host:')){dispatchMeetingSignal(signal,remoteId);return;}
+    const signalType=String(signal.type||'');
+    if(APPLICATION_SIGNAL_TYPES.has(signalType)||signalType.startsWith('host:')){dispatchMeetingSignal(signal,remoteId);return;}
     if(signal.type==='bye'){closePeer(remoteId);return;}
     let record;try{record=ensurePeer(remoteId);}catch{return;}const payload=signal.payload||{};
     if(signal.type==='offer'){

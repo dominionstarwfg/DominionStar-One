@@ -68,8 +68,12 @@ has(ui,'let repaintTimer=0','Profile-photo DOM repaint work must be coalesced.')
 has(ui,'repaintTimer=window.setTimeout(()=>{repaintTimer=0;paintAll();},32)','Profile-photo repaint scheduling must yield through a bounded task.');
 has(ui,'const observer=new MutationObserver(schedulePaint)','Dynamic surface observation must use the bounded scheduler.');
 lacks(ui,'queueMicrotask(paintAll)','Profile-photo DOM observation must never recursively queue paintAll as a microtask.');
+lacks(ui,"observer.observe(document.body",{subtree:true,childList:true})",'Profile-photo fallback must not observe the entire document body.');
+has(ui,'function bindSurfaceObservers()','Profile-photo fallback must bind only targeted identity surfaces.');
+has(ui,"q('#participantRoster'),q('#waitingQueue'),q('.stage'),q('#participantVideoDock'),q('#remoteTileStrip')",'Profile-photo observer must stay scoped to roster, waiting and video identity surfaces.');
+
 
 // Avatar work must remain isolated from the fragile presenter/capture architecture.
 lacks(share,'meet_v2_room_avatar_paths','Share service must remain independent from profile-photo metadata.');
 
-console.log('DOMINIONSTAR_PROFILE_PHOTO_2_0_24_OK private-signed-avatars same-room-metadata authenticated-only-rpc additive-rpc cached-enrichment fail-open-snapshot existing-events local-and-remote-photo-first initials-fallback bounded-repaint no-extra-poll share-stack-untouched');
+console.log('DOMINIONSTAR_PROFILE_PHOTO_2_0_24_OK private-signed-avatars same-room-metadata authenticated-only-rpc additive-rpc cached-enrichment fail-open-snapshot existing-events local-and-remote-photo-first initials-fallback bounded-repaint targeted-observer no-extra-poll share-stack-untouched');

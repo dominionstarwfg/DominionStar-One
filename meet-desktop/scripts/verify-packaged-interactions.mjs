@@ -145,7 +145,8 @@ try{
   socket.addEventListener('close',()=>settlePending(new Error('CDP WebSocket closed.')));
   await cdp('Runtime.enable');
   await cdp('Debugger.enable');mark('runtime-enabled');
-  await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareIntegration&&window.DominionZoomAdaptiveParity&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&window.dominionDesktop?.meeting&&window.dominionDesktop?.share","desktop UI + final physical runtime + native share controllers");mark('controllers-loaded');
+  await waitFor("document.readyState==='complete'&&document.querySelector('#appShell')&&document.querySelector('#newMeetingDialog')&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionShareIntegration&&window.DominionZoomAdaptiveParity&&window.DominionApprovedReferenceParity&&window.DominionWebRTCController&&window.DominionRuntimeStability&&window.dominionDesktop?.meeting&&window.dominionDesktop?.share","desktop UI + final physical runtime + native share controllers");mark('controllers-loaded');
+  assert.equal(await evaluate(`Boolean(window.DominionWebRTCController?.start&&window.DominionWebRTCController?.stop&&window.DominionWebRTCController?.snapshot&&window.DominionRuntimeStability?.sync)`),true,'Packaged renderer must expose the canonical live WebRTC and runtime-stability authorities.');mark('live-runtime-authority');
 
   await evaluate(`(()=>{
     document.querySelector('#bootScreen').hidden=true;
@@ -239,9 +240,10 @@ try{
   await sleep(200);
   await waitFor("document.querySelector('#roomParticipants')&&document.querySelector('#roomMore')&&document.querySelector('#roomSettings')&&document.querySelector('#roomChat')&&document.querySelector('#roomReactions')&&document.querySelector('#roomRaiseHand')","meeting controls",7000);mark('meeting-controls');
 
-  assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();return side.hidden===false&&!document.querySelector('#meetingOverlay').classList.contains('participants-hidden');})()`),true,'Participants control did not open the management panel on demand.');
+  await evaluate(`(()=>{localStorage.removeItem('ds_meet_floating_surface_geometry_v1');const side=document.querySelector('.room-side');if(side){side.dataset.dsRuntimeUserPositioned='0';side.dataset.dsAdaptiveUserPositioned='0';side.style.removeProperty('left');side.style.removeProperty('top');side.style.removeProperty('right');side.style.removeProperty('bottom');side.style.removeProperty('width');side.style.removeProperty('height');}return true;})()`);
+  assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side');document.querySelector('#roomParticipants').click();window.DominionRuntimeStability.layoutSideSurface();return side.hidden===false&&!document.querySelector('#meetingOverlay').classList.contains('participants-hidden');})()`),true,'Participants control did not open the management panel on demand.');
   await sleep(190);
-  const participantPanelGeometry=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),side=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {width:Math.round(side.width),position:getComputedStyle(panel).position,runtime:panel.dataset.dsRuntimeMode,inside:side.left>=br.left+10&&side.right<=br.right-10&&side.top>=br.top+10&&side.bottom<=br.bottom-10,rightGap:Math.round(br.right-side.right),stageRightGap:Math.round(br.right-sr.right),stageWidth:Math.round(sr.width),bodyWidth:Math.round(br.width)};})()`);
+  const participantPanelGeometry=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),stage=document.querySelector('.stage'),side=panel.getBoundingClientRect(),br=body.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {width:Math.round(side.width),height:Math.round(side.height),position:getComputedStyle(panel).position,runtime:panel.dataset.dsRuntimeMode,inside:side.left>=br.left+10&&side.right<=br.right-10&&side.top>=br.top+10&&side.bottom<=br.bottom-10,centerDeltaX:Math.round((side.left+side.width/2)-(br.left+br.width/2)),centerDeltaY:Math.round((side.top+side.height/2)-(br.top+br.height/2)),stageRightGap:Math.round(br.right-sr.right),stageWidth:Math.round(sr.width),bodyWidth:Math.round(br.width)};})()`);
   assert.equal(participantPanelGeometry.position,'absolute','Participant management panel must remain a floating application surface.');
   assert.equal(participantPanelGeometry.runtime,'floating','Desktop-width Participants must open as a floating Zoom-style window.');
   assert.ok(participantPanelGeometry.width>=312&&participantPanelGeometry.width<=324,`Desktop Participants width must match the compact 318px reference; received ${participantPanelGeometry.width}px.`);
@@ -256,7 +258,8 @@ try{
   assert.equal(participantReferenceState.footerButtons,3,'Participants footer must contain exactly Invite, Mute all, and More.');
   assert.ok(participantReferenceState.footerSpread<=8,'Participants footer buttons must remain visually balanced.');
   assert.equal(participantReferenceState.hasUtility,true,'Participants header utility action is missing.');
-  assert.ok(participantPanelGeometry.rightGap>=18&&participantPanelGeometry.rightGap<=36,'Participants must open as an inset floating surface rather than an edge-attached sidebar.');
+  assert.ok(Math.abs(participantPanelGeometry.centerDeltaX)<=2&&Math.abs(participantPanelGeometry.centerDeltaY)<=2,'Participants must open centered in the meeting body before user positioning.');
+  assert.ok(participantPanelGeometry.height>=382&&participantPanelGeometry.height<=400,'Participants must preserve the approved 390px-class height.');
   assert.ok(Math.abs(participantPanelGeometry.stageRightGap)<=2,'Floating Participants must not reserve the right edge or shrink the live stage.');
   assert.ok(Math.abs(participantPanelGeometry.stageWidth-participantPanelGeometry.bodyWidth)<=2,'The live stage must remain full width underneath floating Participants.');
   assert.equal(await evaluate(`(()=>{const side=document.querySelector('.room-side'),traffic=side?.querySelector('.ds-panel-traffic[data-ds-runtime-participant-chrome="1"]'),red=traffic?.querySelector('.ds-traffic-close[aria-label="Close participants"]'),yellow=traffic?.querySelector('.ds-traffic-minimize[aria-label="Minimize participants"]'),green=traffic?.querySelector('.ds-traffic-restore[aria-label="Restore participants"]');const visible=node=>Boolean(node&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden'&&Number(getComputedStyle(node).opacity)>0);return Boolean(traffic&&visible(red)&&visible(yellow)&&visible(green)&&traffic.querySelectorAll(':scope>button').length===3&&!side.querySelector('.ds-participants-traffic,.ds-participants-popout'));})()`),true,'Mac Participants must expose exactly one visible runtime-owned red/yellow/green traffic-light control set with no legacy duplicate header controls.');
@@ -315,9 +318,9 @@ try{
   assert.ok(dock.rightGap>=8&&dock.rightGap<=24,`Default participant video filmstrip must sit against the right edge; received ${dock.rightGap}px.`);
   assert.ok(dock.topGap>=8&&dock.topGap<=24,`Default participant video filmstrip must start near the upper-right corner; received ${dock.topGap}px.`);
   assert.equal(dock.visible,4,'Adaptive participant video panel did not count all visible participant tiles.');
-  assert.equal(dock.columns,2,'Four visible participants must expand the video panel to two columns.');
-  assert.equal(String(dock.grid).split(' ').filter(Boolean).length,2,'Four visible participants must render a two-column adaptive video grid.');
-  assert.ok(dock.width>=350&&dock.height>=220,'Four visible participants did not enlarge the video panel geometry.');
+  assert.equal(dock.columns,1,'Four visible participants must remain in the approved one-column right-side filmstrip.');
+  assert.equal(String(dock.grid).split(' ').filter(Boolean).length,1,'Four visible participants must render one vertical video column.');
+  assert.ok(dock.width>=184&&dock.width<=190&&dock.height>=416&&dock.height<=425,`Four visible participants must use the approved compact right-side filmstrip with non-reserving hover chrome. ${JSON.stringify(dock)}`);
   const shareDock=await evaluate(`(()=>{
     const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');
     overlay.classList.add('share-active');window.DominionPreferences?.write?.('shareVideoDock',true);window.DominionPreferences?.write?.('shareSideBySide',false);

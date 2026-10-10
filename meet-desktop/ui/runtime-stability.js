@@ -3,6 +3,17 @@
   if(window.DominionRuntimeStability)return;
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+  const stabilityCss=[...document.querySelectorAll('link[rel="stylesheet"]')].find(node=>String(node.getAttribute('href')||'').endsWith('/runtime-stability.css')||String(node.getAttribute('href')||'')==='./runtime-stability.css');
+  const keepStabilityCssLast=()=>{
+    if(!stabilityCss||stabilityCss.parentElement!==document.head)return;
+    const styles=[...document.head.querySelectorAll('link[rel="stylesheet"]')];
+    if(styles.at(-1)!==stabilityCss)document.head.append(stabilityCss);
+  };
+  keepStabilityCssLast();
+  const headStyleObserver=new MutationObserver(mutations=>{
+    if(mutations.some(m=>[...m.addedNodes].some(node=>node?.nodeType===1&&node.matches?.('link[rel="stylesheet"]'))))queueMicrotask(keepStabilityCssLast);
+  });
+  headStyleObserver.observe(document.head,{childList:true});
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
   const desktopSurface=Boolean(window.dominionDesktop)||isMac;
@@ -15,13 +26,44 @@
   let observedSideKey='';
   let dockBound=null;
   let dockDrag=null;
+  let videoHoverBound=null;
   let surfaceDrag=null;
+  let surfaceResize=null;
+  let topBarIdleTimer=0;
+  let topBarBound=false;
+  const SURFACE_GEOMETRY_KEY='ds_meet_floating_surface_geometry_v1';
   let physicalPrimed=false;
   let legacyPrimed=false;
   let shareOpening=false;
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
+  const surfaceKey=panel=>panel?.matches?.('.room-side')?'participants':panel?.id==='meetingChatPanel'?'chat':'surface';
+  function readSurfaceGeometry(panel){
+    try{const all=JSON.parse(localStorage.getItem(SURFACE_GEOMETRY_KEY)||'{}');const value=all?.[surfaceKey(panel)];return value&&typeof value==='object'?value:null;}catch{return null;}
+  }
+  function writeSurfaceGeometry(panel){
+    if(!panel)return;
+    const body=q('.meeting-body');if(!body)return;const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
+    const value={left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height)};
+    try{const all=JSON.parse(localStorage.getItem(SURFACE_GEOMETRY_KEY)||'{}');all[surfaceKey(panel)]=value;localStorage.setItem(SURFACE_GEOMETRY_KEY,JSON.stringify(all));}catch{}
+  }
+  function clearSurfaceGeometry(panel){
+    try{const all=JSON.parse(localStorage.getItem(SURFACE_GEOMETRY_KEY)||'{}');delete all[surfaceKey(panel)];localStorage.setItem(SURFACE_GEOMETRY_KEY,JSON.stringify(all));}catch{}
+  }
+  function restoreSurfaceGeometry(panel,bodyWidth,bodyHeight){
+    const saved=readSurfaceGeometry(panel);if(!saved)return false;
+    const minW=panel?.matches?.('.room-side')?286:300,minH=panel?.matches?.('.room-side')?300:300;
+    const width=clamp(Number(saved.width)||minW,minW,Math.max(minW,bodyWidth-20));
+    const height=clamp(Number(saved.height)||minH,minH,Math.max(minH,bodyHeight-20));
+    const left=clamp(Number(saved.left)||10,10,Math.max(10,bodyWidth-width-10));
+    const top=clamp(Number(saved.top)||10,10,Math.max(10,bodyHeight-height-10));
+    panel.dataset.dsRuntimeUserPositioned='1';panel.dataset.dsAdaptiveUserPositioned='1';
+    panel.style.setProperty('left',`${left}px`,'important');panel.style.setProperty('right','auto','important');
+    panel.style.setProperty('top',`${top}px`,'important');panel.style.setProperty('bottom','auto','important');
+    panel.style.setProperty('width',`${width}px`,'important');panel.style.setProperty('height',`${height}px`,'important');
+    return true;
+  }
 
   function guardSnapshotHtml(node){
     if(!node||node.dataset.dsRuntimeHtmlGuard==='1'||!htmlDescriptor?.get||!htmlDescriptor?.set)return;
@@ -229,7 +271,7 @@
         });
       }
     }
-    if(search)search.hidden=count<7;
+    if(search)search.hidden=false;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
     sortParticipants();
     const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1';
@@ -360,12 +402,66 @@
       if(event?.pointerId!=null&&surfaceDrag.id!=null&&event.pointerId!==surfaceDrag.id)return;
       surfaceDrag=null;panel.classList.remove('dragging');
       panel.dataset.dsRuntimeDragEnd=String((Number(panel.dataset.dsRuntimeDragEnd)||0)+1);
+      writeSurfaceGeometry(panel);
     };
 
     document.addEventListener('pointerdown',begin,true);
     document.addEventListener('pointermove',move,true);
     document.addEventListener('pointerup',end,true);
     document.addEventListener('pointercancel',end,true);
+  }
+
+  function installFloatingSurfaceResize(panel){
+    if(!panel||panel.dataset.dsRuntimeResizeBound==='1')return;
+    panel.dataset.dsRuntimeResizeBound='1';
+    const directions=['n','s','e','w','ne','nw','se','sw'];
+    for(const dir of directions){
+      const handle=document.createElement('span');handle.className='ds-runtime-resize-handle';handle.dataset.dsResize=dir;handle.setAttribute('aria-hidden','true');panel.append(handle);
+    }
+    const begin=event=>{
+      const handle=event.target.closest?.('.ds-runtime-resize-handle');if(!handle||event.button!==0||surfaceResize)return;
+      const body=q('.meeting-body');if(!body)return;const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
+      surfaceResize={panel,id:event.pointerId??null,dir:String(handle.dataset.dsResize||'se'),startX:event.clientX,startY:event.clientY,left:pr.left-br.left,top:pr.top-br.top,width:pr.width,height:pr.height,bodyWidth:br.width,bodyHeight:br.height};
+      panel.dataset.dsRuntimeUserPositioned='1';panel.dataset.dsAdaptiveUserPositioned='1';panel.classList.add('resizing');
+      handle.setPointerCapture?.(event.pointerId);event.preventDefault();event.stopPropagation();
+    };
+    const move=event=>{
+      if(!surfaceResize||surfaceResize.panel!==panel)return;
+      if(event.pointerId!=null&&surfaceResize.id!=null&&event.pointerId!==surfaceResize.id)return;
+      const s=surfaceResize,dx=event.clientX-s.startX,dy=event.clientY-s.startY,dir=s.dir,minW=286,minH=300;
+      let left=s.left,top=s.top,width=s.width,height=s.height;
+      if(dir.includes('e'))width=clamp(s.width+dx,minW,Math.max(minW,s.bodyWidth-s.left-10));
+      if(dir.includes('s'))height=clamp(s.height+dy,minH,Math.max(minH,s.bodyHeight-s.top-10));
+      if(dir.includes('w')){const nextLeft=clamp(s.left+dx,10,Math.max(10,s.left+s.width-minW));width=clamp(s.width+(s.left-nextLeft),minW,Math.max(minW,s.bodyWidth-nextLeft-10));left=nextLeft;}
+      if(dir.includes('n')){const nextTop=clamp(s.top+dy,10,Math.max(10,s.top+s.height-minH));height=clamp(s.height+(s.top-nextTop),minH,Math.max(minH,s.bodyHeight-nextTop-10));top=nextTop;}
+      panel.style.setProperty('left',`${left}px`,'important');panel.style.setProperty('top',`${top}px`,'important');
+      panel.style.setProperty('right','auto','important');panel.style.setProperty('bottom','auto','important');
+      panel.style.setProperty('width',`${width}px`,'important');panel.style.setProperty('height',`${height}px`,'important');
+      event.preventDefault();event.stopPropagation();
+    };
+    const end=event=>{
+      if(!surfaceResize||surfaceResize.panel!==panel)return;
+      if(event?.pointerId!=null&&surfaceResize.id!=null&&event.pointerId!==surfaceResize.id)return;
+      surfaceResize=null;panel.classList.remove('resizing');writeSurfaceGeometry(panel);
+    };
+    panel.addEventListener('pointerdown',begin,true);panel.addEventListener('pointermove',move,true);panel.addEventListener('pointerup',end,true);panel.addEventListener('pointercancel',end,true);
+  }
+
+  function installMeetingTopBarAutoHide(){
+    const overlay=q('#meetingOverlay'),head=overlay?.querySelector('.meeting-head');if(!overlay||!head)return false;
+    const show=()=>{
+      overlay.dataset.dsRuntimeTopbarHidden='0';clearTimeout(topBarIdleTimer);
+      if(meetingOpen())topBarIdleTimer=setTimeout(()=>{if(meetingOpen())overlay.dataset.dsRuntimeTopbarHidden='1';},2400);
+    };
+    if(!topBarBound){
+      topBarBound=true;
+      overlay.addEventListener('pointermove',show,{passive:true});
+      overlay.addEventListener('pointerdown',show,{passive:true});
+      overlay.addEventListener('pointerenter',show,{passive:true});
+      head.addEventListener('pointerenter',show,{passive:true});
+      window.addEventListener('blur',()=>{clearTimeout(topBarIdleTimer);});
+    }
+    show();return true;
   }
 
   function ensurePanelClose(panel){
@@ -396,7 +492,7 @@
         traffic.dataset.dsRuntimeBound='1';
         traffic.querySelector('.ds-traffic-close').onclick=event=>{event.preventDefault();event.stopPropagation();setParticipants(false);};
         traffic.querySelector('.ds-traffic-minimize').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.add('ds-panel-minimized');layoutSideSurface();};
-        traffic.querySelector('.ds-traffic-restore').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
+        traffic.querySelector('.ds-traffic-restore').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');clearSurfaceGeometry(panel);panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
       }
       let headerAction=header.querySelector('.ds-participant-header-action');
       if(!headerAction){
@@ -409,7 +505,7 @@
       }
       if(headerAction.dataset.dsRuntimeBound!=='1'){
         headerAction.dataset.dsRuntimeBound='1';
-        headerAction.onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
+        headerAction.onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');clearSurfaceGeometry(panel);panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
       }
     }
     let close=participants?header.querySelector('button[aria-label="Close participants"]'):header.querySelector('[data-chat-close]');
@@ -477,9 +573,7 @@
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
       const baseWidth=panel===chat?330:318;
-      const participantCount=participantRows().length;
-      const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));
-      const baseHeight=panel===chat?440:participantBaseHeight;
+      const baseHeight=panel===chat?440:390;
       const minPanelHeight=panel===chat?300:390;
       const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
@@ -494,8 +588,9 @@
       panel.style.setProperty('max-height','calc(100% - 20px)','important');
       panel.style.setProperty('transform','none','important');
       panel.style.setProperty('z-index','2600','important');
-      if(panel.dataset.dsRuntimeUserPositioned==='1'){
-        const pw=Math.min(width,bodyWidth-20),ph=Math.min(height,bodyHeight-20);
+      const restored=panel.dataset.dsRuntimeUserPositioned!=='1'&&restoreSurfaceGeometry(panel,bodyWidth,bodyHeight);
+      if(panel.dataset.dsRuntimeUserPositioned==='1'||restored){
+        const saved=readSurfaceGeometry(panel)||{},pw=Math.min(Number(saved.width)||panel.offsetWidth||width,bodyWidth-20),ph=Math.min(Number(saved.height)||panel.offsetHeight||height,bodyHeight-20);
         const currentLeft=parseFloat(panel.style.left),currentTop=parseFloat(panel.style.top);
         const left=Number.isFinite(currentLeft)?clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10)):Math.max(10,bodyWidth-pw-10);
         const top=Number.isFinite(currentTop)?clamp(currentTop,10,Math.max(10,bodyHeight-ph-10)):10;
@@ -505,16 +600,26 @@
         panel.style.setProperty('bottom','auto','important');
         panel.style.setProperty('width',`${pw}px`,'important');
         panel.style.setProperty('height',`${ph}px`,'important');
+      }else if(panel===participants){
+        const ph=Math.min(390,Math.max(1,bodyHeight-20));
+        const pw=Math.min(318,Math.max(1,bodyWidth-20));
+        panel.style.setProperty('left',`${Math.max(10,(bodyWidth-pw)/2)}px`,'important');
+        panel.style.setProperty('right','auto','important');
+        panel.style.setProperty('top',`${Math.max(10,(bodyHeight-ph)/2)}px`,'important');
+        panel.style.setProperty('bottom','auto','important');
+        panel.style.setProperty('width',`${pw}px`,'important');
+        panel.style.setProperty('height',`${ph}px`,'important');
       }else{
         panel.style.setProperty('left','auto','important');
         panel.style.setProperty('right','24px','important');
-        panel.style.setProperty('top',panel===chat?'46px':'18px','important');
+        panel.style.setProperty('top','46px','important');
         panel.style.setProperty('bottom','auto','important');
         panel.style.setProperty('height',`${Math.min(height,Math.max(minPanelHeight,bodyHeight-28))}px`,'important');
       }
       overlay.dataset.dsRuntimeSide='floating';
       ensurePanelClose(panel);
       installFloatingSurfaceDrag(panel);
+      installFloatingSurfaceResize(panel);
     }else overlay.dataset.dsRuntimeSide='none';
     stage.style.setProperty('left','0px','important');
     stage.style.setProperty('top','0px','important');
@@ -543,6 +648,43 @@
     dock.addEventListener('pointerup',end,true);dock.addEventListener('pointercancel',end,true);
   }
 
+  function installVideoDockHoverIntelligence(){
+    const dock=q('#participantVideoDock');if(!dock||dock===videoHoverBound)return;
+    videoHoverBound=dock;dock.dataset.dsRuntimeHoverIntelligence='1';
+    dock.style.setProperty('pointer-events','auto','important');
+    let inside=false;
+    const apply=next=>{
+      inside=Boolean(next);dock.classList.toggle('ds-video-chrome-hover',inside);
+      const head=dock.querySelector('.participant-video-dock-head');if(!head)return;
+      if(inside){
+        head.style.setProperty('opacity','1','important');
+        head.style.setProperty('visibility','visible','important');
+        head.style.setProperty('transform','translateY(0)','important');
+        head.style.setProperty('pointer-events','auto','important');
+        head.style.setProperty('transition-delay','0s','important');
+      }else{
+        for(const property of ['opacity','visibility','transform','pointer-events','transition-delay'])head.style.removeProperty(property);
+      }
+    };
+    const syncPoint=event=>{
+      if(!meetingOpen()||dock.hidden){if(inside)apply(false);return;}
+      const r=dock.getBoundingClientRect(),x=Number(event.clientX),y=Number(event.clientY);
+      const next=Number.isFinite(x)&&Number.isFinite(y)&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+      if(next!==inside)apply(next);
+    };
+    const enter=()=>{if(meetingOpen()&&!dock.hidden)apply(true);};
+    const leave=()=>apply(false);
+    for(const type of ['pointerenter','mouseenter'])dock.addEventListener(type,enter,true);
+    for(const type of ['pointermove','mousemove'])dock.addEventListener(type,syncPoint,true);
+    for(const type of ['pointerleave','mouseleave'])dock.addEventListener(type,leave,true);
+    document.addEventListener('pointermove',syncPoint,true);
+    document.addEventListener('mousemove',syncPoint,true);
+    window.addEventListener('pointermove',syncPoint,true);
+    window.addEventListener('mousemove',syncPoint,true);
+    window.addEventListener('blur',leave);
+    document.addEventListener('mouseleave',leave,true);
+  }
+
   function syncVideoDockGeometry(){
     const overlay=q('#meetingOverlay'),stage=q('.stage'),dock=q('#participantVideoDock');
     if(!overlay||!stage||!dock||dock.hidden)return false;
@@ -551,10 +693,10 @@
     const sr=stage.getBoundingClientRect();
     const width=Math.max(1,sr.width||stage.clientWidth||0);
     const height=Math.max(1,sr.height||stage.clientHeight||0);
-    const compact=width<760;
     const userPositioned=dock.classList.contains('user-positioned');
 
-    dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right';
+    dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right';
+    if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}
     dock.style.setProperty('position','absolute','important');
     dock.style.setProperty('bottom','auto','important');
     dock.style.setProperty('transform','none','important');
@@ -584,43 +726,27 @@
     dock.style.removeProperty('max-width');
     dock.style.removeProperty('max-height');
 
-    if(compact){
-      dock.style.setProperty('left','14px','important');
-      dock.style.setProperty('right','14px','important');
-      dock.style.setProperty('top','10px','important');
-      dock.style.setProperty('width','auto','important');
-      dock.style.setProperty('max-width','calc(100% - 28px)','important');
-      dock.style.setProperty('max-height','190px','important');
-      if(body){
-        body.style.setProperty('grid-template-columns','repeat(auto-fit,minmax(142px,1fr))','important');
-        body.style.setProperty('grid-auto-flow','column','important');
-        body.style.setProperty('overflow-x','auto','important');
-        body.style.setProperty('overflow-y','hidden','important');
-      }
-    }else{
-      const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
-      const count=Math.max(1,tiles.length);
-      const columns=count<=2?1:count<=6?2:3;
-      const rows=Math.min(3,Math.ceil(count/columns));
-      const tileWidth=176,tileHeight=99,gap=5,padding=10,headerHeight=28;
-      const desiredWidth=columns*tileWidth+(columns-1)*gap+padding;
-      const desiredHeight=headerHeight+rows*tileHeight+Math.max(0,rows-1)*gap+padding;
-      dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
-      dock.dataset.dsRuntimeColumns=String(columns);
-      dock.style.setProperty('left','auto','important');
-      dock.style.setProperty('right','14px','important');
-      dock.style.setProperty('top','14px','important');
-      dock.style.setProperty('width',`${Math.min(desiredWidth,Math.max(176,width-28))}px`,'important');
-      dock.style.setProperty('height',`${Math.min(desiredHeight,Math.max(127,height-28))}px`,'important');
-      dock.style.setProperty('max-width','calc(100% - 28px)','important');
-      dock.style.setProperty('max-height','calc(100% - 28px)','important');
-      if(body){
-        body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important');
-        body.style.setProperty('grid-auto-flow','row','important');
-        body.style.setProperty('overflow-x','hidden','important');
-        body.style.setProperty('overflow-y',rows<Math.ceil(count/columns)?'auto':'hidden','important');
-        body.style.setProperty('align-content','start','important');
-      }
+    const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
+    const count=Math.max(1,tiles.length);
+    const visibleRows=Math.min(5,count);
+    const tileWidth=176,tileHeight=99,gap=5,padding=10;
+    const desiredHeight=Math.min(548,(visibleRows*tileHeight)+Math.max(0,visibleRows-1)*gap+padding);
+    dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
+    dock.dataset.dsRuntimeColumns='1';
+    dock.style.setProperty('left','auto','important');
+    dock.style.setProperty('right','14px','important');
+    dock.style.setProperty('top','14px','important');
+    dock.style.setProperty('width','188px','important');
+    dock.style.setProperty('height',`${Math.min(desiredHeight,Math.max(127,height-28))}px`,'important');
+    dock.style.setProperty('max-width','188px','important');
+    dock.style.setProperty('max-height','calc(100% - 28px)','important');
+    if(body){
+      body.style.setProperty('grid-template-columns','176px','important');
+      body.style.setProperty('grid-auto-flow','row','important');
+      body.style.setProperty('grid-auto-rows','99px','important');
+      body.style.setProperty('overflow-x','hidden','important');
+      body.style.setProperty('overflow-y',count>5?'auto':'hidden','important');
+      body.style.setProperty('align-content','start','important');
     }
     return true;
   }
@@ -632,8 +758,8 @@
     try{
       installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();
       if(!meetingOpen())return;
-      primePhysicalControls();primeLegacyStructure();ensureToolbarZones();
-      syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();
+      primePhysicalControls();primeLegacyStructure();ensureToolbarZones();installMeetingTopBarAutoHide();
+      syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();installVideoDockHoverIntelligence();syncVideoDockGeometry();
       if(!q('#meetingOverlay')?.hasAttribute('data-ds-runtime-reference-primed')){
         window.DominionZoomScreenshotReference?.sync?.();
         q('#meetingOverlay')?.setAttribute('data-ds-runtime-reference-primed','1');
