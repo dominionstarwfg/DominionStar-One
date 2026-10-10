@@ -94,7 +94,7 @@ assert.ok(!runtime.includes("panel.dataset.dsRuntimeMode='docked'"),'Participant
 assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participants/Chat must use one floating panel model at every meeting width.');
 assert.ok(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating Participants/Chat must be draggable from their title surface.');
 assert.ok(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must centralize participant-video dock geometry.');
-assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();'),'Video dock geometry must commit in the same event-driven runtime pass as side surfaces.');
+assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();installVideoDockHoverIntelligence();syncVideoDockGeometry();'),'Video dock hover intelligence and geometry must commit in the same event-driven runtime pass as side surfaces.');
 assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'")&&runtime.includes("if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}"),'Dock mode must be deterministic and inspectable: explicit user position or approved right-side vertical default.');
 assert.ok(runtime.includes("if(userPositioned){"),'User-positioned video docks must have an explicit preservation path.');
 assert.ok(runtime.includes("const left=clamp(Number.isFinite(currentLeft)?currentLeft"),'User-positioned video dock must clamp after window resize.');
