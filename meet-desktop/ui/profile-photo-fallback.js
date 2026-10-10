@@ -90,7 +90,7 @@
     }
   }
 
-  function paintAll(){ensureStyles();bindMediaChanges();paintLocal();paintParticipants();}
+  function paintAll(){ensureStyles();bindMediaChanges();bindSurfaceObservers();paintLocal();paintParticipants();}
 
   async function refreshAuth(force=false){
     const now=Date.now();if(!force&&now-state.authRefreshAt<5000)return state.user;
@@ -121,8 +121,15 @@
     if(repaintTimer)return;
     repaintTimer=window.setTimeout(()=>{repaintTimer=0;paintAll();},32);
   }
-  const observer=new MutationObserver(schedulePaint);
-  observer.observe(document.body,{subtree:true,childList:true});
+  const surfaceObserver=new MutationObserver(schedulePaint);
+  const observedSurfaces=new WeakSet();
+  function bindSurfaceObservers(){
+    for(const node of [q('#participantRoster'),q('#waitingQueue'),q('.stage'),q('#participantVideoDock'),q('#remoteTileStrip')]){
+      if(!node||observedSurfaces.has(node))continue;
+      surfaceObserver.observe(node,{subtree:true,childList:true});
+      observedSurfaces.add(node);
+    }
+  }
 
   const api=Object.freeze({
     refresh:()=>refreshAuth(true),
