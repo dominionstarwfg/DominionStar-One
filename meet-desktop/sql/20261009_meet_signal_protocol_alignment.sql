@@ -63,6 +63,11 @@ begin
     raise exception 'recording_authority_required';
   end if;
 
+  if p_signal_type like 'host:%'
+     and v_from_role not in ('host','cohost') then
+    raise exception 'host_authority_required';
+  end if;
+
   if p_signal_type in ('poll:start','poll:end')
      and v_from_role not in ('host','cohost') then
     raise exception 'host_authority_required';
