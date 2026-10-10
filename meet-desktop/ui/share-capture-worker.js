@@ -25,7 +25,7 @@ async function begin(payload={}){
   pc.onicecandidate=event=>{if(current!==generation||peer!==pc||!event.candidate)return;bridge.candidate({generation:current,candidate:candidateValue(event.candidate)})};
   pc.onconnectionstatechange=()=>{if(current===generation&&peer===pc&&pc.connectionState==='failed')bridge.error({generation:current,error:'capture_bridge_connection_failed'})};
   const offer=await pc.createOffer();if(current!==generation||peer!==pc)return;await pc.setLocalDescription(offer);
-  bridge.offer({generation:current,sdp:pc.localDescription});
+  bridge.offer({generation:current,sdp:{type:pc.localDescription?.type||'offer',sdp:String(pc.localDescription?.sdp||'')}});
   bridge.started({generation:current,video:true,audio:stream.getAudioTracks().length>0,label:String(videoTrack.label||'Shared content'),transport:'isolated-local-webrtc'});
  }catch(error){if(current===generation){cleanup(false,'error',current);bridge.error({generation:current,error:String(error?.message||error||'capture_worker_failed')})}}
 }

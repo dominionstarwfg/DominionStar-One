@@ -1,4 +1,4 @@
-name: DominionStar Meet Physical Mac Parity 2.0.44
+name: DominionStar Meet Physical Mac Parity
 
 on:
   pull_request:
@@ -23,7 +23,7 @@ jobs:
       CSC_FOR_PULL_REQUEST: 'true'
       DOMINIONSTAR_QA_INTERACTION_FIXTURES: '1'
     steps:
-      - name: Checkout exact 2.0.44 candidate
+      - name: Checkout exact candidate
         uses: actions/checkout@v4
         with:
           clean: true
@@ -43,10 +43,9 @@ jobs:
         working-directory: meet-desktop
         run: npm install --ignore-scripts --no-audit --no-fund
 
-      - name: Verify 2.0.44 source contract
+      - name: Verify current source contract
         working-directory: meet-desktop
         run: |
-          test "$(node -p "require('./package.json').version")" = "2.0.44"
           node --check src/preload.cjs
           node --check src/share-service.mjs
           node --check src/mac-share-presenter-overlay.mjs
@@ -160,13 +159,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p qa-artifact
-          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-2.0.44-Physical-Mac-QA.zip
-          shasum -a 256 qa-artifact/DominionStar-Meet-2.0.44-Physical-Mac-QA.zip | tee qa-artifact/SHA256.txt
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" qa-artifact/DominionStar-Meet-Physical-Mac-QA.zip
+          shasum -a 256 qa-artifact/DominionStar-Meet-Physical-Mac-QA.zip | tee qa-artifact/SHA256.txt
 
-      - name: Upload 2.0.44 QA artifact
+      - name: Upload physical Mac QA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dominionstar-meet-2.0.44-physical-mac-qa
+          name: dominionstar-meet-physical-mac-qa
           path: qa-artifact/*
           if-no-files-found: error
           retention-days: 14

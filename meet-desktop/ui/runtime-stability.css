@@ -657,45 +657,6 @@ body>.meeting-reaction-menu,
 }
 
 
-/* 2.0.48 participant-window single-owner contract.
-   Runtime owns desktop chrome. Reference and participant-action layers must not compete. */
-#meetingOverlay .room-side[data-ds-runtime-mode="floating"]{
-  width:min(360px,calc(100% - 24px))!important;
-  min-width:min(360px,calc(100% - 24px))!important;
-  max-width:min(360px,calc(100% - 24px))!important;
-  resize:none!important;
-}
-#meetingOverlay .room-side.ds-panel-wide{
-  width:min(360px,calc(100% - 24px))!important;
-  min-width:min(360px,calc(100% - 24px))!important;
-  max-width:min(360px,calc(100% - 24px))!important;
-}
-#meetingOverlay .room-side .ds-participants-popout,
-#meetingOverlay .room-side .ds-participants-traffic{display:none!important}
-#meetingOverlay .room-side .room-side-head{padding:0 68px!important}
-#meetingOverlay .room-side .room-side-head>div{padding:0!important;text-align:center!important}
-#meetingOverlay .room-side .ds-panel-traffic{
-  position:absolute!important;
-  left:12px!important;top:0!important;height:38px!important;
-  display:flex!important;align-items:center!important;gap:8px!important;
-  z-index:40!important;pointer-events:auto!important;
-  margin:0!important;
-}
-#meetingOverlay .room-side .ds-panel-traffic>button{
-  display:block!important;
-  width:12px!important;min-width:12px!important;max-width:12px!important;
-  height:12px!important;min-height:12px!important;max-height:12px!important;
-  margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.22)!important;
-  cursor:pointer!important;font-size:0!important;line-height:0!important;
-  opacity:1!important;visibility:visible!important;
-}
-#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-close{background:#ff5f57!important}
-#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-minimize{background:#febc2e!important}
-#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-restore{background:#28c840!important}
-#meetingOverlay .room-side:has(.ds-panel-traffic) .room-side-head>button[aria-label="Close participants"]{display:none!important}
-
-
 /* 2.0.49 participant reference lock: compact Mac floating window. */
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"]{
   width:min(318px,calc(100% - 24px))!important;
@@ -703,6 +664,11 @@ body>.meeting-reaction-menu,
   max-width:min(318px,calc(100% - 24px))!important;
   min-height:min(390px,calc(100% - 24px))!important;
   resize:none!important;
+}
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"][data-ds-runtime-user-positioned="1"]{
+  min-width:286px!important;
+  max-width:calc(100% - 20px)!important;
+  min-height:300px!important;
 }
 #meetingOverlay .room-side.ds-panel-wide{
   width:min(318px,calc(100% - 24px))!important;
@@ -810,4 +776,163 @@ body>.meeting-reaction-menu,
 #meetingOverlay .room-side .ds-ref-participants-footer button{
   width:100%!important;min-width:0!important;height:34px!important;padding:0 10px!important;
   border-radius:17px!important;font-size:11px!important;
+}
+
+
+/* 2.0.52 approved meeting-window lock: native Mac traffic geometry. */
+#meetingOverlay .room-side .ds-panel-traffic{
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-close{order:1!important}
+#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-minimize{order:2!important}
+#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-restore{order:3!important}
+#meetingOverlay .room-side .ds-panel-traffic>button{position:relative!important}
+#meetingOverlay .room-side .ds-panel-traffic>button::after{
+  position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;
+  color:rgba(55,30,18,.9)!important;font:700 9px/1 -apple-system,BlinkMacSystemFont,sans-serif!important;
+  opacity:0!important;transition:opacity .08s linear!important;pointer-events:none!important;
+}
+#meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-close::after{content:'×'!important;opacity:1!important}
+#meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-minimize::after{content:'−'!important;opacity:1!important}
+#meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-restore::after{content:'+'!important;opacity:1!important}
+
+
+/* Approved Refined-like-Zoom meeting contract: default geometry remains 318x390,
+   user-resized geometry is allowed only after explicit interaction. */
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"][data-ds-runtime-user-positioned="1"]{
+  min-width:286px!important;
+  max-width:calc(100% - 20px)!important;
+  min-height:300px!important;
+}
+#meetingOverlay .room-side .ds-runtime-resize-handle,
+#meetingOverlay #meetingChatPanel .ds-runtime-resize-handle{
+  position:absolute!important;z-index:80!important;background:transparent!important;pointer-events:auto!important;
+}
+#meetingOverlay [data-ds-resize="n"]{left:8px!important;right:8px!important;top:-4px!important;height:8px!important;cursor:ns-resize!important}
+#meetingOverlay [data-ds-resize="s"]{left:8px!important;right:8px!important;bottom:-4px!important;height:8px!important;cursor:ns-resize!important}
+#meetingOverlay [data-ds-resize="e"]{top:8px!important;bottom:8px!important;right:-4px!important;width:8px!important;cursor:ew-resize!important}
+#meetingOverlay [data-ds-resize="w"]{top:8px!important;bottom:8px!important;left:-4px!important;width:8px!important;cursor:ew-resize!important}
+#meetingOverlay [data-ds-resize="ne"]{top:-5px!important;right:-5px!important;width:12px!important;height:12px!important;cursor:nesw-resize!important}
+#meetingOverlay [data-ds-resize="nw"]{top:-5px!important;left:-5px!important;width:12px!important;height:12px!important;cursor:nwse-resize!important}
+#meetingOverlay [data-ds-resize="se"]{bottom:-5px!important;right:-5px!important;width:12px!important;height:12px!important;cursor:nwse-resize!important}
+#meetingOverlay [data-ds-resize="sw"]{bottom:-5px!important;left:-5px!important;width:12px!important;height:12px!important;cursor:nesw-resize!important}
+
+#meetingOverlay .meeting-head{
+  transition:opacity .18s ease,transform .18s ease!important;
+  will-change:opacity,transform!important;
+}
+#meetingOverlay[data-ds-runtime-topbar-hidden="1"] .meeting-head{
+  opacity:0!important;
+  transform:translateY(-8px)!important;
+  pointer-events:none!important;
+}
+#meetingOverlay[data-ds-runtime-topbar-hidden="0"] .meeting-head{
+  opacity:1!important;
+  transform:translateY(0)!important;
+}
+
+
+/* Approved top-center meeting alert lock. */
+#meetingEventToast.meeting-event-toast{
+  top:72px!important;
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  z-index:3980!important;
+}
+
+
+/* 2.0.52 approved-baseline participant identity allocation.
+   Keep the 318px window; give identity the space instead of squeezing it
+   behind oversized media/action columns. */
+#meetingOverlay .room-side #participantRoster .person-row{
+  grid-template-columns:30px minmax(0,1fr) min-content 24px!important;
+  column-gap:5px!important;
+}
+#meetingOverlay .room-side #participantRoster .person-copy{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+#meetingOverlay .room-side #participantRoster .person-copy strong{
+  display:flex!important;
+  align-items:center!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  gap:3px!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-name-text{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-you{
+  flex:0 0 auto!important;
+  max-width:none!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-media-state{
+  gap:4px!important;
+  min-width:0!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-media-icon{
+  width:16px!important;height:16px!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-actions{
+  gap:2px!important;min-width:24px!important;
+}
+#meetingOverlay .room-side #participantRoster .participant-more,
+#meetingOverlay .room-side #participantRoster .ds-participant-more,
+#meetingOverlay .room-side #participantRoster [data-ds-self-more]{
+  width:24px!important;min-width:24px!important;height:24px!important;
+}
+
+
+/* 2.0.52 approved-baseline smart video-panel chrome.
+   Controls float over the filmstrip and reveal only with pointer/keyboard intent,
+   so the tiles never shift when the controls appear. */
+#meetingOverlay #participantVideoDock{
+  position:absolute!important;
+}
+#meetingOverlay #participantVideoDock .participant-video-dock-head{
+  position:absolute!important;
+  left:0!important;right:0!important;top:0!important;
+  z-index:24!important;
+  height:28px!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  transform:translateY(-4px)!important;
+  pointer-events:none!important;
+  transition:opacity .12s ease,transform .12s ease,visibility 0s linear .12s!important;
+  background:linear-gradient(to bottom,rgba(8,12,18,.96),rgba(8,12,18,.82))!important;
+  backdrop-filter:blur(10px)!important;
+}
+#meetingOverlay #participantVideoDock:hover .participant-video-dock-head,
+#meetingOverlay #participantVideoDock.ds-video-chrome-hover .participant-video-dock-head,
+#meetingOverlay #participantVideoDock:focus-within .participant-video-dock-head,
+#meetingOverlay #participantVideoDock.dragging .participant-video-dock-head,
+#meetingOverlay #participantVideoDock.user-resized .participant-video-dock-head,
+#meetingOverlay #participantVideoDock.minimized .participant-video-dock-head{
+  opacity:1!important;
+  visibility:visible!important;
+  transform:translateY(0)!important;
+  pointer-events:auto!important;
+  transition-delay:0s!important;
+}
+#meetingOverlay #participantVideoDock .participant-video-dock-body{
+  margin-top:0!important;
+}
+#meetingOverlay #participantVideoDock.minimized .participant-video-dock-head{
+  position:relative!important;
 }

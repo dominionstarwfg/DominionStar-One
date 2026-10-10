@@ -25,7 +25,6 @@
   let shareSources={screen:[],window:[]};
   let shareKind='screen';
   let selectedShareId='';
-  let mediaBroadcastTimer=0;
   let participantObserver=null;
   let reactionObserver=null;
   let mediaUnsub=null;
@@ -198,10 +197,14 @@
     let nameNode=strong.querySelector('.participant-name-text');
     if(!nameNode){nameNode=document.createElement('span');nameNode.className='participant-name-text';strong.prepend(nameNode);}
     nameNode.textContent=name;strong.title=name;
+    copy.style.setProperty('display','flex','important');copy.style.setProperty('flex-direction','row','important');copy.style.setProperty('align-items','center','important');copy.style.setProperty('flex','1 1 auto','important');copy.style.setProperty('min-width','0','important');copy.style.setProperty('overflow','hidden','important');
+    strong.style.setProperty('display','grid','important');strong.style.setProperty('grid-template-columns','minmax(0,1fr) max-content','important');strong.style.setProperty('align-items','center','important');strong.style.setProperty('column-gap','4px','important');strong.style.setProperty('flex','1 1 auto','important');strong.style.setProperty('width','100%','important');strong.style.setProperty('min-width','0','important');strong.style.setProperty('max-width','100%','important');strong.style.setProperty('overflow','visible','important');strong.style.setProperty('box-sizing','border-box','important');
+    nameNode.style.setProperty('display','block','important');nameNode.style.setProperty('width','auto','important');nameNode.style.setProperty('min-width','0','important');nameNode.style.setProperty('overflow','hidden','important');nameNode.style.setProperty('text-overflow','ellipsis','important');nameNode.style.setProperty('white-space','nowrap','important');
     let inline=strong.querySelector('.participant-you');
     if(!inline){inline=document.createElement('em');inline.className='participant-you';strong.append(inline);}
     const inlineRole=role==='host'?(self?'(Host, me)':'(Host)'):role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'');
     inline.textContent=inlineRole;inline.hidden=!inlineRole;
+    inline.style.setProperty('display',inlineRole?'inline-block':'none','important');inline.style.setProperty('flex','0 0 auto','important');inline.style.setProperty('max-width','none','important');inline.style.setProperty('overflow','visible','important');inline.style.setProperty('white-space','nowrap','important');
     let small=copy.querySelector('small');
     if(!small){small=document.createElement('small');copy.append(small);}
     small.textContent='';small.hidden=true;
@@ -229,13 +232,15 @@
   }
 
   async function broadcastLocalMediaState(){
-    clearTimeout(mediaBroadcastTimer);mediaBroadcastTimer=0;if(!inMeeting()||!meeting?.context||!meeting?.snapshot||!meeting?.sendSignal)return;
-    let ctx,snapshot;try{ctx=await meeting.context();if(!ctx?.roomId||!ctx?.participantId)return;localParticipantId=String(ctx.participantId);snapshot=await meeting.snapshot(ctx.roomId);}catch{return;}
-    const state=media()?.snapshot?.()||{},payload={kind:'media-state',micOn:Boolean(state.micOn),cameraOn:Boolean(state.cameraOn),participantId:localParticipantId,at:new Date().toISOString()};remoteMediaState.set(localParticipantId,payload);decorateParticipantRows();
-    const role=localRole();const targets=(snapshot?.participants||[]).filter(p=>String(p.participantId||'')&&String(p.participantId)!==localParticipantId&&['admitted','joined'].includes(String(p.state||'joined'))&&(['host','cohost'].includes(role)||['host','cohost'].includes(String(p.role||'').toLowerCase())));
-    await Promise.allSettled(targets.map(p=>meeting.sendSignal(p.participantId,'reaction',payload)));
+    // Compatibility layer only mirrors local state into its own roster cache.
+    // Remote state comes from DominionWebRTCController via dominion:remote-media-state.
+    if(!inMeeting()||!meeting?.context)return;
+    let ctx;try{ctx=await meeting.context();if(!ctx?.participantId)return;localParticipantId=String(ctx.participantId);}catch{return;}
+    const current=media()?.snapshot?.()||{};
+    remoteMediaState.set(localParticipantId,{micOn:Boolean(current.micOn),cameraOn:Boolean(current.cameraOn),at:Date.now()});
+    decorateParticipantRows();
   }
-  function scheduleMediaBroadcast(delay=100){clearTimeout(mediaBroadcastTimer);mediaBroadcastTimer=setTimeout(()=>void broadcastLocalMediaState(),delay);}
+  function scheduleMediaBroadcast(){void broadcastLocalMediaState();}
 
   function installParticipantAuthority(){
     const roster=q('#participantRoster');if(roster&&!participantObserver){participantObserver=new MutationObserver(()=>requestAnimationFrame(decorateParticipantRows));participantObserver.observe(roster,{childList:true,subtree:true});}
@@ -334,8 +339,11 @@
     installViewAuthority();installHostToolsAuthority();installMoreAuthority();installParticipantAuthority();installReactionAuthority();installReactionBubbleObserver();installShareAuthority();decorateParticipantRows();setReactionIcon();
   }
 
-  window.addEventListener('dominion:meeting-signal',event=>{
-    const detail=event.detail||{},payload=detail.payload||{};if(detail.type!=='reaction'||payload.kind!=='media-state')return;const id=String(detail.fromParticipantId||payload.participantId||'');if(!id)return;remoteMediaState.set(id,{micOn:Boolean(payload.micOn),cameraOn:Boolean(payload.cameraOn),at:payload.at||Date.now()});decorateParticipantRows();
+  window.addEventListener('dominion:remote-media-state',event=>{
+    const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;
+    if(detail.disconnected)remoteMediaState.delete(id);
+    else remoteMediaState.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn),at:Date.now()});
+    decorateParticipantRows();
   },true);
   window.addEventListener('dominion:remote-share-state',event=>{
     const id=String(event.detail?.participantId||'');if(!id)return;if(event.detail?.active)sharingParticipantIds.add(id);else sharingParticipantIds.delete(id);decorateParticipantRows();
@@ -351,5 +359,5 @@
   window.addEventListener('resize',()=>{closeTransientMenus();},{passive:true});
 
   const timer=setInterval(sync,700);sync();
-  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.11-physical-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{clearInterval(timer);clearTimeout(mediaBroadcastTimer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
+  window.DominionZoomPhysicalAcceptance=Object.freeze({version:'2.0.11-physical-acceptance',sync,openSmartSharePicker,decorateParticipantRows,broadcastLocalMediaState,dispose:()=>{clearInterval(timer);participantObserver?.disconnect();reactionObserver?.disconnect();mediaUnsub?.();shareUnsub?.();presenterUnsub?.();closeTransientMenus();sharePicker?.remove();sharePermissionDialog?.remove();}});
 })();

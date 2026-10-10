@@ -6,7 +6,7 @@ Every installable DominionStar Meet build must pass the complete release audit b
 
 Zoom desktop behavior is the primary UX reference for meeting controls, layout hierarchy, proportions, spacing, readable typography, panel placement, and interaction behavior. DominionStar branding and approved product-specific improvements may differ, but they must not reduce familiarity, usability, or reliability.
 
-The latest user-approved DominionStar Meet 3D illustration is a first-class visual reference. During implementation and release review, the shipped meeting UI must be compared side by side with both that approved 3D reference and the current Zoom macOS behavior. A green generic UI test does not overrule a visible reference mismatch.
+The single approved DominionStar Meet meeting-room illustration is **“DOMINIONSTAR MEET — REFINED LIKE ZOOM (FINAL)”**. It is the visual authority for the meeting surface. Do not substitute an older concept, alternate mockup, generated variation, or memory of the design. Zoom macOS remains the behavior reference where the approved illustration describes Zoom-like interaction. A green generic UI test does not overrule a visible mismatch with this single approved illustration.
 
 Physical-Mac acceptance feedback is a first-class release input. A build that passes CI but fails on a real Mac is rejected, and the physical failure must be converted into an automated regression gate whenever it can be reproduced deterministically.
 
@@ -15,7 +15,7 @@ Security labels must be technically true. WebRTC transport encryption may be des
 ## Mandatory gates
 
 1. Start from a clean checkout and remove generated state, old installers, archives, and build output.
-2. Run source-level certification for authentication, lifecycle, media permissions, A/V settings, meeting parity, screen sharing, WebRTC transport, TURN relay, diagnostics, macOS install authority, Zoom-production polish, physical-Mac acceptance authority, and the current approved 3D-reference authority.
+2. Run source-level certification for authentication, lifecycle, media permissions, A/V settings, meeting parity, screen sharing, WebRTC transport, TURN relay, diagnostics, macOS install authority, Zoom-production polish, physical-Mac acceptance authority, and the single approved “REFINED LIKE ZOOM (FINAL)” meeting-reference authority.
 3. Build the universal packaged macOS application from the exact audited source.
 4. Verify bundle identity, version, privacy strings, entitlements, and code-signature integrity.
 5. Audit the packaged application contents rather than relying only on source checks.
@@ -24,7 +24,7 @@ Security labels must be technically true. WebRTC transport encryption may be des
 8. Measure the rendered Zoom-parity interface. This is a release-blocking gate and must cover toolbar geometry, icon and label scale, Audio/Video grouping, Share emphasis, End placement, Host Tools, Participants, Chat, Reactions, More, readable text/contrast, and uncaught renderer errors.
 9. Run the packaged physical-acceptance gate. It must prove that View, Host Tools, More, participant media/status controls, per-participant ellipsis, Chat, Reactions, readable settings typography, and the real-source Share authority are mounted and interactive in the packaged renderer.
 10. Run every screenshot-derived regression gate added after a physical-Mac rejection. A generic visual pass cannot substitute for the exact regression check.
-11. Run the packaged approved-3D-reference gate. It must prove the approved toolbar order, dedicated Raise hand control, clean Chat navigation without duplicate recipient chrome, floating participant video filmstrip behavior, truthful encryption state, real branding, and View control before any archive or DMG can be created.
+11. Run the packaged single-approved-reference gate. It must prove the approved toolbar order, dedicated Raise hand control, clean Chat navigation without duplicate recipient chrome, default right-side participant filmstrip, five-visible internal scrolling without a visible scrollbar, hover-only tile controls, centered floating Participants window, Mac window controls, A/V dropdown access, top-bar idle fade, truthful encryption state, real branding, and View control before any archive or DMG can be created.
 12. Do not create or upload the installer if any prior gate fails.
 13. Create the DMG only after all packaged audits pass, mount the DMG, verify the application inside it, then produce checksums and provenance.
 

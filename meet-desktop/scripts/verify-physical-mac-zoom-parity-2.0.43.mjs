@@ -64,7 +64,7 @@ const avSettings=read('ui/av-settings.js');
 
 for(const source of [runtime,adaptive,polish,screenshotJs,physical,features,parity,personal,app,media,featureReady,profileFallback,shareController,shareAnnotation,captureWorker,shareRuntimeAuthority,activeShareHome,participantsReference,macVideoJs,macAnnotationJs,macAnnotationCanvasJs,integration,screenshotReference])new Function(source);
 
-assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
+assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51','2.0.52'].includes(pkg.version),'Physical Mac runtime-control repair must remain certified across the 2.0.46+ repair line.');
 assert(
   preferences.includes("const macLike=/Mac/i.test(String(navigator.platform||navigator.userAgent||''));") &&
   preferences.includes('if(macLike)return;') &&
@@ -92,7 +92,8 @@ assert(
   shareController.includes('const pc=new RTCPeerConnection({iceServers:[]}),stream=new MediaStream()') &&
   shareController.includes('captureBridge.onOffer?.(') &&
   shareController.includes('pc.ontrack=') &&
-  shareController.includes('captureBridge.answer({generation:g,sdp:pc.localDescription})') &&
+  shareController.includes("captureBridge.answer({generation:g,sdp:{type:pc.localDescription?.type||'answer',sdp:String(pc.localDescription?.sdp||'')}})") &&
+  captureWorker.includes("bridge.offer({generation:current,sdp:{type:pc.localDescription?.type||'offer',sdp:String(pc.localDescription?.sdp||'')}})") &&
   shareController.includes('captureBridge.candidate({generation:macCaptureSignalGeneration,candidate:c})') &&
   captureWorker.includes('navigator.mediaDevices.getUserMedia({') &&
   captureWorker.includes("chromeMediaSource:'desktop'") &&
@@ -124,11 +125,13 @@ assert(legacyParticipants.includes("version:'2.0.43-compatibility-no-geometry'")
 assert(legacyHostTools.includes("version:'2.0.43-compatibility-no-geometry'")&&!legacyHostTools.includes('centerParticipantsOnce')&&!legacyHostTools.includes("host.style.setProperty('width','248px'"),'Legacy Host Tools compatibility must not own Participants or Host Tools geometry.');
 assert(!legacyHostToolsCss.includes('248px!important')&&!legacyHostToolsCss.includes('.room-side:has(.ds-ref-host-tools-panel)'),'Legacy Host Tools stylesheet must not shrink Host Tools or move Participants.');
 assert(
-  runtime.includes("panel.style.setProperty('left','auto','important')") &&
-  runtime.includes("panel.style.setProperty('right','24px','important')") &&
-  runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important')") &&
-  runtime.includes("panel.style.setProperty('bottom','auto','important')"),
-  'Default Participants and Chat surfaces must open as inset floating windows with independent header-safe vertical offsets rather than edge-attached sidebars.'
+  runtime.includes("}else if(panel===participants){") &&
+  runtime.includes("panel.style.setProperty('left',`${Math.max(10,(bodyWidth-pw)/2)}px`,'important');") &&
+  runtime.includes("panel.style.setProperty('top',`${Math.max(10,(bodyHeight-ph)/2)}px`,'important');") &&
+  runtime.includes("panel.style.setProperty('right','auto','important');") &&
+  runtime.includes("panel.style.setProperty('right','24px','important');") &&
+  runtime.includes("panel.style.setProperty('top','46px','important');"),
+  'Participants must open centered by default while Chat remains an independent inset floating surface.'
 );
 assert(runtime.includes('function ensurePanelClose(panel)')&&runtime.includes("aria-label','Close participants'")&&runtime.includes("aria-label','Close chat'"),'Participants and Chat must expose one explicit runtime-owned Close control.');
 assert(
@@ -156,15 +159,13 @@ assert(
 );
 assert(
   runtime.includes("const baseWidth=panel===chat?330:318;") &&
-  runtime.includes("const participantCount=participantRows().length;") &&
-  runtime.includes("const participantBaseHeight=Math.min(430,Math.max(390,112+(Math.max(1,participantCount)*44)+(participantCount>=7?40:0)));") &&
+  runtime.includes("const baseHeight=panel===chat?440:390;") &&
   runtime.includes("const minPanelHeight=panel===chat?300:390;") &&
+  runtime.includes("const ph=Math.min(390,Math.max(1,bodyHeight-20));") &&
+  runtime.includes("const pw=Math.min(318,Math.max(1,bodyWidth-20));") &&
   !runtime.includes("panel.classList.contains('ds-panel-wide')?430") &&
-  runtime.includes("panel.style.setProperty('right','24px','important');") &&
-  runtime.includes("panel.style.setProperty('top',panel===chat?'46px':'18px','important');") &&
-  runtime.includes("Math.max(minPanelHeight,bodyHeight-28)") &&
   runtime.includes("overlay.dataset.dsRuntimeSide='floating';"),
-  'Floating Participants must preserve the compact 318px reference width with a 390px-class roster height and no rejected wide mode, while Chat remains independently movable with header-safe offsets.'
+  'Floating Participants must preserve the approved 318x390 centered default while Chat remains independently movable.'
 );
 assert(runtime.includes("panel.style.setProperty('left',`${pr.left-br.left}px`,'important');")&&runtime.includes("panel.style.setProperty('right','auto','important');")&&runtime.includes("panel.style.setProperty('width',`${pr.width}px`,'important');"),'Final drag authority must capture explicit panel geometry before movement rather than depending on a legacy handler.');
 assert(
@@ -178,8 +179,26 @@ assert(
   !runtime.includes("surfaceDrag.source!==source"),
   'Final floating-panel drag authority must use one Pointer Events pipeline only and resolve the live panel header dynamically.'
 );
-assert(runtime.includes("const columns=count<=2?1:count<=6?2:3;")&&runtime.includes("const desiredWidth=columns*tileWidth")&&runtime.includes("dock.dataset.dsRuntimeColumns=String(columns)")&&runtime.includes("body.style.setProperty('grid-template-columns',`repeat(${columns},176px)`,'important')"),'Participant video dock must grow rows/columns automatically as visible participant tiles increase.');
-assert(runtimeCss.includes('.ds-traffic-close')&&runtimeCss.includes('.ds-traffic-minimize')&&runtimeCss.includes('.ds-traffic-restore')&&runtime.includes("aria-label=\"Close participants\"")&&runtime.includes("aria-label=\"Minimize participants\"")&&runtime.includes("aria-label=\"Restore participants\"")&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),'Mac Participants must expose one runtime-owned close/minimize/restore traffic-light set, while Chat keeps its accessible close control.');
+assert(
+  runtime.includes("const visibleRows=Math.min(5,count);") &&
+  runtime.includes("dock.dataset.dsRuntimeColumns='1';") &&
+  runtime.includes("dock.style.setProperty('right','14px','important');") &&
+  runtime.includes("dock.style.setProperty('width','188px','important');") &&
+  runtime.includes("body.style.setProperty('grid-template-columns','176px','important');") &&
+  runtime.includes("body.style.setProperty('overflow-y',count>5?'auto':'hidden','important');") &&
+  !runtime.includes("const columns=count<=2?1:count<=6?2:3;"),
+  'Participant video dock must remain a one-column right-side filmstrip with five visible tiles and internal scrolling after that.'
+);
+assert(
+  runtimeCss.includes('.ds-traffic-close')&&runtimeCss.includes('.ds-traffic-minimize')&&runtimeCss.includes('.ds-traffic-restore')&&
+  runtimeCss.includes('flex-direction:row!important')&&
+  runtimeCss.includes('.ds-panel-traffic>.ds-traffic-close{order:1!important}')&&
+  runtimeCss.includes('.ds-panel-traffic>.ds-traffic-minimize{order:2!important}')&&
+  runtimeCss.includes('.ds-panel-traffic>.ds-traffic-restore{order:3!important}')&&
+  runtimeCss.includes(".ds-panel-traffic:hover>.ds-traffic-close::after{content:'×'!important;opacity:1!important}")&&
+  runtime.includes("aria-label=\"Close participants\"")&&runtime.includes("aria-label=\"Minimize participants\"")&&runtime.includes("aria-label=\"Restore participants\"")&&runtimeCss.includes('#meetingChatPanel [data-chat-close]'),
+  'Mac Participants must expose one horizontal red/yellow/green traffic-light set in native order with hover glyphs, while Chat keeps its accessible close control.'
+);
 assert(runtimeCss.includes('position:fixed!important;\n  z-index:2800!important;')&&!runtimeCss.includes('left:18px!important;\n  right:auto!important;\n  top:auto!important;\n  bottom:94px!important;')&&!polishCss.includes('.meeting-reaction-menu{left:18px!important'),'Reaction chooser position must belong to the runtime anchor calculation, not a hard-pinned stylesheet.');
 
 assert(adaptive.includes("if(window.DominionRuntimeStability?.layoutSideSurface){\n      side.dataset.dsAdaptiveInitialized='1';\n      window.DominionRuntimeStability.layoutSideSurface();")&&adaptive.includes('return;\n    }\n    installParticipantPanelDrag();'),'Adaptive Participants must stop immediately when final runtime geometry authority is available.');
@@ -197,9 +216,10 @@ assert(
   runtimeCss.includes('.room-side[data-ds-runtime-mode="floating"]') &&
   runtimeCss.includes('#meetingChatPanel[data-ds-runtime-mode="floating"]') &&
   runtimeCss.includes('cursor:grab!important') &&
-  panelStability.includes('right:24px!important') &&
-  panelStability.includes('top:18px!important'),
-  'Participants and Chat must remain visibly floating, draggable, closable, and preserve user-positioned geometry across reopen.'
+  panelStability.includes('left:50%!important') &&
+  panelStability.includes('top:50%!important') &&
+  panelStability.includes('transform:translate(-50%,-50%)!important'),
+  'Participants must open centered from the first frame, remain draggable/closable, and preserve explicit user-positioned geometry after movement.'
 );
 assert(screenshotCss.includes('.ds-ref-host-tools-panel{position:fixed;right:0;top:70px;bottom:60px;width:330px;')&&screenshotCss.includes('.ds-ref-host-tools-panel label{height:42px;'),'Host Tools must use the approved readable DominionStar panel scale.');
 
@@ -392,11 +412,12 @@ assert(
   macAnnotationHtml.includes('data-command="annotate-clear"') &&
   macAnnotationHtml.includes('data-command="annotate-close"') &&
   macAnnotationHtml.includes('<svg viewBox="0 0 24 24"') &&
-  macAnnotationCss.includes('.annotation-palette{width:66px') &&
-  macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:1fr') &&
+  macAnnotationCss.includes('.annotation-palette{width:100%') &&
+  macAnnotationCss.includes('.tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))') &&
   macAnnotationCss.includes('.tool-grid button small,.palette-actions button small{display:block') &&
   macAnnotationHtml.includes('data-command="annotate-select"') &&
   macAnnotationJs.includes("version:'2.0.47-native-canvas-palette'") &&
+  macPresenter.includes("width:184,height:500,minWidth:184,maxWidth:184") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-v2044'") &&
   macPresenter.includes("partition:'dominion-presenter-annotation-canvas-v2044'") &&
   macPresenter.includes("path.join(uiDir,'mac-annotation-toolbar.html')") &&
@@ -409,7 +430,7 @@ assert(
   macAnnotationCanvasJs.includes("canvas.addEventListener('pointermove',move") &&
   presenterPreload.includes("onAnnotationCommand:callback=>listen('mac-annotation:command'") &&
   macPresenter.includes("canvas.webContents.send('mac-annotation:command'"),
-  'Annotate must use one readable 66px labeled native palette with Select/Mouse return, controlling a full-display native drawing surface so Pen, Laser, Eraser, and pointer mode remain reachable on the physically shared Mac display.'
+  'Annotate must use one readable 184px labeled native palette with Select/Mouse return, controlling a full-display native drawing surface so Pen, Laser, Eraser, and pointer mode remain reachable on the physically shared Mac display.'
 );
 assert(
   screenshotReferenceCss.includes("#meetingOverlay:not(.ds-exec-lock) #roomMic.is-off>.ds-control-icon::after") &&
@@ -526,7 +547,9 @@ assert(
   parityCss.includes('grid-template-columns:176px!important')&&
   parityCss.includes('max-height:515px!important')&&
   parityCss.includes('.remote-peer-tile.active-speaker')&&
-  parityCss.includes('border-color:#35d07f!important'),
+  parityCss.includes('border-color:#35d07f!important')&&
+  parity.includes("function automaticDockAnchor(){return 'right';}")&&
+  parity.includes("if(!dock.classList.contains('user-positioned'))dock.dataset.anchor='right';"),
   'Right-side participant video must remain a one-column five-visible filmstrip with internal scroll and green active-speaker outline.'
 );
 assert(
@@ -563,9 +586,15 @@ assert(
 assert(
   app.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Host)')")&&
   app.includes("role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'')")&&
-  participantsReference.includes('.participant-you{font-style:normal!important')&&
+  participantsReference.includes('.participant-you{flex:0 0 auto!important')&&
+  participantsReference.includes('font-style:normal!important')&&
   participantsReference.includes('font-size:11px!important')&&
-  participantsReference.includes('.person-copy{min-width:0!important;display:flex!important;flex-direction:row!important'),
+  participantsReference.includes('.participant-name-text{min-width:0!important;flex:1 1 auto!important')&&
+  participantsReference.includes('.person-copy{min-width:0!important;display:flex!important;flex-direction:row!important')&&
+  physical.includes("copy.style.setProperty('flex-direction','row','important')")&&
+  physical.includes("strong.style.setProperty('display','grid','important')")&&
+  physical.includes("strong.style.setProperty('grid-template-columns','minmax(0,1fr) max-content','important')")&&
+  physical.includes("inline.style.setProperty('flex','0 0 auto','important')"),
   'Participants must keep the full name and role/me metadata on one compact readable row, matching the desktop reference.'
 );
 assert(
@@ -582,7 +611,7 @@ assert(
   macPresenter.includes('let width=252,height=166;')&&
   macPresenter.includes("if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);")&&
   macPresenter.includes('let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);')&&
-  macPresenter.includes('const width=66,height=Math.min(526,Math.max(430,area.height-180));')&&
+  macPresenter.includes('const width=184,height=Math.min(526,Math.max(430,area.height-180));')&&
   macPresenter.includes('function toolbarRevealZoneContains(point)')&&
   macPresenter.includes('if(moved<3||!toolbarRevealZoneContains(point))return;')&&
   macPresenter.includes('y=Math.round(area.y+12)')&&
@@ -590,7 +619,7 @@ assert(
   macToolbarCss.includes('.toolbar.auto-hidden .share-strip{top:0;opacity:1;pointer-events:auto}')&&
   macToolbar.includes('const AUTO_HIDE_MS=2400;')&&
   shareAnnotation.includes("state.active&&state.mode==='laser'"),
-  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, localized toolbar reveal zone with top clearance, approved five-tile participant-strip scale, readable 66px annotation rail, and live laser pointer.'
+  'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, localized toolbar reveal zone with top clearance, approved five-tile participant-strip scale, readable 184px annotation rail, and live laser pointer.'
 );
 
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_50_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui approved-five-tile-share-strip simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');

@@ -9,6 +9,7 @@ const css=read('ui/zoom-adaptive-parity.css');
 const approved=read('ui/approved-reference-parity.css');
 const runtime=read('ui/runtime-stability.js');
 const runtimeCss=read('ui/runtime-stability.css');
+const meetingCss=read('ui/meeting-parity.css');
 
 // Pop Out / Merge remain available, while the final physical-Mac behavior keeps
 // Participants and Chat as floating, draggable surfaces at every meeting width.
@@ -21,18 +22,19 @@ assert(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participants 
 assert(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating participant/chat surfaces must remain draggable.');
 assert(runtime.includes("clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10))"),'Floating panel geometry must clamp intelligently when the meeting window changes size.');
 assert(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must own participant-video dock geometry.');
-assert(runtime.includes('const compact=width<760'),'Participant video dock must have one explicit compact reflow threshold.');
-assert(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock runtime mode must resolve deterministically to user/top/right.');
-assert(runtime.includes("dock.style.setProperty('right','14px','important')"),'Wide meeting windows must return the default video dock to the right edge.');
-assert(runtime.includes("dock.style.setProperty('left','14px','important')")&&runtime.includes("dock.style.setProperty('right','14px','important')"),'Compact windows must reflow the video dock across the top.');
-assert(runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Compact dock must become a horizontal filmstrip.');
-assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Wide dock must return to a vertical filmstrip.');
+assert(!runtime.includes('const compact=width<760'),'Participant video dock must not jump anchors automatically at a compact threshold.');
+assert(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'"),'Dock runtime mode must resolve deterministically to explicit user position or approved right-side default.');
+assert(runtime.includes("if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}"),'Default participant video dock must remain right and vertical.');
+assert(runtime.includes("dock.style.setProperty('right','14px','important')"),'Default meeting windows must keep the participant video dock on the right edge.');
+assert(!runtime.includes("body.style.setProperty('grid-auto-flow','column','important')"),'Default participant video must not regress to an automatic horizontal top strip.');
+assert(runtime.includes("body.style.setProperty('grid-auto-flow','row','important')"),'Default participant video must remain a vertical filmstrip.');
+assert(runtime.includes("if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}"),'Only explicit user positioning may change the default right-side vertical dock.');
 assert(
   runtime.includes("let search=side.querySelector('.zoom-participant-search');") &&
   runtime.includes("search=document.createElement('div');") &&
   runtime.includes("search.className='zoom-participant-search';") &&
-  runtime.includes("if(search)search.hidden=count<7;"),
-  'Participant search should be runtime-owned and appear only when useful.'
+  runtime.includes("if(search)search.hidden=false;"),
+  'Participant search must be runtime-owned and remain stable at every roster size.'
 );
 assert(runtime.includes("const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople()"),'Empty Waiting Room chrome must stay hidden.');
 assert(runtime.includes('participantPriority(row)')&&runtime.includes("return self?0:role==='host'?1:role==='cohost'?2:raised?3:micOn?4:5"),'Final participant roster does not encode You → Host → Co-host → raised → unmuted → others priority.');
@@ -43,7 +45,7 @@ assert(repair.includes("participantCount<=1&&visibleTiles===0")&&repair.includes
 assert(repair.includes("if(thresholdApplies&&visibleTiles>0&&dock.hidden)dock.hidden=false"),'Two-person Speaker view must be allowed to reveal a real video filmstrip.');
 assert(approved.includes('#meetingOverlay #participantVideoDock[data-approved-filmstrip="1"]:not(.user-positioned):not(.gallery-stage):not(.multi-speaker-stage)'),'Approved reference layer must own the normal unpositioned video-filmstrip geometry.');
 assert(approved.includes('right:14px !important;')&&approved.includes('grid-template-columns:176px !important;'),'Normal desktop video filmstrip must default to a right-side vertical column.');
-assert(approved.includes('@media(max-width:680px)'),'Top-style compact reflow must be reserved for genuinely narrow windows.');
+assert(meetingCss.includes('grid-template-columns:176px!important')&&meetingCss.includes('max-height:515px!important'),'Canonical meeting filmstrip styling must preserve one-column right-side geometry with five visible tiles.');
 assert(repair.includes("version:'2.0.21'")&&adaptive.includes("version:'2.0.21'"),'Carried-forward adaptive authorities must remain identifiable.');
 
-console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-when-useful empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock narrow-only-top-reflow');
+console.log('DOMINIONSTAR_ZOOM_WINDOW_PARITY_OK floating-all-widths draggable-panels resize-clamp search-always-stable empty-waiting-hidden zoom-priority-sort pop-out merge-to-meeting arrow-cursor no-grip two-person-filmstrip right-default-video-dock no-automatic-top-reflow');

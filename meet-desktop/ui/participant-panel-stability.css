@@ -1,10 +1,11 @@
 /* Participants opens as a floating desktop surface from its first frame.
    RuntimeStability owns subsequent drag/resize geometry and preserves it. */
 .room-side:not([style*="left:"]){
-  left:auto!important;
-  right:24px!important;
-  top:18px!important;
+  left:50%!important;
+  right:auto!important;
+  top:50%!important;
   bottom:auto!important;
-  height:min(438px,calc(100% - 28px))!important;
-  transform:none!important;
+  width:min(318px,calc(100% - 24px))!important;
+  height:min(390px,calc(100% - 24px))!important;
+  transform:translate(-50%,-50%)!important;
 }

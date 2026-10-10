@@ -50,8 +50,8 @@ assert.ok(auth.includes('./runtime-stability.js'),'Runtime-stability controller 
 assert.ok(auth.indexOf('approved-reference-parity.css')<auth.indexOf('runtime-stability.css'),'Runtime stability must load after approved reference parity.');
 assert.ok(auth.indexOf('runtime-stability.css')<auth.indexOf('runtime-layout-fix.css'),'Legacy-grid removal must load after the main runtime stylesheet.');
 assert.ok(auth.indexOf('runtime-layout-fix.css')<auth.indexOf('runtime-motion.css'),'Motion authority must load after final layout geometry.');
-assert.ok(auth.includes('script.onload=loadRuntimeStability'),'Approved-reference parity must still converge through the runtime-stability loader.');
-assert.ok(auth.includes('const primeRuntimeStability=()=>')&&auth.includes("script.dataset.dsRuntimePrime='1'")&&auth.indexOf('primeRuntimeStability();')<auth.indexOf('if(physicalStyle.sheet)loadPhysicalRepair();'),'Runtime stability must also be eagerly requested before the physical/adaptive/reference chain so packaged startup cannot complete without the controller.');
+assert.ok(auth.includes("const explicitCanonicalRuntime=Boolean(document.querySelector('meta[name=\"ds-canonical-runtime-explicit\"][content=\"1\"]'))"),'Auth bootstrap must recognize explicit canonical runtime ownership from the live shell.');
+assert.ok(auth.includes("if(explicitCanonicalRuntime)return null;")&&auth.includes("if(explicitCanonicalRuntime){loadScreenshotReference();return;}"),'Explicit shell ownership must prevent duplicate runtime injection while preserving the compatibility loader chain.');
 
 assert.ok(runtime.includes("event.stopImmediatePropagation();\n      setParticipants"),'Participants click must have a single capture-phase authority.');
 assert.ok(runtime.includes("event.stopImmediatePropagation();\n      setChat"),'Chat click must have a single capture-phase authority.');
@@ -94,8 +94,8 @@ assert.ok(!runtime.includes("panel.dataset.dsRuntimeMode='docked'"),'Participant
 assert.ok(runtime.includes("panel.dataset.dsRuntimeMode='floating'"),'Participants/Chat must use one floating panel model at every meeting width.');
 assert.ok(runtime.includes("installFloatingSurfaceDrag(panel)"),'Floating Participants/Chat must be draggable from their title surface.');
 assert.ok(runtime.includes('function syncVideoDockGeometry()'),'Final runtime must centralize participant-video dock geometry.');
-assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();'),'Video dock geometry must commit in the same event-driven runtime pass as side surfaces.');
-assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':compact?'top':'right'"),'Dock mode must be deterministic and inspectable.');
+assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();installVideoDockHoverIntelligence();syncVideoDockGeometry();'),'Video dock hover intelligence and geometry must commit in the same event-driven runtime pass as side surfaces.');
+assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'")&&runtime.includes("if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}"),'Dock mode must be deterministic and inspectable: explicit user position or approved right-side vertical default.');
 assert.ok(runtime.includes("if(userPositioned){"),'User-positioned video docks must have an explicit preservation path.');
 assert.ok(runtime.includes("const left=clamp(Number.isFinite(currentLeft)?currentLeft"),'User-positioned video dock must clamp after window resize.');
 assert.ok(runtime.includes("stage.style.setProperty('right','0px','important')"),'Floating panels must leave the meeting stage at full width.');

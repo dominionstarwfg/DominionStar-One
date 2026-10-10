@@ -8,7 +8,11 @@ const js=read('../ui/approved-reference-parity.js');
 const css=read('../ui/approved-reference-parity.css');
 const runtime=read('../ui/runtime-stability.js');
 const runtimeCss=read('../ui/runtime-stability.css');
+const notifications=read('../ui/meeting-notifications.js');
+const notificationCss=read('../ui/meeting-notifications.css');
+const standard=read('../RELEASE_STANDARD.md');
 const adaptive=read('../ui/zoom-adaptive-parity.js');
+const participantReference=read('../ui/zoom-participants-reference-2.0.41.js');
 const features=read('../ui/meeting-features.js');
 const share=read('../src/share-service.mjs');
 const controller=read('../ui/share-controller.js');
@@ -75,7 +79,42 @@ assert.ok(adaptive.includes("dock.dataset.dsAdaptiveWholePanelDrag='1'"),'Video 
 assert.ok(js.includes("setData(dock,'approvedFilmstrip','1')"),'Approved floating video filmstrip authority is missing.');
 assert.ok(css.includes('.participant-video-dock-head{\n  height:34px !important;')&&css.includes('.participant-video-dock-modes')&&css.includes('[data-panel-mode="strip"]'),'Video filmstrip must expose the compact layout-control bar required for speaker/strip/gallery/hide behavior.');
 assert.ok(css.includes('.remote-peer-tile.active-speaker'),'Video filmstrip must visually mark the active speaker.');
+assert.ok(runtime.includes('function installVideoDockHoverIntelligence()')&&runtime.includes("dock.classList.toggle('ds-video-chrome-hover',inside)")&&runtimeCss.includes('#meetingOverlay #participantVideoDock.ds-video-chrome-hover .participant-video-dock-head'),'Smart video-panel controls must be driven by real pointer geometry so packaged Electron hover stays reliable.');
 assert.ok(css.includes('.dock-grip{\n  display:none !important;'),'Grip affordance must stay removed.');
+assert.ok(/DOMINIONSTAR MEET — REFINED LIKE ZOOM \(FINAL\)/i.test(standard),'Release standard must name the single approved meeting illustration.');
+assert.ok(/Do not substitute an older concept, alternate mockup, generated variation, or memory/i.test(standard),'Release standard must forbid alternate visual references.');
+
+assert.ok(css.includes('scrollbar-width:none !important')&&css.includes('.participant-video-dock-body::-webkit-scrollbar'),'Approved participant strip must scroll without a visible scrollbar.');
+assert.ok(css.includes('.remote-peer-tile:hover .participant-video-hover-actions')&&css.includes('opacity:0 !important')&&css.includes('pointer-events:none !important'),'Participant-tile actions must remain hover/focus-only.');
+assert.ok(runtime.includes("const visibleRows=Math.min(5,count);")&&runtime.includes("body.style.setProperty('overflow-y',count>5?'auto':'hidden','important');"),'Approved participant strip must show up to five rows and scroll internally after five.');
+assert.ok(!read('../ui/meeting-parity.css').includes('data-orientation="vertical"].count-4 .participant-video-dock-body')&&!read('../ui/meeting-parity.css').includes('data-orientation="vertical"].count-7 .participant-video-dock-body'),'Default vertical participant strip must not contain retired multi-column count rules.');
+assert.ok(!read('../ui/meeting-parity.css').includes('.participant-video-dock .remote-peer-tile{width:142px!important;height:80px!important}'),'Narrow-window CSS must not shrink the approved default 176x99 vertical video tiles.');
+assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right'")&&runtime.includes("dock.dataset.anchor='right';dock.dataset.orientation='vertical'"),'Approved participant strip must default to the right-side vertical position.');
+assert.ok(!runtimeCss.includes('/* 2.0.48 participant-window single-owner contract.'),'Retired 360px Participants-window contract must not coexist with the approved 318px reference.');
+assert.ok(runtimeCss.includes('/* 2.0.49 participant reference lock: compact Mac floating window. */')&&runtimeCss.includes('width:min(318px,calc(100% - 24px))!important'),'Approved Participants width must have a single 318px runtime contract.');
+assert.ok(!css.includes('@media(max-width:680px){\n  #meetingOverlay #participantVideoDock'),'Approved reference must not automatically move the default participant strip to the top on narrow windows.');
+assert.ok(participantReference.includes('.participant-name-text{min-width:0!important;flex:1 1 auto!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}'),'Approved 318px participant row must reserve fixed visible space for the inline host/self suffix while truncating only the participant name.');
+assert.ok(participantReference.includes("footer.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important')")&&participantReference.includes("button.style.setProperty('width','100%','important')"),'Approved Participants footer must lock Invite, Mute all, and More to three balanced equal-width controls at runtime.');
+
+assert.ok(runtime.includes("const SURFACE_GEOMETRY_KEY='ds_meet_floating_surface_geometry_v1'"),'Floating meeting windows must persist user geometry.');
+assert.ok(runtime.includes('function writeSurfaceGeometry(panel)')&&runtime.includes('function restoreSurfaceGeometry(panel,bodyWidth,bodyHeight)')&&runtime.includes('function clearSurfaceGeometry(panel)'),'Floating meeting windows must save, restore, and reset geometry.');
+assert.ok(runtime.includes("const directions=['n','s','e','w','ne','nw','se','sw']"),'Floating meeting windows must resize from edges and corners.');
+assert.ok(runtime.includes('installFloatingSurfaceResize(panel);'),'Final runtime must install floating-window resize authority.');
+assert.ok(runtimeCss.includes('.ds-runtime-resize-handle'),'Floating-window resize handles must ship in final CSS.');
+assert.ok(runtimeCss.includes('[data-ds-resize="ne"]')&&runtimeCss.includes('[data-ds-resize="sw"]'),'Edge/corner resize cursors must be present.');
+
+assert.ok(runtime.includes('function installMeetingTopBarAutoHide()'),'Approved top bar must have one idle-hide authority.');
+assert.ok(runtime.includes("overlay.dataset.dsRuntimeTopbarHidden='1'")&&runtime.includes("overlay.dataset.dsRuntimeTopbarHidden='0'"),'Approved top bar must expose deterministic hidden/visible states.');
+assert.ok(runtimeCss.includes('#meetingOverlay[data-ds-runtime-topbar-hidden="1"] .meeting-head')&&runtimeCss.includes('opacity:0!important')&&runtimeCss.includes('translateY(-8px)'),'Approved top bar must fade/slide away when idle.');
+assert.ok(runtimeCss.includes('#meetingOverlay[data-ds-runtime-topbar-hidden="0"] .meeting-head')&&runtimeCss.includes('opacity:1!important'),'Approved top bar must return on pointer activity.');
+
+assert.ok(notifications.includes("toast('Waiting Room',body)")&&notifications.includes("play('waiting')"),'Approved Waiting Room alert must remain visible and audible.');
+assert.ok(runtime.includes("if(search)search.hidden=false;"),'Approved Participants search must remain visible at every roster size instead of blinking by count.');
+assert.ok(runtime.includes('placeholder="Search participants"'),'Approved Participants search must retain the visible Search participants label.');
+assert.ok(runtimeCss.includes('.zoom-participant-search input'),'Participants search styling must remain owned by the final meeting runtime.');
+assert.ok(notificationCss.includes('left:50%')&&notificationCss.includes('transform:translateX(-50%)')&&notificationCss.includes('right:auto'),'Approved meeting notification must be top-centered rather than right-edge anchored.');
+assert.ok(runtimeCss.includes('#meetingEventToast.meeting-event-toast')&&runtimeCss.includes('left:50%!important')&&runtimeCss.includes('translateX(-50%)!important'),'Final runtime CSS must lock the top-center waiting-room alert geometry.');
+
 
 assert.ok(js.includes("aria-label','Encrypted media transport'"),'Header must expose a truthful encrypted-transport status.');
 assert.ok(js.includes("<span>Encrypted</span>"),'Header encrypted status is missing.');
@@ -105,4 +144,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages floating-filmstrip active-speaker no-grip custom-only-preshare no-apple-overlay bounded-share-start duplicate-participant-media-suppressed release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages single-approved-ref single-318-participants-contract right-filmstrip no-auto-top-reflow one-column-only five-visible hidden-scrollbar hover-controls floating-window-memory edge-corner-resize topbar-idle-fade waiting-room-alert top-center-alert stable-participant-search floating-filmstrip active-speaker no-grip custom-only-preshare no-apple-overlay bounded-share-start duplicate-participant-media-suppressed release-gated');

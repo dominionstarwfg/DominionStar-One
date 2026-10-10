@@ -12,7 +12,7 @@ const annotationHtml=read('ui/mac-annotation-toolbar.html');
 const annotationCanvas=read('ui/mac-annotation-canvas.js');
 const overlay=read('src/mac-share-presenter-overlay.mjs');
 
-assert(['2.0.47','2.0.48','2.0.49','2.0.50','2.0.51'].includes(pkg.version),'package version is outside the certified 2.0.47+ behavior line');
+assert(['2.0.47','2.0.48','2.0.49','2.0.50','2.0.51','2.0.52'].includes(pkg.version),'package version is outside the certified 2.0.47+ behavior line');
 
 assert(runtime.includes("panel===chat?330:318"),'participant geometry is not the readable desktop contract');
 assert(runtimeCss.includes('min-width:min(318px,calc(100% - 24px))'),'participant panel can collapse back to rejected narrow width');

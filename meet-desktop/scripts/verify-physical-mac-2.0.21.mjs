@@ -116,7 +116,7 @@ assert.match(meetingCss,/\.person-badge\.has-photo/);
 assert.match(repair,/participantCount<=1&&visibleTiles===0/);
 assert.match(approvedCss,/right:14px !important;/);
 assert.match(approvedCss,/grid-template-columns:176px !important;/);
-assert.match(approvedCss,/@media\(max-width:680px\)/);
+assert.doesNotMatch(approvedCss,/@media\(max-width:680px\)/,'Approved participant video must not auto-reflow to the top on narrow windows.');
 assert.doesNotMatch(runtime,/panel\.dataset\.dsRuntimeMode='docked'/);
 assert.match(runtime,/panel\.dataset\.dsRuntimeMode='floating'/);
 assert.match(runtime,/installFloatingSurfaceDrag\(panel\)/);
@@ -125,4 +125,4 @@ assert.match(runtimeCss,/height:var\(--ds-runtime-vh,100vh\)!important/);
 assert.match(adaptiveCss,/max-width:560px !important/);
 assert.match(css,/\.ds-reaction-tray[\s\S]*overflow:hidden!important/);
 
-console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} custom-only-preshare no-apple-overlay bounded-share-start one-participant-media-set presenter-controls profile-first-identity two-person-right-video-filmstrip floating-participants-chat full-window compact-prejoin`);
+console.log(`DOMINIONSTAR_PHYSICAL_MAC_2_0_21_OK carried-forward-on=${pkg.version} custom-only-preshare no-apple-overlay bounded-share-start one-participant-media-set presenter-controls profile-first-identity two-person-right-video-filmstrip fixed-right-default-no-auto-top floating-participants-chat full-window compact-prejoin`);

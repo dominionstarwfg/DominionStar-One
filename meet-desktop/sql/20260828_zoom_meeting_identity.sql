@@ -889,7 +889,7 @@ declare
   v_to_role text;
 begin
   if v_user is null then raise exception 'authentication_required'; end if;
-  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','caption','caption-request','recording-state','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
+  if p_signal_type not in ('offer','answer','ice','bye','chat','reaction','caption','caption-request','recording-state','poll:start','poll:vote','poll:end','host:mute','host:ask-unmute','host:stop-video','host:ask-start-video','host:lower-hand','host:spotlight','host:view-layout') then raise exception 'invalid_signal_type'; end if;
   select * into v_from from public.meet_v2_participants where id=p_from_participant_id;
   select * into v_to from public.meet_v2_participants where id=p_to_participant_id;
   if v_from.id is null then raise exception 'participant_not_found'; end if;
@@ -902,6 +902,13 @@ begin
 
   if p_signal_type='recording-state' then
     if v_from_role not in ('host','cohost') and not coalesce(v_from.recording_allowed,false) then raise exception 'recording_authority_required'; end if;
+  end if;
+
+  if p_signal_type in ('poll:start','poll:end') and v_from_role not in ('host','cohost') then
+    raise exception 'host_authority_required';
+  end if;
+  if p_signal_type='poll:vote' and v_to_role not in ('host','cohost') then
+    raise exception 'poll_host_target_required';
   end if;
 
   if p_signal_type='chat' then

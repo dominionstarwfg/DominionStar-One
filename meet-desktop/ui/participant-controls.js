@@ -249,6 +249,8 @@
   function syncPanelActions(){
     const side=q('.room-side');if(!side)return;
     let footer=q('#participantBulkActions');
+    const referenceOwned=Boolean(window.DominionZoomScreenshotReference||window.DominionZoomParticipantsReference2041||side.classList.contains('ds-participants-reference'));
+    if(referenceOwned){footer?.remove();return;}
     if(!canManage()){footer?.remove();return;}
     if(!footer){
       footer=document.createElement('div');footer.id='participantBulkActions';footer.className='participant-bulk-actions';

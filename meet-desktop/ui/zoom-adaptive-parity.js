@@ -147,7 +147,7 @@
     const heading=side.querySelector('.room-side-head strong')||side.querySelector('section h3');
     if(heading)heading.textContent=`Participants (${count})`;
 
-    const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=count<=1;
+    const search=side.querySelector('.zoom-participant-search');if(search)search.hidden=false;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
 
     sortParticipants();
