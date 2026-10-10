@@ -84,6 +84,21 @@ try{
   assert.ok(Math.abs(participantsDefault.centerDx)<=3&&Math.abs(participantsDefault.centerDy)<=3,`Approved Participants must open centered. ${JSON.stringify(participantsDefault)}`);
   assert.equal(participantsDefault.handles,8,'Approved floating Participants window must expose eight edge/corner resize hit areas.');
   assert.equal(participantsDefault.trafficDirection,'row','Mac traffic lights must remain horizontal.');
+  const participantSearch=await evaluate(`(()=>{const wrap=document.querySelector('.room-side .zoom-participant-search'),input=wrap?.querySelector('input');const s=wrap?getComputedStyle(wrap):null;return {exists:Boolean(wrap&&input),hidden:Boolean(wrap?.hidden),display:s?.display||'',placeholder:input?.getAttribute('placeholder')||''};})()`);
+  assert.equal(participantSearch.exists,true,'Approved Participants window must contain its search field.');
+  assert.equal(participantSearch.hidden,false,'Participants search must remain stable and visible even with a small roster.');
+  assert.notEqual(participantSearch.display,'none','Participants search must not disappear by roster count.');
+  assert.equal(participantSearch.placeholder,'Search participants');
+
+  await evaluate(`window.dispatchEvent(new CustomEvent('dominion:waiting-room-update',{detail:{items:[{participantId:'qa-waiting',displayName:'Jordan Lee'}],added:[{participantId:'qa-waiting',displayName:'Jordan Lee'}]}}))`);
+  await waitFor("document.querySelector('#meetingEventToast')&&!document.querySelector('#meetingEventToast').hidden",'approved top-center Waiting Room alert');
+  const waitingAlert=await evaluate(`(()=>{const node=document.querySelector('#meetingEventToast'),r=node.getBoundingClientRect();return {title:node.querySelector('strong')?.textContent?.trim()||'',body:node.querySelector('span')?.textContent?.trim()||'',centerDx:Math.round((r.left+r.width/2)-(innerWidth/2)),top:Math.round(r.top),leftStyle:getComputedStyle(node).left,rightStyle:getComputedStyle(node).right,transform:getComputedStyle(node).transform};})()`);
+  assert.equal(waitingAlert.title,'Waiting Room');
+  assert.match(waitingAlert.body,/Jordan Lee is waiting to join/);
+  assert.ok(Math.abs(waitingAlert.centerDx)<=2,`Waiting Room alert must be horizontally centered. ${JSON.stringify(waitingAlert)}`);
+  assert.ok(waitingAlert.top>=68&&waitingAlert.top<=76,`Waiting Room alert must remain in the approved top-center lane. ${JSON.stringify(waitingAlert)}`);
+  await evaluate(`window.DominionMeetingNotifications?.reset?.()`);
+
 
   const restoredGeometry=await evaluate(`(()=>{const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),br=body.getBoundingClientRect();localStorage.setItem('ds_meet_floating_surface_geometry_v1',JSON.stringify({participants:{left:44,top:58,width:296,height:332}}));panel.dataset.dsRuntimeUserPositioned='0';window.DominionRuntimeStability.layoutSideSurface();const pr=panel.getBoundingClientRect();return {left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height),user:panel.dataset.dsRuntimeUserPositioned||''};})()`);
   assert.ok(Math.abs(restoredGeometry.left-44)<=2&&Math.abs(restoredGeometry.top-58)<=2,`Participants must restore remembered position. ${JSON.stringify(restoredGeometry)}`);
@@ -152,6 +167,6 @@ try{
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
-  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption stable-host-toolbar host-tools dedicated-raise-hand real-react-label reactions-six-only clean-runtime-chat direct-messages no-formatting centered-participants remembered-panel-geometry edge-corner-resize horizontal-mac-traffic topbar-idle-fade floating-filmstrip active-speaker whole-panel-drag no-grip no-renderer-errors');
+  console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption stable-host-toolbar host-tools dedicated-raise-hand real-react-label reactions-six-only clean-runtime-chat direct-messages no-formatting centered-participants remembered-panel-geometry edge-corner-resize horizontal-mac-traffic stable-participant-search top-center-waiting-alert topbar-idle-fade floating-filmstrip active-speaker whole-panel-drag no-grip no-renderer-errors');
 }catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
