@@ -651,17 +651,38 @@
   function installVideoDockHoverIntelligence(){
     const dock=q('#participantVideoDock');if(!dock||dock===videoHoverBound)return;
     videoHoverBound=dock;dock.dataset.dsRuntimeHoverIntelligence='1';
+    dock.style.setProperty('pointer-events','auto','important');
     let inside=false;
+    const apply=next=>{
+      inside=Boolean(next);dock.classList.toggle('ds-video-chrome-hover',inside);
+      const head=dock.querySelector('.participant-video-dock-head');if(!head)return;
+      if(inside){
+        head.style.setProperty('opacity','1','important');
+        head.style.setProperty('visibility','visible','important');
+        head.style.setProperty('transform','translateY(0)','important');
+        head.style.setProperty('pointer-events','auto','important');
+        head.style.setProperty('transition-delay','0s','important');
+      }else{
+        for(const property of ['opacity','visibility','transform','pointer-events','transition-delay'])head.style.removeProperty(property);
+      }
+    };
     const syncPoint=event=>{
-      if(!meetingOpen()||dock.hidden){inside=false;dock.classList.remove('ds-video-chrome-hover');return;}
+      if(!meetingOpen()||dock.hidden){if(inside)apply(false);return;}
       const r=dock.getBoundingClientRect(),x=Number(event.clientX),y=Number(event.clientY);
       const next=Number.isFinite(x)&&Number.isFinite(y)&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
-      if(next===inside)return;inside=next;dock.classList.toggle('ds-video-chrome-hover',inside);
+      if(next!==inside)apply(next);
     };
+    const enter=()=>{if(meetingOpen()&&!dock.hidden)apply(true);};
+    const leave=()=>apply(false);
+    for(const type of ['pointerenter','mouseenter'])dock.addEventListener(type,enter,true);
+    for(const type of ['pointermove','mousemove'])dock.addEventListener(type,syncPoint,true);
+    for(const type of ['pointerleave','mouseleave'])dock.addEventListener(type,leave,true);
     document.addEventListener('pointermove',syncPoint,true);
     document.addEventListener('mousemove',syncPoint,true);
-    window.addEventListener('blur',()=>{inside=false;dock.classList.remove('ds-video-chrome-hover');});
-    document.addEventListener('mouseleave',()=>{inside=false;dock.classList.remove('ds-video-chrome-hover');},true);
+    window.addEventListener('pointermove',syncPoint,true);
+    window.addEventListener('mousemove',syncPoint,true);
+    window.addEventListener('blur',leave);
+    document.addEventListener('mouseleave',leave,true);
   }
 
   function syncVideoDockGeometry(){
