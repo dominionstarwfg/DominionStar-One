@@ -50,8 +50,8 @@ assert.ok(auth.includes('./runtime-stability.js'),'Runtime-stability controller 
 assert.ok(auth.indexOf('approved-reference-parity.css')<auth.indexOf('runtime-stability.css'),'Runtime stability must load after approved reference parity.');
 assert.ok(auth.indexOf('runtime-stability.css')<auth.indexOf('runtime-layout-fix.css'),'Legacy-grid removal must load after the main runtime stylesheet.');
 assert.ok(auth.indexOf('runtime-layout-fix.css')<auth.indexOf('runtime-motion.css'),'Motion authority must load after final layout geometry.');
-assert.ok(auth.includes('script.onload=loadRuntimeStability'),'Approved-reference parity must still converge through the runtime-stability loader.');
-assert.ok(auth.includes('const primeRuntimeStability=()=>')&&auth.includes("script.dataset.dsRuntimePrime='1'")&&auth.indexOf('primeRuntimeStability();')<auth.indexOf('if(physicalStyle.sheet)loadPhysicalRepair();'),'Runtime stability must also be eagerly requested before the physical/adaptive/reference chain so packaged startup cannot complete without the controller.');
+assert.ok(auth.includes("const explicitCanonicalRuntime=Boolean(document.querySelector('meta[name=\"ds-canonical-runtime-explicit\"][content=\"1\"]'))"),'Auth bootstrap must recognize explicit canonical runtime ownership from the live shell.');
+assert.ok(auth.includes("if(explicitCanonicalRuntime)return null;")&&auth.includes("if(explicitCanonicalRuntime){loadScreenshotReference();return;}"),'Explicit shell ownership must prevent duplicate runtime injection while preserving the compatibility loader chain.');
 
 assert.ok(runtime.includes("event.stopImmediatePropagation();\n      setParticipants"),'Participants click must have a single capture-phase authority.');
 assert.ok(runtime.includes("event.stopImmediatePropagation();\n      setChat"),'Chat click must have a single capture-phase authority.');
