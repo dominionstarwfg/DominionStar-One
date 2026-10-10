@@ -320,7 +320,7 @@ try{
   assert.equal(dock.visible,4,'Adaptive participant video panel did not count all visible participant tiles.');
   assert.equal(dock.columns,1,'Four visible participants must remain in the approved one-column right-side filmstrip.');
   assert.equal(String(dock.grid).split(' ').filter(Boolean).length,1,'Four visible participants must render one vertical video column.');
-  assert.ok(dock.width>=184&&dock.width<=190&&dock.height>=430,'Four visible participants must extend the right-side filmstrip vertically without widening it.');
+  assert.ok(dock.width>=184&&dock.width<=190&&dock.height>=416&&dock.height<=425,`Four visible participants must use the approved compact right-side filmstrip with non-reserving hover chrome. ${JSON.stringify(dock)}`);
   const shareDock=await evaluate(`(()=>{
     const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');
     overlay.classList.add('share-active');window.DominionPreferences?.write?.('shareVideoDock',true);window.DominionPreferences?.write?.('shareSideBySide',false);
