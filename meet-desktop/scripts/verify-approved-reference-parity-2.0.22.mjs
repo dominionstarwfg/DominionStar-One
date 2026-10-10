@@ -9,6 +9,7 @@ const css=read('../ui/approved-reference-parity.css');
 const runtime=read('../ui/runtime-stability.js');
 const runtimeCss=read('../ui/runtime-stability.css');
 const notifications=read('../ui/meeting-notifications.js');
+const notificationCss=read('../ui/meeting-notifications.css');
 const standard=read('../RELEASE_STANDARD.md');
 const adaptive=read('../ui/zoom-adaptive-parity.js');
 const features=read('../ui/meeting-features.js');
@@ -99,6 +100,10 @@ assert.ok(runtimeCss.includes('#meetingOverlay[data-ds-runtime-topbar-hidden="1"
 assert.ok(runtimeCss.includes('#meetingOverlay[data-ds-runtime-topbar-hidden="0"] .meeting-head')&&runtimeCss.includes('opacity:1!important'),'Approved top bar must return on pointer activity.');
 
 assert.ok(notifications.includes("toast('Waiting Room',body)")&&notifications.includes("play('waiting')"),'Approved Waiting Room alert must remain visible and audible.');
+assert.ok(runtime.includes("if(search)search.hidden=false;"),'Approved Participants search must remain visible at every roster size instead of blinking by count.');
+assert.ok(runtimeCss.includes('.zoom-participant-search input')&&runtimeCss.includes('placeholder="Search participants"')===false,'Participants search styling must remain owned by the final meeting runtime.');
+assert.ok(notificationCss.includes('left:50%')&&notificationCss.includes('transform:translateX(-50%)')&&notificationCss.includes('right:auto'),'Approved meeting notification must be top-centered rather than right-edge anchored.');
+assert.ok(runtimeCss.includes('#meetingEventToast.meeting-event-toast')&&runtimeCss.includes('left:50%!important')&&runtimeCss.includes('translateX(-50%)!important'),'Final runtime CSS must lock the top-center waiting-room alert geometry.');
 
 
 assert.ok(js.includes("aria-label','Encrypted media transport'"),'Header must expose a truthful encrypted-transport status.');
@@ -129,4 +134,4 @@ for(const workflow of [production,qa]){
 assert.ok(production.indexOf('Verify packaged approved 3D reference parity')<production.indexOf('Create installable DMG, archive, and checksums'),'Production DMG creation must remain behind approved-reference parity.');
 assert.ok(qa.indexOf('Verify packaged approved 3D reference parity')<qa.indexOf('Create clean QA archive'),'QA archive creation must remain behind approved-reference parity.');
 
-console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages single-approved-ref right-filmstrip five-visible hidden-scrollbar hover-controls floating-window-memory edge-corner-resize topbar-idle-fade waiting-room-alert floating-filmstrip active-speaker no-grip custom-only-preshare no-apple-overlay bounded-share-start duplicate-participant-media-suppressed release-gated');
+console.log('DOMINIONSTAR_APPROVED_REFERENCE_PARITY_2_0_22_OK real-brand truthful-encryption role-aware-toolbar visual-toolbar-order stable-toolbar-zones single-owner-react-label dedicated-raise-hand reaction-only-tray observer-safe idempotent-sync clean-chat race-safe-direct-messages single-approved-ref right-filmstrip five-visible hidden-scrollbar hover-controls floating-window-memory edge-corner-resize topbar-idle-fade waiting-room-alert top-center-alert stable-participant-search floating-filmstrip active-speaker no-grip custom-only-preshare no-apple-overlay bounded-share-start duplicate-participant-media-suppressed release-gated');
