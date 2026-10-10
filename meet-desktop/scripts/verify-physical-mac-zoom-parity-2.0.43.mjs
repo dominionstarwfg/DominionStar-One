@@ -586,8 +586,10 @@ assert(
 assert(
   app.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Host)')")&&
   app.includes("role==='cohost'?(self?'(Co-host, me)':'(Co-host)'):(self?'(me)':'')")&&
-  participantsReference.includes('.participant-you{font-style:normal!important')&&
+  participantsReference.includes('.participant-you{flex:0 0 auto!important')&&
+  participantsReference.includes('font-style:normal!important')&&
   participantsReference.includes('font-size:11px!important')&&
+  participantsReference.includes('.participant-name-text{min-width:0!important;flex:1 1 auto!important')&&
   participantsReference.includes('.person-copy{min-width:0!important;display:flex!important;flex-direction:row!important'),
   'Participants must keep the full name and role/me metadata on one compact readable row, matching the desktop reference.'
 );
