@@ -42,14 +42,6 @@
     img.onerror=()=>{img.hidden=true;fallback.classList.remove('has-photo');fallback.dataset.dsAvatarUrl='';span.hidden=false;if(refreshLocal)void refreshAuth(true);};
   }
 
-  function syncDockCount(dock){
-    if(!dock)return;
-    const tiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted')),count=tiles.length;
-    dock.dataset.count=String(Math.min(count,9));dock.classList.toggle('dock-empty',count===0);dock.hidden=count===0;
-    for(let i=1;i<=9;i++)dock.classList.toggle(`count-${i}`,Math.min(count,9)===i);
-    if(count>0&&(dock.classList.contains('gallery-stage')||dock.classList.contains('multi-speaker-stage')))dock.dataset.orientation='grid';
-  }
-
   let localVisibilityObserver=null,observedTile=null,observedDock=null;
   function observeLocalVisibility(tile,dock){
     if(!tile||!dock||(observedTile===tile&&observedDock===dock))return;
@@ -62,23 +54,9 @@
   function syncLocalGalleryIdentity(){
     const tile=q('#localVideoDockTile'),dock=q('#participantVideoDock');if(!tile||!dock)return;
     observeLocalVisibility(tile,dock);
-    const overlay=q('#meetingOverlay'),mode=String(overlay?.dataset.viewMode||''),sharing=Boolean(overlay?.classList.contains('share-active')||document.body.classList.contains('remote-share-active'));
-    if(sharing||!['gallery','multi'].includes(mode))return;
-    const hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView'));
-    if(hideSelf){if(!tile.hidden)tile.hidden=true;syncDockCount(dock);return;}
-
-    const snapshot=window.DominionMediaController?.snapshot?.()||{},stream=window.DominionMediaController?.stream?.()||null;
-    const live=Boolean(snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live'));
-    const video=tile.querySelector('video'),fallback=tile.querySelector('.remote-peer-fallback');
-    if(tile.hidden)tile.hidden=false;
-    if(live){
-      if(video){if(video.srcObject!==stream)video.srcObject=stream;video.hidden=false;void video.play().catch(()=>{});}
-      if(fallback)fallback.hidden=true;
-    }else{
-      if(video){if(video.srcObject)video.srcObject=null;video.hidden=true;}
-      if(fallback)fallback.hidden=false;
-    }
-    syncDockCount(dock);
+    // Profile fallback paints identity only. MeetingParity/RuntimeStability own
+    // tile visibility, camera state, dock count, orientation and geometry.
+    window.DominionMeetingParity?.syncVideoDock?.();
   }
 
   let boundMediaController=null,unbindMediaChange=null;
