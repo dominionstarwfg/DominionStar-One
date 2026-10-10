@@ -618,6 +618,7 @@
       overlay.dataset.dsRuntimeSide='floating';
       ensurePanelClose(panel);
       installFloatingSurfaceDrag(panel);
+      installFloatingSurfaceResize(panel);
     }else overlay.dataset.dsRuntimeSide='none';
     stage.style.setProperty('left','0px','important');
     stage.style.setProperty('top','0px','important');
