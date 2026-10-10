@@ -873,3 +873,13 @@ body>.meeting-reaction-menu,
   opacity:1!important;
   transform:translateY(0)!important;
 }
+
+
+/* Approved top-center meeting alert lock. */
+#meetingEventToast.meeting-event-toast{
+  top:72px!important;
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  z-index:3980!important;
+}
