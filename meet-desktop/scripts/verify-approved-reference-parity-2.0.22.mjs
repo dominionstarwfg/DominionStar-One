@@ -78,7 +78,7 @@ assert.ok(js.includes('stopImmediatePropagation();openChatTargetMenu(newChat)'),
 assert.ok(adaptive.includes("dock.dataset.dsAdaptiveWholePanelDrag='1'"),'Video panel must retain whole-surface drag authority.');
 assert.ok(js.includes("setData(dock,'approvedFilmstrip','1')"),'Approved floating video filmstrip authority is missing.');
 assert.ok(css.includes('.participant-video-dock-head{\n  height:34px !important;')&&css.includes('.participant-video-dock-modes')&&css.includes('[data-panel-mode="strip"]'),'Video filmstrip must expose the compact layout-control bar required for speaker/strip/gallery/hide behavior.');
-assert.ok(css.includes('.remote-peer-tile.active-speaker'),'Video filmstrip must visually mark the active speaker.');
+assert.ok(css.includes('.remote-peer-tile.active-speaker')&&css.includes('border-color:#42d46c !important;'),'Video filmstrip must visually mark the active speaker with the final approved-reference #42d46c emphasis.');
 assert.ok(runtime.includes('function installVideoDockHoverIntelligence()')&&runtime.includes("dock.classList.toggle('ds-video-chrome-hover',inside)")&&runtimeCss.includes('#meetingOverlay #participantVideoDock.ds-video-chrome-hover .participant-video-dock-head'),'Smart video-panel controls must be driven by real pointer geometry so packaged Electron hover stays reliable.');
 assert.ok(css.includes('.dock-grip{\n  display:none !important;'),'Grip affordance must stay removed.');
 assert.ok(/DOMINIONSTAR MEET — REFINED LIKE ZOOM \(FINAL\)/i.test(standard),'Release standard must name the single approved meeting illustration.');
