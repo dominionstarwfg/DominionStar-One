@@ -101,7 +101,8 @@ assert.ok(runtimeCss.includes('#meetingOverlay[data-ds-runtime-topbar-hidden="0"
 
 assert.ok(notifications.includes("toast('Waiting Room',body)")&&notifications.includes("play('waiting')"),'Approved Waiting Room alert must remain visible and audible.');
 assert.ok(runtime.includes("if(search)search.hidden=false;"),'Approved Participants search must remain visible at every roster size instead of blinking by count.');
-assert.ok(runtimeCss.includes('.zoom-participant-search input')&&runtimeCss.includes('placeholder="Search participants"')===false,'Participants search styling must remain owned by the final meeting runtime.');
+assert.ok(runtime.includes('placeholder="Search participants"'),'Approved Participants search must retain the visible Search participants label.');
+assert.ok(runtimeCss.includes('.zoom-participant-search input'),'Participants search styling must remain owned by the final meeting runtime.');
 assert.ok(notificationCss.includes('left:50%')&&notificationCss.includes('transform:translateX(-50%)')&&notificationCss.includes('right:auto'),'Approved meeting notification must be top-centered rather than right-edge anchored.');
 assert.ok(runtimeCss.includes('#meetingEventToast.meeting-event-toast')&&runtimeCss.includes('left:50%!important')&&runtimeCss.includes('translateX(-50%)!important'),'Final runtime CSS must lock the top-center waiting-room alert geometry.');
 
