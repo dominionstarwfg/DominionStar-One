@@ -201,7 +201,7 @@ assert(participantControls.includes("type==='host:ask-unmute'")&&participantCont
 assert(participantControls.includes('authorizedSender')&&participantControls.includes("['host','cohost'].includes"),'Packaged participant controls must verify host/co-host authority before executing media commands.');
 assert(participantControls.includes('Mute All')&&participantControls.includes('Ask All to Unmute'),'Packaged participant panel must expose bulk Zoom-style audio controls.');
 assert(participantControls.includes("filter(p=>String(p.role||'').toLowerCase()!=='host')"),'Packaged bulk media controls must exclude the host.');
-assert(webrtc.includes("String(signal.type||'').startsWith('host:')"),'Packaged WebRTC must dispatch host-control signals to the participant-control layer.');
+assert(webrtc.includes("APPLICATION_SIGNAL_TYPES.has(signalType)")&&webrtc.includes("signalType.startsWith('host:')"),'Packaged WebRTC must dispatch application and host-control signals to the verified meeting feature layers.');
 assert(participantCss.includes('.participant-control-menu')&&participantCss.includes('.participant-control-prompt'),'Packaged participant controls must include dedicated desktop styling.');
 for(const key of ['joinMuted','joinVideoOff','showJoinPreview','hideSelfView','shareVideoDock','shareOptimize','shareAudio','chatSound','recordMic','recordRemote','uiScale','shortcuts'])assert(preferences.includes(`${key}:`),`Packaged preferences missing ${key}.`);
 assert(preferences.includes('Show video preview before joining')&&preferences.includes('Hide my self view in meetings'),'Packaged meeting settings must expose join-preview and self-view controls.');
