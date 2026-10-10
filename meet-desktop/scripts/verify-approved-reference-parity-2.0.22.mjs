@@ -12,6 +12,7 @@ const notifications=read('../ui/meeting-notifications.js');
 const notificationCss=read('../ui/meeting-notifications.css');
 const standard=read('../RELEASE_STANDARD.md');
 const adaptive=read('../ui/zoom-adaptive-parity.js');
+const participantReference=read('../ui/zoom-participants-reference-2.0.41.js');
 const features=read('../ui/meeting-features.js');
 const share=read('../src/share-service.mjs');
 const controller=read('../ui/share-controller.js');
@@ -91,6 +92,8 @@ assert.ok(runtime.includes("dock.dataset.dsRuntimeDockMode=userPositioned?'user'
 assert.ok(!runtimeCss.includes('/* 2.0.48 participant-window single-owner contract.'),'Retired 360px Participants-window contract must not coexist with the approved 318px reference.');
 assert.ok(runtimeCss.includes('/* 2.0.49 participant reference lock: compact Mac floating window. */')&&runtimeCss.includes('width:min(318px,calc(100% - 24px))!important'),'Approved Participants width must have a single 318px runtime contract.');
 assert.ok(!css.includes('@media(max-width:680px){\n  #meetingOverlay #participantVideoDock'),'Approved reference must not automatically move the default participant strip to the top on narrow windows.');
+assert.ok(participantReference.includes('.participant-name-text{min-width:0!important;flex:1 1 auto!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}'),'Approved 318px participant row must reserve fixed visible space for the inline host/self suffix while truncating only the participant name.');
+assert.ok(participantReference.includes("footer.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important')")&&participantReference.includes("button.style.setProperty('width','100%','important')"),'Approved Participants footer must lock Invite, Mute all, and More to three balanced equal-width controls at runtime.');
 
 assert.ok(runtime.includes("const SURFACE_GEOMETRY_KEY='ds_meet_floating_surface_geometry_v1'"),'Floating meeting windows must persist user geometry.');
 assert.ok(runtime.includes('function writeSurfaceGeometry(panel)')&&runtime.includes('function restoreSurfaceGeometry(panel,bodyWidth,bodyHeight)')&&runtime.includes('function clearSurfaceGeometry(panel)'),'Floating meeting windows must save, restore, and reset geometry.');
