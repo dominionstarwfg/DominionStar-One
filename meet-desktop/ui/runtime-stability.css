@@ -657,45 +657,6 @@ body>.meeting-reaction-menu,
 }
 
 
-/* 2.0.48 participant-window single-owner contract.
-   Runtime owns desktop chrome. Reference and participant-action layers must not compete. */
-#meetingOverlay .room-side[data-ds-runtime-mode="floating"]{
-  width:min(360px,calc(100% - 24px))!important;
-  min-width:min(360px,calc(100% - 24px))!important;
-  max-width:min(360px,calc(100% - 24px))!important;
-  resize:none!important;
-}
-#meetingOverlay .room-side.ds-panel-wide{
-  width:min(360px,calc(100% - 24px))!important;
-  min-width:min(360px,calc(100% - 24px))!important;
-  max-width:min(360px,calc(100% - 24px))!important;
-}
-#meetingOverlay .room-side .ds-participants-popout,
-#meetingOverlay .room-side .ds-participants-traffic{display:none!important}
-#meetingOverlay .room-side .room-side-head{padding:0 68px!important}
-#meetingOverlay .room-side .room-side-head>div{padding:0!important;text-align:center!important}
-#meetingOverlay .room-side .ds-panel-traffic{
-  position:absolute!important;
-  left:12px!important;top:0!important;height:38px!important;
-  display:flex!important;align-items:center!important;gap:8px!important;
-  z-index:40!important;pointer-events:auto!important;
-  margin:0!important;
-}
-#meetingOverlay .room-side .ds-panel-traffic>button{
-  display:block!important;
-  width:12px!important;min-width:12px!important;max-width:12px!important;
-  height:12px!important;min-height:12px!important;max-height:12px!important;
-  margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.22)!important;
-  cursor:pointer!important;font-size:0!important;line-height:0!important;
-  opacity:1!important;visibility:visible!important;
-}
-#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-close{background:#ff5f57!important}
-#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-minimize{background:#febc2e!important}
-#meetingOverlay .room-side .ds-panel-traffic>.ds-traffic-restore{background:#28c840!important}
-#meetingOverlay .room-side:has(.ds-panel-traffic) .room-side-head>button[aria-label="Close participants"]{display:none!important}
-
-
 /* 2.0.49 participant reference lock: compact Mac floating window. */
 #meetingOverlay .room-side[data-ds-runtime-mode="floating"]{
   width:min(318px,calc(100% - 24px))!important;
