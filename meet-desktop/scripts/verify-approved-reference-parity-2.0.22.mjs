@@ -79,6 +79,7 @@ assert.ok(adaptive.includes("dock.dataset.dsAdaptiveWholePanelDrag='1'"),'Video 
 assert.ok(js.includes("setData(dock,'approvedFilmstrip','1')"),'Approved floating video filmstrip authority is missing.');
 assert.ok(css.includes('.participant-video-dock-head{\n  height:34px !important;')&&css.includes('.participant-video-dock-modes')&&css.includes('[data-panel-mode="strip"]'),'Video filmstrip must expose the compact layout-control bar required for speaker/strip/gallery/hide behavior.');
 assert.ok(css.includes('.remote-peer-tile.active-speaker'),'Video filmstrip must visually mark the active speaker.');
+assert.ok(runtime.includes('function installVideoDockHoverIntelligence()')&&runtime.includes("dock.classList.toggle('ds-video-chrome-hover',inside)")&&runtimeCss.includes('#meetingOverlay #participantVideoDock.ds-video-chrome-hover .participant-video-dock-head'),'Smart video-panel controls must be driven by real pointer geometry so packaged Electron hover stays reliable.');
 assert.ok(css.includes('.dock-grip{\n  display:none !important;'),'Grip affordance must stay removed.');
 assert.ok(/DOMINIONSTAR MEET — REFINED LIKE ZOOM \(FINAL\)/i.test(standard),'Release standard must name the single approved meeting illustration.');
 assert.ok(/Do not substitute an older concept, alternate mockup, generated variation, or memory/i.test(standard),'Release standard must forbid alternate visual references.');
