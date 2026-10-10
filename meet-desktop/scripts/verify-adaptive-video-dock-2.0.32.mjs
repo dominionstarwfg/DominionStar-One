@@ -24,7 +24,7 @@ assert.ok(runtime.includes('const currentLeft=parseFloat(dock.style.left)')&&run
 assert.ok(runtime.includes('clamp(Number.isFinite(currentLeft)?currentLeft'),'Dragged dock must be clamped after resize.');
 assert.ok(runtime.includes("window.addEventListener('resize',schedule,{passive:true})"),'Resize must remain event-driven.');
 assert.ok(!runtime.includes('setInterval('),'Dock reflow must not add polling.');
-assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();'),'Dock geometry must commit in the same final runtime pass.');
+assert.ok(runtime.includes('syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();installVideoDockHoverIntelligence();syncVideoDockGeometry();'),'Dock geometry and smart hover intelligence must commit in the same final runtime pass.');
 assert.ok(approved.includes('right:14px !important;'),'Approved reference must retain the wide right-filmstrip visual baseline.');
 assert.ok(approved.includes('.local-video-dock-tile')&&approved.includes('order:-100 !important'),'Self view must remain first in the participant filmstrip regardless of host role.');
 assert.ok(approved.includes('.remote-peer-tile:hover .participant-video-hover-actions')&&approved.includes('opacity:0 !important')&&approved.includes('pointer-events:none !important'),'Video-tile actions must stay visually quiet until pointer/focus interaction.');
