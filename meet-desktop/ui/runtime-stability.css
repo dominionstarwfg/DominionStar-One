@@ -704,6 +704,11 @@ body>.meeting-reaction-menu,
   min-height:min(390px,calc(100% - 24px))!important;
   resize:none!important;
 }
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"][data-ds-runtime-user-positioned="1"]{
+  min-width:286px!important;
+  max-width:calc(100% - 20px)!important;
+  min-height:300px!important;
+}
 #meetingOverlay .room-side.ds-panel-wide{
   width:min(318px,calc(100% - 24px))!important;
   min-width:min(318px,calc(100% - 24px))!important;
@@ -833,3 +838,38 @@ body>.meeting-reaction-menu,
 #meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-close::after{content:'×'!important;opacity:1!important}
 #meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-minimize::after{content:'−'!important;opacity:1!important}
 #meetingOverlay .room-side .ds-panel-traffic:hover>.ds-traffic-restore::after{content:'+'!important;opacity:1!important}
+
+
+/* Approved Refined-like-Zoom meeting contract: default geometry remains 318x390,
+   user-resized geometry is allowed only after explicit interaction. */
+#meetingOverlay .room-side[data-ds-runtime-mode="floating"][data-ds-runtime-user-positioned="1"]{
+  min-width:286px!important;
+  max-width:calc(100% - 20px)!important;
+  min-height:300px!important;
+}
+#meetingOverlay .room-side .ds-runtime-resize-handle,
+#meetingOverlay #meetingChatPanel .ds-runtime-resize-handle{
+  position:absolute!important;z-index:80!important;background:transparent!important;pointer-events:auto!important;
+}
+#meetingOverlay [data-ds-resize="n"]{left:8px!important;right:8px!important;top:-4px!important;height:8px!important;cursor:ns-resize!important}
+#meetingOverlay [data-ds-resize="s"]{left:8px!important;right:8px!important;bottom:-4px!important;height:8px!important;cursor:ns-resize!important}
+#meetingOverlay [data-ds-resize="e"]{top:8px!important;bottom:8px!important;right:-4px!important;width:8px!important;cursor:ew-resize!important}
+#meetingOverlay [data-ds-resize="w"]{top:8px!important;bottom:8px!important;left:-4px!important;width:8px!important;cursor:ew-resize!important}
+#meetingOverlay [data-ds-resize="ne"]{top:-5px!important;right:-5px!important;width:12px!important;height:12px!important;cursor:nesw-resize!important}
+#meetingOverlay [data-ds-resize="nw"]{top:-5px!important;left:-5px!important;width:12px!important;height:12px!important;cursor:nwse-resize!important}
+#meetingOverlay [data-ds-resize="se"]{bottom:-5px!important;right:-5px!important;width:12px!important;height:12px!important;cursor:nwse-resize!important}
+#meetingOverlay [data-ds-resize="sw"]{bottom:-5px!important;left:-5px!important;width:12px!important;height:12px!important;cursor:nesw-resize!important}
+
+#meetingOverlay .meeting-head{
+  transition:opacity .18s ease,transform .18s ease!important;
+  will-change:opacity,transform!important;
+}
+#meetingOverlay[data-ds-runtime-topbar-hidden="1"] .meeting-head{
+  opacity:0!important;
+  transform:translateY(-8px)!important;
+  pointer-events:none!important;
+}
+#meetingOverlay[data-ds-runtime-topbar-hidden="0"] .meeting-head{
+  opacity:1!important;
+  transform:translateY(0)!important;
+}
