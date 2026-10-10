@@ -73,8 +73,8 @@ try{
   assert.ok(participants.headFont>=11.5,'Participants heading is below the approved 2.0.41 compact reference size.');
   assert.equal(participants.footerVisible,true,'Approved Participants Invite / Mute all / More footer is missing.');
   assert.equal(participants.legacyVisible,false,'Legacy bulk-control strip must not be visible.');
-  assert.equal(participants.searchVisible,participants.count>=7,'Participant Search visibility must follow the useful-count threshold.');
-  if(participants.searchVisible)assert.ok(participants.searchFont>=9.5&&participants.searchHeight>=28,'Participant search is below the approved compact reference size.');
+  assert.equal(participants.searchVisible,true,'Approved Participants Search must remain stable and visible regardless of roster size.');
+  assert.ok(participants.searchFont>=9.5&&participants.searchHeight>=28,'Participant search is below the approved compact reference size.');
   await evaluate(`document.querySelector('#roomParticipants').click()`);
 
   await evaluate(`document.querySelector('#roomChat').click();true`);await sleep(190);
