@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const workflow=fs.readFileSync(new URL('../../.github/workflows/rebuild-mac-production.yml',import.meta.url),'utf8');
-const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-const standard=fs.readFileSync(new URL('../RELEASE_STANDARD.md',import.meta.url),'utf8');
+const workflow=fs.fs.readFileSync(new URL('../../.github/workflows/rebuild-mac-production.yml',import.meta.url),'utf8');
+const pkg=JSON.parse(fs.fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
+const standard=fs.fs.readFileSync(new URL('../RELEASE_STANDARD.md',import.meta.url),'utf8');
 
 const requiredSteps=[
   'Clean generated state',
@@ -82,7 +82,7 @@ assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(
 // PACKAGED_RUNTIME_WIRING: the packaged UI must execute the same canonical
 // transport/runtime authorities that communication and physical QA certify.
 {
-  const shell=fs.readFileSync(new URL('../ui/index.html',import.meta.url),'utf8');
+  const shell=fs.fs.readFileSync(new URL('../ui/index.html',import.meta.url),'utf8');
   for(const required of [
     'href="./webrtc.css"',
     'href="./runtime-stability.css"',
@@ -95,7 +95,7 @@ assert.ok(/Do not create or upload the installer if any prior gate fails/i.test(
   const finalSemanticIndex=shell.indexOf('src="./more-menu-semantic-icons-2.0.41.js"');
   assert(webrtcIndex>participantControlsIndex,'WebRTC controller must load after meeting/participant feature modules so it binds the live meeting shell.');
   assert(runtimeIndex>finalSemanticIndex,'Runtime stability must load last so it owns final live meeting reconciliation.');
-  const runtimeSource=fs.readFileSync(new URL('../ui/runtime-stability.js',import.meta.url),'utf8');
+  const runtimeSource=fs.fs.readFileSync(new URL('../ui/runtime-stability.js',import.meta.url),'utf8');
   assert(runtimeSource.includes("document.head.append(stabilityCss)"),'Runtime stability must move its stylesheet to the end of the live cascade.');
   console.log('DOMINIONSTAR_PACKAGED_RUNTIME_WIRING_OK live-webrtc canonical-runtime final-css-owner');
 }
