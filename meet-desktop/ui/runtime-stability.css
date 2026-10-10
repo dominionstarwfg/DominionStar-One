@@ -899,6 +899,14 @@ body>.meeting-reaction-menu,
 }
 
 
+/* Final approved-reference active-speaker authority.
+   runtime-stability.css is deliberately kept last, so legacy parity layers
+   cannot repaint the approved filmstrip emphasis. */
+#meetingOverlay #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile.active-speaker{
+  border-color:#42d46c!important;
+  box-shadow:0 0 0 1px rgba(66,212,108,.65),0 10px 28px rgba(0,0,0,.34)!important;
+}
+
 /* 2.0.52 approved-baseline smart video-panel chrome.
    Controls float over the filmstrip and reveal only with pointer/keyboard intent,
    so the tiles never shift when the controls appear. */
