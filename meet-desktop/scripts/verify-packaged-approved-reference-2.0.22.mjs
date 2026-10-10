@@ -175,24 +175,24 @@ try{
   assert.equal(remoteCameraOnState.sameStream,true,'Main speaker stage must use the remote participant video stream.');
   assert.equal(remoteCameraOnState.localHidden,false,'Self view must remain available in the right strip while the remote participant is on stage.');
 
-  await evaluate(`(()=>{document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]')?.remove();window.DominionMeetingParity.syncVideoDock();return true;})()`);
-
-  // Final floating participant-video surface keeps whole-surface drag without a grip.
-  const video=await evaluate(`(()=>{window.DominionMeetingParity.applyViewMode('speaker');const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');let body=dock.querySelector('.participant-video-dock-body');if(!body){body=document.createElement('div');body.className='participant-video-dock-body';dock.append(body);}let tile=body.querySelector('.remote-peer-tile');if(!tile){tile=document.createElement('div');tile.className='remote-peer-tile active-speaker';tile.dataset.peerId='peer-visual';tile.innerHTML='<div class="remote-peer-name">Jordan Lee</div>';body.append(tile);}tile.classList.add('active-speaker');dock.hidden=false;window.DominionApprovedReferenceParity.syncVideoPanel();window.DominionRuntimeStability.sync();const head=dock.querySelector('.participant-video-dock-head'),grip=dock.querySelector('.dock-grip'),modes=dock.querySelectorAll('[data-dock-panel-mode]'),dr=dock.getBoundingClientRect(),hs=head?getComputedStyle(head):null;return {marker:dock.dataset.approvedFilmstrip||'',wholeDrag:dock.dataset.dsRuntimeWholePanelDrag||'',cursor:getComputedStyle(dock).cursor,headDisplay:hs?.display||'none',headCursor:hs?.cursor||'',headOpacity:parseFloat(hs?.opacity||'0'),headVisibility:hs?.visibility||'',modeCount:modes.length,gripDisplay:grip?getComputedStyle(grip).display:'none',radius:parseFloat(getComputedStyle(tile).borderRadius)||0,tileCursor:getComputedStyle(tile).cursor,activeBorder:getComputedStyle(tile).borderTopColor,hoverX:Math.round(dr.left+dr.width/2),hoverY:Math.round(dr.top+Math.min(50,dr.height/2))};})()`);
+  // Validate filmstrip hover while the canonical two-person state above is
+  // still active. The remote participant remains the speaker-stage owner and
+  // self remains in the right filmstrip, so reconciliation has a real reason
+  // to keep the panel visible throughout this pointer proof.
+  const video=await evaluate(`(()=>{const parity=window.DominionMeetingParity,dock=document.querySelector('#participantVideoDock');parity.applyViewMode('speaker');parity.syncVideoDock();window.DominionApprovedReferenceParity.syncVideoPanel();window.DominionRuntimeStability.sync();const tile=[...dock.querySelectorAll('.remote-peer-tile')].find(node=>!node.hidden&&!node.classList.contains('stage-promoted'))||dock.querySelector('#localVideoDockTile'),head=dock.querySelector('.participant-video-dock-head'),grip=dock.querySelector('.dock-grip'),modes=dock.querySelectorAll('[data-dock-panel-mode]'),dr=dock.getBoundingClientRect(),hs=head?getComputedStyle(head):null;if(tile)tile.classList.add('active-speaker');return {marker:dock.dataset.approvedFilmstrip||'',hoverMarker:dock.dataset.dsRuntimeHoverIntelligence||'',wholeDrag:dock.dataset.dsRuntimeWholePanelDrag||'',hidden:Boolean(dock.hidden),cursor:getComputedStyle(dock).cursor,headDisplay:hs?.display||'none',headCursor:hs?.cursor||'',headOpacity:parseFloat(hs?.opacity||'0'),headVisibility:hs?.visibility||'',modeCount:modes.length,gripDisplay:grip?getComputedStyle(grip).display:'none',radius:tile?parseFloat(getComputedStyle(tile).borderRadius)||0:0,tileCursor:tile?getComputedStyle(tile).cursor:'',activeBorder:tile?getComputedStyle(tile).borderTopColor:'',hoverX:Math.round(dr.left+dr.width/2),hoverY:Math.round(dr.top+Math.min(50,dr.height/2)),width:Math.round(dr.width),height:Math.round(dr.height)};})()`);
   assert.equal(video.marker,'1');
+  assert.equal(video.hoverMarker,'1','Runtime hover intelligence must be installed on the live video panel.');
+  assert.equal(video.hidden,false,`Canonical two-person filmstrip must remain visible for hover validation. ${JSON.stringify(video)}`);
+  assert.ok(video.width>0&&video.height>0,`Canonical video panel must have measurable geometry. ${JSON.stringify(video)}`);
   assert.equal(video.wholeDrag,'1','Video panel must remain draggable from the whole non-control surface.');
   assert.equal(video.cursor,'default');
   assert.equal(video.tileCursor,'default');
   assert.notEqual(video.headDisplay,'none','Video filmstrip must keep the compact speaker/strip/gallery/hide control bar in the DOM.');
   assert.ok(video.headOpacity<0.1&&video.headVisibility==='hidden',`Video-panel controls must stay hidden until interaction. ${JSON.stringify(video)}`);
-  // Cross the panel boundary with a real pointer movement after final runtime
-  // geometry settles. Do not reuse the pre-sync rectangle: the runtime may
-  // normalize the right-side dock between the fixture snapshot and this step.
   await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:2,y:2});
-  await sleep(40);
-  const hoverPoint=await evaluate(`(()=>{window.DominionRuntimeStability.sync();const dock=document.querySelector('#participantVideoDock'),r=dock.getBoundingClientRect();return {hidden:Boolean(dock.hidden),marker:dock.dataset.dsRuntimeHoverIntelligence||'',x:Math.round(r.left+r.width/2),y:Math.round(r.top+Math.min(50,r.height/2)),left:Math.round(r.left),top:Math.round(r.top),width:Math.round(r.width),height:Math.round(r.height)};})()`);
-  assert.equal(hoverPoint.hidden,false,`Video panel must remain visible before real hover. ${JSON.stringify(hoverPoint)}`);
-  assert.equal(hoverPoint.marker,'1','Runtime hover intelligence must be installed on the live video panel.');
+  await sleep(35);
+  const hoverPoint=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),r=dock.getBoundingClientRect();return {hidden:Boolean(dock.hidden),x:Math.round(r.left+r.width/2),y:Math.round(r.top+Math.min(50,r.height/2)),width:Math.round(r.width),height:Math.round(r.height)};})()`);
+  assert.equal(hoverPoint.hidden,false,`Canonical filmstrip disappeared before hover. ${JSON.stringify(hoverPoint)}`);
   await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:hoverPoint.x,y:hoverPoint.y});
   await waitFor("parseFloat(getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).opacity)>0.9&&getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).visibility==='visible'",'video-panel hover controls',2000);
   const hoveredVideoChrome=await evaluate(`(()=>{const h=document.querySelector('#participantVideoDock .participant-video-dock-head'),s=getComputedStyle(h);return {opacity:parseFloat(s.opacity),visibility:s.visibility,pointer:s.pointerEvents};})()`);
@@ -202,6 +202,8 @@ try{
   assert.equal(video.gripDisplay,'none','Legacy visible drag grip must remain hidden.');
   assert.ok(video.radius>=8,'Video tiles must retain the approved rounded filmstrip geometry.');
   assert.match(video.activeBorder,/53\D+208\D+127/,'Active speaker must retain the approved #35d07f green filmstrip emphasis.');
+
+  await evaluate(`(()=>{document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]')?.remove();window.DominionMeetingParity.syncVideoDock();return true;})()`);
 
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
