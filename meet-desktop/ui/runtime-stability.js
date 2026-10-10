@@ -4,7 +4,16 @@
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const stabilityCss=[...document.querySelectorAll('link[rel="stylesheet"]')].find(node=>String(node.getAttribute('href')||'').endsWith('/runtime-stability.css')||String(node.getAttribute('href')||'')==='./runtime-stability.css');
-  if(stabilityCss&&stabilityCss.parentElement===document.head)document.head.append(stabilityCss);
+  const keepStabilityCssLast=()=>{
+    if(!stabilityCss||stabilityCss.parentElement!==document.head)return;
+    const styles=[...document.head.querySelectorAll('link[rel="stylesheet"]')];
+    if(styles.at(-1)!==stabilityCss)document.head.append(stabilityCss);
+  };
+  keepStabilityCssLast();
+  const headStyleObserver=new MutationObserver(mutations=>{
+    if(mutations.some(m=>[...m.addedNodes].some(node=>node?.nodeType===1&&node.matches?.('link[rel="stylesheet"]'))))queueMicrotask(keepStabilityCssLast);
+  });
+  headStyleObserver.observe(document.head,{childList:true});
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
   const desktopSurface=Boolean(window.dominionDesktop)||isMac;
