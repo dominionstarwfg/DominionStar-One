@@ -270,7 +270,7 @@
         });
       }
     }
-    if(search)search.hidden=count<7;
+    if(search)search.hidden=false;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
     sortParticipants();
     const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1';
