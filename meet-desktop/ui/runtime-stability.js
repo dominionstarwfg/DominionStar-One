@@ -27,12 +27,42 @@
   let dockBound=null;
   let dockDrag=null;
   let surfaceDrag=null;
+  let surfaceResize=null;
+  let topBarIdleTimer=0;
+  let topBarBound=false;
+  const SURFACE_GEOMETRY_KEY='ds_meet_floating_surface_geometry_v1';
   let physicalPrimed=false;
   let legacyPrimed=false;
   let shareOpening=false;
 
   const meetingOpen=()=>Boolean(q('#meetingOverlay')&&!q('#meetingOverlay').hidden);
   const participantRows=()=>qa('#participantRoster [data-participant-id]');
+  const surfaceKey=panel=>panel?.matches?.('.room-side')?'participants':panel?.id==='meetingChatPanel'?'chat':'surface';
+  function readSurfaceGeometry(panel){
+    try{const all=JSON.parse(localStorage.getItem(SURFACE_GEOMETRY_KEY)||'{}');const value=all?.[surfaceKey(panel)];return value&&typeof value==='object'?value:null;}catch{return null;}
+  }
+  function writeSurfaceGeometry(panel){
+    if(!panel)return;
+    const body=q('.meeting-body');if(!body)return;const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
+    const value={left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height)};
+    try{const all=JSON.parse(localStorage.getItem(SURFACE_GEOMETRY_KEY)||'{}');all[surfaceKey(panel)]=value;localStorage.setItem(SURFACE_GEOMETRY_KEY,JSON.stringify(all));}catch{}
+  }
+  function clearSurfaceGeometry(panel){
+    try{const all=JSON.parse(localStorage.getItem(SURFACE_GEOMETRY_KEY)||'{}');delete all[surfaceKey(panel)];localStorage.setItem(SURFACE_GEOMETRY_KEY,JSON.stringify(all));}catch{}
+  }
+  function restoreSurfaceGeometry(panel,bodyWidth,bodyHeight){
+    const saved=readSurfaceGeometry(panel);if(!saved)return false;
+    const minW=panel?.matches?.('.room-side')?286:300,minH=panel?.matches?.('.room-side')?300:300;
+    const width=clamp(Number(saved.width)||minW,minW,Math.max(minW,bodyWidth-20));
+    const height=clamp(Number(saved.height)||minH,minH,Math.max(minH,bodyHeight-20));
+    const left=clamp(Number(saved.left)||10,10,Math.max(10,bodyWidth-width-10));
+    const top=clamp(Number(saved.top)||10,10,Math.max(10,bodyHeight-height-10));
+    panel.dataset.dsRuntimeUserPositioned='1';panel.dataset.dsAdaptiveUserPositioned='1';
+    panel.style.setProperty('left',`${left}px`,'important');panel.style.setProperty('right','auto','important');
+    panel.style.setProperty('top',`${top}px`,'important');panel.style.setProperty('bottom','auto','important');
+    panel.style.setProperty('width',`${width}px`,'important');panel.style.setProperty('height',`${height}px`,'important');
+    return true;
+  }
 
   function guardSnapshotHtml(node){
     if(!node||node.dataset.dsRuntimeHtmlGuard==='1'||!htmlDescriptor?.get||!htmlDescriptor?.set)return;
@@ -371,12 +401,66 @@
       if(event?.pointerId!=null&&surfaceDrag.id!=null&&event.pointerId!==surfaceDrag.id)return;
       surfaceDrag=null;panel.classList.remove('dragging');
       panel.dataset.dsRuntimeDragEnd=String((Number(panel.dataset.dsRuntimeDragEnd)||0)+1);
+      writeSurfaceGeometry(panel);
     };
 
     document.addEventListener('pointerdown',begin,true);
     document.addEventListener('pointermove',move,true);
     document.addEventListener('pointerup',end,true);
     document.addEventListener('pointercancel',end,true);
+  }
+
+  function installFloatingSurfaceResize(panel){
+    if(!panel||panel.dataset.dsRuntimeResizeBound==='1')return;
+    panel.dataset.dsRuntimeResizeBound='1';
+    const directions=['n','s','e','w','ne','nw','se','sw'];
+    for(const dir of directions){
+      const handle=document.createElement('span');handle.className='ds-runtime-resize-handle';handle.dataset.dsResize=dir;handle.setAttribute('aria-hidden','true');panel.append(handle);
+    }
+    const begin=event=>{
+      const handle=event.target.closest?.('.ds-runtime-resize-handle');if(!handle||event.button!==0||surfaceResize)return;
+      const body=q('.meeting-body');if(!body)return;const pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();
+      surfaceResize={panel,id:event.pointerId??null,dir:String(handle.dataset.dsResize||'se'),startX:event.clientX,startY:event.clientY,left:pr.left-br.left,top:pr.top-br.top,width:pr.width,height:pr.height,bodyWidth:br.width,bodyHeight:br.height};
+      panel.dataset.dsRuntimeUserPositioned='1';panel.dataset.dsAdaptiveUserPositioned='1';panel.classList.add('resizing');
+      handle.setPointerCapture?.(event.pointerId);event.preventDefault();event.stopPropagation();
+    };
+    const move=event=>{
+      if(!surfaceResize||surfaceResize.panel!==panel)return;
+      if(event.pointerId!=null&&surfaceResize.id!=null&&event.pointerId!==surfaceResize.id)return;
+      const s=surfaceResize,dx=event.clientX-s.startX,dy=event.clientY-s.startY,dir=s.dir,minW=286,minH=300;
+      let left=s.left,top=s.top,width=s.width,height=s.height;
+      if(dir.includes('e'))width=clamp(s.width+dx,minW,Math.max(minW,s.bodyWidth-s.left-10));
+      if(dir.includes('s'))height=clamp(s.height+dy,minH,Math.max(minH,s.bodyHeight-s.top-10));
+      if(dir.includes('w')){const nextLeft=clamp(s.left+dx,10,Math.max(10,s.left+s.width-minW));width=clamp(s.width+(s.left-nextLeft),minW,Math.max(minW,s.bodyWidth-nextLeft-10));left=nextLeft;}
+      if(dir.includes('n')){const nextTop=clamp(s.top+dy,10,Math.max(10,s.top+s.height-minH));height=clamp(s.height+(s.top-nextTop),minH,Math.max(minH,s.bodyHeight-nextTop-10));top=nextTop;}
+      panel.style.setProperty('left',`${left}px`,'important');panel.style.setProperty('top',`${top}px`,'important');
+      panel.style.setProperty('right','auto','important');panel.style.setProperty('bottom','auto','important');
+      panel.style.setProperty('width',`${width}px`,'important');panel.style.setProperty('height',`${height}px`,'important');
+      event.preventDefault();event.stopPropagation();
+    };
+    const end=event=>{
+      if(!surfaceResize||surfaceResize.panel!==panel)return;
+      if(event?.pointerId!=null&&surfaceResize.id!=null&&event.pointerId!==surfaceResize.id)return;
+      surfaceResize=null;panel.classList.remove('resizing');writeSurfaceGeometry(panel);
+    };
+    panel.addEventListener('pointerdown',begin,true);panel.addEventListener('pointermove',move,true);panel.addEventListener('pointerup',end,true);panel.addEventListener('pointercancel',end,true);
+  }
+
+  function installMeetingTopBarAutoHide(){
+    const overlay=q('#meetingOverlay'),head=overlay?.querySelector('.meeting-head');if(!overlay||!head)return false;
+    const show=()=>{
+      overlay.dataset.dsRuntimeTopbarHidden='0';clearTimeout(topBarIdleTimer);
+      if(meetingOpen())topBarIdleTimer=setTimeout(()=>{if(meetingOpen())overlay.dataset.dsRuntimeTopbarHidden='1';},2400);
+    };
+    if(!topBarBound){
+      topBarBound=true;
+      overlay.addEventListener('pointermove',show,{passive:true});
+      overlay.addEventListener('pointerdown',show,{passive:true});
+      overlay.addEventListener('pointerenter',show,{passive:true});
+      head.addEventListener('pointerenter',show,{passive:true});
+      window.addEventListener('blur',()=>{clearTimeout(topBarIdleTimer);});
+    }
+    show();return true;
   }
 
   function ensurePanelClose(panel){
@@ -407,7 +491,7 @@
         traffic.dataset.dsRuntimeBound='1';
         traffic.querySelector('.ds-traffic-close').onclick=event=>{event.preventDefault();event.stopPropagation();setParticipants(false);};
         traffic.querySelector('.ds-traffic-minimize').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.add('ds-panel-minimized');layoutSideSurface();};
-        traffic.querySelector('.ds-traffic-restore').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
+        traffic.querySelector('.ds-traffic-restore').onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');clearSurfaceGeometry(panel);panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
       }
       let headerAction=header.querySelector('.ds-participant-header-action');
       if(!headerAction){
@@ -420,7 +504,7 @@
       }
       if(headerAction.dataset.dsRuntimeBound!=='1'){
         headerAction.dataset.dsRuntimeBound='1';
-        headerAction.onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
+        headerAction.onclick=event=>{event.preventDefault();event.stopPropagation();panel.classList.remove('ds-panel-minimized');clearSurfaceGeometry(panel);panel.dataset.dsRuntimeUserPositioned='0';layoutSideSurface();};
       }
     }
     let close=participants?header.querySelector('button[aria-label="Close participants"]'):header.querySelector('[data-chat-close]');
@@ -503,8 +587,9 @@
       panel.style.setProperty('max-height','calc(100% - 20px)','important');
       panel.style.setProperty('transform','none','important');
       panel.style.setProperty('z-index','2600','important');
-      if(panel.dataset.dsRuntimeUserPositioned==='1'){
-        const pw=Math.min(width,bodyWidth-20),ph=Math.min(height,bodyHeight-20);
+      const restored=panel.dataset.dsRuntimeUserPositioned!=='1'&&restoreSurfaceGeometry(panel,bodyWidth,bodyHeight);
+      if(panel.dataset.dsRuntimeUserPositioned==='1'||restored){
+        const saved=readSurfaceGeometry(panel)||{},pw=Math.min(Number(saved.width)||panel.offsetWidth||width,bodyWidth-20),ph=Math.min(Number(saved.height)||panel.offsetHeight||height,bodyHeight-20);
         const currentLeft=parseFloat(panel.style.left),currentTop=parseFloat(panel.style.top);
         const left=Number.isFinite(currentLeft)?clamp(currentLeft,10,Math.max(10,bodyWidth-pw-10)):Math.max(10,bodyWidth-pw-10);
         const top=Number.isFinite(currentTop)?clamp(currentTop,10,Math.max(10,bodyHeight-ph-10)):10;
@@ -634,7 +719,7 @@
     try{
       installSnapshotDomGuards();retireBackgroundReconcilers();ensureViewport();observeSideVisibility();
       if(!meetingOpen())return;
-      primePhysicalControls();primeLegacyStructure();ensureToolbarZones();
+      primePhysicalControls();primeLegacyStructure();ensureToolbarZones();installMeetingTopBarAutoHide();
       syncParticipantsSurface();layoutSideSurface();installVideoDockDrag();syncVideoDockGeometry();
       if(!q('#meetingOverlay')?.hasAttribute('data-ds-runtime-reference-primed')){
         window.DominionZoomScreenshotReference?.sync?.();
