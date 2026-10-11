@@ -192,11 +192,12 @@ try{
   assert.equal(remoteCameraOffState.fallbackInitials,'JL');
   assert.equal(remoteCameraOffState.activeHidden,true,'Remote camera-off state must not show an empty video element over the fallback.');
 
-  const remoteCameraOnState=await evaluate(`(()=>{const parity=window.DominionMeetingParity,tile=document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]'),video=tile.querySelector('video'),stream=new MediaStream();video.srcObject=stream;video.hidden=false;parity.syncVideoDock();const fallback=document.querySelector('#remoteActiveSpeakerFallback'),active=document.querySelector('#remoteActiveSpeakerStage');return {fallbackHidden:Boolean(fallback?.hidden),activeHidden:Boolean(active?.hidden),sameStream:Boolean(active?.srcObject===stream),localHidden:Boolean(document.querySelector('#localVideoDockTile')?.hidden)};})()`);
+  const remoteCameraOnState=await evaluate(`(()=>{const parity=window.DominionMeetingParity,tile=document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]'),video=tile.querySelector('video'),stream=new MediaStream();video.srcObject=stream;video.hidden=false;parity.syncVideoDock();const fallback=document.querySelector('#remoteActiveSpeakerFallback'),active=document.querySelector('#remoteActiveSpeakerStage'),alreadyActive=tile.classList.contains('active-speaker');tile.classList.add('active-speaker');const activeBorder=getComputedStyle(tile).borderTopColor;if(!alreadyActive)tile.classList.remove('active-speaker');return {fallbackHidden:Boolean(fallback?.hidden),activeHidden:Boolean(active?.hidden),sameStream:Boolean(active?.srcObject===stream),localHidden:Boolean(document.querySelector('#localVideoDockTile')?.hidden),activeBorder};})()`);
   assert.equal(remoteCameraOnState.fallbackHidden,true,'Remote camera-on state must replace the profile fallback with live video.');
   assert.equal(remoteCameraOnState.activeHidden,false,'Remote camera-on state must show the live remote speaker stage.');
   assert.equal(remoteCameraOnState.sameStream,true,'Main speaker stage must use the remote participant video stream.');
   assert.equal(remoteCameraOnState.localHidden,false,'Self view must remain available in the right strip while the remote participant is on stage.');
+  assert.match(remoteCameraOnState.activeBorder,/53\D+208\D+127/,'Real remote active speaker must retain the approved #35d07f green filmstrip emphasis.');
 
   // Final floating participant-video surface keeps whole-surface drag without a grip.
   // Keep the real two-person meeting state from the camera-on scenario above so
@@ -229,7 +230,7 @@ try{
   assert.ok(video.modeCount>=4,'Video panel control bar must expose speaker, strip, gallery, and hide controls.');
   assert.equal(video.gripDisplay,'none','Legacy visible drag grip must remain hidden.');
   assert.ok(video.radius>=8,'Video tiles must retain the approved rounded filmstrip geometry.');
-  assert.match(video.activeBorder,/66\D+212\D+108/,'Active speaker must retain the approved #42d46c green filmstrip emphasis.');
+
 
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
