@@ -7,7 +7,7 @@ const runtimeCss=read('ui/runtime-stability.css');
 const controls=read('ui/participant-controls.js');
 const reference=read('ui/zoom-participants-reference-2.0.41.js');
 
-assert(['2.0.48','2.0.49','2.0.50','2.0.51'].includes(pkg.version),'package version is outside the certified 2.0.48+ participant line');
+assert(['2.0.48','2.0.49','2.0.50','2.0.51','2.0.52'].includes(pkg.version),'package version is outside the certified 2.0.48+ participant line');
 assert(runtime.includes("const baseWidth=panel===chat?330:318;"),'participants are not using the fixed reference 318px geometry');
 assert(!runtime.includes("panel.classList.contains('ds-panel-wide')?430"),'legacy participant wide mode still owns geometry');
 assert(runtime.includes("dataset.dsRuntimeParticipantChrome='1'"),'runtime is not the sole participant chrome owner');
