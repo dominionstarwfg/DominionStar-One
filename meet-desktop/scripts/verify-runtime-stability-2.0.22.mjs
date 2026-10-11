@@ -156,8 +156,15 @@ assert.ok(app.includes('timers.snapshot=setInterval'),'Snapshot transport must r
 
 
 /* PACKAGED_RUNTIME_MAIN_WINDOW_RPC_LOCK */
+const packagedApprovedReference=read('scripts/verify-packaged-approved-reference-2.0.22.mjs');
 const packagedRuntime=read('scripts/verify-packaged-runtime-stability-2.0.22.mjs');
 const mainSource=read('src/main.mjs');
+assert.ok(
+  packagedApprovedReference.includes("function qaRpc(method,payload={},timeout=4500)")&&
+  packagedApprovedReference.includes("return qaRpc('input',{event:{type:'mouseMoved'")&&
+  !packagedApprovedReference.includes("cdp('Input.dispatchMouseEvent'"),
+  'Packaged approved-reference hover certification must use Electron sendInputEvent through the QA bridge rather than remote-debugging pointer injection.'
+);
 assert.ok(
   mainSource.includes('function installQaInteractionBridge(){')&&
   mainSource.includes("async function qaEvaluateInMainWorld(win,expression)")&&
