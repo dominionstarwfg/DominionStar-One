@@ -28,7 +28,7 @@ const runtimeStability=read('ui/runtime-stability.js');
 const has=(s,n,m)=>assert.ok(s.includes(n),m);
 const lacks=(s,n,m)=>assert.ok(!s.includes(n),m);
 
-assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51'].includes(pkg.version),'Screenshot reference authority must remain certified across the current 2.0.46+ production repair line.');
+assert.ok(['2.0.46','2.0.47','2.0.48','2.0.49','2.0.50','2.0.51','2.0.52'].includes(pkg.version),'Screenshot reference authority must remain certified across the current 2.0.46+ production repair line.');
 has(auth,"zoom-screenshot-reference-2.0.41.css",'Screenshot reference CSS is not loaded.');
 has(auth,"zoom-screenshot-reference-2.0.41.js",'Screenshot reference JS is not loaded.');
 has(auth,'script.onload=loadScreenshotReference','Screenshot reference must load after runtime stability completes.');
@@ -76,8 +76,9 @@ has(refCss,'#participantRoster .ds-participant-media{display:none!important','Re
 has(refJs,'ds-ref-host-tools-panel','Host tools right panel is missing.');
 has(refJs,'Lock meeting','Host tools is missing Lock meeting.');
 has(refJs,'Enable waiting room','Host tools is missing waiting-room position.');
-has(refJs,'data-waiting disabled','Waiting-room control must stay physically disabled until the live room-security RPC supports switching.');
-has(refJs,'Dynamic waiting-room switching is not exposed by the current room-security RPC','Waiting-room disabled state must explain its authority limitation.');
+has(refJs,'data-waiting ${state.waitingRoomEnabled?\'checked\':\'\'}','Waiting-room control must reflect the live room-security state.');
+has(refJs,"await setSecurityPatch({waitingRoomEnabled:wanted})",'Waiting-room control must route through the live room-security authority.');
+has(refJs,"Waiting room disabled. Anyone waiting was admitted.",'Disabling Waiting Room must preserve the live admission feedback path.');
 has(refJs,'Hide profile pictures','Host tools is missing Hide profile pictures.');
 has(refJs,'data-participants','Host tools is missing Participants navigation.');
 has(refJs,'data-advanced','Host tools is missing Advanced navigation.');
