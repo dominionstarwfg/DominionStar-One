@@ -271,8 +271,8 @@
   cursor:default !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile.active-speaker{
-  border-color:#42d46c !important;
-  box-shadow:0 0 0 1px rgba(66,212,108,.65),0 10px 28px rgba(0,0,0,.34) !important;
+  border-color:#35d07f !important;
+  box-shadow:0 0 0 1px rgba(53,208,127,.65),0 10px 28px rgba(0,0,0,.34) !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile video{
   width:100% !important;

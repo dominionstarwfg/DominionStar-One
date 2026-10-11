@@ -11,6 +11,7 @@ const shareIntegration=read('ui/share-integration.js');
 const macPresenterHtml=read('ui/mac-presenter-toolbar.html');
 const runtime=read('ui/runtime-stability.js');
 const features=read('ui/meeting-features.js');
+const webrtc=read('ui/webrtc-controller.js');
 
 // Parse the last-loaded production authority before any packaged build starts.
 new Function(js);
@@ -27,7 +28,7 @@ assert(js.includes("placeholder")===false||true); // keep parser stable when min
 assert(js.includes('zoom-participant-search')===false||js.includes('decorateParticipantRows'),'Participants authority must decorate the searchable roster rather than replacing meeting membership logic.');
 assert(js.includes('ds-participant-media')&&js.includes('MIC_ON')&&js.includes('VIDEO_OFF'),'Participant rows must expose microphone and camera state affordances.');
 assert(js.includes("button.textContent='•••'")&&js.includes('data-participant-more'),'Participant management must use a per-row ellipsis instead of the legacy text More button.');
-assert(js.includes("payload={kind:'media-state'")&&js.includes("meeting.sendSignal(p.participantId,'reaction',payload)"),'Media state must propagate to host/co-host roster surfaces using the already-routed meeting signal transport.');
+assert(webrtc.includes("function setRemoteMediaState(id,patch={})")&&webrtc.includes("window.dispatchEvent(new CustomEvent('dominion:remote-media-state'")&&js.includes("window.addEventListener('dominion:remote-media-state'"),'Media state must propagate from live WebRTC tracks into the host/co-host roster through the canonical remote-media-state event path.');
 assert(css.includes('.ds-modern-participant-row')&&css.includes('.ds-media-state.off')&&css.includes('.ds-role-chip'),'Participant roster must have modern role and media-state presentation.');
 assert(css.includes('#meetingChatPanel')&&css.includes('.meeting-chat-message.own p')&&css.includes('font-size:14px!important'),'Chat must use readable modern message typography and distinguish own messages.');
 assert(js.includes("const REACTIONS=['👏','👍','❤️','😂','😮','🎉']"),'Standard reaction set must match the six common Zoom meeting reactions.');

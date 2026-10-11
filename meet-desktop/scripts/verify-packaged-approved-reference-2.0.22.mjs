@@ -7,10 +7,21 @@ if(!appPath)throw new Error('Usage: node verify-packaged-approved-reference-2.0.
 const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=10780+Math.floor(Math.random()*120);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-let stderr='';
-const runtimeErrors=[];
-const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
+let stderr='',stdoutBuffer='',qaRpcId=0;
+const runtimeErrors=[],qaRpcPending=new Map();
+const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['pipe','pipe','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
+child.stdout.on('data',chunk=>{
+  stdoutBuffer+=String(chunk);
+  while(stdoutBuffer.includes('\n')){
+    const cut=stdoutBuffer.indexOf('\n'),line=stdoutBuffer.slice(0,cut).trim();stdoutBuffer=stdoutBuffer.slice(cut+1);
+    if(!line.startsWith('DOMINIONSTAR_QA_RPC '))continue;
+    let message=null;try{message=JSON.parse(line.slice('DOMINIONSTAR_QA_RPC '.length));}catch{continue;}
+    const waiter=qaRpcPending.get(Number(message?.id)||0);if(!waiter)continue;
+    qaRpcPending.delete(Number(message.id));clearTimeout(waiter.timer);
+    message.ok?waiter.resolve(message.value):waiter.reject(new Error(String(message.error||'qa_rpc_failed')));
+  }
+});
 
 async function target(){const deadline=Date.now()+15000;while(Date.now()<deadline){if(child.exitCode!==null)throw new Error(`Packaged app exited before approved-reference gate.\n${stderr}`);try{const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(700)});if(response.ok){const targets=await response.json();const page=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://'));if(page?.webSocketDebuggerUrl)return page;}}catch{}await sleep(150);}throw new Error('Unable to attach to packaged renderer for approved-reference gate.');}
 function connect(url){return new Promise((resolve,reject)=>{const socket=new WebSocket(url);const timer=setTimeout(()=>reject(new Error('Approved-reference CDP connection timeout.')),3000);socket.addEventListener('open',()=>{clearTimeout(timer);resolve(socket);},{once:true});socket.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('Approved-reference CDP connection failed.'));},{once:true});});}
@@ -18,6 +29,18 @@ let socket=null,nextId=0;const pending=new Map();
 function cdp(method,params={}){return new Promise((resolve,reject)=>{const id=++nextId,timer=setTimeout(()=>{pending.delete(id);reject(new Error(`CDP timeout ${method}`));},4000);pending.set(id,{resolve,reject,timer});socket.send(JSON.stringify({id,method,params}));});}
 async function evaluate(expression){const result=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Renderer evaluation failed.');return result.result?.value;}
 async function waitFor(expression,label,timeout=10000){const deadline=Date.now()+timeout;while(Date.now()<deadline){try{if(await evaluate(`Boolean(${expression})`))return;}catch{}await sleep(120);}throw new Error(`Timed out waiting for ${label}.`);}
+function qaRpc(method,payload={},timeout=4500){
+  return new Promise((resolve,reject)=>{
+    if(child.exitCode!==null)return reject(new Error(`Packaged app exited before QA RPC ${method}.\n${stderr}`));
+    const id=++qaRpcId,timer=setTimeout(()=>{qaRpcPending.delete(id);reject(new Error(`QA RPC timeout ${method}`));},timeout);
+    qaRpcPending.set(id,{resolve,reject,timer});
+    try{child.stdin.write(JSON.stringify({id,method,...payload})+'\n');}
+    catch(error){clearTimeout(timer);qaRpcPending.delete(id);reject(error);}
+  });
+}
+async function physicalMouseMove(x,y){
+  return qaRpc('input',{event:{type:'mouseMoved',x:Math.round(Number(x)||0),y:Math.round(Number(y)||0)}});
+}
 
 let failure=null;
 try{
@@ -26,7 +49,7 @@ try{
   await cdp('Runtime.enable');
   await waitFor("document.readyState==='complete'&&window.DominionMeetingParity&&window.DominionMeetingFeatures&&window.DominionZoomProductionPolish&&window.DominionApprovedReferenceParity&&window.DominionRuntimeStability&&window.DominionZoomReactionParity&&window.DominionPhysicalMacRepair&&window.DominionShareIntegration&&document.querySelector('#meetingOverlay')",'final approved reference controllers');
 
-  await evaluate(`(()=>{document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;overlay.dataset.viewMode='speaker';const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionZoomProductionPolish.sync();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();window.DominionZoomReactionParity.mount();return true;})()`);
+  await evaluate(`(()=>{for(const dialog of document.querySelectorAll('dialog[open]')){try{dialog.close();}catch{dialog.removeAttribute('open');}}document.querySelector('#bootScreen').hidden=true;document.querySelector('#authGate').hidden=true;document.querySelector('#appShell').hidden=true;document.querySelector('#prejoinOverlay').hidden=true;document.querySelector('#waitingOverlay').hidden=true;const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;overlay.dataset.viewMode='speaker';const role=document.querySelector('#roomRole');if(role)role.textContent='Host';window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionZoomProductionPolish.sync();window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionRuntimeStability.ensureToolbarZones();window.DominionZoomReactionParity.mount();return true;})()`);
   await waitFor("document.querySelector('#roomRaiseHand')&&document.querySelector('#roomHostTools')&&document.querySelector('#meetingViewButton')&&document.querySelector('.ds-approved-encryption')&&document.querySelector('.meeting-footer')?.dataset.dsRuntimeToolbarZones==='1'",'approved meeting chrome');
 
   const header=await evaluate(`(()=>{const brand=document.querySelector('.ds-meeting-brand'),security=document.querySelector('.ds-approved-encryption'),view=document.querySelector('#meetingViewButton');return {brand:Boolean(brand?.querySelector('img')&&/DominionStar Meet/i.test(brand.textContent||'')),security:String(security?.textContent||'').trim(),securityLabel:security?.getAttribute('aria-label')||'',securityTitle:security?.title||'',view:String(view?.textContent||'').trim()};})()`);
@@ -169,23 +192,37 @@ try{
   assert.equal(remoteCameraOffState.fallbackInitials,'JL');
   assert.equal(remoteCameraOffState.activeHidden,true,'Remote camera-off state must not show an empty video element over the fallback.');
 
-  const remoteCameraOnState=await evaluate(`(()=>{const parity=window.DominionMeetingParity,tile=document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]'),video=tile.querySelector('video'),stream=new MediaStream();video.srcObject=stream;video.hidden=false;parity.syncVideoDock();const fallback=document.querySelector('#remoteActiveSpeakerFallback'),active=document.querySelector('#remoteActiveSpeakerStage');return {fallbackHidden:Boolean(fallback?.hidden),activeHidden:Boolean(active?.hidden),sameStream:Boolean(active?.srcObject===stream),localHidden:Boolean(document.querySelector('#localVideoDockTile')?.hidden)};})()`);
+  const remoteCameraOnState=await evaluate(`(()=>{const parity=window.DominionMeetingParity,tile=document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]'),video=tile.querySelector('video'),stream=new MediaStream();video.srcObject=stream;video.hidden=false;parity.syncVideoDock();const fallback=document.querySelector('#remoteActiveSpeakerFallback'),active=document.querySelector('#remoteActiveSpeakerStage'),alreadyActive=tile.classList.contains('active-speaker');tile.classList.add('active-speaker');const activeBorder=getComputedStyle(tile).borderTopColor;if(!alreadyActive)tile.classList.remove('active-speaker');return {fallbackHidden:Boolean(fallback?.hidden),activeHidden:Boolean(active?.hidden),sameStream:Boolean(active?.srcObject===stream),localHidden:Boolean(document.querySelector('#localVideoDockTile')?.hidden),activeBorder};})()`);
   assert.equal(remoteCameraOnState.fallbackHidden,true,'Remote camera-on state must replace the profile fallback with live video.');
   assert.equal(remoteCameraOnState.activeHidden,false,'Remote camera-on state must show the live remote speaker stage.');
   assert.equal(remoteCameraOnState.sameStream,true,'Main speaker stage must use the remote participant video stream.');
   assert.equal(remoteCameraOnState.localHidden,false,'Self view must remain available in the right strip while the remote participant is on stage.');
-
-  await evaluate(`(()=>{document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]')?.remove();window.DominionMeetingParity.syncVideoDock();return true;})()`);
+  assert.match(remoteCameraOnState.activeBorder,/53\D+208\D+127/,'Real remote active speaker must retain the approved #35d07f green filmstrip emphasis.');
 
   // Final floating participant-video surface keeps whole-surface drag without a grip.
-  const video=await evaluate(`(()=>{window.DominionMeetingParity.applyViewMode('speaker');const overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock');let body=dock.querySelector('.participant-video-dock-body');if(!body){body=document.createElement('div');body.className='participant-video-dock-body';dock.append(body);}let tile=body.querySelector('.remote-peer-tile');if(!tile){tile=document.createElement('div');tile.className='remote-peer-tile active-speaker';tile.dataset.peerId='peer-visual';tile.innerHTML='<div class="remote-peer-name">Jordan Lee</div>';body.append(tile);}tile.classList.add('active-speaker');dock.hidden=false;window.DominionApprovedReferenceParity.syncVideoPanel();window.DominionRuntimeStability.sync();const head=dock.querySelector('.participant-video-dock-head'),grip=dock.querySelector('.dock-grip'),modes=dock.querySelectorAll('[data-dock-panel-mode]'),dr=dock.getBoundingClientRect(),hs=head?getComputedStyle(head):null;return {marker:dock.dataset.approvedFilmstrip||'',wholeDrag:dock.dataset.dsRuntimeWholePanelDrag||'',cursor:getComputedStyle(dock).cursor,headDisplay:hs?.display||'none',headCursor:hs?.cursor||'',headOpacity:parseFloat(hs?.opacity||'0'),headVisibility:hs?.visibility||'',modeCount:modes.length,gripDisplay:grip?getComputedStyle(grip).display:'none',radius:parseFloat(getComputedStyle(tile).borderRadius)||0,tileCursor:getComputedStyle(tile).cursor,activeBorder:getComputedStyle(tile).borderTopColor,hoverX:Math.round(dr.left+dr.width/2),hoverY:Math.round(dr.top+Math.min(50,dr.height/2))};})()`);
+  // Keep the real two-person meeting state from the camera-on scenario above so
+  // hover is certified against the same filmstrip the user actually receives.
+  const video=await evaluate(`(()=>{const parity=window.DominionMeetingParity;parity.applyViewMode('speaker');parity.syncVideoDock();const dock=document.querySelector('#participantVideoDock');window.DominionApprovedReferenceParity.syncVideoPanel();window.DominionRuntimeStability.sync();const tile=[...dock.querySelectorAll('.remote-peer-tile')].find(node=>!node.hidden&&!node.classList.contains('stage-promoted'));if(tile)tile.classList.add('active-speaker');const head=dock.querySelector('.participant-video-dock-head'),grip=dock.querySelector('.dock-grip'),modes=dock.querySelectorAll('[data-dock-panel-mode]'),dr=dock.getBoundingClientRect(),hs=head?getComputedStyle(head):null;return {realTile:Boolean(tile),dockHidden:Boolean(dock.hidden),marker:dock.dataset.approvedFilmstrip||'',wholeDrag:dock.dataset.dsRuntimeWholePanelDrag||'',cursor:getComputedStyle(dock).cursor,headDisplay:hs?.display||'none',headCursor:hs?.cursor||'',headOpacity:parseFloat(hs?.opacity||'0'),headVisibility:hs?.visibility||'',modeCount:modes.length,gripDisplay:grip?getComputedStyle(grip).display:'none',radius:tile?(parseFloat(getComputedStyle(tile).borderRadius)||0):0,tileCursor:tile?getComputedStyle(tile).cursor:'',activeBorder:tile?getComputedStyle(tile).borderTopColor:'',hoverX:Math.round(dr.left+dr.width/2),hoverY:Math.round(dr.top+Math.min(50,dr.height/2))};})()`);
+  const approvedStyleOrder=await evaluate(`[...document.styleSheets].map(sheet=>String(sheet.href||'inline'))`);
+  console.log('APPROVED_VIDEO_STATE '+JSON.stringify({...video,stylesheets:approvedStyleOrder}));
+  assert.equal(video.realTile,true,'Approved hover certification must use the real visible two-person filmstrip tile.');
+  assert.equal(video.dockHidden,false,'Approved two-person filmstrip must remain visible through the hover certification.');
   assert.equal(video.marker,'1');
   assert.equal(video.wholeDrag,'1','Video panel must remain draggable from the whole non-control surface.');
   assert.equal(video.cursor,'default');
   assert.equal(video.tileCursor,'default');
   assert.notEqual(video.headDisplay,'none','Video filmstrip must keep the compact speaker/strip/gallery/hide control bar in the DOM.');
   assert.ok(video.headOpacity<0.1&&video.headVisibility==='hidden',`Video-panel controls must stay hidden until interaction. ${JSON.stringify(video)}`);
-  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:video.hoverX,y:video.hoverY});
+  const hoverPre=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),head=dock?.querySelector('.participant-video-dock-head'),r=dock?.getBoundingClientRect(),hit=document.elementFromPoint(${video.hoverX},${video.hoverY});return {meetingOpen:Boolean(document.querySelector('#meetingOverlay')&&!document.querySelector('#meetingOverlay').hidden),dockHidden:Boolean(dock?.hidden),hoverMarker:dock?.dataset.dsRuntimeHoverIntelligence||'',dockPointer:dock?getComputedStyle(dock).pointerEvents:'',headOpacity:head?parseFloat(getComputedStyle(head).opacity):null,headVisibility:head?getComputedStyle(head).visibility:'',rect:r?{left:Math.round(r.left),top:Math.round(r.top),right:Math.round(r.right),bottom:Math.round(r.bottom),width:Math.round(r.width),height:Math.round(r.height)}:null,hitTag:hit?.tagName||'',hitId:hit?.id||'',hitClass:String(hit?.className||''),hitInside:Boolean(hit&&(hit===dock||dock.contains(hit)))}})()`);
+  console.log('APPROVED_HOVER_PRE '+JSON.stringify(hoverPre));
+  assert.equal(hoverPre.meetingOpen,true,'Approved hover test requires an open meeting.');
+  assert.equal(hoverPre.dockHidden,false,'Approved hover test requires a visible video dock.');
+  assert.equal(hoverPre.hoverMarker,'1','Runtime hover intelligence must be installed on the approved video dock.');
+  assert.equal(hoverPre.hitInside,true,`Approved hover coordinates must resolve inside the video dock. ${JSON.stringify(hoverPre)}`);
+  await physicalMouseMove(2,2);await sleep(80);
+  await physicalMouseMove(video.hoverX,video.hoverY);await sleep(80);
+  const hoverPost=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),head=dock?.querySelector('.participant-video-dock-head'),hit=document.elementFromPoint(${video.hoverX},${video.hoverY});return {hoverClass:Boolean(dock?.classList.contains('ds-video-chrome-hover')),headOpacity:head?parseFloat(getComputedStyle(head).opacity):null,headVisibility:head?getComputedStyle(head).visibility:'',headPointer:head?getComputedStyle(head).pointerEvents:'',hitTag:hit?.tagName||'',hitId:hit?.id||'',hitClass:String(hit?.className||''),hitInside:Boolean(hit&&(hit===dock||dock.contains(hit)))}})()`);
+  console.log('APPROVED_HOVER_POST '+JSON.stringify(hoverPost));
   await waitFor("parseFloat(getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).opacity)>0.9&&getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).visibility==='visible'",'video-panel hover controls',1500);
   const hoveredVideoChrome=await evaluate(`(()=>{const h=document.querySelector('#participantVideoDock .participant-video-dock-head'),s=getComputedStyle(h);return {opacity:parseFloat(s.opacity),visibility:s.visibility,pointer:s.pointerEvents};})()`);
   assert.ok(hoveredVideoChrome.opacity>0.9&&hoveredVideoChrome.visibility==='visible'&&hoveredVideoChrome.pointer==='auto',`Video-panel controls must reveal on real pointer hover. ${JSON.stringify(hoveredVideoChrome)}`);
@@ -193,11 +230,11 @@ try{
   assert.ok(video.modeCount>=4,'Video panel control bar must expose speaker, strip, gallery, and hide controls.');
   assert.equal(video.gripDisplay,'none','Legacy visible drag grip must remain hidden.');
   assert.ok(video.radius>=8,'Video tiles must retain the approved rounded filmstrip geometry.');
-  assert.match(video.activeBorder,/53\D+208\D+127/,'Active speaker must retain the approved #35d07f green filmstrip emphasis.');
+
 
   await sleep(80);
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
   console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption stable-host-toolbar host-tools dedicated-raise-hand real-react-label reactions-six-only clean-runtime-chat direct-messages no-formatting centered-participants remembered-panel-geometry edge-corner-resize horizontal-mac-traffic stable-participant-search top-center-waiting-alert topbar-idle-fade solo-no-strip two-person-right-strip camera-off-main-fallback camera-on-main-video floating-filmstrip active-speaker smart-hover-chrome whole-panel-drag no-grip no-renderer-errors');
-}catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
+}catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();for(const [,waiter] of qaRpcPending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference qa-rpc shutdown'));}qaRpcPending.clear();try{child.stdin.end();}catch{}try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);

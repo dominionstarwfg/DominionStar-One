@@ -669,14 +669,31 @@
     const syncPoint=event=>{
       if(!meetingOpen()||dock.hidden){if(inside)apply(false);return;}
       const r=dock.getBoundingClientRect(),x=Number(event.clientX),y=Number(event.clientY);
-      const next=Number.isFinite(x)&&Number.isFinite(y)&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+      const targetInside=event.target===dock||dock.contains(event.target);
+      const coordinateInside=Number.isFinite(x)&&Number.isFinite(y)&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+      const next=targetInside||coordinateInside;
       if(next!==inside)apply(next);
     };
     const enter=()=>{if(meetingOpen()&&!dock.hidden)apply(true);};
     const leave=()=>apply(false);
+    const delegatedEnter=event=>{
+      if(!meetingOpen()||dock.hidden)return;
+      const path=event.composedPath?.()||[];
+      if(path.includes(dock)||event.target===dock||dock.contains(event.target))apply(true);
+    };
+    const delegatedLeave=event=>{
+      if(!inside)return;
+      const related=event.relatedTarget;
+      if(related&&(related===dock||dock.contains(related)))return;
+      syncPoint(event);
+    };
     for(const type of ['pointerenter','mouseenter'])dock.addEventListener(type,enter,true);
     for(const type of ['pointermove','mousemove'])dock.addEventListener(type,syncPoint,true);
     for(const type of ['pointerleave','mouseleave'])dock.addEventListener(type,leave,true);
+    document.addEventListener('pointerover',delegatedEnter,true);
+    document.addEventListener('mouseover',delegatedEnter,true);
+    document.addEventListener('pointerout',delegatedLeave,true);
+    document.addEventListener('mouseout',delegatedLeave,true);
     document.addEventListener('pointermove',syncPoint,true);
     document.addEventListener('mousemove',syncPoint,true);
     window.addEventListener('pointermove',syncPoint,true);
