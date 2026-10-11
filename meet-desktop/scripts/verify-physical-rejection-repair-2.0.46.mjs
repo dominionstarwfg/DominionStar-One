@@ -20,6 +20,6 @@ assert(physical.includes("const inlineRole=role==='host'?(self?'(Host, me)':'(Ho
 assert(overlay.includes('width:252,height:166,minWidth:230,minHeight:145,maxWidth:420,maxHeight:720')&&overlay.includes('Math.min(5,Array.isArray(shareState.participants)?shareState.participants.length:1)')&&overlay.includes("if(videoLayout==='strip')height=Math.min(area.height-92"),'approved dynamic presenter participant-strip geometry is missing');
 assert(videoCss.includes('.video-tile:hover .video-tile-actions')&&videoCss.includes('opacity:0')&&videoCss.includes('.video-primary-action')&&videoCss.includes('.video-more-action'),'approved presenter video hover chrome is missing');
 assert(overlay.includes("win.setAlwaysOnTop(true,'screen-saver',3)"),'annotation palette is not above the canvas');
-assert(overlay.includes('const width=66,height=Math.min(526'),'annotation palette window width not repaired');
-assert(annotationCss.includes('.annotation-palette{width:66px')&&annotationCss.includes('.tool-grid button small,.palette-actions button small{display:block'),'annotation tools are not visibly identifiable');
+assert(overlay.includes('const width=184,height=Math.min(526')&&overlay.includes('width:184,height:500,minWidth:184,maxWidth:184'),'annotation palette window width must match the approved readable 184px rail.');
+assert(annotationCss.includes('.annotation-palette{width:100%')&&annotationCss.includes('.tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))')&&annotationCss.includes('.tool-grid button small,.palette-actions button small{display:block'),'annotation tools must use the approved readable two-column 184px rail with visible labels.');
 console.log('PASS physical rejection repair 2.0.50 approved-participant-strip');
