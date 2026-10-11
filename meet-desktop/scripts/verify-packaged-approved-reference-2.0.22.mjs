@@ -7,10 +7,21 @@ if(!appPath)throw new Error('Usage: node verify-packaged-approved-reference-2.0.
 const executable=path.resolve(appPath,'Contents','MacOS','DominionStar Meet');
 const port=10780+Math.floor(Math.random()*120);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-let stderr='';
-const runtimeErrors=[];
-const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['ignore','ignore','pipe']});
+let stderr='',stdoutBuffer='',qaRpcId=0;
+const runtimeErrors=[],qaRpcPending=new Map();
+const child=spawn(executable,[`--remote-debugging-port=${port}`,'--remote-allow-origins=*'],{env:{...process.env,ELECTRON_ENABLE_LOGGING:'1',DOMINIONSTAR_QA_INTERACTION_FIXTURES:'1'},stdio:['pipe','pipe','pipe']});
 child.stderr.on('data',chunk=>{stderr+=String(chunk);});
+child.stdout.on('data',chunk=>{
+  stdoutBuffer+=String(chunk);
+  while(stdoutBuffer.includes('\n')){
+    const cut=stdoutBuffer.indexOf('\n'),line=stdoutBuffer.slice(0,cut).trim();stdoutBuffer=stdoutBuffer.slice(cut+1);
+    if(!line.startsWith('DOMINIONSTAR_QA_RPC '))continue;
+    let message=null;try{message=JSON.parse(line.slice('DOMINIONSTAR_QA_RPC '.length));}catch{continue;}
+    const waiter=qaRpcPending.get(Number(message?.id)||0);if(!waiter)continue;
+    qaRpcPending.delete(Number(message.id));clearTimeout(waiter.timer);
+    message.ok?waiter.resolve(message.value):waiter.reject(new Error(String(message.error||'qa_rpc_failed')));
+  }
+});
 
 async function target(){const deadline=Date.now()+15000;while(Date.now()<deadline){if(child.exitCode!==null)throw new Error(`Packaged app exited before approved-reference gate.\n${stderr}`);try{const response=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(700)});if(response.ok){const targets=await response.json();const page=targets.find(item=>item.type==='page'&&String(item.url||'').startsWith('file://'));if(page?.webSocketDebuggerUrl)return page;}}catch{}await sleep(150);}throw new Error('Unable to attach to packaged renderer for approved-reference gate.');}
 function connect(url){return new Promise((resolve,reject)=>{const socket=new WebSocket(url);const timer=setTimeout(()=>reject(new Error('Approved-reference CDP connection timeout.')),3000);socket.addEventListener('open',()=>{clearTimeout(timer);resolve(socket);},{once:true});socket.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('Approved-reference CDP connection failed.'));},{once:true});});}
@@ -18,6 +29,18 @@ let socket=null,nextId=0;const pending=new Map();
 function cdp(method,params={}){return new Promise((resolve,reject)=>{const id=++nextId,timer=setTimeout(()=>{pending.delete(id);reject(new Error(`CDP timeout ${method}`));},4000);pending.set(id,{resolve,reject,timer});socket.send(JSON.stringify({id,method,params}));});}
 async function evaluate(expression){const result=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Renderer evaluation failed.');return result.result?.value;}
 async function waitFor(expression,label,timeout=10000){const deadline=Date.now()+timeout;while(Date.now()<deadline){try{if(await evaluate(`Boolean(${expression})`))return;}catch{}await sleep(120);}throw new Error(`Timed out waiting for ${label}.`);}
+function qaRpc(method,payload={},timeout=4500){
+  return new Promise((resolve,reject)=>{
+    if(child.exitCode!==null)return reject(new Error(`Packaged app exited before QA RPC ${method}.\n${stderr}`));
+    const id=++qaRpcId,timer=setTimeout(()=>{qaRpcPending.delete(id);reject(new Error(`QA RPC timeout ${method}`));},timeout);
+    qaRpcPending.set(id,{resolve,reject,timer});
+    try{child.stdin.write(JSON.stringify({id,method,...payload})+'\n');}
+    catch(error){clearTimeout(timer);qaRpcPending.delete(id);reject(error);}
+  });
+}
+async function physicalMouseMove(x,y){
+  return qaRpc('input',{event:{type:'mouseMoved',x:Math.round(Number(x)||0),y:Math.round(Number(y)||0)}});
+}
 
 let failure=null;
 try{
@@ -185,7 +208,7 @@ try{
   assert.equal(video.tileCursor,'default');
   assert.notEqual(video.headDisplay,'none','Video filmstrip must keep the compact speaker/strip/gallery/hide control bar in the DOM.');
   assert.ok(video.headOpacity<0.1&&video.headVisibility==='hidden',`Video-panel controls must stay hidden until interaction. ${JSON.stringify(video)}`);
-  await cdp('Input.dispatchMouseEvent',{type:'mouseMoved',x:video.hoverX,y:video.hoverY});
+  await physicalMouseMove(video.hoverX,video.hoverY);
   await waitFor("parseFloat(getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).opacity)>0.9&&getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).visibility==='visible'",'video-panel hover controls',1500);
   const hoveredVideoChrome=await evaluate(`(()=>{const h=document.querySelector('#participantVideoDock .participant-video-dock-head'),s=getComputedStyle(h);return {opacity:parseFloat(s.opacity),visibility:s.visibility,pointer:s.pointerEvents};})()`);
   assert.ok(hoveredVideoChrome.opacity>0.9&&hoveredVideoChrome.visibility==='visible'&&hoveredVideoChrome.pointer==='auto',`Video-panel controls must reveal on real pointer hover. ${JSON.stringify(hoveredVideoChrome)}`);
@@ -199,5 +222,5 @@ try{
   assert.deepEqual(runtimeErrors,[],'Approved-reference gate emitted uncaught renderer exceptions:\n'+runtimeErrors.join('\n'));
   assert.doesNotMatch(stderr,/Uncaught\s+(?:NotFoundError|TypeError|ReferenceError|SyntaxError)/i,'Packaged renderer wrote an uncaught JavaScript error to stderr.');
   console.log('DOMINIONSTAR_PACKAGED_APPROVED_REFERENCE_2_0_22_OK brand view-modes truthful-encryption stable-host-toolbar host-tools dedicated-raise-hand real-react-label reactions-six-only clean-runtime-chat direct-messages no-formatting centered-participants remembered-panel-geometry edge-corner-resize horizontal-mac-traffic stable-participant-search top-center-waiting-alert topbar-idle-fade solo-no-strip two-person-right-strip camera-off-main-fallback camera-on-main-video floating-filmstrip active-speaker smart-hover-chrome whole-panel-drag no-grip no-renderer-errors');
-}catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
+}catch(error){failure=error;console.error(error?.stack||String(error));if(stderr.trim())console.error(stderr.trim());}finally{for(const [,waiter] of pending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference shutdown'));}pending.clear();for(const [,waiter] of qaRpcPending){clearTimeout(waiter.timer);waiter.reject(new Error('approved-reference qa-rpc shutdown'));}qaRpcPending.clear();try{child.stdin.end();}catch{}try{socket?.close();}catch{}try{child.kill('SIGTERM');}catch{}await sleep(300);if(child.exitCode===null)try{child.kill('SIGKILL');}catch{}}
 process.exit(failure?1:0);
