@@ -208,7 +208,16 @@ try{
   assert.equal(video.tileCursor,'default');
   assert.notEqual(video.headDisplay,'none','Video filmstrip must keep the compact speaker/strip/gallery/hide control bar in the DOM.');
   assert.ok(video.headOpacity<0.1&&video.headVisibility==='hidden',`Video-panel controls must stay hidden until interaction. ${JSON.stringify(video)}`);
-  await physicalMouseMove(video.hoverX,video.hoverY);
+  const hoverPre=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),head=dock?.querySelector('.participant-video-dock-head'),r=dock?.getBoundingClientRect(),hit=document.elementFromPoint(${video.hoverX},${video.hoverY});return {meetingOpen:Boolean(document.querySelector('#meetingOverlay')&&!document.querySelector('#meetingOverlay').hidden),dockHidden:Boolean(dock?.hidden),hoverMarker:dock?.dataset.dsRuntimeHoverIntelligence||'',dockPointer:dock?getComputedStyle(dock).pointerEvents:'',headOpacity:head?parseFloat(getComputedStyle(head).opacity):null,headVisibility:head?getComputedStyle(head).visibility:'',rect:r?{left:Math.round(r.left),top:Math.round(r.top),right:Math.round(r.right),bottom:Math.round(r.bottom),width:Math.round(r.width),height:Math.round(r.height)}:null,hitTag:hit?.tagName||'',hitId:hit?.id||'',hitClass:String(hit?.className||''),hitInside:Boolean(hit&&(hit===dock||dock.contains(hit)))}})()`);
+  console.log('APPROVED_HOVER_PRE '+JSON.stringify(hoverPre));
+  assert.equal(hoverPre.meetingOpen,true,'Approved hover test requires an open meeting.');
+  assert.equal(hoverPre.dockHidden,false,'Approved hover test requires a visible video dock.');
+  assert.equal(hoverPre.hoverMarker,'1','Runtime hover intelligence must be installed on the approved video dock.');
+  assert.equal(hoverPre.hitInside,true,`Approved hover coordinates must resolve inside the video dock. ${JSON.stringify(hoverPre)}`);
+  await physicalMouseMove(2,2);await sleep(80);
+  await physicalMouseMove(video.hoverX,video.hoverY);await sleep(80);
+  const hoverPost=await evaluate(`(()=>{const dock=document.querySelector('#participantVideoDock'),head=dock?.querySelector('.participant-video-dock-head'),hit=document.elementFromPoint(${video.hoverX},${video.hoverY});return {hoverClass:Boolean(dock?.classList.contains('ds-video-chrome-hover')),headOpacity:head?parseFloat(getComputedStyle(head).opacity):null,headVisibility:head?getComputedStyle(head).visibility:'',headPointer:head?getComputedStyle(head).pointerEvents:'',hitTag:hit?.tagName||'',hitId:hit?.id||'',hitClass:String(hit?.className||''),hitInside:Boolean(hit&&(hit===dock||dock.contains(hit)))}})()`);
+  console.log('APPROVED_HOVER_POST '+JSON.stringify(hoverPost));
   await waitFor("parseFloat(getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).opacity)>0.9&&getComputedStyle(document.querySelector('#participantVideoDock .participant-video-dock-head')).visibility==='visible'",'video-panel hover controls',1500);
   const hoveredVideoChrome=await evaluate(`(()=>{const h=document.querySelector('#participantVideoDock .participant-video-dock-head'),s=getComputedStyle(h);return {opacity:parseFloat(s.opacity),visibility:s.visibility,pointer:s.pointerEvents};})()`);
   assert.ok(hoveredVideoChrome.opacity>0.9&&hoveredVideoChrome.visibility==='visible'&&hoveredVideoChrome.pointer==='auto',`Video-panel controls must reveal on real pointer hover. ${JSON.stringify(hoveredVideoChrome)}`);
