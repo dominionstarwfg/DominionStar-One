@@ -158,10 +158,9 @@
     function clearCompanion(){
       const previous=String(companionKind||document.body.dataset.dsShareCompanion||'');
       if(previous)setCompanion('');
-      if(sameRendererPresenter&&['participants','chat'].includes(previous)&&document.body.classList.contains('ds-native-mac-show-meeting')){
-        document.body.classList.remove('ds-native-mac-show-meeting');
-        try{void Promise.resolve(desktop?.macShare?.showMeeting?.()).catch(()=>{});}catch{}
-      }
+      // Companion visibility is independent from Show Meeting. Closing or
+      // switching Participants/Chat/Annotate must never toggle the meeting
+      // surface back to presenter-only mode or recreate the black stage.
     }
 
     function publishMacPresenterState(){
