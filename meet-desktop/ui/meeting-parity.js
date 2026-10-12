@@ -288,6 +288,13 @@
     const panelAllowed=readVideoPanelVisible()&&(!share||window.DominionPreferences?.read?.('shareVideoDock')!==false);
     if(!panelAllowed){dock.hidden=true;syncShareLayout();return;}
     if(share){
+      const activeStage=ensureActiveSpeakerStage(),fallbackStage=ensureActiveSpeakerFallback();
+      if(activeStage){activeStage.hidden=true;activeStage.srcObject=null;}
+      if(fallbackStage){fallbackStage.hidden=true;delete fallbackStage.dataset.peerId;}
+      q('#meetingOverlay')?.classList.remove('remote-speaker-stage');
+      qa('#participantVideoDock .remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'));
+      syncLocalDockTile(false);
+      syncDockTileActions();
       const shareTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden);
       syncVideoPanelMode(dock,shareTiles);dock.dataset.count=String(Math.min(shareTiles.length,5));dock.classList.toggle('dock-empty',shareTiles.length===0);dock.hidden=shareTiles.length===0;syncShareLayout();return;
     }
