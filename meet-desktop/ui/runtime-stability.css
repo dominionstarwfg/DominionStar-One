@@ -933,6 +933,13 @@ body>.meeting-reaction-menu,
 #meetingOverlay #participantVideoDock .participant-video-dock-body{
   margin-top:0!important;
 }
+#meetingOverlay #participantVideoDock .participant-video-resize{
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  opacity:0!important;
+  cursor:nwse-resize!important;
+}
 #meetingOverlay #participantVideoDock.minimized .participant-video-dock-head{
   position:relative!important;
 }
