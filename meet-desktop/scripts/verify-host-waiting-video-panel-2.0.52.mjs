@@ -9,6 +9,7 @@ const hostTools=read('ui/zoom-screenshot-reference-2.0.41.js');
 const service=read('src/meeting-service.mjs');
 const av=read('ui/av-settings.js');
 const app=read('ui/app.js');
+const webrtc=read('ui/webrtc-controller.js');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -36,5 +37,26 @@ assert(av.includes("if(title==='Audio')row.onclick")&&av.includes("else if(title
 assert(av.includes("for(const [button,kind] of [[mic,'audio'],[camera,'video']])"),'meeting A/V quick menus are not bound for participants');
 
 assert(parity.includes("'host:view-layout'")&&parity.includes("window.addEventListener('dominion:host-view-layout'"),'host-to-participant layout parity signal is incomplete');
+
+assert(
+  parity.includes("const APPROVED_LAYOUT_MIGRATION_KEY='ds_meet_approved_layout_2_0_52_physical_v1'") &&
+  parity.includes("'ds_meet_floating_surface_geometry_v1'") &&
+  parity.includes("localStorage.setItem('ds_meet_view_mode','speaker')") &&
+  parity.includes("localStorage.setItem('ds_meet_video_panel_mode_v2','strip')") &&
+  parity.includes("localStorage.setItem('ds_meet_video_panel_visible_v2','1')"),
+  '2.0.52 must migrate rejected persisted meeting geometry/modes back to the approved speaker + right-strip baseline once'
+);
+assert(
+  parity.includes("window.addEventListener('dominion:remote-media-state',()=>{syncDockTileActions();syncVideoDock();},true)") &&
+  parity.includes("window.addEventListener('dominion:remote-share-state',()=>{syncShareLayout();syncVideoDock();},true)") &&
+  parity.includes("window.addEventListener('dominion:webrtc-participants-reconciled',scheduleParityRefresh,true)"),
+  'live remote participant, camera, and share changes must immediately resync the approved stage/video dock'
+);
+assert(
+  webrtc.includes("participantSignature:''") &&
+  webrtc.includes("window.dispatchEvent(new CustomEvent('dominion:webrtc-participants-reconciled'") &&
+  webrtc.includes("state.participantSignature=''"),
+  'WebRTC participant reconciliation must emit only on remote participant-set changes and reset on meeting end'
+);
 
 console.log('PASS Meet 2.0.52 host waiting-room + five-tile video panel + participant A/V parity');
