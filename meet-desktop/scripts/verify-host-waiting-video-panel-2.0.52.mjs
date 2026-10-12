@@ -16,6 +16,12 @@ assert(parityCss.includes('Keep five tiles')&&parityCss.includes('width:176px!im
 assert(parityCss.includes('max-height:515px!important')&&parityCss.includes('overflow-y:auto!important'),'video panel no longer owns five-tile internal scrolling');
 assert(parity.includes('Math.min(shareTiles.length,5)')&&parity.includes('Math.min(count,5)')&&parity.includes('for(let i=1;i<=5;i++)'),'video panel runtime count is not capped to five');
 assert(!parity.includes('Math.min(shareTiles.length,9)')&&!parity.includes('Math.min(count,9)'),'legacy nine-tile runtime count remains');
+assert(
+  parity.includes("if(share){") &&
+  parity.includes("qa('#remoteTileStrip .remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'))") &&
+  parity.includes("q('#meetingOverlay')?.classList.remove('remote-speaker-stage')"),
+  'Share transition must clear stale speaker-stage promotion so remote participants return to the right filmstrip.'
+);
 
 assert(service.includes("meet_v2_set_waiting_room"),'desktop service does not call the waiting-room RPC');
 assert(hostTools.includes("waitingRoomEnabled:snap.waitingRoomEnabled!==false"),'Host Tools does not read live waiting-room state');
