@@ -184,17 +184,36 @@
     function applyLayout(){
       if(window.__DOMINION_QA_SKIP_SHARE_LAYOUT)return;
       const state=share.snapshot(),mediaState=media.snapshot();
-      if(sameRendererPresenter&&state.active){
+      const macShowMeeting=sameRendererPresenter&&state.active&&document.body.dataset.dsMacMeetingVisible==='1';
+      if(sameRendererPresenter&&state.active&&!macShowMeeting){
         // Native macOS presenter mode is visually independent from the meeting
         // renderer. This class is the authoritative signal used by all later
         // reconciliation layers so none of them can recreate a second share
         // toolbar/banner or expose the dark meeting surface underneath.
         document.body.classList.add('ds-native-mac-presenter-share');
+        document.body.classList.remove('ds-native-mac-show-meeting');
         overlay.classList.remove('share-active','ds-ref-presenter-visible');
         inlinePresenter.hidden=true;
         label.hidden=true;
         sharedVideo.hidden=true;
         cameraTile.hidden=true;
+        return;
+      }
+      if(macShowMeeting){
+        // Show Meeting is a real meeting view, not a self-share mirror. Keep
+        // recursive shared content suppressed, restore the ordinary meeting
+        // stage, and let normal speaker/video authority populate that stage.
+        document.body.classList.remove('ds-native-mac-presenter-share');
+        document.body.classList.add('ds-native-mac-show-meeting');
+        overlay.classList.remove('share-active','ds-ref-presenter-visible');
+        inlinePresenter.hidden=true;
+        label.hidden=true;
+        sharedVideo.hidden=true;
+        if(sharedVideo.srcObject)sharedVideo.srcObject=null;
+        cameraTile.hidden=true;
+        if(cameraTile.srcObject)cameraTile.srcObject=null;
+        window.DominionMeetingParity?.syncVideoDock?.();
+        window.DominionRuntimeStability?.syncVideoDockGeometry?.();
         return;
       }
       document.body.classList.remove('ds-native-mac-presenter-share');
@@ -429,14 +448,14 @@
         if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
-        if(command==='show-meeting'){clearCompanion();window.focus();return {handled:true,command};}
+        if(command==='show-meeting'){clearCompanion();document.body.dataset.dsMacMeetingVisible='1';document.body.classList.add('ds-native-mac-show-meeting');applyLayout();window.focus();return {handled:true,command};}
         return {handled:false,command};
       }catch(error){toast(error?.message||'Share control failed.','error');return {handled:false,command,error:String(error?.message||error||'share_control_failed')};}
     }
     window.__DominionPresenterDispatch=dispatchPresenterCommand;
     bridge?.onPresenterCommand?.(rawCommand=>dispatchPresenterCommand(rawCommand));
 
-    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:options=>share.stop(options||{}),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand});
+    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:options=>share.stop(options||{}),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand,sync:applyLayout});
     window.addEventListener('beforeunload',stopMacRemoteFramePump,{once:true});
   }
   void boot().catch(error=>console.error('[DominionStar Meet] Share Integration boot failed.',error)).finally(()=>{window.__DominionShareIntegrationBooting=false;});
