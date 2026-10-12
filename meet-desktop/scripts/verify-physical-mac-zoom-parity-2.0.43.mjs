@@ -374,10 +374,9 @@ assert(
 
 /* PHYSICAL_MAC_SHARE_COMPANION_AND_COMPACT_ANNOTATION_LOCK */
 assert(
-  macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);")&&
-  macPresenter.includes("if(panelCommand&&delivered?.ok)showMeeting();")&&
-  macPresenter.indexOf("const delivered=await deliverPresenterCommandWithRetry(main,normalized);")<
-    macPresenter.indexOf("if(panelCommand&&delivered?.ok)showMeeting();")&&
+  !macPresenter.includes("const panelCommand=['participants','chat'].includes(normalized)||/^participant:(?:chat|rename):/.test(normalized);")&&
+  !macPresenter.includes("if(panelCommand&&delivered?.ok)showMeeting();")&&
+  macPresenter.includes("if(normalized==='show-meeting'){if(shareState.meetingVisible)hideMeeting();else showMeeting();")&&
   activeShareHome.includes('function restoreShareCompanion(){')&&
   activeShareHome.includes("if(shareActive()&&(kind==='participants'||kind==='chat'))restoreShareCompanion();")&&
   integration.includes('function clearCompanion(){')&&
@@ -386,7 +385,7 @@ assert(
   integration.includes("if(action==='chat')")&&
   integration.includes("if(action==='rename')")&&
   shareCss.includes('2.0.44+ native Mac floating Participants/Chat companion lock'),
-  'Share-toolbar Participants/Chat and video-tile Chat/Rename must remain independent companion surfaces; closing or switching a companion must never toggle explicit Show Meeting state.'
+  'Participants/Chat and video-tile Chat/Rename must remain independent companion surfaces; only the explicit Show Meeting command may toggle native meeting visibility.'
 );
 assert(
   participantsReference.includes('width:318px!important;min-width:min(318px,calc(100% - 24px))!important')&&
