@@ -211,6 +211,11 @@ try{
   assert.equal(shareTransitionState.activeHidden,true,'Share must hide the pre-share remote active-speaker video stage.');
   assert.equal(shareTransitionState.fallbackHidden,true,'Share must hide the pre-share remote camera-off fallback stage.');
 
+  const remotePresenterSpeakerPanel=await evaluate(`(()=>{const parity=window.DominionMeetingParity,dock=document.querySelector('#participantVideoDock'),remote=document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]'),local=dock?.querySelector('#localVideoDockTile');localStorage.setItem('ds_meet_video_panel_mode_v2','speaker');remote.dataset.sharing='1';document.body.classList.add('remote-share-active');parity.syncVideoDock();const result={mode:dock.dataset.panelMode||'',remoteHidden:Boolean(remote?.hidden||remote?.classList.contains('panel-single-hidden')||getComputedStyle(remote).display==='none'),localHidden:Boolean(local?.hidden||local?.classList.contains('panel-single-hidden')||getComputedStyle(local).display==='none')};document.body.classList.remove('remote-share-active');remote.dataset.sharing='0';localStorage.setItem('ds_meet_video_panel_mode_v2','strip');parity.syncVideoDock();return result;})()`);
+  assert.equal(remotePresenterSpeakerPanel.mode,'speaker','Regression fixture must exercise the single-speaker video-panel mode shown in the physical Mac failure.');
+  assert.equal(remotePresenterSpeakerPanel.remoteHidden,false,`Single-speaker panel mode must feature the remote presenter while that participant is sharing. ${JSON.stringify(remotePresenterSpeakerPanel)}`);
+  assert.equal(remotePresenterSpeakerPanel.localHidden,true,'Single-speaker panel mode must not feature self over the remote presenter.');
+
   // Final floating participant-video surface keeps whole-surface drag without a grip.
   // Keep the real two-person meeting state from the camera-on scenario above so
   // hover is certified against the same filmstrip the user actually receives.
