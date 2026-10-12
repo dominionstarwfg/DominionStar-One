@@ -158,10 +158,9 @@
     function clearCompanion(){
       const previous=String(companionKind||document.body.dataset.dsShareCompanion||'');
       if(previous)setCompanion('');
-      if(sameRendererPresenter&&['participants','chat'].includes(previous)&&document.body.classList.contains('ds-native-mac-show-meeting')){
-        document.body.classList.remove('ds-native-mac-show-meeting');
-        try{void Promise.resolve(desktop?.macShare?.showMeeting?.()).catch(()=>{});}catch{}
-      }
+      // Companion visibility is independent from Show Meeting. Closing or
+      // switching Participants/Chat/Annotate must never toggle the meeting
+      // surface back to presenter-only mode or recreate the black stage.
     }
 
     function publishMacPresenterState(){
@@ -184,12 +183,15 @@
     function applyLayout(){
       if(window.__DOMINION_QA_SKIP_SHARE_LAYOUT)return;
       const state=share.snapshot(),mediaState=media.snapshot();
-      if(sameRendererPresenter&&state.active){
+      const macShowMeeting=sameRendererPresenter&&state.active&&document.body.dataset.dsMacMeetingVisible==='1';
+      if(sameRendererPresenter&&state.active&&!macShowMeeting){
+        stage.style.removeProperty('display');
         // Native macOS presenter mode is visually independent from the meeting
         // renderer. This class is the authoritative signal used by all later
         // reconciliation layers so none of them can recreate a second share
         // toolbar/banner or expose the dark meeting surface underneath.
         document.body.classList.add('ds-native-mac-presenter-share');
+        document.body.classList.remove('ds-native-mac-show-meeting');
         overlay.classList.remove('share-active','ds-ref-presenter-visible');
         inlinePresenter.hidden=true;
         label.hidden=true;
@@ -197,7 +199,52 @@
         cameraTile.hidden=true;
         return;
       }
+      if(macShowMeeting){
+        // Show Meeting is a real meeting view, not a self-share mirror. Keep
+        // recursive shared content suppressed and explicitly rehydrate the
+        // ordinary meeting stage that presenter mode intentionally hid.
+        document.body.classList.remove('ds-native-mac-presenter-share');
+        document.body.classList.add('ds-native-mac-show-meeting');
+        overlay.hidden=false;
+        overlay.classList.remove('share-active','ds-ref-presenter-visible');
+        inlinePresenter.hidden=true;
+        label.hidden=true;
+        sharedVideo.hidden=true;
+        if(sharedVideo.srcObject)sharedVideo.srcObject=null;
+        cameraTile.hidden=true;
+        if(cameraTile.srcObject)cameraTile.srcObject=null;
+        const meetingShell=overlay.querySelector('.meeting-shell');
+        const meetingBody=overlay.querySelector('.meeting-body');
+        const meetingStage=overlay.querySelector('.stage');
+        for(const node of [meetingShell,meetingBody]){
+          if(!node)continue;
+          node.style.removeProperty('display');
+          node.style.removeProperty('visibility');
+          node.style.removeProperty('opacity');
+          node.style.removeProperty('pointer-events');
+        }
+        if(meetingStage){
+          // Show Meeting owns stage visibility while native capture continues.
+          // Other share reconciliation layers may still hide .stage because
+          // capture remains active; an explicit state-scoped inline authority
+          // prevents a black/empty meeting without changing approved geometry.
+          meetingStage.style.setProperty('display','grid','important');
+          meetingStage.style.removeProperty('visibility');
+          meetingStage.style.removeProperty('opacity');
+          meetingStage.style.removeProperty('pointer-events');
+        }
+        const localVideo=stage.querySelector('#localMeetingVideo');
+        const localFallback=stage.querySelector('#stageFallback');
+        const hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView'));
+        if(localVideo)localVideo.hidden=!mediaState.videoLive||hideSelf;
+        if(localFallback)localFallback.hidden=mediaState.videoLive&&!hideSelf;
+        window.DominionMeetingParity?.syncVideoDock?.();
+        window.DominionRuntimeStability?.syncVideoDockGeometry?.();
+        window.DominionZoomScreenshotReference?.requestSync?.();
+        return;
+      }
       document.body.classList.remove('ds-native-mac-presenter-share');
+      stage.style.removeProperty('display');
       overlay.classList.toggle('share-active',state.active);
       // On macOS the share-owning renderer must not visibly mirror the
       // captured screen back into itself. That recursive compositor path can
@@ -235,6 +282,16 @@
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
       const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind),participants:presenterParticipants()});
       syncMacCameraFramePump();
+    }
+
+    if(sameRendererPresenter&&desktop?.macShare?.onShowMeeting){
+      desktop.macShare.onShowMeeting(payload=>{
+        const visible=Boolean(payload?.visible);
+        if(visible)document.body.dataset.dsMacMeetingVisible='1';
+        else delete document.body.dataset.dsMacMeetingVisible;
+        document.body.classList.toggle('ds-native-mac-show-meeting',visible);
+        applyLayout();
+      });
     }
 
     function commitPresenterMode(){
@@ -429,14 +486,14 @@
         if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
-        if(command==='show-meeting'){clearCompanion();window.focus();return {handled:true,command};}
+        if(command==='show-meeting'){clearCompanion();const visible=document.body.dataset.dsMacMeetingVisible!=='1';if(visible)document.body.dataset.dsMacMeetingVisible='1';else delete document.body.dataset.dsMacMeetingVisible;document.body.classList.toggle('ds-native-mac-show-meeting',visible);applyLayout();window.focus();return {handled:true,command};}
         return {handled:false,command};
       }catch(error){toast(error?.message||'Share control failed.','error');return {handled:false,command,error:String(error?.message||error||'share_control_failed')};}
     }
     window.__DominionPresenterDispatch=dispatchPresenterCommand;
     bridge?.onPresenterCommand?.(rawCommand=>dispatchPresenterCommand(rawCommand));
 
-    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:options=>share.stop(options||{}),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand});
+    window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:options=>share.stop(options||{}),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand,sync:applyLayout});
     window.addEventListener('beforeunload',stopMacRemoteFramePump,{once:true});
   }
   void boot().catch(error=>console.error('[DominionStar Meet] Share Integration boot failed.',error)).finally(()=>{window.__DominionShareIntegrationBooting=false;});

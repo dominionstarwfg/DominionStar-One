@@ -375,7 +375,9 @@ try{
   stage('presenter-perimeter-revealed');
   await probeMeetingRenderer('perimeter-reveal');
   stage('presenter-revealed-after-share');
-  main.close();main=null;
+  // Keep the meeting renderer CDP session alive for the remaining physical
+  // presenter round trip. Show Meeting later verifies that this same renderer
+  // restores the approved meeting stage after native share chrome is hidden.
 
   const presenterTargets=await listTargets();
   const nativeToolbarTargets=presenterTargets.filter(item=>item.type==='page'&&String(item.url||'').includes('/ui/mac-presenter-toolbar.html'));
@@ -463,6 +465,20 @@ try{
   await waitStderr(ackPattern('chat'),'renderer ACK for Chat',8000,logStart);
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='chat'",'Chat companion state returned to toolbar',8000);
   stage('chat-real-toolbar');
+
+  logStart=stderr.length;
+  await toolbar.click('[data-command="show-meeting"]');
+  await waitStderr('QA_MAC_SHOW_MEETING visible=1','native Show Meeting visibility transition',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().meetingVisible===true",'Show Meeting state returned to native toolbar',5000);
+  const showMeetingPredicate="(()=>{const body=document.body,overlay=document.querySelector('#meetingOverlay'),shared=document.querySelector('#sharedContentVideo'),stage=document.querySelector('#meetingOverlay .stage'),candidates=[document.querySelector('#localMeetingVideo'),document.querySelector('#remoteActiveSpeakerStage'),document.querySelector('#remoteActiveSpeakerFallback'),document.querySelector('.stage-card')].filter(node=>node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden'&&parseFloat(getComputedStyle(node).opacity||'1')>0);const sr=stage?.getBoundingClientRect();return body.dataset.dsMacMeetingVisible==='1'&&!body.classList.contains('ds-native-mac-presenter-share')&&body.classList.contains('ds-native-mac-show-meeting')&&!overlay?.classList.contains('share-active')&&Boolean(shared?.hidden)&&Boolean(stage&&sr&&sr.width>200&&sr.height>120)&&candidates.length>0;})()";
+  try{
+    await main.wait(showMeetingPredicate,'Show Meeting restores a non-black meeting stage while self-share mirror stays suppressed',8000);
+  }catch(error){
+    const diagnostic=await main.eval("(()=>{const body=document.body,overlay=document.querySelector('#meetingOverlay'),shell=overlay?.querySelector('.meeting-shell'),meetingBody=overlay?.querySelector('.meeting-body'),stage=overlay?.querySelector('.stage'),shared=document.querySelector('#sharedContentVideo');const nodes=['#localMeetingVideo','#remoteActiveSpeakerStage','#remoteActiveSpeakerFallback','.stage-card'].map(selector=>{const node=document.querySelector(selector);if(!node)return {selector,exists:false};const s=getComputedStyle(node),r=node.getBoundingClientRect();return {selector,exists:true,hidden:Boolean(node.hidden),display:s.display,visibility:s.visibility,opacity:s.opacity,width:Math.round(r.width),height:Math.round(r.height)};});const snap=node=>{if(!node)return null;const s=getComputedStyle(node),r=node.getBoundingClientRect();return {hidden:Boolean(node.hidden),display:s.display,visibility:s.visibility,opacity:s.opacity,width:Math.round(r.width),height:Math.round(r.height),inlineStyle:node.getAttribute('style')||''};};return {dataset:body.dataset.dsMacMeetingVisible||'',bodyClasses:[...body.classList],overlayClasses:[...(overlay?.classList||[])],sharedHidden:Boolean(shared?.hidden),overlay:snap(overlay),shell:snap(shell),meetingBody:snap(meetingBody),stage:snap(stage),nodes};})()");
+    console.error('QA_SHOW_MEETING_STAGE_DIAGNOSTIC '+JSON.stringify(diagnostic));
+    throw error;
+  }
+  stage('show-meeting-real-stage');
 
   await toolbar.click('[data-command="annotate"]');
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='annotate'",'Annotate companion state returned to toolbar',8000);
