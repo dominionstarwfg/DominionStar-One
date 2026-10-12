@@ -627,6 +627,8 @@ assert(
 assert(
   shareService.includes("document.body.dataset.dsMacMeetingVisible='1'")&&
   shareService.includes("window.DominionShareIntegration?.sync?.()")&&
+  integration.includes("desktop.macShare.onShowMeeting(payload=>")&&
+  integration.includes("document.body.classList.toggle('ds-native-mac-show-meeting',visible)")&&
   integration.includes("const macShowMeeting=sameRendererPresenter&&state.active&&document.body.dataset.dsMacMeetingVisible==='1';")&&
   integration.includes("overlay.classList.remove('share-active','ds-ref-presenter-visible');")&&
   integration.includes("sharedVideo.hidden=true;")&&
