@@ -259,7 +259,11 @@
     for(const button of qa('#participantVideoDock [data-dock-panel-mode]'))button.classList.toggle('active',button.dataset.dockPanelMode===mode);
     all.forEach((tile,index)=>{tile.classList.remove('panel-single-featured','panel-single-hidden','panel-page-start');if(mode==='gallery'&&index>0&&index%5===0)tile.classList.add('panel-page-start');});
     if(mode==='speaker'){
+      const sharingPeer=String(q('#remoteShareVideo')?.dataset.peerId||'');
       const featured=(spotlightParticipantIds[0]?all.find(tile=>String(tile.dataset.participantId||tile.dataset.peerId||'')===String(spotlightParticipantIds[0])):null)
+        ||(sharingPeer?all.find(tile=>String(tile.dataset.participantId||tile.dataset.peerId||'')===sharingPeer):null)
+        ||all.find(tile=>tile.classList.contains('active-speaker')&&!dockTileSelf(tile))
+        ||all.find(tile=>!dockTileSelf(tile)&&!tile.classList.contains('stage-promoted'))
         ||all.find(tile=>tile.classList.contains('active-speaker'))
         ||all.find(tile=>!tile.classList.contains('stage-promoted'))
         ||all[0]||null;
@@ -284,6 +288,13 @@
     const panelAllowed=readVideoPanelVisible()&&(!share||window.DominionPreferences?.read?.('shareVideoDock')!==false);
     if(!panelAllowed){dock.hidden=true;syncShareLayout();return;}
     if(share){
+      const activeStage=ensureActiveSpeakerStage(),fallbackStage=ensureActiveSpeakerFallback();
+      if(activeStage){activeStage.hidden=true;activeStage.srcObject=null;}
+      if(fallbackStage){fallbackStage.hidden=true;delete fallbackStage.dataset.peerId;}
+      q('#meetingOverlay')?.classList.remove('remote-speaker-stage');
+      qa('#participantVideoDock .remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'));
+      syncLocalDockTile(false);
+      syncDockTileActions();
       const shareTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden);
       syncVideoPanelMode(dock,shareTiles);dock.dataset.count=String(Math.min(shareTiles.length,5));dock.classList.toggle('dock-empty',shareTiles.length===0);dock.hidden=shareTiles.length===0;syncShareLayout();return;
     }
