@@ -9,6 +9,7 @@ const hostTools=read('ui/zoom-screenshot-reference-2.0.41.js');
 const service=read('src/meeting-service.mjs');
 const av=read('ui/av-settings.js');
 const app=read('ui/app.js');
+const webrtc=read('ui/webrtc-controller.js');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -36,5 +37,12 @@ assert(av.includes("if(title==='Audio')row.onclick")&&av.includes("else if(title
 assert(av.includes("for(const [button,kind] of [[mic,'audio'],[camera,'video']])"),'meeting A/V quick menus are not bound for participants');
 
 assert(parity.includes("'host:view-layout'")&&parity.includes("window.addEventListener('dominion:host-view-layout'"),'host-to-participant layout parity signal is incomplete');
+
+assert(webrtc.includes('function mirrorParticipantSnapshot(snapshot,localId=state.context?.participantId||\'\')'),'two-client filmstrip must mirror joined participant identity independently of WebRTC transport readiness');
+assert(webrtc.includes('mirrorParticipantSnapshot(await meeting.snapshot(context.roomId),context.participantId)'),'initial joined-participant tile mirror must happen before ICE/TURN success is required');
+assert(webrtc.includes("window.addEventListener('dominion:meeting-snapshot'")&&webrtc.includes('mirrorParticipantSnapshot(event.detail||{},state.context.participantId)'),'live meeting snapshots must keep the remote video fallback tiles synchronized');
+assert(webrtc.includes('<video autoplay playsinline hidden></video>'),'remote participant tiles must begin with a visible identity fallback instead of an empty video surface');
+assert(webrtc.includes("window.DominionMeetingParity?.syncVideoDock?.();"),'snapshot tile mirroring must immediately reconcile the approved filmstrip');
+
 
 console.log('PASS Meet 2.0.52 host waiting-room + five-tile video panel + participant A/V parity');
