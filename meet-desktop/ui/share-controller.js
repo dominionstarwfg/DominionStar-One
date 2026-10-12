@@ -106,7 +106,10 @@
     if(!started?.ok){disposeMacCaptureClient({stopWorker:false});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.')}
     const g=Number(started?.generation||0)||0;if(macCaptureSignalGeneration&&g&&g!==macCaptureSignalGeneration){disposeMacCaptureClient({stopWorker:true});throw new Error('Mac capture bridge generation mismatch.')}if(!macCaptureSignalGeneration)macCaptureSignalGeneration=g;
     if(options?.__qaReturnBeforeWorkerActivate){console.error('QA_CAPTURE_RETURN_BEFORE_WORKER_ACTIVATE');return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}}}
-    if(!options?.__qaLifecycleOnlyWorker)await waitForRenderableShareFrame(stream,3200);
+    if(!options?.__qaLifecycleOnlyWorker){
+      try{await waitForRenderableShareFrame(stream,3200);}
+      catch(error){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw error;}
+    }
     macWorkerActive=true;if(generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw new DOMException('Screen share request was replaced.','AbortError')}
     return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}};
   }
