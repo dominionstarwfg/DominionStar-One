@@ -233,4 +233,6 @@ assert.ok(
   !avSettings.includes("caret.innerHTML='<span aria-hidden=\"true\">⌃</span>'"),
   'Audio/Video quick-menu observation must be bounded and idempotent so caret rendering cannot create a self-feeding MutationObserver loop that starves the packaged renderer.'
 );
+assert.ok(css.includes('#meetingOverlay #participantVideoDock .participant-video-resize{')&&css.includes('opacity:0!important')&&css.includes('cursor:nwse-resize!important'),'Final runtime must keep the video resize hit area functional without painting the rejected L-shaped resize chrome.');
+
 console.log('DOMINIONSTAR_RUNTIME_STABILITY_2_0_22_OK event-driven-features single-panel-authority synchronous-click-geometry full-window legacy-grid-removed conflict-free-motion responsive-stage physical-loop-isolated single-owner-share permission-aware-share granted-custom-chooser native-unproven-fallback share-companions left-lane-bounded-reactions direct-menu-observer unchanged-snapshot-suppressed no-runtime-polling');

@@ -5,6 +5,26 @@
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
   const GEOMETRY_KEY='ds_zoom_video_dock_geometry_v1';
   const PANEL_KEY='ds_zoom_participant_panel_geometry_v1';
+  const APPROVED_LAYOUT_MIGRATION_KEY='ds_meet_approved_layout_2_0_52_physical_v1';
+  function migrateApprovedLayoutState(){
+    try{
+      if(localStorage.getItem(APPROVED_LAYOUT_MIGRATION_KEY)==='1')return;
+      for(const key of [
+        GEOMETRY_KEY,
+        PANEL_KEY,
+        'ds_meet_floating_surface_geometry_v1',
+        'ds_meet_view_mode',
+        'ds_meet_video_panel_mode_v2',
+        'ds_meet_video_panel_visible_v2',
+        'ds_meet_share_split_ratio'
+      ])localStorage.removeItem(key);
+      localStorage.setItem('ds_meet_view_mode','speaker');
+      localStorage.setItem('ds_meet_video_panel_mode_v2','strip');
+      localStorage.setItem('ds_meet_video_panel_visible_v2','1');
+      localStorage.setItem(APPROVED_LAYOUT_MIGRATION_KEY,'1');
+    }catch{}
+  }
+  migrateApprovedLayoutState();
   const SVG=Object.freeze({
     mic:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
     video:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3z"/></svg>',
@@ -372,8 +392,10 @@
     applyViewMode(mode);
   });
   window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.slice(0,4):[];syncVideoDock();});
-  window.addEventListener('dominion:remote-media-state',syncDockTileActions,true);
-  media()?.onChange?.(()=>syncDockTileActions());
+  window.addEventListener('dominion:remote-media-state',()=>{syncDockTileActions();syncVideoDock();},true);
+  window.addEventListener('dominion:remote-share-state',()=>{syncShareLayout();syncVideoDock();},true);
+  window.addEventListener('dominion:webrtc-participants-reconciled',scheduleParityRefresh,true);
+  media()?.onChange?.(()=>{syncDockTileActions();syncVideoDock();});
   window.addEventListener('dominion:meeting-ui-ready',()=>{install();scheduleParityRefresh();});
   window.addEventListener('dominion:meeting-snapshot',scheduleParityRefresh);
   window.addEventListener('dominion:participant-presence',scheduleParityRefresh);
