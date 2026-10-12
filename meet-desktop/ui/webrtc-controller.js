@@ -5,7 +5,7 @@
   if(!desktop?.isDesktop||!meeting?.context||!meeting?.sendSignal||!meeting?.pullSignals||!meeting?.iceConfig)return;
 
   const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800,ICE_RETRY_MS=30000,REFRESH_MARGIN_MS=10*60*1000;
-  const state={running:false,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0};
+  const state={running:false,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),participantSignature:'',timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0};
   const q=s=>document.querySelector(s);
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const initials=name=>String(name||'Participant').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'P';
@@ -292,6 +292,11 @@
     for(const p of snapshot.participants||[]){const id=String(p.participantId||'');if(!id||id===state.context.participantId)continue;current.set(id,p);state.participants.set(id,p);updateTileIdentity(id);let peer;try{peer=ensurePeer(id);}catch{setTransportStatus('Network path unavailable','error');continue;}if(isInitiator(id)&&peer.pc.signalingState==='stable'&&peer.pc.connectionState==='new')void initiate(peer).catch(()=>scheduleReconnect(peer,RECONNECT_MS));}
     for(const id of [...state.peers.keys()])if(!current.has(id))closePeer(id);
     for(const id of [...state.participants.keys()])if(!current.has(id))state.participants.delete(id);
+    const participantIds=[...current.keys()].sort(),signature=participantIds.join('|');
+    if(signature!==state.participantSignature){
+      state.participantSignature=signature;
+      window.dispatchEvent(new CustomEvent('dominion:webrtc-participants-reconciled',{detail:{participantIds}}));
+    }
   }
   async function pullSignals(){
     if(!state.running)return;try{const result=await meeting.pullSignals(state.lastSignalId,100);for(const signal of result?.signals||[])await handleSignal(signal);state.lastSignalId=Math.max(state.lastSignalId,Number(result?.lastId)||0);}catch{}
@@ -311,7 +316,7 @@
   }
   async function stop(){
     if(!state.running){state.context=null;hideRecovery();return;}state.running=false;for(const key of Object.keys(state.timers)){clearInterval(state.timers[key]);clearTimeout(state.timers[key]);state.timers[key]=0;}state.mediaUnsub?.();state.shareUnsub?.();state.effectsUnsub?.();state.powerUnsub?.();state.mediaUnsub=null;state.shareUnsub=null;state.effectsUnsub=null;state.powerUnsub=null;
-    for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.remoteMedia.clear();hideRecovery();state.context=null;state.lastSignalId=0;state.lastPresenceTouchAt=0;state.iceServers=[];state.iceExpiresAtMs=0;state.iceProvider='';state.qaDirectOnly=false;document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();window.DominionVideoEffects?.clearTransientMeetingEffects?.();
+    for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.remoteMedia.clear();state.participantSignature='';hideRecovery();state.context=null;state.lastSignalId=0;state.lastPresenceTouchAt=0;state.iceServers=[];state.iceExpiresAtMs=0;state.iceProvider='';state.qaDirectOnly=false;document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();window.DominionVideoEffects?.clearTransientMeetingEffects?.();
   }
   async function lifecycleProbe(){
     const inRoom=!q('#meetingOverlay')?.hidden;const context=await meeting.context().catch(()=>({}));
