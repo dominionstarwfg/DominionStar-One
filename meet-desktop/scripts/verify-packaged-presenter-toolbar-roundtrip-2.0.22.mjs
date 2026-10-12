@@ -464,6 +464,12 @@ try{
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='chat'",'Chat companion state returned to toolbar',8000);
   stage('chat-real-toolbar');
 
+  logStart=stderr.length;
+  await toolbar.click('[data-command="show-meeting"]');
+  await waitStderr(ackPattern('show-meeting'),'renderer ACK for Show Meeting',8000,logStart);
+  await main.wait("(()=>{const body=document.body,overlay=document.querySelector('#meetingOverlay'),shared=document.querySelector('#sharedContentVideo'),candidates=[document.querySelector('#localMeetingVideo'),document.querySelector('#remoteActiveSpeakerStage'),document.querySelector('#remoteActiveSpeakerFallback'),document.querySelector('.stage-card')].filter(node=>node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');return body.dataset.dsMacMeetingVisible==='1'&&!overlay?.classList.contains('share-active')&&Boolean(shared?.hidden)&&candidates.length>0;})()",'Show Meeting restores a non-black meeting stage while self-share mirror stays suppressed',8000);
+  stage('show-meeting-real-stage');
+
   await toolbar.click('[data-command="annotate"]');
   await toolbar.wait("window.DominionMacPresenterToolbar.state().companion==='annotate'",'Annotate companion state returned to toolbar',8000);
   stage('annotate-real-toolbar');
