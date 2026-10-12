@@ -259,7 +259,11 @@
     for(const button of qa('#participantVideoDock [data-dock-panel-mode]'))button.classList.toggle('active',button.dataset.dockPanelMode===mode);
     all.forEach((tile,index)=>{tile.classList.remove('panel-single-featured','panel-single-hidden','panel-page-start');if(mode==='gallery'&&index>0&&index%5===0)tile.classList.add('panel-page-start');});
     if(mode==='speaker'){
+      const sharingPeer=String(q('#remoteShareVideo')?.dataset.peerId||'');
       const featured=(spotlightParticipantIds[0]?all.find(tile=>String(tile.dataset.participantId||tile.dataset.peerId||'')===String(spotlightParticipantIds[0])):null)
+        ||(sharingPeer?all.find(tile=>String(tile.dataset.participantId||tile.dataset.peerId||'')===sharingPeer):null)
+        ||all.find(tile=>tile.classList.contains('active-speaker')&&!dockTileSelf(tile))
+        ||all.find(tile=>!dockTileSelf(tile)&&!tile.classList.contains('stage-promoted'))
         ||all.find(tile=>tile.classList.contains('active-speaker'))
         ||all.find(tile=>!tile.classList.contains('stage-promoted'))
         ||all[0]||null;
