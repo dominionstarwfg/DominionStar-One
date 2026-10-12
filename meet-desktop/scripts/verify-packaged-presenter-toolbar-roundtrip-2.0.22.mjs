@@ -375,7 +375,9 @@ try{
   stage('presenter-perimeter-revealed');
   await probeMeetingRenderer('perimeter-reveal');
   stage('presenter-revealed-after-share');
-  main.close();main=null;
+  // Keep the meeting renderer CDP session alive for the remaining physical
+  // presenter round trip. Show Meeting later verifies that this same renderer
+  // restores the approved meeting stage after native share chrome is hidden.
 
   const presenterTargets=await listTargets();
   const nativeToolbarTargets=presenterTargets.filter(item=>item.type==='page'&&String(item.url||'').includes('/ui/mac-presenter-toolbar.html'));
