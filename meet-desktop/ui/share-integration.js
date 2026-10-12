@@ -256,6 +256,16 @@
       syncMacCameraFramePump();
     }
 
+    if(sameRendererPresenter&&desktop?.macShare?.onShowMeeting){
+      desktop.macShare.onShowMeeting(payload=>{
+        const visible=Boolean(payload?.visible);
+        if(visible)document.body.dataset.dsMacMeetingVisible='1';
+        else delete document.body.dataset.dsMacMeetingVisible;
+        document.body.classList.toggle('ds-native-mac-show-meeting',visible);
+        applyLayout();
+      });
+    }
+
     function commitPresenterMode(){
       const state=share.snapshot();
       if(!state.active||presenterCommitted)return false;
@@ -448,7 +458,7 @@
         if(command==='toggle-hand'){await window.DominionMeetingFeatures?.toggleRaiseHand?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='record'){await window.DominionMeetingFeatures?.toggleRecording?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
         if(command==='stop-record'){await window.DominionMeetingFeatures?.stopRecording?.();if(sameRendererPresenter)publishMacPresenterState();else applyLayout();return {handled:true,command};}
-        if(command==='show-meeting'){clearCompanion();document.body.dataset.dsMacMeetingVisible='1';document.body.classList.add('ds-native-mac-show-meeting');applyLayout();window.focus();return {handled:true,command};}
+        if(command==='show-meeting'){clearCompanion();const visible=document.body.dataset.dsMacMeetingVisible!=='1';if(visible)document.body.dataset.dsMacMeetingVisible='1';else delete document.body.dataset.dsMacMeetingVisible;document.body.classList.toggle('ds-native-mac-show-meeting',visible);applyLayout();window.focus();return {handled:true,command};}
         return {handled:false,command};
       }catch(error){toast(error?.message||'Share control failed.','error');return {handled:false,command,error:String(error?.message||error||'share_control_failed')};}
     }
