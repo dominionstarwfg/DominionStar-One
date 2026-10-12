@@ -260,6 +260,7 @@
     all.forEach((tile,index)=>{tile.classList.remove('panel-single-featured','panel-single-hidden','panel-page-start');if(mode==='gallery'&&index>0&&index%5===0)tile.classList.add('panel-page-start');});
     if(mode==='speaker'){
       const featured=(spotlightParticipantIds[0]?all.find(tile=>String(tile.dataset.participantId||tile.dataset.peerId||'')===String(spotlightParticipantIds[0])):null)
+        ||all.find(tile=>tile.dataset.sharing==='1')
         ||all.find(tile=>tile.classList.contains('active-speaker'))
         ||all.find(tile=>!tile.classList.contains('stage-promoted'))
         ||all[0]||null;
@@ -378,6 +379,7 @@
   });
   window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.slice(0,4):[];syncVideoDock();});
   window.addEventListener('dominion:remote-media-state',syncDockTileActions,true);
+  window.addEventListener('dominion:remote-share-state',()=>syncVideoDock(),true);
   media()?.onChange?.(()=>syncDockTileActions());
   window.addEventListener('dominion:meeting-ui-ready',()=>{install();scheduleParityRefresh();});
   window.addEventListener('dominion:meeting-snapshot',scheduleParityRefresh);
