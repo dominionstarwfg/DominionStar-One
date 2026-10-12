@@ -380,12 +380,13 @@ assert(
     macPresenter.indexOf("if(panelCommand&&delivered?.ok)showMeeting();")&&
   activeShareHome.includes('function restoreShareCompanion(){')&&
   activeShareHome.includes("if(shareActive()&&(kind==='participants'||kind==='chat'))restoreShareCompanion();")&&
-  integration.includes("['participants','chat'].includes(previous)")&&
-  integration.includes("desktop?.macShare?.showMeeting?.()")&&
+  integration.includes('function clearCompanion(){')&&
+  !integration.includes("['participants','chat'].includes(previous)&&document.body.classList.contains('ds-native-mac-show-meeting')")&&
+  !integration.includes("document.body.classList.remove('ds-native-mac-show-meeting');\n        try{void Promise.resolve(desktop?.macShare?.showMeeting?.()).catch(()=>{});}catch{}")&&
   integration.includes("if(action==='chat')")&&
   integration.includes("if(action==='rename')")&&
   shareCss.includes('2.0.44+ native Mac floating Participants/Chat companion lock'),
-  'Share-toolbar Participants/Chat and video-tile Chat/Rename must execute in the hidden renderer first, then reveal only the requested floating companion surface and hide it again when closed.'
+  'Share-toolbar Participants/Chat and video-tile Chat/Rename must remain independent companion surfaces; closing or switching a companion must never toggle explicit Show Meeting state.'
 );
 assert(
   participantsReference.includes('width:318px!important;min-width:min(318px,calc(100% - 24px))!important')&&
