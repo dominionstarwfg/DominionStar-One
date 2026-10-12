@@ -466,8 +466,9 @@ try{
 
   logStart=stderr.length;
   await toolbar.click('[data-command="show-meeting"]');
-  await waitStderr(ackPattern('show-meeting'),'renderer ACK for Show Meeting',8000,logStart);
-  await main.wait("(()=>{const body=document.body,overlay=document.querySelector('#meetingOverlay'),shared=document.querySelector('#sharedContentVideo'),candidates=[document.querySelector('#localMeetingVideo'),document.querySelector('#remoteActiveSpeakerStage'),document.querySelector('#remoteActiveSpeakerFallback'),document.querySelector('.stage-card')].filter(node=>node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');return body.dataset.dsMacMeetingVisible==='1'&&!overlay?.classList.contains('share-active')&&Boolean(shared?.hidden)&&candidates.length>0;})()",'Show Meeting restores a non-black meeting stage while self-share mirror stays suppressed',8000);
+  await waitStderr('QA_MAC_SHOW_MEETING visible=1','native Show Meeting visibility transition',8000,logStart);
+  await toolbar.wait("window.DominionMacPresenterToolbar.state().meetingVisible===true",'Show Meeting state returned to native toolbar',5000);
+  await main.wait("(()=>{const body=document.body,overlay=document.querySelector('#meetingOverlay'),shared=document.querySelector('#sharedContentVideo'),stage=document.querySelector('#meetingOverlay .stage'),candidates=[document.querySelector('#localMeetingVideo'),document.querySelector('#remoteActiveSpeakerStage'),document.querySelector('#remoteActiveSpeakerFallback'),document.querySelector('.stage-card')].filter(node=>node&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden'&&parseFloat(getComputedStyle(node).opacity||'1')>0);const sr=stage?.getBoundingClientRect();return body.dataset.dsMacMeetingVisible==='1'&&!body.classList.contains('ds-native-mac-presenter-share')&&body.classList.contains('ds-native-mac-show-meeting')&&!overlay?.classList.contains('share-active')&&Boolean(shared?.hidden)&&Boolean(stage&&sr&&sr.width>200&&sr.height>120)&&candidates.length>0;})()",'Show Meeting restores a non-black meeting stage while self-share mirror stays suppressed',8000);
   stage('show-meeting-real-stage');
 
   await toolbar.click('[data-command="annotate"]');
