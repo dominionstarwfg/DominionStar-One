@@ -200,9 +200,11 @@ try{
   try{
     await guest.waitForFunction(()=>{
       const video=document.querySelector('#remoteShareVideo');
-      return document.body.classList.contains('remote-share-active')&&Boolean(video?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'));
+      const liveTrack=Boolean(video?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'));
+      const rendered=Boolean(video&&video.readyState>=2&&video.videoWidth>1&&video.videoHeight>1&&video.currentTime>=0);
+      return document.body.classList.contains('remote-share-active')&&!document.body.classList.contains('remote-share-pending')&&liveTrack&&rendered;
     },null,{timeout:15000});
-  }catch(error){throw new Error(`guest remote screen share did not become live: ${JSON.stringify(await runtimeDiagnostics(guest))}`,{cause:error});}
+  }catch(error){throw new Error(`guest remote screen share did not produce a decoded frame: ${JSON.stringify(await runtimeDiagnostics(guest))}`,{cause:error});}
   try{
     await guest.waitForFunction(()=>{
       const audio=document.querySelector('#remoteAudioBin audio[data-share-audio-peer]');
