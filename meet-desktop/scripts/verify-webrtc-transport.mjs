@@ -62,9 +62,13 @@ assert(peer.includes('setInterval(()=>void pullSignals(),POLL_MS)')&&peer.includ
 assert(peer.includes('playRemoteAudio')&&peer.includes('audio.srcObject=stream')&&peer.includes('audio.play()'),'Remote microphone audio must render through a real media element.');
 assert(peer.includes('audio.setSinkId')&&peer.includes('speakerId'),'Selected speaker routing must be honored where supported.');
 assert(peer.includes('showRemoteCamera')&&peer.includes('showRemoteShare'),'Remote camera and shared content must render independently.');
+assert(peer.includes('function syncParticipantPresence(snapshot={})')&&peer.includes("window.addEventListener('dominion:meeting-snapshot',event=>syncParticipantPresence(event.detail||{}))"),'Roster presence must create remote fallback tiles independently of WebRTC connection timing.');
+assert(peer.includes('function activateRemoteShareFrame(id,stream,token)')&&peer.includes('video.videoWidth>1&&video.videoHeight>1')&&peer.includes("document.body.classList.add('remote-share-pending')"),'Remote Share must remain pending until the viewer decodes a real video frame.');
+assert(peer.includes("showRecovery('Shared content is reconnecting…'")&&peer.includes('void recoverNetwork();'),'Remote Share with no decoded frame must trigger bounded media-path recovery.');
 assert(peer.includes('remoteShareBanner')&&peer.includes('is sharing'),'Remote participants must see presenter identity without presenter-only toolbar chrome.');
 assert(!peer.includes('Share paused')&&!peer.includes('share paused'),'Remote share transport must not reveal presenter-only Pause state; viewers keep the frozen frame silently.');
 assert(css.includes('.remote-share-banner')&&css.includes('.remote-share-dot'),'Remote share identity must ship with dedicated viewer styling.');
+assert(css.includes('.remote-share-pending #remoteShareVideo{display:block;visibility:hidden}')&&css.includes('.remote-share-active #remoteShareVideo{display:block;visibility:visible}'),'Viewer must hide pending remote Share until the first decoded frame is ready.');
 assert(peer.includes('active-speaker')&&peer.includes('createAnalyser()'),'Active-speaker detection must use the remote audio signal.');
 assert(peer.includes("window.DominionMediaController?.onChange")&&peer.includes("window.DominionShareController?.onChange"),'Camera/mic/share track changes must propagate to existing peers.');
 assert(media.includes("script.src='./webrtc-controller.js'"),'Media authority must load the isolated peer controller.');
