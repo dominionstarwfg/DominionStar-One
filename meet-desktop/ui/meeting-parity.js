@@ -260,6 +260,7 @@
     all.forEach((tile,index)=>{tile.classList.remove('panel-single-featured','panel-single-hidden','panel-page-start');if(mode==='gallery'&&index>0&&index%5===0)tile.classList.add('panel-page-start');});
     if(mode==='speaker'){
       const featured=(spotlightParticipantIds[0]?all.find(tile=>String(tile.dataset.participantId||tile.dataset.peerId||'')===String(spotlightParticipantIds[0])):null)
+        ||all.find(tile=>tile.dataset.sharing==='1')
         ||all.find(tile=>tile.classList.contains('active-speaker'))
         ||all.find(tile=>!tile.classList.contains('stage-promoted'))
         ||all[0]||null;
@@ -284,6 +285,11 @@
     const panelAllowed=readVideoPanelVisible()&&(!share||window.DominionPreferences?.read?.('shareVideoDock')!==false);
     if(!panelAllowed){dock.hidden=true;syncShareLayout();return;}
     if(share){
+      const activeStage=ensureActiveSpeakerStage(),fallbackStage=ensureActiveSpeakerFallback();
+      if(activeStage){activeStage.hidden=true;activeStage.srcObject=null;}
+      if(fallbackStage){fallbackStage.hidden=true;delete fallbackStage.dataset.peerId;}
+      q('#meetingOverlay')?.classList.remove('remote-speaker-stage');
+      qa('#remoteTileStrip .remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'));
       const shareTiles=qa('#participantVideoDock .remote-peer-tile').filter(tile=>!tile.hidden);
       syncVideoPanelMode(dock,shareTiles);dock.dataset.count=String(Math.min(shareTiles.length,5));dock.classList.toggle('dock-empty',shareTiles.length===0);dock.hidden=shareTiles.length===0;syncShareLayout();return;
     }
@@ -373,6 +379,7 @@
   });
   window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.slice(0,4):[];syncVideoDock();});
   window.addEventListener('dominion:remote-media-state',syncDockTileActions,true);
+  window.addEventListener('dominion:remote-share-state',()=>syncVideoDock(),true);
   media()?.onChange?.(()=>syncDockTileActions());
   window.addEventListener('dominion:meeting-ui-ready',()=>{install();scheduleParityRefresh();});
   window.addEventListener('dominion:meeting-snapshot',scheduleParityRefresh);

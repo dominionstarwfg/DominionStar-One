@@ -130,6 +130,9 @@ requireText(controller,"typeof MediaStreamTrackProcessor==='function'",'Pause mu
 requireText(controller,'context.drawImage(captured.source,0,0,captured.width,captured.height)','Pause must draw the captured display frame into the frozen stream.');
 requireText(controller,'canvas.captureStream(1)','Pause must transmit a frozen frame rather than black video.');
 requireText(controller,'stopTracks(state.liveStream)','Stop Share must release capture tracks.');
+requireText(controller,'async function waitForRenderableShareFrame(stream,timeoutMs=3200)','Mac share activation must require a decoded capture frame, not only a live track object.');
+requireText(controller,'await waitForRenderableShareFrame(stream,3200)','The isolated Mac capture bridge must prove a renderable frame before marking Share active.');
+requireText(controller,"catch(error){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw error;}",'A Mac capture with no renderable frame must fail closed and stop the isolated capture worker.');
 requireText(controller,'async function replaceSource','New Share must remain transactional.');
 requireText(annotation,'setAnnotationCanvas','Annotation must remain connected to the single ShareController.');
 requireText(annotation,'drawLaser','Laser pointer support is missing.');
