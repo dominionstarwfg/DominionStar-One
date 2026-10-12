@@ -360,6 +360,11 @@
     const inRoom=!q('#meetingOverlay')?.hidden;const context=await meeting.context().catch(()=>({}));
     if(inRoom&&context?.state==='joined'&&!state.running&&Date.now()>=state.nextStartAttemptAt)void start();
     if((!inRoom||!context?.roomId)&&state.running)void stop();
+    else if((!inRoom||!context?.roomId)&&!state.running&&state.context){
+      state.context=null;state.participants.clear();state.remoteMedia.clear();state.remoteShareToken+=1;
+      clearTimeout(state.timers.remoteShareFrame);state.timers.remoteShareFrame=0;
+      document.body.classList.remove('remote-share-active','remote-share-pending');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();hideRecovery();
+    }
   }
   setInterval(()=>void lifecycleProbe(),500);
   const api=Object.freeze({start,stop,recoverNetwork,touchPresence,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayExpiresAt:state.iceExpiresAtMs})});
