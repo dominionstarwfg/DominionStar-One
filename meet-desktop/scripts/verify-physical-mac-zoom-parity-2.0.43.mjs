@@ -465,12 +465,14 @@ assert(presenterPreload.includes("setToolbarHidden:hidden=>invoke('mac-share:too
 assert(macPresenter.includes('focusable:true,alwaysOnTop:true')&&macVideoJs.includes("window.addEventListener('blur',closeMenu)"),'Floating video options must close through normal focus loss instead of requiring the ellipsis button again.');
 assert(integration.includes("if(command==='stop'){clearCompanion();await share.stop();return {handled:true,command};}")&&!integration.includes("await share.stop();applyLayout();return {handled:true,command};"),'Stop Share must use one local-first state transition and rely on the synchronous share-state listener to restore meeting chrome.');
 assert(
-  integration.includes('if(sameRendererPresenter&&state.active){')&&
-  integration.includes('return;')&&
+  integration.includes("const macShowMeeting=sameRendererPresenter&&state.active&&document.body.dataset.dsMacMeetingVisible==='1';")&&
+  integration.includes('if(sameRendererPresenter&&state.active&&!macShowMeeting){')&&
+  integration.includes('if(macShowMeeting){')&&
+  integration.includes('window.DominionMeetingParity?.syncVideoDock?.();')&&
   integration.includes('function publishMacPresenterState(){')&&
   integration.includes('if(sameRendererPresenter)publishMacPresenterState();else applyLayout();')&&
   integration.includes('media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter){publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});'),
-  'Active Mac sharing must bypass meeting share-layout reconciliation while publishing presenter state and bounded remote-tile mirror updates.'
+  'Hidden Mac presenter mode must bypass meeting layout reconciliation, while explicit Show Meeting restores normal meeting-stage authority without mirroring the self-share stream.'
 );
 assert(macToolbarHtml.includes('id="layoutButton"')&&macToolbarHtml.includes('data-command="show-meeting"><span class="glyph"')&&!macToolbarHtml.includes('<button type="button" data-command="show-meeting">Show meeting</button>'),'Presenter strip must expose Layout and Show meeting as primary reference controls without duplicate secondary entries.');
 assert(shareService.indexOf('closePicker();\n    if(platform===\'darwin\')parkMacMeetingWindow({preCapture:true});')>=0,'The share chooser must disappear before the Mac meeting window is parked for capture.');
