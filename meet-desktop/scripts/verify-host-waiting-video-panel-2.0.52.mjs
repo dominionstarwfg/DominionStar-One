@@ -5,6 +5,7 @@ const assert=(condition,message)=>{if(!condition)throw new Error(message)};
 const pkg=JSON.parse(read('package.json'));
 const parity=read('ui/meeting-parity.js');
 const parityCss=read('ui/meeting-parity.css');
+const runtimeCss=read('ui/runtime-stability.css');
 const hostTools=read('ui/zoom-screenshot-reference-2.0.41.js');
 const service=read('src/meeting-service.mjs');
 const av=read('ui/av-settings.js');
@@ -16,6 +17,9 @@ assert(parityCss.includes('Keep five tiles')&&parityCss.includes('width:176px!im
 assert(parityCss.includes('max-height:515px!important')&&parityCss.includes('overflow-y:auto!important'),'video panel no longer owns five-tile internal scrolling');
 assert(parity.includes('Math.min(shareTiles.length,5)')&&parity.includes('Math.min(count,5)')&&parity.includes('for(let i=1;i<=5;i++)'),'video panel runtime count is not capped to five');
 assert(!parity.includes('Math.min(shareTiles.length,9)')&&!parity.includes('Math.min(count,9)'),'legacy nine-tile runtime count remains');
+assert(parityCss.includes('.stage>#remoteMediaLayer{position:absolute!important;inset:0!important')&&parityCss.includes('.stage>#remoteMediaLayer>#remoteShareVideo{object-fit:contain!important'),'remote share video must fill the stage through its real nested remote-media-layer owner');
+assert(runtimeCss.includes('#meetingOverlay .stage>#remoteMediaLayer{')&&runtimeCss.includes('#meetingOverlay .stage>#remoteMediaLayer>#remoteShareVideo{'),'final runtime CSS must preserve nested remote-share full-stage geometry');
+assert(parity.includes("const sharingPeer=String(q('#remoteShareVideo')?.dataset.peerId||'')")&&parity.includes("sharingPeer?all.find(tile=>String(tile.dataset.participantId||tile.dataset.peerId||'')===sharingPeer):null")&&parity.includes("all.find(tile=>!dockTileSelf(tile)&&!tile.classList.contains('stage-promoted'))"),'speaker/minimized video mode must prefer the remote sharer or another remote participant before self-view');
 
 assert(service.includes("meet_v2_set_waiting_room"),'desktop service does not call the waiting-room RPC');
 assert(hostTools.includes("waitingRoomEnabled:snap.waitingRoomEnabled!==false"),'Host Tools does not read live waiting-room state');
