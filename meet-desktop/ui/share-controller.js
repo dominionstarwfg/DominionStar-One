@@ -36,6 +36,30 @@
   };
   const stopTracks=stream=>{for(const track of stream?.getTracks?.()||[]){if(track.readyState!=='ended'){try{track.stop();}catch{}}}};
   const baseOutputStream=()=>state.paused&&state.frozenStream?state.frozenStream:state.liveStream;
+  async function waitForRenderableShareFrame(stream,timeoutMs=3200){
+    const deadline=Date.now()+Math.max(800,Number(timeoutMs)||3200);
+    while(Date.now()<deadline&&!stream?.getVideoTracks?.().some(track=>track.readyState==='live'))await new Promise(resolve=>setTimeout(resolve,40));
+    const track=stream?.getVideoTracks?.()[0];
+    if(!track||track.readyState!=='live')throw new Error('Screen capture video track did not become live.');
+    const video=document.createElement('video');video.autoplay=true;video.muted=true;video.playsInline=true;video.style.cssText='position:fixed;left:-8px;top:-8px;width:2px;height:2px;opacity:.001;pointer-events:none';document.body.append(video);video.srcObject=stream;
+    try{
+      await video.play().catch(()=>{});
+      while(Date.now()<deadline){
+        if(video.readyState>=2&&video.videoWidth>1&&video.videoHeight>1){
+          if(typeof video.requestVideoFrameCallback==='function'){
+            const remaining=Math.max(120,Math.min(700,deadline-Date.now()));
+            const framed=await Promise.race([
+              new Promise(resolve=>video.requestVideoFrameCallback(()=>resolve(true))),
+              new Promise(resolve=>setTimeout(()=>resolve(false),remaining))
+            ]);
+            if(framed)return {width:video.videoWidth,height:video.videoHeight};
+          }else return {width:video.videoWidth,height:video.videoHeight};
+        }
+        await new Promise(resolve=>setTimeout(resolve,40));
+      }
+      throw new Error('Screen capture started without a renderable video frame.');
+    }finally{try{video.pause();}catch{}video.srcObject=null;video.remove();}
+  }
 
   function stopComposite(){cancelAnimationFrame(state.compositeRaf);state.compositeRaf=0;stopTracks(state.compositeStream);state.compositeStream=null;state.compositeCanvas=null;if(state.compositeVideo){state.compositeVideo.pause?.();state.compositeVideo.srcObject=null;state.compositeVideo.remove?.();state.compositeVideo=null;}}
   function compositeFrame(){
@@ -82,6 +106,7 @@
     if(!started?.ok){disposeMacCaptureClient({stopWorker:false});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.')}
     const g=Number(started?.generation||0)||0;if(macCaptureSignalGeneration&&g&&g!==macCaptureSignalGeneration){disposeMacCaptureClient({stopWorker:true});throw new Error('Mac capture bridge generation mismatch.')}if(!macCaptureSignalGeneration)macCaptureSignalGeneration=g;
     if(options?.__qaReturnBeforeWorkerActivate){console.error('QA_CAPTURE_RETURN_BEFORE_WORKER_ACTIVATE');return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}}}
+    if(!options?.__qaLifecycleOnlyWorker)await waitForRenderableShareFrame(stream,3200);
     macWorkerActive=true;if(generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw new DOMException('Screen share request was replaced.','AbortError')}
     return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}};
   }
