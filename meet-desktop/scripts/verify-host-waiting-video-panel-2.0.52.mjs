@@ -58,5 +58,21 @@ assert(
   webrtc.includes("state.participantSignature=''"),
   'WebRTC participant reconciliation must emit only on remote participant-set changes and reset on meeting end'
 );
+{
+  const showStart=webrtc.indexOf('function showRemoteShare');
+  const hideStart=webrtc.indexOf('function hideRemoteShare');
+  const showBlock=webrtc.slice(showStart,hideStart);
+  const hideBlock=webrtc.slice(hideStart,webrtc.indexOf('async function routeAudioElement',hideStart));
+  assert(
+    showBlock.indexOf("document.body.classList.add('remote-share-active')")>=0 &&
+    showBlock.indexOf("document.body.classList.add('remote-share-active')")<showBlock.indexOf("emitRemoteShareState(id,true)"),
+    'remote share activation must commit before the layout notification'
+  );
+  assert(
+    hideBlock.indexOf("document.body.classList.remove('remote-share-active')")>=0 &&
+    hideBlock.indexOf("document.body.classList.remove('remote-share-active')")<hideBlock.indexOf("emitRemoteShareState(id,false)"),
+    'remote share deactivation must commit before the layout notification'
+  );
+}
 
 console.log('PASS Meet 2.0.52 host waiting-room + five-tile video panel + participant A/V parity');
