@@ -63,6 +63,7 @@ assert(peer.includes('playRemoteAudio')&&peer.includes('audio.srcObject=stream')
 assert(peer.includes('audio.setSinkId')&&peer.includes('speakerId'),'Selected speaker routing must be honored where supported.');
 assert(peer.includes('showRemoteCamera')&&peer.includes('showRemoteShare'),'Remote camera and shared content must render independently.');
 assert(peer.includes('function syncParticipantPresence(snapshot={})')&&peer.includes("window.addEventListener('dominion:meeting-snapshot',event=>syncParticipantPresence(event.detail||{}))"),'Roster presence must create remote fallback tiles independently of WebRTC connection timing.');
+assert(peer.includes("else if((!inRoom||!context?.roomId)&&!state.running&&state.context)")&&peer.includes("document.body.classList.remove('remote-share-active','remote-share-pending')"),'Presence-only media UI must be torn down when a meeting closes before WebRTC becomes active.');
 assert(peer.includes('function activateRemoteShareFrame(id,stream,token)')&&peer.includes('video.videoWidth>1&&video.videoHeight>1')&&peer.includes("document.body.classList.add('remote-share-pending')"),'Remote Share must remain pending until the viewer decodes a real video frame.');
 assert(peer.includes("showRecovery('Shared content is reconnecting…'")&&peer.includes('void recoverNetwork();'),'Remote Share with no decoded frame must trigger bounded media-path recovery.');
 assert(peer.includes('remoteShareBanner')&&peer.includes('is sharing'),'Remote participants must see presenter identity without presenter-only toolbar chrome.');
