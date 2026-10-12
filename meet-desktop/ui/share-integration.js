@@ -185,6 +185,7 @@
       const state=share.snapshot(),mediaState=media.snapshot();
       const macShowMeeting=sameRendererPresenter&&state.active&&document.body.dataset.dsMacMeetingVisible==='1';
       if(sameRendererPresenter&&state.active&&!macShowMeeting){
+        stage.style.removeProperty('display');
         // Native macOS presenter mode is visually independent from the meeting
         // renderer. This class is the authoritative signal used by all later
         // reconciliation layers so none of them can recreate a second share
@@ -215,12 +216,22 @@
         const meetingShell=overlay.querySelector('.meeting-shell');
         const meetingBody=overlay.querySelector('.meeting-body');
         const meetingStage=overlay.querySelector('.stage');
-        for(const node of [meetingShell,meetingBody,meetingStage]){
+        for(const node of [meetingShell,meetingBody]){
           if(!node)continue;
           node.style.removeProperty('display');
           node.style.removeProperty('visibility');
           node.style.removeProperty('opacity');
           node.style.removeProperty('pointer-events');
+        }
+        if(meetingStage){
+          // Show Meeting owns stage visibility while native capture continues.
+          // Other share reconciliation layers may still hide .stage because
+          // capture remains active; an explicit state-scoped inline authority
+          // prevents a black/empty meeting without changing approved geometry.
+          meetingStage.style.setProperty('display','grid','important');
+          meetingStage.style.removeProperty('visibility');
+          meetingStage.style.removeProperty('opacity');
+          meetingStage.style.removeProperty('pointer-events');
         }
         const localVideo=stage.querySelector('#localMeetingVideo');
         const localFallback=stage.querySelector('#stageFallback');
@@ -233,6 +244,7 @@
         return;
       }
       document.body.classList.remove('ds-native-mac-presenter-share');
+      stage.style.removeProperty('display');
       overlay.classList.toggle('share-active',state.active);
       // On macOS the share-owning renderer must not visibly mirror the
       // captured screen back into itself. That recursive compositor path can
