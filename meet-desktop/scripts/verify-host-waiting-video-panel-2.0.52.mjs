@@ -10,6 +10,7 @@ const service=read('src/meeting-service.mjs');
 const av=read('ui/av-settings.js');
 const app=read('ui/app.js');
 const webrtc=read('ui/webrtc-controller.js');
+const runtimeCss=read('ui/runtime-stability.css');
 
 assert(pkg.version==='2.0.52','package version is not 2.0.52');
 
@@ -43,6 +44,8 @@ assert(webrtc.includes('mirrorParticipantSnapshot(await meeting.snapshot(context
 assert(webrtc.includes("window.addEventListener('dominion:meeting-snapshot'")&&webrtc.includes('mirrorParticipantSnapshot(event.detail||{},state.context.participantId)'),'live meeting snapshots must keep the remote video fallback tiles synchronized');
 assert(webrtc.includes('<video autoplay playsinline hidden></video>'),'remote participant tiles must begin with a visible identity fallback instead of an empty video surface');
 assert(webrtc.includes("window.DominionMeetingParity?.syncVideoDock?.();"),'snapshot tile mirroring must immediately reconcile the approved filmstrip');
+assert(runtimeCss.includes('grid-template-columns:30px minmax(0,1fr) 36px 24px!important')&&runtimeCss.includes('width:36px!important')&&runtimeCss.includes('font-size:11.5px!important'),'participant rows must reserve enough width for full identity plus inline Host/me metadata before media/action chrome');
+assert(runtimeCss.includes('#meetingOverlay #participantVideoDock .participant-video-resize')&&runtimeCss.includes('opacity:0!important')&&runtimeCss.includes('cursor:nwse-resize!important'),'video resize must keep an invisible hit target without painting the rejected white corner artifact');
 
 
 console.log('PASS Meet 2.0.52 host waiting-room + five-tile video panel + participant A/V parity');
