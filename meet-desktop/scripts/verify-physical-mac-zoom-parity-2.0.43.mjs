@@ -622,4 +622,14 @@ assert(
   'Physical reference geometry must preserve the compact sharing strip, persistent green status bar, localized toolbar reveal zone with top clearance, approved five-tile participant-strip scale, readable 184px annotation rail, and live laser pointer.'
 );
 
+assert(
+  shareService.includes("document.body.dataset.dsMacMeetingVisible='1'")&&
+  shareService.includes("window.DominionShareIntegration?.sync?.()")&&
+  integration.includes("const macShowMeeting=sameRendererPresenter&&state.active&&document.body.dataset.dsMacMeetingVisible==='1';")&&
+  integration.includes("overlay.classList.remove('share-active','ds-ref-presenter-visible');")&&
+  integration.includes("sharedVideo.hidden=true;")&&
+  integration.includes("window.DominionMeetingParity?.syncVideoDock?.();")&&
+  integration.includes("sync:applyLayout"),
+  'Mac Show Meeting must restore the real meeting stage while suppressing recursive self-share video; a black share-active stage is not acceptable.'
+);
 console.log('DOMINIONSTAR_PHYSICAL_MAC_PARITY_2_0_50_OK detached-capture-worker acknowledged-presenter-dispatch explicit-av-targets native-toolbar-autohide hidden-meeting-renderer synchronized-media-ui approved-five-tile-share-strip simple-fullscreen-perimeter raw-low-latency-smoothed-annotation capture-excluded-meeting deterministic-presenter-teardown single-off-strike stable-right-panels mac-panel-controls canonical-participant-row');
