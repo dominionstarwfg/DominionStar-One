@@ -4,6 +4,8 @@
   const participants=()=>window.DominionParticipantControls||null;
   const meeting=()=>window.dominionDesktop?.meeting||null;
   const prefs=()=>window.DominionPreferences||null;
+  const normalizedMeetingRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace(/[-\s]/g,'');
+  const canManageMeeting=()=>['host','cohost'].includes(normalizedMeetingRole());
   let syncQueued=false,presenterTimer=0,notesDialog=null,hostPanel=null,participantBulkMenu=null,participantInviteMenu=null,meetingMoreMenu=null,transientEpoch=0;
 
   const sym=Object.freeze({plus:'＋',bell:'♧',calendar:'▣',record:'◉',captions:'CC',breakout:'▦',polls:'▥',docs:'▤',whiteboard:'▱',apps:'⌘',info:'ⓘ',transfer:'⇥',settings:'⚙'});
@@ -96,7 +98,7 @@
       q('.ds-ref-share-banner')?.remove();
     }
   }
-  function syncMeetingLabels(){const overlay=q('#meetingOverlay');if(!overlay||overlay.hidden){document.body.classList.remove('ds-in-meeting','ds-share-active');closeHostPanel();closeMeetingMore();closeParticipantBulk();return;}document.body.classList.add('ds-in-meeting');ensureCoreMeetingControls();syncParticipantVisibility();setVisibleLabel(q('#roomMic'),'Audio');setVisibleLabel(q('#roomCamera'),'Video');setVisibleLabel(q('#roomParticipants'),'Participants');setVisibleLabel(q('#roomChat'),'Chat');setVisibleLabel(q('#roomReactions'),'React');setVisibleLabel(q('#roomRaiseHand'),q('#roomRaiseHand')?.getAttribute('aria-pressed')==='true'?'Lower hand':'Raise hand');setVisibleLabel(q('#roomShare'),'Share');setVisibleLabel(q('#roomHostTools'),'Host tools');setVisibleLabel(q('#roomMore'),'More');setVisibleLabel(q('#roomExitButton'),'End');const count=qa('#participantRoster [data-participant-id]').length||1;if(q('#roomParticipants'))q('#roomParticipants').dataset.dsRefCount=String(count);ensureMeetingHead();bindPrimaryToolbar();ensureParticipantsFooter();syncPresenter();}
+  function syncMeetingLabels(){const overlay=q('#meetingOverlay');if(!overlay||overlay.hidden){document.body.classList.remove('ds-in-meeting','ds-share-active');closeHostPanel();closeMeetingMore();closeParticipantBulk();return;}document.body.classList.add('ds-in-meeting');ensureCoreMeetingControls();syncParticipantVisibility();setVisibleLabel(q('#roomMic'),'Audio');setVisibleLabel(q('#roomCamera'),'Video');setVisibleLabel(q('#roomParticipants'),'Participants');setVisibleLabel(q('#roomChat'),'Chat');setVisibleLabel(q('#roomReactions'),'React');setVisibleLabel(q('#roomRaiseHand'),q('#roomRaiseHand')?.getAttribute('aria-pressed')==='true'?'Lower hand':'Raise hand');setVisibleLabel(q('#roomShare'),'Share');setVisibleLabel(q('#roomHostTools'),'Host tools');setVisibleLabel(q('#roomMore'),'More');setVisibleLabel(q('#roomExitButton'),canManageMeeting()?'End':'Leave');const count=qa('#participantRoster [data-participant-id]').length||1;if(q('#roomParticipants'))q('#roomParticipants').dataset.dsRefCount=String(count);ensureMeetingHead();bindPrimaryToolbar();ensureParticipantsFooter();syncPresenter();}
 
   function closeParticipantInvite(){participantInviteMenu?.remove();participantInviteMenu=null;}
   async function copyParticipantInvite(text){
@@ -122,19 +124,35 @@
     side.querySelector('.zoom-participant-footer')?.remove();
     const count=qa('#participantRoster [data-participant-id]').length||1;
     const head=side.querySelector('.room-side-head');if(head){const strong=head.querySelector('strong');if(strong)strong.textContent=`Participants (${count})`;}
-    let footer=side.querySelector('.ds-ref-participants-footer');if(footer)return;
-    footer=document.createElement('div');footer.className='ds-ref-participants-footer';
-    footer.innerHTML='<button type="button" data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more aria-label="More participant controls">More</button>';
+    const manager=canManageMeeting();
+    let footer=side.querySelector('.ds-ref-participants-footer');
+    if(footer&&footer.dataset.dsRoleMode===(manager?'manager':'participant'))return;
+    footer?.remove();
+    footer=document.createElement('div');footer.className='ds-ref-participants-footer';footer.dataset.dsRoleMode=manager?'manager':'participant';
+    footer.innerHTML=manager
+      ? '<button type="button" data-ref-invite>Invite</button><button type="button" data-ref-mute-all>Mute all</button><button type="button" data-ref-participant-more aria-label="More participant controls">More</button>'
+      : '<button type="button" data-ref-invite>Invite</button><button type="button" data-ref-unmute-me>Unmute me</button>';
     side.append(footer);
     footer.querySelector('[data-ref-invite]').onclick=event=>openParticipantInvite(event.currentTarget);
-    footer.querySelector('[data-ref-mute-all]').onclick=async event=>{
+    const unmute=footer.querySelector('[data-ref-unmute-me]');
+    if(unmute)unmute.onclick=async event=>{
+      const button=event.currentTarget;
+      const mic=q('#roomMic');
+      if(!mic){flashFooterButton(button,'Unavailable','Unmute me');return;}
+      const label=String(mic.querySelector('.ds-control-label')?.textContent||mic.textContent||'').trim();
+      if(/^unmute$/i.test(label)){mic.click();flashFooterButton(button,'Unmuted','Unmute me',900);}
+      else flashFooterButton(button,'Already unmuted','Unmute me',900);
+    };
+    const muteAll=footer.querySelector('[data-ref-mute-all]');
+    if(muteAll)muteAll.onclick=async event=>{
       const button=event.currentTarget;
       const result=await participants()?.sendAll?.('host:mute');
       if(result?.reason==='not_authorized')flashFooterButton(button,'Host only','Mute all');
       else if(result?.count===0)flashFooterButton(button,'No one to mute','Mute all');
       else flashFooterButton(button,'Muted','Mute all');
     };
-    footer.querySelector('[data-ref-participant-more]').onclick=event=>void openParticipantBulkMenu(event.currentTarget);
+    const more=footer.querySelector('[data-ref-participant-more]');
+    if(more)more.onclick=event=>void openParticipantBulkMenu(event.currentTarget);
   }
   function bumpTransientEpoch(){transientEpoch=(transientEpoch+1)%1000000;return transientEpoch;}
   function closeParticipantBulk(){participantBulkMenu?.remove();participantBulkMenu=null;}
