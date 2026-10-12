@@ -200,10 +200,11 @@
       }
       if(macShowMeeting){
         // Show Meeting is a real meeting view, not a self-share mirror. Keep
-        // recursive shared content suppressed, restore the ordinary meeting
-        // stage, and let normal speaker/video authority populate that stage.
+        // recursive shared content suppressed and explicitly rehydrate the
+        // ordinary meeting stage that presenter mode intentionally hid.
         document.body.classList.remove('ds-native-mac-presenter-share');
         document.body.classList.add('ds-native-mac-show-meeting');
+        overlay.hidden=false;
         overlay.classList.remove('share-active','ds-ref-presenter-visible');
         inlinePresenter.hidden=true;
         label.hidden=true;
@@ -211,8 +212,24 @@
         if(sharedVideo.srcObject)sharedVideo.srcObject=null;
         cameraTile.hidden=true;
         if(cameraTile.srcObject)cameraTile.srcObject=null;
+        const meetingShell=overlay.querySelector('.meeting-shell');
+        const meetingBody=overlay.querySelector('.meeting-body');
+        const meetingStage=overlay.querySelector('.stage');
+        for(const node of [meetingShell,meetingBody,meetingStage]){
+          if(!node)continue;
+          node.style.removeProperty('display');
+          node.style.removeProperty('visibility');
+          node.style.removeProperty('opacity');
+          node.style.removeProperty('pointer-events');
+        }
+        const localVideo=stage.querySelector('#localMeetingVideo');
+        const localFallback=stage.querySelector('#stageFallback');
+        const hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView'));
+        if(localVideo)localVideo.hidden=!mediaState.videoLive||hideSelf;
+        if(localFallback)localFallback.hidden=mediaState.videoLive&&!hideSelf;
         window.DominionMeetingParity?.syncVideoDock?.();
         window.DominionRuntimeStability?.syncVideoDockGeometry?.();
+        window.DominionZoomScreenshotReference?.requestSync?.();
         return;
       }
       document.body.classList.remove('ds-native-mac-presenter-share');
