@@ -16,6 +16,8 @@ assert(parityCss.includes('Keep five tiles')&&parityCss.includes('width:176px!im
 assert(parityCss.includes('max-height:515px!important')&&parityCss.includes('overflow-y:auto!important'),'video panel no longer owns five-tile internal scrolling');
 assert(parity.includes('Math.min(shareTiles.length,5)')&&parity.includes('Math.min(count,5)')&&parity.includes('for(let i=1;i<=5;i++)'),'video panel runtime count is not capped to five');
 assert(!parity.includes('Math.min(shareTiles.length,9)')&&!parity.includes('Math.min(count,9)'),'legacy nine-tile runtime count remains');
+assert(parity.includes("all.find(tile=>tile.dataset.sharing==='1')"),'Single-speaker panel mode must prioritize the remote participant who is actively sharing.');
+assert(parity.includes("window.addEventListener('dominion:remote-share-state',()=>syncVideoDock(),true)"),'Video panel must resync immediately when remote share ownership changes.');
 assert(
   parity.includes("if(share){") &&
   parity.includes("qa('#remoteTileStrip .remote-peer-tile.stage-promoted').forEach(tile=>tile.classList.remove('stage-promoted'))") &&
