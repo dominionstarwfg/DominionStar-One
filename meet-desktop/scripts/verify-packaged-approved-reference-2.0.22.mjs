@@ -199,6 +199,18 @@ try{
   assert.equal(remoteCameraOnState.localHidden,false,'Self view must remain available in the right strip while the remote participant is on stage.');
   assert.match(remoteCameraOnState.activeBorder,/53\D+208\D+127/,'Real remote active speaker must retain the approved #35d07f green filmstrip emphasis.');
 
+  // Regression from physical Mac testing: a participant promoted to the main
+  // Speaker stage before Share must return to the right filmstrip when Share starts.
+  const shareTransitionState=await evaluate(`(()=>{const parity=window.DominionMeetingParity,overlay=document.querySelector('#meetingOverlay'),dock=document.querySelector('#participantVideoDock'),remote=document.querySelector('#remoteTileStrip [data-peer-id="peer-approved-camera"]'),local=dock?.querySelector('#localVideoDockTile');localStorage.setItem('ds_meet_video_panel_mode_v2','strip');parity.applyViewMode('speaker');parity.syncVideoDock();const beforePromoted=Boolean(remote?.classList.contains('stage-promoted'));overlay.classList.add('share-active');parity.syncVideoDock();const remoteStyle=remote?getComputedStyle(remote):null,active=document.querySelector('#remoteActiveSpeakerStage'),fallback=document.querySelector('#remoteActiveSpeakerFallback');const visibleTiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&getComputedStyle(tile).display!=='none'&&!tile.classList.contains('panel-single-hidden'));const result={beforePromoted,afterPromoted:Boolean(remote?.classList.contains('stage-promoted')),remoteVisible:Boolean(remote&&!remote.hidden&&remoteStyle?.display!=='none'&&!remote.classList.contains('panel-single-hidden')),localVisible:Boolean(local&&!local.hidden&&getComputedStyle(local).display!=='none'),visibleCount:visibleTiles.length,remoteSpeakerClass:overlay.classList.contains('remote-speaker-stage'),activeHidden:Boolean(active?.hidden),fallbackHidden:Boolean(fallback?.hidden)};overlay.classList.remove('share-active');parity.syncVideoDock();return result;})()`);
+  assert.equal(shareTransitionState.beforePromoted,true,'Regression fixture must begin with the sole remote participant promoted to Speaker stage.');
+  assert.equal(shareTransitionState.afterPromoted,false,'Starting Share must clear stale stage-promoted state from the remote participant.');
+  assert.equal(shareTransitionState.remoteVisible,true,`Remote participant must return to the right filmstrip when Share starts. ${JSON.stringify(shareTransitionState)}`);
+  assert.equal(shareTransitionState.localVisible,true,'Self view must remain available in the sharing filmstrip.');
+  assert.ok(shareTransitionState.visibleCount>=2,`Two-person Share must expose both self and remote participant tiles in Strip mode. ${JSON.stringify(shareTransitionState)}`);
+  assert.equal(shareTransitionState.remoteSpeakerClass,false,'Share must retire the pre-share remote-speaker-stage state.');
+  assert.equal(shareTransitionState.activeHidden,true,'Share must hide the pre-share remote active-speaker video stage.');
+  assert.equal(shareTransitionState.fallbackHidden,true,'Share must hide the pre-share remote camera-off fallback stage.');
+
   // Final floating participant-video surface keeps whole-surface drag without a grip.
   // Keep the real two-person meeting state from the camera-on scenario above so
   // hover is certified against the same filmstrip the user actually receives.
