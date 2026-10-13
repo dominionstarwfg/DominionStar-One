@@ -5,7 +5,12 @@
   const meeting=()=>window.dominionDesktop?.meeting||null;
   const prefs=()=>window.DominionPreferences||null;
   const normalizedMeetingRole=()=>String(q('#roomRole')?.textContent||'').trim().toLowerCase().replace(/[-\s]/g,'');
-  const canManageMeeting=()=>['host','cohost'].includes(normalizedMeetingRole());
+  const canManageMeeting=()=>{
+    const authority=String(q('.meeting-footer')?.dataset.approvedRoleState||'').trim().toLowerCase();
+    if(authority==='manager')return true;
+    if(authority==='participant')return false;
+    return ['host','cohost'].includes(normalizedMeetingRole());
+  };
   let syncQueued=false,presenterTimer=0,notesDialog=null,hostPanel=null,participantBulkMenu=null,participantInviteMenu=null,meetingMoreMenu=null,transientEpoch=0;
 
   const sym=Object.freeze({plus:'＋',bell:'♧',calendar:'▣',record:'◉',captions:'CC',breakout:'▦',polls:'▥',docs:'▤',whiteboard:'▱',apps:'⌘',info:'ⓘ',transfer:'⇥',settings:'⚙'});
