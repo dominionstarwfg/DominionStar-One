@@ -187,6 +187,7 @@ try{
   await evaluateDiagnosed(`(()=>{
     document.querySelector('#appShell').hidden=true;
     const overlay=document.querySelector('#meetingOverlay');overlay.hidden=false;
+    const role=document.querySelector('#roomRole');if(role)role.textContent='Host';
     window.DominionMeetingParity.install();window.DominionMeetingFeatures.toggleChat(false);window.DominionApprovedReferenceParity.sync();window.DominionRuntimeStability.sync();window.DominionZoomScreenshotReference?.sync?.();
     return true;
   })()`,'meeting-entry transition');
