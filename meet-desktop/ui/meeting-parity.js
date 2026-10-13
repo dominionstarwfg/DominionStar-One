@@ -279,6 +279,10 @@
   function syncLocalDockTile(remotePromoted=false){const dock=ensureVideoDock(),tile=q('#localVideoDockTile');if(!dock||!tile)return;const snapshot=media()?.snapshot?.()||{},stream=media()?.stream?.()||null,hideSelf=Boolean(window.DominionPreferences?.read?.('hideSelfView')),should=Boolean(!hideSelf&&(sharing()||remotePromoted));tile.hidden=!should;const video=tile.querySelector('video'),fallback=tile.querySelector('.remote-peer-fallback');if(should&&snapshot.videoLive&&stream?.getVideoTracks?.().some(track=>track.readyState==='live')){if(video.srcObject!==stream)video.srcObject=stream;if(fallback)fallback.hidden=true;void video.play().catch(()=>{});}else{video.srcObject=null;if(fallback)fallback.hidden=!should;}}
   function syncVideoDock(){
     const dock=ensureVideoDock();if(!dock)return;const mode=readView(),share=sharing(),multiSpotlight=spotlightParticipantIds.length>1&&!share;
+    // A remote/local share owns the primary stage. Clear any speaker-stage
+    // promotion left from the pre-share speaker view before laying out the
+    // share filmstrip so stale stage authority cannot survive the transition.
+    if(share)syncActiveSpeakerStage();
     syncSpotlightTiles();syncDockTileActions();
     dock.classList.toggle('gallery-stage',mode==='gallery'&&!share&&!multiSpotlight);dock.classList.toggle('multi-speaker-stage',(mode==='multi'||multiSpotlight)&&!share);
     const panelAllowed=readVideoPanelVisible()&&(!share||window.DominionPreferences?.read?.('shareVideoDock')!==false);
