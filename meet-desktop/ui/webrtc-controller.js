@@ -238,7 +238,7 @@
   function createPeerRecord(remoteId){
     if(!validIceConfig())throw new Error('ice_configuration_unavailable');
     const pc=new RTCPeerConnection(iceConfiguration());
-    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
+    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
     state.peers.set(remoteId,record);ensureTile(remoteId);
     pc.onicecandidate=event=>{if(event.candidate)void meeting.sendSignal(remoteId,'ice',{candidate:event.candidate.toJSON?.()||event.candidate}).catch(()=>{});};
     pc.onicecandidateerror=()=>{if(pc.connectionState!=='connected')setTransportStatus('Network path retrying','warning');};
@@ -300,9 +300,30 @@
     return operation;
   }
   async function initiate(record,iceRestart=false){
-    if(record.makingOffer||record.pc.signalingState!=='stable')return;
-    prepareOfferer(record);await syncLocalTracks(record);record.makingOffer=true;
-    try{const offer=await record.pc.createOffer(iceRestart?{iceRestart:true}:undefined);await record.pc.setLocalDescription(offer);await meeting.sendSignal(record.id,'offer',{sdp:record.pc.localDescription});}finally{record.makingOffer=false;}
+    // Protect the entire async negotiation, including camera/effects setup.
+    // Merely receiving an SDP answer does not mean ICE is connected; a 900-ms
+    // participant refresh must not start a second offer in that interval.
+    if(record.makingOffer||record.offerPending||record.pc.signalingState!=='stable')return false;
+    if(record.negotiationStarted&&!iceRestart)return false;
+    record.makingOffer=true;
+    record.negotiationStarted=true;
+    try{
+      prepareOfferer(record);
+      await syncLocalTracks(record);
+      if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState!=='stable')return false;
+      const offer=await record.pc.createOffer(iceRestart?{iceRestart:true}:undefined);
+      await record.pc.setLocalDescription(offer);
+      record.offerPending=true;
+      await meeting.sendSignal(record.id,'offer',{sdp:record.pc.localDescription});
+      record.offersSent++;
+      return true;
+    }catch(error){
+      record.offerPending=false;
+      // Failed negotiation must be recovered by replacing the peer, not by
+      // immediately sending another offer over the half-open SDP state.
+      if(state.running&&state.peers.get(record.id)===record)scheduleReconnect(record,RECONNECT_MS);
+      throw error;
+    }finally{record.makingOffer=false;}
   }
   async function flushIce(record){if(!record.pc.remoteDescription)return;while(record.pendingIce.length){const candidate=record.pendingIce.shift();try{await record.pc.addIceCandidate(candidate);}catch{}}}
   function dispatchMeetingSignal(signal,remoteId){
@@ -319,7 +340,12 @@
       if(!payload.sdp)return;await record.pc.setRemoteDescription(payload.sdp);record.transceivers=record.pc.getTransceivers().slice(0,4);for(const lane of record.transceivers)if(lane?.direction==='recvonly')lane.direction='sendrecv';await syncLocalTracks(record);await flushIce(record);
       const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:record.pc.localDescription});return;
     }
-    if(signal.type==='answer'){if(payload.sdp){await record.pc.setRemoteDescription(payload.sdp);await flushIce(record);}return;}
+    if(signal.type==='answer'){
+      if(!payload.sdp||!record.offerPending||record.pc.signalingState!=='have-local-offer')return;
+      await record.pc.setRemoteDescription(payload.sdp);
+      record.offerPending=false;record.answersApplied++;
+      await flushIce(record);return;
+    }
     if(signal.type==='ice'&&payload.candidate){if(record.pc.remoteDescription)await record.pc.addIceCandidate(payload.candidate).catch(()=>{});else record.pendingIce.push(payload.candidate);}
   }
   function handleRemoteTrack(record,event){
@@ -414,7 +440,7 @@
           if(!id||id===state.context.participantId)continue;
           current.set(id,p);state.participants.set(id,p);updateTileIdentity(id);
           let peer;try{peer=ensurePeer(id);}catch{setTransportStatus('Network path unavailable','error');continue;}
-          if(isInitiator(id)&&peer.pc.signalingState==='stable'&&peer.pc.connectionState==='new')
+          if(isInitiator(id)&&!peer.negotiationStarted&&!peer.makingOffer&&peer.pc.signalingState==='stable'&&peer.pc.connectionState==='new')
             void initiate(peer).catch(()=>scheduleReconnect(peer,RECONNECT_MS));
         }
         for(const id of [...state.peers.keys()])if(!current.has(id))closePeer(id);
@@ -513,7 +539,7 @@
       }));
       peers.push({peerId:record.id,connectionState:record.pc.connectionState,
         iceConnectionState:record.pc.iceConnectionState,signalingState:record.pc.signalingState,
-        selectedPath:record.transport,lanes,reports});
+        selectedPath:record.transport,negotiation:{offerPending:record.offerPending,makingOffer:record.makingOffer,offersSent:record.offersSent,answersApplied:record.answersApplied},lanes,reports});
     }
     return {at:new Date().toISOString(),surface:desktop?.isBrowserMeet?'web':'desktop',running:state.running,networkOnline:state.networkOnline,ice:{provider:state.iceProvider,directOnly:state.qaDirectOnly,relayFailure:state.relayFailure},signaling:{processed:state.signalsProcessed,errors:state.signalingErrors,lastError:state.lastSignalError,pollInFlight:Boolean(state.signalPull),lastCursor:state.lastSignalId},
       shareCaptureTracks:stream?.getTracks?.().map(track=>({
