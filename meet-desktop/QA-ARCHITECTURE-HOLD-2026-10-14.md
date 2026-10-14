@@ -85,3 +85,17 @@ Changes are confined to `cleanup/meeting-ownership-audit-20261014`, **not produc
 - **Tests committed:** `scripts/verify-peer-negotiation-20261014.mjs` covers overlapping offers, post-answer polling, explicit ICE restart, duplicate startup guard, and cancelled startup. The cleanup npm script chains 3 focused checks. Independent execution of the committed test source: **41/41 structural assertions, both mock suites passing, and 8/8 edited browser JS syntax checks passing**.
 
 No physical recipient data, real frame transmission test, or video companion/participant UX acceptance has occurred. Continue to **block installers and merges**.
+
+## Phase 6: native companion camera ownership and stable frame composition (2026-10-14)
+
+**Confirmed defect:** `ui/mac-share-video.js` opened its own `navigator.mediaDevices.getUserMedia({audio:false,video})` capture, concurrently with the already-active camera `MediaStream` controlled by `ui/media-controller.js` in the meeting renderer. The separate BrowserWindow could independently restart/stop its camera even when the meeting camera was stable. Remote companion tiles also repeatedly changed JPEG `img.src` values.
+
+**Source-only cleanup committed:**
+- Remove native companion `getUserMedia`, restart timer and preview-stream ownership. Its self tile now uses the same authenticated camera stream already owned by the main meeting renderer.
+- In `ui/share-integration.js`, a hidden muted *consumer* video reuses `DominionMediaController.stream()`, without reacquiring any video device. Its frames are forwarded over the pre-existing presenter IPC message path using the same lifecycle as remote companion frames; the consumer detaches on share stop.
+- In `ui/mac-share-video.js`, each participant (including self) has a persistent 176×99 canvas. JPEG updates are decoded in a new offscreen `Image`, then drawn into the existing canvas without clearing the visible frame. A monotonically increasing `at` timestamp rejects out-of-order frames; an invalidation epoch prevents a late frame from reappearing after the camera turns off. Self mirroring is preserved.
+- Added `scripts/verify-companion-single-camera-20261014.mjs` to cleanup verification. Its mock exercises first frame, out-of-order image loads, camera-off clearing, stale-image invalidation and shared camera authority. **All four** source/mock suites pass with **45/45 structural checks** and **9/9 browser JavaScript syntax parses**.
+
+**Not a finished camera architecture:** the presenter IPC bridge still transports low-resolution (~192×108) JPEG snapshots at ~360ms intervals, not persistent RTP video. This is insufficient for accepted high-quality motion and remains a release blocker. The completed work strictly removes double capture and image-reset flashing; do not call it production-ready or distribute a Mac installer.
+
+**Next architecture gate:** replace low-rate JPEG forwarding in the native companion with a stable live video track or equivalent continuous, timestamped media stream; measure frame latency/drop/CPU and ensure camera off, rejoin, stop-share and end-meeting release the stream cleanly. Confirm screen-share RTP is genuinely decoded by the second client and that panel/participant controls match the approved interface.
