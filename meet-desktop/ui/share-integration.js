@@ -98,23 +98,61 @@
       }
       return list.slice(0,12);
     };
+    let companionLocalVideo=null;
+    const clearCompanionLocalVideo=()=>{
+      if(!companionLocalVideo)return;
+      try{companionLocalVideo.pause();companionLocalVideo.srcObject=null;companionLocalVideo.remove();}catch{}
+      companionLocalVideo=null;
+    };
+    const existingLocalCameraVideo=()=>{
+      const current=media.stream?.(),track=current?.getVideoTracks?.().find(item=>item.readyState==='live'&&item.enabled);
+      if(!media.snapshot().cameraOn||!track){clearCompanionLocalVideo();return null;}
+      if(!companionLocalVideo){
+        const video=document.createElement('video');
+        video.autoplay=true;video.muted=true;video.playsInline=true;
+        // This is a stream consumer, NOT another camera capture. Do not add
+        // a second getUserMedia() session in the floating native renderer.
+        Object.assign(video.style,{position:'fixed',left:'-10px',top:'-10px',width:'1px',height:'1px',opacity:'0',pointerEvents:'none'});
+        overlay.append(video);companionLocalVideo=video;
+      }
+      if(companionLocalVideo.srcObject!==current){
+        companionLocalVideo.srcObject=current;
+        void companionLocalVideo.play().catch(()=>{});
+      }
+      return companionLocalVideo;
+    };
+    const sendCompanionFrame=(video,id)=>{
+      if(!id||!video||video.readyState<2||!video.videoWidth||!video.videoHeight)return;
+      try{
+        frameContext.fillStyle='#111';frameContext.fillRect(0,0,frameCanvas.width,frameCanvas.height);
+        const sourceRatio=video.videoWidth/video.videoHeight,targetRatio=frameCanvas.width/frameCanvas.height;
+        let sx=0,sy=0,sw=video.videoWidth,sh=video.videoHeight;
+        if(sourceRatio>targetRatio){sw=Math.round(video.videoHeight*targetRatio);sx=Math.round((video.videoWidth-sw)/2);}
+        else if(sourceRatio<targetRatio){sh=Math.round(video.videoWidth/targetRatio);sy=Math.round((video.videoHeight-sh)/2);}
+        frameContext.drawImage(video,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
+        macPresenter.videoFrame({participantId:id,dataUrl:frameCanvas.toDataURL('image/jpeg',.52),at:Date.now()});
+      }catch{}
+    };
     const publishMacRemoteFrames=()=>{
       if(!sameRendererPresenter||!share.snapshot().active||!macPresenter?.videoFrame||!frameContext)return;
+      const roster=presenterParticipants();
+      // Reuse the meeting renderer's existing camera MediaStream for self.
+      const self=roster.find(person=>person.self);
+      if(self?.cameraOn)sendCompanionFrame(existingLocalCameraVideo(),self.participantId);
+      else clearCompanionLocalVideo();
       const remoteTiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile')];
       const seen=new Set();
       for(const tile of remoteTiles){
-        const id=String(tile.dataset.participantId||tile.dataset.peerId||'');if(!id||seen.has(id)||tile.dataset.cameraOn!=='1')continue;seen.add(id);
-        const video=tile.querySelector('video');if(!video||video.readyState<2||!video.videoWidth||!video.videoHeight)continue;
-        try{
-          frameContext.fillStyle='#111';frameContext.fillRect(0,0,frameCanvas.width,frameCanvas.height);
-          const sourceRatio=video.videoWidth/video.videoHeight,targetRatio=frameCanvas.width/frameCanvas.height;let sx=0,sy=0,sw=video.videoWidth,sh=video.videoHeight;
-          if(sourceRatio>targetRatio){sw=Math.round(video.videoHeight*targetRatio);sx=Math.round((video.videoWidth-sw)/2);}else if(sourceRatio<targetRatio){sh=Math.round(video.videoWidth/targetRatio);sy=Math.round((video.videoHeight-sh)/2);}
-          frameContext.drawImage(video,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
-          const dataUrl=frameCanvas.toDataURL('image/jpeg',.52);macPresenter.videoFrame({participantId:id,dataUrl,at:Date.now()});
-        }catch{}
+        const id=String(tile.dataset.participantId||tile.dataset.peerId||'');
+        if(!id||seen.has(id)||tile.dataset.cameraOn!=='1')continue;
+        seen.add(id);
+        sendCompanionFrame(tile.querySelector('video'),id);
       }
     };
-    const stopMacRemoteFramePump=()=>{if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}};
+    const stopMacRemoteFramePump=()=>{
+      if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}
+      clearCompanionLocalVideo();
+    };
     const syncMacCameraFramePump=()=>{
       if(!sameRendererPresenter||!share.snapshot().active){stopMacRemoteFramePump();return;}
       if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(()=>{publishMacRemoteFrames();publishMacPresenterState();},360);
