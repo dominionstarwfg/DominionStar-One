@@ -20,7 +20,7 @@
   function notice(title,copy){$('#foundationTitle').textContent=title;$('#foundationCopy').textContent=copy;const d=$('#foundationDialog');if(!d.open)d.showModal();}
   function setAvatar(node,user,short){
     if(!node)return;const url=String(user?.avatarUrl||'').trim();node.textContent='';
-    if(url){const img=document.createElement('img');img.src=url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{node.textContent=short;};node.append(img);node.classList.add('has-photo');}
+    if(url){const img=document.createElement('img');img.src=url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{if(img.parentElement===node){node.textContent=short;node.classList.remove('has-photo');}};node.append(img);node.classList.add('has-photo');}
     else{node.textContent=short;node.classList.remove('has-photo');}
   }
   function identity(user){const name=String(user?.name||'DominionStar Member'),email=String(user?.email||''),short=initials(name);$('#profileName').textContent=name;setAvatar($('#profileAvatar'),user,short);$('#profileDialogName').textContent=name;$('#profileDialogEmail').textContent=email||'DominionStar account';setAvatar($('#profileDialogAvatar'),user,short);const rank=String(user?.rank||'').trim();const profileStatus=document.querySelector('.profile-copy small');if(profileStatus)profileStatus.textContent=rank||'Available';const first=name.split(/\s+/)[0],hour=new Date().getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';if(first)$('#welcomeHeading').textContent=`${greeting}, ${first}`;}
