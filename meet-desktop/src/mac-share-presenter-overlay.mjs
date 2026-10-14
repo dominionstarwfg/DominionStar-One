@@ -128,10 +128,12 @@ if(process.platform==='darwin'){
     if(!isAlive(videoWindow))return;
     const display=isDisplayShare()?displayForSharedContent():displayForMain(),area=display.workArea||display.bounds;
     const participantCount=Math.max(1,Math.min(5,Array.isArray(shareState.participants)?shareState.participants.length:1));
-    let width=252,height=166;
-    if(videoLayout==='strip')height=Math.min(area.height-92,32+(participantCount*134)+Math.max(0,participantCount-1)*2);
-    else if(videoLayout==='gallery'){width=360;const visible=Math.min(4,participantCount),rows=Math.ceil(visible/2);height=Math.min(area.height-92,34+(rows*112)+Math.max(0,rows-1)*4);}
-    else if(videoLayout==='speaker'){width=268;height=166;}
+    // Same 176x99 participant tile contract as the meeting filmstrip.
+    // Reserve 31px for window controls, 10px padding and 5px between tiles.
+    let width=188,height=140;
+    if(videoLayout==='strip')height=Math.min(area.height-92,31+10+(participantCount*99)+Math.max(0,participantCount-1)*5);
+    else if(videoLayout==='gallery'){width=363;const visible=Math.min(5,participantCount),rows=Math.ceil(visible/2);height=Math.min(area.height-92,31+10+(rows*99)+Math.max(0,rows-1)*5);}
+    else if(videoLayout==='speaker'){width=188;height=140;}
     let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);
     if(preservePosition){
       try{const current=videoWindow.getBounds();x=Math.max(area.x+8,Math.min(current.x,area.x+area.width-width-8));y=Math.max(area.y+48,Math.min(current.y,area.y+area.height-height-8));}catch{}
