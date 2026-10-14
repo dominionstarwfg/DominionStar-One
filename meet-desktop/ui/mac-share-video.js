@@ -39,7 +39,10 @@
       const current=remoteFrames.get(id);
       if(current?.at!==frame.at||current?.dataUrl!==frame.dataUrl)return;
       const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return;
+      ctx.setTransform(1,0,0,1,0,0);
+      if(person.self&&mirrored){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
       ctx.drawImage(image,0,0,canvas.width,canvas.height);
+      ctx.setTransform(1,0,0,1,0,0);
       canvas.hidden=false;if(fallback)fallback.hidden=true;
     };
     image.onerror=()=>{};
