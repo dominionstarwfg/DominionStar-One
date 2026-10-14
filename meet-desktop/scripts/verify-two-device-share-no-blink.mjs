@@ -7,6 +7,7 @@ const reference=read('ui/zoom-screenshot-reference-2.0.41.js');
 const styles=read('ui/zoom-screenshot-reference-2.0.41.css');
 const participants=read('ui/zoom-participants-reference-2.0.41.js');
 const parity=read('ui/meeting-parity.css');
+const approvedFilmstrip=read('ui/approved-reference-parity.css');
 
 // Structural contract only. The actual two-device Mac acceptance gate must
 // still exercise host/guest screen-share delivery and filmstrip stability.
@@ -31,4 +32,5 @@ assert.ok(styles.includes('#meetingOverlay #roomParticipants{padding-left:1px!im
 assert.ok(participants.includes('width:318px!important')&&participants.includes('height:390px!important'),'approved participant window remains 318x390');
 assert.ok(participants.includes('height:42px!important'),'participant rows remain 42px');
 assert.ok(parity.includes('width:176px!important')&&parity.includes('height:99px!important'),'approved video tiles remain 176x99');
+assert.ok(approvedFilmstrip.includes('display:block !important;\n  vertical-align:top !important;\n  width:100% !important;\n  height:100% !important;'),'video must not contribute a changing inline baseline to the fixed-height filmstrip');
 console.log('PASS two-device remote share no-blink structural contract (physical acceptance still required)');
