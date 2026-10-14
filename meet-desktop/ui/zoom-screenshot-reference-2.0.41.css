@@ -222,4 +222,5 @@ body:not(.ds-local-speaking) #meetingOverlay #roomMic:not(.is-off) .ds-exec-icon
 /* Live participant count stays on the icon, without widening the approved toolbar. */
 #meetingOverlay #roomParticipants .ds-control-icon{position:relative!important;overflow:visible!important}
 #meetingOverlay #roomParticipants .ds-control-icon[data-participant-count]::after{content:attr(data-participant-count);position:absolute;right:-11px;top:-5px;min-width:14px;height:14px;padding:0 3px;box-sizing:border-box;display:grid;place-items:center;border-radius:8px;background:#e53950;color:#fff;font:700 9px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;pointer-events:none}
-#meetingOverlay #roomParticipants .ds-control-label{font-size:9px!important;letter-spacing:-.24px!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
+#meetingOverlay #roomParticipants{padding-left:1px!important;padding-right:1px!important}
+#meetingOverlay #roomParticipants .ds-control-label{font-size:11px!important;letter-spacing:-.24px!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
