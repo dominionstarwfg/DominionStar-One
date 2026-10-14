@@ -5,7 +5,7 @@
   if(!desktop?.isDesktop||!meeting?.context||!meeting?.sendSignal||!meeting?.pullSignals||!meeting?.iceConfig)return;
 
   const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800,ICE_RETRY_MS=30000,REFRESH_MARGIN_MS=10*60*1000;
-  const state={running:false,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,relayFailure:'',nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0,lastSpeakerSignature:'',generation:0,signalPull:null,snapshotPull:null,signalsProcessed:0,signalingErrors:0,lastSignalError:''};
+  const state={running:false,starting:false,startAttempt:0,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,relayFailure:'',nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0,lastSpeakerSignature:'',generation:0,signalPull:null,snapshotPull:null,signalsProcessed:0,signalingErrors:0,lastSignalError:''};
   const q=s=>document.querySelector(s);
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const initials=name=>String(name||'Participant').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'P';
@@ -487,18 +487,43 @@
   }
   async function syncAllSenders(){for(const record of state.peers.values()){try{await syncLocalTracks(record);}catch{}}const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(speakerId)for(const audio of document.querySelectorAll('#remoteAudioBin audio'))if(audio.setSinkId)void audio.setSinkId(speakerId).catch(()=>{});}
   async function start(){
-    if(state.running||Date.now()<state.nextStartAttemptAt)return;const context=await meeting.context();if(!context?.roomId||!context?.participantId||context.state!=='joined')return;
-    ensureUi();setTransportStatus('Preparing network…','pending');
-    try{await loadIceConfig(false);}catch{state.nextStartAttemptAt=Date.now()+ICE_RETRY_MS;setTransportStatus('Network relay unavailable','warning');return;}
-    state.running=true;state.generation+=1;state.context=context;state.lastSignalId=0;state.signalsProcessed=0;state.signalingErrors=0;state.lastSignalError='';state.lastSpeakerSignature='';state.nextStartAttemptAt=0;state.networkOnline=navigator.onLine!==false;state.recovering=false;state.systemSuspended=false;state.lastPresenceTouchAt=0;
-    state.mediaUnsub=window.DominionMediaController?.onChange?.(()=>void syncAllSenders());
-    state.shareUnsub=window.DominionShareController?.onChange?.(()=>void syncAllSenders());
-    state.effectsUnsub=window.DominionVideoEffects?.onChange?.(()=>void syncAllSenders());
-    state.powerUnsub=desktop.power?.onChanged?.(event=>void handlePowerEvent(event));
-    await touchPresence(true);await reconcileParticipants().catch(()=>{});await pullSignals();
-    state.timers.signals=setInterval(()=>void pullSignals(),POLL_MS);state.timers.snapshot=setInterval(()=>void reconcileParticipants(),SNAPSHOT_MS);state.timers.speaker=setInterval(sampleSpeakers,SPEAKER_MS);state.timers.diagnostics=setInterval(()=>void sampleTransports(),4000);
+    if(state.running||state.starting||Date.now()<state.nextStartAttemptAt)return;
+    state.starting=true;
+    const attempt=++state.startAttempt;
+    try{
+      const context=await meeting.context();
+      if(attempt!==state.startAttempt||!context?.roomId||!context?.participantId||context.state!=='joined'||q('#meetingOverlay')?.hidden)return;
+      ensureUi();setTransportStatus('Preparing network…','pending');
+      try{await loadIceConfig(false);}catch{
+        if(attempt===state.startAttempt){state.nextStartAttemptAt=Date.now()+ICE_RETRY_MS;setTransportStatus('Network relay unavailable','warning');}
+        return;
+      }
+      // The meeting can end while a TURN fetch is still in flight.
+      if(attempt!==state.startAttempt||q('#meetingOverlay')?.hidden)return;
+      state.running=true;state.generation+=1;state.context=context;
+      state.lastSignalId=0;state.signalsProcessed=0;state.signalingErrors=0;
+      state.lastSignalError='';state.lastSpeakerSignature='';state.nextStartAttemptAt=0;
+      state.networkOnline=navigator.onLine!==false;state.recovering=false;
+      state.systemSuspended=false;state.lastPresenceTouchAt=0;
+      state.mediaUnsub=window.DominionMediaController?.onChange?.(()=>void syncAllSenders());
+      state.shareUnsub=window.DominionShareController?.onChange?.(()=>void syncAllSenders());
+      state.effectsUnsub=window.DominionVideoEffects?.onChange?.(()=>void syncAllSenders());
+      state.powerUnsub=desktop.power?.onChanged?.(event=>void handlePowerEvent(event));
+      await touchPresence(true);
+      if(!state.running||attempt!==state.startAttempt)return;
+      await reconcileParticipants().catch(()=>{});
+      if(!state.running||attempt!==state.startAttempt)return;
+      await pullSignals();
+      if(!state.running||attempt!==state.startAttempt)return;
+      state.timers.signals=setInterval(()=>void pullSignals(),POLL_MS);
+      state.timers.snapshot=setInterval(()=>void reconcileParticipants(),SNAPSHOT_MS);
+      state.timers.speaker=setInterval(sampleSpeakers,SPEAKER_MS);
+      state.timers.diagnostics=setInterval(()=>void sampleTransports(),4000);
+    }finally{state.starting=false;}
   }
   async function stop(){
+    // Invalidate any pending meeting.context / TURN startup before teardown.
+    state.startAttempt++;
     if(!state.running){state.context=null;hideRecovery();return;}state.running=false;state.generation+=1;state.signalPull=null;state.snapshotPull=null;for(const key of Object.keys(state.timers)){clearInterval(state.timers[key]);clearTimeout(state.timers[key]);state.timers[key]=0;}state.mediaUnsub?.();state.shareUnsub?.();state.effectsUnsub?.();state.powerUnsub?.();state.mediaUnsub=null;state.shareUnsub=null;state.effectsUnsub=null;state.powerUnsub=null;
     for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.remoteMedia.clear();hideRecovery();state.context=null;state.lastSignalId=0;state.lastPresenceTouchAt=0;state.lastSpeakerSignature='';state.iceServers=[];state.iceExpiresAtMs=0;state.iceProvider='';state.qaDirectOnly=false;state.relayFailure='';document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();window.DominionVideoEffects?.clearTransientMeetingEffects?.();
   }
@@ -576,7 +601,7 @@
   }
   async function lifecycleProbe(){
     const inRoom=!q('#meetingOverlay')?.hidden;const context=await meeting.context().catch(()=>({}));
-    if(inRoom&&context?.state==='joined'&&!state.running&&Date.now()>=state.nextStartAttemptAt)void start();
+    if(inRoom&&context?.state==='joined'&&!state.running&&!state.starting&&Date.now()>=state.nextStartAttemptAt)void start();
     if((!inRoom||!context?.roomId)&&state.running)void stop();
   }
   setInterval(()=>void lifecycleProbe(),500);
