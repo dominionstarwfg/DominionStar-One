@@ -85,7 +85,7 @@
     // A native picker may succeed before the worker video track arrives. Do
     // not announce an active share with a null outbound screen sender.
     if(!options.__qaSyntheticWorker&&!options.__qaLifecycleOnlyWorker){
-      const ready=await waitForShareVideoTrack(5500);
+      const ready=await waitForShareVideoTrack(5500,true);
       if(!valid()||generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});throw new DOMException('Screen share request was replaced.','AbortError')}
       if(!ready||ready.readyState!=='live'){disposeMacCaptureClient({stopWorker:true});throw new Error('Screen capture started but no video track reached the meeting. Check Screen Recording permission or the capture worker connection.');}
     }
@@ -227,7 +227,7 @@
     }catch(error){console.warn('[DominionStar Meet] Presenter state publish failed.',error);}
   }
 
-  async function waitForShareVideoTrack(timeoutMs=1600){const started=Date.now();while(Date.now()-started<timeoutMs){const track=state.liveStream?.getVideoTracks?.()[0];if(track&&track.readyState==='live')return track;await new Promise(resolve=>setTimeout(resolve,40))}return state.liveStream?.getVideoTracks?.()[0]||null}
+  async function waitForShareVideoTrack(timeoutMs=1600,requireFrames=false){const started=Date.now();while(Date.now()-started<timeoutMs){const track=state.liveStream?.getVideoTracks?.()[0];if(track&&track.readyState==='live'&&(!requireFrames||!track.muted))return track;await new Promise(resolve=>setTimeout(resolve,40))}const fallback=state.liveStream?.getVideoTracks?.()[0]||null;return requireFrames?null:fallback}
   async function pause(videoElement){
     if(nativeMacCapture&&!macWorkerActive)return snapshot();if(state.paused)return snapshot();if(!state.liveStream?.getVideoTracks?.()[0])await waitForShareVideoTrack();
     if(!state.liveStream?.getVideoTracks?.()[0])throw new Error('Shared video is still connecting. Try Pause again.');
