@@ -212,7 +212,7 @@
   }
   window.addEventListener('offline',handleOffline);
   window.addEventListener('online',handleOnline);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&state.running&&navigator.onLine!==false)void recoverNetwork();});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!state.running||navigator.onLine===false)return;const needsRecovery=state.systemSuspended||[...state.peers.values()].some(record=>!['connected','connecting'].includes(record.pc.connectionState));if(needsRecovery)void recoverNetwork();});
 
   async function handlePowerEvent(event={}){
     const type=String(event.type||'');
