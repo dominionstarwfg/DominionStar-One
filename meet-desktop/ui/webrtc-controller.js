@@ -64,15 +64,68 @@
     const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);if(tile){tile.dataset.micOn=next.micOn?'1':'0';tile.dataset.cameraOn=next.cameraOn?'1':'0';}
     window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:key,...next}}));
   }
-  function showRemoteCamera(id,stream){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');const changed=video.srcObject!==stream||video.hidden;if(video.srcObject!==stream)video.srcObject=stream;video.hidden=false;tile.querySelector('.remote-peer-fallback').hidden=true;setRemoteMediaState(id,{cameraOn:true});if(changed||video.paused)void video.play().catch(()=>{});}
-  function hideRemoteCamera(id,ended=false){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');if(ended)video.srcObject=null;video.hidden=true;tile.querySelector('.remote-peer-fallback').hidden=false;setRemoteMediaState(id,{cameraOn:false});}
+  function showRemoteCamera(id,stream){
+    const tile=ensureTile(id);if(!tile)return;
+    const video=tile.querySelector('video'),fallback=tile.querySelector('.remote-peer-fallback');
+    const changed=video.srcObject!==stream;
+    if(changed)video.srcObject=stream;
+    // Muted preview playback is permitted without an audio-autoplay gesture.
+    // The microphone's actual sound is independently attached to <audio>.
+    video.muted=true;
+    const reveal=()=>{
+      if(video.srcObject!==stream||video.readyState<2||!video.videoWidth||!video.videoHeight)return;
+      video.hidden=false;if(fallback)fallback.hidden=true;
+      setRemoteMediaState(id,{cameraOn:true});
+    };
+    video.onloadeddata=reveal;video.onresize=reveal;
+    if(changed||video.paused)void video.play().then(reveal).catch(()=>setTileState(id,'Camera playback unavailable'));
+    reveal();
+  }
+  function hideRemoteCamera(id,ended=false){
+    const tile=ensureTile(id);if(!tile)return;
+    const video=tile.querySelector('video');video.onloadeddata=null;video.onresize=null;
+    if(ended)video.srcObject=null;
+    video.hidden=true;tile.querySelector('.remote-peer-fallback').hidden=false;
+    setRemoteMediaState(id,{cameraOn:false});
+  }
   function emitRemoteShareState(id,active){
     const key=String(id||'');if(!key)return;
-    const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);if(tile){const next=active?'1':'0';if(tile.dataset.sharing===next)return;tile.dataset.sharing=next;}
+    const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);
+    if(tile){const next=active?'1':'0';if(tile.dataset.sharing===next)return;tile.dataset.sharing=next;}
     window.dispatchEvent(new CustomEvent('dominion:remote-share-state',{detail:{participantId:key,active:Boolean(active)}}));
   }
-  function showRemoteShare(id,stream){ensureUi();const video=q('#remoteShareVideo'),banner=q('#remoteShareBanner');if(!video)return;const previous=String(video.dataset.peerId||'');if(previous&&previous!==String(id))emitRemoteShareState(previous,false);const changed=video.srcObject!==stream||video.hidden;if(video.srcObject!==stream)video.srcObject=stream;video.dataset.peerId=id;video.hidden=false;emitRemoteShareState(id,true);if(banner){banner.hidden=false;const label=banner.querySelector('strong');if(label)label.textContent=`${participantName(id)} is sharing`;}document.body.classList.add('remote-share-active');if(changed||video.paused)void video.play().catch(()=>{});}
-  function hideRemoteShare(id,ended=true){const video=q('#remoteShareVideo');if(!video||String(video.dataset.peerId||'')!==String(id))return;emitRemoteShareState(id,false);if(ended)video.srcObject=null;video.hidden=true;delete video.dataset.peerId;const banner=q('#remoteShareBanner');if(banner)banner.hidden=true;document.body.classList.remove('remote-share-active');}
+  function showRemoteShare(id,stream){
+    ensureUi();const video=q('#remoteShareVideo'),banner=q('#remoteShareBanner');
+    if(!video)return;
+    const key=String(id),previous=String(video.dataset.peerId||'');
+    if(previous&&previous!==key)emitRemoteShareState(previous,false);
+    const changed=video.srcObject!==stream||previous!==key;
+    if(video.srcObject!==stream)video.srcObject=stream;
+    video.muted=true;video.dataset.peerId=key;
+    // Receipt of ontrack/onunmute does not prove a displayed frame. Keep the
+    // existing stage intact until decoding produces non-zero dimensions.
+    if(changed){video.hidden=true;document.body.classList.remove('remote-share-active');if(banner)banner.hidden=true;}
+    const reveal=()=>{
+      if(String(video.dataset.peerId||'')!==key||video.srcObject!==stream)return;
+      if(video.readyState<2||!video.videoWidth||!video.videoHeight)return;
+      video.hidden=false;document.body.classList.add('remote-share-active');
+      emitRemoteShareState(key,true);
+      if(banner){banner.hidden=false;const label=banner.querySelector('strong');if(label)label.textContent=`${participantName(key)} is sharing`;}
+    };
+    video.onloadeddata=reveal;video.onresize=reveal;
+    if(changed||video.paused)void video.play().then(reveal).catch(()=>setTransportStatus('Shared video playback blocked','warning'));
+    reveal();
+  }
+  function hideRemoteShare(id,ended=true){
+    const video=q('#remoteShareVideo');
+    if(!video||String(video.dataset.peerId||'')!==String(id))return;
+    video.onloadeddata=null;video.onresize=null;
+    emitRemoteShareState(id,false);
+    if(ended)video.srcObject=null;
+    video.hidden=true;delete video.dataset.peerId;
+    const banner=q('#remoteShareBanner');if(banner)banner.hidden=true;
+    document.body.classList.remove('remote-share-active');
+  }
   async function routeAudioElement(audio,stream){if(!audio)return;if(audio.srcObject!==stream)audio.srcObject=stream;const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(audio.setSinkId&&speakerId)await audio.setSinkId(speakerId).catch(()=>{});void audio.play().catch(()=>{});}
   async function playRemoteAudio(id,stream){return routeAudioElement(ensureAudio(id),stream);}
   async function playRemoteShareAudio(id,stream){return routeAudioElement(ensureShareAudio(id),stream);}
