@@ -89,6 +89,7 @@
       list:list.map(p=>[p.participantId,p.name,p.role,p.self,p.micOn,p.cameraOn,p.avatar])});
     if(!force&&signature===lastSignature){syncSpeaking();attachLocalPreview();return;}
     const stack=q('#videoStack');if(!stack)return;
+    const dock=q('#dock');if(dock)dock.dataset.scrollable=list.length>5?'1':'0';
     lastSignature=signature;
     const expected=new Set(list.map(person=>person.participantId));
     for(const tile of [...stack.querySelectorAll(':scope > .video-tile')]){
