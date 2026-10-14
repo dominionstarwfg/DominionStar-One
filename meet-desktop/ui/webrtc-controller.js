@@ -215,9 +215,12 @@
     const operation=record.senderSync.catch(()=>{}).then(async()=>{
       if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState==='closed')return;
       const lanes=transceivers(record);if(lanes.length<4)return;
-      const media=localMedia(),share=shareMedia(),shareState=window.DominionShareController?.snapshot?.()||{};
+      const media=localMedia();
       const audio=media?.getAudioTracks?.()[0]||null;
       const camera=await localCameraTrack();
+      if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState==='closed')return;
+      // Read the current share stream after asynchronous camera processing.
+      const share=shareMedia(),shareState=window.DominionShareController?.snapshot?.()||{};
       const screen=share?.getVideoTracks?.().find(track=>track.readyState==='live')||null;
       const shareAudio=share?.getAudioTracks?.().find(track=>track.readyState==='live')||null;
       const desired=[[lanes[0],audio],[lanes[1],camera],[lanes[2],screen],[lanes[3],shareAudio]];
