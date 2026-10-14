@@ -82,6 +82,13 @@
     if(!started?.ok){disposeMacCaptureClient({stopWorker:false});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.')}
     const g=Number(started?.generation||0)||0;if(macCaptureSignalGeneration&&g&&g!==macCaptureSignalGeneration){disposeMacCaptureClient({stopWorker:true});throw new Error('Mac capture bridge generation mismatch.')}if(!macCaptureSignalGeneration)macCaptureSignalGeneration=g;
     if(options?.__qaReturnBeforeWorkerActivate){console.error('QA_CAPTURE_RETURN_BEFORE_WORKER_ACTIVATE');return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}}}
+    // A native picker may succeed before the worker video track arrives. Do
+    // not announce an active share with a null outbound screen sender.
+    if(!options.__qaSyntheticWorker&&!options.__qaLifecycleOnlyWorker){
+      const ready=await waitForShareVideoTrack(5500);
+      if(!valid()||generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});throw new DOMException('Screen share request was replaced.','AbortError')}
+      if(!ready||ready.readyState!=='live'){disposeMacCaptureClient({stopWorker:true});throw new Error('Screen capture started but no video track reached the meeting. Check Screen Recording permission or the capture worker connection.');}
+    }
     macWorkerActive=true;if(generation!==displayRequestGeneration){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw new DOMException('Screen share request was replaced.','AbortError')}
     return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}};
   }
