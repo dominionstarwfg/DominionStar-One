@@ -378,6 +378,7 @@
   });
   window.addEventListener('dominion:active-speakers',event=>{activeSpeakerIds=Array.isArray(event.detail?.participantIds)?event.detail.participantIds.slice(0,4):[];syncVideoDock();});
   window.addEventListener('dominion:remote-media-state',syncDockTileActions,true);
+  window.addEventListener('dominion:remote-share-state',scheduleParityRefresh,true);
   window.addEventListener('dominion:meeting-ui-ready',()=>{install();scheduleParityRefresh();});
   window.addEventListener('dominion:meeting-snapshot',scheduleParityRefresh);
   window.addEventListener('dominion:participant-presence',scheduleParityRefresh);
