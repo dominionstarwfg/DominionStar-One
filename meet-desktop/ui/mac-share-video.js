@@ -84,28 +84,80 @@
     return person.micOn?'Mute':'Ask to unmute';
   }
   function renderParticipants(force=false){
-    const list=orderedParticipants(),signature=JSON.stringify({layout:videoLayout,pinnedId,list:list.map(p=>[p.participantId,p.name,p.role,p.self,p.micOn,p.cameraOn,p.avatar])});
+    const list=orderedParticipants();
+    const signature=JSON.stringify({layout:videoLayout,pinnedId,
+      list:list.map(p=>[p.participantId,p.name,p.role,p.self,p.micOn,p.cameraOn,p.avatar])});
     if(!force&&signature===lastSignature){syncSpeaking();attachLocalPreview();return;}
+    const stack=q('#videoStack');if(!stack)return;
     lastSignature=signature;
-    const stack=q('#videoStack');if(!stack)return;stack.textContent='';
-    for(const person of list){
-      const tile=document.createElement('article');tile.className='video-tile';tile.dataset.participantId=person.participantId;tile.dataset.self=person.self?'1':'0';
-      const frame=remoteFrames.get(person.participantId)||'';
-      const avatar=person.avatar?'<img class="fallback-avatar" alt="" src="'+escapeHtml(person.avatar)+'">':'';
-      tile.innerHTML=`
-        ${person.self?'<video autoplay muted playsinline hidden></video>':'<img class="remote-frame" alt="" hidden>'}
-        <div class="video-fallback">${avatar}<span>${escapeHtml(initials(person.name))}</span></div>
-        <div class="video-tile-actions">
-          <button type="button" class="video-primary-action" data-video-primary>${escapeHtml(primaryLabel(person))}</button>
-          <button type="button" class="video-more-action" data-video-more aria-label="More options for ${escapeHtml(person.name)}">•••</button>
-        </div>
-        <div class="video-tile-name">${person.micOn?'':mutedIcon()}<strong>${escapeHtml(person.name)}</strong></div>`;
-      const fallback=tile.querySelector('.video-fallback'),fallbackAvatar=tile.querySelector('.fallback-avatar'),fallbackInitials=tile.querySelector('.video-fallback span');
-      if(fallbackAvatar){fallbackAvatar.onload=()=>{if(fallbackInitials)fallbackInitials.hidden=true;};fallbackAvatar.onerror=()=>{fallbackAvatar.hidden=true;if(fallbackInitials)fallbackInitials.hidden=false;};}
-      if(!person.self&&person.cameraOn&&frame){const img=tile.querySelector('.remote-frame');img.src=frame;img.hidden=false;if(fallback)fallback.hidden=true;}
-      tile.querySelector('[data-video-primary]').addEventListener('click',event=>{event.stopPropagation();void runPrimary(person);});
-      tile.querySelector('[data-video-more]').addEventListener('click',event=>{event.stopPropagation();openMenu(person,tile);});
-      stack.append(tile);
+    const expected=new Set(list.map(person=>person.participantId));
+    for(const tile of [...stack.querySelectorAll(':scope > .video-tile')]){
+      if(!expected.has(tile.dataset.participantId))tile.remove();
+    }
+    for(let index=0;index<list.length;index++){
+      const person=list[index],id=person.participantId;
+      let tile=[...stack.querySelectorAll(':scope > .video-tile')].find(node=>node.dataset.participantId===id);
+      if(!tile){
+        tile=document.createElement('article');tile.className='video-tile';tile.dataset.participantId=id;
+        tile.innerHTML=`
+          ${person.self?'<video autoplay muted playsinline hidden></video>':'<img class="remote-frame" alt="" hidden>'}
+          <div class="video-fallback"><span></span></div>
+          <div class="video-tile-actions">
+            <button type="button" class="video-primary-action" data-video-primary></button>
+            <button type="button" class="video-more-action" data-video-more>•••</button>
+          </div>
+          <div class="video-tile-name"><strong></strong></div>`;
+        tile.querySelector('[data-video-primary]').addEventListener('click',event=>{
+          event.stopPropagation();
+          const current=participants.find(item=>item.participantId===id);
+          if(current)void runPrimary(current);
+        });
+        tile.querySelector('[data-video-more]').addEventListener('click',event=>{
+          event.stopPropagation();
+          const current=participants.find(item=>item.participantId===id);
+          if(current)openMenu(current,tile);
+        });
+      }
+      tile.dataset.self=person.self?'1':'0';
+      const name=tile.querySelector('.video-tile-name strong');
+      if(name&&name.textContent!==person.name)name.textContent=person.name;
+      const primary=tile.querySelector('[data-video-primary]');
+      if(primary){const label=primaryLabel(person);if(primary.textContent!==label)primary.textContent=label;}
+      const more=tile.querySelector('[data-video-more]');
+      if(more)more.setAttribute('aria-label',`More options for ${person.name}`);
+      const nameRow=tile.querySelector('.video-tile-name');
+      let mutedMark=nameRow?.querySelector('.video-muted-mark');
+      if(!person.micOn&&!mutedMark){nameRow.insertAdjacentHTML('afterbegin',mutedIcon());}
+      if(person.micOn&&mutedMark)mutedMark.remove();
+      const fallback=tile.querySelector('.video-fallback');
+      const initialsNode=fallback?.querySelector(':scope > span');
+      if(initialsNode){const label=initials(person.name);if(initialsNode.textContent!==label)initialsNode.textContent=label;}
+      let avatar=fallback?.querySelector(':scope > img.fallback-avatar');
+      if(person.avatar){
+        if(!avatar){
+          avatar=document.createElement('img');avatar.className='fallback-avatar';avatar.alt='';
+          fallback.prepend(avatar);
+          avatar.onload=()=>{if(initialsNode)initialsNode.hidden=true;};
+          avatar.onerror=()=>{avatar.hidden=true;if(initialsNode)initialsNode.hidden=false;};
+        }
+        if(avatar.getAttribute('src')!==person.avatar){
+          if(initialsNode)initialsNode.hidden=false;
+          avatar.hidden=false;avatar.src=person.avatar;
+        }
+      }else if(avatar){avatar.remove();if(initialsNode)initialsNode.hidden=false;}
+      if(!person.self){
+        const frame=remoteFrames.get(id)||'',remoteImage=tile.querySelector('.remote-frame');
+        if(person.cameraOn&&frame&&remoteImage){
+          if(remoteImage.src!==frame)remoteImage.src=frame;
+          remoteImage.hidden=false;if(fallback)fallback.hidden=true;
+        }else{
+          if(remoteImage)remoteImage.hidden=true;
+          if(fallback)fallback.hidden=false;
+        }
+      }
+      // Keep existing video/media nodes attached when status or ordering changes.
+      const position=stack.children[index];
+      if(position!==tile)stack.insertBefore(tile,position||null);
     }
     syncSpeaking();attachLocalPreview();
     if(activeMenuId&&!participants.some(item=>item.participantId===activeMenuId))closeMenu();
@@ -117,7 +169,7 @@
     const id=String(payload.participantId||''),dataUrl=String(payload.dataUrl||'');if(!id||!dataUrl)return;
     remoteFrames.set(id,dataUrl);const person=participants.find(item=>item.participantId===id);if(!person?.cameraOn)return;
     const tile=q(`.video-tile[data-participant-id="${CSS.escape(id)}"]`),img=tile?.querySelector('.remote-frame'),fallback=tile?.querySelector('.video-fallback');
-    if(img){img.src=dataUrl;img.hidden=false;if(fallback)fallback.hidden=true;}
+    if(img){if(img.src!==dataUrl)img.src=dataUrl;img.hidden=false;if(fallback)fallback.hidden=true;}
   }
 
   async function presenterCommand(command){
