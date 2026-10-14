@@ -158,7 +158,7 @@
   function applyRemoteFrame(payload={}){
     const id=String(payload.participantId||''),dataUrl=String(payload.dataUrl||'');
     const at=Number(payload.at)||0;
-    if(!id||!/^data:image\\/(?:jpeg|webp|png);base64,/i.test(dataUrl)||!at)return;
+    if(!id||!/^data:image\/(?:jpeg|webp|png);base64,/i.test(dataUrl)||!at)return;
     if(!participants.some(item=>item.participantId===id&&item.cameraOn))return;
     const last=remoteFrames.get(id);if(last&&at<=last.at)return;
     const frame={dataUrl,at};remoteFrames.set(id,frame);
