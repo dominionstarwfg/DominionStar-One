@@ -209,33 +209,36 @@
     more.onclick=event=>{const result=legacy.call(more,event);cleanMoreMenu();return result;};
   }
 
-  let syncFrame=0;
+  let syncFrame=0,retired=false;
   function sync(){
     syncFrame=0;
     if(!meetingOpen()){closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();return;}
     normalizeCarets();ensureHostTools();ensureMoreAuthority();ensureParticipantLayoutControl();normalizeParticipantPanel();ensureParticipantSearch();ensureParticipantFooter();normalizeChatPanel();ensureChatChrome();normalizeReactionMenu();normalizePermissionDialog();cleanMoreMenu();
   }
   function requestSync(){if(syncFrame)return;syncFrame=requestAnimationFrame(sync);}
+  const requestLiveSync=()=>{if(!retired)requestSync();};
   function closePanelMenus(){closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}
   document.addEventListener('pointerdown',event=>{
+    if(retired)return;
     if(participantMenu&&!participantMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-more'))closeParticipantMenu();
     if(participantLayoutMenu&&!participantLayoutMenu.contains(event.target)&&!event.target.closest?.('.zoom-participant-layout-button'))closeParticipantLayoutMenu();
     if(chatPolicyMenu&&!chatPolicyMenu.contains(event.target)&&!event.target.closest?.('.zoom-chat-more'))closeChatPolicyMenu();
   },true);
   document.addEventListener('click',event=>{
-    if(event.target.closest?.('#roomParticipants')){closePanelMenus();requestAnimationFrame(()=>{ensureParticipantLayoutControl();normalizeParticipantPanel();});}
-    if(event.target.closest?.('#roomChat')){closePanelMenus();requestAnimationFrame(normalizeChatPanel);}
+    if(retired)return;
+    if(event.target.closest?.('#roomParticipants')){closePanelMenus();requestAnimationFrame(()=>{if(retired)return;ensureParticipantLayoutControl();normalizeParticipantPanel();});}
+    if(event.target.closest?.('#roomChat')){closePanelMenus();requestAnimationFrame(()=>{if(!retired)normalizeChatPanel();});}
     if(event.target.closest?.('#roomHostTools,.room-side-head>button,[data-chat-close]'))closePanelMenus();
     if(event.target.closest?.('#roomMore'))cleanMoreMenu();
   });
-  window.addEventListener('dominion:meeting-ui-ready',requestSync);
+  window.addEventListener('dominion:meeting-ui-ready',requestLiveSync);
   window.addEventListener('dominion:meeting-ended',closePanelMenus);
-  window.addEventListener('dominion:participant-presence',requestSync);
-  window.addEventListener('dominion:meeting-snapshot',requestSync);
+  window.addEventListener('dominion:participant-presence',requestLiveSync);
+  window.addEventListener('dominion:meeting-snapshot',requestLiveSync);
   const overlay=document.querySelector('#meetingOverlay');
-  const observer=new MutationObserver(requestSync);
+  const observer=new MutationObserver(requestLiveSync);
   if(overlay)observer.observe(overlay,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
-  const timer=setInterval(()=>{if(!document.hidden&&meetingOpen())requestSync();},6000);
+  const timer=setInterval(()=>{if(!retired&&!document.hidden&&meetingOpen())requestSync();},6000);
   sync();
-  window.DominionZoomProductionPolish=Object.freeze({version:'1.6.0-event-driven',sync:requestSync,dockParticipantPanel,popOutParticipantPanel,participantPanelMode,dispose:()=>{clearInterval(timer);observer.disconnect();if(syncFrame)cancelAnimationFrame(syncFrame);closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}});
+  window.DominionZoomProductionPolish=Object.freeze({version:'1.6.0-event-driven',sync:requestSync,dockParticipantPanel,popOutParticipantPanel,participantPanelMode,dispose:()=>{retired=true;clearInterval(timer);observer.disconnect();if(syncFrame){cancelAnimationFrame(syncFrame);syncFrame=0;}closeParticipantMenu();closeParticipantLayoutMenu();closeChatPolicyMenu();}});
 })();
