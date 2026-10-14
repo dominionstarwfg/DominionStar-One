@@ -41,7 +41,7 @@
   function ensureUi(){
     const stage=q('.stage');if(!stage)return null;
     let layer=q('#remoteMediaLayer');
-    if(!layer){layer=document.createElement('div');layer.id='remoteMediaLayer';layer.className='remote-media-layer';layer.innerHTML='<video id="remoteShareVideo" class="remote-share-video" autoplay playsinline></video><div id="remoteShareBanner" class="remote-share-banner" hidden><span class="remote-share-dot"></span><strong>Participant is sharing</strong></div><div id="remoteTileStrip" class="remote-tile-strip"></div><div id="remoteAudioBin" class="remote-audio-bin" aria-hidden="true"></div>';stage.append(layer);}
+    if(!layer){layer=document.createElement('div');layer.id='remoteMediaLayer';layer.className='remote-media-layer';layer.innerHTML='<video id="remoteShareVideo" class="remote-share-video" autoplay muted playsinline></video><div id="remoteShareBanner" class="remote-share-banner" hidden><span class="remote-share-dot"></span><strong>Participant is sharing</strong></div><div id="remoteTileStrip" class="remote-tile-strip"></div><div id="remoteAudioBin" class="remote-audio-bin" aria-hidden="true"></div>';stage.append(layer);}
     ensureTransportStatus();return layer;
   }
   function participantName(id){return state.participants.get(id)?.displayName||'Participant';}
@@ -50,7 +50,7 @@
     let tile=strip.querySelector(`[data-peer-id="${CSS.escape(id)}"]`);
     if(tile)return tile;
     const name=participantName(id);tile=document.createElement('article');tile.className='remote-peer-tile';tile.dataset.peerId=id;
-    tile.innerHTML=`<video autoplay playsinline></video><div class="remote-peer-fallback"><span>${initials(name)}</span></div><footer><strong>${esc(name)}</strong><small>Connecting…</small></footer>`;strip.append(tile);return tile;
+    tile.innerHTML=`<video autoplay muted playsinline></video><div class="remote-peer-fallback"><span>${initials(name)}</span></div><footer><strong>${esc(name)}</strong><small>Connecting…</small></footer>`;strip.append(tile);return tile;
   }
   function ensureAudio(id){ensureUi();const bin=q('#remoteAudioBin');if(!bin)return null;let audio=bin.querySelector(`[data-audio-peer="${CSS.escape(id)}"]`);if(!audio){audio=document.createElement('audio');audio.autoplay=true;audio.dataset.audioPeer=id;bin.append(audio);}return audio;}
   function ensureShareAudio(id){ensureUi();const bin=q('#remoteAudioBin');if(!bin)return null;let audio=bin.querySelector(`[data-share-audio-peer="${CSS.escape(id)}"]`);if(!audio){audio=document.createElement('audio');audio.autoplay=true;audio.dataset.shareAudioPeer=id;bin.append(audio);}return audio;}
