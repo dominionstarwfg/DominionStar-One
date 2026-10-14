@@ -60,20 +60,20 @@
   function setRemoteMediaState(id,patch={}){
     const key=String(id||'');if(!key)return;
     const current=state.remoteMedia.get(key)||{micOn:false,cameraOn:false};
-    const next={...current,...patch};state.remoteMedia.set(key,next);
+    const next={...current,...patch};if(Object.keys(patch).every(field=>current[field]===next[field]))return;state.remoteMedia.set(key,next);
     const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);if(tile){tile.dataset.micOn=next.micOn?'1':'0';tile.dataset.cameraOn=next.cameraOn?'1':'0';}
     window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:key,...next}}));
   }
-  function showRemoteCamera(id,stream){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');video.srcObject=stream;video.hidden=false;tile.querySelector('.remote-peer-fallback').hidden=true;setRemoteMediaState(id,{cameraOn:true});void video.play().catch(()=>{});}
-  function hideRemoteCamera(id){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');video.srcObject=null;video.hidden=true;tile.querySelector('.remote-peer-fallback').hidden=false;setRemoteMediaState(id,{cameraOn:false});}
+  function showRemoteCamera(id,stream){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');const changed=video.srcObject!==stream||video.hidden;if(video.srcObject!==stream)video.srcObject=stream;video.hidden=false;tile.querySelector('.remote-peer-fallback').hidden=true;setRemoteMediaState(id,{cameraOn:true});if(changed||video.paused)void video.play().catch(()=>{});}
+  function hideRemoteCamera(id,ended=false){const tile=ensureTile(id);if(!tile)return;const video=tile.querySelector('video');if(ended)video.srcObject=null;video.hidden=true;tile.querySelector('.remote-peer-fallback').hidden=false;setRemoteMediaState(id,{cameraOn:false});}
   function emitRemoteShareState(id,active){
     const key=String(id||'');if(!key)return;
-    const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);if(tile)tile.dataset.sharing=active?'1':'0';
+    const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);if(tile){const next=active?'1':'0';if(tile.dataset.sharing===next)return;tile.dataset.sharing=next;}
     window.dispatchEvent(new CustomEvent('dominion:remote-share-state',{detail:{participantId:key,active:Boolean(active)}}));
   }
-  function showRemoteShare(id,stream){ensureUi();const video=q('#remoteShareVideo'),banner=q('#remoteShareBanner');if(!video)return;const previous=String(video.dataset.peerId||'');if(previous&&previous!==String(id))emitRemoteShareState(previous,false);video.dataset.peerId=id;video.srcObject=stream;video.hidden=false;emitRemoteShareState(id,true);if(banner){banner.hidden=false;const label=banner.querySelector('strong');if(label)label.textContent=`${participantName(id)} is sharing`;}document.body.classList.add('remote-share-active');void video.play().catch(()=>{});}
-  function hideRemoteShare(id){const video=q('#remoteShareVideo');if(!video||String(video.dataset.peerId||'')!==String(id))return;emitRemoteShareState(id,false);video.srcObject=null;video.hidden=true;delete video.dataset.peerId;const banner=q('#remoteShareBanner');if(banner)banner.hidden=true;document.body.classList.remove('remote-share-active');}
-  async function routeAudioElement(audio,stream){if(!audio)return;audio.srcObject=stream;const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(audio.setSinkId&&speakerId)await audio.setSinkId(speakerId).catch(()=>{});void audio.play().catch(()=>{});}
+  function showRemoteShare(id,stream){ensureUi();const video=q('#remoteShareVideo'),banner=q('#remoteShareBanner');if(!video)return;const previous=String(video.dataset.peerId||'');if(previous&&previous!==String(id))emitRemoteShareState(previous,false);const changed=video.srcObject!==stream||video.hidden;if(video.srcObject!==stream)video.srcObject=stream;video.dataset.peerId=id;video.hidden=false;emitRemoteShareState(id,true);if(banner){banner.hidden=false;const label=banner.querySelector('strong');if(label)label.textContent=`${participantName(id)} is sharing`;}document.body.classList.add('remote-share-active');if(changed||video.paused)void video.play().catch(()=>{});}
+  function hideRemoteShare(id,ended=true){const video=q('#remoteShareVideo');if(!video||String(video.dataset.peerId||'')!==String(id))return;emitRemoteShareState(id,false);if(ended)video.srcObject=null;video.hidden=true;delete video.dataset.peerId;const banner=q('#remoteShareBanner');if(banner)banner.hidden=true;document.body.classList.remove('remote-share-active');}
+  async function routeAudioElement(audio,stream){if(!audio)return;if(audio.srcObject!==stream)audio.srcObject=stream;const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(audio.setSinkId&&speakerId)await audio.setSinkId(speakerId).catch(()=>{});void audio.play().catch(()=>{});}
   async function playRemoteAudio(id,stream){return routeAudioElement(ensureAudio(id),stream);}
   async function playRemoteShareAudio(id,stream){return routeAudioElement(ensureShareAudio(id),stream);}
 
@@ -185,14 +185,14 @@
   function createPeerRecord(remoteId){
     if(!validIceConfig())throw new Error('ice_configuration_unavailable');
     const pc=new RTCPeerConnection(iceConfiguration());
-    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,reconnectTimer:0,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
+    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
     state.peers.set(remoteId,record);ensureTile(remoteId);
     pc.onicecandidate=event=>{if(event.candidate)void meeting.sendSignal(remoteId,'ice',{candidate:event.candidate.toJSON?.()||event.candidate}).catch(()=>{});};
-    pc.onicecandidateerror=()=>setTransportStatus('Network path retrying','warning');
+    pc.onicecandidateerror=()=>{if(pc.connectionState!=='connected')setTransportStatus('Network path retrying','warning');};
     pc.ontrack=event=>handleRemoteTrack(record,event);
     pc.onconnectionstatechange=()=>{
       const status=pc.connectionState;setTileState(remoteId,status==='connected'?'Connected':status==='connecting'?'Connecting…':status);
-      if(status==='failed'||status==='closed'){showRecovery();void loadIceConfig(true).catch(()=>{});scheduleReconnect(record,0);}else if(status==='disconnected'){showRecovery();scheduleReconnect(record,RECONNECT_MS);}else if(status==='connected'){clearTimeout(record.reconnectTimer);record.reconnectTimer=0;if([...state.peers.values()].every(item=>item.pc.connectionState==='connected'))hideRecovery();}
+      if(status==='failed'||status==='closed'){showRecovery();void loadIceConfig(true).catch(()=>{});scheduleReconnect(record,0);}else if(status==='disconnected'){showRecovery();scheduleReconnect(record,RECONNECT_MS);}else if(status==='connected'){clearTimeout(record.reconnectTimer);record.reconnectTimer=0;setTransportStatus('Network connected','ready');if([...state.peers.values()].every(item=>item.pc.connectionState==='connected'))hideRecovery();}
     };
     return record;
   }
@@ -209,12 +209,39 @@
   }
   function transceivers(record){if(record.transceivers.length)return record.transceivers;record.transceivers=record.pc.getTransceivers().slice(0,4);return record.transceivers;}
   async function syncLocalTracks(record){
-    const lanes=transceivers(record);if(lanes.length<4)return;
-    const media=localMedia(),share=shareMedia(),shareState=window.DominionShareController?.snapshot?.()||{};
-    const audio=media?.getAudioTracks?.()[0]||null,camera=await localCameraTrack(),screen=share?.getVideoTracks?.()[0]||null,shareAudio=share?.getAudioTracks?.()[0]||null;
-    await Promise.all([lanes[0]?.sender?.replaceTrack(audio),lanes[1]?.sender?.replaceTrack(camera),lanes[2]?.sender?.replaceTrack(screen),lanes[3]?.sender?.replaceTrack(shareAudio)].filter(Boolean));
-    const screenSender=lanes[2]?.sender;if(screenSender&&screen){try{const params=screenSender.getParameters();params.degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced';params.encodings=params.encodings?.length?params.encodings:[{}];params.encodings[0].maxBitrate=shareState.options?.optimizeVideo?4500000:2500000;await screenSender.setParameters(params);}catch{}}
-    const shareAudioSender=lanes[3]?.sender;if(shareAudioSender&&shareAudio){try{const params=shareAudioSender.getParameters();params.encodings=params.encodings?.length?params.encodings:[{}];params.encodings[0].maxBitrate=128000;await shareAudioSender.setParameters(params);}catch{}}
+    // One transport owner per peer; determine the desired tracks INSIDE the
+    // serialized lane operation so late camera/effects callbacks cannot undo
+    // the most recent screen-sharing transition.
+    const operation=record.senderSync.catch(()=>{}).then(async()=>{
+      if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState==='closed')return;
+      const lanes=transceivers(record);if(lanes.length<4)return;
+      const media=localMedia(),share=shareMedia(),shareState=window.DominionShareController?.snapshot?.()||{};
+      const audio=media?.getAudioTracks?.()[0]||null;
+      const camera=await localCameraTrack();
+      const screen=share?.getVideoTracks?.().find(track=>track.readyState==='live')||null;
+      const shareAudio=share?.getAudioTracks?.().find(track=>track.readyState==='live')||null;
+      const desired=[[lanes[0],audio],[lanes[1],camera],[lanes[2],screen],[lanes[3],shareAudio]];
+      for(const [lane,track] of desired){
+        if(!lane?.sender||lane.sender.track===track)continue;
+        await lane.sender.replaceTrack(track);
+      }
+      // Only the dedicated screen/video and system audio lanes inherit the
+      // share-specific encoding preferences; ordinary camera must not change.
+      const screenSender=lanes[2]?.sender;
+      if(screenSender&&screen){try{
+        const params=screenSender.getParameters();params.degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced';
+        params.encodings=params.encodings?.length?params.encodings:[{}];
+        params.encodings[0].maxBitrate=shareState.options?.optimizeVideo?4500000:2500000;
+        await screenSender.setParameters(params);
+      }catch{}}
+      const audioSender=lanes[3]?.sender;
+      if(audioSender&&shareAudio){try{
+        const params=audioSender.getParameters();params.encodings=params.encodings?.length?params.encodings:[{}];
+        params.encodings[0].maxBitrate=128000;await audioSender.setParameters(params);
+      }catch{}}
+    });
+    record.senderSync=operation;
+    return operation;
   }
   async function initiate(record,iceRestart=false){
     if(record.makingOffer||record.pc.signalingState!=='stable')return;
@@ -240,11 +267,40 @@
     if(signal.type==='ice'&&payload.candidate){if(record.pc.remoteDescription)await record.pc.addIceCandidate(payload.candidate).catch(()=>{});else record.pendingIce.push(payload.candidate);}
   }
   function handleRemoteTrack(record,event){
-    const lanes=record.pc.getTransceivers();const index=lanes.indexOf(event.transceiver);const stream=event.streams?.[0]||new MediaStream([event.track]);
-    if(index===0&&event.track.kind==='audio'){void playRemoteAudio(record.id,stream);attachSpeakerMeter(record,stream);setRemoteMediaState(record.id,{micOn:!event.track.muted&&event.track.readyState==='live'});event.track.onmute=()=>setRemoteMediaState(record.id,{micOn:false});event.track.onunmute=()=>setRemoteMediaState(record.id,{micOn:true});event.track.onended=()=>{const audio=ensureAudio(record.id);if(audio)audio.srcObject=null;setRemoteMediaState(record.id,{micOn:false});};return;}
-    if(index===1&&event.track.kind==='video'){showRemoteCamera(record.id,stream);event.track.onmute=()=>hideRemoteCamera(record.id);event.track.onunmute=()=>showRemoteCamera(record.id,stream);event.track.onended=()=>hideRemoteCamera(record.id);return;}
-    if(index===2&&event.track.kind==='video'){showRemoteShare(record.id,stream);event.track.onmute=()=>hideRemoteShare(record.id);event.track.onunmute=()=>showRemoteShare(record.id,stream);event.track.onended=()=>hideRemoteShare(record.id);return;}
-    if(index===3&&event.track.kind==='audio'){void playRemoteShareAudio(record.id,stream);event.track.onended=()=>{const audio=ensureShareAudio(record.id);if(audio)audio.srcObject=null;};}
+    const lanes=record.pc.getTransceivers(),index=lanes.indexOf(event.transceiver);
+    const stream=event.streams?.[0]||new MediaStream([event.track]);
+    if(index===0&&event.track.kind==='audio'){
+      void playRemoteAudio(record.id,stream);attachSpeakerMeter(record,stream);
+      setRemoteMediaState(record.id,{micOn:!event.track.muted&&event.track.readyState==='live'});
+      event.track.onmute=()=>setRemoteMediaState(record.id,{micOn:false});
+      event.track.onunmute=()=>setRemoteMediaState(record.id,{micOn:true});
+      event.track.onended=()=>{const audio=ensureAudio(record.id);if(audio)audio.srcObject=null;setRemoteMediaState(record.id,{micOn:false});};
+      return;
+    }
+    if(index===1&&event.track.kind==='video'){
+      clearTimeout(record.cameraMuteTimer);record.cameraTrack=event.track;
+      if(event.track.muted)hideRemoteCamera(record.id);else showRemoteCamera(record.id,stream);
+      event.track.onmute=()=>{clearTimeout(record.cameraMuteTimer);record.cameraMuteTimer=setTimeout(()=>{
+        if(record.cameraTrack===event.track&&event.track.muted)hideRemoteCamera(record.id);
+      },900);};
+      event.track.onunmute=()=>{clearTimeout(record.cameraMuteTimer);if(record.cameraTrack===event.track)showRemoteCamera(record.id,stream);};
+      event.track.onended=()=>{clearTimeout(record.cameraMuteTimer);if(record.cameraTrack===event.track)hideRemoteCamera(record.id,true);};
+      return;
+    }
+    if(index===2&&event.track.kind==='video'){
+      clearTimeout(record.shareMuteTimer);record.shareTrack=event.track;
+      if(event.track.muted)hideRemoteShare(record.id,false);else showRemoteShare(record.id,stream);
+      event.track.onmute=()=>{clearTimeout(record.shareMuteTimer);record.shareMuteTimer=setTimeout(()=>{
+        if(record.shareTrack===event.track&&event.track.muted)hideRemoteShare(record.id,false);
+      },900);};
+      event.track.onunmute=()=>{clearTimeout(record.shareMuteTimer);if(record.shareTrack===event.track)showRemoteShare(record.id,stream);};
+      event.track.onended=()=>{clearTimeout(record.shareMuteTimer);if(record.shareTrack===event.track)hideRemoteShare(record.id,true);};
+      return;
+    }
+    if(index===3&&event.track.kind==='audio'){
+      void playRemoteShareAudio(record.id,stream);
+      event.track.onended=()=>{const audio=ensureShareAudio(record.id);if(audio)audio.srcObject=null;};
+    }
   }
   function attachSpeakerMeter(record,stream){
     try{record.audioContext?.close?.();const context=new AudioContext();const source=context.createMediaStreamSource(stream);const analyser=context.createAnalyser();analyser.fftSize=512;source.connect(analyser);record.audioContext=context;record.audioSource=source;record.analyser=analyser;}catch{}
@@ -285,7 +341,7 @@
     if(!state.running||record.reconnectTimer)return;record.reconnectTimer=setTimeout(()=>{record.reconnectTimer=0;const id=record.id;closePeer(id,false);if(state.participants.has(id)){try{const next=ensurePeer(id);if(isInitiator(id))void initiate(next).catch(()=>scheduleReconnect(next,RECONNECT_MS));}catch{setTransportStatus('Network path unavailable','error');}}},Math.max(0,delay));
   }
   function closePeer(id,remove=true){
-    const record=state.peers.get(id);if(!record)return;clearTimeout(record.reconnectTimer);try{record.pc.ontrack=null;record.pc.onicecandidate=null;record.pc.close();}catch{}try{record.audioContext?.close?.();}catch{}state.peers.delete(id);state.remoteMedia.delete(String(id));window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:String(id),micOn:false,cameraOn:false,disconnected:true}}));hideRemoteShare(id);if(remove)removeTile(id);
+    const record=state.peers.get(id);if(!record)return;clearTimeout(record.reconnectTimer);clearTimeout(record.cameraMuteTimer);clearTimeout(record.shareMuteTimer);try{record.pc.ontrack=null;record.pc.onicecandidate=null;record.pc.close();}catch{}try{record.audioContext?.close?.();}catch{}state.peers.delete(id);state.remoteMedia.delete(String(id));window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:String(id),micOn:false,cameraOn:false,disconnected:true}}));hideRemoteShare(id);if(remove)removeTile(id);
   }
   async function reconcileParticipants(){
     if(!state.context?.roomId)return;await touchPresence();const snapshot=await meeting.snapshot(state.context.roomId);const current=new Map();
