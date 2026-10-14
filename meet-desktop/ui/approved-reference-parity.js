@@ -52,6 +52,10 @@
   }
 
   function syncProfilePictures(){
+    // ProfilePhotoFallback is the single canonical identity painter once loaded.
+    // The legacy reference layer may still arrange controls, but cannot repaint
+    // its images or overwrite the prejoin/stage/roster identity surfaces.
+    if(window.DominionProfilePhotoFallback)return;
     const own=ownProfile();
     paintAvatar(q('#prejoinAvatar'),own.url,initials(own.name));
     paintAvatar(q('#stageAvatar'),own.url,initials(own.name));
