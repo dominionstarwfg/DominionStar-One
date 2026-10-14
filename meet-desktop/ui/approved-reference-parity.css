@@ -275,6 +275,8 @@
   box-shadow:0 0 0 1px rgba(53,208,127,.65),0 10px 28px rgba(0,0,0,.34) !important;
 }
 #participantVideoDock[data-approved-filmstrip="1"] .remote-peer-tile video{
+  display:block !important;
+  vertical-align:top !important;
   width:100% !important;
   height:100% !important;
   object-fit:cover !important;
