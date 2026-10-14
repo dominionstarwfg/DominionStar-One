@@ -7,7 +7,7 @@
   const authListeners=new Set();
   let clientPromise=null,authSubscription=null;
   let current={roomId:'',roomCode:'',passcode:'',title:'',participantId:'',joinToken:'',role:'',state:'',meetingKind:'',reusable:false,scheduleId:''};
-  let turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false};
+  let turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false,relayFailure:''};
   const normalizeDigits=value=>String(value||'').replace(/\D/g,'');
   const normalizeName=value=>String(value||'').trim().slice(0,100);
   const normalizeTitle=value=>String(value||'').trim().slice(0,120)||'DominionStar Meeting';
@@ -20,7 +20,7 @@
     if(value?.roomId)current={...current,...value,roomId:String(value.roomId),roomCode:String(value.roomCode||current.roomCode||''),passcode:String(value.passcode||current.passcode||''),participantId:String(value.participantId||current.participantId||''),joinToken:String(value.joinToken||current.joinToken||''),role:String(value.role||current.role||''),state:String(value.state||current.state||'')};
     return value;
   };
-  const clearContext=()=>{current={roomId:'',roomCode:'',passcode:'',title:'',participantId:'',joinToken:'',role:'',state:'',meetingKind:'',reusable:false,scheduleId:''};turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false};};
+  const clearContext=()=>{current={roomId:'',roomCode:'',passcode:'',title:'',participantId:'',joinToken:'',role:'',state:'',meetingKind:'',reusable:false,scheduleId:''};turnCache={roomId:'',iceServers:[],expiresAtMs:0,provider:'',ttl:0,qaDirectOnly:false,relayFailure:''};};
 
   function loadScript(src){
     return new Promise((resolve,reject)=>{
@@ -135,9 +135,16 @@
         const servers=Array.isArray(data?.iceServers)?data.iceServers.filter(server=>server&&server.urls):[];
         const expiresAtMs=Date.parse(String(data?.expiresAt||''));
         if(!hasRelay(servers)||!Number.isFinite(expiresAtMs))throw new Error('turn_relay_unavailable');
-        turnCache={roomId:current.roomId,iceServers:servers,expiresAtMs,provider:String(data?.provider||'relay'),ttl:Number(data?.ttl)||0,qaDirectOnly:false};
-      }catch{
-        turnCache={roomId:current.roomId,iceServers:directIce.map(server=>({...server,urls:[...server.urls]})),expiresAtMs:now+30*60*1000,provider:'direct-fallback',ttl:1800,qaDirectOnly:true};
+        turnCache={roomId:current.roomId,iceServers:servers,expiresAtMs,provider:String(data?.provider||'relay'),ttl:Number(data?.ttl)||0,qaDirectOnly:false,relayFailure:''};
+      }catch(error){
+        // A joined meeting is not proof of an established media relay.
+        // Record a sanitized reason; never expose credentials or raw bodies.
+        const reason=String(error?.message||'').toLowerCase();
+        const relayFailure=/401|403|jwt|auth|access/.test(reason)?'relay_authentication'
+          :reason.includes('turn_not_configured')?'relay_not_configured'
+          :reason.includes('turn_provider')?'relay_provider'
+          :'relay_broker_unavailable';
+        turnCache={roomId:current.roomId,iceServers:directIce.map(server=>({...server,urls:[...server.urls]})),expiresAtMs:now+30*60*1000,provider:'direct-fallback',ttl:1800,qaDirectOnly:true,relayFailure};
       }
       return {...turnCache,iceServers:turnCache.iceServers.map(server=>({...server}))};
     }
