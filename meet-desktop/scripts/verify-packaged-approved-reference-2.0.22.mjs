@@ -113,6 +113,21 @@ try{
   const participantSearch=await evaluate(`(()=>{const wrap=document.querySelector('.room-side .zoom-participant-search'),input=wrap?.querySelector('input');const s=wrap?getComputedStyle(wrap):null;return {exists:Boolean(wrap&&input),hidden:Boolean(wrap?.hidden),display:s?.display||'',placeholder:input?.getAttribute('placeholder')||''};})()`);
   assert.equal(participantSearch.exists,true,'Approved Participants window must contain its search field.');
   assert.equal(participantSearch.hidden,false,'Participants search must remain stable and visible even with a small roster.');
+
+  // Runtime stability is the sole live layout authority after startup. Retired
+  // adaptive/polish listeners must not wake on snapshot or resize and rewrite
+  // participant geometry/search chrome, which would recreate visible flicker.
+  const retiredLayoutBefore=await evaluate(`(()=>{const side=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),search=side.querySelector('.zoom-participant-search'),caret=document.querySelector('.meeting-footer .av-device-caret'),pr=side.getBoundingClientRect(),br=body.getBoundingClientRect();if(!caret)throw new Error('Approved device caret unavailable for retirement sentinel');side.dataset.dsAdaptiveCount='qa-retired';caret.dataset.productionNormalized='qa-retired';window.__dsQaRetiredLayoutRefs={search,caret};return {searchExists:Boolean(search),panel:{left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height)}};})()`);
+  assert.equal(retiredLayoutBefore.searchExists,true,'No-blink retirement gate requires the approved Participants search surface.');
+  await evaluate(`(()=>{window.dispatchEvent(new CustomEvent('dominion:meeting-snapshot',{detail:{participants:[]}}));window.dispatchEvent(new Event('resize'));return true;})()`);
+  await sleep(220);
+  const retiredLayoutAfter=await evaluate(`(()=>{const side=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),refs=window.__dsQaRetiredLayoutRefs||{},search=side.querySelector('.zoom-participant-search'),caret=document.querySelector('.meeting-footer .av-device-caret'),pr=side.getBoundingClientRect(),br=body.getBoundingClientRect();return {adaptive:String(side.dataset.dsAdaptiveCount||''),polish:String(caret?.dataset.productionNormalized||''),sameSearch:search===refs.search,sameCaret:caret===refs.caret,panel:{left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height)}};})()`);
+  assert.equal(retiredLayoutAfter.adaptive,'qa-retired','Retired adaptive layout listener must not wake after runtime ownership transfer.');
+  assert.equal(retiredLayoutAfter.polish,'qa-retired','Retired production-polish listener must not wake after runtime ownership transfer.');
+  assert.equal(retiredLayoutAfter.sameSearch,true,'Snapshot/resize activity must preserve the exact Participants search node after legacy retirement.');
+  assert.equal(retiredLayoutAfter.sameCaret,true,'Snapshot/resize activity must preserve the exact approved device-caret node.');
+  assert.deepEqual(retiredLayoutAfter.panel,retiredLayoutBefore.panel,'Snapshot/resize activity must not move or resize the approved Participants window after legacy retirement.');
+  await evaluate(`(()=>{const side=document.querySelector('.room-side'),caret=document.querySelector('.meeting-footer .av-device-caret');delete side.dataset.dsAdaptiveCount;if(caret)delete caret.dataset.productionNormalized;delete window.__dsQaRetiredLayoutRefs;window.DominionRuntimeStability.syncParticipantsSurface();return true;})()`);
   assert.notEqual(participantSearch.display,'none','Participants search must not disappear by roster count.');
   assert.equal(participantSearch.placeholder,'Search participants');
 
