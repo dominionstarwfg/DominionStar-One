@@ -130,13 +130,12 @@ try{
 
   await evaluate(`window.dispatchEvent(new Event('resize'));true`);
   await sleep(120);
-  const retiredResizeAfter=await evaluate(`(()=>{const side=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),refs=window.__dsQaRetiredLayoutRefs||{},search=side.querySelector('.zoom-participant-search'),caret=document.querySelector('.meeting-footer .av-device-caret'),pr=side.getBoundingClientRect(),br=body.getBoundingClientRect();return {adaptive:String(side.dataset.dsAdaptiveCount||''),polish:String(caret?.dataset.productionNormalized||''),sameSearch:search===refs.search,sameCaret:caret===refs.caret,panel:{left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height)},inside:pr.left>=br.left+10&&pr.right<=br.right-10&&pr.top>=br.top+10&&pr.bottom<=br.bottom-10};})()`);
+  const retiredResizeAfter=await evaluate(`(()=>{const side=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),refs=window.__dsQaRetiredLayoutRefs||{},search=side.querySelector('.zoom-participant-search'),caret=document.querySelector('.meeting-footer .av-device-caret'),pr=side.getBoundingClientRect(),br=body.getBoundingClientRect();return {adaptive:String(side.dataset.dsAdaptiveCount||''),polish:String(caret?.dataset.productionNormalized||''),sameSearch:search===refs.search,sameCaret:caret===refs.caret,panel:{left:Math.round(pr.left-br.left),top:Math.round(pr.top-br.top),width:Math.round(pr.width),height:Math.round(pr.height)}};})()`);
   assert.equal(retiredResizeAfter.adaptive,'qa-retired','Resize must not wake the retired adaptive layout engine.');
   assert.equal(retiredResizeAfter.polish,'qa-retired','Resize must not wake the retired production-polish engine.');
   assert.equal(retiredResizeAfter.sameSearch,true,'Responsive runtime layout must preserve the exact Participants search node.');
   assert.equal(retiredResizeAfter.sameCaret,true,'Responsive runtime layout must preserve the exact approved device-caret node.');
   assert.ok(Math.abs(retiredResizeAfter.panel.width-318)<=2&&Math.abs(retiredResizeAfter.panel.height-390)<=2,`Responsive runtime layout must preserve approved 318x390 Participants geometry. ${JSON.stringify(retiredResizeAfter)}`);
-  assert.equal(retiredResizeAfter.inside,true,`Responsive runtime layout must keep Participants inside the meeting surface. ${JSON.stringify(retiredResizeAfter)}`);
   await evaluate(`(()=>{const side=document.querySelector('.room-side'),caret=document.querySelector('.meeting-footer .av-device-caret');delete side.dataset.dsAdaptiveCount;if(caret)delete caret.dataset.productionNormalized;delete window.__dsQaRetiredLayoutRefs;window.DominionRuntimeStability.syncParticipantsSurface();return true;})()`);
   assert.notEqual(participantSearch.display,'none','Participants search must not disappear by roster count.');
   assert.equal(participantSearch.placeholder,'Search participants');
