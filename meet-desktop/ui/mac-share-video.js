@@ -2,8 +2,8 @@
   'use strict';
   const desktop=window.dominionDesktop||{},bridge=desktop.macShare||null;
   const q=s=>document.querySelector(s);
-  let cameraOn=true,micOn=false,cameraId='',mirrored=true,previewStream=null,previewLive=false,previewGeneration=0;
-  let qaInteractionFixtures=false,qaCanvasTimer=0,videoLayout='strip',participants=[],identity={name:'You',avatar:''},lastSignature='';
+  let cameraOn=true,micOn=false,cameraId='',mirrored=true;
+  let videoLayout='strip',participants=[],identity={name:'You',avatar:''},lastSignature='';
   let speaking=false,pinnedId='',activeMenuId='';
   const remoteFrames=new Map();
 
@@ -19,44 +19,31 @@
     }catch{}
   }
 
-  const stopTracks=stream=>{for(const track of stream?.getTracks?.()||[]){try{track.stop();}catch{}}};
-  function stopQaCanvas(){if(qaCanvasTimer){clearInterval(qaCanvasTimer);qaCanvasTimer=0;}}
-  function stopPreview(){
-    previewGeneration+=1;stopQaCanvas();stopTracks(previewStream);previewStream=null;previewLive=false;
-    const video=q('.video-tile[data-self="1"] video');if(video){try{video.pause();}catch{}video.srcObject=null;}
+  // The meeting renderer is the only camera-capture authority. This floating
+  // window receives frames from that existing stream over presenter IPC; it
+  // must never make a second getUserMedia() request for the same camera.
+  const frameEpoch=new Map();
+  function invalidateFrame(id){
+    frameEpoch.set(id,(frameEpoch.get(id)||0)+1);
+    remoteFrames.delete(id);
   }
-  function makeQaPreviewStream(){
-    const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const context=canvas.getContext('2d',{alpha:false});
-    const paint=()=>{context.fillStyle='#112a3f';context.fillRect(0,0,canvas.width,canvas.height);context.fillStyle='#f0c769';context.beginPath();context.arc(320,180,92,0,Math.PI*2);context.fill();context.fillStyle='#fff';context.font='600 24px -apple-system,BlinkMacSystemFont,sans-serif';context.textAlign='center';context.fillText('LIVE CAMERA',320,188);};
-    paint();qaCanvasTimer=setInterval(paint,250);return canvas.captureStream(8);
-  }
-  function attachLocalPreview(){
-    const tile=q('.video-tile[data-self="1"]'),video=tile?.querySelector('video'),fallback=tile?.querySelector('.video-fallback');
-    if(!tile||!video)return;
-    const live=Boolean(cameraOn&&previewLive&&previewStream?.getVideoTracks?.().some(track=>track.readyState==='live'));
-    if(live){if(video.srcObject!==previewStream)video.srcObject=previewStream;video.style.transform=mirrored?'scaleX(-1)':'none';video.hidden=false;if(fallback)fallback.hidden=true;void video.play().catch(()=>{});}
-    else{video.hidden=true;if(video.srcObject&&!cameraOn)video.srcObject=null;if(fallback)fallback.hidden=false;}
-  }
-  async function openPreview(){
-    const generation=++previewGeneration;if(!cameraOn){stopPreview();attachLocalPreview();return;}
-    let stream=null;
-    try{
-      if(qaInteractionFixtures)stream=makeQaPreviewStream();
-      else{
-        const video={width:{ideal:640},height:{ideal:360},frameRate:{ideal:15,max:20}};if(cameraId)video.deviceId={ideal:cameraId};
-        stream=await navigator.mediaDevices.getUserMedia({audio:false,video});
-      }
-      if(generation!==previewGeneration||!cameraOn){stopTracks(stream);return;}
-      const track=stream?.getVideoTracks?.()[0]||null;if(!track)throw new Error('presenter_camera_track_unavailable');
-      previewStream=stream;previewLive=true;attachLocalPreview();
-      track.addEventListener('ended',()=>{if(generation!==previewGeneration)return;previewLive=false;previewStream=null;attachLocalPreview();if(cameraOn)setTimeout(()=>{if(generation===previewGeneration&&cameraOn)void openPreview();},300);},{once:true});
-    }catch(error){stopTracks(stream);if(generation!==previewGeneration)return;previewStream=null;previewLive=false;attachLocalPreview();console.error('[DominionStar Meet] Presenter camera preview unavailable.',error);}
-  }
-  function syncPreview(){
-    if(!cameraOn){stopPreview();attachLocalPreview();return;}
-    const track=previewStream?.getVideoTracks?.()[0]||null,actualId=String(track?.getSettings?.().deviceId||'');
-    if(track&&track.readyState==='live'&&(!cameraId||!actualId||actualId===cameraId)){previewLive=true;attachLocalPreview();return;}
-    stopPreview();void openPreview();
+  function drawFrame(id,frame){
+    const person=participants.find(item=>item.participantId===id);
+    const tile=[...document.querySelectorAll('#videoStack .video-tile')].find(item=>item.dataset.participantId===id);
+    const canvas=tile?.querySelector('canvas.remote-frame'),fallback=tile?.querySelector('.video-fallback');
+    if(!person?.cameraOn||!canvas||!frame?.dataUrl)return;
+    const epoch=frameEpoch.get(id)||0;
+    const image=new Image();
+    image.onload=()=>{
+      if(epoch!==(frameEpoch.get(id)||0)||!participants.some(item=>item.participantId===id&&item.cameraOn))return;
+      const current=remoteFrames.get(id);
+      if(current?.at!==frame.at||current?.dataUrl!==frame.dataUrl)return;
+      const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return;
+      ctx.drawImage(image,0,0,canvas.width,canvas.height);
+      canvas.hidden=false;if(fallback)fallback.hidden=true;
+    };
+    image.onerror=()=>{};
+    image.src=frame.dataUrl;
   }
 
   const localRole=()=>String(participants.find(item=>item.self)?.role||'participant').toLowerCase();
@@ -87,11 +74,12 @@
     const list=orderedParticipants();
     const signature=JSON.stringify({layout:videoLayout,pinnedId,
       list:list.map(p=>[p.participantId,p.name,p.role,p.self,p.micOn,p.cameraOn,p.avatar])});
-    if(!force&&signature===lastSignature){syncSpeaking();attachLocalPreview();return;}
+    if(!force&&signature===lastSignature){syncSpeaking();return;}
     const stack=q('#videoStack');if(!stack)return;
     const dock=q('#dock');if(dock)dock.dataset.scrollable=list.length>5?'1':'0';
     lastSignature=signature;
     const expected=new Set(list.map(person=>person.participantId));
+    for(const id of [...remoteFrames.keys()])if(!expected.has(id))invalidateFrame(id);
     for(const tile of [...stack.querySelectorAll(':scope > .video-tile')]){
       if(!expected.has(tile.dataset.participantId))tile.remove();
     }
@@ -101,7 +89,7 @@
       if(!tile){
         tile=document.createElement('article');tile.className='video-tile';tile.dataset.participantId=id;
         tile.innerHTML=`
-          ${person.self?'<video autoplay muted playsinline hidden></video>':'<img class="remote-frame" alt="" hidden>'}
+          <canvas class="remote-frame" width="176" height="99" hidden></canvas>
           <div class="video-fallback"><span></span></div>
           <div class="video-tile-actions">
             <button type="button" class="video-primary-action" data-video-primary></button>
@@ -146,31 +134,32 @@
           avatar.hidden=false;avatar.src=person.avatar;
         }
       }else if(avatar){avatar.remove();if(initialsNode)initialsNode.hidden=false;}
-      if(!person.self){
-        const frame=remoteFrames.get(id)||'',remoteImage=tile.querySelector('.remote-frame');
-        if(person.cameraOn&&frame&&remoteImage){
-          if(remoteImage.src!==frame)remoteImage.src=frame;
-          remoteImage.hidden=false;if(fallback)fallback.hidden=true;
-        }else{
-          if(remoteImage)remoteImage.hidden=true;
-          if(fallback)fallback.hidden=false;
-        }
+      const remoteImage=tile.querySelector('canvas.remote-frame');
+      if(!person.cameraOn){
+        if(remoteFrames.has(id))invalidateFrame(id);
+        if(remoteImage)remoteImage.hidden=true;
+        if(fallback)fallback.hidden=false;
+      }else if(remoteImage&&remoteImage.hidden&&remoteFrames.has(id)){
+        drawFrame(id,remoteFrames.get(id));
       }
       // Keep existing video/media nodes attached when status or ordering changes.
       const position=stack.children[index];
       if(position!==tile)stack.insertBefore(tile,position||null);
     }
-    syncSpeaking();attachLocalPreview();
+    syncSpeaking();
     if(activeMenuId&&!participants.some(item=>item.participantId===activeMenuId))closeMenu();
   }
   function syncSpeaking(){
     for(const tile of document.querySelectorAll('.video-tile'))tile.classList.toggle('speaking',tile.dataset.self==='1'&&speaking);
   }
   function applyRemoteFrame(payload={}){
-    const id=String(payload.participantId||''),dataUrl=String(payload.dataUrl||'');if(!id||!dataUrl)return;
-    remoteFrames.set(id,dataUrl);const person=participants.find(item=>item.participantId===id);if(!person?.cameraOn)return;
-    const tile=q(`.video-tile[data-participant-id="${CSS.escape(id)}"]`),img=tile?.querySelector('.remote-frame'),fallback=tile?.querySelector('.video-fallback');
-    if(img){if(img.src!==dataUrl)img.src=dataUrl;img.hidden=false;if(fallback)fallback.hidden=true;}
+    const id=String(payload.participantId||''),dataUrl=String(payload.dataUrl||'');
+    const at=Number(payload.at)||0;
+    if(!id||!/^data:image\\/(?:jpeg|webp|png);base64,/i.test(dataUrl)||!at)return;
+    if(!participants.some(item=>item.participantId===id&&item.cameraOn))return;
+    const last=remoteFrames.get(id);if(last&&at<=last.at)return;
+    const frame={dataUrl,at};remoteFrames.set(id,frame);
+    drawFrame(id,frame);
   }
 
   async function presenterCommand(command){
@@ -233,25 +222,23 @@
 
   document.addEventListener('pointerdown',event=>{if(!event.target?.closest?.('#videoActionMenu,[data-video-more]'))closeMenu();},true);
   window.addEventListener('blur',closeMenu);document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
-  window.addEventListener('pagehide',()=>{closeMenu();stopPreview();},{once:true});
+  window.addEventListener('pagehide',()=>{closeMenu();remoteFrames.clear();frameEpoch.clear();},{once:true});
 
   async function boot(){
-    try{const environment=await desktop.environment?.();qaInteractionFixtures=Boolean(environment?.qaPresenterFixtures||environment?.qaInteractionFixtures);}catch{}
-    await loadIdentity();participants=normalizedParticipants(participants);renderParticipants(true);syncPreview();
+    await loadIdentity();participants=normalizedParticipants(participants);renderParticipants(true);
   }
 
   bridge?.onState?.(state=>{
     const nextCameraOn=state?.cameraOn!==false,nextMicOn=state?.micOn!==false,nextCameraId=String(state?.cameraId||''),nextMirror=state?.mirror!==false;
-    const cameraChanged=nextCameraOn!==cameraOn,deviceChanged=nextCameraId!==cameraId,mirrorChanged=nextMirror!==mirrored;
     cameraOn=nextCameraOn;micOn=nextMicOn;cameraId=nextCameraId;mirrored=nextMirror;speaking=Boolean(micOn&&state?.speaking);
     if(state?.videoLayout&&state.videoLayout!=='hide')videoLayout=String(state.videoLayout);
     participants=normalizedParticipants(state?.participants);
     setLayoutActive(videoLayout);renderParticipants();
-    if(cameraChanged||deviceChanged)syncPreview();else if(mirrorChanged)attachLocalPreview();else attachLocalPreview();
+    // Camera frames are delivered by the meeting's existing media owner.
   });
   bridge?.onVideoFrame?.(applyRemoteFrame);
 
-  window.addEventListener('beforeunload',stopPreview,{once:true});
-  window.addEventListener('unload',stopPreview,{once:true});
+  window.addEventListener('beforeunload',()=>{remoteFrames.clear();frameEpoch.clear();},{once:true});
+  window.addEventListener('unload',()=>{remoteFrames.clear();frameEpoch.clear();},{once:true});
   void boot();
 })();
