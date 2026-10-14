@@ -27,7 +27,7 @@ for(const [needle,message] of [
 assert.ok(reference.includes("participantsButton.setAttribute('aria-label',`Participants (${count})`)"),'toolbar needs accessible live count');
 assert.ok(reference.includes('icon.dataset.participantCount=String(count)'), 'toolbar icon count must use the canonical roster');
 assert.ok(styles.includes('.ds-control-icon[data-participant-count]::after'),'numeric count must be visible beside the Participants icon');
-assert.ok(styles.includes('font-size:9px!important;letter-spacing:-.24px'),'Participants caption must fit without truncation');
+assert.ok(styles.includes('#meetingOverlay #roomParticipants{padding-left:1px!important;padding-right:1px!important}')&&styles.includes('font-size:11px!important;letter-spacing:-.24px'),'Participants caption must preserve approved typography while fitting the control');
 assert.ok(participants.includes('width:318px!important')&&participants.includes('height:390px!important'),'approved participant window remains 318x390');
 assert.ok(participants.includes('height:42px!important'),'participant rows remain 42px');
 assert.ok(parity.includes('width:176px!important')&&parity.includes('height:99px!important'),'approved video tiles remain 176x99');
