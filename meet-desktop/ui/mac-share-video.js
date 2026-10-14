@@ -168,7 +168,10 @@
   function setLayoutActive(layout){
     videoLayout=['speaker','strip','gallery'].includes(String(layout))?String(layout):'strip';const dock=q('#dock');if(dock)dock.dataset.layout=videoLayout;
     for(const button of document.querySelectorAll('.video-dock-head [data-layout]'))button.classList.toggle('active',button.dataset.layout===videoLayout);
-    lastSignature='';renderParticipants(true);
+    // Presenter state arrives repeatedly while screen sharing. Only a layout
+    // change invalidates rendered structure; unchanged state must preserve
+    // real <video> nodes and any incoming remote-frame image elements.
+    // renderParticipants() follows the participant-state update in onState.
   }
   q('#videoViewSpeaker')?.addEventListener('click',()=>void presenterCommand('layout-speaker'));
   q('#videoViewStrip')?.addEventListener('click',()=>void presenterCommand('layout-strip'));
