@@ -61,3 +61,16 @@
 - The isolated regression script now covers 35 source invariants. Independent source inspection: 35/35 matched, and seven browser JavaScript files compiled for syntax. These are **static checks**, not live two-device execution or a packaged application.
 
 Next investigation requires collecting the privacy-safe `DominionWebRTCController.diagnosticSnapshot()` output on both live clients, at rest and during screen share. Compare sender `framesEncoded` / `bytesSent`, receiver `framesDecoded` / `bytesReceived`, ICE state, and `remoteShareVideo.currentTime` to locate the actual failing boundary. Do not disclose join tokens or SDP.
+
+## Phase 4: first-frame authority and executable media regressions (2026-10-14)
+
+Changes are confined to `cleanup/meeting-ownership-audit-20261014`, **not production**.
+
+1. Native ScreenCaptureKit worker `share-controller.js` previously set `macWorkerActive=true` after a successful picker/worker start even if its local receiving WebRTC stream contained no playable screen track. It now waits up to 5.5 seconds for a *live, unmuted* video track before claiming the user is sharing; otherwise it disposes the worker and reports capture-transport failure instead of falsely reporting share success. Intentional synthetic/lifecycle-only QA flags retain their existing behavior.
+2. `webrtc-controller.js` resolves the current screen stream *after* asynchronous camera/effects processing to avoid selecting an outdated share track during a camera state transition.
+3. Both remote video-only elements are explicitly `muted` for browser autoplay compatibility; remote microphone and shared computer sound continue through dedicated `audio` elements.
+4. Remote share and camera elements now keep the fallback/stage until `readyState >= 2` and decoded `videoWidth`/`videoHeight` are nonzero. No remote-share active UI event is emitted before that display threshold, avoiding an empty black stage being presented as successful remote sharing.
+5. `scripts/verify-live-media-attachment-20261014.mjs` executes mocked DOM lifecycle and asynchronous signaling scenarios instead of searching only for source strings. Tested first frame/reveal, cleanup, unchanged stream identity, single-flight polling, sorted signals, and processing-failure retry.
+6. `npm run verify:cleanup` now invokes both the 41-invariant structural check and the functional regression file. Independent execution of the committed test logic in a JS harness: **41/41 source assertions, 23/23 functional mock assertions, and 8/8 browser JS syntax parses passed**. This is **not** a packaged Mac test or a live network test.
+
+**Still blocked:** actual first-frame delivery across two Macs, ICE/TURN selection and RTP sender/receiver counters, authorized browser guest entry, native JPEG snapshot companion replacement with sustained video, participant-panel action access, and end-to-end stable conference operation. Do not package or distribute this branch before those tests succeed.
