@@ -355,6 +355,30 @@ try{
   assert.deepEqual(viewerParticipants.buttons,['Invite','Unmute me'],'Participant viewer footer must expose Invite and Unmute me only.');
   assert.equal(viewerParticipants.hostBulk,false,'Participant viewer must not receive Mute all, participant More, or host-bulk controls.');
 
+  // The participant footer Unmute me action must use the real microphone state,
+  // not the stable visible Audio caption. It must unmute only the viewer while
+  // preserving the remote share, floating panel, stage, and video strip.
+  const viewerFooterUnmuteBefore=await evaluate(`(()=>{const media=window.DominionMediaController.snapshot(),mic=document.querySelector('#roomMic'),panel=document.querySelector('.room-side').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect(),dock=document.querySelector('#participantVideoDock').getBoundingClientRect(),button=document.querySelector('.ds-ref-participants-footer [data-ref-unmute-me]');return {micOn:media.micOn,micOff:mic?.classList.contains('is-off'),label:String(mic?.querySelector('.ds-control-label')?.textContent||mic?.textContent||'').trim(),ariaLabel:String(mic?.getAttribute('aria-label')||''),buttonVisible:Boolean(button&&!button.hidden&&getComputedStyle(button).display!=='none'),remoteSharePrimary:document.body.classList.contains('remote-share-active')&&!document.querySelector('#meetingOverlay').classList.contains('remote-speaker-stage'),panel:{width:Math.round(panel.width),height:Math.round(panel.height)},stage:{width:Math.round(stage.width),height:Math.round(stage.height)},dock:{left:Math.round(dock.left),top:Math.round(dock.top),width:Math.round(dock.width),height:Math.round(dock.height)}};})()`);
+  assert.equal(viewerFooterUnmuteBefore.micOn,false,'Viewer must be muted before exercising Unmute me.');
+  assert.equal(viewerFooterUnmuteBefore.micOff,true,'Viewer Audio control must expose muted visual state before Unmute me.');
+  assert.equal(viewerFooterUnmuteBefore.label,'Audio','Viewer Audio control must retain the approved visible Audio caption before Unmute me.');
+  assert.equal(viewerFooterUnmuteBefore.ariaLabel,'Unmute','Viewer Audio control must expose the real muted state before Unmute me.');
+  assert.equal(viewerFooterUnmuteBefore.buttonVisible,true,'Participant footer must expose the real Unmute me action.');
+  assert.equal(viewerFooterUnmuteBefore.remoteSharePrimary,true,'Remote shared content must remain primary before Unmute me.');
+  await evaluate(`document.querySelector('.ds-ref-participants-footer [data-ref-unmute-me]').click();true`);
+  await waitFor(`window.DominionMediaController.snapshot().micOn===true&&!document.querySelector('#roomMic').classList.contains('is-off')`,'participant footer Unmute me during remote share',5000);
+  const viewerFooterUnmuteAfter=await evaluate(`(()=>{const media=window.DominionMediaController.snapshot(),mic=document.querySelector('#roomMic'),panel=document.querySelector('.room-side').getBoundingClientRect(),stage=document.querySelector('.stage').getBoundingClientRect(),dock=document.querySelector('#participantVideoDock').getBoundingClientRect();return {micOn:media.micOn,audioLive:media.audioLive,label:String(mic?.querySelector('.ds-control-label')?.textContent||mic?.textContent||'').trim(),ariaLabel:String(mic?.getAttribute('aria-label')||''),remoteSharePrimary:document.body.classList.contains('remote-share-active')&&!document.querySelector('#meetingOverlay').classList.contains('remote-speaker-stage'),panel:{width:Math.round(panel.width),height:Math.round(panel.height)},stage:{width:Math.round(stage.width),height:Math.round(stage.height)},dock:{left:Math.round(dock.left),top:Math.round(dock.top),width:Math.round(dock.width),height:Math.round(dock.height)}};})()`);
+  assert.equal(viewerFooterUnmuteAfter.micOn,true,'Unmute me must actually unmute the participant.');
+  assert.equal(viewerFooterUnmuteAfter.audioLive,true,'Unmute me must restore a live local audio track.');
+  assert.equal(viewerFooterUnmuteAfter.label,'Audio','Unmute me must preserve the approved visible Audio caption.');
+  assert.equal(viewerFooterUnmuteAfter.ariaLabel,'Mute','Unmute me must expose the real live microphone state through aria-label.');
+  assert.equal(viewerFooterUnmuteAfter.remoteSharePrimary,true,'Unmute me must not displace the remote shared stage.');
+  assert.deepEqual(viewerFooterUnmuteAfter.panel,viewerFooterUnmuteBefore.panel,'Unmute me must not resize the approved Participants panel.');
+  assert.deepEqual(viewerFooterUnmuteAfter.stage,viewerFooterUnmuteBefore.stage,'Unmute me must not resize the shared-content stage.');
+  assert.deepEqual(viewerFooterUnmuteAfter.dock,viewerFooterUnmuteBefore.dock,'Unmute me must not move or resize the approved video strip.');
+  await evaluate(`document.querySelector('#roomMic').click();true`);
+  await waitFor(`window.DominionMediaController.snapshot().micOn===false&&document.querySelector('#roomMic').classList.contains('is-off')`,'restore viewer muted state after Unmute me',5000);
+
   // Remote-share viewer roster row: real remote media, share, and raised-hand
   // events must decorate the compact approved participant row without changing
   // the 318x390 floating panel or squeezing the shared-content stage.
