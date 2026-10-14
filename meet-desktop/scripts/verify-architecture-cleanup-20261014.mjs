@@ -8,6 +8,7 @@ const reference=read('ui/approved-reference-parity.js');
 const stage=read('ui/meeting-parity.js');
 const rtc=read('ui/webrtc-controller.js');
 const macVideo=read('ui/mac-share-video.js');
+const macStyle=read('ui/mac-share-video.css');
 const native=read('src/mac-share-presenter-overlay.mjs');
 const annotation=read('ui/mac-annotation-toolbar.css');
 
@@ -39,4 +40,8 @@ check(macVideo.includes('stack.insertBefore(tile,position||null)'),'native video
 check(!macVideo.includes("lastSignature='';renderParticipants(true);\n  }\n  q('#videoViewSpeaker')"),'repeated native state updates cannot force full remounts');
 check(native.includes('width:880,height:92'),'native annotation palette must be compact rather than 184x500');
 check(annotation.includes('grid-template-rows:1fr')&&annotation.includes('repeat(5,minmax(0,1fr))'),'native annotation tools must use a single row');
-console.log('PASS 24 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
+check(macStyle.includes('width:176px;max-width:100%;height:99px'),'default native share companion tiles must remain 176x99');
+check(macStyle.includes('grid-template-columns:repeat(2,176px);grid-auto-rows:99px'),'native companion gallery must retain exact dimensions');
+check(macStyle.includes('overflow-y:hidden')&&macStyle.includes('.video-dock[data-scrollable="1"] .video-stack{overflow-y:auto}')&&macVideo.includes("dock.dataset.scrollable=list.length>5?'1':'0'"),'internal companion scrolling must begin only after five participants');
+check(native.includes('width:188,height:140,minWidth:188,minHeight:140')&&native.includes("else if(videoLayout==='gallery'){width=369;"),'native video window must not override approved tile size');
+console.log('PASS 28 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
