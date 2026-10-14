@@ -132,7 +132,7 @@ if(process.platform==='darwin'){
     // Reserve 31px for window controls, 10px padding and 5px between tiles.
     let width=188,height=140;
     if(videoLayout==='strip')height=Math.min(area.height-92,31+10+(participantCount*99)+Math.max(0,participantCount-1)*5);
-    else if(videoLayout==='gallery'){width=363;const visible=Math.min(5,participantCount),rows=Math.ceil(visible/2);height=Math.min(area.height-92,31+10+(rows*99)+Math.max(0,rows-1)*5);}
+    else if(videoLayout==='gallery'){width=369;const visible=Math.min(5,participantCount),rows=Math.ceil(visible/2);height=Math.min(area.height-92,31+10+(rows*99)+Math.max(0,rows-1)*5);}
     else if(videoLayout==='speaker'){width=188;height=140;}
     let x=Math.round(area.x+area.width-width-18),y=Math.round(area.y+76);
     if(preservePosition){
