@@ -144,8 +144,8 @@
       const button=event.currentTarget;
       const mic=q('#roomMic');
       if(!mic){flashFooterButton(button,'Unavailable','Unmute me');return;}
-      const label=String(mic.querySelector('.ds-control-label')?.textContent||mic.textContent||'').trim();
-      if(/^unmute$/i.test(label)){mic.click();flashFooterButton(button,'Unmuted','Unmute me',900);}
+      const muted=mic.classList.contains('is-off')||/^unmute$/i.test(String(mic.getAttribute('aria-label')||'').trim());
+      if(muted){mic.click();flashFooterButton(button,'Unmuted','Unmute me',900);}
       else flashFooterButton(button,'Already unmuted','Unmute me',900);
     };
     const muteAll=footer.querySelector('[data-ref-mute-all]');
