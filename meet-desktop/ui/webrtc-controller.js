@@ -5,7 +5,7 @@
   if(!desktop?.isDesktop||!meeting?.context||!meeting?.sendSignal||!meeting?.pullSignals||!meeting?.iceConfig)return;
 
   const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800,ICE_RETRY_MS=30000,REFRESH_MARGIN_MS=10*60*1000;
-  const state={running:false,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0};
+  const state={running:false,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0,lastSpeakerSignature:''};
   const q=s=>document.querySelector(s);
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const initials=name=>String(name||'Participant').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'P';
@@ -321,7 +321,7 @@
     });
     const sharingPeer=String(document.querySelector('#remoteShareVideo')?.dataset.peerId||'');
     document.body.classList.toggle('ds-remote-share-speaker-active',Boolean(loudest&&sharingPeer&&loudest===sharingPeer));
-    window.dispatchEvent(new CustomEvent('dominion:active-speakers',{detail:{participantIds:top.map(item=>item.id),loudestId:loudest}}));
+    const signature=top.map(item=>item.id).join('|');if(signature!==state.lastSpeakerSignature){state.lastSpeakerSignature=signature;window.dispatchEvent(new CustomEvent('dominion:active-speakers',{detail:{participantIds:top.map(item=>item.id),loudestId:loudest}}));}
   }
   async function sampleTransport(record){
     try{
@@ -357,7 +357,7 @@
     if(state.running||Date.now()<state.nextStartAttemptAt)return;const context=await meeting.context();if(!context?.roomId||!context?.participantId||context.state!=='joined')return;
     ensureUi();setTransportStatus('Preparing network…','pending');
     try{await loadIceConfig(false);}catch{state.nextStartAttemptAt=Date.now()+ICE_RETRY_MS;setTransportStatus('Network relay unavailable','warning');return;}
-    state.running=true;state.context=context;state.lastSignalId=0;state.nextStartAttemptAt=0;state.networkOnline=navigator.onLine!==false;state.recovering=false;state.systemSuspended=false;state.lastPresenceTouchAt=0;
+    state.running=true;state.context=context;state.lastSignalId=0;state.lastSpeakerSignature='';state.nextStartAttemptAt=0;state.networkOnline=navigator.onLine!==false;state.recovering=false;state.systemSuspended=false;state.lastPresenceTouchAt=0;
     state.mediaUnsub=window.DominionMediaController?.onChange?.(()=>void syncAllSenders());
     state.shareUnsub=window.DominionShareController?.onChange?.(()=>void syncAllSenders());
     state.effectsUnsub=window.DominionVideoEffects?.onChange?.(()=>void syncAllSenders());
@@ -367,7 +367,59 @@
   }
   async function stop(){
     if(!state.running){state.context=null;hideRecovery();return;}state.running=false;for(const key of Object.keys(state.timers)){clearInterval(state.timers[key]);clearTimeout(state.timers[key]);state.timers[key]=0;}state.mediaUnsub?.();state.shareUnsub?.();state.effectsUnsub?.();state.powerUnsub?.();state.mediaUnsub=null;state.shareUnsub=null;state.effectsUnsub=null;state.powerUnsub=null;
-    for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.remoteMedia.clear();hideRecovery();state.context=null;state.lastSignalId=0;state.lastPresenceTouchAt=0;state.iceServers=[];state.iceExpiresAtMs=0;state.iceProvider='';state.qaDirectOnly=false;document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();window.DominionVideoEffects?.clearTransientMeetingEffects?.();
+    for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.remoteMedia.clear();hideRecovery();state.context=null;state.lastSignalId=0;state.lastPresenceTouchAt=0;state.lastSpeakerSignature='';state.iceServers=[];state.iceExpiresAtMs=0;state.iceProvider='';state.qaDirectOnly=false;document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();window.DominionVideoEffects?.clearTransientMeetingEffects?.();
+  }
+  // Explicit QA snapshot: safe counters and track states only. Excludes
+  // session tokens, SDP, IP addresses and ICE server credentials.
+  // Capture one on BOTH machines before and after starting a screen share.
+  async function diagnosticSnapshot(){
+    const stream=shareMedia();
+    const element=(selector)=>{
+      const video=q(selector);if(!video)return null;
+      return {present:true,hidden:video.hidden,paused:video.paused,
+        readyState:video.readyState,videoWidth:video.videoWidth,
+        videoHeight:video.videoHeight,currentTime:Number(video.currentTime)||0,
+        streamTracks:video.srcObject?.getTracks?.().map(t=>({
+          kind:t.kind,readyState:t.readyState,muted:t.muted,enabled:t.enabled
+        }))||[]};
+    };
+    const peers=[];
+    for(const record of state.peers.values()){
+      const reports=[];
+      try{
+        const stats=await record.pc.getStats();
+        stats.forEach(report=>{
+          if(!['inbound-rtp','outbound-rtp'].includes(report.type))return;
+          reports.push({direction:report.type,kind:report.kind||report.mediaType||'unknown',
+            bytesSent:Number(report.bytesSent)||0,bytesReceived:Number(report.bytesReceived)||0,
+            framesSent:Number(report.framesSent)||0,framesEncoded:Number(report.framesEncoded)||0,
+            framesReceived:Number(report.framesReceived)||0,framesDecoded:Number(report.framesDecoded)||0,
+            packetsLost:Number(report.packetsLost)||0});
+        });
+      }catch(error){reports.push({error:String(error?.message||'getStats_failed')});}
+      const lanes=record.pc.getTransceivers().slice(0,4).map((lane,index)=>({
+        lane:['microphone','camera','screen','systemAudio'][index]||String(index),
+        sender:lane.sender?.track?{kind:lane.sender.track.kind,readyState:lane.sender.track.readyState,
+          muted:lane.sender.track.muted,enabled:lane.sender.track.enabled}:null,
+        receiver:lane.receiver?.track?{kind:lane.receiver.track.kind,readyState:lane.receiver.track.readyState,
+          muted:lane.receiver.track.muted,enabled:lane.receiver.track.enabled}:null
+      }));
+      peers.push({peerId:record.id,connectionState:record.pc.connectionState,
+        iceConnectionState:record.pc.iceConnectionState,signalingState:record.pc.signalingState,
+        selectedPath:record.transport,lanes,reports});
+    }
+    return {at:new Date().toISOString(),running:state.running,networkOnline:state.networkOnline,
+      shareCaptureTracks:stream?.getTracks?.().map(track=>({
+        kind:track.kind,readyState:track.readyState,muted:track.muted,enabled:track.enabled
+      }))||[],
+      remoteShareElement:element('#remoteShareVideo'),remoteCameraElements:[...document.querySelectorAll('#remoteTileStrip .remote-peer-tile')].map(tile=>({
+        peerId:String(tile.dataset.peerId||''),video:{
+          hidden:tile.querySelector('video')?.hidden,
+          readyState:tile.querySelector('video')?.readyState,
+          videoWidth:tile.querySelector('video')?.videoWidth,
+          currentTime:Number(tile.querySelector('video')?.currentTime)||0
+        }
+      })),peers};
   }
   async function lifecycleProbe(){
     const inRoom=!q('#meetingOverlay')?.hidden;const context=await meeting.context().catch(()=>({}));
@@ -375,6 +427,6 @@
     if((!inRoom||!context?.roomId)&&state.running)void stop();
   }
   setInterval(()=>void lifecycleProbe(),500);
-  const api=Object.freeze({start,stop,recoverNetwork,touchPresence,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayExpiresAt:state.iceExpiresAtMs})});
+  const api=Object.freeze({start,stop,recoverNetwork,touchPresence,diagnosticSnapshot,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayExpiresAt:state.iceExpiresAtMs})});
   window.DominionWebRTCController=api;
 })();
