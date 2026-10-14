@@ -99,6 +99,9 @@ try{
 
   // Single approved illustration: Participants opens centered at the approved
   // default, can restore remembered user geometry, and resets back to center.
+  // Clear only saved Participants geometry so this default-position assertion
+  // is deterministic while preserving unrelated remembered surfaces.
+  await evaluate(`(()=>{try{const key='ds_meet_floating_surface_geometry_v1',saved=JSON.parse(localStorage.getItem(key)||'{}');delete saved.participants;if(Object.keys(saved).length)localStorage.setItem(key,JSON.stringify(saved));else localStorage.removeItem(key);}catch{}const panel=document.querySelector('.room-side');if(panel){panel.dataset.dsRuntimeUserPositioned='0';panel.dataset.dsAdaptiveUserPositioned='0';}window.DominionRuntimeStability.layoutSideSurface();return true;})()`);
   await evaluate(`window.DominionRuntimeStability.setParticipants(true)`);
   await waitFor("document.querySelector('.room-side')&&!document.querySelector('.room-side').hidden",'approved Participants window');
   const participantsDefault=await evaluate(`(()=>{window.DominionRuntimeStability.layoutSideSurface();const panel=document.querySelector('.room-side'),body=document.querySelector('.meeting-body'),pr=panel.getBoundingClientRect(),br=body.getBoundingClientRect();return {width:Math.round(pr.width),height:Math.round(pr.height),centerDx:Math.round((pr.left+pr.width/2)-(br.left+br.width/2)),centerDy:Math.round((pr.top+pr.height/2)-(br.top+br.height/2)),handles:panel.querySelectorAll('.ds-runtime-resize-handle').length,trafficDirection:getComputedStyle(panel.querySelector('.ds-panel-traffic')).flexDirection};})()`);
