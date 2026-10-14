@@ -49,3 +49,15 @@
 8. Hold a sustained session with two live cameras, repeated mute/video toggles, share start/stop, annotation, leaving and rejoining. No black screen, flicker, stale overlay, unresponsive controls or silent connection retries.
 
 **No installer from this branch until physical acceptance is demonstrated.**
+
+## Phase 3: signaling and relay diagnosis (2026-10-14)
+
+- Browser `/meet/` is deployed from `meet-desktop/ui` through `scripts/build-public-netlify.sh`; `browser-bridge.js` supplies signaling and ICE methods and the same `webrtc-controller.js` is loaded dynamically by `media-controller.js`. This rules out a missing browser WebRTC source file as a general explanation.
+- Signaling queries against the connected Supabase backend for the Oct 14 physical testing interval (14:23–14:30 UTC) show one room with 3 offers, 4 answers, 44 ICE candidate messages, and 1 bye. These messages demonstrate backend signaling traffic, **not** successful ICE connectivity or delivered frames.
+- The TURN credentials Edge Function `meet-v2-turn-credentials` is active and has JWT verification enabled. Its code requires Bearer authentication and checks room access. `browser-bridge.js` previously fell back to STUN-only ICE without retaining any explanation when this request failed.
+- Production support for anonymous external guests is **not verified**; both `meet_v2_send_signal` and `meet_v2_pull_signals` currently require authenticated member identity via `auth.uid()`. Do not claim guest media parity without revisiting authorization design and testing.
+- `webrtc-controller.js` now serializes signaling and presence polling to avoid overlapping offer/ICE processing, advances the signal cursor only after each accepted message, and ignores stale results from earlier meeting generations.
+- `browser-bridge.js` now records a sanitized relay failure category (authentication, provider, configuration, generic unavailable) when using direct ICE fallback. `webrtc-controller.js` surfaces direct-only state and records browser vs desktop surface, network details and signaling counters in `diagnosticSnapshot()`.
+- The isolated regression script now covers 35 source invariants. Independent source inspection: 35/35 matched, and seven browser JavaScript files compiled for syntax. These are **static checks**, not live two-device execution or a packaged application.
+
+Next investigation requires collecting the privacy-safe `DominionWebRTCController.diagnosticSnapshot()` output on both live clients, at rest and during screen share. Compare sender `framesEncoded` / `bytesSent`, receiver `framesDecoded` / `bytesReceived`, ICE state, and `remoteShareVideo.currentTime` to locate the actual failing boundary. Do not disclose join tokens or SDP.
