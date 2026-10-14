@@ -530,13 +530,33 @@
             packetsLost:Number(report.packetsLost)||0});
         });
       }catch(error){reports.push({error:String(error?.message||'getStats_failed')});}
-      const lanes=record.pc.getTransceivers().slice(0,4).map((lane,index)=>({
+      const laneStats=async(endpoint,direction)=>{
+        if(!endpoint?.getStats)return null;
+        try{
+          const collection=await endpoint.getStats();
+          const summary={bytes:0,packets:0,frames:0,framesEncoded:0,framesDecoded:0,packetsLost:0,hasRtp:false};
+          collection.forEach(report=>{
+            if(report.type!==(direction==='sender'?'outbound-rtp':'inbound-rtp')||report.isRemote===true)return;
+            summary.hasRtp=true;
+            summary.bytes+=Number(direction==='sender'?report.bytesSent:report.bytesReceived)||0;
+            summary.packets+=Number(direction==='sender'?report.packetsSent:report.packetsReceived)||0;
+            summary.frames+=Number(direction==='sender'?report.framesSent:report.framesReceived)||0;
+            summary.framesEncoded+=Number(report.framesEncoded)||0;
+            summary.framesDecoded+=Number(report.framesDecoded)||0;
+            summary.packetsLost+=Number(report.packetsLost)||0;
+          });
+          return summary;
+        }catch{return {error:'stats_unavailable'};}
+      };
+      const lanes=await Promise.all(record.pc.getTransceivers().slice(0,4).map(async(lane,index)=>({
         lane:['microphone','camera','screen','systemAudio'][index]||String(index),
         sender:lane.sender?.track?{kind:lane.sender.track.kind,readyState:lane.sender.track.readyState,
           muted:lane.sender.track.muted,enabled:lane.sender.track.enabled}:null,
         receiver:lane.receiver?.track?{kind:lane.receiver.track.kind,readyState:lane.receiver.track.readyState,
-          muted:lane.receiver.track.muted,enabled:lane.receiver.track.enabled}:null
-      }));
+          muted:lane.receiver.track.muted,enabled:lane.receiver.track.enabled}:null,
+        outbound:await laneStats(lane.sender,'sender'),
+        inbound:await laneStats(lane.receiver,'receiver')
+      })));
       peers.push({peerId:record.id,connectionState:record.pc.connectionState,
         iceConnectionState:record.pc.iceConnectionState,signalingState:record.pc.signalingState,
         selectedPath:record.transport,negotiation:{offerPending:record.offerPending,makingOffer:record.makingOffer,offersSent:record.offersSent,answersApplied:record.answersApplied},lanes,reports});
