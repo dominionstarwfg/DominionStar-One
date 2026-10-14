@@ -13,6 +13,7 @@ const macVideo=read('ui/mac-share-video.js');
 const macStyle=read('ui/mac-share-video.css');
 const native=read('src/mac-share-presenter-overlay.mjs');
 const annotation=read('ui/mac-annotation-toolbar.css');
+const presenterIntegration=read('ui/share-integration.js');
 
 const check=(ok,message)=>assert.ok(ok,message);
 
@@ -59,4 +60,8 @@ check(rtc.includes('<video id="remoteShareVideo" class="remote-share-video" auto
 check(rtc.includes('<video autoplay muted playsinline>'),'remote camera video must be autoplay-safe');
 check(rtc.includes('video.readyState<2||!video.videoWidth||!video.videoHeight'),'remote share and camera cannot replace stage before decoding');
 check(rtc.includes('const share=shareMedia(),shareState='),'sender must sample current screen track after async effects processing');
-console.log('PASS 41 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
+check(!macVideo.includes('navigator.mediaDevices.getUserMedia('),'native companion cannot request a second camera');
+check(presenterIntegration.includes('const current=media.stream?.()'),'native companion self-view must use main meeting stream');
+check(presenterIntegration.includes('sendCompanionFrame(existingLocalCameraVideo(),self.participantId)'),'native self-view frame forwarding must be wired');
+check(macVideo.includes('<canvas class="remote-frame" width="176" height="99" hidden></canvas>'),'companion tile must decode into stable canvas');
+console.log('PASS 45 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
