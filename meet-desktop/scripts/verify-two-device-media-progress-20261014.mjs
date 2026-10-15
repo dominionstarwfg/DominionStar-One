@@ -34,7 +34,7 @@ const lane=(screenIn=0,screenOut=0,camIn=0)=>[
     inbound:{bytes:screenIn*600,framesDecoded:screenIn,packets:screenIn},
     outbound:{bytes:screenOut*700,frames:screenOut,packets:screenOut}}
 ];
-const stage=(time,visible=true)=>({present:true,hidden:!visible,readyState:4,videoWidth:1280,videoHeight:720,currentTime:time,streamTracks:[{kind:'video',readyState:'live',muted:false,enabled:true}]});
+const stage=(time,visible=true)=>({present:true,hidden:!visible,readyState:4,videoWidth:1280,videoHeight:720,currentTime:time,renderedFrames:Math.round(time*20),streamTracks:[{kind:'video',readyState:'live',muted:false,enabled:true}]});
 const makeSnapshot=(screenIn,screenOut,camIn,time,visible=true)=>({
  at:'2026-10-14T12:00:00Z',surface:'desktop',running:true,networkOnline:true,
  remoteShareElement:stage(time,visible),
@@ -55,6 +55,7 @@ assert.equal(good.value.peerLanes[0].lanes.screen.inbound.frames,42);
 assert.equal(good.value.peerLanes[0].lanes.screen.outbound.frames,55);
 assert.equal(good.value.peerLanes[0].lanes.camera.inbound.frames,50);
 assert.equal(good.value.remoteSharePlayback.secondsAdvanced,4.5);
+assert.equal(good.value.remoteSharePlayback.renderedFramesAdvanced,90);
 assert.equal(good.value.remoteSharePlayback.visible,true);
 assert.equal(good.value.durationMs,4500);
 assert.deepEqual(good.delays,[4500]);
@@ -64,6 +65,7 @@ assert.equal(stalled.value.screenReceiversWithDecodedFrameProgress,0);
 assert.equal(stalled.value.screenSendersWithFrameProgress,0);
 assert.equal(stalled.value.peerLanes[0].lanes.screen.inbound.frames,0);
 assert.equal(stalled.value.remoteSharePlayback.secondsAdvanced,0);
+assert.equal(stalled.value.remoteSharePlayback.renderedFramesAdvanced,0);
 const missing=await check(makeSnapshot(3,5,2,1),{
  ...makeSnapshot(6,8,4,2),peers:[{peerId:'user-private-id',connectionState:'connected',lanes:[
  {lane:'screen',sender:null,receiver:null,inbound:null,outbound:null}
