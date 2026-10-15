@@ -702,6 +702,12 @@
     document.addEventListener('mouseleave',leave,true);
   }
 
+  // Single automatic placement authority. Hysteresis prevents repeated dock
+  // orientation changes near the breakpoint while the stage is resizing.
+  function chooseDockOrientation(width,height,previous='right'){
+    if(previous==='top')return width>=1020&&height>=620?'right':'top';
+    return width<900||height<520?'top':'right';
+  }
   function syncVideoDockGeometry(){
     const overlay=q('#meetingOverlay'),stage=q('.stage'),dock=q('#participantVideoDock');
     if(!overlay||!stage||!dock||dock.hidden)return false;
@@ -711,9 +717,14 @@
     const width=Math.max(1,sr.width||stage.clientWidth||0);
     const height=Math.max(1,sr.height||stage.clientHeight||0);
     const userPositioned=dock.classList.contains('user-positioned');
-
-    dock.dataset.dsRuntimeDockMode=userPositioned?'user':'right';
-    if(!userPositioned){dock.dataset.anchor='right';dock.dataset.orientation='vertical';}
+    const explicitSideBySide=overlay.classList.contains('share-side-by-side');
+    const oldMode=dock.dataset.dsRuntimeDockMode==='top'?'top':'right';
+    const autoMode=explicitSideBySide?'right':chooseDockOrientation(width,height,oldMode);
+    dock.dataset.dsRuntimeDockMode=userPositioned?'user':autoMode;
+    if(!userPositioned){
+      dock.dataset.anchor=autoMode==='top'?'top':'right';
+      dock.dataset.orientation=autoMode==='top'?'horizontal':'vertical';
+    }
     dock.style.setProperty('position','absolute','important');
     dock.style.setProperty('bottom','auto','important');
     dock.style.setProperty('transform','none','important');
@@ -745,25 +756,51 @@
 
     const tiles=[...dock.querySelectorAll('.remote-peer-tile')].filter(tile=>!tile.hidden&&!tile.classList.contains('stage-promoted'));
     const count=Math.max(1,tiles.length);
-    const visibleRows=Math.min(5,count);
     const tileWidth=176,tileHeight=99,gap=5,padding=10;
-    const desiredHeight=Math.min(548,(visibleRows*tileHeight)+Math.max(0,visibleRows-1)*gap+padding);
     dock.dataset.dsRuntimeVisibleCount=String(tiles.length);
-    dock.dataset.dsRuntimeColumns='1';
-    dock.style.setProperty('left','auto','important');
-    dock.style.setProperty('right','14px','important');
     dock.style.setProperty('top','14px','important');
-    dock.style.setProperty('width','188px','important');
-    dock.style.setProperty('height',`${Math.min(desiredHeight,Math.max(127,height-28))}px`,'important');
-    dock.style.setProperty('max-width','188px','important');
     dock.style.setProperty('max-height','calc(100% - 28px)','important');
-    if(body){
-      body.style.setProperty('grid-template-columns','176px','important');
-      body.style.setProperty('grid-auto-flow','row','important');
-      body.style.setProperty('grid-auto-rows','99px','important');
-      body.style.setProperty('overflow-x','hidden','important');
-      body.style.setProperty('overflow-y',count>5?'auto':'hidden','important');
-      body.style.setProperty('align-content','start','important');
+    if(autoMode==='top'){
+      // Show as many 16:9 tiles as fit the current stage; the filmstrip itself
+      // scrolls horizontally when more participants are present.
+      const visible=Math.max(1,Math.min(5,Math.floor((Math.max(tileWidth+padding,width-28)-padding+gap)/(tileWidth+gap))));
+      const shown=Math.min(count,visible);
+      const desiredWidth=shown*tileWidth+(shown-1)*gap+padding+2;
+      dock.dataset.dsRuntimeColumns=String(shown);
+      dock.style.setProperty('left','14px','important');
+      dock.style.setProperty('right','auto','important');
+      dock.style.setProperty('width',`${Math.min(desiredWidth,Math.max(1,width-28))}px`,'important');
+      dock.style.setProperty('max-width','calc(100% - 28px)','important');
+      dock.style.setProperty('height',`${Math.min(139,Math.max(1,height-28))}px`,'important');
+      if(body){
+        body.style.setProperty('grid-template-columns','none','important');
+        body.style.setProperty('grid-auto-flow','column','important');
+        body.style.setProperty('grid-auto-columns','176px','important');
+        body.style.setProperty('grid-template-rows','99px','important');
+        body.style.setProperty('grid-auto-rows','99px','important');
+        body.style.setProperty('overflow-x',count>shown?'auto':'hidden','important');
+        body.style.setProperty('overflow-y','hidden','important');
+        body.style.setProperty('align-content','start','important');
+      }
+    }else{
+      const visibleRows=Math.min(5,count);
+      const desiredHeight=Math.min(548,visibleRows*tileHeight+Math.max(0,visibleRows-1)*gap+padding);
+      dock.dataset.dsRuntimeColumns='1';
+      dock.style.setProperty('left','auto','important');
+      dock.style.setProperty('right','14px','important');
+      dock.style.setProperty('width','188px','important');
+      dock.style.setProperty('height',`${Math.min(desiredHeight,Math.max(127,height-28))}px`,'important');
+      dock.style.setProperty('max-width','188px','important');
+      if(body){
+        body.style.setProperty('grid-template-columns','176px','important');
+        body.style.setProperty('grid-auto-flow','row','important');
+        body.style.setProperty('grid-auto-columns','auto','important');
+        body.style.setProperty('grid-template-rows','none','important');
+        body.style.setProperty('grid-auto-rows','99px','important');
+        body.style.setProperty('overflow-x','hidden','important');
+        body.style.setProperty('overflow-y',count>visibleRows?'auto':'hidden','important');
+        body.style.setProperty('align-content','start','important');
+      }
     }
     return true;
   }
