@@ -41,8 +41,29 @@ export function evaluatePair(sender,receiver,{sameMeetingConfirmed=false,maxSkew
   return {pass:failures.length===0,failures,physicalVisualAcceptance:false};
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
-  const path=process.argv[2];if(!path){console.error('Usage: node verify-live-share-gate-20261014.mjs <diagnostic-window.json> [sender|receiver|both]');process.exitCode=2;}
-  else{const sample=JSON.parse(fs.readFileSync(path,'utf8'));const verdict=evaluate(sample,process.argv[3]||'receiver');console.log(JSON.stringify(verdict,null,2));if(!verdict.pass)process.exitCode=1;}
+  try{
+    const args=process.argv.slice(2);
+    if(args[0]==='--pair'){
+      const [senderPath,receiverPath,...flags]=args.slice(1);
+      if(!senderPath||!receiverPath||!flags.includes('--confirm-same-meeting')||flags.some(x=>x!=='--confirm-same-meeting')){
+        console.error('Usage: node verify-live-share-gate-20261014.mjs --pair <sender.json> <receiver.json> --confirm-same-meeting');process.exitCode=2;
+      }else{
+        const senderReal=fs.realpathSync(senderPath),receiverReal=fs.realpathSync(receiverPath);
+        if(senderReal===receiverReal){console.log(JSON.stringify({pass:false,failures:['same_file_used_twice'],physicalVisualAcceptance:false},null,2));process.exitCode=1;}
+        else{
+          const sender=JSON.parse(fs.readFileSync(senderReal,'utf8'));
+          const receiver=JSON.parse(fs.readFileSync(receiverReal,'utf8'));
+          const verdict=evaluatePair(sender,receiver,{sameMeetingConfirmed:true});
+          console.log(JSON.stringify(verdict,null,2));if(!verdict.pass)process.exitCode=1;
+        }
+      }
+    }else if(args[0]==='--self-test'){
+      console.log(selfTest());
+    }else if(args.length>=1&&args.length<=2&&(!args[1]||['sender','receiver','both'].includes(args[1]))){
+      const verdict=evaluate(JSON.parse(fs.readFileSync(args[0],'utf8')),args[1]||'receiver');
+      console.log(JSON.stringify(verdict,null,2));if(!verdict.pass)process.exitCode=1;
+    }else{console.error('Usage: node verify-live-share-gate-20261014.mjs <sample.json> [sender|receiver|both] OR --pair <sender.json> <receiver.json> --confirm-same-meeting OR --self-test');process.exitCode=2;}
+  }catch(error){console.error('QA input error:',error?.message||String(error));process.exitCode=2;}
 }
 export function selfTest(){
   const base={running:true,networkOnline:true,durationMs:4500,peerCount:1,connectionStates:['connected'],peerLanes:[{connectionState:'connected',lanes:{screen:{senderState:'live',receiverState:'live',outbound:{frames:12,bytes:8000},inbound:{frames:10,bytes:6000}}}}],remoteSharePlayback:{visible:true,readyState:4,width:1280,height:720,secondsAdvanced:4.1,renderedFramesAdvanced:82,streamTracks:[{kind:'video',readyState:'live',enabled:true,muted:false}]}};
