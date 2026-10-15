@@ -27,9 +27,17 @@ await window.DominionWebRTCController.diagnosticWindow(5000)
 ```
 
    The command does **not** activate sharing, change media tracks, open ports, or upload diagnostic data. It returns anonymized per-peer sequence numbers rather than participant names/room identifiers. If the developer console is inaccessible, report **DIAGNOSTIC NOT RUN**; do not infer counters.
+   To compare the two reports offline, save the **redacted** output objects as `host-report.json` and `guest-report.json` and run this from the project directory on the QA machine:
+
+```sh
+node scripts/audit-two-device-media-evidence-20261014.mjs host-report.json guest-report.json
+```
+
+   This comparator is scoped to **exactly two participants**. It reports `FAIL` for observed transmission, decoding, transport or playback faults, `UNVERIFIED` for missing/ambiguous evidence, and `TECHNICAL_PROGRESS_ONLY` when metrics look healthy. It **never outputs release approval**, even for successful media counters. Preserve the original local reports only in an access-controlled QA location and do not include tokens, SDP, participant names or room IDs.
+
 4. Interpret the sender and receiver independently:
    - **A:** `screenSendersWithFrameProgress > 0` for the appropriate peer(s) and `peerLanes[].lanes.screen.outbound.frames > 0`. This establishes outbound frame activity, not guest delivery.
-   - **B:** `screenReceiversWithDecodedFrameProgress > 0` and corresponding `peerLanes[].lanes.screen.inbound.frames > 0` during motion. `remoteSharePlayback.visible === true`, `width > 0`, `height > 0` and `secondsAdvanced > 0`. The guest must independently **see moving content**.
+   - **B:** `screenReceiversWithDecodedFrameProgress > 0` and corresponding `peerLanes[].lanes.screen.inbound.frames > 0` during motion. `remoteSharePlayback.visible === true`, `width > 0`, `height > 0` and `secondsAdvanced > 0`. When `renderedFramesAdvanced` is available, it must also be positive; a ticking playback clock with zero displayed-frame progress is **FAIL**. The guest must independently **see moving content**.
    - If sender progresses but B does not decode, fail **receiver delivery**. If neither progresses, fail **screen capture/transmit**. If counters progress but the actual stage is black, clipped, or behind an overlay, fail **rendering/layout**. If statistics are unavailable or ambiguous, mark **UNVERIFIED**, not PASS.
 5. Keep sharing for at least 60 seconds. Observe for blackouts, panel flicker, jumping video tiles, disappearing controls, out-of-sync speakers, and increasing receiver frame progress. Test active speech from each participant while the share remains the dominant stage.
 6. Stop sharing, then start a **second** share. Confirm no stranded presenter toolbar, capture indicator or old frame, and that B receives the second changing source. Repeat B → A if both devices support presenting.
