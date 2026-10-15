@@ -6,7 +6,7 @@
   // remote participant tracks remain MediaStreamTracks, never JPEG IPC snapshots.
   const create=(bridge,{role,onTrack=()=>{},onClose=()=>{},onReady=()=>{},onError=()=>{}}={})=>{
     const peers=new Map();
-    let closed=false,serial=0;
+    let closed=false,serial=0,epoch=0;
     const send=payload=>{if(closed)return;try{bridge?.videoSignal?.(payload);}catch(error){onError(error);}};
     const remove=(id,notify=false)=>{
       const key=String(id||''),record=peers.get(key);if(!record)return;
@@ -16,6 +16,7 @@
       if(notify)send({type:'close',participantId:key});
     };
     const reset=(notify=false)=>{
+      epoch++;
       for(const id of [...peers.keys()])remove(id);
       if(notify)send({type:'reset'});
     };
@@ -80,13 +81,15 @@
     const sync=entries=>{
       if(closed||role!=='sender')return syncFlight;
       // Serialize observation and transceiver mutations across rapid roster updates.
+      const requestedEpoch=epoch;
       const next=syncFlight.catch(()=>{}).then(async()=>{
-        if(closed)return;
+        if(closed||requestedEpoch!==epoch)return;
       const current=new Map((Array.isArray(entries)?entries:[])
         .filter(entry=>entry?.id&&entry.track?.kind==='video'&&entry.track.readyState==='live'&&entry.track.enabled!==false)
         .map(entry=>[String(entry.id),entry.track]));
       for(const id of [...peers.keys()])if(!current.has(id))remove(id,true);
       for(const [id,track] of current){
+        if(closed||requestedEpoch!==epoch)return;
         let record=peers.get(id);
         if(!record){
           record=makePeer(id);
@@ -94,7 +97,7 @@
             const transceiver=record.pc.addTransceiver(track,{direction:'sendonly',streams:[new MediaStream([track])]});
             record.sender=transceiver.sender;record.track=track;record.makingOffer=true;
             const offer=await record.pc.createOffer();
-            if(peers.get(id)!==record)continue;
+            if(peers.get(id)!==record||closed||requestedEpoch!==epoch)continue;
             await record.pc.setLocalDescription(offer);
             send({type:'offer',participantId:id,description:record.pc.localDescription});
           }catch(error){remove(id,true);onError(error);}
@@ -107,7 +110,7 @@
       syncFlight=next;return next;
     };
     if(role==='receiver')send({type:'hello'});
-    return Object.freeze({sync,stop:()=>{if(closed)return;reset(role==='sender');closed=true;unsubscribe();},
+    return Object.freeze({sync,clear:()=>reset(role==='sender'),stop:()=>{if(closed)return;reset(role==='sender');closed=true;unsubscribe();},
       snapshot:()=>({role,peerCount:peers.size,peerStates:[...peers.values()].map(record=>({id:record.id,connectionState:record.pc.connectionState,ready:record.ready}))})});
   };
   window.DominionCompanionRTC=Object.freeze({createSender:(bridge,options)=>create(bridge,{...options,role:'sender'}),
