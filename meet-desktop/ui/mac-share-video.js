@@ -238,6 +238,6 @@
   });
 
   window.addEventListener('beforeunload',()=>{receiver?.stop?.();liveStreams.clear();},{once:true});
-  window.addEventListener('unload',()=>{remoteFrames.clear();frameEpoch.clear();},{once:true});
+  window.addEventListener('unload',()=>{receiver?.stop?.();liveStreams.clear();},{once:true});
   void boot();
 })();
