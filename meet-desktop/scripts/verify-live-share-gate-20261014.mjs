@@ -37,7 +37,7 @@ export function evaluatePair(sender,receiver,{sameMeetingConfirmed=false,maxSkew
   const senderAt=Date.parse(sender?.at||''),receiverAt=Date.parse(receiver?.at||'');
   if(!Number.isFinite(senderAt)||!Number.isFinite(receiverAt)||Math.abs(senderAt-receiverAt)>maxSkewMs)
     failures.push('sample_timestamps_not_aligned');
-  if(sender===receiver)failures.push('same_sample_used_twice');
+  if(sender===receiver||JSON.stringify(sender)===JSON.stringify(receiver))failures.push('identical_sender_receiver_evidence');
   return {pass:failures.length===0,failures,physicalVisualAcceptance:false};
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
@@ -80,6 +80,7 @@ export function selfTest(){
   assert.equal(evaluatePair(pairedSender,pairedReceiver,{sameMeetingConfirmed:true}).pass,true);
   assert.equal(evaluatePair(pairedSender,pairedReceiver).pass,false);
   assert.equal(evaluatePair(pairedSender,pairedSender,{sameMeetingConfirmed:true}).pass,false);
+  assert.equal(evaluatePair(pairedSender,JSON.parse(JSON.stringify(pairedSender)),{sameMeetingConfirmed:true}).pass,false);
   assert.equal(evaluatePair(pairedSender,{...pairedReceiver,at:'2026-10-14T12:02:00Z'},{sameMeetingConfirmed:true}).pass,false);
   return 'PASS simulated sender/receiver/live-playback acceptance and failure modes';
 }
