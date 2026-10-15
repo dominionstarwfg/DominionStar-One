@@ -244,12 +244,46 @@
     }
   }
 
+  function queueOutboundIce(record,candidate){
+    // Candidate delivery is not best-effort: a transient signaling/RPC failure
+    // must not permanently drop the ICE path needed by a second computer.
+    if(!state.running||state.peers.get(record.id)!==record||!candidate)return;
+    if(record.outboundIce.length>=128){
+      state.signalingErrors+=1;state.lastSignalError='outbound_ice_queue_full';return;
+    }
+    record.outboundIce.push(candidate);
+    void flushOutboundIce(record);
+  }
+  async function flushOutboundIce(record){
+    if(record.outboundIceSending||!state.running||state.peers.get(record.id)!==record)return;
+    clearTimeout(record.outboundIceRetryTimer);record.outboundIceRetryTimer=0;
+    record.outboundIceSending=true;
+    try{
+      while(state.running&&state.peers.get(record.id)===record&&record.outboundIce.length){
+        try{
+          const result=await meeting.sendSignal(record.id,'ice',{candidate:record.outboundIce[0]});
+          if(result?.ok===false)throw new Error('ice_signal_rejected');
+          if(!state.running||state.peers.get(record.id)!==record)return;
+          record.outboundIce.shift();
+        }catch{
+          record.outboundIceSendFailures+=1;
+          state.signalingErrors+=1;state.lastSignalError='outbound_ice_delivery_failed';
+          if(state.running&&state.peers.get(record.id)===record&&!record.outboundIceRetryTimer)
+            record.outboundIceRetryTimer=setTimeout(()=>{
+              record.outboundIceRetryTimer=0;
+              void flushOutboundIce(record);
+            },RECONNECT_MS);
+          return;
+        }
+      }
+    }finally{record.outboundIceSending=false;}
+  }
   function createPeerRecord(remoteId){
     if(!validIceConfig())throw new Error('ice_configuration_unavailable');
     const pc=new RTCPeerConnection(iceConfiguration());
-    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),senderSyncRunning:false,senderSyncDirty:false,cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
+    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),senderSyncRunning:false,senderSyncDirty:false,outboundIce:[],outboundIceSending:false,outboundIceRetryTimer:0,outboundIceSendFailures:0,cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
     state.peers.set(remoteId,record);ensureTile(remoteId);
-    pc.onicecandidate=event=>{if(event.candidate)void meeting.sendSignal(remoteId,'ice',{candidate:event.candidate.toJSON?.()||event.candidate}).catch(()=>{});};
+    pc.onicecandidate=event=>{if(event.candidate)queueOutboundIce(record,event.candidate.toJSON?.()||event.candidate);};
     pc.onicecandidateerror=()=>{if(pc.connectionState!=='connected')setTransportStatus('Network path retrying','warning');};
     pc.ontrack=event=>handleRemoteTrack(record,event);
     pc.onconnectionstatechange=()=>{
@@ -474,7 +508,7 @@
     },Math.max(0,delay));
   }
   function closePeer(id,remove=true){
-    const record=state.peers.get(id);if(!record)return;clearTimeout(record.reconnectTimer);clearTimeout(record.cameraMuteTimer);clearTimeout(record.shareMuteTimer);try{record.pc.ontrack=null;record.pc.onicecandidate=null;record.pc.onicecandidateerror=null;record.pc.onconnectionstatechange=null;record.pc.close();}catch{}try{record.audioContext?.close?.();}catch{}state.peers.delete(id);state.remoteMedia.delete(String(id));window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:String(id),micOn:false,cameraOn:false,disconnected:true}}));hideRemoteShare(id);if(remove)removeTile(id);
+    const record=state.peers.get(id);if(!record)return;clearTimeout(record.reconnectTimer);clearTimeout(record.cameraMuteTimer);clearTimeout(record.shareMuteTimer);clearTimeout(record.outboundIceRetryTimer);record.outboundIce.length=0;try{record.pc.ontrack=null;record.pc.onicecandidate=null;record.pc.onicecandidateerror=null;record.pc.onconnectionstatechange=null;record.pc.close();}catch{}try{record.audioContext?.close?.();}catch{}state.peers.delete(id);state.remoteMedia.delete(String(id));window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:String(id),micOn:false,cameraOn:false,disconnected:true}}));hideRemoteShare(id);if(remove)removeTile(id);
   }
   async function reconcileParticipants(){
     if(!state.running||!state.context?.roomId)return;
@@ -671,7 +705,7 @@
       })));
       peers.push({peerId:record.id,connectionState:record.pc.connectionState,
         iceConnectionState:record.pc.iceConnectionState,signalingState:record.pc.signalingState,
-        selectedPath:record.transport,negotiation:{offerPending:record.offerPending,makingOffer:record.makingOffer,offersSent:record.offersSent,answersApplied:record.answersApplied},lanes,reports});
+        selectedPath:record.transport,negotiation:{offerPending:record.offerPending,makingOffer:record.makingOffer,offersSent:record.offersSent,answersApplied:record.answersApplied},iceDelivery:{pending:record.outboundIce.length,sendFailures:record.outboundIceSendFailures},lanes,reports});
     }
     return {at:new Date().toISOString(),surface:desktop?.isBrowserMeet?'web':'desktop',running:state.running,networkOnline:state.networkOnline,ice:{provider:state.iceProvider,directOnly:state.qaDirectOnly,relayFailure:state.relayFailure},signaling:{processed:state.signalsProcessed,errors:state.signalingErrors,lastError:state.lastSignalError,pollInFlight:Boolean(state.signalPull),lastCursor:state.lastSignalId},
       shareCaptureTracks:stream?.getTracks?.().map(track=>({
