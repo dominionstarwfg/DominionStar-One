@@ -78,8 +78,16 @@
     pc.onicecandidate=event=>{if(!valid()||!event.candidate)return;const c=event.candidate.toJSON?.()||event.candidate;void Promise.resolve(captureBridge.candidate({generation:macCaptureSignalGeneration,candidate:c})).catch(()=>{})};
     pc.ontrack=event=>{if(!valid())return;const track=event.track;if(track&&!stream.getTracks().some(item=>item.id===track.id))stream.addTrack(track);if(track)track.addEventListener('ended',()=>{if(valid())emit()},{once:true});emit()};
     pc.onconnectionstatechange=()=>{if(valid()&&pc.connectionState==='failed'&&macWorkerActive&&!state.busy)void stop()};
-    const started=await captureBridge.start({shareAudio:Boolean(options.shareAudio),optimizeVideo:Boolean(options.optimizeVideo),qaSynthetic:Boolean(options.__qaSyntheticWorker),qaLifecycleOnly:Boolean(options.__qaLifecycleOnlyWorker)});
-    if(!started?.ok){disposeMacCaptureClient({stopWorker:false});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.')}
+    let started;
+    try{
+      started=await captureBridge.start({shareAudio:Boolean(options.shareAudio),optimizeVideo:Boolean(options.optimizeVideo),qaSynthetic:Boolean(options.__qaSyntheticWorker),qaLifecycleOnly:Boolean(options.__qaLifecycleOnlyWorker)});
+    }catch(error){
+      // A rejected native picker/IPC request occurs after the local peer was
+      // allocated. Do not strand that connection or claim the worker is live.
+      if(valid()){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;}
+      throw error;
+    }
+    if(!started?.ok){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;throw new Error(started?.error||'Dedicated Mac screen-capture worker could not start.')}
     const g=Number(started?.generation||0)||0;if(macCaptureSignalGeneration&&g&&g!==macCaptureSignalGeneration){disposeMacCaptureClient({stopWorker:true});throw new Error('Mac capture bridge generation mismatch.')}if(!macCaptureSignalGeneration)macCaptureSignalGeneration=g;
     if(options?.__qaReturnBeforeWorkerActivate){console.error('QA_CAPTURE_RETURN_BEFORE_WORKER_ACTIVATE');return {stream,track:{label:String(started?.label||'Shared content'),readyState:'live'}}}
     // A native picker may succeed before the worker video track arrives. Do
@@ -195,12 +203,28 @@
     if(state.busy||!(nativeMacCapture?macWorkerActive:Boolean(state.liveStream)))return snapshot();
     if(!nativeMacCapture&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
     state.busy=true;emit();const previousLive=state.liveStream,previousFrozen=state.frozenStream;
+    // Unlike getDisplayMedia, the native picker replaces the one running
+    // ScreenCaptureKit worker. Once replacement starts, an aborted picker
+    // cannot leave the old stream running and must fail closed.
+    const requestGeneration=displayRequestGeneration+1;
     try{
       const {stream,track}=await acquireDisplay(options);stopComposite();state.annotationCanvas=null;if(!nativeMacCapture)state.liveStream=stream;
       state.frozenStream=null;state.freezeCanvas=null;state.paused=false;state.sourceName=String(name||track.label||'Shared content');state.options={...options};
       if(!nativeMacCapture&&track?.addEventListener)track.addEventListener('ended',()=>{if(!state.busy&&state.liveStream===stream)void stop()},{once:true});
       stopTracks(previousFrozen);if(!nativeMacCapture)stopTracks(previousLive);
       try{await bridge?.captureState?.({sourceName:state.sourceName,displayId:String(state.options?.displayId||''),paused:false})}catch{}return snapshot();
+    }catch(error){
+      if(nativeMacCapture&&displayRequestGeneration===requestGeneration){
+        // Native replacement already disposed the old peer. Never expose
+        // active=true with an empty screen stream after a failed New Share.
+        macWorkerActive=false;
+        disposeMacCaptureClient({stopWorker:true});
+        stopComposite();stopTracks(previousFrozen);
+        state.frozenStream=null;state.freezeCanvas=null;state.paused=false;
+        state.annotationCanvas=null;state.sourceName='';state.options={};
+        try{void Promise.resolve(bridge?.captureStopped?.()).catch(()=>{});}catch{}
+      }
+      throw error;
     }finally{state.busy=false;emit()}
   }
 
