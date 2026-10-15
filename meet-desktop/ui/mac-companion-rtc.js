@@ -74,6 +74,7 @@
           await flush(record);
           const answer=await record.pc.createAnswer();
           await record.pc.setLocalDescription(answer);
+          if(peers.get(id)!==record||closed)return;
           send({type:'answer',participantId:id,description:record.pc.localDescription});
         }catch(error){remove(id,true);onError(error);}
         return;
@@ -81,7 +82,7 @@
       if(type==='answer'&&role==='sender'){
         const record=peers.get(id);
         if(!record||!record.makingOffer||record.pc.signalingState!=='have-local-offer')return;
-        try{await record.pc.setRemoteDescription(message.description);record.ready=true;record.makingOffer=false;await flush(record);}
+        try{await record.pc.setRemoteDescription(message.description);if(peers.get(id)!==record||closed)return;record.ready=true;record.makingOffer=false;await flush(record);}
         catch(error){remove(id,true);onError(error);}
       }
     };
@@ -108,6 +109,7 @@
             const offer=await record.pc.createOffer();
             if(peers.get(id)!==record||closed||requestedEpoch!==epoch)continue;
             await record.pc.setLocalDescription(offer);
+            if(peers.get(id)!==record||closed||requestedEpoch!==epoch)continue;
             send({type:'offer',participantId:id,description:record.pc.localDescription});
           }catch(error){remove(id,true);onError(error);}
         }else if(record.track!==track&&record.sender){
