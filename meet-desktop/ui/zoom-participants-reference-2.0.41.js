@@ -201,8 +201,9 @@
     const roster=q('#participantRoster');if(!roster)return;const rows=participantRows(),speakerRank=id=>{const index=activeSpeakerIds.indexOf(String(id||''));return index<0?999:index;};
     const rank=row=>{const speaking=speakerRank(row.dataset.participantId)<999,self=row.dataset.participantSelf==='1',role=String(row.dataset.participantRole||'participant').toLowerCase().replace('-','');if(speaking)return speakerRank(row.dataset.participantId);if(self)return 20;if(role==='host')return 21;if(role==='cohost')return 22;if(micIsOn(row))return 23;return 24;};
     for(const row of rows)row.classList.toggle('participant-speaking',speakerRank(row.dataset.participantId)<999);
-    const sorted=[...rows].sort((a,b)=>rank(a)-rank(b)||String(a.dataset.participantName||'').localeCompare(String(b.dataset.participantName||''),undefined,{numeric:true,sensitivity:'base'}));
-    if(sorted.some((row,index)=>row!==rows[index])){const fragment=document.createDocumentFragment();sorted.forEach(row=>fragment.append(row));roster.append(fragment);}
+    // No duplicate sorting: app.js keeps host/co-host stable while speaker ranks update.
+    // Read speaker state for visual highlights only. The room roster's order
+    // is exclusively managed by app.js so a reference refresh cannot undo it.
   }
 
   function syncShareState(){
