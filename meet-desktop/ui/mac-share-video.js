@@ -5,7 +5,7 @@
   let cameraOn=true,micOn=false,cameraId='',mirrored=true;
   let videoLayout='strip',participants=[],identity={name:'You',avatar:''},lastSignature='';
   let speaking=false,pinnedId='',activeMenuId='';
-  const remoteFrames=new Map();
+  const liveStreams=new Map();
 
   const initials=name=>String(name||'Participant').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'DS';
   const escapeHtml=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -22,31 +22,33 @@
   // The meeting renderer is the only camera-capture authority. This floating
   // window receives frames from that existing stream over presenter IPC; it
   // must never make a second getUserMedia() request for the same camera.
-  const frameEpoch=new Map();
-  function invalidateFrame(id){
-    frameEpoch.set(id,(frameEpoch.get(id)||0)+1);
-    remoteFrames.delete(id);
+  // Companion live video uses one stable MediaStream per participant.
+  function detachStream(id){
+    const key=String(id||'');liveStreams.delete(key);
+    const tile=[...document.querySelectorAll('#videoStack .video-tile')].find(node=>node.dataset.participantId===key);
+    const video=tile?.querySelector('video.remote-live-video'),fallback=tile?.querySelector('.video-fallback');
+    if(video){video.onloadeddata=null;video.onresize=null;video.srcObject=null;video.hidden=true;}
+    if(fallback)fallback.hidden=false;
   }
-  function drawFrame(id,frame){
-    const person=participants.find(item=>item.participantId===id);
-    const tile=[...document.querySelectorAll('#videoStack .video-tile')].find(item=>item.dataset.participantId===id);
-    const canvas=tile?.querySelector('canvas.remote-frame'),fallback=tile?.querySelector('.video-fallback');
-    if(!person?.cameraOn||!canvas||!frame?.dataUrl)return;
-    const epoch=frameEpoch.get(id)||0;
-    const image=new Image();
-    image.onload=()=>{
-      if(epoch!==(frameEpoch.get(id)||0)||!participants.some(item=>item.participantId===id&&item.cameraOn))return;
-      const current=remoteFrames.get(id);
-      if(current?.at!==frame.at||current?.dataUrl!==frame.dataUrl)return;
-      const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return;
-      ctx.setTransform(1,0,0,1,0,0);
-      if(person.self&&mirrored){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
-      ctx.drawImage(image,0,0,canvas.width,canvas.height);
-      ctx.setTransform(1,0,0,1,0,0);
-      canvas.hidden=false;if(fallback)fallback.hidden=true;
+  function showStream(id,stream){
+    const key=String(id||''),person=participants.find(item=>item.participantId===key);
+    const tile=[...document.querySelectorAll('#videoStack .video-tile')].find(node=>node.dataset.participantId===key);
+    const video=tile?.querySelector('video.remote-live-video'),fallback=tile?.querySelector('.video-fallback');
+    if(!video||!person?.cameraOn||!stream)return;
+    const changed=video.srcObject!==stream;
+    if(changed)video.srcObject=stream;
+    const reveal=()=>{
+      if(video.srcObject!==stream||!participants.some(item=>item.participantId===key&&item.cameraOn))return;
+      if(video.readyState<2||!video.videoWidth||!video.videoHeight)return;
+      video.hidden=false;if(fallback)fallback.hidden=true;
     };
-    image.onerror=()=>{};
-    image.src=frame.dataUrl;
+    video.onloadeddata=reveal;video.onresize=reveal;
+    if(changed||video.paused)void video.play().then(reveal).catch(()=>{});
+    reveal();
+  }
+  function attachLiveStream(id,stream){
+    const key=String(id||'');if(!key||!stream)return;
+    liveStreams.set(key,stream);showStream(key,stream);
   }
 
   const localRole=()=>String(participants.find(item=>item.self)?.role||'participant').toLowerCase();
@@ -82,7 +84,7 @@
     const dock=q('#dock');if(dock)dock.dataset.scrollable=list.length>5?'1':'0';
     lastSignature=signature;
     const expected=new Set(list.map(person=>person.participantId));
-    for(const id of [...remoteFrames.keys()])if(!expected.has(id))invalidateFrame(id);
+    for(const id of [...liveStreams.keys()])if(!expected.has(id))detachStream(id);
     for(const tile of [...stack.querySelectorAll(':scope > .video-tile')]){
       if(!expected.has(tile.dataset.participantId))tile.remove();
     }
@@ -92,7 +94,7 @@
       if(!tile){
         tile=document.createElement('article');tile.className='video-tile';tile.dataset.participantId=id;
         tile.innerHTML=`
-          <canvas class="remote-frame" width="176" height="99" hidden></canvas>
+          <video class="remote-live-video" autoplay muted playsinline hidden></video>
           <div class="video-fallback"><span></span></div>
           <div class="video-tile-actions">
             <button type="button" class="video-primary-action" data-video-primary></button>
@@ -137,13 +139,13 @@
           avatar.hidden=false;avatar.src=person.avatar;
         }
       }else if(avatar){avatar.remove();if(initialsNode)initialsNode.hidden=false;}
-      const remoteImage=tile.querySelector('canvas.remote-frame');
       if(!person.cameraOn){
-        if(remoteFrames.has(id))invalidateFrame(id);
-        if(remoteImage)remoteImage.hidden=true;
+        if(liveStreams.has(id))detachStream(id);
+        const video=tile.querySelector('video.remote-live-video');
+        if(video)video.hidden=true;
         if(fallback)fallback.hidden=false;
-      }else if(remoteImage&&remoteImage.hidden&&remoteFrames.has(id)){
-        drawFrame(id,remoteFrames.get(id));
+      }else if(liveStreams.has(id)){
+        showStream(id,liveStreams.get(id));
       }
       // Keep existing video/media nodes attached when status or ordering changes.
       const position=stack.children[index];
@@ -155,16 +157,6 @@
   function syncSpeaking(){
     for(const tile of document.querySelectorAll('.video-tile'))tile.classList.toggle('speaking',tile.dataset.self==='1'&&speaking);
   }
-  function applyRemoteFrame(payload={}){
-    const id=String(payload.participantId||''),dataUrl=String(payload.dataUrl||'');
-    const at=Number(payload.at)||0;
-    if(!id||!/^data:image\/(?:jpeg|webp|png);base64,/i.test(dataUrl)||!at)return;
-    if(!participants.some(item=>item.participantId===id&&item.cameraOn))return;
-    const last=remoteFrames.get(id);if(last&&at<=last.at)return;
-    const frame={dataUrl,at};remoteFrames.set(id,frame);
-    drawFrame(id,frame);
-  }
-
   async function presenterCommand(command){
     try{const result=await bridge?.command?.(String(command||''));if(result?.ok===false)throw new Error(result?.error||'presenter_command_failed');return true;}
     catch(error){console.error('[DominionStar Meet] Presenter video command failed.',error);return false;}
@@ -225,7 +217,7 @@
 
   document.addEventListener('pointerdown',event=>{if(!event.target?.closest?.('#videoActionMenu,[data-video-more]'))closeMenu();},true);
   window.addEventListener('blur',closeMenu);document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
-  window.addEventListener('pagehide',()=>{closeMenu();remoteFrames.clear();frameEpoch.clear();},{once:true});
+  window.addEventListener('pagehide',()=>{closeMenu();receiver?.stop?.();liveStreams.clear();},{once:true});
 
   async function boot(){
     await loadIdentity();participants=normalizedParticipants(participants);renderParticipants(true);
@@ -239,9 +231,13 @@
     setLayoutActive(videoLayout);renderParticipants();
     // Camera frames are delivered by the meeting's existing media owner.
   });
-  bridge?.onVideoFrame?.(applyRemoteFrame);
+  const receiver=window.DominionCompanionRTC?.createReceiver?.(bridge,{
+    onTrack:(id,stream)=>attachLiveStream(id,stream),
+    onClose:id=>detachStream(id),
+    onError:error=>console.warn('[DominionStar Meet] Companion receiver:',String(error?.message||error))
+  });
 
-  window.addEventListener('beforeunload',()=>{remoteFrames.clear();frameEpoch.clear();},{once:true});
+  window.addEventListener('beforeunload',()=>{receiver?.stop?.();liveStreams.clear();},{once:true});
   window.addEventListener('unload',()=>{remoteFrames.clear();frameEpoch.clear();},{once:true});
   void boot();
 })();
