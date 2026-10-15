@@ -15,6 +15,14 @@
       .remote-peer-fallback .ds-profile-fallback-photo{position:relative;width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 8px 24px rgba(0,0,0,.3);z-index:1}
       .remote-peer-fallback .ds-profile-fallback-photo[hidden]{display:none}
       .remote-peer-fallback.has-photo>span{display:none!important}
+      /* The filmstrip uses full names, never initial badges when camera/photo are absent. */
+      #participantVideoDock .remote-peer-fallback:not(.has-photo)>span{
+        display:block!important;width:calc(100% - 16px)!important;height:auto!important;
+        max-width:100%!important;border-radius:0!important;background:transparent!important;
+        color:#f5f6f8!important;font-size:14px!important;font-weight:550!important;
+        line-height:1.25!important;text-align:center!important;overflow-wrap:anywhere!important;
+        padding:0 4px!important
+      }
       .person-badge .ds-profile-fallback-photo,.preview-avatar .ds-profile-fallback-photo,.stage-avatar .ds-profile-fallback-photo{width:100%;height:100%;border-radius:inherit;object-fit:cover}
     `;document.head.append(style);
   }
@@ -32,8 +40,8 @@
 
   function setTilePhoto(fallback,url,fallbackText,{refreshLocal=false}={}){
     if(!fallback)return;
-    const photoUrl=safePhotoUrl(url),label=String(fallbackText||'DS');
-    let span=fallback.querySelector(':scope > span');if(!span){span=document.createElement('span');fallback.append(span);}span.textContent=label;
+    const photoUrl=safePhotoUrl(url),label=String(fallbackText||'Participant');
+    let span=fallback.querySelector(':scope > span');if(!span){span=document.createElement('span');fallback.append(span);}if(span.textContent!==label)span.textContent=label;
     let img=fallback.querySelector(':scope > img.ds-profile-fallback-photo');
     if(!photoUrl){img?.remove();fallback.classList.remove('has-photo');fallback.dataset.dsAvatarUrl='';span.hidden=false;return;}
     if(!img){img=document.createElement('img');img.className='ds-profile-fallback-photo';img.alt='';img.referrerPolicy='no-referrer';fallback.prepend(img);}
@@ -71,14 +79,14 @@
     const user=state.user||{},name=String(user.name||'DominionStar Member'),avatarUrl=safePhotoUrl(user.avatarUrl),label=initials(name);
     setBoxPhoto(q('#prejoinAvatar'),avatarUrl,label,{refreshLocal:true});
     setBoxPhoto(q('#stageAvatar'),avatarUrl,label,{refreshLocal:true});
-    const localDock=q('#localVideoDockTile .remote-peer-fallback');if(localDock)setTilePhoto(localDock,avatarUrl,label,{refreshLocal:true});
+    const localDock=q('#localVideoDockTile .remote-peer-fallback');if(localDock)setTilePhoto(localDock,avatarUrl,name,{refreshLocal:true});
     syncLocalGalleryIdentity();
   }
 
   function paintParticipants(){
     for(const tile of qa('.remote-peer-tile[data-peer-id]')){
       const id=String(tile.dataset.peerId||''),person=state.participants.get(id);if(!person)continue;
-      setTilePhoto(tile.querySelector('.remote-peer-fallback'),person.avatarUrl,initials(person.displayName));
+      setTilePhoto(tile.querySelector('.remote-peer-fallback'),person.avatarUrl,person.displayName);
     }
     for(const row of qa('[data-participant-id]')){
       const id=String(row.dataset.participantId||''),person=state.participants.get(id);if(!person)continue;
