@@ -55,5 +55,32 @@ async function verifyBurstySynchronization(){
   await syncLocalTracks(record);
   assert.equal(updates.length,afterStop,'ended meeting cannot reattach media');
 }
+async function verifyMeetingWideCoalescing(){
+  const start=src.indexOf('  async function syncAllSenders(){');
+  const end=src.indexOf('  async function start(){',start);
+  assert.ok(start>=0&&end>start,'Meeting-wide sender sync not found');
+  const code=src.slice(start,end);
+  const records=Array.from({length:5},(_,i)=>({id:'peer-'+i}));
+  const state={running:true,peers:new Map(records.map(r=>[r.id,r])),
+    senderRefresh:Promise.resolve(),senderRefreshRunning:false,senderRefreshDirty:false};
+  let release,operations=0;
+  const wait=new Promise(resolve=>{release=resolve;});
+  const syncLocalTracks=async()=>{operations++;await wait;};
+  const refresh=new Function('state','syncLocalTracks','window','document',code+';return syncAllSenders;')
+    (state,syncLocalTracks,{DominionMediaController:{snapshot:()=>({speakerId:''})}},
+      {querySelectorAll:()=>[]});
+  const first=refresh(),pending=[];
+  for(let i=0;i<40;i++)pending.push(refresh());
+  release();
+  await Promise.all([first,...pending]);
+  assert.equal(operations,10,
+    'forty notifications across five peers must collapse to two five-peer passes');
+  assert.equal(state.senderRefreshRunning,false);
+  assert.equal(state.senderRefreshDirty,false);
+  state.running=false;
+  await refresh();
+  assert.equal(operations,10,'stopped room must not restart sender operations');
+}
 await verifyBurstySynchronization();
-console.log('PASS coalesced WebRTC sender sync: 40 rapid changes, current camera/screen, stop share, no stale reattachment (mock only)');
+await verifyMeetingWideCoalescing();
+console.log('PASS coalesced WebRTC sender sync: 40 rapid changes, five-peer fan-out coalescing, stop share, no stale reattachment (mock only)');
