@@ -281,7 +281,7 @@
   function createPeerRecord(remoteId){
     if(!validIceConfig())throw new Error('ice_configuration_unavailable');
     const pc=new RTCPeerConnection(iceConfiguration());
-    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),senderSyncRunning:false,senderSyncDirty:false,outboundIce:[],outboundIceSending:false,outboundIceRetryTimer:0,outboundIceSendFailures:0,cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
+    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,lastOfferSignalId:0,lastOfferAnswer:null,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),senderSyncRunning:false,senderSyncDirty:false,outboundIce:[],outboundIceSending:false,outboundIceRetryTimer:0,outboundIceSendFailures:0,cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
     state.peers.set(remoteId,record);ensureTile(remoteId);
     pc.onicecandidate=event=>{if(event.candidate)queueOutboundIce(record,event.candidate.toJSON?.()||event.candidate);};
     pc.onicecandidateerror=()=>{if(pc.connectionState!=='connected')setTransportStatus('Network path retrying','warning');};
@@ -406,8 +406,36 @@
     if(!['offer','answer','ice'].includes(signalType))return;
     const record=ensurePeer(remoteId),payload=signal.payload||{};
     if(signal.type==='offer'){
-      if(!payload.sdp)return;await record.pc.setRemoteDescription(payload.sdp);record.transceivers=record.pc.getTransceivers().slice(0,4);for(const lane of record.transceivers)if(lane?.direction==='recvonly')lane.direction='sendrecv';await syncLocalTracks(record);await flushIce(record);
-      const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:record.pc.localDescription});return;
+      if(!payload.sdp)return;
+      const signalId=Number(signal.id)||0;
+      if(signalId&&record.lastOfferSignalId===signalId&&record.lastOfferAnswer){
+        // Sender RPC may fail AFTER the answer was applied. On redelivery,
+        // retransmit the SAME SDP answer instead of renegotiating the media
+        // session and flashing the peer tiles.
+        const delivery=await meeting.sendSignal(remoteId,'answer',{sdp:record.lastOfferAnswer});
+        if(delivery?.ok===false)throw new Error('answer_delivery_rejected');
+        return;
+      }
+      try{
+        await record.pc.setRemoteDescription(payload.sdp);
+        record.transceivers=record.pc.getTransceivers().slice(0,4);
+        for(const lane of record.transceivers)if(lane?.direction==='recvonly')lane.direction='sendrecv';
+        await syncLocalTracks(record);await flushIce(record);
+        const answer=await record.pc.createAnswer();
+        await record.pc.setLocalDescription(answer);
+        if(signalId){record.lastOfferSignalId=signalId;record.lastOfferAnswer=record.pc.localDescription;}
+        const delivery=await meeting.sendSignal(remoteId,'answer',{sdp:record.pc.localDescription});
+        if(delivery?.ok===false)throw new Error('answer_delivery_rejected');
+      }catch(error){
+        if(state.peers.get(remoteId)===record&&(!signalId||record.lastOfferSignalId!==signalId||!record.lastOfferAnswer)){
+          // A failed intermediate setRemoteDescription/sender operation
+          // cannot be replayed safely into a half-negotiated PC. Retry the
+          // signal with a freshly constructed peer on the next pull.
+          closePeer(remoteId,false);
+        }
+        throw error;
+      }
+      return;
     }
     if(signal.type==='answer'){
       if(!payload.sdp||!record.offerPending||record.pc.signalingState!=='have-local-offer')return;
