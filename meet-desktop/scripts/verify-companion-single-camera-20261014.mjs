@@ -99,5 +99,31 @@ async function testLocalVideo(){
   assert.equal(errors.length,0);
   return trace;
 }
-const trace=await testLocalVideo();
-console.log('PASS continuous native companion WebRTC mock — live tracks, SDP/ICE, reset, recovery, and cleanup (NOT real Mac acceptance)');
+async function testResetCancelsLateOffer(){
+  let offerSent=false,release,entered;
+  const held=new Promise(resolve=>{release=resolve});
+  const atSetDescription=new Promise(resolve=>{entered=resolve});
+  class SlowPeerConnection {
+    constructor(){this.signalingState='stable';this.connectionState='new';}
+    addTransceiver(track){return {sender:{track,replaceTrack:async()=>{}}};}
+    async createOffer(){return {type:'offer',sdp:'delayed'};}
+    async setLocalDescription(value){entered();await held;this.localDescription=value;this.signalingState='have-local-offer';}
+    close(){this.connectionState='closed';}
+  }
+  class FakeMediaStream{constructor(tracks){this.tracks=tracks;}}
+  const globalWindow={};
+  new Function('window','RTCPeerConnection','MediaStream',transport)(globalWindow,SlowPeerConnection,FakeMediaStream);
+  const subscribers=new Set(),bridge={
+    onVideoSignal:cb=>{subscribers.add(cb);return()=>subscribers.delete(cb);},
+    videoSignal:message=>{if(message.type==='offer')offerSent=true;}
+  };
+  const sender=globalWindow.DominionCompanionRTC.createSender(bridge,{});
+  const pending=sender.sync([{id:'p',track:{kind:'video',readyState:'live',enabled:true}}]);
+  await atSetDescription;
+  sender.clear();release();await pending;
+  assert.equal(offerSent,false,'cancelled share must not publish a late stale SDP offer');
+  sender.stop();assert.equal(subscribers.size,0);
+}
+await testLocalVideo();
+await testResetCancelsLateOffer();
+console.log('PASS continuous native companion WebRTC mock — tracks, early ICE, reset, stale SDP cancellation and cleanup (NOT real Mac acceptance)');
