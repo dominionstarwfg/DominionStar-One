@@ -572,11 +572,11 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel===chat?330:318;
-      const baseHeight=panel===chat?440:390;
-      const minPanelHeight=panel===chat?300:390;
+      const baseWidth=panel===chat?330:440;
+      const baseHeight=panel===chat?440:552;
+      const minPanelHeight=300;
       const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
-      const height=Math.min(baseHeight,Math.max(minPanelHeight,bodyHeight-82));
+      const height=Math.min(baseHeight,Math.max(1,bodyHeight-20));
       panel.dataset.dsRuntimeMode='floating';
       panel.dataset.dsAdaptiveMode='floating';
       panel.dataset.zoomPanelMode='runtime';
@@ -601,8 +601,8 @@
         panel.style.setProperty('width',`${pw}px`,'important');
         panel.style.setProperty('height',`${ph}px`,'important');
       }else if(panel===participants){
-        const ph=Math.min(390,Math.max(1,bodyHeight-20));
-        const pw=Math.min(318,Math.max(1,bodyWidth-20));
+        const ph=Math.min(height,Math.max(1,bodyHeight-20));
+        const pw=Math.min(width,Math.max(1,bodyWidth-20));
         panel.style.setProperty('left',`${Math.max(10,(bodyWidth-pw)/2)}px`,'important');
         panel.style.setProperty('right','auto','important');
         panel.style.setProperty('top',`${Math.max(10,(bodyHeight-ph)/2)}px`,'important');
