@@ -366,7 +366,11 @@
     const signalType=String(signal.type||'');
     if(APPLICATION_SIGNAL_TYPES.has(signalType)||signalType.startsWith('host:')){dispatchMeetingSignal(signal,remoteId);return;}
     if(signal.type==='bye'){closePeer(remoteId);return;}
-    let record;try{record=ensurePeer(remoteId);}catch{return;}const payload=signal.payload||{};
+    // A temporary ICE configuration / peer-construction failure must be
+    // propagated. Otherwise pullSignals() advances past an offer or ICE message
+    // that was never applied, permanently losing the remote media handshake.
+    if(!['offer','answer','ice'].includes(signalType))return;
+    const record=ensurePeer(remoteId),payload=signal.payload||{};
     if(signal.type==='offer'){
       if(!payload.sdp)return;await record.pc.setRemoteDescription(payload.sdp);record.transceivers=record.pc.getTransceivers().slice(0,4);for(const lane of record.transceivers)if(lane?.direction==='recvonly')lane.direction='sendrecv';await syncLocalTracks(record);await flushIce(record);
       const answer=await record.pc.createAnswer();await record.pc.setLocalDescription(answer);await meeting.sendSignal(remoteId,'answer',{sdp:record.pc.localDescription});return;
@@ -516,6 +520,9 @@
           if(id&&id<=state.lastSignalId)continue;
           try{
             await handleSignal(signal);
+            // A room exit can occur while remote SDP is being applied.
+            // Never move the next room's cursor with an old room's result.
+            if(!state.running||state.generation!==generation)return;
             if(id)state.lastSignalId=Math.max(state.lastSignalId,id);
             state.signalsProcessed+=1;state.lastSignalError='';
           }catch(error){
