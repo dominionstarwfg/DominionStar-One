@@ -60,7 +60,7 @@
     paintAvatar(q('#prejoinAvatar'),own.url,initials(own.name));
     paintAvatar(q('#stageAvatar'),own.url,initials(own.name));
     const localFallback=q('#localVideoDockTile .remote-peer-fallback');
-    if(localFallback)paintAvatar(localFallback,own.url,'YOU');
+    if(localFallback)paintAvatar(localFallback,own.url,own.name);
     for(const row of qa('#participantRoster [data-participant-id]')){
       const id=String(row.dataset.participantId||''),name=String(row.dataset.participantName||row.querySelector('.person-copy strong')?.textContent||'Participant').trim();
       const url=safeAvatar(row.dataset.avatarUrl||remoteAvatars.get(id)||(name===own.name?own.url:''));
@@ -71,7 +71,7 @@
     for(const tile of qa('#participantVideoDock .remote-peer-tile[data-peer-id]')){
       const id=String(tile.dataset.peerId||''),name=String(tile.querySelector('.remote-peer-name')?.textContent||'Participant').trim();
       const fallback=tile.querySelector('.remote-peer-fallback');
-      if(fallback)paintAvatar(fallback,safeAvatar(tile.dataset.avatarUrl||remoteAvatars.get(id)),initials(name));
+      if(fallback)paintAvatar(fallback,safeAvatar(tile.dataset.avatarUrl||remoteAvatars.get(id)),name);
     }
   }
 
