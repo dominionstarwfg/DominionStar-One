@@ -7,7 +7,22 @@ function stopTracks(stream){for(const track of stream?.getTracks?.()||[]){try{tr
 function closePeer(){const current=peer;peer=null;pendingRemoteCandidates=[];try{current?.close?.();}catch{}}
 function cleanup(notify=false,reason='stopped',activeGeneration=generation){closePeer();stopTracks(captureStream);captureStream=null;if(notify)bridge.stopped({generation:activeGeneration,reason})}
 async function flushRemoteCandidates(){if(!peer?.remoteDescription)return;for(const candidate of pendingRemoteCandidates.splice(0)){try{await peer.addIceCandidate(candidate)}catch{}}}
-async function acceptAnswer(payload={}){const g=Number(payload?.generation||0)||0;if(!peer||g!==generation||!payload?.sdp)return;try{await peer.setRemoteDescription(payload.sdp);await flushRemoteCandidates()}catch(error){if(g===generation)bridge.error({generation:g,error:String(error?.message||error||'capture_answer_failed')})}}
+async function acceptAnswer(payload={}){
+ const g=Number(payload?.generation||0)||0;
+ if(!peer||g!==generation||payload?.sdp?.type!=='answer'||!payload?.sdp?.sdp)return;
+ const activePeer=peer;
+ try{
+  // Re-delivery of the same answer must not become a fatal capture error.
+  if(activePeer.signalingState==='stable'){
+   if(activePeer.remoteDescription?.sdp===payload.sdp.sdp)return;
+   throw new Error('capture_answer_conflict');
+  }
+  if(activePeer.signalingState!=='have-local-offer')return;
+  await activePeer.setRemoteDescription(payload.sdp);
+  if(activePeer!==peer||g!==generation)return;
+  await flushRemoteCandidates();
+ }catch(error){if(g===generation&&activePeer===peer)bridge.error({generation:g,error:String(error?.message||error||'capture_answer_failed')})}
+}
 async function acceptRemoteCandidate(payload={}){const g=Number(payload?.generation||0)||0;if(!peer||g!==generation||!payload?.candidate)return;if(!peer.remoteDescription){pendingRemoteCandidates.push(payload.candidate);return}try{await peer.addIceCandidate(payload.candidate)}catch{}}
 bridge.onAnswer(payload=>{void acceptAnswer(payload||{})});bridge.onCandidate(payload=>{void acceptRemoteCandidate(payload||{})});
 async function begin(payload={}){
