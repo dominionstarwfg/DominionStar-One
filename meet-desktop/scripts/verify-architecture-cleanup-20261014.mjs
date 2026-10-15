@@ -72,6 +72,6 @@ check(!presenterIntegration.includes("toDataURL('image/jpeg'"),'low-rate JPEG pu
 check(!native.includes("ipcMain.on('mac-share:video-frame'"),'Electron main must never forward base64 camera frames');
 check(mainPreload.includes('onVideoSignal:')&&companionPreload.includes('onVideoSignal:'),'local video signaling must be scoped to both preload bridges');
 check(native.includes("ipcMain.on('mac-share:video-signal'"),'local WebRTC signaling must authenticate sending BrowserWindows');
-check(companionRTC.includes('const pc=new RTCPeerConnection({iceServers:[])'),'companion needs a direct local WebRTC connection');
+check(companionRTC.includes('new RTCPeerConnection({iceServers:[]})'),'companion needs a direct local WebRTC connection');
 check(companionHtml.indexOf('mac-companion-rtc.js')<companionHtml.indexOf('mac-share-video.js'),'receiver transport must load before companion view');
 console.log('PASS 51 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
