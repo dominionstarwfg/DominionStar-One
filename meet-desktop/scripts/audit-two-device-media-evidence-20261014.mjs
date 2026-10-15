@@ -57,7 +57,8 @@ if(process.argv[1]&&process.argv[1].endsWith('audit-two-device-media-evidence-20
       const comparison=compareTwoDeviceMedia(host,guest);
       console.log(JSON.stringify(comparison,null,2));
       if(comparison.status==='FAIL')process.exitCode=1;
-      if(comparison.status==='UNVERIFIED')process.exitCode=2;
+      else if(comparison.status==='UNVERIFIED')process.exitCode=2;
+      else process.exitCode=3; // MEDIA_PROGRESS_ONLY is evidence, never CI release PASS.
     }catch(error){
       console.error('Unable to compare sanitized reports:',String(error?.message||error));
       process.exitCode=2;
