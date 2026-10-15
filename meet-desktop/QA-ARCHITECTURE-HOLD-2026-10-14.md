@@ -198,3 +198,18 @@ Approved reference requires a stable Participants window with readable Host/Co-h
 All **13/13** focused source and simulated JavaScript regression suites passed in harness execution on the isolated branch, including **56/56 architecture assertions**, **19/19 identity and spacing assertions**, media, negotiation, companion, geometry, participant controls and offline evidence comparison; final focused interface syntax batch parsed **9/9** JS modules. These results are NOT a physical two-computer test or a native macOS release build.
 
 **Release still blocked.** Real host-to-guest screen-share decoding, moving shared content, camera/audio stability, seven-person Participants layout, video strip and correct co-host controls must be proven on both computers before considering a controlled QA installer. No production installer, merge or release performed.
+
+## Phase 14: idempotent SDP answer redelivery and native capture-worker rollback (2026-10-14)
+
+**Confirmed negotiation defect:** after an incoming offer's remote SDP, local tracks and answer were applied, `meeting.sendSignal('answer')` could fail. `pullSignals()` correctly left the offer unread, but the next attempt reprocessed the offer against an already modified connection, risking duplicated renegotiation, camera remounts and a failed screen-share receiver. The incoming handler now records `lastOfferSignalId` and `lastOfferAnswer` **after the local SDP answer was committed**. A retry of that exact offer re-sends the **same** answer without repeating `setRemoteDescription`, `createAnswer`, or track synchronization. If an earlier remote-description/track/answer step fails before a cached answer exists, only the half-negotiated peer is disposed of; the signal remains retryable with a clean peer on the next pull.
+
+**Confirmed native capture lifecycle defect:** if the macOS capture worker successfully started but the presenter controls rejected their startup acknowledgment (or its asynchronous acknowledgment threw), the two presenter-start error branches cleared the visible stream but did **not** dispose the worker peer or clear `macWorkerActive`. This could prevent a later share, or strand screen capture after a rejected presenter UI. Both branches now call `rollbackFailedPresenterStart(stream)`, which terminates the isolated worker and local stream, clears active state, and then requests native presenter shutdown. Normal Stop Share behavior is preserved.
+
+**Regression checks:**
+- `verify-idempotent-answer-20261014.mjs`: failed answer send and successful exact-SDP retransmission without additional offer application or media sync; early negotiation failure resets a half-open peer and succeeds on retry.
+- `verify-presenter-rollback-20261014.mjs`: rejected native presenter capture releases worker and tracks; browser fallback releases the stream; both rejected-acknowledgment branches use the shared cleanup routine.
+- Both are chained into `npm run verify:cleanup`. The architecture suite now contains **60 source invariants** asserting answer reuse and native rollback.
+
+**Verification performed:** all **15 of 15** focused source and simulated behavioral suites passed in separate JavaScript test harnesses against the current isolated branch, plus **60/60** architecture source assertions and 10/10 checked browser JS syntax parses. This does **not** demonstrate actual Electron execution, installation, remote decoded screen frames, or accepted reference-comparable GUI behavior.
+
+**Release remains blocked:** no installer or merge into `main`. Real host/guest moving shared-screen playback and seven-person participant/video tile acceptance on both devices remain mandatory.
