@@ -213,3 +213,9 @@ All **13/13** focused source and simulated JavaScript regression suites passed i
 **Verification performed:** all **15 of 15** focused source and simulated behavioral suites passed in separate JavaScript test harnesses against the current isolated branch, plus **60/60** architecture source assertions and 10/10 checked browser JS syntax parses. This does **not** demonstrate actual Electron execution, installation, remote decoded screen frames, or accepted reference-comparable GUI behavior.
 
 **Release remains blocked:** no installer or merge into `main`. Real host/guest moving shared-screen playback and seven-person participant/video tile acceptance on both devices remain mandatory.
+
+## Phase 15: screen source-change recovery
+
+Confirmed: On macOS, beginning a replacement share can close the existing capture peer. A failed replacement previously left the share active flag and local peer state inconsistent. Native capture startup rejection could also leave its newly allocated connection attached. The source now cleans up these failure cases and resets share state. A cancelled browser picker retains the old working share. Cleanup checks the capture request generation to avoid interfering with a later attempt.
+
+New `verify-new-share-rollback-20261014.mjs` tests rejected native capture starts, failed replacement, browser picker cancellation and successful browser replacement. It is included in `npm run verify:cleanup`. All 16 source/mock suites passed in isolated JavaScript harnesses, including 63 architecture and 19 identity assertions. Real Mac and second-device verification has NOT been performed. No installer, main merge, or release.
