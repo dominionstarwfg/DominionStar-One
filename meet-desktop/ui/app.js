@@ -246,7 +246,19 @@
       const empty=document.createElement('p');empty.className='auth-status';empty.dataset.emptyParticipants='1';empty.textContent='No participants yet.';roster.append(empty);return;
     }
     const roleRank=role=>role==='host'?0:role==='cohost'?1:2;
-    const sorted=list.sort((a,b)=>roleRank(String(a.role||'participant'))-roleRank(String(b.role||'participant'))||String(a.displayName||'').localeCompare(String(b.displayName||'')));
+    // Match the final speaker-aware roster order on the first pass; otherwise
+    // the 900-ms snapshot resets rows alphabetically and a later pass moves
+    // them back, creating visible row jitter on every reconciliation.
+    const sorted=list.sort((a,b)=>{
+      const ar=String(a.role||'participant'),br=String(b.role||'participant');
+      const byRole=roleRank(ar)-roleRank(br);
+      if(byRole)return byRole;
+      if(ar==='participant'&&br==='participant'){
+        const speaking=speakerRank(a.participantId)-speakerRank(b.participantId);
+        if(speaking)return speaking;
+      }
+      return String(a.displayName||'').localeCompare(String(b.displayName||''));
+    });
     sorted.forEach((participant,index)=>{
       const row=ensureParticipantRow(roster,participant);if(!row)return;
       const current=[...roster.querySelectorAll('[data-participant-id]')][index];if(current!==row)roster.insertBefore(row,current||null);
