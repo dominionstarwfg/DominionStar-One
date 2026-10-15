@@ -14,11 +14,22 @@
 4. During screen sharing, the actual moving slide/video or app content takes the primary stage. The video panel and sharing controls stay available without covering important shared content. The top status strip correctly says the screen is being shared, offers `Stop share`, and the floating presenter toolbar stays independent. The green share outline must fit the captured/shared bounds without a cropped lower edge. `Pause`, `Resume`, `Stop`, `Chat`, `Participants`, `Annotate`, and camera/mic controls must function.
 5. The meeting toolbar displays the **live participant count** without needing to open the Participants window. In the example, the count is seven. Host/co-host/guest views receive the same roster count and share state.
 
+## Identity contract — clarified from the three approved screenshots
+
+**Different components MUST use different identity fallbacks.**
+
+- **Participants roster:** each row's small identity badge displays a circular/profile image if present; otherwise the participant's **initials**. Beside it, show their legible name and, when relevant, `(Host, me)`, `(Co-host)` or `(Co-host, me)` with sufficient horizontal space for both the name and the designation. A tight row that truncates the host name despite available screen width **fails**.
+- **Floating video panel / filmstrip:** a participant's tile displays **live camera video** when enabled and actually decoding; otherwise their **profile photograph** if one exists; otherwise their **full display name, as text centered in the tile**. **Never show an initials circle in a video tile as the last fallback.** Keep a small name label and mic indicator as appropriate. Video-off tiles are not permission to display black.
+- **Active-speaker main stage:** live speaker video or a full-size photo if available; in the no-photo state, show the speaker's name clearly without a giant initials glyph being mistaken for a video tile.
+- The roster can use initials even while that same participant's video tile uses their name. This is the **intended** asymmetry, not a UI inconsistency.
+
+**Size correction:** The earlier 318×390 participants-panel baseline is superseded by legibility. On adequately sized desktops target approximately **440px width** and **552px maximum height**; constrain to the actual viewport on smaller displays. Content must have sufficient spacing and the roster alone scrolls. No hard width may clip name/role while unused screen space exists.
+
 ## B. Intelligent geometry — approved behavior, not hard-coded screenshots
 
 - **Wide/tall view:** dock video panel on the **right**, in a stable vertical strip. Determine available-height capacity using the *actual visible bounds after sharing toolbar, OS menu, and margins*, not a fixed participant count. Render five or six tiles when space permits, with internal scroll for overflow and no outer-page scroll.
 - **Narrow/short view:** if the right strip would steal critical stage space, collide with controls, or crop tiles, automatically move it **to the top as a horizontal strip**. Recalculate when resizing, restoring/minimizing, changing display, entering/exiting full screen, starting/stopping share or reopening window. Preserve each tile's aspect ratio. On a small screen the strip scrolls horizontally instead of exceeding the viewport.
-- **Size specification:** 176×99px is the existing desktop tile baseline, **not a reason to overflow a small display**. Preserve aspect ratio and minimum legibility, adapt visible count, and keep stable approved proportions. The existing 318×390 Participants panel and 42px row baseline must be responsive rather than enforced where the actual viewport makes that infeasible.
+- **Size specification:** 176×99px is the existing desktop video-tile baseline, **not a reason to overflow a small display**. Preserve aspect ratio and minimum legibility, adapt visible count, and keep stable approved proportions. The Participants panel uses a readable ~440px width and up to ~552px height on full-size screens; its row baseline is 42px but may adapt as long as names, role labels and controls are not clipped or crowded.
 - No oscillation between top/right during small pointer movements or incremental resize; hysteresis around breakpoint changes and a single layout authority per surface. No collapsed/duplicated titlebar, no vertical traffic lights, no clipped names/icons.
 - The video panel scroll container owns scrolling, **not** the meeting stage, top toolbar or entire overlay. Do not silently hide overflow participants.
 
