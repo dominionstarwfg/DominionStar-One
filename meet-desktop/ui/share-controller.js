@@ -116,6 +116,20 @@
     return {stream,track};
   }
 
+  function rollbackFailedPresenterStart(stream){
+    // Capture is already running when toolbar negotiation begins. A failed
+    // handshake must release both the visible MediaStream and the isolated
+    // macOS capture-worker RTCPeerConnection, otherwise a retry can inherit a
+    // still-active worker and a stale local screen sender.
+    if(nativeMacCapture){
+      macWorkerActive=false;
+      disposeMacCaptureClient({stopWorker:true});
+    }else{
+      stopTracks(stream);
+      state.liveStream=null;
+    }
+    state.sourceName='';state.options={};state.paused=false;
+  }
   async function start({name='',options={}}={}){
     if(state.busy||(nativeMacCapture?macWorkerActive:Boolean(state.liveStream)))return snapshot();
     if(!nativeMacCapture&&!navigator.mediaDevices?.getDisplayMedia)throw new Error('Screen sharing is unavailable on this device.');
@@ -158,14 +172,12 @@
           if(nativeMacCapture?macWorkerActive:state.liveStream===stream)void stop();
         });
       }catch(error){
-        state.liveStream=null;state.sourceName='';state.options={};state.paused=false;
-        stopTracks(stream);
+        rollbackFailedPresenterStart(stream);
         try{await bridge?.captureStopped?.();}catch{}
         throw error;
       }
       if(presenter?.toolbarReady===false){
-        state.liveStream=null;state.sourceName='';state.options={};state.paused=false;
-        stopTracks(stream);
+        rollbackFailedPresenterStart(stream);
         try{await bridge?.captureStopped?.();}catch{}
         throw new Error('Presenter controls could not start. Screen sharing was cancelled safely.');
       }
