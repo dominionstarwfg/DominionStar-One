@@ -125,7 +125,7 @@
       if(person.micOn&&mutedMark)mutedMark.remove();
       const fallback=tile.querySelector('.video-fallback');
       const initialsNode=fallback?.querySelector(':scope > span');
-      if(initialsNode){const label=initials(person.name);if(initialsNode.textContent!==label)initialsNode.textContent=label;}
+      if(initialsNode){const label=person.name;if(initialsNode.textContent!==label)initialsNode.textContent=label;}
       let avatar=fallback?.querySelector(':scope > img.fallback-avatar');
       if(person.avatar){
         if(!avatar){
