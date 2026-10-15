@@ -599,12 +599,20 @@
         }
       })),peers};
   }
+  function companionTracks(){
+    // Internal presenter consumer: reuse the actual receiver tracks rather than
+    // guessing camera state from a tile that may have been visually reflowed.
+    return [...state.peers.values()].filter(record=>record.cameraTrack?.kind==='video'
+      &&record.cameraTrack.readyState==='live').map(record=>({
+        participantId:record.id,track:record.cameraTrack
+      }));
+  }
   async function lifecycleProbe(){
     const inRoom=!q('#meetingOverlay')?.hidden;const context=await meeting.context().catch(()=>({}));
     if(inRoom&&context?.state==='joined'&&!state.running&&!state.starting&&Date.now()>=state.nextStartAttemptAt)void start();
     if((!inRoom||!context?.roomId)&&state.running)void stop();
   }
   setInterval(()=>void lifecycleProbe(),500);
-  const api=Object.freeze({start,stop,recoverNetwork,touchPresence,diagnosticSnapshot,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayFailure:state.relayFailure,relayExpiresAt:state.iceExpiresAtMs})});
+  const api=Object.freeze({start,stop,recoverNetwork,touchPresence,diagnosticSnapshot,companionTracks,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayFailure:state.relayFailure,relayExpiresAt:state.iceExpiresAtMs})});
   window.DominionWebRTCController=api;
 })();
