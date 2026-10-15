@@ -157,7 +157,9 @@
           const left=clamp(rect.left-stageRect.left,8,Math.max(8,stageRect.width-rect.width-8));
           const top=clamp(rect.top-stageRect.top,8,Math.max(8,stageRect.height-rect.height-8));
           dock.style.left=`${left}px`;dock.style.top=`${top}px`;dock.style.right='auto';dock.style.bottom='auto';
-        }else{
+        }else if(!dock.dataset.dsRuntimeDockMode){
+          // The runtime owns responsive top/right filmstrip geometry once active.
+          // Do not force a second right-side layout during share-state updates.
           dock.dataset.anchor='right';dock.dataset.orientation='vertical';
           dock.style.left='auto';dock.style.top='14px';dock.style.right='14px';dock.style.bottom='auto';
         }
@@ -302,6 +304,8 @@
     dock.dataset.count=String(Math.min(count,5));dock.classList.toggle('dock-empty',count===0);dock.hidden=count===0;
     for(let i=1;i<=5;i++)dock.classList.toggle(`count-${i}`,Math.min(count,5)===i);
     if((mode==='gallery'||mode==='multi'||multiSpotlight)&&!share){dock.dataset.orientation='grid';dock.style.left='';dock.style.top='';dock.style.right='';dock.style.bottom='';return;}
+    // Geometry is owned by RuntimeStability after it has initialized.
+    if(dock.dataset.dsRuntimeDockMode&&!dock.classList.contains('user-positioned'))return;
     if(!dock.classList.contains('user-positioned'))dock.dataset.anchor='right';
     const anchor=dock.dataset.anchor||'right';dock.dataset.orientation=(anchor==='top'||anchor==='bottom')?'horizontal':'vertical';
     if(!dock.classList.contains('user-positioned')){dock.style.left='';dock.style.top='';dock.style.right=anchor==='left'?'auto':'14px';dock.style.bottom=anchor==='bottom'?'14px':'auto';if(anchor==='left')dock.style.left='14px';else if(anchor==='top')dock.style.top='14px';else if(anchor==='right')dock.style.top='14px';}
