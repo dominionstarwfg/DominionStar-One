@@ -33,7 +33,8 @@ check(!stage.includes('||singleRemoteTile'),'sole remote presence must not steal
 check(stage.includes('const tile=spotlightTile||(!localSpeaking?remoteSpeaker:null);'),'explicit spotlight or measured remote speaker is needed');
 check(stage.includes("window.addEventListener('dominion:local-voice-level'"),'local mic activity must participate in stage arbitration');
 check(stage.includes("if(streamChanged)activeStage.srcObject=source.srcObject"),'speaker stage must retain an unchanged stream');
-check(rtc.includes('record.senderSync.catch(()=>{}).then(async()=>'),'sender lane replacements must be serialized');
+check(rtc.includes('if(record.senderSyncRunning)')&&rtc.includes('record.senderSyncDirty=true;'),'sender lane replacements must be single-flight and coalesce bursts');
+check(rtc.includes('if(state.senderRefreshRunning)')&&rtc.includes('state.senderRefreshDirty=true;'),'meeting-wide sender refresh must coalesce N-peer bursts');
 check(rtc.includes('lane.sender.track===track'),'identical sender tracks must never be replaced');
 check(rtc.includes("const screen=share?.getVideoTracks?.().find(track=>track.readyState==='live')"),'screen sender must take the current live capture track');
 check(rtc.includes('clearTimeout(record.cameraMuteTimer)'),'brief camera mute must be cancellable');
@@ -74,4 +75,4 @@ check(mainPreload.includes('onVideoSignal:')&&companionPreload.includes('onVideo
 check(native.includes("ipcMain.on('mac-share:video-signal'"),'local WebRTC signaling must authenticate sending BrowserWindows');
 check(companionRTC.includes('new RTCPeerConnection({iceServers:[]})'),'companion needs a direct local WebRTC connection');
 check(companionHtml.indexOf('mac-companion-rtc.js')<companionHtml.indexOf('mac-share-video.js'),'receiver transport must load before companion view');
-console.log('PASS 51 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
+console.log('PASS 52 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
