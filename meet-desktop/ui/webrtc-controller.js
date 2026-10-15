@@ -59,9 +59,18 @@
   function setTileState(id,text){const tile=ensureTile(id);if(tile)tile.querySelector('small').textContent=text;}
   function setRemoteMediaState(id,patch={}){
     const key=String(id||'');if(!key)return;
-    const current=state.remoteMedia.get(key)||{micOn:false,cameraOn:false};
-    const next={...current,...patch};if(Object.keys(patch).every(field=>current[field]===next[field]))return;state.remoteMedia.set(key,next);
-    const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);if(tile){tile.dataset.micOn=next.micOn?'1':'0';tile.dataset.cameraOn=next.cameraOn?'1':'0';}
+    // Unknown is not muted. Camera and microphone tracks can arrive at
+    // different times, so never invent the state of the missing lane.
+    const current=state.remoteMedia.get(key)||{};
+    const next={...current,...patch};
+    if(Object.keys(patch).every(field=>current[field]===next[field]))return;
+    state.remoteMedia.set(key,next);
+    const tile=q(`#remoteTileStrip [data-peer-id="${CSS.escape(key)}"]`);
+    if(tile){
+      const status=value=>typeof value==='boolean'?(value?'1':'0'):'unknown';
+      tile.dataset.micOn=status(next.micOn);
+      tile.dataset.cameraOn=status(next.cameraOn);
+    }
     window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:key,...next}}));
   }
   function showRemoteCamera(id,stream){
