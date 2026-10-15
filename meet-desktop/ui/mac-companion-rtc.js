@@ -4,13 +4,14 @@
   // Local in-app WebRTC transport between main meeting and macOS video companion.
   // The Electron main process forwards only SDP and ICE signaling. Camera and
   // remote participant tracks remain MediaStreamTracks, never JPEG IPC snapshots.
-  const create=(bridge,{role,onTrack=()=>{},onReady=()=>{},onError=()=>{}}={})=>{
+  const create=(bridge,{role,onTrack=()=>{},onClose=()=>{},onReady=()=>{},onError=()=>{}}={})=>{
     const peers=new Map();
     let closed=false,serial=0;
     const send=payload=>{if(closed)return;try{bridge?.videoSignal?.(payload);}catch(error){onError(error);}};
     const remove=(id,notify=false)=>{
       const key=String(id||''),record=peers.get(key);if(!record)return;
       peers.delete(key);
+      if(role==='receiver')onClose(key);
       try{record.pc.onicecandidate=null;record.pc.onconnectionstatechange=null;record.pc.ontrack=null;record.pc.close();}catch{}
       if(notify)send({type:'close',participantId:key});
     };
@@ -58,8 +59,6 @@
           const stream=event.streams?.[0]||new MediaStream([event.track]);
           onTrack(id,stream,event.track);
         };
-        const transceiver=record.pc.addTransceiver('video',{direction:'recvonly'});
-        record.receiver=transceiver.receiver;
         try{
           await record.pc.setRemoteDescription(message.description);
           await flush(record);
@@ -77,8 +76,12 @@
       }
     };
     const unsubscribe=bridge?.onVideoSignal?.(message=>void handle(message).catch(onError))||(()=>{});
-    const sync=async entries=>{
-      if(closed||role!=='sender')return;
+    let syncFlight=Promise.resolve();
+    const sync=entries=>{
+      if(closed||role!=='sender')return syncFlight;
+      // Serialize observation and transceiver mutations across rapid roster updates.
+      const next=syncFlight.catch(()=>{}).then(async()=>{
+        if(closed)return;
       const current=new Map((Array.isArray(entries)?entries:[])
         .filter(entry=>entry?.id&&entry.track?.kind==='video'&&entry.track.readyState==='live'&&entry.track.enabled!==false)
         .map(entry=>[String(entry.id),entry.track]));
@@ -100,6 +103,8 @@
           catch(error){remove(id,true);onError(error);}
         }
       }
+      });
+      syncFlight=next;return next;
     };
     if(role==='receiver')send({type:'hello'});
     return Object.freeze({sync,stop:()=>{if(closed)return;reset(role==='sender');closed=true;unsubscribe();},
