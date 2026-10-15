@@ -56,6 +56,9 @@ check(rtc.includes("const record=ensurePeer(remoteId),payload=signal.payload||{}
 check(rtc.includes('lastOfferSignalId:0,lastOfferAnswer:null'),'answerer must cache the exact answer for signal retries');
 check(rtc.includes("record.lastOfferSignalId===signalId&&record.lastOfferAnswer")&&rtc.includes("sdp:record.lastOfferAnswer"),'answer delivery retry must not repeat SDP negotiation');
 check(share.includes('function rollbackFailedPresenterStart(stream)')&&share.includes('disposeMacCaptureClient({stopWorker:true})'),'presenter rejection must stop Mac worker');
+check(share.includes('try{\n      started=await captureBridge.start(')&&share.includes("if(valid()){disposeMacCaptureClient({stopWorker:true});macWorkerActive=false;}"),'rejected Mac capture worker startup must release its peer');
+check(share.includes('const requestGeneration=displayRequestGeneration+1;')&&share.includes('if(nativeMacCapture&&displayRequestGeneration===requestGeneration)'), 'native New Share rejection must fail closed only for its own capture generation');
+check(share.includes('try{void Promise.resolve(bridge?.captureStopped?.()).catch(()=>{});}')&&share.includes('state.annotationCanvas=null;state.sourceName=\'\';state.options={}'), 'failed native New Share must clear presenter chrome and state');
 check(share.split('rollbackFailedPresenterStart(stream);').length-1===2,'both presenter-start error branches must release the capture worker');
 check(rtc.includes("if(!state.running||state.generation!==generation)return;\n            if(id)state.lastSignalId="),'async signal completion cannot advance a new room cursor');
 check(rtc.includes("outboundIceSendFailures:0")&&rtc.includes("void flushOutboundIce(record)"),'outbound ICE delivery must queue and retry failed sends');
@@ -83,4 +86,4 @@ check(mainPreload.includes('onVideoSignal:')&&companionPreload.includes('onVideo
 check(native.includes("ipcMain.on('mac-share:video-signal'"),'local WebRTC signaling must authenticate sending BrowserWindows');
 check(companionRTC.includes('new RTCPeerConnection({iceServers:[]})'),'companion needs a direct local WebRTC connection');
 check(companionHtml.indexOf('mac-companion-rtc.js')<companionHtml.indexOf('mac-share-video.js'),'receiver transport must load before companion view');
-console.log('PASS 60 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
+console.log('PASS 63 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
