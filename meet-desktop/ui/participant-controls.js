@@ -81,7 +81,14 @@
   }
   window.addEventListener('dominion:meeting-signal',event=>void handleHostSignal(event),true);
 
-  async function send(target,type){if(!canManage()||!meeting?.sendSignal)return false;await meeting.sendSignal(target,type,{at:new Date().toISOString()});return true;}
+  async function send(target,type){
+    if(!canManage()||!meeting?.sendSignal)return false;
+    try{
+      const result=await meeting.sendSignal(target,type,{at:new Date().toISOString()});
+      if(result?.ok===false)throw new Error(result?.reason||'Participant command rejected');
+      return true;
+    }catch(error){toast(String(error?.message||error||'Participant action unavailable'));return false;}
+  }
   async function sendAll(type){
     if(busy)return {ok:false,reason:'busy',count:0};
     if(!canManage()){toast('Host controls are unavailable.');return {ok:false,reason:'not_authorized',count:0};}
@@ -162,12 +169,15 @@
     const id=String(row.dataset.participantId||''),role=String(row.dataset.participantRole||'participant'),name=String(row.dataset.participantName||'Participant'),self=row.dataset.participantSelf==='1';
     if(!id)return;
     menu=document.createElement('div');menu.className='participant-control-menu';
-    const add=(label,handler,danger=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(danger)b.className='danger';b.onclick=()=>{closeMenu();void handler();};menu.append(b);};
+    const add=(label,handler,danger=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(danger)b.className='danger';b.onclick=()=>{closeMenu();Promise.resolve().then(handler).catch(error=>toast(String(error?.message||error||'Action failed')));};menu.append(b);};
     if(self){
       add('Rename',()=>renameParticipant(id,name));
       add('Copy display name',async()=>{try{await navigator.clipboard.writeText(name);toast('Display name copied');}catch{toast('Unable to copy display name');}});
     }else{
-      if(!canManage()||role==='host'){closeMenu();return;}
+      // Every participant may open the roster identity card and request a DM.
+      // Only an authorized host/co-host receives moderation actions.
+      add('Chat privately',()=>openParticipantChat(id));
+      if(canManage()&&role!=='host'){
     add('Mute',()=>send(id,'host:mute'));
     add('Ask to Unmute',()=>send(id,'host:ask-unmute'));
     add('Stop Video',()=>send(id,'host:stop-video'));
@@ -194,6 +204,7 @@
     if(localRole()==='host'&&role!=='cohost')add('Make Co-host',async()=>{await meeting.setCohost(id,true);});
     if(localRole()==='host'&&role==='cohost')add('Remove Co-host',async()=>{await meeting.setCohost(id,false);});
     if(localRole()==='host'||role!=='cohost')add('Remove',async()=>{await meeting.removeParticipant(id);},true);
+      }
     }
     document.body.append(menu);const r=button.getBoundingClientRect();menu.style.left=`${Math.max(10,Math.min(innerWidth-230,r.right-210))}px`;menu.style.top=`${Math.max(10,Math.min(innerHeight-menu.offsetHeight-10,r.bottom+6))}px`;
     menu.setAttribute('aria-label',`Controls for ${name}`);
@@ -239,7 +250,8 @@
       let button=row.querySelector('[data-participant-more]');
       const role=String(row.dataset.participantRole||'participant');
       const self=row.dataset.participantSelf==='1';
-      if(!self&&(!canManage()||role==='host')){button?.remove();syncRowMedia(row);continue;}
+      // Keep participant profile/chat available to every meeting attendee.
+      // Role authorization occurs inside openParticipantMenu and send().
       if(!button){button=document.createElement('button');button.type='button';button.dataset.participantMore='1';button.className='mini-btn participant-more';button.textContent='More';button.setAttribute('aria-label',`More controls for ${String(row.dataset.participantName||'participant')}`);row.querySelector('.participant-actions')?.append(button)||row.append(button);}if(button&&!button.dataset.dsParticipantMenuBound){button.dataset.dsParticipantMenuBound='1';button.onclick=event=>{event.stopPropagation();void openParticipantMenu(button);};}
       if(row.dataset.dsParticipantProfileBound!=='1'){row.dataset.dsParticipantProfileBound='1';row.tabIndex=0;row.setAttribute('role','button');const open=event=>{if(event.target?.closest?.('button,[role="button"],input,select,textarea'))return;openParticipantProfile(row);};row.addEventListener('click',open);row.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&!event.target?.closest?.('button')){event.preventDefault();openParticipantProfile(row);}});}
       syncRowMedia(row);
@@ -284,7 +296,15 @@
   document.addEventListener('pointerdown',event=>{if(menu&&!menu.contains(event.target)&&!event.target.closest?.('[data-participant-more]'))closeMenu();if(profileCard&&!profileCard.contains(event.target)&&!event.target.closest?.('#participantRoster [data-participant-id]'))closeProfileCard();},true);
   document.addEventListener('click',event=>{if(menu&&event.target.closest?.('#roomParticipants,#roomChat,#roomHostTools,#roomMore,.room-side-head>button,.ds-participants-traffic,.ds-panel-traffic'))closeMenu();},true);
   window.addEventListener('dominion:meeting-ended',()=>{closeMenu();closeProfileCard();},true);
-  window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);else remoteMedia.set(id,{micOn:Boolean(detail.micOn),cameraOn:Boolean(detail.cameraOn)});const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
+  window.addEventListener('dominion:remote-media-state',event=>{const detail=event.detail||{},id=String(detail.participantId||'');if(!id)return;if(detail.disconnected)remoteMedia.delete(id);
+    else {
+      const previous=remoteMedia.get(id)||{},next={...previous};
+      // A camera track can arrive before an audio status update, and vice
+      // versa. Missing fields are unknown, never silently "muted" or "off".
+      if(typeof detail.micOn==='boolean')next.micOn=detail.micOn;
+      if(typeof detail.cameraOn==='boolean')next.cameraOn=detail.cameraOn;
+      remoteMedia.set(id,next);
+    }const row=q(`#participantRoster [data-participant-id="${CSS.escape(id)}"]`);if(row)syncRowMedia(row);},true);
   localMediaUnsub=media()?.onChange?.(()=>syncAllMedia())||null;
   let syncFrame=0;
   const requestSync=()=>{if(syncFrame)return;syncFrame=requestAnimationFrame(()=>{syncFrame=0;sync();});};
