@@ -273,7 +273,8 @@
     }
     if(search)search.hidden=false;
     const waiting=q('#waitingQueueSection');if(waiting)waiting.hidden=!hasWaitingPeople();
-    sortParticipants();
+    // app.js alone owns roster order (host, co-host, then actual speakers).
+    // Reordering again here raced with the snapshot and reference controllers.
     const dirty=roster.dataset.dsRuntimeSnapshotDirty==='1'||roster.dataset.dsRuntimeDecorated!=='1';
     if(dirty){
       window.DominionZoomPhysicalAcceptance?.decorateParticipantRows?.();
