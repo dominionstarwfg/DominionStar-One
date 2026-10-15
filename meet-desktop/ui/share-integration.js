@@ -67,12 +67,13 @@
     addStyle('./share.css');
     if(!window.DominionShareController)await addScript('./share-controller.js');
     if(!window.DominionShareAnnotation)await addScript('./share-annotation.js');
-    if(desktop?.macShare?.videoSignal&&!window.DominionCompanionRTC)await addScript('./mac-companion-rtc.js');
+
     const overlay=await findMeetingSurface();
     if(!overlay)return;
     const media=window.DominionMediaController,share=window.DominionShareController;
     const environment=await desktop?.environment?.().catch(()=>null);
     const sameRendererPresenter=String(environment?.platform||'')==='darwin';
+    if(sameRendererPresenter&&desktop?.macShare?.videoSignal&&!window.DominionCompanionRTC)await addScript('./mac-companion-rtc.js');
     const qaKeepMacPresenterHidden=Boolean(environment?.qaKeepMacPresenterHidden);
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
@@ -125,12 +126,12 @@
       }
       void companionRTC.sync(entries).catch(error=>console.warn('[DominionStar Meet] Companion track sync:',String(error?.message||error)));
     };
-    const stopMacRemoteFramePump=()=>{
+    const stopCompanionVideoSync=()=>{
       if(companionSyncTimer){clearInterval(companionSyncTimer);companionSyncTimer=0;}
       companionRTC?.clear?.();
     };
-    const syncMacCameraFramePump=()=>{
-      if(!sameRendererPresenter||!share.snapshot().active){stopMacRemoteFramePump();return;}
+    const syncCompanionVideoSync=()=>{
+      if(!sameRendererPresenter||!share.snapshot().active){stopCompanionVideoSync();return;}
       if(!companionSyncTimer)companionSyncTimer=setInterval(()=>{
         syncCompanionTracks();publishMacPresenterState();
       },800);
@@ -297,7 +298,7 @@
       // updates so presenter controls stay responsive.
       if(!(sameRendererPresenter&&state.active))window.DominionMeetingParity?.syncVideoDock?.();
       const featureState=window.DominionMeetingFeatures?.snapshot?.()||{};void bridge?.captureState?.({paused:state.paused,micOn:mediaState.micOn,cameraOn:mediaState.cameraOn,cameraId:String(mediaState.cameraId||''),mirror:mediaState.mirror!==false,sourceName:state.sourceName,shareAudio:Boolean(state.options?.shareAudio),optimizeVideo:Boolean(state.options?.optimizeVideo),handRaised:Boolean(featureState.handRaised),recording:Boolean(featureState.recording),recordingPaused:Boolean(featureState.recordingPaused),companion:companionKind,companionOpen:Boolean(companionKind),participants:presenterParticipants()});
-      syncMacCameraFramePump();
+      syncCompanionVideoSync();
     }
 
     if(sameRendererPresenter&&desktop?.macShare?.onShowMeeting){
@@ -406,10 +407,10 @@
       // starvation. Production never sets this flag.
       if(!window.__DOMINION_QA_SKIP_SHARE_LAYOUT)applyLayout();
       const active=Boolean(state?.active);
-      if(shareWasActive&&!active){stopMacRemoteFramePump();cleanupStoppedShareSurfaces();}
+      if(shareWasActive&&!active){stopCompanionVideoSync();cleanupStoppedShareSurfaces();}
       shareWasActive=active;
     });
-    media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter){publishMacPresenterState();syncMacCameraFramePump();return;}applyLayout();});
+    media.onChange(()=>{if(!share.snapshot().active)return;if(sameRendererPresenter){publishMacPresenterState();syncCompanionVideoSync();return;}applyLayout();});
 
     const companionObserver=new MutationObserver(()=>{
       if(!share.snapshot().active||!companionKind)return;
@@ -510,7 +511,7 @@
     bridge?.onPresenterCommand?.(rawCommand=>dispatchPresenterCommand(rawCommand));
 
     window.DominionShareIntegration=Object.freeze({open:options=>beginShare(options||{}),stop:options=>share.stop(options||{}),state:()=>share.snapshot(),screenCaptureProven:()=>locallyProven(),commitPresenterMode,dispatchPresenterCommand,sync:applyLayout});
-    window.addEventListener('beforeunload',stopMacRemoteFramePump,{once:true});
+    window.addEventListener('beforeunload',stopCompanionVideoSync,{once:true});
   }
   void boot().catch(error=>console.error('[DominionStar Meet] Share Integration boot failed.',error)).finally(()=>{window.__DominionShareIntegrationBooting=false;});
 })();
