@@ -543,9 +543,16 @@
     const stream=shareMedia();
     const element=(selector)=>{
       const video=q(selector);if(!video)return null;
+      let renderedFrames=null;
+      try{
+        const count=video.getVideoPlaybackQuality?.()?.totalVideoFrames;
+        if(Number.isFinite(count))renderedFrames=count;
+        else if(Number.isFinite(video.webkitDecodedFrameCount))renderedFrames=video.webkitDecodedFrameCount;
+      }catch{}
       return {present:true,hidden:video.hidden,paused:video.paused,
         readyState:video.readyState,videoWidth:video.videoWidth,
         videoHeight:video.videoHeight,currentTime:Number(video.currentTime)||0,
+        renderedFrames,
         streamTracks:video.srcObject?.getTracks?.().map(t=>({
           kind:t.kind,readyState:t.readyState,muted:t.muted,enabled:t.enabled
         }))||[]};
@@ -649,6 +656,7 @@
       width:Number(lastVideo?.videoWidth)||0,
       height:Number(lastVideo?.videoHeight)||0,
       secondsAdvanced:increase(firstVideo?.currentTime,lastVideo?.currentTime),
+      renderedFramesAdvanced:increase(firstVideo?.renderedFrames,lastVideo?.renderedFrames),
       streamTracks:lastVideo?.streamTracks||[]
     };
     const remoteCamera=(after.remoteCameraElements||[]).map((tile,index)=>{
