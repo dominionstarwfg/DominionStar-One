@@ -425,12 +425,25 @@ if(process.platform==='darwin'){
     if(qaKeepPresenterHidden){hideBorder();return;}
     if(isDisplayShare())showBorder();else hideBorder();
   });
-  ipcMain.on('mac-share:video-frame',(event,payload={})=>{
-    const main=mainWindow();
-    if(!shareActive||!isAlive(main)||event.sender!==main.webContents||!isAlive(videoWindow))return;
-    const participantId=String(payload?.participantId||''),dataUrl=String(payload?.dataUrl||'');
-    if(!participantId||!/^data:image\/(?:jpeg|webp|png);base64,/i.test(dataUrl)||dataUrl.length>220000)return;
-    try{videoWindow.webContents.send('mac-share:video-frame',{participantId,dataUrl,at:Number(payload?.at)||Date.now()});}catch{}
+  ipcMain.on('mac-share:video-signal',(event,payload={})=>{
+    const main=mainWindow(),floating=videoWindow;
+    if(!shareActive||!isAlive(main)||!isAlive(floating))return;
+    // The bridge is local to these two first-party BrowserWindows. It never
+    // accepts signaling from a third window or forwards capture frame data.
+    const fromMain=event.sender===main.webContents,fromVideo=event.sender===floating.webContents;
+    if(!fromMain&&!fromVideo)return;
+    const type=String(payload?.type||''),participantId=String(payload?.participantId||'');
+    if(!['hello','reset','offer','answer','ice','close'].includes(type))return;
+    if(!['hello','reset'].includes(type)&&(!participantId||participantId.length>128))return;
+    if(['offer','answer'].includes(type)){
+      const description=payload?.description;
+      if(!description||!['offer','answer'].includes(description.type)||description.type!==type||typeof description.sdp!=='string'||description.sdp.length>80000)return;
+    }
+    if(type==='ice'&&(!payload?.candidate||JSON.stringify(payload.candidate).length>12000))return;
+    const target=fromMain?floating:main;
+    try{target.webContents.send('mac-share:video-signal',{type,participantId,
+      ...(['offer','answer'].includes(type)?{description:payload.description}:{}),
+      ...(type==='ice'?{candidate:payload.candidate}:{})});}catch{}
   });
   ipcMain.on('mac-share:voice-level',(_event,payload={})=>{
     if(!shareActive)return;
