@@ -52,6 +52,10 @@ check(macStyle.includes('width:176px;max-width:100%;height:99px'),'default nativ
 check(macStyle.includes('grid-template-columns:repeat(2,176px);grid-auto-rows:99px'),'native companion gallery must retain exact dimensions');
 check(macStyle.includes('overflow-y:hidden')&&macStyle.includes('.video-dock[data-scrollable="1"] .video-stack{overflow-y:auto}')&&macVideo.includes("dock.dataset.scrollable=list.length>5?'1':'0'"),'internal companion scrolling must begin only after five participants');
 check(native.includes('width:188,height:140,minWidth:188,minHeight:140')&&native.includes("else if(videoLayout==='gallery'){width=369;"),'native video window must not override approved tile size');
+check(rtc.includes("const record=ensurePeer(remoteId),payload=signal.payload||{};"),'inbound SDP/ICE peer-construction failures must propagate for cursor retry');
+check(rtc.includes("if(!state.running||state.generation!==generation)return;\n            if(id)state.lastSignalId="),'async signal completion cannot advance a new room cursor');
+check(rtc.includes("outboundIceSendFailures:0")&&rtc.includes("void flushOutboundIce(record)"),'outbound ICE delivery must queue and retry failed sends');
+check(rtc.includes("clearTimeout(record.outboundIceRetryTimer);record.outboundIce.length=0;"),'outbound ICE queue must be cleared on peer teardown');
 check(rtc.includes('if(state.signalPull)return state.signalPull'),'signaling polling must be single-flight');
 check(rtc.includes('signals.sort((a,b)=>'),'negotiation signals must be consumed in ascending ID order');
 check(rtc.includes('state.lastSignalId=Math.max(state.lastSignalId,id)'),'accepted signal cursor must advance incrementally');
@@ -75,4 +79,4 @@ check(mainPreload.includes('onVideoSignal:')&&companionPreload.includes('onVideo
 check(native.includes("ipcMain.on('mac-share:video-signal'"),'local WebRTC signaling must authenticate sending BrowserWindows');
 check(companionRTC.includes('new RTCPeerConnection({iceServers:[]})'),'companion needs a direct local WebRTC connection');
 check(companionHtml.indexOf('mac-companion-rtc.js')<companionHtml.indexOf('mac-share-video.js'),'receiver transport must load before companion view');
-console.log('PASS 52 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
+console.log('PASS 56 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
