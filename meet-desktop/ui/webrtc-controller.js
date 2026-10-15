@@ -608,6 +608,65 @@
         }
       })),peers};
   }
+  // Read-only, explicitly invoked physical QA probe. One before/after sample
+  // measures RTP frame and byte progress without exposing room identifiers,
+  // SDP, TURN credentials, ICE candidates, or participant names.
+  async function diagnosticWindow(durationMs=4000){
+    const intervalMs=Math.max(1000,Math.min(10000,Number(durationMs)||4000));
+    const before=await diagnosticSnapshot();
+    await new Promise(resolve=>setTimeout(resolve,intervalMs));
+    const after=await diagnosticSnapshot();
+    const increase=(start,end)=>{
+      const a=Number(start),b=Number(end);
+      return Number.isFinite(a)&&Number.isFinite(b)?Math.max(0,b-a):null;
+    };
+    const frameDelta=(start,end,direction)=>{
+      const first=start?.[direction],last=end?.[direction];
+      return {bytes:increase(first?.bytes,last?.bytes),
+        frames:increase(direction==='inbound'?first?.framesDecoded:first?.frames,
+          direction==='inbound'?last?.framesDecoded:last?.frames),
+        packets:increase(first?.packets,last?.packets)};
+    };
+    const previousPeers=new Map(before.peers.map(peer=>[peer.peerId,peer]));
+    const comparisons=after.peers.map((peer,index)=>{
+      const previous=previousPeers.get(peer.peerId);
+      const beforeLanes=new Map((previous?.lanes||[]).map(lane=>[lane.lane,lane]));
+      const deltas={};
+      for(const lane of peer.lanes||[]){
+        const initial=beforeLanes.get(lane.lane);
+        deltas[lane.lane]={outbound:frameDelta(initial,lane,'outbound'),
+          inbound:frameDelta(initial,lane,'inbound'),
+          senderState:lane.sender?.readyState||'none',
+          receiverState:lane.receiver?.readyState||'none'};
+      }
+      return {peer:index+1,connectionState:peer.connectionState,lanes:deltas};
+    });
+    const firstVideo=before.remoteShareElement,lastVideo=after.remoteShareElement;
+    const remoteSharePlayback={
+      visible:Boolean(lastVideo?.present&&!lastVideo.hidden),
+      readyState:Number(lastVideo?.readyState)||0,
+      width:Number(lastVideo?.videoWidth)||0,
+      height:Number(lastVideo?.videoHeight)||0,
+      secondsAdvanced:increase(firstVideo?.currentTime,lastVideo?.currentTime),
+      streamTracks:lastVideo?.streamTracks||[]
+    };
+    const remoteCamera=(after.remoteCameraElements||[]).map((tile,index)=>{
+      const first=before.remoteCameraElements?.find(item=>item.peerId===tile.peerId);
+      return {tile:index+1,visible:!tile.video?.hidden,
+        width:Number(tile.video?.videoWidth)||0,
+        secondsAdvanced:increase(first?.video?.currentTime,tile.video?.currentTime)};
+    });
+    const sharingPeers=comparisons.filter(peer=>peer.lanes.screen?.inbound?.frames>0);
+    const screenSenders=comparisons.filter(peer=>peer.lanes.screen?.outbound?.frames>0);
+    return {durationMs:intervalMs,at:after.at,surface:after.surface,
+      running:after.running,networkOnline:after.networkOnline,
+      peerCount:comparisons.length,connectionStates:comparisons.map(peer=>peer.connectionState),
+      screenSendersWithFrameProgress:screenSenders.length,
+      screenReceiversWithDecodedFrameProgress:sharingPeers.length,
+      remoteSharePlayback,remoteCamera,peerLanes:comparisons,
+      // Visual acceptance still requires a human to confirm moving content.
+      limitation:'Decoded-frame and playback counters are diagnostics, not physical visual acceptance'};
+  }
   function companionTracks(){
     // Internal presenter consumer: reuse the actual receiver tracks rather than
     // guessing camera state from a tile that may have been visually reflowed.
@@ -622,6 +681,6 @@
     if((!inRoom||!context?.roomId)&&state.running)void stop();
   }
   setInterval(()=>void lifecycleProbe(),500);
-  const api=Object.freeze({start,stop,recoverNetwork,touchPresence,diagnosticSnapshot,companionTracks,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayFailure:state.relayFailure,relayExpiresAt:state.iceExpiresAtMs})});
+  const api=Object.freeze({start,stop,recoverNetwork,touchPresence,diagnosticSnapshot,diagnosticWindow,companionTracks,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayFailure:state.relayFailure,relayExpiresAt:state.iceExpiresAtMs})});
   window.DominionWebRTCController=api;
 })();
