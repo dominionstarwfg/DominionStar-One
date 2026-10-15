@@ -33,7 +33,7 @@ await window.DominionWebRTCController.diagnosticWindow(5000)
 node scripts/audit-two-device-media-evidence-20261014.mjs host-report.json guest-report.json
 ```
 
-   This comparator is scoped to **exactly two participants**. It reports `FAIL` for observed transmission, decoding, transport or playback faults, `UNVERIFIED` for missing/ambiguous evidence, and `TECHNICAL_PROGRESS_ONLY` when metrics look healthy. It **never outputs release approval**, even for successful media counters. Preserve the original local reports only in an access-controlled QA location and do not include tokens, SDP, participant names or room IDs.
+   This comparator is scoped to **exactly two participants**. It reports `FAIL` for observed transmission, decoding, transport or playback faults, `UNVERIFIED` for missing/ambiguous evidence, and `TECHNICAL_PROGRESS_ONLY` when metrics look healthy. It **never outputs release approval**, even for successful media counters. The command exits nonzero for **all** states: `1` = FAIL, `2` = UNVERIFIED, `3` = TECHNICAL_PROGRESS_ONLY. This prevents an automated script from treating the comparator as a release-success gate. Preserve the original local reports only in an access-controlled QA location and do not include tokens, SDP, participant names or room IDs.
 
 4. Interpret the sender and receiver independently:
    - **A:** `screenSendersWithFrameProgress > 0` for the appropriate peer(s) and `peerLanes[].lanes.screen.outbound.frames > 0`. This establishes outbound frame activity, not guest delivery.
