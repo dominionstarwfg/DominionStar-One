@@ -4,7 +4,7 @@
   const meeting=desktop?.meeting;
   if(!desktop?.isDesktop||!meeting?.context||!meeting?.sendSignal||!meeting?.pullSignals||!meeting?.iceConfig)return;
 
-  const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800,ICE_RETRY_MS=30000,REFRESH_MARGIN_MS=10*60*1000;
+  const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800,DISCONNECT_GRACE_MS=6000,ICE_RETRY_MS=30000,REFRESH_MARGIN_MS=10*60*1000;
   const state={running:false,starting:false,startAttempt:0,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,relayFailure:'',nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0,lastSpeakerSignature:'',generation:0,signalPull:null,snapshotPull:null,signalsProcessed:0,signalingErrors:0,lastSignalError:''};
   const q=s=>document.querySelector(s);
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -254,7 +254,17 @@
     pc.ontrack=event=>handleRemoteTrack(record,event);
     pc.onconnectionstatechange=()=>{
       const status=pc.connectionState;setTileState(remoteId,status==='connected'?'Connected':status==='connecting'?'Connecting…':status);
-      if(status==='failed'){showRecovery();void loadIceConfig(true).catch(()=>{});scheduleReconnect(record,0);}else if(status==='disconnected'){showRecovery();scheduleReconnect(record,RECONNECT_MS);}else if(status==='connected'){clearTimeout(record.reconnectTimer);record.reconnectTimer=0;setTransportStatus('Network connected','ready');if([...state.peers.values()].every(item=>item.pc.connectionState==='connected'))hideRecovery();}
+      if(status==='failed'){showRecovery();void loadIceConfig(true).catch(()=>{});scheduleReconnect(record,0);}
+      else if(status==='disconnected'){showRecovery();scheduleReconnect(record,DISCONNECT_GRACE_MS);}
+      else if(status==='connected'||status==='connecting'){
+        // ICE often passes through "disconnected" while it recovers. Do not
+        // destroy a video track that is already reconnecting by itself.
+        clearTimeout(record.reconnectTimer);record.reconnectTimer=0;
+        if(status==='connected'){
+          setTransportStatus('Network connected','ready');
+          if([...state.peers.values()].every(item=>item.pc.connectionState==='connected'))hideRecovery();
+        }
+      }
     };
     return record;
   }
@@ -441,7 +451,23 @@
     else if(values.includes('direct'))setTransportStatus('Direct connection • TURN standby','ready');
   }
   function scheduleReconnect(record,delay){
-    if(!state.running||record.reconnectTimer)return;record.reconnectTimer=setTimeout(()=>{record.reconnectTimer=0;const id=record.id;closePeer(id,false);if(state.participants.has(id)){try{const next=ensurePeer(id);if(isInitiator(id))void initiate(next).catch(()=>scheduleReconnect(next,RECONNECT_MS));}catch{setTransportStatus('Network path unavailable','error');}}},Math.max(0,delay));
+    if(!state.running||record.reconnectTimer)return;
+    record.reconnectTimer=setTimeout(()=>{
+      record.reconnectTimer=0;
+      if(!state.running||state.peers.get(record.id)!==record)return;
+      const status=record.pc.connectionState;
+      if(status==='connected'||status==='connecting')return;
+      // Do not churn connection objects while the entire device is offline.
+      if(!state.networkOnline&&status==='disconnected'){scheduleReconnect(record,DISCONNECT_GRACE_MS);return;}
+      const id=record.id;
+      closePeer(id,false);
+      if(state.participants.has(id)){
+        try{
+          const next=ensurePeer(id);
+          if(isInitiator(id))void initiate(next).catch(()=>scheduleReconnect(next,RECONNECT_MS));
+        }catch{setTransportStatus('Network path unavailable','error');}
+      }
+    },Math.max(0,delay));
   }
   function closePeer(id,remove=true){
     const record=state.peers.get(id);if(!record)return;clearTimeout(record.reconnectTimer);clearTimeout(record.cameraMuteTimer);clearTimeout(record.shareMuteTimer);try{record.pc.ontrack=null;record.pc.onicecandidate=null;record.pc.onicecandidateerror=null;record.pc.onconnectionstatechange=null;record.pc.close();}catch{}try{record.audioContext?.close?.();}catch{}state.peers.delete(id);state.remoteMedia.delete(String(id));window.dispatchEvent(new CustomEvent('dominion:remote-media-state',{detail:{participantId:String(id),micOn:false,cameraOn:false,disconnected:true}}));hideRemoteShare(id);if(remove)removeTile(id);
