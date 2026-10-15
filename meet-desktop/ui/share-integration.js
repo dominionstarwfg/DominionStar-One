@@ -67,6 +67,7 @@
     addStyle('./share.css');
     if(!window.DominionShareController)await addScript('./share-controller.js');
     if(!window.DominionShareAnnotation)await addScript('./share-annotation.js');
+    if(desktop?.macShare?.videoSignal&&!window.DominionCompanionRTC)await addScript('./mac-companion-rtc.js');
     const overlay=await findMeetingSurface();
     if(!overlay)return;
     const media=window.DominionMediaController,share=window.DominionShareController;
@@ -76,9 +77,7 @@
     const footer=overlay.querySelector('.meeting-footer'),stage=overlay.querySelector('.stage');
     if(!footer||!stage)return;
     let presenterCommitted=false;
-    let macRemoteFrameTimer=0;
-    const frameCanvas=document.createElement('canvas');frameCanvas.width=192;frameCanvas.height=108;
-    const frameContext=frameCanvas.getContext('2d',{alpha:false,desynchronized:true});
+    let companionSyncTimer=0;
     const presenterParticipants=()=>{
       const mediaState=media.snapshot(),rows=[...overlay.querySelectorAll('#participantRoster [data-participant-id]')],seen=new Set(),list=[];
       for(const row of rows){
@@ -98,65 +97,39 @@
       }
       return list.slice(0,12);
     };
-    let companionLocalVideo=null;
-    const clearCompanionLocalVideo=()=>{
-      if(!companionLocalVideo)return;
-      try{companionLocalVideo.pause();companionLocalVideo.srcObject=null;companionLocalVideo.remove();}catch{}
-      companionLocalVideo=null;
-    };
-    const existingLocalCameraVideo=()=>{
-      const current=media.stream?.(),track=current?.getVideoTracks?.().find(item=>item.readyState==='live'&&item.enabled);
-      if(!media.snapshot().cameraOn||!track){clearCompanionLocalVideo();return null;}
-      if(!companionLocalVideo){
-        const video=document.createElement('video');
-        video.autoplay=true;video.muted=true;video.playsInline=true;
-        // This is a stream consumer, NOT another camera capture. Do not add
-        // a second getUserMedia() session in the floating native renderer.
-        Object.assign(video.style,{position:'fixed',left:'-10px',top:'-10px',width:'1px',height:'1px',opacity:'0',pointerEvents:'none'});
-        overlay.append(video);companionLocalVideo=video;
+    // The meeting renderer owns all video tracks. The native window gets
+    // continuous WebRTC video; the Electron bridge carries SDP and ICE only.
+    const companionRTC=sameRendererPresenter&&macPresenter?.videoSignal&&window.DominionCompanionRTC
+      ?window.DominionCompanionRTC.createSender(macPresenter,{
+        onReady:()=>{if(share.snapshot().active)syncCompanionTracks();},
+        onError:error=>console.warn('[DominionStar Meet] Native companion video transport:',String(error?.message||error))
+      }):null;
+    const syncCompanionTracks=()=>{
+      if(!sameRendererPresenter||!share.snapshot().active||!companionRTC)return;
+      const localMedia=media.stream?.(),roster=presenterParticipants(),entries=[];
+      for(const person of roster){
+        if(!person.cameraOn)continue;
+        let track=null;
+        if(person.self)track=localMedia?.getVideoTracks?.().find(item=>item.readyState==='live'&&item.enabled);
+        else{
+          const id=CSS.escape(person.participantId);
+          const video=overlay.querySelector(`#remoteTileStrip .remote-peer-tile[data-peer-id="${id}"] video,#participantVideoDock .remote-peer-tile[data-participant-id="${id}"] video`);
+          track=video?.srcObject?.getVideoTracks?.().find(item=>item.readyState==='live'&&item.enabled);
+        }
+        if(track)entries.push({id:person.participantId,track});
       }
-      if(companionLocalVideo.srcObject!==current){
-        companionLocalVideo.srcObject=current;
-        void companionLocalVideo.play().catch(()=>{});
-      }
-      return companionLocalVideo;
-    };
-    const sendCompanionFrame=(video,id)=>{
-      if(!id||!video||video.readyState<2||!video.videoWidth||!video.videoHeight)return;
-      try{
-        frameContext.fillStyle='#111';frameContext.fillRect(0,0,frameCanvas.width,frameCanvas.height);
-        const sourceRatio=video.videoWidth/video.videoHeight,targetRatio=frameCanvas.width/frameCanvas.height;
-        let sx=0,sy=0,sw=video.videoWidth,sh=video.videoHeight;
-        if(sourceRatio>targetRatio){sw=Math.round(video.videoHeight*targetRatio);sx=Math.round((video.videoWidth-sw)/2);}
-        else if(sourceRatio<targetRatio){sh=Math.round(video.videoWidth/targetRatio);sy=Math.round((video.videoHeight-sh)/2);}
-        frameContext.drawImage(video,sx,sy,sw,sh,0,0,frameCanvas.width,frameCanvas.height);
-        macPresenter.videoFrame({participantId:id,dataUrl:frameCanvas.toDataURL('image/jpeg',.52),at:Date.now()});
-      }catch{}
-    };
-    const publishMacRemoteFrames=()=>{
-      if(!sameRendererPresenter||!share.snapshot().active||!macPresenter?.videoFrame||!frameContext)return;
-      const roster=presenterParticipants();
-      // Reuse the meeting renderer's existing camera MediaStream for self.
-      const self=roster.find(person=>person.self);
-      if(self?.cameraOn)sendCompanionFrame(existingLocalCameraVideo(),self.participantId);
-      else clearCompanionLocalVideo();
-      const remoteTiles=[...overlay.querySelectorAll('#participantVideoDock .remote-peer-tile:not(.local-video-dock-tile),#remoteTileStrip .remote-peer-tile')];
-      const seen=new Set();
-      for(const tile of remoteTiles){
-        const id=String(tile.dataset.participantId||tile.dataset.peerId||'');
-        if(!id||seen.has(id)||tile.dataset.cameraOn!=='1')continue;
-        seen.add(id);
-        sendCompanionFrame(tile.querySelector('video'),id);
-      }
+      void companionRTC.sync(entries).catch(error=>console.warn('[DominionStar Meet] Companion track sync:',String(error?.message||error)));
     };
     const stopMacRemoteFramePump=()=>{
-      if(macRemoteFrameTimer){clearInterval(macRemoteFrameTimer);macRemoteFrameTimer=0;}
-      clearCompanionLocalVideo();
+      if(companionSyncTimer){clearInterval(companionSyncTimer);companionSyncTimer=0;}
+      companionRTC?.clear?.();
     };
     const syncMacCameraFramePump=()=>{
       if(!sameRendererPresenter||!share.snapshot().active){stopMacRemoteFramePump();return;}
-      if(!macRemoteFrameTimer)macRemoteFrameTimer=setInterval(()=>{publishMacRemoteFrames();publishMacPresenterState();},360);
-      publishMacRemoteFrames();
+      if(!companionSyncTimer)companionSyncTimer=setInterval(()=>{
+        syncCompanionTracks();publishMacPresenterState();
+      },800);
+      syncCompanionTracks();
     };
     let lastVoiceSentAt=0,lastVoiceSpeaking=false,lastVoiceLevel=0;
     const forwardVoiceLevel=event=>{
