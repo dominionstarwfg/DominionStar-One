@@ -1,0 +1,26 @@
+name: Meet isolated share QA
+on:
+  push:
+    branches:
+      - cleanup/meeting-ownership-audit-20261014
+    paths:
+      - 'meet-desktop/scripts/verify-live-share-gate-20261014.mjs'
+      - 'meet-desktop/scripts/verify-capture-answer-replay-20261014.mjs'
+      - '.github/workflows/meet-isolated-share-qa.yml'
+  workflow_dispatch:
+jobs:
+  isolated-regression:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Screen-share gate self test
+        run: node meet-desktop/scripts/verify-live-share-gate-20261014.mjs --self-test
+      - name: Capture SDP answer replay
+        run: node meet-desktop/scripts/verify-capture-answer-replay-20261014.mjs
+      - name: Screen-share diagnostics unit simulation
+        run: node meet-desktop/scripts/verify-two-device-media-progress-20261014.mjs
