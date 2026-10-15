@@ -12,7 +12,7 @@
     "pack": "electron-builder --dir",
     "dist:mac": "electron-builder --mac dmg zip --universal --publish never",
     "verify:visual": "node scripts/verify-production-visual-polish.mjs",
-    "verify:cleanup": "node scripts/verify-architecture-cleanup-20261014.mjs && node scripts/verify-live-media-attachment-20261014.mjs && node scripts/verify-peer-negotiation-20261014.mjs && node scripts/verify-companion-single-camera-20261014.mjs && node scripts/verify-identity-surfaces-20261014.mjs && node scripts/verify-responsive-video-dock-20261014.mjs"
+    "verify:cleanup": "node scripts/verify-architecture-cleanup-20261014.mjs && node scripts/verify-live-media-attachment-20261014.mjs && node scripts/verify-peer-negotiation-20261014.mjs && node scripts/verify-companion-single-camera-20261014.mjs && node scripts/verify-identity-surfaces-20261014.mjs && node scripts/verify-responsive-video-dock-20261014.mjs && node scripts/verify-participant-control-ownership-20261014.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.57.4"
