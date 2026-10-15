@@ -247,7 +247,7 @@
   function createPeerRecord(remoteId){
     if(!validIceConfig())throw new Error('ice_configuration_unavailable');
     const pc=new RTCPeerConnection(iceConfiguration());
-    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
+    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),senderSyncRunning:false,senderSyncDirty:false,cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
     state.peers.set(remoteId,record);ensureTile(remoteId);
     pc.onicecandidate=event=>{if(event.candidate)void meeting.sendSignal(remoteId,'ice',{candidate:event.candidate.toJSON?.()||event.candidate}).catch(()=>{});};
     pc.onicecandidateerror=()=>{if(pc.connectionState!=='connected')setTransportStatus('Network path retrying','warning');};
@@ -271,40 +271,52 @@
   }
   function transceivers(record){if(record.transceivers.length)return record.transceivers;record.transceivers=record.pc.getTransceivers().slice(0,4);return record.transceivers;}
   async function syncLocalTracks(record){
-    // One transport owner per peer; determine the desired tracks INSIDE the
-    // serialized lane operation so late camera/effects callbacks cannot undo
-    // the most recent screen-sharing transition.
-    const operation=record.senderSync.catch(()=>{}).then(async()=>{
-      if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState==='closed')return;
-      const lanes=transceivers(record);if(lanes.length<4)return;
-      const media=localMedia();
-      const audio=media?.getAudioTracks?.()[0]||null;
-      const camera=await localCameraTrack();
-      if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState==='closed')return;
-      // Read the current share stream after asynchronous camera processing.
-      const share=shareMedia(),shareState=window.DominionShareController?.snapshot?.()||{};
-      const screen=share?.getVideoTracks?.().find(track=>track.readyState==='live')||null;
-      const shareAudio=share?.getAudioTracks?.().find(track=>track.readyState==='live')||null;
-      const desired=[[lanes[0],audio],[lanes[1],camera],[lanes[2],screen],[lanes[3],shareAudio]];
-      for(const [lane,track] of desired){
-        if(!lane?.sender||lane.sender.track===track)continue;
-        await lane.sender.replaceTrack(track);
+    // Repeated camera/effects/share notifications must not enqueue an
+    // unbounded series of expensive async processing and replaceTrack calls.
+    // One running pass plus a single dirty flag always converges on the
+    // current, authoritative media streams.
+    if(record.senderSyncRunning){
+      record.senderSyncDirty=true;
+      return record.senderSync;
+    }
+    record.senderSyncRunning=true;
+    record.senderSyncDirty=true;
+    const operation=(async()=>{
+      try{
+        do{
+          record.senderSyncDirty=false;
+          if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState==='closed')return;
+          const lanes=transceivers(record);if(lanes.length<4)return;
+          const media=localMedia();
+          const audio=media?.getAudioTracks?.()[0]||null;
+          const camera=await localCameraTrack();
+          if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState==='closed')return;
+          const share=shareMedia(),shareState=window.DominionShareController?.snapshot?.()||{};
+          const screen=share?.getVideoTracks?.().find(track=>track.readyState==='live')||null;
+          const shareAudio=share?.getAudioTracks?.().find(track=>track.readyState==='live')||null;
+          const desired=[[lanes[0],audio],[lanes[1],camera],[lanes[2],screen],[lanes[3],shareAudio]];
+          for(const [lane,track] of desired){
+            if(!lane?.sender||lane.sender.track===track)continue;
+            await lane.sender.replaceTrack(track);
+            if(!state.running||state.peers.get(record.id)!==record||record.pc.signalingState==='closed')return;
+          }
+          const screenSender=lanes[2]?.sender;
+          if(screenSender&&screen){try{
+            const params=screenSender.getParameters();params.degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced';
+            params.encodings=params.encodings?.length?params.encodings:[{}];
+            params.encodings[0].maxBitrate=shareState.options?.optimizeVideo?4500000:2500000;
+            await screenSender.setParameters(params);
+          }catch{}}
+          const audioSender=lanes[3]?.sender;
+          if(audioSender&&shareAudio){try{
+            const params=audioSender.getParameters();params.encodings=params.encodings?.length?params.encodings:[{}];
+            params.encodings[0].maxBitrate=128000;await audioSender.setParameters(params);
+          }catch{}}
+        }while(record.senderSyncDirty);
+      }finally{
+        record.senderSyncRunning=false;
       }
-      // Only the dedicated screen/video and system audio lanes inherit the
-      // share-specific encoding preferences; ordinary camera must not change.
-      const screenSender=lanes[2]?.sender;
-      if(screenSender&&screen){try{
-        const params=screenSender.getParameters();params.degradationPreference=shareState.options?.optimizeVideo?'maintain-framerate':'balanced';
-        params.encodings=params.encodings?.length?params.encodings:[{}];
-        params.encodings[0].maxBitrate=shareState.options?.optimizeVideo?4500000:2500000;
-        await screenSender.setParameters(params);
-      }catch{}}
-      const audioSender=lanes[3]?.sender;
-      if(audioSender&&shareAudio){try{
-        const params=audioSender.getParameters();params.encodings=params.encodings?.length?params.encodings:[{}];
-        params.encodings[0].maxBitrate=128000;await audioSender.setParameters(params);
-      }catch{}}
-    });
+    })();
     record.senderSync=operation;
     return operation;
   }
