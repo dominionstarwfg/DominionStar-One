@@ -16,8 +16,7 @@ async function testSourceChange(nativeMacCapture,fail=true){
   const stopTracks=stream=>stream?.getTracks?.().forEach(track=>track.stop());
   const bridge={captureStopped:()=>{calls.push('bridge.captureStopped');},
     captureState:()=>{calls.push('bridge.captureState');}};
-  const acquireDisplay=async()=>{
-    displayRequestGeneration++;
+  const picker=async()=>{
     if(fail)throw Error('picker_cancelled');
     const track={label:'Replacement',readyState:'live',addEventListener(){}};
     const stream={getTracks:()=>[track]};return {stream,track};
@@ -28,13 +27,14 @@ async function testSourceChange(nativeMacCapture,fail=true){
     state.liveStream=null;
   };
   const factory=new Function('state','nativeMacCapture','snapshot','stopTracks','bridge',
-    'acquireDisplay','stopComposite','disposeMacCaptureClient','emit',
-    'getGeneration','setGeneration','getActive','setActive',
+    'picker','stopComposite','disposeMacCaptureClient','emit',
+    'getGeneration','getActive',
     "let displayRequestGeneration=getGeneration();let macWorkerActive=getActive();"+
+    "const acquireDisplay=async(options)=>{displayRequestGeneration++;return picker(options);};"+
     changeSource+";return {replaceSource,readState:()=>({displayRequestGeneration,macWorkerActive})};");
-  const api=factory(state,nativeMacCapture,snapshot,stopTracks,bridge,acquireDisplay,
+  const api=factory(state,nativeMacCapture,snapshot,stopTracks,bridge,picker,
     ()=>calls.push('composite.stop'),disposeMacCaptureClient,()=>calls.push('emit'),
-    ()=>displayRequestGeneration,x=>{displayRequestGeneration=x},()=>macWorkerActive,x=>{macWorkerActive=x});
+    ()=>displayRequestGeneration,()=>macWorkerActive);
   if(fail)await assert.rejects(api.replaceSource(),/picker_cancelled/);
   else await api.replaceSource();
   await Promise.resolve();
