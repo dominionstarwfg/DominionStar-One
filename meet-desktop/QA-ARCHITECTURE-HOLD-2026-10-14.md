@@ -112,3 +112,20 @@ No physical recipient data, real frame transmission test, or video companion/par
 - The four `npm run verify:cleanup` suites passed in JavaScript execution, including **51/51 structural invariants** and syntax inspection of **10/10 modified browser JS modules**. This verifies source contracts and simulated signaling only; no macOS runtime, package, physical camera decode, network bridge or participant acceptance has been demonstrated.
 
 **Remaining physical acceptance gate:** Build only for controlled QA when authorized, then verify main Mac renderer -> floating Mac video window and desktop -> second Mac/browser: camera sender/receiver decoded-frame progress, RTP bytes/frames, stable frame rate over time, camera off/on and rejoin, speaking stage, share-stage delivery, control availability, and capture teardown. Do not release before independent real-device acceptance.
+
+## Phase 8: screenshot-based identity and responsive panel parity (2026-10-14)
+
+Approved screenshots require two separate identity contracts: roster badge = **profile picture or initials**, plus readable full name and Host/Co-host indicator; video panel tile = **decoded live video**, otherwise profile picture, otherwise the **participant's full display name**, never a circular initials tile.
+
+Source changes:
+- `ui/mac-share-video.js` / `ui/mac-share-video.css` now use name-only no-photo video fallback; `ui/webrtc-controller.js`, canonical `ui/profile-photo-fallback.js`, and legacy `ui/approved-reference-parity.js` follow the same filmstrip contract. The roster stays photo/initials. The active-speaker stage does not show an oversized initial glyph when it has no photo.
+- `ui/runtime-stability.js` and CSS remove the forcibly narrow 318px floating Participants window in favor of a readable 440px desktop target and 552px height limit, clamped to viewport. This is a presentation baseline, not a promise that a real Mac screenshot has been validated.
+- `scripts/verify-identity-surfaces-20261014.mjs` exercises **19/19 source invariants** and is part of `npm run verify:cleanup`.
+
+Further runtime audit found that MeetingParity and RuntimeStability independently wrote dock geometry. RuntimeStability always forced a **right-side vertical** 188px strip, even on constrained displays. This contradicted the approved adaptive layout and could overwrite another controller's change.
+- RuntimeStability is the sole final owner of **automatic** strip placement: wide/tall stage -> right vertical strip, constrained stage -> top horizontal strip. The decision uses hysteresis (enter top if width <900px or height <520px; exit after width ≥1020px and height ≥620px) and therefore avoids breakpoint oscillation.
+- On right: max five visible 176×99 tiles, scroll vertically inside the filmstrip for overflow. On top: fit as many up to five 176×99 tiles as the available stage permits; scroll horizontally for overflow. The explicit split-screen sharing mode and manually repositioned dock preserve their own placement.
+- `ui/meeting-parity.js` no longer forces automatic right-side positioning once RuntimeStability owns the dock.
+- `scripts/verify-responsive-video-dock-20261014.mjs` executes a mocked geometry simulation for wide/tall, narrow/top, scrollbar direction, hysteresis, manual repositioning and split-screen exceptions. It passed and is included in `npm run verify:cleanup`.
+
+**Release remains blocked.** These are source and mocked geometry/media tests, not evidence of real macOS viewport behavior, video/screen-share reception, accurate toolbar and roster controls, or host/co-host/guest parity on physical devices. Do not package an installer or merge into `main` on this evidence alone.
