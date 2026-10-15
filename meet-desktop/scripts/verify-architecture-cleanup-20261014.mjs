@@ -14,6 +14,10 @@ const macStyle=read('ui/mac-share-video.css');
 const native=read('src/mac-share-presenter-overlay.mjs');
 const annotation=read('ui/mac-annotation-toolbar.css');
 const presenterIntegration=read('ui/share-integration.js');
+const companionRTC=read('ui/mac-companion-rtc.js');
+const companionHtml=read('ui/mac-share-video.html');
+const mainPreload=read('src/preload.cjs');
+const companionPreload=read('src/presenter-preload.cjs');
 
 const check=(ok,message)=>assert.ok(ok,message);
 
@@ -61,7 +65,13 @@ check(rtc.includes('<video autoplay muted playsinline>'),'remote camera video mu
 check(rtc.includes('video.readyState<2||!video.videoWidth||!video.videoHeight'),'remote share and camera cannot replace stage before decoding');
 check(rtc.includes('const share=shareMedia(),shareState='),'sender must sample current screen track after async effects processing');
 check(!macVideo.includes('navigator.mediaDevices.getUserMedia('),'native companion cannot request a second camera');
-check(presenterIntegration.includes('const current=media.stream?.()'),'native companion self-view must use main meeting stream');
-check(presenterIntegration.includes('sendCompanionFrame(existingLocalCameraVideo(),self.participantId)'),'native self-view frame forwarding must be wired');
-check(macVideo.includes('<canvas class="remote-frame" width="176" height="99" hidden></canvas>'),'companion tile must decode into stable canvas');
-console.log('PASS 45 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
+check(presenterIntegration.includes('const localMedia=media.stream?.()'),'native companion self-view must use main meeting stream');
+check(presenterIntegration.includes('companionRTC.sync(entries)'),'native self-view and remote tracks must synchronize through continuous WebRTC');
+check(macVideo.includes('video class="remote-live-video" autoplay muted playsinline hidden'),'companion tiles must use a persistent live video element');
+check(!presenterIntegration.includes("toDataURL('image/jpeg'"),'low-rate JPEG pump must not be reintroduced');
+check(!native.includes("ipcMain.on('mac-share:video-frame'"),'Electron main must never forward base64 camera frames');
+check(mainPreload.includes('onVideoSignal:')&&companionPreload.includes('onVideoSignal:'),'local video signaling must be scoped to both preload bridges');
+check(native.includes("ipcMain.on('mac-share:video-signal'"),'local WebRTC signaling must authenticate sending BrowserWindows');
+check(companionRTC.includes('const pc=new RTCPeerConnection({iceServers:[])'),'companion needs a direct local WebRTC connection');
+check(companionHtml.indexOf('mac-companion-rtc.js')<companionHtml.indexOf('mac-share-video.js'),'receiver transport must load before companion view');
+console.log('PASS 51 architecture-cleanup source invariants — NOT a two-device video or release acceptance result');
