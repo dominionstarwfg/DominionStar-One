@@ -29,7 +29,7 @@ async function testSourceChange(nativeMacCapture,fail=true){
   const factory=new Function('state','nativeMacCapture','snapshot','stopTracks','bridge',
     'picker','stopComposite','disposeMacCaptureClient','emit',
     'getGeneration','getActive',
-    "let displayRequestGeneration=getGeneration();let macWorkerActive=getActive();"+
+    "let displayRequestGeneration=getGeneration();let macWorkerActive=getActive();const navigator={mediaDevices:{getDisplayMedia:true}};"+
     "const acquireDisplay=async(options)=>{displayRequestGeneration++;return picker(options);};"+
     changeSource+";return {replaceSource,readState:()=>({displayRequestGeneration,macWorkerActive})};");
   const api=factory(state,nativeMacCapture,snapshot,stopTracks,bridge,picker,
