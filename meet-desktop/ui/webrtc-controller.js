@@ -5,7 +5,7 @@
   if(!desktop?.isDesktop||!meeting?.context||!meeting?.sendSignal||!meeting?.pullSignals||!meeting?.iceConfig)return;
 
   const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800,DISCONNECT_GRACE_MS=6000,ICE_RETRY_MS=30000,REFRESH_MARGIN_MS=10*60*1000;
-  const state={running:false,starting:false,startAttempt:0,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,relayFailure:'',nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0,lastSpeakerSignature:'',generation:0,signalPull:null,snapshotPull:null,signalsProcessed:0,signalingErrors:0,lastSignalError:''};
+  const state={running:false,starting:false,startAttempt:0,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,relayFailure:'',nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0,lastSpeakerSignature:'',generation:0,signalPull:null,snapshotPull:null,senderRefresh:Promise.resolve(),senderRefreshRunning:false,senderRefreshDirty:false,signalsProcessed:0,signalingErrors:0,lastSignalError:''};
   const q=s=>document.querySelector(s);
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const initials=name=>String(name||'Participant').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'P';
@@ -532,7 +532,33 @@
     state.signalPull=operation;
     try{return await operation;}finally{if(state.signalPull===operation)state.signalPull=null;}
   }
-  async function syncAllSenders(){for(const record of state.peers.values()){try{await syncLocalTracks(record);}catch{}}const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(speakerId)for(const audio of document.querySelectorAll('#remoteAudioBin audio'))if(audio.setSinkId)void audio.setSinkId(speakerId).catch(()=>{});}
+  async function syncAllSenders(){
+    // At room level, bursty share/camera/effects events must not start one
+    // complete N-peer loop each. Merge pending notifications into one refresh.
+    if(state.senderRefreshRunning){
+      state.senderRefreshDirty=true;
+      return state.senderRefresh;
+    }
+    state.senderRefreshRunning=true;
+    state.senderRefreshDirty=true;
+    const operation=(async()=>{
+      try{
+        do{
+          state.senderRefreshDirty=false;
+          if(!state.running)return;
+          await Promise.all([...state.peers.values()].map(async record=>{
+            try{await syncLocalTracks(record);}catch{}
+          }));
+          if(!state.running)return;
+          const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';
+          if(speakerId)for(const audio of document.querySelectorAll('#remoteAudioBin audio'))
+            if(audio.setSinkId)void audio.setSinkId(speakerId).catch(()=>{});
+        }while(state.senderRefreshDirty);
+      }finally{state.senderRefreshRunning=false;}
+    })();
+    state.senderRefresh=operation;
+    return operation;
+  }
   async function start(){
     if(state.running||state.starting||Date.now()<state.nextStartAttemptAt)return;
     state.starting=true;
