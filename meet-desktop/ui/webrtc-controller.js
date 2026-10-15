@@ -617,6 +617,7 @@
     await new Promise(resolve=>setTimeout(resolve,intervalMs));
     const after=await diagnosticSnapshot();
     const increase=(start,end)=>{
+      if(start==null||end==null)return null;
       const a=Number(start),b=Number(end);
       return Number.isFinite(a)&&Number.isFinite(b)?Math.max(0,b-a):null;
     };
