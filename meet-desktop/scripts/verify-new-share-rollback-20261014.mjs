@@ -45,7 +45,7 @@ async function testSourceChange(nativeMacCapture,fail=true){
     assert.ok(calls.includes('worker.dispose:true'));
     assert.ok(calls.includes('bridge.captureStopped'));
     assert.equal(oldTrack.readyState,'ended');
-    assert.equal(snapshot().active,false,'Mac must not keep a phantom share active');
+    assert.equal(api.readState().macWorkerActive,false,'Mac must not keep a phantom share active');
   }else if(!nativeMacCapture&&fail){
     assert.equal(state.liveStream,oldStream,'browser picker cancellation preserves old share');
     assert.equal(oldTrack.readyState,'live');
