@@ -5,7 +5,7 @@
   // The Electron main process forwards only SDP and ICE signaling. Camera and
   // remote participant tracks remain MediaStreamTracks, never JPEG IPC snapshots.
   const create=(bridge,{role,onTrack=()=>{},onClose=()=>{},onReady=()=>{},onError=()=>{}}={})=>{
-    const peers=new Map();
+    const peers=new Map(),earlyIce=new Map();
     let closed=false,serial=0,epoch=0;
     const send=payload=>{if(closed)return;try{bridge?.videoSignal?.(payload);}catch(error){onError(error);}};
     const remove=(id,notify=false)=>{
@@ -17,6 +17,7 @@
     };
     const reset=(notify=false)=>{
       epoch++;
+      earlyIce.clear();
       for(const id of [...peers.keys()])remove(id);
       if(notify)send({type:'reset'});
     };
@@ -24,6 +25,8 @@
       const pc=new RTCPeerConnection({iceServers:[]}),generation=++serial;
       const record={id,pc,generation,sender:null,track:null,ready:false,candidates:[],makingOffer:false};
       peers.set(id,record);
+      const early=earlyIce.get(id)||[];earlyIce.delete(id);
+      record.candidates.push(...early);
       pc.onicecandidate=event=>{if(peers.get(id)!==record||!event.candidate)return;
         send({type:'ice',participantId:id,candidate:event.candidate.toJSON?.()||event.candidate});
       };
@@ -49,7 +52,13 @@
       if(!id||id.length>128)return;
       if(type==='close'){remove(id);return;}
       if(type==='ice'){
-        const record=peers.get(id);if(record&&message.candidate)await addCandidate(record,message.candidate);
+        const record=peers.get(id);
+        if(record&&message.candidate)await addCandidate(record,message.candidate);
+        else if(message.candidate){
+          const pending=earlyIce.get(id)||[];
+          if(pending.length<32)pending.push(message.candidate);
+          earlyIce.set(id,pending);
+        }
         return;
       }
       if(type==='offer'&&role==='receiver'){
