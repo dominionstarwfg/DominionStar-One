@@ -107,14 +107,19 @@
     const syncCompanionTracks=()=>{
       if(!sameRendererPresenter||!share.snapshot().active||!companionRTC)return;
       const localMedia=media.stream?.(),roster=presenterParticipants(),entries=[];
+      const liveRemote=new Map((window.DominionWebRTCController?.companionTracks?.()||[])
+        .map(item=>[String(item.participantId||''),item.track]));
       for(const person of roster){
         if(!person.cameraOn)continue;
         let track=null;
         if(person.self)track=localMedia?.getVideoTracks?.().find(item=>item.readyState==='live'&&item.enabled);
         else{
-          const id=CSS.escape(person.participantId);
-          const video=overlay.querySelector(`#remoteTileStrip .remote-peer-tile[data-peer-id="${id}"] video,#participantVideoDock .remote-peer-tile[data-participant-id="${id}"] video`);
-          track=video?.srcObject?.getVideoTracks?.().find(item=>item.readyState==='live'&&item.enabled);
+          track=liveRemote.get(person.participantId)||null;
+          if(!track){
+            const id=CSS.escape(person.participantId);
+            const video=overlay.querySelector(`#remoteTileStrip .remote-peer-tile[data-peer-id="${id}"] video,#participantVideoDock .remote-peer-tile[data-participant-id="${id}"] video`);
+            track=video?.srcObject?.getVideoTracks?.().find(item=>item.readyState==='live'&&item.enabled);
+          }
         }
         if(track)entries.push({id:person.participantId,track});
       }
