@@ -15,7 +15,7 @@
     const keys=['durationMs','at','surface','running','networkOnline',
       'peerCount','connectionStates','screenSendersWithFrameProgress',
       'screenReceiversWithDecodedFrameProgress','remoteSharePlayback',
-      'remoteCamera','peerLanes','limitation'];
+      'remoteCamera','remoteAudioPlayback','peerLanes','limitation'];
     const output={};
     for(const key of keys)if(Object.hasOwn(data||{},key))output[key]=data[key];
     return output;
