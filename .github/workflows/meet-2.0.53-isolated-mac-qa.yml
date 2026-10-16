@@ -1,0 +1,85 @@
+name: DominionStar Meet 2.0.53 Isolated Mac QA Build
+
+# Builds a real installable artifact from the cleanup branch only.
+# Not notarized, not a production release, not permission-persistence certified.
+on:
+  push:
+    branches: [cleanup/meeting-ownership-audit-20261014]
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/meet-2.0.53-isolated-mac-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: meet-2-0-53-isolated-mac-qa
+  cancel-in-progress: true
+
+jobs:
+  mac-qa-candidate:
+    runs-on: macos-14
+    timeout-minutes: 55
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'false'
+    steps:
+      - name: Checkout isolated repair candidate
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact QA version and JavaScript syntax
+        run: |
+          test "$(node -p "require('./meet-desktop/package.json').version")" = '2.0.53'
+          node --check meet-desktop/ui/webrtc-controller.js
+          node --check meet-desktop/ui/app.js
+          node --check meet-desktop/ui/browser-bridge.js
+          node --check meet-desktop/ui/physical-media-qa-export.js
+      - name: Test stalled-ICE recovery and meeting-exit lifecycle
+        run: |
+          node meet-desktop/scripts/verify-ice-relay-escalation-20261016.mjs
+          node meet-desktop/scripts/verify-meeting-exit-signaling-20261016.mjs
+          node meet-desktop/scripts/verify-live-share-gate-20261014.mjs --self-test
+          node meet-desktop/scripts/verify-physical-media-fallback-20261016.mjs
+          node meet-desktop/scripts/verify-capture-answer-replay-20261014.mjs
+      - name: Install desktop build dependencies
+        working-directory: meet-desktop
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm ls --depth=0
+      - name: Package universal macOS QA app (Intel and Apple Silicon)
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+      - name: Identify and verify packaged application
+        id: app
+        shell: bash
+        run: |
+          APP="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet.app' -print -quit)"
+          test -n "$APP" && test -d "$APP"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" | grep -Fx '2.0.53'
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          echo "path=$APP" >> "$GITHUB_OUTPUT"
+      - name: Create isolated test ZIP and checksums
+        shell: bash
+        run: |
+          mkdir -p qa-2.0.53
+          ZIP="qa-2.0.53/DominionStar-Meet-2.0.53-Mac-universal-QA.zip"
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.app.outputs.path }}" "$ZIP"
+          test -s "$ZIP"
+          shasum -a 256 "$ZIP" > qa-2.0.53/SHA256.txt
+          printf 'version=2.0.53\ncommit=%s\nbranch=cleanup/meeting-ownership-audit-20261014\nchannel=isolated-qa\nproduction=false\nsigning=ad-hoc\nnotarized=false\nminimum_macos=12\nphysical_two_client_media=NOT_YET_VERIFIED\n' "$GITHUB_SHA" > qa-2.0.53/BUILD-PROVENANCE.txt
+          du -h "$ZIP"
+      - name: Upload installable QA candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: DominionStar-Meet-2.0.53-Mac-universal-QA
+          path: qa-2.0.53/*
+          if-no-files-found: error
+          retention-days: 14
