@@ -298,6 +298,10 @@
     if(returningHome)return;
     returningHome=true;
     stopPolling();
+    // Stop the media/signaling engine at the start of teardown. Waiting for
+    // native share cleanup first leaves the 350-ms WebRTC polling loop alive
+    // after leave/end revokes the participant's server authorization.
+    window.dispatchEvent(new CustomEvent('dominion:meeting-ended'));
     try{
       // Local camera/microphone ownership ends immediately with the meeting.
       // Do not leave hardware tracks alive while native share teardown finishes.
@@ -306,7 +310,6 @@
       await stopMeetingPresentation();
       try{await Promise.race([Promise.resolve(desktop?.app?.meetingEnded?.()),new Promise(resolve=>setTimeout(resolve,1500))]);}
       catch(error){console.warn('[DominionStar Meet] Native meeting-end teardown failed.',error);}
-      window.dispatchEvent(new CustomEvent('dominion:meeting-ended'));
       lastWaitingMap=new Map();waitingEventsInitialized=false;lastParticipantMap=new Map();participantEventsInitialized=false;activeSpeakerIds=[];
       pendingMediaPreferences=null;$('#meetingOverlay').hidden=true;activeRoom=null;document.body.dataset.shareAfterJoin='';
       showHome(authState);
