@@ -135,7 +135,32 @@
     const banner=q('#remoteShareBanner');if(banner)banner.hidden=true;
     document.body.classList.remove('remote-share-active');
   }
-  async function routeAudioElement(audio,stream){if(!audio)return;if(audio.srcObject!==stream)audio.srcObject=stream;const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';if(audio.setSinkId&&speakerId)await audio.setSinkId(speakerId).catch(()=>{});void audio.play().catch(()=>{});}
+  // The remote audio may arrive after the meeting's user activation. Chrome
+  // can reject autoplay at that point; hiding play() failures permanently leaves
+  // both sides apparently unmuted but silent. Record the failure and retry only
+  // after an explicit user gesture, without changing UI or media tracks.
+  async function routeAudioElement(audio,stream){
+    if(!audio)return;
+    if(audio.srcObject!==stream){audio.srcObject=stream;delete audio.dataset.dsPlaybackError;}
+    const speakerId=window.DominionMediaController?.snapshot?.().speakerId||'';
+    if(audio.setSinkId&&speakerId)await audio.setSinkId(speakerId).catch(()=>{});
+    try{
+      await audio.play();
+      audio.dataset.dsPlayback='playing';
+      delete audio.dataset.dsPlaybackError;
+    }catch(error){
+      audio.dataset.dsPlayback='blocked';
+      audio.dataset.dsPlaybackError=String(error?.name||'PlaybackError').slice(0,60);
+    }
+  }
+  // Capturing listener observes only real user gestures. The renderer's own
+  // mic/video/participant controls remain unchanged. Limit retries to
+  // existing blocked audio elements; never create duplicate streams or UI.
+  document.addEventListener('pointerdown',()=>{
+    for(const audio of document.querySelectorAll('#remoteAudioBin audio')){
+      if(audio.dataset.dsPlayback==='blocked'&&audio.srcObject)void routeAudioElement(audio,audio.srcObject);
+    }
+  },{capture:true});
   async function playRemoteAudio(id,stream){return routeAudioElement(ensureAudio(id),stream);}
   async function playRemoteShareAudio(id,stream){return routeAudioElement(ensureShareAudio(id),stream);}
 
@@ -690,6 +715,13 @@
           kind:t.kind,readyState:t.readyState,muted:t.muted,enabled:t.enabled
         }))||[]};
     };
+    const remoteAudioPlayback=[...document.querySelectorAll('#remoteAudioBin audio')].map(audio=>({
+      kind:audio.dataset.shareAudioPeer?'screen':'microphone',
+      paused:audio.paused,muted:audio.muted,volume:audio.volume,
+      readyState:audio.readyState,playback:audio.dataset.dsPlayback||'unknown',
+      playbackError:audio.dataset.dsPlaybackError||'',
+      liveAudioTracks:audio.srcObject?.getAudioTracks?.().filter(track=>track.readyState==='live'&&track.enabled).length||0
+    }));
     const peers=[];
     for(const record of state.peers.values()){
       const reports=[];
@@ -739,7 +771,7 @@
       shareCaptureTracks:stream?.getTracks?.().map(track=>({
         kind:track.kind,readyState:track.readyState,muted:track.muted,enabled:track.enabled
       }))||[],
-      remoteShareElement:element('#remoteShareVideo'),remoteCameraElements:[...document.querySelectorAll('#remoteTileStrip .remote-peer-tile')].map(tile=>({
+      remoteAudioPlayback,remoteShareElement:element('#remoteShareVideo'),remoteCameraElements:[...document.querySelectorAll('#remoteTileStrip .remote-peer-tile')].map(tile=>({
         peerId:String(tile.dataset.peerId||''),video:{
           hidden:tile.querySelector('video')?.hidden,
           readyState:tile.querySelector('video')?.readyState,
@@ -805,7 +837,7 @@
       peerCount:comparisons.length,connectionStates:comparisons.map(peer=>peer.connectionState),
       screenSendersWithFrameProgress:screenSenders.length,
       screenReceiversWithDecodedFrameProgress:sharingPeers.length,
-      remoteSharePlayback,remoteCamera,peerLanes:comparisons,
+      remoteSharePlayback,remoteCamera,remoteAudioPlayback:after.remoteAudioPlayback,peerLanes:comparisons,
       // Visual acceptance still requires a human to confirm moving content.
       limitation:'Decoded-frame and playback counters are diagnostics, not physical visual acceptance'};
   }
