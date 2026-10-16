@@ -22,7 +22,7 @@
       #meetingOverlay .room-side.ds-participants-reference{
         position:absolute!important;width:318px!important;min-width:min(318px,calc(100% - 24px))!important;max-width:min(318px,calc(100% - 24px))!important;
         height:390px!important;min-height:min(390px,calc(100% - 24px))!important;max-height:calc(100% - 24px)!important;
-        left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)!important;
+        left:auto!important;right:18px!important;top:18px!important;bottom:auto!important;transform:none!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
         background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:none!important;z-index:3200!important;color:#f5f5f6!important
       }
