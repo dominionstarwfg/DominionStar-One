@@ -5,7 +5,7 @@
   if(!desktop?.isDesktop||!meeting?.context||!meeting?.sendSignal||!meeting?.pullSignals||!meeting?.iceConfig)return;
 
   const POLL_MS=350,SNAPSHOT_MS=900,SPEAKER_MS=350,RECONNECT_MS=1800,DISCONNECT_GRACE_MS=6000,ICE_RETRY_MS=30000,REFRESH_MARGIN_MS=10*60*1000;
-  const state={running:false,starting:false,startAttempt:0,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,relayFailure:'',nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0,lastSpeakerSignature:'',generation:0,signalPull:null,snapshotPull:null,senderRefresh:Promise.resolve(),senderRefreshRunning:false,senderRefreshDirty:false,signalsProcessed:0,signalingErrors:0,lastSignalError:''};
+  const state={running:false,starting:false,startAttempt:0,context:null,lastSignalId:0,peers:new Map(),participants:new Map(),remoteMedia:new Map(),timers:{signals:0,snapshot:0,speaker:0,ice:0,diagnostics:0,recovery:0},mediaUnsub:null,shareUnsub:null,effectsUnsub:null,powerUnsub:null,iceServers:[],iceExpiresAtMs:0,iceProvider:'',qaDirectOnly:false,relayFailure:'',nextStartAttemptAt:0,networkOnline:navigator.onLine!==false,recovering:false,systemSuspended:false,lastPresenceTouchAt:0,lastSpeakerSignature:'',generation:0,signalPull:null,snapshotPull:null,senderRefresh:Promise.resolve(),senderRefreshRunning:false,senderRefreshDirty:false,signalsProcessed:0,signalingErrors:0,lastSignalError:'',relayOnlyPeers:new Set()};
   const q=s=>document.querySelector(s);
   const esc=value=>String(value||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const initials=name=>String(name||'Participant').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'P';
@@ -164,7 +164,7 @@
   async function playRemoteAudio(id,stream){return routeAudioElement(ensureAudio(id),stream);}
   async function playRemoteShareAudio(id,stream){return routeAudioElement(ensureShareAudio(id),stream);}
 
-  function iceConfiguration(){return {iceServers:state.iceServers,bundlePolicy:'max-bundle',iceCandidatePoolSize:4,iceTransportPolicy:'all'};}
+  function iceConfiguration(remoteId=''){return {iceServers:state.iceServers,bundlePolicy:'max-bundle',iceCandidatePoolSize:4,iceTransportPolicy:state.relayOnlyPeers.has(String(remoteId||''))&&hasRelay(state.iceServers)?'relay':'all'};}
   function validIceConfig(){return state.iceServers.length>0&&state.iceExpiresAtMs>Date.now()+5*60*1000&&(state.qaDirectOnly||hasRelay(state.iceServers));}
   async function loadIceConfig(force=false){
     const config=await meeting.iceConfig(force,7200);
@@ -305,11 +305,11 @@
   }
   function createPeerRecord(remoteId){
     if(!validIceConfig())throw new Error('ice_configuration_unavailable');
-    const pc=new RTCPeerConnection(iceConfiguration());
-    const record={id:remoteId,pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,lastOfferSignalId:0,lastOfferAnswer:null,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),senderSyncRunning:false,senderSyncDirty:false,outboundIce:[],outboundIceSending:false,outboundIceRetryTimer:0,outboundIceSendFailures:0,cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
+    const pc=new RTCPeerConnection(iceConfiguration(remoteId));
+    const record={id:remoteId,createdAt:Date.now(),relayOnly:state.relayOnlyPeers.has(String(remoteId)),pc,transceivers:[],pendingIce:[],makingOffer:false,negotiationStarted:false,offerPending:false,offersSent:0,answersApplied:0,lastOfferSignalId:0,lastOfferAnswer:null,reconnectTimer:0,cameraMuteTimer:0,shareMuteTimer:0,senderSync:Promise.resolve(),senderSyncRunning:false,senderSyncDirty:false,outboundIce:[],outboundIceSending:false,outboundIceRetryTimer:0,outboundIceSendFailures:0,cameraTrack:null,shareTrack:null,audioContext:null,analyser:null,audioSource:null,lastLevel:0,transport:'unknown'};
     state.peers.set(remoteId,record);ensureTile(remoteId);
     pc.onicecandidate=event=>{if(event.candidate)queueOutboundIce(record,event.candidate.toJSON?.()||event.candidate);};
-    pc.onicecandidateerror=()=>{if(pc.connectionState!=='connected')setTransportStatus('Network path retrying','warning');};
+    pc.onicecandidateerror=()=>{if(['failed','disconnected'].includes(pc.iceConnectionState))setTransportStatus('Network path retrying','warning');};
     pc.ontrack=event=>handleRemoteTrack(record,event);
     pc.onconnectionstatechange=()=>{
       const status=pc.connectionState;setTileState(remoteId,status==='connected'?'Connected':status==='connecting'?'Connecting…':status);
@@ -535,19 +535,32 @@
     }catch{}
   }
   async function sampleTransports(){
-    for(const record of state.peers.values())await sampleTransport(record);
+    for(const record of state.peers.values()){
+      await sampleTransport(record);
+      // One guarded retry through TURN only after a stalled initial connection.
+      // Do not tear down healthy connections, or repeatedly restart a failed
+      // relay-only attempt. This also covers Chromium's indefinitely 'checking'
+      // ICE state, which does not necessarily emit connectionState='failed'.
+      if(state.running&&state.peers.get(record.id)===record&&!state.relayOnlyPeers.has(String(record.id))
+        &&hasRelay(state.iceServers)&&record.negotiationStarted
+        &&Date.now()-record.createdAt>=12000
+        &&['new','connecting','failed'].includes(record.pc.connectionState)){
+        scheduleReconnect(record,0,true);
+      }
+    }
     const values=[...state.peers.values()].map(record=>record.transport);
     if(values.includes('relay'))setTransportStatus('Connected via TURN relay','relay');
     else if(values.includes('direct')&&state.qaDirectOnly)setTransportStatus('Direct connection restored','warning');
     else if(values.includes('direct'))setTransportStatus('Direct connection • TURN standby','ready');
   }
-  function scheduleReconnect(record,delay){
+  function scheduleReconnect(record,delay,forceRelayOnly=false){
     if(!state.running||record.reconnectTimer)return;
     record.reconnectTimer=setTimeout(()=>{
       record.reconnectTimer=0;
       if(!state.running||state.peers.get(record.id)!==record)return;
       const status=record.pc.connectionState;
-      if(status==='connected'||status==='connecting')return;
+      if(status==='connected'||(status==='connecting'&&!forceRelayOnly))return;
+      if(forceRelayOnly||((status==='failed'||status==='disconnected')&&hasRelay(state.iceServers)))state.relayOnlyPeers.add(String(record.id));
       // Do not churn connection objects while the entire device is offline.
       if(!state.networkOnline&&status==='disconnected'){scheduleReconnect(record,DISCONNECT_GRACE_MS);return;}
       const id=record.id;
@@ -670,7 +683,7 @@
       }
       // The meeting can end while a TURN fetch is still in flight.
       if(attempt!==state.startAttempt||q('#meetingOverlay')?.hidden)return;
-      state.running=true;state.generation+=1;state.context=context;
+      state.running=true;state.generation+=1;state.context=context;state.relayOnlyPeers.clear();
       state.lastSignalId=0;state.signalsProcessed=0;state.signalingErrors=0;
       state.lastSignalError='';state.lastSpeakerSignature='';state.nextStartAttemptAt=0;
       state.networkOnline=navigator.onLine!==false;state.recovering=false;
@@ -695,7 +708,7 @@
     // Invalidate any pending meeting.context / TURN startup before teardown.
     state.startAttempt++;
     if(!state.running){state.context=null;hideRecovery();return;}state.running=false;state.generation+=1;state.signalPull=null;state.snapshotPull=null;for(const key of Object.keys(state.timers)){clearInterval(state.timers[key]);clearTimeout(state.timers[key]);state.timers[key]=0;}state.mediaUnsub?.();state.shareUnsub?.();state.effectsUnsub?.();state.powerUnsub?.();state.mediaUnsub=null;state.shareUnsub=null;state.effectsUnsub=null;state.powerUnsub=null;
-    for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.remoteMedia.clear();hideRecovery();state.context=null;state.lastSignalId=0;state.lastPresenceTouchAt=0;state.lastSpeakerSignature='';state.iceServers=[];state.iceExpiresAtMs=0;state.iceProvider='';state.qaDirectOnly=false;state.relayFailure='';document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();window.DominionVideoEffects?.clearTransientMeetingEffects?.();
+    for(const id of [...state.peers.keys()]){try{await meeting.sendSignal(id,'bye',{});}catch{}closePeer(id);}state.participants.clear();state.remoteMedia.clear();hideRecovery();state.context=null;state.lastSignalId=0;state.lastPresenceTouchAt=0;state.lastSpeakerSignature='';state.relayOnlyPeers.clear();state.iceServers=[];state.iceExpiresAtMs=0;state.iceProvider='';state.qaDirectOnly=false;state.relayFailure='';document.body.classList.remove('remote-share-active');q('#remoteMediaLayer')?.remove();q('#transportStatus')?.remove();window.DominionVideoEffects?.clearTransientMeetingEffects?.();
   }
   // Explicit QA snapshot: safe counters and track states only. Excludes
   // session tokens, SDP, IP addresses and ICE server credentials.
