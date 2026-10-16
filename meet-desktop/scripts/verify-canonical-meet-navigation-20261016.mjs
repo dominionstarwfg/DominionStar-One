@@ -3,8 +3,8 @@
 // collaboration routes or the dedicated browser meeting application.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-const root=new URL('../..',import.meta.url);
-const load=p=>fs.readFileSync(new URL(p,root),'utf8');
+const root=new URL('../../',import.meta.url);
+const load=p=>fs.readFileSync(new URL(p.replace(/^\//,''),root),'utf8');
 const dashboard=load('/member-dashboard/index.html');
 const workspace=load('/workspace/index.html');
 const meeting=load('/meet-desktop/ui/index.html');
