@@ -7,6 +7,10 @@ on:
       - 'meet-desktop/scripts/verify-live-share-gate-20261014.mjs'
       - 'meet-desktop/scripts/verify-capture-answer-replay-20261014.mjs'
       - 'meet-desktop/scripts/verify-physical-identity-layout-20261016.mjs'
+      - 'meet-desktop/scripts/verify-physical-media-fallback-20261016.mjs'
+      - 'meet-desktop/ui/webrtc-controller.js'
+      - 'meet-desktop/ui/webrtc.css'
+      - 'meet-desktop/ui/physical-media-qa-export.js'
       - 'meet-desktop/ui/index.html'
       - 'meet-desktop/ui/profile-photo-fallback.js'
       - 'meet-desktop/ui/zoom-participants-reference-2.0.41.js'
@@ -24,6 +28,8 @@ jobs:
           node-version: '22'
       - name: Approved participant identity/layout static guard
         run: node meet-desktop/scripts/verify-physical-identity-layout-20261016.mjs
+      - name: Remote media fallback and audio recovery regressions
+        run: node meet-desktop/scripts/verify-physical-media-fallback-20261016.mjs
       - name: Screen-share gate self test
         run: node meet-desktop/scripts/verify-live-share-gate-20261014.mjs --self-test
       - name: Capture SDP answer replay
