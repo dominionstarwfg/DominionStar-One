@@ -573,7 +573,10 @@
         const snapshot=await meeting.snapshot(roomId);
         if(!state.running||state.generation!==generation||state.context?.roomId!==roomId)return;
         const current=new Map();
-        for(const p of snapshot.participants||[]){
+        for(const p of snapshot?.participants||[]){
+          // Snapshot records can be null during cleanup or malformed responses.
+          // Never abort the entire reconciliation when a record is unusable.
+          if(!p||typeof p!=='object')continue;
           const id=String(p.participantId||'');
           if(!id||id===state.context.participantId)continue;
           current.set(id,p);state.participants.set(id,p);updateTileIdentity(id);
@@ -854,6 +857,9 @@
     if(inRoom&&context?.state==='joined'&&!state.running&&!state.starting&&Date.now()>=state.nextStartAttemptAt)void start();
     if((!inRoom||!context?.roomId)&&state.running)void stop();
   }
+  // Join/leave is authoritative; do not wait up to 500ms for the next probe
+  // while stale signaling requests continue after access is revoked.
+  window.addEventListener('dominion:meeting-ended',()=>{void stop();});
   setInterval(()=>void lifecycleProbe(),500);
   const api=Object.freeze({start,stop,recoverNetwork,touchPresence,diagnosticSnapshot,diagnosticWindow,companionTracks,syncLocalTracks:syncAllSenders,snapshot:()=>({running:state.running,recovering:state.recovering,networkOnline:state.networkOnline,systemSuspended:state.systemSuspended,lastPresenceTouchAt:state.lastPresenceTouchAt,peerCount:state.peers.size,participantId:state.context?.participantId||'',roomId:state.context?.roomId||'',iceReady:validIceConfig(),relayReady:hasRelay(state.iceServers),qaDirectOnly:state.qaDirectOnly,relayProvider:state.iceProvider,relayFailure:state.relayFailure,relayExpiresAt:state.iceExpiresAtMs})});
   window.DominionWebRTCController=api;
