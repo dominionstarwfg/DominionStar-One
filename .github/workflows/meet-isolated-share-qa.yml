@@ -10,6 +10,8 @@ on:
       - 'meet-desktop/scripts/verify-physical-media-fallback-20261016.mjs'
       - 'meet-desktop/scripts/verify-turn-cors-20261016.mjs'
       - 'meet-desktop/scripts/verify-canonical-meet-navigation-20261016.mjs'
+      - 'meet-desktop/scripts/verify-meeting-exit-signaling-20261016.mjs'
+      - 'meet-desktop/ui/app.js'
       - 'member-dashboard/index.html'
       - 'workspace/index.html'
       - 'workspace/workspace.js'
@@ -34,6 +36,8 @@ jobs:
           node-version: '22'
       - name: Canonical dashboard to Workspace to Meet navigation
         run: node meet-desktop/scripts/verify-canonical-meet-navigation-20261016.mjs
+      - name: Meeting exit stops signaling immediately
+        run: node meet-desktop/scripts/verify-meeting-exit-signaling-20261016.mjs
       - name: Approved participant identity/layout static guard
         run: node meet-desktop/scripts/verify-physical-identity-layout-20261016.mjs
       - name: TURN broker CORS contract simulation
