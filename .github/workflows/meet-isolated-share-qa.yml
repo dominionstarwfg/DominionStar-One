@@ -9,6 +9,10 @@ on:
       - 'meet-desktop/scripts/verify-physical-identity-layout-20261016.mjs'
       - 'meet-desktop/scripts/verify-physical-media-fallback-20261016.mjs'
       - 'meet-desktop/scripts/verify-turn-cors-20261016.mjs'
+      - 'meet-desktop/scripts/verify-canonical-meet-navigation-20261016.mjs'
+      - 'member-dashboard/index.html'
+      - 'workspace/index.html'
+      - 'workspace/workspace.js'
       - 'supabase/functions/meet-v2-turn-credentials/index.ts'
       - 'meet-desktop/ui/webrtc-controller.js'
       - 'meet-desktop/ui/webrtc.css'
@@ -28,6 +32,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Canonical dashboard to Workspace to Meet navigation
+        run: node meet-desktop/scripts/verify-canonical-meet-navigation-20261016.mjs
       - name: Approved participant identity/layout static guard
         run: node meet-desktop/scripts/verify-physical-identity-layout-20261016.mjs
       - name: TURN broker CORS contract simulation
