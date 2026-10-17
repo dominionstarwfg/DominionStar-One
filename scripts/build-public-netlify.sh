@@ -26,6 +26,12 @@ required_paths=(
   "assets/js/dominionstar-public-v5.js"
   "assets/ds-public-hero.jpg"
   "assets/ds-public-founder.jpg"
+  "join/index.html"
+  "schedule/index.html"
+  "consultation/index.html"
+  "thank-you.html"
+  "events/index.html"
+  "knowledge/index.html"
   "meet-desktop/ui/index.html"
 )
 
@@ -65,6 +71,14 @@ grep -Fq 'Home — No Family Left Behind | DominionStar Leadership Development' 
 grep -Fq 'href="/mentorship/"' "$DIST/index.html"
 grep -Fq 'href="/about/"' "$DIST/index.html"
 grep -Fq 'Aurora' "$DIST/index.html"
+# Public conversion routes must share the production design and form detection.
+for rel in join/index.html schedule/index.html consultation/index.html events/index.html; do
+  grep -Fq 'class="site-header"' "$DIST/$rel"
+  grep -Fq 'data-netlify="true"' "$DIST/$rel"
+done
+for rel in mentorship/index.html financial-services/index.html opportunity/index.html about/index.html knowledge/index.html; do
+  grep -Fq 'class="site-header"' "$DIST/$rel"
+done
 if grep -Fq 'DominionStar Meet' "$DIST/index.html"; then
   echo "ERROR: Meet content reached the public homepage." >&2
   exit 42
