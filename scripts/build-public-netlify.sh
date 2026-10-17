@@ -20,6 +20,12 @@ required_paths=(
   "institute/index.html"
   "academy/index.html"
   "member-login/index.html"
+  "about/index.html"
+  "mentorship/index.html"
+  "assets/css/dominionstar-public-v5.css"
+  "assets/js/dominionstar-public-v5.js"
+  "assets/ds-public-hero.jpg"
+  "assets/ds-public-founder.jpg"
   "meet-desktop/ui/index.html"
 )
 
@@ -55,7 +61,10 @@ mkdir -p "$MEET_DIST"
 rsync -a --delete "$MEET_SOURCE/" "$MEET_DIST/"
 
 # The public homepage must be the public DominionStar site, never Meet.
-grep -Fq 'DominionStar | No Family Left Behind' "$DIST/index.html"
+grep -Fq 'Home — No Family Left Behind | DominionStar Leadership Development' "$DIST/index.html"
+grep -Fq 'href="/mentorship/"' "$DIST/index.html"
+grep -Fq 'href="/about/"' "$DIST/index.html"
+grep -Fq 'Aurora' "$DIST/index.html"
 if grep -Fq 'DominionStar Meet' "$DIST/index.html"; then
   echo "ERROR: Meet content reached the public homepage." >&2
   exit 42
