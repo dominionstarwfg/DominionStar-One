@@ -55,7 +55,7 @@ mkdir -p "$MEET_DIST"
 rsync -a --delete "$MEET_SOURCE/" "$MEET_DIST/"
 
 # The public homepage must be the public DominionStar site, never Meet.
-grep -Fq 'DominionStar | Financial Education & Career Development' "$DIST/index.html"
+grep -Fq 'DominionStar | No Family Left Behind' "$DIST/index.html"
 if grep -Fq 'DominionStar Meet' "$DIST/index.html"; then
   echo "ERROR: Meet content reached the public homepage." >&2
   exit 42
