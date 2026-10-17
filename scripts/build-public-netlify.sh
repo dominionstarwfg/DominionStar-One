@@ -24,6 +24,7 @@ required_paths=(
   "mentorship/index.html"
   "assets/css/dominionstar-public-v5.css"
   "assets/js/dominionstar-public-v5.js"
+  "netlify/functions/aurora-chat.mjs"
   "assets/ds-public-hero.jpg"
   "assets/ds-public-founder.jpg"
   "join/index.html"
@@ -81,6 +82,9 @@ grep -Fq 'Home — No Family Left Behind | DominionStar Leadership Development' 
 grep -Fq 'href="/mentorship/"' "$DIST/index.html"
 grep -Fq 'href="/about/"' "$DIST/index.html"
 grep -Fq 'Aurora' "$DIST/index.html"
+grep -Fq 'aurora-v8-panel' "$ROOT/assets/css/dominionstar-public-v5.css"
+grep -Fq 'aurora-v8-transcript' "$ROOT/assets/js/dominionstar-public-v5.js"
+grep -Fq 'AURORA_AI_ENABLED' "$ROOT/netlify/functions/aurora-chat.mjs"
 # Educational journeys must be built as independent pages, not booking-form redirects.
 for rel in mentorship/getting-started/index.html mentorship/professional-growth/index.html mentorship/leadership/index.html opportunity/licensing/index.html opportunity/first-90-days/index.html opportunity/business-building/index.html financial-services/life-insurance/index.html financial-services/long-term-care/index.html financial-services/learning-lab/index.html; do
   grep -Fq 'class="site-header"' "$DIST/$rel"

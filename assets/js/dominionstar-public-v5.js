@@ -1,4 +1,4 @@
-// DominionStar Aurora Financial Education Guide (curated, deterministic, no API requests)
+/* Aurora 7.0: curated financial knowledge + secure optional AI */
 (()=>{"use strict";
 const createAnswer=function makeAnswer(raw,context=""){
   const q=String(raw||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[’‘]/g,"'").replace(/\s+/g," ").trim();
@@ -88,68 +88,186 @@ const createAnswer=function makeAnswer(raw,context=""){
   }
   return mk("unmatched","I don't have a verified answer to that specific question. I can explain term and permanent life insurance, IUL, long-term care, annuities, mentorship and general planning concepts. For contract-specific or personal questions, request a licensed professional.","/schedule/","Request a conversation");
 };
-const launch=document.querySelector('.aurora-trigger');
-const panel=document.querySelector('.aurora-panel');
-const close=document.querySelector('.aurora-head button');
-const form=document.querySelector('.aurora-form');
-const input=document.querySelector('.aurora-form input');
-const chat=document.querySelector('.aurora-chat');
-const shortcuts=document.querySelector('.aurora-prompts');
-let previousTopic="";
-function closeAurora(){if(!panel)return;panel.hidden=true;launch?.setAttribute('aria-expanded','false');}
-function openAurora(){if(!panel)return;panel.hidden=false;launch?.setAttribute('aria-expanded','true');input?.focus();}
-launch?.addEventListener('click',()=>panel.hidden?openAurora():closeAurora());
-close?.addEventListener('click',closeAurora);
-const menu=document.querySelector('.menu-button'),nav=document.querySelector('.main-nav');
-menu?.addEventListener('click',()=>{const expanded=nav?.classList.toggle('open')||false;menu.setAttribute('aria-expanded',String(expanded));menu.textContent=expanded?'×':'☰'});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeAurora();nav?.classList.remove('open');menu?.setAttribute('aria-expanded','false');}});
-document.querySelectorAll('.faq-item button').forEach(btn=>btn.addEventListener('click',()=>{const expand=btn.getAttribute('aria-expanded')!=='true';btn.setAttribute('aria-expanded',String(expand));btn.nextElementSibling.hidden=!expand;const span=btn.querySelector('span');if(span)span.textContent=expand?'−':'+';}));
-function addBubble(message,mine=false){
- if(!chat)return null;
- const d=document.createElement('div');
- d.className='aurora-bubble'+(mine?' mine':'');
- d.textContent=message;
- chat.appendChild(d);
- chat.scrollTop=chat.scrollHeight;
- return d;
-}
-function linkTo(bubble,url,label,external=false){
- if(!bubble||!url||!label)return;
- const a=document.createElement('a');
- a.href=url;a.textContent=label+' ↗';a.style.display='block';a.style.marginTop='7px';
- if(external){a.target='_blank';a.rel='noopener noreferrer';}
- bubble.appendChild(a);
-}
-function ask(question){
- const value=String(question||'').trim().slice(0,450);
- if(!value)return;
- addBubble(value,true);
- const ans=createAnswer(value,previousTopic);
- previousTopic=ans.topic;
- const result=addBubble(ans.message,false);
- linkTo(result,ans.url,ans.label);
- if(ans.source)linkTo(result,ans.source,'Independent educational source (NAIC / SEC)',true);
-}
-form?.addEventListener('submit',e=>{e.preventDefault();ask(input?.value);if(input)input.value='';});
-document.querySelectorAll('[data-aurora-question]').forEach(btn=>btn.addEventListener('click',()=>{openAurora();ask(btn.dataset.auroraQuestion);}));
-if(shortcuts){
- shortcuts.replaceChildren();
- const suggestions=[['Term vs Whole','Compare term and whole life insurance'],['IUL','What is IUL life insurance?'],['Long-Term Care','Explain long-term care insurance'],['Annuities','What are annuities?'],['Mentorship','What mentorship is available?'],['Book a Call','How do I book a call?']];
- suggestions.forEach(([label,question])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',()=>ask(question));shortcuts.appendChild(b);});
-}
-// Keep appointment requests coherent with the topic visitors selected.
-const params=new URLSearchParams(window.location.search);
-const topic=params.get('topic');
-const allowedTopics=new Set(['family-protection','long-term-care','retirement','wealth-education','college-planning','business-solutions','annual-review','general']);
-const interest=document.querySelector('select[name="interest"]');
-if(topic&&interest&&allowedTopics.has(topic))interest.value=topic;
-// Prevent selecting appointment dates that are already in the past.
-const now=new Date();const yyyy=now.getFullYear(),mm=String(now.getMonth()+1).padStart(2,'0'),dd=String(now.getDate()).padStart(2,'0');
-document.querySelectorAll('input[type="date"]').forEach(el=>{el.min=yyyy+'-'+mm+'-'+dd;});
 
-const note=document.querySelector('.aurora-note');
-if(note)note.textContent='Educational topic guide, not live generative AI. Questions stay in this browser; avoid sharing sensitive personal or medical information. No quotes or personalized recommendations.';
-const head=document.querySelector('.aurora-head small');
-if(head)head.textContent='Financial education & website guidance';
-window.DominionStarAurora={open:openAurora,answerForQuestion:createAnswer,version:'6.0-education'};
+
+const launcher=document.querySelector('.aurora-trigger'),panel=document.querySelector('.aurora-panel');
+const route=window.location.pathname.replace(/\/index\.html$/,'/')||'/';
+const contexts=[
+ [/^\/mentorship/,{name:'Mentorship Programs',prompts:[['Getting Started','How does mentorship help a new professional?'],['Professional Growth','What can I learn after getting licensed?'],['Leadership','What is leadership mentorship?']]}],
+ [/^\/opportunity/,{name:'Careers & Licensing',prompts:[['Licensing','How does insurance licensing work?'],['Early career','What should a new agent learn first?'],['Career growth','How does professional mentorship help?']]}],
+ [/^\/financial-services/,{name:'Financial Education',prompts:[['Term vs Whole','Compare term and whole life insurance'],['Indexed Universal Life','What is IUL and what are its risks?'],['Long-Term Care','How does long-term care insurance work?']]}],
+ [/^\/about/,{name:'Our Mission',prompts:[['Mission','What does No Family Left Behind mean?'],['Mentorship','What mentorship programs are available?'],['Contact','How can I speak to the team?']]}],
+ [/^\/(join|schedule|consultation)/,{name:'Plan Your Next Step',prompts:[['Book a call','How do I request an appointment?'],['Life insurance','What are common life insurance types?'],['Mentorship','What support is offered to new agents?']]}]
+];
+const context=contexts.find(item=>item[0].test(route))?.[1]||{name:'DominionStar',prompts:[['Mentorship','What mentorship programs are available?'],['Family protection','How does life insurance work?'],['Long-term care','What is long-term care insurance?']]};
+const state={available:false,ai:false,busy:false,lastTopic:'',history:[],lastReply:''};
+const sensitive=/\b\d{3}[- ]?\d{2}[- ]?\d{4}\b|\b(?:ssn|social security|credit card|bank account|routing number|password|my diagnosis|account number)\b|(?:\b(?:\d[ -]*?){13,16}\b)/i;
+let chat,field,send,indicator,switcher,note,mic;
+function permitted(url){return /^\/(?!\/)[A-Za-z0-9/?=&#%-]*$/.test(url)||/^https:\/\/(?:content\.naic\.org|www\.investor\.gov)\//.test(url);}
+function openChat(){if(!panel)return;panel.hidden=false;launcher.setAttribute('aria-expanded','true');field?.focus();}
+function closeChat(){if(!panel)return;panel.hidden=true;launcher.setAttribute('aria-expanded','false');launcher.focus();}
+function updateMode(){
+ if(!indicator)return;
+ indicator.textContent=state.ai?'AI MODE':state.available?'AI AVAILABLE':'GUIDED KNOWLEDGE';
+ switcher.hidden=!state.available;
+ switcher.textContent=state.ai?'Turn off AI':'Enable AI answers';
+ switcher.setAttribute('aria-pressed',String(state.ai));
+ note.textContent=state.ai?'AI mode sends your question and recent chat to an AI provider. Avoid personal, medical or financial identifiers.':'Guided answers are prepared educational information. AI is optional and requires a configured service.';
+}
+function line(text,kind,tag){
+ const item=document.createElement('article');
+ item.className='aurora-v8-message '+kind;
+ const head=document.createElement('small');head.textContent=tag|| (kind==='user'?'YOU':'AURORA · GUIDED');
+ const p=document.createElement('p');p.textContent=text;item.append(head,p);chat.append(item);chat.scrollTop=chat.scrollHeight;
+ return item;
+}
+function action(parent,url,label){
+ if(!url||!permitted(url))return;
+ const a=document.createElement('a');a.href=url;a.textContent=label+' ↗';
+ a.className='aurora-v8-link';
+ if(url.startsWith('https:')){a.target='_blank';a.rel='noopener noreferrer';}
+ parent.append(a);
+}
+function reply(text,tag,knowledge){
+ const bubble=line(text,'assistant',tag);
+ const actions=document.createElement('div');actions.className='aurora-v8-actions';
+ action(actions,knowledge?.url,knowledge?.label||'Explore this page');
+ if(knowledge?.source)action(actions,knowledge.source,'Educational reference');
+ action(actions,'/schedule/','Request a conversation');
+ if(actions.childNodes.length)bubble.append(actions);
+ const tools=document.createElement('div');tools.className='aurora-v8-message-tools';
+ const copy=document.createElement('button');copy.type='button';copy.textContent='Copy';
+ copy.addEventListener('click',()=>navigator.clipboard?.writeText(text).then(()=>copy.textContent='Copied').catch(()=>{}));
+ tools.append(copy);
+ if('speechSynthesis' in window){
+  const listen=document.createElement('button');listen.type='button';listen.textContent='Listen';
+  listen.addEventListener('click',()=>{if(window.speechSynthesis.speaking){window.speechSynthesis.cancel();return;}
+   const utterance=new SpeechSynthesisUtterance(text);utterance.lang='en-US';window.speechSynthesis.speak(utterance);});
+  tools.append(listen);
+ }
+ bubble.append(tools);state.lastReply=text;
+}
+function chips(list){
+ chat.querySelectorAll('.aurora-v8-chips').forEach(n=>n.remove());
+ const row=document.createElement('div');row.className='aurora-v8-chips';
+ list.slice(0,3).forEach(pair=>{const button=document.createElement('button');button.type='button';button.textContent=pair[0]+' ↗';button.addEventListener('click',()=>ask(pair[1]));row.append(button);});
+ chat.append(row);chat.scrollTop=chat.scrollHeight;
+}
+function suggestions(topic){
+ const more={
+ 'term-whole':[['Cost differences','Why can term and whole life cost differently?'],['Policy duration','What happens when term life expires?']],
+ 'iul':[['Policy charges','What are policy charges in IUL?'],['Lapse risk','Can an IUL policy lapse?']],
+ 'ltc':[['Hybrid LTC','What are hybrid long-term care policies?'],['Benefit triggers','How are LTC benefits triggered?']],
+ 'mentorship':[['Getting Started','What does beginner mentorship cover?'],['Leadership','What is leadership mentorship?']],
+ 'career':[['Licensing','How do I prepare for the license exam?'],['First 90 days','What is the early career path?']],
+ 'annuity':[['Fixed indexed','What is a fixed indexed annuity?'],['Surrender charges','What are annuity surrender charges?']]
+ };return more[topic]||context.prompts;
+}
+async function ask(raw){
+ const q=String(raw||'').trim().slice(0,450);
+ if(!q||state.busy)return;
+ if(sensitive.test(q)){line('Please avoid sharing sensitive financial, medical or identifying information. Contact our team privately for a personal discussion.','assistant','AURORA · PRIVACY');return;}
+ openChat();chat.querySelectorAll('.aurora-v8-chips').forEach(n=>n.remove());
+ line(q,'user','YOU');
+ const trusted=createAnswer(q,state.lastTopic);
+ state.lastTopic=trusted.topic;
+ const previous=state.history.slice(-6);
+ state.history.push({role:'user',content:q});
+ field.value='';state.busy=true;send.disabled=true;field.disabled=true;
+ let pending;
+ try{
+  if(state.ai){
+   pending=line('Reviewing your question…','assistant pending','AURORA · WORKING');
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),15000);
+   let result;
+   try{result=await fetch('/.netlify/functions/aurora-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,page:route,history:previous}),signal:controller.signal});}finally{clearTimeout(timeout);}
+   const data=await result.json().catch(()=>({}));
+   pending.remove();pending=null;
+   if(result.ok && data.mode==='ai' && data.answer){
+    reply(String(data.answer).slice(0,2600),'AURORA · AI RESPONSE',trusted);
+   }else if(result.status===422){
+    reply('Please avoid sharing private identifying, financial or medical details in this chat. Request a private conversation instead.','AURORA · PRIVACY',{url:'/schedule/',label:'Request a call'});
+   }else{
+    reply(trusted.message,'AURORA · VERIFIED GUIDE',trusted);
+    line(result.status===429?'AI requests are temporarily limited. Aurora switched to its educational guide.':'The live AI service is unavailable. Aurora switched to its educational guide.','system','AURORA STATUS');
+   }
+  }else{
+   reply(trusted.message,'AURORA · VERIFIED GUIDE',trusted);
+  }
+ }catch{
+  pending?.remove();
+  reply(trusted.message,'AURORA · VERIFIED GUIDE',trusted);
+  line('AI could not be reached. Aurora used its educational guide instead.','system','AURORA STATUS');
+ }finally{
+  state.history.push({role:'assistant',content:state.lastReply.slice(0,900)});
+  state.history=state.history.slice(-8);
+  state.busy=false;send.disabled=false;field.disabled=false;
+  chips(suggestions(trusted.topic));field.focus();
+ }
+}
+function clearChat(){
+ state.history=[];state.lastTopic='';state.lastReply='';
+ chat.replaceChildren();
+ const intro=document.createElement('div');intro.className='aurora-v8-welcome';
+ intro.innerHTML='<span>DOMINIONSTAR INTELLIGENCE</span><h3>A conversation built around you.</h3><p>Ask about financial protection, mentorship, professional growth or your next step. Browse as much as you want before booking.</p>';
+ const ctx=document.createElement('div');ctx.className='aurora-v8-context';ctx.textContent='✧ Currently exploring: '+context.name;intro.append(ctx);chat.append(intro);
+ chips(context.prompts);
+}
+function setup(){
+ if(!launcher||!panel)return;
+ launcher.classList.add('aurora-v8-launch');
+ launcher.innerHTML=['<span class="aurora-v8-spark" aria-hidden="true">✦</span>','<span><strong>Ask Aurora</strong><small>Your intelligence guide</small></span>','<span aria-hidden="true">↗</span>'].join('');
+ launcher.setAttribute('aria-label','Open Aurora assistant');
+ panel.classList.add('aurora-v8-panel');
+ panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','auroraV8Title');
+ panel.innerHTML=[
+ '<header class="aurora-v8-head"><div class="aurora-v8-orb" aria-hidden="true">✦</div>',
+ '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>7.0</em></strong><small>DominionStar • No Family Left Behind</small></div>',
+ '<div class="aurora-v8-headbtns"><button type="button" data-aurora-clear title="New conversation" aria-label="Clear conversation">↺</button><button type="button" data-aurora-wide title="Expand assistant" aria-label="Expand assistant">⤢</button><button type="button" data-aurora-close aria-label="Close assistant">×</button></div></header>',
+ '<div class="aurora-v8-mode"><span class="aurora-v8-indicator" role="status">GUIDED KNOWLEDGE</span><button type="button" class="aurora-v8-switch" hidden aria-pressed="false">Enable AI answers</button></div>',
+ '<div class="aurora-chat aurora-v8-transcript" role="log" aria-label="Aurora conversation" aria-live="polite"></div>',
+ '<div class="aurora-v8-bottom"><form class="aurora-v8-form"><textarea rows="2" maxlength="450" aria-label="Message Aurora" required placeholder="Ask about life insurance, IUL, LTC, mentoring…"></textarea>',
+ '<div class="aurora-v8-sendrow"><small>Enter to send · Shift+Enter for new line</small><div><button type="button" class="aurora-v8-mic" hidden title="Dictate a message" aria-label="Use browser speech recognition">🎙</button><button type="submit" class="aurora-v8-send">Send ↗</button></div></div></form>',
+ '<p class="aurora-v8-note">Educational information only. Do not share sensitive information.</p></div>'
+ ].join('');
+ chat=panel.querySelector('.aurora-v8-transcript');field=panel.querySelector('textarea');
+ send=panel.querySelector('.aurora-v8-send');indicator=panel.querySelector('.aurora-v8-indicator');
+ switcher=panel.querySelector('.aurora-v8-switch');note=panel.querySelector('.aurora-v8-note');mic=panel.querySelector('.aurora-v8-mic');
+ launcher.addEventListener('click',()=>panel.hidden?openChat():closeChat());
+ panel.querySelector('[data-aurora-close]').addEventListener('click',closeChat);
+ panel.querySelector('[data-aurora-clear]').addEventListener('click',clearChat);
+ panel.querySelector('[data-aurora-wide]').addEventListener('click',()=>panel.classList.toggle('aurora-v8-wide'));
+ switcher.addEventListener('click',()=>{state.ai=!state.ai;updateMode();line(state.ai?'AI mode enabled. Future messages may be processed by a model provider.':'Guided educational mode enabled.','system','AURORA STATUS')});
+ panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();ask(field.value)});
+ field.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();ask(field.value)}});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden)closeChat()});
+ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(SpeechRecognition){
+  mic.hidden=false;
+  mic.addEventListener('click',()=>{
+   if(!window.confirm('Use browser speech recognition? Audio may be processed by your browser’s speech service. Avoid sensitive information.'))return;
+   const recognition=new SpeechRecognition();recognition.lang='en-US';recognition.interimResults=false;
+   recognition.onresult=e=>{field.value=String(e.results?.[0]?.[0]?.transcript||'').slice(0,450);field.focus()};
+   recognition.onend=()=>mic.textContent='🎙';recognition.onerror=()=>mic.textContent='🎙';
+   mic.textContent='●';recognition.start();
+  });
+ }
+ document.querySelectorAll('[data-aurora-question]').forEach(btn=>btn.addEventListener('click',()=>ask(btn.dataset.auroraQuestion)));
+ clearChat();updateMode();
+ fetch('/.netlify/functions/aurora-chat',{method:'GET',cache:'no-store'})
+ .then(r=>r.ok?r.json():null).then(d=>{state.available=d?.mode==='available';updateMode()})
+ .catch(()=>{state.available=false;updateMode()});
+ window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'7.0'};
+}
+const menu=document.querySelector('.menu-button'),nav=document.querySelector('.main-nav');
+menu?.addEventListener('click',()=>{const open=nav?.classList.toggle('open')||false;menu.setAttribute('aria-expanded',String(open));menu.textContent=open?'×':'☰'});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){nav?.classList.remove('open');menu?.setAttribute('aria-expanded','false')}});
+document.querySelectorAll('.faq-item button').forEach(btn=>btn.addEventListener('click',()=>{const open=btn.getAttribute('aria-expanded')!=='true';btn.setAttribute('aria-expanded',String(open));if(btn.nextElementSibling)btn.nextElementSibling.hidden=!open;const span=btn.querySelector('span');if(span)span.textContent=open?'−':'+'}));
+const topic=new URLSearchParams(location.search).get('topic');
+const options=new Set(['family-protection','long-term-care','retirement','wealth-education','college-planning','business-solutions','annual-review','general']);
+const interest=document.querySelector('select[name="interest"]');if(interest&&options.has(topic))interest.value=topic;
+const today=new Date();const minDate=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+document.querySelectorAll('input[type="date"]').forEach(input=>input.min=minDate);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
