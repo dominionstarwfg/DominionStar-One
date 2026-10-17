@@ -48,6 +48,7 @@ required_paths=(
   "financial-services/universal-life/index.html"
   "financial-services/indexed-universal-life/index.html"
   "assets/js/dominionstar-life-interactive.js"
+  "assets/js/dominionstar-index-lab.js"
   "opportunity/canada/index.html"
   "assets/js/dominionstar-financial-lab.js"
   "meet-desktop/ui/index.html"
@@ -111,6 +112,22 @@ for rel in financial-services/term-life/index.html financial-services/whole-life
 done
 grep -Fq 'data-term-demo' "$DIST/financial-services/term-life/index.html"
 grep -Fq 'dominionstar-life-interactive.js' "$DIST/financial-services/term-life/index.html"
+grep -Fq 'data-event-output' "$DIST/financial-services/term-life/index.html"
+grep -Fq 'data-index-svg' "$DIST/financial-services/indexed-universal-life/index.html"
+grep -Fq 'dominionstar-index-lab.js' "$DIST/financial-services/indexed-universal-life/index.html"
+grep -Fq 'data-index-svg' "$DIST/financial-services/universal-life/index.html"
+grep -Fq 'AURORA_WEB_SEARCH_ENABLED' "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq 'Search official sources' "$ROOT/assets/js/dominionstar-public-v5.js"
+# Validate canonical social URLs for key consumer education pages.
+for slug in life-insurance term-life whole-life universal-life indexed-universal-life long-term-care; do
+  file="$DIST/financial-services/$slug/index.html"
+  grep -Fq "<meta property=\"og:url\" content=\"https://dominionstarld.com/financial-services/$slug/\">" "$file"
+  if grep -Fq 'href="undefined"' "$file"; then
+    echo "ERROR: undefined link in $file" >&2
+    exit 42
+  fi
+done
+
 
 # Educational journeys must be built as independent pages, not booking-form redirects.
 for rel in mentorship/getting-started/index.html mentorship/professional-growth/index.html mentorship/leadership/index.html opportunity/licensing/index.html opportunity/first-90-days/index.html opportunity/business-building/index.html financial-services/life-insurance/index.html financial-services/long-term-care/index.html financial-services/learning-lab/index.html; do

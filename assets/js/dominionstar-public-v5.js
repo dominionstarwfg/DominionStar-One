@@ -111,19 +111,28 @@ const contexts=[
  [/^\/(join|schedule|consultation)/,{name:'Plan Your Next Step',prompts:[['Book a call','How do I request an appointment?'],['Life insurance','What are common life insurance types?'],['Mentorship','What support is offered to new agents?']]}]
 ];
 const context=contexts.find(item=>item[0].test(route))?.[1]||{name:'DominionStar',prompts:[['Mentorship','What mentorship programs are available?'],['Family protection','How does life insurance work?'],['Probate & legacy','What is probate and how do beneficiaries work?']]};
-const state={available:false,ai:false,busy:false,lastTopic:'',history:[],lastReply:''};
+const state={available:false,webSearchAvailable:false,research:false,ai:false,busy:false,lastTopic:'',history:[],lastReply:''};
 const sensitive=/\b\d{3}[- ]?\d{2}[- ]?\d{4}\b|\b(?:ssn|social security|credit card|bank account|routing number|password|my diagnosis|account number)\b|(?:\b(?:\d[ -]*?){13,16}\b)/i;
-let chat,field,send,indicator,switcher,note,mic;
-function permitted(url){return /^\/(?!\/)[A-Za-z0-9/?=&#%-]*$/.test(url)||/^https:\/\/(?:content\.naic\.org|www\.investor\.gov)\//.test(url);}
+let chat,field,send,indicator,switcher,note,mic,sourceToggle;
+function permitted(url){
+ if(/^\/(?!\/)[A-Za-z0-9/?=&#%-]*$/.test(url))return true;
+ try{
+  const u=new URL(url,location.origin);
+  if(u.protocol!=='https:')return false;
+  const valid=['content.naic.org','naic.org','tdi.texas.gov','fsrao.ca','lautorite.qc.ca','canada.ca','investor.gov','irs.gov'];
+  return valid.some(domain=>u.hostname===domain||u.hostname.endsWith('.'+domain));
+ }catch{return false}
+}
 function openChat(){if(!panel)return;panel.hidden=false;launcher.setAttribute('aria-expanded','true');field?.focus();}
 function closeChat(){if(!panel)return;panel.hidden=true;launcher.setAttribute('aria-expanded','false');launcher.focus();}
 function updateMode(){
  if(!indicator)return;
  indicator.textContent=state.ai?'AI MODE':state.available?'AI AVAILABLE':'GUIDED KNOWLEDGE';
  switcher.hidden=!state.available;
+ if(sourceToggle){sourceToggle.hidden=!(state.available&&state.ai&&state.webSearchAvailable);sourceToggle.setAttribute('aria-pressed',String(state.research));sourceToggle.textContent=state.research?'Search official sources ✓':'Search official sources';}
  switcher.textContent=state.ai?'Turn off AI':'Enable AI answers';
  switcher.setAttribute('aria-pressed',String(state.ai));
- note.textContent=state.ai?'AI mode sends your question and recent chat to an AI provider. Avoid personal, medical or financial identifiers.':'Guided answers are prepared educational information. AI is optional and requires a configured service.';
+ note.textContent=state.ai?(state.research?'Research mode may search approved regulator sites; links appear only when actually cited. Questions and recent chat go to an AI provider.':'AI answers may use your question and recent conversation. Turn on source search to research selected regulator websites.'):'Instant educational guidance from a curated knowledge guide. It is not a live web search.';
 }
 function line(text,kind,tag){
  const item=document.createElement('article');
@@ -139,11 +148,14 @@ function action(parent,url,label){
  if(url.startsWith('https:')){a.target='_blank';a.rel='noopener noreferrer';}
  parent.append(a);
 }
-function reply(text,tag,knowledge){
+function reply(text,tag,knowledge,searchMeta){
  const bubble=line(text,'assistant',tag);
  const actions=document.createElement('div');actions.className='aurora-v8-actions';
  action(actions,knowledge?.url,knowledge?.label||'Explore this page');
- if(knowledge?.source)action(actions,knowledge.source,'Educational reference');
+ if(searchMeta?.researchPerformed){
+  const sourceHeader=document.createElement('strong');sourceHeader.className='aurora-source-title';sourceHeader.textContent=searchMeta.sources?.length?'Sources used in this web search':'Web search completed · No verified citation links returned';actions.append(sourceHeader);
+  for(const item of (searchMeta.sources||[]))action(actions,item.url,'Source: '+(item.title||'Official reference'));
+ }else if(knowledge?.source){action(actions,knowledge.source,'Reference reading · not live searched');}
  action(actions,'/schedule/','Request a conversation');
  if(actions.childNodes.length)bubble.append(actions);
  const tools=document.createElement('div');tools.className='aurora-v8-message-tools';
@@ -192,15 +204,15 @@ async function ask(raw){
  let pending;
  try{
   if(state.ai){
-   pending=line('Reviewing your question…','assistant pending','AURORA · WORKING');
+   pending=line(state.research?'Checking official sources for your question…':'Preparing an AI answer to your question…','assistant pending',state.research?'AURORA · SOURCE RESEARCH':'AURORA · WORKING');
    const controller=new AbortController();
-   const timeout=setTimeout(()=>controller.abort(),15000);
+   const timeout=setTimeout(()=>controller.abort(),state.research?24000:17500);
    let result;
-   try{result=await fetch('/.netlify/functions/aurora-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,page:route,history:previous}),signal:controller.signal});}finally{clearTimeout(timeout);}
+   try{result=await fetch('/.netlify/functions/aurora-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,page:route,history:previous,research:state.research&&state.webSearchAvailable}),signal:controller.signal});}finally{clearTimeout(timeout);}
    const data=await result.json().catch(()=>({}));
    pending.remove();pending=null;
    if(result.ok && data.mode==='ai' && data.answer){
-    reply(String(data.answer).slice(0,2600),'AURORA · AI RESPONSE',trusted);
+    reply(String(data.answer).replace(/cite[^]+/g,'').slice(0,2600),data.researchPerformed?'AURORA · RESEARCHED ANSWER':'AURORA · AI RESPONSE',trusted,data);
    }else if(result.status===422){
     reply('Please avoid sharing private identifying, financial or medical details in this chat. Request a private conversation instead.','AURORA · PRIVACY',{url:'/schedule/',label:'Request a call'});
    }else{
@@ -262,20 +274,21 @@ function setup(){
  '<header class="aurora-v8-head"><div class="aurora-v8-orb" aria-hidden="true">✦</div>',
  '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>7.0</em></strong><small>DominionStar • No Family Left Behind</small></div>',
  '<div class="aurora-v8-headbtns"><button type="button" data-aurora-clear title="New conversation" aria-label="Clear conversation">↺</button><button type="button" data-aurora-wide title="Expand assistant" aria-label="Expand assistant">⤢</button><button type="button" data-aurora-close aria-label="Close assistant">×</button></div></header>',
- '<div class="aurora-v8-mode"><span class="aurora-v8-indicator" role="status">GUIDED KNOWLEDGE</span><button type="button" class="aurora-v8-switch" hidden aria-pressed="false">Enable AI answers</button></div>',
+ '<div class="aurora-v8-mode"><span class="aurora-v8-indicator" role="status">GUIDED KNOWLEDGE</span><div class="aurora-v8-mode-tools"><button type="button" class="aurora-v8-research" hidden aria-pressed="false" title="Search official regulator sources using AI">Search official sources</button><button type="button" class="aurora-v8-switch" hidden aria-pressed="false">Enable AI answers</button></div></div>',
  '<div class="aurora-chat aurora-v8-transcript" role="log" aria-label="Aurora conversation" aria-live="polite"></div>',
  '<div class="aurora-v8-bottom"><form class="aurora-v8-form"><textarea rows="2" maxlength="450" aria-label="Message Aurora" required placeholder="Ask about life insurance, IUL, LTC, mentoring…"></textarea>',
- '<div class="aurora-v8-sendrow"><small>Enter to send · Shift+Enter for new line</small><div><button type="button" class="aurora-v8-mic" hidden title="Speak to Aurora" aria-label="Speak to Aurora"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 10.5v1.5a6.5 6.5 0 0 0 13 0v-1.5M12 18.5v3M8 21.5h8"/></svg></button><button type="submit" class="aurora-v8-send">Send ↗</button></div></div></form>',
+ '<div class="aurora-v8-sendrow"><small>Enter to send · Shift+Enter for new line</small><div><button type="button" class="aurora-v8-mic" hidden title="Speak to Aurora" aria-label="Speak to Aurora"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 10.5v1.5a6.5 6.5 0 0 0 13 0v-1.5M12 18.5v3M8 21.5h8"/></svg></button><button type="submit" class="aurora-v8-send" aria-label="Send message to Aurora"><span>Send</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button></div></div></form>',
  '<p class="aurora-v8-note">Educational information only. Do not share sensitive information.</p></div>'
  ].join('');
  chat=panel.querySelector('.aurora-v8-transcript');field=panel.querySelector('textarea');
  send=panel.querySelector('.aurora-v8-send');indicator=panel.querySelector('.aurora-v8-indicator');
- switcher=panel.querySelector('.aurora-v8-switch');note=panel.querySelector('.aurora-v8-note');mic=panel.querySelector('.aurora-v8-mic');
+ switcher=panel.querySelector('.aurora-v8-switch');sourceToggle=panel.querySelector('.aurora-v8-research');note=panel.querySelector('.aurora-v8-note');mic=panel.querySelector('.aurora-v8-mic');
  launcher.addEventListener('click',()=>panel.hidden?openChat():closeChat());
  panel.querySelector('[data-aurora-close]').addEventListener('click',closeChat);
  panel.querySelector('[data-aurora-clear]').addEventListener('click',clearChat);
  panel.querySelector('[data-aurora-wide]').addEventListener('click',()=>panel.classList.toggle('aurora-v8-wide'));
- switcher.addEventListener('click',()=>{state.ai=!state.ai;updateMode();line(state.ai?'AI mode enabled. Future messages may be processed by a model provider.':'Guided educational mode enabled.','system','AURORA STATUS')});
+ switcher.addEventListener('click',()=>{state.ai=!state.ai;if(!state.ai)state.research=false;updateMode();line(state.ai?'AI mode enabled. Future messages may be processed by a model provider.':'Guided educational mode enabled.','system','AURORA STATUS')});
+ sourceToggle.addEventListener('click',()=>{if(!state.available||!state.ai||!state.webSearchAvailable)return;state.research=!state.research;updateMode();});
  panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();ask(field.value)});
  field.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();ask(field.value)}});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden)closeChat()});
@@ -293,7 +306,7 @@ function setup(){
  document.querySelectorAll('[data-aurora-question]').forEach(btn=>btn.addEventListener('click',()=>ask(btn.dataset.auroraQuestion)));
  clearChat();updateMode();
  fetch('/.netlify/functions/aurora-chat',{method:'GET',cache:'no-store'})
- .then(r=>r.ok?r.json():null).then(d=>{state.available=d?.mode==='available';updateMode()})
+.then(r=>r.ok?r.json():null).then(d=>{state.available=d?.mode==='available';state.webSearchAvailable=!!d?.webSearchAvailable;updateMode()})
  .catch(()=>{state.available=false;updateMode()});
  window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'7.0'};
 }
