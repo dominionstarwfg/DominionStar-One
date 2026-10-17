@@ -160,3 +160,97 @@
  .aurora-v8-headbtns button{width:28px}
 }
 @media(prefers-reduced-motion:reduce){.aurora-v8-orb,.aurora-v8-spark{animation:none}.aurora-v8-launch:hover{transform:none}}
+
+/* Aurora voice input: clean outline microphone consistent with the interface. */
+.aurora-v8-mic{display:inline-flex;align-items:center;justify-content:center;min-height:37px;min-width:38px;padding:6px;color:#20496b;background:#eff6f9;border:1px solid #b9d2df;transition:background .18s ease,border-color .18s ease}
+.aurora-v8-mic svg{display:block;width:20px;height:20px;flex-shrink:0}
+.aurora-v8-mic:hover{background:#e1eef5;border-color:#4a879c}
+.aurora-v8-mic.is-listening{color:#fff;background:#164e69;border-color:#164e69;box-shadow:0 0 0 3px #5da8b63d}
+@media(prefers-reduced-motion:reduce){.aurora-v8-mic{transition:none}}
+
+
+/* Executive contact experience: consistent US/Canada phone, email and appointment actions */
+.contact-panel.contact-executive{
+ position:relative;isolation:isolate;overflow:hidden;
+ display:grid;grid-template-columns:minmax(220px,.9fr) minmax(0,1.45fr);
+ column-gap:35px;row-gap:18px;
+ background:linear-gradient(117deg,#07192f 0%,#0e2b4b 52%,#16486a 100%);
+ border:1px solid #d0ad6b;border-radius:23px;
+ padding:clamp(22px,3.3vw,43px);margin:30px 0 20px;
+ box-shadow:0 18px 44px #071c3050;color:#fff;
+}
+.contact-panel.contact-executive:before{content:"";position:absolute;z-index:-1;right:-90px;top:-165px;width:520px;height:520px;border:1px solid #cdb87f38;border-radius:50%;box-shadow:0 0 0 54px #ebc88d09,0 0 0 114px #cfc4a10a;pointer-events:none}
+.contact-executive .connect-heading{align-self:center;max-width:420px}
+.contact-executive .connect-kicker{display:flex;gap:9px;align-items:center;margin:0 0 17px!important;font-size:11px!important;letter-spacing:.13em;font-weight:850;color:#e9ce90!important;line-height:1.5}
+.contact-executive .connect-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#54c6b6;box-shadow:0 0 0 4px #5ac5b62a;flex-shrink:0}
+.contact-executive h3{font:600 clamp(29px,3vw,41px)/1.14 Georgia,serif!important;color:#fff!important;letter-spacing:-.03em;margin:0 0 14px}
+.contact-executive .connect-heading>p:not(.connect-kicker){color:#d4e2ed!important;font-size:14px!important;line-height:1.78!important;max-width:390px;margin:0 0 19px!important}
+.contact-executive .connect-region{display:inline-block;font-size:11px;font-weight:800;color:#eed6aa;border:1px solid #d7b9706c;background:#e9bc6214;padding:7px 11px;border-radius:50px}
+.contact-executive .connect-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;width:100%;align-self:center}
+.contact-executive .connect-option{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-height:193px;
+ border-radius:17px;border:1px solid #d5e9ff49;background:#ffffff10;color:#fff!important;padding:19px 15px;
+ text-decoration:none!important;transition:transform .18s ease,background .18s ease,border-color .18s ease;overflow-wrap:anywhere}
+.contact-executive .connect-option:hover{transform:translateY(-3px);background:#ffffff20;border-color:#e4d7b286}
+.contact-executive .connect-option:focus-visible{outline:3px solid #e8c580;outline-offset:2px}
+.contact-executive .connect-icon{display:grid;place-items:center;color:#f3d69d;background:#ffffff15;border:1px solid #dfc38b6b;border-radius:12px;width:43px;height:43px;margin-bottom:8px}
+.contact-executive .connect-icon svg{display:block;width:22px;height:22px}
+.contact-executive .connect-title{color:#fff;font-size:14px;font-weight:850;line-height:1.3}
+.contact-executive .connect-detail{color:#d3e5f0;font-size:11px;line-height:1.5;font-weight:600}
+.contact-executive .connect-arrow{margin-top:auto;padding-top:13px;color:#f3d79c;font-size:11px;font-weight:850}
+.contact-executive .connect-option.connect-primary{background:#e4bd76;border-color:#f6deb1;color:#162944!important}
+.contact-executive .connect-primary .connect-icon{color:#284566;background:#0d2c4814;border-color:#70572965}
+.contact-executive .connect-primary .connect-title,.contact-executive .connect-primary .connect-detail,.contact-executive .connect-primary .connect-arrow{color:#172e47}
+.contact-executive .connect-option.connect-primary:hover{background:#f5d79e}
+.contact-executive .connect-legal{margin:0!important;grid-column:1/-1;color:#b9ccdc!important;font-size:10px!important;line-height:1.6!important;padding-top:14px;border-top:1px solid #d4e3f02e}
+@media(max-width:1120px){.contact-panel.contact-executive{grid-template-columns:1fr}.contact-executive .connect-heading{max-width:780px}.contact-executive .connect-heading>p:not(.connect-kicker){max-width:740px}}
+@media(max-width:660px){.contact-panel.contact-executive{padding:24px 17px;border-radius:19px}
+ .contact-executive .connect-actions{grid-template-columns:1fr}
+ .contact-executive .connect-option{min-height:0;display:grid;grid-template-columns:45px 1fr;column-gap:10px;row-gap:2px;padding:13px 14px}
+ .contact-executive .connect-icon{grid-row:1/4;margin-bottom:0}
+ .contact-executive .connect-title{font-size:14px}
+ .contact-executive .connect-detail{font-size:11px}
+ .contact-executive .connect-arrow{margin-top:2px;padding-top:0}
+}
+@media(prefers-reduced-motion:reduce){.contact-executive .connect-option{transition:none}.contact-executive .connect-option:hover{transform:none}}
+
+
+/* Life insurance learning experience. Purposeful content, no fictitious product performance. */
+.term-experience{background:linear-gradient(135deg,#fff,#f3f8fa);padding:clamp(19px,3vw,34px)}
+.term-controls{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.term-controls label{display:flex;flex-direction:column;gap:9px;font-weight:800;color:#254660;font-size:13px;margin:0}
+.term-controls label output{font:800 clamp(20px,2vw,26px)/1.25 Inter,system-ui,sans-serif;color:#1b776f}
+.term-controls input[type=range]{width:100%;accent-color:#1b817b;min-height:30px}
+.term-experience svg{display:block;width:100%;height:auto;max-height:290px;margin-top:22px;overflow:visible}
+.term-experience .chart-footnote{font-size:12px;color:#4f6579;max-width:850px;margin-top:12px}
+.fact-check{display:flex;gap:22px;align-items:flex-start;border:1px solid #dbdfdf;border-radius:21px;
+ background:linear-gradient(110deg,#fdfaf2,#f0f6f8);padding:clamp(20px,3vw,34px);box-shadow:0 12px 32px #1c37550c}
+.fact-check .fact-icon{font:800 31px/1 Georgia,serif;color:#704c15;background:#f5e8cb;
+ display:grid;place-items:center;flex-shrink:0;border-radius:16px;width:70px;height:70px}
+.fact-check h3{font:600 27px/1.2 Georgia,serif;color:#173854;margin-bottom:13px}
+.fact-check p{color:#4b6072;font-size:14px;line-height:1.76;margin:10px 0}
+.fact-check a,.wide-notice a{color:#175a8c;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.credit-demo{background:#fff;border:1px solid #dae3eb;border-radius:22px;padding:clamp(22px,3vw,35px)}
+.credit-demo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:18px}
+.credit-demo-grid>div{border-radius:13px;padding:19px;border:1px solid #dde5ea;background:#f4f7f8}
+.credit-demo-grid small{display:block;font-weight:750;color:#54687a;font-size:12px;min-height:43px}
+.credit-demo-grid strong{display:block;font:700 clamp(26px,3.5vw,40px)/1.2 Georgia,serif;color:#214663}
+.credit-demo-grid .credit-result{background:#e5f5f1;border-color:#acd5c8}
+.credit-demo-grid .credit-result strong{color:#147b6e}
+.credit-demo>p{font-size:14px;color:#52697c;margin:15px 0;line-height:1.8}
+.credit-demo .wide-notice{margin-top:19px}
+@media(max-width:660px){
+ .term-controls,.credit-demo-grid{grid-template-columns:1fr}
+ .credit-demo-grid small{min-height:0;margin-bottom:8px}
+ .fact-check{flex-direction:column}
+ .fact-check .fact-icon{width:52px;height:52px;font-size:24px}
+ .term-experience svg{margin-top:0}
+}
+
+/* Long-term care learning tiles: expand in place, no broken links. */
+.journey-card .topic-expand{margin-top:auto;border-top:1px solid #dfe6ec;padding-top:12px;color:#3c6075}
+.journey-card .topic-expand summary{font-size:13px;font-weight:850;color:#165d79;cursor:pointer;line-height:1.5;list-style:none}
+.journey-card .topic-expand summary::-webkit-details-marker{display:none}
+.journey-card .topic-expand summary:before{content:"+";display:inline-grid;place-items:center;background:#e5f3f2;color:#197568;border-radius:50%;width:22px;height:22px;margin-right:8px}
+.journey-card .topic-expand[open] summary:before{content:"−"}
+.journey-card .topic-expand p{font-size:13px;line-height:1.7;margin:12px 0;color:#466174}
+.journey-card .topic-expand a{color:#1b557e;font-size:12px;text-decoration:underline;text-underline-offset:3px}

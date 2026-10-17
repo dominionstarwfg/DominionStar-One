@@ -42,6 +42,13 @@ required_paths=(
   "financial-services/long-term-care/index.html"
   "financial-services/life-insurance/index.html"
   "financial-services/learning-lab/index.html"
+  "financial-services/probate-estate/index.html"
+  "financial-services/term-life/index.html"
+  "financial-services/whole-life/index.html"
+  "financial-services/universal-life/index.html"
+  "financial-services/indexed-universal-life/index.html"
+  "assets/js/dominionstar-life-interactive.js"
+  "opportunity/canada/index.html"
   "assets/js/dominionstar-financial-lab.js"
   "meet-desktop/ui/index.html"
 )
@@ -85,6 +92,26 @@ grep -Fq 'Aurora' "$DIST/index.html"
 grep -Fq 'aurora-v8-panel' "$ROOT/assets/css/dominionstar-public-v5.css"
 grep -Fq 'aurora-v8-transcript' "$ROOT/assets/js/dominionstar-public-v5.js"
 grep -Fq 'AURORA_AI_ENABLED' "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq 'Speak to Aurora' "$ROOT/assets/js/dominionstar-public-v5.js"
+grep -Fq 'href="/opportunity/canada/"' "$DIST/opportunity/index.html"
+grep -Fq 'href="/financial-services/probate-estate/"' "$DIST/financial-services/index.html"
+grep -Fq 'Aretha Franklin' "$DIST/financial-services/probate-estate/index.html"
+grep -Fq 'Canada recruiting priority' "$DIST/opportunity/canada/index.html"
+# No undefined links or placeholders in product education.
+for rel in financial-services/life-insurance/index.html financial-services/long-term-care/index.html; do
+  if grep -Eq 'href="undefined"|>undefined<' "$DIST/$rel"; then
+    echo "ERROR: broken financial education card in $rel" >&2
+    exit 42
+  fi
+done
+for rel in financial-services/term-life/index.html financial-services/whole-life/index.html financial-services/universal-life/index.html financial-services/indexed-universal-life/index.html; do
+  grep -Fq 'class="site-header"' "$DIST/$rel"
+  grep -Fq 'class="aurora-trigger"' "$DIST/$rel"
+  grep -Fq 'dominionstarwfg@gmail.com' "$DIST/$rel"
+done
+grep -Fq 'data-term-demo' "$DIST/financial-services/term-life/index.html"
+grep -Fq 'dominionstar-life-interactive.js' "$DIST/financial-services/term-life/index.html"
+
 # Educational journeys must be built as independent pages, not booking-form redirects.
 for rel in mentorship/getting-started/index.html mentorship/professional-growth/index.html mentorship/leadership/index.html opportunity/licensing/index.html opportunity/first-90-days/index.html opportunity/business-building/index.html financial-services/life-insurance/index.html financial-services/long-term-care/index.html financial-services/learning-lab/index.html; do
   grep -Fq 'class="site-header"' "$DIST/$rel"

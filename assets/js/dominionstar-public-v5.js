@@ -6,6 +6,17 @@ const createAnswer=function makeAnswer(raw,context=""){
   const link={life:"https://content.naic.org/insurance-topics/life-insurance",ltc:"https://content.naic.org/insurance-topics/long-term-care-insurance",annuity:"https://www.investor.gov/introduction-investing/investing-basics/investment-products/annuities"};
   const mk=(topic,message,url="/financial-services/",label="Explore Financial Services",source="")=>({topic,message,url,label,source});
   if(!q) return mk("welcome","Ask about life insurance, long-term care, annuities, career mentorship or scheduling a conversation.","/financial-services/","Explore financial services");
+  if(/\b(guarantee|guaranteed|guarantees|promised|promise)\b/.test(q)&&/(?:\d+(?:\.\d+)?\s*%|return|profit|income|crediting rate|interest rate)/.test(q))
+    return mk("quotes","Aurora cannot guarantee any return, policy crediting rate, premium, income or investment outcome. Review any contractual guarantees in the current carrier-approved policy documents with an appropriately licensed professional.","/consultation/","Discuss contract terms");
+  if(/\b(1%|2%|1 to 2 percent|one percent|two percent|how many term policies (pay|payout)|percentage of term policies|term payout rate)\b/.test(q))
+    return mk("term-statistics","The widely repeated claim that only 1–2% of term life policies ever pay a death benefit cannot be confirmed from a current industry-wide dataset. An analysis of 2023 data reported roughly 2% of all individual life policies in force paid a benefit that year, combining term and permanent life; it does not describe a term-only lifetime payout rate. A policy ending because the insured outlives the term is not the same as a valid death claim being denied.","/financial-services/term-life/","Read the Term Life data explanation","https://www.investopedia.com/is-your-term-life-insurance-a-waste-of-money-8774621");
+  // Estate/probate and Canadian recruiting are educational, jurisdiction-dependent subjects.
+  if(/\b(aretha franklin|prince['’]?s estate|prince died without|prince.*without a will|probate stor(?:y|ies)|real probate case)\b/.test(q))
+    return mk("probate-stories","Two documented estate stories show why clear instructions matter. Aretha Franklin’s competing handwritten wills were considered in a Michigan probate case; a 2023 jury recognized the 2014 document. Prince died without a will and his estate faced years of administration and disputes. Read their histories and the practical lessons on our Probate & Legacy page. These stories do not establish what would happen to your family.","/financial-services/probate-estate/","Read the real probate stories");
+  if(/\b(probate|probate court|intestate|intestacy|dying without a will|dying without will|estate court|executor|estate trustee|inheritance|what happens without a will|estate planning|last will|wills?\b|beneficiar(?:y|ies))\b/.test(q))
+    return mk("probate","Probate is a court-supervised process that may confirm a will or a representative’s authority to administer an estate. It is not always required; the rules depend on the location and assets. A will does not automatically avoid probate. Life-insurance beneficiary designations can affect whether proceeds flow to the estate. Review your beneficiary choices and ask a qualified estate lawyer about your jurisdiction.","/financial-services/probate-estate/","Explore probate, wills & beneficiaries","https://www.ontario.ca/page/apply-probate-estate");
+  if(/\b(canada|canadian|canadians|ontario|qu[eé]bec|alberta|british columbia|nova scotia|manitoba|saskatchewan|llqp|cipr|provincial licen[sc]e|territorial licen[sc]e)\b/.test(q))
+    return mk("canada","DominionStar welcomes Canadian career and mentorship inquiries. Licensing is provincial or territorial, not automatically covered by a U.S. insurance license. In many provinces, new life-insurance applicants complete approved LLQP preparation and examinations. Québec has specific AMF requirements. Eligibility, insurer sponsorship or contracting, and program availability must be confirmed for your province.","/opportunity/canada/","Explore the Canada recruiting pathway","https://www.fsrao.ca/licensing/life-and-accident-sickness-agent/apply-new-life-and-accident-sickness-insurance-licence");
   // Product prices, policy guarantees, carriers and personalized tax questions need verified information.
   if(/\b(guaranteed?\s+(?:\d+(?:\.\d+)?%\s*)?(?:returns?|profits?|growth|income)|guaranteed?\s+\d+(?:\.\d+)?%|(?:cost|price|premium|rate) (?:of|for|on) (?:my|me|an?|iul|policy)|what(?:'s| is) the (?:exact )?(?:rate|premium)|quote (?:me|for)|live (?:carrier|rate|pricing)|do you (?:sell|offer|have) (?:\w+\s*)?(?:polic(?:y|ies)|products?|insurance)|do you work with (?:\w+\s*)?(?:carriers?|companies))\b/.test(q))
     return mk("quotes","Aurora has no live insurer rates, underwriting results or approved product catalog. It cannot confirm a return, crediting rate, premium, guarantee, specific carrier relationship or policy availability. Please verify current details through an appropriately licensed professional.","/consultation/","Request verified product information");
@@ -26,11 +37,11 @@ const createAnswer=function makeAnswer(raw,context=""){
     return mk("about","DominionStar's mission is “No Family Left Behind.” Its public programs focus on family financial education, responsible mentorship and leadership development.","/about/","Our mission");
   const paired=(a,b)=>a.test(q)&&b.test(q);
   if(paired(/\bterm\b/,/\bwhole\b/))
-    return mk("term-whole","Term life generally covers a defined period and typically has no cash value. Whole life is permanent life insurance with policy-defined premiums and cash-value provisions. Compare the amount of coverage, affordability, long-term need, policy terms and potential cash-value tradeoffs; neither is universally best.","/financial-services/","Explore life insurance",link.life);
+    return mk("term-whole","Term life generally covers a defined period and typically has no cash value. Whole life is permanent life insurance with policy-defined premiums and cash-value provisions. Compare the amount of coverage, affordability, long-term need, policy terms and potential cash-value tradeoffs; neither is universally best.","/financial-services/life-insurance/","Compare life insurance categories",link.life);
   if(paired(/\biul\b|indexed universal/,/\bwhole\b/))
-    return mk("iul-whole","Whole life generally follows contract-defined premiums and cash-value schedules. Indexed universal life (IUL) is a flexible-premium permanent policy with interest crediting tied to an index formula, subject to caps, spreads, policy costs and non-guaranteed assumptions. Compare guaranteed and illustrated values, lapse risk, funding requirements and loan provisions.","/financial-services/","Explore protection planning",link.life);
+    return mk("iul-whole","Whole life generally follows contract-defined premiums and cash-value schedules. Indexed universal life (IUL) is a flexible-premium permanent policy with interest crediting tied to an index formula, subject to caps, spreads, policy costs and non-guaranteed assumptions. Compare guaranteed and illustrated values, lapse risk, funding requirements and loan provisions.","/financial-services/indexed-universal-life/","Explore IUL and Whole Life",link.life);
   if(paired(/\bterm\b/,/\biul\b|indexed universal/))
-    return mk("term-iul","Term life generally provides protection for a specified period without accumulating cash value. Indexed universal life (IUL) is permanent coverage with cash value affected by indexed interest crediting and ongoing charges. IUL is more complex, may need additional premiums to remain in force, and should be evaluated using both guaranteed and non-guaranteed illustrations.","/financial-services/","Discuss insurance options",link.life);
+    return mk("term-iul","Term life generally provides protection for a specified period without accumulating cash value. Indexed universal life (IUL) is permanent coverage with cash value affected by indexed interest crediting and ongoing charges. IUL is more complex, may need additional premiums to remain in force, and should be evaluated using both guaranteed and non-guaranteed illustrations.","/financial-services/term-life/","Compare Term and IUL",link.life);
   if(paired(/\bannuit/,/\blife insurance\b|\biul\b/))
     return mk("life-annuity","Life insurance mainly addresses the financial impact of an insured person's death, though certain policies have living benefits or cash value. An annuity is an insurance contract generally used for accumulation or retirement income; its risks, fees, guarantees and withdrawal rules differ. Both need a contract-specific review.","/financial-services/","Explore retirement education",link.annuity);
   if(paired(/\bltc\b|long.term care/,/\blife insurance\b|\bhybrid\b|\btraditional\b/))
@@ -41,15 +52,15 @@ const createAnswer=function makeAnswer(raw,context=""){
   if(/\b(how much (does|will|would)|give me (a )?quote|exact price|premium quote|cost for (me|a |someone)|carrier rates|guarantee(d)? (return|profit|income)|which (carrier|company) do you (sell|offer|work with)|is (transamerica|nationwide|pacific life) available)\b/.test(q))
     return mk("quotes","Aurora has no live carrier catalog, underwriting results, product illustrations or rates. It cannot confirm premiums, current features, guarantees or availability. These vary by insurer, policy, jurisdiction and applicant, and must be verified from current approved materials.","/consultation/","Request product details");
   if(/\b(iul|indexed universal|equity indexed universal)\b/.test(q))
-    return mk("iul","Indexed universal life (IUL) is permanent life insurance with cash value credited using an index-linked formula, not direct investment in the stock index. Crediting caps, participation rates, spreads, insurance costs and policy loans affect results. Illustrated growth is not guaranteed; insufficient funding or withdrawals may cause a policy to lapse.","/financial-services/","Explore life insurance",link.life);
+    return mk("iul","Indexed universal life (IUL) is permanent life insurance with cash value credited using an index-linked formula, not direct investment in the stock index. Crediting caps, participation rates, spreads, insurance costs and policy loans affect results. Illustrated growth is not guaranteed; insufficient funding or withdrawals may cause a policy to lapse.","/financial-services/indexed-universal-life/","Read the IUL guide",link.life);
   if(/\b(vul|variable universal life|variable life)\b/.test(q))
     return mk("vul","Variable universal life combines permanent life coverage with investment-related account options and market risk. Contract charges and market losses can reduce cash value and jeopardize coverage. Products of this type can have securities licensing and prospectus requirements, so consult a properly licensed professional.","/financial-services/","Explore protection",link.life);
   if(/\b(whole life|whole.life)\b/.test(q))
-    return mk("whole","Whole life is a type of permanent life insurance that commonly provides a death benefit and cash value under policy terms. Depending on the contract, premiums may be scheduled and dividends, if offered, are not guaranteed. Costs, guarantees, exclusions and surrender consequences should be reviewed.","/financial-services/","Explore life insurance",link.life);
+    return mk("whole","Whole life is a type of permanent life insurance that commonly provides a death benefit and cash value under policy terms. Depending on the contract, premiums may be scheduled and dividends, if offered, are not guaranteed. Costs, guarantees, exclusions and surrender consequences should be reviewed.","/financial-services/whole-life/","Read the Whole Life guide",link.life);
   if(/\b(universal life|\bul\b|flexible premium)\b/.test(q))
-    return mk("ul","Universal life is permanent life insurance that may allow adjustments to premiums and death benefits within contract rules. Its cash value pays ongoing insurance costs, and the policy can lapse if it is not adequately funded. Always distinguish guaranteed contract values from non-guaranteed projections.","/financial-services/","Explore protection",link.life);
+    return mk("ul","Universal life is permanent life insurance that may allow adjustments to premiums and death benefits within contract rules. Its cash value pays ongoing insurance costs, and the policy can lapse if it is not adequately funded. Always distinguish guaranteed contract values from non-guaranteed projections.","/financial-services/universal-life/","Read the Universal Life guide",link.life);
   if(/\bterm life|term insurance|temporary insurance|coverage for 10|coverage for 20|coverage for 30\b/.test(q))
-    return mk("term","Term life insurance generally provides a death benefit if the insured dies during a specified coverage term, provided the policy is in force. It usually does not accumulate cash value. Renewal, conversion privileges, exclusions and premiums depend on the particular contract.","/financial-services/","Explore life insurance",link.life);
+    return mk("term","Term life insurance generally provides a death benefit if the insured dies during a specified coverage term, provided the policy is in force. It usually does not accumulate cash value. Renewal, conversion privileges, exclusions and premiums depend on the particular contract.","/financial-services/term-life/","Read the Term Life guide",link.life);
   if(/\b(insurance loan|policy loan|borrow from (my )?(policy|cash value)|cash value|withdraw from (my )?policy)\b/.test(q))
     return mk("cash-value","Some permanent life policies build cash value and allow loans or withdrawals. Loans accrue interest and can reduce the death benefit; excessive loans or withdrawals may trigger lapse and possible tax consequences. Actual amounts and conditions require the policy's current illustration and contract.","/financial-services/","Discuss cash value",link.life);
   if(/\b(living benefit|accelerated death|chronic illness rider|critical illness rider|terminal illness)\b/.test(q))
@@ -57,7 +68,7 @@ const createAnswer=function makeAnswer(raw,context=""){
   if(/\b(hybrid long.term|hybrid ltc|life with ltc)\b/.test(q))
     return mk("ltc-hybrid","Hybrid long-term care arrangements pair qualifying care benefits with life-insurance or annuity features. Coverage triggers, waiting periods, benefit amounts, care settings, inflation provisions and what happens to unused benefits differ by policy. Review the complete illustration and contract.","/financial-services/","Explore long-term care",link.ltc);
   if(/\b(long.term care|long term care|\bltc\b|nursing home|assisted living|home care)\b/.test(q))
-    return mk("ltc","Long-term care planning addresses help with daily activities or cognitive impairment and may involve care at home, assisted living or other settings. Policies vary in benefit triggers, daily or monthly limits, elimination periods, benefit duration, inflation protection, exclusions and premium-change provisions.","/financial-services/","Explore long-term care",link.ltc);
+    return mk("ltc","Long-term care planning addresses help with daily activities or cognitive impairment and may involve care at home, assisted living or other settings. Policies vary in benefit triggers, daily or monthly limits, elimination periods, benefit duration, inflation protection, exclusions and premium-change provisions.","/financial-services/long-term-care/","Read the Long-Term Care guide",link.ltc);
   if(/\b(fixed indexed annuit(?:y|ies)|indexed annuit(?:y|ies)|\bfia\b)\b/.test(q))
     return mk("indexed-annuity","A fixed indexed annuity is an insurance contract where credited interest is linked to an index formula rather than direct stock ownership. Interest caps, participation rates, spreads, surrender charges and contract rules can limit outcomes. Guarantees rely on the issuing insurer's ability to pay claims.","/financial-services/","Explore retirement topics",link.annuity);
   if(/\b(variable annuit(?:y|ies)|registered index.linked annuit(?:y|ies)|\brila\b)\b/.test(q))
@@ -94,12 +105,12 @@ const launcher=document.querySelector('.aurora-trigger'),panel=document.querySel
 const route=window.location.pathname.replace(/\/index\.html$/,'/')||'/';
 const contexts=[
  [/^\/mentorship/,{name:'Mentorship Programs',prompts:[['Getting Started','How does mentorship help a new professional?'],['Professional Growth','What can I learn after getting licensed?'],['Leadership','What is leadership mentorship?']]}],
- [/^\/opportunity/,{name:'Careers & Licensing',prompts:[['Licensing','How does insurance licensing work?'],['Early career','What should a new agent learn first?'],['Career growth','How does professional mentorship help?']]}],
+ [/^\/opportunity/,{name:'Careers & Licensing',prompts:[['Licensing','How does insurance licensing work?'],['Early career','What should a new agent learn first?'],['Canada opportunity','How can I explore a financial services career in Canada?']]}],
  [/^\/financial-services/,{name:'Financial Education',prompts:[['Term vs Whole','Compare term and whole life insurance'],['Indexed Universal Life','What is IUL and what are its risks?'],['Long-Term Care','How does long-term care insurance work?']]}],
  [/^\/about/,{name:'Our Mission',prompts:[['Mission','What does No Family Left Behind mean?'],['Mentorship','What mentorship programs are available?'],['Contact','How can I speak to the team?']]}],
  [/^\/(join|schedule|consultation)/,{name:'Plan Your Next Step',prompts:[['Book a call','How do I request an appointment?'],['Life insurance','What are common life insurance types?'],['Mentorship','What support is offered to new agents?']]}]
 ];
-const context=contexts.find(item=>item[0].test(route))?.[1]||{name:'DominionStar',prompts:[['Mentorship','What mentorship programs are available?'],['Family protection','How does life insurance work?'],['Long-term care','What is long-term care insurance?']]};
+const context=contexts.find(item=>item[0].test(route))?.[1]||{name:'DominionStar',prompts:[['Mentorship','What mentorship programs are available?'],['Family protection','How does life insurance work?'],['Probate & legacy','What is probate and how do beneficiaries work?']]};
 const state={available:false,ai:false,busy:false,lastTopic:'',history:[],lastReply:''};
 const sensitive=/\b\d{3}[- ]?\d{2}[- ]?\d{4}\b|\b(?:ssn|social security|credit card|bank account|routing number|password|my diagnosis|account number)\b|(?:\b(?:\d[ -]*?){13,16}\b)/i;
 let chat,field,send,indicator,switcher,note,mic;
@@ -155,6 +166,10 @@ function chips(list){
 }
 function suggestions(topic){
  const more={
+ 'probate':[['Beneficiaries','Can life insurance proceeds pass outside probate?'],['Real stories','Tell me about real probate estate cases']],
+ 'probate-stories':[['How probate works','What is probate court?'],['Beneficiaries','Why are beneficiary designations important?']],
+ 'canada':[['LLQP preparation','What is the LLQP licensing process in Canada?'],['Mentorship','Does DominionStar offer Canadian mentorship inquiries?']],
+ 'term-statistics':[['Read term coverage','How does term life insurance work?'],['Claim conditions','What happens to term life when it expires?']],
  'term-whole':[['Cost differences','Why can term and whole life cost differently?'],['Policy duration','What happens when term life expires?']],
  'iul':[['Policy charges','What are policy charges in IUL?'],['Lapse risk','Can an IUL policy lapse?']],
  'ltc':[['Hybrid LTC','What are hybrid long-term care policies?'],['Benefit triggers','How are LTC benefits triggered?']],
@@ -214,7 +229,29 @@ function clearChat(){
  const ctx=document.createElement('div');ctx.className='aurora-v8-context';ctx.textContent='✧ Currently exploring: '+context.name;intro.append(ctx);chat.append(intro);
  chips(context.prompts);
 }
+
+function enhanceContactPanels(){
+ const svg=(kind)=>{
+ const paths={phone:'<path d="M22 17v3a2 2 0 0 1-2.2 2A20 20 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.7 2.7a2 2 0 0 1-.5 2.1L7.9 9.8a16 16 0 0 0 6.3 6.3l1.3-1.3a2 2 0 0 1 2.1-.5c.9.4 1.8.6 2.7.7A2 2 0 0 1 22 17z"/>',
+ mail:'<rect x="2" y="4" width="20" height="16" rx="3"/><path d="m3 6 9 7 9-7"/>',
+ calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 15h3"/>'};
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths[kind]+'</svg>';
+ };
+ document.querySelectorAll('.contact-panel').forEach(panel=>{
+  panel.classList.add('contact-executive');
+  panel.innerHTML='<div class="connect-heading"><p class="connect-kicker"><span class="connect-dot"></span> CONNECT WITH DOMINIONSTAR</p>'+
+   '<h3>Start the right conversation.</h3><p>Financial services, mentorship or career development—reach our team in the way that works for you.</p>'+
+   '<span class="connect-region">United States & Canada inquiries</span></div>'+
+   '<div class="connect-actions">'+
+   '<a class="connect-option" href="tel:+13462042641"><span class="connect-icon">'+svg('phone')+'</span><span class="connect-title">Call DominionStar</span><span class="connect-detail">(346) 204-2641</span><span class="connect-arrow">Call now ↗</span></a>'+
+   '<a class="connect-option" href="mailto:dominionstarwfg@gmail.com"><span class="connect-icon">'+svg('mail')+'</span><span class="connect-title">Email our team</span><span class="connect-detail">dominionstarwfg@gmail.com</span><span class="connect-arrow">Write an email ↗</span></a>'+
+   '<a class="connect-option connect-primary" href="/schedule/"><span class="connect-icon">'+svg('calendar')+'</span><span class="connect-title">Request a conversation</span><span class="connect-detail">Select a topic and preferred time</span><span class="connect-arrow">Request a call ↗</span></a>'+
+   '</div><p class="connect-legal">Appointment requests are subject to confirmation by our team.</p>';
+ });
+}
+
 function setup(){
+ enhanceContactPanels();
  if(!launcher||!panel)return;
  launcher.classList.add('aurora-v8-launch');
  launcher.innerHTML=['<span class="aurora-v8-spark" aria-hidden="true">✦</span>','<span><strong>Ask Aurora</strong><small>Your intelligence guide</small></span>','<span aria-hidden="true">↗</span>'].join('');
@@ -228,7 +265,7 @@ function setup(){
  '<div class="aurora-v8-mode"><span class="aurora-v8-indicator" role="status">GUIDED KNOWLEDGE</span><button type="button" class="aurora-v8-switch" hidden aria-pressed="false">Enable AI answers</button></div>',
  '<div class="aurora-chat aurora-v8-transcript" role="log" aria-label="Aurora conversation" aria-live="polite"></div>',
  '<div class="aurora-v8-bottom"><form class="aurora-v8-form"><textarea rows="2" maxlength="450" aria-label="Message Aurora" required placeholder="Ask about life insurance, IUL, LTC, mentoring…"></textarea>',
- '<div class="aurora-v8-sendrow"><small>Enter to send · Shift+Enter for new line</small><div><button type="button" class="aurora-v8-mic" hidden title="Dictate a message" aria-label="Use browser speech recognition">🎙</button><button type="submit" class="aurora-v8-send">Send ↗</button></div></div></form>',
+ '<div class="aurora-v8-sendrow"><small>Enter to send · Shift+Enter for new line</small><div><button type="button" class="aurora-v8-mic" hidden title="Speak to Aurora" aria-label="Speak to Aurora"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 10.5v1.5a6.5 6.5 0 0 0 13 0v-1.5M12 18.5v3M8 21.5h8"/></svg></button><button type="submit" class="aurora-v8-send">Send ↗</button></div></div></form>',
  '<p class="aurora-v8-note">Educational information only. Do not share sensitive information.</p></div>'
  ].join('');
  chat=panel.querySelector('.aurora-v8-transcript');field=panel.querySelector('textarea');
@@ -249,8 +286,8 @@ function setup(){
    if(!window.confirm('Use browser speech recognition? Audio may be processed by your browser’s speech service. Avoid sensitive information.'))return;
    const recognition=new SpeechRecognition();recognition.lang='en-US';recognition.interimResults=false;
    recognition.onresult=e=>{field.value=String(e.results?.[0]?.[0]?.transcript||'').slice(0,450);field.focus()};
-   recognition.onend=()=>mic.textContent='🎙';recognition.onerror=()=>mic.textContent='🎙';
-   mic.textContent='●';recognition.start();
+   recognition.onend=()=>mic.classList.remove('is-listening');recognition.onerror=()=>mic.classList.remove('is-listening');
+   mic.classList.add('is-listening');recognition.start();
   });
  }
  document.querySelectorAll('[data-aurora-question]').forEach(btn=>btn.addEventListener('click',()=>ask(btn.dataset.auroraQuestion)));
@@ -264,6 +301,13 @@ const menu=document.querySelector('.menu-button'),nav=document.querySelector('.m
 menu?.addEventListener('click',()=>{const open=nav?.classList.toggle('open')||false;menu.setAttribute('aria-expanded',String(open));menu.textContent=open?'×':'☰'});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){nav?.classList.remove('open');menu?.setAttribute('aria-expanded','false')}});
 document.querySelectorAll('.faq-item button').forEach(btn=>btn.addEventListener('click',()=>{const open=btn.getAttribute('aria-expanded')!=='true';btn.setAttribute('aria-expanded',String(open));if(btn.nextElementSibling)btn.nextElementSibling.hidden=!open;const span=btn.querySelector('span');if(span)span.textContent=open?'−':'+'}));
+const region=new URLSearchParams(location.search).get('region');
+if(region==='canada'){
+ const country=document.querySelector('select[name="country"]');
+ const interest=document.querySelector('select[name="goal"]');
+ if(country)country.value='Canada';
+ if(interest)interest.value='Canada recruiting / mentorship';
+}
 const topic=new URLSearchParams(location.search).get('topic');
 const options=new Set(['family-protection','long-term-care','retirement','wealth-education','college-planning','business-solutions','annual-review','general']);
 const interest=document.querySelector('select[name="interest"]');if(interest&&options.has(topic))interest.value=topic;
