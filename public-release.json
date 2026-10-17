@@ -1,0 +1,7 @@
+{
+  "site": "DominionStar Leadership Development",
+  "release": "V10-quality-gate-2026-10-17",
+  "mission": "No Family Left Behind",
+  "content": "public website",
+  "notes": "Static release identifier; confirm Netlify publication against the GitHub commit."
+}

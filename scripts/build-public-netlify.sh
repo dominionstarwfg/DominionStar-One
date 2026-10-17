@@ -49,6 +49,7 @@ required_paths=(
   "financial-services/indexed-universal-life/index.html"
   "assets/js/dominionstar-life-interactive.js"
   "assets/js/dominionstar-index-lab.js"
+  "public-release.json"
   "opportunity/canada/index.html"
   "assets/js/dominionstar-financial-lab.js"
   "meet-desktop/ui/index.html"
@@ -87,6 +88,9 @@ rsync -a --delete "$MEET_SOURCE/" "$MEET_DIST/"
 
 # The public homepage must be the public DominionStar site, never Meet.
 grep -Fq 'Home — No Family Left Behind | DominionStar Leadership Development' "$DIST/index.html"
+# Static release identifier helps distinguish a published Netlify deploy from stale hosting.
+grep -Fq 'V10-quality-gate-2026-10-17' "$DIST/index.html"
+grep -Fq '"release": "V10-quality-gate-2026-10-17"' "$DIST/public-release.json"
 grep -Fq 'href="/mentorship/"' "$DIST/index.html"
 grep -Fq 'href="/about/"' "$DIST/index.html"
 grep -Fq 'Aurora' "$DIST/index.html"
@@ -128,6 +132,25 @@ for slug in life-insurance term-life whole-life universal-life indexed-universal
   fi
 done
 
+
+# Ensure all educational routes have correct social-sharing metadata and working in-page navigation.
+for rel in \
+  mentorship/getting-started/index.html mentorship/professional-growth/index.html mentorship/leadership/index.html \
+  opportunity/licensing/index.html opportunity/first-90-days/index.html opportunity/business-building/index.html \
+  financial-services/learning-lab/index.html; do
+  path="${rel%index.html}"
+  grep -Fq "<meta property=\"og:url\" content=\"https://dominionstarld.com/$path\">" "$DIST/$rel"
+  if grep -Fq 'href="undefined"' "$DIST/$rel"; then
+    echo "ERROR: invalid internal link in $rel" >&2
+    exit 43
+  fi
+done
+grep -Fq '<section class="section section-light" id="learn">' "$DIST/financial-services/learning-lab/index.html"
+grep -Fq 'negative index change generally does not create a negative interest credit' "$DIST/financial-services/indexed-universal-life/index.html"
+for route in /academy/ /platform/ /journey/; do
+  grep -Fq "$route " "$DIST/_redirects"
+done
+# The existing member and desktop source are preserved; public auth still requires a separate access-control review.
 
 # Educational journeys must be built as independent pages, not booking-form redirects.
 for rel in mentorship/getting-started/index.html mentorship/professional-growth/index.html mentorship/leadership/index.html opportunity/licensing/index.html opportunity/first-90-days/index.html opportunity/business-building/index.html financial-services/life-insurance/index.html financial-services/long-term-care/index.html financial-services/learning-lab/index.html; do
