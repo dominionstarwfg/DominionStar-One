@@ -137,6 +137,16 @@ if(shortcuts){
  const suggestions=[['Term vs Whole','Compare term and whole life insurance'],['IUL','What is IUL life insurance?'],['Long-Term Care','Explain long-term care insurance'],['Annuities','What are annuities?'],['Mentorship','What mentorship is available?'],['Book a Call','How do I book a call?']];
  suggestions.forEach(([label,question])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',()=>ask(question));shortcuts.appendChild(b);});
 }
+// Keep appointment requests coherent with the topic visitors selected.
+const params=new URLSearchParams(window.location.search);
+const topic=params.get('topic');
+const allowedTopics=new Set(['family-protection','long-term-care','retirement','wealth-education','college-planning','business-solutions','annual-review','general']);
+const interest=document.querySelector('select[name="interest"]');
+if(topic&&interest&&allowedTopics.has(topic))interest.value=topic;
+// Prevent selecting appointment dates that are already in the past.
+const now=new Date();const yyyy=now.getFullYear(),mm=String(now.getMonth()+1).padStart(2,'0'),dd=String(now.getDate()).padStart(2,'0');
+document.querySelectorAll('input[type="date"]').forEach(el=>{el.min=yyyy+'-'+mm+'-'+dd;});
+
 const note=document.querySelector('.aurora-note');
 if(note)note.textContent='Educational topic guide, not live generative AI. Questions stay in this browser; avoid sharing sensitive personal or medical information. No quotes or personalized recommendations.';
 const head=document.querySelector('.aurora-head small');
