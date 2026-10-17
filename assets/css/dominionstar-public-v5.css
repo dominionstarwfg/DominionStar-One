@@ -325,3 +325,69 @@
  .aurora-v8-sendrow small{max-width:165px;font-size:9px}.aurora-v8-send{min-width:80px}
 }
 @media(prefers-reduced-motion:reduce){.aurora-v8-message.assistant{animation:none}.aurora-v8-message.pending p:after{animation:none}}
+
+
+/* V11: LTC + Annuities — educational tools, aligned with executive financial pages */
+.ds-related-section .section-heading{max-width:800px}
+.ds-related-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.ds-related-card{display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden;border-radius:22px;
+ background:linear-gradient(135deg,#0c2747 0%,#184d65 100%);border:1px solid #34798b;color:#fff;
+ padding:clamp(24px,3.1vw,40px);box-shadow:0 18px 40px #113a4b24}
+.ds-related-card:before{content:"";position:absolute;width:240px;height:240px;right:-92px;top:-120px;border:1px solid #c6dfeb3a;border-radius:50%;box-shadow:0 0 0 60px #dfebf408;pointer-events:none}
+.ds-related-card-gold{background:linear-gradient(128deg,#131f37,#433826 150%);border-color:#947c4e}
+.ds-related-top{display:flex;align-items:center;gap:16px;position:relative}
+.ds-related-icon{color:#f3d89c;width:54px;height:54px;border-radius:14px;display:grid;place-items:center;background:#fff2;border:1px solid #f3dfb36b;flex-shrink:0}
+.ds-related-label{color:#efd6a0;font-size:11px;font-weight:850;letter-spacing:.11em;line-height:1.5}
+.ds-related-card h3{font:600 clamp(28px,3.2vw,39px)/1.15 Georgia,serif!important;color:#fff;margin:0}
+.ds-related-card>p{line-height:1.74;font-size:14px;color:#d8e6ee;margin:0;max-width:510px}
+.ds-related-highlights{display:flex;gap:7px;flex-wrap:wrap;margin:5px 0 12px}
+.ds-related-highlights span{border:1px solid #f3dbac52;border-radius:99px;font-size:11px;color:#f5e4c5;padding:6px 10px}
+.ds-related-card .ds-related-cta{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:12px;
+ background:#e9c27c;color:#152f47!important;text-decoration:none!important;font-size:13px;font-weight:900;line-height:1.4;
+ border:1px solid #f5e0b9;border-radius:12px;padding:15px 17px;min-height:55px}
+.ds-related-card .ds-related-cta:hover{background:#f8dea8}
+.ds-related-disclaimer{font-size:12px;color:#52667b;margin:18px 0 0;max-width:850px;line-height:1.7}
+.ds-tool{background:linear-gradient(130deg,#fff,#f6fafb);border:1px solid #cfdfe7;border-radius:24px;
+ padding:clamp(20px,3vw,35px);box-shadow:0 16px 35px #17395114}
+.ds-tool-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.ds-tool-kicker{font-size:10px;font-weight:900;letter-spacing:.12em;color:#906c2d}
+.ds-tool h3{font:600 clamp(24px,2.8vw,34px)/1.17 Georgia,serif;color:#183a54;margin:10px 0}
+.ds-tool-head p{color:#5a7284;font-size:13px;line-height:1.67}
+.ds-tool-reset{white-space:nowrap;border:1px solid #b4cbd8;background:#fff;border-radius:10px;
+ color:#1c5670;padding:11px 13px;font-size:12px;font-weight:800;cursor:pointer}
+.ds-tool-reset:hover{border-color:#238c91;background:#ebf5f5}
+.ds-tool-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 30px;margin:29px 0}
+.ds-tool-inputs label{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:800;color:#335369;min-width:0}
+.ds-tool-inputs output{color:#117b79;font-size:24px;font-weight:850;line-height:1.3}
+.ds-tool-inputs input{display:block;width:100%;accent-color:#117f7e;min-height:33px}
+.ds-tool-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:15px}
+.ds-tool-results>div{background:#e8f0f3;border:1px solid #d4e3e9;border-radius:15px;display:flex;flex-direction:column;gap:13px;padding:20px 17px}
+.ds-tool-results span{font-size:12px;line-height:1.5;color:#446376;font-weight:750;min-height:38px}
+.ds-tool-results strong{font:700 clamp(21px,2.5vw,31px)/1.2 Georgia,serif;color:#1b4666;overflow-wrap:anywhere}
+.ds-tool-results .ds-tool-primary-result{background:#0d3d55;border-color:#0d3d55}
+.ds-tool-results .ds-tool-primary-result span{color:#d5eaf0}
+.ds-tool-results .ds-tool-primary-result strong{color:#f0cf91}
+.ds-tool svg{display:block;width:100%;height:auto;margin:12px 0 8px;max-height:330px;overflow:visible}
+.ds-tool-insight{padding:14px 17px;color:#155c65;background:#e7f4f3;border:1px solid #cde4df;border-radius:12px;
+ font-size:13px;font-weight:650;line-height:1.7;margin:16px 0}
+.ds-tool-disclaimer{color:#475f73;background:#f4f5f4;border-left:3px solid #b38c43;padding:15px 17px;
+ font-size:12px;line-height:1.8;border-radius:8px}
+@media(max-width:850px){
+ .ds-related-grid{grid-template-columns:1fr}
+ .ds-tool-results{grid-template-columns:1fr}
+ .ds-tool-results>div{gap:6px}
+ .ds-tool-results span{min-height:0}
+}
+@media(max-width:620px){
+ .ds-tool-head{flex-direction:column}
+ .ds-tool-inputs{grid-template-columns:1fr;gap:17px}
+ .ds-related-card{padding:24px 19px}
+ .ds-tool{padding:20px 14px}
+ .ds-tool svg{min-height:120px}
+}
+@media(prefers-reduced-motion:reduce){.ds-related-card .ds-related-cta{transition:none}}
+
+/* Accessible mobile chart scrolling instead of shrinking annotations until unreadable. */
+.ds-chart-scroll{overflow-x:auto;max-width:100%;overscroll-behavior-x:contain}
+.ds-chart-scroll:focus-visible{outline:3px solid #dcb56e;outline-offset:-3px;border-radius:9px}
+@media(max-width:690px){.ds-chart-scroll svg{min-width:660px;max-height:none;height:auto}}

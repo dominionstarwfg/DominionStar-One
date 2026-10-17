@@ -40,6 +40,8 @@ required_paths=(
   "opportunity/first-90-days/index.html"
   "opportunity/business-building/index.html"
   "financial-services/long-term-care/index.html"
+  "financial-services/annuities/index.html"
+  "assets/js/dominionstar-protection-tools.js"
   "financial-services/life-insurance/index.html"
   "financial-services/learning-lab/index.html"
   "financial-services/probate-estate/index.html"
@@ -132,6 +134,25 @@ for slug in life-insurance term-life whole-life universal-life indexed-universal
   fi
 done
 
+
+# LTC and annuity learning experiences must always have real pages and working interactive scripts.
+for entry in financial-services/annuities/index.html financial-services/long-term-care/index.html; do
+  grep -Fq 'class="site-header"' "$DIST/$entry"
+  grep -Fq 'class="aurora-trigger"' "$DIST/$entry"
+  grep -Fq 'dominionstarwfg@gmail.com' "$DIST/$entry"
+done
+grep -Fq 'href="/financial-services/annuities/#annuity-calculator"' "$DIST/financial-services/life-insurance/index.html"
+grep -Fq 'href="/financial-services/long-term-care/#ltc-gap-tool"' "$DIST/financial-services/life-insurance/index.html"
+grep -Fq 'data-financial-tool="annuity"' "$DIST/financial-services/annuities/index.html"
+grep -Fq 'data-financial-tool="ltc"' "$DIST/financial-services/long-term-care/index.html"
+grep -Fq 'dominionstar-protection-tools.js' "$DIST/financial-services/annuities/index.html"
+grep -Fq 'dominionstar-protection-tools.js' "$DIST/financial-services/long-term-care/index.html"
+grep -Fq '<meta property="og:url" content="https://dominionstarld.com/financial-services/annuities/">' "$DIST/financial-services/annuities/index.html"
+grep -Fq 'https://www.investor.gov/introduction-investing/investing-basics/investment-products/annuities' "$DIST/financial-services/annuities/index.html"
+if grep -Eq 'href="undefined"|>undefined<' "$DIST/financial-services/annuities/index.html"; then
+  echo "ERROR: annuity education contains undefined links or placeholders." >&2
+  exit 44
+fi
 
 # Ensure all educational routes have correct social-sharing metadata and working in-page navigation.
 for rel in \
