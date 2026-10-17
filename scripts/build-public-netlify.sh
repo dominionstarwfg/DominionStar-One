@@ -32,6 +32,16 @@ required_paths=(
   "thank-you.html"
   "events/index.html"
   "knowledge/index.html"
+  "mentorship/getting-started/index.html"
+  "mentorship/professional-growth/index.html"
+  "mentorship/leadership/index.html"
+  "opportunity/licensing/index.html"
+  "opportunity/first-90-days/index.html"
+  "opportunity/business-building/index.html"
+  "financial-services/long-term-care/index.html"
+  "financial-services/life-insurance/index.html"
+  "financial-services/learning-lab/index.html"
+  "assets/js/dominionstar-financial-lab.js"
   "meet-desktop/ui/index.html"
 )
 
@@ -71,6 +81,12 @@ grep -Fq 'Home — No Family Left Behind | DominionStar Leadership Development' 
 grep -Fq 'href="/mentorship/"' "$DIST/index.html"
 grep -Fq 'href="/about/"' "$DIST/index.html"
 grep -Fq 'Aurora' "$DIST/index.html"
+# Educational journeys must be built as independent pages, not booking-form redirects.
+for rel in mentorship/getting-started/index.html mentorship/professional-growth/index.html mentorship/leadership/index.html opportunity/licensing/index.html opportunity/first-90-days/index.html opportunity/business-building/index.html financial-services/life-insurance/index.html financial-services/long-term-care/index.html financial-services/learning-lab/index.html; do
+  grep -Fq 'class="site-header"' "$DIST/$rel"
+  grep -Fq 'tel:+13462042641' "$DIST/$rel"
+  grep -Fq 'mailto:dominionstarwfg@gmail.com' "$DIST/$rel"
+done
 # Public conversion routes must share the production design and form detection.
 for rel in join/index.html schedule/index.html consultation/index.html events/index.html; do
   grep -Fq 'class="site-header"' "$DIST/$rel"
