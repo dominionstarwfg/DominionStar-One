@@ -363,3 +363,45 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     });
   },{capture:true});
 })();
+
+/* First-party campaign measurement: non-identifying source labels only. */
+(function(){
+ const key='dominionstar_campaign_v1';
+ const pending='dominionstar_lead_pending_v1';
+ const fieldMap={utm_source:'campaign_source',utm_medium:'campaign_medium',utm_campaign:'campaign_name',utm_content:'campaign_content'};
+ const forms={'dominionstar-join':'career','dominionstar-qualified-appointment':'appointment','dominionstar-client-consultation':'financial_consultation'};
+ const safe=v=>String(v||'').trim().slice(0,70);
+ let campaign={};
+ try{campaign=JSON.parse(sessionStorage.getItem(key)||'{}')||{}}catch{}
+ const params=new URLSearchParams(location.search);
+ for(const [tag,field] of Object.entries(fieldMap)){
+  if(params.has(tag))campaign[field]=safe(params.get(tag));
+ }
+ if(!campaign.campaign_entry_path)campaign.campaign_entry_path=location.pathname;
+ try{sessionStorage.setItem(key,JSON.stringify(campaign))}catch{}
+ document.querySelectorAll('form.inquiry-card').forEach(form=>{
+  const leadType=forms[form.name];
+  if(!leadType)return;
+  for(const field of Object.values(fieldMap).concat(['campaign_entry_path'])){
+   const input=form.querySelector('input[name="'+field+'"]');
+   if(input)input.value=campaign[field]||'';
+  }
+  let started=false;
+  form.addEventListener('focusin',()=>{
+   if(started)return;
+   started=true;
+   if(typeof window.gtag==='function')window.gtag('event','ds_form_start',{lead_type:leadType});
+  });
+  form.addEventListener('submit',()=>{
+   if(!form.checkValidity())return;
+   try{sessionStorage.setItem(pending,JSON.stringify({type:leadType,at:Date.now()}))}catch{}
+  });
+ });
+ if(location.pathname==='/thank-you.html'){
+  let lead=null;
+  try{lead=JSON.parse(sessionStorage.getItem(pending)||'null');sessionStorage.removeItem(pending)}catch{}
+  if(lead&&Date.now()-lead.at<300000&&Date.now()>=lead.at&&Object.values(forms).includes(lead.type)){
+   if(typeof window.gtag==='function')window.gtag('event','generate_lead',{lead_type:lead.type});
+  }
+ }
+})();
