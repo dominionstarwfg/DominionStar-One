@@ -22,6 +22,7 @@ on:
       - '_headers'
       - 'public-release.json'
       - 'scripts/build-public-netlify.sh'
+      - 'scripts/qa-aurora-guided.cjs'
       - '.github/workflows/dominionstar-public-review.yml'
   workflow_dispatch:
 
@@ -54,6 +55,7 @@ jobs:
           node --check assets/js/dominionstar-index-lab.js
           node --check assets/js/dominionstar-life-interactive.js
           node --check netlify/functions/aurora-chat.mjs
+          node scripts/qa-aurora-guided.cjs
       - name: Check rsync dependency
         run: |
           command -v rsync
