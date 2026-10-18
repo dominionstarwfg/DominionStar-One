@@ -33,6 +33,7 @@ for(const [question,previous,page,topic,url] of cases){
  catch(e){console.error('FAIL',JSON.stringify({question,previous,page,expected:topic,got:answer.topic,url:answer.url}));throw e;}
  passed++;
 }
+assert.ok(full.includes("name:'Probate & Legacy'"),'Recognize probate page context');
 assert.ok(full.includes('Aurora <em>12.2</em>'),'Correct Aurora version');
 assert.ok(full.includes('const links=new Set();'),'Deduplicate action links');
 assert.ok(full.includes('minimumMs=3400'),'Truthful response pacing');
