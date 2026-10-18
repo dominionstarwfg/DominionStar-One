@@ -1,13 +1,50 @@
-/* Aurora 7.0: curated financial knowledge + secure optional AI */
+/* Aurora V12.1 Preview: curated financial knowledge + secure optional AI */
 (()=>{"use strict";
-const createAnswer=function makeAnswer(raw,context=""){
-  const q=String(raw||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[’‘]/g,"'").replace(/\s+/g," ").trim();
+const createAnswer=function makeAnswer(raw,context="",page=""){
+  const q=String(raw||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[’‘]/g,"'").replace(/\s+/g," ").trim()
+   .replace(/\btell mew\b/g,"tell me").replace(/\b(?:insurence|insurrance|insurnace)\b/g,"insurance")
+   .replace(/\b(?:annuaty|anunity|annuty|anuitty)\b/g,"annuity").replace(/\bltcc\b/g,"ltc")
+   .replace(/\b(?:whatt|wht)\b/g,"what");
   const last=String(context||"");
   const link={life:"https://content.naic.org/insurance-topics/life-insurance",ltc:"https://content.naic.org/insurance-topics/long-term-care-insurance",annuity:"https://www.investor.gov/introduction-investing/investing-basics/investment-products/annuities"};
   const mk=(topic,message,url="/financial-services/",label="Explore Financial Services",source="")=>({topic,message,url,label,source});
   if(!q) return mk("welcome","Ask about life insurance, long-term care, annuities, career mentorship or scheduling a conversation.","/financial-services/","Explore financial services");
+  // Handle ordinary conversational requests before narrow keyword rules.
+  // The guided experience provides authored answers; it is not AI model inference or web search.
+  if(/^(?:hello|hi|hey|greetings|good morning|good evening|good afternoon)(?: aurora)?(?:[!?. ]+)?$/.test(q))
+    return mk("welcome","Hello. I'm Aurora, DominionStar's educational guide. Our mission is No Family Left Behind. I can explain life insurance, long-term care, annuities and financial education—or help you explore mentorship and careers. Would you like to start with protecting your family, planning future care, or retirement income?","/financial-services/discovery/","Explore your financial learning pathways");
+  if(/^(?:tell me more|can you tell me more(?: about it)?|more (?:details|information)|go deeper|can you elaborate|could you elaborate|please explain more|how does that work|why does (?:it|that) matter|why is that important|give me an example)[?.! ]*$/.test(q)){
+    const entries={
+      life:["Life insurance can help eligible beneficiaries address the financial impact of an insured's death. Explore the difference between term and permanent coverage, who relies on the insured, the length of that reliance, contract limitations and affordability. The right product and amount require an individual assessment.","/financial-services/life-insurance/","Explore life insurance choices",link.life],
+      term:["Term life generally pays a death benefit only if a covered insured dies while the selected term is in force. Consider how long others may rely on the insured's income and whether renewal or conversion provisions matter. The term-coverage tool illustrates an event before or after the term expires.","/financial-services/term-life/","Open the term-life illustration",link.life],
+      whole:["Whole life commonly provides permanent death-benefit coverage and contract cash value. The premium commitment, policy loans, surrender values and non-guaranteed dividends (if offered) all deserve review.","/financial-services/whole-life/","Explore whole-life features",link.life],
+      iul:["Indexed universal life uses a contract formula to credit interest based in part on a reference index. A crediting floor generally prevents negative index movement from creating a negative interest credit for that segment; separate insurance charges can still reduce cash value. Review caps, participation rates, loan provisions and lapse risk.","/financial-services/indexed-universal-life/","Explore index-crediting examples",link.life],
+      ltc:["Long-term care insurance generally requires qualifying care needs under the contract. Ask about elimination periods, benefit maximums, approved care settings, inflation protection and limits. The care-expense tool illustrates a potential first-year family funding gap under stated assumptions.","/financial-services/long-term-care/#ltc-gap-tool","Explore the care-expense tool",link.ltc],
+      annuity:["An annuity is an insurance contract that may be used for long-term accumulation or retirement income. Its surrender period, fees, liquidity rules and guarantees matter as much as the illustrated growth rate. The accumulation tool uses fictional assumptions rather than a current carrier rate.","/financial-services/annuities/#annuity-calculator","Explore the annuity tool",link.annuity],
+      career:["A career in financial services can involve licensing, continuing education, client-service responsibilities and mentorship. Compensation and licensing outcomes are not guaranteed, and requirements vary across U.S. states and Canadian provinces.","/opportunity/","Explore career and licensing information",""],
+      mentorship:["DominionStar offers an educational overview of getting started, professional development and leadership mentorship. Specific enrollment, licensing guidance and support availability depend on the program and jurisdiction.","/mentorship/","Explore mentorship pathways",""],
+      canada:["Canadian insurance licensing is provincial or territorial, and a U.S. license does not automatically authorize practice in Canada. Explore the province-specific requirements and available mentorship inquiries.","/opportunity/canada/","Explore Canada's recruiting pathway",""],
+      probate:["Probate is a court process for administering certain estates. Whether it is needed depends on the jurisdiction and assets. A beneficiary designation can affect how insurance proceeds are handled, so estate-specific questions belong with a qualified legal professional.","/financial-services/probate-estate/","Explore probate and beneficiaries",""]
+    };
+    const prior=last.replace(/-(?:why|more)$/,'');
+    const topic=({"life":"life","life-why":"life","ltc-why":"ltc","annuity-why":"annuity","term-whole":"term","iul-whole":"iul","ltc-hybrid":"ltc","probate-stories":"probate"})[last]||prior;
+    if(entries[topic]){const v=entries[topic];return mk(topic+"-more",v[0],v[1],v[2],v[3]);}
+    return mk("overview","I can expand on a specific topic, such as life insurance, long-term care, annuities, recruiting or mentorship. Which one would you like to explore?","/financial-services/discovery/","Choose a learning topic");
+  }
+  const generalRequest=/(?:what (?:can|could) you (?:tell me|explain|help me with)|what do you (?:do|know)|what (?:does|can) aurora (?:do|help with)|(?:who|what) are you|(?:how|what) can (?:you|aurora) help(?: me)?|tell me about yourself|tell me about dominionstar|give me an overview|what services (?:do you|are)|where should i start|how should i start)/.test(q);
+  const subject=/\b(?:life insurance|term life|whole life|universal life|iul|ltc|long.term care|annuit|retirement income|probate|mentorship|career|canad|licen[cs])/.test(q);
+  if(generalRequest&&!subject){
+    if(/^\/financial-services\/long-term-care\//.test(page))return mk("overview-ltc","You're exploring long-term care. I can explain why someone might plan for extended care, which daily activities or cognitive needs can trigger benefits, and how waiting periods and benefit limits work. Would you like to begin with care costs or coverage terminology?","/financial-services/long-term-care/#ltc-gap-tool","Explore the LTC cost illustration",link.ltc);
+    if(/^\/financial-services\/annuities\//.test(page))return mk("overview-annuity","You're exploring annuities. I can explain fixed, fixed-indexed and variable annuities, liquidity restrictions, surrender charges and the difference between hypothetical accumulation and contractual income guarantees. What matters most: income, access to funds, or understanding contract charges?","/financial-services/annuities/#annuity-calculator","Explore the annuity illustration",link.annuity);
+    if(/^\/financial-services\/(?:life-insurance|term-life|whole-life|universal-life|indexed-universal-life)\//.test(page))return mk("overview-life","You're exploring life insurance. I can explain how term and permanent coverage differ, what beneficiaries may receive, and why premiums, policy duration and contract guarantees matter. Would you like to start with who might need coverage or with policy types?","/financial-services/life-insurance/","Explore life insurance types",link.life);
+    if(/^\/opportunity\//.test(page))return mk("overview-career","DominionStar offers information about insurance licensing, mentorship and responsible career development in the U.S., with Canadian recruiting inquiries as part of our expansion vision. Would you like to learn about licensing requirements or our mentorship pathways?","/opportunity/","Explore careers and licensing");
+    return mk("overview","I'm Aurora, DominionStar's educational guide. Our mission is No Family Left Behind. I can help you understand life insurance and family protection, future long-term care costs, annuities and retirement concepts, probate, mentorship and professional opportunities in the U.S. and Canada. I can also direct you to interactive guides and independent references. Which topic would you like to explore first?","/financial-services/discovery/","Explore the financial discovery guide");
+  }
+  // Suitability, purchase and coverage amount questions must not be answered as recommendations.
+  if(/\b(?:which|what) (?:type of )?(?:life insurance|insurance|annuity|ltc|policy) (?:is|would be) (?:the )?best (?:for me|for my family)|\bhow much (?:life insurance|coverage|long.term care|ltc) do i need\b|\bshould i buy (?:term|whole|iul|an annuity|life insurance)\b|\bis (?:an? )?(?:iul|annuity|insurance) right for me\b/.test(q))
+    return mk("personalized","I can explain the options and their tradeoffs, but I cannot determine which insurance or annuity is appropriate for you, how much coverage you need, or whether you qualify. That requires a detailed, jurisdiction-appropriate review with a properly licensed professional. For now, you can explore the key questions privately without sharing personal details here.","/financial-services/discovery/","Explore the educational pathways");
   // Explain who might explore a topic and why it matters; never determine individual suitability.
-  const whoWhy=/\b(who (?:needs?|should|might|could|would)|why (?:is|does|are)|is it important|what is the purpose|who would benefit|what should i consider)\b/.test(q);
+  const whoWhy=/\b(who (?:needs?|should|might|could|would)|why (?:is|does|are|would|might|should|could|do)|is it important|what is the purpose|who would benefit|what should i consider)\b/.test(q);
   const asksLife=/\b(life insurance|death benefit|term life|family protection)\b/.test(q);
   const asksCare=/\b(long.term care|long term care|ltc|extended care)\b/.test(q);
   const asksAnnuity=/\b(annuit(?:y|ies)|retirement income)\b/.test(q);
@@ -110,7 +147,7 @@ const createAnswer=function makeAnswer(raw,context=""){
     const reminder={term:"term life",whole:"whole life",iul:"indexed universal life",ltc:"long-term care",annuity:"annuities"}[last];
     if(reminder)return makeAnswer(reminder,"");
   }
-  return mk("unmatched","I don't have a verified answer to that specific question. I can explain term and permanent life insurance, IUL, long-term care, annuities, mentorship and general planning concepts. For contract-specific or personal questions, request a licensed professional.","/schedule/","Request a conversation");
+  return mk("unmatched","I can help with insurance and financial education, mentorship, or DominionStar's career pathways. I may not understand that wording in guided mode. Try asking, for example: 'Who needs life insurance?', 'How does long-term care work?', or 'What should I know about annuities?' I can explain the concepts and link to independent guidance, but I cannot provide personalized product recommendations.","/financial-services/discovery/","Explore learning topics");
 };
 
 
@@ -159,7 +196,7 @@ function line(text,kind,tag){
 }
 function action(parent,url,label){
  if(!url||!permitted(url))return;
- const a=document.createElement('a');a.href=url;a.textContent=label+' ↗';
+ const a=document.createElement('a');a.href=url;a.textContent=/[↗→]\s*$/.test(label)?label:label+' ↗';
  a.className='aurora-v8-link';
  if(url.startsWith('https:')){a.target='_blank';a.rel='noopener noreferrer';}
  parent.append(a);
@@ -167,12 +204,15 @@ function action(parent,url,label){
 function reply(text,tag,knowledge,searchMeta){
  const bubble=line(text,'assistant',tag);
  const actions=document.createElement('div');actions.className='aurora-v8-actions';
- action(actions,knowledge?.url,knowledge?.label||'Explore this page');
+ const links=new Set();
+ const addAction=(url,label)=>{if(!url||!permitted(url)||links.has(url))return;links.add(url);action(actions,url,label);};
+ addAction(knowledge?.url,knowledge?.label||'Explore this page');
  if(searchMeta?.researchPerformed){
-  const sourceHeader=document.createElement('strong');sourceHeader.className='aurora-source-title';sourceHeader.textContent=searchMeta.sources?.length?'Sources used in this web search':'Web search completed · No verified citation links returned';actions.append(sourceHeader);
-  for(const item of (searchMeta.sources||[]))action(actions,item.url,'Source: '+(item.title||'Official reference'));
- }else if(knowledge?.source){action(actions,knowledge.source,'Reference reading · not live searched');}
- action(actions,'/schedule/','Request a conversation');
+  const sources=(searchMeta.sources||[]).filter(v=>v?.url&&permitted(v.url));
+  const sourceHeader=document.createElement('strong');sourceHeader.className='aurora-source-title';sourceHeader.textContent=sources.length?'Sources from this web search':'Web search completed · No verified citation links returned';actions.append(sourceHeader);
+  for(const item of sources)addAction(item.url,'Source: '+(item.title||'Official reference'));
+ }else if(knowledge?.source){addAction(knowledge.source,'Independent reference · not live searched');}
+ // No automatic appointment CTA: surface it only when it is the actual answer's next action.
  if(actions.childNodes.length)bubble.append(actions);
  const tools=document.createElement('div');tools.className='aurora-v8-message-tools';
  const copy=document.createElement('button');copy.type='button';copy.textContent='Copy';
@@ -208,8 +248,14 @@ function suggestions(topic){
  'annuity':[['Surrender costs','What is an annuity surrender charge?'],['Fixed indexed annuities','How do fixed indexed annuities work?']],
  'mentorship':[['Getting Started','What does beginner mentorship cover?'],['Leadership','What is leadership mentorship?']],
  'career':[['Licensing','How do I prepare for the license exam?'],['First 90 days','What is the early career path?']],
- 'annuity':[['Fixed indexed','What is a fixed indexed annuity?'],['Surrender charges','What are annuity surrender charges?']]
- };return more[topic]||context.prompts;
+ 'overview':[['Protect my family','Who might need life insurance and why?'],['Plan for care','Why is long-term care planning important?'],['Retirement income','Who should consider annuities?']],
+ 'welcome':[['Life insurance','How does life insurance work?'],['Long-term care','What is long-term care coverage?'],['Annuities','What are annuities?']],
+ 'overview-life':[['Who may need coverage?','Who might need life insurance and why?'],['Policy types','Compare term and whole life insurance']],
+ 'overview-ltc':[['Benefit triggers','How do LTC benefit triggers work?'],['Care cost tool','How do LTC benefit limits work?']],
+ 'overview-annuity':[['Fixed indexed','What is a fixed indexed annuity?'],['Contract costs','What are annuity surrender charges?']],
+ 'overview-career':[['Licensing','What should I know before becoming an insurance agent?'],['Mentorship','What mentorship programs are available?']],
+ 'unmatched':[['Life insurance','Who needs life insurance and why?'],['Long-term care','How does long-term care insurance work?'],['Annuities','What are annuities?']]
+ };return more[topic]||more[topic.replace(/-more$/,'')]||context.prompts;
 }
 async function ask(raw){
  const q=String(raw||'').trim().slice(0,450);
@@ -217,7 +263,7 @@ async function ask(raw){
  if(sensitive.test(q)){line('Please avoid sharing sensitive financial, medical or identifying information. Contact our team privately for a personal discussion.','assistant','AURORA · PRIVACY');return;}
  openChat();chat.querySelectorAll('.aurora-v8-chips').forEach(n=>n.remove());
  line(q,'user','YOU');
- const trusted=createAnswer(q,state.lastTopic);
+ const trusted=createAnswer(q,state.lastTopic,route);
  state.lastTopic=trusted.topic;
  const previous=state.history.slice(-6);
  state.history.push({role:'user',content:q});
@@ -237,15 +283,15 @@ async function ask(raw){
    }else if(result.status===422){
     reply('Please avoid sharing private identifying, financial or medical details in this chat. Request a private conversation instead.','AURORA · PRIVACY',{url:'/schedule/',label:'Request a call'});
    }else{
-    reply(trusted.message,'AURORA · VERIFIED GUIDE',trusted);
+    reply(trusted.message,'AURORA · GUIDED KNOWLEDGE',trusted);
     line(result.status===429?'AI requests are temporarily limited. Aurora switched to its educational guide.':'The live AI service is unavailable. Aurora switched to its educational guide.','system','AURORA STATUS');
    }
   }else{
-   reply(trusted.message,'AURORA · VERIFIED GUIDE',trusted);
+   reply(trusted.message,'AURORA · GUIDED KNOWLEDGE',trusted);
   }
  }catch{
   pending?.remove();
-  reply(trusted.message,'AURORA · VERIFIED GUIDE',trusted);
+  reply(trusted.message,'AURORA · GUIDED KNOWLEDGE',trusted);
   line('AI could not be reached. Aurora used its educational guide instead.','system','AURORA STATUS');
  }finally{
   state.history.push({role:'assistant',content:state.lastReply.slice(0,900)});
@@ -258,7 +304,7 @@ function clearChat(){
  state.history=[];state.lastTopic='';state.lastReply='';
  chat.replaceChildren();
  const intro=document.createElement('div');intro.className='aurora-v8-welcome';
- intro.innerHTML='<span>DOMINIONSTAR INTELLIGENCE</span><h3>A conversation built around you.</h3><p>Ask about financial protection, mentorship, professional growth or your next step. Browse as much as you want before booking.</p>';
+ intro.innerHTML='<span>DOMINIONSTAR · AURORA</span><h3>What would you like to explore?</h3><p>Ask a question in everyday language, or choose a topic below. Guided answers draw from prepared educational information; source search is optional when live AI is enabled.</p>';
  const ctx=document.createElement('div');ctx.className='aurora-v8-context';ctx.textContent='✧ Currently exploring: '+context.name;intro.append(ctx);chat.append(intro);
  chips(context.prompts);
 }
@@ -293,11 +339,11 @@ function setup(){
  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','auroraV8Title');
  panel.innerHTML=[
  '<header class="aurora-v8-head"><div class="aurora-v8-orb" aria-hidden="true">✦</div>',
- '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>7.0</em></strong><small>DominionStar • No Family Left Behind</small></div>',
+ '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>12.1</em></strong><small>DominionStar • No Family Left Behind</small></div>',
  '<div class="aurora-v8-headbtns"><button type="button" data-aurora-clear title="New conversation" aria-label="Clear conversation">↺</button><button type="button" data-aurora-wide title="Expand assistant" aria-label="Expand assistant">⤢</button><button type="button" data-aurora-close aria-label="Close assistant">×</button></div></header>',
  '<div class="aurora-v8-mode"><span class="aurora-v8-indicator" role="status">GUIDED KNOWLEDGE</span><div class="aurora-v8-mode-tools"><button type="button" class="aurora-v8-research" hidden aria-pressed="false" title="Search official regulator sources using AI">Search official sources</button><button type="button" class="aurora-v8-switch" hidden aria-pressed="false">Enable AI answers</button></div></div>',
  '<div class="aurora-chat aurora-v8-transcript" role="log" aria-label="Aurora conversation" aria-live="polite"></div>',
- '<div class="aurora-v8-bottom"><form class="aurora-v8-form"><textarea rows="2" maxlength="450" aria-label="Message Aurora" required placeholder="Ask about life insurance, IUL, LTC, mentoring…"></textarea>',
+ '<div class="aurora-v8-bottom"><form class="aurora-v8-form"><textarea rows="2" maxlength="450" aria-label="Message Aurora" required placeholder="Ask naturally: What can you tell me about protection?"></textarea>',
  '<div class="aurora-v8-sendrow"><small>Enter to send · Shift+Enter for new line</small><div><button type="button" class="aurora-v8-mic" hidden title="Speak to Aurora" aria-label="Speak to Aurora"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 10.5v1.5a6.5 6.5 0 0 0 13 0v-1.5M12 18.5v3M8 21.5h8"/></svg></button><button type="submit" class="aurora-v8-send" aria-label="Send message to Aurora"><span>Send</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button></div></div></form>',
  '<p class="aurora-v8-note">Educational information only. Do not share sensitive information.</p></div>'
  ].join('');
@@ -329,7 +375,7 @@ function setup(){
  fetch('/.netlify/functions/aurora-chat',{method:'GET',cache:'no-store'})
 .then(r=>r.ok?r.json():null).then(d=>{state.available=d?.mode==='available';state.webSearchAvailable=!!d?.webSearchAvailable;updateMode()})
  .catch(()=>{state.available=false;updateMode()});
- window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'7.0'};
+ window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'12.1-preview'};
 }
 const menu=document.querySelector('.menu-button'),nav=document.querySelector('.main-nav');
 menu?.addEventListener('click',()=>{const open=nav?.classList.toggle('open')||false;menu.setAttribute('aria-expanded',String(open));menu.textContent=open?'×':'☰'});

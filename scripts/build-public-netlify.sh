@@ -137,6 +137,15 @@ for slug in life-insurance term-life whole-life universal-life indexed-universal
 done
 
 
+# Aurora 12.1 review: conversational guided fallback, accurate mode labeling and deduplicated actions.
+grep -Fq 'Aurora <em>12.1</em>' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq "version:'12.1-preview'" "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq 'const links=new Set();' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq 'AURORA · GUIDED KNOWLEDGE' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq 'what (?:can|could) you (?:tell me|explain|help me with)' "$DIST/assets/js/dominionstar-public-v5.js"
+# Keep optional AI off unless server-side keys and explicit opt-in are configured.
+grep -Fq 'AURORA_AI_ENABLED' "$ROOT/netlify/functions/aurora-chat.mjs"
+
 # V12 educational discovery: entry point, sources, Aurora and no false intake claims.
 grep -Fq 'data-discovery-choice="life"' "$DIST/financial-services/discovery/index.html"
 grep -Fq 'data-discovery-choice="ltc"' "$DIST/financial-services/discovery/index.html"
