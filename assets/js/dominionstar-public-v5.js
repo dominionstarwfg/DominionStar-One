@@ -380,7 +380,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  if(!campaign.campaign_entry_path)campaign.campaign_entry_path=location.pathname;
  try{sessionStorage.setItem(key,JSON.stringify(campaign))}catch{}
  document.querySelectorAll('form.inquiry-card').forEach(form=>{
-  const leadType=forms[form.name];
+  const leadType=forms[form.getAttribute('name')];
   if(!leadType)return;
   for(const field of Object.values(fieldMap).concat(['campaign_entry_path'])){
    const input=form.querySelector('input[name="'+field+'"]');
