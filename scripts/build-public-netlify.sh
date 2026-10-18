@@ -41,6 +41,8 @@ required_paths=(
   "opportunity/business-building/index.html"
   "financial-services/long-term-care/index.html"
   "financial-services/annuities/index.html"
+  "financial-services/living-trust/index.html"
+  "financial-services/living-benefits/index.html"
   "financial-services/discovery/index.html"
   "assets/js/dominionstar-discovery.js"
   "assets/js/dominionstar-protection-tools.js"
@@ -152,6 +154,27 @@ grep -Fq 'AURORA · GUIDED KNOWLEDGE' "$DIST/assets/js/dominionstar-public-v5.js
 grep -Fq 'what (?:can|could) you (?:tell me|explain|help me with)' "$DIST/assets/js/dominionstar-public-v5.js"
 # Keep optional AI off unless server-side keys and explicit opt-in are configured.
 grep -Fq 'AURORA_AI_ENABLED' "$ROOT/netlify/functions/aurora-chat.mjs"
+
+# Living trusts + life-insurance living benefits require independent, usable educational pages.
+for page in financial-services/probate-estate/index.html financial-services/living-trust/index.html financial-services/living-benefits/index.html; do
+  test -s "$DIST/$page"
+  grep -Fq 'class="site-header"' "$DIST/$page"
+  grep -Fq 'class="aurora-trigger"' "$DIST/$page"
+  if grep -Eq 'href="undefined"|>undefined<' "$DIST/$page"; then
+    echo "ERROR: unprofessional placeholder in $page" >&2
+    exit 46
+  fi
+done
+grep -Fq 'id="living-trusts"' "$DIST/financial-services/probate-estate/index.html"
+grep -Fq 'InheritGuard Network' "$DIST/financial-services/living-trust/index.html"
+grep -Fq 'Estate planning / living trust referral' "$DIST/schedule/index.html"
+grep -Fq 'living-story-photo' "$DIST/financial-services/living-benefits/index.html"
+grep -Fq 'unsplash.com/photos/two-people-holding-hands-at-table-xM4wUnvbCKk' "$DIST/financial-services/living-benefits/index.html"
+grep -Fq 'Living Benefits' "$DIST/financial-services/life-insurance/index.html"
+grep -Fq 'livingBenefits:' "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq '"living-benefits"' "$ROOT/assets/js/dominionstar-public-v5.js"
+grep -Fq 'Prince' "$DIST/financial-services/probate-estate/index.html"
+grep -Fq 'Aretha' "$DIST/financial-services/probate-estate/index.html"
 
 # V12 educational discovery: entry point, sources, Aurora and no false intake claims.
 grep -Fq 'data-discovery-choice="life"' "$DIST/financial-services/discovery/index.html"

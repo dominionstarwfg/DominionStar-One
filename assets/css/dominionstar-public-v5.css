@@ -454,3 +454,74 @@
 .ds-discovery-teaser .btn-outline:hover{background:#ffffff1d}
 .ds-discovery-teaser-mark{position:absolute;right:-7px;bottom:-110px;line-height:1;font:700 390px Georgia,serif;color:#ffffff08;pointer-events:none}
 @media(max-width:650px){.ds-discovery-teaser .btn-row>*{max-width:100%;width:100%;justify-content:center}.ds-discovery-teaser-mark{font-size:290px;bottom:-80px}}
+
+
+/* Estate education and InheritGuard referral — editorial, not law-firm branding. */
+.estate-trust-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}
+.estate-trust-card{background:#fff;border:1px solid #d8e3e9;border-radius:18px;padding:clamp(21px,2.5vw,31px);box-shadow:0 11px 29px #17354b10}
+.estate-trust-step{display:block;font-size:10px;letter-spacing:.12em;font-weight:900;color:#946725;margin-bottom:15px}
+.estate-trust-card h3{font:650 25px/1.22 Georgia,serif;color:#183a54;margin:0 0 13px}
+.estate-trust-card p{color:#476477;font-size:13px;line-height:1.78;margin:0}
+.estate-trust-feature{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(220px,.65fr);gap:24px;align-items:stretch;
+  background:linear-gradient(120deg,#0a2848,#164962);color:#fff;border:1px solid #bd9752;border-radius:24px;
+  padding:clamp(22px,3.5vw,45px);box-shadow:0 20px 43px #18354d25}
+.estate-trust-feature-copy>.eyebrow{color:#f0d18e;font-weight:850}
+.estate-trust-feature h2,.estate-trust-feature h3{font:650 clamp(27px,3.3vw,41px)/1.18 Georgia,serif;color:#fff;margin:12px 0 20px}
+.estate-trust-feature-copy p:not(.eyebrow){font-size:14px;color:#d8e5ed;line-height:1.8}
+.estate-trust-feature .btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:25px}
+.estate-trust-feature .btn-outline{color:#fff;border-color:#9ab5c5}
+.estate-trust-feature .btn-outline:hover{background:#ffffff1e}
+.estate-trust-footnote{font-size:11px!important;line-height:1.75!important;color:#bccfdd!important;margin-top:17px!important}
+.estate-trust-side{padding:clamp(20px,2.2vw,28px);border:1px solid #e3ca8e5b;background:#ffffff12;border-radius:17px;align-self:stretch}
+.estate-trust-side>span{color:#f1d28e;font-weight:850;font-size:12px;letter-spacing:.03em}
+.estate-trust-side ul{padding-left:19px;margin:17px 0;display:flex;flex-direction:column;gap:12px}
+.estate-trust-side li,.estate-trust-side p{font-size:13px;line-height:1.65;color:#e0ebf1}
+.estate-trust-side a{font-size:12px;font-weight:900;text-decoration:underline;color:#f3dca9;text-underline-offset:3px}
+.estate-trust-source{font-size:12px;color:#47647a;line-height:1.8;margin-top:21px}
+.estate-trust-source a,.estate-story a{color:#1a657f;font-weight:850;text-decoration:underline;text-underline-offset:3px}
+.estate-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.estate-flow>div{min-width:0;border:1px solid #d7e1e9;padding:19px 14px;background:#f6f9fa;border-radius:13px;display:flex;flex-direction:column;gap:9px}
+.estate-flow span{background:#153f59;color:#f3d18b;border-radius:50%;width:32px;height:32px;display:grid;place-items:center;font-weight:850}
+.estate-flow strong{font-size:13px;color:#24445b}.estate-flow small{font-size:11px;color:#557085;line-height:1.6}
+.estate-story{border-left:4px solid #b8924e;background:#fcf8ed;padding:23px 25px;border-radius:0 15px 15px 0}
+.estate-story h3{font:650 27px/1.25 Georgia,serif;color:#1b3e53;margin:9px 0 14px}
+.estate-story p:not(.eyebrow){font-size:13px;line-height:1.8;color:#486274}
+.estate-story a{display:inline-block;margin:13px 18px 0 0;font-size:12px}
+@media(max-width:950px){.estate-trust-feature{grid-template-columns:1fr}.estate-trust-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.estate-trust-grid,.estate-flow{grid-template-columns:1fr}.estate-trust-feature{padding:22px 18px}.estate-trust-feature .btn-row>*{width:100%;justify-content:center}.estate-story{padding:19px 16px}}
+
+/* Living Benefits education with credited, license-verified stock photography. */
+.living-benefits-teaser{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(200px,.65fr);gap:25px;
+ background:linear-gradient(112deg,#082944,#15506a);padding:clamp(23px,3.5vw,44px);
+ border:1px solid #b79a5e;border-radius:22px;color:#fff;box-shadow:0 18px 37px #15395325}
+.living-benefits-teaser .eyebrow{color:#edcd8f;font-weight:900}
+.living-benefits-teaser h2{font:650 clamp(27px,3.5vw,43px)/1.2 Georgia,serif;color:#fff;margin:10px 0}
+.living-benefits-teaser p{font-size:14px;line-height:1.85;color:#e0eaf0;max-width:650px}
+.living-benefits-teaser .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.living-benefits-teaser .btn-outline{color:#fff;border-color:#a8c4cf}.living-benefits-teaser .btn-outline:hover{background:#ffffff18}
+.living-benefits-teaser-side{border:1px solid #f0d69d53;border-radius:16px;padding:21px;background:#ffffff10}
+.living-benefits-teaser-side span{font-weight:850;color:#f0d194;font-size:12px}
+.living-benefits-teaser-side ul{margin:15px 0 0;padding-left:17px;color:#e7f1f5;font-size:13px;line-height:1.7}
+.living-benefits-teaser-side li{padding-bottom:9px}
+.living-story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#fff;border:1px solid #d8e2e7;
+ overflow:hidden;border-radius:22px;box-shadow:0 16px 40px #1c3b4c1c}
+.living-story-photo{margin:0;display:flex;flex-direction:column;min-width:0;background:#143648}
+.living-story-photo img{width:100%;height:100%;max-height:540px;min-height:420px;object-fit:cover;display:block}
+.living-story-photo figcaption{font-size:11px;color:#dbe6ef;padding:12px 16px;line-height:1.6}
+.living-story-photo figcaption a{color:#f0d69c;text-decoration:underline;text-underline-offset:3px}
+.living-story-copy{padding:clamp(24px,3vw,39px);display:flex;flex-direction:column;gap:13px}
+.living-story-copy>.eyebrow{color:#8b691f;font-weight:900}
+.living-story-copy h3{font:650 clamp(25px,3vw,38px)/1.18 Georgia,serif;color:#18384e;margin:0}
+.living-story-copy>p:not(.eyebrow){font-size:14px;line-height:1.82;color:#405d70;margin:0}
+.living-story-lesson{margin-top:auto;background:#f8f2e4;border-left:4px solid #b28c46;border-radius:0 11px 11px 0;padding:17px 19px}
+.living-story-lesson span{font-size:10px;letter-spacing:.13em;font-weight:900;color:#7e5d24}
+.living-story-lesson strong{display:block;color:#25475c;font:600 21px/1.3 Georgia,serif;margin:8px 0}
+.living-story-lesson p{font-size:12px;color:#587080;line-height:1.68;margin:0}
+.living-tradeoffs{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:29px}
+.living-tradeoffs>div{background:#f5f9fa;border:1px solid #d6e3e8;border-radius:17px;padding:24px}
+.living-tradeoffs>div:last-child{background:#fdf8ef;border-color:#ead9b8}
+.living-tradeoffs-number{color:#168278;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.11em}
+.living-tradeoffs h3{font:650 25px/1.2 Georgia,serif;color:#21465b;margin:11px 0}
+.living-tradeoffs p{color:#4d6678;font-size:13px;line-height:1.8}
+@media(max-width:900px){.living-benefits-teaser{grid-template-columns:1fr}.living-story{grid-template-columns:1fr}.living-story-photo img{max-height:370px;min-height:250px}.living-tradeoffs{grid-template-columns:1fr}}
+@media(max-width:650px){.living-benefits-teaser{padding:23px 18px}.living-benefits-teaser .btn-row>*{width:100%;justify-content:center}.living-story-copy{padding:23px 18px}.living-tradeoffs>div{padding:20px}}

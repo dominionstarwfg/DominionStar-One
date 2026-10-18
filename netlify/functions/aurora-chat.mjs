@@ -14,7 +14,7 @@ const allowPages=new Set([
 '/financial-services/','/financial-services/discovery/','/financial-services/life-insurance/',
 '/financial-services/long-term-care/','/financial-services/learning-lab/',
 '/financial-services/term-life/','/financial-services/whole-life/','/financial-services/universal-life/','/financial-services/indexed-universal-life/',
-'/financial-services/probate-estate/','/opportunity/canada/',
+'/financial-services/probate-estate/','/financial-services/living-trust/','/financial-services/living-benefits/','/opportunity/canada/',
 '/financial-services/annuities/',
 '/financial-services/family-protection/','/financial-services/retirement/',
 '/financial-services/college-planning/','/financial-services/business-solutions/',
@@ -24,6 +24,7 @@ const urls={
   mentorship:'/mentorship/',careers:'/opportunity/',life:'/financial-services/life-insurance/',term:'/financial-services/term-life/',whole:'/financial-services/whole-life/',universal:'/financial-services/universal-life/',iul:'/financial-services/indexed-universal-life/',
   ltc:'/financial-services/long-term-care/',learningLab:'/financial-services/learning-lab/',
   discovery:'/financial-services/discovery/',
+  livingTrust:'/financial-services/living-trust/',livingBenefits:'/financial-services/living-benefits/',
   annuities:'/financial-services/annuities/',ltcTool:'/financial-services/long-term-care/#ltc-gap-tool',
   consultation:'/consultation/',schedule:'/schedule/',about:'/about/'
 };
@@ -38,6 +39,7 @@ const instructions= [
 'For annuities, discuss broad education, insurer financial strength, surrender charges and guarantees; differentiate fixed, fixed-indexed and variable.',
 'For annuity accumulation examples, explain that a constant hypothetical crediting rate is not a current rate, quote, guarantee or lifetime-income payout; surrender-charge assumptions exclude taxes and market-value adjustments. Point to /financial-services/annuities/.',
 'For long-term-care scenarios, describe hypothetical care costs, eligibility, benefit limits and simplified elimination periods accurately; do not imply insurer payout without a covered claim. Point to /financial-services/long-term-care/#ltc-gap-tool.',
+'Living trusts and life-insurance living benefits are separate subjects. A living trust is a legal arrangement for property management, while certain insurance riders can accelerate benefits during life after defined qualifying conditions. Early payments can reduce the remaining death benefit; eligibility, calculations, discounts and fees depend on the contract. Do not offer underwriting decisions or legal advice. InheritGuard Network is an independent referral partner; DominionStar only offers introductions with consent, not legal document drafting.',
 'Probate and estate education: explain wills, intestacy, court proceedings, executors and life-insurance beneficiary designations without legal advice. Probate is jurisdiction and asset dependent; a will does not always avoid probate. For specific advice, direct to a qualified estate lawyer. Real documented stories may be mentioned carefully: Aretha Franklin handwritten wills (2014 document validated in 2023); Prince estate with no will, years of administration.',
 'Canada is a recruiting priority. Answer questions about the Canadian pathway at /opportunity/canada/. Provincial and territorial insurance licensing rules apply; new Ontario agents typically use LLQP and may need insurer sponsorship, while Quebec follows AMF processes. Never imply US licensure is sufficient in Canada or guarantee Canadian carrier contracts.',
 
@@ -71,7 +73,7 @@ function rateLimit(event){
   v.count++;windows.set(key,v);return v.count>8;
 }
 // Sources returned to the browser are strictly derived from actual API citation metadata.
-const researchDomains=['content.naic.org','naic.org','tdi.texas.gov','fsrao.ca','lautorite.qc.ca','canada.ca','investor.gov','irs.gov'];
+const researchDomains=['content.naic.org','naic.org','tdi.texas.gov','aldoi.gov','isba.org','texasbar.com','fsrao.ca','lautorite.qc.ca','canada.ca','investor.gov','irs.gov'];
 function cleanSource(url,title){
  try{const u=new URL(url);if(u.protocol!=='https:')return null;
   if(!researchDomains.some(d=>u.hostname===d||u.hostname.endsWith('.'+d)))return null;
