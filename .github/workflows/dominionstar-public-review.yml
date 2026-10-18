@@ -1,0 +1,77 @@
+name: DominionStar Public Website Review
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'financial-services/**'
+      - 'mentorship/**'
+      - 'opportunity/**'
+      - 'about/**'
+      - 'join/**'
+      - 'schedule/**'
+      - 'consultation/**'
+      - 'assets/js/dominionstar-public-v5.js'
+      - 'assets/js/dominionstar-discovery.js'
+      - 'assets/js/dominionstar-protection-tools.js'
+      - 'assets/js/dominionstar-index-lab.js'
+      - 'assets/js/dominionstar-life-interactive.js'
+      - 'assets/css/dominionstar-public-v5.css'
+      - 'netlify/functions/aurora-chat.mjs'
+      - 'index.html'
+      - '_redirects'
+      - '_headers'
+      - 'public-release.json'
+      - 'scripts/build-public-netlify.sh'
+      - '.github/workflows/dominionstar-public-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-website-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-build-and-syntax:
+    name: Build and validate public site
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate build script and public JavaScript
+        run: |
+          set -euo pipefail
+          bash -n scripts/build-public-netlify.sh
+          node --check assets/js/dominionstar-public-v5.js
+          node --check assets/js/dominionstar-discovery.js
+          node --check assets/js/dominionstar-protection-tools.js
+          node --check assets/js/dominionstar-index-lab.js
+          node --check assets/js/dominionstar-life-interactive.js
+          node --check netlify/functions/aurora-chat.mjs
+      - name: Check rsync dependency
+        run: |
+          command -v rsync
+      - name: Run Netlify public build
+        run: |
+          bash scripts/build-public-netlify.sh
+      - name: Confirm public/private route isolation
+        run: |
+          set -euo pipefail
+          grep -Fq 'Home — No Family Left Behind' public-dist/index.html
+          test -s public-dist/financial-services/discovery/index.html
+          test -s public-dist/financial-services/annuities/index.html
+          test -s public-dist/financial-services/long-term-care/index.html
+          test -s public-dist/assets/js/dominionstar-public-v5.js
+          test -s public-dist/meet/index.html
+          test ! -e public-dist/meet-desktop
+          test ! -e public-dist/netlify/functions
+          grep -Fq 'minimumMs=3400' public-dist/assets/js/dominionstar-public-v5.js
+          grep -Fq 'researchPerformed:searched' netlify/functions/aurora-chat.mjs
+          grep -Fq 'V10-quality-gate-2026-10-17' public-dist/public-release.json
+          echo 'PUBLIC_REVIEW_QA_OK'
