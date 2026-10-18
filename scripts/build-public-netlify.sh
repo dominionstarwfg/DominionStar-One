@@ -41,6 +41,10 @@ required_paths=(
   "opportunity/business-building/index.html"
   "financial-services/long-term-care/index.html"
   "financial-services/annuities/index.html"
+  "financial-services/living-trust/index.html"
+  "financial-services/living-benefits/index.html"
+  "financial-services/discovery/index.html"
+  "assets/js/dominionstar-discovery.js"
   "assets/js/dominionstar-protection-tools.js"
   "financial-services/life-insurance/index.html"
   "financial-services/learning-lab/index.html"
@@ -134,6 +138,63 @@ for slug in life-insurance term-life whole-life universal-life indexed-universal
   fi
 done
 
+
+# Aurora 12.2: paced processing without fabricated search, and actual-source gating.
+grep -Fq 'minimumMs=3400' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq "researchMode==='requested'?'required':'auto'" "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq "data.research==='auto'" "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq 'researchPerformed:searched' "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq 'state.requestId++' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq "GUIDED KNOWLEDGE" "$DIST/assets/js/dominionstar-public-v5.js"
+# Aurora 12.2 review: conversational guided fallback, accurate mode labeling and deduplicated actions.
+grep -Fq 'Aurora <em>12.2</em>' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq "version:'12.2-review'" "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq 'const links=new Set();' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq 'AURORA · GUIDED KNOWLEDGE' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq 'what (?:can|could) you (?:tell me|explain|help me with)' "$DIST/assets/js/dominionstar-public-v5.js"
+# Keep optional AI off unless server-side keys and explicit opt-in are configured.
+grep -Fq 'AURORA_AI_ENABLED' "$ROOT/netlify/functions/aurora-chat.mjs"
+
+# Living trusts + life-insurance living benefits require independent, usable educational pages.
+for page in financial-services/probate-estate/index.html financial-services/living-trust/index.html financial-services/living-benefits/index.html; do
+  test -s "$DIST/$page"
+  grep -Fq 'class="site-header"' "$DIST/$page"
+  grep -Fq 'class="aurora-trigger"' "$DIST/$page"
+  if grep -Eq 'href="undefined"|>undefined<' "$DIST/$page"; then
+    echo "ERROR: unprofessional placeholder in $page" >&2
+    exit 46
+  fi
+done
+grep -Fq 'id="living-trusts"' "$DIST/financial-services/probate-estate/index.html"
+grep -Fq 'InheritGuard Network' "$DIST/financial-services/living-trust/index.html"
+grep -Fq 'Estate planning / living trust referral' "$DIST/schedule/index.html"
+grep -Fq 'living-story-photo' "$DIST/financial-services/living-benefits/index.html"
+grep -Fq 'unsplash.com/photos/two-people-holding-hands-at-table-xM4wUnvbCKk' "$DIST/financial-services/living-benefits/index.html"
+grep -Fq 'Living Benefits' "$DIST/financial-services/life-insurance/index.html"
+grep -Fq 'livingBenefits:' "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq '"living-benefits"' "$ROOT/assets/js/dominionstar-public-v5.js"
+grep -Fq 'Prince' "$DIST/financial-services/probate-estate/index.html"
+grep -Fq 'Aretha' "$DIST/financial-services/probate-estate/index.html"
+
+# V12 educational discovery: entry point, sources, Aurora and no false intake claims.
+grep -Fq 'data-discovery-choice="life"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'data-discovery-choice="ltc"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'data-discovery-choice="annuity"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'dominionstar-discovery.js' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'content="https://dominionstarld.com/financial-services/discovery/"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'data-aurora-question' "$DIST/financial-services/discovery/index.html" || grep -Fq 'class="aurora-trigger"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'href="/financial-services/discovery/"' "$DIST/financial-services/index.html"
+grep -Fq 'href="/financial-services/discovery/"' "$DIST/financial-services/life-insurance/index.html"
+grep -Fq 'href="/financial-services/discovery/"' "$DIST/financial-services/long-term-care/index.html"
+grep -Fq 'href="/financial-services/discovery/"' "$DIST/financial-services/annuities/index.html"
+grep -Fq "'/financial-services/discovery/'" "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq "'life-why'" "$ROOT/assets/js/dominionstar-public-v5.js"
+grep -Fq "'ltc-why'" "$ROOT/assets/js/dominionstar-public-v5.js"
+grep -Fq "'annuity-why'" "$ROOT/assets/js/dominionstar-public-v5.js"
+if grep -Eq 'href="undefined"|>undefined<' "$DIST/financial-services/discovery/index.html"; then
+  echo "ERROR: financial discovery contains invalid links or placeholders." >&2
+  exit 45
+fi
 
 # LTC and annuity learning experiences must always have real pages and working interactive scripts.
 for entry in financial-services/annuities/index.html financial-services/long-term-care/index.html; do
