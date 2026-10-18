@@ -174,6 +174,17 @@ grep -Fq 'negative index change generally does not create a negative interest cr
 for route in /academy/ /platform/ /journey/; do
   grep -Fq "$route " "$DIST/_redirects"
 done
+# Reject legacy conversion-page templates when building the production website.
+grep -Fq 'name="dominionstar-join"' "$DIST/join/index.html"
+grep -Fq 'name="dominionstar-qualified-appointment"' "$DIST/schedule/index.html"
+grep -Fq 'name="dominionstar-client-consultation"' "$DIST/consultation/index.html"
+for rel in join/index.html schedule/index.html consultation/index.html; do
+  if grep -Eiq 'Project Genesis RC5|v8\\.0 Project Genesis' "$DIST/$rel"; then
+    echo "ERROR: legacy conversion page detected: $rel" >&2
+    exit 45
+  fi
+done
+
 # Source-of-truth lead capture: three static Netlify forms must retain campaign fields.
 for rel in join/index.html schedule/index.html consultation/index.html; do
   grep -Fq 'data-netlify="true"' "$DIST/$rel"
