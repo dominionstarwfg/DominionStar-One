@@ -41,6 +41,8 @@ required_paths=(
   "opportunity/business-building/index.html"
   "financial-services/long-term-care/index.html"
   "financial-services/annuities/index.html"
+  "financial-services/discovery/index.html"
+  "assets/js/dominionstar-discovery.js"
   "assets/js/dominionstar-protection-tools.js"
   "financial-services/life-insurance/index.html"
   "financial-services/learning-lab/index.html"
@@ -134,6 +136,26 @@ for slug in life-insurance term-life whole-life universal-life indexed-universal
   fi
 done
 
+
+# V12 educational discovery: entry point, sources, Aurora and no false intake claims.
+grep -Fq 'data-discovery-choice="life"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'data-discovery-choice="ltc"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'data-discovery-choice="annuity"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'dominionstar-discovery.js' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'content="https://dominionstarld.com/financial-services/discovery/"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'data-aurora-question' "$DIST/financial-services/discovery/index.html" || grep -Fq 'class="aurora-trigger"' "$DIST/financial-services/discovery/index.html"
+grep -Fq 'href="/financial-services/discovery/"' "$DIST/financial-services/index.html"
+grep -Fq 'href="/financial-services/discovery/"' "$DIST/financial-services/life-insurance/index.html"
+grep -Fq 'href="/financial-services/discovery/"' "$DIST/financial-services/long-term-care/index.html"
+grep -Fq 'href="/financial-services/discovery/"' "$DIST/financial-services/annuities/index.html"
+grep -Fq "'/financial-services/discovery/'" "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq "'life-why'" "$ROOT/assets/js/dominionstar-public-v5.js"
+grep -Fq "'ltc-why'" "$ROOT/assets/js/dominionstar-public-v5.js"
+grep -Fq "'annuity-why'" "$ROOT/assets/js/dominionstar-public-v5.js"
+if grep -Eq 'href="undefined"|>undefined<' "$DIST/financial-services/discovery/index.html"; then
+  echo "ERROR: financial discovery contains invalid links or placeholders." >&2
+  exit 45
+fi
 
 # LTC and annuity learning experiences must always have real pages and working interactive scripts.
 for entry in financial-services/annuities/index.html financial-services/long-term-care/index.html; do

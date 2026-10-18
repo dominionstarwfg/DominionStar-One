@@ -391,3 +391,66 @@
 .ds-chart-scroll{overflow-x:auto;max-width:100%;overscroll-behavior-x:contain}
 .ds-chart-scroll:focus-visible{outline:3px solid #dcb56e;outline-offset:-3px;border-radius:9px}
 @media(max-width:690px){.ds-chart-scroll svg{min-width:660px;max-height:none;height:auto}}
+
+
+/* V12 — Educational discovery experience. No changes to Meet or member styling. */
+.ds-discovery-hero .hero-capabilities{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.ds-discovery{display:grid;grid-template-columns:minmax(270px,.82fr) minmax(0,1.18fr);gap:22px;align-items:stretch}
+.ds-discover-menu{display:flex;flex-direction:column;gap:11px}
+.ds-discover-choice{display:flex;align-items:center;gap:14px;min-height:114px;width:100%;text-align:left;cursor:pointer;
+ padding:20px;border:1px solid #d4e0e8;border-radius:17px;background:#fff;color:#1a3a56;
+ box-shadow:0 7px 20px #17354a0a;transition:border-color .2s,background .2s,transform .2s}
+.ds-discover-choice:hover{border-color:#6da9b0;background:#f5fbfc}
+.ds-discover-choice.is-active{border-color:#d5b16c;background:linear-gradient(125deg,#0c2846,#1b526c);color:#fff;box-shadow:0 13px 30px #112d4e32}
+.ds-discover-choice:focus-visible{outline:3px solid #ddb76e;outline-offset:3px}
+.ds-discover-index{display:grid;place-items:center;flex-shrink:0;width:43px;height:43px;border:1px solid #d5e1e7;border-radius:13px;font:700 15px Georgia,serif;color:#8b6b31;background:#f7f0e1}
+.ds-discover-choice.is-active .ds-discover-index{background:#e9c37c;color:#102e49;border-color:#f3dea9}
+.ds-discover-choice>span:nth-child(2){display:flex;flex-direction:column;gap:8px;min-width:0}
+.ds-discover-choice strong{font:750 16px/1.3 Inter,system-ui,sans-serif}
+.ds-discover-choice small{font:600 11px/1.5 Inter,system-ui,sans-serif;color:#587185}
+.ds-discover-choice.is-active small{color:#cfdfeb}
+.ds-discover-arrow{margin-left:auto;font-size:19px;color:#ae853f}
+.ds-discover-choice.is-active .ds-discover-arrow{color:#f1cc87}
+.ds-discover-content{background:linear-gradient(130deg,#0b2744,#1c4b63);border:1px solid #bb9b5d;
+ color:white;border-radius:20px;padding:clamp(24px,3vw,39px);box-shadow:0 16px 40px #153a4930;
+ display:flex;flex-direction:column;gap:16px;min-width:0;min-height:393px}
+.ds-discover-eyebrow{font-size:10px;letter-spacing:.14em;color:#f1d28e;font-weight:900;margin:0}
+.ds-discover-content h3{font:650 clamp(27px,3vw,39px)/1.16 Georgia,serif!important;color:#fff!important;margin:0;letter-spacing:-.015em}
+.ds-discover-content>p:not(.ds-discover-eyebrow){font-size:14px;line-height:1.77;color:#d8e5ed;margin:0}
+.ds-discover-perspectives{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:4px}
+.ds-discover-perspectives>div{padding:14px;border-radius:12px;background:#ffffff12;border:1px solid #dae7ed2c}
+.ds-discover-perspectives small{font-size:10px;color:#f3d69a;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+.ds-discover-perspectives p{font-size:13px;line-height:1.69;color:#f3f7f9;margin:8px 0 0}
+.ds-discover-foot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:auto}
+.ds-discover-foot a{display:inline-flex;text-decoration:none!important;font-size:12px;font-weight:850;border-radius:11px;padding:12px 14px;line-height:1.5;max-width:100%}
+.ds-discover-primary{background:#edc67f;color:#14314e!important;border:1px solid #f9e0b2}
+.ds-discover-primary:hover{background:#ffdda2}
+.ds-discover-secondary{color:#fff!important;border:1px solid #cadee5aa;background:#ffffff1b}
+.ds-discover-secondary:hover{background:#ffffff2d}
+.ds-discover-foot .ds-discover-source{width:100%;color:#d8eaf3!important;padding:7px 0;text-decoration:underline!important;text-underline-offset:3px}
+.ds-discover-privacy{margin-top:17px;border-radius:11px;background:#eaf3f4;border-left:3px solid #1d8586;padding:15px 17px;font-size:12px;line-height:1.75;color:#36596b}
+.ds-discovery-triad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}
+.ds-discovery-card{display:flex;flex-direction:column;gap:13px;border-radius:18px;background:#fff;border:1px solid #d8e2e9;padding:clamp(20px,2.5vw,30px);box-shadow:0 8px 20px #192e440b}
+.ds-discovery-number{font-size:10px;font-weight:900;letter-spacing:.13em;color:#9b7331}
+.ds-discovery-card h3{font:650 26px/1.23 Georgia,serif;color:#193b54;margin:0}
+.ds-discovery-card p{font-size:13px;color:#4f6779;line-height:1.78;margin:0}
+.ds-discovery-card .ds-discovery-question{border-left:3px solid #bc944d;background:#fbf7ef;padding:10px 12px;color:#3d5865}
+.ds-discovery-card a{display:block;margin-top:auto;color:#125a7c;text-decoration:underline;text-underline-offset:3px;font-size:12px;font-weight:850}
+@media(max-width:1000px){.ds-discovery{grid-template-columns:1fr}.ds-discovery-triad{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.ds-discover-perspectives,.ds-discovery-triad{grid-template-columns:1fr}.ds-discover-content{padding:23px 17px}.ds-discover-choice{min-height:93px;padding:15px}.ds-discovery-card{padding:22px 18px}.ds-discover-foot a{width:100%;justify-content:center;text-align:center}}
+@media(prefers-reduced-motion:reduce){.ds-discover-choice{transition:none}}
+
+/* V12 contextual entry on approved public financial guides. */
+.ds-discovery-teaser{padding-top:clamp(30px,4vw,65px);padding-bottom:clamp(30px,4vw,65px)}
+.ds-discovery-teaser-inner{position:relative;overflow:hidden;isolation:isolate;border:1px solid #c4ab73;
+ background:linear-gradient(110deg,#092240,#164b67);color:#fff;border-radius:21px;
+ padding:clamp(25px,4vw,48px);box-shadow:0 17px 35px #112e461b}
+.ds-discovery-teaser-inner>div{position:relative;z-index:1;max-width:770px}
+.ds-discovery-teaser .eyebrow{color:#f5d69a;font-weight:900}
+.ds-discovery-teaser h2{font:600 clamp(29px,3.8vw,43px)/1.19 Georgia,serif;color:#fff;margin:13px 0 13px}
+.ds-discovery-teaser p:not(.eyebrow){font-size:14px;line-height:1.8;color:#d5e4ed;margin-bottom:20px}
+.ds-discovery-teaser .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.ds-discovery-teaser .btn-outline{border-color:#e3eaf0a9;color:#fff}
+.ds-discovery-teaser .btn-outline:hover{background:#ffffff1d}
+.ds-discovery-teaser-mark{position:absolute;right:-7px;bottom:-110px;line-height:1;font:700 390px Georgia,serif;color:#ffffff08;pointer-events:none}
+@media(max-width:650px){.ds-discovery-teaser .btn-row>*{max-width:100%;width:100%;justify-content:center}.ds-discovery-teaser-mark{font-size:290px;bottom:-80px}}

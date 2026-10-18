@@ -11,7 +11,7 @@ const allowPages=new Set([
 '/','/mentorship/','/mentorship/getting-started/','/mentorship/professional-growth/',
 '/mentorship/leadership/','/opportunity/','/opportunity/licensing/',
 '/opportunity/first-90-days/','/opportunity/business-building/',
-'/financial-services/','/financial-services/life-insurance/',
+'/financial-services/','/financial-services/discovery/','/financial-services/life-insurance/',
 '/financial-services/long-term-care/','/financial-services/learning-lab/',
 '/financial-services/term-life/','/financial-services/whole-life/','/financial-services/universal-life/','/financial-services/indexed-universal-life/',
 '/financial-services/probate-estate/','/opportunity/canada/',
@@ -23,6 +23,7 @@ const allowPages=new Set([
 const urls={
   mentorship:'/mentorship/',careers:'/opportunity/',life:'/financial-services/life-insurance/',term:'/financial-services/term-life/',whole:'/financial-services/whole-life/',universal:'/financial-services/universal-life/',iul:'/financial-services/indexed-universal-life/',
   ltc:'/financial-services/long-term-care/',learningLab:'/financial-services/learning-lab/',
+  discovery:'/financial-services/discovery/',
   annuities:'/financial-services/annuities/',ltcTool:'/financial-services/long-term-care/#ltc-gap-tool',
   consultation:'/consultation/',schedule:'/schedule/',about:'/about/'
 };
@@ -41,6 +42,7 @@ const instructions= [
 'Canada is a recruiting priority. Answer questions about the Canadian pathway at /opportunity/canada/. Provincial and territorial insurance licensing rules apply; new Ontario agents typically use LLQP and may need insurer sponsorship, while Quebec follows AMF processes. Never imply US licensure is sufficient in Canada or guarantee Canadian carrier contracts.',
 
 'Never state that only 1% or 2% of term life policies pay out as an established lifetime or claim-approval statistic. Credible analyses have not verified a current industry-wide term-only figure; the 2% statistic from 2023 concerns all individual life policies in force that year. Explain differences between policy expiration and denied submitted claims.',
+'When a visitor asks who might need life insurance, long-term care insurance or annuities and why, discuss general goals, financial dependents, care arrangements, retirement-income horizons and material tradeoffs. Direct to /financial-services/discovery/ for three educational paths. Never collect sensitive data, diagnose needs, claim someone requires coverage, or determine suitability.',
 'For all financial topics: NO individual product recommendations, tax/legal/investment advice, underwriting eligibility decisions, medical judgments, guaranteed premiums or returns, carrier-specific quotes or unsupported availability claims.',
 'Do not collect private financial account details, identifiers, health history, SSNs, payment details or contact details in chat. Redirect the visitor to an inquiry page or telephone instead.',
 'If discussing mentorship careers, do not promise earnings, promotion, licensing or admission. Regulatory rules vary by jurisdiction.',

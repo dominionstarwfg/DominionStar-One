@@ -6,6 +6,19 @@ const createAnswer=function makeAnswer(raw,context=""){
   const link={life:"https://content.naic.org/insurance-topics/life-insurance",ltc:"https://content.naic.org/insurance-topics/long-term-care-insurance",annuity:"https://www.investor.gov/introduction-investing/investing-basics/investment-products/annuities"};
   const mk=(topic,message,url="/financial-services/",label="Explore Financial Services",source="")=>({topic,message,url,label,source});
   if(!q) return mk("welcome","Ask about life insurance, long-term care, annuities, career mentorship or scheduling a conversation.","/financial-services/","Explore financial services");
+  // Explain who might explore a topic and why it matters; never determine individual suitability.
+  const whoWhy=/\b(who (?:needs?|should|might|could|would)|why (?:is|does|are)|is it important|what is the purpose|who would benefit|what should i consider)\b/.test(q);
+  const asksLife=/\b(life insurance|death benefit|term life|family protection)\b/.test(q);
+  const asksCare=/\b(long.term care|long term care|ltc|extended care)\b/.test(q);
+  const asksAnnuity=/\b(annuit(?:y|ies)|retirement income)\b/.test(q);
+  if((whoWhy&&[asksLife,asksCare,asksAnnuity].filter(Boolean).length>1)||/\b(who needs (?:which|financial|insurance)|which solution is right|where should i start)\b/.test(q))
+    return mk("discovery","Life insurance, long-term care and annuities answer different financial questions. Life insurance can help people left behind after an insured's death; LTC planning addresses potential extended-care costs and caregiving; annuities may address certain long-term accumulation or retirement-income goals. Start by considering who depends on you, what care responsibilities could arise, and when access to money matters. These questions are educational, not a personal suitability assessment.","/financial-services/discovery/","Explore Who Needs It & Why","https://content.naic.org/insurance-topics/life-insurance");
+  if(whoWhy&&asksLife)
+    return mk("life-why","Life insurance may be worth exploring when someone's death could leave dependents, a partner, relatives, or business stakeholders facing expenses or lost financial support. Its purpose is to provide an eligible death benefit to named beneficiaries while coverage is in force. Ask: Who would depend on my contribution, what obligations could remain, and how long might protection be needed? Coverage type and amount require individual review.","/financial-services/discovery/","Explore the Life Insurance discovery pathway","https://content.naic.org/insurance-topics/life-insurance");
+  if(whoWhy&&asksCare)
+    return mk("ltc-why","Long-term care planning may matter to people considering the cost and practical burden of assistance with everyday activities or cognitive needs. Planning can help families consider care settings, who might arrange support, benefit waiting periods and costs insurance may not cover. Ask: Who might help with care, and how would expenses be addressed? Whether insurance fits depends on individual facts and policy terms.","/financial-services/discovery/","Explore the Long-Term Care discovery pathway","https://content.naic.org/consumer/long-term-care-insurance.htm");
+  if(whoWhy&&asksAnnuity)
+    return mk("annuity-why","Annuities are insurance contracts sometimes explored for long-term accumulation or retirement income. They may be relevant when a person can weigh income objectives, the intended holding period, access to funds, fees and the insurer's guarantees. Ask: When might I need this money and what contract restrictions am I prepared to accept? Aurora cannot determine whether an annuity is suitable for a particular visitor.","/financial-services/discovery/","Explore the Annuities discovery pathway","https://www.investor.gov/introduction-investing/investing-basics/investment-products/annuities");
   if(/\b(guarantee|guaranteed|guarantees|promised|promise)\b/.test(q)&&/(?:\d+(?:\.\d+)?\s*%|return|profit|income|crediting rate|interest rate)/.test(q))
     return mk("quotes","Aurora cannot guarantee any return, policy crediting rate, premium, income or investment outcome. Review any contractual guarantees in the current carrier-approved policy documents with an appropriately licensed professional.","/consultation/","Discuss contract terms");
   if(/\b(1%|2%|1 to 2 percent|one percent|two percent|how many term policies (pay|payout)|percentage of term policies|term payout rate)\b/.test(q))
@@ -106,6 +119,7 @@ const route=window.location.pathname.replace(/\/index\.html$/,'/')||'/';
 const contexts=[
  [/^\/mentorship/,{name:'Mentorship Programs',prompts:[['Getting Started','How does mentorship help a new professional?'],['Professional Growth','What can I learn after getting licensed?'],['Leadership','What is leadership mentorship?']]}],
  [/^\/opportunity/,{name:'Careers & Licensing',prompts:[['Licensing','How does insurance licensing work?'],['Early career','What should a new agent learn first?'],['Canada opportunity','How can I explore a financial services career in Canada?']]}],
+ [/^\/financial-services\/discovery\//,{name:'Financial Discovery',prompts:[['Who needs life insurance?','Who might need life insurance and why does it matter?'],['Why plan for care?','Who might consider long-term care planning and why?'],['Annuity goals','Who might consider annuities and why are they important?']]}],
  [/^\/financial-services\/annuities\//,{name:'Annuities Education',prompts:[['Fixed annuities','How does a fixed annuity work?'],['Surrender costs','What is a surrender charge?'],['Indexed annuities','What is a fixed indexed annuity?']]}],
  [/^\/financial-services\/long-term-care\//,{name:'Long-Term Care',prompts:[['Benefit limits','How do LTC benefit limits work?'],['Elimination periods','What does a 90 day elimination period mean?'],['LTC coverage','Does Medicare cover long-term care?']]}],
  [/^\/financial-services/,{name:'Financial Education',prompts:[['Life insurance','Compare term and whole life insurance'],['Long-Term Care','How does long-term care insurance work?'],['Annuities','What are annuities and how do surrender charges work?']]}],
@@ -180,6 +194,10 @@ function chips(list){
 }
 function suggestions(topic){
  const more={
+  'discovery':[['Protect family','Who might need life insurance and why?'],['Plan for care','Who might consider LTC planning and why?'],['Retirement income','Who might consider annuities and why?']],
+  'life-why':[['Policy types','Compare term and whole life insurance'],['Legacy planning','How do beneficiary designations affect probate?']],
+  'ltc-why':[['Waiting periods','What is an LTC elimination period?'],['Care cost tool','How do LTC benefit limits work?']],
+  'annuity-why':[['Fixed indexed','What is a fixed indexed annuity?'],['Surrender charges','What are annuity surrender charges?']],
  'probate':[['Beneficiaries','Can life insurance proceeds pass outside probate?'],['Real stories','Tell me about real probate estate cases']],
  'probate-stories':[['How probate works','What is probate court?'],['Beneficiaries','Why are beneficiary designations important?']],
  'canada':[['LLQP preparation','What is the LLQP licensing process in Canada?'],['Mentorship','Does DominionStar offer Canadian mentorship inquiries?']],
