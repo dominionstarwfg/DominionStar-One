@@ -391,3 +391,9 @@
 .ds-chart-scroll{overflow-x:auto;max-width:100%;overscroll-behavior-x:contain}
 .ds-chart-scroll:focus-visible{outline:3px solid #dcb56e;outline-offset:-3px;border-radius:9px}
 @media(max-width:690px){.ds-chart-scroll svg{min-width:660px;max-height:none;height:auto}}
+
+/* Contrast guard: secondary buttons in light content sections must never inherit white hero text. */
+.section:not(.section-blue) .btn-outline,.section-light .btn-outline,.section-tint .btn-outline{color:#153c58;background:#fff;border-color:#7797aa}
+.section:not(.section-blue) .btn-outline:hover,.section:not(.section-blue) .btn-outline:focus-visible,.section-light .btn-outline:hover,.section-tint .btn-outline:hover{color:#0b2b42;background:#e5eff4;border-color:#315f79}
+.section-blue .btn-outline,.short-hero .btn-outline{color:#fff;border-color:#acbfd0;background:#ffffff12}
+.btn:focus-visible{outline:3px solid #b58b43;outline-offset:3px}
