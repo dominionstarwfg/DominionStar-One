@@ -174,6 +174,18 @@ grep -Fq 'negative index change generally does not create a negative interest cr
 for route in /academy/ /platform/ /journey/; do
   grep -Fq "$route " "$DIST/_redirects"
 done
+# Source-of-truth lead capture: three static Netlify forms must retain campaign fields.
+for rel in join/index.html schedule/index.html consultation/index.html; do
+  grep -Fq 'data-netlify="true"' "$DIST/$rel"
+  grep -Fq 'name="campaign_source"' "$DIST/$rel"
+  grep -Fq 'name="campaign_medium"' "$DIST/$rel"
+  grep -Fq 'name="campaign_name"' "$DIST/$rel"
+  grep -Fq 'name="campaign_entry_path"' "$DIST/$rel"
+done
+grep -Fq 'generate_lead' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq 'dominionstar_lead_pending_v1' "$DIST/assets/js/dominionstar-public-v5.js"
+test -s "$DIST/thank-you.html"
+
 # The existing member and desktop source are preserved; public auth still requires a separate access-control review.
 
 # Educational journeys must be built as independent pages, not booking-form redirects.
