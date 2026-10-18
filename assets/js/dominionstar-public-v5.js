@@ -331,3 +331,35 @@ const today=new Date();const minDate=[today.getFullYear(),String(today.getMonth(
 document.querySelectorAll('input[type="date"]').forEach(input=>input.min=minDate);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
+/* Anonymous on-site conversion-intent measurement.
+   GA4 reporting is available only when the site's existing gtag is enabled.
+   No contact details, form values, or query strings are transmitted here. */
+(()=>{'use strict';
+  const internalPaths={
+    '/schedule/':'appointment',
+    '/consultation/':'consultation',
+    '/join/':'career_inquiry'
+  };
+  document.addEventListener('click',event=>{
+    const anchor=event.target instanceof Element?event.target.closest('a[href]'):null;
+    if(!anchor||typeof window.gtag!=='function')return;
+    const raw=anchor.getAttribute('href')||'';
+    let action='',target='';
+    if(raw.startsWith('tel:'))action='call';
+    else if(raw.startsWith('mailto:'))action='email';
+    else {
+      try{
+        const url=new URL(raw,location.href);
+        if(url.origin!==location.origin)return;
+        action=internalPaths[url.pathname]||'';
+        target=url.pathname;
+      }catch{return}
+    }
+    if(!action)return;
+    window.gtag('event','ds_contact_intent',{
+      intent_type:action,
+      source_path:location.pathname,
+      target_path:target
+    });
+  },{capture:true});
+})();
