@@ -137,9 +137,16 @@ for slug in life-insurance term-life whole-life universal-life indexed-universal
 done
 
 
-# Aurora 12.1 review: conversational guided fallback, accurate mode labeling and deduplicated actions.
-grep -Fq 'Aurora <em>12.1</em>' "$DIST/assets/js/dominionstar-public-v5.js"
-grep -Fq "version:'12.1-preview'" "$DIST/assets/js/dominionstar-public-v5.js"
+# Aurora 12.2: paced processing without fabricated search, and actual-source gating.
+grep -Fq 'minimumMs=3400' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq "researchMode==='requested'?'required':'auto'" "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq "data.research==='auto'" "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq 'researchPerformed:searched' "$ROOT/netlify/functions/aurora-chat.mjs"
+grep -Fq 'state.requestId++' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq "GUIDED KNOWLEDGE" "$DIST/assets/js/dominionstar-public-v5.js"
+# Aurora 12.2 review: conversational guided fallback, accurate mode labeling and deduplicated actions.
+grep -Fq 'Aurora <em>12.2</em>' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq "version:'12.2-review'" "$DIST/assets/js/dominionstar-public-v5.js"
 grep -Fq 'const links=new Set();' "$DIST/assets/js/dominionstar-public-v5.js"
 grep -Fq 'AURORA · GUIDED KNOWLEDGE' "$DIST/assets/js/dominionstar-public-v5.js"
 grep -Fq 'what (?:can|could) you (?:tell me|explain|help me with)' "$DIST/assets/js/dominionstar-public-v5.js"

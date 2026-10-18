@@ -1,4 +1,4 @@
-/* Aurora V12.1 Preview: curated financial knowledge + secure optional AI */
+/* Aurora V12.2 Review: paced guided knowledge + optional AI and source research */
 (()=>{"use strict";
 const createAnswer=function makeAnswer(raw,context="",page=""){
   const q=String(raw||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[’‘]/g,"'").replace(/\s+/g," ").trim()
@@ -164,7 +164,7 @@ const contexts=[
  [/^\/(join|schedule|consultation)/,{name:'Plan Your Next Step',prompts:[['Book a call','How do I request an appointment?'],['Life insurance','What are common life insurance types?'],['Mentorship','What support is offered to new agents?']]}]
 ];
 const context=contexts.find(item=>item[0].test(route))?.[1]||{name:'DominionStar',prompts:[['Mentorship','What mentorship programs are available?'],['Family protection','How does life insurance work?'],['Probate & legacy','What is probate and how do beneficiaries work?']]};
-const state={available:false,webSearchAvailable:false,research:false,ai:false,busy:false,lastTopic:'',history:[],lastReply:''};
+const state={available:false,webSearchAvailable:false,research:false,ai:false,busy:false,lastTopic:'',history:[],lastReply:'',requestId:0,controller:null};
 const sensitive=/\b\d{3}[- ]?\d{2}[- ]?\d{4}\b|\b(?:ssn|social security|credit card|bank account|routing number|password|my diagnosis|account number)\b|(?:\b(?:\d[ -]*?){13,16}\b)/i;
 let chat,field,send,indicator,switcher,note,mic,sourceToggle;
 function permitted(url){
@@ -185,7 +185,7 @@ function updateMode(){
  if(sourceToggle){sourceToggle.hidden=!(state.available&&state.ai&&state.webSearchAvailable);sourceToggle.setAttribute('aria-pressed',String(state.research));sourceToggle.textContent=state.research?'Search official sources ✓':'Search official sources';}
  switcher.textContent=state.ai?'Turn off AI':'Enable AI answers';
  switcher.setAttribute('aria-pressed',String(state.ai));
- note.textContent=state.ai?(state.research?'Research mode may search approved regulator sites; links appear only when actually cited. Questions and recent chat go to an AI provider.':'AI answers may use your question and recent conversation. Turn on source search to research selected regulator websites.'):'Instant educational guidance from a curated knowledge guide. It is not a live web search.';
+ note.textContent=state.ai?(state.research?'Source research requested. References appear only when a real search supplies citations.':'AI answers may consult approved regulator websites when more verification is needed, if research is configured.'):'Guided answers use prepared educational information. The brief response pause is not AI reasoning or web search.';
 }
 function line(text,kind,tag){
  const item=document.createElement('article');
@@ -260,7 +260,9 @@ function suggestions(topic){
 async function ask(raw){
  const q=String(raw||'').trim().slice(0,450);
  if(!q||state.busy)return;
- if(sensitive.test(q)){line('Please avoid sharing sensitive financial, medical or identifying information. Contact our team privately for a personal discussion.','assistant','AURORA · PRIVACY');return;}
+ if(sensitive.test(q)){
+  line('Please avoid sharing sensitive financial, medical or identifying information. Contact our team privately for a personal discussion.','assistant','AURORA · PRIVACY');return;
+ }
  openChat();chat.querySelectorAll('.aurora-v8-chips').forEach(n=>n.remove());
  line(q,'user','YOU');
  const trusted=createAnswer(q,state.lastTopic,route);
@@ -268,39 +270,70 @@ async function ask(raw){
  const previous=state.history.slice(-6);
  state.history.push({role:'user',content:q});
  field.value='';state.busy=true;send.disabled=true;field.disabled=true;
- let pending;
+ const id=++state.requestId,started=Date.now(),minimumMs=3400;
+ const isCurrent=()=>state.requestId===id;
+ const hold=()=>new Promise(resolve=>setTimeout(resolve,Math.max(0,minimumMs-(Date.now()-started))));
+ const explicitResearch=/\b(?:search (?:the )?web|look (?:it )?up|research|cite|citations?|sources?|latest|current rules?|updated requirements?|verify this|fact.check)\b/i.test(q);
+ const needsMore=trusted.topic==='unmatched'||trusted.topic==='personalized';
+ const verifiedRequest=state.ai&&state.webSearchAvailable&&(state.research||explicitResearch||needsMore);
+ const researchMode=state.ai&&state.webSearchAvailable?(verifiedRequest?true:'auto'):false;
+ const statusText=!state.ai?'Reviewing the prepared educational guide…':verifiedRequest?'Requesting official-source research…':state.webSearchAvailable?'Aurora is thinking 🤔 — checking whether official sources are needed…':'Aurora is thinking 🤔 — generating an AI answer…';
+ const statusTag=verifiedRequest?'AURORA · SOURCE REQUEST':state.ai?'AURORA · AI PROCESSING':'AURORA · GUIDED KNOWLEDGE';
+ let pending=line(statusText,'assistant pending',statusTag);
+ pending.setAttribute('aria-busy','true');
  try{
   if(state.ai){
-   pending=line(state.research?'Checking official sources for your question…':'Preparing an AI answer to your question…','assistant pending',state.research?'AURORA · SOURCE RESEARCH':'AURORA · WORKING');
-   const controller=new AbortController();
-   const timeout=setTimeout(()=>controller.abort(),state.research?24000:17500);
+   const controller=new AbortController();state.controller=controller;
+   const timeout=setTimeout(()=>controller.abort(),researchMode?29500:19500);
    let result;
-   try{result=await fetch('/.netlify/functions/aurora-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,page:route,history:previous,research:state.research&&state.webSearchAvailable}),signal:controller.signal});}finally{clearTimeout(timeout);}
+   try{
+    result=await fetch('/.netlify/functions/aurora-chat',{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({question:q,page:route,history:previous,research:researchMode}),
+     signal:controller.signal
+    });
+   }finally{clearTimeout(timeout);}
    const data=await result.json().catch(()=>({}));
+   await hold();
+   if(!isCurrent())return;
    pending.remove();pending=null;
-   if(result.ok && data.mode==='ai' && data.answer){
-    reply(String(data.answer).replace(/cite[^]+/g,'').slice(0,2600),data.researchPerformed?'AURORA · RESEARCHED ANSWER':'AURORA · AI RESPONSE',trusted,data);
+   if(result.ok&&data.mode==='ai'&&data.answer){
+    const response=String(data.answer).replace(/cite[^]+/g,'').slice(0,2600);
+    reply(response,data.researchPerformed?(data.sources?.length?'AURORA · SOURCED RESEARCH':'AURORA · WEB SEARCH'):'AURORA · AI RESPONSE',trusted,data);
+    if(verifiedRequest&&!data.researchPerformed)
+     line('Source research was requested, but the provider returned no confirmed web-search results. Citations are not claimed.','system','AURORA · SOURCE STATUS');
    }else if(result.status===422){
     reply('Please avoid sharing private identifying, financial or medical details in this chat. Request a private conversation instead.','AURORA · PRIVACY',{url:'/schedule/',label:'Request a call'});
    }else{
     reply(trusted.message,'AURORA · GUIDED KNOWLEDGE',trusted);
-    line(result.status===429?'AI requests are temporarily limited. Aurora switched to its educational guide.':'The live AI service is unavailable. Aurora switched to its educational guide.','system','AURORA STATUS');
+    line(result.status===429?'AI requests are temporarily limited. Aurora switched to its prepared educational guide.':'The live AI service is unavailable. Aurora switched to its prepared educational guide.','system','AURORA · STATUS');
    }
   }else{
+   await hold();
+   if(!isCurrent())return;
+   pending.remove();pending=null;
    reply(trusted.message,'AURORA · GUIDED KNOWLEDGE',trusted);
   }
  }catch{
-  pending?.remove();
+  await hold();
+  if(!isCurrent())return;
+  pending?.remove();pending=null;
   reply(trusted.message,'AURORA · GUIDED KNOWLEDGE',trusted);
-  line('AI could not be reached. Aurora used its educational guide instead.','system','AURORA STATUS');
+  line('The AI or source service could not be reached. This response comes from prepared educational information, not a live source search.','system','AURORA · STATUS');
  }finally{
-  state.history.push({role:'assistant',content:state.lastReply.slice(0,900)});
-  state.history=state.history.slice(-8);
-  state.busy=false;send.disabled=false;field.disabled=false;
-  chips(suggestions(trusted.topic));field.focus();
+  if(isCurrent()){
+   pending?.remove();
+   state.controller=null;
+   state.history.push({role:'assistant',content:state.lastReply.slice(0,900)});
+   state.history=state.history.slice(-8);
+   state.busy=false;send.disabled=false;field.disabled=false;
+   chips(suggestions(trusted.topic));field.focus();
+  }
  }
 }
 function clearChat(){
+ state.requestId++;state.controller?.abort();state.controller=null;
+ state.busy=false;if(send)send.disabled=false;if(field)field.disabled=false;
  state.history=[];state.lastTopic='';state.lastReply='';
  chat.replaceChildren();
  const intro=document.createElement('div');intro.className='aurora-v8-welcome';
@@ -339,7 +372,7 @@ function setup(){
  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','auroraV8Title');
  panel.innerHTML=[
  '<header class="aurora-v8-head"><div class="aurora-v8-orb" aria-hidden="true">✦</div>',
- '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>12.1</em></strong><small>DominionStar • No Family Left Behind</small></div>',
+ '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>12.2</em></strong><small>DominionStar • No Family Left Behind</small></div>',
  '<div class="aurora-v8-headbtns"><button type="button" data-aurora-clear title="New conversation" aria-label="Clear conversation">↺</button><button type="button" data-aurora-wide title="Expand assistant" aria-label="Expand assistant">⤢</button><button type="button" data-aurora-close aria-label="Close assistant">×</button></div></header>',
  '<div class="aurora-v8-mode"><span class="aurora-v8-indicator" role="status">GUIDED KNOWLEDGE</span><div class="aurora-v8-mode-tools"><button type="button" class="aurora-v8-research" hidden aria-pressed="false" title="Search official regulator sources using AI">Search official sources</button><button type="button" class="aurora-v8-switch" hidden aria-pressed="false">Enable AI answers</button></div></div>',
  '<div class="aurora-chat aurora-v8-transcript" role="log" aria-label="Aurora conversation" aria-live="polite"></div>',
@@ -375,7 +408,7 @@ function setup(){
  fetch('/.netlify/functions/aurora-chat',{method:'GET',cache:'no-store'})
 .then(r=>r.ok?r.json():null).then(d=>{state.available=d?.mode==='available';state.webSearchAvailable=!!d?.webSearchAvailable;updateMode()})
  .catch(()=>{state.available=false;updateMode()});
- window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'12.1-preview'};
+ window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'12.2-review'};
 }
 const menu=document.querySelector('.menu-button'),nav=document.querySelector('.main-nav');
 menu?.addEventListener('click',()=>{const open=nav?.classList.toggle('open')||false;menu.setAttribute('aria-expanded',String(open));menu.textContent=open?'×':'☰'});
