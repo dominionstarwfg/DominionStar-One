@@ -19,7 +19,11 @@
   }
 
   function activate(tabName) {
-    tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.memberTab === tabName));
+    tabs.forEach(btn => {
+      const active = btn.dataset.memberTab === tabName;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
     [loginForm, registerForm, resetForm].forEach(form => form.classList.add('member-hidden'));
     document.getElementById(`member${tabName[0].toUpperCase()+tabName.slice(1)}Form`).classList.remove('member-hidden');
     message.className = 'member-message';
@@ -57,8 +61,11 @@
     }
 
     const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
-    const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//')
-      ? requestedNext
+    const parsedNext = new URL(requestedNext || '/member-dashboard/', window.location.origin);
+    const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//') &&
+      !requestedNext.includes('\\') && parsedNext.origin === window.location.origin &&
+      parsedNext.pathname !== '/member-login/'
+      ? parsedNext.pathname + parsedNext.search + parsedNext.hash
       : '/member-dashboard/';
     window.location.href = safeNext;
   });
@@ -101,10 +108,10 @@
     event.preventDefault();
     const email = resetForm.email.value.trim().toLowerCase();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/member-login/`
+      redirectTo: `${window.location.origin}/member-update-password/`
     });
     if (error) return showMessage(error.message, 'error');
-    showMessage('Password reset email sent.', 'success');
+    showMessage('If an account exists for this email, recovery instructions will arrive shortly.', 'success');
     resetForm.reset();
   });
 })();
