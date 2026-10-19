@@ -81,8 +81,6 @@
   const memberNameLarge = document.getElementById('dmMemberNameLarge');
   const memberRole = document.getElementById('dmMemberRole');
   const memberContract = document.getElementById('dmMemberContract');
-  const memberAgentCode = document.getElementById('dmMemberAgentCode');
-  const memberSmd = document.getElementById('dmMemberSmd');
   const memberStatus = document.getElementById('dmMemberStatus');
   const viewProfileLink = document.getElementById('dmViewProfileLink');
   const scheduleMeetingLink = document.getElementById('dmScheduleMeetingLink');
@@ -343,22 +341,23 @@
     return;
   }
 
-  await window.CommunicationEngine?.init({client,session});
+  // Gate 0: fetch a restricted server-curated roster rather than query the
+  // full member_profiles table. Do not fall back to direct profile SELECT.
+  const membersResult = await client.rpc('list_message_contacts');
+  if (membersResult.error || !Array.isArray(membersResult.data)) {
+    console.warn('Message contact directory unavailable.', membersResult.error);
+    gate.textContent = 'Messages are temporarily unavailable. Please return to your dashboard and try again.';
+    return;
+  }
 
-  gate.classList.add('member-hidden');
-  app.classList.remove('member-hidden');
-
-  const membersResult = await client
-    .from('member_profiles')
-    .select('id,full_name,preferred_name,rank,agent_code,smd_name,verification_status,avatar_path')
-    .eq('verification_status','approved')
-    .neq('id',session.user.id)
-    .order('full_name');
-
-  members = (membersResult.data || []).map(member => ({
+  members = membersResult.data.map(member => ({
     ...member,
     display_name: member.preferred_name || member.full_name || 'Member'
   }));
+
+  await window.CommunicationEngine?.init({client,session});
+  gate.classList.add('member-hidden');
+  app.classList.remove('member-hidden');
 
   await Promise.all(members.map(member => resolveAvatar(member)));
 
@@ -432,8 +431,6 @@
     memberNameLarge.textContent = member?.display_name || 'Member details';
     memberRole.textContent = member ? 'Approved DominionStar member' : 'Select a conversation';
     memberContract.textContent = member?.rank || '—';
-    memberAgentCode.textContent = member?.agent_code || '—';
-    memberSmd.textContent = member?.smd_name || '—';
     memberStatus.textContent = member?.verification_status || '—';
     messageCount.textContent = summary?.total || 0;
     unreadCountEl.textContent = summary?.unread || 0;
