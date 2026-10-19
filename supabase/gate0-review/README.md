@@ -223,6 +223,29 @@ cannot safely deploy piecemeal. Pending, approved, blocked, Founder,
 cross-device and malformed-input cases must pass on authorized,
 synthetic staging accounts before any production rollout.
 
+## G0-05 Founder identity trust anchor (review branch only)
+
+- Read-only audit: one approved profile currently has both Founder markers.
+- Database function inventory identified **five** hardcoded-email Founder
+  dependencies; **38** RLS policies across **23** tables reference the
+  existing Founder authorization function.
+- `15_founder_trust_anchor_candidate.sql` proposes a private UUID-based
+  authority root and a new, non-activating v2 helper. NOT APPLIED, NOT SEEDED.
+- Four web clients now use the existing server Founder RPC for UI entry and
+  controls rather than role/email fallbacks (Founder Control, Dashboard,
+  Community, platform bootstrap). REVIEW BRANCH ONLY.
+- `16_founder_cutover_review.md` documents all five function dependencies,
+  lockout-prevention, Founder #1 preservation, test roles, and trusted owner-ID
+  verification before any activation.
+- `16_founder_readonly_inventory.sql` provides aggregate-only dependency
+  and RLS inventory. No personal UIDs or member records are returned.
+
+**No activation migration is ready.** Never swap the current Founder
+function until the exact authorized account is independently verified,
+the protected identity root is safely seeded in isolated staging, and
+all legacy functions and relevant RLS policies are tested together.
+Keep the branch unmerged and production unchanged.
+
 ## Staging authorization regression matrix
 | Actor | Agent directory | Community feed | Send DM | Read someone else's DM | Download someone else's audio | Founder admin |
 |---|---|---|---|---|---|---|
