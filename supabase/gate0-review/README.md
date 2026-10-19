@@ -175,6 +175,28 @@ use cases. See `09_profile_consumer_inventory.md`.
 - **Do not merge the client changes until corresponding reviewed database
   RPCs are installed in an isolated test environment and access works.**
 
+## G0-03 Messages roster data minimization (review branch only)
+
+- `10_message_contacts_rpc_candidate.sql`: approved-agent-only, six-field
+  Messages roster projection. No email, phone, address, agent code, SMD name,
+  Founder flags, notes, or other private profile columns. NOT APPLIED.
+- `assets/js/direct-messages.js`: staged switch from unrestricted profile
+  roster query to `list_message_contacts()`, with fail-closed behavior and
+  rejection of stale/forged deep links or incoming-call IDs.
+- `direct-messages/index.html`: staged removal of Agent Code and SMD details,
+  retaining Contact Level and approved status.
+- `10_message_contacts_privacy_cutover.md`: existing Messages discoverability
+  is preserved for compatibility: all approved agents are still visible to
+  other approved agents independent of directory visibility. A later
+  visibility-aligned or connection-restricted model requires product-owner
+  approval, preservation of past chats, and new server-side RLS safeguards.
+- `tests/gate0-messaging-contacts-static.test.mjs`: staged source checks.
+
+**CRITICAL RELEASE BLOCKER:** old profile-table policy is still permissive,
+and the new roster RPC and current client changes are NOT installed/deployed.
+Do not merge until the full multi-page RLS/privacy cutover and synthetic
+staging tests pass.
+
 ## Staging authorization regression matrix
 | Actor | Agent directory | Community feed | Send DM | Read someone else's DM | Download someone else's audio | Founder admin |
 |---|---|---|---|---|---|---|
