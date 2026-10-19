@@ -61,12 +61,19 @@
     }
 
     const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
-    const parsedNext = new URL(requestedNext || '/member-dashboard/', window.location.origin);
-    const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//') &&
-      !requestedNext.includes('\\') && parsedNext.origin === window.location.origin &&
-      parsedNext.pathname !== '/member-login/'
-      ? parsedNext.pathname + parsedNext.search + parsedNext.hash
-      : '/member-dashboard/';
+    let safeNext = '/member-dashboard/';
+    if (requestedNext.startsWith('/') && !requestedNext.startsWith('//') &&
+        !requestedNext.includes('\\')) {
+      try {
+        const parsedNext = new URL(requestedNext, window.location.origin);
+        if (parsedNext.origin === window.location.origin &&
+            !['/member-login/', '/member-update-password/'].includes(parsedNext.pathname)) {
+          safeNext = parsedNext.pathname + parsedNext.search + parsedNext.hash;
+        }
+      } catch (_error) {
+        // Unparseable or unsafe redirect: keep the standard member dashboard.
+      }
+    }
     window.location.href = safeNext;
   });
 
