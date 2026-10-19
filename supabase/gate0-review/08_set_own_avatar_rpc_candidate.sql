@@ -35,7 +35,7 @@ BEGIN
   END IF;
   IF new_avatar_path IS NULL
      OR length(new_avatar_path) > 256
-     OR new_avatar_path !~ ('^' || auth.uid()::text || '/[A-Za-z0-9._-]+\\.(jpg|jpeg|png|webp)$') THEN
+     OR new_avatar_path !~ ('^' || auth.uid()::text || '/[A-Za-z0-9._-]+[.](jpg|jpeg|png|webp)$') THEN
     RAISE EXCEPTION 'Invalid avatar path' USING ERRCODE='22023';
   END IF;
   IF NOT EXISTS (
