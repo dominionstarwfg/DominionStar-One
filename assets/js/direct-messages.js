@@ -556,10 +556,14 @@
   }
 
   async function openConversation(memberId) {
+    const member = members.find(item => item.id === memberId);
+    if (!member) {
+      setSendStatus('This contact is unavailable. Return to the approved member list.', 'error');
+      return;
+    }
     activeMemberId = memberId;
     window.CommunicationEngine?.setActiveConversation(memberId);
     select.value = memberId;
-    const member = members.find(item => item.id === memberId);
     updateActiveHeader(member);
     renderMembers(search?.value);
     app.classList.add('conversation-open');
