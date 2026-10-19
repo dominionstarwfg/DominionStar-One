@@ -32,7 +32,7 @@ body.login2{margin:0;min-height:100vh;background:#f2f5fa;color:#16304b;font-fami
 .login2-form button[type="submit"]:hover{filter:brightness(1.05)}
 .login2-form button[disabled]{opacity:.65;cursor:wait}
 .login2-form-note{margin:0;color:#677b8f;font-size:11px;line-height:1.7}
-.login2 .member-hidden{display:none!important}
+.login2 .member-hidden,.login2-form[hidden]{display:none!important}
 .login2 .member-message{margin:17px 0 0;padding:0;font-size:12px;line-height:1.5}
 .login2 .member-message.show{padding:11px 13px;border-radius:9px;background:#eef4fb;color:#274d70}
 .login2 .member-message.error{background:#fff0ef;color:#913e39}
