@@ -64,6 +64,8 @@ test('Founder control is no longer granted from email or profile claims alone', 
   assert.doesNotMatch(js, /profile\?\.role === 'founder'/);
   assert.doesNotMatch(js, /profile\?\.is_founder \|\|/);
   assert.match(html, /id="founderControlLink" class="member-hidden"/);
+  assert.match(os, /item\[1\] !== '\/founder-control\/'/);
+  assert.match(os, /founderControlLink/);
 });
 
 test('Notification deep links reject untrusted external and executable URLs', () => {
@@ -85,4 +87,10 @@ test('No new Supabase writes or mock agent counts in Executive OS layout', () =>
   assert.doesNotMatch(html, /id="activityNotifications">[1-9]/);
   assert.match(html, /id="activityMessages">—/);
   assert.match(html, /id="activityNotifications">—/);
+});
+
+test('Dashboard health audit only claims route and interface checks', () => {
+  assert.match(os, /route and interface checks passed/);
+  assert.match(os, /Live feature access is not verified/);
+  assert.doesNotMatch(os, /All member modules passed/);
 });
