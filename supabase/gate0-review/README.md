@@ -154,6 +154,27 @@ remove existing direct-table access for approved profile rows. Do not
 merge these branch changes until the complementary access-control
 migration and integration tests are approved.
 
+## G0-03 dependent client inventory (review branch only)
+
+**The profile privacy cutover is not release-ready.** A full dependency
+inventory uncovered distinct author, roster, own-profile, and Founder
+use cases. See `09_profile_consumer_inventory.md`.
+
+- `07_community_comment_author_rpc_candidate.sql` adds an approved-viewer,
+  visible-comment-only author identity function; publication attribution
+  remains independent of directory opt-out. NOT APPLIED.
+- `assets/js/community-hub.js` now calls that proposed function to resolve
+  comment authors, with no insecure fallback. REVIEW BRANCH ONLY.
+- `08_set_own_avatar_rpc_candidate.sql` adds an own-avatar-path-only update
+  operation that validates a matching uploaded Storage object. NOT APPLIED.
+- `workspace/workspace.js` now calls that proposed operation instead of
+  direct `member_profiles` UPDATE. REVIEW BRANCH ONLY.
+- `tests/gate0-profile-integrations-static.test.mjs` contains source
+  contract checks; real Node and synthetic JWT tests have not run.
+- The DM roster still requests private profile fields; it remains a blocker.
+- **Do not merge the client changes until corresponding reviewed database
+  RPCs are installed in an isolated test environment and access works.**
+
 ## Staging authorization regression matrix
 | Actor | Agent directory | Community feed | Send DM | Read someone else's DM | Download someone else's audio | Founder admin |
 |---|---|---|---|---|---|---|
