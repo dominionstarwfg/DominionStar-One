@@ -75,7 +75,11 @@
   const results = document.getElementById('dsosSearchResults');
   const render = value => {
     const q = String(value || '').trim().toLowerCase();
-    const matches = q ? destinations.filter(x => x.join(' ').toLowerCase().includes(q)) : destinations;
+    const visible = destinations.filter(item =>
+      item[1] !== '/founder-control/' ||
+      !document.getElementById('founderControlLink')?.classList.contains('member-hidden')
+    );
+    const matches = q ? visible.filter(x => x.join(' ').toLowerCase().includes(q)) : visible;
     results.innerHTML = matches.map(x => `<a href="${x[1]}"><strong>${x[0]}</strong><span>${x[2]}</span></a>`).join('') || '<p class="dsos-muted">No result.</p>';
   };
   input?.addEventListener('input', () => render(input.value));
@@ -191,8 +195,8 @@
     const passed = [navigationOk, notificationsOk, auroraOk, settingsOk].filter(Boolean).length;
     if (summary) {
       summary.textContent = passed === 4
-        ? 'All member modules passed.'
-        : `${passed} of 4 member checks passed.`;
+        ? 'All 4 route and interface checks passed. Live feature access is not verified.'
+        : `${passed} of 4 route and interface checks passed. Check individual features separately.`;
     }
 
     if (button) {
