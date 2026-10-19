@@ -78,12 +78,12 @@
   let { data: profile, error: profileError } = await withTimeout(fetchProfile());
 
   const founderLink = document.getElementById('founderControlLink');
-  const founderEmails = ['dominionstarld@gmail.com', 'dominionstarwfg@gmail.com'];
-  if (
-    profile?.is_founder ||
-    profile?.role === 'founder' ||
-    founderEmails.includes(user.email?.toLowerCase())
-  ) {
+  // Display the Founder shortcut only when the database authorizes it.
+  // Client-visible profile flags and email addresses are never sufficient.
+  const founderPermission = profileError
+    ? { data:false, error:profileError }
+    : await supabase.rpc('is_dominionstar_founder');
+  if (!founderPermission.error && founderPermission.data === true) {
     founderLink?.classList.remove('member-hidden');
   }
 
