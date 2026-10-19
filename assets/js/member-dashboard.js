@@ -446,12 +446,14 @@
             .select('id', { count:'exact', head:true })
             .eq('is_active', true)
         ),
-        withTimeout(
-          supabase
-            .from('community_messages')
-            .select('id', { count:'exact', head:true })
-            .eq('is_deleted', false)
-        ),
+        status === 'approved'
+          ? withTimeout(
+              supabase
+                .from('community_messages')
+                .select('id', { count:'exact', head:true })
+                .eq('is_deleted', false)
+            )
+          : Promise.resolve({ data: null, error: null, count: null }),
         withTimeout(
           supabase
             .from('executive_events')
@@ -462,14 +464,25 @@
         )
       ]);
 
+      document.getElementById('activityAnnouncements').textContent =
+        announcements.error ? '—' : (announcements.count ?? 0);
+      document.getElementById('activityMessages').textContent =
+        status !== 'approved' || messages.error ? '—' : (messages.count ?? 0);
+
+      if (notificationsResult.error) {
+        document.getElementById('activityNotifications').textContent = '—';
+        notificationCount?.classList.add('member-hidden');
+        const panelStatus = document.getElementById('notificationPanelStatus');
+        if (panelStatus) panelStatus.textContent = 'Notifications unavailable';
+        notificationList.textContent = 'Notifications could not be loaded. Try again later.';
+        const preview = document.getElementById('dsosNotificationPreview');
+        if (preview) preview.textContent = 'Notifications unavailable.';
+        return;
+      }
+
       const notifications = notificationsResult.data || [];
       const unread = notifications.filter(item => !item.read_at).length;
       window.CommunicationEngine?.setBadge(unread);
-
-      document.getElementById('activityAnnouncements').textContent =
-        announcements.count || 0;
-      document.getElementById('activityMessages').textContent =
-        messages.count || 0;
       document.getElementById('activityNotifications').textContent = unread;
 
       if (unread) {
@@ -506,7 +519,7 @@
         preview.innerHTML = notifications.length
           ? notifications.slice(0, 3).map(item => `
               <a class="dsos-notice ${item.read_at ? '' : 'unread'}"
-                 href="${escapeHtml(item.payload?.action_url || '/notifications/')}">
+                 href="${escapeHtml(safeNotificationHref(item.payload?.action_url))}">
                 <strong>${escapeHtml(item.title || 'Update')}</strong>
                 <span>${escapeHtml(item.description || '')}</span>
               </a>`).join('')
