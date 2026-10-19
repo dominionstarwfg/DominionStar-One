@@ -222,14 +222,16 @@
       ? `Missed ${label} from ${name}`
       : `${name} did not answer your ${label}`;
 
-    try {
-      await client.from('direct_messages').insert({
-        sender_id:direction === 'incoming' ? memberId : session.user.id,
-        recipient_id:direction === 'incoming' ? session.user.id : memberId,
+    // Incoming missed calls must never be forged as if written by the caller.
+    // Keep local notification/toast; dedicated server-authenticated call
+    // history is a separate Gate 0/Meet integration task.
+    if (direction !== 'incoming') {
+      const result = await client.from('direct_messages').insert({
+        sender_id:session.user.id,
+        recipient_id:memberId,
         body:`[call-event]missed|${callType}|${body}`
       });
-    } catch (error) {
-      console.warn('Missed call message could not be stored:', error);
+      if (result.error) console.warn('Missed outgoing call event not saved:', result.error);
     }
 
     await publishCallEvent('call.missed', memberId, callType, 'Missed call', body);
@@ -542,12 +544,12 @@
 
     await loadMessageExtras((result.data || []).map(message => message.id));
     renderMessages(result.data || []);
-    await client
-      .from('direct_messages')
-      .update({read_at:new Date().toISOString()})
-      .eq('sender_id',activeMemberId)
-      .eq('recipient_id',session.user.id)
-      .is('read_at',null);
+    // The server independently verifies that only the recipient may
+    // acknowledge incoming messages; unrestricted row UPDATE is prohibited.
+    const readResult = await client.rpc('dm_mark_read',{
+      target_sender_id:activeMemberId
+    });
+    if (readResult.error) console.warn('Read receipts unavailable.',readResult.error);
 
     await loadConversationSummaries();
     renderMembers(search?.value);
@@ -620,11 +622,12 @@
     if (action === 'edit') {
       const updatedBody = prompt('Edit your message:',selectedMessage.body);
       if (updatedBody && updatedBody.trim() && updatedBody.trim() !== selectedMessage.body) {
-        const result = await client.from('direct_messages')
-          .update({body:updatedBody.trim()})
-          .eq('id',selectedMessage.id)
-          .eq('sender_id',session.user.id);
-        if (result.error) setSendStatus(result.error.message,'error');
+        const result = await client.rpc('dm_edit_own_message',{
+          target_message_id:selectedMessage.id,
+          new_body:updatedBody.trim()
+        });
+        if (result.error || result.data !== true)
+          setSendStatus(result.error?.message || 'Message could not be edited.','error');
         else {
           setSendStatus('Message updated ✓');
           await loadConversation();
@@ -633,11 +636,11 @@
     }
     if (action === 'delete') {
       if (confirm('Delete this message for everyone?')) {
-        const result = await client.from('direct_messages')
-          .update({is_deleted:true})
-          .eq('id',selectedMessage.id)
-          .eq('sender_id',session.user.id);
-        if (result.error) setSendStatus(result.error.message,'error');
+        const result = await client.rpc('dm_soft_delete_own_message',{
+          target_message_id:selectedMessage.id
+        });
+        if (result.error || result.data !== true)
+          setSendStatus(result.error?.message || 'Message could not be deleted.','error');
         else {
           setSendStatus('Message deleted');
           await loadConversation();
