@@ -78,13 +78,13 @@
   let { data: profile, error: profileError } = await withTimeout(fetchProfile());
 
   const founderLink = document.getElementById('founderControlLink');
-  const founderEmails = ['dominionstarld@gmail.com', 'dominionstarwfg@gmail.com'];
-  if (
-    profile?.is_founder ||
-    profile?.role === 'founder' ||
-    founderEmails.includes(user.email?.toLowerCase())
-  ) {
-    founderLink?.classList.remove('member-hidden');
+  // Founder UI discovery must rely on a server-authorized RPC, not email,
+  // or browser-editable profile claims. This does not replace server-side RLS.
+  if (!profileError && profile) {
+    const permission = await supabase.rpc('is_dominionstar_founder');
+    if (!permission.error && permission.data === true) {
+      founderLink?.classList.remove('member-hidden');
+    }
   }
 
   if (profileError || !profile) {
@@ -256,12 +256,18 @@
 
   const approvedContent = document.getElementById('approvedMemberContent');
   const pendingContent = document.getElementById('pendingMemberContent');
+  const socialGateway = document.getElementById('dsosSocialGateway');
+  const communitySection = document.getElementById('dsosCommunitySection');
   if (status === 'approved') {
+    socialGateway?.classList.remove('member-hidden');
+    communitySection?.classList.remove('member-hidden');
     approvedContent?.classList.remove('member-hidden');
     pendingContent?.classList.add('member-hidden');
   } else {
     approvedContent?.classList.add('member-hidden');
     pendingContent?.classList.remove('member-hidden');
+    socialGateway?.classList.add('member-hidden');
+    communitySection?.classList.add('member-hidden');
   }
 
   const greetingHour = new Date().getHours();
@@ -411,6 +417,21 @@
     }
   }
 
+  // Never trust a notification payload URL as an href without same-origin checks.
+  const safeNotificationHref = candidate => {
+    if (typeof candidate !== 'string' ||
+        !candidate.startsWith('/') || candidate.startsWith('//') ||
+        candidate.includes('\\')) return '/notifications/';
+    try {
+      const parsed = new URL(candidate, window.location.origin);
+      return parsed.origin === window.location.origin
+        ? parsed.pathname + parsed.search + parsed.hash
+        : '/notifications/';
+    } catch (_error) {
+      return '/notifications/';
+    }
+  };
+
   const notificationBell = document.getElementById('notificationBell');
   const notificationPanel = document.getElementById('notificationPanel');
   const notificationCount = document.getElementById('notificationCount');
@@ -465,7 +486,7 @@
 
       notificationList.innerHTML = notifications.length
         ? notifications.map(item => {
-            const destination = item.payload?.action_url || '/notifications/';
+            const destination = safeNotificationHref(item.payload?.action_url);
             return `
               <a class="notification-item ${item.read_at ? 'read' : 'unread'}"
                  href="${escapeHtml(destination)}"
@@ -556,7 +577,7 @@
   await Promise.allSettled([
     loadAnnouncements(),
     loadDashboardAppointments(),
-    loadDashboardCommunity(),
+    status === 'approved' ? loadDashboardCommunity() : Promise.resolve(),
     loadExecutiveActivity()
   ]);
 
