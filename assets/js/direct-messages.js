@@ -323,6 +323,26 @@
     location.href = '/member-login/';
     return;
   }
+
+  // Gate 0: an authenticated account is not automatically an approved agent.
+  // This prevents pending/suspended users from mounting the messaging client.
+  // Database RLS/storage policies must independently enforce these permissions.
+  let approvedAgent = false;
+  try {
+    const approval = await client
+      .from('member_profiles')
+      .select('verification_status')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    approvedAgent = !approval.error && approval.data?.verification_status === 'approved';
+  } catch (error) {
+    console.warn('Could not verify member approval for Messages.', error);
+  }
+  if (!approvedAgent) {
+    gate.textContent = 'Messages require an approved DominionStar agent account. If your account is awaiting approval, please return to your dashboard.';
+    return;
+  }
+
   await window.CommunicationEngine?.init({client,session});
 
   gate.classList.add('member-hidden');
