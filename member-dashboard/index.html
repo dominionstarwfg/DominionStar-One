@@ -4,22 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>DominionStar OS</title>
+<title>DominionStar Executive OS 2030 | Member Dashboard</title>
 <link rel="stylesheet" href="/styles.css?v=9.0-executive-3.2-build001">
+<link rel="stylesheet" href="/assets/css/member-dashboard-executive-2030.css?v=review-1">
 <link rel="icon" href="/assets/logo.jpeg">
 <script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e-os-build1.7"></script>
 <script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e-os-build1.7"></script>
 </head>
-<body class="dsos-body">
+<body class="dsos-body dsos-executive-2030">
 <div class="dsos-shell">
   <aside id="dsosSidebar" class="dsos-sidebar">
     <a class="dsos-brand" href="/member-dashboard/">
       <img src="/assets/logo.jpeg" alt="DominionStar">
-      <span><strong>DominionStar</strong><small>Executive OS</small></span>
+      <span><strong>DominionStar</strong><small>Executive OS 2030</small></span>
     </a>
 
     <nav class="dsos-nav" aria-label="Main navigation">
-      <small>Agent Dashboard</small>
+      <small>Executive workspace</small>
       <a class="active" href="/member-dashboard/"><b>⌂</b><span>Dashboard</span></a>
       <a href="/direct-messages/"><b>✉</b><span>Messages</span></a>
       <a href="/workspace/"><b>▦</b><span>Workspace</span></a>
@@ -52,8 +53,8 @@
       <div class="dsos-top-left">
         <button id="dsosMenu" type="button" aria-label="Open navigation">☰</button>
         <div>
-          <small id="memberGreeting">Welcome</small>
-          <strong id="memberName">Member</strong>
+          <small>DominionStar Leadership Development</small>
+          <strong>Executive Dashboard</strong>
         </div>
       </div>
       <div class="dsos-top-actions">
@@ -70,13 +71,14 @@
     <div class="dsos-page">
       <section class="dsos-briefing">
         <div class="dsos-briefing-copy">
-          <p class="eyebrow">Executive briefing</p>
-          <h1><span id="heroGreeting">Good evening</span>, <span id="heroMemberName">Member</span>.</h1>
-          <p>Your priorities, communication, and professional development are organized here.</p>
+          <p class="eyebrow">DominionStar · Built for leadership</p>
+          <p class="dsos-personal-greeting"><span id="memberGreeting">Welcome</span> · <span id="heroGreeting">Good evening</span>, <span id="heroMemberName">Member</span></p>
+          <h1>Own the day. <span>Build the future.</span></h1>
+          <p>A unified home for meaningful conversations, professional progress, and the people you're developing.</p>
           <div class="dsos-briefing-actions">
-            <a class="btn btn-gold" href="/journey/">Resume Journey</a>
+            <a class="btn btn-gold" href="/journey/">Continue your journey</a>
             <a class="btn btn-outline" href="/direct-messages/">Open Messages</a>
-            <a class="btn btn-outline" href="/workspace/">Open Workspace</a>
+            <a class="btn btn-outline" href="/community/">Explore community</a>
           </div>
         </div>
         <div class="dsos-progress dsos-journey-center">
@@ -131,11 +133,27 @@
             </div>
           </article>
 
-          <section class="dsos-metrics">
-            <article><strong id="activityAnnouncements">0</strong><span>Announcements</span><a href="/community/">Review</a></article>
-            <article><strong id="activityMessages">0</strong><span>Community updates</span><a href="/community/">Open</a></article>
-            <article><strong id="activityNotifications">0</strong><span>Unread notifications</span><button id="openNotificationsMetric" type="button" aria-label="View notifications">View</button></article>
-            <article><strong id="memberRank">—</strong><span>Contract level</span><a href="/professional-profile/">Profile</a></article>
+          <section class="dsos-metrics" aria-label="Your professional overview">
+            <article><div class="dsos-metric-heading"><span>Announcements</span><span aria-hidden="true">✦</span></div><strong id="activityAnnouncements">—</strong><a href="/community/">Review updates ↗</a></article>
+            <article><div class="dsos-metric-heading"><span>Community updates</span><span aria-hidden="true">◎</span></div><strong id="activityMessages">—</strong><a href="/community/">Explore community ↗</a></article>
+            <article><div class="dsos-metric-heading"><span>Unread notifications</span><span aria-hidden="true">✉</span></div><strong id="activityNotifications">—</strong><button id="openNotificationsMetric" type="button" aria-label="View notifications">View updates ↗</button></article>
+            <article><div class="dsos-metric-heading"><span>Contract level</span><span aria-hidden="true">◆</span></div><strong id="memberRank">—</strong><a href="/professional-profile/">Your profile ↗</a></article>
+          </section>
+
+          <section id="dsosSocialGateway" class="dsos-social-gateway member-hidden" aria-label="Community actions">
+            <div class="dsos-social-avatar" aria-hidden="true">✦</div>
+            <p>Have a milestone, question, or recognition to share?</p>
+            <a href="/community/">Open the community feed ↗</a>
+          </section>
+
+          <section id="dsosCommunitySection" class="member-panel dsos-feed-panel member-hidden" aria-labelledby="dsosCommunityHeading">
+            <div class="dashboard-section-heading">
+              <div><p class="eyebrow">Community &amp; leadership</p><h2 id="dsosCommunityHeading">From your professional network</h2></div>
+              <a class="text-link" href="/community/">Explore Community ↗</a>
+            </div>
+            <div id="dashboardCommunityPreview" class="dashboard-data-state" aria-live="polite">
+              <p class="dsos-muted">Loading professional updates…</p>
+            </div>
           </section>
 
           <section class="member-panel dsos-live-timeline">
@@ -157,14 +175,13 @@
               </div>
             </article>
 
-            <article class="member-panel">
+            <article class="member-panel dsos-learning-card">
               <div class="dashboard-section-heading">
-                <div><p class="eyebrow">Community</p><h2>Community Pulse</h2></div>
-                <a class="text-link" href="/community/">Open →</a>
+                <div><p class="eyebrow">Featured learning</p><h2>Build your next skill</h2></div>
+                <a class="text-link" href="/academy/">Open Academy ↗</a>
               </div>
-              <div id="dashboardCommunityPreview" class="dashboard-data-state">
-                <div class="skeleton-line wide"></div><div class="skeleton-line"></div>
-              </div>
+              <p>Explore professional development, mentorship, and training as you grow your practice.</p>
+              <div class="dsos-learning-links"><a href="/academy/">Academy →</a><a href="/mentorship/">Mentorship →</a></div>
             </article>
           </section>
 
@@ -250,14 +267,14 @@
               <div><span>Aurora</span><strong id="statusAurora">Ready</strong></div>
               <div><span>Settings</span><strong id="statusSettings">Ready</strong></div>
             </div>
-            <p id="memberAuditSummary" class="dsos-muted">All member modules are available.</p>
+            <p id="memberAuditSummary" class="dsos-muted">Run a check to review module readiness.</p>
           </article>
 
           <article class="dsos-rail-card">
             <p class="eyebrow">Account health</p>
             <h2>Settings status</h2>
             <div class="dsos-account-health">
-              <div><span>Profile</span><strong>Connected</strong></div>
+              <div><span>Profile</span><a href="/professional-profile/">Review profile</a></div>
               <div><span>Security</span><a href="/account-settings/">Review</a></div>
               <div><span>Notifications</span><a href="/account-settings/">Manage</a></div>
             </div>
