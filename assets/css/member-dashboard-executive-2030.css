@@ -1,0 +1,331 @@
+/* DominionStar Executive OS 2030
+   Approved Balanced Executive visual direction.
+   REVIEW BRANCH ONLY — overlaid on existing authenticated dashboard.
+   No synthetic data, auth bypass, or database access added here.
+*/
+.dsos-body.dsos-executive-2030{
+  --ds-bg:#f3f6fa;
+  --ds-surface:#fff;
+  --ds-surface-2:#f8fafc;
+  --ds-border:#e0e7f0;
+  --ds-text:#172c44;
+  --ds-muted:#718297;
+  --ds-gold:#c7a06a;
+  --ds-blue:#315c88;
+  background:#f3f6fa;
+  color:#172c44;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  line-height:1.55;
+}
+.dsos-executive-2030 .dsos-shell{grid-template-columns:240px minmax(0,1fr)}
+.dsos-executive-2030 .dsos-sidebar{
+  width:240px;
+  padding:23px 15px;
+  border-right:1px solid #132f52;
+  background:linear-gradient(180deg,#102b4c 0%,#07172d 100%);
+  box-shadow:6px 0 24px rgba(18,45,79,.045);
+}
+.dsos-executive-2030 .dsos-brand{padding:3px 9px 23px;color:#fff}
+.dsos-executive-2030 .dsos-brand img{border-radius:11px;border:1px solid #ffffff4d}
+.dsos-executive-2030 .dsos-brand strong{font-size:14px;letter-spacing:.025em}
+.dsos-executive-2030 .dsos-brand small{color:#aac1db;letter-spacing:.12em}
+.dsos-executive-2030 .dsos-nav{gap:4px}
+.dsos-executive-2030 .dsos-nav>small{color:#8fa9c4;letter-spacing:.17em}
+.dsos-executive-2030 .dsos-nav a,
+.dsos-executive-2030 .dsos-nav-button{color:#cfdaea;font-weight:650;font-size:13px}
+.dsos-executive-2030 .dsos-nav a b,
+.dsos-executive-2030 .dsos-nav-button b{color:#a3bad3}
+.dsos-executive-2030 .dsos-nav a:hover,
+.dsos-executive-2030 .dsos-nav a.active,
+.dsos-executive-2030 .dsos-nav-button:hover{
+  background:rgba(255,255,255,.11);color:#fff
+}
+.dsos-executive-2030 .dsos-nav a.active{box-shadow:inset 3px 0 #dfbf87}
+.dsos-executive-2030 .dsos-side-footer button{background:#ffffff10;border-color:#ffffff27}
+.dsos-executive-2030 .dsos-side-footer button small{color:#a6bbd1}
+.dsos-executive-2030 .dsos-topbar{
+  min-height:82px;
+  padding:16px clamp(16px,2.3vw,32px);
+  background:rgba(255,255,255,.97);
+  border-bottom:1px solid #e1e8f0;
+  backdrop-filter:blur(15px);
+  color:#18334f
+}
+.dsos-executive-2030 .dsos-top-left small{
+  color:#8293a6;font-size:10px;font-weight:750;
+  letter-spacing:.11em;text-transform:uppercase
+}
+.dsos-executive-2030 .dsos-top-left strong{font-size:19px;letter-spacing:-.035em}
+.dsos-executive-2030 .dsos-top-actions>button{
+  border:1px solid #dce5ed;background:#fff;border-radius:12px;
+  color:#284a6b
+}
+.dsos-executive-2030 .dsos-profile-chip{
+  border:1px solid #e2e9f0;background:#fbfcfe;
+  border-radius:13px;padding:5px 10px 5px 5px
+}
+.dsos-executive-2030 .dsos-profile-chip img{border-color:#ddc9a4;border-radius:11px}
+.dsos-executive-2030 .dsos-profile-chip small{color:#8392a5}
+.dsos-executive-2030 .dsos-presence-control{
+  background:#f8fafc;border:1px solid #e1e7ee;border-radius:999px
+}
+.dsos-executive-2030 .dsos-presence-control select{color:#344d68}
+.dsos-executive-2030 .dsos-page{
+  max-width:1540px;margin:0 auto;padding:26px clamp(16px,2.3vw,32px) 65px
+}
+.dsos-executive-2030 .dsos-briefing{
+  position:relative;overflow:hidden;
+  grid-template-columns:minmax(0,1fr) minmax(225px,320px);
+  gap:27px;min-height:270px;padding:31px 33px;
+  border:1px solid #153d6b;
+  border-radius:22px;
+  box-shadow:0 14px 35px #17365318;
+  background:radial-gradient(circle at 87% 19%,#2c5683 0,transparent 34%),linear-gradient(116deg,#081b32 5%,#153d69 100%);
+  color:#fff
+}
+.dsos-executive-2030 .dsos-briefing:after{
+  content:"";position:absolute;right:-105px;top:-165px;
+  width:400px;height:400px;border:1px solid #e8cc8c2a;border-radius:50%;
+  box-shadow:0 0 0 55px #ffffff09,0 0 0 115px #ffffff05;pointer-events:none
+}
+.dsos-executive-2030 .dsos-briefing-copy,
+.dsos-executive-2030 .dsos-progress{position:relative;z-index:1}
+.dsos-executive-2030 .dsos-briefing .eyebrow{
+  color:#e4c38b;font-size:10px;letter-spacing:.18em
+}
+.dsos-executive-2030 .dsos-personal-greeting{
+  color:#c9d9ea!important;font-size:12px;letter-spacing:.02em;margin:11px 0 4px!important
+}
+.dsos-executive-2030 .dsos-briefing h1{
+  font:700 clamp(29px,3vw,43px)/1.13 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  letter-spacing:-.055em;color:#fff;margin:10px 0 11px
+}
+.dsos-executive-2030 .dsos-briefing h1 span{color:#e8c996}
+.dsos-executive-2030 .dsos-briefing-copy>p:not(.eyebrow){
+  color:#ccdaeb;max-width:560px;line-height:1.68
+}
+.dsos-executive-2030 .dsos-briefing-actions{margin-top:21px}
+.dsos-executive-2030 .dsos-briefing-actions .btn{
+  border-radius:10px;padding:11px 16px;font-size:12px
+}
+.dsos-executive-2030 .dsos-briefing-actions .btn-gold{
+  color:#193149;background:linear-gradient(125deg,#ebd29f,#d2aa71);
+  box-shadow:none
+}
+.dsos-executive-2030 .dsos-briefing-actions .btn-outline{
+  color:#fff;background:#ffffff12;border:1px solid #ffffff5c
+}
+.dsos-executive-2030 .dsos-progress{
+  width:100%;height:auto;min-height:200px;align-self:stretch;justify-self:stretch;
+  border:1px solid #ffffff25;border-radius:15px;padding:18px;
+  display:grid;place-items:stretch;align-content:start;gap:9px;
+  background:#071c3380
+}
+.dsos-executive-2030 .dsos-progress-heading span{color:#b9cce2;font-size:10px}
+.dsos-executive-2030 .dsos-progress-heading strong{
+  color:#e7c589;font:700 32px Inter,Arial,sans-serif
+}
+.dsos-executive-2030 .dsos-progress>small{
+  text-align:left;color:#becde0;text-transform:none;letter-spacing:0
+}
+.dsos-executive-2030 .dsos-journey-mission,
+.dsos-executive-2030 .dsos-journey-reward{
+  border-color:#ffffff20;background:#ffffff07;padding:10px 12px
+}
+.dsos-executive-2030 .dsos-journey-mission>strong,
+.dsos-executive-2030 .dsos-journey-reward>strong{color:#fff}
+.dsos-executive-2030 .dsos-progress .btn-gold{
+  border-radius:9px;background:#d9b983;box-shadow:none;color:#152b42;font-size:11px
+}
+.dsos-executive-2030 .dsos-layout{
+  margin-top:18px;
+  grid-template-columns:minmax(0,1.75fr) minmax(285px,1fr);
+  gap:17px
+}
+.dsos-executive-2030 .dsos-primary,
+.dsos-executive-2030 .dsos-rail{gap:16px}
+.dsos-executive-2030 .dsos-profile-card,
+.dsos-executive-2030 .dsos-metrics article,
+.dsos-executive-2030 .dsos-primary>.member-panel,
+.dsos-executive-2030 .dsos-two-column>.member-panel,
+.dsos-executive-2030 .dsos-rail-card{
+  border:1px solid #e0e7ee;border-radius:17px;
+  background:#fff;box-shadow:0 8px 28px #152f4b0a;
+  color:#1b334e
+}
+.dsos-executive-2030 .dsos-profile-card{padding:19px;grid-template-columns:minmax(0,1fr) auto}
+.dsos-executive-2030 .dsos-avatar-wrap img{border-color:#dac39a}
+.dsos-executive-2030 .dsos-profile-card h2{
+  color:#172e49;
+  font:700 clamp(20px,2.1vw,27px)/1.2 Inter,Arial,sans-serif;
+  letter-spacing:-.04em
+}
+.dsos-executive-2030 .dsos-meta span{
+  color:#526b84;border:1px solid #e0e7f0;background:#f6f9fc;
+  border-radius:8px;font-size:10px
+}
+.dsos-executive-2030 .dsos-profile-badges{grid-column:1/-1}
+.dsos-executive-2030 .dsos-profile-actions{grid-column:1/-1}
+.dsos-executive-2030 .dsos-profile-actions .btn,
+.dsos-executive-2030 .dsos-primary .btn-outline{
+  border:1px solid #d3e0ec;background:#f6f9fd;color:#305b84;
+  border-radius:9px;font-size:12px;box-shadow:none
+}
+.dsos-executive-2030 .dsos-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.dsos-executive-2030 .dsos-metrics article{padding:17px}
+.dsos-executive-2030 .dsos-metric-heading{
+  display:flex;align-items:start;justify-content:space-between;
+  gap:7px;margin-bottom:12px
+}
+.dsos-executive-2030 .dsos-metric-heading span:first-child{
+  color:#718499;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase
+}
+.dsos-executive-2030 .dsos-metric-heading span:last-child{
+  color:#426a93;background:#edf4fa;padding:4px 8px;border-radius:9px
+}
+.dsos-executive-2030 .dsos-metrics strong{
+  color:#193653;font:760 clamp(22px,2.3vw,32px) Inter,Arial,sans-serif;min-height:36px
+}
+.dsos-executive-2030 .dsos-metrics a,
+.dsos-executive-2030 .dsos-metrics button{
+  color:#2b5c89;font-size:11px;font-weight:750
+}
+.dsos-executive-2030 .dsos-social-gateway{
+  display:flex;align-items:center;gap:12px;padding:15px 17px;
+  background:#fff;border:1px solid #e0e7ee;border-radius:15px;
+  box-shadow:0 8px 28px #152f4b09
+}
+.dsos-executive-2030 .dsos-social-gateway.member-hidden,
+.dsos-executive-2030 .dsos-feed-panel.member-hidden{display:none!important}
+.dsos-executive-2030 .dsos-social-avatar{
+  width:43px;height:43px;flex:none;display:grid;place-items:center;
+  border-radius:50%;background:#eaf1f9;color:#456e96;font-size:20px
+}
+.dsos-executive-2030 .dsos-social-gateway p{
+  flex:1;margin:0;color:#76889c;font-size:12px
+}
+.dsos-executive-2030 .dsos-social-gateway a{
+  display:block;padding:9px 11px;border-radius:10px;
+  text-decoration:none;background:#eff4fa;color:#315b82;
+  font-size:11px;font-weight:800
+}
+.dsos-executive-2030 .dsos-feed-panel{padding:20px}
+.dsos-executive-2030 .dsos-feed-panel h2,
+.dsos-executive-2030 .dsos-primary .member-panel h2,
+.dsos-executive-2030 .dsos-rail-card h2{
+  color:#1c3651;font:750 17px/1.35 Inter,Arial,sans-serif;
+  letter-spacing:-.02em
+}
+.dsos-executive-2030 .dsos-primary .eyebrow,
+.dsos-executive-2030 .dsos-rail-card .eyebrow{
+  color:#9a7c4d;letter-spacing:.15em;font-size:10px
+}
+.dsos-executive-2030 .dashboard-section-heading{align-items:center}
+.dsos-executive-2030 .dashboard-section-heading .text-link{color:#2b5b83;font-size:11px}
+.dsos-executive-2030 .dashboard-community-preview-item{
+  background:#f9fbfe;border:1px solid #e7edf3;border-radius:11px;
+  padding:13px 15px;margin-bottom:9px;color:#1c3652;text-decoration:none
+}
+.dsos-executive-2030 .dashboard-community-preview-item span{
+  color:#466e97;background:#e8f0f8;border-radius:7px;padding:4px 8px
+}
+.dsos-executive-2030 .dashboard-community-preview-item strong{color:#203b56}
+.dsos-executive-2030 .dashboard-community-preview-item small{color:#71859b}
+.dsos-executive-2030 .dsos-timeline-item{
+  border-bottom-color:#e8eef4;color:#1d3650
+}
+.dsos-executive-2030 .dsos-timeline-item>span{
+  background:#edf3fa;color:#416d99
+}
+.dsos-executive-2030 .dsos-timeline-item p,
+.dsos-executive-2030 .dsos-timeline-item small{color:#71849b}
+.dsos-executive-2030 .dashboard-empty-compact,
+.dsos-executive-2030 .dashboard-appointment-preview{
+  border:1px solid #dfe7ef;background:#f8fafc;color:#31506e
+}
+.dsos-executive-2030 .dsos-learning-card>p{color:#718298;font-size:13px;line-height:1.7}
+.dsos-executive-2030 .dsos-learning-links{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}
+.dsos-executive-2030 .dsos-learning-links a{
+  text-decoration:none;padding:9px 12px;border-radius:9px;
+  background:#edf3f9;color:#2a5985;font-weight:750;font-size:11px
+}
+.dsos-executive-2030 .dsos-resource-grid a{
+  background:#f8fafc;border-color:#e5ebf1;color:#294660
+}
+.dsos-executive-2030 .dsos-resource-grid span{color:#687d92}
+.dsos-executive-2030 .dsos-feedback label,
+.dsos-executive-2030 .dsos-rail-card,
+.dsos-executive-2030 .dsos-rail-card a{color:#29445e}
+.dsos-executive-2030 .dsos-feedback select,
+.dsos-executive-2030 .dsos-feedback textarea{
+  background:#f8fafc;color:#183650;border:1px solid #d5e1ec
+}
+.dsos-executive-2030 .dsos-rail-card{padding:19px}
+.dsos-executive-2030 .dsos-rail-head button,
+.dsos-executive-2030 .dsos-account-health a{color:#2b5b88}
+.dsos-executive-2030 .dsos-quick-actions a{
+  border-bottom:1px solid #edf1f5;color:#30516e
+}
+.dsos-executive-2030 .dsos-status-list>div,
+.dsos-executive-2030 .dsos-account-health>div{
+  border-bottom:1px solid #e9eef3
+}
+.dsos-executive-2030 .dsos-status-list span,
+.dsos-executive-2030 .dsos-account-health span{color:#74869a}
+.dsos-executive-2030 .dsos-status-list strong{color:#3b765a}
+.dsos-executive-2030 .dsos-ai-card{
+  background:radial-gradient(circle at 95% 0,#edf2fb,transparent 47%),#fff
+}
+.dsos-executive-2030 .dsos-ai-card .btn-gold{
+  background:#173e68;color:#fff;border:0;border-radius:10px;box-shadow:none
+}
+.dsos-executive-2030 .dsos-muted{color:#71859a}
+.dsos-executive-2030 .dsos-sidebar .dsos-nav a,
+.dsos-executive-2030 .dsos-sidebar button{color:#e1e9f3}
+.dsos-executive-2030 .dsos-sidebar .dsos-side-footer small{color:#aac0d9}
+.dsos-executive-2030 a:focus-visible,
+.dsos-executive-2030 button:focus-visible,
+.dsos-executive-2030 select:focus-visible,
+.dsos-executive-2030 input:focus-visible,
+.dsos-executive-2030 textarea:focus-visible{
+  outline:3px solid #d4ac6a!important;outline-offset:3px!important
+}
+@media(max-width:1220px){
+  .dsos-executive-2030 .dsos-layout{grid-template-columns:1fr}
+  .dsos-executive-2030 .dsos-rail{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  .dsos-executive-2030 .dsos-shell{grid-template-columns:1fr}
+  .dsos-executive-2030 .dsos-sidebar{transform:translateX(-105%)}
+  .dsos-executive-2030 .dsos-sidebar.open{transform:none}
+  .dsos-executive-2030 .dsos-main{grid-column:1}
+  .dsos-executive-2030 .dsos-top-left>button{
+    color:#254d75;border-color:#dce6ef;background:#fff
+  }
+}
+@media(max-width:730px){
+  .dsos-executive-2030 .dsos-briefing{
+    grid-template-columns:1fr;padding:25px 20px
+  }
+  .dsos-executive-2030 .dsos-progress{
+    display:grid;width:100%;min-height:0;justify-self:stretch
+  }
+  .dsos-executive-2030 .dsos-rail{grid-template-columns:1fr}
+  .dsos-executive-2030 .dsos-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dsos-executive-2030 .dsos-profile-card{grid-template-columns:1fr}
+  .dsos-executive-2030 .dsos-social-gateway{flex-wrap:wrap}
+  .dsos-executive-2030 .dsos-social-gateway a{margin-left:55px}
+}
+@media(max-width:460px){
+  .dsos-executive-2030 .dsos-topbar{min-height:66px;padding:10px 12px}
+  .dsos-executive-2030 .dsos-top-left strong{font-size:15px}
+  .dsos-executive-2030 .dsos-top-actions{gap:5px}
+  .dsos-executive-2030 .dsos-presence-control{max-width:100px;overflow:hidden}
+  .dsos-executive-2030 .dsos-profile-chip{padding:2px}
+  .dsos-executive-2030 .dsos-metrics{grid-template-columns:1fr}
+  .dsos-executive-2030 .dsos-social-gateway a{margin-left:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .dsos-executive-2030 *, .dsos-executive-2030 *:before,
+  .dsos-executive-2030 *:after{scroll-behavior:auto!important;transition:none!important}
+}
