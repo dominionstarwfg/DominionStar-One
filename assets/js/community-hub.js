@@ -86,10 +86,11 @@
     const ids=[...new Set(userIds.filter(Boolean))];
     if (!ids.length) return {};
 
-    const result=await supabase
-      .from('member_profiles')
-      .select('id,full_name,preferred_name,rank,exclusive_member_number,avatar_path')
-      .in('id',ids);
+    // Gate 0: resolve identities only for authors of visible comments.
+    // Publication attribution and opt-out from the agent directory are separate.
+    const result=await supabase.rpc('list_community_comment_authors',{
+      target_author_ids:ids
+    });
 
     if (result.error) throw result.error;
     return Object.fromEntries((result.data||[]).map(item=>[item.id,item]));
