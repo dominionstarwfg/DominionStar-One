@@ -131,6 +131,29 @@ directly inside message bodies.
 - Future implementation of the v2 protocol is blocked pending synthetic
   staging tests and explicit production approval.
 
+## G0-03 member-directory privacy review (not deployed)
+
+Observed production RLS allows any authenticated user, including pending,
+to read approved profiles opted into the directory, with the entire
+`member_profiles` row potentially accessible. RLS does not mask columns.
+
+- `06_member_directory_rpc_candidate.sql`: additive, tightly scoped
+  SECURITY DEFINER directory RPC, available only to approved agents;
+  eight permitted fields, with email, agent code, address, phone,
+  account notes and administrative fields excluded. NOT APPLIED.
+- `assets/js/member-directory.js`: review-branch-only change to call
+  the proposed RPC and remove agent codes from directory search.
+- `06_profile_privacy_cutover.md`: dependency inventory and required
+  second-stage removal of the old permissive SELECT policy after
+  all other non-owner consumers are migrated.
+- `tests/gate0-directory-static.test.mjs`: source contract tests;
+  staging-JWT and real RPC tests are still mandatory.
+
+**Gate remains OPEN:** the additive RPC and changed directory UI do NOT
+remove existing direct-table access for approved profile rows. Do not
+merge these branch changes until the complementary access-control
+migration and integration tests are approved.
+
 ## Staging authorization regression matrix
 | Actor | Agent directory | Community feed | Send DM | Read someone else's DM | Download someone else's audio | Founder admin |
 |---|---|---|---|---|---|---|
