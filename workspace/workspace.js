@@ -74,7 +74,7 @@ form?.addEventListener('submit',async e=>{
   const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg'; const newPath=`${profileState.session.user.id}/workspace-${Date.now()}.${ext}`; const previous=profileState.avatarPath;
   try{
     const uploaded=await profileState.client.storage.from('member-avatars').upload(newPath,file,{contentType:file.type,cacheControl:'3600',upsert:false}); if(uploaded.error)throw uploaded.error;
-    const updated=await profileState.client.from('member_profiles').update({avatar_path:newPath,updated_at:new Date().toISOString()}).eq('id',profileState.session.user.id); if(updated.error){await profileState.client.storage.from('member-avatars').remove([newPath]).catch(()=>{});throw updated.error}
+    const updated=await profileState.client.rpc('set_own_avatar_path',{new_avatar_path:newPath}); if(updated.error){await profileState.client.storage.from('member-avatars').remove([newPath]).catch(()=>{});throw updated.error}
     profileState.avatarPath=newPath; profileState.avatarUrl=await resolveAvatar(newPath); setAvatar(profileState.avatarUrl);
     if(previous&&previous!==newPath)profileState.client.storage.from('member-avatars').remove([previous]).catch(()=>{});
     if(profileState.previewUrl){URL.revokeObjectURL(profileState.previewUrl);profileState.previewUrl=''} fileInput.value=''; setStatus('Profile picture updated.','success');showToast('Profile picture updated');setTimeout(()=>{if(dialog.open)dialog.close()},700);
