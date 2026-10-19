@@ -60,8 +60,9 @@
   await supabase.rpc('ensure_member_profile');
 
   const permission = await supabase.rpc('is_dominionstar_founder');
-  const founderAllowed = permission.data === true
-    || ['dominionstarld@gmail.com','dominionstarwfg@gmail.com'].includes(session.user.email?.toLowerCase());
+  // Founder access is determined exclusively by the server RPC;
+  // session emails and editable profile flags are not authorization.
+  const founderAllowed = !permission.error && permission.data === true;
 
   if (!founderAllowed) {
     show(gate, 'Founder access has not been enabled for this account.', 'error');
@@ -414,9 +415,11 @@
     });
 
     memberRows.innerHTML = filtered.length ? filtered.map(member => {
-      const lockedFounder = member.role === 'founder'
-        || member.is_founder
-        || ['dominionstarld@gmail.com','dominionstarwfg@gmail.com'].includes(member.email?.toLowerCase());
+      // Prevent accidental self-demotion in the interface. The database
+      // must separately enforce trusted Founder identity immutability.
+      const lockedFounder = member.id === session.user.id
+        || member.role === 'founder'
+        || member.is_founder === true;
 
       return `
       <tr data-id="${member.id}">
