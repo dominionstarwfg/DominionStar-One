@@ -10,7 +10,9 @@
   gate.classList.add('member-hidden');app.classList.remove('member-hidden');
   async function load(){
     const [m,p]=await Promise.all([
-      client.from('member_profiles').select('id,full_name,preferred_name,rank,agent_code,city,state,avatar_path,exclusive_member_number').eq('verification_status','approved').order('full_name'),
+      // Gate 0: only approved, opted-in directory fields are returned by this
+      // review-only RPC. No direct full-profile reads and no unsafe fallback.
+      client.rpc('list_directory_members'),
       client.from('community_presence').select('user_id,is_online,last_seen_at')
     ]);
     if(m.error){grid.innerHTML=`<p>${esc(m.error.message)}</p>`;return;}
@@ -20,7 +22,7 @@
   async function render(){
     const q=document.getElementById('directorySearch').value.trim().toLowerCase();
     const rank=document.getElementById('directoryRank').value;
-    const filtered=members.filter(m=>{const hay=[m.full_name,m.preferred_name,m.rank,m.agent_code,m.city,m.state].filter(Boolean).join(' ').toLowerCase();return(!q||hay.includes(q))&&(!rank||m.rank===rank);});
+    const filtered=members.filter(m=>{const hay=[m.full_name,m.preferred_name,m.rank,m.city,m.state].filter(Boolean).join(' ').toLowerCase();return(!q||hay.includes(q))&&(!rank||m.rank===rank);});
     const cards=await Promise.all(filtered.map(async m=>{
       const pic=await avatar(m.avatar_path);const active=presence[m.id]&&Date.now()-new Date(presence[m.id].last_seen_at).getTime()<120000;
       return `<article class="member-directory-card">
