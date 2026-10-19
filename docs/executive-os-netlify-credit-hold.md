@@ -30,8 +30,9 @@
 5. Replace client-email and profile-claim Founder link checks with is_dominionstar_founder RPC and fail closed when that RPC is denied.
 6. Constrain notification action links to same-origin paths in both full drawer and compact preview.
 7. Preserve '—' for unavailable metrics instead of suggesting a failed request returned zero; label 'Community messages' to match the community_messages table.
-8. Add review-branch-only regression tests: node --test tests/executive-dashboard-2030-review.test.mjs.
-9. Statically verify retention of all prior dashboard DOM IDs and successful JS syntax compilation in a JavaScript evaluator. **Node tests and real browser/data integration remain unexecuted.**
+8. Hide the Founder command route from ordinary-member quick search, and describe the module checker as route/interface checks rather than falsely certifying real functionality.
+9. Add review-branch-only regression tests: node --test tests/executive-dashboard-2030-review.test.mjs.
+10. Statically verify retention of all prior dashboard DOM IDs and successful JS syntax compilation in a JavaScript evaluator. **Node tests and real browser/data integration remain unexecuted.**
 
 ## Release blockers and prerequisites
 
