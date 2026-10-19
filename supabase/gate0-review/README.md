@@ -197,6 +197,32 @@ and the new roster RPC and current client changes are NOT installed/deployed.
 Do not merge until the full multi-page RLS/privacy cutover and synthetic
 staging tests pass.
 
+## G0-04 DM message and connection integrity (review branch only)
+
+- `11_dm_integrity_rpc_candidate.sql`: three proposed approved-user DM
+  operations for recipient-only read receipts and sender-only edit/soft
+  delete, coupled with revocation of general browser UPDATE grants.
+- `assets/js/direct-messages.js`: these RPCs replace direct DM row
+  updates. Incoming missed calls are no longer inserted as if written by
+  the other caller; local notifications remain, but authenticated call
+  history is a known follow-up requirement.
+- `12_connection_state_integrity_candidate.sql`: proposed PENDING-only
+  connection creation, restricted accept/decline/block transitions and
+  revocation of broad direct UPDATE.
+- `13_dm_blocked_send_guard_candidate.sql`: deny new messages in both
+  directions when either party blocks the relationship.
+- `14_dm_integrity_readonly_checks.sql`: read-only RLS, ACL, and trigger
+  metadata inventory (not member messages).
+- `11_dm_integrity_cutover.md`: coordinated rollout order, Founder
+  privacy decision, missed-call history limitation, unresolved
+  metadata-body spoofing and dangerous table-level grants.
+- `tests/gate0-dm-integrity-static.test.mjs`: source checks only.
+
+**None of these SQL changes have been applied.** These candidate files
+cannot safely deploy piecemeal. Pending, approved, blocked, Founder,
+cross-device and malformed-input cases must pass on authorized,
+synthetic staging accounts before any production rollout.
+
 ## Staging authorization regression matrix
 | Actor | Agent directory | Community feed | Send DM | Read someone else's DM | Download someone else's audio | Founder admin |
 |---|---|---|---|---|---|---|
