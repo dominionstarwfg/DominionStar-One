@@ -96,6 +96,24 @@ Contract Level labels TA, Associate, SA, MD, SMD intact.
   recovery-password submission screen.
 - Keep the public website and Meet separately isolated during OS work.
 
+## Current review-branch source changes (2026-10-18, **not deployed**)
+
+- `assets/js/direct-messages.js` now fails closed if the signed-in member's
+  `member_profiles.verification_status` is not exactly `approved`, before
+  initializing communication features or displaying the conversations.
+  This is a UX defense-in-depth check, **not a substitute for RLS**.
+- `04_dm_approved_sender_policy.sql` is a candidate **staging-only**
+  `ALTER POLICY` patch to require an approved sender **and** an approved
+  recipient for DM INSERT; it has **not** been applied.
+- `tests/gate0-review-static.test.mjs` is a dependency-free Node 22
+  source-check suite. After checking out this GitHub review branch, run
+  `node --test tests/gate0-review-static.test.mjs`.
+- The test suite and approval check do **not** fix preexisting DM SELECT,
+  UPDATE, media-storage, issued signed-URL, or Founder-global-access concerns.
+- The `main` branch and production Supabase database remain unchanged.
+  The user declined to create any billable staging database, so synthetic
+  JWT integration tests remain blocked.
+
 ## Staging authorization regression matrix
 | Actor | Agent directory | Community feed | Send DM | Read someone else's DM | Download someone else's audio | Founder admin |
 |---|---|---|---|---|---|---|
