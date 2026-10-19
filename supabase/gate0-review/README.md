@@ -114,6 +114,23 @@ Contract Level labels TA, Associate, SA, MD, SMD intact.
   The user declined to create any billable staging database, so synthetic
   JWT integration tests remain blocked.
 
+## G0-02 voice media design update (review branch only)
+
+The production metadata audit of 2026-10-18 found **0 voice-note
+messages and 0 stored objects in the direct-message-media bucket**.
+This does NOT establish that the storage policy is safe or that the counts
+will remain zero. The current client still persists 30-day signed URLs
+directly inside message bodies.
+
+- `05_voice_media_protocol_v2.md`: detailed proposed reservation,
+  upload, atomic attach, participant-scoped playback and short-link
+  lifecycle, including a security test matrix and legacy compatibility.
+- `05_voice_media_readonly_inventory.sql`: aggregate-only cutover
+  preflight; does not expose message contents or object paths.
+- **No voice-storage policy, database function, or live JS was changed.**
+- Future implementation of the v2 protocol is blocked pending synthetic
+  staging tests and explicit production approval.
+
 ## Staging authorization regression matrix
 | Actor | Agent directory | Community feed | Send DM | Read someone else's DM | Download someone else's audio | Founder admin |
 |---|---|---|---|---|---|---|
