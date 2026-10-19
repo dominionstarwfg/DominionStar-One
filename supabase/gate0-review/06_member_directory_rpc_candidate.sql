@@ -20,7 +20,7 @@ END
 $preflight$;
 
 -- No input parameters: the authenticated caller identity is auth.uid().
--- Elevated execution is limited to returning the nine explicitly selected
+-- Elevated execution is limited to returning the eight explicitly selected
 -- directory fields, NEVER whole profile rows. SECURITY DEFINER is needed
 -- to avoid recursive RLS checks while testing the caller's approved status.
 CREATE FUNCTION public.list_directory_members()
