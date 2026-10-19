@@ -63,7 +63,10 @@
     return;
   }
 
-  isFounder = profile.role==='founder' || profile.is_founder===true;
+  // Founder-only moderation controls follow server authority, not
+  // editable profile fields or client-side email heuristics.
+  const founderPermission = await supabase.rpc('is_dominionstar_founder');
+  isFounder = !founderPermission.error && founderPermission.data === true;
 
   if (isFounder) {
     document.getElementById('founderAnnouncementOption')?.classList.remove('member-hidden');
