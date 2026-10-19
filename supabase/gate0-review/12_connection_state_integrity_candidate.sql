@@ -61,7 +61,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Approved member required' USING ERRCODE='42501';
   END IF;
-  IF target_connection_id IS NULL
+  IF target_connection_id IS NULL OR new_status IS NULL
      OR new_status NOT IN ('accepted','declined','blocked')
   THEN
     RAISE EXCEPTION 'Invalid connection response' USING ERRCODE='22023';
