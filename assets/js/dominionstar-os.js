@@ -60,12 +60,13 @@
   document.addEventListener('keydown', e => e.key === 'Escape' && hideAll());
 
   const destinations = [
-    ['Dashboard','/member-dashboard/','Your executive workspace'],
+    ['Home','/member-dashboard/','Your executive home'],
     ['Messages','/direct-messages/','Private member conversations'],
+    ['Meet','/meet/','Join a video meeting'],
     ['Community','/community/','Posts and announcements'],
-    ['Academy','/academy/','Training and development'],
+    ['Training','/academy/','Learning and development'],
     ['Calendar','/appointments/','Appointments and meetings'],
-    ['Directory','/member-directory/','Find approved members'],
+    ['Team Members','/member-directory/','Connect with approved members'],
     ['Recognition','/journey/','Progress and milestones'],
     ['Profile','/professional-profile/','Professional identity'],
     ['Settings','/account-settings/','Security and preferences'],
@@ -88,9 +89,10 @@
   const routes = [
     {terms:['message','chat'], label:'Opening Messages.', url:'/direct-messages/'},
     {terms:['community','post'], label:'Opening Community.', url:'/community/'},
-    {terms:['academy','learn','course'], label:'Opening Academy.', url:'/academy/'},
-    {terms:['calendar','meeting','appointment'], label:'Opening Calendar.', url:'/appointments/'},
-    {terms:['directory','member'], label:'Opening Directory.', url:'/member-directory/'},
+    {terms:['training','academy','learn','course'], label:'Opening Training.', url:'/academy/'},
+    {terms:['meet','video call'], label:'Opening Meet.', url:'/meet/'},
+    {terms:['calendar','appointment'], label:'Opening Calendar.', url:'/appointments/'},
+    {terms:['team','directory','member'], label:'Opening Team Members.', url:'/member-directory/'},
     {terms:['profile','photo'], label:'Opening Profile.', url:'/professional-profile/'},
     {terms:['setting','security','privacy'], label:'Opening Settings.', url:'/account-settings/'}
   ];
@@ -110,7 +112,7 @@
     reply.className = 'dsos-ai-message';
     reply.innerHTML = match
       ? `${match.label} <a href="${match.url}">Open →</a>`
-      : 'I can open Messages, Community, Academy, Calendar, Directory, Profile, or Settings.';
+      : 'I can open Messages, Meet, Community, Training, Calendar, Team Members, Profile, or Settings.';
     messages.appendChild(reply);
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
