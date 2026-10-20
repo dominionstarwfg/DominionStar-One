@@ -77,9 +77,11 @@ test('Link rendering is escaped and limited to https or http',()=>{
   assert.match(community,/\$\{linkify\(post\.body\)\}/);
 });
 
-test('No nonworking media buttons are represented as working',()=>{
-  assert.match(communityPage,/Photo, flyer and video uploads are planned/);
-  assert.doesNotMatch(communityPage,/<input[^>]+type="file"/);
+test('Media attachments remain explicitly local drafts until secure upload approval',()=>{
+  assert.match(communityPage,/Local preview only\. Secure media publishing is not enabled\./);
+  assert.match(communityPage,/data-draft-attach/);
+  assert.match(communityPage,/data-draft-file-input/);
+  assert.doesNotMatch(communityPage,/data-draft-picker/);
   assert.doesNotMatch(community,/storage\.from\('community-media'\)/);
 });
 
