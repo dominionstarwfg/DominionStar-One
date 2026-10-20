@@ -77,10 +77,10 @@ test('Review composer UI has accessible draft pickers, clear warning, and isolat
 
 
 test('Async file inspection blocks publishing until validation completes',()=>{
- assert.match(media,/validationInProgress=true/);
- assert.match(media,/validationInProgress=false/);
- assert.match(media,/const blocked=hasFiles\|\|validationInProgress/);
- assert.match(media,/publish\.disabled=blocked/);
- assert.match(media,/if\(!entries\.length&&!validationInProgress\)return/);
- assert.match(media,/event\.stopImmediatePropagation\(\)/);
+ assert.match(script,/validationInProgress=true/);
+ assert.match(script,/validationInProgress=false/);
+ assert.match(script,/const blocked=hasFiles\|\|validationInProgress/);
+ assert.match(script,/publish\.disabled=blocked/);
+ assert.match(script,/if\(!entries\.length&&!validationInProgress\)return/);
+ assert.match(script,/event\.stopImmediatePropagation\(\)/);
 });
