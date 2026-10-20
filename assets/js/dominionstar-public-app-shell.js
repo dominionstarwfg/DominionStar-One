@@ -65,8 +65,6 @@
   button.type='button';button.className='dsapp-launch';
   button.setAttribute('aria-label','Explore DominionStar pages');
   button.innerHTML=vector('search')+'<span>Explore</span><kbd>⌘ K</kbd>';
-  const desktop=document.createElement('div');
-  desktop.style.display='contents';desktop.className='dsapp-launch-slot';
   const cta=header.querySelector('.head-cta');
   if(cta)header.insertBefore(button,cta); else header.appendChild(button);
   const mobile=button.cloneNode(true);mobile.classList.add('dsapp-public-floating');mobile.setAttribute('aria-label','Explore DominionStar');document.body.appendChild(mobile);
