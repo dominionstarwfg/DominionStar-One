@@ -8,7 +8,7 @@
 
 - Balanced Executive OS 2030: executive-preview/index.html (design preview; not authenticated application).
 - Login Concept 2: member-login/index.html with responsive assets/css/member-login-executive-v1.css.
-- Article Concept 8: selected editorial direction, not yet published.
+- Article Concept 8: a complete unindexed editorial page is now staged at knowledge/articles/build-a-career-on-trust/; it is not linked from Knowledge or the sitemap until editorial/compliance and deployment approvals.
 - The existing member-dashboard/ now has the **staged Balanced Executive OS 2030 layout** on this review branch, reusing existing authenticated member-data integrations. It is **not live**; production authorization/RLS and browser tests remain mandatory.
 
 ## GitHub-only work completed
@@ -33,6 +33,15 @@
 8. Hide the Founder command route from ordinary-member quick search, and describe the module checker as route/interface checks rather than falsely certifying real functionality.
 9. Add review-branch-only regression tests: node --test tests/executive-dashboard-2030-review.test.mjs.
 10. Statically verify retention of all prior dashboard DOM IDs and successful JS syntax compilation in a JavaScript evaluator. **Node tests and real browser/data integration remain unexecuted.**
+
+## Gate 1 completed in GitHub review (not deployed)
+
+- Community Founder composer controls use the server-authorized is_dominionstar_founder RPC rather than browser profile fields.
+- Comments and reactions are requested only for the visible posts returned by list_community_feed; this narrows queries but does not establish backend authorization.
+- Community feed ignores stale asynchronous refreshes, retains avatars during filtering and escapes dynamic avatar URLs/card identifiers.
+- Approved Article Concept 8 is staged as a long-form educational article with responsive styling, metadata, contextual career/mentorship CTAs, and related reading. The page has noindex,nofollow and was intentionally not added to sitemap or Knowledge index.
+- Added tests/community-editorial-review.test.mjs and docs/social-feed-article8-release-gate.md.
+- Supabase RLS, RPC grants, Realtime subscriptions, synthetic session tests, live browser QA, and editorial compliance sign-off remain OPEN.
 
 ## Release blockers and prerequisites
 
