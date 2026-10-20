@@ -482,6 +482,17 @@
 
       const notifications = notificationsResult.data || [];
       const unread = notifications.filter(item => !item.read_at).length;
+      const unreadMessages = notifications.filter(item =>
+        !item.read_at && typeof item.event_type === 'string' &&
+        item.event_type.startsWith('message.')
+      ).length;
+      const messageBadge = document.getElementById('sidebarUnreadMessages');
+      const messageLink = document.querySelector('.ds30-messages-nav');
+      if (messageBadge) {
+        messageBadge.textContent = unreadMessages > 99 ? '99+' : String(unreadMessages);
+        messageBadge.classList.toggle('member-hidden', unreadMessages === 0);
+      }
+      messageLink?.classList.toggle('ds30-has-unread', unreadMessages > 0);
       window.CommunicationEngine?.setBadge(unread);
       document.getElementById('activityNotifications').textContent = unread;
 
