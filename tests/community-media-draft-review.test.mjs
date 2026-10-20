@@ -61,10 +61,13 @@ test('Local draft has strict caps and cannot publish attachments accidentally',(
  assert.match(script,/if\(form && root\)mount/);
 });
 
-test('Review composer UI has accessible draft pickers, clear warning, and isolated CSS',()=>{
- for(const kind of ['photo','flyer','video']){
-   assert.ok(html.includes('data-draft-picker="'+kind+'"'));
- }
+test('Review composer has one unified attachment picker and an accessible caption field',()=>{
+ assert.match(html,/data-draft-attach/);
+ assert.doesNotMatch(html,/data-draft-picker/);
+ assert.match(html,/class="dsmedia-caption"/);
+ assert.match(html,/class="dsmedia-post-options"/);
+ assert.match(html,/name="body"/);
+ assert.match(html,/Attach files/);
  assert.match(html,/id="communityMediaDraft"/);
  assert.match(html,/data-draft-file-input/);
  assert.match(html,/data-draft-tray aria-live="polite"/);
@@ -87,5 +90,5 @@ test('Async file inspection blocks publishing until validation completes',()=>{
 
 test('Concurrent media checks cannot interleave file picker selections',()=>{
  assert.match(script,/if\(validationInProgress\)return/);
- assert.match(script,/picker.disabled=validationInProgress/);
+ assert.match(script,/attach.disabled=validationInProgress/);
 });
