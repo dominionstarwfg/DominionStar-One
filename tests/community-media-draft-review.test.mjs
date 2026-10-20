@@ -52,7 +52,7 @@ test('Spoofed and unsafe inputs fail before any network operation',async()=>{
 test('Local draft has strict caps and cannot publish attachments accidentally',()=>{
  assert.equal(api.MAX_ITEMS,4);
  assert.equal(api.MAX_TOTAL,100*1024*1024);
- assert.match(script,/publish\.disabled=hasFiles/);
+ assert.match(script,/publish\.disabled=blocked/);
  assert.match(script,/event\.stopImmediatePropagation\(\)/);
  assert.match(script,/URL\.revokeObjectURL/);
  assert.match(script,/window\.addEventListener\('pagehide'/);
@@ -83,4 +83,9 @@ test('Async file inspection blocks publishing until validation completes',()=>{
  assert.match(script,/publish\.disabled=blocked/);
  assert.match(script,/if\(!entries\.length&&!validationInProgress\)return/);
  assert.match(script,/event\.stopImmediatePropagation\(\)/);
+});
+
+test('Concurrent media checks cannot interleave file picker selections',()=>{
+ assert.match(script,/if\(validationInProgress\)return/);
+ assert.match(script,/picker.disabled=validationInProgress/);
 });
