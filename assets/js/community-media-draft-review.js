@@ -59,6 +59,7 @@
     const entries=[];
     const objectUrls=new Set();
     let requestedKind='photo';
+    let validationInProgress=false;
     const setNote=(value,error=false)=>{
       note.textContent=value;
       note.classList.toggle('is-error',error);
@@ -100,11 +101,13 @@
         tray.appendChild(card);
       }
       const hasFiles=entries.length>0;
+      const blocked=hasFiles||validationInProgress;
       // Prevent the existing text-only submit handler from publishing a
       // misleading successful post when media files remain unuploaded.
-      publish.disabled=hasFiles;
-      publish.textContent=hasFiles?'Remove attachments to publish':'Publish Post';
-      if(hasFiles)setNote('Draft only — attachments have NOT been uploaded. Remove attachments to publish a text-only post.');
+      publish.disabled=blocked;
+      publish.textContent=validationInProgress?'Checking attachments…':hasFiles?'Remove attachments to publish':'Publish Post';
+      if(validationInProgress)setNote('Checking file type and size. Publishing is paused until validation finishes.');
+      else if(hasFiles)setNote('Draft only — attachments have NOT been uploaded. Remove attachments to publish a text-only post.');
       else setNote('Text and links can be published. Secure media uploads are not enabled.');
     };
     const fileKind={photo:'image/jpeg,image/png,image/webp',flyer:'application/pdf',video:'video/mp4,video/webm'};
@@ -118,6 +121,8 @@
     flyers?.addEventListener('click',()=>pick('flyer'));
     videos?.addEventListener('click',()=>pick('video'));
     input?.addEventListener('change',async()=>{
+      validationInProgress=true;
+      render();
       const selected=Array.from(input.files||[]);
       let validationError='';
       for(const file of selected){
@@ -137,14 +142,15 @@
         entries.push({file,kind:validated.kind,url});
       }
       input.value='';
+      validationInProgress=false;
       render();
       if(validationError)setNote(validationError,true);
     });
     form.addEventListener('submit',event=>{
-      if(!entries.length)return;
+      if(!entries.length&&!validationInProgress)return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      setNote('Media is not published. Remove the draft attachments to publish your text.',true);
+      setNote(validationInProgress?'File validation is still running. Please finish checking the attachments.':'Media is not published. Remove the draft attachments to publish your text.',true);
     },true);
     window.addEventListener('pagehide',()=>{
       for(const url of objectUrls)URL.revokeObjectURL(url);
