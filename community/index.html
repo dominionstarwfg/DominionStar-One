@@ -5,6 +5,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>DominionStar Community Hub</title>
 <link rel="stylesheet" href="/styles.css?v=8.0-genesis-rc5e">
+<link rel="stylesheet" href="/assets/css/community-social-executive-review.css?v=review-1">
 <link rel="icon" href="/assets/logo.jpeg">
 <script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
 </head>
@@ -53,8 +54,12 @@
 </div>
 
 <label>Message
-<textarea name="body" rows="5" maxlength="2000" required placeholder="Share an update, question, milestone, or encouragement. Use @Full Name to mention someone."></textarea>
+<textarea name="body" rows="5" maxlength="2000" required placeholder="What's happening in your professional journey? Paste a link, ask a question, or celebrate a milestone."></textarea>
 </label>
+<div class="community-media-roadmap" aria-label="Community publishing features">
+  <strong>Share now:</strong><span>✎ Text</span><span>↗ Links</span>
+  <small>Photo, flyer and video uploads are planned after secure member-media approval.</small>
+</div>
 
 <div class="community-composer-actions">
 <label id="pinPostControl" class="member-inline-check member-hidden">
@@ -62,7 +67,7 @@
 </label>
 <button id="communityPostSubmit" class="btn btn-gold" type="submit">Publish Post</button>
 </div>
-<div id="communityPostResult" class="member-message"></div>
+<div id="communityPostResult" class="member-message" role="status" aria-live="polite"></div>
 </form>
 </article>
 
