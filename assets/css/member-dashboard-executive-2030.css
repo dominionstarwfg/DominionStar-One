@@ -424,3 +424,99 @@
 .dsos-executive-2030 .dsos-profile-card{border-top:3px solid #d7b678}
 @media(max-width:900px){.dsos-executive-2030 .dsos-sidebar{overflow-y:auto}}
 @media(max-width:460px){.dsos-executive-2030 .dsos-nav a,.dsos-executive-2030 .dsos-nav-button{min-height:44px}}
+
+
+/* Social activity cards: true member content and reaction counts; no demo values. */
+.dsos-executive-2030 .ds30-social-post{
+  position:relative;margin-top:14px;background:#fff;border:1px solid #dce6ed;
+  border-radius:17px;padding:19px 20px;box-shadow:0 8px 28px rgba(20,63,91,.04);
+  color:#233c54;min-width:0
+}
+.dsos-executive-2030 .ds30-post-authorbar{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.dsos-executive-2030 .ds30-author-avatar{
+  width:42px;height:42px;flex:0 0 42px;border-radius:50%;
+  background:linear-gradient(140deg,#23496e,#2d888f);
+  color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center
+}
+.dsos-executive-2030 .ds30-post-author{min-width:0;flex:1;display:grid;gap:3px}
+.dsos-executive-2030 .ds30-post-author strong{color:#1c344d;font-size:13px;line-height:1.4}
+.dsos-executive-2030 .ds30-post-author small{color:#8493a4;font-size:11px}
+.dsos-executive-2030 .ds30-post-options{position:relative}
+.dsos-executive-2030 .ds30-more-button{
+  height:36px;width:36px;display:grid;place-items:center;border:1px solid #e3eaf1;
+  border-radius:10px;background:#f8fafc;color:#607992;cursor:pointer
+}
+.dsos-executive-2030 .ds30-post-menu{
+  position:absolute;top:40px;right:0;z-index:9;min-width:160px;
+  border:1px solid #dbe5ee;border-radius:12px;background:#fff;
+  box-shadow:0 15px 35px #1c355132;padding:6px
+}
+.dsos-executive-2030 .ds30-post-menu[hidden]{display:none!important}
+.dsos-executive-2030 .ds30-post-menu button{
+  display:block;width:100%;border:0;border-radius:8px;background:none;
+  text-align:left;color:#234f77;font-size:12px;padding:10px 12px;cursor:pointer
+}
+.dsos-executive-2030 .ds30-post-menu button:hover{background:#ebf3fa}
+.dsos-executive-2030 .ds30-social-post h3{
+  font:760 16px/1.45 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  color:#1a3755;margin:5px 0 9px
+}
+.dsos-executive-2030 .ds30-post-copy{
+  font-size:13px;color:#47617c;line-height:1.85;
+  margin:4px 0 10px;white-space:pre-line;overflow-wrap:anywhere
+}
+.dsos-executive-2030 .ds30-view-full{font-size:11px;color:#247a88;font-weight:750;text-decoration:none}
+.dsos-executive-2030 .ds30-post-engagement{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 4px 11px;margin-top:13px;
+  color:#79899a;font-size:11px;border-bottom:1px solid #e4ebf1
+}
+.dsos-executive-2030 .ds30-post-actions{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:5px;padding:6px 0 0
+}
+.dsos-executive-2030 .ds30-post-actions button{
+  border:1px solid transparent;border-radius:9px;background:transparent;
+  display:flex;gap:7px;align-items:center;justify-content:center;
+  padding:10px 3px;color:#58718a;font:750 11px/1.3 Inter,Arial,sans-serif;
+  cursor:pointer;min-height:39px
+}
+.dsos-executive-2030 .ds30-post-actions button:hover{background:#ecf5f6;color:#247d7d}
+.dsos-executive-2030 .ds30-post-actions button.is-liked{
+  color:#2667a0;background:#ebf4fd;border-color:#d8e8f5
+}
+.dsos-executive-2030 .ds30-post-actions button[data-social="repost"]:hover{color:#267d65;background:#eaf8f0}
+.dsos-executive-2030 .ds30-post-actions button[data-social="share"]:hover{color:#a47734;background:#fbf5ea}
+.dsos-executive-2030 .ds30-action-icon{height:17px;width:17px;flex:0 0 17px}
+.dsos-executive-2030 .ds30-comment-form{
+  padding:15px 0 1px;border-top:1px solid #e9eef3;margin-top:6px
+}
+.dsos-executive-2030 .ds30-comment-form[hidden]{display:none!important}
+.dsos-executive-2030 .ds30-comment-form label{
+  display:block;margin:0 0 8px;font-size:12px;font-weight:750;color:#40607b
+}
+.dsos-executive-2030 .ds30-comment-row{display:flex;gap:9px;align-items:stretch}
+.dsos-executive-2030 .ds30-comment-row textarea{
+  flex:1;min-width:0;border:1px solid #cfdee9;border-radius:11px;
+  padding:10px 12px;color:#193b55;background:#f7fafc;resize:vertical;
+  font-size:13px;line-height:1.5
+}
+.dsos-executive-2030 .ds30-comment-row>button{
+  padding:9px 15px;border:0;border-radius:10px;background:#225980;color:#fff;
+  font-weight:800;cursor:pointer
+}
+.dsos-executive-2030 .ds30-social-status{color:#376b88;font-size:12px;line-height:1.6;margin:7px 2px}
+.dsos-executive-2030 .ds30-social-status:empty{display:none}
+.dsos-executive-2030 .ds30-social-error{color:#bd4354}
+.dsos-executive-2030 #dashboardCommunityPreview[aria-busy="true"]{opacity:.76}
+@media(max-width:530px){
+  .dsos-executive-2030 .ds30-social-post{padding:14px 12px}
+  .dsos-executive-2030 .ds30-post-actions{gap:1px}
+  .dsos-executive-2030 .ds30-post-actions button{
+    flex-direction:column;font-size:10px;padding:9px 1px;gap:4px
+  }
+  .dsos-executive-2030 .ds30-action-icon{height:19px;width:19px}
+  .dsos-executive-2030 .ds30-comment-row{flex-direction:column}
+  .dsos-executive-2030 .ds30-comment-row>button{align-self:flex-end}
+}
+@media(prefers-reduced-motion:reduce){.dsos-executive-2030 .ds30-social-post *{transition:none!important}}
