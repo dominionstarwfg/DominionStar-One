@@ -398,13 +398,20 @@
             ? ` · Founding #${item.author_exclusive_number}`
             : '';
 
+        const initial=String(authorName).trim().charAt(0).toUpperCase() || 'D';
         return `
           <a class="dashboard-community-preview-item" href="/community/">
-            <div>
-              <span>${escapeHtml(item.post_type || 'discussion')}</span>
-              <strong>${escapeHtml(item.title || excerpt || 'Community update')}</strong>
-              <small>${escapeHtml(authorName)}${escapeHtml(authorBadge)} · ${new Date(item.created_at).toLocaleDateString()}</small>
+            <div class="ds30-post-header">
+              <span class="ds30-post-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+              <div class="ds30-post-caption">
+                <strong>${escapeHtml(authorName)}${escapeHtml(authorBadge)}</strong>
+                <small>${new Date(item.created_at).toLocaleDateString()}</small>
+              </div>
             </div>
+            <span>${escapeHtml(item.post_type || 'discussion')}</span>
+            <strong>${escapeHtml(item.title || 'Community update')}</strong>
+            <p>${escapeHtml(excerpt)}</p>
+            <span class="ds30-open-discussion">View conversation →</span>
           </a>`;
       }).join('');
     } catch (error) {
