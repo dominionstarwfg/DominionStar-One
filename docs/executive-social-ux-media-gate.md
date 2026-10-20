@@ -40,3 +40,14 @@ Separately rendered local visual previews use **demo accounts and sample message
 - `node --test tests/community-editorial-review.test.mjs`
 - `node --test tests/executive-dashboard-2030-review.test.mjs`
 - Real browser and authenticated Supabase testing still outstanding. Do not merge or publish based solely on static checks.
+
+## Dashboard social action bar (2026-10-19 review)
+
+- `assets/js/dashboard-social-2030.js` now renders the real approved-member feed with post avatar initials, real Like and Comment counts where authorized queries succeed, a Like selected state, and professional Like / Comment / Repost / Share buttons under every post.
+- `assets/js/member-dashboard.js` mounts the isolated feed module only when the member profile status is approved. The `member-dashboard/index.html` script order loads the social module before the authenticated dashboard bootstrap.
+- **Like:** `community_toggle_reaction` RPC and refresh from real reaction rows. **Comment:** inline form with authenticated `community_comments` insert and refresh. **Share:** native share sheet when supported or clipboard link. **Repost:** an attributed new member-community discussion pointing to the original post, using the existing `community_messages` insert. This is not a first-class relational repost and does not imply a repost count; add repost-id schema and server-enforced semantics in a separately approved staging migration if desired.
+- The social card links are safe HTTP(S), escaped. Counts are shown as unknown (`—`) if their respective metadata reads fail; no fabricated engagement values are introduced into the application source.
+- The separate local HTML/PNG preview renders illustrative agents and numbers and is not a real Supabase-backed session. This distinction must remain visible.
+- Source-contract and mock-data rendering checks were added to `tests/executive-social-ux-review.test.mjs`, with legacy dashboard contract assertions updated.
+- **Remaining release gate:** synthetic-user tests against a dedicated isolated Supabase project, especially approval revocation, RLS on reaction/comment/post tables, repost rate-limits, deleted/locked posts, signed URL exposure, HTML escaping, mobile share support, and updated post authorization. No production database writes or deploys authorized.
+
