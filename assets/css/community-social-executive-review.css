@@ -1,0 +1,60 @@
+/* DominionStar Community: executive social interactions, review branch only */
+.community-post-card{position:relative}
+.community-post-header{display:flex;align-items:center;gap:10px}
+.community-post-author{flex:1;min-width:0}
+.community-post-options{position:relative;margin-left:auto;align-self:start;z-index:2}
+.community-options-trigger{
+  width:37px;height:37px;display:grid;place-items:center;border:1px solid #ffffff36;
+  background:#163b5e;color:#f0f5fc;border-radius:11px;cursor:pointer
+}
+.community-options-trigger:hover,.community-options-trigger[aria-expanded="true"]{
+  background:#285b87;border-color:#e4be7c66
+}
+.community-options-trigger svg{height:19px;width:19px;fill:currentColor;stroke:none}
+.community-options-menu{
+  position:absolute;right:0;top:42px;z-index:40;min-width:170px;
+  display:grid;gap:2px;padding:6px;background:#fafdff;border:1px solid #c9d8e6;
+  border-radius:12px;box-shadow:0 18px 40px #031d3670
+}
+.community-options-menu[hidden]{display:none!important}
+.community-options-menu button{
+  border:0;background:transparent;border-radius:8px;color:#1b405f;
+  padding:11px 13px;text-align:left;font-size:12px;font-weight:750;cursor:pointer
+}
+.community-options-menu button:hover{background:#e8f2f7;color:#103d69}
+.community-post-body{
+  white-space:pre-wrap;overflow-wrap:anywhere;
+  border-radius:12px;padding:15px 17px;
+  background:linear-gradient(115deg,rgba(50,105,152,.055),rgba(34,149,138,.08));
+  border:1px solid rgba(105,156,175,.2);line-height:1.8
+}
+.community-post-body a{
+  color:#4ba8db;text-decoration:underline;text-underline-offset:3px;
+  word-break:break-word;font-weight:750
+}
+.community-post-body a:hover{color:#86cdea}
+.community-post-card.community-shared-target{
+  outline:3px solid #dec182;outline-offset:5px
+}
+.community-post-card .community-reaction-row{gap:9px}
+.community-post-card .community-reaction-button{border-radius:9px}
+.community-post-card .community-comment{border-radius:11px}
+.community-post-card .community-comment p{
+  padding:10px 13px;border-radius:0 12px 12px 12px;
+  background:rgba(75,123,169,.10);line-height:1.65
+}
+.community-post-card :focus-visible{outline:3px solid #dfb972;outline-offset:2px}
+.community-media-roadmap{
+  display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+  padding:11px 0;border-top:1px solid #ffffff24;
+  color:#b7c8dc;font-size:12px
+}
+.community-media-roadmap strong{color:#e6d09a;font-weight:750}
+.community-media-roadmap span{display:inline-flex;gap:5px;align-items:center}
+.community-media-roadmap small{font-size:11px;line-height:1.5;opacity:.85}
+@media(max-width:600px){
+  .community-post-options{z-index:3}
+  .community-options-menu{min-width:160px}
+  .community-post-body{padding:12px 13px}
+  .community-media-roadmap{gap:8px}
+}
