@@ -451,10 +451,10 @@
 
     const payload={
       user_id:session.user.id,
-      title:postForm.title.value.trim()||null,
-      body:postForm.body.value.trim(),
-      post_type:postForm.post_type.value,
-      is_pinned:isFounder?postForm.is_pinned.checked:false
+      title:postForm.elements.namedItem('title').value.trim()||null,
+      body:postForm.elements.namedItem('body').value.trim(),
+      post_type:postForm.elements.namedItem('post_type').value,
+      is_pinned:isFounder?postForm.elements.namedItem('is_pinned').checked:false
     };
 
     const insert=await supabase.from('community_messages').insert(payload).select('id,created_at').single();
