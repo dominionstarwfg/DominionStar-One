@@ -94,13 +94,18 @@
   const clear=()=>indicator.setAttribute('aria-hidden','true');
   window.addEventListener('pageshow',clear);
   window.addEventListener('pagehide',clear);
-  shell.addEventListener('click',event=>{
+  document.addEventListener('click',event=>{
+    if(event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey ||
+       event.shiftKey || event.altKey)return;
     const anchor=event.target.closest('a[href]');
-    if(!anchor||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
-    const to=new URL(anchor.href,location.href);
-    if(to.origin!==location.origin||to.pathname===location.pathname)return;
+    if(!anchor || anchor.hasAttribute('download') ||
+       (anchor.target && anchor.target!=='_self'))return;
+    let to;
+    try{to=new URL(anchor.href,location.href);}catch{return;}
+    if(to.origin!==location.origin || !['http:','https:'].includes(to.protocol) ||
+       (to.pathname===location.pathname && to.search===location.search))return;
     indicator.setAttribute('aria-hidden','false');
-  });
+  },{capture:true});
 
   const dialog=document.createElement('dialog');
   dialog.className='ds-agent-jump';
