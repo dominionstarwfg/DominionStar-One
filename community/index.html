@@ -6,6 +6,7 @@
 <title>DominionStar Community Hub</title>
 <link rel="stylesheet" href="/styles.css?v=8.0-genesis-rc5e">
 <link rel="stylesheet" href="/assets/css/community-social-executive-review.css?v=review-1">
+<link rel="stylesheet" href="/assets/css/community-media-draft-review.css?v=review-1">
 <link rel="icon" href="/assets/logo.jpeg">
 <script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
 </head>
@@ -56,10 +57,17 @@
 <label>Message
 <textarea name="body" rows="5" maxlength="2000" required placeholder="What's happening in your professional journey? Paste a link, ask a question, or celebrate a milestone."></textarea>
 </label>
-<div class="community-media-roadmap" aria-label="Community publishing features">
-  <strong>Share now:</strong><span>✎ Text</span><span>↗ Links</span>
-  <small>Photo, flyer and video uploads are planned after secure member-media approval.</small>
-</div>
+<section id="communityMediaDraft" class="dsmedia-draft" aria-label="Attach media to a draft post">
+  <div class="dsmedia-action-row">
+    <span class="dsmedia-action-label">Add to your post</span>
+    <button type="button" data-draft-picker="photo" aria-label="Select photos for local preview">▧ <span>Photo</span></button>
+    <button type="button" data-draft-picker="flyer" aria-label="Select a PDF flyer for local preview">▤ <span>Flyer</span></button>
+    <button type="button" data-draft-picker="video" aria-label="Select video for local preview">▷ <span>Video</span></button>
+  </div>
+  <input type="file" data-draft-file-input multiple hidden aria-label="Choose local media for preview" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4,video/webm">
+  <div class="dsmedia-tray" data-draft-tray aria-live="polite"></div>
+  <p class="dsmedia-note" data-draft-note role="status" aria-live="polite">Local preview only. Secure media publishing is not enabled.</p>
+</section>
 
 <div class="community-composer-actions">
 <label id="pinPostControl" class="member-inline-check member-hidden">
@@ -131,6 +139,7 @@
 <script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e"></script>
 <script src="/assets/js/member-auth.js?v=8.0-genesis-rc5e"></script>
 <script src="/assets/js/community-hub.js?v=8.1-system-actions"></script>
+<script src="/assets/js/community-media-draft-review.js?v=review-1"></script>
 <script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
 <script src="/assets/js/community-2.js?v=8.0-genesis-rc5e"></script>
 </body>
