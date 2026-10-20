@@ -18,6 +18,8 @@
   let pollTimer = null;
   let reconnectTimer = null;
   let isFounder = false;
+  let feedRequestVersion = 0;
+  let currentAvatarMap = {};
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
@@ -111,7 +113,7 @@
     return Object.fromEntries(pairs);
   }
 
-  function renderFeed(avatarMap={}) {
+  function renderFeed(avatarMap=currentAvatarMap) {
     const query=search.value.trim().toLowerCase();
     const type=typeFilter.value;
 
@@ -179,7 +181,7 @@
               const commentInitial=(author.preferred_name||author.full_name||'M').slice(0,1);
               return `
               <article class="community-comment">
-                <div class="community-comment-avatar">${commentAvatar?`<img src="${commentAvatar}" alt="">`:esc(commentInitial)}</div>
+                <div class="community-comment-avatar">${commentAvatar?`<img src="${esc(commentAvatar)}" alt="">`:esc(commentInitial)}</div>
                 <div>
                   <strong>${esc(author.preferred_name||author.full_name||'Member')}</strong>
                   <p>${esc(comment.body)}</p>
@@ -270,6 +272,7 @@
   }
 
   async function loadPosts(showLoading=true){
+    const requestVersion=++feedRequestVersion;
     if(showLoading)feed.innerHTML='<p>Loading Community Feed…</p>';
 
     try{
@@ -316,6 +319,8 @@
       ]));
       const combinedProfiles={...commentProfileMap,...postAuthors};
       const avatarMap=await resolveAvatars(combinedProfiles);
+      if(requestVersion!==feedRequestVersion)return;
+      currentAvatarMap=avatarMap;
 
       allPosts=posts.map(post=>({
         ...post,
@@ -330,6 +335,7 @@
       renderFeed(avatarMap);
       setConnection('Live','Live');
     }catch(error){
+      if(requestVersion!==feedRequestVersion)return;
       feed.innerHTML=`
         <div class="community-error-state">
           <h2>Community could not load.</h2>
