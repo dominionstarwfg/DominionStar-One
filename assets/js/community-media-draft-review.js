@@ -49,17 +49,15 @@
     if(root.dataset.mediaDraftMounted==='true')return;
     root.dataset.mediaDraftMounted='true';
     // The user can select and inspect attachments as a local draft; no uploads.
-    const photos=root.querySelector('[data-draft-picker="photo"]');
-    const flyers=root.querySelector('[data-draft-picker="flyer"]');
-    const videos=root.querySelector('[data-draft-picker="video"]');
+    const attach=root.querySelector('[data-draft-attach]');
     const input=root.querySelector('[data-draft-file-input]');
+    if(!attach||!input)throw new Error('The unified attachment control is unavailable.');
     const tray=root.querySelector('[data-draft-tray]');
     const note=root.querySelector('[data-draft-note]');
     const publish=form.querySelector('#communityPostSubmit');
     const entries=[];
     const objectUrls=new Set();
-    let requestedKind='photo';
-    let validationInProgress=false;
+     let validationInProgress=false;
     const setNote=(value,error=false)=>{
       note.textContent=value;
       note.classList.toggle('is-error',error);
@@ -105,23 +103,17 @@
       // Prevent the existing text-only submit handler from publishing a
       // misleading successful post when media files remain unuploaded.
       publish.disabled=blocked;
-      for(const picker of [photos,flyers,videos])if(picker)picker.disabled=validationInProgress;
+      if(attach)attach.disabled=validationInProgress;
       publish.textContent=validationInProgress?'Checking attachments…':hasFiles?'Remove attachments to publish':'Publish Post';
       if(validationInProgress)setNote('Checking file type and size. Publishing is paused until validation finishes.');
       else if(hasFiles)setNote('Draft only — attachments have NOT been uploaded. Remove attachments to publish a text-only post.');
       else setNote('Text and links can be published. Secure media uploads are not enabled.');
     };
-    const fileKind={photo:'image/jpeg,image/png,image/webp',flyer:'application/pdf',video:'video/mp4,video/webm'};
-    const pick=kind=>{
+    attach?.addEventListener('click',()=>{
       if(validationInProgress)return;
       input.value='';
-      input.accept=fileKind[kind];
-      requestedKind=kind;
       input.click();
-    };
-    photos?.addEventListener('click',()=>pick('photo'));
-    flyers?.addEventListener('click',()=>pick('flyer'));
-    videos?.addEventListener('click',()=>pick('video'));
+    });
     input?.addEventListener('change',async()=>{
       if(validationInProgress)return;
       validationInProgress=true;
@@ -139,7 +131,6 @@
         let validated;
         try{validated=await validateSignature(file);}catch{validated={ok:false,reason:'Unable to inspect file.'};}
         if(!validated.ok){validationError=validated.reason;continue;}
-        if(validated.kind!==requestedKind){validationError='The selected file does not match the chosen media type.';continue;}
         const url=validated.kind==='flyer'?null:URL.createObjectURL(file);
         if(url)objectUrls.add(url);
         entries.push({file,kind:validated.kind,url});
