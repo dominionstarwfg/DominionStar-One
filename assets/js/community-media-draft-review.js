@@ -58,6 +58,7 @@
     const publish=form.querySelector('#communityPostSubmit');
     const entries=[];
     const objectUrls=new Set();
+    let requestedKind='photo';
     const setNote=(value,error=false)=>{
       note.textContent=value;
       note.classList.toggle('is-error',error);
@@ -110,6 +111,7 @@
     const pick=kind=>{
       input.value='';
       input.accept=fileKind[kind];
+      requestedKind=kind;
       input.click();
     };
     photos?.addEventListener('click',()=>pick('photo'));
@@ -117,23 +119,26 @@
     videos?.addEventListener('click',()=>pick('video'));
     input?.addEventListener('change',async()=>{
       const selected=Array.from(input.files||[]);
+      let validationError='';
       for(const file of selected){
-        if(entries.length>=MAX_ITEMS){setNote('A post can hold up to four draft attachments.',true);break;}
+        if(entries.length>=MAX_ITEMS){validationError='A post can hold up to four draft attachments.';break;}
         if(entries.some(item=>item.file.name===file.name&&item.file.size===file.size)){
-          setNote('This file is already in your draft.',true);continue;
+          validationError='This file is already in your draft.';continue;
         }
         if(entries.reduce((n,item)=>n+item.file.size,0)+file.size>MAX_TOTAL){
-          setNote('The combined draft may not exceed 100 MB.',true);continue;
+          validationError='The combined draft may not exceed 100 MB.';continue;
         }
         let validated;
         try{validated=await validateSignature(file);}catch{validated={ok:false,reason:'Unable to inspect file.'};}
-        if(!validated.ok){setNote(validated.reason,true);continue;}
+        if(!validated.ok){validationError=validated.reason;continue;}
+        if(validated.kind!==requestedKind){validationError='The selected file does not match the chosen media type.';continue;}
         const url=validated.kind==='flyer'?null:URL.createObjectURL(file);
         if(url)objectUrls.add(url);
         entries.push({file,kind:validated.kind,url});
       }
       input.value='';
       render();
+      if(validationError)setNote(validationError,true);
     });
     form.addEventListener('submit',event=>{
       if(!entries.length)return;
@@ -149,4 +154,7 @@
     return {get selectedCount(){return entries.length;},clear(){[...entries].forEach(discard);render();}};
   }
   window.DSCommunityMediaDraft=Object.freeze({mount,validateFile,validateSignature,RULES,MAX_ITEMS,MAX_TOTAL});
+  const form=document.getElementById('communityPostForm');
+  const root=document.getElementById('communityMediaDraft');
+  if(form && root)mount({form,root});
 })();
