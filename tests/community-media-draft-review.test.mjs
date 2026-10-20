@@ -74,3 +74,13 @@ test('Review composer UI has accessible draft pickers, clear warning, and isolat
  assert.match(css,/\.dsmedia-file-card/);
  assert.match(css,/@media\(max-width:640px\)/);
 });
+
+
+test('Async file inspection blocks publishing until validation completes',()=>{
+ assert.match(media,/validationInProgress=true/);
+ assert.match(media,/validationInProgress=false/);
+ assert.match(media,/const blocked=hasFiles\|\|validationInProgress/);
+ assert.match(media,/publish\.disabled=blocked/);
+ assert.match(media,/if\(!entries\.length&&!validationInProgress\)return/);
+ assert.match(media,/event\.stopImmediatePropagation\(\)/);
+});
