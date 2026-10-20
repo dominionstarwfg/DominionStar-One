@@ -131,7 +131,10 @@
     }
   };
   const open=source=>{
-    if(typeof dialog.showModal!=='function')return;
+    // App visibility is controlled by the existing member approval workflow.
+    // Never surface the global launcher while that approved-area gate is shut.
+    if(app.classList.contains('member-hidden') ||
+       typeof dialog.showModal!=='function')return;
     origin=source||document.activeElement;input.value='';render();dialog.showModal();input.focus();
   };
   search.addEventListener('click',()=>open(search));
