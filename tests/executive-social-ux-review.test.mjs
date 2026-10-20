@@ -95,3 +95,61 @@ test('Original selected login copy and member approval are retained; no Google O
   assert.match(login,/id="memberRegisterForm"/);
   assert.match(login,/id="memberResetForm"/);
 });
+
+
+test('Executive community post action row uses existing Supabase interaction endpoints',()=>{
+  const social=read('assets/js/dashboard-social-2030.js');
+  assert.match(dashboard,/dashboard-social-2030\.js/);
+  for(const action of ['like','comment','repost','share']) {
+    assert.match(social,new RegExp('data-social="'+action+'"'));
+  }
+  assert.match(social,/community_toggle_reaction/);
+  assert.match(social,/community_comments/);
+  assert.match(social,/community_messages/);
+  assert.match(social,/navigator\.clipboard\?\.writeText/);
+  assert.match(social,/navigator\.share/);
+  assert.match(social,/list_community_feed/);
+  assert.match(social,/\.in\('message_id',ids\)/);
+  assert.match(social,/\.slice\(0,2000\)/);
+  assert.match(social,/const linkify = value/);
+  assert.match(social,/escapeHtml\(candidate\)/);
+  assert.match(social,/aria-pressed/);
+  assert.match(social,/class="ds30-post-actions"/);
+  assert.doesNotMatch(social,/Math\.random\(\)/);
+});
+
+test('Dashboard engagement counts are actual queried rows and not mock values',async()=>{
+  const social=read('assets/js/dashboard-social-2030.js');
+  const registered={};
+  const rendered={innerHTML:'',insertAdjacentElement(){},setAttribute(){},removeAttribute(){},
+    addEventListener(name,handler){registered[name]=handler}};
+  const fakeDocument={createElement:()=>({className:'',textContent:'',
+    setAttribute(){},classList:{toggle(){}}})};
+  const client={
+    rpc:async()=>({data:[{id:'post-a',title:'Professional update',
+      body:'Growing through mentorship.',author_full_name:'Test Agent',
+      post_type:'discussion',created_at:'2026-10-19T18:00:00Z'}],error:null}),
+    from(table){
+      return {
+        select(){return this},in(){return this},eq(){return this},
+        then(resolve,reject){
+          const rows=table==='community_reactions'
+            ? [{message_id:'post-a',user_id:'viewer-a',reaction:'like'},
+               {message_id:'post-a',user_id:'viewer-b',reaction:'like'}]
+            : [{message_id:'post-a'}];
+          return Promise.resolve({data:rows,error:null}).then(resolve,reject);
+        }
+      };
+    }
+  };
+  const context={window:{},document:fakeDocument,navigator:{},location:{origin:'https://dominionstarld.com'},URL};
+  vm.runInNewContext(social,context);
+  await context.window.DSDashboardSocial.mount({client,memberId:'viewer-a',target:rendered});
+  assert.match(rendered.innerHTML,/2 likes/);
+  assert.match(rendered.innerHTML,/1 comment/);
+  assert.match(rendered.innerHTML,/data-social="repost"/);
+  assert.match(rendered.innerHTML,/data-social="share"/);
+  assert.match(rendered.innerHTML,/aria-pressed="true"/);
+  assert.equal(typeof registered.click,'function');
+  assert.equal(typeof registered.submit,'function');
+});
