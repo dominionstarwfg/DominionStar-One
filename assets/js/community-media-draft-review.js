@@ -105,6 +105,7 @@
       // Prevent the existing text-only submit handler from publishing a
       // misleading successful post when media files remain unuploaded.
       publish.disabled=blocked;
+      for(const picker of [photos,flyers,videos])if(picker)picker.disabled=validationInProgress;
       publish.textContent=validationInProgress?'Checking attachments…':hasFiles?'Remove attachments to publish':'Publish Post';
       if(validationInProgress)setNote('Checking file type and size. Publishing is paused until validation finishes.');
       else if(hasFiles)setNote('Draft only — attachments have NOT been uploaded. Remove attachments to publish a text-only post.');
@@ -112,6 +113,7 @@
     };
     const fileKind={photo:'image/jpeg,image/png,image/webp',flyer:'application/pdf',video:'video/mp4,video/webm'};
     const pick=kind=>{
+      if(validationInProgress)return;
       input.value='';
       input.accept=fileKind[kind];
       requestedKind=kind;
@@ -121,6 +123,7 @@
     flyers?.addEventListener('click',()=>pick('flyer'));
     videos?.addEventListener('click',()=>pick('video'));
     input?.addEventListener('change',async()=>{
+      if(validationInProgress)return;
       validationInProgress=true;
       render();
       const selected=Array.from(input.files||[]);
