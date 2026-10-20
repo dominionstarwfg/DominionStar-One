@@ -63,7 +63,10 @@
     return;
   }
 
-  isFounder = profile.role==='founder' || profile.is_founder===true;
+  // Founder controls require server authorization; profile fields and email
+  // are informational and cannot grant elevated privileges.
+  const founderResult=await supabase.rpc('is_dominionstar_founder');
+  isFounder=founderResult.error==null && founderResult.data===true;
 
   if (isFounder) {
     document.getElementById('founderAnnouncementOption')?.classList.remove('member-hidden');
@@ -127,15 +130,19 @@
       const comments=(post.comments||[]).filter(comment=>!comment.is_deleted);
       const reactions=post.reactions||[];
       const reactionCounts={like:0,celebrate:0,support:0,insightful:0};
-      reactions.forEach(item=>reactionCounts[item.reaction]++);
+      reactions.forEach(item=>{
+        if(Object.prototype.hasOwnProperty.call(reactionCounts,item.reaction)){
+          reactionCounts[item.reaction]++;
+        }
+      });
 
       const avatar=member.avatar_path ? avatarMap[member.avatar_path] : null;
       const initial=(member.preferred_name||member.full_name||'M').slice(0,1);
 
       return `
-      <article class="community-post-card ${post.is_pinned?'pinned':''}" data-id="${post.id}">
+      <article class="community-post-card ${post.is_pinned?'pinned':''}" data-id="${esc(post.id)}">
         <header class="community-post-header">
-          <div class="community-post-avatar">${avatar?`<img src="${avatar}" alt="">`:esc(initial)}</div>
+          <div class="community-post-avatar">${avatar?`<img src="${esc(avatar)}" alt="">`:esc(initial)}</div>
           <div class="community-post-author">
             <strong>${esc(member.preferred_name||member.full_name||'DominionStar Member')}</strong>
             <span>${esc(member.rank||'TA')}</span>
@@ -266,21 +273,29 @@
     if(showLoading)feed.innerHTML='<p>Loading Community Feed…</p>';
 
     try{
-      const [postsResult,commentsResult,reactionsResult]=await Promise.all([
-        supabase.rpc('list_community_feed',{result_limit:100}),
-        supabase.from('community_comments')
-          .select('id,message_id,user_id,body,is_deleted,created_at')
-          .eq('is_deleted',false)
-          .order('created_at',{ascending:true}),
-        supabase.from('community_reactions')
-          .select('id,message_id,user_id,reaction')
-      ]);
-
+      const postsResult=await supabase.rpc('list_community_feed',{result_limit:100});
       if(postsResult.error)throw postsResult.error;
+      const posts=postsResult.data||[];
+      const postIds=posts.map(post=>post.id).filter(Boolean);
+
+      // Comments and reactions must be requested only for visible feed IDs.
+      // This is data minimization; backend RLS still must enforce access.
+      const [commentsResult,reactionsResult]=postIds.length
+        ? await Promise.all([
+            supabase.from('community_comments')
+              .select('id,message_id,user_id,body,is_deleted,created_at')
+              .in('message_id',postIds)
+              .eq('is_deleted',false)
+              .order('created_at',{ascending:true}),
+            supabase.from('community_reactions')
+              .select('id,message_id,user_id,reaction')
+              .in('message_id',postIds)
+          ])
+        : [{data:[],error:null},{data:[],error:null}];
+
+
       if(commentsResult.error)throw commentsResult.error;
       if(reactionsResult.error)throw reactionsResult.error;
-
-      const posts=postsResult.data||[];
       const comments=commentsResult.data||[];
       const reactions=reactionsResult.data||[];
       const userIds=[
