@@ -25,6 +25,26 @@
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[c]));
 
+
+  // Link presentation: only explicit HTTPS/HTTP URLs are clickable, never raw HTML.
+  const linkify = value => String(value ?? '').split(/(https?:\/\/[^\s<>"']+)/gi).map(part => {
+    if (!/^https?:\/\//i.test(part)) return esc(part);
+    const trailing=(part.match(/[).,!?;:]+$/)||[])[0]||'';
+    const candidate=part.slice(0,part.length-trailing.length);
+    try {
+      const url=new URL(candidate);
+      if (!['http:','https:'].includes(url.protocol)) return esc(part);
+      return '<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(candidate)+'</a>'+esc(trailing);
+    } catch {
+      return esc(part);
+    }
+  }).join('');
+
+  const copyCommunityText=async (text) => {
+    if (!navigator.clipboard?.writeText) throw new Error('Copy is unavailable in this browser. Please use a secure connection.');
+    await navigator.clipboard.writeText(text);
+  };
+
   const show = (target,text,type='info') => {
     target.textContent=text;
     target.className=`member-message show ${type}`;
@@ -152,12 +172,21 @@
             <small>${new Date(post.created_at).toLocaleString()}</small>
           </div>
           <div class="community-post-type ${esc(post.post_type)}">${esc(post.post_type)}</div>
+          <div class="community-post-options">
+            <button class="community-options-trigger" type="button" aria-label="More options for this post" aria-expanded="false" aria-haspopup="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+            </button>
+            <div class="community-options-menu" role="group" aria-label="Post actions" hidden>
+              <button type="button" data-post-action="copy">Copy post text</button>
+              <button type="button" data-post-action="link">Copy post link</button>
+            </div>
+          </div>
         </header>
 
         ${post.is_pinned?'<div class="community-pinned-label">Pinned by Founder</div>':''}
         ${post.is_locked?'<div class="community-locked-label">Discussion locked</div>':''}
         ${post.title?`<h2>${esc(post.title)}</h2>`:''}
-        <p class="community-post-body">${esc(post.body)}</p>
+        <p class="community-post-body">${linkify(post.body)}</p>
 
         <div class="community-reaction-row">
           ${['like','celebrate','support','insightful'].map(reaction=>`
@@ -204,6 +233,42 @@
   }
 
   function wireActions() {
+    // Each card's options menu uses the same feed data already authorized by
+    // list_community_feed. Menus change presentation; never grant moderation.
+    const dismissOptions=()=>{
+      feed.querySelectorAll('.community-post-options').forEach(wrap=>{
+        const menu=wrap.querySelector('.community-options-menu');
+        const trigger=wrap.querySelector('.community-options-trigger');
+        if(menu)menu.hidden=true;
+        trigger?.setAttribute('aria-expanded','false');
+      });
+    };
+    feed.querySelectorAll('.community-options-trigger').forEach(trigger=>{
+      trigger.addEventListener('click',event=>{
+        event.stopPropagation();
+        const menu=trigger.parentElement.querySelector('.community-options-menu');
+        const wasClosed=menu.hidden;
+        dismissOptions();
+        menu.hidden=!wasClosed;
+        trigger.setAttribute('aria-expanded',String(wasClosed));
+      });
+    });
+    feed.querySelectorAll('[data-post-action]').forEach(button=>{
+      button.addEventListener('click',async ()=>{
+        const card=button.closest('.community-post-card');
+        const post=allPosts.find(item=>String(item.id)===card?.dataset.id);
+        dismissOptions();
+        if(!post)return;
+        const text=button.dataset.postAction==='copy'
+          ? [post.title,post.body].filter(Boolean).join('\n\n')
+          : new URL('/community/?post='+encodeURIComponent(post.id),location.origin).href;
+        try{
+          await copyCommunityText(text);
+          show(postResult,button.dataset.postAction==='copy'?'Post text copied.':'Post link copied.','success');
+        }catch(error){show(postResult,error.message,'error');}
+      });
+    });
+
     feed.querySelectorAll('.community-reaction-button').forEach(button=>{
       button.addEventListener('click',async()=>{
         const card=button.closest('.community-post-card');
@@ -333,6 +398,14 @@
       })).sort((a,b)=>(Number(b.is_pinned)-Number(a.is_pinned))||(new Date(b.created_at)-new Date(a.created_at)));
 
       renderFeed(avatarMap);
+      const sharedId=new URLSearchParams(location.search).get('post');
+      if(sharedId){
+        const target=[...feed.querySelectorAll('.community-post-card')].find(card=>card.dataset.id===sharedId);
+        if(target){
+          target.classList.add('community-shared-target');
+          if(showLoading)target.scrollIntoView({block:'center',behavior:'smooth'});
+        }
+      }
       setConnection('Live','Live');
     }catch(error){
       if(requestVersion!==feedRequestVersion)return;
