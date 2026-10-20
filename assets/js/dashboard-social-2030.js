@@ -6,6 +6,18 @@
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
   }[char]));
+  // Linkify only HTTP(S); keep all user-entered text escaped.
+  const linkify = value => String(value ?? '').split(/(https?:\/\/[^\s<>"']+)/gi).map(part => {
+    if (!/^https?:\/\//i.test(part)) return escapeHtml(part);
+    const trailing=(part.match(/[).,!?;:]+$/)||[])[0]||'';
+    const candidate=part.slice(0,part.length-trailing.length);
+    try {
+      const url=new URL(candidate);
+      if (!['http:','https:'].includes(url.protocol)) return escapeHtml(part);
+      return '<a href="'+escapeHtml(url.href)+'" target="_blank" rel="noopener noreferrer nofollow">'+escapeHtml(candidate)+'</a>'+escapeHtml(trailing);
+    } catch { return escapeHtml(part); }
+  }).join('');
+
   const icons = {
     like:'<path d="M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Zm0 0 5-8a3 3 0 0 1 2 3v4h6a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2H7"/>',
     comment:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>',
@@ -74,7 +86,7 @@
             </div>
           </header>
           ${post.title ? '<h3>'+escapeHtml(post.title)+'</h3>' : ''}
-          <p class="ds30-post-copy">${escapeHtml(text)}</p>
+          <p class="ds30-post-copy">${linkify(text)}</p>
           ${description.length>360?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
           <div class="ds30-post-engagement" aria-label="Post engagement">
             <span>${likeCount} ${stats.likes===1?'like':'likes'}</span>
