@@ -363,64 +363,25 @@
     }
   }
 
+
   async function loadDashboardCommunity() {
     const target = document.getElementById('dashboardCommunityPreview');
     if (!target) return;
-
     try {
-      // The RPC provides author details without relying on PostgREST relationship cache.
-      const result = await withTimeout(
-        supabase.rpc('list_community_feed', { result_limit: 3 })
-      );
-
-      if (result.error) throw result.error;
-
-      if (!result.data?.length) {
-        target.innerHTML = `
-          <div class="dashboard-empty-compact">
-            <strong>The community is ready for your voice.</strong>
-            <p>Start a professional discussion or share a milestone.</p>
-            <a class="btn btn-outline" href="/community/">Open Community</a>
-          </div>`;
-        return;
+      if (!window.DSDashboardSocial?.mount) {
+        throw new Error('Social feed module is unavailable.');
       }
-
-      target.innerHTML = result.data.map(item => {
-        const authorName =
-          item.author_preferred_name ||
-          item.author_full_name ||
-          'DominionStar Member';
-        const body = String(item.description || '');
-        const excerpt = body.length > 105 ? `${body.slice(0,105)}…` : body;
-        const authorBadge =
-          item.author_exclusive_number >= 1 &&
-          item.author_exclusive_number <= 20
-            ? ` · Founding #${item.author_exclusive_number}`
-            : '';
-
-        const initial=String(authorName).trim().charAt(0).toUpperCase() || 'D';
-        return `
-          <a class="dashboard-community-preview-item" href="/community/">
-            <div class="ds30-post-header">
-              <span class="ds30-post-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
-              <div class="ds30-post-caption">
-                <strong>${escapeHtml(authorName)}${escapeHtml(authorBadge)}</strong>
-                <small>${new Date(item.created_at).toLocaleDateString()}</small>
-              </div>
-            </div>
-            <span>${escapeHtml(item.post_type || 'discussion')}</span>
-            <strong>${escapeHtml(item.title || 'Community update')}</strong>
-            <p>${escapeHtml(excerpt)}</p>
-            <span class="ds30-open-discussion">View conversation →</span>
-          </a>`;
-      }).join('');
+      // Only approved members arrive here; server RLS is still authoritative.
+      await withTimeout(window.DSDashboardSocial.mount({
+        client: supabase,
+        memberId: user.id,
+        target
+      }));
     } catch (error) {
-      target.innerHTML = `
-        <div class="dashboard-empty-compact dashboard-load-error">
-          <strong>Community Pulse could not load.</strong>
-          <p>${escapeHtml(error.message)}</p>
-          <button class="btn btn-outline" type="button" onclick="location.reload()">Retry</button>
-        </div>`;
+      target.innerHTML = '<div class="dashboard-empty-compact dashboard-load-error">' +
+        '<strong>Community feed could not load.</strong><p>' +
+        escapeHtml(error.message) + '</p>' +
+        '<a href="/community/">Open Community →</a></div>';
     }
   }
 
