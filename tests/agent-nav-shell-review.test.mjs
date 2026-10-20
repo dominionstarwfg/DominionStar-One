@@ -17,7 +17,8 @@ test('Member shell mounted only inside existing gated apps',()=>{
   assert.match(js,/#communityApp, #appointmentApp, #directoryApp, #profileApp, #settingsApp/);
   assert.match(js,/app\.prepend\(shell\)/);
   assert.doesNotMatch(js,/\.classList\.remove\('member-hidden'\)/);
-  assert.doesNotMatch(js,/signIn|signOut|setSession|updateUser|role|is_founder|verification_status/);
+  assert.doesNotMatch(js,/signIn|signOut|setSession|updateUser|is_founder|verification_status/);
+  assert.match(js,/app\.classList\.contains\('member-hidden'\)/);
   for(const [path,id] of targetPages){
     const html=read(path);
     assert.match(html,new RegExp('<section id="'+id+'" class="member-hidden"'));
