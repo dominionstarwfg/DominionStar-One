@@ -54,7 +54,8 @@ test('Community social gateway is present but hidden until approved', () => {
   assert.match(js, /if \(status === 'approved'\) \{[\s\S]*?socialGateway\?\.classList\.remove\('member-hidden'\)/);
   assert.match(js, /communitySection\?\.classList\.add\('member-hidden'\)/);
   assert.match(js, /status === 'approved' \? loadDashboardCommunity\(\) : Promise\.resolve\(\)/);
-  assert.match(js, /supabase\.rpc\('list_community_feed', \{ result_limit: 3 \}\)/);
+  assert.match(js, /window\.DSDashboardSocial\.mount/);
+  assert.match(html, /\/assets\/js\/dashboard-social-2030\.js/);
 });
 
 test('Founder control is no longer granted from email or profile claims alone', () => {
