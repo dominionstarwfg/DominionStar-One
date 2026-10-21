@@ -563,3 +563,83 @@
  .dsos-executive-2030 .ds30-post-actions{flex-wrap:nowrap}
  .dsos-executive-2030 .ds30-post-actions button{flex:1 1 0;min-width:0}
 }
+
+
+/* Member identity first — visible before the Community feed and always backed by profile data. */
+.dsos-executive-2030 .dsos-briefing-copy{min-width:0}
+.dsos-executive-2030 .dsos-briefing h1{margin-top:7px;margin-bottom:9px;font-size:clamp(31px,3.3vw,48px);line-height:1.14;overflow-wrap:anywhere}
+.dsos-executive-2030 .dsos-briefing-copy>.dsos-personal-greeting{font-size:12px!important;color:#c5d9e9!important;font-weight:650}
+.dsos-executive-2030 .dsos-hero-identity{
+  display:flex;align-items:center;gap:14px;min-width:0;max-width:620px;
+  border:1px solid #e5c38148;border-radius:15px;
+  padding:11px 14px;margin-top:19px;
+  background:linear-gradient(115deg,#ffffff17,#ffffff07);
+  box-shadow:inset 0 1px #ffffff13
+}
+.dsos-executive-2030 .dsos-hero-avatar,
+.dsos-executive-2030 .dsos-top-avatar,
+.dsos-executive-2030 .dsos-avatar-wrap{
+  position:relative;display:grid;place-items:center;flex-shrink:0;
+  overflow:hidden;background:linear-gradient(138deg,#275b80,#29878b);
+  border:2px solid #d9bd83;border-radius:50%
+}
+.dsos-executive-2030 .dsos-hero-avatar{width:64px;height:64px}
+.dsos-executive-2030 .dsos-top-avatar{width:42px;height:42px;border-width:1px}
+.dsos-executive-2030 .dsos-avatar-wrap{width:68px;height:68px}
+.dsos-executive-2030 .dsos-hero-avatar img,
+.dsos-executive-2030 .dsos-top-avatar img,
+.dsos-executive-2030 .dsos-avatar-wrap img{
+  width:100%;height:100%;display:block;object-fit:cover;border:0;position:absolute;inset:0;border-radius:50%
+}
+.dsos-executive-2030 .dsos-hero-avatar img.member-hidden,
+.dsos-executive-2030 .dsos-top-avatar img.member-hidden,
+.dsos-executive-2030 .dsos-avatar-wrap img.member-hidden{display:none!important}
+.dsos-executive-2030 .dsos-avatar-initials{
+  font:800 19px/1 Inter,Arial,sans-serif;color:#fff;letter-spacing:.045em;
+  display:grid;place-items:center;width:100%;height:100%
+}
+.dsos-executive-2030 .dsos-top-avatar .dsos-avatar-initials{font-size:13px}
+.dsos-executive-2030 .dsos-hero-profile-details{min-width:0;display:grid;gap:6px}
+.dsos-executive-2030 .dsos-hero-profile-details>strong{
+  font:750 clamp(15px,1.45vw,19px)/1.3 Inter,Arial,sans-serif;
+  color:#fff;overflow-wrap:anywhere
+}
+.dsos-executive-2030 .dsos-hero-credentials{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dsos-executive-2030 .dsos-hero-credentials>span{
+  display:inline-flex;align-items:center;border:1px solid #ffffff4b;background:#ffffff10;
+  color:#e7f0f8;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:750;line-height:1.4
+}
+.dsos-executive-2030 .dsos-hero-credentials .dsos-founding-hero{
+  color:#f8dfac;border-color:#e8c47b;background:#a47b302c
+}
+.dsos-executive-2030 .dsos-hero-credentials .member-hidden{display:none!important}
+.dsos-executive-2030 .dsos-profile-chip{display:flex;align-items:center;gap:10px}
+.dsos-executive-2030 .dsos-top-profile-info{min-width:0;display:grid;gap:2px}
+.dsos-executive-2030 .dsos-top-profile-info>strong{
+  display:block;font-size:12px;font-weight:800;line-height:1.3;
+  color:#1d405e;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.dsos-executive-2030 .dsos-top-profile-info>small{
+  display:block;color:#73879d;max-width:225px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px
+}
+.dsos-executive-2030 .dsos-top-profile-info .dsos-founding-inline{color:#a37328;font-weight:850}
+.dsos-executive-2030 .dsos-top-profile-info .member-hidden{display:none!important}
+.dsos-executive-2030 .dsos-profile-badges .agent-exclusive-badge:not(.member-hidden){
+  border:1px solid #d5ae66;background:#fff6e4;color:#92671f;
+  padding:7px 12px;border-radius:999px;font-size:12px;font-weight:800
+}
+.dsos-executive-2030 .dsmedia-dashboard-actions>a{display:inline-flex;align-items:center;gap:8px}
+.dsos-executive-2030 .dsmedia-dashboard-actions>a .ds30-icon{
+  width:18px;height:18px;stroke-width:1.8;fill:none;stroke:currentColor
+}
+@media(max-width:760px){
+ .dsos-executive-2030 .dsos-briefing{padding:23px 19px}
+ .dsos-executive-2030 .dsos-hero-avatar{width:54px;height:54px}
+ .dsos-executive-2030 .dsos-hero-identity{padding:10px}
+ .dsos-executive-2030 .dsos-hero-credentials>span{font-size:10px}
+ .dsos-executive-2030 .dsos-top-profile-info>strong{max-width:120px}
+}
+@media(max-width:420px){
+ .dsos-executive-2030 .dsos-top-profile-info{display:none}
+ .dsos-executive-2030 .dsos-hero-credentials{gap:6px}
+}
