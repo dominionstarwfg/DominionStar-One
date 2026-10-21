@@ -226,7 +226,7 @@ function focusOrCreateMainWindow(){
   createMainWindow();
 }
 
-ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaPresenterFixtures:qaFixtureRequested,qaKeepMacPresenterHidden:process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1',installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getName()==='DominionStar Meet QA'||app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaPresenterFixtures:qaFixtureRequested,qaKeepMacPresenterHidden:process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1',installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
 ipcMain.handle('app:meeting-ended',()=>{
   try{shareService?.shutdown?.();}catch(error){console.error('[DominionStar Meet] Meeting-end native cleanup failed.',error);}
   focusOrCreateMainWindow();
