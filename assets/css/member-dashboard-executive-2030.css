@@ -539,3 +539,27 @@
 @media(max-width:550px){
  .dsos-executive-2030 .dsmedia-dashboard-actions>a{flex:1;min-width:110px}
 }
+
+/* Navigation and social operations are always anchored on the left. */
+.dsos-executive-2030 .dsos-shell{direction:ltr}
+.dsos-executive-2030 .dsos-sidebar{grid-column:1;left:0;right:auto;text-align:left}
+.dsos-executive-2030 .dsos-main{grid-column:2;min-width:0}
+.dsos-executive-2030 .dsos-nav a,
+.dsos-executive-2030 .dsos-nav-button{justify-content:flex-start;text-align:left}
+.dsos-executive-2030 .dsos-briefing-actions,
+.dsos-executive-2030 .dsmedia-dashboard-actions{justify-content:flex-start}
+.dsos-executive-2030 .ds30-post-actions{
+  display:flex!important;justify-content:flex-start;flex-wrap:wrap;gap:6px
+}
+.dsos-executive-2030 .ds30-post-actions button{
+  flex:0 1 116px;min-width:86px;max-width:130px
+}
+@media(max-width:900px){
+ .dsos-executive-2030 .dsos-main{grid-column:1}
+ .dsos-executive-2030 .dsos-sidebar{left:0!important;right:auto!important;transform:translateX(-105%)}
+ .dsos-executive-2030 .dsos-sidebar.open{transform:none}
+}
+@media(max-width:530px){
+ .dsos-executive-2030 .ds30-post-actions{flex-wrap:nowrap}
+ .dsos-executive-2030 .ds30-post-actions button{flex:1 1 0;min-width:0}
+}
