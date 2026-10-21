@@ -34,7 +34,7 @@ if(!ipcMain.listenerCount('app:reset-screen-permission')){
   ipcMain.handle('app:reset-screen-permission',async()=>{
     if(process.platform!=='darwin')return {ok:false,platform:process.platform};
     try{
-      await execFileAsync('/usr/bin/tccutil',['reset','ScreenCapture','com.dominionstar.desktop']);
+      await execFileAsync('/usr/bin/tccutil',['reset','ScreenCapture',app.getName()==='DominionStar Meet QA'?'com.dominionstar.desktop.qa':'com.dominionstar.desktop']);
       return {ok:true};
     }catch(error){
       return {ok:false,error:String(error?.message||error||'tcc_reset_failed')};
