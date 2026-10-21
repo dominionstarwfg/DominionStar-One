@@ -1,7 +1,7 @@
 {
   "name": "dominionstar-meet-rebuild",
-  "version": "2.0.53",
-  "description": "Clean DominionStar Meet desktop rebuild",
+  "version": "2.0.54",
+  "description": "Isolated DominionStar Meet Mac QA build; not a production installer",
   "author": "DominionStar Leadership and Development",
   "main": "src/bootstrap.mjs",
   "type": "module",
@@ -22,8 +22,8 @@
     "electron-builder": "26.15.3"
   },
   "build": {
-    "appId": "com.dominionstar.desktop",
-    "productName": "DominionStar Meet",
+    "appId": "com.dominionstar.desktop.qa",
+    "productName": "DominionStar Meet QA",
     "asar": true,
     "files": [
       "src/**/*",
@@ -37,14 +37,6 @@
       }
     ],
     "artifactName": "DominionStar-Meet-${version}-${os}-${arch}.${ext}",
-    "protocols": [
-      {
-        "name": "DominionStar Meet Join",
-        "schemes": [
-          "dominionstar-meet"
-        ]
-      }
-    ],
     "win": {
       "icon": "build/icon.svg"
     },
