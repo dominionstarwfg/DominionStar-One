@@ -77,31 +77,10 @@
 
   let { data: profile, error: profileError } = await withTimeout(fetchProfile());
 
-  const founderLink = document.getElementById('founderControlLink');
-  // Founder UI discovery must rely on a server-authorized RPC, not email,
-  // or browser-editable profile claims. This does not replace server-side RLS.
-  if (!profileError && profile) {
-    const permission = await supabase.rpc('is_dominionstar_founder');
-    if (!permission.error && permission.data === true) {
-      founderLink?.classList.remove('member-hidden');
-    }
-  }
-
   if (profileError || !profile) {
     statusEl.textContent = 'Profile unavailable';
     statusEl.className = 'member-status pending';
     return;
-  }
-
-  // Guarantee an assigned #1–#20 number for Founding Members.
-  if (
-    profile.founding_member === true &&
-    !profile.exclusive_member_number
-  ) {
-    const assigned = await supabase.rpc('ensure_my_founding_member_number');
-    if (!assigned.error && assigned.data) {
-      profile.exclusive_member_number = assigned.data;
-    }
   }
 
   // Display identity from the authenticated member profile, never demo data.
@@ -124,6 +103,15 @@
   setIdentityText('dashboardIdentityRank', contractLevelText);
   setIdentityText('topbarContractLevel', contractLevelText);
   setIdentityText('heroContractLevel', contractLevelText);
+  // Render visible identity immediately. Permission lookups must never hold up
+  // the authenticated member greeting or contract level.
+  const founderLink = document.getElementById('founderControlLink');
+  Promise.resolve().then(() => withTimeout(supabase.rpc('is_dominionstar_founder'), 5000))
+    .then(permission => {
+      if (!permission.error && permission.data === true) founderLink?.classList.remove('member-hidden');
+    })
+    .catch(() => { /* Fail closed: Founder tools stay hidden. */ });
+
   document.getElementById('dashboardIdentityCode').textContent =
     `Agent Code: ${profile.agent_code || '—'}`;
 
@@ -182,40 +170,53 @@
   };
   renderAvatar(null);
   if (profile.avatar_path) {
-    const avatarResult = await supabase.storage
-      .from('member-avatars')
-      .createSignedUrl(profile.avatar_path, 3600);
-    if (!avatarResult.error && avatarResult.data?.signedUrl) {
-      renderAvatar(avatarResult.data.signedUrl);
-    }
+    // A slow or missing avatar must not delay the feed or greeting.
+    Promise.resolve()
+      .then(() => withTimeout(supabase.storage.from('member-avatars').createSignedUrl(profile.avatar_path, 3600), 5000))
+      .then(result => {
+        if (!result.error && result.data?.signedUrl) renderAvatar(result.data.signedUrl);
+      })
+      .catch(() => { /* Keep visible initials instead of a broken image. */ });
   }
-
-  const foundingNumber = Number(profile.exclusive_member_number);
-  const hasValidFoundingNumber =
-    profile.founding_member === true &&
-    Number.isInteger(foundingNumber) &&
-    foundingNumber >= 1 &&
-    foundingNumber <= 20;
 
   const dashboardBadge = document.getElementById('dashboardBadge');
   const numberSeal = document.getElementById('dashboardFoundingNumber');
   const heroBadge = document.getElementById('heroFoundingBadge');
   const topbarFoundingBadge = document.getElementById('topbarFoundingBadge');
-  const isFoundingMember = profile.founding_member === true;
-  const foundingText = isFoundingMember
-    ? (hasValidFoundingNumber ? `Founding Member #${foundingNumber}` : 'Founding Member')
-    : '';
-  for (const el of [dashboardBadge,heroBadge,topbarFoundingBadge]) {
-    if (!el) continue;
-    el.textContent = foundingText;
-    el.classList.toggle('member-hidden', !isFoundingMember);
-  }
-  if (numberSeal) {
-    if (hasValidFoundingNumber) {
-      numberSeal.textContent = `#${foundingNumber}`;
-      numberSeal.title = `DominionStar Founding Member ${foundingNumber} of 20`;
+  const updateFoundingIdentity = () => {
+    const foundingNumber = Number(profile.exclusive_member_number);
+    const isFoundingMember = profile.founding_member === true;
+    const hasValidFoundingNumber = isFoundingMember &&
+      Number.isInteger(foundingNumber) && foundingNumber >= 1 && foundingNumber <= 20;
+    const foundingText = isFoundingMember
+      ? (hasValidFoundingNumber ? `Founding Member #${String(foundingNumber).padStart(2,'0')}` : 'Founding Member')
+      : '';
+    for (const el of [dashboardBadge,heroBadge,topbarFoundingBadge]) {
+      if (!el) continue;
+      el.textContent = foundingText;
+      el.classList.toggle('member-hidden', !isFoundingMember);
     }
-    numberSeal.classList.toggle('member-hidden', !hasValidFoundingNumber);
+    if (numberSeal) {
+      if (hasValidFoundingNumber) {
+        numberSeal.textContent = `#${String(foundingNumber).padStart(2,'0')}`;
+        numberSeal.title = `DominionStar Founding Member ${foundingNumber} of 20`;
+      }
+      numberSeal.classList.toggle('member-hidden', !hasValidFoundingNumber);
+    }
+  };
+  // Immediately show the verified flag. Assign a missing founding number in
+  // the background; never withhold the member's greeting or avatar to do so.
+  updateFoundingIdentity();
+  if (profile.founding_member === true && !profile.exclusive_member_number) {
+    Promise.resolve().then(() => withTimeout(supabase.rpc('ensure_my_founding_member_number'), 5000))
+      .then(result => {
+        const number=Number(result.data);
+        if (!result.error && Number.isInteger(number) && number>=1 && number<=20) {
+          profile.exclusive_member_number=number;
+          updateFoundingIdentity();
+        }
+      })
+      .catch(() => { /* Retain Founding Member label until a number is available. */ });
   }
 
   const status = profile.verification_status || 'pending';
