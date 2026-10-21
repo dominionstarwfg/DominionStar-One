@@ -643,3 +643,41 @@
  .dsos-executive-2030 .dsos-top-profile-info{display:none}
  .dsos-executive-2030 .dsos-hero-credentials{gap:6px}
 }
+
+
+/* Authenticated social author identity — member photo, rank, founding status. */
+.dsos-executive-2030 .ds30-post-authorbar{align-items:flex-start}
+.dsos-executive-2030 .ds30-author-avatar{
+  position:relative;overflow:hidden;flex:0 0 48px;width:48px;height:48px;
+  border:2px solid #d8bf90;border-radius:50%;
+  background:linear-gradient(145deg,#315e86,#31898d)
+}
+.dsos-executive-2030 .ds30-author-avatar .ds30-author-initials{
+  display:grid;place-items:center;width:100%;height:100%;font-weight:850;color:#fff;
+  font-size:12px;letter-spacing:.035em
+}
+.dsos-executive-2030 .ds30-author-avatar .ds30-author-photo{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%
+}
+.dsos-executive-2030 .ds30-post-author{gap:5px;padding-top:3px}
+.dsos-executive-2030 .ds30-post-author>strong{
+  font-size:13px;color:#1d3b57;line-height:1.3;overflow-wrap:anywhere
+}
+.dsos-executive-2030 .ds30-author-credentials{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap
+}
+.dsos-executive-2030 .ds30-author-credentials>span{
+  border-radius:999px;font-size:10px;font-weight:800;line-height:1.25;
+  padding:4px 8px;white-space:normal
+}
+.dsos-executive-2030 .ds30-author-credentials .ds30-post-rank{
+  color:#315c7c;background:#ecf4fa;border:1px solid #d3e3ed
+}
+.dsos-executive-2030 .ds30-author-credentials .ds30-post-founding{
+  color:#8c6125;background:#fff4dd;border:1px solid #e5c68b
+}
+.dsos-executive-2030 .ds30-post-author small{font-size:10px;color:#8495a6}
+@media(max-width:520px){
+  .dsos-executive-2030 .ds30-author-avatar{width:42px;height:42px;flex-basis:42px}
+  .dsos-executive-2030 .ds30-author-credentials>span{font-size:9px;padding:4px 7px}
+}
