@@ -53,3 +53,16 @@ test('Draft-only media cannot become a silent broken publication',()=>{
  assert.match(draft,/Local preview only|local preview only/);
  assert.doesNotMatch(draft,/\.storage\.from\(|\.upload\(/);
 });
+
+
+test('Primary navigation and interactive actions retain left-side placement',()=>{
+  const shell=read('assets/js/dominionstar-public-app-shell.js');
+  const shellCss=read('assets/css/dominionstar-public-app-shell.css');
+  const dashboardCss=read('assets/css/member-dashboard-executive-2030.css');
+  assert.match(shell,/brand\.insertAdjacentElement\('afterend',button\)/);
+  assert.doesNotMatch(shell,/insertBefore\(button,cta\)/);
+  assert.match(shellCss,/left:17px!important;right:auto!important/);
+  assert.match(dashboardCss,/\.dsos-sidebar\{grid-column:1;left:0;right:auto/);
+  assert.match(dashboardCss,/\.ds30-post-actions\{\s*display:flex!important;justify-content:flex-start/);
+  assert.match(draftsCss,/\.community-composer-actions\{\s*display:flex;justify-content:flex-start!important/);
+});
