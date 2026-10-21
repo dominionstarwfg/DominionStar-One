@@ -65,8 +65,7 @@
   button.type='button';button.className='dsapp-launch';
   button.setAttribute('aria-label','Explore DominionStar pages');
   button.innerHTML=vector('search')+'<span>Explore</span><kbd>⌘ K</kbd>';
-  const cta=header.querySelector('.head-cta');
-  if(cta)header.insertBefore(button,cta); else header.appendChild(button);
+  // Quick navigation belongs to the left-hand action area, directly by the brand.\n  const brand=header.querySelector('.brand');\n  if(brand)brand.insertAdjacentElement('afterend',button); else header.insertBefore(button,header.firstChild);
   const mobile=button.cloneNode(true);mobile.classList.add('dsapp-public-floating');mobile.setAttribute('aria-label','Explore DominionStar');document.body.appendChild(mobile);
   const dialog=document.createElement('dialog');dialog.className='dsapp-dialog';dialog.setAttribute('aria-label','Explore DominionStar');
   dialog.innerHTML='<div class="dsapp-dialog-header">'+vector('search')+'<strong>Explore DominionStar</strong><button class="dsapp-close" type="button" aria-label="Close quick navigation">×</button></div>'
