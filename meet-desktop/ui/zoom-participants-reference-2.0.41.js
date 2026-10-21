@@ -20,9 +20,9 @@
     style.dataset.dsZoomParticipantsReference2041='1';
     style.textContent=`
       #meetingOverlay .room-side.ds-participants-reference{
-        position:absolute!important;width:318px!important;min-width:min(318px,calc(100% - 24px))!important;max-width:min(318px,calc(100% - 24px))!important;
+        position:absolute!important;width:440px!important;min-width:min(440px,calc(100% - 24px))!important;max-width:min(440px,calc(100% - 24px))!important;
         height:390px!important;min-height:min(390px,calc(100% - 24px))!important;max-height:calc(100% - 24px)!important;
-        left:auto!important;right:18px!important;top:18px!important;bottom:auto!important;transform:none!important;
+        left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
         background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:none!important;z-index:3200!important;color:#f5f5f6!important
       }
@@ -226,10 +226,11 @@
     if(side.dataset.dsAdaptiveUserPositioned==='1')return;
     let saved=null;try{saved=JSON.parse(localStorage.getItem(GEOMETRY_KEY)||'null');}catch{}
     if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.top)&&Number.isFinite(saved.width)&&Number.isFinite(saved.height)){
-      const width=Math.min(Math.max(saved.width,294),Math.min(340,body.clientWidth-24)),height=Math.min(Math.max(saved.height,300),Math.min(430,body.clientHeight-24)),left=Math.max(10,Math.min(saved.left,body.clientWidth-width-10)),top=Math.max(10,Math.min(saved.top,body.clientHeight-height-10));
+      const width=Math.min(Math.max(saved.width,294),Math.min(440,body.clientWidth-24)),height=Math.min(Math.max(saved.height,300),Math.min(552,body.clientHeight-24)),left=Math.max(10,Math.min(saved.left,body.clientWidth-width-10)),top=Math.max(10,Math.min(saved.top,body.clientHeight-height-10));
       side.style.setProperty('width',`${width}px`,'important');side.style.setProperty('height',`${height}px`,'important');side.style.setProperty('left',`${left}px`,'important');side.style.setProperty('right','auto','important');side.style.setProperty('top',`${top}px`,'important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
     }else{
-      side.style.setProperty('width',`${Math.min(318,Math.max(294,body.clientWidth-24))}px`,'important');side.style.setProperty('height',`${Math.min(390,Math.max(300,body.clientHeight-24))}px`,'important');side.style.setProperty('left','auto','important');side.style.setProperty('right','24px','important');side.style.setProperty('top','18px','important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
+      const width=Math.min(440,Math.max(294,body.clientWidth-24));const height=Math.min(552,Math.max(300,body.clientHeight-24));
+      side.style.setProperty('width',`${width}px`,'important');side.style.setProperty('height',`${height}px`,'important');side.style.setProperty('left',`${Math.max(10,(body.clientWidth-width)/2)}px`,'important');side.style.setProperty('right','auto','important');side.style.setProperty('top',`${Math.max(10,(body.clientHeight-height)/2)}px`,'important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
     }
   }
 
