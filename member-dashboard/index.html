@@ -62,8 +62,15 @@
 
         <button id="dsosSearchButton" type="button" aria-label="Search">⌕</button>
         <a href="/professional-profile/" class="dsos-profile-chip">
-          <img id="dashboardAvatar" src="/assets/logo.jpeg" alt="Member profile">
-          <span><strong id="topbarMemberName">DominionStar Member</strong><small id="topbarContractLevel">Member</small></span>
+          <span class="dsos-top-avatar">
+            <img id="dashboardAvatar" class="member-hidden" alt="Member profile photo">
+            <span id="dashboardAvatarInitials" class="dsos-avatar-initials" aria-hidden="true">DS</span>
+          </span>
+          <span class="dsos-top-profile-info">
+            <strong id="topbarMemberName">DominionStar Member</strong>
+            <small id="topbarContractLevel">Contract Level: —</small>
+            <small id="topbarFoundingBadge" class="dsos-founding-inline member-hidden"></small>
+          </span>
         </a>
       </div>
     </header>
@@ -71,10 +78,23 @@
     <div class="dsos-page">
       <section class="dsos-briefing">
         <div class="dsos-briefing-copy">
-          <p class="eyebrow">DominionStar · Built for leadership</p>
-          <p class="dsos-personal-greeting"><span id="heroGreeting">Good evening</span>, <span id="heroMemberName">Member</span>.</p>
-          <h1>Own the day. <span>Build the future.</span></h1>
-          <p>A unified home for meaningful conversations, professional progress, and the people you're developing.</p>
+          <p class="eyebrow">DominionStar · Your executive home</p>
+          <p class="dsos-personal-greeting"><span id="heroGreeting">Good to see you again</span></p>
+          <h1>Welcome back, <span id="heroMemberName">Member</span>.</h1>
+          <p>Stay connected with your team, celebrate progress, and keep building what matters.</p>
+          <div class="dsos-hero-identity" aria-label="Your professional identity">
+            <a href="/professional-profile/" class="dsos-hero-avatar" aria-label="View your professional profile">
+              <img id="heroProfileAvatar" class="member-hidden" alt="Your profile photo">
+              <span id="heroProfileInitials" class="dsos-avatar-initials" aria-hidden="true">DS</span>
+            </a>
+            <div class="dsos-hero-profile-details">
+              <strong id="heroProfileFullName">DominionStar Member</strong>
+              <div class="dsos-hero-credentials">
+                <span id="heroContractLevel">Contract Level: —</span>
+                <span id="heroFoundingBadge" class="dsos-founding-hero member-hidden"></span>
+              </div>
+            </div>
+          </div>
           <div class="dsos-briefing-actions">
             <a class="btn btn-gold" href="/journey/">Continue your journey</a>
             <a class="btn btn-outline" href="/direct-messages/">Open Messages</a>
@@ -113,10 +133,8 @@
             <div class="dsmedia-social-entry">
               <p>What would you like to share with your team?</p>
               <div class="dsmedia-dashboard-actions">
-                <a href="/community/#communityPostForm">✎ <span>Write Post</span></a>
-                <a href="/community/#communityMediaDraft">▧ <span>Photo</span></a>
-                <a href="/community/#communityMediaDraft">▤ <span>Flyer</span></a>
-                <a href="/community/#communityMediaDraft">▷ <span>Video</span></a>
+                <a href="/community/#communityPostForm"><svg class="ds30-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4 10.5-10.5Z"/></svg><span>Write a post</span></a>
+                <a href="/community/#communityMediaDraft"><svg class="ds30-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5 12 20.5a6 6 0 0 1-8.5-8.5l9.8-9.8a4 4 0 0 1 5.7 5.7l-9.9 9.9a2 2 0 0 1-2.8-2.8l9.2-9.2"/></svg><span>Attach files</span></a>
               </div>
               <small>Media selections open a local draft in Community; uploads are not yet enabled.</small>
             </div>
@@ -135,7 +153,8 @@
           <article class="dsos-profile-card">
             <div class="dsos-profile-main">
               <div class="dsos-avatar-wrap">
-                <img id="dashboardIdentityAvatar" src="/assets/logo.jpeg" alt="Professional profile">
+                <img id="dashboardIdentityAvatar" class="member-hidden" alt="Your professional profile photo">
+                <span id="dashboardIdentityInitials" class="dsos-avatar-initials" aria-hidden="true">DS</span>
               </div>
               <div>
                 <p class="eyebrow">Professional identity</p>
