@@ -74,7 +74,7 @@
 
   const profileResult=await supabase
     .from('member_profiles')
-    .select('id,full_name,preferred_name,email,rank,exclusive_member_number,verification_status,role,is_founder,avatar_path')
+    .select('id,full_name,preferred_name,email,rank,founding_member,exclusive_member_number,verification_status,role,is_founder,avatar_path')
     .eq('id',session.user.id)
     .single();
 
@@ -83,6 +83,48 @@
   if (profileResult.error || profile?.verification_status!=='approved') {
     gate.innerHTML='<p class="eyebrow">Founder Approval Required</p><h1>Community access is available to approved members.</h1>';
     return;
+  }
+
+  // Composer identity is the authenticated user, never a demo name.
+  const composerName=String(profile.preferred_name||profile.full_name||'Member').trim()||'Member';
+  const composerFullName=String(profile.full_name||composerName).trim()||'Member';
+  const composerInitials=composerFullName.split(/\s+/).filter(Boolean).slice(0,2)
+    .map(part=>part[0]).join('').toUpperCase()||'DS';
+  const nameNode=document.getElementById('communityComposerName');
+  const rankNode=document.getElementById('communityComposerRank');
+  const foundingNode=document.getElementById('communityComposerFounding');
+  const initialsNode=document.getElementById('communityComposerInitials');
+  const photoNode=document.getElementById('communityComposerAvatar');
+  if(nameNode)nameNode.textContent=composerFullName;
+  if(rankNode)rankNode.textContent='Contract Level: '+String(profile.rank||'—');
+  if(initialsNode)initialsNode.textContent=composerInitials;
+  if(foundingNode){
+    const number=Number(profile.exclusive_member_number);
+    const founding=profile.founding_member===true;
+    foundingNode.textContent=founding
+      ? (Number.isInteger(number)&&number>=1&&number<=20
+          ? 'Founding Member #'+String(number).padStart(2,'0')
+          : 'Founding Member')
+      : '';
+    foundingNode.classList.toggle('member-hidden',!founding);
+  }
+  if(photoNode && profile.avatar_path){
+    Promise.resolve()
+      .then(()=>supabase.storage.from('member-avatars').createSignedUrl(profile.avatar_path,3600))
+      .then(result=>{
+        if(result.error||!result.data?.signedUrl)return;
+        photoNode.onerror=()=>{
+          photoNode.classList.add('member-hidden');
+          photoNode.removeAttribute('src');
+          initialsNode?.classList.remove('member-hidden');
+        };
+        photoNode.onload=()=>{
+          photoNode.classList.remove('member-hidden');
+          initialsNode?.classList.add('member-hidden');
+        };
+        photoNode.src=result.data.signedUrl;
+      })
+      .catch(()=>{ /* Initials remain visible when Storage is unavailable. */ });
   }
 
   // Founder controls require server authorization; profile fields and email
