@@ -40,6 +40,7 @@
       return;
     }
     let posts = [];
+    let avatarUrls = new Map();
     let busy = false;
     let revision = 0;
     const status = document.createElement('p');
@@ -60,8 +61,11 @@
     const render = (counts) => {
       target.innerHTML = posts.map(post => {
         const author=post.author_preferred_name||post.author_full_name||'DominionStar Member';
-        const founding=post.author_exclusive_number>=1&&post.author_exclusive_number<=20
-          ? ' · Founding #'+post.author_exclusive_number : '';
+        const authorRank=String(post.author_rank||'').trim();
+        const foundingNumber=Number(post.author_exclusive_number);
+        const founding=Number.isInteger(foundingNumber)&&foundingNumber>=1&&foundingNumber<=20
+          ? 'Founding Member #'+foundingNumber : '';
+        const avatarUrl=post.author_avatar_path?avatarUrls.get(post.author_avatar_path):null;
         const description=String(post.body||post.description||'');
         const text=description.length>360 ? description.slice(0,360)+'…' : description;
         const stats=counts.get(String(post.id))||{};
@@ -72,9 +76,16 @@
         return `
         <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}">
           <header class="ds30-post-authorbar">
-            <span class="ds30-author-avatar" aria-hidden="true">${escapeHtml(initials||'DS')}</span>
+            <span class="ds30-author-avatar" aria-hidden="true">
+              <span class="ds30-author-initials">${escapeHtml(initials||'DS')}</span>
+              ${avatarUrl?'<img class="ds30-author-photo" src="'+escapeHtml(avatarUrl)+'" alt="" loading="lazy">':''}
+            </span>
             <div class="ds30-post-author">
-              <strong>${escapeHtml(author)}${escapeHtml(founding)}</strong>
+              <strong>${escapeHtml(author)}</strong>
+              <div class="ds30-author-credentials">
+                ${authorRank?'<span class="ds30-post-rank">Contract Level: '+escapeHtml(authorRank)+'</span>':''}
+                ${founding?'<span class="ds30-post-founding">'+escapeHtml(founding)+'</span>':''}
+              </div>
               <small>${escapeHtml(displayDate(post.created_at))} <span aria-hidden="true">·</span> ${escapeHtml(post.post_type||'Update')}</small>
             </div>
             <div class="ds30-post-options">
@@ -107,6 +118,10 @@
           </form>
         </article>`;
       }).join('') || '<div class="dashboard-empty-compact"><strong>No community posts yet.</strong><p>Be the first to share an update.</p><a href="/community/">Open Community →</a></div>';
+      // Broken/expired profile image URLs must fall back to the author's initials.
+      target.querySelectorAll('.ds30-author-photo').forEach(image => {
+        image.addEventListener('error',() => image.remove(),{once:true});
+      });
     };
     const refresh = async () => {
       const current=++revision;
@@ -114,12 +129,21 @@
       if(current!==revision)return;
       if(result.error)throw result.error;
       posts=asPosts(result.data).filter(p=>p && p.id);
-      if(!posts.length){render(new Map());return;}
+      if(!posts.length){avatarUrls=new Map();render(new Map());return;}
       const ids=posts.map(post=>post.id);
-      const [reactionResult,commentResult]=await Promise.all([
+      const avatarPaths=[...new Set(posts.map(post=>post.author_avatar_path).filter(path=>typeof path==='string'&&path.trim()))];
+      const avatarLookup=Promise.all(avatarPaths.map(async path=>{
+        try {
+          const signed=await client.storage.from('member-avatars').createSignedUrl(path,3600);
+          return [path,signed.error?null:(signed.data?.signedUrl||null)];
+        } catch {return [path,null];}
+      }));
+      const [reactionResult,commentResult,avatarEntries]=await Promise.all([
         client.from('community_reactions').select('message_id,user_id,reaction').in('message_id',ids),
-        client.from('community_comments').select('message_id').in('message_id',ids).eq('is_deleted',false)
+        client.from('community_comments').select('message_id').in('message_id',ids).eq('is_deleted',false),
+        avatarLookup
       ]);
+      avatarUrls=new Map(avatarEntries.filter(item=>item[1]));
       if(current!==revision)return;
       const reactionOk=!reactionResult.error,commentOk=!commentResult.error;
       const counts=new Map(ids.map(id=>[String(id),{
