@@ -65,7 +65,7 @@ body.ds-public-app .site-header{backdrop-filter:blur(18px);-webkit-backdrop-filt
 .dsapp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media(max-width:1120px){.dsapp-launch kbd{display:none}.dsapp-launch{padding:8px}}
 @media(max-width:920px){.dsapp-launch{display:none}.dsapp-public-floating{
- display:flex!important;position:fixed;right:17px;bottom:18px;z-index:79;
+ display:flex!important;position:fixed;left:17px;right:auto;bottom:18px;z-index:79;
  border-radius:50%;width:52px;height:52px;justify-content:center;
  box-shadow:0 9px 32px #102e4d60;background:#102d4d;color:#fff;border:1px solid #c7a068
 }.dsapp-public-floating span,.dsapp-public-floating kbd{display:none}}
@@ -73,4 +73,14 @@ body.ds-public-app .site-header{backdrop-filter:blur(18px);-webkit-backdrop-filt
 @media(prefers-reduced-motion:reduce){
  ::view-transition-old(root),::view-transition-new(root){animation:none!important}
  .dsapp-progress,.dsapp-progress-bar{transition:none!important}
+}
+
+/* Founder-approved geometry: public quick actions remain on the LEFT. */
+@media(min-width:921px){
+  body.ds-public-app .site-header .header-inner>.dsapp-launch{order:0;flex:0 0 auto}
+  body.ds-public-app .site-header .header-inner>.brand{order:-1}
+  body.ds-public-app .site-header .header-inner>.main-nav{margin-left:auto}
+}
+@media(max-width:920px){
+ .dsapp-public-floating{left:17px!important;right:auto!important}
 }
