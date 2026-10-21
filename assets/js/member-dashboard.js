@@ -104,19 +104,26 @@
     }
   }
 
-  const displayName =
-    profile.preferred_name || profile.full_name || user.email || 'Member';
-  const fullName = profile.full_name || displayName;
+  // Display identity from the authenticated member profile, never demo data.
+  const displayName = String(
+    profile.preferred_name || profile.full_name || 'Member'
+  ).trim() || 'Member';
+  const fullName = String(profile.full_name || displayName).trim() || 'Member';
+  const firstName = displayName.split(/\s+/)[0] || 'Member';
+  const contractLevel = String(profile.rank || '').trim() || '—';
+  const contractLevelText = `Contract Level: ${contractLevel}`;
+  const setIdentityText = (id, value) => {
+    const node = document.getElementById(id);
+    if (node) node.textContent = value;
+  };
 
-  document.getElementById('dashboardIdentityName').textContent = displayName;
-  const topbarName = document.getElementById('topbarMemberName');
-  const heroName = document.getElementById('heroMemberName');
-  if (topbarName) topbarName.textContent = displayName;
-  if (heroName) heroName.textContent = displayName.split(' ')[0] || displayName;
-  document.getElementById('dashboardIdentityRank').textContent =
-    `Contract Level: ${profile.rank || 'TA'}`;
-  const topbarRank = document.getElementById('topbarContractLevel');
-  if (topbarRank) topbarRank.textContent = profile.rank || 'TA';
+  setIdentityText('dashboardIdentityName', fullName);
+  setIdentityText('topbarMemberName', fullName);
+  setIdentityText('heroMemberName', firstName);
+  setIdentityText('heroProfileFullName', fullName);
+  setIdentityText('dashboardIdentityRank', contractLevelText);
+  setIdentityText('topbarContractLevel', contractLevelText);
+  setIdentityText('heroContractLevel', contractLevelText);
   document.getElementById('dashboardIdentityCode').textContent =
     `Agent Code: ${profile.agent_code || '—'}`;
 
@@ -139,23 +146,47 @@
     }
   }
 
-  if (smdElement) {
-    if (profile.smd_name) {
-      smdElement.textContent = `SMD: ${profile.smd_name}`;
-      smdElement.classList.remove('member-hidden');
-    } else {
-      smdElement.classList.add('member-hidden');
-    }
+  // Use a real profile image only when Storage authorizes a signed URL.
+  // Missing, revoked or broken photos show member initials, never a company logo.
+  const initials = fullName.split(/\s+/).filter(Boolean)
+    .slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase() || 'DS';
+  for (const id of ['dashboardAvatarInitials','heroProfileInitials','dashboardIdentityInitials']) {
+    setIdentityText(id, initials);
   }
-
+  const avatarPairs = [
+    ['dashboardAvatar','dashboardAvatarInitials'],
+    ['heroProfileAvatar','heroProfileInitials'],
+    ['dashboardIdentityAvatar','dashboardIdentityInitials']
+  ];
+  const renderAvatar = signedUrl => {
+    for (const [imageId,fallbackId] of avatarPairs) {
+      const img = document.getElementById(imageId);
+      const fallback = document.getElementById(fallbackId);
+      if (!img || !fallback) continue;
+      img.classList.add('member-hidden');
+      fallback.classList.remove('member-hidden');
+      img.removeAttribute('src');
+      if (!signedUrl) continue;
+      const onBrokenImage = () => {
+        img.classList.add('member-hidden');
+        fallback.classList.remove('member-hidden');
+        img.removeAttribute('src');
+      };
+      img.onerror = onBrokenImage;
+      img.onload = () => {
+        img.classList.remove('member-hidden');
+        fallback.classList.add('member-hidden');
+      };
+      img.src = signedUrl;
+    }
+  };
+  renderAvatar(null);
   if (profile.avatar_path) {
     const avatarResult = await supabase.storage
       .from('member-avatars')
       .createSignedUrl(profile.avatar_path, 3600);
-    if (avatarResult.data?.signedUrl) {
-      document.getElementById('dashboardAvatar').src = avatarResult.data.signedUrl;
-      const identityAvatar = document.getElementById('dashboardIdentityAvatar');
-      if (identityAvatar) identityAvatar.src = avatarResult.data.signedUrl;
+    if (!avatarResult.error && avatarResult.data?.signedUrl) {
+      renderAvatar(avatarResult.data.signedUrl);
     }
   }
 
@@ -168,20 +199,23 @@
 
   const dashboardBadge = document.getElementById('dashboardBadge');
   const numberSeal = document.getElementById('dashboardFoundingNumber');
-  const heroBadge = document.querySelector('.founding-member-badge');
-
-  if (hasValidFoundingNumber) {
-    const badgeText = `Founding Member #${foundingNumber}`;
-    dashboardBadge.textContent = badgeText;
-    dashboardBadge.classList.remove('member-hidden');
-    numberSeal.textContent = `#${foundingNumber}`;
-    numberSeal.title = `DominionStar Founding Member ${foundingNumber} of 20`;
-    numberSeal.classList.remove('member-hidden');
-    if (heroBadge) heroBadge.textContent = badgeText;
-  } else {
-    dashboardBadge?.classList.add('member-hidden');
-    numberSeal?.classList.add('member-hidden');
-    if (heroBadge) heroBadge.textContent = 'DominionStar Member';
+  const heroBadge = document.getElementById('heroFoundingBadge');
+  const topbarFoundingBadge = document.getElementById('topbarFoundingBadge');
+  const isFoundingMember = profile.founding_member === true;
+  const foundingText = isFoundingMember
+    ? (hasValidFoundingNumber ? `Founding Member #${foundingNumber}` : 'Founding Member')
+    : '';
+  for (const el of [dashboardBadge,heroBadge,topbarFoundingBadge]) {
+    if (!el) continue;
+    el.textContent = foundingText;
+    el.classList.toggle('member-hidden', !isFoundingMember);
+  }
+  if (numberSeal) {
+    if (hasValidFoundingNumber) {
+      numberSeal.textContent = `#${foundingNumber}`;
+      numberSeal.title = `DominionStar Founding Member ${foundingNumber} of 20`;
+    }
+    numberSeal.classList.toggle('member-hidden', !hasValidFoundingNumber);
   }
 
   const status = profile.verification_status || 'pending';
@@ -279,7 +313,7 @@
   const greetingElement = document.getElementById('memberGreeting');
   if (greetingElement) greetingElement.textContent = greetingText;
   const heroGreeting = document.getElementById('heroGreeting');
-  if (heroGreeting) heroGreeting.textContent = greetingText;
+  if (heroGreeting) heroGreeting.textContent = greetingText + ' · Your professional space';
 
   async function loadAnnouncements() {
     const result = await withTimeout(
