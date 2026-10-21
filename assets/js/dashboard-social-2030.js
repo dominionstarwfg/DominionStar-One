@@ -61,7 +61,7 @@
     const render = (counts) => {
       target.innerHTML = posts.map(post => {
         const author=post.author_preferred_name||post.author_full_name||'DominionStar Member';
-        const authorRank=String(post.author_rank||'').trim();
+        const authorRank=String(post.author_rank||'').trim() || '—';
         const foundingNumber=Number(post.author_exclusive_number);
         const founding=Number.isInteger(foundingNumber)&&foundingNumber>=1&&foundingNumber<=20
           ? 'Founding Member #'+foundingNumber : '';
@@ -83,7 +83,7 @@
             <div class="ds30-post-author">
               <strong>${escapeHtml(author)}</strong>
               <div class="ds30-author-credentials">
-                ${authorRank?'<span class="ds30-post-rank">Contract Level: '+escapeHtml(authorRank)+'</span>':''}
+                <span class="ds30-post-rank">Contract Level: ${escapeHtml(authorRank)}</span>
                 ${founding?'<span class="ds30-post-founding">'+escapeHtml(founding)+'</span>':''}
               </div>
               <small>${escapeHtml(displayDate(post.created_at))} <span aria-hidden="true">·</span> ${escapeHtml(post.post_type||'Update')}</small>
