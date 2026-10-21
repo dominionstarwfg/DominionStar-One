@@ -38,3 +38,14 @@
 .dsmedia-draft :focus-visible,.dsmedia-post-options summary:focus-visible{outline:3px solid #dfbf7e;outline-offset:3px}
 @media(max-width:640px){.dsmedia-composer-top{gap:10px}.dsmedia-author-glyph{width:40px;height:40px;flex-basis:40px}.dsmedia-caption textarea{min-height:112px;padding:14px}.dsmedia-draft{padding:12px}.dsmedia-tray:has(.dsmedia-file-card){grid-template-columns:1fr}.dsmedia-file-thumb{flex-basis:60px;width:60px;height:60px}.dsmedia-attach-hint{flex-basis:100%}}
 @media(prefers-reduced-motion:reduce){.dsmedia-caption textarea{transition:none}}
+
+/* Publish controls, attachment actions and optional settings align to the LEFT. */
+.community-composer-card .community-composer-actions{
+  display:flex;justify-content:flex-start!important;align-items:center;gap:12px;flex-wrap:wrap
+}
+.community-composer-card .community-composer-actions #communityPostSubmit{
+  margin-left:0!important;margin-right:auto
+}
+.community-composer-card .dsmedia-action-row{justify-content:flex-start}
+.community-composer-card .dsmedia-caption{text-align:left}
+.community-composer-card .dsmedia-post-options summary{margin-left:0;margin-right:auto}
