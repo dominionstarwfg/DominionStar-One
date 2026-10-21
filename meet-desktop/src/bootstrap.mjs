@@ -37,7 +37,8 @@ if(process.platform==='darwin'){
 
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
 const packagedMac=()=>process.platform==='darwin'&&app.isPackaged&&!isCi;
-const CANONICAL_MAC_APP='/Applications/DominionStar Meet.app';
+const QA_MAC_BUILD=app.getName()==='DominionStar Meet QA';
+const CANONICAL_MAC_APP=QA_MAC_BUILD?'/Applications/DominionStar Meet QA.app':'/Applications/DominionStar Meet.app';
 const currentMacBundlePath=()=>{
   if(process.platform!=='darwin'||!app.isPackaged)return '';
   return path.resolve(path.dirname(process.execPath),'../..');
@@ -94,11 +95,11 @@ function rejectNonCanonicalLaunch(install={}){
   const running=String(install.conflictType||'')==='existsAndRunning';
   const duplicateName=String(install.conflictType||'')==='duplicateName';
   const version=app.getVersion();
-  const message=running?'Quit the older DominionStar Meet first':duplicateName?'Use the canonical DominionStar Meet app':'DominionStar Meet must run from Applications';
+  const message=running?'Quit the currently running copy first':duplicateName?'Use the canonical DominionStar Meet installation':`${QA_MAC_BUILD?'DominionStar Meet QA':'DominionStar Meet'} must run from Applications`;
   const detail=running
-    ? `Another DominionStar Meet is already running from Applications. Quit that copy completely, then open build ${version} again so it can replace the installed app. This copy will not run from the DMG or Downloads because macOS Screen Recording “Quit & Reopen” could otherwise reopen the wrong build.`
+    ? `Another copy is already running from Applications. Quit that copy completely, then open build ${version} again. This copy will not run from Downloads because macOS Screen Recording “Quit & Reopen” could otherwise reopen a different build.`
     : duplicateName
-      ? `This copy is running as ${install.currentBundlePath||'a renamed DominionStar Meet app'}. Quit all DominionStar Meet copies, remove renamed duplicates such as “DominionStar Meet 2.app”, and install this build exactly as ${CANONICAL_MAC_APP}. The meeting runtime will not start from a duplicate app name because macOS can treat it as a separate Screen Recording privacy identity.`
+      ? `This copy is running as ${install.currentBundlePath||'a renamed meeting app'}. Keep its original application name and install this build as ${CANONICAL_MAC_APP}. The meeting runtime will not start from a duplicate app name because macOS can treat it as a separate Screen Recording privacy identity.`
       : `This build (${version}) could not complete installation into Applications${install.error?` (${install.error})`:''}. It will close instead of starting from the DMG or Downloads. Install DominionStar Meet into Applications, then reopen it before granting Camera, Microphone, or Screen & System Audio Recording access.`;
   try{dialog.showMessageBoxSync({type:'warning',title:'Finish installing DominionStar Meet',message,detail,buttons:['Quit this copy'],defaultId:0,noLink:true});}catch{}
   app.quit();
