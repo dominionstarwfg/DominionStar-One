@@ -38,5 +38,5 @@ assert.match(source,/remoteAudioPlayback:after.remoteAudioPlayback/,'Audio playb
 assert.match(exporter,/'remoteAudioPlayback'/,'Audio evidence must be exportable from the physical QA UI');
 assert.match(css,/\.remote-peer-tile \.remote-peer-fallback\[hidden\]\{display:none!important\}/,'Camera fallback must honor hidden');
 assert.match(css,/#remoteShareVideo\[hidden\]\{display:none!important\}/,'Hidden remote screen must never cover main stage');
-assert.match(panel,/left:auto!important;right:18px!important;top:18px!important;bottom:auto!important;transform:none!important;/,'Participants default right-side geometry missing');
+assert.match(panel,/left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translate\(-50%,-50%\)!important;/,'Approved participants center geometry missing');
 console.log('PASS remote-audio retry, diagnostic visibility, fallback visibility, and participant placement invariants (simulated only)');
