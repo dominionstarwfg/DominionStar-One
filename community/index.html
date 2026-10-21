@@ -43,9 +43,17 @@
 <form id="communityPostForm" class="community-post-form">
 <div class="dsmedia-composer-top">
   <div class="dsmedia-author-glyph" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+    <span id="communityComposerInitials">DS</span>
+    <img id="communityComposerAvatar" class="member-hidden" alt="">
   </div>
   <div class="dsmedia-caption">
+    <div class="dsmedia-member-identity">
+      <strong id="communityComposerName">Your professional profile</strong>
+      <div class="dsmedia-member-credentials">
+        <span id="communityComposerRank">Contract Level: —</span>
+        <span id="communityComposerFounding" class="dsmedia-founding-badge member-hidden"></span>
+      </div>
+    </div>
     <label for="dsmediaCaption" class="dsmedia-caption-label">Create a post</label>
     <textarea id="dsmediaCaption" name="body" rows="4" maxlength="2000" required placeholder="Share an update, a thought, or a milestone with your team…"></textarea>
   </div>
