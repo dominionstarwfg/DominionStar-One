@@ -168,8 +168,12 @@
     )];
 
     const pairs=await Promise.all(paths.map(async path=>{
-      const signed=await supabase.storage.from('member-avatars').createSignedUrl(path,3600);
-      return [path,signed.data?.signedUrl||null];
+      try {
+        const signed=await supabase.storage.from('member-avatars').createSignedUrl(path,3600);
+        return [path,signed.error?null:(signed.data?.signedUrl||null)];
+      } catch {
+        return [path,null]; // A missing photo must never hide the feed.
+      }
     }));
 
     return Object.fromEntries(pairs);
@@ -206,11 +210,11 @@
       return `
       <article class="community-post-card ${post.is_pinned?'pinned':''}" data-id="${esc(post.id)}">
         <header class="community-post-header">
-          <div class="community-post-avatar">${avatar?`<img src="${esc(avatar)}" alt="">`:esc(initial)}</div>
+          <div class="community-post-avatar" data-initials="${esc(initial)}">${avatar?`<img src="${esc(avatar)}" alt="">`:esc(initial)}</div>
           <div class="community-post-author">
             <strong>${esc(member.preferred_name||member.full_name||'DominionStar Member')}</strong>
-            <span>${esc(member.rank||'TA')}</span>
-            ${member.exclusive_member_number?`<span>Founding #${member.exclusive_member_number}</span>`:''}
+            <span class="community-author-rank">Contract Level: ${esc(member.rank||'—')}</span>
+            ${Number.isInteger(Number(member.exclusive_member_number))&&Number(member.exclusive_member_number)>=1&&Number(member.exclusive_member_number)<=20?`<span class="community-author-founding">Founding Member #${String(member.exclusive_member_number).padStart(2,'0')}</span>`:''}
             <small>${new Date(post.created_at).toLocaleString()}</small>
           </div>
           <div class="community-post-type ${esc(post.post_type)}">${esc(post.post_type)}</div>
@@ -252,7 +256,7 @@
               const commentInitial=(author.preferred_name||author.full_name||'M').slice(0,1);
               return `
               <article class="community-comment">
-                <div class="community-comment-avatar">${commentAvatar?`<img src="${esc(commentAvatar)}" alt="">`:esc(commentInitial)}</div>
+                <div class="community-comment-avatar" data-initials="${esc(commentInitial)}">${commentAvatar?`<img src="${esc(commentAvatar)}" alt="">`:esc(commentInitial)}</div>
                 <div>
                   <strong>${esc(author.preferred_name||author.full_name||'Member')}</strong>
                   <p>${esc(comment.body)}</p>
@@ -271,6 +275,15 @@
       </article>`;
     }).join('') : '<div class="member-empty-state"><h2>No matching community posts.</h2><p>Create the first discussion or change the filter.</p></div>';
 
+    // Expired or missing signed photos fall back to author initials.
+    feed.querySelectorAll('.community-post-avatar img, .community-comment-avatar img').forEach(image=>{
+      image.addEventListener('error',()=>{
+        const wrapper=image.parentElement;
+        const initials=wrapper?.getAttribute('data-initials');
+        if(wrapper && initials)wrapper.textContent=initials;
+        else image.remove();
+      },{once:true});
+    });
     wireActions();
   }
 
