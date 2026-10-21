@@ -55,5 +55,6 @@
         "NSAudioCaptureUsageDescription": "DominionStar Meet captures system audio only when you explicitly choose to share audio with your screen."
       }
     }
-  }
+  },
+  "productName": "DominionStar Meet QA"
 }
