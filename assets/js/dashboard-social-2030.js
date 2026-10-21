@@ -119,7 +119,7 @@
         </article>`;
       }).join('') || '<div class="dashboard-empty-compact"><strong>No community posts yet.</strong><p>Be the first to share an update.</p><a href="/community/">Open Community →</a></div>';
       // Broken/expired profile image URLs must fall back to the author's initials.
-      target.querySelectorAll('.ds30-author-photo').forEach(image => {
+      target.querySelectorAll?.('.ds30-author-photo').forEach(image => {
         image.addEventListener('error',() => image.remove(),{once:true});
       });
     };
