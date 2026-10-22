@@ -114,7 +114,12 @@ function rejectNonCanonicalLaunch(install={}){
 
 async function launch(){
   await app.whenReady();
-  const needsCanonicalInstall=packagedMac()&&!isCanonicalMacInstall();
+  const canonical=isCanonicalMacInstall();
+  // Runner-only proof of the identity decision from the packaged executable.
+  if(process.env.DOMINIONSTAR_QA_BOOTSTRAP_ATTEST==='1'){
+    console.log('DOMINIONSTAR_QA_BOOTSTRAP_ATTEST',JSON.stringify({qa:ISOLATED_QA_BUILD,canonical}));
+  }
+  const needsCanonicalInstall=packagedMac()&&!canonical;
   const install=await canonicalizeMacInstall();
   if(install.moved)return;
   if(needsCanonicalInstall){rejectNonCanonicalLaunch(install);return;}
