@@ -1,5 +1,6 @@
 import {app, BrowserWindow, desktopCapturer, ipcMain, Notification, powerMonitor, session, shell, systemPreferences, screen} from 'electron';
 import path from 'node:path';
+import {isIsolatedQaBuild} from './qa-build-identity.mjs';
 import { fileURLToPath } from 'node:url';
 import readline from 'node:readline';
 import { createDesktopAuth } from './auth-service.mjs';
@@ -20,7 +21,7 @@ if(process.platform==='darwin'){
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const uiDir=path.join(__dirname,'..','ui');
 const preloadPath=path.join(__dirname,'preload.cjs');
-const QA_BUILD=app.getName()==='DominionStar Meet QA';
+const QA_BUILD=isIsolatedQaBuild({executablePath:process.execPath,appPath:app.getAppPath()});
 const APP_JOIN_SCHEME=QA_BUILD?'dominionstar-meet-qa':'dominionstar-meet';
 const qaFixtureRequested=process.argv.includes('--qa-interaction-fixtures')||process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
 const qaInteractionFixtures=app.isPackaged&&qaFixtureRequested;
