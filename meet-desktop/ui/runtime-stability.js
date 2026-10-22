@@ -573,8 +573,8 @@
     const participantsOpen=Boolean(participants&&!participants.hidden),chatOpen=Boolean(chat&&!chat.hidden);
     const panel=chatOpen?chat:participantsOpen?participants:null;
     if(panel){
-      const baseWidth=panel===chat?330:440;
-      const baseHeight=panel===chat?440:552;
+      const baseWidth=panel===chat?330:318;
+      const baseHeight=panel===chat?440:390;
       const minPanelHeight=300;
       const width=Math.min(baseWidth,Math.max(1,bodyWidth-24));
       const height=Math.min(baseHeight,Math.max(1,bodyHeight-20));
