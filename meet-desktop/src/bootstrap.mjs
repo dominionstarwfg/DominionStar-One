@@ -37,13 +37,15 @@ if(process.platform==='darwin'){
 
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
 const packagedMac=()=>process.platform==='darwin'&&app.isPackaged&&!isCi;
-const CANONICAL_MAC_APP='/Applications/DominionStar Meet.app';
+// An isolated QA package must never take the installed production app's identity.
+const ISOLATED_QA_BUILD=app.getVersion().includes('-qa.');
+const CANONICAL_MAC_APP=ISOLATED_QA_BUILD?'/Applications/DominionStar Meet QA.app':'/Applications/DominionStar Meet.app';
 const currentMacBundlePath=()=>{
   if(process.platform!=='darwin'||!app.isPackaged)return '';
   return path.resolve(path.dirname(process.execPath),'../..');
 };
 const isCanonicalMacInstall=()=>!packagedMac()||currentMacBundlePath()===CANONICAL_MAC_APP;
-const JOIN_SCHEME='dominionstar-meet://join';
+const JOIN_SCHEME=ISOLATED_QA_BUILD?'dominionstar-meet-qa://join':'dominionstar-meet://join';
 const pendingJoinUrls=globalThis.__dominionPendingJoinUrls=globalThis.__dominionPendingJoinUrls||[];
 const isJoinUrl=value=>String(value||'').toLowerCase().startsWith(JOIN_SCHEME);
 const queueJoinUrl=value=>{
@@ -80,6 +82,9 @@ async function canonicalizeMacInstall(){
   const currentBundlePath=currentMacBundlePath();
   if(currentBundlePath===CANONICAL_MAC_APP)return {moved:false,skipped:true,canonical:true,conflictType:'',currentBundlePath};
   if(app.isInApplicationsFolder())return {moved:false,skipped:false,canonical:false,conflictType:'duplicateName',currentBundlePath};
+  // Never auto-move or overwrite a macOS app during QA. A tester must explicitly
+  // copy the QA-named bundle to its distinct location in /Applications.
+  if(ISOLATED_QA_BUILD)return {moved:false,skipped:true,canonical:false,conflictType:'qaManualInstall',currentBundlePath};
   let conflictType='';
   try{
     const moved=app.moveToApplicationsFolder({conflictHandler:type=>{conflictType=String(type||'');return conflictType==='exists';}});
@@ -94,8 +99,10 @@ function rejectNonCanonicalLaunch(install={}){
   const running=String(install.conflictType||'')==='existsAndRunning';
   const duplicateName=String(install.conflictType||'')==='duplicateName';
   const version=app.getVersion();
-  const message=running?'Quit the older DominionStar Meet first':duplicateName?'Use the canonical DominionStar Meet app':'DominionStar Meet must run from Applications';
-  const detail=running
+  const message=ISOLATED_QA_BUILD?'Install DominionStar Meet QA separately':running?'Quit the older DominionStar Meet first':duplicateName?'Use the canonical DominionStar Meet app':'DominionStar Meet must run from Applications';
+  const detail=ISOLATED_QA_BUILD
+    ? `This is a separately identified test build. Drag DominionStar Meet QA.app to ${CANONICAL_MAC_APP} manually. The production DominionStar Meet.app must remain unchanged. No automatic replacement will occur.`
+    : running
     ? `Another DominionStar Meet is already running from Applications. Quit that copy completely, then open build ${version} again so it can replace the installed app. This copy will not run from the DMG or Downloads because macOS Screen Recording “Quit & Reopen” could otherwise reopen the wrong build.`
     : duplicateName
       ? `This copy is running as ${install.currentBundlePath||'a renamed DominionStar Meet app'}. Quit all DominionStar Meet copies, remove renamed duplicates such as “DominionStar Meet 2.app”, and install this build exactly as ${CANONICAL_MAC_APP}. The meeting runtime will not start from a duplicate app name because macOS can treat it as a separate Screen Recording privacy identity.`
