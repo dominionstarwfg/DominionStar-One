@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
+import {isIsolatedQaBuild} from './qa-build-identity.mjs';
 
 // The meeting renderer remains the authoritative owner of media and presenter
 // commands while native macOS sharing surfaces float above it. Prevent Chromium
@@ -38,7 +39,7 @@ if(process.platform==='darwin'){
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
 const packagedMac=()=>process.platform==='darwin'&&app.isPackaged&&!isCi;
 // An isolated QA package must never take the installed production app's identity.
-const ISOLATED_QA_BUILD=app.getName()==='DominionStar Meet QA';
+const ISOLATED_QA_BUILD=isIsolatedQaBuild({executablePath:process.execPath,appPath:app.getAppPath()});
 const CANONICAL_MAC_APP=ISOLATED_QA_BUILD?'/Applications/DominionStar Meet QA.app':'/Applications/DominionStar Meet.app';
 const currentMacBundlePath=()=>{
   if(process.platform!=='darwin'||!app.isPackaged)return '';
