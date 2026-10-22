@@ -1,0 +1,118 @@
+name: DominionStar Meet 2.0.54 Isolated QA
+
+on:
+  push:
+    branches: [cleanup/meeting-ownership-audit-20261014]
+    paths:
+      - 'meet-desktop/**'
+      - '.github/workflows/meet-2.0.54-isolated-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dominionstar-meet-2-0-54-isolated-qa
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    name: Two-client Chromium compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify QA identity and browser signaling parity
+        run: |
+          node meet-desktop/scripts/verify-qa-isolation-and-layout-20261022.mjs
+          node meet-desktop/scripts/verify-physical-media-fallback-20261016.mjs
+          node meet-desktop/scripts/verify-meeting-exit-signaling-20261016.mjs
+          node meet-desktop/scripts/verify-ice-relay-escalation-20261016.mjs
+          node meet-desktop/scripts/verify-live-share-gate-20261014.mjs --self-test
+      - name: Install isolated browser test runtime
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
+      - name: Install Chromium test browser
+        run: npx playwright install --with-deps chromium
+      - name: Exercise two independent WebRTC clients
+        run: node meet-desktop/scripts/test-two-client-webrtc-2.0.41.mjs
+
+  mac-candidate:
+    name: Separately identified macOS QA installer
+    needs: [compatibility]
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify identity, app entrypoint, code syntax
+        run: |
+          node meet-desktop/scripts/verify-qa-isolation-and-layout-20261022.mjs
+          node --check meet-desktop/src/bootstrap.mjs
+          node --check meet-desktop/src/main.mjs
+          node --check meet-desktop/ui/webrtc-controller.js
+          node --check meet-desktop/ui/runtime-stability.js
+          node --check meet-desktop/ui/zoom-participants-reference-2.0.41.js
+          node meet-desktop/scripts/verify-peer-negotiation-20261014.mjs
+      - name: Install build dependencies
+        working-directory: meet-desktop
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Build universal isolated QA application
+        working-directory: meet-desktop
+        run: npx electron-builder --mac dir --universal --publish never
+      - name: Verify separate QA app identity and signature
+        id: artifact
+        shell: bash
+        run: |
+          APP="$(find meet-desktop/dist -maxdepth 3 -type d -name 'DominionStar Meet QA.app' -print -quit)"
+          test -n "$APP" && test -d "$APP"
+          PLIST="$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" | grep -Fx 'com.dominionstar.desktop.qa'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" | grep -Fx '2.0.54'
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          echo "path=$APP" >> "$GITHUB_OUTPUT"
+      - name: Packaged launch smoke test (CI copy; no installation)
+        shell: bash
+        env:
+          CI: 'true'
+        run: |
+          APP="${{ steps.artifact.outputs.path }}"
+          LOG="$RUNNER_TEMP/dominionstar-meet-qa-launch.log"
+          "$APP/Contents/MacOS/DominionStar Meet QA" >"$LOG" 2>&1 &
+          PID=$!
+          sleep 8
+          if ! kill -0 "$PID" 2>/dev/null; then
+            cat "$LOG"
+            echo 'ERROR: QA application did not remain running'
+            exit 91
+          fi
+          kill "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || true
+          if grep -E 'Library not loaded|DYLD.*Library missing|different Team IDs' "$LOG"; then
+            exit 92
+          fi
+          echo DOMINIONSTAR_MEET_QA_PACKAGED_LAUNCH_OK
+      - name: Create one downloadable QA archive and provenance
+        shell: bash
+        run: |
+          mkdir -p qa-2.0.54
+          ZIP='qa-2.0.54/DominionStar-Meet-2.0.54-Mac-universal-QA.zip'
+          ditto -c -k --sequesterRsrc --keepParent "${{ steps.artifact.outputs.path }}" "$ZIP"
+          test -s "$ZIP"
+          shasum -a 256 "$ZIP" > qa-2.0.54/SHA256.txt
+          printf 'source_commit=%s\nversion=2.0.54\napplication=DominionStar Meet QA.app\nbundle_id=com.dominionstar.desktop.qa\nbranch=cleanup/meeting-ownership-audit-20261014\nproduction=false\nmacos=12+\nsigning=ad-hoc\nnotarization=none\nphysical_two_mac_acceptance=PENDING\n' "$GITHUB_SHA" > qa-2.0.54/BUILD-PROVENANCE.txt
+          du -h "$ZIP"
+      - name: Upload QA candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: DominionStar-Meet-2.0.54-Mac-universal-QA
+          path: qa-2.0.54/*
+          retention-days: 14
+          if-no-files-found: error
