@@ -3,7 +3,7 @@
   if(window.DominionZoomParticipantsReference2041)return;
 
   const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-  const GEOMETRY_KEY='ds_zoom_participants_geometry_2_0_41';
+  const GEOMETRY_KEY='ds_zoom_participants_geometry_2_0_54_qa';
   const isMac=/Mac|darwin/i.test([navigator.platform,navigator.userAgent,navigator.userAgentData?.platform].filter(Boolean).join(' '));
   let runtimeMac=isMac||/Mac/i.test(String(window.dominionDesktop?.platform||'')),syncFrame=0,activeSpeakerIds=[],retired=false;
 
@@ -22,7 +22,7 @@
       #meetingOverlay .room-side.ds-participants-reference{
         position:absolute!important;width:318px!important;min-width:min(318px,calc(100% - 24px))!important;max-width:min(318px,calc(100% - 24px))!important;
         height:390px!important;min-height:min(390px,calc(100% - 24px))!important;max-height:calc(100% - 24px)!important;
-        left:auto!important;right:18px!important;top:18px!important;bottom:auto!important;transform:none!important;
+        left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)!important;
         display:flex!important;flex-direction:column!important;padding:0!important;border:1px solid #55565a!important;border-radius:10px!important;
         background:#2b2b2d!important;box-shadow:0 18px 54px rgba(0,0,0,.55)!important;overflow:hidden!important;resize:none!important;z-index:3200!important;color:#f5f5f6!important
       }
@@ -229,7 +229,7 @@
       const width=Math.min(Math.max(saved.width,294),Math.min(340,body.clientWidth-24)),height=Math.min(Math.max(saved.height,300),Math.min(430,body.clientHeight-24)),left=Math.max(10,Math.min(saved.left,body.clientWidth-width-10)),top=Math.max(10,Math.min(saved.top,body.clientHeight-height-10));
       side.style.setProperty('width',`${width}px`,'important');side.style.setProperty('height',`${height}px`,'important');side.style.setProperty('left',`${left}px`,'important');side.style.setProperty('right','auto','important');side.style.setProperty('top',`${top}px`,'important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
     }else{
-      side.style.setProperty('width',`${Math.min(318,Math.max(294,body.clientWidth-24))}px`,'important');side.style.setProperty('height',`${Math.min(390,Math.max(300,body.clientHeight-24))}px`,'important');side.style.setProperty('left','auto','important');side.style.setProperty('right','24px','important');side.style.setProperty('top','18px','important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','none','important');
+      side.style.setProperty('width',`${Math.min(318,Math.max(294,body.clientWidth-24))}px`,'important');side.style.setProperty('height',`${Math.min(390,Math.max(300,body.clientHeight-24))}px`,'important');side.style.setProperty('left','50%','important');side.style.setProperty('right','auto','important');side.style.setProperty('top','50%','important');side.style.setProperty('bottom','auto','important');side.style.setProperty('transform','translate(-50%,-50%)','important');
     }
   }
 
