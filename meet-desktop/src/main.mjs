@@ -20,6 +20,8 @@ if(process.platform==='darwin'){
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const uiDir=path.join(__dirname,'..','ui');
 const preloadPath=path.join(__dirname,'preload.cjs');
+const QA_BUILD=app.getVersion().includes('-qa.');
+const APP_JOIN_SCHEME=QA_BUILD?'dominionstar-meet-qa':'dominionstar-meet';
 const qaFixtureRequested=process.argv.includes('--qa-interaction-fixtures')||process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
 const qaInteractionFixtures=app.isPackaged&&qaFixtureRequested;
 let mainWindow=null;
@@ -37,11 +39,11 @@ const pendingJoinUrls=globalThis.__dominionPendingJoinUrls=globalThis.__dominion
 const validJoinUrl=value=>{
   try{
     const url=new URL(String(value||''));
-    if(url.protocol!=='dominionstar-meet:'||url.hostname!=='join')return '';
+    if(url.protocol!==`${APP_JOIN_SCHEME}:`||url.hostname!=='join')return '';
     const meetingId=String(url.searchParams.get('meetingId')||url.searchParams.get('mid')||'').replace(/\D/g,'');
     const passcode=String(url.searchParams.get('passcode')||url.searchParams.get('pwd')||'').replace(/\D/g,'');
     if(!/^\d{10,11}$/.test(meetingId)||!/^\d{3,7}$/.test(passcode))return '';
-    return `dominionstar-meet://join?meetingId=${encodeURIComponent(meetingId)}&passcode=${encodeURIComponent(passcode)}`;
+    return `${APP_JOIN_SCHEME}://join?meetingId=${encodeURIComponent(meetingId)}&passcode=${encodeURIComponent(passcode)}`;
   }catch{return '';}
 };
 const pushJoinUrl=value=>{
@@ -301,7 +303,7 @@ app.whenReady().then(async()=>{
   installLocalPermissionPolicy(session.defaultSession);
   desktopAuth=createDesktopAuth({app,shell,getMainWindow:()=>mainWindow});
   await desktopAuth.initialize();
-  meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:app.getVersion().includes('-')});
+  meetingService=createMeetingService({auth:desktopAuth,allowDirectQa:QA_BUILD&&process.env.DOMINIONSTAR_QA_ALLOW_DIRECT_ICE==='1'});
   shareService=createShareService({BrowserWindow,desktopCapturer,desktopSession:session.defaultSession,ipcMain,path,uiDir,preloadPath,getMainWindow:()=>mainWindow,platform:process.platform,screen,ensureScreenPermission:requestScreenPermission,openPrivacySettings});
   createMainWindow();
   installQaInteractionBridge();
