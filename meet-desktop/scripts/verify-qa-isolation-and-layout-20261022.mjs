@@ -2,6 +2,7 @@
 // Does not claim physical media success or production readiness.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {isIsolatedQaBuild} from '../src/qa-build-identity.mjs';
 const read=path=>fs.readFileSync(new URL(path,import.meta.url),'utf8');
 const pkg=JSON.parse(read('../package.json'));
 const bootstrap=read('../src/bootstrap.mjs');
@@ -11,11 +12,21 @@ const runtime=read('../ui/runtime-stability.js');
 const layout=read('../ui/meeting-parity.css');
 const browser=read('../ui/browser-bridge.js');
 const desktop=read('../src/meeting-service.mjs');
-assert.equal(pkg.version,'2.0.54');
+assert.equal(pkg.version,'2.0.55');
 assert.equal(pkg.build.productName,'DominionStar Meet QA');
 assert.equal(pkg.build.appId,'com.dominionstar.desktop.qa');
 assert.deepEqual(pkg.build.protocols[0].schemes,['dominionstar-meet-qa']);
-assert.match(bootstrap,/ISOLATED_QA_BUILD=app\.getName\(\)==='DominionStar Meet QA'/);
+assert.match(bootstrap,/ISOLATED_QA_BUILD=isIsolatedQaBuild\(\{executablePath:process\.execPath,appPath:app\.getAppPath\(\)\}\)/);
+assert.match(main,/QA_BUILD=isIsolatedQaBuild\(\{executablePath:process\.execPath,appPath:app\.getAppPath\(\)\}\)/);
+const qaInstalled='/Applications/DominionStar Meet QA.app/Contents/MacOS/DominionStar Meet QA';
+const prodInstalled='/Applications/DominionStar Meet.app/Contents/MacOS/DominionStar Meet';
+const nonPackage='/this/does-not-exist';
+assert.equal(isIsolatedQaBuild({executablePath:qaInstalled,appPath:nonPackage}),true,
+  'Real QA install path must never get production canonical-install warning');
+assert.equal(isIsolatedQaBuild({executablePath:prodInstalled,appPath:nonPackage}),false,
+  'Production app must not be confused with QA');
+assert.equal(isIsolatedQaBuild({executablePath:'/Users/test/Downloads/DominionStar Meet QA.app/Contents/MacOS/DominionStar Meet QA',appPath:nonPackage}),true,
+  'QA app outside Applications must be identified as QA and told to install manually');
 assert.match(bootstrap,/ISOLATED_QA_BUILD\?'\/Applications\/DominionStar Meet QA\.app':'\/Applications\/DominionStar Meet\.app'/);
 assert.match(bootstrap,/if\(ISOLATED_QA_BUILD\)return \{moved:false,skipped:true,canonical:false,conflictType:'qaManualInstall'/);
 assert.match(main,/releaseChannel:QA_BUILD\?'qa':'production'/);
