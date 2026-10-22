@@ -38,7 +38,7 @@ if(process.platform==='darwin'){
 const isCi=String(process.env.CI||'').toLowerCase()==='true';
 const packagedMac=()=>process.platform==='darwin'&&app.isPackaged&&!isCi;
 // An isolated QA package must never take the installed production app's identity.
-const ISOLATED_QA_BUILD=app.getVersion().includes('-qa.');
+const ISOLATED_QA_BUILD=app.getName()==='DominionStar Meet QA';
 const CANONICAL_MAC_APP=ISOLATED_QA_BUILD?'/Applications/DominionStar Meet QA.app':'/Applications/DominionStar Meet.app';
 const currentMacBundlePath=()=>{
   if(process.platform!=='darwin'||!app.isPackaged)return '';
