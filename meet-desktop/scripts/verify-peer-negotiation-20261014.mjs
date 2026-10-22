@@ -39,7 +39,7 @@ async function testSingleMeetingStartup(){
   const harness=()=>{
     let release,contexts=0,timers=0,listeners=0;
     const gate=new Promise(resolve=>release=resolve);
-    const state={running:false,starting:false,startAttempt:0,nextStartAttemptAt:0,generation:0,timers:{}};
+    const state={running:false,starting:false,startAttempt:0,nextStartAttemptAt:0,generation:0,timers:{},relayOnlyPeers:new Set()};
     const meeting={context:async()=>{contexts++;await gate;return {roomId:'r',participantId:'p',state:'joined'}}};
     const off=()=>{listeners++;return ()=>{}};
     const window={DominionMediaController:{onChange:off},DominionShareController:{onChange:off},DominionVideoEffects:{onChange:off}};
