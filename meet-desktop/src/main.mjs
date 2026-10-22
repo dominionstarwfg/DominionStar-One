@@ -20,7 +20,7 @@ if(process.platform==='darwin'){
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const uiDir=path.join(__dirname,'..','ui');
 const preloadPath=path.join(__dirname,'preload.cjs');
-const QA_BUILD=app.getVersion().includes('-qa.');
+const QA_BUILD=app.getName()==='DominionStar Meet QA';
 const APP_JOIN_SCHEME=QA_BUILD?'dominionstar-meet-qa':'dominionstar-meet';
 const qaFixtureRequested=process.argv.includes('--qa-interaction-fixtures')||process.env.DOMINIONSTAR_QA_INTERACTION_FIXTURES==='1';
 const qaInteractionFixtures=app.isPackaged&&qaFixtureRequested;
@@ -228,7 +228,7 @@ function focusOrCreateMainWindow(){
   createMainWindow();
 }
 
-ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:app.getVersion().includes('-')?'qa':'production',qaInteractionFixtures,qaPresenterFixtures:qaFixtureRequested,qaKeepMacPresenterHidden:process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1',installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
+ipcMain.handle('app:get-environment',()=>({platform:process.platform,version:app.getVersion(),packaged:app.isPackaged,surface:'local-desktop-home',releaseChannel:QA_BUILD?'qa':'production',qaInteractionFixtures,qaPresenterFixtures:qaFixtureRequested,qaKeepMacPresenterHidden:process.env.DOMINIONSTAR_QA_KEEP_MAC_PRESENTER_HIDDEN==='1',installedInApplications:process.platform!=='darwin'||!app.isPackaged||app.isInApplicationsFolder()}));
 ipcMain.handle('app:meeting-ended',()=>{
   try{shareService?.shutdown?.();}catch(error){console.error('[DominionStar Meet] Meeting-end native cleanup failed.',error);}
   focusOrCreateMainWindow();
