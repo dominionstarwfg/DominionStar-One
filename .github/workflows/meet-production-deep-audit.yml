@@ -1,0 +1,55 @@
+name: DominionStar Meet Production Deep Audit
+
+on:
+  pull_request:
+    paths:
+      - "scripts/audit-production-deployment.py"
+      - ".github/workflows/meet-production-deep-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-audit:
+    name: Compare live production with repository source
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Run production deep audit
+        run: python3 scripts/audit-production-deployment.py
+
+      - name: Print deployment alignment report
+        if: always()
+        run: |
+          echo "--- Production alignment summary ---"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('production-audit/report.json')
+          if not p.exists():
+              print('No report generated')
+              raise SystemExit(0)
+          r=json.loads(p.read_text())
+          print(json.dumps(r.get('summary',{}),indent=2))
+          print('releaseId:',r.get('releaseId'))
+          print('desktopBridge:',r.get('desktopBridge'))
+          for f in r.get('files',[]):
+              if not f.get('matchesLocal'):
+                  print('DIVERGENCE',f.get('path'),'local=',f.get('local'),'live=',f.get('live'),'liveSha256=',f.get('liveSha256'),'localSha256=',f.get('localSha256'))
+          PY
+
+      - name: Upload full live production snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-production-runtime-audit
+          path: production-audit
+          if-no-files-found: warn
+          retention-days: 7
