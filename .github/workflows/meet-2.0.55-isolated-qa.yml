@@ -105,20 +105,36 @@ jobs:
           kill "$PID" 2>/dev/null || true
           wait "$PID" 2>/dev/null || true
           echo DOMINIONSTAR_MEET_QA_CANONICAL_STARTUP_OK
-      - name: Create one downloadable QA archive and provenance
+      - name: Create and mount-verify Mac DMG with Applications shortcut
         shell: bash
         run: |
           mkdir -p qa-2.0.55
-          ZIP='qa-2.0.55/DominionStar-Meet-2.0.55-Mac-universal-QA.zip'
-          ditto -c -k --sequesterRsrc --keepParent "${{ steps.artifact.outputs.path }}" "$ZIP"
-          test -s "$ZIP"
-          shasum -a 256 "$ZIP" > qa-2.0.55/SHA256.txt
-          printf 'source_commit=%s\nversion=2.0.55\napplication=DominionStar Meet QA.app\nbundle_id=com.dominionstar.desktop.qa\nbranch=cleanup/meeting-ownership-audit-20261014\nproduction=false\nmacos=12+\nsigning=ad-hoc\nnotarization=none\nphysical_two_mac_acceptance=PENDING\n' "$GITHUB_SHA" > qa-2.0.55/BUILD-PROVENANCE.txt
-          du -h "$ZIP"
+          STAGE="$RUNNER_TEMP/dominionstar-qa-dmg-stage"
+          mkdir -p "$STAGE"
+          ditto "${{ steps.artifact.outputs.path }}" "$STAGE/DominionStar Meet QA.app"
+          ln -s /Applications "$STAGE/Applications"
+          DMG='qa-2.0.55/DominionStar-Meet-2.0.55-Mac-universal-QA.dmg'
+          hdiutil create -volname 'DominionStar Meet QA' -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+          test -s "$DMG"
+          MOUNT="$RUNNER_TEMP/dominionstar-qa-dmg-mount"
+          mkdir -p "$MOUNT"
+          hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "$DMG"
+          trap 'hdiutil detach "$MOUNT" || true' EXIT
+          test -d "$MOUNT/DominionStar Meet QA.app"
+          test -L "$MOUNT/Applications"
+          test "$(readlink "$MOUNT/Applications")" = '/Applications'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$MOUNT/DominionStar Meet QA.app/Contents/Info.plist" | grep -Fx 'com.dominionstar.desktop.qa'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$MOUNT/DominionStar Meet QA.app/Contents/Info.plist" | grep -Fx '2.0.55'
+          codesign --verify --deep --strict --verbose=2 "$MOUNT/DominionStar Meet QA.app"
+          hdiutil detach "$MOUNT"
+          trap - EXIT
+          shasum -a 256 "$DMG" > qa-2.0.55/SHA256.txt
+          printf 'source_commit=%s\\nversion=2.0.55\\nformat=DMG\\napplication=DominionStar Meet QA.app\\nbundle_id=com.dominionstar.desktop.qa\\nbranch=cleanup/meeting-ownership-audit-20261014\\nproduction=false\\nmacos=12+\\nsigning=ad-hoc\\nnotarization=none\\nphysical_two_mac_acceptance=PENDING\\n' "$GITHUB_SHA" > qa-2.0.55/BUILD-PROVENANCE.txt
+          du -h "$DMG"
       - name: Upload QA candidate
         uses: actions/upload-artifact@v4
         with:
-          name: DominionStar-Meet-2.0.55-Mac-universal-QA
+          name: DominionStar-Meet-2.0.55-Mac-universal-DMG-QA
           path: qa-2.0.55/*
           retention-days: 14
           if-no-files-found: error
