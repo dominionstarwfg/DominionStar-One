@@ -83,7 +83,7 @@ test('Netlify build script blocks preview contexts without isolated staging sett
 
 test('Dedicated staging-site production context from review branch is denied without isolation',()=>{
  const build=source('scripts/build-public-netlify.sh');
- assert.match(build,/"\$\{BRANCH:-\}" == "main"/);
+ assert.ok(build.includes('"${BRANCH}" != "main"'));
  assert.match(build,/NETLIFY:-/);
  assert.match(build,/CONTEXT:-/);
  assert.match(build,/deploy-preview/);
