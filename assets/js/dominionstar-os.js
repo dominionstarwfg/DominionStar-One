@@ -67,7 +67,7 @@
     ['Training','/academy/','Learning and development'],
     ['Calendar','/appointments/','Appointments and meetings'],
     ['Team Members','/member-directory/','Connect with approved members'],
-    ['Recognition','/journey/','Progress and milestones'],
+    ['Recognition','/recognition/','Member advancement announcements'],
     ['Profile','/professional-profile/','Professional identity'],
     ['Settings','/account-settings/','Security and preferences'],
     ['Command Control','/founder-control/','Founder operations']
@@ -93,6 +93,7 @@
     {terms:['meet','video call'], label:'Opening Meet.', url:'/meet/'},
     {terms:['calendar','appointment'], label:'Opening Calendar.', url:'/appointments/'},
     {terms:['team','directory','member'], label:'Opening Team Members.', url:'/member-directory/'},
+    {terms:['recognition','promotion','advancement','congratulate'], label:'Opening Recognition.', url:'/recognition/'},
     {terms:['profile','photo'], label:'Opening Profile.', url:'/professional-profile/'},
     {terms:['setting','security','privacy'], label:'Opening Settings.', url:'/account-settings/'}
   ];
@@ -120,7 +121,7 @@
 
   const requiredRoutes = [
     '/member-dashboard/','/direct-messages/','/community/','/academy/',
-    '/appointments/','/member-directory/','/journey/',
+    '/appointments/','/member-directory/','/recognition/',
     '/professional-profile/','/account-settings/'
   ];
 
