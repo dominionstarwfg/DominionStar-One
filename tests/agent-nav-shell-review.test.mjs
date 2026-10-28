@@ -35,9 +35,9 @@ test('Simple labels, SVGs and exact routes match executive approval',()=>{
   ['Community','/community/'],
   ['Calendar','/appointments/'],
   ['Team Members','/member-directory/'],
-  ['Recognition','/journey/'],
+  ['Recognition','/recognition/'],
   ['My Profile','/professional-profile/'],
-  ['Settings','/account-settings/']
+  ['Agent Settings','/account-settings/']
  ]){
    assert.ok(js.includes("['"+label+"','"+route+"'"),label);
  }
