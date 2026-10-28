@@ -4,5 +4,6 @@
  * Do not put Google client secrets in frontend code.
  */
 window.DOMINIONSTAR_AUTH_FEATURES = Object.freeze({
-  googleSignIn: false
+  googleSignIn: false,
+  googleIdentityLinking: false
 });
