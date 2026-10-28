@@ -79,3 +79,14 @@ test('Netlify build script blocks preview contexts without isolated staging sett
  assert.match(build,/exit 47/);
  assert.match(build,/prepare-isolated-staging\.mjs/);
 });
+
+
+test('Dedicated staging-site production context from review branch is denied without isolation',()=>{
+ const build=source('scripts/build-public-netlify.sh');
+ assert.match(build,/"\$\{BRANCH:-\}" == "main"/);
+ assert.match(build,/NETLIFY:-/);
+ assert.match(build,/CONTEXT:-/);
+ assert.match(build,/deploy-preview/);
+ assert.match(build,/branch-deploy/);
+ assert.match(build,/exit 47/);
+});
