@@ -37,3 +37,17 @@ Existing user requested review-branch-only changes and no billable Supabase bran
 - Supabase official Google provider guide: https://supabase.com/docs/guides/auth/social-sign-in/auth-google
 - Supabase official identity linking guide: https://supabase.com/docs/guides/auth/auth-identity-linking
 - Supabase official OAuth JS reference: https://supabase.com/docs/reference/javascript/auth-signinwithoauth
+
+
+## Account linking from Settings — staged, disabled
+
+- A dedicated Google access control is staged under **Settings → Privacy & Security**.
+- The two release switches are independent: `googleSignIn: false` and `googleIdentityLinking: false`. Both remain off on the review branch.
+- On explicit opt-in, an existing signed-in member may start `auth.linkIdentity({provider:'google'})` only after fetching their current authenticated account and an approved `member_profiles` row with Agent Code. The action checks that Google is not already linked.
+- The returned OAuth flow does **not** count as a successful connection. The connection is displayed as confirmed only when `auth.getUser()` returns a `google` identity.
+- Supabase **manual identity linking** must be available/configured in Auth before activation. Supabase can also automatically link verified matching emails during a standard Google sign-in; verify both flows, including different-email and unverified-email cases.
+- The documented approval check in frontend is **not** a security perimeter: unapproved users may still receive an Auth session if the OAuth provider is enabled. The database must enforce membership approval for every protected operation.
+- A read-only inspection of the live `member_profiles` RLS / signup trigger was attempted in this review, but the Supabase project connection returned `28P01 password authentication failed` for the database user and a read-only user. **No live schema or RLS audit could be completed**, and no database changes were made.
+- The current registration method sends `agent_code` plus `verification_status: 'pending'` and `rank: 'TA'` through user-editable sign-up metadata. Those values are **untrusted inputs**. Before release, verify that the server-side profile creation process defaults approval to pending and prevents signup metadata from granting ranks or Founder privileges; verify Agent Code ownership/format against the authoritative member process.
+
+Additional authoritative documentation: https://supabase.com/docs/reference/javascript/auth-linkidentity
