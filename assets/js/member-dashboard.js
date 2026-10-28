@@ -548,8 +548,12 @@
     }
   }
 
-  const dashboardSession = (await supabase.auth.getSession()).data.session;
-  if (dashboardSession) await window.CommunicationEngine?.init({client:supabase, session:dashboardSession});
+  // Member communications are restricted to Founder-approved agents.
+  // Do not start the communications engine for pending/revoked profiles.
+  if (status === 'approved' && String(profile.agent_code || '').trim()) {
+    const dashboardSession = (await supabase.auth.getSession()).data.session;
+    if (dashboardSession) await window.CommunicationEngine?.init({client:supabase, session:dashboardSession});
+  }
 
   // Panel visibility is controlled exclusively by dominionstar-os.js.
   // Keeping a single controller prevents the backdrop from remaining visible
