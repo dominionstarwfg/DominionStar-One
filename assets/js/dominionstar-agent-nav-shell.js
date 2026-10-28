@@ -18,7 +18,7 @@
     ['Team Members','/member-directory/','users'],
     ['Recognition','/recognition/','trophy'],
     ['My Profile','/professional-profile/','user'],
-    ['Settings','/account-settings/','settings']
+    ['Agent Settings','/account-settings/','settings']
   ];
   const shapes = {
     home:'<path d="m3 10 9-7 9 7v11H3V10Zm6 11v-7h6v7"/>',
@@ -52,7 +52,7 @@
   const strong=document.createElement('strong');
   strong.textContent='DOMINIONSTAR';
   const small=document.createElement('small');
-  small.textContent='EXECUTIVE OS 2030';
+  small.textContent='EXECUTIVE OS';
   copy.append(strong,small);
   brand.append(identity,copy);
 
