@@ -118,5 +118,5 @@ test('Netlify package workflow cannot deploy production or ship source tests',()
   assert.doesNotMatch(workflow,/netlify deploy|supabase db push|npm run deploy|--prod/);
   assert.match(build,/--exclude 'tests\/'/);
   assert.match(build,/--exclude 'meet-desktop\/'/);
-  assert.match(build,/--exclude '\.env\.*'/);
+  assert.ok(build.includes("--exclude '.env.*'"));
 });
