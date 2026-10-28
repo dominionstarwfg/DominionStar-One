@@ -58,3 +58,20 @@
   .community-post-body{padding:12px 13px}
   .community-media-roadmap{gap:8px}
 }
+
+
+/* Community reactions remain intact; sharing/reposting uses an executive left-aligned bar. */
+.ds-community-social-actions{
+  display:flex;justify-content:flex-start;align-items:center;gap:8px;flex-wrap:wrap;
+  border-top:1px solid #e6edf2;padding-top:9px;margin-top:11px
+}
+.ds-community-social-actions button{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:1px solid transparent;background:#f4f9fa;color:#256476;
+  border-radius:12px;padding:10px 15px;min-height:41px;
+  font-size:12px;font-weight:800;cursor:pointer
+}
+.ds-community-social-actions button:hover{background:#e7f4f4;border-color:#b6d8db}
+.ds-community-social-actions button:focus-visible{outline:3px solid #d9c38d;outline-offset:3px}
+.ds-community-social-actions svg{width:18px;height:18px;flex-shrink:0}
+@media(max-width:540px){.ds-community-social-actions{gap:6px}.ds-community-social-actions button{flex:1;padding:11px 8px}}
