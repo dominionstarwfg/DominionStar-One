@@ -72,6 +72,10 @@ mkdir -p "$DIST"
 rsync -a "$ROOT/" "$DIST/" \
   --exclude '.git/' \
   --exclude '.github/' \
+  --exclude '.env' \
+  --exclude '.env.*' \
+  --exclude 'tests/' \
+  --exclude 'netlify.toml' \
   --exclude 'public-dist/' \
   --exclude 'rebuild-dist/' \
   --exclude 'meet-desktop/' \
@@ -171,9 +175,16 @@ for rel in \
 done
 grep -Fq '<section class="section section-light" id="learn">' "$DIST/financial-services/learning-lab/index.html"
 grep -Fq 'negative index change generally does not create a negative interest credit' "$DIST/financial-services/indexed-universal-life/index.html"
-for route in /academy/ /platform/ /journey/; do
+for route in /academy/ /platform/; do
   grep -Fq "$route " "$DIST/_redirects"
 done
+# The Journey page is a real published route, not a redirect to Opportunity.
+test -s "$DIST/journey/index.html"
+if grep -Eq '^/journey/ +/opportunity/ ' "$DIST/_redirects"; then
+  echo "ERROR: Journey page would be shadowed by a stale redirect." >&2
+  exit 46
+fi
+grep -Fq '/journey /journey/ 301!' "$DIST/_redirects"
 # Reject legacy conversion-page templates when building the production website.
 grep -Fq 'name="dominionstar-join"' "$DIST/join/index.html"
 grep -Fq 'name="dominionstar-qualified-appointment"' "$DIST/schedule/index.html"
