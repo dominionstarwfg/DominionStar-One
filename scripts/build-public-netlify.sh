@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Netlify deploy/branch previews must never inherit the production Supabase
+# backend. Production publishing remains unchanged; previews fail closed unless
+# an explicitly isolated staging site and backend are configured.
+if [[ "${CONTEXT:-}" == "deploy-preview" || "${CONTEXT:-}" == "branch-deploy" ]]; then
+  if [[ "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ]]; then
+    echo "ERROR: preview blocked until isolated Netlify/Supabase staging is configured." >&2
+    exit 47
+  fi
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="$ROOT/public-dist"
 MEET_SOURCE="$ROOT/meet-desktop/ui"
@@ -236,3 +246,10 @@ test ! -e "$DIST/rebuild-dist"
 
 echo "DOMINIONSTAR_PUBLIC_ROOT_OK"
 echo "DOMINIONSTAR_BROWSER_MEET_ROUTE_OK /meet/"
+
+# This rewrites ONLY the packaged browser clients, never the shared source.
+# It validates actual Netlify site identity and separate Supabase credentials.
+if [[ "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" == "STAGING_ONLY" ]]; then
+  node "$ROOT/scripts/prepare-isolated-staging.mjs"
+  echo "DOMINIONSTAR_STAGING_BACKEND_ISOLATED_OK"
+fi
