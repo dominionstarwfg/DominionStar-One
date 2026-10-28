@@ -36,6 +36,21 @@ jobs:
         run: bash scripts/build-public-netlify.sh
       - name: Validate assembled static routes and exclude private source
         run: node scripts/check-staging-public-dist.mjs
+      - name: Verify a synthetic isolated-staging package without publishing
+        shell: bash
+        env:
+          DOMINIONSTAR_STAGING_NETLIFY_SITE_ID: synthetic-review-site
+          DOMINIONSTAR_PRODUCTION_NETLIFY_SITE_ID: synthetic-production-site
+          NETLIFY_SITE_ID: synthetic-review-site
+          DOMINIONSTAR_STAGING_SITE_URL: https://dominionstar-qa-rehearsal.netlify.app
+          DOMINIONSTAR_STAGING_SUPABASE_URL: https://abcdefghijabcdefghij.supabase.co
+          DOMINIONSTAR_STAGING_SUPABASE_PUBLISHABLE_KEY: sb_publishable_SYNTHETIC_REHEARSAL_VALUE_NOT_REAL
+          DOMINIONSTAR_STAGING_ISOLATION_APPROVED: STAGING_ONLY
+        run: |
+          rehearsal="$(mktemp -d)"
+          trap 'rm -rf "$rehearsal"' EXIT
+          cp -a public-dist "$rehearsal/public-dist"
+          STAGING_REHEARSAL_DIR="$rehearsal/public-dist" node --input-type=module -e "import { stageReviewPackage } from './scripts/prepare-isolated-staging.mjs'; const result = stageReviewPackage({dist:process.env.STAGING_REHEARSAL_DIR}); if(!result.isolated)process.exit(1); console.log('STAGING_ISOLATION_REHEARSAL_OK: '+result.filesChecked+' static files verified')"
       - name: Upload short-lived review artifact
         uses: actions/upload-artifact@v4
         with:
