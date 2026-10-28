@@ -16,7 +16,7 @@
     ['Community','/community/','community'],
     ['Calendar','/appointments/','calendar'],
     ['Team Members','/member-directory/','users'],
-    ['Recognition','/journey/','trophy'],
+    ['Recognition','/recognition/','trophy'],
     ['My Profile','/professional-profile/','user'],
     ['Settings','/account-settings/','settings']
   ];
