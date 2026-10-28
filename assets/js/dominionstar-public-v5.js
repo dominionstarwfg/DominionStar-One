@@ -260,7 +260,7 @@ function clearChat(){
  const cards=[
   {icon:'◇',title:context.prompts[0][0],detail:'Explore this topic',question:context.prompts[0][1]},
   {icon:'✧',title:context.prompts[1][0],detail:'Get clear guidance',question:context.prompts[1][1]},
-  {icon:'⌖',title:'Your location',detail:'U.S. & Canada information',href:'/financial-services/'},
+  {icon:'⌖',title:'Financial services',detail:'U.S. & Canada education',href:document.querySelector('[data-ds-geography]')?'#local-guidance':'/financial-services/'},
   {icon:'↗',title:'Request a call',detail:'Connect with our team',href:'/schedule/'}
  ];
  for(const data of cards){
