@@ -35,7 +35,7 @@ async function simulateAppearanceSave({serverError=false,fragment='#invalid"]'}=
   for(const id of ['systemSwitches','messageSwitches','notificationSwitches','privacySwitches']){
     state.nodes[id]={dataset:{},setAttribute(){},classList:{add(){},remove(){}},
       append(wrapper){
-        const label=wrapper.innerHTML.match(/<strong>(.*?)<\\/strong>/)?.[1];
+        const label=wrapper.innerHTML.match(new RegExp('<strong>(.*?)</strong>'))?.[1];
         state.inputs[label]=wrapper.querySelector('input');
       }
     };
