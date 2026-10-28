@@ -91,27 +91,41 @@
       }
     });
   }
-  // OAuth redirects return here. Never infer membership from Google email or metadata.
+  // OAuth redirects return here. A signed-in session alone is not proof
+  // that this was Google sign-in, nor that the agent is approved.
   if(googleEnabled && new URLSearchParams(window.location.search).get('oauth')==='google'){
     showMessage('Verifying your DominionStar membership…','info');
+    let approved=false;
     try{
       const auth=await supabase.auth.getUser();
-      if(auth.error||!auth.data?.user?.id)throw new Error('Google authentication did not complete.');
+      const user=auth.data?.user;
+      if(auth.error||!user?.id)throw new Error('Google authentication did not complete.');
+      const hasGoogleIdentity=(user.identities||[]).some(identity=>identity.provider==='google');
+      if(!hasGoogleIdentity){
+        throw new Error('A linked Google identity was not verified. Use your DominionStar password or connect Google from Agent Settings.');
+      }
       const verified=await supabase.from('member_profiles')
         .select('id,agent_code,verification_status')
-        .eq('id',auth.data.user.id).maybeSingle();
-      if(verified.error||verified.data?.verification_status!=='approved'||!String(verified.data?.agent_code||'').trim()){
-        await supabase.auth.signOut();
-        showMessage('Google verification succeeded, but DominionStar membership is not approved or linked to an Agent Code. Please register with your Agent Code or contact your team leader.','error');
-      }else{
-        window.location.replace('/member-dashboard/');
-        return;
+        .eq('id',user.id).maybeSingle();
+      if(verified.error)throw new Error('Membership verification is unavailable. Please try again.');
+      if(verified.data?.id!==user.id||
+         verified.data?.verification_status!=='approved'||
+         !String(verified.data?.agent_code||'').trim()){
+        throw new Error('Google authentication succeeded, but this DominionStar membership is not approved or linked to an Agent Code. Contact your team leader.');
       }
+      approved=true;
+      window.location.replace('/member-dashboard/');
+      return;
     }catch(error){
-      showMessage(error?.message||'Google sign-in verification failed. Please use email and password.','error');
+      // A new Google identity may create a pending Supabase Auth user; do not
+      // leave that user signed in after an unsuccessful approval check.
+      try{await supabase.auth.signOut();}catch(_signOutError){/* Denied: no navigation. */}
+      showMessage(error?.message||'Google sign-in verification failed. Use your DominionStar password.','error');
     }finally{
-      // Remove the callback indicator, without preserving untrusted query strings.
-      window.history.replaceState(null,'','/member-login/');
+      if(!approved){
+        // Remove the callback indicator and any untrusted URL parameters.
+        window.history.replaceState(null,'','/member-login/');
+      }
     }
   }
 
