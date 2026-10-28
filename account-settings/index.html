@@ -10,6 +10,7 @@
     <script src="/assets/js/runtime-safety.js"></script>
     <script src="/assets/js/platform-core.js"></script>
   <link rel="stylesheet" href="/assets/css/dominionstar-agent-nav-shell.css?v=review-1">
+  <link rel="stylesheet" href="/assets/css/account-google-identity-review.css?v=review-1">
 </head>
   <body class="founder-body">
     <main class="member-dashboard settings-center">
@@ -146,6 +147,17 @@
                   Update Password
                 </button>
               </form>
+              <section id="googleIdentitySettings" class="ds-google-identity member-hidden" aria-label="Connected sign-in methods">
+                <div class="ds-google-identity-heading">
+                  <div class="ds-google-identity-mark" aria-hidden="true">G</div>
+                  <div>
+                    <h3>Google account access</h3>
+                    <p>Connect Google to your existing, Founder-approved DominionStar membership. Your Agent Code and permissions stay unchanged.</p>
+                  </div>
+                </div>
+                <button id="googleLinkAccount" class="btn btn-outline" type="button">Connect Google</button>
+                <p id="googleLinkStatus" role="status" aria-live="polite"></p>
+              </section>
               <div
                 id="securityResult"
                 class="settings-save-state"
@@ -182,6 +194,8 @@
     <script src="/assets/js/member-auth.js"></script>
     <script src="/assets/js/communication-engine.js"></script>
     <script src="/assets/js/account-settings.js?v=2026.08.12-rc12.24.1"></script>
+    <script src="/assets/js/member-login-google-flags.js?v=review-2"></script>
+    <script src="/assets/js/account-google-identity-review.js?v=review-1"></script>
   <script src="/assets/js/dominionstar-agent-nav-shell.js?v=review-1"></script>
 </body>
 </html>
