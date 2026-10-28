@@ -32,6 +32,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Confirm unconfigured Netlify previews fail closed
+        shell: bash
+        run: |
+          set +e
+          CONTEXT=deploy-preview bash scripts/build-public-netlify.sh >/tmp/ds-preview-blocked.log 2>&1
+          result=$?
+          set -e
+          test "$result" -eq 47
+          grep -Fq "preview blocked until isolated Netlify/Supabase staging is configured" /tmp/ds-preview-blocked.log
+          echo "UNCONFIGURED_PREVIEW_BLOCKED_OK"
       - name: Build Netlify static distribution without any deployment
         run: bash scripts/build-public-netlify.sh
       - name: Validate assembled static routes and exclude private source
