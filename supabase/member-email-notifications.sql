@@ -136,5 +136,8 @@ begin
   update public.email_notification_outbox o set status='processing',attempts=o.attempts+1,updated_at=now()
   from claimable c where o.id=c.id returning o.*;
 end $$;
-revoke all on function public.claim_email_notification_batch(integer) from public;
+-- Explicitly revoke previously granted direct Data API access; revoking only
+-- PUBLIC does not remove any independent anon/authenticated EXECUTE grant.
+revoke execute on function public.claim_email_notification_batch(integer)
+  from PUBLIC, anon, authenticated;
 grant execute on function public.claim_email_notification_batch(integer) to service_role;
