@@ -129,7 +129,7 @@ function openChat(){if(!panel)return;panel.hidden=false;launcher.setAttribute('a
 function closeChat(){if(!panel)return;panel.hidden=true;launcher.setAttribute('aria-expanded','false');launcher.focus();}
 function updateMode(){
  if(!indicator)return;
- indicator.textContent=state.ai?(state.research?'AI + SOURCE RESEARCH':'AI ANSWERS ACTIVE'):(state.available?'GUIDED GUIDE · AI OPTIONAL':'GUIDED KNOWLEDGE');
+ indicator.textContent=state.ai?(state.research?'AI + SOURCE RESEARCH':'AI ANSWERS ACTIVE'):(state.available?'GUIDED KNOWLEDGE · AI OPTIONAL':'GUIDED KNOWLEDGE');
  panel.dataset.auroraMode=state.ai?'ai':state.available?'ai-optional':'guided';
  switcher.hidden=!state.available;
  if(sourceToggle){sourceToggle.hidden=!(state.available&&state.ai&&state.webSearchAvailable);sourceToggle.setAttribute('aria-pressed',String(state.research));sourceToggle.textContent=state.research?'Search official sources ✓':'Search official sources';}
