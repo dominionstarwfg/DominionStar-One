@@ -241,6 +241,10 @@
               ${reactionLabel(reaction)} <b>${reactionCounts[reaction]}</b>
             </button>`).join('')}
         </div>
+        <div class="ds-community-social-actions" role="group" aria-label="Share post">
+          <button type="button" data-post-action="repost" aria-label="Repost this update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4M3 11V8a2 2 0 0 1 2-2h16M7 22l-4-4 4-4M21 13v3a2 2 0 0 1-2 2H3"/></svg>Repost</button>
+          <button type="button" data-post-action="share" aria-label="Share this update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m0 0L7 8m5-5 5 5M4 13v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/></svg>Share</button>
+        </div>
 
         ${isFounder?`
           <div class="community-moderation-row">
@@ -317,6 +321,32 @@
         if(!post)return;
         const action=button.dataset.postAction;
         const url=new URL('/community/?post='+encodeURIComponent(post.id),location.origin).href;
+        if(action==='share'){
+          try{
+            if(navigator.share)await navigator.share({title:post.title||'DominionStar Community',url});
+            else await copyCommunityText(url);
+            show(postResult,navigator.share?'Sharing options opened.':'Post link copied.','success');
+          }catch(error){if(error?.name!=='AbortError')show(postResult,error.message||'Sharing failed.','error');}
+          return;
+        }
+        if(action==='repost'){
+          if(!confirm('Repost this professional update to the DominionStar community?'))return;
+          button.disabled=true;
+          try{
+            const author=post.author?.preferred_name||post.author?.full_name||'a DominionStar member';
+            const original=String(post.body||'').slice(0,1250);
+            const body=('↻ Reposted from '+author+'\n\n'+original+'\n\nOriginal: '+url).slice(0,2000);
+            const result=await supabase.from('community_messages').insert({
+              user_id:session.user.id,
+              title:('Reposted: '+String(post.title||'Community update')).slice(0,120),
+              body,post_type:'discussion',is_pinned:false
+            });
+            if(result.error)throw result.error;
+            await loadPosts(false);
+            show(postResult,'Reposted to Community.','success');
+          }catch(error){show(postResult,error.message||'Repost failed.','error');button.disabled=false;}
+          return;
+        }
         const text=[post.title,post.body].filter(Boolean).join('\n\n');
         if(action==='download'){
           let objectUrl=null;
