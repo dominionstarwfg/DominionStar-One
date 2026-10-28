@@ -9,10 +9,12 @@ const dashboardJs=read('assets/js/member-dashboard.js');
 const socialJs=read('assets/js/dashboard-social-2030.js');
 const css=read('assets/css/member-dashboard-executive-2030.css');
 
-test('Welcome back identifies the authenticated member and shows credentials above feed',()=>{
+test('Local daypart greeting identifies the authenticated member and shows credentials above feed',()=>{
   const marker=html.indexOf('id="heroMemberName"');
   assert.ok(marker>0);
-  assert.match(html,/Welcome back, <span id="heroMemberName">/);
+  assert.match(html,/<span id="heroGreeting">Good day<\/span>, <span id="heroMemberName">/);
+  assert.doesNotMatch(html,/Welcome back/);
+  for(const daypart of ['Good morning','Good afternoon','Good evening']) assert.ok(dashboardJs.includes(daypart),daypart);
   assert.ok(marker<html.indexOf('id="dsosCommunitySection"'));
   for(const hook of ['heroProfileFullName','heroContractLevel','heroProfileAvatar','heroProfileInitials',
     'heroFoundingBadge','dashboardAvatarInitials','topbarFoundingBadge','dashboardIdentityInitials']){
