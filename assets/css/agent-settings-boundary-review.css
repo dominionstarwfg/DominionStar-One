@@ -1,0 +1,18 @@
+/* Product ownership bridge: Agent preferences here, meeting controls inside Meet.
+   Primary navigation and action links remain left aligned. */
+.ds-agent-meet-bridge{display:flex;align-items:flex-start;gap:17px;
+  margin:24px 0 12px;padding:24px 26px;
+  border:1px solid #c6d9e3;border-radius:18px;
+  background:linear-gradient(115deg,#f8fbfe,#eff6f9);
+  box-shadow:0 5px 28px #173e5710}
+.ds-agent-meet-symbol{width:55px;height:55px;flex:0 0 55px;
+  border-radius:16px;display:grid;place-items:center;
+  color:#bca069;background:#173b59}
+.ds-agent-meet-symbol svg{width:30px;height:30px}
+.ds-agent-meet-bridge-copy{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.ds-agent-meet-bridge-copy .eyebrow{margin:0;color:#577987;font-size:11px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+.ds-agent-meet-bridge-copy h2{font-size:20px;color:#173c57;margin:0;line-height:1.25}
+.ds-agent-meet-bridge-copy p:not(.eyebrow){margin:0;max-width:710px;font-size:13px;line-height:1.75;color:#536e82}
+.ds-agent-meet-bridge-copy a{align-self:flex-start;margin-top:5px;min-height:40px;display:inline-flex;align-items:center}
+.ds-agent-meet-bridge-copy span{font-size:11px;color:#718596}
+@media(max-width:560px){.ds-agent-meet-bridge{padding:18px;gap:12px}.ds-agent-meet-symbol{width:42px;height:42px;flex-basis:42px}.ds-agent-meet-symbol svg{width:23px;height:23px}.ds-agent-meet-bridge-copy h2{font-size:18px}}
