@@ -18,7 +18,7 @@ class TestEvent {
 class TestSelect {
   constructor(values=['']) {
     this.options=values.map(x=>new TestOption(x,x));
-    this.value='';this.disabled=false;this.listeners={};
+    this.value='';this.disabled=false;this.listeners={};this.dataset={};
   }
   add(option){this.options.push(option);}
   replaceChildren(...options){this.options=[...options];this.value='';}
