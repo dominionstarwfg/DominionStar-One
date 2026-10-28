@@ -1,0 +1,54 @@
+name: Agent and Meet Settings — review QA
+on:
+  push:
+    branches:
+      - review/login2-recovery-netlify-hold-20261019
+    paths:
+      - 'account-settings/**'
+      - 'assets/js/account-settings.js'
+      - 'assets/js/account-google-identity-review.js'
+      - 'assets/css/agent-settings-boundary-review.css'
+      - 'assets/js/dominionstar-agent-nav-shell.js'
+      - 'assets/js/dominionstar-os.js'
+      - 'meet-desktop/ui/index.html'
+      - 'meet-desktop/ui/av-settings.js'
+      - 'meet-desktop/ui/preferences.js'
+      - 'tests/**'
+      - '.github/workflows/agent-settings-review-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Node and source regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check assets/js/account-settings.js
+          node --check assets/js/dominionstar-agent-nav-shell.js
+          node --check assets/js/dominionstar-os.js
+          node --check meet-desktop/ui/preferences.js
+          node --check meet-desktop/ui/av-settings.js
+      - name: Test Agent and Meet settings isolation
+        run: |
+          node --test \
+            tests/agent-meet-settings-boundary-review.test.mjs \
+            tests/agent-notification-meet-isolation-runtime.test.mjs \
+            tests/google-identity-connection-review.test.mjs
+      - name: Test full Node suite
+        run: |
+          shopt -s nullglob
+          tests=(tests/*.test.mjs)
+          if (( ${#tests[@]} == 0 )); then
+            echo "No Node tests found" >&2
+            exit 1
+          fi
+          node --test "${tests[@]}"
