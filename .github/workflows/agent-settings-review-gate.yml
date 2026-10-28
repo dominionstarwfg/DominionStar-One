@@ -5,6 +5,9 @@ on:
       - review/login2-recovery-netlify-hold-20261019
     paths:
       - 'account-settings/**'
+      - 'member-login/**'
+      - 'assets/js/member-login.js'
+      - 'assets/js/member-login-google-flags.js'
       - 'assets/js/account-settings.js'
       - 'assets/js/account-google-identity-review.js'
       - 'assets/css/agent-settings-boundary-review.css'
@@ -33,6 +36,7 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check assets/js/account-settings.js
+          node --check assets/js/member-login.js
           node --check assets/js/dominionstar-agent-nav-shell.js
           node --check assets/js/dominionstar-os.js
           node --check meet-desktop/ui/preferences.js
