@@ -1,0 +1,45 @@
+name: DominionStar — review-only Netlify build package
+
+on:
+  push:
+    branches:
+      - review/login2-recovery-netlify-hold-20261019
+    paths:
+      - 'scripts/build-public-netlify.sh'
+      - 'scripts/check-staging-public-dist.mjs'
+      - 'member-dashboard/**'
+      - 'account-settings/**'
+      - 'meet-desktop/ui/**'
+      - '_redirects'
+      - '_headers'
+      - 'netlify.toml'
+      - 'journey/**'
+      - '.github/workflows/review-public-build-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build & validate review package — never deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+      - name: Configure Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build Netlify static distribution without any deployment
+        run: bash scripts/build-public-netlify.sh
+      - name: Validate assembled static routes and exclude private source
+        run: node scripts/check-staging-public-dist.mjs
+      - name: Upload short-lived review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-review-static-public-dist
+          path: public-dist/
+          if-no-files-found: error
+          retention-days: 3
