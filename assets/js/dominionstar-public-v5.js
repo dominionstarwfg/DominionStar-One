@@ -1,4 +1,4 @@
-/* Aurora Intelligence 2030 REVIEW: preserved curated guide + optional server-side AI */
+/* Aurora interface review: preserved curated guide + optional server-side AI */
 (()=>{"use strict";
 const createAnswer=function makeAnswer(raw,context=""){
   const q=String(raw||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[’‘]/g,"'").replace(/\s+/g," ").trim();
@@ -321,7 +321,7 @@ function setup(){
  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','auroraV8Title');
  panel.innerHTML=[
  '<header class="aurora-v8-head"><div class="aurora-v8-orb" aria-hidden="true"><span class="aurora-2030-orb-symbol">✦</span></div>',
- '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>INTELLIGENCE 2030</em></strong><small>DominionStar · No Family Left Behind</small></div>',
+ '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>INTELLIGENCE</em></strong><small>DominionStar · No Family Left Behind</small></div>',
  '<div class="aurora-v8-headbtns"><button type="button" data-aurora-clear title="New conversation" aria-label="Clear conversation">↺</button><button type="button" data-aurora-wide title="Expand assistant" aria-label="Expand assistant">⤢</button><button type="button" data-aurora-close aria-label="Close assistant">×</button></div></header>',
  '<div class="aurora-v8-mode"><span class="aurora-v8-indicator" role="status">GUIDED KNOWLEDGE</span><div class="aurora-v8-mode-tools"><button type="button" class="aurora-v8-research" hidden aria-pressed="false" title="Search official regulator sources using AI">Search official sources</button><button type="button" class="aurora-v8-switch" hidden aria-pressed="false">Enable AI answers</button></div></div>',
  '<div class="aurora-chat aurora-v8-transcript" role="log" aria-label="Aurora conversation" aria-live="polite"></div>',
@@ -366,7 +366,7 @@ function setup(){
  fetch('/.netlify/functions/aurora-chat',{method:'GET',cache:'no-store'})
 .then(r=>r.ok?r.json():null).then(d=>{state.available=d?.mode==='available';state.webSearchAvailable=!!d?.webSearchAvailable;updateMode()})
  .catch(()=>{state.available=false;updateMode()});
- window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'2030-review'};
+ window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'review'};
 }
 const menu=document.querySelector('.menu-button'),nav=document.querySelector('.main-nav');
 menu?.addEventListener('click',()=>{const open=nav?.classList.toggle('open')||false;menu.setAttribute('aria-expanded',String(open));menu.textContent=open?'×':'☰'});
