@@ -43,7 +43,13 @@ test('Dynamic feed values are HTML-escaped and reaction types whitelisted',()=>{
   assert.match(community,/src="\$\{esc\(commentAvatar\)\}"/);
   assert.match(community,/Object\.prototype\.hasOwnProperty\.call\(reactionCounts,item\.reaction\)/);
   assert.match(community,/esc\(post\.title\)/);
-  assert.match(community,/esc\(post\.body\)/);
+  // The rendered body passes through linkify, which HTML-escapes plain text
+  // and only creates safe HTTP(S) links. Preserve that stronger invariant.
+  assert.match(community,/\$\{linkify\(post\.body\)\}/);
+  assert.match(community,/if \(!\/\^https\?:\\/\\/i\.test\(part\)\) return esc\(part\)/);
+  assert.match(community,/\['http:','https:'\]\.includes\(url\.protocol\)/);
+  assert.match(community,/esc\(url\.href\)/);
+  assert.match(community,/esc\(candidate\)/);
 });
 
 test('Article Concept 8 is an isolated, unindexed staged editorial page',()=>{
