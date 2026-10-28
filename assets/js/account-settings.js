@@ -19,7 +19,15 @@
    return;
  }
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');$('currentSessionEmail').textContent=session.user.email||'Signed-in member';
- document.querySelectorAll('[data-settings-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-settings-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('[data-settings-panel]').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===b.dataset.settingsTab));history.replaceState(null,'','#'+b.dataset.settingsTab)});document.querySelector(`[data-settings-tab="${location.hash.slice(1)}"]`)?.click();
+ const tabs=[...document.querySelectorAll('[data-settings-tab]')];
+ tabs.forEach(b=>b.onclick=()=>{
+   tabs.forEach(x=>x.classList.toggle('active',x===b));
+   document.querySelectorAll('[data-settings-panel]').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===b.dataset.settingsTab));
+   history.replaceState(null,'','#'+b.dataset.settingsTab);
+ });
+ // Avoid constructing a CSS selector from untrusted URL hash content.
+ const initialTab=location.hash.slice(1);
+ tabs.find(t=>t.dataset.settingsTab===initialTab)?.click();
  let settings=session.user.user_metadata?.dominionstar_settings||{};
  const defaults={appearance:{theme:'system',textSize:'standard',reduceMotion:false},privacy:{directoryVisible:true,onlineVisible:true,allowMessages:true},notifications:{emailEnabled:true,announcements:true,messages:true,community:true,appointments:true,browser:false,sound:true}};
  const state={appearance:{...defaults.appearance,...settings.appearance},privacy:{...defaults.privacy,...settings.privacy},notifications:{...defaults.notifications,...settings.notifications}};
@@ -83,6 +91,21 @@
  row('messageSwitches','messages','Private-message email alerts','Email me when an approved member sends a message.',state.notifications.messages,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});row('messageSwitches','community','Community replies and mentions','Email me for replies and mentions.',state.notifications.community,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});
  [['emailEnabled','Email delivery','Use my verified email for selected alerts.'],['announcements','Founder announcements','Official platform announcements.'],['appointments','Appointment reminders','Reminders for scheduled appointments.'],['browser','Browser alerts','Show alerts on this device.'],['sound','Notification sounds','Play a sound for priority notifications.']].forEach(x=>row('notificationSwitches',...x,state.notifications[x[0]],async(i,k)=>{const before=!i.checked;if(k==='browser'&&i.checked){const permission=await window.CommunicationEngine?.requestPermission?.();if(permission!=='granted'){i.checked=false;status('notificationsResult','Browser permission was not granted.','error');return}}state.notifications[k]=i.checked;if(!await saveNotification()){i.checked=before;state.notifications[k]=before}}));
  [['directoryVisible','Member directory','Show my approved profile in the member directory.'],['onlineVisible','Online presence','Let approved members see when I am online.'],['allowMessages','Member messages','Allow approved members to message me.']].forEach(x=>row('privacySwitches',...x,state.privacy[x[0]],toggle('privacy','securityResult')));
- const saveAppearance=async()=>{state.appearance.theme=$('theme').value;state.appearance.textSize=$('textSize').value;localStorage.setItem('ds.theme',state.appearance.theme);localStorage.setItem('ds.textSize',state.appearance.textSize);await saveMetadata('appearance',{...state.appearance},'systemResult')};$('theme').onchange=saveAppearance;$('textSize').onchange=saveAppearance;
+ const saveAppearance=async()=>{
+   const before={...state.appearance};
+   const requested={...state.appearance,theme:$('theme').value,textSize:$('textSize').value};
+   const verified=await saveMetadata('appearance',requested,'systemResult');
+   if(verified){
+     Object.assign(state.appearance,requested);
+     localStorage.setItem('ds.theme',requested.theme);
+     localStorage.setItem('ds.textSize',requested.textSize);
+   }else{
+     Object.assign(state.appearance,before);
+     $('theme').value=before.theme;
+     $('textSize').value=before.textSize;
+   }
+ };
+ $('theme').onchange=saveAppearance;
+ $('textSize').onchange=saveAppearance;
  $('testSound').onclick=()=>window.CommunicationEngine?.play?.('priority');$('passwordForm').onsubmit=async e=>{e.preventDefault();if($('newPassword').value!==$('confirmPassword').value){status('securityResult','Passwords do not match.','error');return}status('securityResult','Updating password…','saving');const r=await db.auth.updateUser({password:$('newPassword').value});status('securityResult',r.error?r.error.message:'Password updated ✓',r.error?'error':'saved');if(!r.error)e.target.reset()};$('signOutOtherSessions').onclick=async()=>{status('sessionsResult','Signing out…','saving');const r=await db.auth.signOut({scope:'global'});if(r.error)status('sessionsResult',r.error.message,'error');else location.href='/member-login/'};
 })();
