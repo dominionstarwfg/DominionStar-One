@@ -381,7 +381,7 @@
   }
 
   async function loadMembers() {
-    memberRows.innerHTML = '<tr><td colspan="9">Loading members…</td></tr>';
+    memberRows.innerHTML = '<tr><td colspan="10">Loading members…</td></tr>';
 
     const { data, error } = await supabase
       .from('member_profiles')
@@ -389,7 +389,7 @@
       .order('joined_at', { ascending: false });
 
     if (error) {
-      memberRows.innerHTML = `<tr><td colspan="9">${esc(error.message)}</td></tr>`;
+      memberRows.innerHTML = `<tr><td colspan="10">${esc(error.message)}</td></tr>`;
       return;
     }
 
@@ -449,7 +449,7 @@
         <td><input class="founder-notes notes-input" value="${esc(member.account_notes || '')}" placeholder="Private note"></td>
         <td><button class="btn btn-gold save-member" type="button">${lockedFounder ? 'Save Note' : 'Save Changes'}</button></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="9">No matching members.</td></tr>';
+    }).join('') : '<tr><td colspan="10">No matching members.</td></tr>';
 
     const ranks=['TA','Associate','SA','MD','SMD'];
     document.querySelectorAll('#memberRows tr[data-id]').forEach(row=>{
