@@ -1,4 +1,4 @@
-/* Aurora 7.0: curated financial knowledge + secure optional AI */
+/* Aurora interface review: preserved curated guide + optional server-side AI */
 (()=>{"use strict";
 const createAnswer=function makeAnswer(raw,context=""){
   const q=String(raw||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[’‘]/g,"'").replace(/\s+/g," ").trim();
@@ -129,7 +129,8 @@ function openChat(){if(!panel)return;panel.hidden=false;launcher.setAttribute('a
 function closeChat(){if(!panel)return;panel.hidden=true;launcher.setAttribute('aria-expanded','false');launcher.focus();}
 function updateMode(){
  if(!indicator)return;
- indicator.textContent=state.ai?'AI MODE':state.available?'AI AVAILABLE':'GUIDED KNOWLEDGE';
+ indicator.textContent=state.ai?(state.research?'AI + SOURCE RESEARCH':'AI ANSWERS ACTIVE'):(state.available?'GUIDED KNOWLEDGE · AI OPTIONAL':'GUIDED KNOWLEDGE');
+ panel.dataset.auroraMode=state.ai?'ai':state.available?'ai-optional':'guided';
  switcher.hidden=!state.available;
  if(sourceToggle){sourceToggle.hidden=!(state.available&&state.ai&&state.webSearchAvailable);sourceToggle.setAttribute('aria-pressed',String(state.research));sourceToggle.textContent=state.research?'Search official sources ✓':'Search official sources';}
  switcher.textContent=state.ai?'Turn off AI':'Enable AI answers';
@@ -166,8 +167,11 @@ function reply(text,tag,knowledge,searchMeta){
  tools.append(copy);
  if('speechSynthesis' in window){
   const listen=document.createElement('button');listen.type='button';listen.textContent='Listen';
-  listen.addEventListener('click',()=>{if(window.speechSynthesis.speaking){window.speechSynthesis.cancel();return;}
-   const utterance=new SpeechSynthesisUtterance(text);utterance.lang='en-US';window.speechSynthesis.speak(utterance);});
+  listen.addEventListener('click',()=>{if(window.speechSynthesis.speaking){window.speechSynthesis.cancel();panel.classList.remove('aurora-2030-speaking');return;}
+   const utterance=new SpeechSynthesisUtterance(text);utterance.lang='en-US';
+   utterance.onend=()=>panel.classList.remove('aurora-2030-speaking');
+   utterance.onerror=()=>panel.classList.remove('aurora-2030-speaking');
+   panel.classList.add('aurora-2030-speaking');window.speechSynthesis.speak(utterance);});
   tools.append(listen);
  }
  bubble.append(tools);state.lastReply=text;
@@ -203,7 +207,10 @@ async function ask(raw){
  state.lastTopic=trusted.topic;
  const previous=state.history.slice(-6);
  state.history.push({role:'user',content:q});
- field.value='';state.busy=true;send.disabled=true;field.disabled=true;
+ field.value='';state.busy=true;send.disabled=true;field.disabled=true;panel.classList.add('aurora-2030-thinking');
+  panel.querySelector('[data-aurora-clear]').disabled=true;
+  switcher.disabled=true;
+  sourceToggle.disabled=true;
  let pending;
  try{
   if(state.ai){
@@ -232,17 +239,56 @@ async function ask(raw){
  }finally{
   state.history.push({role:'assistant',content:state.lastReply.slice(0,900)});
   state.history=state.history.slice(-8);
-  state.busy=false;send.disabled=false;field.disabled=false;
+  state.busy=false;send.disabled=false;field.disabled=false;panel.classList.remove('aurora-2030-thinking');
+  panel.querySelector('[data-aurora-clear]').disabled=false;
+  switcher.disabled=false;
+  sourceToggle.disabled=false;
   chips(suggestions(trusted.topic));field.focus();
  }
 }
 function clearChat(){
  state.history=[];state.lastTopic='';state.lastReply='';
  chat.replaceChildren();
- const intro=document.createElement('div');intro.className='aurora-v8-welcome';
- intro.innerHTML='<span>DOMINIONSTAR INTELLIGENCE</span><h3>A conversation built around you.</h3><p>Ask about financial protection, mentorship, professional growth or your next step. Browse as much as you want before booking.</p>';
- const ctx=document.createElement('div');ctx.className='aurora-v8-context';ctx.textContent='✧ Currently exploring: '+context.name;intro.append(ctx);chat.append(intro);
- chips(context.prompts);
+ const intro=document.createElement('section');intro.className='aurora-v8-welcome aurora-2030-welcome';
+ intro.setAttribute('aria-label','Get started with Aurora');
+ intro.innerHTML=[
+   '<div class="aurora-2030-kicker"><span class="aurora-2030-kicker-dot"></span> DOMINIONSTAR INTELLIGENCE</div>',
+   '<div class="aurora-2030-welcome-symbol" aria-hidden="true">✦</div>',
+   '<h3>Clarity for your<br><span>next move.</span></h3>',
+   '<p>Ask thoughtful questions. Explore your options. Find the right next step—at your pace.</p>'
+ ].join('');
+ const ctx=document.createElement('div');ctx.className='aurora-v8-context aurora-2030-context';
+ ctx.textContent='Exploring now · '+context.name;intro.append(ctx);
+ chat.append(intro);
+ const label=document.createElement('div');label.className='aurora-2030-quick-label';
+ label.textContent='SUGGESTED STARTING POINTS';chat.append(label);
+ const quick=document.createElement('div');quick.className='aurora-2030-quick-grid';
+ const cards=[
+  {icon:'◇',title:context.prompts[0][0],detail:'Explore this topic',question:context.prompts[0][1]},
+  {icon:'✧',title:context.prompts[1][0],detail:'Get clear guidance',question:context.prompts[1][1]},
+  {icon:'⌖',title:'Financial services',detail:'U.S. & Canada education',href:document.querySelector('[data-ds-geography]')?'#local-guidance':'/financial-services/'},
+  {icon:'↗',title:'Request a call',detail:'Connect with our team',href:'/schedule/'}
+ ];
+ for(const data of cards){
+  const surface=document.createElement(data.href?'a':'button');
+  if(data.href){surface.href=data.href;surface.addEventListener('click',()=>{if(data.href.startsWith('#'))closeChat()});}else{
+   surface.type='button';surface.addEventListener('click',()=>ask(data.question));
+  }
+  surface.className='aurora-2030-quick-card';
+  const symbol=document.createElement('span');symbol.className='aurora-2030-quick-icon';
+  symbol.textContent=data.icon;symbol.setAttribute('aria-hidden','true');
+  const copy=document.createElement('span');copy.className='aurora-2030-quick-copy';
+  const strong=document.createElement('strong');strong.textContent=data.title;
+  const small=document.createElement('small');small.textContent=data.detail;
+  copy.append(strong,small);
+  const arrow=document.createElement('span');arrow.className='aurora-2030-quick-arrow';
+  arrow.textContent='↗';arrow.setAttribute('aria-hidden','true');
+  surface.append(symbol,copy,arrow);quick.append(surface);
+ }
+ chat.append(quick);
+ const footer=document.createElement('p');footer.className='aurora-2030-quick-foot';
+ footer.textContent='Educational guidance · Personal advice requires a qualified professional.';
+ chat.append(footer);
 }
 
 function enhanceContactPanels(){
@@ -268,18 +314,18 @@ function enhanceContactPanels(){
 function setup(){
  enhanceContactPanels();
  if(!launcher||!panel)return;
- launcher.classList.add('aurora-v8-launch');
+ launcher.classList.add('aurora-v8-launch','aurora-2030-launch');
  launcher.innerHTML=['<span class="aurora-v8-spark" aria-hidden="true">✦</span>','<span><strong>Ask Aurora</strong><small>Your intelligence guide</small></span>','<span aria-hidden="true">↗</span>'].join('');
  launcher.setAttribute('aria-label','Open Aurora assistant');
- panel.classList.add('aurora-v8-panel');
+ panel.classList.add('aurora-v8-panel','aurora-2030-panel');
  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','auroraV8Title');
  panel.innerHTML=[
- '<header class="aurora-v8-head"><div class="aurora-v8-orb" aria-hidden="true">✦</div>',
- '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>7.0</em></strong><small>DominionStar • No Family Left Behind</small></div>',
+ '<header class="aurora-v8-head"><div class="aurora-v8-orb" aria-hidden="true"><span class="aurora-2030-orb-symbol">✦</span></div>',
+ '<div class="aurora-v8-heading"><strong id="auroraV8Title">Aurora <em>INTELLIGENCE</em></strong><small>DominionStar · No Family Left Behind</small></div>',
  '<div class="aurora-v8-headbtns"><button type="button" data-aurora-clear title="New conversation" aria-label="Clear conversation">↺</button><button type="button" data-aurora-wide title="Expand assistant" aria-label="Expand assistant">⤢</button><button type="button" data-aurora-close aria-label="Close assistant">×</button></div></header>',
  '<div class="aurora-v8-mode"><span class="aurora-v8-indicator" role="status">GUIDED KNOWLEDGE</span><div class="aurora-v8-mode-tools"><button type="button" class="aurora-v8-research" hidden aria-pressed="false" title="Search official regulator sources using AI">Search official sources</button><button type="button" class="aurora-v8-switch" hidden aria-pressed="false">Enable AI answers</button></div></div>',
  '<div class="aurora-chat aurora-v8-transcript" role="log" aria-label="Aurora conversation" aria-live="polite"></div>',
- '<div class="aurora-v8-bottom"><form class="aurora-v8-form"><textarea rows="2" maxlength="450" aria-label="Message Aurora" required placeholder="Ask about life insurance, IUL, LTC, mentoring…"></textarea>',
+ '<div class="aurora-v8-bottom"><div class="aurora-2030-compose-head"><span class="aurora-2030-compose-dot"></span> YOUR CONVERSATION</div><form class="aurora-v8-form"><textarea rows="2" maxlength="450" aria-label="Message Aurora" required placeholder="Ask Aurora a question..."></textarea>',
  '<div class="aurora-v8-sendrow"><small>Enter to send · Shift+Enter for new line</small><div><button type="button" class="aurora-v8-mic" hidden title="Speak to Aurora" aria-label="Speak to Aurora"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 10.5v1.5a6.5 6.5 0 0 0 13 0v-1.5M12 18.5v3M8 21.5h8"/></svg></button><button type="submit" class="aurora-v8-send" aria-label="Send message to Aurora"><span>Send</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button></div></div></form>',
  '<p class="aurora-v8-note">Educational information only. Do not share sensitive information.</p></div>'
  ].join('');
@@ -289,7 +335,14 @@ function setup(){
  launcher.addEventListener('click',()=>panel.hidden?openChat():closeChat());
  panel.querySelector('[data-aurora-close]').addEventListener('click',closeChat);
  panel.querySelector('[data-aurora-clear]').addEventListener('click',clearChat);
- panel.querySelector('[data-aurora-wide]').addEventListener('click',()=>panel.classList.toggle('aurora-v8-wide'));
+ const expandButton=panel.querySelector('[data-aurora-wide]');
+ expandButton.setAttribute('aria-pressed','false');
+ expandButton.addEventListener('click',()=>{
+  const expanded=panel.classList.toggle('aurora-v8-wide');
+  expandButton.setAttribute('aria-pressed',String(expanded));
+  expandButton.setAttribute('aria-label',expanded?'Restore assistant size':'Expand assistant');
+  expandButton.title=expanded?'Restore assistant size':'Expand assistant';
+ });
  switcher.addEventListener('click',()=>{state.ai=!state.ai;if(!state.ai)state.research=false;updateMode();line(state.ai?'AI mode enabled. Future messages may be processed by a model provider.':'Guided educational mode enabled.','system','AURORA STATUS')});
  sourceToggle.addEventListener('click',()=>{if(!state.available||!state.ai||!state.webSearchAvailable)return;state.research=!state.research;updateMode();});
  panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();ask(field.value)});
@@ -302,8 +355,10 @@ function setup(){
    if(!window.confirm('Use browser speech recognition? Audio may be processed by your browser’s speech service. Avoid sensitive information.'))return;
    const recognition=new SpeechRecognition();recognition.lang='en-US';recognition.interimResults=false;
    recognition.onresult=e=>{field.value=String(e.results?.[0]?.[0]?.transcript||'').slice(0,450);field.focus()};
-   recognition.onend=()=>mic.classList.remove('is-listening');recognition.onerror=()=>mic.classList.remove('is-listening');
-   mic.classList.add('is-listening');recognition.start();
+   recognition.onend=()=>{mic.classList.remove('is-listening');panel.classList.remove('aurora-2030-listening')};
+   recognition.onerror=()=>{mic.classList.remove('is-listening');panel.classList.remove('aurora-2030-listening')};
+   mic.classList.add('is-listening');panel.classList.add('aurora-2030-listening');
+   try{recognition.start()}catch{mic.classList.remove('is-listening');panel.classList.remove('aurora-2030-listening')}
   });
  }
  document.querySelectorAll('[data-aurora-question]').forEach(btn=>btn.addEventListener('click',()=>ask(btn.dataset.auroraQuestion)));
@@ -311,7 +366,7 @@ function setup(){
  fetch('/.netlify/functions/aurora-chat',{method:'GET',cache:'no-store'})
 .then(r=>r.ok?r.json():null).then(d=>{state.available=d?.mode==='available';state.webSearchAvailable=!!d?.webSearchAvailable;updateMode()})
  .catch(()=>{state.available=false;updateMode()});
- window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'7.0'};
+ window.DominionStarAurora={open:openChat,answerForQuestion:createAnswer,version:'review'};
 }
 const menu=document.querySelector('.menu-button'),nav=document.querySelector('.main-nav');
 menu?.addEventListener('click',()=>{const open=nav?.classList.toggle('open')||false;menu.setAttribute('aria-expanded',String(open));menu.textContent=open?'×':'☰'});
