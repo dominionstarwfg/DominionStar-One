@@ -305,16 +305,18 @@
     communitySection?.classList.add('member-hidden');
   }
 
+  // First-visit-safe greeting: use the member's current local clock, not a
+  // stored visit count or a potentially stale login flag.
   const greetingHour = new Date().getHours();
   const greetingText = greetingHour < 12
     ? 'Good morning'
-    : greetingHour < 18
+    : greetingHour < 17
       ? 'Good afternoon'
       : 'Good evening';
   const greetingElement = document.getElementById('memberGreeting');
   if (greetingElement) greetingElement.textContent = greetingText;
   const heroGreeting = document.getElementById('heroGreeting');
-  if (heroGreeting) heroGreeting.textContent = greetingText + ' · Your professional space';
+  if (heroGreeting) heroGreeting.textContent = greetingText;
 
   async function loadAnnouncements() {
     const result = await withTimeout(
