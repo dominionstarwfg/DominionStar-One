@@ -5,9 +5,9 @@
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');$('currentSessionEmail').textContent=session.user.email||'Signed-in member';
  document.querySelectorAll('[data-settings-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-settings-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('[data-settings-panel]').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===b.dataset.settingsTab));history.replaceState(null,'','#'+b.dataset.settingsTab)});document.querySelector(`[data-settings-tab="${location.hash.slice(1)}"]`)?.click();
  let settings=session.user.user_metadata?.dominionstar_settings||{};
- const defaults={appearance:{theme:'system',textSize:'standard',reduceMotion:false},privacy:{directoryVisible:true,onlineVisible:true,allowMessages:true},notifications:{emailEnabled:true,announcements:true,messages:true,community:true,appointments:true,meetingRoom:true,browser:false,sound:true}};
+ const defaults={appearance:{theme:'system',textSize:'standard',reduceMotion:false},privacy:{directoryVisible:true,onlineVisible:true,allowMessages:true},notifications:{emailEnabled:true,announcements:true,messages:true,community:true,appointments:true,browser:false,sound:true}};
  const state={appearance:{...defaults.appearance,...settings.appearance},privacy:{...defaults.privacy,...settings.privacy},notifications:{...defaults.notifications,...settings.notifications}};
- try{const r=await db.from('notification_preferences').select('email_enabled,announcements_email_enabled,messages_email_enabled,community_email_enabled,appointments_email_enabled,meeting_room_email_enabled').eq('user_id',session.user.id).maybeSingle();if(r.data)Object.assign(state.notifications,{emailEnabled:r.data.email_enabled,announcements:r.data.announcements_email_enabled,messages:r.data.messages_email_enabled,community:r.data.community_email_enabled,appointments:r.data.appointments_email_enabled,meetingRoom:r.data.meeting_room_email_enabled})}catch(_){}
+ try{const r=await db.from('notification_preferences').select('email_enabled,announcements_email_enabled,messages_email_enabled,community_email_enabled,appointments_email_enabled').eq('user_id',session.user.id).maybeSingle();if(r.data)Object.assign(state.notifications,{emailEnabled:r.data.email_enabled,announcements:r.data.announcements_email_enabled,messages:r.data.messages_email_enabled,community:r.data.community_email_enabled,appointments:r.data.appointments_email_enabled})}catch(_){}
  state.notifications.browser=localStorage.getItem('ds_browser_notifications')==='on';state.notifications.sound=localStorage.getItem('ds_comm_sounds')!=='off';$('theme').value=state.appearance.theme;$('textSize').value=state.appearance.textSize;
  const status=(id,text,kind='')=>{const n=$(id);n.textContent=text;n.dataset.state=kind};
  const row=(root,key,label,note,checked,onchange)=>{const wrap=document.createElement('label');wrap.className='settings-switch-row';wrap.innerHTML=`<span><strong>${label}</strong><small>${note}</small></span><span class="settings-switch"><input type="checkbox" ${checked?'checked':''} aria-label="${label}"><i></i></span>`;const input=wrap.querySelector('input');input.onchange=()=>onchange(input,key);$(root).append(wrap)};
@@ -15,7 +15,53 @@
  const confirms=(actual,expected)=>actual&&Object.entries(expected).every(([key,value])=>typeof value==='object'&&value!==null?confirms(actual[key],value):actual[key]===value);
  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  const saveMetadata=async(section,value,result)=>{status(result,'Saving and checking…','saving');lock(true);try{const current=await db.auth.getUser();if(current.error)throw current.error;const merged={...(current.data.user.user_metadata?.dominionstar_settings||{}),[section]:value};const update=await db.auth.updateUser({data:{dominionstar_settings:merged}});if(update.error)throw update.error;let fresh,verified;for(let attempt=0;attempt<3;attempt++){if(attempt)await pause(250*(attempt+1));fresh=await db.auth.getUser();if(fresh.error)throw fresh.error;verified=fresh.data.user.user_metadata?.dominionstar_settings?.[section];if(confirms(verified,value))break}if(!confirms(verified,value))throw new Error('The saved value could not be verified. Your previous setting was restored.');session.user.user_metadata=fresh.data.user.user_metadata;settings=fresh.data.user.user_metadata?.dominionstar_settings||merged;status(result,'Saved and verified ✓','saved');return true}catch(e){status(result,e.message||'Could not save. Your previous setting was restored.','error');return false}finally{lock(false)}};
- const saveNotification=async(resultId='notificationsResult')=>{status(resultId,'Saving…','saving');lock(true);try{const n=state.notifications,payload={user_id:session.user.id,email_enabled:n.emailEnabled,announcements_email_enabled:n.announcements,messages_email_enabled:n.messages,community_email_enabled:n.community,appointments_email_enabled:n.appointments,meeting_room_email_enabled:n.meetingRoom,updated_at:new Date().toISOString()};const w=await db.from('notification_preferences').upsert(payload,{onConflict:'user_id'});if(w.error)throw w.error;const r=await db.from('notification_preferences').select('*').eq('user_id',session.user.id).single();if(r.error)throw r.error;for(const [a,b] of [['emailEnabled','email_enabled'],['announcements','announcements_email_enabled'],['messages','messages_email_enabled'],['community','community_email_enabled'],['appointments','appointments_email_enabled'],['meetingRoom','meeting_room_email_enabled']])if(Boolean(r.data[b])!==Boolean(n[a]))throw new Error('The database did not confirm every preference.');localStorage.setItem('ds_comm_sounds',n.sound?'on':'off');localStorage.setItem('ds_browser_notifications',n.browser?'on':'off');const ok=await saveMetadata('notifications',{...n},resultId);if(!ok)throw new Error('Notification metadata verification failed.');status(resultId,'Saved and reloaded from server ✓','saved');return true}catch(e){status(resultId,e.message||'Could not save.','error');return false}finally{lock(false)}};
+ const saveNotification=async(resultId='notificationsResult')=>{
+   status(resultId,'Saving and verifying agent notifications…','saving');
+   lock(true);
+   try{
+     const n=state.notifications;
+     // Agent settings must not update Meet's meeting_room_email_enabled column.
+     // Existing rows are updated selectively; new rows use the server's default
+     // for Meet notifications. Fail closed if the database cannot accept that.
+     const payload={
+       email_enabled:n.emailEnabled,
+       announcements_email_enabled:n.announcements,
+       messages_email_enabled:n.messages,
+       community_email_enabled:n.community,
+       appointments_email_enabled:n.appointments,
+       updated_at:new Date().toISOString()
+     };
+     const existing=await db.from('notification_preferences')
+       .select('user_id').eq('user_id',session.user.id).maybeSingle();
+     if(existing.error)throw existing.error;
+     const written=existing.data
+       ? await db.from('notification_preferences')
+           .update(payload).eq('user_id',session.user.id).select('user_id').maybeSingle()
+       : await db.from('notification_preferences')
+           .insert({user_id:session.user.id,...payload}).select('user_id').maybeSingle();
+     if(written.error)throw written.error;
+     if(!written.data?.user_id)throw new Error('The server did not confirm the notification update.');
+     const r=await db.from('notification_preferences')
+       .select('email_enabled,announcements_email_enabled,messages_email_enabled,community_email_enabled,appointments_email_enabled')
+       .eq('user_id',session.user.id).single();
+     if(r.error)throw r.error;
+     for(const [a,b] of [
+       ['emailEnabled','email_enabled'],['announcements','announcements_email_enabled'],
+       ['messages','messages_email_enabled'],['community','community_email_enabled'],
+       ['appointments','appointments_email_enabled']
+     ])if(Boolean(r.data[b])!==Boolean(n[a]))
+       throw new Error('The server did not confirm every agent notification preference.');
+     localStorage.setItem('ds_comm_sounds',n.sound?'on':'off');
+     localStorage.setItem('ds_browser_notifications',n.browser?'on':'off');
+     const ok=await saveMetadata('notifications',{...n},resultId);
+     if(!ok)throw new Error('Agent notification metadata verification failed.');
+     status(resultId,'Agent notifications saved and verified ✓','saved');
+     return true;
+   }catch(e){
+     status(resultId,e.message||'Could not save agent notifications.','error');
+     return false;
+   }finally{lock(false);}
+ };
  const toggle=(section,result)=>(input,key)=>{const before=!input.checked;state[section][key]=input.checked;saveMetadata(section,{...state[section]},result).then(ok=>{if(!ok){input.checked=before;state[section][key]=before}})};
  row('systemSwitches','reduceMotion','Reduce motion','Limit non-essential animation.',state.appearance.reduceMotion,toggle('appearance','systemResult'));
  row('messageSwitches','messages','Private-message email alerts','Email me when an approved member sends a message.',state.notifications.messages,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});row('messageSwitches','community','Community replies and mentions','Email me for replies and mentions.',state.notifications.community,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});
