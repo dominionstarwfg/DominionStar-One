@@ -52,3 +52,20 @@ The default Netlify site build command remains `bash scripts/build-public-netlif
 5. Apply any production notification RPC hardening SQL only after explicit approval and controlled live verification, not via this staging build.
 
 **No production deploy, staging deploy, or Supabase resource creation was performed.**
+
+
+## Staging gate 4 — dedicated-site production-context protection
+
+Read-only Supabase project listing on 2026-10-28 returned **only one connected project**, `DominionStar Platform` (`ckmurvhjumzlhsegncba`). No independent staging Supabase project is currently available from this connection.
+
+Confirmed from the official Netlify deploy-context documentation: a dedicated staging Netlify site can treat its own configured branch as `CONTEXT=production`, so checking `deploy-preview` / `branch-deploy` alone is not a sufficient isolation gate.
+
+Updated `scripts/build-public-netlify.sh` to also require isolation when a Netlify build uses any non-`main` Git branch, even with `CONTEXT=production`. The GitHub repository's verified default branch is `main`. Also rejects staging site marker variables that appear without the approved staging isolation flag.
+
+Tested in GitHub Actions:
+- [Dedicated staging context and static packaging run 40737281524](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40737281524): **PASSED**. Explicitly proved unconfigured `CONTEXT=production BRANCH=review/login2-recovery-netlify-hold-20261019 NETLIFY=true` fails with exit 47. Original static package build, root route, browser Meet and synthetic isolation rehearsal still pass.
+- [Node regression run 40737247817](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40737247817): **108/108 passed**, targeted **16/16 passed**.
+
+**Residual deployment limitation:** This guard uses the Git branch and Netlify context to distinguish the current review branch from the production branch. If an unrelated Netlify site is configured to deploy **`main` with `CONTEXT=production`**, the build cannot reliably distinguish that site from the legitimate production site without a trusted production-site identifier. Consequently, **do not configure a staging site to deploy `main`**, and do not claim full staging safety until a dedicated Netlify site and Supabase project have been verified with their actual identifiers. Staging Functions remain independently subject to secret/API separation.
+
+No new Netlify site, Supabase project/branch, staging URL, or live deployment was created.
