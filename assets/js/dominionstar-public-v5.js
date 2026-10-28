@@ -208,6 +208,9 @@ async function ask(raw){
  const previous=state.history.slice(-6);
  state.history.push({role:'user',content:q});
  field.value='';state.busy=true;send.disabled=true;field.disabled=true;panel.classList.add('aurora-2030-thinking');
+  panel.querySelector('[data-aurora-clear]').disabled=true;
+  switcher.disabled=true;
+  sourceToggle.disabled=true;
  let pending;
  try{
   if(state.ai){
@@ -237,6 +240,9 @@ async function ask(raw){
   state.history.push({role:'assistant',content:state.lastReply.slice(0,900)});
   state.history=state.history.slice(-8);
   state.busy=false;send.disabled=false;field.disabled=false;panel.classList.remove('aurora-2030-thinking');
+  panel.querySelector('[data-aurora-clear]').disabled=false;
+  switcher.disabled=false;
+  sourceToggle.disabled=false;
   chips(suggestions(trusted.topic));field.focus();
  }
 }
@@ -265,7 +271,7 @@ function clearChat(){
  ];
  for(const data of cards){
   const surface=document.createElement(data.href?'a':'button');
-  if(data.href){surface.href=data.href;}else{
+  if(data.href){surface.href=data.href;surface.addEventListener('click',()=>{if(data.href.startsWith('#'))closeChat()});}else{
    surface.type='button';surface.addEventListener('click',()=>ask(data.question));
   }
   surface.className='aurora-2030-quick-card';
@@ -329,7 +335,14 @@ function setup(){
  launcher.addEventListener('click',()=>panel.hidden?openChat():closeChat());
  panel.querySelector('[data-aurora-close]').addEventListener('click',closeChat);
  panel.querySelector('[data-aurora-clear]').addEventListener('click',clearChat);
- panel.querySelector('[data-aurora-wide]').addEventListener('click',()=>panel.classList.toggle('aurora-v8-wide'));
+ const expandButton=panel.querySelector('[data-aurora-wide]');
+ expandButton.setAttribute('aria-pressed','false');
+ expandButton.addEventListener('click',()=>{
+  const expanded=panel.classList.toggle('aurora-v8-wide');
+  expandButton.setAttribute('aria-pressed',String(expanded));
+  expandButton.setAttribute('aria-label',expanded?'Restore assistant size':'Expand assistant');
+  expandButton.title=expanded?'Restore assistant size':'Expand assistant';
+ });
  switcher.addEventListener('click',()=>{state.ai=!state.ai;if(!state.ai)state.research=false;updateMode();line(state.ai?'AI mode enabled. Future messages may be processed by a model provider.':'Guided educational mode enabled.','system','AURORA STATUS')});
  sourceToggle.addEventListener('click',()=>{if(!state.available||!state.ai||!state.webSearchAvailable)return;state.research=!state.research;updateMode();});
  panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();ask(field.value)});
