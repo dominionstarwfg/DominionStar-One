@@ -45,13 +45,14 @@ function boot(search=''){
   const appointment=makeForm(),consultation=makeForm();
   const panel={
     country:country(),region:new TestSelect(),
-    output:{textContent:''},link:{href:'/consultation/'}
+    output:{textContent:''},link:{href:'/consultation/'},regulator:{href:'#',hidden:true,textContent:''}
   };
   panel.element=element({
     '[data-ds-country]':panel.country,
     '[data-ds-region]':panel.region,
     '[data-ds-jurisdiction-text]':panel.output,
-    '[data-ds-jurisdiction-link]':panel.link
+    '[data-ds-jurisdiction-link]':panel.link,
+    '[data-ds-regulator-link]':panel.regulator
   });
   const document={
     querySelectorAll:()=>[appointment.element,consultation.element],
@@ -92,10 +93,14 @@ choose(t.panel.region,'New York');
 assert.match(t.panel.output.textContent,/riders can vary by state/);
 assert.match(t.panel.output.textContent,/Living-benefit and long-term-care terms/);
 assert.match(t.panel.link.href,/country=United\+States&region=New\+York/);
+assert.equal(t.panel.regulator.hidden,false);
+assert.match(t.panel.regulator.href,/content\.naic\.org\/state-insurance-departments/);
 choose(t.panel.country,'Canada');
 choose(t.panel.region,'Quebec');
 assert.match(t.panel.output.textContent,/Canadian licensing/);
 assert.match(t.panel.link.href,/country=Canada&region=Quebec/);
+assert.equal(t.panel.regulator.hidden,false);
+assert.match(t.panel.regulator.href,/canada\.ca\/en\/financial-consumer-agency/);
 
 const prefilled=boot('?country=Canada&region=Ontario');
 assert.equal(prefilled.appointment.country.value,'Canada');
@@ -115,4 +120,8 @@ for(const path of ['schedule/index.html','consultation/index.html']){
 }
 assert.match(read('join/index.html'),/data-ds-region/);
 assert.match(read('financial-services/index.html'),/data-ds-geography/);
+for(const page of ['financial-services/life-insurance/index.html','financial-services/long-term-care/index.html']){
+  assert.match(read(page),/data-ds-geography/);
+  assert.match(read(page),/dominionstar-geography\.js/);
+}
 console.log('DOMINIONSTAR_PUBLIC_GEO_TEST_OK');
