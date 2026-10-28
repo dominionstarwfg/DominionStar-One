@@ -40,3 +40,15 @@ Test with an approved agent account in the published browser Meet and the Mac de
 3. Changing an Agent notification setting never resets previously saved Meet preferences.
 4. Changing a Meet join default persists after restarting the desktop app and does not alter Agent Settings.
 5. Account security and Google identity controls remain on Agent Settings and do not appear in the Meet Settings dialog.
+
+
+## Follow-up gate — Agent-only notification saves
+
+- **Resolved hidden cross-product write:** Earlier Agent Settings code used `notification_preferences.upsert()` with `meeting_room_email_enabled` bundled into each update, even though Meet alerts had no visible Agent control.
+- Agent Settings now selectively updates **only** `email_enabled`, `announcements_email_enabled`, `messages_email_enabled`, `community_email_enabled`, `appointments_email_enabled` and the audit timestamp. It never includes `meeting_room_email_enabled` in the UPDATE or INSERT payload.
+- Existing rows: read-then-UPDATE with a verified updated row. Missing rows: INSERT agent fields only, permitting database defaults for Meet. If required database defaults or permissions are missing, the operation fails with a visible error. No silent false-save.
+- Existing `user_metadata.dominionstar_settings.notifications` keys that the Agent page does not own (including any legacy `meetingRoom` key) are retained when the agent settings object is updated, and the separate `meetingMedia` metadata section is untouched.
+- Agent Settings provides a contextual **Open DominionStar Meet** link and explicitly directs users to Meet's existing Settings dialog. It does not reproduce any Meet device or meeting configuration UI.
+- A new functional regression test `tests/agent-notification-meet-isolation-runtime.test.mjs` covers existing-row update, first-row insert, failure behavior, preservation of hidden values and the left-aligned Meet handoff.
+- A source-level functional simulation with a mocked authentication client and notification database verified existing-row and first-row writes, including Meet values remaining unchanged.
+- **Remaining blocker:** production Supabase schema/RLS and live browser/Desktop Meet integration have not been verified; do not represent this as end-to-end complete. Tests in GitHub must still run against a checked-out branch before deployment.
