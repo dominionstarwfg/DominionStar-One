@@ -7,7 +7,7 @@ const source=readFileSync(new URL('../assets/js/global-call-manager.js',import.m
 const dashboard=readFileSync(new URL('../assets/js/member-dashboard.js',import.meta.url),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
-async function launch({route='/member-dashboard/',status='approved',code='DS123',error=null,throwLookup=false,session=true}={}){
+async function launch({route='/member-dashboard/',status='approved',code='DS123',error=null,throwLookup=false,session=true,clientAvailable=true,sessionFailure=false}={}){
   const events={initialized:0,subscriptions:0,lookup:0,ui:0,authInit:0,channelNames:[]};
   const nodes={
     dsGlobalAcceptCall:{addEventListener(){}},
@@ -26,7 +26,7 @@ async function launch({route='/member-dashboard/',status='approved',code='DS123'
     subscribe(){events.subscriptions++;return this}
   };
   const client={
-    auth:{getSession:async()=>({data:{session:session?{user:{id:'agent-1'}}:null}})},
+    auth:{getSession:async()=>{if(sessionFailure)throw Error('auth unavailable');return{data:{session:session?{user:{id:'agent-1'}}:null}};}},
     from(table){
       assert.equal(table,'member_profiles');
       return{
@@ -51,7 +51,7 @@ async function launch({route='/member-dashboard/',status='approved',code='DS123'
     removeChannel(){}
   };
   const window={
-    DSAuth:{ready:true,async init(){events.authInit++;return client}},
+    DSAuth:{ready:true,async init(){events.authInit++;return clientAvailable?client:null}},
     CommunicationEngine:{async init(){events.initialized++},stopAll(){}},
     addEventListener(){}
   };
@@ -108,4 +108,13 @@ test('The direct-messages route keeps ownership of its call controls',async()=>{
 test('Dashboard initializes its communications engine only for approved agents with Agent Codes',()=>{
   assert.match(dashboard,/if \(status === 'approved' && String\(profile\.agent_code \|\| ''\)\.trim\(\)\) \{/);
   assert.match(dashboard,/await window\.CommunicationEngine\?\.init/);
+});
+
+test('Unavailable auth client or session lookup fails closed without subscriptions',async()=>{
+  for(const options of [{clientAvailable:false},{sessionFailure:true},{session:false}]){
+    const e=await launch(options);
+    assert.equal(e.lookup,0);
+    assert.equal(e.subscriptions,0);
+    assert.equal(e.initialized,0);
+  }
 });
