@@ -200,6 +200,11 @@ for rel in schedule/index.html consultation/index.html; do
 done
 grep -Fq 'data-ds-region' "$DIST/join/index.html"
 grep -Fq 'data-ds-geography' "$DIST/financial-services/index.html"
+for rel in financial-services/life-insurance/index.html financial-services/long-term-care/index.html; do
+  grep -Fq 'data-ds-geography' "$DIST/$rel"
+  grep -Fq 'data-ds-regulator-link' "$DIST/$rel"
+  grep -Fq 'dominionstar-geography.js' "$DIST/$rel"
+done
 grep -Fq 'dominionstar-geography.js' "$DIST/financial-services/index.html"
 grep -Fq 'America/New_York' "$DIST/assets/js/dominionstar-geography.js"
 
