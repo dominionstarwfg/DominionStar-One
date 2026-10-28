@@ -42,6 +42,7 @@
  const saveNotification=async(resultId='notificationsResult')=>{
    status(resultId,'Saving and verifying agent notifications…','saving');
    lock(true);
+   let writeAccepted=false, serverVerified=false;
    try{
      const n=state.notifications;
      // Agent settings must not update Meet's meeting_room_email_enabled column.
@@ -65,6 +66,7 @@
            .insert({user_id:session.user.id,...payload}).select('user_id').maybeSingle();
      if(written.error)throw written.error;
      if(!written.data?.user_id)throw new Error('The server did not confirm the notification update.');
+     writeAccepted=true;
      const r=await db.from('notification_preferences')
        .select('email_enabled,announcements_email_enabled,messages_email_enabled,community_email_enabled,appointments_email_enabled')
        .eq('user_id',session.user.id).single();
@@ -75,6 +77,7 @@
        ['appointments','appointments_email_enabled']
      ])if(Boolean(r.data[b])!==Boolean(n[a]))
        throw new Error('The server did not confirm every agent notification preference.');
+     serverVerified=true;
      localStorage.setItem('ds_comm_sounds',n.sound?'on':'off');
      localStorage.setItem('ds_browser_notifications',n.browser?'on':'off');
      const ok=await saveMetadata('notifications',{...n},resultId);
@@ -82,6 +85,14 @@
      status(resultId,'Agent notifications saved and verified ✓','saved');
      return true;
    }catch(e){
+     if(serverVerified){
+       status(resultId,'Agent notifications saved in the database, but account preference sync needs attention. Refresh to verify.','warning');
+       return true; // Keep the controls in sync with the verified database update.
+     }
+     if(writeAccepted){
+       status(resultId,'The server accepted the notification change, but confirmation failed. Refresh to check the latest values.','warning');
+       return true; // Do not claim the previous selection was restored.
+     }
      status(resultId,e.message||'Could not save agent notifications.','error');
      return false;
    }finally{lock(false);}
