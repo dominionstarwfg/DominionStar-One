@@ -90,3 +90,26 @@ Completed as **read-only Supabase inspection** and GitHub review-branch source c
 - No ACL change was executed, no queue rows claimed, no email sent, and no production deployment made.
 
 **Still needs explicit approval:** apply the proposed live database permission change; then perform database-grant readback and a controlled test through the existing scheduled email processor.
+
+
+## Security Gate 3 — extended notification RPC audit (review branch, no production changes)
+
+Live read-only database inspection identified **two additional** `SECURITY DEFINER` notification functions explicitly executable by both `anon` and `authenticated`:
+
+| RPC | Actual behavior | Caller dependency | Recommended gate |
+| --- | --- | --- | --- |
+| `queue_email_notification(uuid,text,text,text)` | Accepts recipient ID, event, subject and body from the caller; queues an email to an approved member, without verifying the caller | Called inside `queue_appointment_email(uuid)`, a server-side `SECURITY DEFINER` function with member/Founder authorization | Remove external `anon` and `authenticated` EXECUTE while preserving backend/service-role execution; test authorized appointment email generation |
+| `queue_community_email_notifications(uuid,text)` | Can queue emails to many approved members from a supplied sender ID and message text, with no internal caller check or posted-message verification | Directly called by browser `assets/js/community-chat.js` after a successful chat-message INSERT | Do **not** simply revoke member EXECUTE. Replace its function body with an authenticated-sender check, approved-profile check, matching recent persisted chat message, recipient preference checks, and per-message/per-recipient deduplication; revoke `anon` only |
+
+The database's `community_chat_messages` INSERT policy restricts message authors to `auth.uid()` and approved members; however, the standalone email RPC can currently be invoked without inserting a chat message, so the chat table's RLS is **not sufficient**. The existing `email_notification_outbox` unique index on `dedupe_key` supports replay protection.
+
+The SQL proposals are **not applied**, **not part of deployment**, and must be reviewed/approved together with the existing service-role queue claim plan:
+- Read-only list of all three functions and stored-function dependencies: `scripts/security/notification-rpc-preflight.READ-ONLY.review.sql`
+- Candidate role restrictions for generic email queue + outbox claim: `scripts/security/notification-rpc-acl-lockdown.DO-NOT-RUN.review.sql`
+- Candidate guarded Community email RPC preserving the existing browser interface signature: `scripts/security/community-email-rpc-guard.DO-NOT-RUN.review.sql`
+- Corrected `supabase/member-email-notifications.sql` for **future** schema application: explicitly revokes `PUBLIC, anon, authenticated` claims rather than only `PUBLIC`. Source-only change; it has not been applied.
+- New static regression coverage: `tests/notification-rpc-hardening-review.test.mjs`
+
+**Verification:** GitHub Actions run `40704936393` passed targeted **16/16** and all Node tests **93/93**. These source tests do not prove SQL execution, live role restriction, reliable email delivery, or end-to-end desktop behavior.
+
+**Production release blocker:** Obtain explicit approval for live SQL changes; plan controlled validation for the email processor, appointment email creation, a legitimate Community Chat post, replay blocking, and anonymous/unauthorized rejection without touching real recipient content. Recheck the Supabase Security Advisor and queue-delivery logs after the change. Do not batch unrelated `SECURITY DEFINER` grants into this correction.
