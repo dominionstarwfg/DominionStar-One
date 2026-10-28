@@ -19,7 +19,7 @@ The public-site Netlify build packages `meet-desktop/ui/` to **`/meet/`** via `s
 4. Preserved existing authenticated account settings and their exact DOM IDs: theme, text size, general notifications, messages, privacy/security, password, sessions and dormant Google identity linking.
 5. Labeled the agent navigation **Agent Settings** consistently in the member dashboard, agent page shell, and OS assistant/quick navigation.
 6. Explicitly labeled the existing Meet Settings dialog and clarified it is independent from Agent Settings; did not change its media controller or Meet preference machinery.
-7. The legacy `meeting_room_email_enabled` database preference is still passed through by existing Agent notification persistence for backward compatibility; it is not exposed as an Agent Settings control. Refactoring that legacy field requires a confirmed schema/policy audit before modification.
+7. The legacy `meeting_room_email_enabled` database preference remains in the database but is not exposed or transmitted by Agent Settings saves. Its schema and RLS still require a separate verified audit before any migration.
 
 ## Compatibility and QA gates
 
