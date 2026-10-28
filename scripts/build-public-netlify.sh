@@ -25,6 +25,7 @@ required_paths=(
   "assets/css/dominionstar-public-v5.css"
   "assets/js/dominionstar-public-v5.js"
   "assets/js/dominionstar-geography.js"
+  "scripts/test-public-geography.mjs"
   "netlify/functions/aurora-chat.mjs"
   "assets/ds-public-hero.jpg"
   "assets/ds-public-founder.jpg"
@@ -65,6 +66,9 @@ for rel in "${required_paths[@]}"; do
     exit 41
   fi
 done
+
+# Source-driven interactive field validation using a minimal DOM harness.
+node "$ROOT/scripts/test-public-geography.mjs"
 
 rm -rf "$DIST"
 mkdir -p "$DIST"
