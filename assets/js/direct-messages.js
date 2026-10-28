@@ -420,12 +420,12 @@
 
     const profileUrl = member ? `/professional-profile/?member=${encodeURIComponent(member.id)}` : '/member-directory/';
     const meetingUrl = member ? `/appointments/?member=${encodeURIComponent(member.id)}` : '/appointments/';
-    const journeyUrl = member ? `/journey/?member=${encodeURIComponent(member.id)}` : '/journey/';
+
     viewProfileLink.href = profileUrl;
     if(menuViewProfile)menuViewProfile.href=profileUrl;
     if(menuScheduleMeeting)menuScheduleMeeting.href=meetingUrl;
     scheduleMeetingLink.href = meetingUrl;
-    recognitionLink.href = journeyUrl;
+    recognitionLink.href = '/recognition/';
   };
 
   const updateActiveHeader = member => {
