@@ -1,4 +1,4 @@
-name: Agent and Meet Settings — review QA
+name: DominionStar Executive OS — Agent Website QA
 on:
   push:
     branches:
@@ -41,7 +41,7 @@ jobs:
           node --check assets/js/dominionstar-os.js
           node --check meet-desktop/ui/preferences.js
           node --check meet-desktop/ui/av-settings.js
-      - name: Test Agent and Meet settings isolation
+      - name: Test Agent website and settings boundaries
         run: |
           node --test \
             tests/agent-meet-settings-boundary-review.test.mjs \
