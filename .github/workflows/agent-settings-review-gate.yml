@@ -7,6 +7,8 @@ on:
       - 'account-settings/**'
       - 'member-login/**'
       - 'assets/js/member-login.js'
+      - 'assets/js/member-dashboard.js'
+      - 'assets/js/global-call-manager.js'
       - 'assets/js/member-login-google-flags.js'
       - 'assets/js/account-settings.js'
       - 'assets/js/account-google-identity-review.js'
@@ -37,6 +39,8 @@ jobs:
         run: |
           node --check assets/js/account-settings.js
           node --check assets/js/member-login.js
+          node --check assets/js/member-dashboard.js
+          node --check assets/js/global-call-manager.js
           node --check assets/js/dominionstar-agent-nav-shell.js
           node --check assets/js/dominionstar-os.js
           node --check meet-desktop/ui/preferences.js
