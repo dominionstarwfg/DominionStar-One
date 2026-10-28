@@ -33,9 +33,13 @@ test('Google callback verifies stored approved profile and registered Agent Code
   assert.match(js,/supabase\.auth\.getUser\(\)/);
   assert.match(js,/from\('member_profiles'\)/);
   assert.match(js,/\.select\('id,agent_code,verification_status'\)/);
-  assert.match(js,/\.eq\('id',auth\.data\.user\.id\)/);
+  assert.match(js,/\.eq\('id',user\.id\)/);
   assert.match(js,/verified\.data\?\.verification_status!=='approved'/);
   assert.match(js,/verified\.data\?\.agent_code/);
+  assert.match(js,/hasGoogleIdentity/);
+  assert.match(js,/identity\.provider==='google'/);
+  assert.match(js,/verified\.data\?\.id!==user\.id/);
+  assert.match(js,/if\(!approved\)/);
   assert.match(js,/await supabase\.auth\.signOut\(\)/);
   assert.match(js,/window\.location\.replace\('\/member-dashboard\/'\)/);
   assert.doesNotMatch(js,/auth\.data\.user\.user_metadata\?\.verification_status/);
