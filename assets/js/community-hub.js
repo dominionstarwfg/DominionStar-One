@@ -225,6 +225,7 @@
             <div class="community-options-menu" role="group" aria-label="Post actions" hidden>
               <button type="button" data-post-action="copy">Copy post text</button>
               <button type="button" data-post-action="link">Copy post link</button>
+              <button type="button" data-post-action="download">Download post text (.txt)</button>
             </div>
           </div>
         </header>
@@ -314,12 +315,27 @@
         const post=allPosts.find(item=>String(item.id)===card?.dataset.id);
         dismissOptions();
         if(!post)return;
-        const text=button.dataset.postAction==='copy'
-          ? [post.title,post.body].filter(Boolean).join('\n\n')
-          : new URL('/community/?post='+encodeURIComponent(post.id),location.origin).href;
+        const action=button.dataset.postAction;
+        const url=new URL('/community/?post='+encodeURIComponent(post.id),location.origin).href;
+        const text=[post.title,post.body].filter(Boolean).join('\n\n');
+        if(action==='download'){
+          let objectUrl=null;
+          try{
+            objectUrl=URL.createObjectURL(new Blob([text+'\n\nOriginal: '+url+'\n'],{type:'text/plain;charset=utf-8'}));
+            const anchor=document.createElement('a');
+            const slug=String(post.title||'community-post').normalize('NFKD')
+              .replace(/[^a-z0-9-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,70)||'community-post';
+            anchor.href=objectUrl;
+            anchor.download='DominionStar-'+slug+'.txt';
+            document.body.appendChild(anchor);anchor.click();anchor.remove();
+            show(postResult,'Post text saved to your device.','success');
+          }catch(error){show(postResult,error.message||'Download failed.','error');}
+          finally{if(objectUrl){const urlToRevoke=objectUrl;setTimeout(()=>URL.revokeObjectURL(urlToRevoke),1000);}}
+          return;
+        }
         try{
-          await copyCommunityText(text);
-          show(postResult,button.dataset.postAction==='copy'?'Post text copied.':'Post link copied.','success');
+          await copyCommunityText(action==='copy'?text:url);
+          show(postResult,action==='copy'?'Post text copied.':'Post link copied.','success');
         }catch(error){show(postResult,error.message,'error');}
       });
     });
