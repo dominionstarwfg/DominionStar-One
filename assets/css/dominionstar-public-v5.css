@@ -448,3 +448,7 @@
 .geo-context-controls .btn{min-width:210px}
 @media(max-width:850px){.geo-context-card{grid-template-columns:1fr;gap:24px;padding:25px}}
 @media(max-width:500px){.geo-context-fields{grid-template-columns:1fr}.geo-context-controls .btn{width:100%}}
+
+.geo-official{display:inline-flex;align-items:center;margin:12px 0 0 4px;text-decoration:underline;text-underline-offset:3px;color:#234e76;font:700 12px/1.5 Inter,"Segoe UI",Arial,sans-serif}
+.geo-official:hover{color:#12314e}
+.geo-official[hidden]{display:none}
