@@ -8,7 +8,8 @@ const script=readFileSync(new URL('../assets/js/account-settings.js',import.meta
 async function startAgentSettings(mode){
  const nodes={};
  const getNode=id=>nodes[id]??={textContent:'',classList:{
-   classes:new Set(),add(x){this.classes.add(x)},remove(x){this.classes.delete(x)}
+   classes:new Set(id==='settingsApp'?['member-hidden']:[]),
+   add(x){this.classes.add(x)},remove(x){this.classes.delete(x)}
  }};
  let dbReads=0;
  const db={
@@ -38,7 +39,7 @@ async function startAgentSettings(mode){
 test('Authentication initialization failure remains behind gate and shows retry message',async()=>{
  const {nodes,dbReads,location}=await startAgentSettings('initialization-error');
  assert.equal(dbReads,0);
- assert.equal(nodes.settingsApp?.classList.classes.has('member-hidden')||false,false);
+ assert.equal(nodes.settingsApp.classList.classes.has('member-hidden'),true);
  assert.match(nodes.settingsGate.textContent,/Unable to verify your account session/);
  assert.equal(location.href,'/account-settings/');
 });
@@ -46,6 +47,7 @@ test('Authentication initialization failure remains behind gate and shows retry 
 test('Session read errors do not redirect or reveal Agent Settings',async()=>{
  const {nodes,dbReads,location}=await startAgentSettings('session-error');
  assert.equal(dbReads,0);
+ assert.equal(nodes.settingsApp.classList.classes.has('member-hidden'),true);
  assert.match(nodes.settingsGate.textContent,/secure session could not be verified/);
  assert.equal(location.href,'/account-settings/');
 });
