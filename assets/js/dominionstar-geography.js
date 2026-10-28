@@ -89,12 +89,14 @@
     const picker=initPicker(panel);
     const output=panel.querySelector('[data-ds-jurisdiction-text]');
     const link=panel.querySelector('[data-ds-jurisdiction-link]');
+    const regulator=panel.querySelector('[data-ds-regulator-link]');
     if(picker&&output&&link){
       function update(){
         const country=picker.country.value, region=picker.region.value;
         if(!country||!region){
           output.textContent='Choose your location to see jurisdiction-aware guidance. Exact coverage, policy forms, riders and product eligibility require verification.';
           link.href='/consultation/';
+          if(regulator)regulator.hidden=true;
           return;
         }
         if(country==='Canada'){
@@ -108,6 +110,16 @@
           output.textContent='For locations outside the United States and Canada, service and product availability must be confirmed before any specific guidance is offered.';
         }
         link.href='/consultation/?'+new URLSearchParams({country,region}).toString();
+        if(regulator){
+          const directory=country==='United States'
+            ? 'https://content.naic.org/state-insurance-departments'
+            : country==='Canada'
+            ? 'https://www.canada.ca/en/financial-consumer-agency/corporate/federal-oversight-bodies-regulators.html'
+            : '';
+          regulator.hidden=!directory;
+          if(directory)regulator.href=directory;
+          regulator.textContent=country==='Canada'?'Canadian provincial/territorial regulators ↗':'U.S. state insurance regulators ↗';
+        }
       }
       picker.country.addEventListener('change',update);
       picker.region.addEventListener('change',update);
