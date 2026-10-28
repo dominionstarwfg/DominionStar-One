@@ -429,3 +429,22 @@
 .ds-finance-showcase .tile a:focus-visible{outline:3px solid #f0d396;outline-offset:4px;border-radius:3px}
 @media (max-width:800px){.ds-finance-showcase{gap:15px}.ds-finance-showcase .tile{padding:25px;min-height:260px}}
 @media (prefers-reduced-motion:reduce){.ds-finance-showcase .tile{transition:none}.ds-finance-showcase .tile:hover{transform:none}}
+
+
+/* Jurisdiction-aware public inquiry: extends existing approved executive visual system. */
+.inquiry-card .ds-tz-help{display:block;font:500 11px/1.5 Inter,"Segoe UI",Arial,sans-serif;color:#5c728a;margin-top:2px}
+.geo-context-section{padding:38px 0 48px;background:#fff}
+.geo-context-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.03fr);gap:42px;align-items:center;padding:35px 38px;border-radius:23px;background:linear-gradient(115deg,#f7f9fb,#edf3f8);border:1px solid #dae4ed;box-shadow:0 16px 36px #0a29450d}
+.geo-context-intro .eyebrow{margin-bottom:12px}
+.geo-context-intro h2{font-size:clamp(27px,3vw,39px);color:#133450}
+.geo-context-intro p{font-size:13px;color:#526a80;margin-top:14px}
+.geo-context-intro .geo-disclaimer{font-size:11px;color:#62778c}
+.geo-context-fields{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.geo-context-fields label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:800;color:#183b5b}
+.geo-context-fields select{width:100%;min-width:0;border:1px solid #bacbda;border-radius:10px;background:#fff;color:#142c45;font:500 13px/1.4 Inter,"Segoe UI",Arial,sans-serif;padding:12px;min-height:45px}
+.geo-context-fields select:focus-visible{outline:3px solid #c4ddf2;outline-offset:2px}
+.geo-context-fields select:disabled{background:#f5f7f9;color:#718092}
+.geo-result{min-height:70px;margin:17px 0 16px;border-left:3px solid #c6a361;background:#fff;padding:13px 15px;border-radius:0 12px 12px 0;color:#3d566e;font-size:12px;line-height:1.65}
+.geo-context-controls .btn{min-width:210px}
+@media(max-width:850px){.geo-context-card{grid-template-columns:1fr;gap:24px;padding:25px}}
+@media(max-width:500px){.geo-context-fields{grid-template-columns:1fr}.geo-context-controls .btn{width:100%}}
