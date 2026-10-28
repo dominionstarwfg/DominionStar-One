@@ -58,6 +58,22 @@
       if (!navigator.clipboard?.writeText) throw new Error('Copy requires a secure browser connection.');
       await navigator.clipboard.writeText(value);
     };
+    // Text-only export of a post already visible to this authenticated member.
+    // Media is not included; media downloads require a verified storage workflow.
+    const downloadPostText = post => {
+      const body=[post.title,post.body||post.description,'Original post: '+linkFor(post.id)]
+        .filter(Boolean).join('\n\n');
+      const plain=new Blob([body+'\n'],{type:'text/plain;charset=utf-8'});
+      const objectUrl=URL.createObjectURL(plain);
+      const link=document.createElement('a');
+      const slug=String(post.title||'community-post').normalize('NFKD')
+        .replace(/[^a-z0-9-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,70)||'community-post';
+      link.href=objectUrl;
+      link.download='DominionStar-'+slug+'.txt';
+      document.body.appendChild(link);
+      try{link.click();}
+      finally{link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);}
+    };
     const render = (counts) => {
       target.innerHTML = posts.map(post => {
         const author=post.author_preferred_name||post.author_full_name||'DominionStar Member';
@@ -93,6 +109,7 @@
               <div class="ds30-post-menu" hidden>
                 <button type="button" data-social="copy">Copy post text</button>
                 <button type="button" data-social="link">Copy post link</button>
+                <button type="button" data-social="download">Download post text (.txt)</button>
               </div>
             </div>
           </header>
@@ -209,6 +226,11 @@
       if(action==='link')return void inFlight(async()=>{
         await copy(linkFor(post.id));notice('Post link copied.');
       });
+      if(action==='download'){
+        try{downloadPostText(post);notice('Post text saved to your device.');}
+        catch(error){notice(error?.message||'Download failed.',true);}
+        return;
+      }
       if(action==='share'){
         const url=linkFor(post.id);
         return void inFlight(async()=>{
