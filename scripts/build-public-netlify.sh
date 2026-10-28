@@ -2,9 +2,16 @@
 set -euo pipefail
 
 # Netlify deploy/branch previews must never inherit the production Supabase
-# backend. Production publishing remains unchanged; previews fail closed unless
-# an explicitly isolated staging site and backend are configured.
-if [[ "${CONTEXT:-}" == "deploy-preview" || "${CONTEXT:-}" == "branch-deploy" ]]; then
+# backend. A separate staging Netlify site's "production" context is also
+# possible: inspect its Git branch, not just the Netlify deploy context.
+# The verified public repository's production branch is "main".
+# Never enable a non-main Netlify build without approved isolated staging.
+if [[ "${CONTEXT:-}" == "deploy-preview" ||
+      "${CONTEXT:-}" == "branch-deploy" ||
+      ( -n "${BRANCH:-}" && "${BRANCH}" != "main" &&
+        ( "${NETLIFY:-}" == "true" || "${CONTEXT:-}" == "production" ) ) ||
+      ( -n "${DOMINIONSTAR_STAGING_NETLIFY_SITE_ID:-}" &&
+        "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ) ]]; then
   if [[ "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ]]; then
     echo "ERROR: preview blocked until isolated Netlify/Supabase staging is configured." >&2
     exit 47
