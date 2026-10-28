@@ -8,7 +8,7 @@ const source=read('assets/js/account-settings.js');
 const page=read('account-settings/index.html');
 const css=read('assets/css/agent-settings-boundary-review.css');
 
-async function simulateAgentNotificationSave({existing=true,writeFailure=false}={}){
+async function simulateAgentNotificationSave({existing=true,writeFailure=false,approvalStatus='approved'}={}){
   let row=existing?{
     user_id:'approved-agent',email_enabled:true,
     announcements_email_enabled:true,messages_email_enabled:true,
@@ -16,7 +16,7 @@ async function simulateAgentNotificationSave({existing=true,writeFailure=false}=
     meeting_room_email_enabled:false
   }:null;
   const state={
-    nodes:{},inputs:{},ops:[],storage:{},
+    nodes:{},inputs:{},ops:[],storage:{},queriedTables:[],
     user:{id:'approved-agent',email:'agent@example.invalid',
       user_metadata:{dominionstar_settings:{
         notifications:{meetingRoom:false,oldUnrelatedSetting:'preserve'},
@@ -65,6 +65,15 @@ async function simulateAgentNotificationSave({existing=true,writeFailure=false}=
       signOut:async()=>({})
     },
     from(table){
+      state.queriedTables.push(table);
+      if(table==='member_profiles'){
+        const profileQuery={
+          select(){return profileQuery},
+          eq(){return profileQuery},
+          async maybeSingle(){return{data:{verification_status:approvalStatus},error:null}}
+        };
+        return profileQuery;
+      }
       assert.equal(table,'notification_preferences');
       let operation='read',payload=null;
       const query={
@@ -90,6 +99,7 @@ async function simulateAgentNotificationSave({existing=true,writeFailure=false}=
     localStorage:{getItem:k=>state.storage[k]||null,setItem:(k,v)=>{state.storage[k]=v}},
     console,setTimeout,clearTimeout};
   await vm.runInNewContext(source,context);
+  if(approvalStatus!=='approved')return {state,row};
   const control=state.inputs['Private-message email alerts'];
   assert.ok(control,'Expected agent message notification control');
   control.checked=false;
@@ -134,4 +144,12 @@ test('Agent Settings gives a left-aligned link to the real Meet workspace',()=>{
   assert.match(page,/Choose <strong>Settings<\/strong> inside Meet/);
   assert.match(css,/align-items:flex-start/);
   assert.doesNotMatch(page,/data-settings-panel="audio-video"|data-settings-panel="meeting-defaults"/);
+});
+
+test('An unapproved Auth session cannot reveal Agent Settings or request notification rows',async()=>{
+  const {state}=await simulateAgentNotificationSave({approvalStatus:'pending'});
+  assert.equal(state.ops.length,0);
+  assert.deepEqual(state.queriedTables,['member_profiles']);
+  assert.match(state.nodes.settingsGate.textContent,/after Founder approval/);
+  assert.equal(Object.keys(state.inputs).length,0);
 });
