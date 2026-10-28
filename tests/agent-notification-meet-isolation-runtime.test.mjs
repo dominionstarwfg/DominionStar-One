@@ -8,7 +8,7 @@ const source=read('assets/js/account-settings.js');
 const page=read('account-settings/index.html');
 const css=read('assets/css/agent-settings-boundary-review.css');
 
-async function simulateAgentNotificationSave({existing=true,writeFailure=false,approvalStatus='approved'}={}){
+async function simulateAgentNotificationSave({existing=true,writeFailure=false,approvalStatus='approved',metadataFailure=false,readFailure=false}={}){
   let row=existing?{
     user_id:'approved-agent',email_enabled:true,
     announcements_email_enabled:true,messages_email_enabled:true,
@@ -59,6 +59,7 @@ async function simulateAgentNotificationSave({existing=true,writeFailure=false,a
       getSession:async()=>({data:{session:{user:state.user}}}),
       getUser:async()=>({data:{user:state.user}}),
       updateUser:async({data})=>{
+        if(metadataFailure)return {error:new Error('Metadata sync blocked')};
         state.user.user_metadata={...state.user.user_metadata,...data};
         return {data:{user:state.user}};
       },
@@ -88,7 +89,9 @@ async function simulateAgentNotificationSave({existing=true,writeFailure=false,a
           if(operation==='insert')row={meeting_room_email_enabled:true,...payload};
           return {data:row,error:null};
         },
-        async single(){return {data:row,error:null}}
+        async single(){return readFailure
+          ? {data:null,error:new Error('Verification unavailable')}
+          : {data:row,error:null}}
       };
       return query;
     }
@@ -152,4 +155,20 @@ test('An unapproved Auth session cannot reveal Agent Settings or request notific
   assert.deepEqual(state.queriedTables,['member_profiles']);
   assert.match(state.nodes.settingsGate.textContent,/after Founder approval/);
   assert.equal(Object.keys(state.inputs).length,0);
+});
+
+test('Verified database save remains selected when secondary metadata sync fails',async()=>{
+  const {state,row}=await simulateAgentNotificationSave({metadataFailure:true});
+  assert.equal(row.messages_email_enabled,false);
+  assert.equal(state.inputs['Private-message email alerts'].checked,false);
+  assert.equal(state.nodes.messagesResult.dataset.state,'warning');
+  assert.match(state.nodes.messagesResult.textContent,/saved in the database/i);
+  assert.equal(state.user.user_metadata.dominionstar_settings.notifications.meetingRoom,false);
+});
+test('Acknowledged database write with failed readback is reported as uncertain',async()=>{
+  const {state,row}=await simulateAgentNotificationSave({readFailure:true});
+  assert.equal(row.messages_email_enabled,false);
+  assert.equal(state.inputs['Private-message email alerts'].checked,false);
+  assert.equal(state.nodes.messagesResult.dataset.state,'warning');
+  assert.match(state.nodes.messagesResult.textContent,/confirmation failed/);
 });
