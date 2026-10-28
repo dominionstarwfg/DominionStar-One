@@ -681,3 +681,49 @@
   .dsos-executive-2030 .ds30-author-avatar{width:42px;height:42px;flex-basis:42px}
   .dsos-executive-2030 .ds30-author-credentials>span{font-size:9px;padding:4px 7px}
 }
+
+
+/* Adaptive welcome: the salutation is readable, the member's name remains gold. */
+.dsos-executive-2030 .dsos-briefing h1 #heroGreeting{
+  color:#f6fbff!important;background:none!important;-webkit-background-clip:initial!important;
+  background-clip:initial!important;-webkit-text-fill-color:#f6fbff!important
+}
+.dsos-executive-2030 .dsos-briefing h1 #heroMemberName{
+  color:#f2cf8c!important;-webkit-text-fill-color:initial!important
+}
+/* Social conversation cards: refined chat-like bubble and accessible link treatment. */
+.dsos-executive-2030 .ds30-social-post{
+  border-radius:19px 19px 19px 7px;
+  border:1px solid #d5e5ec;
+  background:linear-gradient(165deg,#ffffff 0%,#ffffff 76%,#f7fbfc 100%);
+  box-shadow:0 8px 28px #183f5c0d,0 1px 0 #d1e0e859;
+  transition:box-shadow .2s,border-color .2s
+}
+.dsos-executive-2030 .ds30-social-post:hover{
+  border-color:#b5d6db;box-shadow:0 15px 30px #153f5c13
+}
+.dsos-executive-2030 .ds30-post-copy{
+  border-radius:13px 13px 13px 4px;padding:13px 15px;
+  background:#f5f9fb;border:1px solid #e5eef2;margin:12px 0;
+  font-size:13px;line-height:1.75;color:#28445d
+}
+.dsos-executive-2030 .ds30-post-copy a{
+  color:#0c6c83;text-decoration:underline;text-underline-offset:3px;
+  overflow-wrap:anywhere;font-weight:700
+}
+.dsos-executive-2030 .ds30-post-copy a:hover{color:#134c8d}
+.dsos-executive-2030 .ds30-post-copy a:focus-visible{
+  outline:3px solid #d5bd82;outline-offset:3px
+}
+.dsos-executive-2030 .ds30-post-actions button{
+  border-radius:13px;transition:background .18s,border-color .18s;
+  min-height:42px
+}
+.dsos-executive-2030 .ds30-post-menu{min-width:215px;border-radius:14px}
+.dsos-executive-2030 .ds30-post-menu button{
+  min-height:40px;border-radius:9px
+}
+@media(prefers-reduced-motion:reduce){
+ .dsos-executive-2030 .ds30-social-post,
+ .dsos-executive-2030 .ds30-post-actions button{transition:none}
+}
