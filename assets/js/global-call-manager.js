@@ -12,6 +12,10 @@
   };
 
   const isMessagesPage = () => location.pathname.startsWith('/direct-messages');
+  // Public login and recovery pages do not subscribe to member calls.
+  const isAuthPage = () => ['/member-login','/member-update-password'].some(
+    route => location.pathname === route || location.pathname.startsWith(route + '/')
+  );
   const PAIR_CHANNEL_PREFIX = 'dominionstar-call';
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -184,7 +188,7 @@
   };
 
   const init = async () => {
-    if (state.initialized || isMessagesPage()) return;
+    if (state.initialized || isMessagesPage() || isAuthPage()) return;
 
     // member-auth.js loads this file asynchronously. Some pages initialize auth
     // later than others, so wait briefly instead of permanently returning.
@@ -197,6 +201,23 @@
     state.session = (await state.client?.auth.getSession()).data?.session;
     if (!state.client || !state.session) {
       setTimeout(init, 750);
+      return;
+    }
+
+    // Browser sessions are not sufficient to access member communication.
+    // Pending, revoked, or unregistered members must never subscribe to the
+    // incoming-call channel. RLS remains the server-side authorization layer.
+    try {
+      const membership = await state.client
+        .from('member_profiles')
+        .select('verification_status,agent_code')
+        .eq('id', state.session.user.id)
+        .maybeSingle();
+      if (membership.error ||
+          membership.data?.verification_status !== 'approved' ||
+          !String(membership.data?.agent_code || '').trim()) return;
+    } catch (_error) {
+      // Fail closed on network and permission errors.
       return;
     }
     state.initialized = true;
