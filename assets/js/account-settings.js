@@ -1,7 +1,23 @@
 (async()=>{
  const $=id=>document.getElementById(id),gate=$('settingsGate'),app=$('settingsApp');
  if(!window.DSAuth?.ready){gate.innerHTML='<h1>Authentication configuration is missing.</h1>';return}
- const db=await DSAuth.init(),session=(await db.auth.getSession()).data.session;if(!session){location.href='/member-login/';return}
+ const db=await DSAuth.init();
+ if(!db){gate.textContent='Agent Settings could not initialize authentication.';return}
+ const sessionResult=await db.auth.getSession(),session=sessionResult.data?.session;
+ if(sessionResult.error||!session){location.href='/member-login/';return}
+ // A valid Auth session is not proof of Founder-approved membership.
+ // Keep the agent controls hidden until an authoritative profile read succeeds.
+ let membership;
+ try{
+   membership=await db.from('member_profiles')
+     .select('verification_status').eq('id',session.user.id).maybeSingle();
+ }catch(_error){membership={error:new Error('Membership lookup unavailable.')}};
+ if(membership.error||membership.data?.verification_status!=='approved'){
+   gate.textContent=membership.error
+     ? 'Unable to verify membership. Refresh or sign in again.'
+     : 'Agent Settings is available after Founder approval. Your account is not yet approved.';
+   return;
+ }
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');$('currentSessionEmail').textContent=session.user.email||'Signed-in member';
  document.querySelectorAll('[data-settings-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-settings-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('[data-settings-panel]').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===b.dataset.settingsTab));history.replaceState(null,'','#'+b.dataset.settingsTab)});document.querySelector(`[data-settings-tab="${location.hash.slice(1)}"]`)?.click();
  let settings=session.user.user_metadata?.dominionstar_settings||{};
