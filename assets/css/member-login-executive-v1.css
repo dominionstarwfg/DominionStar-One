@@ -46,3 +46,25 @@ body.login2{margin:0;min-height:100vh;background:#f2f5fa;color:#16304b;font-fami
 @media(max-width:780px){.login2-shell{padding:14px;min-height:0}.login2-stage{grid-template-columns:1fr}.login2-brand{min-height:280px;padding:30px}.login2-brand h1{font-size:36px}.login2-auth{padding:35px 28px 40px}.login2-brand-bottom{margin-top:34px}.login2 .member-tabs{gap:3px}.login2 .member-tabs button{padding:9px 8px;font-size:11px}}
 @media(max-width:390px){.login2-auth{padding:28px 19px}.login2-brand{padding:26px}.login2-brand h1{font-size:32px}.login2 .member-tabs button{white-space:normal}}
 @media(prefers-reduced-motion:reduce){.login2 *{scroll-behavior:auto}}
+
+
+/* Registration clarity and optional Google identity login.
+   The provider section stays hidden unless release flag explicitly enables it. */
+.login2-required{font-size:10px;font-weight:800;color:#a36c35}
+.login2-form .login2-field-help{
+  font-size:11px;line-height:1.55;margin:-8px 0 0;color:#688095
+}
+.login2-google-section{margin:17px 0 0}
+.login2-google-section.member-hidden{display:none!important}
+.login2-divider{display:flex;align-items:center;gap:14px;margin:0 0 16px;color:#8899a8;font-size:11px;font-weight:750}
+.login2-divider::before,.login2-divider::after{content:"";height:1px;background:#dfe7ee;flex:1}
+.login2-google-button{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:12px;
+  border:1px solid #d5e2eb;border-radius:11px;min-height:48px;
+  padding:11px 16px;background:#fff;color:#243c53;box-shadow:0 2px 6px #14263a0b;
+  font:800 13px/1.4 Inter,Arial,sans-serif;cursor:pointer
+}
+.login2-google-button:hover{border-color:#a6c7d6;background:#f5faff}
+.login2-google-button:disabled{opacity:.7;cursor:wait}
+.login2-google-button svg{width:19px;height:19px;flex:0 0 19px}
+.login2-google-note{font-size:11px;line-height:1.55;color:#71869a;margin:11px 0 0;text-align:center}
