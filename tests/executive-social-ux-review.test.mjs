@@ -85,14 +85,15 @@ test('Media attachments remain explicitly local drafts until secure upload appro
   assert.doesNotMatch(community,/storage\.from\('community-media'\)/);
 });
 
-test('Original selected login copy and member approval are retained; no Google OAuth',()=>{
+test('Executive login retains mandatory Agent Code and guards optional Google sign-in',()=>{
   assert.match(login,/Where your <em>next chapter<\/em> begins/);
   assert.match(login,/Founder must verify and approve your membership/);
   assert.match(login,/name="full_name"/);
   assert.match(login,/name="agent_code"/);
   assert.match(login,/name="smd_name"/);
   assert.match(login,/name="password"/);
-  assert.doesNotMatch(login,/Google|signInWithOAuth/);
+  assert.match(login,/id="memberGoogleSignIn" class="login2-google-section member-hidden"/);
+  assert.match(login,/member-login-google-flags\.js/);
   assert.match(login,/id="memberLoginForm"/);
   assert.match(login,/id="memberRegisterForm"/);
   assert.match(login,/id="memberResetForm"/);
