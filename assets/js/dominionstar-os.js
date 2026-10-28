@@ -88,11 +88,11 @@
 
   const routes = [
     {terms:['message','chat'], label:'Opening Messages.', url:'/direct-messages/'},
-    {terms:['community','post'], label:'Opening Community.', url:'/community/'},
+    {terms:['community','post','repost','share','download','copy link','copy text','announcement'], label:'Opening Community and post actions.', url:'/community/'},
     {terms:['training','academy','learn','course'], label:'Opening Training.', url:'/academy/'},
     {terms:['meet','video call'], label:'Opening Meet.', url:'/meet/'},
     {terms:['calendar','appointment'], label:'Opening Calendar.', url:'/appointments/'},
-    {terms:['team','directory','member'], label:'Opening Team Members.', url:'/member-directory/'},
+    {terms:['team','directory','member'], label:'Opening the approved member directory.', url:'/member-directory/'},
     {terms:['recognition','promotion','advancement','congratulate'], label:'Opening Recognition.', url:'/recognition/'},
     {terms:['profile','photo'], label:'Opening Profile.', url:'/professional-profile/'},
     {terms:['setting','security','privacy'], label:'Opening Settings.', url:'/account-settings/'}
