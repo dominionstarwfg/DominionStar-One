@@ -197,10 +197,16 @@
       return;
     }
 
-    state.client = await window.DSAuth.init();
-    state.session = (await state.client?.auth.getSession()).data?.session;
-    if (!state.client || !state.session) {
-      setTimeout(init, 750);
+    try {
+      state.client = await window.DSAuth.init();
+      if (!state.client) return;
+      state.session = (await state.client.auth.getSession()).data?.session || null;
+    } catch (_error) {
+      // Failed auth initialization is not permission to subscribe to calls.
+      return;
+    }
+    if (!state.session) {
+      // A later authenticated page navigation can initialize calls normally.
       return;
     }
 
