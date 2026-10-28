@@ -10,12 +10,27 @@
   const googleEnabled = window.DOMINIONSTAR_AUTH_FEATURES?.googleSignIn === true;
   const tabs = [...document.querySelectorAll('[data-member-tab]')];
 
+  // Forms submit exclusively through their guarded event handlers.
+  // Never install a javascript: URL into a form action.
   [loginForm, registerForm, resetForm].forEach(form => {
-    if (form) {
-      form.method = 'post';
-      form.action = 'javascript:void(0)';
-    }
+    if (form) form.method = 'post';
   });
+
+  const pendingForms = new WeakSet();
+  async function submitOnce(form, work) {
+    if (pendingForms.has(form)) return;
+    pendingForms.add(form);
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit) submit.disabled = true;
+    try {
+      await work();
+    } catch (_error) {
+      showMessage('Unable to reach the sign-in service. Check your connection and try again.', 'error');
+    } finally {
+      pendingForms.delete(form);
+      if (submit) submit.disabled = false;
+    }
+  }
 
   function showMessage(text, type='info') {
     message.textContent = text;
@@ -102,41 +117,43 @@
 
   loginForm.addEventListener('submit', async event => {
     event.preventDefault();
-    showMessage('Signing in…', 'info');
+    await submitOnce(loginForm, async () => {
+      showMessage('Signing in…', 'info');
+      const email = loginForm.email.value.trim().toLowerCase();
+      const password = loginForm.password.value;
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    const email = loginForm.email.value.trim().toLowerCase();
-    const password = loginForm.password.value;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      showMessage(
-        error.message === 'Invalid login credentials'
-          ? 'Email or password is incorrect. Use Reset Password if needed.'
-          : error.message,
-        'error'
-      );
-      return;
-    }
-
-    const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
-    let safeNext = '/member-dashboard/';
-    if (requestedNext.startsWith('/') && !requestedNext.startsWith('//') &&
-        !requestedNext.includes('\\')) {
-      try {
-        const parsedNext = new URL(requestedNext, window.location.origin);
-        if (parsedNext.origin === window.location.origin &&
-            !['/member-login/', '/member-update-password/'].includes(parsedNext.pathname)) {
-          safeNext = parsedNext.pathname + parsedNext.search + parsedNext.hash;
-        }
-      } catch (_error) {
-        // Unparseable or unsafe redirect: keep the standard member dashboard.
+      if (error) {
+        showMessage(
+          error.message === 'Invalid login credentials'
+            ? 'Email or password is incorrect. Use Reset Password if needed.'
+            : error.message,
+          'error'
+        );
+        return;
       }
-    }
-    window.location.href = safeNext;
+
+      const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
+      let safeNext = '/member-dashboard/';
+      if (requestedNext.startsWith('/') && !requestedNext.startsWith('//') &&
+          !requestedNext.includes('\\')) {
+        try {
+          const parsedNext = new URL(requestedNext, window.location.origin);
+          if (parsedNext.origin === window.location.origin &&
+              !['/member-login/', '/member-update-password/'].includes(parsedNext.pathname)) {
+            safeNext = parsedNext.pathname + parsedNext.search + parsedNext.hash;
+          }
+        } catch (_error) {
+          // Unparseable or unsafe redirect: keep the standard member dashboard.
+        }
+      }
+      window.location.href = safeNext;
+    });
   });
 
   registerForm.addEventListener('submit', async event => {
     event.preventDefault();
+    await submitOnce(registerForm, async () => {
 
     const fullName = registerForm.full_name.value.trim();
     const email = registerForm.email.value.trim().toLowerCase();
@@ -173,10 +190,12 @@
       'success'
     );
     registerForm.reset();
+    });
   });
 
   resetForm.addEventListener('submit', async event => {
     event.preventDefault();
+    await submitOnce(resetForm, async () => {
     const email = resetForm.email.value.trim().toLowerCase();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/member-update-password/`
@@ -184,5 +203,6 @@
     if (error) return showMessage(error.message, 'error');
     showMessage('If an account exists for this email, recovery instructions will arrive shortly.', 'success');
     resetForm.reset();
+    });
   });
 })();
