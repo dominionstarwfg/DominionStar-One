@@ -23,7 +23,7 @@ for(const phrase of [
  'aurora-2030-listening',
  'aurora-2030-speaking',
  'aurora-2030-compose-head',
- "data.auroraMode",
+ "dataset.auroraMode",
  "AURORA · VERIFIED GUIDE",
  "Enable AI answers",
  'window.DominionStarAurora',
