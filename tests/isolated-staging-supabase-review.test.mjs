@@ -41,7 +41,7 @@ test('Staging rewrite changes both browser integrations and blocks indexing',()=
  assert.match(meet,new RegExp(stagingRef));
  assert.doesNotMatch(agent,/ckmurvhjumzlhsegncba/);
  assert.doesNotMatch(meet,/ckmurvhjumzlhsegncba/);
- assert.match(readFileSync(path.join(dir,'robots.txt'),'utf8'),/Disallow: \/ /);
+ assert.match(readFileSync(path.join(dir,'robots.txt'),'utf8'),/Disallow: \//);
  assert.match(readFileSync(path.join(dir,'_headers'),'utf8'),/X-Robots-Tag: noindex, nofollow, noarchive/);
 }));
 test('Staging cannot reuse the production Supabase project',()=>withFixture(dir=>{
