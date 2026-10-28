@@ -43,6 +43,15 @@ export function stageReviewPackage({env=process.env,dist=resolve('public-dist'),
  const ref=api.hostname.slice(0,-('.'+SUPABASE_HOST).length);
  ensure(/^[a-z0-9]{20}$/.test(ref),'Supabase project reference format is invalid');
  ensure(ref!==PRODUCTION_SUPABASE_REF,'Staging cannot point at the production Supabase project');
+ // Netlify Functions run server-side and can carry more powerful credentials.
+ // A staging static rewrite is not enough if functions still target production.
+ if(env.SUPABASE_URL)
+   ensure(onlyText(env.SUPABASE_URL)===api.origin,'Server-side Supabase URL must match isolated staging backend');
+ if(env.SUPABASE_SERVICE_ROLE_KEY)
+   ensure(onlyText(env.SUPABASE_URL)===api.origin,'Server-side service-role client must use isolated staging backend');
+ if(env.RESEND_API_KEY)
+   ensure(env.DOMINIONSTAR_STAGING_EMAIL_SANDBOX_APPROVED==='STAGING_ONLY',
+     'Staging email provider requires separately approved sandbox configuration');
  ensure(/^sb_publishable_[A-Za-z0-9_-]{12,}$/.test(key),'Supply a separate publishable Supabase key (never a service-role key)');
  ensure(existsSync(dist)&&statSync(dist).isDirectory(),'Staging static package missing');
  const configPath=join(dist,'assets/js/supabase-config.js');
