@@ -96,3 +96,27 @@ test('Dashboard does not visibly label itself with an unsupported year',()=>{
   assert.doesNotMatch(shell,/small\.textContent\s*=\s*['"]EXECUTIVE OS 2030/);
   assert.match(dashboard,/<title>DominionStar Executive OS/);
 });
+
+
+test('Journey roadmap is not intercepted by a stale public Opportunity redirect',()=>{
+  const redirects=read('_redirects');
+  const build=read('scripts/build-public-netlify.sh');
+  assert.match(redirects,/^\/journey \/journey\/ 301!/m);
+  assert.doesNotMatch(redirects,/^\/journey\/\s+\/opportunity\//m);
+  assert.doesNotMatch(redirects,/^\/journey\s+\/opportunity\//m);
+  assert.match(read('journey/index.html'),/The DominionStar Journey/);
+  assert.match(read('member-dashboard/index.html'),/href="\/journey\/">Continue Journey/);
+  assert.match(build,/test -s "\$DIST\/journey\/index\.html"/);
+});
+
+test('Netlify package workflow cannot deploy production or ship source tests',()=>{
+  const workflow=read('.github/workflows/review-public-build-package.yml');
+  const build=read('scripts/build-public-netlify.sh');
+  assert.match(workflow,/never deploy/i);
+  assert.match(workflow,/scripts\/check-staging-public-dist\.mjs/);
+  assert.match(workflow,/actions\/upload-artifact@v4/);
+  assert.doesNotMatch(workflow,/netlify deploy|supabase db push|npm run deploy|--prod/);
+  assert.match(build,/--exclude 'tests\/'/);
+  assert.match(build,/--exclude 'meet-desktop\/'/);
+  assert.match(build,/--exclude '\.env\.*'/);
+});
