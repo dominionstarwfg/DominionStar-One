@@ -64,3 +64,18 @@ test('Staging must use an HTTPS Netlify preview hostname',()=>withFixture(dir=>{
  assert.throws(()=>stageReviewPackage({dist:dir,env:{...opts,DOMINIONSTAR_STAGING_SITE_URL:'https://dominionstarld.com'}}),/production-domain site/);
  assert.throws(()=>stageReviewPackage({dist:dir,env:{...opts,DOMINIONSTAR_STAGING_SITE_URL:'http://dominionstar-stage-test.netlify.app'}}),/must use HTTPS/);
 }));
+
+
+test('Inherited production server-side Supabase and email credentials are rejected',()=>withFixture(dir=>{
+ assert.throws(()=>stageReviewPackage({dist:dir,env:{...opts,SUPABASE_URL:'https://ckmurvhjumzlhsegncba.supabase.co'}}),/Server-side Supabase URL/);
+ assert.throws(()=>stageReviewPackage({dist:dir,env:{...opts,SUPABASE_URL:opts.DOMINIONSTAR_STAGING_SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY:'safe-test-placeholder',RESEND_API_KEY:'production-provider-key'}}),/email provider requires separately approved sandbox/);
+ assert.doesNotMatch(readFileSync(path.join(dir,'_headers'),'utf8'),/noindex/);
+}));
+test('Netlify build script blocks preview contexts without isolated staging settings',()=>{
+ const build=source('scripts/build-public-netlify.sh');
+ assert.match(build,/CONTEXT:-/);
+ assert.match(build,/deploy-preview/);
+ assert.match(build,/branch-deploy/);
+ assert.match(build,/exit 47/);
+ assert.match(build,/prepare-isolated-staging\.mjs/);
+});
