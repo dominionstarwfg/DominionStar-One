@@ -24,9 +24,9 @@ test('Approved simplified sidebar has clean vector icons and no retired tabs',()
     ['Community','/community/'],
     ['Calendar','/appointments/'],
     ['Team Members','/member-directory/'],
-    ['Recognition','/journey/'],
+    ['Recognition','/recognition/'],
     ['My Profile','/professional-profile/'],
-    ['Settings','/account-settings/']]){
+    ['Agent Settings','/account-settings/']]){
      assert.ok(nav.includes('href="'+route+'"'),'Missing '+label+' route');
      assert.ok(nav.includes('<span>'+label+'</span>'),'Missing plain label '+label);
   }
