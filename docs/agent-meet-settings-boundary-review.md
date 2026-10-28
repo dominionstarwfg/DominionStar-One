@@ -52,3 +52,13 @@ Test with an approved agent account in the published browser Meet and the Mac de
 - A new functional regression test `tests/agent-notification-meet-isolation-runtime.test.mjs` covers existing-row update, first-row insert, failure behavior, preservation of hidden values and the left-aligned Meet handoff.
 - A source-level functional simulation with a mocked authentication client and notification database verified existing-row and first-row writes, including Meet values remaining unchanged.
 - **Remaining blocker:** production Supabase schema/RLS and live browser/Desktop Meet integration have not been verified; do not represent this as end-to-end complete. Tests in GitHub must still run against a checked-out branch before deployment.
+
+
+## Next release gate — membership authorization and CI
+
+- The Agent Settings page now checks the authenticated `member_profiles.verification_status` **before** revealing any agent settings controls. Only `approved` profiles pass; missing, pending, declined, or unreadable records remain behind the gate. This does not replace server-side RLS.
+- Added a simulated unapproved-member regression case in `tests/agent-notification-meet-isolation-runtime.test.mjs`: it asserts Agent Settings cannot read or write notification rows before approval.
+- Staged GitHub Actions workflow `.github/workflows/agent-settings-review-gate.yml`, scoped to `review/login2-recovery-netlify-hold-20261019`. It includes JavaScript syntax checks, targeted settings tests, and `node --test` for every `tests/*.test.mjs`. The workflow contains no deployment step.
+- The GitHub connector's run lookup only surfaced pull-request-triggered runs and returned none for the workflow commit, so **CI execution and pass/fail status are not confirmed** here. Review `https://github.com/dominionstarwfg/DominionStar-One/actions` for the branch workflow.
+- Source-only audit after this change: 15/15 checks passed, including the fail-closed profile gate and no cross-product notification writes. These are not equivalent to GitHub CI or live browser authentication.
+- The production database's `notification_preferences` schema, default for `meeting_room_email_enabled`, and authorization policies are **not verified** because direct Supabase SQL/schema inspection previously failed with database authentication errors. Do not deploy based on source checks alone.
