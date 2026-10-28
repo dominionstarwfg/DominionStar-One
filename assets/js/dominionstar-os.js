@@ -69,7 +69,7 @@
     ['Team Members','/member-directory/','Connect with approved members'],
     ['Recognition','/recognition/','Member advancement announcements'],
     ['Profile','/professional-profile/','Professional identity'],
-    ['Settings','/account-settings/','Security and preferences'],
+    ['Agent Settings','/account-settings/','Profile, security, and community preferences'],
     ['Command Control','/founder-control/','Founder operations']
   ];
   const input = document.getElementById('dsosSearchInput');
@@ -95,7 +95,8 @@
     {terms:['team','directory','member'], label:'Opening the approved member directory.', url:'/member-directory/'},
     {terms:['recognition','promotion','advancement','congratulate'], label:'Opening Recognition.', url:'/recognition/'},
     {terms:['profile','photo'], label:'Opening Profile.', url:'/professional-profile/'},
-    {terms:['setting','security','privacy'], label:'Opening Settings.', url:'/account-settings/'}
+    {terms:['meet settings','meeting settings','microphone settings','camera settings','video settings','meeting audio'], label:'Open DominionStar Meet and choose Settings there.', url:'/meet/'},
+    {terms:['setting','security','privacy','account preferences'], label:'Opening Agent Settings.', url:'/account-settings/'}
   ];
   document.getElementById('dsosAiForm')?.addEventListener('submit', e => {
     e.preventDefault();
