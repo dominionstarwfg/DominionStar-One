@@ -1,10 +1,21 @@
 (async()=>{
  const $=id=>document.getElementById(id),gate=$('settingsGate'),app=$('settingsApp');
  if(!window.DSAuth?.ready){gate.innerHTML='<h1>Authentication configuration is missing.</h1>';return}
- const db=await DSAuth.init();
- if(!db){gate.textContent='Agent Settings could not initialize authentication.';return}
- const sessionResult=await db.auth.getSession(),session=sessionResult.data?.session;
- if(sessionResult.error||!session){location.href='/member-login/';return}
+ let db,sessionResult;
+ try{
+   db=await DSAuth.init();
+   if(!db)throw new Error('Authentication initialization failed.');
+   sessionResult=await db.auth.getSession();
+ }catch(_error){
+   gate.textContent='Unable to verify your account session. Check your connection and refresh.';
+   return;
+ }
+ if(sessionResult.error){
+   gate.textContent='The secure session could not be verified. Refresh and sign in again if needed.';
+   return;
+ }
+ const session=sessionResult.data?.session;
+ if(!session?.user?.id){location.href='/member-login/';return}
  // A valid Auth session is not proof of Founder-approved membership.
  // Keep the agent controls hidden until an authoritative profile read succeeds.
  let membership;
