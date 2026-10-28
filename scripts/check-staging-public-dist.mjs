@@ -48,7 +48,23 @@ for(const page of pages){
     const rel=url.pathname.startsWith('/meet/')?
       'meet/'+url.pathname.slice('/meet/'.length):url.pathname.slice(1);
     const normalized=rel===''?'index.html':rel.endsWith('/')?rel+'index.html':rel;
-    if(!present(normalized))fail(page+' references missing packaged asset: '+raw);
+    if(!present(normalized)){
+      // Netlify can intentionally route extensionless URLs such as /privacy
+      // to /privacy.html. Resolve only explicit exact-match redirect rules;
+      // never treat the catch-all 404 rule as a successful destination.
+      const redirectsMap=new Map(
+        redirects.split('\\n')
+          .map(line=>line.trim().split(/\\s+/))
+          .filter(cols=>cols.length>=3&&cols[0].startsWith('/')&&cols[0]!=='/*')
+          .map(cols=>[cols[0],cols[1]])
+      );
+      const redirected=redirectsMap.get(url.pathname);
+      const redirectedPath=redirected?.startsWith('/')
+        ? (redirected.slice(1).endsWith('/')?redirected.slice(1)+'index.html':redirected.slice(1))
+        : null;
+      if(!redirectedPath || !present(redirectedPath))
+        fail(page+' references missing packaged asset: '+raw);
+    }
     count++;
   }
 }
