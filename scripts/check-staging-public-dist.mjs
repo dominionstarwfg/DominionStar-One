@@ -53,8 +53,8 @@ for(const page of pages){
       // to /privacy.html. Resolve only explicit exact-match redirect rules;
       // never treat the catch-all 404 rule as a successful destination.
       const redirectsMap=new Map(
-        redirects.split('\\n')
-          .map(line=>line.trim().split(/\\s+/))
+        redirects.split('\n')
+          .map(line=>line.trim().split(/\s+/))
           .filter(cols=>cols.length>=3&&cols[0].startsWith('/')&&cols[0]!=='/*')
           .map(cols=>[cols[0],cols[1]])
       );
