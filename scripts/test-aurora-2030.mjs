@@ -27,7 +27,7 @@ for(const phrase of [
  "AURORA · VERIFIED GUIDE",
  "Enable AI answers",
  'window.DominionStarAurora',
- "version:'2030-review'",
+ "version:'review'",
  'data-aurora-clear','data-aurora-wide','data-aurora-close'
 ])include(js,phrase);
 for(const phrase of [
@@ -39,6 +39,9 @@ for(const phrase of [
 ])include(css,phrase);
 
 assert.ok(!js.includes('Aurora <em>7.0</em>'),'Old hardcoded version badge still rendered');
+assert.ok(js.includes('Aurora <em>INTELLIGENCE</em>'),'Aurora must use the timeless brand label');
+assert.ok(!js.includes('INTELLIGENCE 2030'),'Year-specific branding must never appear in Aurora heading');
+assert.ok(!js.includes("version:'2030-review'"),'Review mode must not expose a year');
 assert.ok(!js.includes('GENERATIVE AI ONLINE'),'Do not claim AI is enabled before server reports it');
 assert.match(js,/state\.available\?'AI|state\.available\?'GUIDED/,'Mode must depend on server');
 assert.match(js,/sensitive\.test\(q\)/,'User input privacy guard must remain');
