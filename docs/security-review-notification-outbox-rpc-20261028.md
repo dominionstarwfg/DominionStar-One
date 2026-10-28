@@ -73,3 +73,20 @@ Supabase advisor remediation: https://supabase.com/docs/guides/database/database
 GitHub Actions review run 40631953923 (commit `a4cb84bd0c64a9d3c9fc5d411a35e42dd6b81630`) **PASSED**, full Node suite 83 passed / 0 failed, targeted suite 16 passed / 0 failed. This does **not** validate live Supabase permission security or test Meet desktop functionality.
 
 **Production remains unchanged.** This review document contains the proposed next security gate.
+
+
+## Security Gate 2 — dependency and regression verification
+
+Completed as **read-only Supabase inspection** and GitHub review-branch source changes:
+
+- Confirmed the exact function signature `claim_email_notification_batch(integer)` has `SECURITY DEFINER` enabled, explicit EXECUTE grants for `anon`, `authenticated`, and `service_role`, and no internal caller-authorization check.
+- Confirmed the existing Netlify processor calls this RPC using `SUPABASE_SERVICE_ROLE_KEY`. The scheduled Netlify function delegates to this same processor.
+- Searched the database's stored function definitions (excluding PostgreSQL aggregates) and found **no other stored function referencing this RPC**. This check cannot discover every external client, integration, or dynamic SQL call.
+- Supabase extension metadata indicated no installed `pg_cron` scheduler. Netlify scheduling is defined in source.
+- Live email-delivery settings report `is_enabled=true`. Do not disrupt the processor during a production ACL change.
+- Created `scripts/security/email-outbox-acl-preflight.review.sql` (**read-only**) and `scripts/security/email-outbox-acl-lockdown.DO-NOT-RUN.review.sql` (**unexecuted production-change proposal**). The latter fails the transaction if the function is missing, its security-definer status differs, or the expected EXECUTE privileges do not resolve to false/false/true after the grants change.
+- Added `tests/security-email-outbox-privilege-gate.test.mjs` for explicit role restrictions, backend service-role caller and lack of deployment automation.
+- Review GitHub Actions run **40632538772 PASSED**: targeted **16/16**, complete Node suite **87/87**, no failures.
+- No ACL change was executed, no queue rows claimed, no email sent, and no production deployment made.
+
+**Still needs explicit approval:** apply the proposed live database permission change; then perform database-grant readback and a controlled test through the existing scheduled email processor.
