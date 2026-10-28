@@ -62,3 +62,15 @@ Test with an approved agent account in the published browser Meet and the Mac de
 - The GitHub connector's run lookup only surfaced pull-request-triggered runs and returned none for the workflow commit, so **CI execution and pass/fail status are not confirmed** here. Review `https://github.com/dominionstarwfg/DominionStar-One/actions` for the branch workflow.
 - Source-only audit after this change: 15/15 checks passed, including the fail-closed profile gate and no cross-product notification writes. These are not equivalent to GitHub CI or live browser authentication.
 - The production database's `notification_preferences` schema, default for `meeting_room_email_enabled`, and authorization policies are **not verified** because direct Supabase SQL/schema inspection previously failed with database authentication errors. Do not deploy based on source checks alone.
+
+
+## Extended Agent Settings QA gate — appearance and partial saves
+
+- Appearance changes are now written to `localStorage` **only after** the Supabase metadata update and readback confirm success. Failed persistence restores Theme/Text Size selectors to their previous saved values, without writing an unverified browser preference. Runtime simulations covered both failure and success.
+- Notification saves now explicitly distinguish a database rejection from an acknowledged-but-unverified write, and from verified DB success with failed secondary metadata synchronization. Warnings do **not** falsely claim that a remotely accepted update has been rolled back.
+- A four-outcome runtime simulation covered normal save, database rejection, metadata-sync failure, and readback failure. In every case, `meeting_room_email_enabled` was not written to and retained its prior value.
+- Settings tab initial hash selection now compares against an allowlisted set of known tab names, not an interpolated `document.querySelector` CSS selector.
+- Authentication initialization and get-session exceptions now leave the Agent Settings UI hidden and present recoverable instructions instead of an indefinite loading gate. Signed-out users still return to login.
+- Added `tests/agent-appearance-persistence-review.test.mjs` and `tests/agent-settings-auth-startup-review.test.mjs`; expanded the existing notification runtime tests to cover partial outcomes.
+- Latest audit: **19/19 source, wiring and syntax checks passed** in the connected GitHub review branch. Independent runtime simulation checks passed for appearance and four notification outcomes. These are **not** a verified full Node CI run, a verified live Supabase schema/RLS audit, or a browser/desktop end-to-end test.
+- The GitHub Actions workflow remains review-branch-only and contains no deploy command. A completed Actions run was not accessible through available status retrieval; no CI pass claim is made.
