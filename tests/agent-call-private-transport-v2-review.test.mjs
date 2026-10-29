@@ -80,7 +80,7 @@ test('Proposed private pair receive policy rejects a revoked or unapproved call 
  for (const rule of [readRule, sendRule]) {
    assert.match(rule,/select 1 from public\.member_profiles partner/);
    assert.match(rule,/partner\.verification_status = 'approved'/);
-   assert.match(rule,/nullif\(btrim\(partner\.agent_code\),'\'\)/);
+   assert.match(rule,/nullif\(btrim\(partner\.agent_code\),''\)/);
    assert.match(rule,/split_part\(realtime\.topic\(\), ':', 2\)/);
    assert.match(rule,/split_part\(realtime\.topic\(\), ':', 3\)/);
  }
