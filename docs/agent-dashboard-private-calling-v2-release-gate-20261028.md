@@ -103,3 +103,20 @@ These are **review-branch client lifecycle fixes**. `tests/agent-call-lifecycle-
 **Verification:** [Agent Website QA run 40887921581](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40887921581) passed **171/171** full-suite tests with zero failures. This includes new mocked global inbox race tests and actual Messages-page handoff-handler execution tests. The [review-only Netlify package run 40887743576](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40887743576) also passed with the updated source.
 
 **Limits:** Browser/session-storage guards cannot authenticate a caller's Broadcast payload or substitute for production Supabase RLS. Existing legacy calling is still not considered secure, private v2 and Google OAuth remain disabled, real two-browser media tests remain outstanding, and an isolated staging environment has not been provisioned. These changes apply only to the Agent Dashboard website review branch; no live Netlify deployment, production Supabase modification or separate DominionStar Meet change occurred.
+
+
+## Active call signaling isolation from chat navigation — review branch
+
+**Verified issue:** The Messages view's `openConversation(memberId)` unconditionally called `ensureCallChannel(memberId)`. During an established call or microphone-permission prompt, selecting a different chat removed the WebRTC call's original pair signaling subscription and redirected subsequent answer/ICE/hangup messages to the wrong pair topic.
+
+**Repair in `assets/js/direct-messages.js`:**
+
+- Normal chat navigation still updates the displayed conversation and typing channel, but does **not** switch the call signal channel while a `RTCPeerConnection` exists, a dialing/microphone-permission attempt is in progress, or an incoming invitation is ringing.
+- A separate `callDialing` guard starts before asynchronous permission and signaling operations and clears in `finally`. Additional Call clicks during this period cannot launch overlapping offers.
+- The target caller/member ID is captured before any asynchronous permission request. A chat navigation during the microphone prompt cannot change the destination of the subsequent offer or timeout.
+- When the call ends, `endActiveCall` cleans its media and call UI and resubscribes to the conversation currently being viewed if it differs from the completed call's partner.
+- This is website Agent-to-Agent browser calling, **not** the independent desktop/browser DominionStar Meet app.
+
+**Verified:** [Agent Dashboard QA run 40888624531](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40888624531) — **177 tests passed, 0 failed**. The new `tests/agent-call-conversation-isolation.test.mjs` exercises active calls, ringing offers, pending media permission, ended-call restoration, and normal idle navigation. [Review-only Netlify build run 40888456892](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40888456892) passed after the source change.
+
+**Limits:** VM-based tests do not prove live WebRTC connection quality or authorize server-side signaling. Independent staging, two-user/two-browser tests, Realtime RLS validation, OAuth setup and production release gating remain pending. No production deploy, billable staging creation, Supabase policy activation or Meet app change was performed.
