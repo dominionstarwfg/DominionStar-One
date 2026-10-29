@@ -1,0 +1,60 @@
+name: DominionStar — Notification & Readability Review Gate
+
+on:
+  push:
+    branches:
+      - review/notification-readability-20261029
+    paths:
+      - 'assets/js/communication-engine.js'
+      - 'assets/js/account-settings.js'
+      - 'assets/js/member-dashboard.js'
+      - 'assets/css/member-dashboard-readability-v2.css'
+      - 'account-settings/**'
+      - 'member-dashboard/**'
+      - 'sw.js'
+      - 'supabase/member-email-notifications.sql'
+      - 'scripts/security/notification-read-state.DO-NOT-RUN.review.sql'
+      - 'tests/**'
+      - '.github/workflows/notification-readability-review-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify Agent OS notification and readability review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          node --check assets/js/communication-engine.js
+          node --check assets/js/account-settings.js
+          node --check assets/js/member-dashboard.js
+          node --check sw.js
+      - name: Targeted notification regression
+        run: |
+          node --test tests/notification-push-readability-review.test.mjs
+          node --test tests/agent-notification-meet-isolation-runtime.test.mjs
+          node --test tests/security-email-outbox-privilege-gate.test.mjs
+          node --test tests/notification-rpc-hardening-review.test.mjs
+      - name: Full Node regression suite
+        shell: bash
+        run: |
+          shopt -s nullglob
+          tests=(tests/*.test.mjs)
+          if (( ${#tests[@]} == 0 )); then
+            echo "No Node tests found" >&2
+            exit 1
+          fi
+          node --test "${tests[@]}"
+      - name: Assert production SQL remains gated
+        shell: bash
+        run: |
+          grep -Fq 'DO NOT RUN' scripts/security/notification-read-state.DO-NOT-RUN.review.sql
+          ! grep -R --line-number -E 'supabase db|psql .*notification-read-state|apply_migration' .github/workflows
