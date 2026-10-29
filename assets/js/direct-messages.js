@@ -1311,9 +1311,30 @@
     window.CommunicationEngine?.play('message_sent');
     setSendStatus('Message sent ✓');
 
-    // Recipient notifications are emitted by the database only after this
-    // persisted direct_messages row exists. Do not manufacture cross-member
-    // notification events from the sender's browser.
+    // Until the coordinated production database release is complete, retain
+    // the current browser-authored event path. The trusted database trigger
+    // replaces this block only when the release flag is explicitly enabled.
+    if (window.DOMINIONSTAR_NOTIFICATION_FEATURES?.trustedMessageEvents !== true && window.ExecutiveCore) {
+      try {
+        const senderName=session.user.user_metadata?.display_name ||
+          session.user.user_metadata?.full_name ||
+          session.user.email?.split('@')[0] ||
+          'a DominionStar member';
+        await window.ExecutiveCore.publish('message.received', {
+          member_id:activeMemberId,
+          actor_id:session.user.id,
+          title:`New message from ${senderName}`,
+          description:String(body).replace(/^\[reply\][\s\S]*?\n---\n/, '').slice(0,180),
+          payload:{
+            sender_id:session.user.id,
+            conversation_member_id:session.user.id,
+            action_url:`/direct-messages/?member=${encodeURIComponent(session.user.id)}`
+          }
+        });
+      } catch (error) {
+        console.warn('Executive event publish failed:',error);
+      }
+    }
 
     await loadConversation();
   });
