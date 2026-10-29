@@ -350,3 +350,19 @@ body.ds-auth-os-page :is(
   .dm-conversation-copy small,.dm-active-copy small,.dm-message-meta,.notification-item small,
   .command-priority-item p,.command-health-row p,.command-activity-item p,.command-activity-item small
 ){color:#5d7287!important}
+
+/* Founder member administration: wide operational table remains readable on laptops. */
+body.ds-founder-os-page .founder-member-table{min-width:1480px}
+body.ds-founder-os-page .founder-member-table thead th{position:sticky;top:0;z-index:3}
+body.ds-founder-os-page .founder-member-table th:first-child,
+body.ds-founder-os-page .founder-member-table td:first-child{
+  position:sticky;left:0;z-index:2;background:#fff!important;min-width:190px
+}
+body.ds-founder-os-page .founder-member-table th:first-child{z-index:4;background:#eaf0f6!important}
+body.ds-founder-os-page .founder-member-table td:first-child{box-shadow:8px 0 14px rgba(16,38,63,.04)}
+body.ds-founder-os-page .founder-exclusive-control{display:flex;align-items:center;gap:7px;white-space:nowrap}
+body.ds-founder-os-page .founder-exclusive-control input{width:18px;height:18px;min-height:auto}
+body.ds-founder-os-page .founder-exclusive-control span{font-size:12px!important;color:#435d73!important;font-weight:800}
+body.ds-founder-os-page .recognize-member{white-space:nowrap;min-width:96px}
+body.ds-founder-os-page .founder-notes{min-width:170px}
+body.ds-founder-os-page #founderRecognitionResult{margin-top:14px}
