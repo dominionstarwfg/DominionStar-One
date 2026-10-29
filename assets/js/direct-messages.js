@@ -156,6 +156,7 @@
   let pendingVoiceUrl = '';
   let peerConnection = null;
   let callDialing = false;
+  let callAccepting = false;
   let localStream = null;
   let callChannel = null;
   let globalOutgoingCallChannel = null;
@@ -555,7 +556,7 @@
     // Reading another chat must never replace the signaling channel of an
     // active, ringing, or not-yet-connected call. The chat/typing view may
     // change independently; the call remains tied to its original partner.
-    if (!peerConnection && !callDialing && !pendingOffer) await ensureCallChannel(memberId);
+    if (!peerConnection && !callDialing && !callAccepting && !pendingOffer) await ensureCallChannel(memberId);
     await ensureTypingChannel(memberId);
     updatePresenceDisplays();
   }
@@ -1081,29 +1082,44 @@
   };
 
   const acceptIncomingCall = async () => {
-    if (!pendingOffer) return;
+    if (!pendingOffer || peerConnection || callDialing || callAccepting) return;
+    const acceptedOffer = pendingOffer;
+    const callerId = acceptedOffer.from;
+    const caller = members.find(member => member.id === callerId);
+    callAccepting = true;
     clearTimeout(incomingCallTimer);
     incomingCallTimer = null;
     window.CommunicationEngine?.stopAll();
-    const caller = members.find(member => member.id === pendingOffer.from);
-    const acceptedOffer = pendingOffer;
-    const callerId = acceptedOffer.from;
-    if (activeMemberId !== callerId) await openConversation(callerId);
-    else await ensureCallChannel(callerId);
-    if (pendingOffer !== acceptedOffer) return; // Caller cancelled while switching views.
-    activeCallType = acceptedOffer.callType || 'audio';
 
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({
+      // openConversation deliberately leaves call signaling pinned while an
+      // invitation is pending. Explicitly subscribe to the incoming CALLER's
+      // pair topic before answering, even when another chat was selected.
+      if (activeMemberId !== callerId) await openConversation(callerId);
+      if (pendingOffer !== acceptedOffer) return;
+      await ensureCallChannel(callerId);
+      if (pendingOffer !== acceptedOffer) return;
+      activeCallType = acceptedOffer.callType || 'audio';
+
+      const requestedStream = await navigator.mediaDevices.getUserMedia({
         audio:true,
         video:activeCallType === 'video'
       });
+      // The caller can cancel during the browser permission prompt. Releasing
+      // unused media is essential; never answer a cancelled invitation.
+      if (pendingOffer !== acceptedOffer) {
+        requestedStream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      localStream = requestedStream;
       peerConnection = createPeerConnection();
       localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
       localVideo.srcObject = localStream;
       await peerConnection.setRemoteDescription(acceptedOffer.description);
+      if (pendingOffer !== acceptedOffer) { await endActiveCall(false); return; }
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
+      if (pendingOffer !== acceptedOffer) { await endActiveCall(false); return; }
       showCallOverlay(caller, activeCallType);
       updateCallStatus('Connecting…');
       await sendCallSignal({type:'answer', description:answer});
@@ -1111,8 +1127,13 @@
       pendingOffer = null;
     } catch (error) {
       setSendStatus(error.message || 'Call could not be accepted.', 'error');
-      await sendCallSignal({type:'decline'});
-      endActiveCall(false);
+      if (pendingOffer === acceptedOffer && callPartnerId === callerId) {
+        try { await sendCallSignal({type:'decline'}); }
+        catch (signalError) { console.warn('Agent call decline signaling failed:', signalError); }
+      }
+      await endActiveCall(false);
+    } finally {
+      callAccepting = false;
     }
   };
 
