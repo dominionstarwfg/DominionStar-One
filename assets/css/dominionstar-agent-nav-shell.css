@@ -1,29 +1,31 @@
-/* DominionStar authenticated OS shared navigation shell | review branch */
+/* DominionStar Authenticated OS navigation — dashboard-aligned left rail */
 .ds-agent-shell{
-  position:relative;margin:0 0 22px;border:1px solid #244d70;
-  background:linear-gradient(145deg,#0b213b,#153f62 76%,#1e5668);
-  box-shadow:0 14px 38px rgba(9,32,55,.13);border-radius:18px;
-  padding:12px 14px 13px;color:#edf5fb;isolation:isolate;overflow:visible
+  position:fixed;z-index:1000;left:0;top:0;bottom:0;width:240px;margin:0;
+  border:0;border-right:1px solid #173b5d;border-radius:0;
+  background:linear-gradient(180deg,#0d2948 0%,#07182f 100%);
+  box-shadow:8px 0 30px rgba(8,25,44,.09);padding:20px 14px 16px;color:#eef6fb;
+  display:flex;flex-direction:column;overflow:hidden
 }
-.ds-agent-head{display:flex;align-items:center;gap:16px;padding:4px 3px 13px;border-bottom:1px solid rgba(223,235,245,.18)}
-.ds-agent-brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;flex-shrink:0}
-.ds-agent-brand-mark{width:38px;height:38px;border:1px solid rgba(219,182,107,.62);border-radius:12px;background:rgba(221,187,123,.15);color:#f0cf91;font-size:24px;display:grid;place-items:center;line-height:1}
+.ds-agent-head{display:grid;gap:14px;padding:2px 4px 16px;border-bottom:1px solid rgba(223,235,245,.16)}
+.ds-agent-brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+.ds-agent-brand-mark{width:40px;height:40px;border:1px solid rgba(219,182,107,.6);border-radius:12px;background:rgba(221,187,123,.14);color:#f0cf91;font-size:24px;display:grid;place-items:center;line-height:1}
 .ds-agent-brand-copy{display:grid;gap:2px}
-.ds-agent-brand-copy strong{letter-spacing:.085em;font-size:13px;font-weight:850;color:#fff;line-height:1.25}
-.ds-agent-brand-copy small{letter-spacing:.14em;font-size:11px;color:#c3d4e4}
-.ds-agent-current{flex:1;text-align:center;color:#d5e1eb;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
-.ds-agent-search-trigger{border:1px solid rgba(225,237,249,.28);border-radius:10px;background:rgba(255,255,255,.08);min-height:40px;padding:8px 12px;color:#eef6fb;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:800}
-.ds-agent-search-trigger:hover{background:rgba(255,255,255,.15);border-color:rgba(237,208,155,.48)}
-.ds-agent-search-trigger svg{width:18px;height:18px;color:#e4c88e}
-.ds-agent-search-trigger kbd{font-size:11px;font-weight:600;color:#c6d7e6;padding:2px 5px;border:1px solid rgba(255,255,255,.18);border-radius:5px}
-.ds-agent-nav{display:flex;gap:5px;align-items:center;justify-content:flex-start;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#8fa8bf55 transparent;padding:11px 0 0}
-.ds-agent-nav-item{display:flex;flex:0 0 auto;align-items:center;justify-content:center;gap:8px;color:#d8e4ee;text-decoration:none;border-radius:10px;padding:9px 11px;min-height:42px;font-size:12.5px;font-weight:780;line-height:1.3;white-space:nowrap;border:1px solid transparent;transition:background .14s,border-color .14s}
-.ds-agent-nav-item svg{width:18px;height:18px;flex:0 0 18px;color:#b7d3e2}
-.ds-agent-nav-item:hover{color:#fff;background:rgba(255,255,255,.11);text-decoration:none}
-.ds-agent-nav-item.active{background:linear-gradient(100deg,rgba(217,183,119,.24),rgba(255,255,255,.07));border-color:rgba(220,189,128,.36);color:#fff;box-shadow:inset 0 -2px #d7b275}
+.ds-agent-brand-copy strong{letter-spacing:.075em;font-size:13px;font-weight:850;color:#fff;line-height:1.2}
+.ds-agent-brand-copy small{letter-spacing:.13em;font-size:10.5px;color:#c5d6e5}
+.ds-agent-current{text-align:left;color:#9fb7cd;font-size:11.5px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
+.ds-agent-search-trigger{width:100%;border:1px solid rgba(225,237,249,.22);border-radius:10px;background:rgba(255,255,255,.07);min-height:41px;padding:9px 10px;color:#eef6fb;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:800}
+.ds-agent-search-trigger:hover{background:rgba(255,255,255,.13);border-color:rgba(237,208,155,.46)}
+.ds-agent-search-trigger svg{width:18px;height:18px;color:#e4c88e;flex:none}
+.ds-agent-search-trigger span{flex:1;text-align:left}
+.ds-agent-search-trigger kbd{font-size:10.5px;font-weight:650;color:#c8d8e5;padding:2px 4px;border:1px solid rgba(255,255,255,.18);border-radius:5px}
+.ds-agent-nav{display:flex;flex-direction:column;gap:4px;align-items:stretch;overflow:auto;scrollbar-width:thin;scrollbar-color:#8fa8bf44 transparent;padding:14px 0 8px}
+.ds-agent-nav-item{display:flex;align-items:center;justify-content:flex-start;gap:10px;color:#d6e3ed;text-decoration:none;border-radius:10px;padding:9px 10px;min-height:42px;font-size:12.5px;font-weight:760;line-height:1.3;border:1px solid transparent;transition:background .14s,border-color .14s}
+.ds-agent-nav-item svg{width:18px;height:18px;flex:0 0 18px;color:#abc6d8}
+.ds-agent-nav-item:hover{color:#fff;background:rgba(255,255,255,.1);text-decoration:none}
+.ds-agent-nav-item.active{background:linear-gradient(100deg,rgba(217,183,119,.22),rgba(255,255,255,.06));border-color:rgba(220,189,128,.3);color:#fff;box-shadow:inset 3px 0 #d7b275}
 .ds-agent-nav-item.active svg{color:#f2d99f}
 .ds-agent-nav-item:focus-visible,.ds-agent-search-trigger:focus-visible{outline:3px solid #d9bc87;outline-offset:2px}
-.ds-agent-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:10005;pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity .1s,transform .1s}
+.ds-agent-progress{position:fixed;top:0;left:240px;right:0;height:3px;z-index:10005;pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity .1s,transform .1s}
 .ds-agent-progress[aria-hidden="false"]{opacity:1;transform:none}
 .ds-agent-progress span{display:block;width:34%;height:100%;background:linear-gradient(90deg,#54abb1,#ecc681);transform:translateX(-100%);transition:transform .35s;box-shadow:0 0 14px rgba(221,198,132,.48)}
 .ds-agent-progress[aria-hidden="false"] span{transform:translateX(140%)}
@@ -40,6 +42,18 @@
 .ds-agent-jump-results a svg{width:20px;height:20px;color:#2b818e}
 .ds-agent-jump-results p{margin:8px;color:#60778d;font-size:13px}
 .ds-agent-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-@media(max-width:760px){.ds-agent-shell{padding:10px 11px;border-radius:14px;margin-bottom:18px}.ds-agent-current{display:none}.ds-agent-search-trigger{margin-left:auto}.ds-agent-search-trigger span,.ds-agent-search-trigger kbd{display:none}.ds-agent-nav-item{padding:8px 10px;font-size:12px}.ds-agent-nav{padding-top:8px;gap:3px}}
+@media(max-width:1040px){
+  .ds-agent-shell{position:sticky;top:0;bottom:auto;width:auto;height:auto;border-right:0;border-bottom:1px solid #173b5d;padding:10px 12px;display:block}
+  .ds-agent-head{display:flex;align-items:center;gap:12px;padding:0 0 9px}
+  .ds-agent-current{flex:1;text-align:center}.ds-agent-search-trigger{width:auto;min-width:42px}
+  .ds-agent-search-trigger span,.ds-agent-search-trigger kbd{display:none}
+  .ds-agent-nav{flex-direction:row;overflow-x:auto;padding:8px 0 0}
+  .ds-agent-nav-item{flex:0 0 auto;padding:8px 10px}
+  .ds-agent-progress{left:0}
+}
+@media(max-width:620px){
+  .ds-agent-current{display:none}.ds-agent-brand-copy small{display:none}
+  .ds-agent-nav-item{font-size:12px;min-height:40px}
+}
 @media(prefers-reduced-motion:reduce){.ds-agent-nav-item,.ds-agent-progress,.ds-agent-progress span{transition:none}}
 @view-transition{navigation:auto}
