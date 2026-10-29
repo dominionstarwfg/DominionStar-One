@@ -257,3 +257,23 @@ test('Accepting a call from another agent switches to their conversation before 
  assert.match(source,/subscribeIncomingCallInbox\(\);\n\n  const pendingGlobalCallRaw/);
  assert.match(source,/if \(incomingCallInboxChannel\) client\.removeChannel\(incomingCallInboxChannel\)/);
 });
+
+test('An unrelated caller cannot overwrite an existing ringing invitation',async()=>{
+ const h=incoming();
+ h.access.subscribeIncomingCallInbox();
+ const first={type:'offer',from:'caller',to:'recipient',description:{sdp:'caller-one'}};
+ await h.inbox('incoming-call',first);
+ await h.inbox('incoming-call',{type:'offer',from:'another',to:'recipient',description:{sdp:'caller-two'}});
+ assert.equal(h.access.state().pendingOffer,first);
+ assert.equal(h.clock.timers.length,1);
+});
+
+test('Unrelated cancellation cannot dismiss a different caller invitation',async()=>{
+ const h=incoming();
+ h.access.subscribeIncomingCallInbox();
+ const first={type:'offer',from:'caller',to:'recipient',description:{sdp:'caller-one'}};
+ await h.inbox('incoming-call',first);
+ await h.inbox('call-cancelled',{type:'hangup',from:'another',to:'recipient'});
+ assert.equal(h.access.state().pendingOffer,first);
+ assert.equal(h.clock.timers[0].cancelled,false);
+});
