@@ -1,0 +1,48 @@
+name: DominionStar public website production smoke (read only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-site-production-smoke.yml'
+      - 'member-dashboard/**'
+      - 'member-login/**'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/global-call-manager.js'
+      - 'public-release.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-production:
+    name: Verify published DominionStar website files
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Download public routes from live production domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p production-smoke
+          base='https://dominionstarld.com'
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/" -o production-smoke/home.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/member-login/" -o production-smoke/login.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/member-dashboard/" -o production-smoke/dashboard.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/direct-messages.js" -o production-smoke/messages.js
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/global-call-manager.js" -o production-smoke/global-calls.js
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/public-release.json" -o production-smoke/release.json
+      - name: Match published routes to approved web release features
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'No Family Left Behind' production-smoke/home.html
+          grep -Fq 'class="login2-form"' production-smoke/login.html
+          grep -Fq 'Agent Settings' production-smoke/dashboard.html
+          grep -Fq 'let callAccepting = false' production-smoke/messages.js
+          grep -Fq 'await ensureCallChannel(callerId)' production-smoke/messages.js
+          grep -Fq 'acceptedFromGlobal:true, acceptedAt:Date.now()' production-smoke/global-calls.js
+          grep -Fq 'V10-quality-gate-2026-10-17' production-smoke/release.json
+          echo 'PUBLIC_RELEASE_SMOKE_OK: current Executive OS and browser-call source found on production domain.'
+          echo 'This checks deployed file content, NOT private call security, authentication, or end-to-end media.'
