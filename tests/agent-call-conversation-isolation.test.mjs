@@ -47,7 +47,7 @@ function setup({active=false,dialing=false,ringing=false,mediaWait=null}={}){
  };
  let state=()=>({});
  const code='(()=>{'+
-   "let activeMemberId='caller',callPartnerId='caller',callDialing="+dialing+","+
+   "let activeMemberId='caller',callPartnerId='caller',callAccepting=false,callDialing="+dialing+","+
    'peerConnection='+(active?"{close(){}}":"null")+
    ',pendingOffer='+(ringing?"{from:'caller'}":"null")+
    ',localStream=null,activeCallAnswered=false,outgoingCallTimer=null,'+
