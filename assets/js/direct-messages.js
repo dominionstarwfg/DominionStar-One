@@ -1310,8 +1310,18 @@
   if (pendingGlobalCallRaw) {
     try {
       const pendingGlobalCall = JSON.parse(pendingGlobalCallRaw);
-      if (pendingGlobalCall?.to === session.user.id && pendingGlobalCall?.from) {
-        sessionStorage.removeItem('ds_pending_global_call');
+      // Read once and immediately discard. A stored ringing offer, stale
+      // handoff or malformed SDP must NEVER auto-activate the microphone.
+      sessionStorage.removeItem('ds_pending_global_call');
+      const handoffAge = Date.now() - Number(pendingGlobalCall?.acceptedAt);
+      if (pendingGlobalCall?.acceptedFromGlobal === true &&
+          pendingGlobalCall?.to === session.user.id &&
+          pendingGlobalCall?.from && pendingGlobalCall.from !== session.user.id &&
+          pendingGlobalCall.type === 'offer' &&
+          pendingGlobalCall.description?.type === 'offer' &&
+          typeof pendingGlobalCall.description.sdp === 'string' &&
+          pendingGlobalCall.description.sdp.length > 0 &&
+          Number.isFinite(handoffAge) && handoffAge >= 0 && handoffAge <= 60000) {
         await openConversation(pendingGlobalCall.from);
         pendingOffer = pendingGlobalCall;
         incomingCall.classList.add('member-hidden');
