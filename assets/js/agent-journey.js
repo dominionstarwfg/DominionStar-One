@@ -15,9 +15,9 @@
   gate.classList.add('member-hidden');app.classList.remove('member-hidden');
 
   const routes={
-    leadership_path:'/leadership/',
-    academy:'/academy/',
-    financial_services:'/financial-services/',
+    leadership_path:'/agent-learning/#leadership',
+    academy:'/agent-learning/#training',
+    financial_services:'/agent-learning/#financial-development',
     mindset_center:'/mindset-center/',
     team_directory:'/member-directory/',
     beta_feedback:'/member-dashboard/#memberFeedbackForm'
