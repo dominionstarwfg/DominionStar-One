@@ -165,6 +165,7 @@
   let callPartnerId = '';
   let callStartedAt = 0;
   let incomingCallTimer = null;
+  let outgoingCallTimer = null;
   let activeCallAnswered = false;
   let callDurationTimer = null;
   let callMinimized = false;
@@ -819,18 +820,17 @@
         incomingCall.setAttribute('aria-hidden','false');
         activeCallAnswered = false;
         clearTimeout(incomingCallTimer);
+        const ringingOffer = payload;
         incomingCallTimer = setTimeout(async () => {
-          if (!activeCallAnswered && pendingOffer) {
-            const missed = pendingOffer;
-            incomingCall.classList.add('member-hidden');
-            pendingOffer = null;
-    clearTimeout(incomingCallTimer);
-    activeCallAnswered = false;
-      activeCallAnswered = true;
-      clearTimeout(incomingCallTimer);
-            window.CommunicationEngine?.play('missed_call');
-      await recordMissedCall(missed.from, missed.callType || 'audio', 'incoming');
-          }
+          // Ignore old ringing timers after a new invitation or an answer.
+          if (activeCallAnswered || pendingOffer !== ringingOffer) return;
+          pendingOffer = null;
+          incomingCallTimer = null;
+          incomingCall.classList.add('member-hidden');
+          incomingCall.setAttribute('aria-hidden','true');
+          window.CommunicationEngine?.stopAll();
+          window.CommunicationEngine?.play('missed_call');
+          await recordMissedCall(ringingOffer.from, ringingOffer.callType || 'audio', 'incoming');
         }, 30000);
       }
 
@@ -840,6 +840,9 @@
         window.CommunicationEngine?.play('call_connected');
         activeCallAnswered = true;
         clearTimeout(incomingCallTimer);
+        incomingCallTimer = null;
+        clearTimeout(outgoingCallTimer);
+        outgoingCallTimer = null;
         callStartedAt = Date.now();
         updateCallStatus('Connected');
         startCallDuration();
@@ -973,6 +976,10 @@
   };
 
   const startCall = async callType => {
+    if (peerConnection) {
+      setSendStatus('End the current call before starting another.', 'error');
+      return;
+    }
     if (!activeMemberId) {
       setSendStatus('Select a conversation first.', 'error');
       return;
@@ -994,12 +1001,17 @@
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
       await sendCallSignal({type:'offer', description:offer, callType});
-      setTimeout(async () => {
-        if (peerConnection && !activeCallAnswered && callPartnerId === activeMemberId) {
-          await recordMissedCall(activeMemberId, callType, 'outgoing');
-          await sendCallSignal({type:'hangup'});
-          await endActiveCall(false);
-        }
+      // Keep the connection identity: a previous timeout must never end a
+      // newer call to the same agent after a rapid redial.
+      const dialedPeer = peerConnection;
+      const dialedMember = activeMemberId;
+      clearTimeout(outgoingCallTimer);
+      outgoingCallTimer = setTimeout(async () => {
+        if (!dialedPeer || peerConnection !== dialedPeer || activeCallAnswered || callPartnerId !== dialedMember) return;
+        outgoingCallTimer = null;
+        await recordMissedCall(dialedMember, callType, 'outgoing');
+        await sendCallSignal({type:'hangup'});
+        await endActiveCall(false);
       }, 30000);
     } catch (error) {
       setSendStatus(error.message || 'Call could not start.', 'error');
@@ -1009,6 +1021,9 @@
 
   const acceptIncomingCall = async () => {
     if (!pendingOffer) return;
+    clearTimeout(incomingCallTimer);
+    incomingCallTimer = null;
+    window.CommunicationEngine?.stopAll();
     const caller = members.find(member => member.id === pendingOffer.from);
     activeMemberId = pendingOffer.from;
     await ensureCallChannel(activeMemberId);
@@ -1038,6 +1053,10 @@
   };
 
   const endActiveCall = async notify => {
+    clearTimeout(incomingCallTimer);
+    incomingCallTimer = null;
+    clearTimeout(outgoingCallTimer);
+    outgoingCallTimer = null;
     window.CommunicationEngine?.stopAll();
     if (activeCallAnswered) window.CommunicationEngine?.play('call_ended');
     if (notify && callChannel) await sendCallSignal({type:'hangup'});
@@ -1122,14 +1141,19 @@
   acceptCall?.addEventListener('click', acceptIncomingCall);
   declineCall?.addEventListener('click', async () => {
     if (pendingOffer) {
-      callPartnerId = pendingOffer.from;
-      await ensureCallChannel(callPartnerId);
+      // ensureCallChannel owns callPartnerId; do not overwrite its cache key
+      // before it has replaced an unrelated conversation's channel.
+      const declinedOffer = pendingOffer;
+      await ensureCallChannel(declinedOffer.from);
       await sendCallSignal({type:'decline'});
+      await recordMissedCall(declinedOffer.from, declinedOffer.callType || 'audio', 'incoming');
     }
-    if (pendingOffer) await recordMissedCall(pendingOffer.from, pendingOffer.callType || 'audio', 'incoming');
     incomingCall.classList.add('member-hidden');
+    incomingCall.setAttribute('aria-hidden','true');
     pendingOffer = null;
     clearTimeout(incomingCallTimer);
+    incomingCallTimer = null;
+    window.CommunicationEngine?.stopAll();
   });
   endCall?.addEventListener('click', () => endActiveCall(true));
 
