@@ -21,6 +21,11 @@
 
   document.body.classList.add('ds-auth-os-page');
   if(founderMode) document.body.classList.add('ds-founder-os-page');
+  const syncShellVisibility=()=>{
+    const visible=!app.classList.contains('member-hidden')&&!app.hidden&&!app.hasAttribute('hidden');
+    document.body.classList.toggle('ds-auth-os-shell-active',visible);
+    if(app.id==='dmApp') shell?.classList?.toggle('member-hidden',!visible);
+  };
   const releaseFooter=document.querySelector('.platform-release-footer');
   if(releaseFooter) releaseFooter.textContent=founderMode?'DominionStar · Founder OS':'DominionStar · Executive OS';
 
@@ -103,12 +108,10 @@
     link.innerHTML=svg(key)+'<span></span>';link.lastElementChild.textContent=name;nav.appendChild(link);
   }
   shell.append(head,nav);
-  if(app.id==='dmApp'){
-    shell.classList.toggle('member-hidden',app.classList.contains('member-hidden'));
-    app.parentNode.insertBefore(shell,app);
-    new MutationObserver(()=>shell.classList.toggle('member-hidden',app.classList.contains('member-hidden')))
-      .observe(app,{attributes:true,attributeFilter:['class']});
-  } else app.prepend(shell);
+  if(app.id==='dmApp') app.parentNode.insertBefore(shell,app);
+  else app.prepend(shell);
+  syncShellVisibility();
+  new MutationObserver(syncShellVisibility).observe(app,{attributes:true,attributeFilter:['class','hidden']});
 
   const indicator=document.createElement('div');indicator.className='ds-agent-progress';indicator.setAttribute('aria-hidden','true');indicator.innerHTML='<span></span>';document.body.appendChild(indicator);
   const clear=()=>indicator.setAttribute('aria-hidden','true');window.addEventListener('pageshow',clear);window.addEventListener('pagehide',clear);
