@@ -555,6 +555,17 @@
     if (dashboardSession) await window.CommunicationEngine?.init({client:supabase, session:dashboardSession});
   }
 
+  // Re-read the member's notification drawer after a live event arrives so
+  // the bell, unread count, preview, and drawer all agree without a refresh.
+  let notificationRefreshTimer;
+  window.addEventListener('dominionstar:notification', () => {
+    clearTimeout(notificationRefreshTimer);
+    notificationRefreshTimer=setTimeout(() => {
+      loadExecutiveActivity().catch(()=>{});
+    }, 120);
+  });
+  window.addEventListener('beforeunload',()=>clearTimeout(notificationRefreshTimer),{once:true});
+
   // Panel visibility is controlled exclusively by dominionstar-os.js.
   // Keeping a single controller prevents the backdrop from remaining visible
   // after another click handler accidentally hides the drawer.
