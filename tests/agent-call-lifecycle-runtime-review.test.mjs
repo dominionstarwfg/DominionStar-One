@@ -153,7 +153,7 @@ test('Outgoing call timeout belongs to the original connection, not a rapid redi
  };
  const code=`(() => {
    let activeMemberId='caller',callPartnerId='caller',peerConnection=null,
-       localStream=null,activeCallAnswered=false,outgoingCallTimer=null,callStartedAt=0;
+       localStream=null,callDialing=false,activeCallAnswered=false,outgoingCallTimer=null,callStartedAt=0;
    const endActiveCall=async()=>{peerConnection=null};
    ${startCallCode}
    return {startCall,redial:()=>{peerConnection=null;outgoingCallTimer=null},
