@@ -21,6 +21,8 @@
 
   document.body.classList.add('ds-auth-os-page');
   if(founderMode) document.body.classList.add('ds-founder-os-page');
+  const releaseFooter=document.querySelector('.platform-release-footer');
+  if(releaseFooter) releaseFooter.textContent=founderMode?'DominionStar · Founder OS':'DominionStar · Executive OS';
 
   const agentItems=[
     ['Home','/member-dashboard/','home'],
