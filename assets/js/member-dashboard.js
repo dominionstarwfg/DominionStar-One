@@ -230,7 +230,7 @@
   await supabase.rpc('ensure_default_milestones', { target_user_id: user.id });
   const { data: milestones } = await supabase
     .from('member_milestones')
-    .select('milestone_key,milestone_label,completed')
+    .select('milestone_key,title,completed')
     .eq('user_id', user.id)
     .order('milestone_key');
 
@@ -265,7 +265,7 @@
   }
 
   if (nextMilestone) {
-    const missionLabel = nextMilestone.milestone_label || 'Complete your next milestone';
+    const missionLabel = nextMilestone.title || 'Complete your next milestone';
     if (journeyCurrentMission) journeyCurrentMission.textContent = missionLabel;
     if (journeyMissionStatus) {
       journeyMissionStatus.textContent =
