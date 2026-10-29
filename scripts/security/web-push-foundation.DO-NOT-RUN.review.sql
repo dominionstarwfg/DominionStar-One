@@ -53,9 +53,15 @@ BEGIN
     RAISE EXCEPTION 'Invalid push subscription';
   END IF;
 
-  -- A browser endpoint belongs to the currently signed-in account only.
-  DELETE FROM public.web_push_subscriptions
-   WHERE endpoint=target_endpoint AND user_id<>auth.uid();
+  -- Never let one account claim another account's existing endpoint.
+  -- Explicit logout unsubscribes the browser; a new login should create a
+  -- fresh PushSubscription before registration under another account.
+  IF EXISTS(
+    SELECT 1 FROM public.web_push_subscriptions
+    WHERE endpoint=target_endpoint AND user_id<>auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Push endpoint belongs to another account';
+  END IF;
 
   INSERT INTO public.web_push_subscriptions(
     user_id,endpoint,p256dh,auth,user_agent,enabled,updated_at
@@ -166,6 +172,8 @@ DROP TRIGGER IF EXISTS emit_direct_message_notification_trigger
 CREATE TRIGGER emit_direct_message_notification_trigger
 AFTER INSERT ON public.direct_messages
 FOR EACH ROW EXECUTE FUNCTION public.emit_direct_message_notification();
+REVOKE EXECUTE ON FUNCTION public.emit_direct_message_notification()
+  FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.queue_member_event_push()
 RETURNS trigger
@@ -212,6 +220,8 @@ DROP TRIGGER IF EXISTS queue_member_event_push_trigger
 CREATE TRIGGER queue_member_event_push_trigger
 AFTER INSERT ON public.executive_events
 FOR EACH ROW EXECUTE FUNCTION public.queue_member_event_push();
+REVOKE EXECUTE ON FUNCTION public.queue_member_event_push()
+  FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.claim_push_notification_batch(
   batch_size integer DEFAULT 25
@@ -305,6 +315,8 @@ BEGIN
   RETURN new;
 END;
 $function$;
+REVOKE EXECUTE ON FUNCTION public.queue_member_event_email()
+  FROM PUBLIC, anon, authenticated;
 
 DO $verify$
 DECLARE
