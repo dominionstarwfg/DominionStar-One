@@ -11,8 +11,8 @@
   const founderMode=[...founderRoutes].some(route=>path===route||path.startsWith(route+'/'));
 
   const rootSelectors=[
-    '#communityApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
-    '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp',
+    '#communityApp','#chatApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
+    '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp','#mindsetApp',
     '#founderApp','#founderDashboard','#founderAppointmentApp','#emailAdminApp','#qaApp','#featureApp','#diagApp',
     '#releaseCheckApp','#agentJourneyApp'
   ];
