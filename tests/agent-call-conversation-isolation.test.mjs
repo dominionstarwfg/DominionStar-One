@@ -110,7 +110,7 @@ test('Changing chat while idle still updates its call channel normally',async()=
 });
 
 test('The view guard covers active media, pending permissions and incoming invitations',()=>{
- assert.match(viewBlock,/!peerConnection && !callDialing && !pendingOffer/);
+ assert.match(viewBlock,/!peerConnection && !callDialing && !callAccepting && !pendingOffer/);
  assert.match(startBlock,/const dialedMember = activeMemberId/);
  assert.match(startBlock,/await ensureCallChannel\(dialedMember\)/);
  assert.match(startBlock,/callDialing = false/);
