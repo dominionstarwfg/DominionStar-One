@@ -128,7 +128,7 @@
     }
     if(!results.children.length){const empty=document.createElement('p');empty.textContent='No matching destination.';results.appendChild(empty);}
   };
-  const open=source=>{if(app.classList.contains('member-hidden')||typeof dialog.showModal!=='function')return;origin=source||document.activeElement;input.value='';render();dialog.showModal();input.focus();};
+  const open=source=>{if(app.classList.contains('member-hidden')||app.hidden||app.hasAttribute('hidden')||typeof dialog.showModal!=='function')return;origin=source||document.activeElement;input.value='';render();dialog.showModal();input.focus();};
   const close=()=>{if(dialog.open)dialog.close();origin?.focus?.();};
   search.addEventListener('click',()=>open(search));
   dialog.querySelector('button').addEventListener('click',close);
