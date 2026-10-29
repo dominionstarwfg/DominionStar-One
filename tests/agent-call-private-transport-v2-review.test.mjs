@@ -72,3 +72,28 @@ test('Only a non-executable server policy draft is staged; release flag is off',
  const auth=read('assets/js/member-auth.js');
  assert.doesNotMatch(auth,/DOMINIONSTAR_CALL_PRIVATE_V2\s*=\s*true/);
 });
+
+test('Proposed private pair receive policy rejects a revoked or unapproved call partner',()=>{
+ const readRule=preview.split('-- create policy "ds_agent_v2_broadcast_read"')[1]?.split('-- create policy "ds_agent_v2_broadcast_send"')[0];
+ const sendRule=preview.split('-- create policy "ds_agent_v2_broadcast_send"')[1];
+ assert.ok(readRule && sendRule, 'Both private call policies must be present');
+ for (const rule of [readRule, sendRule]) {
+   assert.match(rule,/select 1 from public\.member_profiles partner/);
+   assert.match(rule,/partner\.verification_status = 'approved'/);
+   assert.match(rule,/nullif\(btrim\(partner\.agent_code\),'\'\)/);
+   assert.match(rule,/split_part\(realtime\.topic\(\), ':', 2\)/);
+   assert.match(rule,/split_part\(realtime\.topic\(\), ':', 3\)/);
+ }
+ assert.match(preview,/private member profiles/i);
+ assert.doesNotMatch(preview,/^\s*(?:CREATE POLICY|ALTER TABLE|GRANT|REVOKE)\b/im);
+});
+test('Other public Broadcast and Postgres Changes listeners block a global public-access cutover',()=>{
+ const typing=read('assets/js/direct-messages.js');
+ const community=read('assets/js/community-chat.js');
+ const presence=read('assets/js/presence-engine.js');
+ assert.match(typing,/client\.channel\(\['dominionstar-typing'/);
+ assert.match(typing,/broadcast:\{self:false\}/);
+ assert.match(community,/\.on\('postgres_changes'/);
+ assert.match(presence,/\.on\('postgres_changes'/);
+ assert.match(preview,/Do not set Realtime "Allow public access" to OFF/i);
+});
