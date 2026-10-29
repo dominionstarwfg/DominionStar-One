@@ -7,8 +7,8 @@ const source=readFileSync(new URL('../assets/js/global-call-manager.js',import.m
 const dashboard=readFileSync(new URL('../assets/js/member-dashboard.js',import.meta.url),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
-async function launch({route='/member-dashboard/',status='approved',code='DS123',error=null,throwLookup=false,session=true,clientAvailable=true,sessionFailure=false}={}){
-  const events={initialized:0,subscriptions:0,lookup:0,ui:0,authInit:0,channelNames:[]};
+async function launch({route='/member-dashboard/',status='approved',code='DS123',error=null,throwLookup=false,session=true,clientAvailable=true,sessionFailure=false,privateV2=false}={}){
+  const events={initialized:0,subscriptions:0,lookup:0,ui:0,authInit:0,channelNames:[],channelConfigs:[]};
   const nodes={
     dsGlobalAcceptCall:{addEventListener(){}},
     dsGlobalDeclineCall:{addEventListener(){}}
@@ -47,11 +47,12 @@ async function launch({route='/member-dashboard/',status='approved',code='DS123'
         }
       };
     },
-    channel(name){events.channelNames.push(name);return channel;},
+    channel(name,config){events.channelNames.push(name);events.channelConfigs.push(config);return channel;},
     removeChannel(){}
   };
   const window={
     DSAuth:{ready:true,async init(){events.authInit++;return clientAvailable?client:null}},
+    DOMINIONSTAR_CALL_PRIVATE_V2: privateV2,
     CommunicationEngine:{async init(){events.initialized++},stopAll(){}},
     addEventListener(){}
   };
@@ -117,4 +118,16 @@ test('Unavailable auth client or session lookup fails closed without subscriptio
     assert.equal(e.subscriptions,0);
     assert.equal(e.initialized,0);
   }
+});
+
+test('Private v2 incoming-call channel is namespaced and private only when explicitly enabled',async()=>{
+  const result=await launch({privateV2:true});
+  assert.deepEqual(result.channelNames,['ds-call-inbox-v2:agent-1']);
+  assert.equal(result.channelConfigs[0].config.private,true);
+  assert.equal(result.subscriptions,1);
+});
+test('Default legacy incoming call topic stays unchanged while private v2 remains disabled',async()=>{
+  const result=await launch();
+  assert.deepEqual(result.channelNames,['dominionstar-user-call-agent-1']);
+  assert.equal(result.channelConfigs[0].config.private,undefined);
 });
