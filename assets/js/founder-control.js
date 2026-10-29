@@ -191,10 +191,12 @@
       // Best-effort restoration of the original founding state. Rank/status
       // remain authoritative from founder_update_member and are not hidden.
       if (original) {
-        await supabase.rpc('assign_exclusive_founding_number', {
-          target_user_id: targetId,
-          should_be_founding: Boolean(original.founding_member)
-        }).catch(()=>{});
+        try {
+          await supabase.rpc('assign_exclusive_founding_number', {
+            target_user_id: targetId,
+            should_be_founding: Boolean(original.founding_member)
+          });
+        } catch (_rollbackError) {}
       }
       event.currentTarget.disabled = false;
       event.currentTarget.textContent = 'Exclusive 20 error';
