@@ -14,7 +14,7 @@
     '#communityApp','#chatApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
     '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp','#mindsetApp',
     '#founderApp','#founderDashboard','#founderAppointmentApp','#emailAdminApp','#qaApp','#featureApp','#diagApp',
-    '#releaseCheckApp','#agentJourneyApp'
+    '#releaseCheckApp','#agentJourneyApp','#agentLearningApp'
   ];
   const app=rootSelectors.map(selector=>document.querySelector(selector)).find(Boolean);
   if(!app || app.querySelector('[data-ds-agent-shell]')) return;
@@ -32,6 +32,7 @@
     ['Calendar','/appointments/','calendar'],
     ['Team Members','/member-directory/','users'],
     ['Recognition','/recognition/','trophy'],
+    ['Learning','/agent-learning/','book'],
     ['My Journey','/agent-journey/','journey'],
     ['My Profile','/professional-profile/','user'],
     ['Settings','/account-settings/','settings']
@@ -57,6 +58,7 @@
     calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
     users:'<circle cx="8" cy="7" r="4"/><path d="M1 21v-2a7 7 0 0 1 14 0v2M16 3a4 4 0 0 1 0 8m2 5a6 6 0 0 1 5 5"/>',
     trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4M12 14v7M8 21h8"/>',
+    book:'<path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H20v17H7.5A3.5 3.5 0 0 0 4 22V5.5Z"/><path d="M4 18.5A3.5 3.5 0 0 1 7.5 15H20"/>',
     journey:'<path d="M5 19 19 5M8 5h11v11"/><circle cx="6" cy="18" r="2"/>',
     user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
     settings:'<circle cx="12" cy="12" r="3.2"/><path d="M10 2h4l.5 2.4 2.1.9 2.1-1.3 2.8 2.8-1.3 2.1.9 2.1 2.4.5v4l-2.4.5-.9 2.1 1.3 2.1-2.8 2.8-2.1-1.3-2.1.9L14 22h-4l-.5-2.4-2.1-.9-2.1 1.3-2.8-2.8 1.3-2.1-.9-2.1L.5 14v-4l2.4-.5.9-2.1-1.3-2.1 2.8-2.8 2.1 1.3 2.1-.9L10 2Z"/>',
