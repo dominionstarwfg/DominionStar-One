@@ -595,7 +595,10 @@
     }
   );
 
-  logout?.addEventListener('click', () => window.DSAuth.signOut());
+  logout?.addEventListener('click', async () => {
+    await window.CommunicationEngine?.disablePushSubscription?.().catch(()=>{});
+    await window.DSAuth.signOut();
+  });
 
   feedbackForm?.addEventListener('submit', async event => {
     event.preventDefault();
