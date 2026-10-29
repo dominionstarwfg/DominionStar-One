@@ -52,7 +52,7 @@
       ['Appointments','member_appointments'],
       ['Community posts','community_messages'],
       ['Community comments','community_comments'],
-      ['Notifications','member_notifications']
+      ['Executive notifications','executive_events']
     ];
 
     for (const [label, table] of modules) {
