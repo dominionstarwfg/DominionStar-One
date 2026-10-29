@@ -36,3 +36,14 @@
 - The review-only Netlify package workflow now also triggers on changes to Agent Dashboard's calling scripts. It creates a static artifact; it does **not** deploy to Netlify.
 
 **The current website calling transport remains legacy and must not be described as fully secured. This work prepares a safer transition but does not complete it.**
+
+## Security review continuation — partner approval and channel inventory
+
+- The **review-only** SELECT policy draft now verifies **both pair participants**, not just the authenticated viewer. A revoked, rejected, pending or Agent-Code-less partner fails the drafted pair-topic receive predicate; the INSERT predicate already checks both sides. This remains a comment-only proposal, not an applied policy or proven live authorization rule.
+- **Known public Broadcast dependencies:** `assets/js/direct-messages.js` typing indicators on `dominionstar-typing-*`, plus the legacy agent call pair and per-user inbox channels in `assets/js/direct-messages.js` and `assets/js/global-call-manager.js`.
+- **Known Postgres Changes subscribers:** `assets/js/direct-messages.js` (messages), `assets/js/community-chat.js` (chat/typing), `assets/js/community-hub.js` and `assets/js/community.js` (posts), `assets/js/group-chats.js` (group messages), `assets/js/presence-engine.js` (presence), `assets/js/notifications-center.js`, `assets/js/executive-core.js`, and `assets/js/communication-engine.js` (events). These are channel consumers even though the underlying tables may have their own RLS; the impact of a global public-channel shutdown must be tested.
+- **Inventory limitation:** This is an audit of identified browser-side Agent/Community scripts, not an exhaustive audit of every repository channel or the separate Meet service. A complete branch-wide scan and isolated staging tests are still required before switching off the Supabase Realtime global public-access setting.
+- Existing `member_profiles` SELECT RLS allows own-profile reads and directory reads only when `profile_visibility='members'`. Therefore the draft's partner lookup may reject calls to approved private-profile agents. Do **not** solve that by widening all profile visibility; design a narrow, reviewed authorization lookup and test it in isolated staging.
+- The source regression suite now guards both paired approval predicates and reminds us of noncalling Realtime dependencies. These tests are static and do not validate database policies against real JWTs or WebRTC in two browsers.
+
+**No release switch was enabled, no production Supabase migration was applied, and no Netlify deployment was made in this continuation.**
