@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Founder Command Center | DominionStar Platform</title>
+<title>Founder Analytics Console | DominionStar</title>
 <link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="/assets/logo.jpeg">
 <script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
@@ -15,15 +15,9 @@
   <section id="founderLogin" class="founder-login">
     <div class="founder-login-card">
       <img src="/assets/logo.jpeg" alt="DominionStar crest">
-      <p class="eyebrow">DominionStar Platform v1.2</p>
-      <h1>Founder Command Center</h1>
-      <p>Enter the private dashboard key configured in Netlify.</p>
-      <form id="founderLoginForm">
-        <label>Founder dashboard key
-          <input id="founderKey" type="password" autocomplete="current-password" required>
-        </label>
-        <button class="btn btn-gold" type="submit">Open Dashboard</button>
-      </form>
+      <p class="eyebrow">Founder OS</p>
+      <h1>Founder Analytics Console</h1>
+      <p>Verifying your signed-in Founder account…</p>
       <p id="founderLoginError" class="founder-error" role="alert"></p>
     </div>
   </section>
@@ -31,13 +25,13 @@
   <section id="founderDashboard" hidden>
     <header class="founder-header">
       <div>
-        <span class="platform-badge">Private Founder View · v1.2</span>
-        <h1>DominionStar Command Center</h1>
-        <p>Recruit and client activity, verified submissions, platform engagement, and follow-up priorities.</p>
+        <span class="platform-badge">Founder Analytics</span>
+        <h1>Public Site Analytics</h1>
+        <p>Website activity, verified public submissions, engagement signals, and conversion data.</p>
       </div>
       <div class="founder-header-actions">
         <button id="founderRefresh" class="btn btn-gold" type="button">Refresh Data</button>
-        <button id="founderLogout" class="btn btn-outline" type="button">Lock Dashboard</button>
+        <a class="btn btn-outline" href="/founder-control/">Founder Command Center</a><button id="founderLogout" class="btn btn-outline" type="button">Sign Out</button>
       </div>
     </header>
 
@@ -89,12 +83,15 @@
     </section>
 
     <section class="founder-security-note">
-      <strong>Security boundary:</strong> v1.2 uses a server-side dashboard key and Netlify environment variables. It is a founder command center, not yet a multi-user authentication system. Do not share the dashboard URL or key publicly.
+      <strong>Security boundary:</strong> this analytics console is restricted to the signed-in DominionStar Founder account. Analytics and Netlify credentials remain server-side.
     </section>
   </section>
 </main>
 <script src="/script.js"></script>
-<script src="/founder-dashboard/founder-dashboard.js"></script>
+<script src="/assets/js/supabase-config.js"></script>
+<script src="/assets/js/data-layer.js"></script>
+<script src="/assets/js/member-auth.js"></script>
+<script src="/founder-dashboard/founder-dashboard.js?v=review-2"></script>
 <footer class="platform-release-footer">DominionStar Platform · v6.5.4 Aurora</footer><script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
 <script src="/assets/js/dominionstar-agent-nav-shell.js?v=review-2"></script>\n</body>
 </html>
