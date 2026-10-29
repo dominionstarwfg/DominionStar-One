@@ -1,15 +1,28 @@
-/* DominionStar Agent OS — compact shared navigation, review branch only.
-   Mounts INSIDE the existing approved-member page. No auth or role changes.
-   All links remain native so session handling and existing page logic are preserved.
-*/
+/* DominionStar Authenticated OS — shared Agent + Founder navigation shell.
+   Review branch only. Preserves each page's existing auth and business logic. */
 (() => {
   'use strict';
-  const app = document.querySelector(
-    '#communityApp, #appointmentApp, #directoryApp, #profileApp, #settingsApp'
-  );
-  if (!app || app.querySelector('[data-ds-agent-shell]')) return;
 
-  const items = [
+  const path=location.pathname.replace(/\/index\.html$/,'/').replace(/\/+$/,'')||'/';
+  const founderRoutes=new Set([
+    '/founder-control','/founder-appointments','/founder-email','/qa-center',
+    '/release-check','/founder-features','/founder-diagnostics'
+  ]);
+  const founderMode=[...founderRoutes].some(route=>path===route||path.startsWith(route+'/'));
+
+  const rootSelectors=[
+    '#communityApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
+    '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp',
+    '#founderApp','#founderAppointmentApp','#emailAdminApp','#qaApp','#featureApp','#diagApp',
+    '#agentJourneyApp'
+  ];
+  const app=rootSelectors.map(selector=>document.querySelector(selector)).find(Boolean);
+  if(!app || app.querySelector('[data-ds-agent-shell]')) return;
+
+  document.body.classList.add('ds-auth-os-page');
+  if(founderMode) document.body.classList.add('ds-founder-os-page');
+
+  const agentItems=[
     ['Home','/member-dashboard/','home'],
     ['Messages','/direct-messages/','message'],
     ['Meet','/meet/','video'],
@@ -17,10 +30,24 @@
     ['Calendar','/appointments/','calendar'],
     ['Team Members','/member-directory/','users'],
     ['Recognition','/recognition/','trophy'],
+    ['My Journey','/agent-journey/','journey'],
     ['My Profile','/professional-profile/','user'],
-    ['Agent Settings','/account-settings/','settings']
+    ['Settings','/account-settings/','settings']
   ];
-  const shapes = {
+  const founderItems=[
+    ['Command Center','/founder-control/','crown'],
+    ['Members','/member-directory/','users'],
+    ['Appointments','/founder-appointments/','calendar'],
+    ['Email Delivery','/founder-email/','mail'],
+    ['QA Center','/qa-center/','check'],
+    ['Feature Controls','/founder-features/','sliders'],
+    ['Diagnostics','/founder-diagnostics/','pulse'],
+    ['Release Check','/release-check/','shield'],
+    ['Member View','/member-dashboard/','home']
+  ];
+  const items=founderMode?founderItems:agentItems;
+
+  const shapes={
     home:'<path d="m3 10 9-7 9 7v11H3V10Zm6 11v-7h6v7"/>',
     message:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>',
     video:'<rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/>',
@@ -28,13 +55,20 @@
     calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
     users:'<circle cx="8" cy="7" r="4"/><path d="M1 21v-2a7 7 0 0 1 14 0v2M16 3a4 4 0 0 1 0 8m2 5a6 6 0 0 1 5 5"/>',
     trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4M12 14v7M8 21h8"/>',
+    journey:'<path d="M5 19 19 5M8 5h11v11"/><circle cx="6" cy="18" r="2"/>',
     user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
     settings:'<circle cx="12" cy="12" r="3.2"/><path d="M10 2h4l.5 2.4 2.1.9 2.1-1.3 2.8 2.8-1.3 2.1.9 2.1 2.4.5v4l-2.4.5-.9 2.1 1.3 2.1-2.8 2.8-2.1-1.3-2.1.9L14 22h-4l-.5-2.4-2.1-.9-2.1 1.3-2.8-2.8 1.3-2.1-.9-2.1L.5 14v-4l2.4-.5.9-2.1-1.3-2.1 2.8-2.8 2.1 1.3 2.1-.9L10 2Z"/>',
+    crown:'<path d="m2 9 4 3 6-7 6 7 4-3-2 10H4L2 9ZM4 22h16"/>',
+    mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    check:'<path d="m4 12 5 5L20 6"/><circle cx="12" cy="12" r="10"/>',
+    sliders:'<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="18" r="2"/>',
+    pulse:'<path d="M3 12h4l2-6 4 12 2-6h6"/>',
+    shield:'<path d="M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-3Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/>',
     search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>'
   };
-  const svg = key => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+shapes[key]+'</svg>';
+  const svg=key=>'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+shapes[key]+'</svg>';
+  const normalized=url=>url.replace(/\/+$/,'')||'/';
 
-  const current=location.pathname.replace(/\/index\.html$/,'/').replace(/\/+$/,'')||'/';
   const shell=document.createElement('div');
   shell.className='ds-agent-shell';
   shell.dataset.dsAgentShell='true';
@@ -42,114 +76,57 @@
   const head=document.createElement('div');
   head.className='ds-agent-head';
   const brand=document.createElement('a');
-  brand.href='/member-dashboard/';
+  brand.href=founderMode?'/founder-control/':'/member-dashboard/';
   brand.className='ds-agent-brand';
-  const identity=document.createElement('span');
-  identity.className='ds-agent-brand-mark';
-  identity.textContent='✦';
-  const copy=document.createElement('span');
-  copy.className='ds-agent-brand-copy';
-  const strong=document.createElement('strong');
-  strong.textContent='DOMINIONSTAR';
-  const small=document.createElement('small');
-  small.textContent='EXECUTIVE OS';
-  copy.append(strong,small);
-  brand.append(identity,copy);
+  brand.innerHTML='<span class="ds-agent-brand-mark">✦</span><span class="ds-agent-brand-copy"><strong>DOMINIONSTAR</strong><small>'+(founderMode?'FOUNDER OS':'EXECUTIVE OS')+'</small></span>';
 
   const section=document.createElement('div');
   section.className='ds-agent-current';
-  const active=items.find(item=>item[1].replace(/\/+$/,'')===current);
-  section.textContent=active ? active[0] : 'My Space';
+  section.textContent=(items.find(item=>normalized(item[1])===path)||[])[0] || (founderMode?'Founder Operations':'My Space');
+
   const search=document.createElement('button');
-  search.className='ds-agent-search-trigger';
-  search.type='button';
+  search.className='ds-agent-search-trigger';search.type='button';
   search.setAttribute('aria-label','Open quick navigation');
   search.innerHTML=svg('search')+'<span>Go to…</span><kbd>⌘ K</kbd>';
   head.append(brand,section,search);
 
   const nav=document.createElement('nav');
   nav.className='ds-agent-nav';
-  nav.setAttribute('aria-label','Agent OS navigation');
+  nav.setAttribute('aria-label',founderMode?'Founder OS navigation':'Agent OS navigation');
   for(const [name,url,key] of items){
-    const link=document.createElement('a');
-    link.href=url;
-    link.className='ds-agent-nav-item';
-    if(url.replace(/\/+$/,'')===current) {
-      link.classList.add('active');link.setAttribute('aria-current','page');
-    }
-    link.innerHTML=svg(key);
-    const label=document.createElement('span');label.textContent=name;
-    link.appendChild(label);
-    nav.appendChild(link);
+    const link=document.createElement('a');link.href=url;link.className='ds-agent-nav-item';
+    if(normalized(url)===path){link.classList.add('active');link.setAttribute('aria-current','page');}
+    link.innerHTML=svg(key)+'<span></span>';link.lastElementChild.textContent=name;nav.appendChild(link);
   }
   shell.append(head,nav);
   app.prepend(shell);
 
-  // A native same-origin navigation indicator — no timers or artificial waiting.
-  const indicator=document.createElement('div');
-  indicator.className='ds-agent-progress';
-  indicator.setAttribute('aria-hidden','true');
-  indicator.innerHTML='<span></span>';
-  document.body.appendChild(indicator);
-  const clear=()=>indicator.setAttribute('aria-hidden','true');
-  window.addEventListener('pageshow',clear);
-  window.addEventListener('pagehide',clear);
+  const indicator=document.createElement('div');indicator.className='ds-agent-progress';indicator.setAttribute('aria-hidden','true');indicator.innerHTML='<span></span>';document.body.appendChild(indicator);
+  const clear=()=>indicator.setAttribute('aria-hidden','true');window.addEventListener('pageshow',clear);window.addEventListener('pagehide',clear);
   document.addEventListener('click',event=>{
-    if(event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey ||
-       event.shiftKey || event.altKey)return;
-    const anchor=event.target.closest('a[href]');
-    if(!anchor || anchor.hasAttribute('download') ||
-       (anchor.target && anchor.target!=='_self'))return;
-    let to;
-    try{to=new URL(anchor.href,location.href);}catch{return;}
-    if(to.origin!==location.origin || !['http:','https:'].includes(to.protocol) ||
-       (to.pathname===location.pathname && to.search===location.search))return;
+    if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+    const anchor=event.target.closest('a[href]');if(!anchor||anchor.hasAttribute('download')||(anchor.target&&anchor.target!=='_self'))return;
+    let to;try{to=new URL(anchor.href,location.href)}catch{return}
+    if(to.origin!==location.origin||!['http:','https:'].includes(to.protocol)||(to.pathname===location.pathname&&to.search===location.search))return;
     indicator.setAttribute('aria-hidden','false');
   },{capture:true});
 
-  const dialog=document.createElement('dialog');
-  dialog.className='ds-agent-jump';
-  dialog.setAttribute('aria-label','Go to an agent area');
-  dialog.innerHTML='<div class="ds-agent-jump-head"><strong>Jump to an agent area</strong><button type="button" aria-label="Close navigation">×</button></div>'+
-    '<label for="dsAgentJumpInput" class="ds-agent-sr">Search navigation destinations</label><input id="dsAgentJumpInput" type="search" autocomplete="off" placeholder="Search messages, calendar, team members…">'+
-    '<nav class="ds-agent-jump-results" aria-label="Agent destinations"></nav>';
+  const dialog=document.createElement('dialog');dialog.className='ds-agent-jump';dialog.setAttribute('aria-label','Go to a DominionStar area');
+  dialog.innerHTML='<div class="ds-agent-jump-head"><strong>Jump to a DominionStar area</strong><button type="button" aria-label="Close navigation">×</button></div><label for="dsAgentJumpInput" class="ds-agent-sr">Search navigation destinations</label><input id="dsAgentJumpInput" type="search" autocomplete="off" placeholder="Search destinations…"><nav class="ds-agent-jump-results" aria-label="Destinations"></nav>';
   document.body.appendChild(dialog);
-  const input=dialog.querySelector('input');
-  const results=dialog.querySelector('.ds-agent-jump-results');
+  const input=dialog.querySelector('input'),results=dialog.querySelector('.ds-agent-jump-results');
   let origin=null;
   const render=()=>{
-    const query=input.value.trim().toLocaleLowerCase();
-    results.replaceChildren();
-    for(const [name,url,key] of items.filter(([name])=>name.toLocaleLowerCase().includes(query))){
-      const anchor=document.createElement('a');anchor.href=url;
-      anchor.innerHTML=svg(key);
-      const label=document.createElement('span');label.textContent=name;
-      anchor.appendChild(label);results.appendChild(anchor);
+    const query=input.value.trim().toLowerCase();results.replaceChildren();
+    for(const [name,url,key] of items.filter(([name])=>name.toLowerCase().includes(query))){
+      const anchor=document.createElement('a');anchor.href=url;anchor.innerHTML=svg(key)+'<span></span>';anchor.lastElementChild.textContent=name;results.appendChild(anchor);
     }
-    if(!results.children.length){
-      const empty=document.createElement('p');empty.textContent='No matching destination.';results.appendChild(empty);
-    }
+    if(!results.children.length){const empty=document.createElement('p');empty.textContent='No matching destination.';results.appendChild(empty);}
   };
-  const open=source=>{
-    // App visibility is controlled by the existing member approval workflow.
-    // Never surface the global launcher while that approved-area gate is shut.
-    if(app.classList.contains('member-hidden') ||
-       typeof dialog.showModal!=='function')return;
-    origin=source||document.activeElement;input.value='';render();dialog.showModal();input.focus();
-  };
+  const open=source=>{if(app.classList.contains('member-hidden')||typeof dialog.showModal!=='function')return;origin=source||document.activeElement;input.value='';render();dialog.showModal();input.focus();};
+  const close=()=>{if(dialog.open)dialog.close();origin?.focus?.();};
   search.addEventListener('click',()=>open(search));
-  dialog.querySelector('button').addEventListener('click',()=>dialog.close());
-  dialog.addEventListener('close',()=>origin?.focus?.());
+  dialog.querySelector('button').addEventListener('click',close);
   input.addEventListener('input',render);
-  input.addEventListener('keydown',event=>{
-    if(event.key!=='Enter')return;
-    const link=results.querySelector('a');
-    if(link){event.preventDefault();link.click();}
-  });
-  document.addEventListener('keydown',event=>{
-    if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){
-      event.preventDefault();
-      if(dialog.open)dialog.close();else open(document.activeElement);
-    }
-  });
+  document.addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();dialog.open?close():open(search);}});
 })();
