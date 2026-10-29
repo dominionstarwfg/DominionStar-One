@@ -11,6 +11,7 @@ on:
       - 'assets/js/global-call-manager.js'
       - 'assets/js/direct-messages.js'
       - 'scripts/security/agent-call-realtime-v2.DO-NOT-RUN.review.sql'
+      - 'scripts/check-agent-release-gates.mjs'
       - 'assets/js/member-login-google-flags.js'
       - 'assets/js/account-settings.js'
       - 'assets/js/account-google-identity-review.js'
@@ -44,6 +45,7 @@ jobs:
           node --check assets/js/member-dashboard.js
           node --check assets/js/global-call-manager.js
           node --check assets/js/direct-messages.js
+          node --check scripts/check-agent-release-gates.mjs
           node --check assets/js/dominionstar-agent-nav-shell.js
           node --check assets/js/dominionstar-os.js
           node --check meet-desktop/ui/preferences.js
