@@ -1,5 +1,6 @@
 
 import crypto from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -125,14 +126,44 @@ async function getNetlifySubmissions() {
   return response.json();
 }
 
+async function authorizeFounder(request) {
+  const authorization=request.headers.get('authorization')||'';
+  const token=authorization.replace(/^Bearer\s+/i,'').trim();
+  const supabaseUrl=process.env.SUPABASE_URL||'';
+  const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
+
+  if(token&&supabaseUrl&&serviceKey){
+    const admin=createClient(supabaseUrl,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
+    const userResult=await admin.auth.getUser(token);
+    const user=userResult.data?.user;
+    if(!userResult.error&&user?.id){
+      const profile=await admin.from('member_profiles')
+        .select('is_founder,verification_status')
+        .eq('id',user.id)
+        .maybeSingle();
+      if(!profile.error&&profile.data?.is_founder===true&&profile.data?.verification_status==='approved'){
+        return {authorized:true,mode:'founder_session'};
+      }
+    }
+  }
+
+  // Emergency transition fallback only. The Founder OS frontend no longer asks
+  // for this key; retain it temporarily so rollback does not strand analytics.
+  const expectedKey=process.env.FOUNDER_DASHBOARD_KEY||'';
+  const suppliedKey=request.headers.get('x-founder-key')||'';
+  if(expectedKey&&suppliedKey&&secureEqual(expectedKey,suppliedKey)){
+    return {authorized:true,mode:'legacy_key'};
+  }
+  return {authorized:false,mode:'none'};
+}
+
 export default async (request) => {
   if (request.method !== 'GET') return new Response(JSON.stringify({error:'Method not allowed'}), {status:405});
 
-  const expectedKey = process.env.FOUNDER_DASHBOARD_KEY || '';
-  const suppliedKey = request.headers.get('x-founder-key') || '';
-  if (!expectedKey || !secureEqual(expectedKey, suppliedKey)) {
-    return new Response(JSON.stringify({error:'Unauthorized'}), {
-      status: 401,
+  const authorization=await authorizeFounder(request);
+  if(!authorization.authorized){
+    return new Response(JSON.stringify({error:'Founder authorization required'}), {
+      status: 403,
       headers: {'content-type':'application/json','cache-control':'no-store'}
     });
   }
@@ -165,7 +196,7 @@ export default async (request) => {
       connections: {
         'Google Analytics Data API': Boolean(analytics),
         'Netlify Forms API': Array.isArray(submissions),
-        'Founder access key': true
+        'Founder session': authorization.mode === 'founder_session'
       },
       errors: {
         analytics: analyticsResult.status === 'rejected' ? analyticsResult.reason.message : null,
