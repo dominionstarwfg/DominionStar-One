@@ -70,6 +70,7 @@
     'Notification' in window
   );
   const enablePushSubscription = async () => {
+    if(window.DOMINIONSTAR_NOTIFICATION_FEATURES?.webPush!==true)return {status:'not_enabled'};
     if(!pushSupport())return {status:'unsupported'};
     if(!state.client||!state.session?.user?.id)return {status:'not_ready'};
     if(Notification.permission!=='granted')return {status:'permission_required'};
