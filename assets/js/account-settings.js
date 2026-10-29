@@ -112,11 +112,12 @@
  const toggle=(section,result)=>(input,key)=>{const before=!input.checked;state[section][key]=input.checked;saveMetadata(section,{...state[section]},result).then(ok=>{if(!ok){input.checked=before;state[section][key]=before}})};
  row('systemSwitches','reduceMotion','Reduce motion','Limit non-essential animation.',state.appearance.reduceMotion,toggle('appearance','systemResult'));
  row('messageSwitches','messages','Private-message email alerts','Email me when an approved member sends a message.',state.notifications.messages,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});row('messageSwitches','community','Community replies and mentions','Email me for replies and mentions.',state.notifications.community,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});
+ const webPushReady=window.DOMINIONSTAR_NOTIFICATION_FEATURES?.webPush===true;
  const notificationRows=[
    ['emailEnabled','Selected email alerts','Use my verified email only for the alert categories enabled below.'],
    ['announcements','Founder & critical announcements','Email important official platform announcements.'],
    ['appointments','Appointments & schedule changes','Email appointment confirmations, changes, and cancellations.'],
-   ['browser','Push notifications','Show DominionStar system notifications on this device, including when the dashboard is closed.'],
+   ['browser',webPushReady?'Push notifications':'Browser alerts',webPushReady?'Show DominionStar system notifications on this device, including when the dashboard is closed.':'Show system alerts on this device while DominionStar is open.'],
    ['sound','Notification sounds','Play a short DominionStar tone for live priority notifications.']
  ];
  notificationRows.forEach(x=>row('notificationSwitches',...x,state.notifications[x[0]],async(i,k)=>{
@@ -126,8 +127,10 @@
        if(i.checked){
          const permission=await window.CommunicationEngine?.requestPermission?.();
          if(permission!=='granted')throw new Error('Browser notification permission was not granted.');
-         const push=await window.CommunicationEngine?.enablePushSubscription?.();
-         if(push?.status!=='subscribed')throw new Error('This device could not register for push notifications.');
+         if(webPushReady){
+           const push=await window.CommunicationEngine?.enablePushSubscription?.();
+           if(push?.status!=='subscribed')throw new Error('This device could not register for push notifications.');
+         }
        }else{
          await window.CommunicationEngine?.disablePushSubscription?.();
        }
