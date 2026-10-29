@@ -175,6 +175,19 @@ FOR EACH ROW EXECUTE FUNCTION public.emit_direct_message_notification();
 REVOKE EXECUTE ON FUNCTION public.emit_direct_message_notification()
   FROM PUBLIC, anon, authenticated;
 
+-- Once the trusted direct-message trigger exists, ordinary browser clients no
+-- longer need authority to create events for another member. Restrict client
+-- event creation to the signed-in member's own timeline.
+DROP POLICY IF EXISTS "members create executive events"
+  ON public.executive_events;
+CREATE POLICY "members create own executive events"
+  ON public.executive_events
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    actor_id=auth.uid()
+    AND member_id=auth.uid()
+  );
+
 CREATE OR REPLACE FUNCTION public.queue_member_event_push()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -327,6 +340,14 @@ BEGIN
   IF register_oid IS NULL OR remove_oid IS NULL OR claim_oid IS NULL THEN
     RAISE EXCEPTION 'Push RPC setup incomplete';
   END IF;
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='executive_events'
+      AND policyname='members create own executive events'
+      AND cmd='INSERT'
+  ) THEN
+    RAISE EXCEPTION 'Self-only executive event insert policy missing';
+  END IF;
   IF has_function_privilege('anon',register_oid,'EXECUTE')
      OR NOT has_function_privilege('authenticated',register_oid,'EXECUTE')
      OR has_function_privilege('anon',remove_oid,'EXECUTE')
@@ -345,8 +366,9 @@ COMMIT;
 -- 1. Approved member can register only the current authenticated browser endpoint.
 -- 2. Anonymous registration/removal and outbox claim are rejected.
 -- 3. Sending a real direct message creates exactly one message.received event.
--- 4. Forged cross-member executive_events do not enter push/email outboxes.
--- 5. Closed-browser push reaches the subscribed test browser.
--- 6. Focused DominionStar tab suppresses duplicate service-worker popup.
--- 7. Explicit logout removes the browser subscription.
--- 8. Re-run Supabase Security Advisor and monitor both outboxes.
+-- 4. Ordinary browser INSERT cannot create an executive_event for another member.
+-- 5. Forged cross-member executive_events do not enter push/email outboxes.
+-- 6. Closed-browser push reaches the subscribed test browser.
+-- 7. Focused DominionStar tab suppresses duplicate service-worker popup.
+-- 8. Explicit logout removes the browser subscription.
+-- 9. Re-run Supabase Security Advisor and monitor both outboxes.
