@@ -179,8 +179,35 @@
   document.getElementById('runQaChecks').addEventListener('click',runChecks);
 
   document.getElementById('testNotification').addEventListener('click',async()=>{
-    const r=await client.rpc('dominionstar_test_notification');
-    alert(r.error?r.error.message:'Test notification created. Open Notification Center to confirm it.');
+    const button=document.getElementById('testNotification');
+    button.disabled=true;
+    button.textContent='Creating test…';
+    try{
+      const created=await client.from('executive_events').insert({
+        event_type:'qa.notification_test',
+        member_id:session.user.id,
+        actor_id:session.user.id,
+        title:'DominionStar QA Test',
+        description:'The current Executive OS notification stream is working.',
+        payload:{action_url:'/notifications/',qa_test:true},
+        priority:'high'
+      }).select('id').single();
+      if(created.error)throw created.error;
+
+      const verify=await client.from('executive_events')
+        .select('id,event_type')
+        .eq('id',created.data.id)
+        .eq('member_id',session.user.id)
+        .maybeSingle();
+      if(verify.error||!verify.data)throw new Error('The QA notification could not be verified after creation.');
+
+      alert('Executive notification created and verified. Open Notification Center to confirm delivery.');
+    }catch(error){
+      alert(error?.message||'The Executive notification test failed.');
+    }finally{
+      button.disabled=false;
+      button.textContent='Create Test Notification';
+    }
   });
 
   await runChecks();
