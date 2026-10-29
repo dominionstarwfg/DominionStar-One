@@ -77,14 +77,14 @@
   }
 
   async function loadMembers() {
-    memberRows.innerHTML = '<tr><td colspan="9">Loading members…</td></tr>';
+    memberRows.innerHTML = '<tr><td colspan="10">Loading members…</td></tr>';
     const { data, error } = await supabase
       .from('member_profiles')
-      .select('id,full_name,email,agent_code,smd_name,verification_status,rank,founding_member,joined_at,account_notes')
+      .select('id,full_name,email,agent_code,smd_name,verification_status,rank,founding_member,exclusive_member_number,joined_at,account_notes')
       .order('joined_at', { ascending: false });
 
     if (error) {
-      memberRows.innerHTML = `<tr><td colspan="9">${esc(error.message)}</td></tr>`;
+      memberRows.innerHTML = `<tr><td colspan="10">${esc(error.message)}</td></tr>`;
       return;
     }
 
@@ -124,11 +124,21 @@
             ).join('')}
           </select>
         </td>
-        <td><input class="founder-checkbox founding-check" type="checkbox" aria-label="Exclusive 20 status for ${esc(member.full_name)}" ${member.founding_member?'checked':''}></td>
+        <td>
+          <label class="founder-exclusive-control">
+            <input class="founder-checkbox founding-check" type="checkbox" aria-label="Exclusive 20 status for ${esc(member.full_name)}" ${member.founding_member?'checked':''}>
+            <span>${Number(member.exclusive_member_number)>=1&&Number(member.exclusive_member_number)<=20?'#'+Number(member.exclusive_member_number):'Not assigned'}</span>
+          </label>
+        </td>
+        <td>
+          <button class="btn btn-outline recognize-member" type="button" data-member-id="${member.id}">
+            Recognize
+          </button>
+        </td>
         <td><input class="founder-notes notes-input" value="${esc(member.account_notes || '')}" placeholder="Private founder note" aria-label="Founder notes for ${esc(member.full_name)}"></td>
         <td><button class="btn btn-gold save-member" type="button">Save Changes</button></td>
       </tr>
-    `).join('') : '<tr><td colspan="9">No matching members.</td></tr>';
+    `).join('') : '<tr><td colspan="10">No matching members.</td></tr>';
 
     if (memberCount) memberCount.textContent = `${allMembers.length} member${allMembers.length === 1 ? '' : 's'}`;
     if (memberVisibleCount) memberVisibleCount.textContent = filtered.length === allMembers.length
@@ -138,11 +148,15 @@
     document.querySelectorAll('.save-member').forEach(button => {
       button.addEventListener('click', saveMember);
     });
+    document.querySelectorAll('.recognize-member').forEach(button => {
+      button.addEventListener('click', recognizeAdvancement);
+    });
   }
 
   async function saveMember(event) {
     const row = event.currentTarget.closest('tr');
     const targetId = row.dataset.id;
+    const original = allMembers.find(member => member.id === targetId);
     const status = row.querySelector('.status-select').value;
     const rank = row.querySelector('.rank-select').value;
     const founding = row.querySelector('.founding-check').checked;
@@ -151,20 +165,123 @@
     event.currentTarget.disabled = true;
     event.currentTarget.textContent = 'Saving…';
 
-    const { error } = await supabase.rpc('founder_update_member', {
+    // Member status/rank/notes and Exclusive-20 numbering have different
+    // authoritative RPCs. Do not let the old boolean-only field pretend a
+    // founding number was assigned.
+    const memberUpdate = await supabase.rpc('founder_update_member', {
       target_user_id: targetId,
       new_status: status,
       new_rank: rank,
-      mark_founding_member: founding,
+      mark_founding_member: null,
       new_notes: notes || null
     });
 
-    event.currentTarget.disabled = false;
-    event.currentTarget.textContent = error ? 'Error' : 'Saved';
+    if (memberUpdate.error) {
+      event.currentTarget.disabled = false;
+      event.currentTarget.textContent = 'Error';
+      return;
+    }
 
-    if (!error) {
-      setTimeout(() => event.currentTarget.textContent = 'Save', 1200);
+    const exclusiveUpdate = await supabase.rpc('assign_exclusive_founding_number', {
+      target_user_id: targetId,
+      should_be_founding: founding
+    });
+
+    if (exclusiveUpdate.error) {
+      // Best-effort restoration of the original founding state. Rank/status
+      // remain authoritative from founder_update_member and are not hidden.
+      if (original) {
+        await supabase.rpc('assign_exclusive_founding_number', {
+          target_user_id: targetId,
+          should_be_founding: Boolean(original.founding_member)
+        }).catch(()=>{});
+      }
+      event.currentTarget.disabled = false;
+      event.currentTarget.textContent = 'Exclusive 20 error';
+      const result = document.getElementById('founderRecognitionResult');
+      if (result) message(result, 'Member changes saved, but Exclusive 20 assignment failed: '+exclusiveUpdate.error.message, 'error');
       await Promise.all([loadMembers(), loadSummary()]);
+      return;
+    }
+
+    event.currentTarget.disabled = false;
+    event.currentTarget.textContent = 'Saved';
+    setTimeout(() => event.currentTarget.textContent = 'Save Changes', 1200);
+    await Promise.all([loadMembers(), loadSummary()]);
+  }
+
+  async function recognizeAdvancement(event) {
+    const button = event.currentTarget;
+    const targetId = button.dataset.memberId;
+    const member = allMembers.find(item => item.id === targetId);
+    const result = document.getElementById('founderRecognitionResult');
+    if (!member || !result) return;
+
+    button.disabled = true;
+    button.textContent = 'Verifying…';
+    message(result, 'Verifying the latest contract-level advancement…');
+
+    try {
+      const history = await supabase
+        .from('rank_history')
+        .select('id,previous_rank,new_rank,created_at')
+        .eq('user_id',targetId)
+        .order('created_at',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+      if (history.error) throw history.error;
+      if (!history.data) throw new Error('No verified contract-level advancement is recorded for this member.');
+      if (history.data.new_rank !== member.rank) {
+        throw new Error('The latest rank-history record does not match the member’s current contract level.');
+      }
+
+      const title = `Leadership Recognition · ${member.full_name}`;
+      const existing = await supabase
+        .from('community_messages')
+        .select('id,created_at,title')
+        .eq('user_id',session.user.id)
+        .eq('post_type','announcement')
+        .eq('title',title)
+        .gte('created_at',history.data.created_at)
+        .order('created_at',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+      if (existing.error) throw existing.error;
+      if (existing.data) {
+        message(result, `${member.full_name} is already recognized for the current advancement.`, 'success');
+        button.textContent = 'Recognized';
+        return;
+      }
+
+      const previous = history.data.previous_rank || 'previous contract level';
+      const body = `Congratulations to ${member.full_name} on advancing from ${previous} to ${member.rank}. DominionStar recognizes this verified leadership milestone and the continued commitment to professional growth, service, and leadership.`;
+      const published = await supabase
+        .from('community_messages')
+        .insert({
+          user_id:session.user.id,
+          title,
+          body,
+          post_type:'announcement',
+          is_pinned:false
+        })
+        .select('id,created_at')
+        .single();
+      if (published.error) throw published.error;
+
+      const verified = await supabase
+        .from('community_messages')
+        .select('id')
+        .eq('id',published.data.id)
+        .maybeSingle();
+      if (verified.error || !verified.data) throw new Error('The recognition post could not be verified after publishing.');
+
+      message(result, `Recognition published for ${member.full_name} · ${member.rank}.`, 'success');
+      button.textContent = 'Recognized';
+    } catch (error) {
+      message(result, error?.message || 'Recognition could not be published.', 'error');
+      button.textContent = 'Recognize';
+    } finally {
+      setTimeout(()=>{button.disabled=false;if(button.textContent==='Recognized')button.textContent='Recognize'},1800);
     }
   }
 
