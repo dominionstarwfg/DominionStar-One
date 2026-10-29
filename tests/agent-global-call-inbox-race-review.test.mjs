@@ -122,7 +122,8 @@ test('Stale timeout cannot dismiss a newer invitation',async()=>{
  await h.emit('incoming-call',offer('sdp-2'));
  assert.equal(h.log.timers.length,2);
  await h.fire(0);
- assert.equal(h.log.storage.size,1);
+ assert.equal(h.log.storage.size,0,'An unanswered invitation must never be handed to Messages');
+ assert.equal(h.log.timers[1].cancelled,false);
  assert.ok(h.log.rings.includes('show:dsGlobalIncomingCall:visible'));
  await h.fire(1);
  assert.equal(h.log.storage.size,0);
@@ -139,7 +140,7 @@ test('Wrong caller and malformed call offers cannot displace a ringing invitatio
  await h.emit('incoming-call',offer());
  assert.equal(h.log.timers.length,1);
  assert.equal(h.log.notifications.length,1);
- assert.equal(h.log.storage.size,1);
+ assert.equal(h.log.storage.size,0,'Ringing alone must not grant a cross-page handoff');
 });
 
 test('Decline hides the overlay immediately even if signaling has not returned',async()=>{
@@ -161,6 +162,7 @@ test('Accept forwards only the currently active invitation and cancels its timer
  assert.match(h.context.location.href,/^\/direct-messages\/\?member=caller&incoming=1$/);
  const stored=JSON.parse(h.log.storage.get('ds_pending_global_call'));
  assert.equal(stored.acceptedFromGlobal,true);
+ assert.ok(Date.now()-stored.acceptedAt < 5000);
  assert.equal(stored.description.sdp,'offer-one');
  assert.equal(h.log.timers[0].cancelled,true);
  assert.ok(h.log.rings.includes('stopAudio'));
@@ -171,6 +173,6 @@ test('Caller cancellation from an unrelated sender or recipient cannot dismiss a
  await h.emit('incoming-call',offer());
  await h.emit('call-cancelled',{from:'unrelated',to:'recipient'});
  await h.emit('call-cancelled',{from:'caller',to:'unrelated'});
- assert.equal(h.log.storage.size,1);
+ assert.equal(h.log.storage.size,0);
  assert.equal(h.log.timers[0].cancelled,false);
 });
