@@ -37,9 +37,13 @@ jobs:
           node --check assets/js/account-settings.js
           node --check assets/js/member-dashboard.js
           node --check sw.js
+          node --check netlify/functions/push-public-key.mjs
+          node --check netlify/functions/process-push-outbox.mjs
+          node --check netlify/functions/scheduled-push-outbox.mjs
       - name: Targeted notification regression
         run: |
           node --test tests/notification-push-readability-review.test.mjs
+          node --test tests/web-push-foundation-review.test.mjs
           node --test tests/agent-notification-meet-isolation-runtime.test.mjs
           node --test tests/security-email-outbox-privilege-gate.test.mjs
           node --test tests/notification-rpc-hardening-review.test.mjs
@@ -57,4 +61,5 @@ jobs:
         shell: bash
         run: |
           grep -Fq 'DO NOT RUN' scripts/security/notification-read-state.DO-NOT-RUN.review.sql
-          ! grep -R --line-number --exclude='notification-readability-review-gate.yml' -E 'supabase db|psql .*notification-read-state|apply_migration' .github/workflows
+          grep -Fq 'DO NOT RUN' scripts/security/web-push-foundation.DO-NOT-RUN.review.sql
+          ! grep -R --line-number --exclude='notification-readability-review-gate.yml' -E 'supabase db|psql .*notification-read-state|psql .*web-push-foundation|apply_migration' .github/workflows
