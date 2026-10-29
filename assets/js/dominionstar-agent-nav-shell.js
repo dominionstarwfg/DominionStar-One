@@ -99,8 +99,12 @@
     link.innerHTML=svg(key)+'<span></span>';link.lastElementChild.textContent=name;nav.appendChild(link);
   }
   shell.append(head,nav);
-  if(app.id==='dmApp') app.parentNode.insertBefore(shell,app);
-  else app.prepend(shell);
+  if(app.id==='dmApp'){
+    shell.classList.toggle('member-hidden',app.classList.contains('member-hidden'));
+    app.parentNode.insertBefore(shell,app);
+    new MutationObserver(()=>shell.classList.toggle('member-hidden',app.classList.contains('member-hidden')))
+      .observe(app,{attributes:true,attributeFilter:['class']});
+  } else app.prepend(shell);
 
   const indicator=document.createElement('div');indicator.className='ds-agent-progress';indicator.setAttribute('aria-hidden','true');indicator.innerHTML='<span></span>';document.body.appendChild(indicator);
   const clear=()=>indicator.setAttribute('aria-hidden','true');window.addEventListener('pageshow',clear);window.addEventListener('pagehide',clear);
