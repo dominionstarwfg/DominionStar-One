@@ -38,6 +38,10 @@ on:
       - 'assets/js/release-check.js'\n      - 'assets/js/founder-control.js'
       - 'netlify/functions/founder-data.mjs'
       - 'tests/authenticated-os-consistency-review.test.mjs'\n      - 'tests/founder-os-integrity-review.test.mjs'
+      - 'workspace/**'
+      - 'assets/js/agent-tool-gate.js'
+      - 'assets/js/dominionstar-os.js'
+      - 'tests/workspace-retirement-review.test.mjs'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   workflow_dispatch:
 
@@ -61,6 +65,8 @@ jobs:
           node --check assets/js/agent-learning.js
           node --check assets/js/notifications-center.js
           node --check assets/js/release-check.js\n          node --check assets/js/founder-control.js
+          node --check assets/js/agent-tool-gate.js
+          node --check assets/js/dominionstar-os.js
           node --check founder-dashboard/founder-dashboard.js
           node --check netlify/functions/founder-data.mjs
       - name: Authenticated OS consistency
