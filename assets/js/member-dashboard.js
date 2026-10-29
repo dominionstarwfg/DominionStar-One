@@ -77,46 +77,41 @@
 
   let { data: profile, error: profileError } = await withTimeout(fetchProfile());
 
-  const founderLink = document.getElementById('founderControlLink');
-  const founderEmails = ['dominionstarld@gmail.com', 'dominionstarwfg@gmail.com'];
-  if (
-    profile?.is_founder ||
-    profile?.role === 'founder' ||
-    founderEmails.includes(user.email?.toLowerCase())
-  ) {
-    founderLink?.classList.remove('member-hidden');
-  }
-
   if (profileError || !profile) {
     statusEl.textContent = 'Profile unavailable';
     statusEl.className = 'member-status pending';
     return;
   }
 
-  // Guarantee an assigned #1–#20 number for Founding Members.
-  if (
-    profile.founding_member === true &&
-    !profile.exclusive_member_number
-  ) {
-    const assigned = await supabase.rpc('ensure_my_founding_member_number');
-    if (!assigned.error && assigned.data) {
-      profile.exclusive_member_number = assigned.data;
-    }
-  }
+  // Display identity from the authenticated member profile, never demo data.
+  const displayName = String(
+    profile.preferred_name || profile.full_name || 'Member'
+  ).trim() || 'Member';
+  const fullName = String(profile.full_name || displayName).trim() || 'Member';
+  const firstName = displayName.split(/\s+/)[0] || 'Member';
+  const contractLevel = String(profile.rank || '').trim() || '—';
+  const contractLevelText = `Contract Level: ${contractLevel}`;
+  const setIdentityText = (id, value) => {
+    const node = document.getElementById(id);
+    if (node) node.textContent = value;
+  };
 
-  const displayName =
-    profile.preferred_name || profile.full_name || user.email || 'Member';
-  const fullName = profile.full_name || displayName;
+  setIdentityText('dashboardIdentityName', fullName);
+  setIdentityText('topbarMemberName', fullName);
+  setIdentityText('heroMemberName', firstName);
+  setIdentityText('heroProfileFullName', fullName);
+  setIdentityText('dashboardIdentityRank', contractLevelText);
+  setIdentityText('topbarContractLevel', contractLevelText);
+  setIdentityText('heroContractLevel', contractLevelText);
+  // Render visible identity immediately. Permission lookups must never hold up
+  // the authenticated member greeting or contract level.
+  const founderLink = document.getElementById('founderControlLink');
+  Promise.resolve().then(() => withTimeout(supabase.rpc('is_dominionstar_founder'), 5000))
+    .then(permission => {
+      if (!permission.error && permission.data === true) founderLink?.classList.remove('member-hidden');
+    })
+    .catch(() => { /* Fail closed: Founder tools stay hidden. */ });
 
-  document.getElementById('dashboardIdentityName').textContent = displayName;
-  const topbarName = document.getElementById('topbarMemberName');
-  const heroName = document.getElementById('heroMemberName');
-  if (topbarName) topbarName.textContent = displayName;
-  if (heroName) heroName.textContent = displayName.split(' ')[0] || displayName;
-  document.getElementById('dashboardIdentityRank').textContent =
-    `Contract Level: ${profile.rank || 'TA'}`;
-  const topbarRank = document.getElementById('topbarContractLevel');
-  if (topbarRank) topbarRank.textContent = profile.rank || 'TA';
   document.getElementById('dashboardIdentityCode').textContent =
     `Agent Code: ${profile.agent_code || '—'}`;
 
@@ -139,49 +134,89 @@
     }
   }
 
-  if (smdElement) {
-    if (profile.smd_name) {
-      smdElement.textContent = `SMD: ${profile.smd_name}`;
-      smdElement.classList.remove('member-hidden');
-    } else {
-      smdElement.classList.add('member-hidden');
-    }
+  // Use a real profile image only when Storage authorizes a signed URL.
+  // Missing, revoked or broken photos show member initials, never a company logo.
+  const initials = fullName.split(/\s+/).filter(Boolean)
+    .slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase() || 'DS';
+  for (const id of ['dashboardAvatarInitials','heroProfileInitials','dashboardIdentityInitials']) {
+    setIdentityText(id, initials);
   }
-
+  const avatarPairs = [
+    ['dashboardAvatar','dashboardAvatarInitials'],
+    ['heroProfileAvatar','heroProfileInitials'],
+    ['dashboardIdentityAvatar','dashboardIdentityInitials']
+  ];
+  const renderAvatar = signedUrl => {
+    for (const [imageId,fallbackId] of avatarPairs) {
+      const img = document.getElementById(imageId);
+      const fallback = document.getElementById(fallbackId);
+      if (!img || !fallback) continue;
+      img.classList.add('member-hidden');
+      fallback.classList.remove('member-hidden');
+      img.removeAttribute('src');
+      if (!signedUrl) continue;
+      const onBrokenImage = () => {
+        img.classList.add('member-hidden');
+        fallback.classList.remove('member-hidden');
+        img.removeAttribute('src');
+      };
+      img.onerror = onBrokenImage;
+      img.onload = () => {
+        img.classList.remove('member-hidden');
+        fallback.classList.add('member-hidden');
+      };
+      img.src = signedUrl;
+    }
+  };
+  renderAvatar(null);
   if (profile.avatar_path) {
-    const avatarResult = await supabase.storage
-      .from('member-avatars')
-      .createSignedUrl(profile.avatar_path, 3600);
-    if (avatarResult.data?.signedUrl) {
-      document.getElementById('dashboardAvatar').src = avatarResult.data.signedUrl;
-      const identityAvatar = document.getElementById('dashboardIdentityAvatar');
-      if (identityAvatar) identityAvatar.src = avatarResult.data.signedUrl;
-    }
+    // A slow or missing avatar must not delay the feed or greeting.
+    Promise.resolve()
+      .then(() => withTimeout(supabase.storage.from('member-avatars').createSignedUrl(profile.avatar_path, 3600), 5000))
+      .then(result => {
+        if (!result.error && result.data?.signedUrl) renderAvatar(result.data.signedUrl);
+      })
+      .catch(() => { /* Keep visible initials instead of a broken image. */ });
   }
-
-  const foundingNumber = Number(profile.exclusive_member_number);
-  const hasValidFoundingNumber =
-    profile.founding_member === true &&
-    Number.isInteger(foundingNumber) &&
-    foundingNumber >= 1 &&
-    foundingNumber <= 20;
 
   const dashboardBadge = document.getElementById('dashboardBadge');
   const numberSeal = document.getElementById('dashboardFoundingNumber');
-  const heroBadge = document.querySelector('.founding-member-badge');
-
-  if (hasValidFoundingNumber) {
-    const badgeText = `Founding Member #${foundingNumber}`;
-    dashboardBadge.textContent = badgeText;
-    dashboardBadge.classList.remove('member-hidden');
-    numberSeal.textContent = `#${foundingNumber}`;
-    numberSeal.title = `DominionStar Founding Member ${foundingNumber} of 20`;
-    numberSeal.classList.remove('member-hidden');
-    if (heroBadge) heroBadge.textContent = badgeText;
-  } else {
-    dashboardBadge?.classList.add('member-hidden');
-    numberSeal?.classList.add('member-hidden');
-    if (heroBadge) heroBadge.textContent = 'DominionStar Member';
+  const heroBadge = document.getElementById('heroFoundingBadge');
+  const topbarFoundingBadge = document.getElementById('topbarFoundingBadge');
+  const updateFoundingIdentity = () => {
+    const foundingNumber = Number(profile.exclusive_member_number);
+    const isFoundingMember = profile.founding_member === true;
+    const hasValidFoundingNumber = isFoundingMember &&
+      Number.isInteger(foundingNumber) && foundingNumber >= 1 && foundingNumber <= 20;
+    const foundingText = isFoundingMember
+      ? (hasValidFoundingNumber ? `Founding Member #${String(foundingNumber).padStart(2,'0')}` : 'Founding Member')
+      : '';
+    for (const el of [dashboardBadge,heroBadge,topbarFoundingBadge]) {
+      if (!el) continue;
+      el.textContent = foundingText;
+      el.classList.toggle('member-hidden', !isFoundingMember);
+    }
+    if (numberSeal) {
+      if (hasValidFoundingNumber) {
+        numberSeal.textContent = `#${String(foundingNumber).padStart(2,'0')}`;
+        numberSeal.title = `DominionStar Founding Member ${foundingNumber} of 20`;
+      }
+      numberSeal.classList.toggle('member-hidden', !hasValidFoundingNumber);
+    }
+  };
+  // Immediately show the verified flag. Assign a missing founding number in
+  // the background; never withhold the member's greeting or avatar to do so.
+  updateFoundingIdentity();
+  if (profile.founding_member === true && !profile.exclusive_member_number) {
+    Promise.resolve().then(() => withTimeout(supabase.rpc('ensure_my_founding_member_number'), 5000))
+      .then(result => {
+        const number=Number(result.data);
+        if (!result.error && Number.isInteger(number) && number>=1 && number<=20) {
+          profile.exclusive_member_number=number;
+          updateFoundingIdentity();
+        }
+      })
+      .catch(() => { /* Retain Founding Member label until a number is available. */ });
   }
 
   const status = profile.verification_status || 'pending';
@@ -256,18 +291,26 @@
 
   const approvedContent = document.getElementById('approvedMemberContent');
   const pendingContent = document.getElementById('pendingMemberContent');
+  const socialGateway = document.getElementById('dsosSocialGateway');
+  const communitySection = document.getElementById('dsosCommunitySection');
   if (status === 'approved') {
+    socialGateway?.classList.remove('member-hidden');
+    communitySection?.classList.remove('member-hidden');
     approvedContent?.classList.remove('member-hidden');
     pendingContent?.classList.add('member-hidden');
   } else {
     approvedContent?.classList.add('member-hidden');
     pendingContent?.classList.remove('member-hidden');
+    socialGateway?.classList.add('member-hidden');
+    communitySection?.classList.add('member-hidden');
   }
 
+  // First-visit-safe greeting: use the member's current local clock, not a
+  // stored visit count or a potentially stale login flag.
   const greetingHour = new Date().getHours();
   const greetingText = greetingHour < 12
     ? 'Good morning'
-    : greetingHour < 18
+    : greetingHour < 17
       ? 'Good afternoon'
       : 'Good evening';
   const greetingElement = document.getElementById('memberGreeting');
@@ -357,59 +400,42 @@
     }
   }
 
+
   async function loadDashboardCommunity() {
     const target = document.getElementById('dashboardCommunityPreview');
     if (!target) return;
-
     try {
-      // The RPC provides author details without relying on PostgREST relationship cache.
-      const result = await withTimeout(
-        supabase.rpc('list_community_feed', { result_limit: 3 })
-      );
-
-      if (result.error) throw result.error;
-
-      if (!result.data?.length) {
-        target.innerHTML = `
-          <div class="dashboard-empty-compact">
-            <strong>The community is ready for your voice.</strong>
-            <p>Start a professional discussion or share a milestone.</p>
-            <a class="btn btn-outline" href="/community/">Open Community</a>
-          </div>`;
-        return;
+      if (!window.DSDashboardSocial?.mount) {
+        throw new Error('Social feed module is unavailable.');
       }
-
-      target.innerHTML = result.data.map(item => {
-        const authorName =
-          item.author_preferred_name ||
-          item.author_full_name ||
-          'DominionStar Member';
-        const body = String(item.description || '');
-        const excerpt = body.length > 105 ? `${body.slice(0,105)}…` : body;
-        const authorBadge =
-          item.author_exclusive_number >= 1 &&
-          item.author_exclusive_number <= 20
-            ? ` · Founding #${item.author_exclusive_number}`
-            : '';
-
-        return `
-          <a class="dashboard-community-preview-item" href="/community/">
-            <div>
-              <span>${escapeHtml(item.post_type || 'discussion')}</span>
-              <strong>${escapeHtml(item.title || excerpt || 'Community update')}</strong>
-              <small>${escapeHtml(authorName)}${escapeHtml(authorBadge)} · ${new Date(item.created_at).toLocaleDateString()}</small>
-            </div>
-          </a>`;
-      }).join('');
+      // Only approved members arrive here; server RLS is still authoritative.
+      await withTimeout(window.DSDashboardSocial.mount({
+        client: supabase,
+        memberId: user.id,
+        target
+      }));
     } catch (error) {
-      target.innerHTML = `
-        <div class="dashboard-empty-compact dashboard-load-error">
-          <strong>Community Pulse could not load.</strong>
-          <p>${escapeHtml(error.message)}</p>
-          <button class="btn btn-outline" type="button" onclick="location.reload()">Retry</button>
-        </div>`;
+      target.innerHTML = '<div class="dashboard-empty-compact dashboard-load-error">' +
+        '<strong>Community feed could not load.</strong><p>' +
+        escapeHtml(error.message) + '</p>' +
+        '<a href="/community/">Open Community →</a></div>';
     }
   }
+
+  // Never trust a notification payload URL as an href without same-origin checks.
+  const safeNotificationHref = candidate => {
+    if (typeof candidate !== 'string' ||
+        !candidate.startsWith('/') || candidate.startsWith('//') ||
+        candidate.includes('\\')) return '/notifications/';
+    try {
+      const parsed = new URL(candidate, window.location.origin);
+      return parsed.origin === window.location.origin
+        ? parsed.pathname + parsed.search + parsed.hash
+        : '/notifications/';
+    } catch (_error) {
+      return '/notifications/';
+    }
+  };
 
   const notificationBell = document.getElementById('notificationBell');
   const notificationPanel = document.getElementById('notificationPanel');
@@ -425,12 +451,14 @@
             .select('id', { count:'exact', head:true })
             .eq('is_active', true)
         ),
-        withTimeout(
-          supabase
-            .from('community_messages')
-            .select('id', { count:'exact', head:true })
-            .eq('is_deleted', false)
-        ),
+        status === 'approved'
+          ? withTimeout(
+              supabase
+                .from('community_messages')
+                .select('id', { count:'exact', head:true })
+                .eq('is_deleted', false)
+            )
+          : Promise.resolve({ data: null, error: null, count: null }),
         withTimeout(
           supabase
             .from('executive_events')
@@ -441,14 +469,36 @@
         )
       ]);
 
+      document.getElementById('activityAnnouncements').textContent =
+        announcements.error ? '—' : (announcements.count ?? 0);
+      document.getElementById('activityMessages').textContent =
+        status !== 'approved' || messages.error ? '—' : (messages.count ?? 0);
+
+      if (notificationsResult.error) {
+        document.getElementById('activityNotifications').textContent = '—';
+        notificationCount?.classList.add('member-hidden');
+        const panelStatus = document.getElementById('notificationPanelStatus');
+        if (panelStatus) panelStatus.textContent = 'Notifications unavailable';
+        notificationList.textContent = 'Notifications could not be loaded. Try again later.';
+        const preview = document.getElementById('dsosNotificationPreview');
+        if (preview) preview.textContent = 'Notifications unavailable.';
+        return;
+      }
+
       const notifications = notificationsResult.data || [];
       const unread = notifications.filter(item => !item.read_at).length;
+      const unreadMessages = notifications.filter(item =>
+        !item.read_at && typeof item.event_type === 'string' &&
+        item.event_type.startsWith('message.')
+      ).length;
+      const messageBadge = document.getElementById('sidebarUnreadMessages');
+      const messageLink = document.querySelector('.ds30-messages-nav');
+      if (messageBadge) {
+        messageBadge.textContent = unreadMessages > 99 ? '99+' : String(unreadMessages);
+        messageBadge.classList.toggle('member-hidden', unreadMessages === 0);
+      }
+      messageLink?.classList.toggle('ds30-has-unread', unreadMessages > 0);
       window.CommunicationEngine?.setBadge(unread);
-
-      document.getElementById('activityAnnouncements').textContent =
-        announcements.count || 0;
-      document.getElementById('activityMessages').textContent =
-        messages.count || 0;
       document.getElementById('activityNotifications').textContent = unread;
 
       if (unread) {
@@ -465,7 +515,7 @@
 
       notificationList.innerHTML = notifications.length
         ? notifications.map(item => {
-            const destination = item.payload?.action_url || '/notifications/';
+            const destination = safeNotificationHref(item.payload?.action_url);
             return `
               <a class="notification-item ${item.read_at ? 'read' : 'unread'}"
                  href="${escapeHtml(destination)}"
@@ -485,7 +535,7 @@
         preview.innerHTML = notifications.length
           ? notifications.slice(0, 3).map(item => `
               <a class="dsos-notice ${item.read_at ? '' : 'unread'}"
-                 href="${escapeHtml(item.payload?.action_url || '/notifications/')}">
+                 href="${escapeHtml(safeNotificationHref(item.payload?.action_url))}">
                 <strong>${escapeHtml(item.title || 'Update')}</strong>
                 <span>${escapeHtml(item.description || '')}</span>
               </a>`).join('')
@@ -498,8 +548,12 @@
     }
   }
 
-  const dashboardSession = (await supabase.auth.getSession()).data.session;
-  if (dashboardSession) await window.CommunicationEngine?.init({client:supabase, session:dashboardSession});
+  // Member communications are restricted to Founder-approved agents.
+  // Do not start the communications engine for pending/revoked profiles.
+  if (status === 'approved' && String(profile.agent_code || '').trim()) {
+    const dashboardSession = (await supabase.auth.getSession()).data.session;
+    if (dashboardSession) await window.CommunicationEngine?.init({client:supabase, session:dashboardSession});
+  }
 
   // Panel visibility is controlled exclusively by dominionstar-os.js.
   // Keeping a single controller prevents the backdrop from remaining visible
@@ -556,7 +610,7 @@
   await Promise.allSettled([
     loadAnnouncements(),
     loadDashboardAppointments(),
-    loadDashboardCommunity(),
+    status === 'approved' ? loadDashboardCommunity() : Promise.resolve(),
     loadExecutiveActivity()
   ]);
 

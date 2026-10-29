@@ -5,8 +5,11 @@
 <meta name="robots" content="noindex,nofollow">
 <title>DominionStar Community Hub</title>
 <link rel="stylesheet" href="/styles.css?v=8.0-genesis-rc5e">
+<link rel="stylesheet" href="/assets/css/community-social-executive-review.css?v=review-1">
+<link rel="stylesheet" href="/assets/css/community-media-draft-review.css?v=review-1">
 <link rel="icon" href="/assets/logo.jpeg">
 <script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e"></script><script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e"></script>
+<link rel="stylesheet" href="/assets/css/dominionstar-agent-nav-shell.css?v=review-1">
 </head>
 <body class="founder-body">
 <main class="member-dashboard">
@@ -33,28 +36,51 @@
 <section class="community-main-column">
 <article class="member-panel community-composer-card">
 <div class="community-composer-heading">
-<div><p class="eyebrow">Create a Post</p><h2>Share with the community</h2></div>
+<div><p class="eyebrow">Your professional community</p><h2>Share an update</h2></div>
 <span id="communityLiveStatus">Connecting…</span>
 </div>
 
 <form id="communityPostForm" class="community-post-form">
-<div class="member-grid">
-<label>Post Type
-<select name="post_type">
-<option value="discussion">Discussion</option>
-<option value="question">Question</option>
-<option value="milestone">Milestone</option>
-<option value="announcement" id="founderAnnouncementOption" class="member-hidden">Founder Announcement</option>
-</select>
-</label>
-<label>Title <span class="optional-label">Optional</span>
-<input name="title" maxlength="120" placeholder="Give your post a clear title">
-</label>
+<div class="dsmedia-composer-top">
+  <div class="dsmedia-author-glyph" aria-hidden="true">
+    <span id="communityComposerInitials">DS</span>
+    <img id="communityComposerAvatar" class="member-hidden" alt="">
+  </div>
+  <div class="dsmedia-caption">
+    <div class="dsmedia-member-identity">
+      <strong id="communityComposerName">Your professional profile</strong>
+      <div class="dsmedia-member-credentials">
+        <span id="communityComposerRank">Contract Level: —</span>
+        <span id="communityComposerFounding" class="dsmedia-founding-badge member-hidden"></span>
+      </div>
+    </div>
+    <label for="dsmediaCaption" class="dsmedia-caption-label">Create a post</label>
+    <textarea id="dsmediaCaption" name="body" rows="4" maxlength="2000" required placeholder="Share an update, a thought, or a milestone with your team…"></textarea>
+  </div>
 </div>
-
-<label>Message
-<textarea name="body" rows="5" maxlength="2000" required placeholder="Share an update, question, milestone, or encouragement. Use @Full Name to mention someone."></textarea>
-</label>
+<details class="dsmedia-post-options">
+  <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg> Post settings <span>(optional)</span></summary>
+  <div class="member-grid">
+    <label>Post Type
+      <select name="post_type"><option value="discussion">Discussion</option><option value="question">Question</option><option value="milestone">Milestone</option><option value="announcement" id="founderAnnouncementOption" class="member-hidden">Founder Announcement</option></select>
+    </label>
+    <label>Title <span class="optional-label">Optional</span>
+      <input name="title" maxlength="120" placeholder="Add a headline">
+    </label>
+  </div>
+</details>
+<section id="communityMediaDraft" class="dsmedia-draft" aria-label="Attach media to a draft post">
+  <div class="dsmedia-action-row">
+    <button type="button" class="dsmedia-attach-button" data-draft-attach aria-label="Attach a photo, flyer or video">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12 20.5a6 6 0 0 1-8.5-8.5l9.8-9.8a4 4 0 0 1 5.7 5.7l-9.9 9.9a2 2 0 0 1-2.8-2.8l9.2-9.2"/></svg>
+      Attach files
+    </button>
+    <span class="dsmedia-attach-hint">Photos, flyers, or videos · choose any supported file</span>
+  </div>
+  <input type="file" data-draft-file-input multiple hidden aria-label="Choose files for local preview" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4,video/webm">
+  <div class="dsmedia-tray" data-draft-tray aria-live="polite"></div>
+  <p class="dsmedia-note" data-draft-note role="status" aria-live="polite">Local preview only. Secure media publishing is not enabled.</p>
+</section>
 
 <div class="community-composer-actions">
 <label id="pinPostControl" class="member-inline-check member-hidden">
@@ -62,7 +88,7 @@
 </label>
 <button id="communityPostSubmit" class="btn btn-gold" type="submit">Publish Post</button>
 </div>
-<div id="communityPostResult" class="member-message"></div>
+<div id="communityPostResult" class="member-message" role="status" aria-live="polite"></div>
 </form>
 </article>
 
@@ -126,7 +152,9 @@
 <script src="/assets/js/data-layer.js?v=8.0-genesis-rc5e"></script>
 <script src="/assets/js/member-auth.js?v=8.0-genesis-rc5e"></script>
 <script src="/assets/js/community-hub.js?v=8.1-system-actions"></script>
+<script src="/assets/js/community-media-draft-review.js?v=review-1"></script>
 <script src="/assets/js/aurora-ui.js?v=8.0-genesis-rc5e"></script>
 <script src="/assets/js/community-2.js?v=8.0-genesis-rc5e"></script>
+<script src="/assets/js/dominionstar-agent-nav-shell.js?v=review-1"></script>
 </body>
 </html>

@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Netlify deploy/branch previews must never inherit the production Supabase
+# backend. A separate staging Netlify site's "production" context is also
+# possible: inspect its Git branch, not just the Netlify deploy context.
+# The verified public repository's production branch is "main".
+# Never enable a non-main Netlify build without approved isolated staging.
+if [[ "${CONTEXT:-}" == "deploy-preview" ||
+      "${CONTEXT:-}" == "branch-deploy" ||
+      ( -n "${BRANCH:-}" && "${BRANCH}" != "main" &&
+        ( "${NETLIFY:-}" == "true" || "${CONTEXT:-}" == "production" ) ) ||
+      ( -n "${DOMINIONSTAR_STAGING_NETLIFY_SITE_ID:-}" &&
+        "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ) ]]; then
+  if [[ "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ]]; then
+    echo "ERROR: preview blocked until isolated Netlify/Supabase staging is configured." >&2
+    exit 47
+  fi
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="$ROOT/public-dist"
 MEET_SOURCE="$ROOT/meet-desktop/ui"
@@ -77,6 +94,10 @@ mkdir -p "$DIST"
 rsync -a "$ROOT/" "$DIST/" \
   --exclude '.git/' \
   --exclude '.github/' \
+  --exclude '.env' \
+  --exclude '.env.*' \
+  --exclude 'tests/' \
+  --exclude 'netlify.toml' \
   --exclude 'public-dist/' \
   --exclude 'rebuild-dist/' \
   --exclude 'meet-desktop/' \
@@ -178,9 +199,16 @@ for rel in \
 done
 grep -Fq '<section class="section section-light" id="learn">' "$DIST/financial-services/learning-lab/index.html"
 grep -Fq 'negative index change generally does not create a negative interest credit' "$DIST/financial-services/indexed-universal-life/index.html"
-for route in /academy/ /platform/ /journey/; do
+for route in /academy/ /platform/; do
   grep -Fq "$route " "$DIST/_redirects"
 done
+# The Journey page is a real published route, not a redirect to Opportunity.
+test -s "$DIST/journey/index.html"
+if grep -Eq '^/journey/ +/opportunity/ ' "$DIST/_redirects"; then
+  echo "ERROR: Journey page would be shadowed by a stale redirect." >&2
+  exit 46
+fi
+grep -Fq '/journey /journey/ 301!' "$DIST/_redirects"
 # Reject legacy conversion-page templates when building the production website.
 grep -Fq 'name="dominionstar-join"' "$DIST/join/index.html"
 grep -Fq 'name="dominionstar-qualified-appointment"' "$DIST/schedule/index.html"
@@ -230,5 +258,16 @@ grep -Fq 'DominionStar Meet' "$MEET_DIST/index.html"
 test ! -e "$DIST/meet-desktop"
 test ! -e "$DIST/rebuild-dist"
 
+# Block accidental activation of gated web Agent Dashboard features before
+# publishing any Netlify output, including isolated review/staging packages.
+node "$ROOT/scripts/check-agent-release-gates.mjs" "$DIST"
+
 echo "DOMINIONSTAR_PUBLIC_ROOT_OK"
 echo "DOMINIONSTAR_BROWSER_MEET_ROUTE_OK /meet/"
+
+# This rewrites ONLY the packaged browser clients, never the shared source.
+# It validates actual Netlify site identity and separate Supabase credentials.
+if [[ "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" == "STAGING_ONLY" ]]; then
+  node "$ROOT/scripts/prepare-isolated-staging.mjs"
+  echo "DOMINIONSTAR_STAGING_BACKEND_ISOLATED_OK"
+fi

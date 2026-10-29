@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#091c35">
+<title>Choose a New Password | DominionStar</title>
+<link rel="icon" href="/assets/logo.jpeg">
+<link rel="stylesheet" href="/styles.css?v=7.0">
+<link rel="stylesheet" href="/assets/css/member-login-executive-v1.css">
+<script src="/assets/js/runtime-safety.js?v=7.0"></script>
+<script src="/assets/js/platform-core.js?v=7.0"></script>
+</head>
+<body class="login2">
+<main class="login2-shell">
+<div class="login2-stage">
+  <section class="login2-brand" aria-label="About DominionStar">
+    <a class="login2-identity" href="/">
+      <img src="/assets/logo.jpeg" width="47" height="47" alt="">
+      <span><strong>DominionStar</strong><small>Leadership Development</small></span>
+    </a>
+    <div>
+      <p class="login2-kicker">Account Security</p>
+      <h1>Secure access. <em>Confident progress.</em></h1>
+      <p class="login2-intro">Choose a new password for your existing DominionStar account. Founder approval rules remain unchanged.</p>
+    </div>
+    <div class="login2-brand-bottom">Only links issued through DominionStar's account recovery process should open the password update form.</div>
+  </section>
+  <section class="login2-auth" aria-labelledby="recoveryTitle">
+    <p class="login2-auth-eyebrow">Account Recovery</p>
+    <h2 id="recoveryTitle">Update your password.</h2>
+    <p class="login2-auth-lede">We will verify the password-reset link before allowing a change.</p>
+    <div id="recoveryMessage" class="member-message show" role="status" aria-live="polite">Checking recovery link…</div>
+    <form id="recoveryPasswordForm" class="login2-form" hidden>
+      <label>New password<input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label>
+      <label>Confirm new password<input name="confirm_password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label>
+      <button id="recoverySubmit" type="submit">Update password</button>
+      <p class="login2-form-note">Use at least 12 characters. Keep the password private and unique.</p>
+    </form>
+    <div class="login2-links"><a href="/member-login/">← Back to sign in</a></div>
+    <div class="login2-security">Never share recovery links, passwords, or one-time codes with anyone.</div>
+  </section>
+</div>
+</main>
+<footer class="login2-footer">DominionStar Leadership Development · Secure Account Recovery</footer>
+<script src="/assets/js/supabase-config.js?v=7.0"></script>
+<script src="/assets/js/member-auth.js"></script>
+<script src="/assets/js/member-recovery.js?v=login2-review-20261019"></script>
+</body>
+</html>

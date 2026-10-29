@@ -4,12 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>Settings | DominionStar</title>
+    <title>Agent Settings | DominionStar Executive OS</title>
     <link rel="stylesheet" href="/styles.css?v=2026.08.12-rc12.24.1" />
     <link rel="icon" href="/assets/logo.jpeg" />
     <script src="/assets/js/runtime-safety.js"></script>
     <script src="/assets/js/platform-core.js"></script>
-  </head>
+  <link rel="stylesheet" href="/assets/css/dominionstar-agent-nav-shell.css?v=review-1">
+  <link rel="stylesheet" href="/assets/css/account-google-identity-review.css?v=review-1">
+  <link rel="stylesheet" href="/assets/css/agent-settings-boundary-review.css?v=review-1">
+</head>
   <body class="founder-body">
     <main class="member-dashboard settings-center">
       <section id="settingsGate" class="member-card">
@@ -20,10 +23,10 @@
         <header class="member-dashboard-header rc5-member-header">
           <div>
             <span class="production-stable-pill">Command Center</span>
-            <h1>Settings</h1>
+            <h1>Agent Settings</h1>
             <p>
-              One place for account, meeting, communication, notification, and
-              privacy defaults.
+              Manage your agent profile, appearance, communications,
+              account privacy, and security. DominionStar Meet has its own settings.
             </p>
           </div>
           <div class="member-dashboard-actions">
@@ -36,11 +39,8 @@
         <div class="settings-layout">
           <nav class="settings-nav" aria-label="Settings sections">
             <button class="active" data-settings-tab="system">System</button
-            ><button data-settings-tab="audio-video">Audio &amp; Video</button
             ><button data-settings-tab="messages">Messages</button
             ><button data-settings-tab="notifications">Notifications</button
-            ><button data-settings-tab="meeting-defaults">
-              Meeting Defaults</button
             ><button data-settings-tab="privacy-security">
               Privacy &amp; Security</button
             ><button data-settings-tab="sessions">Sessions</button>
@@ -68,20 +68,6 @@
                 role="status"
               ></div>
             </section>
-            <section class="settings-panel" data-settings-panel="audio-video">
-              <p class="eyebrow">Audio &amp; Video</p>
-              <h2>Device defaults</h2>
-              <div id="mediaSwitches"></div>
-              <p class="settings-note">
-                Camera and microphone selection remains available in meeting
-                preview and during a live meeting.
-              </p>
-              <div
-                id="mediaResult"
-                class="settings-save-state"
-                role="status"
-              ></div>
-            </section>
             <section class="settings-panel" data-settings-panel="messages">
               <p class="eyebrow">Messages</p>
               <h2>Message delivery</h2>
@@ -101,20 +87,6 @@
               </button>
               <div
                 id="notificationsResult"
-                class="settings-save-state"
-                role="status"
-              ></div>
-            </section>
-            <section
-              class="settings-panel"
-              data-settings-panel="meeting-defaults"
-            >
-              <p class="eyebrow">Meeting Defaults</p>
-              <h2>How meetings begin</h2>
-              <div id="meetingSwitches"></div>
-              <a class="btn btn-outline" href="/meet-home/">Open Meet home</a>
-              <div
-                id="meetingResult"
                 class="settings-save-state"
                 role="status"
               ></div>
@@ -145,6 +117,17 @@
                   Update Password
                 </button>
               </form>
+              <section id="googleIdentitySettings" class="ds-google-identity member-hidden" aria-label="Connected sign-in methods">
+                <div class="ds-google-identity-heading">
+                  <div class="ds-google-identity-mark" aria-hidden="true">G</div>
+                  <div>
+                    <h3>Google account access</h3>
+                    <p>Connect Google to your existing, Founder-approved DominionStar membership. Your Agent Code and permissions stay unchanged.</p>
+                  </div>
+                </div>
+                <button id="googleLinkAccount" class="btn btn-outline" type="button">Connect Google</button>
+                <p id="googleLinkStatus" role="status" aria-live="polite"></p>
+              </section>
               <div
                 id="securityResult"
                 class="settings-save-state"
@@ -174,6 +157,18 @@
             </section>
           </div>
         </div>
+        <section class="ds-agent-meet-bridge" aria-labelledby="agentMeetBridgeHeading">
+          <div class="ds-agent-meet-symbol" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="13" height="14" rx="2"/><path d="m15.5 10 6-3v10l-6-3"/></svg>
+          </div>
+          <div class="ds-agent-meet-bridge-copy">
+            <p class="eyebrow">Separate workspace</p>
+            <h2 id="agentMeetBridgeHeading">Looking for meeting settings?</h2>
+            <p>Microphones, cameras, speaker selection, joining preferences, screen sharing, and recordings are managed inside DominionStar Meet—not Agent Settings.</p>
+            <a class="btn btn-outline" href="/meet/">Open DominionStar Meet</a>
+            <span>Choose <strong>Settings</strong> inside Meet.</span>
+          </div>
+        </section>
       </section>
     </main>
     <script src="/assets/js/supabase-config.js"></script>
@@ -181,5 +176,8 @@
     <script src="/assets/js/member-auth.js"></script>
     <script src="/assets/js/communication-engine.js"></script>
     <script src="/assets/js/account-settings.js?v=2026.08.12-rc12.24.1"></script>
-  </body>
+    <script src="/assets/js/member-login-google-flags.js?v=review-2"></script>
+    <script src="/assets/js/account-google-identity-review.js?v=review-1"></script>
+  <script src="/assets/js/dominionstar-agent-nav-shell.js?v=review-1"></script>
+</body>
 </html>

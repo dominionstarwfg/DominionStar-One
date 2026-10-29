@@ -381,7 +381,7 @@
   }
 
   async function loadMembers() {
-    memberRows.innerHTML = '<tr><td colspan="9">Loading members…</td></tr>';
+    memberRows.innerHTML = '<tr><td colspan="10">Loading members…</td></tr>';
 
     const { data, error } = await supabase
       .from('member_profiles')
@@ -389,7 +389,7 @@
       .order('joined_at', { ascending: false });
 
     if (error) {
-      memberRows.innerHTML = `<tr><td colspan="9">${esc(error.message)}</td></tr>`;
+      memberRows.innerHTML = `<tr><td colspan="10">${esc(error.message)}</td></tr>`;
       return;
     }
 
@@ -445,11 +445,28 @@
           </select>
         </td>
         <td><label class="exclusive-toggle"><input class="founder-checkbox founding-check" type="checkbox" ${member.founding_member?'checked':''} ${lockedFounder ? 'disabled' : ''}><span>${member.exclusive_member_number ? `#${member.exclusive_member_number}` : 'Badge'}</span></label></td>
+        <td><label class="exclusive-toggle" title="Optional: publish a verified rank advancement to the community after saving"><input class="founder-checkbox recognition-check" type="checkbox" disabled aria-label="Recognize a contract-level advancement for ${esc(member.preferred_name||member.full_name)}"><span>Recognize</span></label></td>
         <td><input class="founder-notes notes-input" value="${esc(member.account_notes || '')}" placeholder="Private note"></td>
         <td><button class="btn btn-gold save-member" type="button">${lockedFounder ? 'Save Note' : 'Save Changes'}</button></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="9">No matching members.</td></tr>';
+    }).join('') : '<tr><td colspan="10">No matching members.</td></tr>';
 
+    const ranks=['TA','Associate','SA','MD','SMD'];
+    document.querySelectorAll('#memberRows tr[data-id]').forEach(row=>{
+      const current=allMembers.find(member=>String(member.id)===row.dataset.id);
+      const rankSelect=row.querySelector('.rank-select');
+      const recognition=row.querySelector('.recognition-check');
+      const statusSelect=row.querySelector('.status-select');
+      const update=()=>{
+        const isAdvancement=current && ranks.indexOf(rankSelect.value)>ranks.indexOf(current.rank)
+          && ranks.includes(current.rank) && statusSelect.value==='approved';
+        recognition.disabled=!isAdvancement||rankSelect.disabled;
+        if(recognition.disabled)recognition.checked=false;
+      };
+      rankSelect?.addEventListener('change',update);
+      statusSelect?.addEventListener('change',update);
+      update();
+    });
     document.querySelectorAll('.save-member').forEach(button => {
       button.addEventListener('click', saveMember);
     });
@@ -464,6 +481,12 @@
     const statusSelect = row.querySelector('.status-select');
     const rankSelect = row.querySelector('.rank-select');
     const foundingCheck = row.querySelector('.founding-check');
+    const recognitionCheck = row.querySelector('.recognition-check');
+    const oldMember = allMembers.find(member=>String(member.id)===row.dataset.id);
+    const rankOrder=['TA','Associate','SA','MD','SMD'];
+    const recognizeAdvance=Boolean(oldMember && recognitionCheck?.checked && !recognitionCheck.disabled
+      && rankOrder.includes(oldMember.rank) && rankOrder.indexOf(rankSelect.value)>rankOrder.indexOf(oldMember.rank));
+    const targetRank=rankSelect.value;
 
     let badgeError = null;
 
@@ -495,6 +518,28 @@
 
     button.textContent = 'Saved';
     setTimeout(() => button.textContent = 'Save Changes', 1200);
+    const recognitionStatus=document.getElementById('founderRecognitionResult');
+    if(recognizeAdvance){
+      // Verify the rank transition independently before publishing. Do not infer
+      // advancement or founder privileges from a browser-edited checkbox.
+      const verified=await supabase.from('member_profiles').select('rank,verification_status')
+        .eq('id',row.dataset.id).single();
+      if(verified.error||verified.data?.rank!==targetRank||verified.data?.verification_status!=='approved'){
+        show(recognitionStatus,'Member changes were saved, but recognition was not published because the advancement could not be verified.','error');
+      }else{
+        const name=String(oldMember.preferred_name||oldMember.full_name||'a DominionStar member');
+        const announcement=await supabase.from('community_messages').insert({
+          user_id:session.user.id,
+          title:'Leadership Recognition · '+name,
+          body:'Please join DominionStar in recognizing '+name+' for advancing to '+targetRank+'. Congratulations on this professional milestone.',
+          post_type:'announcement',is_pinned:false
+        });
+        show(recognitionStatus,announcement.error
+          ? 'Contract level updated. Recognition could not be published: '+announcement.error.message
+          : 'Contract level verified. Recognition published to the Community feed.',
+          announcement.error?'error':'success');
+      }
+    }
     await Promise.all([loadMembers(), loadSummary(), loadAnalytics(), loadAudit(), loadOperationsSnapshot()]);
   }
 

@@ -155,9 +155,12 @@
   let pendingVoiceBlob = null;
   let pendingVoiceUrl = '';
   let peerConnection = null;
+  let callDialing = false;
+  let callAccepting = false;
   let localStream = null;
   let callChannel = null;
   let globalOutgoingCallChannel = null;
+  let incomingCallInboxChannel = null;
   let pendingOffer = null;
   let activeCallType = 'audio';
   let screenStream = null;
@@ -165,6 +168,7 @@
   let callPartnerId = '';
   let callStartedAt = 0;
   let incomingCallTimer = null;
+  let outgoingCallTimer = null;
   let activeCallAnswered = false;
   let callDurationTimer = null;
   let callMinimized = false;
@@ -420,12 +424,12 @@
 
     const profileUrl = member ? `/professional-profile/?member=${encodeURIComponent(member.id)}` : '/member-directory/';
     const meetingUrl = member ? `/appointments/?member=${encodeURIComponent(member.id)}` : '/appointments/';
-    const journeyUrl = member ? `/journey/?member=${encodeURIComponent(member.id)}` : '/journey/';
+
     viewProfileLink.href = profileUrl;
     if(menuViewProfile)menuViewProfile.href=profileUrl;
     if(menuScheduleMeeting)menuScheduleMeeting.href=meetingUrl;
     scheduleMeetingLink.href = meetingUrl;
-    recognitionLink.href = journeyUrl;
+    recognitionLink.href = '/recognition/';
   };
 
   const updateActiveHeader = member => {
@@ -549,7 +553,10 @@
     await loadConversation();
     textarea?.focus();
     history.replaceState({},'',`?member=${encodeURIComponent(memberId)}`);
-    await ensureCallChannel(memberId);
+    // Reading another chat must never replace the signaling channel of an
+    // active, ringing, or not-yet-connected call. The chat/typing view may
+    // change independently; the call remains tied to its original partner.
+    if (!peerConnection && !callDialing && !callAccepting && !pendingOffer) await ensureCallChannel(memberId);
     await ensureTypingChannel(memberId);
     updatePresenceDisplays();
   }
@@ -786,41 +793,103 @@
     }
   });
 
-  const callChannelName = otherId => ['dominionstar-call', session.user.id, otherId].sort().join('-');
+  // Private v2 signaling is an opt-in coordinated release. Until the
+  // realtime.messages RLS policies are approved, preserve the legacy protocol.
+  const privateCallV2 = window.DOMINIONSTAR_CALL_PRIVATE_V2 === true;
+  const callChannelName = otherId => privateCallV2
+    ? 'ds-call-v2:' + [session.user.id, otherId].sort().join(':')
+    : ['dominionstar-call', session.user.id, otherId].sort().join('-');
+  const callInboxName = memberId => privateCallV2
+    ? 'ds-call-inbox-v2:' + memberId
+    : 'dominionstar-user-call-' + memberId;
+  const callChannelConfig = () => ({
+    config: { ...(privateCallV2 ? {private:true} : {}), broadcast:{self:false} }
+  });
+
+  // The Messages page owns incoming calls for EVERY agent, not only the
+  // conversation currently selected. Both pair and inbox events enter here;
+  // the matching SDP deduplicates the two delivery paths.
+  const showIncomingCallOffer = payload => {
+    if (!payload || payload.type !== 'offer' || !payload.from ||
+        payload.from === session.user.id || payload.to !== session.user.id) return;
+    if (peerConnection) return; // Never displace an active call.
+    if (pendingOffer) {
+      // Pair and inbox deliver the same offer; only a genuinely new SDP from
+      // the SAME caller may supersede it. A different caller cannot override
+      // the currently visible invitation.
+      if (pendingOffer.from !== payload.from ||
+          pendingOffer.description?.sdp === payload.description?.sdp) return;
+    }
+    pendingOffer = payload;
+    const caller = members.find(member => member.id === payload.from);
+    setAvatarElement(incomingAvatar, caller);
+    incomingName.textContent = caller?.display_name || 'DominionStar member';
+    incomingType.textContent = payload.callType === 'video' ? 'Video call' : 'Audio call';
+    window.CommunicationEngine?.startLoop('incoming_ring');
+    incomingCall.classList.remove('member-hidden');
+    incomingCall.setAttribute('aria-hidden','false');
+    activeCallAnswered = false;
+    clearTimeout(incomingCallTimer);
+    const ringingOffer = payload;
+    incomingCallTimer = setTimeout(async () => {
+      if (activeCallAnswered || pendingOffer !== ringingOffer) return;
+      pendingOffer = null;
+      incomingCallTimer = null;
+      incomingCall.classList.add('member-hidden');
+      incomingCall.setAttribute('aria-hidden','true');
+      window.CommunicationEngine?.stopAll();
+      window.CommunicationEngine?.play('missed_call');
+      await recordMissedCall(ringingOffer.from, ringingOffer.callType || 'audio', 'incoming');
+    }, 30000);
+  };
+
+  const dismissIncomingCallOffer = callerId => {
+    if (!pendingOffer || pendingOffer.from !== callerId) return false;
+    pendingOffer = null;
+    clearTimeout(incomingCallTimer);
+    incomingCallTimer = null;
+    incomingCall.classList.add('member-hidden');
+    incomingCall.setAttribute('aria-hidden','true');
+    window.CommunicationEngine?.stopAll();
+    return true;
+  };
+
+  const subscribeIncomingCallInbox = async () => {
+    if (incomingCallInboxChannel) return incomingCallInboxChannel;
+    // A stored session alone does not authorize incoming agent calls. Check
+    // Founder approval and Agent Code before creating a Realtime subscriber.
+    // Supabase RLS remains the authoritative server-side boundary.
+    let membership;
+    try {
+      membership = await client.from('member_profiles')
+        .select('verification_status,agent_code')
+        .eq('id',session.user.id).maybeSingle();
+    } catch (_error) { return null; }
+    if (membership.error || membership.data?.verification_status !== 'approved' ||
+        !String(membership.data?.agent_code || '').trim()) return null;
+    incomingCallInboxChannel = client.channel(callInboxName(session.user.id), callChannelConfig())
+      .on('broadcast', {event:'incoming-call'}, ({payload}) => {
+        showIncomingCallOffer(payload);
+      })
+      .on('broadcast', {event:'call-cancelled'}, ({payload}) => {
+        if (!payload || payload.to !== session.user.id) return;
+        dismissIncomingCallOffer(payload.from);
+      })
+      .subscribe();
+    return incomingCallInboxChannel;
+  };
 
   const ensureCallChannel = async otherId => {
     if (callChannel && callPartnerId === otherId) return callChannel;
     if (callChannel) await client.removeChannel(callChannel);
     callPartnerId = otherId;
-    callChannel = client.channel(callChannelName(otherId), {config:{broadcast:{self:false}}});
+    callChannel = client.channel(callChannelName(otherId), callChannelConfig());
 
     callChannel.on('broadcast', {event:'call-signal'}, async ({payload}) => {
       if (!payload || payload.to !== session.user.id) return;
 
       if (payload.type === 'offer') {
-        pendingOffer = payload;
-        const caller = members.find(member => member.id === payload.from);
-        setAvatarElement(incomingAvatar, caller);
-        incomingName.textContent = caller?.display_name || 'DominionStar member';
-        incomingType.textContent = payload.callType === 'video' ? 'Video call' : 'Audio call';
-        window.CommunicationEngine?.startLoop('incoming_ring');
-        incomingCall.classList.remove('member-hidden');
-        incomingCall.setAttribute('aria-hidden','false');
-        activeCallAnswered = false;
-        clearTimeout(incomingCallTimer);
-        incomingCallTimer = setTimeout(async () => {
-          if (!activeCallAnswered && pendingOffer) {
-            const missed = pendingOffer;
-            incomingCall.classList.add('member-hidden');
-            pendingOffer = null;
-    clearTimeout(incomingCallTimer);
-    activeCallAnswered = false;
-      activeCallAnswered = true;
-      clearTimeout(incomingCallTimer);
-            window.CommunicationEngine?.play('missed_call');
-      await recordMissedCall(missed.from, missed.callType || 'audio', 'incoming');
-          }
-        }, 30000);
+        showIncomingCallOffer(payload);
       }
 
       if (payload.type === 'answer' && peerConnection) {
@@ -829,6 +898,9 @@
         window.CommunicationEngine?.play('call_connected');
         activeCallAnswered = true;
         clearTimeout(incomingCallTimer);
+        incomingCallTimer = null;
+        clearTimeout(outgoingCallTimer);
+        outgoingCallTimer = null;
         callStartedAt = Date.now();
         updateCallStatus('Connected');
         startCallDuration();
@@ -839,8 +911,9 @@
       }
 
       if (payload.type === 'hangup') {
-        if (!activeCallAnswered && callPartnerId) await recordMissedCall(callPartnerId, activeCallType, 'outgoing');
-        endActiveCall(false);
+        if (!peerConnection && dismissIncomingCallOffer(payload.from)) return;
+        if (!activeCallAnswered && peerConnection && callPartnerId) await recordMissedCall(callPartnerId, activeCallType, 'outgoing');
+        await endActiveCall(false);
       }
       if (payload.type === 'decline') {
         window.CommunicationEngine?.stopAll();
@@ -866,7 +939,7 @@
 
     if (payload.type === 'offer') {
       if (globalOutgoingCallChannel) await client.removeChannel(globalOutgoingCallChannel);
-      globalOutgoingCallChannel = client.channel(`dominionstar-user-call-${callPartnerId}`, {config:{broadcast:{self:false}}});
+      globalOutgoingCallChannel = client.channel(callInboxName(callPartnerId), callChannelConfig());
       await globalOutgoingCallChannel.subscribe();
       await globalOutgoingCallChannel.send({
         type:'broadcast',
@@ -962,13 +1035,19 @@
   };
 
   const startCall = async callType => {
+    if (peerConnection || callDialing) {
+      setSendStatus('End the current call before starting another.', 'error');
+      return;
+    }
     if (!activeMemberId) {
       setSendStatus('Select a conversation first.', 'error');
       return;
     }
-    const member = members.find(item => item.id === activeMemberId);
+    const dialedMember = activeMemberId;
+    const member = members.find(item => item.id === dialedMember);
+    callDialing = true;
     try {
-      await ensureCallChannel(activeMemberId);
+      await ensureCallChannel(dialedMember);
       localStream = await navigator.mediaDevices.getUserMedia({
         audio:true,
         video:callType === 'video'
@@ -983,37 +1062,64 @@
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
       await sendCallSignal({type:'offer', description:offer, callType});
-      setTimeout(async () => {
-        if (peerConnection && !activeCallAnswered && callPartnerId === activeMemberId) {
-          await recordMissedCall(activeMemberId, callType, 'outgoing');
-          await sendCallSignal({type:'hangup'});
-          await endActiveCall(false);
-        }
+      // Keep the connection identity: a previous timeout must never end a
+      // newer call to the same agent after a rapid redial.
+      const dialedPeer = peerConnection;
+      clearTimeout(outgoingCallTimer);
+      outgoingCallTimer = setTimeout(async () => {
+        if (!dialedPeer || peerConnection !== dialedPeer || activeCallAnswered || callPartnerId !== dialedMember) return;
+        outgoingCallTimer = null;
+        await recordMissedCall(dialedMember, callType, 'outgoing');
+        await sendCallSignal({type:'hangup'});
+        await endActiveCall(false);
       }, 30000);
     } catch (error) {
       setSendStatus(error.message || 'Call could not start.', 'error');
-      endActiveCall(false);
+      await endActiveCall(false);
+    } finally {
+      callDialing = false;
     }
   };
 
   const acceptIncomingCall = async () => {
-    if (!pendingOffer) return;
-    const caller = members.find(member => member.id === pendingOffer.from);
-    activeMemberId = pendingOffer.from;
-    await ensureCallChannel(activeMemberId);
-    activeCallType = pendingOffer.callType || 'audio';
+    if (!pendingOffer || peerConnection || callDialing || callAccepting) return;
+    const acceptedOffer = pendingOffer;
+    const callerId = acceptedOffer.from;
+    const caller = members.find(member => member.id === callerId);
+    callAccepting = true;
+    clearTimeout(incomingCallTimer);
+    incomingCallTimer = null;
+    window.CommunicationEngine?.stopAll();
 
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({
+      // openConversation deliberately leaves call signaling pinned while an
+      // invitation is pending. Explicitly subscribe to the incoming CALLER's
+      // pair topic before answering, even when another chat was selected.
+      if (activeMemberId !== callerId) await openConversation(callerId);
+      if (pendingOffer !== acceptedOffer) return;
+      await ensureCallChannel(callerId);
+      if (pendingOffer !== acceptedOffer) return;
+      activeCallType = acceptedOffer.callType || 'audio';
+
+      const requestedStream = await navigator.mediaDevices.getUserMedia({
         audio:true,
         video:activeCallType === 'video'
       });
+      // The caller can cancel during the browser permission prompt. Releasing
+      // unused media is essential; never answer a cancelled invitation.
+      if (pendingOffer !== acceptedOffer) {
+        requestedStream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      localStream = requestedStream;
       peerConnection = createPeerConnection();
       localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
       localVideo.srcObject = localStream;
-      await peerConnection.setRemoteDescription(pendingOffer.description);
+      await peerConnection.setRemoteDescription(acceptedOffer.description);
+      if (pendingOffer !== acceptedOffer) { await endActiveCall(false); return; }
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
+      if (pendingOffer !== acceptedOffer) { await endActiveCall(false); return; }
       showCallOverlay(caller, activeCallType);
       updateCallStatus('Connecting…');
       await sendCallSignal({type:'answer', description:answer});
@@ -1021,12 +1127,21 @@
       pendingOffer = null;
     } catch (error) {
       setSendStatus(error.message || 'Call could not be accepted.', 'error');
-      await sendCallSignal({type:'decline'});
-      endActiveCall(false);
+      if (pendingOffer === acceptedOffer && callPartnerId === callerId) {
+        try { await sendCallSignal({type:'decline'}); }
+        catch (signalError) { console.warn('Agent call decline signaling failed:', signalError); }
+      }
+      await endActiveCall(false);
+    } finally {
+      callAccepting = false;
     }
   };
 
   const endActiveCall = async notify => {
+    clearTimeout(incomingCallTimer);
+    incomingCallTimer = null;
+    clearTimeout(outgoingCallTimer);
+    outgoingCallTimer = null;
     window.CommunicationEngine?.stopAll();
     if (activeCallAnswered) window.CommunicationEngine?.play('call_ended');
     if (notify && callChannel) await sendCallSignal({type:'hangup'});
@@ -1051,6 +1166,12 @@
     activeCallBar?.setAttribute('aria-hidden','true');
     toggleMute?.classList.remove('is-off');
     toggleCamera?.classList.remove('is-off');
+    // After hangup, restore signaling for the conversation the user is now
+    // viewing; do not retain the completed call's partner indefinitely.
+    if (activeMemberId && activeMemberId !== callPartnerId) {
+      try { await ensureCallChannel(activeMemberId); }
+      catch (error) { console.warn('Conversation call signaling could not be restored:', error); }
+    }
   };
 
 
@@ -1111,14 +1232,19 @@
   acceptCall?.addEventListener('click', acceptIncomingCall);
   declineCall?.addEventListener('click', async () => {
     if (pendingOffer) {
-      callPartnerId = pendingOffer.from;
-      await ensureCallChannel(callPartnerId);
+      // ensureCallChannel owns callPartnerId; do not overwrite its cache key
+      // before it has replaced an unrelated conversation's channel.
+      const declinedOffer = pendingOffer;
+      await ensureCallChannel(declinedOffer.from);
       await sendCallSignal({type:'decline'});
+      await recordMissedCall(declinedOffer.from, declinedOffer.callType || 'audio', 'incoming');
     }
-    if (pendingOffer) await recordMissedCall(pendingOffer.from, pendingOffer.callType || 'audio', 'incoming');
     incomingCall.classList.add('member-hidden');
+    incomingCall.setAttribute('aria-hidden','true');
     pendingOffer = null;
     clearTimeout(incomingCallTimer);
+    incomingCallTimer = null;
+    window.CommunicationEngine?.stopAll();
   });
   endCall?.addEventListener('click', () => endActiveCall(true));
 
@@ -1210,13 +1336,26 @@
 
   await loadConversationSummaries();
   renderMembers('');
+  // The global listener deliberately skips /direct-messages/. Subscribe to
+  // the same inbox here to receive calls from agents outside the open chat.
+  await subscribeIncomingCallInbox();
 
   const pendingGlobalCallRaw = sessionStorage.getItem('ds_pending_global_call');
   if (pendingGlobalCallRaw) {
     try {
       const pendingGlobalCall = JSON.parse(pendingGlobalCallRaw);
-      if (pendingGlobalCall?.to === session.user.id && pendingGlobalCall?.from) {
-        sessionStorage.removeItem('ds_pending_global_call');
+      // Read once and immediately discard. A stored ringing offer, stale
+      // handoff or malformed SDP must NEVER auto-activate the microphone.
+      sessionStorage.removeItem('ds_pending_global_call');
+      const handoffAge = Date.now() - Number(pendingGlobalCall?.acceptedAt);
+      if (pendingGlobalCall?.acceptedFromGlobal === true &&
+          pendingGlobalCall?.to === session.user.id &&
+          pendingGlobalCall?.from && pendingGlobalCall.from !== session.user.id &&
+          pendingGlobalCall.type === 'offer' &&
+          pendingGlobalCall.description?.type === 'offer' &&
+          typeof pendingGlobalCall.description.sdp === 'string' &&
+          pendingGlobalCall.description.sdp.length > 0 &&
+          Number.isFinite(handoffAge) && handoffAge >= 0 && handoffAge <= 60000) {
         await openConversation(pendingGlobalCall.from);
         pendingOffer = pendingGlobalCall;
         incomingCall.classList.add('member-hidden');
@@ -1273,6 +1412,10 @@
     client.removeChannel(channel);
     if (callChannel) client.removeChannel(callChannel);
     if (globalOutgoingCallChannel) client.removeChannel(globalOutgoingCallChannel);
+    if (incomingCallInboxChannel) client.removeChannel(incomingCallInboxChannel);
+    clearTimeout(incomingCallTimer);
+    clearTimeout(outgoingCallTimer);
+    window.CommunicationEngine?.stopAll();
     if (typingChannel) client.removeChannel(typingChannel);
     peerConnection?.close();
     localStream?.getTracks().forEach(track => track.stop());

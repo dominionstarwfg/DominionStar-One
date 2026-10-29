@@ -1,0 +1,84 @@
+name: DominionStar — review-only Netlify build package
+
+on:
+  push:
+    branches:
+      - review/login2-recovery-netlify-hold-20261019
+    paths:
+      - 'scripts/build-public-netlify.sh'
+      - 'scripts/check-staging-public-dist.mjs'
+      - 'scripts/check-agent-release-gates.mjs'
+      - 'member-dashboard/**'
+      - 'account-settings/**'
+      - 'direct-messages/**'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/global-call-manager.js'
+      - 'meet-desktop/ui/**'
+      - '_redirects'
+      - '_headers'
+      - 'netlify.toml'
+      - 'journey/**'
+      - '.github/workflows/review-public-build-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build & validate review package — never deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+      - name: Configure Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm unconfigured Netlify previews fail closed
+        shell: bash
+        run: |
+          set +e
+          CONTEXT=deploy-preview bash scripts/build-public-netlify.sh >/tmp/ds-preview-blocked.log 2>&1
+          result=$?
+          set -e
+          test "$result" -eq 47
+          grep -Fq "preview blocked until isolated Netlify/Supabase staging is configured" /tmp/ds-preview-blocked.log
+          echo "UNCONFIGURED_PREVIEW_BLOCKED_OK"
+      - name: Confirm staging site's production context cannot inherit live backend
+        shell: bash
+        run: |
+          set +e
+          CONTEXT=production BRANCH=review/login2-recovery-netlify-hold-20261019 NETLIFY=true bash scripts/build-public-netlify.sh >/tmp/ds-staging-site-blocked.log 2>&1
+          result=$?
+          set -e
+          test "$result" -eq 47
+          grep -Fq "preview blocked until isolated Netlify/Supabase staging is configured" /tmp/ds-staging-site-blocked.log
+          echo "STAGING_SITE_PRODUCTION_CONTEXT_BLOCKED_OK"
+      - name: Build Netlify static distribution without any deployment
+        run: bash scripts/build-public-netlify.sh
+      - name: Validate assembled static routes and exclude private source
+        run: node scripts/check-staging-public-dist.mjs
+      - name: Verify a synthetic isolated-staging package without publishing
+        shell: bash
+        env:
+          DOMINIONSTAR_STAGING_NETLIFY_SITE_ID: synthetic-review-site
+          DOMINIONSTAR_PRODUCTION_NETLIFY_SITE_ID: synthetic-production-site
+          NETLIFY_SITE_ID: synthetic-review-site
+          DOMINIONSTAR_STAGING_SITE_URL: https://dominionstar-qa-rehearsal.netlify.app
+          DOMINIONSTAR_STAGING_SUPABASE_URL: https://abcdefghijabcdefghij.supabase.co
+          DOMINIONSTAR_STAGING_SUPABASE_PUBLISHABLE_KEY: sb_publishable_SYNTHETIC_REHEARSAL_VALUE_NOT_REAL
+          DOMINIONSTAR_STAGING_ISOLATION_APPROVED: STAGING_ONLY
+        run: |
+          rehearsal="$(mktemp -d)"
+          trap 'rm -rf "$rehearsal"' EXIT
+          cp -a public-dist "$rehearsal/public-dist"
+          STAGING_REHEARSAL_DIR="$rehearsal/public-dist" node --input-type=module -e "import { stageReviewPackage } from './scripts/prepare-isolated-staging.mjs'; const result = stageReviewPackage({dist:process.env.STAGING_REHEARSAL_DIR}); if(!result.isolated)process.exit(1); console.log('STAGING_ISOLATION_REHEARSAL_OK: '+result.filesChecked+' static files verified')"
+      - name: Upload short-lived review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dominionstar-review-static-public-dist
+          path: public-dist/
+          if-no-files-found: error
+          retention-days: 3

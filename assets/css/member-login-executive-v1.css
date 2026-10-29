@@ -1,0 +1,70 @@
+/* Executive Login Concept 2 — isolated review, not approved for production. */
+body.login2{margin:0;min-height:100vh;background:#f2f5fa;color:#16304b;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.login2 *{box-sizing:border-box}
+.login2-shell{max-width:1320px;min-height:calc(100vh - 78px);margin:0 auto;padding:42px 28px;display:flex;align-items:center;justify-content:center}
+.login2-stage{width:100%;max-width:1080px;min-height:625px;display:grid;grid-template-columns:1fr 1fr;border-radius:24px;overflow:hidden;background:white;box-shadow:0 22px 65px rgba(20,43,77,.11);border:1px solid #dfe7f0}
+.login2-brand{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;padding:46px;background:radial-gradient(circle at 88% 24%,#315786 0,transparent 43%),linear-gradient(140deg,#102f53,#06162d);color:#fff;min-width:0;overflow:hidden}
+.login2-brand:after{content:"";position:absolute;right:-115px;bottom:-140px;width:440px;height:440px;border:1px solid rgba(218,180,111,.22);border-radius:50%;box-shadow:0 0 0 62px rgba(224,195,131,.045),0 0 0 120px rgba(224,195,131,.025);z-index:-1}
+.login2-identity{display:flex;align-items:center;gap:13px;letter-spacing:.04em}
+.login2-identity img{width:47px;height:47px;object-fit:contain;border-radius:13px;border:1px solid #ffffff45}
+.login2-identity strong{display:block;font-size:15px;color:white;line-height:1.2}
+.login2-identity small{display:block;font-size:10px;letter-spacing:.19em;text-transform:uppercase;color:#b8cce5;margin-top:5px}
+.login2-kicker{margin:0 0 13px;color:#e8c88d;letter-spacing:.17em;text-transform:uppercase;font-size:11px;font-weight:800}
+.login2-brand h1{margin:0 0 20px;max-width:450px;font-size:clamp(35px,3.4vw,48px);letter-spacing:-.05em;line-height:1.1;color:#fff}
+.login2-brand h1 em{font-style:normal;color:#e4c38c}
+.login2-intro{max-width:410px;margin:0;color:#bed1e7;font-size:15px;line-height:1.85}
+.login2-brand-bottom{border-top:1px solid #ffffff36;padding-top:19px;color:#bed1e7;font-size:12px;line-height:1.7}
+.login2-brand-bottom strong{display:block;color:#fff;font-size:12px;margin-bottom:3px}
+.login2-auth{padding:55px clamp(28px,5vw,60px);display:flex;flex-direction:column;justify-content:center;min-width:0}
+.login2-auth-eyebrow{margin:0 0 6px;color:#966c31;letter-spacing:.16em;text-transform:uppercase;font-size:11px;font-weight:800}
+.login2-auth h2{margin:0 0 8px;font-size:31px;letter-spacing:-.045em;color:#16304b;line-height:1.15}
+.login2-auth-lede{margin:0 0 27px;font-size:13px;color:#667a90;line-height:1.7}
+.login2 .member-tabs{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 24px;border-bottom:1px solid #e2e9f1;padding-bottom:12px}
+.login2 .member-tabs button{border:1px solid transparent;background:transparent;padding:10px 12px;color:#637891;border-radius:9px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}
+.login2 .member-tabs button.active,.login2 .member-tabs button[aria-pressed="true"]{background:#eaf1f9;border-color:#cadbea;color:#204f7d}
+.login2 .member-tabs button:hover{color:#204f7d}
+.login2-form{display:grid;gap:15px}
+.login2-form label{display:block;color:#263c55;font-size:12px;font-weight:760;margin:0}
+.login2-form input{display:block;width:100%;height:45px;margin-top:7px;background:#fbfdff;border:1px solid #d9e2ed;border-radius:10px;padding:10px 13px;color:#16304b;font:inherit;font-size:14px;box-shadow:none}
+.login2-form input::placeholder{color:#91a0b2}
+.login2-form input:focus{outline:3px solid #accbee66;border-color:#4274a8}
+.login2-form button[type="submit"]{display:block;width:100%;min-height:46px;background:linear-gradient(120deg,#e0c58d,#caa366);border:0;border-radius:10px;color:#162d43;font-weight:800;font-size:13px;cursor:pointer;margin-top:6px}
+.login2-form button[type="submit"]:hover{filter:brightness(1.05)}
+.login2-form button[disabled]{opacity:.65;cursor:wait}
+.login2-form-note{margin:0;color:#677b8f;font-size:11px;line-height:1.7}
+.login2 .member-hidden,.login2-form[hidden]{display:none!important}
+.login2 .member-message{margin:17px 0 0;padding:0;font-size:12px;line-height:1.5}
+.login2 .member-message.show{padding:11px 13px;border-radius:9px;background:#eef4fb;color:#274d70}
+.login2 .member-message.error{background:#fff0ef;color:#913e39}
+.login2 .member-message.success{background:#eff8f1;color:#23603d}
+.login2-links{margin:26px 0 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px}
+.login2-links a{color:#275d8b;font-weight:700;text-decoration:none}
+.login2-links a:hover{text-decoration:underline}
+.login2-security{margin-top:24px;padding:13px 15px;border-radius:10px;background:#f2f6fb;font-size:11px;color:#60778d;line-height:1.6}
+.login2-footer{text-align:center;padding:0 20px 25px;color:#8190a2;font-size:11px}
+.login2 button:focus-visible,.login2 a:focus-visible{outline:3px solid #ca9b50;outline-offset:3px}
+@media(max-width:780px){.login2-shell{padding:14px;min-height:0}.login2-stage{grid-template-columns:1fr}.login2-brand{min-height:280px;padding:30px}.login2-brand h1{font-size:36px}.login2-auth{padding:35px 28px 40px}.login2-brand-bottom{margin-top:34px}.login2 .member-tabs{gap:3px}.login2 .member-tabs button{padding:9px 8px;font-size:11px}}
+@media(max-width:390px){.login2-auth{padding:28px 19px}.login2-brand{padding:26px}.login2-brand h1{font-size:32px}.login2 .member-tabs button{white-space:normal}}
+@media(prefers-reduced-motion:reduce){.login2 *{scroll-behavior:auto}}
+
+
+/* Registration clarity and optional Google identity login.
+   The provider section stays hidden unless release flag explicitly enables it. */
+.login2-required{font-size:10px;font-weight:800;color:#a36c35}
+.login2-form .login2-field-help{
+  font-size:11px;line-height:1.55;margin:-8px 0 0;color:#688095
+}
+.login2-google-section{margin:17px 0 0}
+.login2-google-section.member-hidden{display:none!important}
+.login2-divider{display:flex;align-items:center;gap:14px;margin:0 0 16px;color:#8899a8;font-size:11px;font-weight:750}
+.login2-divider::before,.login2-divider::after{content:"";height:1px;background:#dfe7ee;flex:1}
+.login2-google-button{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:12px;
+  border:1px solid #d5e2eb;border-radius:11px;min-height:48px;
+  padding:11px 16px;background:#fff;color:#243c53;box-shadow:0 2px 6px #14263a0b;
+  font:800 13px/1.4 Inter,Arial,sans-serif;cursor:pointer
+}
+.login2-google-button:hover{border-color:#a6c7d6;background:#f5faff}
+.login2-google-button:disabled{opacity:.7;cursor:wait}
+.login2-google-button svg{width:19px;height:19px;flex:0 0 19px}
+.login2-google-note{font-size:11px;line-height:1.55;color:#71869a;margin:11px 0 0;text-align:center}

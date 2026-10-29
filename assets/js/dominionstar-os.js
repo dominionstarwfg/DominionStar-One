@@ -60,22 +60,27 @@
   document.addEventListener('keydown', e => e.key === 'Escape' && hideAll());
 
   const destinations = [
-    ['Dashboard','/member-dashboard/','Your executive workspace'],
+    ['Home','/member-dashboard/','Your executive home'],
     ['Messages','/direct-messages/','Private member conversations'],
+    ['Meet','/meet/','Join a video meeting'],
     ['Community','/community/','Posts and announcements'],
-    ['Academy','/academy/','Training and development'],
+    ['Training','/academy/','Learning and development'],
     ['Calendar','/appointments/','Appointments and meetings'],
-    ['Directory','/member-directory/','Find approved members'],
-    ['Recognition','/journey/','Progress and milestones'],
+    ['Team Members','/member-directory/','Connect with approved members'],
+    ['Recognition','/recognition/','Member advancement announcements'],
     ['Profile','/professional-profile/','Professional identity'],
-    ['Settings','/account-settings/','Security and preferences'],
+    ['Agent Settings','/account-settings/','Profile, security, and community preferences'],
     ['Command Control','/founder-control/','Founder operations']
   ];
   const input = document.getElementById('dsosSearchInput');
   const results = document.getElementById('dsosSearchResults');
   const render = value => {
     const q = String(value || '').trim().toLowerCase();
-    const matches = q ? destinations.filter(x => x.join(' ').toLowerCase().includes(q)) : destinations;
+    const visible = destinations.filter(item =>
+      item[1] !== '/founder-control/' ||
+      !document.getElementById('founderControlLink')?.classList.contains('member-hidden')
+    );
+    const matches = q ? visible.filter(x => x.join(' ').toLowerCase().includes(q)) : visible;
     results.innerHTML = matches.map(x => `<a href="${x[1]}"><strong>${x[0]}</strong><span>${x[2]}</span></a>`).join('') || '<p class="dsos-muted">No result.</p>';
   };
   input?.addEventListener('input', () => render(input.value));
@@ -83,12 +88,15 @@
 
   const routes = [
     {terms:['message','chat'], label:'Opening Messages.', url:'/direct-messages/'},
-    {terms:['community','post'], label:'Opening Community.', url:'/community/'},
-    {terms:['academy','learn','course'], label:'Opening Academy.', url:'/academy/'},
-    {terms:['calendar','meeting','appointment'], label:'Opening Calendar.', url:'/appointments/'},
-    {terms:['directory','member'], label:'Opening Directory.', url:'/member-directory/'},
+    {terms:['community','post','repost','share','download','copy link','copy text','announcement'], label:'Opening Community and post actions.', url:'/community/'},
+    {terms:['training','academy','learn','course'], label:'Opening Training.', url:'/academy/'},
+    {terms:['meet','video call'], label:'Opening Meet.', url:'/meet/'},
+    {terms:['calendar','appointment'], label:'Opening Calendar.', url:'/appointments/'},
+    {terms:['team','directory','member'], label:'Opening the approved member directory.', url:'/member-directory/'},
+    {terms:['recognition','promotion','advancement','congratulate'], label:'Opening Recognition.', url:'/recognition/'},
     {terms:['profile','photo'], label:'Opening Profile.', url:'/professional-profile/'},
-    {terms:['setting','security','privacy'], label:'Opening Settings.', url:'/account-settings/'}
+    {terms:['meet settings','meeting settings','microphone settings','camera settings','video settings','meeting audio'], label:'Open DominionStar Meet and choose Settings there.', url:'/meet/'},
+    {terms:['setting','security','privacy','account preferences'], label:'Opening Agent Settings.', url:'/account-settings/'}
   ];
   document.getElementById('dsosAiForm')?.addEventListener('submit', e => {
     e.preventDefault();
@@ -106,7 +114,7 @@
     reply.className = 'dsos-ai-message';
     reply.innerHTML = match
       ? `${match.label} <a href="${match.url}">Open →</a>`
-      : 'I can open Messages, Community, Academy, Calendar, Directory, Profile, or Settings.';
+      : 'I can open Messages, Meet, Community, Training, Calendar, Team Members, Profile, or Settings.';
     messages.appendChild(reply);
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
@@ -114,7 +122,7 @@
 
   const requiredRoutes = [
     '/member-dashboard/','/direct-messages/','/community/','/academy/',
-    '/appointments/','/member-directory/','/journey/',
+    '/appointments/','/member-directory/','/recognition/',
     '/professional-profile/','/account-settings/'
   ];
 
@@ -191,8 +199,8 @@
     const passed = [navigationOk, notificationsOk, auroraOk, settingsOk].filter(Boolean).length;
     if (summary) {
       summary.textContent = passed === 4
-        ? 'All member modules passed.'
-        : `${passed} of 4 member checks passed.`;
+        ? 'All 4 route and interface checks passed. Live feature access is not verified.'
+        : `${passed} of 4 route and interface checks passed. Check individual features separately.`;
     }
 
     if (button) {

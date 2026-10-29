@@ -18,10 +18,32 @@
   let pollTimer = null;
   let reconnectTimer = null;
   let isFounder = false;
+  let feedRequestVersion = 0;
+  let currentAvatarMap = {};
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[c]));
+
+
+  // Link presentation: only explicit HTTPS/HTTP URLs are clickable, never raw HTML.
+  const linkify = value => String(value ?? '').split(/(https?:\/\/[^\s<>"']+)/gi).map(part => {
+    if (!/^https?:\/\//i.test(part)) return esc(part);
+    const trailing=(part.match(/[).,!?;:]+$/)||[])[0]||'';
+    const candidate=part.slice(0,part.length-trailing.length);
+    try {
+      const url=new URL(candidate);
+      if (!['http:','https:'].includes(url.protocol)) return esc(part);
+      return '<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(candidate)+'</a>'+esc(trailing);
+    } catch {
+      return esc(part);
+    }
+  }).join('');
+
+  const copyCommunityText=async (text) => {
+    if (!navigator.clipboard?.writeText) throw new Error('Copy is unavailable in this browser. Please use a secure connection.');
+    await navigator.clipboard.writeText(text);
+  };
 
   const show = (target,text,type='info') => {
     target.textContent=text;
@@ -52,7 +74,7 @@
 
   const profileResult=await supabase
     .from('member_profiles')
-    .select('id,full_name,preferred_name,email,rank,exclusive_member_number,verification_status,role,is_founder,avatar_path')
+    .select('id,full_name,preferred_name,email,rank,founding_member,exclusive_member_number,verification_status,role,is_founder,avatar_path')
     .eq('id',session.user.id)
     .single();
 
@@ -63,7 +85,52 @@
     return;
   }
 
-  isFounder = profile.role==='founder' || profile.is_founder===true;
+  // Composer identity is the authenticated user, never a demo name.
+  const composerName=String(profile.preferred_name||profile.full_name||'Member').trim()||'Member';
+  const composerFullName=String(profile.full_name||composerName).trim()||'Member';
+  const composerInitials=composerFullName.split(/\s+/).filter(Boolean).slice(0,2)
+    .map(part=>part[0]).join('').toUpperCase()||'DS';
+  const nameNode=document.getElementById('communityComposerName');
+  const rankNode=document.getElementById('communityComposerRank');
+  const foundingNode=document.getElementById('communityComposerFounding');
+  const initialsNode=document.getElementById('communityComposerInitials');
+  const photoNode=document.getElementById('communityComposerAvatar');
+  if(nameNode)nameNode.textContent=composerFullName;
+  if(rankNode)rankNode.textContent='Contract Level: '+String(profile.rank||'—');
+  if(initialsNode)initialsNode.textContent=composerInitials;
+  if(foundingNode){
+    const number=Number(profile.exclusive_member_number);
+    const founding=profile.founding_member===true;
+    foundingNode.textContent=founding
+      ? (Number.isInteger(number)&&number>=1&&number<=20
+          ? 'Founding Member #'+String(number).padStart(2,'0')
+          : 'Founding Member')
+      : '';
+    foundingNode.classList.toggle('member-hidden',!founding);
+  }
+  if(photoNode && profile.avatar_path){
+    Promise.resolve()
+      .then(()=>supabase.storage.from('member-avatars').createSignedUrl(profile.avatar_path,3600))
+      .then(result=>{
+        if(result.error||!result.data?.signedUrl)return;
+        photoNode.onerror=()=>{
+          photoNode.classList.add('member-hidden');
+          photoNode.removeAttribute('src');
+          initialsNode?.classList.remove('member-hidden');
+        };
+        photoNode.onload=()=>{
+          photoNode.classList.remove('member-hidden');
+          initialsNode?.classList.add('member-hidden');
+        };
+        photoNode.src=result.data.signedUrl;
+      })
+      .catch(()=>{ /* Initials remain visible when Storage is unavailable. */ });
+  }
+
+  // Founder controls require server authorization; profile fields and email
+  // are informational and cannot grant elevated privileges.
+  const founderResult=await supabase.rpc('is_dominionstar_founder');
+  isFounder=founderResult.error==null && founderResult.data===true;
 
   if (isFounder) {
     document.getElementById('founderAnnouncementOption')?.classList.remove('member-hidden');
@@ -101,14 +168,18 @@
     )];
 
     const pairs=await Promise.all(paths.map(async path=>{
-      const signed=await supabase.storage.from('member-avatars').createSignedUrl(path,3600);
-      return [path,signed.data?.signedUrl||null];
+      try {
+        const signed=await supabase.storage.from('member-avatars').createSignedUrl(path,3600);
+        return [path,signed.error?null:(signed.data?.signedUrl||null)];
+      } catch {
+        return [path,null]; // A missing photo must never hide the feed.
+      }
     }));
 
     return Object.fromEntries(pairs);
   }
 
-  function renderFeed(avatarMap={}) {
+  function renderFeed(avatarMap=currentAvatarMap) {
     const query=search.value.trim().toLowerCase();
     const type=typeFilter.value;
 
@@ -127,34 +198,52 @@
       const comments=(post.comments||[]).filter(comment=>!comment.is_deleted);
       const reactions=post.reactions||[];
       const reactionCounts={like:0,celebrate:0,support:0,insightful:0};
-      reactions.forEach(item=>reactionCounts[item.reaction]++);
+      reactions.forEach(item=>{
+        if(Object.prototype.hasOwnProperty.call(reactionCounts,item.reaction)){
+          reactionCounts[item.reaction]++;
+        }
+      });
 
       const avatar=member.avatar_path ? avatarMap[member.avatar_path] : null;
       const initial=(member.preferred_name||member.full_name||'M').slice(0,1);
 
       return `
-      <article class="community-post-card ${post.is_pinned?'pinned':''}" data-id="${post.id}">
+      <article class="community-post-card ${post.is_pinned?'pinned':''}" data-id="${esc(post.id)}">
         <header class="community-post-header">
-          <div class="community-post-avatar">${avatar?`<img src="${avatar}" alt="">`:esc(initial)}</div>
+          <div class="community-post-avatar" data-initials="${esc(initial)}">${avatar?`<img src="${esc(avatar)}" alt="">`:esc(initial)}</div>
           <div class="community-post-author">
             <strong>${esc(member.preferred_name||member.full_name||'DominionStar Member')}</strong>
-            <span>${esc(member.rank||'TA')}</span>
-            ${member.exclusive_member_number?`<span>Founding #${member.exclusive_member_number}</span>`:''}
+            <span class="community-author-rank">Contract Level: ${esc(member.rank||'—')}</span>
+            ${Number.isInteger(Number(member.exclusive_member_number))&&Number(member.exclusive_member_number)>=1&&Number(member.exclusive_member_number)<=20?`<span class="community-author-founding">Founding Member #${String(member.exclusive_member_number).padStart(2,'0')}</span>`:''}
             <small>${new Date(post.created_at).toLocaleString()}</small>
           </div>
           <div class="community-post-type ${esc(post.post_type)}">${esc(post.post_type)}</div>
+          <div class="community-post-options">
+            <button class="community-options-trigger" type="button" aria-label="More options for this post" aria-expanded="false" aria-haspopup="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+            </button>
+            <div class="community-options-menu" role="group" aria-label="Post actions" hidden>
+              <button type="button" data-post-action="copy">Copy post text</button>
+              <button type="button" data-post-action="link">Copy post link</button>
+              <button type="button" data-post-action="download">Download post text (.txt)</button>
+            </div>
+          </div>
         </header>
 
         ${post.is_pinned?'<div class="community-pinned-label">Pinned by Founder</div>':''}
         ${post.is_locked?'<div class="community-locked-label">Discussion locked</div>':''}
         ${post.title?`<h2>${esc(post.title)}</h2>`:''}
-        <p class="community-post-body">${esc(post.body)}</p>
+        <p class="community-post-body">${linkify(post.body)}</p>
 
         <div class="community-reaction-row">
           ${['like','celebrate','support','insightful'].map(reaction=>`
             <button class="community-reaction-button" data-reaction="${reaction}" type="button">
               ${reactionLabel(reaction)} <b>${reactionCounts[reaction]}</b>
             </button>`).join('')}
+        </div>
+        <div class="ds-community-social-actions" role="group" aria-label="Share post">
+          <button type="button" data-post-action="repost" aria-label="Repost this update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4M3 11V8a2 2 0 0 1 2-2h16M7 22l-4-4 4-4M21 13v3a2 2 0 0 1-2 2H3"/></svg>Repost</button>
+          <button type="button" data-post-action="share" aria-label="Share this update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m0 0L7 8m5-5 5 5M4 13v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/></svg>Share</button>
         </div>
 
         ${isFounder?`
@@ -172,7 +261,7 @@
               const commentInitial=(author.preferred_name||author.full_name||'M').slice(0,1);
               return `
               <article class="community-comment">
-                <div class="community-comment-avatar">${commentAvatar?`<img src="${commentAvatar}" alt="">`:esc(commentInitial)}</div>
+                <div class="community-comment-avatar" data-initials="${esc(commentInitial)}">${commentAvatar?`<img src="${esc(commentAvatar)}" alt="">`:esc(commentInitial)}</div>
                 <div>
                   <strong>${esc(author.preferred_name||author.full_name||'Member')}</strong>
                   <p>${esc(comment.body)}</p>
@@ -191,10 +280,96 @@
       </article>`;
     }).join('') : '<div class="member-empty-state"><h2>No matching community posts.</h2><p>Create the first discussion or change the filter.</p></div>';
 
+    // Expired or missing signed photos fall back to author initials.
+    feed.querySelectorAll('.community-post-avatar img, .community-comment-avatar img').forEach(image=>{
+      image.addEventListener('error',()=>{
+        const wrapper=image.parentElement;
+        const initials=wrapper?.getAttribute('data-initials');
+        if(wrapper && initials)wrapper.textContent=initials;
+        else image.remove();
+      },{once:true});
+    });
     wireActions();
   }
 
   function wireActions() {
+    // Each card's options menu uses the same feed data already authorized by
+    // list_community_feed. Menus change presentation; never grant moderation.
+    const dismissOptions=()=>{
+      feed.querySelectorAll('.community-post-options').forEach(wrap=>{
+        const menu=wrap.querySelector('.community-options-menu');
+        const trigger=wrap.querySelector('.community-options-trigger');
+        if(menu)menu.hidden=true;
+        trigger?.setAttribute('aria-expanded','false');
+      });
+    };
+    feed.querySelectorAll('.community-options-trigger').forEach(trigger=>{
+      trigger.addEventListener('click',event=>{
+        event.stopPropagation();
+        const menu=trigger.parentElement.querySelector('.community-options-menu');
+        const wasClosed=menu.hidden;
+        dismissOptions();
+        menu.hidden=!wasClosed;
+        trigger.setAttribute('aria-expanded',String(wasClosed));
+      });
+    });
+    feed.querySelectorAll('[data-post-action]').forEach(button=>{
+      button.addEventListener('click',async ()=>{
+        const card=button.closest('.community-post-card');
+        const post=allPosts.find(item=>String(item.id)===card?.dataset.id);
+        dismissOptions();
+        if(!post)return;
+        const action=button.dataset.postAction;
+        const url=new URL('/community/?post='+encodeURIComponent(post.id),location.origin).href;
+        if(action==='share'){
+          try{
+            if(navigator.share)await navigator.share({title:post.title||'DominionStar Community',url});
+            else await copyCommunityText(url);
+            show(postResult,navigator.share?'Sharing options opened.':'Post link copied.','success');
+          }catch(error){if(error?.name!=='AbortError')show(postResult,error.message||'Sharing failed.','error');}
+          return;
+        }
+        if(action==='repost'){
+          if(!confirm('Repost this professional update to the DominionStar community?'))return;
+          button.disabled=true;
+          try{
+            const author=post.author?.preferred_name||post.author?.full_name||'a DominionStar member';
+            const original=String(post.body||'').slice(0,1250);
+            const body=('↻ Reposted from '+author+'\n\n'+original+'\n\nOriginal: '+url).slice(0,2000);
+            const result=await supabase.from('community_messages').insert({
+              user_id:session.user.id,
+              title:('Reposted: '+String(post.title||'Community update')).slice(0,120),
+              body,post_type:'discussion',is_pinned:false
+            });
+            if(result.error)throw result.error;
+            await loadPosts(false);
+            show(postResult,'Reposted to Community.','success');
+          }catch(error){show(postResult,error.message||'Repost failed.','error');button.disabled=false;}
+          return;
+        }
+        const text=[post.title,post.body].filter(Boolean).join('\n\n');
+        if(action==='download'){
+          let objectUrl=null;
+          try{
+            objectUrl=URL.createObjectURL(new Blob([text+'\n\nOriginal: '+url+'\n'],{type:'text/plain;charset=utf-8'}));
+            const anchor=document.createElement('a');
+            const slug=String(post.title||'community-post').normalize('NFKD')
+              .replace(/[^a-z0-9-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,70)||'community-post';
+            anchor.href=objectUrl;
+            anchor.download='DominionStar-'+slug+'.txt';
+            document.body.appendChild(anchor);anchor.click();anchor.remove();
+            show(postResult,'Post text saved to your device.','success');
+          }catch(error){show(postResult,error.message||'Download failed.','error');}
+          finally{if(objectUrl){const urlToRevoke=objectUrl;setTimeout(()=>URL.revokeObjectURL(urlToRevoke),1000);}}
+          return;
+        }
+        try{
+          await copyCommunityText(action==='copy'?text:url);
+          show(postResult,action==='copy'?'Post text copied.':'Post link copied.','success');
+        }catch(error){show(postResult,error.message,'error');}
+      });
+    });
+
     feed.querySelectorAll('.community-reaction-button').forEach(button=>{
       button.addEventListener('click',async()=>{
         const card=button.closest('.community-post-card');
@@ -263,24 +438,33 @@
   }
 
   async function loadPosts(showLoading=true){
+    const requestVersion=++feedRequestVersion;
     if(showLoading)feed.innerHTML='<p>Loading Community Feed…</p>';
 
     try{
-      const [postsResult,commentsResult,reactionsResult]=await Promise.all([
-        supabase.rpc('list_community_feed',{result_limit:100}),
-        supabase.from('community_comments')
-          .select('id,message_id,user_id,body,is_deleted,created_at')
-          .eq('is_deleted',false)
-          .order('created_at',{ascending:true}),
-        supabase.from('community_reactions')
-          .select('id,message_id,user_id,reaction')
-      ]);
-
+      const postsResult=await supabase.rpc('list_community_feed',{result_limit:100});
       if(postsResult.error)throw postsResult.error;
+      const posts=postsResult.data||[];
+      const postIds=posts.map(post=>post.id).filter(Boolean);
+
+      // Comments and reactions must be requested only for visible feed IDs.
+      // This is data minimization; backend RLS still must enforce access.
+      const [commentsResult,reactionsResult]=postIds.length
+        ? await Promise.all([
+            supabase.from('community_comments')
+              .select('id,message_id,user_id,body,is_deleted,created_at')
+              .in('message_id',postIds)
+              .eq('is_deleted',false)
+              .order('created_at',{ascending:true}),
+            supabase.from('community_reactions')
+              .select('id,message_id,user_id,reaction')
+              .in('message_id',postIds)
+          ])
+        : [{data:[],error:null},{data:[],error:null}];
+
+
       if(commentsResult.error)throw commentsResult.error;
       if(reactionsResult.error)throw reactionsResult.error;
-
-      const posts=postsResult.data||[];
       const comments=commentsResult.data||[];
       const reactions=reactionsResult.data||[];
       const userIds=[
@@ -301,6 +485,8 @@
       ]));
       const combinedProfiles={...commentProfileMap,...postAuthors};
       const avatarMap=await resolveAvatars(combinedProfiles);
+      if(requestVersion!==feedRequestVersion)return;
+      currentAvatarMap=avatarMap;
 
       allPosts=posts.map(post=>({
         ...post,
@@ -313,8 +499,17 @@
       })).sort((a,b)=>(Number(b.is_pinned)-Number(a.is_pinned))||(new Date(b.created_at)-new Date(a.created_at)));
 
       renderFeed(avatarMap);
+      const sharedId=new URLSearchParams(location.search).get('post');
+      if(sharedId){
+        const target=[...feed.querySelectorAll('.community-post-card')].find(card=>card.dataset.id===sharedId);
+        if(target){
+          target.classList.add('community-shared-target');
+          if(showLoading)target.scrollIntoView({block:'center',behavior:'smooth'});
+        }
+      }
       setConnection('Live','Live');
     }catch(error){
+      if(requestVersion!==feedRequestVersion)return;
       feed.innerHTML=`
         <div class="community-error-state">
           <h2>Community could not load.</h2>
@@ -357,10 +552,10 @@
 
     const payload={
       user_id:session.user.id,
-      title:postForm.title.value.trim()||null,
-      body:postForm.body.value.trim(),
-      post_type:postForm.post_type.value,
-      is_pinned:isFounder?postForm.is_pinned.checked:false
+      title:postForm.elements.namedItem('title').value.trim()||null,
+      body:postForm.elements.namedItem('body').value.trim(),
+      post_type:postForm.elements.namedItem('post_type').value,
+      is_pinned:isFounder?postForm.elements.namedItem('is_pinned').checked:false
     };
 
     const insert=await supabase.from('community_messages').insert(payload).select('id,created_at').single();

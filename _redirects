@@ -6,8 +6,9 @@
 /academy/leadership-habits.html /mentorship/leadership/ 301!
 /academy/part-time-career /opportunity/business-building/ 301!
 /academy/part-time-career.html /opportunity/business-building/ 301!
-/journey/ /opportunity/ 301!
-/journey /opportunity/ 301!
+# Preserve the public Journey roadmap and internal Journey navigation.
+# Only normalize the no-slash form; do not redirect the actual /journey/ page.
+/journey /journey/ 301!
 /platform/ /opportunity/ 301!
 /platform /opportunity/ 301!
 
@@ -22,7 +23,6 @@
 /knowledge /knowledge/ 301
 /operations /operations/ 301
 /follow-up /follow-up/ 301
-/journey /journey/ 301
 /platform /platform/ 301
 /release-notes /release-notes/ 301
 /knowledge/articles/what-happens-after-you-pass-your-insurance-exam /knowledge/articles/what-happens-after-you-pass-your-insurance-exam/ 301

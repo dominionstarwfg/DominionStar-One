@@ -1,0 +1,80 @@
+/* DominionStar Community: understated social composer, preview-only attachments.
+   Uploads remain fail-closed until server-side authorization is approved. */
+.community-composer-card{overflow:visible}
+.dsmedia-composer-top{display:flex;align-items:flex-start;gap:14px;margin:16px 0 12px}
+.dsmedia-author-glyph{width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;border-radius:50%;color:#f6eedc;background:linear-gradient(135deg,#103354,#2d6e85);box-shadow:0 5px 16px #153f6326}
+.dsmedia-author-glyph svg{width:23px;height:23px}
+.dsmedia-caption{flex:1;min-width:0}
+.dsmedia-caption-label{display:block;color:#536f84;font-size:12px;font-weight:780;margin-bottom:7px}
+.dsmedia-caption textarea{display:block;width:100%;resize:vertical;min-height:132px;padding:17px 18px;background:#f8fafc;border:1px solid #dae5ed;border-radius:16px;color:#1b3550;font-size:14px;line-height:1.7;box-shadow:inset 0 1px 2px #0b335106;transition:border-color .2s,box-shadow .2s}
+.dsmedia-caption textarea::placeholder{color:#8b9baa}
+.dsmedia-caption textarea:focus{outline:none;border-color:#598caa;box-shadow:0 0 0 3px #a0c2d73a;background:#fff}
+.dsmedia-post-options{margin:10px 0 14px;border-top:1px solid #e1e9ef;padding-top:12px}
+.dsmedia-post-options summary{width:max-content;max-width:100%;display:flex;align-items:center;gap:7px;list-style:none;color:#477086;font-weight:760;font-size:12px;cursor:pointer;border-radius:8px;padding:8px 9px}
+.dsmedia-post-options summary::-webkit-details-marker{display:none}
+.dsmedia-post-options summary:hover{background:#edf5f7}
+.dsmedia-post-options summary svg{width:16px;height:16px}
+.dsmedia-post-options summary span{color:#8d9ead;font-weight:500}
+.dsmedia-post-options .member-grid{padding:12px 3px 6px}
+.dsmedia-draft{border:1px solid #dae8ed;border-radius:15px;background:linear-gradient(115deg,#f7fbfd,#f5f9f7);padding:12px 15px;margin:0 0 16px}
+.dsmedia-action-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dsmedia-action-row .dsmedia-attach-button{display:inline-flex;align-items:center;gap:9px;min-height:42px;border-radius:10px;padding:9px 16px;border:1px solid #c6dbe2;background:#fff;color:#195e75;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 9px #163e5010}
+.dsmedia-action-row .dsmedia-attach-button:hover{border-color:#4e9a9e;background:#eef8f6}
+.dsmedia-action-row .dsmedia-attach-button:disabled{cursor:wait;opacity:.64}
+.dsmedia-attach-button svg{width:19px;height:19px}
+.dsmedia-attach-hint{color:#668296;font-size:11px;line-height:1.5}
+.dsmedia-tray:has(.dsmedia-file-card){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dsmedia-tray-title{grid-column:1/-1;font-size:11px;color:#557387;margin:10px 0 0}
+.dsmedia-file-card{display:flex;align-items:center;gap:11px;min-width:0;border-radius:12px;border:1px solid #d5e3e9;background:#fff;padding:9px;box-shadow:0 4px 13px #173d5b0b}
+.dsmedia-file-thumb{flex:0 0 70px;width:70px;height:70px;display:grid;place-items:center;background:linear-gradient(135deg,#dceff5,#ece5f7);border-radius:9px;overflow:hidden;color:#645d96;font-size:12px;font-weight:850}
+.dsmedia-file-thumb img,.dsmedia-file-thumb video{width:100%;height:100%;object-fit:cover;display:block}
+.dsmedia-file-info{flex:1;min-width:0;display:grid;gap:4px}
+.dsmedia-file-info strong{color:#20445f;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.dsmedia-file-info small{color:#7e91a2;font-size:10px;line-height:1.45}
+.dsmedia-remove{border:1px solid #e6c9cd;background:#fff4f5;color:#a64053;border-radius:8px;padding:7px 9px;font-size:10px;font-weight:750;cursor:pointer}
+.dsmedia-remove:hover{background:#fce5e8}
+.dsmedia-note{margin:11px 0 0;font-size:11px;line-height:1.6;color:#59798d}
+.dsmedia-note.is-error{color:#b14253}
+.dsmedia-draft :focus-visible,.dsmedia-post-options summary:focus-visible{outline:3px solid #dfbf7e;outline-offset:3px}
+@media(max-width:640px){.dsmedia-composer-top{gap:10px}.dsmedia-author-glyph{width:40px;height:40px;flex-basis:40px}.dsmedia-caption textarea{min-height:112px;padding:14px}.dsmedia-draft{padding:12px}.dsmedia-tray:has(.dsmedia-file-card){grid-template-columns:1fr}.dsmedia-file-thumb{flex-basis:60px;width:60px;height:60px}.dsmedia-attach-hint{flex-basis:100%}}
+@media(prefers-reduced-motion:reduce){.dsmedia-caption textarea{transition:none}}
+
+/* Publish controls, attachment actions and optional settings align to the LEFT. */
+.community-composer-card .community-composer-actions{
+  display:flex;justify-content:flex-start!important;align-items:center;gap:12px;flex-wrap:wrap
+}
+.community-composer-card .community-composer-actions #communityPostSubmit{
+  margin-left:0!important;margin-right:auto
+}
+.community-composer-card .dsmedia-action-row{justify-content:flex-start}
+.community-composer-card .dsmedia-caption{text-align:left}
+.community-composer-card .dsmedia-post-options summary{margin-left:0;margin-right:auto}
+
+
+/* Verified member identity stays visible above the caption editor. */
+.community-composer-card .dsmedia-author-glyph{
+ position:relative;overflow:hidden;border:2px solid #d2b57b;
+ width:52px;height:52px;flex-basis:52px;align-self:flex-start
+}
+.community-composer-card .dsmedia-author-glyph>span{
+ display:grid;place-items:center;width:100%;height:100%;
+ font:800 15px Inter,Arial,sans-serif;color:#fff
+}
+.community-composer-card .dsmedia-author-glyph>img{
+ position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%
+}
+.community-composer-card .dsmedia-author-glyph>.member-hidden{display:none!important}
+.community-composer-card .dsmedia-member-identity{display:grid;gap:6px;margin-bottom:15px}
+.community-composer-card .dsmedia-member-identity>strong{color:#183d59;font-size:14px;font-weight:850}
+.community-composer-card .dsmedia-member-credentials{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.community-composer-card .dsmedia-member-credentials>span{
+ border-radius:99px;font-size:10px;line-height:1.35;font-weight:800;
+ padding:5px 9px;background:#eef4f8;border:1px solid #d8e5ed;color:#335e7d
+}
+.community-composer-card .dsmedia-member-credentials>.dsmedia-founding-badge{
+ background:#fff4e0;border-color:#e5c487;color:#915c1b
+}
+.community-composer-card .dsmedia-member-credentials>.member-hidden{display:none!important}
+@media(max-width:580px){
+ .community-composer-card .dsmedia-author-glyph{width:44px;height:44px;flex-basis:44px}
+}

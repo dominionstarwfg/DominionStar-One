@@ -1,0 +1,86 @@
+/* DominionStar public shell — progressive navigation, not an artificial loading screen.
+   Native multi-page navigation is preserved for SEO, accessibility, forms and fallback. */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:ds-public-out .13s ease both}
+::view-transition-new(root){animation:ds-public-in .24s cubic-bezier(.2,.75,.2,1) both}
+@keyframes ds-public-out{to{opacity:.55;filter:blur(1px)}}
+@keyframes ds-public-in{from{opacity:.5;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+body.ds-public-app .site-header{view-transition-name:ds-public-header;isolation:isolate}
+::view-transition-old(ds-public-header),::view-transition-new(ds-public-header){animation-duration:.12s}
+body.ds-public-app .main-nav a[aria-current="page"]{position:relative;color:#f8d699}
+body.ds-public-app .main-nav a[aria-current="page"]::after{
+  content:"";position:absolute;left:0;right:0;bottom:-13px;height:3px;border-radius:5px;
+  background:linear-gradient(90deg,#e8bb67,#89cad0);box-shadow:0 0 12px #edd08d66
+}
+body.ds-public-app .site-header{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.dsapp-progress{
+  position:fixed;top:0;left:0;width:100%;height:3px;z-index:10001;pointer-events:none;
+  opacity:0;transform:translateY(-4px);transition:opacity .13s,transform .13s
+}
+.dsapp-progress[aria-hidden="false"]{opacity:1;transform:none}
+.dsapp-progress-bar{
+  width:24%;height:100%;display:block;transform:translateX(-104%);
+  background:linear-gradient(90deg,#54a6ac,#f2cb79);box-shadow:0 0 18px #edc98173;
+  transition:transform .4s ease-out
+}
+.dsapp-progress[aria-hidden="false"] .dsapp-progress-bar{transform:translateX(100%)}
+.dsapp-launch{
+  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  background:#ffffff0d;border:1px solid #d6e5ee3d;border-radius:10px;
+  color:#d9e7f1;padding:8px 11px;font:700 11px/1.4 Inter,"Segoe UI",Arial,sans-serif;
+  cursor:pointer;min-height:38px
+}
+.dsapp-launch:hover{background:#ffffff1d;border-color:#ecc67f8a;color:#fff}
+.dsapp-launch svg{height:16px;width:16px;stroke:#e5c987;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dsapp-launch kbd{font:600 10px/1.4 monospace;color:#a9b8c7;border:1px solid #ffffff38;border-radius:4px;padding:2px 5px}
+.dsapp-dialog::backdrop{background:rgba(4,13,29,.63);backdrop-filter:blur(5px)}
+.dsapp-dialog{
+  padding:0;width:min(580px,calc(100vw - 25px));max-height:min(650px,82vh);
+  border:1px solid #92a8b880;border-radius:20px;background:#f9fbff;
+  color:#19334f;box-shadow:0 25px 80px #06172f70;overflow:hidden
+}
+.dsapp-dialog-header{
+  display:flex;align-items:center;gap:12px;padding:15px 18px;
+  background:linear-gradient(120deg,#102f51,#184d6b);color:#fff
+}
+.dsapp-dialog-header svg{width:20px;height:20px;stroke:#efcd86;fill:none;stroke-width:2}
+.dsapp-dialog-header strong{flex:1;font-size:13px;letter-spacing:.02em}
+.dsapp-close{width:34px;height:34px;border:1px solid #fff5;border-radius:9px;color:#fff;background:#fff1;font-size:22px}
+.dsapp-search{
+  border:0;border-bottom:1px solid #e1e8ef;background:#fff;
+  padding:18px 21px;width:100%;outline:none;font-size:16px;color:#183d5c
+}
+.dsapp-search:focus{box-shadow:inset 0 -3px #6db0b2}
+.dsapp-results{padding:11px;overflow:auto;max-height:375px;display:grid;gap:5px}
+.dsapp-result{
+  display:flex;align-items:center;gap:12px;padding:12px 13px;border-radius:12px;
+  color:#2b4c67;text-decoration:none;background:#fff;border:1px solid transparent;
+  font:700 13px/1.4 Inter,"Segoe UI",Arial,sans-serif
+}
+.dsapp-result:hover,.dsapp-result:focus-visible{background:#edf6f8;border-color:#bddce0;color:#174e63;outline:none}
+.dsapp-result svg{height:20px;width:20px;stroke:#427f9e;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dsapp-result span{flex:1}.dsapp-result small{font-size:11px;color:#8394a5;font-weight:500}
+.dsapp-empty{padding:19px 14px;color:#71869a;font-size:12px}
+.dsapp-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 18px;border-top:1px solid #e5eaf0;font-size:10px;color:#718496;background:#f2f6fa}
+.dsapp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media(max-width:1120px){.dsapp-launch kbd{display:none}.dsapp-launch{padding:8px}}
+@media(max-width:920px){.dsapp-launch{display:none}.dsapp-public-floating{
+ display:flex!important;position:fixed;left:17px;right:auto;bottom:18px;z-index:79;
+ border-radius:50%;width:52px;height:52px;justify-content:center;
+ box-shadow:0 9px 32px #102e4d60;background:#102d4d;color:#fff;border:1px solid #c7a068
+}.dsapp-public-floating span,.dsapp-public-floating kbd{display:none}}
+.dsapp-public-floating{display:none}
+@media(prefers-reduced-motion:reduce){
+ ::view-transition-old(root),::view-transition-new(root){animation:none!important}
+ .dsapp-progress,.dsapp-progress-bar{transition:none!important}
+}
+
+/* Founder-approved geometry: public quick actions remain on the LEFT. */
+@media(min-width:921px){
+  body.ds-public-app .site-header .header-inner>.dsapp-launch{order:0;flex:0 0 auto}
+  body.ds-public-app .site-header .header-inner>.brand{order:-1}
+  body.ds-public-app .site-header .header-inner>.main-nav{margin-left:auto}
+}
+@media(max-width:920px){
+ .dsapp-public-floating{left:17px!important;right:auto!important}
+}
