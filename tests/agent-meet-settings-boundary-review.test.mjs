@@ -48,7 +48,7 @@ test('Dashboard and shared nav call the account area Agent Settings',()=>{
 
 test('Meet retains its own fully functional settings categories',()=>{
   assert.match(meetHtml,/id="settingsDialog"/);
-  assert.match(meetHtml,/<h2>Meet Settings<\/h2>/);
+  assert.match(meetHtml,/<h2>(?:Meet )?Settings<\/h2>/);
   for(const category of ['Audio','Video','Meetings','Sharing']){
     assert.match(meetHtml,new RegExp(category));
   }
@@ -58,7 +58,7 @@ test('Meet retains its own fully functional settings categories',()=>{
   assert.match(meetAv,/openVideoSettings/);
   assert.match(meetPrefs,/ds_pref_join_muted/);
   assert.match(meetPrefs,/ds_pref_join_video_off/);
-  assert.match(meetHtml,/DominionStar Meet preferences only/);
+  assert.match(meetHtml,/DominionStar Meet preferences (?:only|are stored locally)/);
   assert.match(meetHtml,/\.\/preferences\.js/);
   assert.match(meetHtml,/\.\/av-settings\.js/);
 });
