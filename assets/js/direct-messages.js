@@ -158,6 +158,7 @@
   let localStream = null;
   let callChannel = null;
   let globalOutgoingCallChannel = null;
+  let incomingCallInboxChannel = null;
   let pendingOffer = null;
   let activeCallType = 'audio';
   let screenStream = null;
@@ -800,6 +801,62 @@
     config: { ...(privateCallV2 ? {private:true} : {}), broadcast:{self:false} }
   });
 
+  // The Messages page owns incoming calls for EVERY agent, not only the
+  // conversation currently selected. Both pair and inbox events enter here;
+  // the matching SDP deduplicates the two delivery paths.
+  const showIncomingCallOffer = payload => {
+    if (!payload || payload.type !== 'offer' || !payload.from ||
+        payload.from === session.user.id || payload.to !== session.user.id) return;
+    if (peerConnection) return; // Never displace an active call.
+    if (pendingOffer) return; // Keep the first unanswered invitation visible.
+    pendingOffer = payload;
+    const caller = members.find(member => member.id === payload.from);
+    setAvatarElement(incomingAvatar, caller);
+    incomingName.textContent = caller?.display_name || 'DominionStar member';
+    incomingType.textContent = payload.callType === 'video' ? 'Video call' : 'Audio call';
+    window.CommunicationEngine?.startLoop('incoming_ring');
+    incomingCall.classList.remove('member-hidden');
+    incomingCall.setAttribute('aria-hidden','false');
+    activeCallAnswered = false;
+    clearTimeout(incomingCallTimer);
+    const ringingOffer = payload;
+    incomingCallTimer = setTimeout(async () => {
+      if (activeCallAnswered || pendingOffer !== ringingOffer) return;
+      pendingOffer = null;
+      incomingCallTimer = null;
+      incomingCall.classList.add('member-hidden');
+      incomingCall.setAttribute('aria-hidden','true');
+      window.CommunicationEngine?.stopAll();
+      window.CommunicationEngine?.play('missed_call');
+      await recordMissedCall(ringingOffer.from, ringingOffer.callType || 'audio', 'incoming');
+    }, 30000);
+  };
+
+  const dismissIncomingCallOffer = callerId => {
+    if (!pendingOffer || pendingOffer.from !== callerId) return false;
+    pendingOffer = null;
+    clearTimeout(incomingCallTimer);
+    incomingCallTimer = null;
+    incomingCall.classList.add('member-hidden');
+    incomingCall.setAttribute('aria-hidden','true');
+    window.CommunicationEngine?.stopAll();
+    return true;
+  };
+
+  const subscribeIncomingCallInbox = () => {
+    if (incomingCallInboxChannel) return incomingCallInboxChannel;
+    incomingCallInboxChannel = client.channel(callInboxName(session.user.id), callChannelConfig())
+      .on('broadcast', {event:'incoming-call'}, ({payload}) => {
+        showIncomingCallOffer(payload);
+      })
+      .on('broadcast', {event:'call-cancelled'}, ({payload}) => {
+        if (!payload || payload.to !== session.user.id) return;
+        dismissIncomingCallOffer(payload.from);
+      })
+      .subscribe();
+    return incomingCallInboxChannel;
+  };
+
   const ensureCallChannel = async otherId => {
     if (callChannel && callPartnerId === otherId) return callChannel;
     if (callChannel) await client.removeChannel(callChannel);
@@ -810,28 +867,7 @@
       if (!payload || payload.to !== session.user.id) return;
 
       if (payload.type === 'offer') {
-        pendingOffer = payload;
-        const caller = members.find(member => member.id === payload.from);
-        setAvatarElement(incomingAvatar, caller);
-        incomingName.textContent = caller?.display_name || 'DominionStar member';
-        incomingType.textContent = payload.callType === 'video' ? 'Video call' : 'Audio call';
-        window.CommunicationEngine?.startLoop('incoming_ring');
-        incomingCall.classList.remove('member-hidden');
-        incomingCall.setAttribute('aria-hidden','false');
-        activeCallAnswered = false;
-        clearTimeout(incomingCallTimer);
-        const ringingOffer = payload;
-        incomingCallTimer = setTimeout(async () => {
-          // Ignore old ringing timers after a new invitation or an answer.
-          if (activeCallAnswered || pendingOffer !== ringingOffer) return;
-          pendingOffer = null;
-          incomingCallTimer = null;
-          incomingCall.classList.add('member-hidden');
-          incomingCall.setAttribute('aria-hidden','true');
-          window.CommunicationEngine?.stopAll();
-          window.CommunicationEngine?.play('missed_call');
-          await recordMissedCall(ringingOffer.from, ringingOffer.callType || 'audio', 'incoming');
-        }, 30000);
+        showIncomingCallOffer(payload);
       }
 
       if (payload.type === 'answer' && peerConnection) {
@@ -853,8 +889,9 @@
       }
 
       if (payload.type === 'hangup') {
-        if (!activeCallAnswered && callPartnerId) await recordMissedCall(callPartnerId, activeCallType, 'outgoing');
-        endActiveCall(false);
+        if (!peerConnection && dismissIncomingCallOffer(payload.from)) return;
+        if (!activeCallAnswered && peerConnection && callPartnerId) await recordMissedCall(callPartnerId, activeCallType, 'outgoing');
+        await endActiveCall(false);
       }
       if (payload.type === 'decline') {
         window.CommunicationEngine?.stopAll();
@@ -1025,9 +1062,12 @@
     incomingCallTimer = null;
     window.CommunicationEngine?.stopAll();
     const caller = members.find(member => member.id === pendingOffer.from);
-    activeMemberId = pendingOffer.from;
-    await ensureCallChannel(activeMemberId);
-    activeCallType = pendingOffer.callType || 'audio';
+    const acceptedOffer = pendingOffer;
+    const callerId = acceptedOffer.from;
+    if (activeMemberId !== callerId) await openConversation(callerId);
+    else await ensureCallChannel(callerId);
+    if (pendingOffer !== acceptedOffer) return; // Caller cancelled while switching views.
+    activeCallType = acceptedOffer.callType || 'audio';
 
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
@@ -1037,7 +1077,7 @@
       peerConnection = createPeerConnection();
       localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
       localVideo.srcObject = localStream;
-      await peerConnection.setRemoteDescription(pendingOffer.description);
+      await peerConnection.setRemoteDescription(acceptedOffer.description);
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
       showCallOverlay(caller, activeCallType);
@@ -1245,6 +1285,9 @@
 
   await loadConversationSummaries();
   renderMembers('');
+  // The global listener deliberately skips /direct-messages/. Subscribe to
+  // the same inbox here to receive calls from agents outside the open chat.
+  subscribeIncomingCallInbox();
 
   const pendingGlobalCallRaw = sessionStorage.getItem('ds_pending_global_call');
   if (pendingGlobalCallRaw) {
@@ -1308,6 +1351,10 @@
     client.removeChannel(channel);
     if (callChannel) client.removeChannel(callChannel);
     if (globalOutgoingCallChannel) client.removeChannel(globalOutgoingCallChannel);
+    if (incomingCallInboxChannel) client.removeChannel(incomingCallInboxChannel);
+    clearTimeout(incomingCallTimer);
+    clearTimeout(outgoingCallTimer);
+    window.CommunicationEngine?.stopAll();
     if (typingChannel) client.removeChannel(typingChannel);
     peerConnection?.close();
     localStream?.getTracks().forEach(track => track.stop());
