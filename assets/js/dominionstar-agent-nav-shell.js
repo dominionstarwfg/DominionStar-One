@@ -14,7 +14,7 @@
     '#communityApp','#chatApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
     '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp','#mindsetApp',
     '#founderApp','#founderDashboard','#founderAppointmentApp','#emailAdminApp','#qaApp','#featureApp','#diagApp',
-    '#releaseCheckApp','#agentJourneyApp','#agentLearningApp'
+    '#releaseCheckApp','#agentJourneyApp','#agentLearningApp','#agentDriveApp','#agentTasksApp'
   ];
   const app=rootSelectors.map(selector=>document.querySelector(selector)).find(Boolean);
   if(!app || app.querySelector('[data-ds-agent-shell]')) return;
@@ -91,7 +91,8 @@
 
   const section=document.createElement('div');
   section.className='ds-agent-current';
-  section.textContent=(items.find(item=>normalized(item[1])===path)||[])[0] || (founderMode?'Founder Operations':'My Space');
+  const auxiliaryLabels={'/workspace/drive':'Drive','/workspace/tasks':'Tasks'};
+  section.textContent=(items.find(item=>normalized(item[1])===path)||[])[0] || auxiliaryLabels[path] || (founderMode?'Founder Operations':'My Space');
 
   const search=document.createElement('button');
   search.className='ds-agent-search-trigger';search.type='button';
