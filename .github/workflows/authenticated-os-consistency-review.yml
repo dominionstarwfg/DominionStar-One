@@ -35,9 +35,9 @@ on:
       - 'assets/js/agent-journey.js'
       - 'assets/js/agent-learning.js'
       - 'assets/js/notifications-center.js'
-      - 'assets/js/release-check.js'
+      - 'assets/js/release-check.js'\n      - 'assets/js/founder-control.js'
       - 'netlify/functions/founder-data.mjs'
-      - 'tests/authenticated-os-consistency-review.test.mjs'
+      - 'tests/authenticated-os-consistency-review.test.mjs'\n      - 'tests/founder-os-integrity-review.test.mjs'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   workflow_dispatch:
 
@@ -60,7 +60,7 @@ jobs:
           node --check assets/js/agent-journey.js
           node --check assets/js/agent-learning.js
           node --check assets/js/notifications-center.js
-          node --check assets/js/release-check.js
+          node --check assets/js/release-check.js\n          node --check assets/js/founder-control.js
           node --check founder-dashboard/founder-dashboard.js
           node --check netlify/functions/founder-data.mjs
       - name: Authenticated OS consistency
